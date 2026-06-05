@@ -1752,10 +1752,17 @@ public:
         noisePhase = 0.0;
         heldNote = -1;
         noteVelocity = 0.0f;
+        channelNotes.fill(-1);
+        channelVelocity.fill(0.0f);
+        channelStamp.fill(0);
+        noteStamp = 0;
     }
 
     void setPatch(const PatchConfig& newPatch) override
     {
+        if (newPatch.playMode != patch.playMode)
+            clearChipPolyState();
+
         patch = newPatch;
     }
 
@@ -1785,6 +1792,12 @@ public:
 
     void noteOn(int midiNote, float velocity) override
     {
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            noteOnChipPoly(midiNote, velocity);
+            return;
+        }
+
         heldNote = midiNote;
         noteVelocity = static_cast<float>(clamp01(velocity));
         const auto spread = static_cast<int>(std::round(patch.control1 * 12.0f));
@@ -1856,6 +1869,12 @@ public:
 
     void noteOff(int midiNote) override
     {
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            noteOffChipPoly(midiNote);
+            return;
+        }
+
         if (midiNote == heldNote)
         {
             heldNote = -1;
@@ -1902,7 +1921,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Latch/data writes, tone periods, attenuation, and noise modes are modeled; exact variant behavior and hardware-level output validation are still required.";
+        return "Latch/data writes, tone periods, attenuation, noise modes, and tone-channel allocation for Chip Poly play mode are modeled; exact variant behavior and hardware-level output validation are still required.";
     }
 
     std::string debugStateJson() const override
@@ -1917,6 +1936,10 @@ public:
              << "\"period0\":" << tonePeriod[0] << ","
              << "\"period1\":" << tonePeriod[1] << ","
              << "\"period2\":" << tonePeriod[2] << ","
+             << "\"activeChannels\":" << activeChipPolyChannels() << ","
+             << "\"assignedNote0\":" << channelNotes[0] << ","
+             << "\"assignedNote1\":" << channelNotes[1] << ","
+             << "\"assignedNote2\":" << channelNotes[2] << ","
              << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
              << "}";
         return json.str();
@@ -1933,6 +1956,71 @@ private:
     uint16_t notePeriod(int midiNote) const
     {
         return static_cast<uint16_t>(std::clamp(std::round(clock / (32.0 * midiNoteToHz(std::clamp(midiNote, 0, 127)))), 1.0, 1023.0));
+    }
+
+    int selectChipPolyChannel(int midiNote) const
+    {
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (channelNotes[channel] == midiNote)
+                return static_cast<int>(channel);
+        }
+
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (channelNotes[channel] < 0)
+                return static_cast<int>(channel);
+        }
+
+        const auto oldest = std::min_element(channelStamp.begin(), channelStamp.end());
+        return static_cast<int>(std::distance(channelStamp.begin(), oldest));
+    }
+
+    int activeChipPolyChannels() const
+    {
+        return static_cast<int>(std::count_if(channelNotes.begin(), channelNotes.end(), [](int note) { return note >= 0; }));
+    }
+
+    void clearChipPolyState()
+    {
+        channelNotes.fill(-1);
+        channelVelocity.fill(0.0f);
+        channelStamp.fill(0);
+        noteStamp = 0;
+        noteVelocity = 0.0f;
+        attenuation = { 0x0f, 0x0f, 0x0f, 0x0f };
+    }
+
+    void noteOnChipPoly(int midiNote, float velocity)
+    {
+        const auto channel = selectChipPolyChannel(midiNote);
+        if (channel < 0)
+            return;
+
+        const auto index = static_cast<size_t>(channel);
+        channelNotes[index] = std::clamp(midiNote, 0, 127);
+        channelVelocity[index] = static_cast<float>(clamp01(velocity));
+        channelStamp[index] = ++noteStamp;
+        tonePeriod[index] = notePeriod(channelNotes[index]);
+        attenuation[index] = static_cast<uint8_t>(std::clamp(static_cast<int>(15 - std::round(channelVelocity[index] * 15.0f)), 0, 15));
+        attenuation[3] = 0x0f;
+        noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
+    }
+
+    void noteOffChipPoly(int midiNote)
+    {
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (channelNotes[channel] != midiNote)
+                continue;
+
+            channelNotes[channel] = -1;
+            channelVelocity[channel] = 0.0f;
+            channelStamp[channel] = 0;
+            attenuation[channel] = 0x0f;
+        }
+
+        noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
     }
 
     double renderTone(int channel)
@@ -1975,6 +2063,10 @@ private:
     double noisePhase = 0.0;
     int heldNote = -1;
     float noteVelocity = 0.0f;
+    std::array<int, 3> channelNotes { -1, -1, -1 };
+    std::array<float, 3> channelVelocity {};
+    std::array<uint64_t, 3> channelStamp {};
+    uint64_t noteStamp = 0;
     PatchConfig patch;
 };
 

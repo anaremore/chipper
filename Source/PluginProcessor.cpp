@@ -3,6 +3,8 @@
 #include "Engine/ChipDescriptors.h"
 #include "PluginEditor.h"
 
+#include <algorithm>
+
 namespace
 {
 constexpr auto coreStateTag = "CHIPPER_CORE_REGISTERS";
@@ -90,25 +92,22 @@ void ChipperAudioProcessor::handleMidiMessage(const juce::MidiMessage& message)
 
     if (message.isNoteOn())
     {
-        activeNote = message.getNoteNumber();
-        activeVelocity = message.getFloatVelocity();
-        core->noteOn(activeNote, activeVelocity);
+        const auto note = message.getNoteNumber();
+        const auto velocity = message.getFloatVelocity();
+        rememberHeldNote(note, velocity);
+        core->noteOn(note, velocity);
     }
     else if (message.isNoteOff())
     {
-        core->noteOff(message.getNoteNumber());
-        if (activeNote == message.getNoteNumber())
-        {
-            activeNote = -1;
-            activeVelocity = 0.0f;
-        }
+        const auto note = message.getNoteNumber();
+        core->noteOff(note);
+        forgetHeldNote(note);
     }
     else if (message.isAllNotesOff() || message.isAllSoundOff())
     {
-        if (activeNote >= 0)
-            core->noteOff(activeNote);
-        activeNote = -1;
-        activeVelocity = 0.0f;
+        for (const auto held : heldNotes)
+            core->noteOff(held.note);
+        heldNotes.clear();
     }
 }
 
@@ -128,9 +127,7 @@ void ChipperAudioProcessor::ensureCore()
         {
             activePatch = selectedPatch;
             core->setPatch(activePatch);
-
-            if (activeNote >= 0)
-                core->noteOn(activeNote, activeVelocity);
+            replayHeldNotes();
         }
 
         return;
@@ -144,8 +141,7 @@ void ChipperAudioProcessor::ensureCore()
     core->reset(currentSampleRate, activeClock);
     core->setPatch(activePatch);
     replayPendingRegisterState();
-    activeNote = -1;
-    activeVelocity = 0.0f;
+    replayHeldNotes();
 }
 
 chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
@@ -173,6 +169,33 @@ void ChipperAudioProcessor::replayPendingRegisterState()
         core->writeRegister(write.address, write.value);
 
     pendingRegisterState.clear();
+}
+
+void ChipperAudioProcessor::replayHeldNotes()
+{
+    if (core == nullptr)
+        return;
+
+    for (const auto held : heldNotes)
+        core->noteOn(held.note, held.velocity);
+}
+
+void ChipperAudioProcessor::rememberHeldNote(int note, float velocity)
+{
+    const auto existing = std::find_if(heldNotes.begin(), heldNotes.end(), [note](const auto held) { return held.note == note; });
+    if (existing != heldNotes.end())
+    {
+        existing->velocity = velocity;
+        return;
+    }
+
+    heldNotes.push_back({ note, velocity });
+}
+
+void ChipperAudioProcessor::forgetHeldNote(int note)
+{
+    heldNotes.erase(std::remove_if(heldNotes.begin(), heldNotes.end(), [note](const auto held) { return held.note == note; }),
+                    heldNotes.end());
 }
 
 juce::AudioProcessorEditor* ChipperAudioProcessor::createEditor()

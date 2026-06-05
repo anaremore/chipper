@@ -101,6 +101,6 @@ Authentic mode should expose chip-native behavior. Hybrid mode can add musical h
 
 ## Current Bridge
 
-The current `ChipDescriptor` layer is the first implemented step toward this system. It provides chip names, summaries, macro templates, chip-specific labels for the universal macro controls, and six stable UI module definitions per chip. The JUCE editor renders those modules in a fixed shell and updates their contents from the selected descriptor. The shared Play Mode parameter is the first patch/channel control exposed globally; YM2149 / AY currently implements Chip Poly allocation across channels A, B, and C.
+The current `ChipDescriptor` layer is the first implemented step toward this system. It provides chip names, summaries, macro templates, chip-specific labels for the universal macro controls, and six stable UI module definitions per chip. The JUCE editor renders those modules in a fixed shell and updates their contents from the selected descriptor. The shared Play Mode parameter is the first patch/channel control exposed globally; YM2149 / AY and SN76489 currently implement Chip Poly allocation across their three tone channels.
 
 Future UI work should keep expanding `ChipDescriptor` into richer module and parameter specs rather than adding chip-specific editor branches.

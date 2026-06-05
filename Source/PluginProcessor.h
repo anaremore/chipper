@@ -41,11 +41,20 @@ public:
     chipper::ChipMode currentChipMode() const { return activeMode; }
 
 private:
+    struct HeldMidiNote
+    {
+        int note = -1;
+        float velocity = 0.0f;
+    };
+
     void ensureCore();
     chipper::PatchConfig currentPatchFromParameters() const;
     void replayPendingRegisterState();
+    void replayHeldNotes();
     void renderRange(juce::AudioBuffer<float>& buffer, int startSample, int endSample, float outputGain);
     void handleMidiMessage(const juce::MidiMessage& message);
+    void rememberHeldNote(int note, float velocity);
+    void forgetHeldNote(int note);
 
     juce::AudioProcessorValueTreeState apvts;
     std::unique_ptr<chipper::ChipCore> core;
@@ -53,8 +62,7 @@ private:
     chipper::AccuracyMode activeAccuracy = chipper::AccuracyMode::hybrid;
     double activeClock = 1789773.0;
     double currentSampleRate = 48000.0;
-    int activeNote = -1;
-    float activeVelocity = 0.0f;
+    std::vector<HeldMidiNote> heldNotes;
     chipper::PatchConfig activePatch;
     std::vector<chipper::RegisterWrite> pendingRegisterState;
 

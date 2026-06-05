@@ -84,7 +84,7 @@ std::array<ModuleDescriptor, 6> sn76489Modules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "SN76489 PSG clean-room register model.", { "Sega PSG", "Clock override", "Hybrid default", "Authentic still partial" }),
-        makeModule("sources", "Channels", "Three tone channels and one noise channel.", { "Tone 1", "Tone 2", "Tone 3", "Noise" }),
+        makeModule("sources", "Channels", "Three tone channels and one noise channel.", { "Tone 1", "Tone 2", "Tone 3", "Chip Poly ready" }),
         makeModule("tone", "Tone / Crunch", "Tone periods, noise mode, and attenuation.", { "Tone stack", "White noise", "Periodic noise", "Attenuation" }),
         makeModule("envelope", "Envelope", "Volume envelopes are Chipper helpers over PSG attenuation.", { "Level steps", "Retrigger decay", "Hybrid ADSR", "SFX decay" }),
         makeModule("motion", "Motion", "Sega-style beeps and fake chord motion.", { "Arp stack", "Fake chords", "Pitch sweep", "UI blips" }),

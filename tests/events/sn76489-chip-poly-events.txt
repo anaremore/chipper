@@ -1,0 +1,4 @@
+# Three overlapping notes should allocate across SN76489 tone channels 0, 1, and 2.
+note_on 0 60 1.0
+note_on 10 64 0.8
+note_on 20 67 0.6
