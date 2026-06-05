@@ -48,7 +48,7 @@ std::array<ModuleDescriptor, 6> nesModules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "RP2A03-inspired clean-room APU model.", { "2A03 family", "NTSC/PAL clock override", "Hybrid default", "Authentic still partial" }),
-        makeModule("sources", "Channels", "Native channel layout exposed musically.", { "Pulse 1", "Pulse 2", "Triangle", "Noise / DMC planned" }),
+        makeModule("sources", "Channels", "Native channel layout exposed musically.", { "Pulse 1", "Pulse 2", "Triangle / Chip Poly", "Noise / DMC planned" }),
         makeModule("tone", "Shape / Mixer", "Pulse, triangle, noise, and nonlinear mixer behavior.", { "Pulse duty", "Pitch sweep macro", "Noise mode", "Nonlinear mixer" }),
         makeModule("envelope", "Envelope", "APU envelope and duration behavior.", { "Simple envelope", "Length counters", "Triangle linear planned", "Drum decay" }),
         makeModule("motion", "Motion", "Macro gestures write chip-like register templates.", { "Coin blip", "Jump rise", "Laser sweep", "Fast arps" }),
@@ -163,6 +163,7 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             nesModules(),
             commonMacros(),
+            true,
             true
         },
         {

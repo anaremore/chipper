@@ -20,6 +20,21 @@ The footer/status area should include a subtle generated build label so a tester
 
 The module contents may change, but the order should not. Users should learn where concepts live once and carry that knowledge across NES, DMG, SID, YM2149, SN76489, FM, and sampler-style modes.
 
+## Slot Scalability
+
+The six slots are functional zones, not six rigid equal boxes. Every chip should use the same concepts:
+
+1. Chip Profile
+2. Sources
+3. Tone / Shape
+4. Envelope / Level
+5. Motion / Performance
+6. Output / Utility
+
+Chip manifests may choose different panel templates and layout density inside those zones. PSG, wavetable, and most sample chips fit a standard channel-bank layout. FM chips should use the same conceptual slots but need a denser operator editor or operator grid inside Tone / Shape. Sample-heavy chips such as SPC700-style and Paula modes should use sample voice banks plus sample/loop/pitch panels instead of oscillator-style controls.
+
+The product rule is: every chip feels distinct, but no chip feels like a different plugin.
+
 ## Data Model
 
 The UI should be built from chip definitions instead of per-chip hardcoded editor branches.
@@ -103,6 +118,6 @@ Authentic mode should expose chip-native behavior. Hybrid mode can add musical h
 
 ## Current Bridge
 
-The current `ChipDescriptor` layer is the first implemented step toward this system. It provides chip names, summaries, macro templates, chip-specific labels for the universal macro controls, implementation status, Chip Poly capability, and six stable UI module definitions per chip. The JUCE editor renders those modules in a fixed shell and updates their contents from the selected descriptor. Implemented chips show live macro/native controls; planned chips keep roadmap module text visible but disable inactive controls so the UI does not imply sound behavior that is not backed by a core. The shared Play Mode parameter is the first patch/channel control exposed globally; Game Boy / DMG, YM2149 / AY, and SN76489 currently implement Chip Poly allocation across their finite pitched channels.
+The current `ChipDescriptor` layer is the first implemented step toward this system. It provides chip names, summaries, macro templates, chip-specific labels for the universal macro controls, implementation status, Chip Poly capability, and six stable UI module definitions per chip. The JUCE editor renders those modules in a fixed shell and updates their contents from the selected descriptor. Implemented chips show live macro/native controls; planned chips keep roadmap module text visible but disable inactive controls so the UI does not imply sound behavior that is not backed by a core. The shared Play Mode parameter is the first patch/channel control exposed globally; NES / RP2A03, Game Boy / DMG, YM2149 / AY, and SN76489 currently implement Chip Poly allocation across their finite pitched channels.
 
 Future UI work should keep expanding `ChipDescriptor` into richer module and parameter specs rather than adding chip-specific editor branches.
