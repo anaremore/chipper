@@ -1,0 +1,5 @@
+# Triangle only: control flag set keeps the reload flag active and reloads value 3 every quarter frame.
+write 1 0x4015 0x04
+write 2 0x4008 0x83
+write 3 0x400a 0xfe
+write 4 0x400b 0x00

@@ -15,7 +15,7 @@ Source candidates, reference projects, validation targets, and license-audit tie
 
 | Chip | Target | Initial Source Plan | License Status | Current Status |
 | --- | --- | --- | --- | --- |
-| NES / RP2A03 | Pulse, triangle, noise, DMC, nonlinear mixer | Clean-room register model; FigBug/RP2A03 may be reference/test-oracle material only | Internal; FigBug/RP2A03 is LGPL-2.1 and not vendored | Partial APU core with pulse/triangle/noise timers, simple envelopes, length-counter groundwork, nonlinear mixer, and basic pulse sweep update/mute behavior; DMC, exact frame sequencing, linear counter behavior, advanced sweep edge cases, and hardware validation still required |
+| NES / RP2A03 | Pulse, triangle, noise, DMC, nonlinear mixer | Clean-room register model; FigBug/RP2A03 may be reference/test-oracle material only | Internal; FigBug/RP2A03 is LGPL-2.1 and not vendored | Partial APU core with pulse/triangle/noise timers, simple envelopes, length-counter groundwork, triangle linear counter gating, 32-step triangle output, nonlinear mixer, and basic pulse sweep update/mute behavior; DMC, exact frame sequencing, advanced sweep edge cases, and hardware validation still required |
 | Game Boy / DMG APU | Pulse, wave RAM, noise, envelopes, length, sweep, stereo routing | Clean-room register model based on public docs such as Pan Docs, with SameBoy and FigBug/PAPU as possible references after audit | Internal; FigBug/PAPU is GPL-2.0 and not vendored | Partial core with trigger handling, DAC gating, simple envelope clocks, length-counter groundwork, basic CH1 sweep, NR50/NR51 routing, and NR43 noise clock behavior; exact DIV-APU quirks, sweep obscure behavior, mixer analog details, stereo/DAC edge cases, and hardware validation still required |
 | SID / C64 | 6581/8580 oscillator, ADSR, sync, ring, filter | Needs permissive core or clean-room implementation; FigBug/SID may be reference material only | reSID-style cores are commonly GPL-family; FigBug/SID is GPL-3.0 and not vendored | Planned, not accurate |
 | YM2149 / AY | Three tones, shared noise, mixer, volume/envelope | Clean-room register model | Internal | Phase 1 partial core |
@@ -73,5 +73,5 @@ Golden WAV/reference outputs must include versioned metadata and source provenan
 
 ## Public Documentation References
 
-- NES / RP2A03 APU sweep and mixer behavior: https://www.nesdev.org/wiki/APU_Sweep and https://www.nesdev.org/wiki/APU_Mixer
+- NES / RP2A03 APU sweep, triangle, frame counter, and mixer behavior: https://www.nesdev.org/wiki/APU_Sweep, https://www.nesdev.org/wiki/APU_Triangle, https://www.nesdev.org/wiki/APU_Frame_Counter, and https://www.nesdev.org/wiki/APU_Mixer
 - Game Boy / DMG APU register and timing behavior: https://gbdev.io/pandocs/Audio_Registers.html and https://gbdev.io/pandocs/Audio_details.html

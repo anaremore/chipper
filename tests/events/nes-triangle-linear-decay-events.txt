@@ -1,0 +1,5 @@
+# Triangle only: control flag clear, reload value 2, then quarter-frame clocks decay to zero.
+write 1 0x4015 0x04
+write 2 0x4008 0x02
+write 3 0x400a 0xfe
+write 4 0x400b 0x00

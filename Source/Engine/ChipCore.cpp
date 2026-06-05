@@ -801,6 +801,8 @@ public:
         lengthCounter.fill(0);
         sweepDivider.fill(0);
         sweepReload.fill(false);
+        linearCounter = 0;
+        linearReloadFlag = false;
         quarterFramePhase = 0.0;
         halfFramePhase = 0.0;
         lfsr = 1;
@@ -823,7 +825,10 @@ public:
         else if (address == 0x4007)
             triggerChannel(1, value);
         else if (address == 0x400b)
+        {
             triggerChannel(2, value);
+            linearReloadFlag = true;
+        }
         else if (address == 0x400f)
             triggerChannel(3, value);
 
@@ -965,7 +970,7 @@ public:
 
         const auto p1 = channelActive(0) ? renderPulse(0) : 0.0;
         const auto p2 = channelActive(1) ? renderPulse(1) : 0.0;
-        const auto tri = channelActive(2) ? renderTriangle() : 0.0;
+        const auto tri = triangleActive() ? renderTriangle() : 0.0;
         const auto noi = channelActive(3) ? renderNoise() : 0.0;
 
         const auto pulseSum = p1 + p2;
@@ -992,7 +997,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Pulse, triangle, noise, timers, duty, enable bits, simple envelopes, length counters, basic pulse sweep updates/muting, and nonlinear mixer are approximated; DMC, exact frame sequencer timing, linear counter behavior, advanced sweep edge cases, and hardware validation are not complete.";
+        return "Pulse, triangle, noise, timers, duty, enable bits, simple envelopes, length counters, triangle linear counter, basic pulse sweep updates/muting, and nonlinear mixer are approximated; DMC, exact frame sequencer timing, advanced sweep edge cases, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -1006,6 +1011,11 @@ public:
              << "\"pulseTimer1\":" << timer[0] << ","
              << "\"pulseTimer2\":" << timer[1] << ","
              << "\"triangleTimer\":" << timer[2] << ","
+             << "\"triangleActive\":" << (triangleActive() ? 1 : 0) << ","
+             << "\"linearCounter\":" << static_cast<int>(linearCounter) << ","
+             << "\"linearReloadValue\":" << static_cast<int>(linearReloadValue()) << ","
+             << "\"linearReloadFlag\":" << (linearReloadFlag ? 1 : 0) << ","
+             << "\"linearControlFlag\":" << (linearControlFlag() ? 1 : 0) << ","
              << "\"sweepTarget0\":" << sweepTargetPeriod(0) << ","
              << "\"sweepTarget1\":" << sweepTargetPeriod(1) << ","
              << "\"sweepMuted0\":" << (pulseSweepMuted(0) ? 1 : 0) << ","
@@ -1054,6 +1064,11 @@ private:
         return channel < enabled.size() && enabled[channel] && lengthCounter[channel] > 0;
     }
 
+    bool triangleActive() const
+    {
+        return channelActive(2) && linearCounter > 0;
+    }
+
     int envelopeRegisterForChannel(size_t channel) const
     {
         if (channel == 0)
@@ -1070,6 +1085,7 @@ private:
         {
             quarterFramePhase -= 1.0;
             tickEnvelopes();
+            tickLinearCounter();
         }
 
         halfFramePhase += 120.0 / sampleRate;
@@ -1109,6 +1125,31 @@ private:
             else if (loop)
                 envelopeVolume[channel] = 15;
         }
+    }
+
+    uint8_t linearReloadValue() const
+    {
+        return static_cast<uint8_t>(regs[0x08] & 0x7fu);
+    }
+
+    bool linearControlFlag() const
+    {
+        return (regs[0x08] & 0x80u) != 0;
+    }
+
+    void tickLinearCounter()
+    {
+        if (linearReloadFlag)
+        {
+            linearCounter = linearReloadValue();
+        }
+        else if (linearCounter > 0)
+        {
+            --linearCounter;
+        }
+
+        if (! linearControlFlag())
+            linearReloadFlag = false;
     }
 
     void tickLengthCounters()
@@ -1218,7 +1259,7 @@ private:
     {
         const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
         const auto triTimer = static_cast<int>(std::max(0.0, std::round(clock / (32.0 * hz) - 1.0)));
-        writeRegister(0x4008, 0x80);
+        writeRegister(0x4008, 0xff);
         writeRegister(0x400a, static_cast<uint8_t>(triTimer & 0xff));
         writeRegister(0x400b, static_cast<uint8_t>((triTimer >> 8) & 0x07));
     }
@@ -1254,11 +1295,18 @@ private:
 
     double renderTriangle()
     {
+        static constexpr std::array<double, 32> sequence {
+            15, 14, 13, 12, 11, 10, 9, 8,
+            7, 6, 5, 4, 3, 2, 1, 0,
+            0, 1, 2, 3, 4, 5, 6, 7,
+            8, 9, 10, 11, 12, 13, 14, 15
+        };
+
         const auto period = timer[2] + 1;
         const auto hz = clock / (32.0 * static_cast<double>(period));
         phase[2] = wrapPhase(phase[2] + hz / sampleRate);
-        const auto tri = 1.0 - std::abs(phase[2] * 2.0 - 1.0);
-        return tri * 15.0;
+        const auto step = std::clamp(static_cast<size_t>(phase[2] * sequence.size()), size_t(0), sequence.size() - 1);
+        return sequence[step];
     }
 
     double renderNoise()
@@ -1299,6 +1347,8 @@ private:
     std::array<uint8_t, 4> lengthCounter {};
     std::array<uint8_t, 2> sweepDivider {};
     std::array<bool, 2> sweepReload {};
+    uint8_t linearCounter = 0;
+    bool linearReloadFlag = false;
     double quarterFramePhase = 0.0;
     double halfFramePhase = 0.0;
     uint16_t lfsr = 1;
