@@ -86,6 +86,12 @@ add_test(NAME chipper_render_nes_triangle_linear_decay_smoke
 add_test(NAME chipper_render_nes_triangle_linear_mute_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --macro manual --clock 1789773 --rate 48000 --seconds 0.020 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/nes-triangle-linear-mute-events.txt --out nes-triangle-linear-mute-smoke.wav --debug nes-triangle-linear-mute-smoke.json
 )
+add_test(NAME chipper_render_nes_dmc_direct_low_smoke
+    COMMAND chipper_render --chip nes --accuracy authentic --macro manual --clock 1789773 --rate 48000 --seconds 0.004 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/nes-dmc-direct-load-low-events.txt --out nes-dmc-direct-low-smoke.wav --debug nes-dmc-direct-low-smoke.json
+)
+add_test(NAME chipper_render_nes_dmc_direct_high_smoke
+    COMMAND chipper_render --chip nes --accuracy authentic --macro manual --clock 1789773 --rate 48000 --seconds 0.004 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/nes-dmc-direct-load-high-events.txt --out nes-dmc-direct-high-smoke.wav --debug nes-dmc-direct-high-smoke.json
+)
 
 if (Python3_Interpreter_FOUND)
     add_test(NAME chipper_render_nes_json_assert
@@ -177,6 +183,16 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-triangle-linear-mute-smoke.json --implemented-contains partial --macro Manual --register-writes 4 --note-events 0 --core-min linearCounter=0 --core-max linearCounter=0 --core-min linearReloadValue=0 --core-max linearReloadValue=0 --core-min linearReloadFlag=1 --core-max linearReloadFlag=1 --core-min linearControlFlag=1 --core-max linearControlFlag=1 --core-min triangleActive=0 --core-max triangleActive=0
     )
     set_tests_properties(chipper_render_nes_triangle_linear_mute_assert PROPERTIES DEPENDS chipper_render_nes_triangle_linear_mute_smoke)
+
+    add_test(NAME chipper_render_nes_dmc_direct_low_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-dmc-direct-low-smoke.json --implemented-contains partial --macro Manual --register-writes 2 --note-events 0 --core-min dmcLevel=0 --core-max dmcLevel=0
+    )
+    set_tests_properties(chipper_render_nes_dmc_direct_low_assert PROPERTIES DEPENDS chipper_render_nes_dmc_direct_low_smoke)
+
+    add_test(NAME chipper_render_nes_dmc_direct_high_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-dmc-direct-high-smoke.json --implemented-contains partial --macro Manual --register-writes 2 --note-events 0 --min-peak 0.7 --max-peak 0.85 --core-min dmcLevel=127 --core-max dmcLevel=127
+    )
+    set_tests_properties(chipper_render_nes_dmc_direct_high_assert PROPERTIES DEPENDS chipper_render_nes_dmc_direct_high_smoke)
 endif()
 
 if (NOT CHIPPER_BUILD_PLUGIN)

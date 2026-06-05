@@ -820,6 +820,9 @@ public:
         if (address >= 0x4000 && address <= 0x4017)
             regs[static_cast<size_t>(address - 0x4000)] = value;
 
+        if (address == 0x4011)
+            regs[0x11] = static_cast<uint8_t>(value & 0x7fu);
+
         if (address == 0x4003)
             triggerChannel(0, value);
         else if (address == 0x4007)
@@ -972,9 +975,10 @@ public:
         const auto p2 = channelActive(1) ? renderPulse(1) : 0.0;
         const auto tri = triangleActive() ? renderTriangle() : 0.0;
         const auto noi = channelActive(3) ? renderNoise() : 0.0;
+        const auto dmc = static_cast<double>(dmcOutputLevel());
 
         const auto pulseSum = p1 + p2;
-        const auto tndSum = tri / 8227.0 + noi / 12241.0;
+        const auto tndSum = tri / 8227.0 + noi / 12241.0 + dmc / 22638.0;
         const auto pulseOut = pulseSum <= 0.0 ? 0.0 : 95.88 / ((8128.0 / pulseSum) + 100.0);
         const auto tndOut = tndSum <= 0.0 ? 0.0 : 159.79 / ((1.0 / tndSum) + 100.0);
         const auto mixed = static_cast<float>((pulseOut + tndOut) * 2.0 - 0.35);
@@ -997,7 +1001,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Pulse, triangle, noise, timers, duty, enable bits, simple envelopes, length counters, triangle linear counter, basic pulse sweep updates/muting, and nonlinear mixer are approximated; DMC, exact frame sequencer timing, advanced sweep edge cases, and hardware validation are not complete.";
+        return "Pulse, triangle, noise, timers, duty, enable bits, simple envelopes, length counters, triangle linear counter, DMC direct DAC level, basic pulse sweep updates/muting, and nonlinear mixer are approximated; DMC sample playback, exact frame sequencer timing, advanced sweep edge cases, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -1016,6 +1020,7 @@ public:
              << "\"linearReloadValue\":" << static_cast<int>(linearReloadValue()) << ","
              << "\"linearReloadFlag\":" << (linearReloadFlag ? 1 : 0) << ","
              << "\"linearControlFlag\":" << (linearControlFlag() ? 1 : 0) << ","
+             << "\"dmcLevel\":" << static_cast<int>(dmcOutputLevel()) << ","
              << "\"sweepTarget0\":" << sweepTargetPeriod(0) << ","
              << "\"sweepTarget1\":" << sweepTargetPeriod(1) << ","
              << "\"sweepMuted0\":" << (pulseSweepMuted(0) ? 1 : 0) << ","
@@ -1067,6 +1072,11 @@ private:
     bool triangleActive() const
     {
         return channelActive(2) && linearCounter > 0;
+    }
+
+    uint8_t dmcOutputLevel() const
+    {
+        return static_cast<uint8_t>(regs[0x11] & 0x7fu);
     }
 
     int envelopeRegisterForChannel(size_t channel) const

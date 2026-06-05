@@ -1,0 +1,3 @@
+# DMC direct load masks to 7 bits and contributes to the TND mixer.
+write 1 0x4015 0x00
+write 2 0x4011 0xff
