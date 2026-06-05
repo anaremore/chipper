@@ -125,6 +125,10 @@ public:
         lfsr = 0x7fffu;
         heldNote = -1;
         noteVelocity = 0.0f;
+        channelNotes.fill(-1);
+        channelVelocity.fill(0.0f);
+        channelStamp.fill(0);
+        noteStamp = 0;
 
         for (size_t i = 0; i < 16; ++i)
         {
@@ -136,6 +140,9 @@ public:
 
     void setPatch(const PatchConfig& newPatch) override
     {
+        if (newPatch.playMode != patch.playMode)
+            clearChipPolyState();
+
         patch = newPatch;
     }
 
@@ -181,6 +188,12 @@ public:
 
     void noteOn(int midiNote, float velocity) override
     {
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            noteOnChipPoly(midiNote, velocity);
+            return;
+        }
+
         heldNote = midiNote;
         noteVelocity = static_cast<float>(clamp01(velocity));
 
@@ -264,6 +277,12 @@ public:
 
     void noteOff(int midiNote) override
     {
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            noteOffChipPoly(midiNote);
+            return;
+        }
+
         if (midiNote == heldNote)
         {
             heldNote = -1;
@@ -311,7 +330,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Pulse, wave RAM, noise, trigger bits, core frequency formulas, DAC gating, simple envelopes, length counters, basic CH1 sweep, NR50/NR51 stereo routing, and NR43 noise clock behavior are modeled; exact DIV-APU quirks, sweep obscure behavior, mixer analog details, and hardware validation are not complete.";
+        return "Pulse, wave RAM, noise, trigger bits, core frequency formulas, DAC gating, simple envelopes, length counters, basic CH1 sweep, NR50/NR51 stereo routing, NR43 noise clock behavior, and pitched-channel allocation for Chip Poly play mode are modeled; exact DIV-APU quirks, sweep obscure behavior, mixer analog details, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -338,6 +357,10 @@ public:
              << "\"noiseDivisorCode\":" << static_cast<int>(noiseDivisorCode()) << ","
              << "\"noiseWidth7\":" << (noiseWidth7() ? 1 : 0) << ","
              << "\"waveRam0\":" << static_cast<int>(regs[0x20]) << ","
+             << "\"activeChannels\":" << activeChipPolyChannels() << ","
+             << "\"assignedNotePulse1\":" << channelNotes[0] << ","
+             << "\"assignedNotePulse2\":" << channelNotes[1] << ","
+             << "\"assignedNoteWave\":" << channelNotes[2] << ","
              << "\"envelope0\":" << static_cast<int>(envelopeLevel[0]) << ","
              << "\"envelope1\":" << static_cast<int>(envelopeLevel[1]) << ","
              << "\"envelopeNoise\":" << static_cast<int>(envelopeLevel[3]) << ","
@@ -680,6 +703,100 @@ private:
         return static_cast<uint16_t>(std::clamp(std::round(2048.0 - (baseClock / (divisor * hz))), 0.0, 2047.0));
     }
 
+    int selectChipPolyChannel(int midiNote) const
+    {
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (channelNotes[channel] == midiNote)
+                return static_cast<int>(channel);
+        }
+
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (channelNotes[channel] < 0)
+                return static_cast<int>(channel);
+        }
+
+        const auto oldest = std::min_element(channelStamp.begin(), channelStamp.end());
+        return static_cast<int>(std::distance(channelStamp.begin(), oldest));
+    }
+
+    int activeChipPolyChannels() const
+    {
+        return static_cast<int>(std::count_if(channelNotes.begin(), channelNotes.end(), [](int note) { return note >= 0; }));
+    }
+
+    static uint8_t waveOutputLevelForVelocity(float velocity)
+    {
+        if (velocity <= 0.0f)
+            return 0x00u;
+        if (velocity >= 0.75f)
+            return 0x20u;
+        if (velocity >= 0.35f)
+            return 0x40u;
+        return 0x60u;
+    }
+
+    void clearChipPolyState()
+    {
+        channelNotes.fill(-1);
+        channelVelocity.fill(0.0f);
+        channelStamp.fill(0);
+        noteStamp = 0;
+        noteVelocity = 0.0f;
+        for (auto& channel : enabled)
+            channel = false;
+    }
+
+    void noteOnChipPoly(int midiNote, float velocity)
+    {
+        const auto channel = selectChipPolyChannel(midiNote);
+        if (channel < 0)
+            return;
+
+        const auto index = static_cast<size_t>(channel);
+        channelNotes[index] = std::clamp(midiNote, 0, 127);
+        channelVelocity[index] = static_cast<float>(clamp01(velocity));
+        channelStamp[index] = ++noteStamp;
+
+        writeRegister(0xff26, 0x87);
+        writeRegister(0xff24, 0x77);
+        writeRegister(0xff25, 0xff);
+
+        if (channel == 0)
+        {
+            const auto volume = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15));
+            writePulseRegisters(0, static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control1 * 3.0f)), 0, 3)), volume, channelNotes[index]);
+        }
+        else if (channel == 1)
+        {
+            const auto volume = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15));
+            writePulseRegisters(1, static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control1 * 3.0f)), 0, 3)), volume, channelNotes[index]);
+        }
+        else
+        {
+            writeWaveRegisters(channelNotes[index], waveOutputLevelForVelocity(channelVelocity[index]));
+        }
+
+        noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
+    }
+
+    void noteOffChipPoly(int midiNote)
+    {
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (channelNotes[channel] != midiNote)
+                continue;
+
+            channelNotes[channel] = -1;
+            channelVelocity[channel] = 0.0f;
+            channelStamp[channel] = 0;
+            enabled[channel] = false;
+        }
+
+        noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
+    }
+
     void writePulseRegisters(int channel, uint8_t duty, uint8_t volume, int midiNote)
     {
         const auto base = channel == 0 ? 0xff11 : 0xff16;
@@ -782,6 +899,10 @@ private:
     uint16_t lfsr = 0x7fff;
     int heldNote = -1;
     float noteVelocity = 0.0f;
+    std::array<int, 3> channelNotes { -1, -1, -1 };
+    std::array<float, 3> channelVelocity {};
+    std::array<uint64_t, 3> channelStamp {};
+    uint64_t noteStamp = 0;
     PatchConfig patch;
 };
 
