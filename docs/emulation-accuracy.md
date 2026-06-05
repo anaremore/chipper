@@ -14,7 +14,7 @@ Chipper's simple UX must be backed by real chip behavior wherever possible. This
 | Chip | Target | Initial Source Plan | License Status | Current Status |
 | --- | --- | --- | --- | --- |
 | NES / RP2A03 | Pulse, triangle, noise, DMC, nonlinear mixer | Clean-room register model | Internal | Phase 1 partial PSG core only; DMC and timing tests still required |
-| Game Boy / DMG APU | Pulse, wave RAM, noise, envelopes, length, sweep | Clean-room or permissive core such as SameBoy APU after audit | SameBoy appears Expat/MIT; audit required before vendoring | Planned |
+| Game Boy / DMG APU | Pulse, wave RAM, noise, envelopes, length, sweep | Clean-room register model, with SameBoy APU still a possible reference after audit | Internal | Phase 1 partial core; envelope clocks, length counters, sweep edge cases, stereo/DAC quirks, and timing tests still required |
 | SID / C64 | 6581/8580 oscillator, ADSR, sync, ring, filter | Needs permissive core or clean-room implementation | reSID-style cores are commonly GPL-family; do not vendor without approval | Planned, not accurate |
 | YM2149 / AY | Three tones, shared noise, mixer, volume/envelope | Clean-room register model | Internal | Phase 1 partial core |
 | SN76489 | Tone/noise/attenuation/register behavior | Clean-room register model | Internal | Phase 1 partial core |

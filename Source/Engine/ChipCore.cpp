@@ -97,6 +97,306 @@ private:
     PatchConfig patch;
 };
 
+class DmgApuCore final : public ChipCore
+{
+public:
+    explicit DmgApuCore(AccuracyMode selectedAccuracy) : accuracy(selectedAccuracy) {}
+
+    void reset(double outputSampleRate, double chipClockHz) override
+    {
+        sampleRate = outputSampleRate;
+        clock = chipClockHz > 0.0 ? chipClockHz : 4194304.0;
+        regs.fill(0);
+        phase.fill(0.0);
+        enabled = { false, false, false, false };
+        lfsr = 0x7fffu;
+        heldNote = -1;
+        noteVelocity = 0.0f;
+
+        for (size_t i = 0; i < 16; ++i)
+        {
+            const auto high = static_cast<uint8_t>((i < 8 ? i : 15 - i) & 0x0f);
+            const auto low = static_cast<uint8_t>((15 - high) & 0x0f);
+            regs[0x20 + i] = static_cast<uint8_t>((high << 4u) | low);
+        }
+    }
+
+    void setPatch(const PatchConfig& newPatch) override
+    {
+        patch = newPatch;
+    }
+
+    void writeRegister(uint16_t address, uint8_t value) override
+    {
+        const auto index = registerIndex(address);
+        if (index < regs.size())
+            regs[index] = value;
+
+        switch (index)
+        {
+            case 0x04: if ((value & 0x80u) != 0) enabled[0] = true; break; // NR14
+            case 0x09: if ((value & 0x80u) != 0) enabled[1] = true; break; // NR24
+            case 0x0e: if ((value & 0x80u) != 0) enabled[2] = true; break; // NR34
+            case 0x14: if ((value & 0x80u) != 0) enabled[3] = true; break; // NR44
+            case 0x16:
+                enabled[0] = (value & 0x01u) != 0;
+                enabled[1] = (value & 0x02u) != 0;
+                enabled[2] = (value & 0x04u) != 0;
+                enabled[3] = (value & 0x08u) != 0;
+                break;
+            default:
+                break;
+        }
+    }
+
+    void noteOn(int midiNote, float velocity) override
+    {
+        heldNote = midiNote;
+        noteVelocity = static_cast<float>(clamp01(velocity));
+
+        const auto duty = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control1 * 3.0f)), 0, 3));
+        const auto envelope = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control4 * 15.0f)), 1, 15));
+        const auto noisePitch = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 7.0f)), 0, 7));
+        auto ch1Note = midiNote;
+        auto ch2Note = midiNote + 7;
+        auto waveNote = midiNote - 12;
+        auto ch1Vol = envelope;
+        auto ch2Vol = static_cast<uint8_t>(std::max(0, envelope - 4));
+        auto noiseVol = static_cast<uint8_t>(std::round(patch.control3 * 15.0f));
+        auto enable = 0x83u;
+
+        switch (patch.macro)
+        {
+            case MacroKind::coin:
+                ch1Note = midiNote + 12 + static_cast<int>(std::round(patch.control2 * 7.0f));
+                ch2Vol = 0;
+                noiseVol = 0;
+                enable = 0x81u;
+                break;
+            case MacroKind::bass:
+                ch1Note = midiNote - 12;
+                ch2Vol = 0;
+                waveNote = midiNote - 24;
+                noiseVol = 0;
+                enable = 0x85u;
+                break;
+            case MacroKind::arp:
+                ch2Note = midiNote + 7;
+                waveNote = midiNote + 12;
+                noiseVol = 0;
+                enable = 0x87u;
+                break;
+            case MacroKind::drum:
+                ch1Vol = 0;
+                ch2Vol = 0;
+                waveNote = midiNote - 24;
+                noiseVol = static_cast<uint8_t>(std::max<int>(10, noiseVol));
+                enable = 0x8cu;
+                break;
+            case MacroKind::hit:
+                ch2Vol = 0;
+                noiseVol = static_cast<uint8_t>(std::max<int>(8, noiseVol));
+                enable = 0x89u;
+                break;
+            case MacroKind::laser:
+                ch1Note = midiNote + 12 + static_cast<int>(std::round(patch.control2 * 12.0f));
+                ch2Note = midiNote - 12;
+                noiseVol = static_cast<uint8_t>(std::round(patch.control3 * 10.0f));
+                enable = 0x8bu;
+                break;
+            case MacroKind::jump:
+                ch1Note = midiNote + static_cast<int>(std::round(patch.control2 * 12.0f));
+                ch2Vol = 0;
+                noiseVol = 0;
+                enable = 0x81u;
+                break;
+            case MacroKind::powerUp:
+                ch2Note = midiNote + 5;
+                waveNote = midiNote + 12;
+                noiseVol = 0;
+                enable = 0x87u;
+                break;
+            case MacroKind::lead:
+            case MacroKind::manual:
+            default:
+                break;
+        }
+
+        writeRegister(0xff26, static_cast<uint8_t>(enable));
+        writeRegister(0xff10, static_cast<uint8_t>(0x10u | std::clamp(static_cast<int>(std::round(patch.control2 * 7.0f)), 0, 7)));
+        writePulseRegisters(0, duty, ch1Vol, ch1Note);
+        writePulseRegisters(1, static_cast<uint8_t>(std::min<int>(3, duty + 1)), ch2Vol, ch2Note);
+        writeWaveRegisters(waveNote, patch.macro == MacroKind::bass ? 0x20u : 0x40u);
+        writeNoiseRegisters(noiseVol, noisePitch, patch.control3 > 0.55f);
+    }
+
+    void noteOff(int midiNote) override
+    {
+        if (midiNote == heldNote)
+        {
+            heldNote = -1;
+            noteVelocity = 0.0f;
+        }
+    }
+
+    StereoFrame renderSample() override
+    {
+        const auto p1 = enabled[0] ? renderPulse(0) : 0.0;
+        const auto p2 = enabled[1] ? renderPulse(1) : 0.0;
+        const auto wave = enabled[2] ? renderWave() : 0.0;
+        const auto noise = enabled[3] ? renderNoise() : 0.0;
+        const auto mixed = static_cast<float>(((p1 + p2 + wave + noise) / 4.0) * noteVelocity * 0.85);
+        return { mixed, mixed };
+    }
+
+    ChipMode mode() const override { return ChipMode::dmg; }
+    AccuracyMode requestedAccuracy() const override { return accuracy; }
+    std::string modeName() const override { return "Game Boy / DMG APU"; }
+    std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
+    std::string limitations() const override
+    {
+        return "Pulse, wave RAM, noise, trigger bits, and core frequency formulas are modeled; envelope clocks, length counters, sweep edge cases, DAC quirks, stereo routing, and hardware validation are not complete.";
+    }
+
+    std::string debugStateJson() const override
+    {
+        std::ostringstream json;
+        json << "{"
+             << "\"mode\":\"Game Boy / DMG APU\","
+             << "\"implementedAccuracy\":\"partial clean-room register-level\","
+             << "\"clockHz\":" << clock << ","
+             << "\"macro\":\"" << toString(patch.macro) << "\","
+             << "\"pulse1FreqReg\":" << pulseFrequencyRegister(0) << ","
+             << "\"pulse2FreqReg\":" << pulseFrequencyRegister(1) << ","
+             << "\"waveFreqReg\":" << waveFrequencyRegister() << ","
+             << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
+             << "}";
+        return json.str();
+    }
+
+private:
+    static size_t registerIndex(uint16_t address)
+    {
+        if (address >= 0xff10 && address <= 0xff3f)
+            return static_cast<size_t>(address - 0xff10);
+        if (address >= 0x10 && address <= 0x3f)
+            return static_cast<size_t>(address - 0x10);
+        return static_cast<size_t>(address & 0x3f);
+    }
+
+    uint16_t pulseFrequencyRegister(int channel) const
+    {
+        const auto loIndex = channel == 0 ? 0x03 : 0x08;
+        const auto hiIndex = channel == 0 ? 0x04 : 0x09;
+        return static_cast<uint16_t>(regs[loIndex] | ((regs[hiIndex] & 0x07u) << 8u));
+    }
+
+    uint16_t waveFrequencyRegister() const
+    {
+        return static_cast<uint16_t>(regs[0x0d] | ((regs[0x0e] & 0x07u) << 8u));
+    }
+
+    static uint16_t dmgFrequencyRegister(double baseClock, double divisor, int midiNote)
+    {
+        const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
+        return static_cast<uint16_t>(std::clamp(std::round(2048.0 - (baseClock / (divisor * hz))), 0.0, 2047.0));
+    }
+
+    void writePulseRegisters(int channel, uint8_t duty, uint8_t volume, int midiNote)
+    {
+        const auto base = channel == 0 ? 0xff11 : 0xff16;
+        const auto freq = dmgFrequencyRegister(131072.0, 1.0, midiNote);
+        writeRegister(static_cast<uint16_t>(base), static_cast<uint8_t>((duty << 6u) | 0x3fu));
+        writeRegister(static_cast<uint16_t>(base + 1), static_cast<uint8_t>((std::min<uint8_t>(15, volume) << 4u) | 0x08u));
+        writeRegister(static_cast<uint16_t>(base + 2), static_cast<uint8_t>(freq & 0xffu));
+        writeRegister(static_cast<uint16_t>(base + 3), static_cast<uint8_t>(0x80u | ((freq >> 8u) & 0x07u)));
+    }
+
+    void writeWaveRegisters(int midiNote, unsigned outputLevelBits)
+    {
+        const auto freq = dmgFrequencyRegister(65536.0, 1.0, midiNote);
+        writeRegister(0xff1a, 0x80);
+        writeRegister(0xff1c, static_cast<uint8_t>(outputLevelBits & 0x60u));
+        writeRegister(0xff1d, static_cast<uint8_t>(freq & 0xffu));
+        writeRegister(0xff1e, static_cast<uint8_t>(0x80u | ((freq >> 8u) & 0x07u)));
+    }
+
+    void writeNoiseRegisters(uint8_t volume, uint8_t pitchCode, bool narrowMode)
+    {
+        writeRegister(0xff21, static_cast<uint8_t>((std::min<uint8_t>(15, volume) << 4u) | 0x08u));
+        writeRegister(0xff22, static_cast<uint8_t>((pitchCode << 4u) | (narrowMode ? 0x08u : 0x00u) | 0x02u));
+        writeRegister(0xff23, 0x80);
+    }
+
+    double envelopeVolume(size_t index) const
+    {
+        return static_cast<double>((regs[index] >> 4u) & 0x0fu) / 15.0;
+    }
+
+    double renderPulse(int channel)
+    {
+        static constexpr std::array<double, 4> dutyTable { 0.125, 0.25, 0.5, 0.75 };
+        const auto freqReg = pulseFrequencyRegister(channel);
+        const auto period = std::max(1, 2048 - static_cast<int>(freqReg));
+        const auto hz = 131072.0 / static_cast<double>(period);
+        phase[channel] = wrapPhase(phase[channel] + hz / sampleRate);
+
+        const auto dutyIndex = (regs[channel == 0 ? 0x01 : 0x06] >> 6u) & 0x03u;
+        const auto amp = phase[channel] < dutyTable[dutyIndex] ? 1.0 : -1.0;
+        return amp * envelopeVolume(channel == 0 ? 0x02 : 0x07);
+    }
+
+    double renderWave()
+    {
+        const auto freqReg = waveFrequencyRegister();
+        const auto period = std::max(1, 2048 - static_cast<int>(freqReg));
+        const auto hz = 65536.0 / static_cast<double>(period);
+        phase[2] = wrapPhase(phase[2] + hz / sampleRate);
+        const auto sampleIndex = static_cast<size_t>(std::floor(phase[2] * 32.0)) & 0x1fu;
+        const auto packed = regs[0x20 + (sampleIndex / 2)];
+        const auto nibble = (sampleIndex & 1u) == 0 ? (packed >> 4u) : (packed & 0x0fu);
+        const auto levelBits = (regs[0x0c] >> 5u) & 0x03u;
+        const auto divider = levelBits == 0 ? 0.0 : static_cast<double>(1u << (levelBits - 1u));
+        const auto normalized = (static_cast<double>(nibble) / 7.5) - 1.0;
+        return divider == 0.0 ? 0.0 : normalized / divider;
+    }
+
+    double renderNoise()
+    {
+        static constexpr std::array<int, 8> divisors { 8, 16, 32, 48, 64, 80, 96, 112 };
+        const auto nr43 = regs[0x12];
+        const auto shift = (nr43 >> 4u) & 0x0fu;
+        const auto divisor = divisors[nr43 & 0x07u];
+        const auto hz = 524288.0 / static_cast<double>(divisor * (1u << std::min<unsigned>(shift, 14u)));
+        phase[3] += hz / sampleRate;
+
+        while (phase[3] >= 1.0)
+        {
+            phase[3] -= 1.0;
+            const auto feedback = (lfsr & 1u) ^ ((lfsr >> 1u) & 1u);
+            lfsr = static_cast<uint16_t>((lfsr >> 1u) | (feedback << 14u));
+            if ((nr43 & 0x08u) != 0)
+                lfsr = static_cast<uint16_t>((lfsr & ~(1u << 6u)) | (feedback << 6u));
+            if (lfsr == 0)
+                lfsr = 0x7fffu;
+        }
+
+        const auto amp = (lfsr & 1u) == 0 ? 1.0 : -1.0;
+        return amp * envelopeVolume(0x11);
+    }
+
+    AccuracyMode accuracy;
+    double sampleRate = 48000.0;
+    double clock = 4194304.0;
+    std::array<uint8_t, 0x30> regs {};
+    std::array<double, 4> phase {};
+    std::array<bool, 4> enabled {};
+    uint16_t lfsr = 0x7fff;
+    int heldNote = -1;
+    float noteVelocity = 0.0f;
+    PatchConfig patch;
+};
+
 class NesApuCore final : public ChipCore
 {
 public:
@@ -839,6 +1139,7 @@ std::unique_ptr<ChipCore> createChipCore(ChipMode mode, AccuracyMode accuracy)
     switch (mode)
     {
         case ChipMode::nes: return std::make_unique<NesApuCore>(accuracy);
+        case ChipMode::dmg: return std::make_unique<DmgApuCore>(accuracy);
         case ChipMode::ym2149: return std::make_unique<Ym2149Core>(accuracy);
         case ChipMode::sn76489: return std::make_unique<Sn76489Core>(accuracy);
         default: return std::make_unique<UnsupportedCore>(mode, accuracy);

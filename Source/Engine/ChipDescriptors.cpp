@@ -58,6 +58,19 @@ const std::vector<ChipDescriptor>& descriptors()
             true
         },
         {
+            ChipMode::dmg,
+            "Game Boy / DMG APU",
+            "Two pulse channels, wave RAM, and noise controls map to the partial DMG APU register model.",
+            {
+                { "duty", "Pulse Duty", "Pulse", "Chooses the pulse duty family for channel 1 and 2." },
+                { "sweep", "Sweep Shape", "Pitch", "Scales sweep-like macro pitch offsets." },
+                { "noise", "Noise Clock", "Noise", "Moves the noise clock and narrow-noise behavior." },
+                { "level", "Envelope Level", "Mixer", "Sets the initial envelope level used by macro templates." },
+            },
+            commonMacros(),
+            true
+        },
+        {
             ChipMode::ym2149,
             "YM2149 / AY",
             "Three square channels plus shared noise and hardware-envelope-style behavior.",

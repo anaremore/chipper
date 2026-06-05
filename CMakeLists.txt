@@ -37,6 +37,9 @@ add_test(NAME chipper_render_nes_coin_macro_smoke
 add_test(NAME chipper_render_nes_event_trace_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --macro lead --clock 1789773 --rate 48000 --seconds 0.10 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/nes-note-events.txt --out nes-events-smoke.wav --debug nes-events-smoke.json
 )
+add_test(NAME chipper_render_dmg_smoke
+    COMMAND chipper_render --chip dmg --accuracy authentic --macro lead --clock 4194304 --rate 48000 --seconds 0.10 --note 72 --out dmg-smoke.wav --debug dmg-smoke.json
+)
 
 if (NOT CHIPPER_BUILD_PLUGIN)
     return()
