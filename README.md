@@ -74,6 +74,15 @@ build\Release\chipper_render.exe --chip nes --accuracy authentic --clock 1789773
 
 It accepts chip mode, accuracy, musical macro, native macro controls, clock rate, note input, register-write event files, render length, and writes WAV plus debug JSON. Golden WAV/reference metadata should be added only from trusted emulator or hardware comparisons.
 
+Event trace files support:
+
+```text
+write <sample> <address> <value>
+note_on <sample> <note> <velocity>
+note_off <sample> <note>
+note <sample> <note> <velocity> <lengthSamples>
+```
+
 ## Design Notes
 
 Chipper keeps chip limitations creative instead of bureaucratic. Modes expose musical controls rather than registers, but those controls map to the internal chip model. The `Authentic` setting should follow register/channel/timing behavior where feasible; `Inspired` is allowed to be musical but must be labeled honestly; `Hybrid` is the default product mode.

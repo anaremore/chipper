@@ -37,11 +37,21 @@ struct Options
     std::filesystem::path debugPath = "chipper-render.json";
 };
 
-struct ScheduledWrite
+enum class EventType
 {
+    write,
+    noteOff,
+    noteOn
+};
+
+struct ScheduledEvent
+{
+    EventType type = EventType::write;
     uint64_t sample = 0;
     uint16_t address = 0;
     uint8_t value = 0;
+    int note = 60;
+    float velocity = 1.0f;
 };
 
 template <typename T>
@@ -84,6 +94,9 @@ void printUsage()
         << "       Optional: --macro coin --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
+        << "  note_on <sample> <note> <velocity>\n"
+        << "  note_off <sample> <note>\n"
+        << "  note <sample> <note> <velocity> <lengthSamples>\n"
         << "Addresses and values may be decimal or 0x-prefixed hex.\n";
 }
 
@@ -225,11 +238,11 @@ bool parseArgs(int argc, char** argv, Options& options)
     return options.sampleRate > 0.0 && options.clock >= 0.0 && options.seconds > 0.0;
 }
 
-std::vector<ScheduledWrite> loadEvents(const std::filesystem::path& path)
+std::vector<ScheduledEvent> loadEvents(const std::filesystem::path& path)
 {
-    std::vector<ScheduledWrite> writes;
+    std::vector<ScheduledEvent> events;
     if (path.empty())
-        return writes;
+        return events;
 
     std::ifstream in(path);
     if (! in)
@@ -246,26 +259,80 @@ std::vector<ScheduledWrite> loadEvents(const std::filesystem::path& path)
         std::istringstream parts(line);
         std::string kind;
         std::string sampleText;
-        std::string addressText;
-        std::string valueText;
-        parts >> kind >> sampleText >> addressText >> valueText;
+        parts >> kind >> sampleText;
 
-        if (kind != "write")
+        ScheduledEvent event;
+        if (! parseNumber(sampleText, event.sample))
+            throw std::runtime_error("Bad event sample on line " + std::to_string(lineNumber));
+
+        if (kind == "write")
+        {
+            std::string addressText;
+            std::string valueText;
+            uint32_t address = 0;
+            uint32_t value = 0;
+            parts >> addressText >> valueText;
+            if (! parseNumber(addressText, address) || ! parseNumber(valueText, value))
+                throw std::runtime_error("Bad write event value on line " + std::to_string(lineNumber));
+
+            event.type = EventType::write;
+            event.address = static_cast<uint16_t>(address & 0xffffu);
+            event.value = static_cast<uint8_t>(value & 0xffu);
+            events.push_back(event);
+        }
+        else if (kind == "note_on")
+        {
+            std::string noteText;
+            std::string velocityText;
+            parts >> noteText >> velocityText;
+            if (! parseNumber(noteText, event.note) || ! parseNumber(velocityText, event.velocity))
+                throw std::runtime_error("Bad note_on event value on line " + std::to_string(lineNumber));
+
+            event.type = EventType::noteOn;
+            events.push_back(event);
+        }
+        else if (kind == "note_off")
+        {
+            std::string noteText;
+            parts >> noteText;
+            if (! parseNumber(noteText, event.note))
+                throw std::runtime_error("Bad note_off event value on line " + std::to_string(lineNumber));
+
+            event.type = EventType::noteOff;
+            events.push_back(event);
+        }
+        else if (kind == "note")
+        {
+            std::string noteText;
+            std::string velocityText;
+            std::string lengthText;
+            uint64_t lengthSamples = 0;
+            parts >> noteText >> velocityText >> lengthText;
+            if (! parseNumber(noteText, event.note) || ! parseNumber(velocityText, event.velocity) || ! parseNumber(lengthText, lengthSamples))
+                throw std::runtime_error("Bad note event value on line " + std::to_string(lineNumber));
+
+            event.type = EventType::noteOn;
+            events.push_back(event);
+
+            ScheduledEvent off = event;
+            off.type = EventType::noteOff;
+            off.sample += lengthSamples;
+            off.velocity = 0.0f;
+            events.push_back(off);
+        }
+        else
+        {
             throw std::runtime_error("Unsupported event kind on line " + std::to_string(lineNumber));
-
-        ScheduledWrite write;
-        uint32_t address = 0;
-        uint32_t value = 0;
-        if (! parseNumber(sampleText, write.sample) || ! parseNumber(addressText, address) || ! parseNumber(valueText, value))
-            throw std::runtime_error("Bad event value on line " + std::to_string(lineNumber));
-
-        write.address = static_cast<uint16_t>(address & 0xffffu);
-        write.value = static_cast<uint8_t>(value & 0xffu);
-        writes.push_back(write);
+        }
     }
 
-    std::sort(writes.begin(), writes.end(), [](const auto& a, const auto& b) { return a.sample < b.sample; });
-    return writes;
+    std::sort(events.begin(), events.end(), [](const auto& a, const auto& b)
+    {
+        if (a.sample != b.sample)
+            return a.sample < b.sample;
+        return static_cast<int>(a.type) < static_cast<int>(b.type);
+    });
+    return events;
 }
 
 void writeU16(std::ofstream& out, uint16_t value)
@@ -339,7 +406,8 @@ void writeDebugJson(const std::filesystem::path& path,
                     const Options& options,
                     const chipper::ChipCore& core,
                     const chipper::RenderStats& stats,
-                    size_t registerWriteCount)
+                    size_t registerWriteCount,
+                    size_t noteEventCount)
 {
     std::ofstream out(path);
     if (! out)
@@ -355,6 +423,7 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"seconds\": " << options.seconds << ",\n"
         << "  \"note\": " << options.note << ",\n"
         << "  \"registerWriteCount\": " << registerWriteCount << ",\n"
+        << "  \"noteEventCount\": " << noteEventCount << ",\n"
         << "  \"renderedSamples\": " << stats.renderedSamples << ",\n"
         << "  \"peak\": " << stats.peak << ",\n"
         << "  \"rms\": " << stats.rms << ",\n"
@@ -379,21 +448,31 @@ int main(int argc, char** argv)
         auto core = chipper::createChipCore(options.chip, options.accuracy);
         core->reset(options.sampleRate, options.clock);
         core->setPatch(chipper::makePatchConfig(options.chip, options.macro, options.control1, options.control2, options.control3, options.control4));
-        const auto writes = loadEvents(options.eventFile);
+        const auto events = loadEvents(options.eventFile);
+        const auto registerWriteCount = static_cast<size_t>(std::count_if(events.begin(), events.end(), [](const auto& event) { return event.type == EventType::write; }));
+        const auto noteEventCount = events.size() - registerWriteCount;
 
         const auto sampleCount = static_cast<uint64_t>(std::ceil(options.seconds * options.sampleRate));
         std::vector<chipper::StereoFrame> frames;
         frames.reserve(static_cast<size_t>(sampleCount));
 
-        core->noteOn(options.note, 1.0f);
+        if (noteEventCount == 0)
+            core->noteOn(options.note, 1.0f);
 
-        size_t writeIndex = 0;
+        size_t eventIndex = 0;
         for (uint64_t sample = 0; sample < sampleCount; ++sample)
         {
-            while (writeIndex < writes.size() && writes[writeIndex].sample == sample)
+            while (eventIndex < events.size() && events[eventIndex].sample == sample)
             {
-                core->writeRegister(writes[writeIndex].address, writes[writeIndex].value);
-                ++writeIndex;
+                const auto& event = events[eventIndex];
+                if (event.type == EventType::write)
+                    core->writeRegister(event.address, event.value);
+                else if (event.type == EventType::noteOn)
+                    core->noteOn(event.note, event.velocity);
+                else if (event.type == EventType::noteOff)
+                    core->noteOff(event.note);
+
+                ++eventIndex;
             }
 
             frames.push_back(core->renderSample());
@@ -402,7 +481,7 @@ int main(int argc, char** argv)
         core->noteOff(options.note);
         const auto stats = calculateStats(frames);
         writeWav(options.wavPath, frames, options.sampleRate);
-        writeDebugJson(options.debugPath, options, *core, stats, writes.size());
+        writeDebugJson(options.debugPath, options, *core, stats, registerWriteCount, noteEventCount);
 
         std::cout << "Rendered " << frames.size() << " samples to " << options.wavPath.string()
                   << " and " << options.debugPath.string() << "\n";
