@@ -1,0 +1,4 @@
+# Route DMG CH1 to right output only after note-on provides renderer velocity.
+note_on 0 60 1.0
+write 1 0xff24 0x77
+write 1 0xff25 0x01

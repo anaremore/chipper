@@ -381,6 +381,8 @@ chipper::RenderStats calculateStats(const std::vector<chipper::StereoFrame>& fra
 {
     chipper::RenderStats stats;
     double energy = 0.0;
+    double leftEnergy = 0.0;
+    double rightEnergy = 0.0;
     float previous = 0.0f;
     bool hasPrevious = false;
 
@@ -388,7 +390,11 @@ chipper::RenderStats calculateStats(const std::vector<chipper::StereoFrame>& fra
     {
         const auto mono = (frame.left + frame.right) * 0.5f;
         stats.peak = std::max(stats.peak, static_cast<double>(std::abs(mono)));
+        stats.leftPeak = std::max(stats.leftPeak, static_cast<double>(std::abs(frame.left)));
+        stats.rightPeak = std::max(stats.rightPeak, static_cast<double>(std::abs(frame.right)));
         energy += static_cast<double>(mono) * static_cast<double>(mono);
+        leftEnergy += static_cast<double>(frame.left) * static_cast<double>(frame.left);
+        rightEnergy += static_cast<double>(frame.right) * static_cast<double>(frame.right);
 
         if (hasPrevious && ((previous <= 0.0f && mono > 0.0f) || (previous >= 0.0f && mono < 0.0f)))
             ++stats.zeroCrossings;
@@ -399,6 +405,8 @@ chipper::RenderStats calculateStats(const std::vector<chipper::StereoFrame>& fra
 
     stats.renderedSamples = static_cast<uint64_t>(frames.size());
     stats.rms = frames.empty() ? 0.0 : std::sqrt(energy / static_cast<double>(frames.size()));
+    stats.leftRms = frames.empty() ? 0.0 : std::sqrt(leftEnergy / static_cast<double>(frames.size()));
+    stats.rightRms = frames.empty() ? 0.0 : std::sqrt(rightEnergy / static_cast<double>(frames.size()));
     return stats;
 }
 
@@ -427,6 +435,10 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"renderedSamples\": " << stats.renderedSamples << ",\n"
         << "  \"peak\": " << stats.peak << ",\n"
         << "  \"rms\": " << stats.rms << ",\n"
+        << "  \"leftPeak\": " << stats.leftPeak << ",\n"
+        << "  \"rightPeak\": " << stats.rightPeak << ",\n"
+        << "  \"leftRms\": " << stats.leftRms << ",\n"
+        << "  \"rightRms\": " << stats.rightRms << ",\n"
         << "  \"zeroCrossings\": " << stats.zeroCrossings << ",\n"
         << "  \"coreState\": " << core.debugStateJson() << "\n"
         << "}\n";

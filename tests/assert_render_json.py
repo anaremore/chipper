@@ -9,7 +9,17 @@ def main() -> int:
     parser.add_argument("--implemented-contains")
     parser.add_argument("--macro")
     parser.add_argument("--min-peak", type=float)
+    parser.add_argument("--max-peak", type=float)
     parser.add_argument("--min-rms", type=float)
+    parser.add_argument("--max-rms", type=float)
+    parser.add_argument("--min-left-peak", type=float)
+    parser.add_argument("--max-left-peak", type=float)
+    parser.add_argument("--min-right-peak", type=float)
+    parser.add_argument("--max-right-peak", type=float)
+    parser.add_argument("--min-left-rms", type=float)
+    parser.add_argument("--max-left-rms", type=float)
+    parser.add_argument("--min-right-rms", type=float)
+    parser.add_argument("--max-right-rms", type=float)
     parser.add_argument("--register-writes", type=int)
     parser.add_argument("--note-events", type=int)
     parser.add_argument("--min-zero-crossings", type=int)
@@ -32,8 +42,26 @@ def main() -> int:
     if args.min_peak is not None and float(data.get("peak", 0.0)) < args.min_peak:
         failures.append(f"peak expected >= {args.min_peak}, got {data.get('peak')}")
 
+    if args.max_peak is not None and float(data.get("peak", 0.0)) > args.max_peak:
+        failures.append(f"peak expected <= {args.max_peak}, got {data.get('peak')}")
+
     if args.min_rms is not None and float(data.get("rms", 0.0)) < args.min_rms:
         failures.append(f"rms expected >= {args.min_rms}, got {data.get('rms')}")
+
+    if args.max_rms is not None and float(data.get("rms", 0.0)) > args.max_rms:
+        failures.append(f"rms expected <= {args.max_rms}, got {data.get('rms')}")
+
+    for field, lower, upper in (
+        ("leftPeak", args.min_left_peak, args.max_left_peak),
+        ("rightPeak", args.min_right_peak, args.max_right_peak),
+        ("leftRms", args.min_left_rms, args.max_left_rms),
+        ("rightRms", args.min_right_rms, args.max_right_rms),
+    ):
+        actual = float(data.get(field, 0.0))
+        if lower is not None and actual < lower:
+            failures.append(f"{field} expected >= {lower}, got {actual}")
+        if upper is not None and actual > upper:
+            failures.append(f"{field} expected <= {upper}, got {actual}")
 
     if args.register_writes is not None and int(data.get("registerWriteCount", -1)) != args.register_writes:
         failures.append(f"registerWriteCount expected {args.register_writes}, got {data.get('registerWriteCount')}")

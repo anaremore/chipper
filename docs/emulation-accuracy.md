@@ -14,7 +14,7 @@ Chipper's simple UX must be backed by real chip behavior wherever possible. This
 | Chip | Target | Initial Source Plan | License Status | Current Status |
 | --- | --- | --- | --- | --- |
 | NES / RP2A03 | Pulse, triangle, noise, DMC, nonlinear mixer | Clean-room register model; FigBug/RP2A03 may be reference/test-oracle material only | Internal; FigBug/RP2A03 is LGPL-2.1 and not vendored | Partial PSG core with simple envelope and length-counter groundwork; DMC, exact frame sequencing, sweep edge cases, and timing tests still required |
-| Game Boy / DMG APU | Pulse, wave RAM, noise, envelopes, length, sweep | Clean-room register model based on public docs such as Pan Docs, with SameBoy and FigBug/PAPU as possible references after audit | Internal; FigBug/PAPU is GPL-2.0 and not vendored | Partial core with trigger handling, DAC gating, simple envelope clocks, length-counter groundwork, and basic CH1 sweep; exact DIV-APU quirks, sweep obscure behavior, stereo/DAC edge cases, and hardware validation still required |
+| Game Boy / DMG APU | Pulse, wave RAM, noise, envelopes, length, sweep, stereo routing | Clean-room register model based on public docs such as Pan Docs, with SameBoy and FigBug/PAPU as possible references after audit | Internal; FigBug/PAPU is GPL-2.0 and not vendored | Partial core with trigger handling, DAC gating, simple envelope clocks, length-counter groundwork, basic CH1 sweep, and NR50/NR51 routing; exact DIV-APU quirks, sweep obscure behavior, mixer analog details, stereo/DAC edge cases, and hardware validation still required |
 | SID / C64 | 6581/8580 oscillator, ADSR, sync, ring, filter | Needs permissive core or clean-room implementation; FigBug/SID may be reference material only | reSID-style cores are commonly GPL-family; FigBug/SID is GPL-3.0 and not vendored | Planned, not accurate |
 | YM2149 / AY | Three tones, shared noise, mixer, volume/envelope | Clean-room register model | Internal | Phase 1 partial core |
 | SN76489 | Tone/noise/attenuation/register behavior | Clean-room register model; FigBug/SN76489 may be reference/test-oracle material only | Internal; FigBug/SN76489 is LGPL-2.1 and not vendored | Phase 1 partial core |
@@ -44,7 +44,7 @@ The command-line renderer is the truth source for core validation. It accepts:
 It outputs:
 
 - WAV audio
-- debug JSON with mode, clock, sample rate, event count, peak, RMS, zero crossings, implemented accuracy, and known limitations
+- debug JSON with mode, clock, sample rate, event count, peak/RMS, per-channel stereo peak/RMS, zero crossings, implemented accuracy, and known limitations
 
 ## Regression Tests
 

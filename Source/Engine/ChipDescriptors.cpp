@@ -64,7 +64,7 @@ std::array<ModuleDescriptor, 6> dmgModules()
         makeModule("tone", "Wave / Noise", "Duty, wave RAM, and polynomial noise behavior.", { "Pulse duty", "Wave level", "Noise clock", "Narrow noise" }),
         makeModule("envelope", "Envelope", "Hardware envelope, length, and sweep groundwork.", { "64 Hz envelope", "256 Hz length", "DAC gating", "128 Hz CH1 sweep" }),
         makeModule("motion", "Motion", "Portable-game gesture templates.", { "Arp stack", "Pitch rise/drop", "Retrigger", "Coin/noise SFX" }),
-        makeModule("output", "Output", "Compact handheld output character.", { "Output gain", "Speaker color planned", "Width helper planned", "Crunch helper" })
+        makeModule("output", "Output", "Compact handheld output character.", { "Output gain", "NR50 volume", "NR51 routing", "Speaker color planned" })
     };
 }
 

@@ -87,6 +87,10 @@ struct RenderStats
 {
     double peak = 0.0;
     double rms = 0.0;
+    double leftPeak = 0.0;
+    double rightPeak = 0.0;
+    double leftRms = 0.0;
+    double rightRms = 0.0;
     uint64_t zeroCrossings = 0;
     uint64_t renderedSamples = 0;
 };

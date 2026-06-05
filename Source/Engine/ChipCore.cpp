@@ -251,6 +251,8 @@ public:
         }
 
         writeRegister(0xff26, static_cast<uint8_t>(enable));
+        writeRegister(0xff24, 0x77);
+        writeRegister(0xff25, 0xff);
         writeRegister(0xff10, static_cast<uint8_t>(0x18u | std::clamp(static_cast<int>(std::round(patch.control2 * 7.0f)), 0, 7)));
         writePulseRegisters(0, duty, ch1Vol, ch1Note);
         writePulseRegisters(1, static_cast<uint8_t>(std::min<int>(3, duty + 1)), ch2Vol, ch2Note);
@@ -275,8 +277,21 @@ public:
         const auto p2 = enabled[1] ? renderPulse(1) : 0.0;
         const auto wave = enabled[2] ? renderWave() : 0.0;
         const auto noise = enabled[3] ? renderNoise() : 0.0;
-        const auto mixed = static_cast<float>(((p1 + p2 + wave + noise) / 4.0) * noteVelocity * 0.85);
-        return { mixed, mixed };
+        const std::array<double, 4> sources { p1, p2, wave, noise };
+
+        double left = 0.0;
+        double right = 0.0;
+        for (size_t channel = 0; channel < sources.size(); ++channel)
+        {
+            if (routedToLeft(channel))
+                left += sources[channel];
+            if (routedToRight(channel))
+                right += sources[channel];
+        }
+
+        const auto leftOut = static_cast<float>((left / 4.0) * outputVolume(true) * noteVelocity * 0.85);
+        const auto rightOut = static_cast<float>((right / 4.0) * outputVolume(false) * noteVelocity * 0.85);
+        return { leftOut, rightOut };
     }
 
     std::vector<RegisterWrite> exportRegisterState() const override
@@ -294,7 +309,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Pulse, wave RAM, noise, trigger bits, core frequency formulas, DAC gating, simple envelopes, length counters, and basic CH1 sweep are modeled; exact DIV-APU quirks, sweep obscure behavior, stereo routing, and hardware validation are not complete.";
+        return "Pulse, wave RAM, noise, trigger bits, core frequency formulas, DAC gating, simple envelopes, length counters, basic CH1 sweep, and NR50/NR51 stereo routing are modeled; exact DIV-APU quirks, sweep obscure behavior, mixer analog details, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -311,6 +326,10 @@ public:
              << "\"sweepShadow\":" << sweepShadowPeriod << ","
              << "\"sweepTimer\":" << static_cast<int>(sweepTimer) << ","
              << "\"sweepEnabled\":" << (sweepEnabled ? 1 : 0) << ","
+             << "\"nr50\":" << static_cast<int>(regs[0x14]) << ","
+             << "\"nr51\":" << static_cast<int>(regs[0x15]) << ","
+             << "\"leftVolume\":" << outputVolume(true) << ","
+             << "\"rightVolume\":" << outputVolume(false) << ","
              << "\"waveRam0\":" << static_cast<int>(regs[0x20]) << ","
              << "\"envelope0\":" << static_cast<int>(envelopeLevel[0]) << ","
              << "\"envelope1\":" << static_cast<int>(envelopeLevel[1]) << ","
@@ -348,6 +367,22 @@ private:
     uint16_t waveFrequencyRegister() const
     {
         return static_cast<uint16_t>(regs[0x0d] | ((regs[0x0e] & 0x07u) << 8u));
+    }
+
+    double outputVolume(bool left) const
+    {
+        const auto volume = left ? ((regs[0x14] >> 4u) & 0x07u) : (regs[0x14] & 0x07u);
+        return static_cast<double>(volume + 1u) / 8.0;
+    }
+
+    bool routedToLeft(size_t channel) const
+    {
+        return channel < 4 && (regs[0x15] & (1u << (channel + 4u))) != 0;
+    }
+
+    bool routedToRight(size_t channel) const
+    {
+        return channel < 4 && (regs[0x15] & (1u << channel)) != 0;
     }
 
     static uint16_t lengthMax(size_t channel)
