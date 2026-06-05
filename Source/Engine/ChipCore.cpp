@@ -61,6 +61,7 @@ public:
         clock = chipClockHz;
     }
 
+    void setPatch(const PatchConfig& newPatch) override { patch = newPatch; }
     void writeRegister(uint16_t, uint8_t) override {}
     void noteOn(int, float) override {}
     void noteOff(int) override {}
@@ -93,6 +94,7 @@ private:
     AccuracyMode accuracy;
     double sampleRate = 48000.0;
     double clock = 0.0;
+    PatchConfig patch;
 };
 
 class NesApuCore final : public ChipCore
@@ -111,6 +113,11 @@ public:
         lfsr = 1;
         heldNote = -1;
         noteVelocity = 0.0f;
+    }
+
+    void setPatch(const PatchConfig& newPatch) override
+    {
+        patch = newPatch;
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -133,22 +140,89 @@ public:
     {
         heldNote = midiNote;
         noteVelocity = static_cast<float>(clamp01(velocity));
-        const auto hz = midiNoteToHz(midiNote);
-        const auto pulseTimer = static_cast<int>(std::max(0.0, std::round(clock / (16.0 * hz) - 1.0)));
-        const auto triTimer = static_cast<int>(std::max(0.0, std::round(clock / (32.0 * hz) - 1.0)));
+        const auto duty = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control1 * 3.0f)), 0, 3));
+        const auto noisePeriod = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 14.0f)), 0, 15));
 
-        writeRegister(0x4000, static_cast<uint8_t>((2u << 6u) | 0x0f)); // 50% duty, constant volume.
-        writeRegister(0x4002, static_cast<uint8_t>(pulseTimer & 0xff));
-        writeRegister(0x4003, static_cast<uint8_t>((pulseTimer >> 8) & 0x07));
-        writeRegister(0x4004, static_cast<uint8_t>((1u << 6u) | 0x0b)); // second pulse at 25%.
-        writeRegister(0x4006, static_cast<uint8_t>(pulseTimer & 0xff));
-        writeRegister(0x4007, static_cast<uint8_t>((pulseTimer >> 8) & 0x07));
-        writeRegister(0x4008, 0x80);
-        writeRegister(0x400a, static_cast<uint8_t>(triTimer & 0xff));
-        writeRegister(0x400b, static_cast<uint8_t>((triTimer >> 8) & 0x07));
-        writeRegister(0x400c, 0x08);
-        writeRegister(0x400e, 0x04);
-        writeRegister(0x4015, 0x0f);
+        auto p1Note = midiNote;
+        auto p2Note = midiNote;
+        auto triNote = midiNote - 12;
+        auto p1Vol = 15u;
+        auto p2Vol = 8u;
+        auto noiseVol = static_cast<unsigned>(std::round(patch.control3 * 12.0f));
+        auto enable = 0x03u;
+        auto noiseMode = 0x00u;
+
+        switch (patch.macro)
+        {
+            case MacroKind::coin:
+                p1Note = midiNote + 12 + static_cast<int>(std::round(patch.control2 * 7.0f));
+                p2Vol = 0;
+                noiseVol = 0;
+                enable = 0x01u;
+                break;
+            case MacroKind::bass:
+                p1Note = midiNote - 12;
+                p2Note = midiNote - 24;
+                triNote = midiNote - 24;
+                p1Vol = 5u;
+                p2Vol = 0u;
+                noiseVol = 0;
+                enable = 0x05u;
+                break;
+            case MacroKind::arp:
+                p2Note = midiNote + 7 + static_cast<int>(std::round(patch.control2 * 5.0f));
+                triNote = midiNote + 12;
+                noiseVol = 0;
+                enable = 0x07u;
+                break;
+            case MacroKind::drum:
+                p1Note = midiNote - 24;
+                p1Vol = 4u;
+                p2Vol = 0u;
+                triNote = midiNote - 36;
+                noiseVol = static_cast<unsigned>(10u + std::round(patch.control3 * 5.0f));
+                enable = 0x0du;
+                noiseMode = patch.control3 > 0.55f ? 0x80u : 0x00u;
+                break;
+            case MacroKind::hit:
+                p1Note = midiNote - 5;
+                p2Vol = 0u;
+                noiseVol = static_cast<unsigned>(8u + std::round(patch.control3 * 7.0f));
+                enable = 0x09u;
+                noiseMode = patch.control3 > 0.50f ? 0x80u : 0x00u;
+                break;
+            case MacroKind::laser:
+                p1Note = midiNote + 7 + static_cast<int>(std::round(patch.control2 * 17.0f));
+                p2Note = midiNote - 5;
+                p2Vol = 5u;
+                noiseVol = static_cast<unsigned>(std::round(patch.control3 * 8.0f));
+                enable = 0x0bu;
+                break;
+            case MacroKind::jump:
+                p1Note = midiNote + static_cast<int>(std::round(patch.control2 * 12.0f));
+                p2Vol = 0u;
+                noiseVol = 0u;
+                enable = 0x01u;
+                break;
+            case MacroKind::powerUp:
+                p2Note = midiNote + 12;
+                triNote = midiNote + 7;
+                noiseVol = static_cast<unsigned>(std::round(patch.control3 * 5.0f));
+                enable = 0x07u;
+                break;
+            case MacroKind::lead:
+            case MacroKind::manual:
+            default:
+                enable = patch.control4 < 0.33f ? 0x04u : (patch.control4 > 0.66f ? 0x03u : 0x07u);
+                break;
+        }
+
+        writePulseRegisters(0x4000, duty, p1Vol, p1Note);
+        writePulseRegisters(0x4004, static_cast<uint8_t>(std::min<int>(3, duty + 1)), p2Vol, p2Note);
+        writeTriangleRegisters(triNote);
+        writeRegister(0x400c, static_cast<uint8_t>(std::min<unsigned>(15u, noiseVol)));
+        writeRegister(0x400e, static_cast<uint8_t>(noiseMode | noisePeriod));
+        writeRegister(0x4015, static_cast<uint8_t>(enable));
     }
 
     void noteOff(int midiNote) override
@@ -192,6 +266,7 @@ public:
              << "\"mode\":\"NES / RP2A03\","
              << "\"implementedAccuracy\":\"partial clean-room register-level\","
              << "\"clockHz\":" << clock << ","
+             << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"pulseTimer1\":" << timer[0] << ","
              << "\"pulseTimer2\":" << timer[1] << ","
              << "\"triangleTimer\":" << timer[2] << ","
@@ -206,6 +281,24 @@ private:
         timer[0] = static_cast<uint16_t>(regs[0x02] | ((regs[0x03] & 0x07) << 8));
         timer[1] = static_cast<uint16_t>(regs[0x06] | ((regs[0x07] & 0x07) << 8));
         timer[2] = static_cast<uint16_t>(regs[0x0a] | ((regs[0x0b] & 0x07) << 8));
+    }
+
+    void writePulseRegisters(uint16_t baseAddress, uint8_t duty, unsigned volume, int midiNote)
+    {
+        const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
+        const auto pulseTimer = static_cast<int>(std::max(0.0, std::round(clock / (16.0 * hz) - 1.0)));
+        writeRegister(baseAddress, static_cast<uint8_t>((duty << 6u) | (std::min<unsigned>(15u, volume) & 0x0fu)));
+        writeRegister(static_cast<uint16_t>(baseAddress + 2), static_cast<uint8_t>(pulseTimer & 0xff));
+        writeRegister(static_cast<uint16_t>(baseAddress + 3), static_cast<uint8_t>((pulseTimer >> 8) & 0x07));
+    }
+
+    void writeTriangleRegisters(int midiNote)
+    {
+        const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
+        const auto triTimer = static_cast<int>(std::max(0.0, std::round(clock / (32.0 * hz) - 1.0)));
+        writeRegister(0x4008, 0x80);
+        writeRegister(0x400a, static_cast<uint8_t>(triTimer & 0xff));
+        writeRegister(0x400b, static_cast<uint8_t>((triTimer >> 8) & 0x07));
     }
 
     double dutyForPulse(int index) const
@@ -273,6 +366,7 @@ private:
     uint16_t lfsr = 1;
     int heldNote = -1;
     float noteVelocity = 0.0f;
+    PatchConfig patch;
 };
 
 class Ym2149Core final : public ChipCore
@@ -293,6 +387,11 @@ public:
         noteVelocity = 0.0f;
     }
 
+    void setPatch(const PatchConfig& newPatch) override
+    {
+        patch = newPatch;
+    }
+
     void writeRegister(uint16_t address, uint8_t value) override
     {
         regs[address & 0x0f] = value;
@@ -302,18 +401,86 @@ public:
     {
         heldNote = midiNote;
         noteVelocity = static_cast<float>(clamp01(velocity));
-        const auto period = static_cast<int>(std::max(1.0, std::round(clock / (16.0 * midiNoteToHz(midiNote)))));
-        writeRegister(0, static_cast<uint8_t>(period & 0xff));
-        writeRegister(1, static_cast<uint8_t>((period >> 8) & 0x0f));
-        writeRegister(2, static_cast<uint8_t>((period * 5 / 4) & 0xff));
-        writeRegister(3, static_cast<uint8_t>(((period * 5 / 4) >> 8) & 0x0f));
-        writeRegister(4, static_cast<uint8_t>((period * 3 / 2) & 0xff));
-        writeRegister(5, static_cast<uint8_t>(((period * 3 / 2) >> 8) & 0x0f));
-        writeRegister(6, 0x08);
-        writeRegister(7, 0x38); // Tone enabled, noise disabled for A/B/C.
-        writeRegister(8, 0x0f);
-        writeRegister(9, 0x0b);
-        writeRegister(10, 0x09);
+        const auto spread = static_cast<int>(std::round(patch.control1 * 12.0f));
+        const auto noisePitch = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 30.0f)) + 1, 1, 31));
+        auto noteA = midiNote;
+        auto noteB = midiNote + std::max(1, spread / 2);
+        auto noteC = midiNote + std::max(2, spread);
+        auto volA = 15u;
+        auto volB = 10u;
+        auto volC = 8u;
+        auto mixer = 0x38u; // Tone enabled, noise disabled for A/B/C.
+
+        switch (patch.macro)
+        {
+            case MacroKind::coin:
+                noteA = midiNote + 12 + static_cast<int>(std::round(patch.control2 * 7.0f));
+                noteB = noteA + 7;
+                noteC = noteA + 12;
+                volB = 4u;
+                volC = 0u;
+                break;
+            case MacroKind::bass:
+                noteA = midiNote - 12;
+                noteB = midiNote - 5;
+                noteC = midiNote;
+                volB = 4u;
+                volC = 0u;
+                break;
+            case MacroKind::arp:
+                noteB = midiNote + 7;
+                noteC = midiNote + 12;
+                volB = 12u;
+                volC = 10u;
+                break;
+            case MacroKind::drum:
+                mixer = 0x07u; // Tone disabled, noise enabled.
+                volA = 15u;
+                volB = 10u;
+                volC = 6u;
+                break;
+            case MacroKind::hit:
+                mixer = 0x00u; // Tone and noise combined.
+                volA = 15u;
+                volB = 7u;
+                volC = 5u;
+                break;
+            case MacroKind::laser:
+                noteA = midiNote + 12 + static_cast<int>(std::round(patch.control2 * 12.0f));
+                noteB = midiNote - 12;
+                noteC = midiNote + 3;
+                mixer = patch.control3 > 0.3f ? 0x00u : 0x38u;
+                break;
+            case MacroKind::jump:
+                noteA = midiNote + static_cast<int>(std::round(patch.control2 * 12.0f));
+                volB = 0u;
+                volC = 0u;
+                break;
+            case MacroKind::powerUp:
+                noteA = midiNote;
+                noteB = midiNote + 5;
+                noteC = midiNote + 12;
+                volB = 13u;
+                volC = 11u;
+                break;
+            case MacroKind::lead:
+            case MacroKind::manual:
+            default:
+                mixer = patch.control4 > 0.66f ? 0x00u : (patch.control4 < 0.33f ? 0x07u : 0x38u);
+                break;
+        }
+
+        writeTone(0, noteA);
+        writeTone(1, noteB);
+        writeTone(2, noteC);
+        writeRegister(6, noisePitch);
+        writeRegister(7, static_cast<uint8_t>(mixer));
+        writeRegister(8, static_cast<uint8_t>(std::min<unsigned>(15u, volA)));
+        writeRegister(9, static_cast<uint8_t>(std::min<unsigned>(15u, volB)));
+        writeRegister(10, static_cast<uint8_t>(std::min<unsigned>(15u, volC)));
+        writeRegister(11, 0x80);
+        writeRegister(12, 0x02);
+        writeRegister(13, patch.macro == MacroKind::powerUp ? 0x0a : 0x09);
     }
 
     void noteOff(int midiNote) override
@@ -354,6 +521,7 @@ public:
              << "\"mode\":\"YM2149 / AY-3-8910\","
              << "\"implementedAccuracy\":\"partial clean-room register-level\","
              << "\"clockHz\":" << clock << ","
+             << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"periodA\":" << tonePeriod(0) << ","
              << "\"periodB\":" << tonePeriod(1) << ","
              << "\"periodC\":" << tonePeriod(2) << ","
@@ -368,6 +536,13 @@ private:
         const auto lo = regs[static_cast<size_t>(channel * 2)];
         const auto hi = regs[static_cast<size_t>(channel * 2 + 1)] & 0x0f;
         return std::max(1, static_cast<int>(lo | (hi << 8)));
+    }
+
+    void writeTone(int channel, int midiNote)
+    {
+        const auto period = static_cast<int>(std::max(1.0, std::round(clock / (16.0 * midiNoteToHz(std::clamp(midiNote, 0, 127))))));
+        writeRegister(static_cast<uint16_t>(channel * 2), static_cast<uint8_t>(period & 0xff));
+        writeRegister(static_cast<uint16_t>(channel * 2 + 1), static_cast<uint8_t>((period >> 8) & 0x0f));
     }
 
     double channelVolume(int channel) const
@@ -432,6 +607,7 @@ private:
     uint32_t lfsr = 0x1ffff;
     int heldNote = -1;
     float noteVelocity = 0.0f;
+    PatchConfig patch;
 };
 
 class Sn76489Core final : public ChipCore
@@ -453,6 +629,11 @@ public:
         noisePhase = 0.0;
         heldNote = -1;
         noteVelocity = 0.0f;
+    }
+
+    void setPatch(const PatchConfig& newPatch) override
+    {
+        patch = newPatch;
     }
 
     void writeRegister(uint16_t, uint8_t value) override
@@ -483,11 +664,71 @@ public:
     {
         heldNote = midiNote;
         noteVelocity = static_cast<float>(clamp01(velocity));
-        const auto period = static_cast<uint16_t>(std::clamp(std::round(clock / (32.0 * midiNoteToHz(midiNote))), 1.0, 1023.0));
-        tonePeriod[0] = period;
-        tonePeriod[1] = static_cast<uint16_t>(std::clamp(std::round(clock / (32.0 * midiNoteToHz(midiNote + 7))), 1.0, 1023.0));
-        tonePeriod[2] = static_cast<uint16_t>(std::clamp(std::round(clock / (32.0 * midiNoteToHz(midiNote + 12))), 1.0, 1023.0));
-        attenuation = { 0x02, 0x07, 0x09, 0x0f };
+        const auto spread = static_cast<int>(std::round(patch.control1 * 12.0f));
+        auto note0 = midiNote;
+        auto note1 = midiNote + std::max(1, spread / 2);
+        auto note2 = midiNote + std::max(2, spread);
+        auto noiseAttenuation = static_cast<uint8_t>(std::clamp(static_cast<int>(15 - std::round(patch.control4 * 13.0f)), 0, 15));
+        auto noise = 0x03u;
+
+        switch (patch.macro)
+        {
+            case MacroKind::coin:
+                note0 = midiNote + 12 + static_cast<int>(std::round(patch.control2 * 7.0f));
+                note1 = note0 + 12;
+                note2 = note0 + 19;
+                attenuation = { 0x01, 0x08, 0x0f, 0x0f };
+                break;
+            case MacroKind::bass:
+                note0 = midiNote - 12;
+                note1 = midiNote - 24;
+                note2 = midiNote - 5;
+                attenuation = { 0x01, 0x08, 0x0f, 0x0f };
+                break;
+            case MacroKind::arp:
+                note1 = midiNote + 7;
+                note2 = midiNote + 12;
+                attenuation = { 0x02, 0x05, 0x07, 0x0f };
+                break;
+            case MacroKind::drum:
+                note0 = midiNote - 24;
+                note1 = midiNote - 12;
+                note2 = midiNote;
+                noise = patch.control3 > 0.5f ? 0x04u : 0x00u;
+                noiseAttenuation = 0x02u;
+                attenuation = { 0x0f, 0x0f, 0x0f, noiseAttenuation };
+                break;
+            case MacroKind::hit:
+                noise = 0x04u | static_cast<unsigned>(std::round(patch.control3 * 2.0f));
+                attenuation = { 0x04, 0x0f, 0x0f, 0x03 };
+                break;
+            case MacroKind::laser:
+                note0 = midiNote + 12 + static_cast<int>(std::round(patch.control2 * 12.0f));
+                note1 = midiNote - 12;
+                noise = 0x04u | static_cast<unsigned>(std::round(patch.control3 * 2.0f));
+                attenuation = { 0x01, 0x09, 0x0f, noiseAttenuation };
+                break;
+            case MacroKind::jump:
+                note0 = midiNote + static_cast<int>(std::round(patch.control2 * 12.0f));
+                attenuation = { 0x01, 0x0f, 0x0f, 0x0f };
+                break;
+            case MacroKind::powerUp:
+                note1 = midiNote + 5;
+                note2 = midiNote + 12;
+                attenuation = { 0x01, 0x04, 0x07, 0x0f };
+                break;
+            case MacroKind::lead:
+            case MacroKind::manual:
+            default:
+                attenuation = { 0x02, 0x07, 0x09, noiseAttenuation };
+                noise = patch.control3 > 0.66f ? 0x04u : 0x03u;
+                break;
+        }
+
+        tonePeriod[0] = notePeriod(note0);
+        tonePeriod[1] = notePeriod(note1);
+        tonePeriod[2] = notePeriod(note2);
+        noiseControl = static_cast<uint8_t>(noise & 0x07u);
     }
 
     void noteOff(int midiNote) override
@@ -526,6 +767,7 @@ public:
              << "\"mode\":\"SN76489 / Sega PSG\","
              << "\"implementedAccuracy\":\"partial clean-room register-level\","
              << "\"clockHz\":" << clock << ","
+             << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"period0\":" << tonePeriod[0] << ","
              << "\"period1\":" << tonePeriod[1] << ","
              << "\"period2\":" << tonePeriod[2] << ","
@@ -540,6 +782,11 @@ private:
         if ((value & 0x0f) == 0x0f)
             return 0.0;
         return std::pow(10.0, -2.0 * static_cast<double>(value & 0x0f) / 20.0);
+    }
+
+    uint16_t notePeriod(int midiNote) const
+    {
+        return static_cast<uint16_t>(std::clamp(std::round(clock / (32.0 * midiNoteToHz(std::clamp(midiNote, 0, 127)))), 1.0, 1023.0));
     }
 
     double renderTone(int channel)
@@ -582,6 +829,7 @@ private:
     double noisePhase = 0.0;
     int heldNote = -1;
     float noteVelocity = 0.0f;
+    PatchConfig patch;
 };
 
 } // namespace
@@ -629,6 +877,22 @@ std::optional<AccuracyMode> parseAccuracyMode(std::string_view text)
     return std::nullopt;
 }
 
+std::optional<MacroKind> parseMacroKind(std::string_view text)
+{
+    const auto key = lower(text);
+    if (key == "manual") return MacroKind::manual;
+    if (key == "coin") return MacroKind::coin;
+    if (key == "bass") return MacroKind::bass;
+    if (key == "lead") return MacroKind::lead;
+    if (key == "arp") return MacroKind::arp;
+    if (key == "drum") return MacroKind::drum;
+    if (key == "hit") return MacroKind::hit;
+    if (key == "laser") return MacroKind::laser;
+    if (key == "jump") return MacroKind::jump;
+    if (key == "powerup") return MacroKind::powerUp;
+    return std::nullopt;
+}
+
 std::string toString(ChipMode mode)
 {
     switch (mode)
@@ -661,6 +925,24 @@ std::string toString(AccuracyMode mode)
         case AccuracyMode::inspired: return "Inspired";
         case AccuracyMode::hybrid: return "Hybrid";
         case AccuracyMode::authentic: return "Authentic";
+    }
+    return "Unknown";
+}
+
+std::string toString(MacroKind macro)
+{
+    switch (macro)
+    {
+        case MacroKind::manual: return "Manual";
+        case MacroKind::coin: return "Coin";
+        case MacroKind::bass: return "Bass";
+        case MacroKind::lead: return "Lead";
+        case MacroKind::arp: return "Arp";
+        case MacroKind::drum: return "Drum";
+        case MacroKind::hit: return "Hit";
+        case MacroKind::laser: return "Laser";
+        case MacroKind::jump: return "Jump";
+        case MacroKind::powerUp: return "Power-Up";
     }
     return "Unknown";
 }

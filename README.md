@@ -72,7 +72,7 @@ cmake --build build --config Release --target chipper_render
 build\Release\chipper_render.exe --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out nes.wav --debug nes.json
 ```
 
-It accepts chip mode, clock rate, note input, register-write event files, render length, and writes WAV plus debug JSON. Golden WAV/reference metadata should be added only from trusted emulator or hardware comparisons.
+It accepts chip mode, accuracy, musical macro, native macro controls, clock rate, note input, register-write event files, render length, and writes WAV plus debug JSON. Golden WAV/reference metadata should be added only from trusted emulator or hardware comparisons.
 
 ## Design Notes
 

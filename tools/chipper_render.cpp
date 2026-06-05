@@ -1,4 +1,5 @@
 #include "Engine/ChipCore.h"
+#include "Engine/ChipDescriptors.h"
 
 #include <algorithm>
 #include <charconv>
@@ -22,6 +23,11 @@ struct Options
 {
     chipper::ChipMode chip = chipper::ChipMode::nes;
     chipper::AccuracyMode accuracy = chipper::AccuracyMode::hybrid;
+    chipper::MacroKind macro = chipper::MacroKind::manual;
+    float control1 = 0.5f;
+    float control2 = 0.5f;
+    float control3 = 0.5f;
+    float control4 = 0.5f;
     double clock = 1789773.0;
     double sampleRate = 48000.0;
     double seconds = 1.0;
@@ -75,6 +81,7 @@ void printUsage()
 {
     std::cerr
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
+        << "       Optional: --macro coin --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "Addresses and values may be decimal or 0x-prefixed hex.\n";
@@ -120,6 +127,43 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             }
             options.accuracy = *parsed;
+        }
+        else if (arg == "--macro")
+        {
+            const auto* value = requireValue("--macro");
+            if (value == nullptr)
+                return false;
+            const auto parsed = chipper::parseMacroKind(value);
+            if (! parsed)
+            {
+                std::cerr << "Unknown macro: " << value << "\n";
+                return false;
+            }
+            options.macro = *parsed;
+        }
+        else if (arg == "--control1")
+        {
+            const auto* value = requireValue("--control1");
+            if (value == nullptr || ! parseNumber(std::string(value), options.control1))
+                return false;
+        }
+        else if (arg == "--control2")
+        {
+            const auto* value = requireValue("--control2");
+            if (value == nullptr || ! parseNumber(std::string(value), options.control2))
+                return false;
+        }
+        else if (arg == "--control3")
+        {
+            const auto* value = requireValue("--control3");
+            if (value == nullptr || ! parseNumber(std::string(value), options.control3))
+                return false;
+        }
+        else if (arg == "--control4")
+        {
+            const auto* value = requireValue("--control4");
+            if (value == nullptr || ! parseNumber(std::string(value), options.control4))
+                return false;
         }
         else if (arg == "--clock")
         {
@@ -304,6 +348,7 @@ void writeDebugJson(const std::filesystem::path& path,
     out << "{\n"
         << "  \"chip\": \"" << chipper::toString(options.chip) << "\",\n"
         << "  \"requestedAccuracy\": \"" << chipper::toString(options.accuracy) << "\",\n"
+        << "  \"macro\": \"" << chipper::toString(options.macro) << "\",\n"
         << "  \"implementedAccuracy\": \"" << core.implementedAccuracy() << "\",\n"
         << "  \"clockHz\": " << options.clock << ",\n"
         << "  \"sampleRate\": " << options.sampleRate << ",\n"
@@ -333,6 +378,7 @@ int main(int argc, char** argv)
 
         auto core = chipper::createChipCore(options.chip, options.accuracy);
         core->reset(options.sampleRate, options.clock);
+        core->setPatch(chipper::makePatchConfig(options.chip, options.macro, options.control1, options.control2, options.control3, options.control4));
         const auto writes = loadEvents(options.eventFile);
 
         const auto sampleCount = static_cast<uint64_t>(std::ceil(options.seconds * options.sampleRate));

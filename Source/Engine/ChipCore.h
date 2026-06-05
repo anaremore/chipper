@@ -39,6 +39,29 @@ enum class AccuracyMode
     authentic
 };
 
+enum class MacroKind
+{
+    manual,
+    coin,
+    bass,
+    lead,
+    arp,
+    drum,
+    hit,
+    laser,
+    jump,
+    powerUp
+};
+
+struct PatchConfig
+{
+    MacroKind macro = MacroKind::manual;
+    float control1 = 0.5f;
+    float control2 = 0.5f;
+    float control3 = 0.5f;
+    float control4 = 0.5f;
+};
+
 struct StereoFrame
 {
     float left = 0.0f;
@@ -74,6 +97,7 @@ public:
     virtual ~ChipCore() = default;
 
     virtual void reset(double outputSampleRate, double chipClockHz) = 0;
+    virtual void setPatch(const PatchConfig& patch) = 0;
     virtual void writeRegister(uint16_t address, uint8_t value) = 0;
     virtual void noteOn(int midiNote, float velocity) = 0;
     virtual void noteOff(int midiNote) = 0;
@@ -91,8 +115,10 @@ std::unique_ptr<ChipCore> createChipCore(ChipMode mode, AccuracyMode accuracy);
 
 std::optional<ChipMode> parseChipMode(std::string_view text);
 std::optional<AccuracyMode> parseAccuracyMode(std::string_view text);
+std::optional<MacroKind> parseMacroKind(std::string_view text);
 std::string toString(ChipMode mode);
 std::string toString(AccuracyMode mode);
+std::string toString(MacroKind macro);
 double midiNoteToHz(int midiNote);
 
 } // namespace chipper

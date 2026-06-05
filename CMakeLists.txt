@@ -9,6 +9,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(CHIPPER_BUILD_PLUGIN "Build the JUCE VST3 plugin" ON)
 
 add_library(chipper_engine STATIC
+    Source/Engine/ChipDescriptors.cpp
+    Source/Engine/ChipDescriptors.h
     Source/Engine/ChipCore.cpp
     Source/Engine/ChipCore.h
 )
@@ -28,6 +30,9 @@ add_test(NAME chipper_render_ym2149_smoke
 )
 add_test(NAME chipper_render_sn76489_smoke
     COMMAND chipper_render --chip sn76489 --accuracy authentic --clock 3579545 --rate 48000 --seconds 0.10 --note 76 --out sn-smoke.wav --debug sn-smoke.json
+)
+add_test(NAME chipper_render_nes_coin_macro_smoke
+    COMMAND chipper_render --chip nes --accuracy authentic --macro coin --clock 1789773 --rate 48000 --seconds 0.10 --note 69 --out nes-coin-smoke.wav --debug nes-coin-smoke.json
 )
 
 if (NOT CHIPPER_BUILD_PLUGIN)

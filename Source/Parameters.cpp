@@ -31,6 +31,11 @@ juce::StringArray accuracyChoices()
     return { "Inspired", "Hybrid", "Authentic" };
 }
 
+juce::StringArray macroChoices()
+{
+    return { "Manual", "Coin", "Bass", "Lead", "Arp", "Drum", "Hit", "Laser", "Jump", "Power-Up" };
+}
+
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
@@ -62,8 +67,32 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::macro, 1 },
         "Musical Macro",
-        juce::StringArray { "Manual", "Coin", "Bass", "Lead", "Arp", "Drum", "Hit", "Laser", "Jump", "Power-Up" },
+        macroChoices(),
         0));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::macroControl1, 1 },
+        "Native Control 1",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        0.5f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::macroControl2, 1 },
+        "Native Control 2",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        0.5f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::macroControl3, 1 },
+        "Native Control 3",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        0.5f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::macroControl4, 1 },
+        "Native Control 4",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        0.5f));
 
     return { params.begin(), params.end() };
 }
@@ -101,6 +130,24 @@ AccuracyMode accuracyFromChoice(int choice)
         case 2: return AccuracyMode::authentic;
         case 1:
         default: return AccuracyMode::hybrid;
+    }
+}
+
+MacroKind macroFromChoice(int choice)
+{
+    switch (choice)
+    {
+        case 1: return MacroKind::coin;
+        case 2: return MacroKind::bass;
+        case 3: return MacroKind::lead;
+        case 4: return MacroKind::arp;
+        case 5: return MacroKind::drum;
+        case 6: return MacroKind::hit;
+        case 7: return MacroKind::laser;
+        case 8: return MacroKind::jump;
+        case 9: return MacroKind::powerUp;
+        case 0:
+        default: return MacroKind::manual;
     }
 }
 

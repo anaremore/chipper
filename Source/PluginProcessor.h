@@ -38,9 +38,11 @@ public:
     juce::AudioProcessorValueTreeState& getValueTreeState() { return apvts; }
     const juce::AudioProcessorValueTreeState& getValueTreeState() const { return apvts; }
     std::string currentCoreStatus() const;
+    chipper::ChipMode currentChipMode() const { return activeMode; }
 
 private:
     void ensureCore();
+    chipper::PatchConfig currentPatchFromParameters() const;
     void renderRange(juce::AudioBuffer<float>& buffer, int startSample, int endSample, float outputGain);
     void handleMidiMessage(const juce::MidiMessage& message);
 
@@ -51,6 +53,8 @@ private:
     double activeClock = 1789773.0;
     double currentSampleRate = 48000.0;
     int activeNote = -1;
+    float activeVelocity = 0.0f;
+    chipper::PatchConfig activePatch;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipperAudioProcessor)
 };

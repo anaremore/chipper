@@ -1,6 +1,20 @@
 #include "PluginProcessor.h"
 
+#include "Engine/ChipDescriptors.h"
 #include "PluginEditor.h"
+
+namespace
+{
+bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
+{
+    constexpr auto tolerance = 0.0001f;
+    return a.macro == b.macro
+        && std::abs(a.control1 - b.control1) < tolerance
+        && std::abs(a.control2 - b.control2) < tolerance
+        && std::abs(a.control3 - b.control3) < tolerance
+        && std::abs(a.control4 - b.control4) < tolerance;
+}
+}
 
 ChipperAudioProcessor::ChipperAudioProcessor()
     : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)),
@@ -73,19 +87,24 @@ void ChipperAudioProcessor::handleMidiMessage(const juce::MidiMessage& message)
     if (message.isNoteOn())
     {
         activeNote = message.getNoteNumber();
-        core->noteOn(activeNote, message.getFloatVelocity());
+        activeVelocity = message.getFloatVelocity();
+        core->noteOn(activeNote, activeVelocity);
     }
     else if (message.isNoteOff())
     {
         core->noteOff(message.getNoteNumber());
         if (activeNote == message.getNoteNumber())
+        {
             activeNote = -1;
+            activeVelocity = 0.0f;
+        }
     }
     else if (message.isAllNotesOff() || message.isAllSoundOff())
     {
         if (activeNote >= 0)
             core->noteOff(activeNote);
         activeNote = -1;
+        activeVelocity = 0.0f;
     }
 }
 
@@ -97,16 +116,45 @@ void ChipperAudioProcessor::ensureCore()
     const auto selectedAccuracy = chipper::parameters::accuracyFromChoice(accuracyChoice);
     const auto clockOverride = apvts.getRawParameterValue(chipper::parameters::id::clockHz)->load();
     const auto selectedClock = clockOverride > 0.0f ? static_cast<double>(clockOverride) : chipper::parameters::defaultClockForMode(selectedMode);
+    const auto selectedPatch = currentPatchFromParameters();
 
     if (core != nullptr && selectedMode == activeMode && selectedAccuracy == activeAccuracy && std::abs(selectedClock - activeClock) < 0.5)
+    {
+        if (! patchMatches(selectedPatch, activePatch))
+        {
+            activePatch = selectedPatch;
+            core->setPatch(activePatch);
+
+            if (activeNote >= 0)
+                core->noteOn(activeNote, activeVelocity);
+        }
+
         return;
+    }
 
     activeMode = selectedMode;
     activeAccuracy = selectedAccuracy;
     activeClock = selectedClock;
+    activePatch = selectedPatch;
     core = chipper::createChipCore(activeMode, activeAccuracy);
     core->reset(currentSampleRate, activeClock);
+    core->setPatch(activePatch);
     activeNote = -1;
+    activeVelocity = 0.0f;
+}
+
+chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
+{
+    const auto modeChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::chipMode)->load()));
+    const auto macroChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::macro)->load()));
+
+    return chipper::makePatchConfig(
+        chipper::parameters::chipModeFromChoice(modeChoice),
+        chipper::parameters::macroFromChoice(macroChoice),
+        apvts.getRawParameterValue(chipper::parameters::id::macroControl1)->load(),
+        apvts.getRawParameterValue(chipper::parameters::id::macroControl2)->load(),
+        apvts.getRawParameterValue(chipper::parameters::id::macroControl3)->load(),
+        apvts.getRawParameterValue(chipper::parameters::id::macroControl4)->load());
 }
 
 juce::AudioProcessorEditor* ChipperAudioProcessor::createEditor()
@@ -136,7 +184,8 @@ std::string ChipperAudioProcessor::currentCoreStatus() const
     if (core == nullptr)
         return "No core loaded";
 
-    return core->modeName() + ": " + core->implementedAccuracy() + ". " + core->limitations();
+    const auto& descriptor = chipper::descriptorFor(activeMode);
+    return descriptor.displayName + ": " + core->implementedAccuracy() + ". " + descriptor.summary + " " + core->limitations();
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
