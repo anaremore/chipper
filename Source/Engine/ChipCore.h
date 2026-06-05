@@ -102,6 +102,7 @@ public:
     virtual void noteOn(int midiNote, float velocity) = 0;
     virtual void noteOff(int midiNote) = 0;
     virtual StereoFrame renderSample() = 0;
+    virtual std::vector<RegisterWrite> exportRegisterState() const = 0;
 
     virtual ChipMode mode() const = 0;
     virtual AccuracyMode requestedAccuracy() const = 0;

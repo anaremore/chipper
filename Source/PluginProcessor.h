@@ -43,6 +43,7 @@ public:
 private:
     void ensureCore();
     chipper::PatchConfig currentPatchFromParameters() const;
+    void replayPendingRegisterState();
     void renderRange(juce::AudioBuffer<float>& buffer, int startSample, int endSample, float outputGain);
     void handleMidiMessage(const juce::MidiMessage& message);
 
@@ -55,6 +56,7 @@ private:
     int activeNote = -1;
     float activeVelocity = 0.0f;
     chipper::PatchConfig activePatch;
+    std::vector<chipper::RegisterWrite> pendingRegisterState;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipperAudioProcessor)
 };

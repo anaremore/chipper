@@ -5,6 +5,9 @@
 
 namespace
 {
+constexpr auto coreStateTag = "CHIPPER_CORE_REGISTERS";
+constexpr auto registerTag = "REG";
+
 bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
 {
     constexpr auto tolerance = 0.0001f;
@@ -139,6 +142,7 @@ void ChipperAudioProcessor::ensureCore()
     core = chipper::createChipCore(activeMode, activeAccuracy);
     core->reset(currentSampleRate, activeClock);
     core->setPatch(activePatch);
+    replayPendingRegisterState();
     activeNote = -1;
     activeVelocity = 0.0f;
 }
@@ -157,6 +161,17 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
         apvts.getRawParameterValue(chipper::parameters::id::macroControl4)->load());
 }
 
+void ChipperAudioProcessor::replayPendingRegisterState()
+{
+    if (core == nullptr || pendingRegisterState.empty())
+        return;
+
+    for (const auto& write : pendingRegisterState)
+        core->writeRegister(write.address, write.value);
+
+    pendingRegisterState.clear();
+}
+
 juce::AudioProcessorEditor* ChipperAudioProcessor::createEditor()
 {
     return new ChipperAudioProcessorEditor(*this);
@@ -166,6 +181,27 @@ void ChipperAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     const auto state = apvts.copyState();
     const std::unique_ptr<juce::XmlElement> xml(state.createXml());
+    while (auto* existingCoreState = xml->getChildByName(coreStateTag))
+        xml->removeChildElement(existingCoreState, true);
+
+    if (core != nullptr)
+    {
+        auto* coreState = new juce::XmlElement(coreStateTag);
+        coreState->setAttribute("mode", core->modeName());
+        coreState->setAttribute("implementedAccuracy", core->implementedAccuracy());
+
+        const auto writes = core->exportRegisterState();
+        coreState->setAttribute("count", static_cast<int>(writes.size()));
+        for (const auto& write : writes)
+        {
+            auto* reg = new juce::XmlElement(registerTag);
+            reg->setAttribute("address", static_cast<int>(write.address));
+            reg->setAttribute("value", static_cast<int>(write.value));
+            coreState->addChildElement(reg);
+        }
+
+        xml->addChildElement(coreState);
+    }
     copyXmlToBinary(*xml, destData);
 }
 
@@ -174,6 +210,23 @@ void ChipperAudioProcessor::setStateInformation(const void* data, int sizeInByte
     const std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
     if (xml != nullptr && xml->hasTagName(apvts.state.getType()))
     {
+        pendingRegisterState.clear();
+        if (auto* coreState = xml->getChildByName(coreStateTag))
+        {
+            for (const auto* child : coreState->getChildIterator())
+            {
+                if (child != nullptr && child->hasTagName(registerTag))
+                {
+                    pendingRegisterState.push_back({
+                        0,
+                        static_cast<uint16_t>(child->getIntAttribute("address") & 0xffff),
+                        static_cast<uint8_t>(child->getIntAttribute("value") & 0xff)
+                    });
+                }
+            }
+            xml->removeChildElement(coreState, true);
+        }
+
         apvts.replaceState(juce::ValueTree::fromXml(*xml));
         core.reset();
     }

@@ -91,7 +91,7 @@ Accuracy levels:
 - The VST maps musical controls to register writes and mode-specific helpers rather than drawing audio from generic oscillators.
 - Host tempo is read from the playhead. The arp emits note/register events at sample offsets inside the block.
 - Post rendering applies only honest modern conveniences: output trim, optional safety limiting/DC cleanup, and labeled hybrid effects.
-- State save/restore uses APVTS XML.
+- State save/restore uses APVTS XML plus an internal register replay snapshot for the active core where practical.
 
 ## UI Layout Plan
 

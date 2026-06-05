@@ -66,6 +66,7 @@ public:
     void noteOn(int, float) override {}
     void noteOff(int) override {}
     StereoFrame renderSample() override { return {}; }
+    std::vector<RegisterWrite> exportRegisterState() const override { return {}; }
 
     ChipMode mode() const override { return selected; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
@@ -247,6 +248,15 @@ public:
         const auto noise = enabled[3] ? renderNoise() : 0.0;
         const auto mixed = static_cast<float>(((p1 + p2 + wave + noise) / 4.0) * noteVelocity * 0.85);
         return { mixed, mixed };
+    }
+
+    std::vector<RegisterWrite> exportRegisterState() const override
+    {
+        std::vector<RegisterWrite> writes;
+        writes.reserve(regs.size());
+        for (size_t i = 0; i < regs.size(); ++i)
+            writes.push_back({ 0, static_cast<uint16_t>(0xff10 + i), regs[i] });
+        return writes;
     }
 
     ChipMode mode() const override { return ChipMode::dmg; }
@@ -571,6 +581,15 @@ public:
         const auto mixed = static_cast<float>((pulseOut + tndOut) * 2.0 - 0.35);
         const auto scaled = mixed * noteVelocity;
         return { scaled, scaled };
+    }
+
+    std::vector<RegisterWrite> exportRegisterState() const override
+    {
+        std::vector<RegisterWrite> writes;
+        writes.reserve(regs.size());
+        for (size_t i = 0; i < regs.size(); ++i)
+            writes.push_back({ 0, static_cast<uint16_t>(0x4000 + i), regs[i] });
+        return writes;
     }
 
     ChipMode mode() const override { return ChipMode::nes; }
@@ -939,6 +958,15 @@ public:
         return { sample, sample };
     }
 
+    std::vector<RegisterWrite> exportRegisterState() const override
+    {
+        std::vector<RegisterWrite> writes;
+        writes.reserve(regs.size());
+        for (size_t i = 0; i < regs.size(); ++i)
+            writes.push_back({ 0, static_cast<uint16_t>(i), regs[i] });
+        return writes;
+    }
+
     ChipMode mode() const override { return ChipMode::ym2149; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
     std::string modeName() const override { return "YM2149 / AY-3-8910"; }
@@ -1183,6 +1211,28 @@ public:
         mix += renderNoise() * attenuationToLinear(attenuation[3]);
         const auto sample = static_cast<float>((mix / 4.0) * noteVelocity * 0.8);
         return { sample, sample };
+    }
+
+    std::vector<RegisterWrite> exportRegisterState() const override
+    {
+        std::vector<RegisterWrite> writes;
+        writes.reserve(10);
+
+        const auto addTone = [&writes](uint8_t channel, uint16_t period)
+        {
+            writes.push_back({ 0, 0, static_cast<uint8_t>(0x80u | (channel << 5u) | (period & 0x0fu)) });
+            writes.push_back({ 0, 0, static_cast<uint8_t>((period >> 4u) & 0x3fu) });
+        };
+
+        addTone(0, tonePeriod[0]);
+        addTone(1, tonePeriod[1]);
+        addTone(2, tonePeriod[2]);
+
+        for (uint8_t channel = 0; channel < 4; ++channel)
+            writes.push_back({ 0, 0, static_cast<uint8_t>(0x90u | (channel << 5u) | (attenuation[channel] & 0x0fu)) });
+
+        writes.push_back({ 0, 0, static_cast<uint8_t>(0xe0u | (noiseControl & 0x07u)) });
+        return writes;
     }
 
     ChipMode mode() const override { return ChipMode::sn76489; }
