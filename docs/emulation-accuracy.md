@@ -13,11 +13,11 @@ Chipper's simple UX must be backed by real chip behavior wherever possible. This
 
 | Chip | Target | Initial Source Plan | License Status | Current Status |
 | --- | --- | --- | --- | --- |
-| NES / RP2A03 | Pulse, triangle, noise, DMC, nonlinear mixer | Clean-room register model | Internal | Partial PSG core with simple envelope and length-counter groundwork; DMC, exact frame sequencing, sweep edge cases, and timing tests still required |
-| Game Boy / DMG APU | Pulse, wave RAM, noise, envelopes, length, sweep | Clean-room register model, with SameBoy APU still a possible reference after audit | Internal | Phase 1 partial core; envelope clocks, length counters, sweep edge cases, stereo/DAC quirks, and timing tests still required |
-| SID / C64 | 6581/8580 oscillator, ADSR, sync, ring, filter | Needs permissive core or clean-room implementation | reSID-style cores are commonly GPL-family; do not vendor without approval | Planned, not accurate |
+| NES / RP2A03 | Pulse, triangle, noise, DMC, nonlinear mixer | Clean-room register model; FigBug/RP2A03 may be reference/test-oracle material only | Internal; FigBug/RP2A03 is LGPL-2.1 and not vendored | Partial PSG core with simple envelope and length-counter groundwork; DMC, exact frame sequencing, sweep edge cases, and timing tests still required |
+| Game Boy / DMG APU | Pulse, wave RAM, noise, envelopes, length, sweep | Clean-room register model, with SameBoy and FigBug/PAPU as possible references after audit | Internal; FigBug/PAPU is GPL-2.0 and not vendored | Phase 1 partial core; envelope clocks, length counters, sweep edge cases, stereo/DAC quirks, and timing tests still required |
+| SID / C64 | 6581/8580 oscillator, ADSR, sync, ring, filter | Needs permissive core or clean-room implementation; FigBug/SID may be reference material only | reSID-style cores are commonly GPL-family; FigBug/SID is GPL-3.0 and not vendored | Planned, not accurate |
 | YM2149 / AY | Three tones, shared noise, mixer, volume/envelope | Clean-room register model | Internal | Phase 1 partial core |
-| SN76489 | Tone/noise/attenuation/register behavior | Clean-room register model | Internal | Phase 1 partial core |
+| SN76489 | Tone/noise/attenuation/register behavior | Clean-room register model; FigBug/SN76489 may be reference/test-oracle material only | Internal; FigBug/SN76489 is LGPL-2.1 and not vendored | Phase 1 partial core |
 | YM2612 / OPN2 | Operators, algorithms, feedback, envelopes, DAC, stereo | `ymfm` candidate | BSD-3-Clause candidate; audit before vendoring | Planned |
 | OPL2/OPL3 | Operators, algorithms, rhythm, waveforms, stereo | `ymfm` candidate | BSD-3-Clause candidate; audit before vendoring | Planned |
 | SNES SPC700-style | Lo-fi sample playback | Needs separate core/sampler design | Audit required | Planned |
