@@ -1,0 +1,6 @@
+# Pulse 1 negative sweep uses one's-complement subtraction, so 256 - (256 >> 1) - 1 = 127.
+write 1 0x4015 0x01
+write 2 0x4000 0x1f
+write 3 0x4002 0x00
+write 4 0x4003 0x01
+write 5 0x4001 0x89

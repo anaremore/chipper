@@ -799,6 +799,8 @@ public:
         envelopeDivider.fill(0);
         envelopeStart.fill(false);
         lengthCounter.fill(0);
+        sweepDivider.fill(0);
+        sweepReload.fill(false);
         quarterFramePhase = 0.0;
         halfFramePhase = 0.0;
         lfsr = 1;
@@ -824,6 +826,11 @@ public:
             triggerChannel(2, value);
         else if (address == 0x400f)
             triggerChannel(3, value);
+
+        if (address == 0x4001)
+            sweepReload[0] = true;
+        else if (address == 0x4005)
+            sweepReload[1] = true;
 
         if (address == 0x4015)
         {
@@ -924,6 +931,18 @@ public:
 
         writePulseRegisters(0x4000, duty, p1Vol, p1Note);
         writePulseRegisters(0x4004, static_cast<uint8_t>(std::min<int>(3, duty + 1)), p2Vol, p2Note);
+
+        const auto sweepShift = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(1.0f + patch.control2 * 2.0f)), 1, 3));
+        const auto sweepPeriod = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control2 * 3.0f)), 0, 3) << 4u);
+        auto pulse1Sweep = uint8_t { 0x08u };
+        auto pulse2Sweep = uint8_t { 0x08u };
+        if (patch.macro == MacroKind::coin || patch.macro == MacroKind::jump || patch.macro == MacroKind::powerUp)
+            pulse1Sweep = static_cast<uint8_t>(0x80u | sweepPeriod | 0x08u | sweepShift);
+        else if (patch.macro == MacroKind::laser || patch.macro == MacroKind::hit)
+            pulse1Sweep = static_cast<uint8_t>(0x80u | sweepPeriod | sweepShift);
+
+        writeRegister(0x4001, pulse1Sweep);
+        writeRegister(0x4005, pulse2Sweep);
         writeTriangleRegisters(triNote);
         writeRegister(0x400c, static_cast<uint8_t>(std::min<unsigned>(15u, noiseVol)));
         writeRegister(0x400e, static_cast<uint8_t>(noiseMode | noisePeriod));
@@ -973,7 +992,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Pulse, triangle, noise, timers, duty, enable bits, simple envelopes, length counters, and nonlinear mixer are approximated; DMC, exact frame sequencer timing, sweep edge cases, and hardware validation are not complete.";
+        return "Pulse, triangle, noise, timers, duty, enable bits, simple envelopes, length counters, basic pulse sweep updates/muting, and nonlinear mixer are approximated; DMC, exact frame sequencer timing, linear counter behavior, advanced sweep edge cases, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -987,6 +1006,14 @@ public:
              << "\"pulseTimer1\":" << timer[0] << ","
              << "\"pulseTimer2\":" << timer[1] << ","
              << "\"triangleTimer\":" << timer[2] << ","
+             << "\"sweepTarget0\":" << sweepTargetPeriod(0) << ","
+             << "\"sweepTarget1\":" << sweepTargetPeriod(1) << ","
+             << "\"sweepMuted0\":" << (pulseSweepMuted(0) ? 1 : 0) << ","
+             << "\"sweepMuted1\":" << (pulseSweepMuted(1) ? 1 : 0) << ","
+             << "\"sweepEnabled0\":" << (sweepUnitEnabled(0) ? 1 : 0) << ","
+             << "\"sweepEnabled1\":" << (sweepUnitEnabled(1) ? 1 : 0) << ","
+             << "\"sweepDivider0\":" << static_cast<int>(sweepDivider[0]) << ","
+             << "\"sweepDivider1\":" << static_cast<int>(sweepDivider[1]) << ","
              << "\"envelope0\":" << static_cast<int>(envelopeVolume[0]) << ","
              << "\"envelope1\":" << static_cast<int>(envelopeVolume[1]) << ","
              << "\"envelopeNoise\":" << static_cast<int>(envelopeVolume[3]) << ","
@@ -1049,6 +1076,7 @@ private:
         while (halfFramePhase >= 1.0)
         {
             halfFramePhase -= 1.0;
+            tickSweeps();
             tickLengthCounters();
         }
     }
@@ -1091,6 +1119,83 @@ private:
             const auto halted = (haltReg & 0x20u) != 0;
             if (! halted && lengthCounter[channel] > 0)
                 --lengthCounter[channel];
+        }
+    }
+
+    uint8_t sweepRegisterForChannel(size_t channel) const
+    {
+        return regs[channel == 0 ? 0x01 : 0x05];
+    }
+
+    uint8_t sweepPeriod(size_t channel) const
+    {
+        return static_cast<uint8_t>((sweepRegisterForChannel(channel) >> 4u) & 0x07u);
+    }
+
+    uint8_t sweepShift(size_t channel) const
+    {
+        return static_cast<uint8_t>(sweepRegisterForChannel(channel) & 0x07u);
+    }
+
+    bool sweepNegate(size_t channel) const
+    {
+        return (sweepRegisterForChannel(channel) & 0x08u) != 0;
+    }
+
+    bool sweepUnitEnabled(size_t channel) const
+    {
+        return (sweepRegisterForChannel(channel) & 0x80u) != 0 && sweepShift(channel) != 0;
+    }
+
+    int sweepTargetPeriod(size_t channel) const
+    {
+        if (channel >= 2)
+            return 0;
+
+        const auto current = static_cast<int>(timer[channel]);
+        const auto change = current >> sweepShift(channel);
+        const auto target = sweepNegate(channel)
+            ? current - change - (channel == 0 ? 1 : 0)
+            : current + change;
+
+        return std::max(0, target);
+    }
+
+    bool pulseSweepMuted(size_t channel) const
+    {
+        return channel < 2 && (timer[channel] < 8 || sweepTargetPeriod(channel) > 0x7ff);
+    }
+
+    void setPulseTimer(size_t channel, uint16_t period)
+    {
+        if (channel >= 2)
+            return;
+
+        period = static_cast<uint16_t>(period & 0x07ffu);
+        const auto loIndex = channel == 0 ? size_t(0x02) : size_t(0x06);
+        const auto hiIndex = channel == 0 ? size_t(0x03) : size_t(0x07);
+        regs[loIndex] = static_cast<uint8_t>(period & 0xffu);
+        regs[hiIndex] = static_cast<uint8_t>((regs[hiIndex] & 0xf8u) | ((period >> 8u) & 0x07u));
+        timer[channel] = period;
+    }
+
+    void tickSweeps()
+    {
+        for (size_t channel = 0; channel < 2; ++channel)
+        {
+            const auto dividerWasZero = sweepDivider[channel] == 0;
+            if (dividerWasZero && sweepUnitEnabled(channel) && ! pulseSweepMuted(channel))
+                setPulseTimer(channel, static_cast<uint16_t>(sweepTargetPeriod(channel)));
+
+            if (dividerWasZero || sweepReload[channel])
+            {
+                sweepDivider[channel] = sweepPeriod(channel);
+                sweepReload[channel] = false;
+            }
+            else
+            {
+                --sweepDivider[channel];
+            }
         }
     }
 
@@ -1137,6 +1242,9 @@ private:
 
     double renderPulse(int index)
     {
+        if (pulseSweepMuted(static_cast<size_t>(index)))
+            return 0.0;
+
         const auto period = timer[index] + 1;
         const auto hz = clock / (16.0 * static_cast<double>(period));
         phase[index] = wrapPhase(phase[index] + hz / sampleRate);
@@ -1189,6 +1297,8 @@ private:
     std::array<uint8_t, 4> envelopeDivider {};
     std::array<bool, 4> envelopeStart {};
     std::array<uint8_t, 4> lengthCounter {};
+    std::array<uint8_t, 2> sweepDivider {};
+    std::array<bool, 2> sweepReload {};
     double quarterFramePhase = 0.0;
     double halfFramePhase = 0.0;
     uint16_t lfsr = 1;

@@ -1,0 +1,6 @@
+# Disabled non-negated sweep still computes a target and mutes when the target exceeds $7ff.
+write 1 0x4015 0x01
+write 2 0x4000 0x1f
+write 3 0x4002 0x00
+write 4 0x4003 0x04
+write 5 0x4001 0x00

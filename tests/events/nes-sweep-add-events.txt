@@ -1,0 +1,6 @@
+# Auto note-on supplies velocity; these writes isolate pulse 1 and enable upward timer sweep.
+write 1 0x4015 0x01
+write 2 0x4000 0x1f
+write 3 0x4002 0xff
+write 4 0x4003 0x00
+write 5 0x4001 0x81
