@@ -60,9 +60,9 @@ std::array<ModuleDescriptor, 6> dmgModules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "DMG APU clean-room register model.", { "DMG profile", "CGB quirks planned", "Hybrid default", "Authentic still partial" }),
-        makeModule("sources", "Channels", "Four hardware sound generators.", { "Pulse 1 / sweep planned", "Pulse 2", "Wave RAM", "Noise" }),
+        makeModule("sources", "Channels", "Four hardware sound generators.", { "Pulse 1 / sweep", "Pulse 2", "Wave RAM", "Noise" }),
         makeModule("tone", "Wave / Noise", "Duty, wave RAM, and polynomial noise behavior.", { "Pulse duty", "Wave level", "Noise clock", "Narrow noise" }),
-        makeModule("envelope", "Envelope", "Hardware envelope and length groundwork.", { "64 Hz envelope", "256 Hz length", "DAC gating", "Sweep pending" }),
+        makeModule("envelope", "Envelope", "Hardware envelope, length, and sweep groundwork.", { "64 Hz envelope", "256 Hz length", "DAC gating", "128 Hz CH1 sweep" }),
         makeModule("motion", "Motion", "Portable-game gesture templates.", { "Arp stack", "Pitch rise/drop", "Retrigger", "Coin/noise SFX" }),
         makeModule("output", "Output", "Compact handheld output character.", { "Output gain", "Speaker color planned", "Width helper planned", "Crunch helper" })
     };

@@ -1,0 +1,9 @@
+# Trigger DMG CH1 with an addition sweep that overflows immediately.
+# NR10 = pace 1, add, shift 1; period 0x700 calculates 0xa80, so CH1 should disable on trigger.
+note_on 0 60 1.0
+write 1 0xff26 0x81
+write 1 0xff10 0x11
+write 1 0xff11 0xbf
+write 1 0xff12 0xf8
+write 1 0xff13 0x00
+write 1 0xff14 0x87

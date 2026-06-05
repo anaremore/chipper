@@ -116,6 +116,10 @@ public:
         channelMask = 0x0f;
         lengthClockPhase = 0.0;
         envelopeClockPhase = 0.0;
+        sweepClockPhase = 0.0;
+        sweepShadowPeriod = 0;
+        sweepTimer = 0;
+        sweepEnabled = false;
         lfsr = 0x7fffu;
         heldNote = -1;
         noteVelocity = 0.0f;
@@ -247,7 +251,7 @@ public:
         }
 
         writeRegister(0xff26, static_cast<uint8_t>(enable));
-        writeRegister(0xff10, static_cast<uint8_t>(0x10u | std::clamp(static_cast<int>(std::round(patch.control2 * 7.0f)), 0, 7)));
+        writeRegister(0xff10, static_cast<uint8_t>(0x18u | std::clamp(static_cast<int>(std::round(patch.control2 * 7.0f)), 0, 7)));
         writePulseRegisters(0, duty, ch1Vol, ch1Note);
         writePulseRegisters(1, static_cast<uint8_t>(std::min<int>(3, duty + 1)), ch2Vol, ch2Note);
         writeWaveRegisters(waveNote, patch.macro == MacroKind::bass ? 0x20u : 0x40u);
@@ -290,7 +294,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Pulse, wave RAM, noise, trigger bits, core frequency formulas, DAC gating, simple envelopes, and length counters are modeled; sweep edge cases, exact DIV-APU quirks, stereo routing, and hardware validation are not complete.";
+        return "Pulse, wave RAM, noise, trigger bits, core frequency formulas, DAC gating, simple envelopes, length counters, and basic CH1 sweep are modeled; exact DIV-APU quirks, sweep obscure behavior, stereo routing, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -304,6 +308,9 @@ public:
              << "\"pulse1FreqReg\":" << pulseFrequencyRegister(0) << ","
              << "\"pulse2FreqReg\":" << pulseFrequencyRegister(1) << ","
              << "\"waveFreqReg\":" << waveFrequencyRegister() << ","
+             << "\"sweepShadow\":" << sweepShadowPeriod << ","
+             << "\"sweepTimer\":" << static_cast<int>(sweepTimer) << ","
+             << "\"sweepEnabled\":" << (sweepEnabled ? 1 : 0) << ","
              << "\"waveRam0\":" << static_cast<int>(regs[0x20]) << ","
              << "\"envelope0\":" << static_cast<int>(envelopeLevel[0]) << ","
              << "\"envelope1\":" << static_cast<int>(envelopeLevel[1]) << ","
@@ -417,6 +424,10 @@ private:
         channelMask = 0x0f;
         lengthClockPhase = 0.0;
         envelopeClockPhase = 0.0;
+        sweepClockPhase = 0.0;
+        sweepShadowPeriod = 0;
+        sweepTimer = 0;
+        sweepEnabled = false;
         lfsr = 0x7fff;
     }
 
@@ -434,10 +445,12 @@ private:
             envelopeDivider[channel] = envelopePeriod(channel);
         }
 
+        enabled[channel] = dacEnabled(channel) && ((channelMask & (1u << channel)) != 0);
+
         if (channel == 3)
             lfsr = 0x7fff;
-
-        enabled[channel] = dacEnabled(channel) && ((channelMask & (1u << channel)) != 0);
+        else if (channel == 0)
+            triggerSweep();
     }
 
     void tickFrameSequencer()
@@ -454,6 +467,13 @@ private:
         {
             envelopeClockPhase -= 1.0;
             tickEnvelopes();
+        }
+
+        sweepClockPhase += 128.0 / sampleRate;
+        while (sweepClockPhase >= 1.0)
+        {
+            sweepClockPhase -= 1.0;
+            tickSweep();
         }
     }
 
@@ -494,6 +514,91 @@ private:
             {
                 --envelopeLevel[channel];
             }
+        }
+    }
+
+    uint8_t sweepPace() const
+    {
+        return static_cast<uint8_t>((regs[0x00] >> 4u) & 0x07u);
+    }
+
+    uint8_t sweepReloadValue() const
+    {
+        const auto pace = sweepPace();
+        return pace == 0 ? 8u : pace;
+    }
+
+    bool sweepSubtract() const
+    {
+        return (regs[0x00] & 0x08u) != 0;
+    }
+
+    uint8_t sweepShift() const
+    {
+        return static_cast<uint8_t>(regs[0x00] & 0x07u);
+    }
+
+    int calculateSweepTarget() const
+    {
+        const auto shift = sweepShift();
+        const auto delta = shift == 0 ? 0 : (sweepShadowPeriod >> shift);
+        return sweepSubtract()
+            ? static_cast<int>(sweepShadowPeriod) - static_cast<int>(delta)
+            : static_cast<int>(sweepShadowPeriod) + static_cast<int>(delta);
+    }
+
+    void writeSweepPeriod(uint16_t period)
+    {
+        period = static_cast<uint16_t>(period & 0x07ffu);
+        regs[0x03] = static_cast<uint8_t>(period & 0xffu);
+        regs[0x04] = static_cast<uint8_t>((regs[0x04] & 0xf8u) | ((period >> 8u) & 0x07u));
+    }
+
+    bool sweepOverflowCheck()
+    {
+        if (calculateSweepTarget() > 2047)
+        {
+            enabled[0] = false;
+            return true;
+        }
+
+        return false;
+    }
+
+    void triggerSweep()
+    {
+        sweepShadowPeriod = pulseFrequencyRegister(0);
+        sweepTimer = sweepReloadValue();
+        sweepEnabled = sweepPace() != 0 || sweepShift() != 0;
+
+        if (sweepShift() != 0)
+            sweepOverflowCheck();
+    }
+
+    void tickSweep()
+    {
+        if (sweepTimer > 0)
+            --sweepTimer;
+
+        if (sweepTimer != 0)
+            return;
+
+        sweepTimer = sweepReloadValue();
+        if (! sweepEnabled || sweepPace() == 0)
+            return;
+
+        const auto target = calculateSweepTarget();
+        if (target > 2047)
+        {
+            enabled[0] = false;
+            return;
+        }
+
+        if (sweepShift() != 0)
+        {
+            sweepShadowPeriod = static_cast<uint16_t>(target);
+            writeSweepPeriod(sweepShadowPeriod);
+            sweepOverflowCheck();
         }
     }
 
@@ -602,6 +707,10 @@ private:
     uint8_t channelMask = 0x0f;
     double lengthClockPhase = 0.0;
     double envelopeClockPhase = 0.0;
+    double sweepClockPhase = 0.0;
+    uint16_t sweepShadowPeriod = 0;
+    uint8_t sweepTimer = 0;
+    bool sweepEnabled = false;
     uint16_t lfsr = 0x7fff;
     int heldNote = -1;
     float noteVelocity = 0.0f;
