@@ -309,7 +309,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Pulse, wave RAM, noise, trigger bits, core frequency formulas, DAC gating, simple envelopes, length counters, basic CH1 sweep, and NR50/NR51 stereo routing are modeled; exact DIV-APU quirks, sweep obscure behavior, mixer analog details, and hardware validation are not complete.";
+        return "Pulse, wave RAM, noise, trigger bits, core frequency formulas, DAC gating, simple envelopes, length counters, basic CH1 sweep, NR50/NR51 stereo routing, and NR43 noise clock behavior are modeled; exact DIV-APU quirks, sweep obscure behavior, mixer analog details, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -330,6 +330,10 @@ public:
              << "\"nr51\":" << static_cast<int>(regs[0x15]) << ","
              << "\"leftVolume\":" << outputVolume(true) << ","
              << "\"rightVolume\":" << outputVolume(false) << ","
+             << "\"noiseClockHz\":" << noiseClockHz() << ","
+             << "\"noiseShift\":" << static_cast<int>(noiseClockShift()) << ","
+             << "\"noiseDivisorCode\":" << static_cast<int>(noiseDivisorCode()) << ","
+             << "\"noiseWidth7\":" << (noiseWidth7() ? 1 : 0) << ","
              << "\"waveRam0\":" << static_cast<int>(regs[0x20]) << ","
              << "\"envelope0\":" << static_cast<int>(envelopeLevel[0]) << ","
              << "\"envelope1\":" << static_cast<int>(envelopeLevel[1]) << ","
@@ -383,6 +387,36 @@ private:
     bool routedToRight(size_t channel) const
     {
         return channel < 4 && (regs[0x15] & (1u << channel)) != 0;
+    }
+
+    uint8_t noiseClockShift() const
+    {
+        return static_cast<uint8_t>((regs[0x12] >> 4u) & 0x0fu);
+    }
+
+    uint8_t noiseDivisorCode() const
+    {
+        return static_cast<uint8_t>(regs[0x12] & 0x07u);
+    }
+
+    bool noiseWidth7() const
+    {
+        return (regs[0x12] & 0x08u) != 0;
+    }
+
+    double noiseDivisor() const
+    {
+        const auto code = noiseDivisorCode();
+        return code == 0 ? 0.5 : static_cast<double>(code);
+    }
+
+    double noiseClockHz() const
+    {
+        const auto shift = noiseClockShift();
+        if (shift >= 14)
+            return 0.0;
+
+        return 262144.0 / (noiseDivisor() * static_cast<double>(1u << shift));
     }
 
     static uint16_t lengthMax(size_t channel)
@@ -708,11 +742,7 @@ private:
 
     double renderNoise()
     {
-        static constexpr std::array<int, 8> divisors { 8, 16, 32, 48, 64, 80, 96, 112 };
-        const auto nr43 = regs[0x12];
-        const auto shift = (nr43 >> 4u) & 0x0fu;
-        const auto divisor = divisors[nr43 & 0x07u];
-        const auto hz = 524288.0 / static_cast<double>(divisor * (1u << std::min<unsigned>(shift, 14u)));
+        const auto hz = noiseClockHz();
         phase[3] += hz / sampleRate;
 
         while (phase[3] >= 1.0)
@@ -720,7 +750,7 @@ private:
             phase[3] -= 1.0;
             const auto feedback = (lfsr & 1u) ^ ((lfsr >> 1u) & 1u);
             lfsr = static_cast<uint16_t>((lfsr >> 1u) | (feedback << 14u));
-            if ((nr43 & 0x08u) != 0)
+            if (noiseWidth7())
                 lfsr = static_cast<uint16_t>((lfsr & ~(1u << 6u)) | (feedback << 6u));
             if (lfsr == 0)
                 lfsr = 0x7fffu;
