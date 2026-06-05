@@ -26,6 +26,9 @@ enable_testing()
 add_test(NAME chipper_render_nes_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 0.10 --note 69 --out nes-smoke.wav --debug nes-smoke.json
 )
+add_test(NAME chipper_render_nes_chip_poly_fallback_smoke
+    COMMAND chipper_render --chip nes --accuracy authentic --play-mode chip-poly --clock 1789773 --rate 48000 --seconds 0.04 --note 69 --out nes-chip-poly-fallback-smoke.wav --debug nes-chip-poly-fallback-smoke.json
+)
 add_test(NAME chipper_render_ym2149_smoke
     COMMAND chipper_render --chip ym2149 --accuracy authentic --clock 2000000 --rate 48000 --seconds 0.10 --note 72 --out ym-smoke.wav --debug ym-smoke.json
 )
@@ -110,6 +113,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-smoke.json --implemented-contains partial --macro Manual --min-peak 0.1 --min-rms 0.05 --register-writes 0 --note-events 0 --min-zero-crossings 30 --max-zero-crossings 120
     )
     set_tests_properties(chipper_render_nes_json_assert PROPERTIES DEPENDS chipper_render_nes_smoke)
+
+    add_test(NAME chipper_render_nes_chip_poly_fallback_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-chip-poly-fallback-smoke.json --implemented-contains partial --macro Manual --play-mode "Big Mono" --min-peak 0.1 --register-writes 0 --note-events 0
+    )
+    set_tests_properties(chipper_render_nes_chip_poly_fallback_assert PROPERTIES DEPENDS chipper_render_nes_chip_poly_fallback_smoke)
 
     add_test(NAME chipper_render_ym2149_chip_poly_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 3 --min-peak 0.1 --core-min activeChannels=3 --core-max activeChannels=3 --core-min assignedNoteA=60 --core-max assignedNoteA=60 --core-min assignedNoteB=64 --core-max assignedNoteB=64 --core-min assignedNoteC=67 --core-max assignedNoteC=67 --core-min periodA=477 --core-max periodA=479 --core-min periodB=378 --core-max periodB=380 --core-min periodC=318 --core-max periodC=320

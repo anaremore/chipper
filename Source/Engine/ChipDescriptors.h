@@ -42,10 +42,12 @@ struct ChipDescriptor
     std::array<ModuleDescriptor, 6> modules;
     std::vector<MacroTemplate> macros;
     bool implemented = false;
+    bool supportsChipPoly = false;
 };
 
 const ChipDescriptor& descriptorFor(ChipMode mode);
 const MacroTemplate& macroTemplateFor(ChipMode mode, MacroKind macro);
+bool supportsPlayMode(ChipMode mode, PlayMode playMode);
 std::vector<MacroKind> macroOrder();
 PatchConfig makePatchConfig(ChipMode mode,
                             MacroKind macro,

@@ -82,7 +82,7 @@ Chipper exposes one patch per plugin instance. A patch can use every native chip
 - **Manual:** reserved for explicit channel assignment and tracker-style routing.
 - **Clone:** reserved for Hybrid mode engine cloning, where each MIDI note can own a virtual chip stack.
 
-Only Big Mono and Chip Poly should be visible in the VST UI until Manual and Clone have engine implementations. Internal enums and renderer parsing may reserve those future modes, but visible controls should not imply behavior that does not exist.
+Only Big Mono and Chip Poly should be visible in the VST UI until Manual and Clone have engine implementations. Chip Poly should be enabled only for chip descriptors with tested finite-channel allocation; unsupported chips resolve requests back to Big Mono. Internal enums and renderer parsing may reserve those future modes, but visible controls should not imply behavior that does not exist.
 
 UI controls should graduate from descriptor text to real controls only when they have an engine mapping, stable parameter identity, preset recall behavior, and renderer coverage. Planned chip controls can be described in module text, but should not appear as fake knobs before the core exists.
 
@@ -101,6 +101,6 @@ Authentic mode should expose chip-native behavior. Hybrid mode can add musical h
 
 ## Current Bridge
 
-The current `ChipDescriptor` layer is the first implemented step toward this system. It provides chip names, summaries, macro templates, chip-specific labels for the universal macro controls, implementation status, and six stable UI module definitions per chip. The JUCE editor renders those modules in a fixed shell and updates their contents from the selected descriptor. Implemented chips show live macro/native controls; planned chips keep roadmap module text visible but disable inactive controls so the UI does not imply sound behavior that is not backed by a core. The shared Play Mode parameter is the first patch/channel control exposed globally; Game Boy / DMG, YM2149 / AY, and SN76489 currently implement Chip Poly allocation across their finite pitched channels.
+The current `ChipDescriptor` layer is the first implemented step toward this system. It provides chip names, summaries, macro templates, chip-specific labels for the universal macro controls, implementation status, Chip Poly capability, and six stable UI module definitions per chip. The JUCE editor renders those modules in a fixed shell and updates their contents from the selected descriptor. Implemented chips show live macro/native controls; planned chips keep roadmap module text visible but disable inactive controls so the UI does not imply sound behavior that is not backed by a core. The shared Play Mode parameter is the first patch/channel control exposed globally; Game Boy / DMG, YM2149 / AY, and SN76489 currently implement Chip Poly allocation across their finite pitched channels.
 
 Future UI work should keep expanding `ChipDescriptor` into richer module and parameter specs rather than adding chip-specific editor branches.

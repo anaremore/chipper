@@ -26,7 +26,7 @@ Accuracy levels:
 
 - Chip Mode: NES/RP2A03, Game Boy/DMG, SID/C64, YM2149/AY, SN76489, YM2612, OPL2/OPL3, SPC700, POKEY, Paula, HuC6280, Namco WSG, YM2151, YM2413/OPLL, SCC, Arcade, Custom
 - Accuracy: Inspired, Hybrid, Authentic
-- Play Mode: Big Mono, Chip Poly; Manual and Clone are reserved until tracker routing and hybrid engine cloning are implemented.
+- Play Mode: Big Mono, Chip Poly where the selected chip has tested finite-channel allocation; Manual and Clone are reserved until tracker routing and hybrid engine cloning are implemented.
 - Output Level
 - Musical Macro: Coin, Bass, Lead, Arp, Drum, Hit, Laser, Jump, Power-Up
 - Clock Rate override and model variant where applicable

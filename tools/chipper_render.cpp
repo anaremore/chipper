@@ -426,6 +426,7 @@ chipper::RenderStats calculateStats(const std::vector<chipper::StereoFrame>& fra
 
 void writeDebugJson(const std::filesystem::path& path,
                     const Options& options,
+                    const chipper::PatchConfig& patch,
                     const chipper::ChipCore& core,
                     const chipper::RenderStats& stats,
                     size_t registerWriteCount,
@@ -438,8 +439,9 @@ void writeDebugJson(const std::filesystem::path& path,
     out << "{\n"
         << "  \"chip\": \"" << chipper::toString(options.chip) << "\",\n"
         << "  \"requestedAccuracy\": \"" << chipper::toString(options.accuracy) << "\",\n"
-        << "  \"macro\": \"" << chipper::toString(options.macro) << "\",\n"
-        << "  \"playMode\": \"" << chipper::toString(options.playMode) << "\",\n"
+        << "  \"macro\": \"" << chipper::toString(patch.macro) << "\",\n"
+        << "  \"playMode\": \"" << chipper::toString(patch.playMode) << "\",\n"
+        << "  \"requestedPlayMode\": \"" << chipper::toString(options.playMode) << "\",\n"
         << "  \"implementedAccuracy\": \"" << core.implementedAccuracy() << "\",\n"
         << "  \"clockHz\": " << options.clock << ",\n"
         << "  \"sampleRate\": " << options.sampleRate << ",\n"
@@ -474,13 +476,14 @@ int main(int argc, char** argv)
 
         auto core = chipper::createChipCore(options.chip, options.accuracy);
         core->reset(options.sampleRate, options.clock);
-        core->setPatch(chipper::makePatchConfig(options.chip,
-                                                options.macro,
-                                                options.control1,
-                                                options.control2,
-                                                options.control3,
-                                                options.control4,
-                                                options.playMode));
+        const auto patch = chipper::makePatchConfig(options.chip,
+                                                    options.macro,
+                                                    options.control1,
+                                                    options.control2,
+                                                    options.control3,
+                                                    options.control4,
+                                                    options.playMode);
+        core->setPatch(patch);
         const auto events = loadEvents(options.eventFile);
         const auto registerWriteCount = static_cast<size_t>(std::count_if(events.begin(), events.end(), [](const auto& event) { return event.type == EventType::write; }));
         const auto noteEventCount = events.size() - registerWriteCount;
@@ -514,7 +517,7 @@ int main(int argc, char** argv)
         core->noteOff(options.note);
         const auto stats = calculateStats(frames);
         writeWav(options.wavPath, frames, options.sampleRate);
-        writeDebugJson(options.debugPath, options, *core, stats, registerWriteCount, noteEventCount);
+        writeDebugJson(options.debugPath, options, patch, *core, stats, registerWriteCount, noteEventCount);
 
         std::cout << "Rendered " << frames.size() << " samples to " << options.wavPath.string()
                   << " and " << options.debugPath.string() << "\n";

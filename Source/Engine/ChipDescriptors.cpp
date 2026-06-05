@@ -142,6 +142,7 @@ const ChipDescriptor& fallbackDescriptor()
         },
         plannedModules("Sources", "Tone"),
         commonMacros(),
+        false,
         false
     };
     return descriptor;
@@ -176,6 +177,7 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             dmgModules(),
             commonMacros(),
+            true,
             true
         },
         {
@@ -204,6 +206,7 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             ym2149Modules(),
             commonMacros(),
+            true,
             true
         },
         {
@@ -218,6 +221,7 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             sn76489Modules(),
             commonMacros(),
+            true,
             true
         },
         {
@@ -402,6 +406,18 @@ const MacroTemplate& macroTemplateFor(ChipMode mode, MacroKind macro)
     return descriptor.macros.front();
 }
 
+bool supportsPlayMode(ChipMode mode, PlayMode playMode)
+{
+    if (playMode == PlayMode::stack)
+        return true;
+
+    const auto& descriptor = descriptorFor(mode);
+    if (playMode == PlayMode::chipPoly)
+        return descriptor.implemented && descriptor.supportsChipPoly;
+
+    return false;
+}
+
 std::vector<MacroKind> macroOrder()
 {
     return {
@@ -432,13 +448,15 @@ PatchConfig makePatchConfig(ChipMode mode,
         return clampControl(templated + ((user - 0.5f) * 0.6f));
     };
 
+    const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
+
     return {
         macro,
         blend(templ.controls[0], control1),
         blend(templ.controls[1], control2),
         blend(templ.controls[2], control3),
         blend(templ.controls[3], control4),
-        playMode
+        effectivePlayMode
     };
 }
 

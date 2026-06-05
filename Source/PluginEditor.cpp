@@ -267,6 +267,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     displayedMode = mode;
     const auto& descriptor = chipper::descriptorFor(mode);
     const auto hasLiveCore = descriptor.implemented;
+    const auto supportsChipPoly = chipper::supportsPlayMode(mode, chipper::PlayMode::chipPoly);
 
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
     coreReadinessLabel.setText(hasLiveCore ? "LIVE" : "PLANNED", juce::dontSendNotification);
@@ -278,7 +279,10 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     globalStripLabel.setText(hasLiveCore ? "Live Chip Controls" : "Planned Control Surface", juce::dontSendNotification);
     accuracyBox.setEnabled(hasLiveCore);
     macroBox.setEnabled(hasLiveCore);
-    playModeBox.setEnabled(hasLiveCore);
+    playModeBox.setEnabled(hasLiveCore && supportsChipPoly);
+    playModeBox.setTooltip(supportsChipPoly
+                               ? "Chooses how incoming notes use the chip channels inside one patch."
+                               : "Chip Poly is disabled until this chip has tested finite-channel allocation.");
     clockSlider.setEnabled(hasLiveCore);
     clockLabel.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     clockSlider.setAlpha(hasLiveCore ? 1.0f : 0.55f);
