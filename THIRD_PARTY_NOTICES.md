@@ -21,13 +21,14 @@ These projects may be evaluated later. Listing them here is not an endorsement t
 
 The project owner is willing to open source Chipper if required for emulator-core licensing. Even so, GPL/LGPL code must not be imported until Chipper's license, source-distribution obligations, dynamic/static linking approach, and commercial distribution plan are explicitly chosen.
 
-- `ymfm`: candidate for Yamaha FM chips such as YM2612/OPN2, YM2151/OPM, YM2413/OPLL, and OPL2/OPL3. License audit required before vendoring.
-- SameBoy APU code: candidate reference or source for Game Boy/DMG behavior. License audit required before vendoring.
-- [FigBug/SID](https://github.com/FigBug/SID): C64 SID VST/AU emulation. GitHub reports GPL-3.0. Reference/inspiration only unless Chipper adopts a GPL-compatible distribution model.
-- [FigBug/RP2A03](https://github.com/FigBug/RP2A03): NES RP2A03 VST/AU synth. GitHub reports LGPL-2.1. Reference/test-oracle candidate only unless LGPL linking and redistribution requirements are explicitly accepted.
-- [FigBug/PAPU](https://github.com/FigBug/PAPU): Game Boy PAPU VST/AU emulation. GitHub reports GPL-2.0. Reference/inspiration only unless Chipper adopts a GPL-compatible distribution model.
-- [FigBug/SN76489](https://github.com/FigBug/SN76489): Sega Master System SN76489 VST/AU emulation. GitHub reports LGPL-2.1. Reference/test-oracle candidate only unless LGPL linking and redistribution requirements are explicitly accepted.
-- SID, SPC700, and other emulator cores: many available implementations use GPL/LGPL-family licenses. Do not vendor without an explicit distribution decision.
+The full candidate map is maintained in `docs/emulator-source-map.md`.
+
+Current priority candidates:
+
+- Permissive-first candidates: [ymfm](https://github.com/aaronsgiles/ymfm), [digital-sound-antiques/emu2149](https://github.com/digital-sound-antiques/emu2149), [digital-sound-antiques/emu76489](https://github.com/digital-sound-antiques/emu76489), [digital-sound-antiques/emu2413](https://github.com/digital-sound-antiques/emu2413), [digital-sound-antiques/emu2212](https://github.com/digital-sound-antiques/emu2212), [ayumi](https://github.com/true-grue/ayumi), [SameBoy](https://github.com/LIJI32/SameBoy), [web-pokey](https://github.com/mrk-its/web-pokey), and Paula/ProTracker references. Audit required before vendoring.
+- LGPL-sensitive candidates: [FigBug/RP2A03](https://github.com/FigBug/RP2A03), [FigBug/SN76489](https://github.com/FigBug/SN76489), [Nuked-OPN2](https://github.com/nukeykt/Nuked-OPN2), [Nuked-OPL3](https://github.com/nukeykt/Nuked-OPL3), and [Game_Music_Emu](https://github.com/libgme/game-music-emu). Do not import without an LGPL compliance plan.
+- GPL/reference candidates: [FigBug/SID](https://github.com/FigBug/SID), [FigBug/PAPU](https://github.com/FigBug/PAPU), [libsidplayfp/reSIDfp](https://github.com/libsidplayfp/libsidplayfp), [Furnace](https://github.com/tildearrow/furnace), [MAME](https://www.mamedev.org/about.html), and GPL-family alternatives. Use as references or validation targets only unless Chipper adopts a compatible distribution model.
+- MAME-specific note: MAME is valuable for hardware behavior and edge cases, but project-level and per-file licensing must be checked before any reuse.
 
 ## Contribution Rule
 

@@ -2,6 +2,8 @@
 
 Chipper's simple UX must be backed by real chip behavior wherever possible. This document is the implementation contract for chip modes, accuracy labels, renderer tests, golden references, and licensing.
 
+Source candidates, reference projects, validation targets, and license-audit tiers are tracked in `docs/emulator-source-map.md`. Nothing from that source map is vendored until this document and `THIRD_PARTY_NOTICES.md` are updated with the exact upstream revision and license posture.
+
 ## Accuracy Labels
 
 - **Inspired:** musical approximation. The UI may say "NES-inspired" or "SID-inspired"; it must not claim accurate emulation.
