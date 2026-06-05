@@ -12,6 +12,8 @@ def main() -> int:
     parser.add_argument("--min-rms", type=float)
     parser.add_argument("--register-writes", type=int)
     parser.add_argument("--note-events", type=int)
+    parser.add_argument("--core-max", action="append", default=[], metavar="FIELD=VALUE")
+    parser.add_argument("--core-min", action="append", default=[], metavar="FIELD=VALUE")
     args = parser.parse_args()
 
     with open(args.path, "r", encoding="utf-8") as handle:
@@ -36,6 +38,27 @@ def main() -> int:
 
     if args.note_events is not None and int(data.get("noteEventCount", -1)) != args.note_events:
         failures.append(f"noteEventCount expected {args.note_events}, got {data.get('noteEventCount')}")
+
+    core_state = data.get("coreState", {})
+    for assertion in args.core_max:
+        field, _, value = assertion.partition("=")
+        if not field or not value:
+            failures.append(f"bad --core-max assertion {assertion!r}")
+            continue
+        actual = float(core_state.get(field, 0.0))
+        expected = float(value)
+        if actual > expected:
+            failures.append(f"coreState.{field} expected <= {expected}, got {actual}")
+
+    for assertion in args.core_min:
+        field, _, value = assertion.partition("=")
+        if not field or not value:
+            failures.append(f"bad --core-min assertion {assertion!r}")
+            continue
+        actual = float(core_state.get(field, 0.0))
+        expected = float(value)
+        if actual < expected:
+            failures.append(f"coreState.{field} expected >= {expected}, got {actual}")
 
     if failures:
         print("\n".join(failures), file=sys.stderr)

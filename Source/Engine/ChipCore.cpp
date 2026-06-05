@@ -410,6 +410,12 @@ public:
         phase.fill(0.0);
         timer.fill(0);
         enabled = { true, true, true, true };
+        envelopeVolume.fill(0);
+        envelopeDivider.fill(0);
+        envelopeStart.fill(false);
+        lengthCounter.fill(0);
+        quarterFramePhase = 0.0;
+        halfFramePhase = 0.0;
         lfsr = 1;
         heldNote = -1;
         noteVelocity = 0.0f;
@@ -425,12 +431,26 @@ public:
         if (address >= 0x4000 && address <= 0x4017)
             regs[static_cast<size_t>(address - 0x4000)] = value;
 
+        if (address == 0x4003)
+            triggerChannel(0, value);
+        else if (address == 0x4007)
+            triggerChannel(1, value);
+        else if (address == 0x400b)
+            triggerChannel(2, value);
+        else if (address == 0x400f)
+            triggerChannel(3, value);
+
         if (address == 0x4015)
         {
             enabled[0] = (value & 0x01) != 0;
             enabled[1] = (value & 0x02) != 0;
             enabled[2] = (value & 0x04) != 0;
             enabled[3] = (value & 0x08) != 0;
+            for (size_t i = 0; i < enabled.size(); ++i)
+            {
+                if (! enabled[i])
+                    lengthCounter[i] = 0;
+            }
         }
 
         updateTimers();
@@ -522,6 +542,7 @@ public:
         writeTriangleRegisters(triNote);
         writeRegister(0x400c, static_cast<uint8_t>(std::min<unsigned>(15u, noiseVol)));
         writeRegister(0x400e, static_cast<uint8_t>(noiseMode | noisePeriod));
+        writeRegister(0x400f, 0x18);
         writeRegister(0x4015, static_cast<uint8_t>(enable));
     }
 
@@ -536,10 +557,12 @@ public:
 
     StereoFrame renderSample() override
     {
-        const auto p1 = enabled[0] ? renderPulse(0) : 0.0;
-        const auto p2 = enabled[1] ? renderPulse(1) : 0.0;
-        const auto tri = enabled[2] ? renderTriangle() : 0.0;
-        const auto noi = enabled[3] ? renderNoise() : 0.0;
+        tickFrameUnits();
+
+        const auto p1 = channelActive(0) ? renderPulse(0) : 0.0;
+        const auto p2 = channelActive(1) ? renderPulse(1) : 0.0;
+        const auto tri = channelActive(2) ? renderTriangle() : 0.0;
+        const auto noi = channelActive(3) ? renderNoise() : 0.0;
 
         const auto pulseSum = p1 + p2;
         const auto tndSum = tri / 8227.0 + noi / 12241.0;
@@ -556,7 +579,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Pulse, triangle, noise, timers, duty, enable bits, and nonlinear mixer are approximated; DMC, frame sequencer, length counters, envelope/sweep edge cases, and hardware validation are not complete.";
+        return "Pulse, triangle, noise, timers, duty, enable bits, simple envelopes, length counters, and nonlinear mixer are approximated; DMC, exact frame sequencer timing, sweep edge cases, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -570,6 +593,10 @@ public:
              << "\"pulseTimer1\":" << timer[0] << ","
              << "\"pulseTimer2\":" << timer[1] << ","
              << "\"triangleTimer\":" << timer[2] << ","
+             << "\"envelope0\":" << static_cast<int>(envelopeVolume[0]) << ","
+             << "\"envelope1\":" << static_cast<int>(envelopeVolume[1]) << ","
+             << "\"envelopeNoise\":" << static_cast<int>(envelopeVolume[3]) << ","
+             << "\"length0\":" << static_cast<int>(lengthCounter[0]) << ","
              << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
              << "}";
         return json.str();
@@ -583,11 +610,107 @@ private:
         timer[2] = static_cast<uint16_t>(regs[0x0a] | ((regs[0x0b] & 0x07) << 8));
     }
 
+    static uint8_t lengthFromIndex(uint8_t value)
+    {
+        static constexpr std::array<uint8_t, 32> table {
+            10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26, 14,
+            12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30
+        };
+        return table[(value >> 3u) & 0x1fu];
+    }
+
+    void triggerChannel(size_t channel, uint8_t value)
+    {
+        if (channel < lengthCounter.size())
+        {
+            lengthCounter[channel] = lengthFromIndex(value);
+            envelopeStart[channel] = true;
+        }
+    }
+
+    bool channelActive(size_t channel) const
+    {
+        return channel < enabled.size() && enabled[channel] && lengthCounter[channel] > 0;
+    }
+
+    int envelopeRegisterForChannel(size_t channel) const
+    {
+        if (channel == 0)
+            return 0x00;
+        if (channel == 1)
+            return 0x04;
+        return 0x0c;
+    }
+
+    void tickFrameUnits()
+    {
+        quarterFramePhase += 240.0 / sampleRate;
+        while (quarterFramePhase >= 1.0)
+        {
+            quarterFramePhase -= 1.0;
+            tickEnvelopes();
+        }
+
+        halfFramePhase += 120.0 / sampleRate;
+        while (halfFramePhase >= 1.0)
+        {
+            halfFramePhase -= 1.0;
+            tickLengthCounters();
+        }
+    }
+
+    void tickEnvelopes()
+    {
+        for (const auto channel : { size_t(0), size_t(1), size_t(3) })
+        {
+            const auto reg = regs[static_cast<size_t>(envelopeRegisterForChannel(channel))];
+            const auto period = static_cast<uint8_t>(reg & 0x0fu);
+            const auto loop = (reg & 0x20u) != 0;
+
+            if (envelopeStart[channel])
+            {
+                envelopeStart[channel] = false;
+                envelopeVolume[channel] = 15;
+                envelopeDivider[channel] = period;
+                continue;
+            }
+
+            if (envelopeDivider[channel] > 0)
+            {
+                --envelopeDivider[channel];
+                continue;
+            }
+
+            envelopeDivider[channel] = period;
+            if (envelopeVolume[channel] > 0)
+                --envelopeVolume[channel];
+            else if (loop)
+                envelopeVolume[channel] = 15;
+        }
+    }
+
+    void tickLengthCounters()
+    {
+        for (size_t channel = 0; channel < lengthCounter.size(); ++channel)
+        {
+            const auto haltReg = channel == 0 ? regs[0x00] : (channel == 1 ? regs[0x04] : (channel == 2 ? regs[0x08] : regs[0x0c]));
+            const auto halted = (haltReg & 0x20u) != 0;
+            if (! halted && lengthCounter[channel] > 0)
+                --lengthCounter[channel];
+        }
+    }
+
     void writePulseRegisters(uint16_t baseAddress, uint8_t duty, unsigned volume, int midiNote)
     {
         const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
         const auto pulseTimer = static_cast<int>(std::max(0.0, std::round(clock / (16.0 * hz) - 1.0)));
-        writeRegister(baseAddress, static_cast<uint8_t>((duty << 6u) | (std::min<unsigned>(15u, volume) & 0x0fu)));
+        const auto constantVolume = patch.macro == MacroKind::manual
+            || patch.macro == MacroKind::lead
+            || patch.macro == MacroKind::arp
+            || patch.macro == MacroKind::bass
+            || patch.macro == MacroKind::powerUp;
+        const auto flags = constantVolume ? 0x10u : 0x00u;
+        writeRegister(baseAddress, static_cast<uint8_t>((duty << 6u) | flags | (std::min<unsigned>(15u, volume) & 0x0fu)));
         writeRegister(static_cast<uint16_t>(baseAddress + 2), static_cast<uint8_t>(pulseTimer & 0xff));
         writeRegister(static_cast<uint16_t>(baseAddress + 3), static_cast<uint8_t>((pulseTimer >> 8) & 0x07));
     }
@@ -610,7 +733,12 @@ private:
 
     double constantVolume(int regIndex) const
     {
-        return static_cast<double>(regs[regIndex] & 0x0f) / 15.0;
+        const auto reg = regs[static_cast<size_t>(regIndex)];
+        if ((reg & 0x10u) != 0)
+            return static_cast<double>(reg & 0x0f) / 15.0;
+
+        const auto channel = regIndex == 0x00 ? size_t(0) : (regIndex == 0x04 ? size_t(1) : size_t(3));
+        return static_cast<double>(envelopeVolume[channel]) / 15.0;
     }
 
     double renderPulse(int index)
@@ -663,6 +791,12 @@ private:
     std::array<double, 4> phase {};
     std::array<uint16_t, 3> timer {};
     std::array<bool, 4> enabled {};
+    std::array<uint8_t, 4> envelopeVolume {};
+    std::array<uint8_t, 4> envelopeDivider {};
+    std::array<bool, 4> envelopeStart {};
+    std::array<uint8_t, 4> lengthCounter {};
+    double quarterFramePhase = 0.0;
+    double halfFramePhase = 0.0;
     uint16_t lfsr = 1;
     int heldNote = -1;
     float noteVelocity = 0.0f;
