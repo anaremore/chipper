@@ -17,16 +17,24 @@ public:
     void resized() override;
 
 private:
+    static constexpr size_t uiModuleCount = 6;
+    static constexpr size_t uiModuleRows = 4;
+
     void timerCallback() override;
     void updateDescriptorText();
     void addLabeledSlider(juce::Slider& slider, juce::Label& label, const juce::String& fallbackText);
+    void placeLabeledSlider(juce::Slider& slider, juce::Label& label, juce::Rectangle<int> bounds);
 
     ChipperAudioProcessor& audioProcessor;
     juce::Label titleLabel;
     juce::Label statusLabel;
     juce::Label chipSummaryLabel;
+    juce::Label globalStripLabel;
     juce::Label clockLabel;
     juce::Label outputLabel;
+    std::array<juce::Label, uiModuleCount> moduleTitleLabels;
+    std::array<juce::Label, uiModuleCount> moduleSummaryLabels;
+    std::array<std::array<juce::Label, uiModuleRows>, uiModuleCount> moduleItemLabels;
 
     juce::ComboBox chipModeBox;
     juce::ComboBox accuracyBox;
@@ -48,6 +56,8 @@ private:
     std::array<std::unique_ptr<SliderAttachment>, 4> nativeAttachments;
 
     chipper::ChipMode displayedMode = chipper::ChipMode::custom;
+    std::array<juce::Rectangle<int>, uiModuleCount> moduleBounds;
+    juce::Rectangle<int> globalStripBounds;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipperAudioProcessorEditor)
 };

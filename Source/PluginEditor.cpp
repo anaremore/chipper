@@ -6,7 +6,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     : AudioProcessorEditor(processor),
       audioProcessor(processor)
 {
-    setSize(760, 520);
+    setSize(900, 680);
 
     auto& state = audioProcessor.getValueTreeState();
 
@@ -67,53 +67,148 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     chipSummaryLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
     addAndMakeVisible(chipSummaryLabel);
 
+    for (size_t i = 0; i < moduleTitleLabels.size(); ++i)
+    {
+        moduleTitleLabels[i].setFont(juce::FontOptions(15.0f, juce::Font::bold));
+        moduleTitleLabels[i].setJustificationType(juce::Justification::centredLeft);
+        moduleTitleLabels[i].setColour(juce::Label::textColourId, juce::Colour(0xfff0c94d));
+        addAndMakeVisible(moduleTitleLabels[i]);
+
+        moduleSummaryLabels[i].setFont(juce::FontOptions(12.0f));
+        moduleSummaryLabels[i].setJustificationType(juce::Justification::centredLeft);
+        moduleSummaryLabels[i].setColour(juce::Label::textColourId, juce::Colour(0xffc8d4dc));
+        moduleSummaryLabels[i].setMinimumHorizontalScale(0.80f);
+        addAndMakeVisible(moduleSummaryLabels[i]);
+
+        for (auto& itemLabel : moduleItemLabels[i])
+        {
+            itemLabel.setFont(juce::FontOptions(12.0f, juce::Font::bold));
+            itemLabel.setJustificationType(juce::Justification::centredLeft);
+            itemLabel.setColour(juce::Label::textColourId, juce::Colour(0xffdbe8e5));
+            itemLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff243038));
+            itemLabel.setMinimumHorizontalScale(0.75f);
+            addAndMakeVisible(itemLabel);
+        }
+    }
+
+    globalStripLabel.setText("Global Performance Controls", juce::dontSendNotification);
+    globalStripLabel.setJustificationType(juce::Justification::centredLeft);
+    globalStripLabel.setColour(juce::Label::textColourId, juce::Colour(0xfff0c94d));
+    globalStripLabel.setFont(juce::FontOptions(14.0f, juce::Font::bold));
+    addAndMakeVisible(globalStripLabel);
+
     updateDescriptorText();
     startTimerHz(8);
 }
 
 void ChipperAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(0xff11161d));
-    g.setColour(juce::Colour(0xff26323f));
+    g.fillAll(juce::Colour(0xff101414));
+    g.setColour(juce::Colour(0xff314047));
     g.drawHorizontalLine(70, 16.0f, static_cast<float>(getWidth() - 16));
     g.drawHorizontalLine(getHeight() - 62, 16.0f, static_cast<float>(getWidth() - 16));
+
+    for (const auto& bounds : moduleBounds)
+    {
+        if (bounds.isEmpty())
+            continue;
+
+        const auto panel = bounds.toFloat();
+        g.setColour(juce::Colour(0xff182125));
+        g.fillRoundedRectangle(panel, 6.0f);
+        g.setColour(juce::Colour(0xff34474c));
+        g.drawRoundedRectangle(panel.reduced(0.5f), 6.0f, 1.0f);
+    }
+
+    if (! globalStripBounds.isEmpty())
+    {
+        const auto strip = globalStripBounds.toFloat();
+        g.setColour(juce::Colour(0xff171c20));
+        g.fillRoundedRectangle(strip, 6.0f);
+        g.setColour(juce::Colour(0xff344047));
+        g.drawRoundedRectangle(strip.reduced(0.5f), 6.0f, 1.0f);
+    }
 }
 
 void ChipperAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds().reduced(16);
 
-    auto top = area.removeFromTop(46);
-    titleLabel.setBounds(top.removeFromLeft(180));
-    chipModeBox.setBounds(top.removeFromLeft(220).reduced(0, 6));
+    auto top = area.removeFromTop(48);
+    titleLabel.setBounds(top.removeFromLeft(150));
+    chipModeBox.setBounds(top.removeFromLeft(250).reduced(0, 6));
     top.removeFromLeft(8);
     accuracyBox.setBounds(top.removeFromLeft(150).reduced(0, 6));
     top.removeFromLeft(8);
-    macroBox.setBounds(top.removeFromLeft(150).reduced(0, 6));
+    macroBox.setBounds(top.removeFromLeft(170).reduced(0, 6));
 
-    area.removeFromTop(16);
-    chipSummaryLabel.setBounds(area.removeFromTop(38));
+    area.removeFromTop(10);
+    chipSummaryLabel.setBounds(area.removeFromTop(34));
     area.removeFromTop(10);
 
-    auto utility = area.removeFromTop(76);
-    clockSlider.setBounds(utility.removeFromLeft((getWidth() - 40) / 2).reduced(8, 0));
-    outputSlider.setBounds(utility.reduced(8, 0));
+    auto modules = area.removeFromTop(330);
+    const auto gap = 10;
+    const auto columnWidth = (modules.getWidth() - gap) / 2;
+    const auto rowHeight = (modules.getHeight() - (gap * 2)) / 3;
 
-    area.removeFromTop(18);
+    for (size_t i = 0; i < moduleBounds.size(); ++i)
+    {
+        const auto row = static_cast<int>(i / 2);
+        const auto column = static_cast<int>(i % 2);
+        const auto x = modules.getX() + (column * (columnWidth + gap));
+        const auto y = modules.getY() + (row * (rowHeight + gap));
+        moduleBounds[i] = { x, y, columnWidth, rowHeight };
 
-    auto controls = area.removeFromTop(230);
-    auto row1 = controls.removeFromTop(104);
-    nativeSliders[0].setBounds(row1.removeFromLeft((getWidth() - 48) / 2).reduced(8, 0));
-    nativeSliders[1].setBounds(row1.reduced(8, 0));
-    controls.removeFromTop(16);
-    auto row2 = controls.removeFromTop(104);
-    nativeSliders[2].setBounds(row2.removeFromLeft((getWidth() - 48) / 2).reduced(8, 0));
-    nativeSliders[3].setBounds(row2.reduced(8, 0));
+        auto panel = moduleBounds[i].reduced(12, 9);
+        moduleTitleLabels[i].setBounds(panel.removeFromTop(20));
+        moduleSummaryLabels[i].setBounds(panel.removeFromTop(30));
+        panel.removeFromTop(4);
 
-    clockLabel.setBounds(clockSlider.getBounds().withHeight(22).translated(0, -24));
-    outputLabel.setBounds(outputSlider.getBounds().withHeight(22).translated(0, -24));
-    for (size_t i = 0; i < nativeSliders.size(); ++i)
-        nativeLabels[i].setBounds(nativeSliders[i].getBounds().withHeight(22).translated(0, -24));
+        const auto itemGap = 6;
+        const auto itemWidth = (panel.getWidth() - itemGap) / 2;
+        const auto itemHeight = 20;
+        for (size_t item = 0; item < moduleItemLabels[i].size(); ++item)
+        {
+            const auto itemRow = static_cast<int>(item / 2);
+            const auto itemColumn = static_cast<int>(item % 2);
+            moduleItemLabels[i][item].setBounds({
+                panel.getX() + (itemColumn * (itemWidth + itemGap)),
+                panel.getY() + (itemRow * (itemHeight + itemGap)),
+                itemWidth,
+                itemHeight
+            });
+        }
+    }
+
+    area.removeFromTop(12);
+    globalStripBounds = area.removeFromTop(148);
+    auto strip = globalStripBounds.reduced(12, 8);
+    globalStripLabel.setBounds(strip.removeFromTop(20));
+    strip.removeFromTop(4);
+
+    const auto controlGap = 10;
+    const auto controlColumnWidth = (strip.getWidth() - (controlGap * 2)) / 3;
+    const auto controlRowHeight = (strip.getHeight() - controlGap) / 2;
+
+    std::array<juce::Rectangle<int>, 6> controlCells;
+    for (size_t i = 0; i < controlCells.size(); ++i)
+    {
+        const auto row = static_cast<int>(i / 3);
+        const auto column = static_cast<int>(i % 3);
+        controlCells[i] = {
+            strip.getX() + (column * (controlColumnWidth + controlGap)),
+            strip.getY() + (row * (controlRowHeight + controlGap)),
+            controlColumnWidth,
+            controlRowHeight
+        };
+    }
+
+    placeLabeledSlider(nativeSliders[0], nativeLabels[0], controlCells[0]);
+    placeLabeledSlider(nativeSliders[1], nativeLabels[1], controlCells[1]);
+    placeLabeledSlider(nativeSliders[2], nativeLabels[2], controlCells[2]);
+    placeLabeledSlider(nativeSliders[3], nativeLabels[3], controlCells[3]);
+    placeLabeledSlider(clockSlider, clockLabel, controlCells[4]);
+    placeLabeledSlider(outputSlider, outputLabel, controlCells[5]);
 
     statusLabel.setBounds(getLocalBounds().reduced(16).removeFromBottom(44));
 }
@@ -139,6 +234,12 @@ void ChipperAudioProcessorEditor::addLabeledSlider(juce::Slider& slider, juce::L
     addAndMakeVisible(slider);
 }
 
+void ChipperAudioProcessorEditor::placeLabeledSlider(juce::Slider& slider, juce::Label& label, juce::Rectangle<int> bounds)
+{
+    label.setBounds(bounds.removeFromTop(18));
+    slider.setBounds(bounds.reduced(0, 2));
+}
+
 void ChipperAudioProcessorEditor::updateDescriptorText()
 {
     const auto modeChoice = static_cast<int>(std::round(audioProcessor.getValueTreeState()
@@ -151,6 +252,23 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     displayedMode = mode;
     const auto& descriptor = chipper::descriptorFor(mode);
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
+
+    for (size_t i = 0; i < moduleTitleLabels.size(); ++i)
+    {
+        if (i >= descriptor.modules.size())
+            continue;
+
+        const auto& module = descriptor.modules[i];
+        moduleTitleLabels[i].setText(module.title, juce::dontSendNotification);
+        moduleSummaryLabels[i].setText(module.summary, juce::dontSendNotification);
+
+        for (size_t item = 0; item < moduleItemLabels[i].size(); ++item)
+        {
+            const auto text = item < module.items.size() ? module.items[item] : std::string {};
+            moduleItemLabels[i][item].setText(text, juce::dontSendNotification);
+            moduleItemLabels[i][item].setVisible(! text.empty());
+        }
+    }
 
     for (size_t i = 0; i < nativeLabels.size(); ++i)
     {

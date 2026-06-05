@@ -17,6 +17,14 @@ struct ControlDescriptor
     std::string help;
 };
 
+struct ModuleDescriptor
+{
+    std::string id;
+    std::string title;
+    std::string summary;
+    std::vector<std::string> items;
+};
+
 struct MacroTemplate
 {
     MacroKind macro = MacroKind::manual;
@@ -31,6 +39,7 @@ struct ChipDescriptor
     std::string displayName;
     std::string summary;
     std::vector<ControlDescriptor> controls;
+    std::array<ModuleDescriptor, 6> modules;
     std::vector<MacroTemplate> macros;
     bool implemented = false;
 };

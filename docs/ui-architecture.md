@@ -87,4 +87,6 @@ Authentic mode should expose chip-native behavior. Hybrid mode can add musical h
 
 ## Current Bridge
 
-The current `ChipDescriptor` layer is the first step toward this system. It already provides chip names, summaries, macro templates, and chip-specific labels for the universal macro controls. Future UI work should expand that descriptor into module specs rather than adding chip-specific editor branches.
+The current `ChipDescriptor` layer is the first implemented step toward this system. It provides chip names, summaries, macro templates, chip-specific labels for the universal macro controls, and six stable UI module definitions per chip. The JUCE editor renders those modules in a fixed shell and updates their contents from the selected descriptor.
+
+Future UI work should keep expanding `ChipDescriptor` into richer module and parameter specs rather than adding chip-specific editor branches.
