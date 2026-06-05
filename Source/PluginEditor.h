@@ -28,6 +28,7 @@ private:
     ChipperAudioProcessor& audioProcessor;
     juce::Label titleLabel;
     juce::Label statusLabel;
+    juce::Label buildLabel;
     juce::Label chipSummaryLabel;
     juce::Label coreReadinessLabel;
     juce::Label globalStripLabel;

@@ -16,6 +16,8 @@ Every chip mode uses the same top-level layout:
 8. Output / Utility
 9. Bottom global strip
 
+The footer/status area should include a subtle generated build label so a tester can match an installed VST3 to the reported source revision.
+
 The module contents may change, but the order should not. Users should learn where concepts live once and carry that knowledge across NES, DMG, SID, YM2149, SN76489, FM, and sampler-style modes.
 
 ## Data Model

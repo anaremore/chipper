@@ -239,6 +239,28 @@ if (NOT CHIPPER_BUILD_PLUGIN)
     return()
 endif()
 
+set(CHIPPER_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+set(CHIPPER_BUILD_INFO_HEADER "${CHIPPER_GENERATED_DIR}/ChipperBuildInfo.h")
+file(MAKE_DIRECTORY "${CHIPPER_GENERATED_DIR}")
+
+execute_process(
+    COMMAND ${CMAKE_COMMAND}
+        -DOUTPUT_FILE=${CHIPPER_BUILD_INFO_HEADER}
+        -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+        -DCHIPPER_VERSION=${PROJECT_VERSION}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/WriteBuildInfo.cmake
+)
+
+add_custom_target(chipper_build_info
+    COMMAND ${CMAKE_COMMAND}
+        -DOUTPUT_FILE=${CHIPPER_BUILD_INFO_HEADER}
+        -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+        -DCHIPPER_VERSION=${PROJECT_VERSION}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/WriteBuildInfo.cmake
+    BYPRODUCTS "${CHIPPER_BUILD_INFO_HEADER}"
+    VERBATIM
+)
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -268,6 +290,8 @@ juce_add_plugin(Chipper
 
 juce_generate_juce_header(Chipper)
 
+add_dependencies(Chipper chipper_build_info)
+
 target_sources(Chipper
     PRIVATE
         Source/Parameters.cpp
@@ -280,7 +304,7 @@ target_sources(Chipper
         Source/Presets.h
 )
 
-target_include_directories(Chipper PRIVATE Source)
+target_include_directories(Chipper PRIVATE Source "${CHIPPER_GENERATED_DIR}")
 
 target_compile_definitions(Chipper
     PUBLIC

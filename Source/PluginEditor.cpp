@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 
+#include "ChipperBuildInfo.h"
 #include "Engine/ChipDescriptors.h"
 
 ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& processor)
@@ -71,6 +72,14 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     statusLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff1f2a34));
     statusLabel.setText("Loading chip core...", juce::dontSendNotification);
     addAndMakeVisible(statusLabel);
+
+    buildLabel.setFont(juce::FontOptions(11.0f));
+    buildLabel.setJustificationType(juce::Justification::centredRight);
+    buildLabel.setColour(juce::Label::textColourId, juce::Colour(0xff7f9099));
+    buildLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff1f2a34));
+    buildLabel.setText(juce::String("Build ") + chipper::build::label, juce::dontSendNotification);
+    buildLabel.setTooltip(juce::String("Built ") + chipper::build::builtAtUtc + " from " + chipper::build::gitState + " source");
+    addAndMakeVisible(buildLabel);
 
     chipSummaryLabel.setFont(juce::FontOptions(14.0f));
     chipSummaryLabel.setJustificationType(juce::Justification::centredLeft);
@@ -224,7 +233,10 @@ void ChipperAudioProcessorEditor::resized()
     placeLabeledSlider(clockSlider, clockLabel, controlCells[4]);
     placeLabeledSlider(outputSlider, outputLabel, controlCells[5]);
 
-    statusLabel.setBounds(getLocalBounds().reduced(16).removeFromBottom(44));
+    auto footer = getLocalBounds().reduced(16).removeFromBottom(44);
+    buildLabel.setBounds(footer.removeFromRight(190));
+    footer.removeFromRight(8);
+    statusLabel.setBounds(footer);
 }
 
 void ChipperAudioProcessorEditor::timerCallback()
