@@ -110,6 +110,12 @@ public:
         regs.fill(0);
         phase.fill(0.0);
         enabled = { false, false, false, false };
+        envelopeLevel.fill(0);
+        envelopeDivider.fill(0);
+        lengthCounter.fill(0);
+        channelMask = 0x0f;
+        lengthClockPhase = 0.0;
+        envelopeClockPhase = 0.0;
         lfsr = 0x7fffu;
         heldNote = -1;
         noteVelocity = 0.0f;
@@ -135,15 +141,32 @@ public:
 
         switch (index)
         {
-            case 0x04: if ((value & 0x80u) != 0) enabled[0] = true; break; // NR14
-            case 0x09: if ((value & 0x80u) != 0) enabled[1] = true; break; // NR24
-            case 0x0e: if ((value & 0x80u) != 0) enabled[2] = true; break; // NR34
-            case 0x14: if ((value & 0x80u) != 0) enabled[3] = true; break; // NR44
+            case 0x01: lengthCounter[0] = lengthFromRegister(0, value); break; // NR11
+            case 0x02: if (! dacEnabled(0)) enabled[0] = false; break; // NR12
+            case 0x04: if ((value & 0x80u) != 0) triggerChannel(0); break; // NR14
+            case 0x06: lengthCounter[1] = lengthFromRegister(1, value); break; // NR21
+            case 0x07: if (! dacEnabled(1)) enabled[1] = false; break; // NR22
+            case 0x09: if ((value & 0x80u) != 0) triggerChannel(1); break; // NR24
+            case 0x0a: if (! dacEnabled(2)) enabled[2] = false; break; // NR30
+            case 0x0b: lengthCounter[2] = lengthFromRegister(2, value); break; // NR31
+            case 0x0e: if ((value & 0x80u) != 0) triggerChannel(2); break; // NR34
+            case 0x10: lengthCounter[3] = lengthFromRegister(3, value); break; // NR41
+            case 0x11: if (! dacEnabled(3)) enabled[3] = false; break; // NR42
+            case 0x13: if ((value & 0x80u) != 0) triggerChannel(3); break; // NR44
             case 0x16:
-                enabled[0] = (value & 0x01u) != 0;
-                enabled[1] = (value & 0x02u) != 0;
-                enabled[2] = (value & 0x04u) != 0;
-                enabled[3] = (value & 0x08u) != 0;
+                if ((value & 0x80u) == 0)
+                {
+                    powerOffApu();
+                }
+                else if ((value & 0x0fu) != 0)
+                {
+                    channelMask = static_cast<uint8_t>(value & 0x0fu);
+                    for (size_t channel = 0; channel < enabled.size(); ++channel)
+                    {
+                        if ((channelMask & (1u << channel)) == 0)
+                            enabled[channel] = false;
+                    }
+                }
                 break;
             default:
                 break;
@@ -242,6 +265,8 @@ public:
 
     StereoFrame renderSample() override
     {
+        tickFrameSequencer();
+
         const auto p1 = enabled[0] ? renderPulse(0) : 0.0;
         const auto p2 = enabled[1] ? renderPulse(1) : 0.0;
         const auto wave = enabled[2] ? renderWave() : 0.0;
@@ -265,7 +290,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Pulse, wave RAM, noise, trigger bits, and core frequency formulas are modeled; envelope clocks, length counters, sweep edge cases, DAC quirks, stereo routing, and hardware validation are not complete.";
+        return "Pulse, wave RAM, noise, trigger bits, core frequency formulas, DAC gating, simple envelopes, and length counters are modeled; sweep edge cases, exact DIV-APU quirks, stereo routing, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -279,6 +304,18 @@ public:
              << "\"pulse1FreqReg\":" << pulseFrequencyRegister(0) << ","
              << "\"pulse2FreqReg\":" << pulseFrequencyRegister(1) << ","
              << "\"waveFreqReg\":" << waveFrequencyRegister() << ","
+             << "\"waveRam0\":" << static_cast<int>(regs[0x20]) << ","
+             << "\"envelope0\":" << static_cast<int>(envelopeLevel[0]) << ","
+             << "\"envelope1\":" << static_cast<int>(envelopeLevel[1]) << ","
+             << "\"envelopeNoise\":" << static_cast<int>(envelopeLevel[3]) << ","
+             << "\"length0\":" << lengthCounter[0] << ","
+             << "\"length1\":" << lengthCounter[1] << ","
+             << "\"lengthWave\":" << lengthCounter[2] << ","
+             << "\"lengthNoise\":" << lengthCounter[3] << ","
+             << "\"enabled0\":" << (enabled[0] ? 1 : 0) << ","
+             << "\"enabled1\":" << (enabled[1] ? 1 : 0) << ","
+             << "\"enabledWave\":" << (enabled[2] ? 1 : 0) << ","
+             << "\"enabledNoise\":" << (enabled[3] ? 1 : 0) << ","
              << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
              << "}";
         return json.str();
@@ -304,6 +341,160 @@ private:
     uint16_t waveFrequencyRegister() const
     {
         return static_cast<uint16_t>(regs[0x0d] | ((regs[0x0e] & 0x07u) << 8u));
+    }
+
+    static uint16_t lengthMax(size_t channel)
+    {
+        return channel == 2 ? 256u : 64u;
+    }
+
+    static uint16_t lengthFromRegister(size_t channel, uint8_t value)
+    {
+        const auto mask = channel == 2 ? 0xffu : 0x3fu;
+        return static_cast<uint16_t>(lengthMax(channel) - static_cast<uint16_t>(value & mask));
+    }
+
+    size_t envelopeRegisterForChannel(size_t channel) const
+    {
+        if (channel == 0)
+            return 0x02;
+        if (channel == 1)
+            return 0x07;
+        return 0x11;
+    }
+
+    size_t controlRegisterForChannel(size_t channel) const
+    {
+        if (channel == 0)
+            return 0x04;
+        if (channel == 1)
+            return 0x09;
+        if (channel == 2)
+            return 0x0e;
+        return 0x13;
+    }
+
+    bool lengthEnabled(size_t channel) const
+    {
+        return (regs[controlRegisterForChannel(channel)] & 0x40u) != 0;
+    }
+
+    bool dacEnabled(size_t channel) const
+    {
+        if (channel == 2)
+            return (regs[0x0a] & 0x80u) != 0;
+
+        return (regs[envelopeRegisterForChannel(channel)] & 0xf8u) != 0;
+    }
+
+    uint8_t initialEnvelopeVolume(size_t channel) const
+    {
+        return static_cast<uint8_t>((regs[envelopeRegisterForChannel(channel)] >> 4u) & 0x0fu);
+    }
+
+    uint8_t envelopePeriod(size_t channel) const
+    {
+        return static_cast<uint8_t>(regs[envelopeRegisterForChannel(channel)] & 0x07u);
+    }
+
+    bool envelopeIncreasing(size_t channel) const
+    {
+        return (regs[envelopeRegisterForChannel(channel)] & 0x08u) != 0;
+    }
+
+    void powerOffApu()
+    {
+        std::array<uint8_t, 16> waveRam {};
+        std::copy(regs.begin() + 0x20, regs.begin() + 0x30, waveRam.begin());
+
+        regs.fill(0);
+        std::copy(waveRam.begin(), waveRam.end(), regs.begin() + 0x20);
+        phase.fill(0.0);
+        enabled = { false, false, false, false };
+        envelopeLevel.fill(0);
+        envelopeDivider.fill(0);
+        lengthCounter.fill(0);
+        channelMask = 0x0f;
+        lengthClockPhase = 0.0;
+        envelopeClockPhase = 0.0;
+        lfsr = 0x7fff;
+    }
+
+    void triggerChannel(size_t channel)
+    {
+        if (channel >= enabled.size())
+            return;
+
+        if (lengthCounter[channel] == 0)
+            lengthCounter[channel] = lengthMax(channel);
+
+        if (channel == 0 || channel == 1 || channel == 3)
+        {
+            envelopeLevel[channel] = initialEnvelopeVolume(channel);
+            envelopeDivider[channel] = envelopePeriod(channel);
+        }
+
+        if (channel == 3)
+            lfsr = 0x7fff;
+
+        enabled[channel] = dacEnabled(channel) && ((channelMask & (1u << channel)) != 0);
+    }
+
+    void tickFrameSequencer()
+    {
+        lengthClockPhase += 256.0 / sampleRate;
+        while (lengthClockPhase >= 1.0)
+        {
+            lengthClockPhase -= 1.0;
+            tickLengthCounters();
+        }
+
+        envelopeClockPhase += 64.0 / sampleRate;
+        while (envelopeClockPhase >= 1.0)
+        {
+            envelopeClockPhase -= 1.0;
+            tickEnvelopes();
+        }
+    }
+
+    void tickLengthCounters()
+    {
+        for (size_t channel = 0; channel < lengthCounter.size(); ++channel)
+        {
+            if (! lengthEnabled(channel) || lengthCounter[channel] == 0)
+                continue;
+
+            --lengthCounter[channel];
+            if (lengthCounter[channel] == 0)
+                enabled[channel] = false;
+        }
+    }
+
+    void tickEnvelopes()
+    {
+        for (const auto channel : { size_t(0), size_t(1), size_t(3) })
+        {
+            const auto period = envelopePeriod(channel);
+            if (period == 0)
+                continue;
+
+            if (envelopeDivider[channel] > 1)
+            {
+                --envelopeDivider[channel];
+                continue;
+            }
+
+            envelopeDivider[channel] = period;
+            if (envelopeIncreasing(channel))
+            {
+                if (envelopeLevel[channel] < 15)
+                    ++envelopeLevel[channel];
+            }
+            else if (envelopeLevel[channel] > 0)
+            {
+                --envelopeLevel[channel];
+            }
+        }
     }
 
     static uint16_t dmgFrequencyRegister(double baseClock, double divisor, int midiNote)
@@ -340,7 +531,11 @@ private:
 
     double envelopeVolume(size_t index) const
     {
-        return static_cast<double>((regs[index] >> 4u) & 0x0fu) / 15.0;
+        if (index == 0x02)
+            return static_cast<double>(envelopeLevel[0]) / 15.0;
+        if (index == 0x07)
+            return static_cast<double>(envelopeLevel[1]) / 15.0;
+        return static_cast<double>(envelopeLevel[3]) / 15.0;
     }
 
     double renderPulse(int channel)
@@ -401,6 +596,12 @@ private:
     std::array<uint8_t, 0x30> regs {};
     std::array<double, 4> phase {};
     std::array<bool, 4> enabled {};
+    std::array<uint8_t, 4> envelopeLevel {};
+    std::array<uint8_t, 4> envelopeDivider {};
+    std::array<uint16_t, 4> lengthCounter {};
+    uint8_t channelMask = 0x0f;
+    double lengthClockPhase = 0.0;
+    double envelopeClockPhase = 0.0;
     uint16_t lfsr = 0x7fff;
     int heldNote = -1;
     float noteVelocity = 0.0f;

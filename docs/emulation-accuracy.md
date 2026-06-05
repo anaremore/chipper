@@ -14,7 +14,7 @@ Chipper's simple UX must be backed by real chip behavior wherever possible. This
 | Chip | Target | Initial Source Plan | License Status | Current Status |
 | --- | --- | --- | --- | --- |
 | NES / RP2A03 | Pulse, triangle, noise, DMC, nonlinear mixer | Clean-room register model; FigBug/RP2A03 may be reference/test-oracle material only | Internal; FigBug/RP2A03 is LGPL-2.1 and not vendored | Partial PSG core with simple envelope and length-counter groundwork; DMC, exact frame sequencing, sweep edge cases, and timing tests still required |
-| Game Boy / DMG APU | Pulse, wave RAM, noise, envelopes, length, sweep | Clean-room register model, with SameBoy and FigBug/PAPU as possible references after audit | Internal; FigBug/PAPU is GPL-2.0 and not vendored | Phase 1 partial core; envelope clocks, length counters, sweep edge cases, stereo/DAC quirks, and timing tests still required |
+| Game Boy / DMG APU | Pulse, wave RAM, noise, envelopes, length, sweep | Clean-room register model based on public docs such as Pan Docs, with SameBoy and FigBug/PAPU as possible references after audit | Internal; FigBug/PAPU is GPL-2.0 and not vendored | Partial core with trigger handling, DAC gating, simple envelope clocks, and length-counter groundwork; CH1 sweep, exact DIV-APU quirks, stereo/DAC edge cases, and hardware validation still required |
 | SID / C64 | 6581/8580 oscillator, ADSR, sync, ring, filter | Needs permissive core or clean-room implementation; FigBug/SID may be reference material only | reSID-style cores are commonly GPL-family; FigBug/SID is GPL-3.0 and not vendored | Planned, not accurate |
 | YM2149 / AY | Three tones, shared noise, mixer, volume/envelope | Clean-room register model | Internal | Phase 1 partial core |
 | SN76489 | Tone/noise/attenuation/register behavior | Clean-room register model; FigBug/SN76489 may be reference/test-oracle material only | Internal; FigBug/SN76489 is LGPL-2.1 and not vendored | Phase 1 partial core |
@@ -67,3 +67,8 @@ Golden WAV/reference outputs must include versioned metadata and source provenan
 - Do not call a mode accurate if it is only musically similar.
 - Do not vendor GPL/LGPL code into the plugin without an explicit distribution decision.
 - If a mode is planned but not implemented, the UI/docs must say so.
+- The project owner is willing to open source Chipper if needed for emulator-core licensing, but the exact Chipper license and distribution model must be chosen before importing GPL/LGPL code.
+
+## Public Documentation References
+
+- Game Boy / DMG APU register and timing behavior: https://gbdev.io/pandocs/Audio_Registers.html and https://gbdev.io/pandocs/Audio_details.html

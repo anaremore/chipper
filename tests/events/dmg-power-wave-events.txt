@@ -1,0 +1,4 @@
+# Verify that clearing NR52 powers down channels while preserving wave RAM.
+note_on 0 60 1.0
+write 1 0xff30 0xab
+write 2 0xff26 0x00

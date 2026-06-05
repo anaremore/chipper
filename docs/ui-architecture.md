@@ -1,0 +1,90 @@
+# UI Architecture
+
+Chipper should feel like one instrument with many chip profiles, not a bundle of unrelated mini-plugins. The UI is therefore data-driven: the outer workflow stays stable while each chip definition decides which controls appear inside each module.
+
+## Stable Shell
+
+Every chip mode uses the same top-level layout:
+
+1. Header
+2. Chip tabs or chip selector
+3. Profile
+4. Sources / Voices
+5. Tone / Filter / Shape
+6. Envelope
+7. Motion
+8. Output / Utility
+9. Bottom global strip
+
+The module contents may change, but the order should not. Users should learn where concepts live once and carry that knowledge across NES, DMG, SID, YM2149, SN76489, FM, and sampler-style modes.
+
+## Data Model
+
+The UI should be built from chip definitions instead of per-chip hardcoded editor branches.
+
+```cpp
+enum class ControlType
+{
+    knob,
+    slider,
+    toggle,
+    segmented,
+    menu,
+    waveButtons,
+    meter
+};
+
+struct ParameterSpec
+{
+    std::string id;
+    std::string label;
+    std::string unit;
+    ControlType controlType;
+    float minValue;
+    float maxValue;
+    float defaultValue;
+};
+
+struct ModuleSpec
+{
+    std::string id;
+    std::string title;
+    std::vector<ParameterSpec> parameters;
+};
+
+struct ChipSpec
+{
+    ChipMode mode;
+    std::string displayName;
+    std::string modelLabel;
+    std::vector<ModuleSpec> modules;
+};
+```
+
+The editor asks the selected chip spec what modules and controls to show. The UI should not need SID, NES, or YM2612-specific register knowledge; that belongs in the chip adapter and engine mapping layer.
+
+## Parameter Strategy
+
+DAW automation IDs must remain stable after plugin load. Chipper should use a hybrid parameter strategy:
+
+- Universal automatable macros for common musical performance controls.
+- Stable chip-specific parameters grouped by chip and module.
+- Inactive chip parameters hidden from the Chipper UI, but not created or destroyed dynamically.
+- Internal chip state and register snapshots saved in presets when needed.
+
+## Module Mapping
+
+Equivalent concepts stay in equivalent places:
+
+- NES / RP2A03: Sources are Pulse 1, Pulse 2, Triangle, Noise, DMC; Tone becomes Shape / Mixer.
+- Game Boy / DMG: Sources are Pulse 1, Pulse 2, Wave, Noise; Tone becomes Wave / Noise.
+- SID / C64: Sources are Voice 1-3; Tone becomes Filter.
+- YM2149 / AY: Sources are A, B, C, shared noise; Tone becomes Mixer / Envelope.
+- SN76489: Sources are Tone 1-3 and Noise; Tone becomes Tone / Crunch.
+- YM2612 and OPL: Sources are FM voices; Tone becomes Operators.
+
+Authentic mode should expose chip-native behavior. Hybrid mode can add musical helpers. Inspired mode should simplify controls and clearly avoid accuracy claims.
+
+## Current Bridge
+
+The current `ChipDescriptor` layer is the first step toward this system. It already provides chip names, summaries, macro templates, and chip-specific labels for the universal macro controls. Future UI work should expand that descriptor into module specs rather than adding chip-specific editor branches.

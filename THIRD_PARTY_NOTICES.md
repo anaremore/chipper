@@ -19,6 +19,8 @@ These implementations are not claimed to be cycle-accurate. See `docs/emulation-
 
 These projects may be evaluated later. Listing them here is not an endorsement that they are already compatible or included.
 
+The project owner is willing to open source Chipper if required for emulator-core licensing. Even so, GPL/LGPL code must not be imported until Chipper's license, source-distribution obligations, dynamic/static linking approach, and commercial distribution plan are explicitly chosen.
+
 - `ymfm`: candidate for Yamaha FM chips such as YM2612/OPN2, YM2151/OPM, YM2413/OPLL, and OPL2/OPL3. License audit required before vendoring.
 - SameBoy APU code: candidate reference or source for Game Boy/DMG behavior. License audit required before vendoring.
 - [FigBug/SID](https://github.com/FigBug/SID): C64 SID VST/AU emulation. GitHub reports GPL-3.0. Reference/inspiration only unless Chipper adopts a GPL-compatible distribution model.
