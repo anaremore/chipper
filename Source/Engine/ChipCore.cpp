@@ -808,6 +808,11 @@ public:
         linearReloadFlag = false;
         quarterFramePhase = 0.0;
         halfFramePhase = 0.0;
+        hp90Input = 0.0;
+        hp90Output = 0.0;
+        hp440Input = 0.0;
+        hp440Output = 0.0;
+        lp14000Output = 0.0;
         lfsr = 1;
         heldNote = -1;
         noteVelocity = 0.0f;
@@ -984,7 +989,7 @@ public:
         const auto tndSum = tri / 8227.0 + noi / 12241.0 + dmc / 22638.0;
         const auto pulseOut = pulseSum <= 0.0 ? 0.0 : 95.88 / ((8128.0 / pulseSum) + 100.0);
         const auto tndOut = tndSum <= 0.0 ? 0.0 : 159.79 / ((1.0 / tndSum) + 100.0);
-        const auto mixed = static_cast<float>((pulseOut + tndOut) * 2.0 - 0.35);
+        const auto mixed = static_cast<float>(applyOutputFilters(pulseOut + tndOut) * 2.0);
         const auto scaled = mixed * noteVelocity;
         return { scaled, scaled };
     }
@@ -1004,7 +1009,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Pulse, triangle, noise, timers, duty, enable bits, simple envelopes, length counters, triangle linear counter, DMC direct DAC level, basic pulse sweep updates/muting, and nonlinear mixer are approximated; DMC sample playback, exact frame sequencer timing, advanced sweep edge cases, and hardware validation are not complete.";
+        return "Pulse, triangle, noise, timers, duty, enable bits, simple envelopes, length counters, triangle linear counter, DMC direct DAC level, basic pulse sweep updates/muting, nonlinear mixer, and the documented NES output filter chain are approximated; DMC sample playback, exact frame sequencer timing, advanced sweep edge cases, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -1081,6 +1086,39 @@ private:
     uint8_t dmcOutputLevel() const
     {
         return static_cast<uint8_t>(regs[0x11] & 0x7fu);
+    }
+
+    double highPass(double input, double cutoffHz, double& previousInput, double& previousOutput) const
+    {
+        if (sampleRate <= 0.0)
+            return input;
+
+        const auto rc = 1.0 / (twoPi * cutoffHz);
+        const auto dt = 1.0 / sampleRate;
+        const auto coefficient = rc / (rc + dt);
+        const auto output = coefficient * (previousOutput + input - previousInput);
+        previousInput = input;
+        previousOutput = output;
+        return output;
+    }
+
+    double lowPass(double input, double cutoffHz, double& previousOutput) const
+    {
+        if (sampleRate <= 0.0)
+            return input;
+
+        const auto rc = 1.0 / (twoPi * cutoffHz);
+        const auto dt = 1.0 / sampleRate;
+        const auto coefficient = dt / (rc + dt);
+        previousOutput += coefficient * (input - previousOutput);
+        return previousOutput;
+    }
+
+    double applyOutputFilters(double input)
+    {
+        auto output = highPass(input, 90.0, hp90Input, hp90Output);
+        output = highPass(output, 440.0, hp440Input, hp440Output);
+        return lowPass(output, 14000.0, lp14000Output);
     }
 
     int envelopeRegisterForChannel(size_t channel) const
@@ -1365,6 +1403,11 @@ private:
     bool linearReloadFlag = false;
     double quarterFramePhase = 0.0;
     double halfFramePhase = 0.0;
+    double hp90Input = 0.0;
+    double hp90Output = 0.0;
+    double hp440Input = 0.0;
+    double hp440Output = 0.0;
+    double lp14000Output = 0.0;
     uint16_t lfsr = 1;
     int heldNote = -1;
     float noteVelocity = 0.0f;
