@@ -8,6 +8,7 @@ def main() -> int:
     parser.add_argument("path")
     parser.add_argument("--implemented-contains")
     parser.add_argument("--macro")
+    parser.add_argument("--play-mode")
     parser.add_argument("--min-peak", type=float)
     parser.add_argument("--max-peak", type=float)
     parser.add_argument("--min-rms", type=float)
@@ -38,6 +39,9 @@ def main() -> int:
 
     if args.macro and data.get("macro") != args.macro:
         failures.append(f"macro expected {args.macro!r}, got {data.get('macro')!r}")
+
+    if args.play_mode and data.get("playMode") != args.play_mode:
+        failures.append(f"playMode expected {args.play_mode!r}, got {data.get('playMode')!r}")
 
     if args.min_peak is not None and float(data.get("peak", 0.0)) < args.min_peak:
         failures.append(f"peak expected >= {args.min_peak}, got {data.get('peak')}")

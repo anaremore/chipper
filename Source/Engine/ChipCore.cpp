@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cmath>
 #include <iomanip>
+#include <iterator>
 #include <numeric>
 #include <sstream>
 
@@ -85,6 +86,7 @@ public:
              << "\"implementedAccuracy\":\"not implemented\","
              << "\"clockHz\":" << clock << ","
              << "\"sampleRate\":" << sampleRate << ","
+             << "\"playMode\":\"" << jsonEscape(toString(patch.playMode)) << "\","
              << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
              << "}";
         return json.str();
@@ -320,6 +322,7 @@ public:
              << "\"implementedAccuracy\":\"partial clean-room register-level\","
              << "\"clockHz\":" << clock << ","
              << "\"macro\":\"" << toString(patch.macro) << "\","
+             << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"pulse1FreqReg\":" << pulseFrequencyRegister(0) << ","
              << "\"pulse2FreqReg\":" << pulseFrequencyRegister(1) << ","
              << "\"waveFreqReg\":" << waveFrequencyRegister() << ","
@@ -1012,6 +1015,7 @@ public:
              << "\"implementedAccuracy\":\"partial clean-room register-level\","
              << "\"clockHz\":" << clock << ","
              << "\"macro\":\"" << toString(patch.macro) << "\","
+             << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"pulseTimer1\":" << timer[0] << ","
              << "\"pulseTimer2\":" << timer[1] << ","
              << "\"triangleTimer\":" << timer[2] << ","
@@ -1383,10 +1387,17 @@ public:
         lfsr = 0x1ffff;
         heldNote = -1;
         noteVelocity = 0.0f;
+        channelNotes.fill(-1);
+        channelVelocity.fill(0.0f);
+        channelStamp.fill(0);
+        noteStamp = 0;
     }
 
     void setPatch(const PatchConfig& newPatch) override
     {
+        if (newPatch.playMode != patch.playMode)
+            clearChipPolyState();
+
         patch = newPatch;
     }
 
@@ -1397,6 +1408,12 @@ public:
 
     void noteOn(int midiNote, float velocity) override
     {
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            noteOnChipPoly(midiNote, velocity);
+            return;
+        }
+
         heldNote = midiNote;
         noteVelocity = static_cast<float>(clamp01(velocity));
         const auto spread = static_cast<int>(std::round(patch.control1 * 12.0f));
@@ -1483,6 +1500,12 @@ public:
 
     void noteOff(int midiNote) override
     {
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            noteOffChipPoly(midiNote);
+            return;
+        }
+
         if (midiNote == heldNote)
         {
             heldNote = -1;
@@ -1518,7 +1541,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Tone/noise registers, mixer bits, volume registers, and basic envelope shapes are modeled; exact analog output curve and timing validation are still required.";
+        return "Tone/noise registers, mixer bits, volume registers, basic envelope shapes, and YM channel allocation for Chip Poly play mode are modeled; exact analog output curve and timing validation are still required.";
     }
 
     std::string debugStateJson() const override
@@ -1529,9 +1552,14 @@ public:
              << "\"implementedAccuracy\":\"partial clean-room register-level\","
              << "\"clockHz\":" << clock << ","
              << "\"macro\":\"" << toString(patch.macro) << "\","
+             << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"periodA\":" << tonePeriod(0) << ","
              << "\"periodB\":" << tonePeriod(1) << ","
              << "\"periodC\":" << tonePeriod(2) << ","
+             << "\"activeChannels\":" << activeChipPolyChannels() << ","
+             << "\"assignedNoteA\":" << channelNotes[0] << ","
+             << "\"assignedNoteB\":" << channelNotes[1] << ","
+             << "\"assignedNoteC\":" << channelNotes[2] << ","
              << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
              << "}";
         return json.str();
@@ -1550,6 +1578,90 @@ private:
         const auto period = static_cast<int>(std::max(1.0, std::round(clock / (16.0 * midiNoteToHz(std::clamp(midiNote, 0, 127))))));
         writeRegister(static_cast<uint16_t>(channel * 2), static_cast<uint8_t>(period & 0xff));
         writeRegister(static_cast<uint16_t>(channel * 2 + 1), static_cast<uint8_t>((period >> 8) & 0x0f));
+    }
+
+    int selectChipPolyChannel(int midiNote) const
+    {
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (channelNotes[channel] == midiNote)
+                return static_cast<int>(channel);
+        }
+
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (channelNotes[channel] < 0)
+                return static_cast<int>(channel);
+        }
+
+        const auto oldest = std::min_element(channelStamp.begin(), channelStamp.end());
+        return static_cast<int>(std::distance(channelStamp.begin(), oldest));
+    }
+
+    void refreshChipPolyMixer()
+    {
+        uint8_t mixer = 0x38u; // Noise disabled for A/B/C; active channels keep tone enabled.
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (channelNotes[channel] < 0)
+                mixer = static_cast<uint8_t>(mixer | (1u << channel));
+        }
+        writeRegister(7, mixer);
+    }
+
+    int activeChipPolyChannels() const
+    {
+        return static_cast<int>(std::count_if(channelNotes.begin(), channelNotes.end(), [](int note) { return note >= 0; }));
+    }
+
+    void clearChipPolyState()
+    {
+        channelNotes.fill(-1);
+        channelVelocity.fill(0.0f);
+        channelStamp.fill(0);
+        noteStamp = 0;
+        noteVelocity = 0.0f;
+        for (uint16_t reg = 8; reg <= 10; ++reg)
+            writeRegister(reg, 0);
+        refreshChipPolyMixer();
+    }
+
+    void noteOnChipPoly(int midiNote, float velocity)
+    {
+        const auto channel = selectChipPolyChannel(midiNote);
+        if (channel < 0)
+            return;
+
+        const auto index = static_cast<size_t>(channel);
+        channelNotes[index] = std::clamp(midiNote, 0, 127);
+        channelVelocity[index] = static_cast<float>(clamp01(velocity));
+        channelStamp[index] = ++noteStamp;
+
+        writeTone(channel, channelNotes[index]);
+        writeRegister(static_cast<uint16_t>(8 + channel), static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15)));
+        writeRegister(6, static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 30.0f)) + 1, 1, 31)));
+        writeRegister(11, 0x80);
+        writeRegister(12, 0x02);
+        writeRegister(13, 0x09);
+        refreshChipPolyMixer();
+        noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
+    }
+
+    void noteOffChipPoly(int midiNote)
+    {
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (channelNotes[channel] != midiNote)
+                continue;
+
+            channelNotes[channel] = -1;
+            channelVelocity[channel] = 0.0f;
+            channelStamp[channel] = 0;
+            writeRegister(static_cast<uint16_t>(8 + channel), 0);
+        }
+
+        refreshChipPolyMixer();
+        noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
     }
 
     double channelVolume(int channel) const
@@ -1614,6 +1726,10 @@ private:
     uint32_t lfsr = 0x1ffff;
     int heldNote = -1;
     float noteVelocity = 0.0f;
+    std::array<int, 3> channelNotes { -1, -1, -1 };
+    std::array<float, 3> channelVelocity {};
+    std::array<uint64_t, 3> channelStamp {};
+    uint64_t noteStamp = 0;
     PatchConfig patch;
 };
 
@@ -1797,6 +1913,7 @@ public:
              << "\"implementedAccuracy\":\"partial clean-room register-level\","
              << "\"clockHz\":" << clock << ","
              << "\"macro\":\"" << toString(patch.macro) << "\","
+             << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"period0\":" << tonePeriod[0] << ","
              << "\"period1\":" << tonePeriod[1] << ","
              << "\"period2\":" << tonePeriod[2] << ","
@@ -1923,6 +2040,16 @@ std::optional<MacroKind> parseMacroKind(std::string_view text)
     return std::nullopt;
 }
 
+std::optional<PlayMode> parsePlayMode(std::string_view text)
+{
+    const auto key = lower(text);
+    if (key == "stack" || key == "bigmono" || key == "mono") return PlayMode::stack;
+    if (key == "chippoly" || key == "allocate" || key == "allocation") return PlayMode::chipPoly;
+    if (key == "manual" || key == "multi") return PlayMode::manual;
+    if (key == "clone" || key == "hybridpoly") return PlayMode::clone;
+    return std::nullopt;
+}
+
 std::string toString(ChipMode mode)
 {
     switch (mode)
@@ -1973,6 +2100,18 @@ std::string toString(MacroKind macro)
         case MacroKind::laser: return "Laser";
         case MacroKind::jump: return "Jump";
         case MacroKind::powerUp: return "Power-Up";
+    }
+    return "Unknown";
+}
+
+std::string toString(PlayMode playMode)
+{
+    switch (playMode)
+    {
+        case PlayMode::stack: return "Big Mono";
+        case PlayMode::chipPoly: return "Chip Poly";
+        case PlayMode::manual: return "Manual";
+        case PlayMode::clone: return "Clone";
     }
     return "Unknown";
 }

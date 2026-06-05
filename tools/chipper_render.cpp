@@ -24,6 +24,7 @@ struct Options
     chipper::ChipMode chip = chipper::ChipMode::nes;
     chipper::AccuracyMode accuracy = chipper::AccuracyMode::hybrid;
     chipper::MacroKind macro = chipper::MacroKind::manual;
+    chipper::PlayMode playMode = chipper::PlayMode::stack;
     float control1 = 0.5f;
     float control2 = 0.5f;
     float control3 = 0.5f;
@@ -91,7 +92,7 @@ void printUsage()
 {
     std::cerr
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
-        << "       Optional: --macro coin --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5\n"
+        << "       Optional: --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -153,6 +154,19 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             }
             options.macro = *parsed;
+        }
+        else if (arg == "--play-mode")
+        {
+            const auto* value = requireValue("--play-mode");
+            if (value == nullptr)
+                return false;
+            const auto parsed = chipper::parsePlayMode(value);
+            if (! parsed)
+            {
+                std::cerr << "Unknown play mode: " << value << "\n";
+                return false;
+            }
+            options.playMode = *parsed;
         }
         else if (arg == "--control1")
         {
@@ -425,6 +439,7 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"chip\": \"" << chipper::toString(options.chip) << "\",\n"
         << "  \"requestedAccuracy\": \"" << chipper::toString(options.accuracy) << "\",\n"
         << "  \"macro\": \"" << chipper::toString(options.macro) << "\",\n"
+        << "  \"playMode\": \"" << chipper::toString(options.playMode) << "\",\n"
         << "  \"implementedAccuracy\": \"" << core.implementedAccuracy() << "\",\n"
         << "  \"clockHz\": " << options.clock << ",\n"
         << "  \"sampleRate\": " << options.sampleRate << ",\n"
@@ -459,7 +474,13 @@ int main(int argc, char** argv)
 
         auto core = chipper::createChipCore(options.chip, options.accuracy);
         core->reset(options.sampleRate, options.clock);
-        core->setPatch(chipper::makePatchConfig(options.chip, options.macro, options.control1, options.control2, options.control3, options.control4));
+        core->setPatch(chipper::makePatchConfig(options.chip,
+                                                options.macro,
+                                                options.control1,
+                                                options.control2,
+                                                options.control3,
+                                                options.control4,
+                                                options.playMode));
         const auto events = loadEvents(options.eventFile);
         const auto registerWriteCount = static_cast<size_t>(std::count_if(events.begin(), events.end(), [](const auto& event) { return event.type == EventType::write; }));
         const auto noteEventCount = events.size() - registerWriteCount;

@@ -53,6 +53,14 @@ enum class MacroKind
     powerUp
 };
 
+enum class PlayMode
+{
+    stack,
+    chipPoly,
+    manual,
+    clone
+};
+
 struct PatchConfig
 {
     MacroKind macro = MacroKind::manual;
@@ -60,6 +68,7 @@ struct PatchConfig
     float control2 = 0.5f;
     float control3 = 0.5f;
     float control4 = 0.5f;
+    PlayMode playMode = PlayMode::stack;
 };
 
 struct StereoFrame
@@ -121,9 +130,11 @@ std::unique_ptr<ChipCore> createChipCore(ChipMode mode, AccuracyMode accuracy);
 std::optional<ChipMode> parseChipMode(std::string_view text);
 std::optional<AccuracyMode> parseAccuracyMode(std::string_view text);
 std::optional<MacroKind> parseMacroKind(std::string_view text);
+std::optional<PlayMode> parsePlayMode(std::string_view text);
 std::string toString(ChipMode mode);
 std::string toString(AccuracyMode mode);
 std::string toString(MacroKind macro);
+std::string toString(PlayMode playMode);
 double midiNoteToHz(int midiNote);
 
 } // namespace chipper

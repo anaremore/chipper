@@ -39,6 +39,7 @@ private:
     juce::ComboBox chipModeBox;
     juce::ComboBox accuracyBox;
     juce::ComboBox macroBox;
+    juce::ComboBox playModeBox;
 
     juce::Slider clockSlider;
     juce::Slider outputSlider;
@@ -51,6 +52,7 @@ private:
     std::unique_ptr<ComboBoxAttachment> chipModeAttachment;
     std::unique_ptr<ComboBoxAttachment> accuracyAttachment;
     std::unique_ptr<ComboBoxAttachment> macroAttachment;
+    std::unique_ptr<ComboBoxAttachment> playModeAttachment;
     std::unique_ptr<SliderAttachment> clockAttachment;
     std::unique_ptr<SliderAttachment> outputAttachment;
     std::array<std::unique_ptr<SliderAttachment>, 4> nativeAttachments;

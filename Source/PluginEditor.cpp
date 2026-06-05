@@ -19,16 +19,20 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     chipModeBox.addItemList(chipper::parameters::chipModeChoices(), 1);
     accuracyBox.addItemList(chipper::parameters::accuracyChoices(), 1);
     macroBox.addItemList(chipper::parameters::macroChoices(), 1);
+    playModeBox.addItemList(chipper::parameters::playModeChoices(), 1);
     chipModeBox.setTooltip("Selects the chip model or planned chip family.");
     accuracyBox.setTooltip("Selects the requested accuracy tier for the active core.");
     macroBox.setTooltip("Applies a chip-specific musical register template.");
+    playModeBox.setTooltip("Chooses how incoming notes use the chip channels inside one patch.");
     addAndMakeVisible(chipModeBox);
     addAndMakeVisible(accuracyBox);
     addAndMakeVisible(macroBox);
+    addAndMakeVisible(playModeBox);
 
     chipModeAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::chipMode, chipModeBox);
     accuracyAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::accuracy, accuracyBox);
     macroAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::macro, macroBox);
+    playModeAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::playMode, playModeBox);
 
     addLabeledSlider(clockSlider, clockLabel, "Clock");
     clockSlider.setTextValueSuffix(" Hz");
@@ -135,12 +139,14 @@ void ChipperAudioProcessorEditor::resized()
     auto area = getLocalBounds().reduced(16);
 
     auto top = area.removeFromTop(48);
-    titleLabel.setBounds(top.removeFromLeft(150));
-    chipModeBox.setBounds(top.removeFromLeft(250).reduced(0, 6));
+    titleLabel.setBounds(top.removeFromLeft(132));
+    chipModeBox.setBounds(top.removeFromLeft(220).reduced(0, 6));
     top.removeFromLeft(8);
-    accuracyBox.setBounds(top.removeFromLeft(150).reduced(0, 6));
+    accuracyBox.setBounds(top.removeFromLeft(126).reduced(0, 6));
     top.removeFromLeft(8);
-    macroBox.setBounds(top.removeFromLeft(170).reduced(0, 6));
+    macroBox.setBounds(top.removeFromLeft(136).reduced(0, 6));
+    top.removeFromLeft(8);
+    playModeBox.setBounds(top.removeFromLeft(150).reduced(0, 6));
 
     area.removeFromTop(10);
     chipSummaryLabel.setBounds(area.removeFromTop(34));

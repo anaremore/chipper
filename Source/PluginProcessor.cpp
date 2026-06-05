@@ -15,7 +15,8 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && std::abs(a.control1 - b.control1) < tolerance
         && std::abs(a.control2 - b.control2) < tolerance
         && std::abs(a.control3 - b.control3) < tolerance
-        && std::abs(a.control4 - b.control4) < tolerance;
+        && std::abs(a.control4 - b.control4) < tolerance
+        && a.playMode == b.playMode;
 }
 }
 
@@ -151,6 +152,7 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
 {
     const auto modeChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::chipMode)->load()));
     const auto macroChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::macro)->load()));
+    const auto playModeChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::playMode)->load()));
 
     return chipper::makePatchConfig(
         chipper::parameters::chipModeFromChoice(modeChoice),
@@ -158,7 +160,8 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
         apvts.getRawParameterValue(chipper::parameters::id::macroControl1)->load(),
         apvts.getRawParameterValue(chipper::parameters::id::macroControl2)->load(),
         apvts.getRawParameterValue(chipper::parameters::id::macroControl3)->load(),
-        apvts.getRawParameterValue(chipper::parameters::id::macroControl4)->load());
+        apvts.getRawParameterValue(chipper::parameters::id::macroControl4)->load(),
+        chipper::parameters::playModeFromChoice(playModeChoice));
 }
 
 void ChipperAudioProcessor::replayPendingRegisterState()

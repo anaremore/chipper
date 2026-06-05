@@ -26,6 +26,7 @@ Accuracy levels:
 
 - Chip Mode: NES/RP2A03, Game Boy/DMG, SID/C64, YM2149/AY, SN76489, YM2612, OPL2/OPL3, SPC700, POKEY, Paula, HuC6280, Namco WSG, YM2151, YM2413/OPLL, SCC, Arcade, Custom
 - Accuracy: Inspired, Hybrid, Authentic
+- Play Mode: Big Mono, Chip Poly; Manual and Clone are reserved until tracker routing and hybrid engine cloning are implemented.
 - Output Level
 - Musical Macro: Coin, Bass, Lead, Arp, Drum, Hit, Laser, Jump, Power-Up
 - Clock Rate override and model variant where applicable
@@ -89,6 +90,7 @@ Accuracy levels:
 - Clean-room cores use register-level state where practical.
 - Third-party cores must pass a license audit before vendoring.
 - The VST maps musical controls to register writes and mode-specific helpers rather than drawing audio from generic oscillators.
+- One plugin instance owns one patch. That patch may use all native chip channels. Big Mono stacks channels for one playable sound; Chip Poly allocates notes onto finite chip channels where implemented; Manual and Clone are reserved for tracker-style routing and hybrid cloned-poly behavior.
 - Host tempo is read from the playhead. The arp emits note/register events at sample offsets inside the block.
 - Post rendering applies only honest modern conveniences: output trim, optional safety limiting/DC cleanup, and labeled hybrid effects.
 - State save/restore uses APVTS XML plus an internal register replay snapshot for the active core where practical.

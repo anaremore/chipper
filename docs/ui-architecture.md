@@ -68,9 +68,23 @@ The editor asks the selected chip spec what modules and controls to show. The UI
 DAW automation IDs must remain stable after plugin load. Chipper should use a hybrid parameter strategy:
 
 - Universal automatable macros for common musical performance controls.
+- A universal Play Mode parameter for how one patch uses native chip channels.
 - Stable chip-specific parameters grouped by chip and module.
 - Inactive chip parameters hidden from the Chipper UI, but not created or destroyed dynamically.
 - Internal chip state and register snapshots saved in presets when needed.
+
+## Patch And Channel Model
+
+Chipper exposes one patch per plugin instance. A patch can use every native chip channel inside the selected chip core, but users should not have to compose like a tracker by default.
+
+- **Big Mono:** all useful native channels contribute to one played sound. This is the default.
+- **Chip Poly:** overlapping notes allocate across finite native chip channels where the core supports it.
+- **Manual:** reserved for explicit channel assignment and tracker-style routing.
+- **Clone:** reserved for Hybrid mode engine cloning, where each MIDI note can own a virtual chip stack.
+
+Only Big Mono and Chip Poly should be visible in the VST UI until Manual and Clone have engine implementations. Internal enums and renderer parsing may reserve those future modes, but visible controls should not imply behavior that does not exist.
+
+UI controls should graduate from descriptor text to real controls only when they have an engine mapping, stable parameter identity, preset recall behavior, and renderer coverage. Planned chip controls can be described in module text, but should not appear as fake knobs before the core exists.
 
 ## Module Mapping
 
@@ -87,6 +101,6 @@ Authentic mode should expose chip-native behavior. Hybrid mode can add musical h
 
 ## Current Bridge
 
-The current `ChipDescriptor` layer is the first implemented step toward this system. It provides chip names, summaries, macro templates, chip-specific labels for the universal macro controls, and six stable UI module definitions per chip. The JUCE editor renders those modules in a fixed shell and updates their contents from the selected descriptor.
+The current `ChipDescriptor` layer is the first implemented step toward this system. It provides chip names, summaries, macro templates, chip-specific labels for the universal macro controls, and six stable UI module definitions per chip. The JUCE editor renders those modules in a fixed shell and updates their contents from the selected descriptor. The shared Play Mode parameter is the first patch/channel control exposed globally; YM2149 / AY currently implements Chip Poly allocation across channels A, B, and C.
 
 Future UI work should keep expanding `ChipDescriptor` into richer module and parameter specs rather than adding chip-specific editor branches.

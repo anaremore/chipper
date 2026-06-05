@@ -72,7 +72,7 @@ std::array<ModuleDescriptor, 6> ym2149Modules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "AY/YM PSG clean-room register model.", { "AY / YM2149", "Clock override", "Hybrid default", "Authentic still partial" }),
-        makeModule("sources", "Channels", "Three tone channels plus shared noise.", { "Channel A", "Channel B", "Channel C", "Shared noise" }),
+        makeModule("sources", "Channels", "Three tone channels plus shared noise.", { "Channel A", "Channel B", "Channel C", "Chip Poly ready" }),
         makeModule("tone", "Mixer / Envelope", "Tone/noise mixer and hardware envelope shapes.", { "Tone/noise bits", "Noise period", "Envelope shape", "Crunch" }),
         makeModule("envelope", "Envelope", "Hardware-style volume and envelope timing.", { "Volume registers", "Env speed", "Shape select", "Hybrid helper" }),
         makeModule("motion", "Motion", "Classic fake-chord and demo-scene movement.", { "Fast arps", "Fake chords", "Pattern retrigger", "Pitch motion" }),
@@ -423,7 +423,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float control1,
                             float control2,
                             float control3,
-                            float control4)
+                            float control4,
+                            PlayMode playMode)
 {
     const auto& templ = macroTemplateFor(mode, macro);
     const auto blend = [](float templated, float user)
@@ -436,7 +437,8 @@ PatchConfig makePatchConfig(ChipMode mode,
         blend(templ.controls[0], control1),
         blend(templ.controls[1], control2),
         blend(templ.controls[2], control3),
-        blend(templ.controls[3], control4)
+        blend(templ.controls[3], control4),
+        playMode
     };
 }
 

@@ -52,6 +52,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float control1,
                             float control2,
                             float control3,
-                            float control4);
+                            float control4,
+                            PlayMode playMode = PlayMode::stack);
 
 } // namespace chipper

@@ -36,6 +36,11 @@ juce::StringArray macroChoices()
     return { "Manual", "Coin", "Bass", "Lead", "Arp", "Drum", "Hit", "Laser", "Jump", "Power-Up" };
 }
 
+juce::StringArray playModeChoices()
+{
+    return { "Big Mono", "Chip Poly" };
+}
+
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
@@ -68,6 +73,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::ParameterID { id::macro, 1 },
         "Musical Macro",
         macroChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::playMode, 1 },
+        "Play Mode",
+        playModeChoices(),
         0));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -148,6 +159,16 @@ MacroKind macroFromChoice(int choice)
         case 9: return MacroKind::powerUp;
         case 0:
         default: return MacroKind::manual;
+    }
+}
+
+PlayMode playModeFromChoice(int choice)
+{
+    switch (choice)
+    {
+        case 1: return PlayMode::chipPoly;
+        case 0:
+        default: return PlayMode::stack;
     }
 }
 
