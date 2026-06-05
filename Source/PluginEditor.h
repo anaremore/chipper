@@ -29,6 +29,7 @@ private:
     juce::Label titleLabel;
     juce::Label statusLabel;
     juce::Label chipSummaryLabel;
+    juce::Label coreReadinessLabel;
     juce::Label globalStripLabel;
     juce::Label clockLabel;
     juce::Label outputLabel;
@@ -58,6 +59,7 @@ private:
     std::array<std::unique_ptr<SliderAttachment>, 4> nativeAttachments;
 
     chipper::ChipMode displayedMode = chipper::ChipMode::custom;
+    bool descriptorTextInitialized = false;
     std::array<juce::Rectangle<int>, uiModuleCount> moduleBounds;
     juce::Rectangle<int> globalStripBounds;
 

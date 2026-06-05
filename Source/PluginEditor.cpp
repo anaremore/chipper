@@ -16,6 +16,12 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     titleLabel.setFont(juce::FontOptions(28.0f, juce::Font::bold));
     addAndMakeVisible(titleLabel);
 
+    coreReadinessLabel.setJustificationType(juce::Justification::centred);
+    coreReadinessLabel.setFont(juce::FontOptions(12.0f, juce::Font::bold));
+    coreReadinessLabel.setColour(juce::Label::textColourId, juce::Colour(0xff101414));
+    coreReadinessLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff56c7d8));
+    addAndMakeVisible(coreReadinessLabel);
+
     chipModeBox.addItemList(chipper::parameters::chipModeChoices(), 1);
     accuracyBox.addItemList(chipper::parameters::accuracyChoices(), 1);
     macroBox.addItemList(chipper::parameters::macroChoices(), 1);
@@ -147,6 +153,8 @@ void ChipperAudioProcessorEditor::resized()
     macroBox.setBounds(top.removeFromLeft(136).reduced(0, 6));
     top.removeFromLeft(8);
     playModeBox.setBounds(top.removeFromLeft(150).reduced(0, 6));
+    top.removeFromLeft(8);
+    coreReadinessLabel.setBounds(top.reduced(0, 10));
 
     area.removeFromTop(10);
     chipSummaryLabel.setBounds(area.removeFromTop(34));
@@ -252,12 +260,28 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
                                                             .getRawParameterValue(chipper::parameters::id::chipMode)
                                                             ->load()));
     const auto mode = chipper::parameters::chipModeFromChoice(modeChoice);
-    if (mode == displayedMode)
+    if (descriptorTextInitialized && mode == displayedMode)
         return;
 
+    descriptorTextInitialized = true;
     displayedMode = mode;
     const auto& descriptor = chipper::descriptorFor(mode);
+    const auto hasLiveCore = descriptor.implemented;
+
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
+    coreReadinessLabel.setText(hasLiveCore ? "LIVE" : "PLANNED", juce::dontSendNotification);
+    coreReadinessLabel.setTooltip(hasLiveCore
+                                      ? "This chip mode is backed by an active internal core."
+                                      : "This chip mode is a roadmap surface; controls are inactive until its core is implemented.");
+    coreReadinessLabel.setColour(juce::Label::textColourId, hasLiveCore ? juce::Colour(0xff101414) : juce::Colour(0xffd9e1e8));
+    coreReadinessLabel.setColour(juce::Label::backgroundColourId, hasLiveCore ? juce::Colour(0xff56c7d8) : juce::Colour(0xff344047));
+    globalStripLabel.setText(hasLiveCore ? "Live Chip Controls" : "Planned Control Surface", juce::dontSendNotification);
+    accuracyBox.setEnabled(hasLiveCore);
+    macroBox.setEnabled(hasLiveCore);
+    playModeBox.setEnabled(hasLiveCore);
+    clockSlider.setEnabled(hasLiveCore);
+    clockLabel.setAlpha(hasLiveCore ? 1.0f : 0.55f);
+    clockSlider.setAlpha(hasLiveCore ? 1.0f : 0.55f);
 
     for (size_t i = 0; i < moduleTitleLabels.size(); ++i)
     {
@@ -280,13 +304,24 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     {
         if (i < descriptor.controls.size())
         {
+            const auto active = hasLiveCore;
             nativeLabels[i].setText(descriptor.controls[i].label, juce::dontSendNotification);
             nativeSliders[i].setTooltip(descriptor.controls[i].help);
+            nativeLabels[i].setVisible(true);
+            nativeSliders[i].setVisible(true);
+            nativeLabels[i].setEnabled(active);
+            nativeSliders[i].setEnabled(active);
+            nativeLabels[i].setAlpha(active ? 1.0f : 0.55f);
+            nativeSliders[i].setAlpha(active ? 1.0f : 0.55f);
         }
         else
         {
             nativeLabels[i].setText("Native Control", juce::dontSendNotification);
             nativeSliders[i].setTooltip({});
+            nativeLabels[i].setVisible(false);
+            nativeSliders[i].setVisible(false);
         }
     }
+
+    repaint();
 }
