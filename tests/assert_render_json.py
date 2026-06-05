@@ -12,6 +12,8 @@ def main() -> int:
     parser.add_argument("--min-rms", type=float)
     parser.add_argument("--register-writes", type=int)
     parser.add_argument("--note-events", type=int)
+    parser.add_argument("--min-zero-crossings", type=int)
+    parser.add_argument("--max-zero-crossings", type=int)
     parser.add_argument("--core-max", action="append", default=[], metavar="FIELD=VALUE")
     parser.add_argument("--core-min", action="append", default=[], metavar="FIELD=VALUE")
     args = parser.parse_args()
@@ -38,6 +40,13 @@ def main() -> int:
 
     if args.note_events is not None and int(data.get("noteEventCount", -1)) != args.note_events:
         failures.append(f"noteEventCount expected {args.note_events}, got {data.get('noteEventCount')}")
+
+    zero_crossings = int(data.get("zeroCrossings", 0))
+    if args.min_zero_crossings is not None and zero_crossings < args.min_zero_crossings:
+        failures.append(f"zeroCrossings expected >= {args.min_zero_crossings}, got {zero_crossings}")
+
+    if args.max_zero_crossings is not None and zero_crossings > args.max_zero_crossings:
+        failures.append(f"zeroCrossings expected <= {args.max_zero_crossings}, got {zero_crossings}")
 
     core_state = data.get("coreState", {})
     for assertion in args.core_max:
