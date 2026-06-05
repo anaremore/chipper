@@ -115,7 +115,6 @@ public:
         envelopeLevel.fill(0);
         envelopeDivider.fill(0);
         lengthCounter.fill(0);
-        channelMask = 0x0f;
         lengthClockPhase = 0.0;
         envelopeClockPhase = 0.0;
         sweepClockPhase = 0.0;
@@ -149,6 +148,19 @@ public:
     void writeRegister(uint16_t address, uint8_t value) override
     {
         const auto index = registerIndex(address);
+        if (index == 0x16)
+        {
+            if ((value & 0x80u) == 0)
+            {
+                powerOffApu();
+            }
+            else
+            {
+                regs[0x16] = 0x80;
+            }
+            return;
+        }
+
         if (index < regs.size())
             regs[index] = value;
 
@@ -166,21 +178,6 @@ public:
             case 0x10: lengthCounter[3] = lengthFromRegister(3, value); break; // NR41
             case 0x11: if (! dacEnabled(3)) enabled[3] = false; break; // NR42
             case 0x13: if ((value & 0x80u) != 0) triggerChannel(3); break; // NR44
-            case 0x16:
-                if ((value & 0x80u) == 0)
-                {
-                    powerOffApu();
-                }
-                else if ((value & 0x0fu) != 0)
-                {
-                    channelMask = static_cast<uint8_t>(value & 0x0fu);
-                    for (size_t channel = 0; channel < enabled.size(); ++channel)
-                    {
-                        if ((channelMask & (1u << channel)) == 0)
-                            enabled[channel] = false;
-                    }
-                }
-                break;
             default:
                 break;
         }
@@ -265,14 +262,29 @@ public:
                 break;
         }
 
-        writeRegister(0xff26, static_cast<uint8_t>(enable));
+        writeRegister(0xff26, 0x80);
         writeRegister(0xff24, 0x77);
         writeRegister(0xff25, 0xff);
         writeRegister(0xff10, static_cast<uint8_t>(0x18u | std::clamp(static_cast<int>(std::round(patch.control2 * 7.0f)), 0, 7)));
-        writePulseRegisters(0, duty, ch1Vol, ch1Note);
-        writePulseRegisters(1, static_cast<uint8_t>(std::min<int>(3, duty + 1)), ch2Vol, ch2Note);
-        writeWaveRegisters(waveNote, patch.macro == MacroKind::bass ? 0x20u : 0x40u);
-        writeNoiseRegisters(noiseVol, noisePitch, patch.control3 > 0.55f);
+        if ((enable & 0x01u) != 0)
+            writePulseRegisters(0, duty, ch1Vol, ch1Note);
+        else
+            silenceChannel(0);
+
+        if ((enable & 0x02u) != 0)
+            writePulseRegisters(1, static_cast<uint8_t>(std::min<int>(3, duty + 1)), ch2Vol, ch2Note);
+        else
+            silenceChannel(1);
+
+        if ((enable & 0x04u) != 0)
+            writeWaveRegisters(waveNote, patch.macro == MacroKind::bass ? 0x20u : 0x40u);
+        else
+            silenceChannel(2);
+
+        if ((enable & 0x08u) != 0)
+            writeNoiseRegisters(noiseVol, noisePitch, patch.control3 > 0.55f);
+        else
+            silenceChannel(3);
     }
 
     void noteOff(int midiNote) override
@@ -330,7 +342,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Pulse, wave RAM, noise, trigger bits, core frequency formulas, DAC gating, simple envelopes, length counters, basic CH1 sweep, NR50/NR51 stereo routing, NR43 noise clock behavior, and pitched-channel allocation for Chip Poly play mode are modeled; exact DIV-APU quirks, sweep obscure behavior, mixer analog details, and hardware validation are not complete.";
+        return "Pulse, wave RAM, noise, trigger bits, core frequency formulas, DAC gating, simple envelopes, length counters, basic CH1 sweep, NR50/NR51 stereo routing, NR52 power/read-only status-bit write behavior, NR43 noise clock behavior, and pitched-channel allocation for Chip Poly play mode are modeled; exact DIV-APU quirks, sweep obscure behavior, mixer analog details, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -516,7 +528,6 @@ private:
         envelopeLevel.fill(0);
         envelopeDivider.fill(0);
         lengthCounter.fill(0);
-        channelMask = 0x0f;
         lengthClockPhase = 0.0;
         envelopeClockPhase = 0.0;
         sweepClockPhase = 0.0;
@@ -524,6 +535,15 @@ private:
         sweepTimer = 0;
         sweepEnabled = false;
         lfsr = 0x7fff;
+    }
+
+    void silenceChannel(size_t channel)
+    {
+        if (channel >= enabled.size())
+            return;
+
+        enabled[channel] = false;
+        lengthCounter[channel] = 0;
     }
 
     void triggerChannel(size_t channel)
@@ -540,7 +560,7 @@ private:
             envelopeDivider[channel] = envelopePeriod(channel);
         }
 
-        enabled[channel] = dacEnabled(channel) && ((channelMask & (1u << channel)) != 0);
+        enabled[channel] = dacEnabled(channel);
 
         if (channel == 3)
             lfsr = 0x7fff;
@@ -759,7 +779,7 @@ private:
         channelVelocity[index] = static_cast<float>(clamp01(velocity));
         channelStamp[index] = ++noteStamp;
 
-        writeRegister(0xff26, 0x87);
+        writeRegister(0xff26, 0x80);
         writeRegister(0xff24, 0x77);
         writeRegister(0xff25, 0xff);
 
@@ -889,7 +909,6 @@ private:
     std::array<uint8_t, 4> envelopeLevel {};
     std::array<uint8_t, 4> envelopeDivider {};
     std::array<uint16_t, 4> lengthCounter {};
-    uint8_t channelMask = 0x0f;
     double lengthClockPhase = 0.0;
     double envelopeClockPhase = 0.0;
     double sweepClockPhase = 0.0;

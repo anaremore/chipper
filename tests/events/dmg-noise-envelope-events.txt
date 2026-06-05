@@ -1,7 +1,10 @@
 # Trigger DMG CH4 with a long length timer and a downward envelope.
 # The leading note_on supplies renderer velocity, then register writes replace the macro setup.
 note_on 0 60 1.0
-write 1 0xff26 0x88
+write 1 0xff26 0x00
+write 1 0xff26 0x80
+write 1 0xff24 0x77
+write 1 0xff25 0x88
 write 1 0xff20 0x00
 write 1 0xff21 0xf1
 write 1 0xff22 0x22
