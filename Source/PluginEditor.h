@@ -24,6 +24,7 @@ private:
     void updateDescriptorText();
     void addLabeledSlider(juce::Slider& slider, juce::Label& label, const juce::String& fallbackText);
     void placeLabeledSlider(juce::Slider& slider, juce::Label& label, juce::Rectangle<int> bounds);
+    void placeGroupedSlider(juce::Slider& slider, juce::Label& groupLabel, juce::Label& label, juce::Rectangle<int> bounds);
 
     ChipperAudioProcessor& audioProcessor;
     juce::Label titleLabel;
@@ -34,6 +35,8 @@ private:
     juce::Label globalStripLabel;
     juce::Label clockLabel;
     juce::Label outputLabel;
+    std::array<juce::Label, 4> headerControlLabels;
+    std::array<juce::Label, uiModuleCount> moduleNumberLabels;
     std::array<juce::Label, uiModuleCount> moduleTitleLabels;
     std::array<juce::Label, uiModuleCount> moduleSummaryLabels;
     std::array<std::array<juce::Label, uiModuleRows>, uiModuleCount> moduleItemLabels;
@@ -46,6 +49,7 @@ private:
     juce::Slider clockSlider;
     juce::Slider outputSlider;
     std::array<juce::Slider, 4> nativeSliders;
+    std::array<juce::Label, 4> nativeGroupLabels;
     std::array<juce::Label, 4> nativeLabels;
 
     using ComboBoxAttachment = juce::AudioProcessorValueTreeState::ComboBoxAttachment;

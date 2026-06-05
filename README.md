@@ -46,21 +46,15 @@ build\Chipper_artefacts\Release\VST3\Chipper.vst3
 Install to the common Windows VST3 folder:
 
 ```powershell
-Copy-Item -Recurse -Force "build\Chipper_artefacts\Release\VST3\Chipper.vst3" "C:\Program Files\Common Files\VST3\"
-```
-
-Copying to `C:\Program Files\Common Files\VST3` may require an elevated shell.
-
-The repo also includes a helper:
-
-```powershell
 .\scripts\install-vst3.ps1
 ```
+
+The installer removes the previous `Chipper.vst3` bundle before copying the new build, which avoids stale mixed bundles when a host has cached an older plugin. Installing to `C:\Program Files\Common Files\VST3` may require an elevated shell.
 
 If you do not have an elevated shell, a per-user fallback location is:
 
 ```powershell
-Copy-Item -Recurse -Force "build\Chipper_artefacts\Release\VST3\Chipper.vst3" "$env:LOCALAPPDATA\Programs\Common\VST3\"
+.\scripts\install-vst3.ps1 -Destination "$env:LOCALAPPDATA\Programs\Common\VST3"
 ```
 
 ## Command-Line Renderer

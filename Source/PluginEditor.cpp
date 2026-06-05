@@ -7,7 +7,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     : AudioProcessorEditor(processor),
       audioProcessor(processor)
 {
-    setSize(900, 680);
+    setSize(900, 700);
 
     auto& state = audioProcessor.getValueTreeState();
 
@@ -31,6 +31,17 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     accuracyBox.setTooltip("Selects the requested accuracy tier for the active core.");
     macroBox.setTooltip("Applies a chip-specific musical register template.");
     playModeBox.setTooltip("Chooses how incoming notes use the chip channels inside one patch.");
+
+    const std::array<const char*, 4> headerNames { "Chip Mode", "Accuracy", "Macro", "Play Mode" };
+    for (size_t i = 0; i < headerControlLabels.size(); ++i)
+    {
+        headerControlLabels[i].setText(headerNames[i], juce::dontSendNotification);
+        headerControlLabels[i].setJustificationType(juce::Justification::centredLeft);
+        headerControlLabels[i].setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+        headerControlLabels[i].setFont(juce::FontOptions(11.0f, juce::Font::bold));
+        addAndMakeVisible(headerControlLabels[i]);
+    }
+
     addAndMakeVisible(chipModeBox);
     addAndMakeVisible(accuracyBox);
     addAndMakeVisible(macroBox);
@@ -61,6 +72,11 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
     for (size_t i = 0; i < nativeSliders.size(); ++i)
     {
+        nativeGroupLabels[i].setJustificationType(juce::Justification::centredLeft);
+        nativeGroupLabels[i].setColour(juce::Label::textColourId, juce::Colour(0xff56c7d8));
+        nativeGroupLabels[i].setFont(juce::FontOptions(11.0f, juce::Font::bold));
+        addAndMakeVisible(nativeGroupLabels[i]);
+
         addLabeledSlider(nativeSliders[i], nativeLabels[i], "Native Control");
         nativeSliders[i].setNumDecimalPlacesToDisplay(2);
         nativeAttachments[i] = std::make_unique<SliderAttachment>(state, ids[i], nativeSliders[i]);
@@ -88,6 +104,13 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
     for (size_t i = 0; i < moduleTitleLabels.size(); ++i)
     {
+        moduleNumberLabels[i].setText(juce::String(static_cast<int>(i + 1)), juce::dontSendNotification);
+        moduleNumberLabels[i].setFont(juce::FontOptions(13.0f, juce::Font::bold));
+        moduleNumberLabels[i].setJustificationType(juce::Justification::centred);
+        moduleNumberLabels[i].setColour(juce::Label::textColourId, juce::Colour(0xff101414));
+        moduleNumberLabels[i].setColour(juce::Label::backgroundColourId, juce::Colour(0xfff0c94d));
+        addAndMakeVisible(moduleNumberLabels[i]);
+
         moduleTitleLabels[i].setFont(juce::FontOptions(15.0f, juce::Font::bold));
         moduleTitleLabels[i].setJustificationType(juce::Justification::centredLeft);
         moduleTitleLabels[i].setColour(juce::Label::textColourId, juce::Colour(0xfff0c94d));
@@ -124,7 +147,7 @@ void ChipperAudioProcessorEditor::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colour(0xff101414));
     g.setColour(juce::Colour(0xff314047));
-    g.drawHorizontalLine(70, 16.0f, static_cast<float>(getWidth() - 16));
+    g.drawHorizontalLine(84, 16.0f, static_cast<float>(getWidth() - 16));
     g.drawHorizontalLine(getHeight() - 62, 16.0f, static_cast<float>(getWidth() - 16));
 
     for (const auto& bounds : moduleBounds)
@@ -153,17 +176,23 @@ void ChipperAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds().reduced(16);
 
-    auto top = area.removeFromTop(48);
+    auto top = area.removeFromTop(62);
     titleLabel.setBounds(top.removeFromLeft(132));
-    chipModeBox.setBounds(top.removeFromLeft(220).reduced(0, 6));
+    const auto placeHeaderCombo = [this](size_t index, juce::ComboBox& comboBox, juce::Rectangle<int> bounds)
+    {
+        headerControlLabels[index].setBounds(bounds.removeFromTop(16));
+        comboBox.setBounds(bounds.reduced(0, 4));
+    };
+
+    placeHeaderCombo(0, chipModeBox, top.removeFromLeft(220));
     top.removeFromLeft(8);
-    accuracyBox.setBounds(top.removeFromLeft(126).reduced(0, 6));
+    placeHeaderCombo(1, accuracyBox, top.removeFromLeft(126));
     top.removeFromLeft(8);
-    macroBox.setBounds(top.removeFromLeft(136).reduced(0, 6));
+    placeHeaderCombo(2, macroBox, top.removeFromLeft(136));
     top.removeFromLeft(8);
-    playModeBox.setBounds(top.removeFromLeft(150).reduced(0, 6));
+    placeHeaderCombo(3, playModeBox, top.removeFromLeft(150));
     top.removeFromLeft(8);
-    coreReadinessLabel.setBounds(top.reduced(0, 10));
+    coreReadinessLabel.setBounds(top.removeFromTop(44).reduced(0, 12));
 
     area.removeFromTop(10);
     chipSummaryLabel.setBounds(area.removeFromTop(34));
@@ -183,7 +212,10 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[i] = { x, y, columnWidth, rowHeight };
 
         auto panel = moduleBounds[i].reduced(12, 9);
-        moduleTitleLabels[i].setBounds(panel.removeFromTop(20));
+        auto titleRow = panel.removeFromTop(20);
+        moduleNumberLabels[i].setBounds(titleRow.removeFromLeft(22));
+        titleRow.removeFromLeft(6);
+        moduleTitleLabels[i].setBounds(titleRow);
         moduleSummaryLabels[i].setBounds(panel.removeFromTop(30));
         panel.removeFromTop(4);
 
@@ -226,10 +258,10 @@ void ChipperAudioProcessorEditor::resized()
         };
     }
 
-    placeLabeledSlider(nativeSliders[0], nativeLabels[0], controlCells[0]);
-    placeLabeledSlider(nativeSliders[1], nativeLabels[1], controlCells[1]);
-    placeLabeledSlider(nativeSliders[2], nativeLabels[2], controlCells[2]);
-    placeLabeledSlider(nativeSliders[3], nativeLabels[3], controlCells[3]);
+    placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlCells[0]);
+    placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlCells[1]);
+    placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlCells[2]);
+    placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlCells[3]);
     placeLabeledSlider(clockSlider, clockLabel, controlCells[4]);
     placeLabeledSlider(outputSlider, outputLabel, controlCells[5]);
 
@@ -264,6 +296,16 @@ void ChipperAudioProcessorEditor::placeLabeledSlider(juce::Slider& slider, juce:
 {
     label.setBounds(bounds.removeFromTop(18));
     slider.setBounds(bounds.reduced(0, 2));
+}
+
+void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
+                                                     juce::Label& groupLabel,
+                                                     juce::Label& label,
+                                                     juce::Rectangle<int> bounds)
+{
+    groupLabel.setBounds(bounds.removeFromTop(13));
+    label.setBounds(bounds.removeFromTop(17));
+    slider.setBounds(bounds.reduced(0, 1));
 }
 
 void ChipperAudioProcessorEditor::updateDescriptorText()
@@ -321,19 +363,25 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         if (i < descriptor.controls.size())
         {
             const auto active = hasLiveCore;
+            nativeGroupLabels[i].setText(descriptor.controls[i].group, juce::dontSendNotification);
             nativeLabels[i].setText(descriptor.controls[i].label, juce::dontSendNotification);
             nativeSliders[i].setTooltip(descriptor.controls[i].help);
+            nativeGroupLabels[i].setVisible(true);
             nativeLabels[i].setVisible(true);
             nativeSliders[i].setVisible(true);
+            nativeGroupLabels[i].setEnabled(active);
             nativeLabels[i].setEnabled(active);
             nativeSliders[i].setEnabled(active);
+            nativeGroupLabels[i].setAlpha(active ? 1.0f : 0.55f);
             nativeLabels[i].setAlpha(active ? 1.0f : 0.55f);
             nativeSliders[i].setAlpha(active ? 1.0f : 0.55f);
         }
         else
         {
+            nativeGroupLabels[i].setText({}, juce::dontSendNotification);
             nativeLabels[i].setText("Native Control", juce::dontSendNotification);
             nativeSliders[i].setTooltip({});
+            nativeGroupLabels[i].setVisible(false);
             nativeLabels[i].setVisible(false);
             nativeSliders[i].setVisible(false);
         }
