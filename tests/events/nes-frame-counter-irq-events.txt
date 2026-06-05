@@ -1,0 +1,2 @@
+# Four-step frame-counter mode raises the frame IRQ flag at the end of the sequence.
+write 1 0x4017 0x00

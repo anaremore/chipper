@@ -1,0 +1,2 @@
+# IRQ inhibit keeps the four-step frame IRQ flag clear.
+write 1 0x4017 0x40

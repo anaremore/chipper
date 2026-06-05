@@ -946,8 +946,11 @@ public:
         sweepReload.fill(false);
         linearCounter = 0;
         linearReloadFlag = false;
-        quarterFramePhase = 0.0;
-        halfFramePhase = 0.0;
+        frameSequencerPhase = 0.0;
+        frameSequenceStep = 0;
+        frameCounterFiveStep = false;
+        frameIrqInhibit = false;
+        frameIrqFlag = false;
         hp90Input = 0.0;
         hp90Output = 0.0;
         hp440Input = 0.0;
@@ -1006,6 +1009,10 @@ public:
                 if (! enabled[i])
                     lengthCounter[i] = 0;
             }
+        }
+        else if (address == 0x4017)
+        {
+            writeFrameCounter(value);
         }
 
         updateTimers();
@@ -1168,7 +1175,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Pulse, triangle, noise, timers, duty, enable bits, simple envelopes, length counters, triangle linear counter, DMC direct DAC level, basic pulse sweep updates/muting, nonlinear mixer, the documented NES output filter chain, and pulse/triangle allocation for Chip Poly play mode are approximated; DMC sample playback, exact frame sequencer timing, advanced sweep edge cases, and hardware validation are not complete.";
+        return "Pulse, triangle, noise, timers, duty, enable bits, simple envelopes, length counters, triangle linear counter, DMC direct DAC level, basic pulse sweep updates/muting, $4017 frame-counter mode/inhibit behavior, nonlinear mixer, the documented NES output filter chain, and pulse/triangle allocation for Chip Poly play mode are approximated; DMC sample playback, exact frame sequencer cycle timing, advanced sweep edge cases, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -1192,6 +1199,10 @@ public:
              << "\"linearReloadValue\":" << static_cast<int>(linearReloadValue()) << ","
              << "\"linearReloadFlag\":" << (linearReloadFlag ? 1 : 0) << ","
              << "\"linearControlFlag\":" << (linearControlFlag() ? 1 : 0) << ","
+             << "\"frameCounterFiveStep\":" << (frameCounterFiveStep ? 1 : 0) << ","
+             << "\"frameIrqInhibit\":" << (frameIrqInhibit ? 1 : 0) << ","
+             << "\"frameIrqFlag\":" << (frameIrqFlag ? 1 : 0) << ","
+             << "\"frameSequenceStep\":" << static_cast<int>(frameSequenceStep) << ","
              << "\"dmcLevel\":" << static_cast<int>(dmcOutputLevel()) << ","
              << "\"sweepTarget0\":" << sweepTargetPeriod(0) << ","
              << "\"sweepTarget1\":" << sweepTargetPeriod(1) << ","
@@ -1205,6 +1216,8 @@ public:
              << "\"envelope1\":" << static_cast<int>(envelopeVolume[1]) << ","
              << "\"envelopeNoise\":" << static_cast<int>(envelopeVolume[3]) << ","
              << "\"length0\":" << static_cast<int>(lengthCounter[0]) << ","
+             << "\"lengthTriangle\":" << static_cast<int>(lengthCounter[2]) << ","
+             << "\"lengthNoise\":" << static_cast<int>(lengthCounter[3]) << ","
              << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
              << "}";
         return json.str();
@@ -1295,21 +1308,74 @@ private:
 
     void tickFrameUnits()
     {
-        quarterFramePhase += 240.0 / sampleRate;
-        while (quarterFramePhase >= 1.0)
+        frameSequencerPhase += 240.0 / sampleRate;
+        while (frameSequencerPhase >= 1.0)
         {
-            quarterFramePhase -= 1.0;
-            tickEnvelopes();
-            tickLinearCounter();
+            frameSequencerPhase -= 1.0;
+            tickFrameSequenceStep();
+        }
+    }
+
+    void writeFrameCounter(uint8_t value)
+    {
+        frameCounterFiveStep = (value & 0x80u) != 0;
+        frameIrqInhibit = (value & 0x40u) != 0;
+        if (frameIrqInhibit)
+            frameIrqFlag = false;
+
+        frameSequencerPhase = 0.0;
+        frameSequenceStep = 0;
+
+        if (frameCounterFiveStep)
+            clockQuarterAndHalfFrame();
+    }
+
+    void clockQuarterFrame()
+    {
+        tickEnvelopes();
+        tickLinearCounter();
+    }
+
+    void clockHalfFrame()
+    {
+        tickSweeps();
+        tickLengthCounters();
+    }
+
+    void clockQuarterAndHalfFrame()
+    {
+        clockQuarterFrame();
+        clockHalfFrame();
+    }
+
+    void tickFrameSequenceStep()
+    {
+        if (frameCounterFiveStep)
+        {
+            switch (frameSequenceStep)
+            {
+                case 0:
+                case 2:
+                    clockQuarterFrame();
+                    break;
+                case 1:
+                case 4:
+                    clockQuarterAndHalfFrame();
+                    break;
+                default:
+                    break;
+            }
+            frameSequenceStep = static_cast<uint8_t>((frameSequenceStep + 1u) % 5u);
+            return;
         }
 
-        halfFramePhase += 120.0 / sampleRate;
-        while (halfFramePhase >= 1.0)
-        {
-            halfFramePhase -= 1.0;
-            tickSweeps();
-            tickLengthCounters();
-        }
+        clockQuarterFrame();
+        if ((frameSequenceStep & 1u) != 0)
+            clockHalfFrame();
+        if (frameSequenceStep == 3 && ! frameIrqInhibit)
+            frameIrqFlag = true;
+
+        frameSequenceStep = static_cast<uint8_t>((frameSequenceStep + 1u) % 4u);
     }
 
     void tickEnvelopes()
@@ -1656,8 +1722,11 @@ private:
     std::array<bool, 2> sweepReload {};
     uint8_t linearCounter = 0;
     bool linearReloadFlag = false;
-    double quarterFramePhase = 0.0;
-    double halfFramePhase = 0.0;
+    double frameSequencerPhase = 0.0;
+    uint8_t frameSequenceStep = 0;
+    bool frameCounterFiveStep = false;
+    bool frameIrqInhibit = false;
+    bool frameIrqFlag = false;
     double hp90Input = 0.0;
     double hp90Output = 0.0;
     double hp440Input = 0.0;

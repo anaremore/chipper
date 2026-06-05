@@ -110,6 +110,15 @@ add_test(NAME chipper_render_nes_dmc_direct_low_smoke
 add_test(NAME chipper_render_nes_dmc_direct_high_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --macro manual --clock 1789773 --rate 48000 --seconds 0.004 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/nes-dmc-direct-load-high-events.txt --out nes-dmc-direct-high-smoke.wav --debug nes-dmc-direct-high-smoke.json
 )
+add_test(NAME chipper_render_nes_frame_counter_5step_smoke
+    COMMAND chipper_render --chip nes --accuracy authentic --macro manual --clock 1789773 --rate 48000 --seconds 0.001 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/nes-frame-counter-5step-events.txt --out nes-frame-counter-5step-smoke.wav --debug nes-frame-counter-5step-smoke.json
+)
+add_test(NAME chipper_render_nes_frame_counter_irq_smoke
+    COMMAND chipper_render --chip nes --accuracy authentic --macro manual --clock 1789773 --rate 48000 --seconds 0.017 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/nes-frame-counter-irq-events.txt --out nes-frame-counter-irq-smoke.wav --debug nes-frame-counter-irq-smoke.json
+)
+add_test(NAME chipper_render_nes_frame_counter_inhibit_smoke
+    COMMAND chipper_render --chip nes --accuracy authentic --macro manual --clock 1789773 --rate 48000 --seconds 0.017 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/nes-frame-counter-inhibit-events.txt --out nes-frame-counter-inhibit-smoke.wav --debug nes-frame-counter-inhibit-smoke.json
+)
 
 if (Python3_Interpreter_FOUND)
     add_test(NAME chipper_render_nes_json_assert
@@ -241,6 +250,21 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-dmc-direct-high-smoke.json --implemented-contains partial --macro Manual --register-writes 2 --note-events 0 --min-peak 0.65 --max-peak 0.95 --core-min dmcLevel=127 --core-max dmcLevel=127
     )
     set_tests_properties(chipper_render_nes_dmc_direct_high_assert PROPERTIES DEPENDS chipper_render_nes_dmc_direct_high_smoke)
+
+    add_test(NAME chipper_render_nes_frame_counter_5step_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-frame-counter-5step-smoke.json --implemented-contains partial --macro Manual --register-writes 5 --note-events 0 --core-min frameCounterFiveStep=1 --core-max frameCounterFiveStep=1 --core-min frameIrqInhibit=0 --core-max frameIrqInhibit=0 --core-min frameIrqFlag=0 --core-max frameIrqFlag=0 --core-min frameSequenceStep=0 --core-max frameSequenceStep=0 --core-min linearCounter=2 --core-max linearCounter=2 --core-min linearReloadFlag=0 --core-max linearReloadFlag=0 --core-min lengthTriangle=9 --core-max lengthTriangle=9
+    )
+    set_tests_properties(chipper_render_nes_frame_counter_5step_assert PROPERTIES DEPENDS chipper_render_nes_frame_counter_5step_smoke)
+
+    add_test(NAME chipper_render_nes_frame_counter_irq_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-frame-counter-irq-smoke.json --implemented-contains partial --macro Manual --register-writes 1 --note-events 0 --core-min frameCounterFiveStep=0 --core-max frameCounterFiveStep=0 --core-min frameIrqInhibit=0 --core-max frameIrqInhibit=0 --core-min frameIrqFlag=1 --core-max frameIrqFlag=1
+    )
+    set_tests_properties(chipper_render_nes_frame_counter_irq_assert PROPERTIES DEPENDS chipper_render_nes_frame_counter_irq_smoke)
+
+    add_test(NAME chipper_render_nes_frame_counter_inhibit_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-frame-counter-inhibit-smoke.json --implemented-contains partial --macro Manual --register-writes 1 --note-events 0 --core-min frameCounterFiveStep=0 --core-max frameCounterFiveStep=0 --core-min frameIrqInhibit=1 --core-max frameIrqInhibit=1 --core-min frameIrqFlag=0 --core-max frameIrqFlag=0
+    )
+    set_tests_properties(chipper_render_nes_frame_counter_inhibit_assert PROPERTIES DEPENDS chipper_render_nes_frame_counter_inhibit_smoke)
 endif()
 
 if (NOT CHIPPER_BUILD_PLUGIN)
