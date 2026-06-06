@@ -31,6 +31,7 @@ struct Options
     float control3 = 0.5f;
     float control4 = 0.5f;
     std::array<bool, 4> sourceEnabled { true, true, true, true };
+    float envelopeDecay = 0.0f;
     double clock = 1789773.0;
     double sampleRate = 48000.0;
     double seconds = 1.0;
@@ -94,7 +95,7 @@ void printUsage()
 {
     std::cerr
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
-        << "       Optional: --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0\n"
+        << "       Optional: --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --envelope-decay 0.7\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -221,6 +222,12 @@ bool parseArgs(int argc, char** argv, Options& options)
         else if (arg == "--source4")
         {
             if (! parseToggle("--source4", options.sourceEnabled[3]))
+                return false;
+        }
+        else if (arg == "--envelope-decay")
+        {
+            const auto* value = requireValue("--envelope-decay");
+            if (value == nullptr || ! parseNumber(std::string(value), options.envelopeDecay))
                 return false;
         }
         else if (arg == "--clock")
@@ -514,7 +521,8 @@ int main(int argc, char** argv)
                                                     options.control3,
                                                     options.control4,
                                                     options.playMode,
-                                                    options.sourceEnabled);
+                                                    options.sourceEnabled,
+                                                    options.envelopeDecay);
         core->setPatch(patch);
         const auto events = loadEvents(options.eventFile);
         const auto registerWriteCount = static_cast<size_t>(std::count_if(events.begin(), events.end(), [](const auto& event) { return event.type == EventType::write; }));

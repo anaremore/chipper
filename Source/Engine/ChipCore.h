@@ -70,6 +70,7 @@ struct PatchConfig
     float control4 = 0.5f;
     PlayMode playMode = PlayMode::stack;
     std::array<bool, 4> sourceEnabled { true, true, true, true };
+    float envelopeDecay = 0.0f;
 };
 
 struct StereoFrame

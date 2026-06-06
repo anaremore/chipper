@@ -125,6 +125,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         "Source 4 Enabled",
         true));
 
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::envelopeDecay, 1 },
+        "Envelope Decay",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        0.0f));
+
     return { params.begin(), params.end() };
 }
 

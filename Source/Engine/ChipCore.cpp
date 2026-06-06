@@ -110,6 +110,17 @@ uint8_t sourceEnableMask(const PatchConfig& patch)
     return mask;
 }
 
+bool envelopeDecayActive(const PatchConfig& patch)
+{
+    return patch.envelopeDecay > 0.01f;
+}
+
+uint8_t decayPeriodFromControl(float control, uint8_t maxPeriod)
+{
+    const auto period = std::round(static_cast<float>(maxPeriod) - (std::clamp(control, 0.0f, 1.0f) * static_cast<float>(maxPeriod - 1u)));
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(period), 1, static_cast<int>(maxPeriod)));
+}
+
 class UnsupportedCore final : public ChipCore
 {
 public:
@@ -446,6 +457,16 @@ public:
              << "\"envelope0\":" << static_cast<int>(envelopeLevel[0]) << ","
              << "\"envelope1\":" << static_cast<int>(envelopeLevel[1]) << ","
              << "\"envelopeNoise\":" << static_cast<int>(envelopeLevel[3]) << ","
+             << "\"envelopeDecayControl\":" << patch.envelopeDecay << ","
+             << "\"initialEnvelope0\":" << static_cast<int>(initialEnvelopeVolume(0)) << ","
+             << "\"initialEnvelope1\":" << static_cast<int>(initialEnvelopeVolume(1)) << ","
+             << "\"initialEnvelopeNoise\":" << static_cast<int>(initialEnvelopeVolume(3)) << ","
+             << "\"envelopePeriod0\":" << static_cast<int>(envelopePeriod(0)) << ","
+             << "\"envelopePeriod1\":" << static_cast<int>(envelopePeriod(1)) << ","
+             << "\"envelopePeriodNoise\":" << static_cast<int>(envelopePeriod(3)) << ","
+             << "\"envelopeDirection0\":" << (envelopeIncreasing(0) ? 1 : 0) << ","
+             << "\"envelopeDirection1\":" << (envelopeIncreasing(1) ? 1 : 0) << ","
+             << "\"envelopeDirectionNoise\":" << (envelopeIncreasing(3) ? 1 : 0) << ","
              << "\"length0\":" << lengthCounter[0] << ","
              << "\"length1\":" << lengthCounter[1] << ","
              << "\"lengthWave\":" << lengthCounter[2] << ","
@@ -903,7 +924,7 @@ private:
         const auto base = channel == 0 ? 0xff11 : 0xff16;
         const auto freq = dmgFrequencyRegister(131072.0, 1.0, midiNote);
         writeRegister(static_cast<uint16_t>(base), static_cast<uint8_t>((dmgPulseDutyBits(duty) << 6u) | 0x3fu));
-        writeRegister(static_cast<uint16_t>(base + 1), static_cast<uint8_t>((std::min<uint8_t>(15, volume) << 4u) | 0x08u));
+        writeRegister(static_cast<uint16_t>(base + 1), dmgEnvelopeRegisterValue(volume));
         writeRegister(static_cast<uint16_t>(base + 2), static_cast<uint8_t>(freq & 0xffu));
         writeRegister(static_cast<uint16_t>(base + 3), static_cast<uint8_t>(0x80u | ((freq >> 8u) & 0x07u)));
     }
@@ -919,9 +940,18 @@ private:
 
     void writeNoiseRegisters(uint8_t volume, uint8_t pitchCode, bool narrowMode)
     {
-        writeRegister(0xff21, static_cast<uint8_t>((std::min<uint8_t>(15, volume) << 4u) | 0x08u));
+        writeRegister(0xff21, dmgEnvelopeRegisterValue(volume));
         writeRegister(0xff22, static_cast<uint8_t>((pitchCode << 4u) | (narrowMode ? 0x08u : 0x00u) | 0x02u));
         writeRegister(0xff23, 0x80);
+    }
+
+    uint8_t dmgEnvelopeRegisterValue(uint8_t volume) const
+    {
+        const auto level = static_cast<uint8_t>(std::min<uint8_t>(15, volume) << 4u);
+        if (! envelopeDecayActive(patch))
+            return static_cast<uint8_t>(level | 0x08u);
+
+        return static_cast<uint8_t>(level | decayPeriodFromControl(patch.envelopeDecay, 7));
     }
 
     double envelopeVolume(size_t index) const
@@ -1202,7 +1232,7 @@ public:
         writeRegister(0x4001, pulse1Sweep);
         writeRegister(0x4005, pulse2Sweep);
         writeTriangleRegisters(triNote);
-        writeRegister(0x400c, static_cast<uint8_t>(std::min<unsigned>(15u, noiseVol)));
+        writeRegister(0x400c, nesNoiseEnvelopeValue(noiseVol));
         writeRegister(0x400e, static_cast<uint8_t>(noiseMode | noisePeriod));
         writeRegister(0x400f, 0x18);
         writeRegister(0x4015, static_cast<uint8_t>(enable));
@@ -1307,6 +1337,13 @@ public:
              << "\"envelope0\":" << static_cast<int>(envelopeVolume[0]) << ","
              << "\"envelope1\":" << static_cast<int>(envelopeVolume[1]) << ","
              << "\"envelopeNoise\":" << static_cast<int>(envelopeVolume[3]) << ","
+             << "\"envelopeDecayControl\":" << patch.envelopeDecay << ","
+             << "\"envelopePeriod0\":" << static_cast<int>(envelopePeriodForRegister(0x00)) << ","
+             << "\"envelopePeriod1\":" << static_cast<int>(envelopePeriodForRegister(0x04)) << ","
+             << "\"envelopePeriodNoise\":" << static_cast<int>(envelopePeriodForRegister(0x0c)) << ","
+             << "\"envelopeConstant0\":" << (constantEnvelopeFlag(0x00) ? 1 : 0) << ","
+             << "\"envelopeConstant1\":" << (constantEnvelopeFlag(0x04) ? 1 : 0) << ","
+             << "\"envelopeConstantNoise\":" << (constantEnvelopeFlag(0x0c) ? 1 : 0) << ","
              << "\"length0\":" << static_cast<int>(lengthCounter[0]) << ","
              << "\"lengthTriangle\":" << static_cast<int>(lengthCounter[2]) << ","
              << "\"lengthNoise\":" << static_cast<int>(lengthCounter[3]) << ","
@@ -1617,15 +1654,37 @@ private:
     {
         const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
         const auto pulseTimer = static_cast<int>(std::max(0.0, std::round(clock / (16.0 * hz) - 1.0)));
-        const auto constantVolume = patch.macro == MacroKind::manual
-            || patch.macro == MacroKind::lead
-            || patch.macro == MacroKind::arp
-            || patch.macro == MacroKind::bass
-            || patch.macro == MacroKind::powerUp;
+        const auto constantVolume = ! envelopeDecayActive(patch)
+            && (patch.macro == MacroKind::manual
+                || patch.macro == MacroKind::lead
+                || patch.macro == MacroKind::arp
+                || patch.macro == MacroKind::bass
+                || patch.macro == MacroKind::powerUp);
         const auto flags = constantVolume ? 0x10u : 0x00u;
-        writeRegister(baseAddress, static_cast<uint8_t>((nesPulseDutyBits(duty) << 6u) | flags | (std::min<unsigned>(15u, volume) & 0x0fu)));
+        const auto periodOrVolume = envelopeDecayActive(patch)
+            ? decayPeriodFromControl(patch.envelopeDecay, 15)
+            : static_cast<uint8_t>(std::min<unsigned>(15u, volume) & 0x0fu);
+        writeRegister(baseAddress, static_cast<uint8_t>((nesPulseDutyBits(duty) << 6u) | flags | periodOrVolume));
         writeRegister(static_cast<uint16_t>(baseAddress + 2), static_cast<uint8_t>(pulseTimer & 0xff));
         writeRegister(static_cast<uint16_t>(baseAddress + 3), static_cast<uint8_t>((pulseTimer >> 8) & 0x07));
+    }
+
+    uint8_t nesNoiseEnvelopeValue(unsigned volume) const
+    {
+        if (envelopeDecayActive(patch))
+            return decayPeriodFromControl(patch.envelopeDecay, 15);
+
+        return static_cast<uint8_t>(std::min<unsigned>(15u, volume));
+    }
+
+    uint8_t envelopePeriodForRegister(int regIndex) const
+    {
+        return static_cast<uint8_t>(regs[static_cast<size_t>(regIndex)] & 0x0fu);
+    }
+
+    bool constantEnvelopeFlag(int regIndex) const
+    {
+        return (regs[static_cast<size_t>(regIndex)] & 0x10u) != 0;
     }
 
     void writeTriangleRegisters(int midiNote)

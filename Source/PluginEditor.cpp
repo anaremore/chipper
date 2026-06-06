@@ -65,6 +65,17 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     outputSlider.setTooltip("Final plugin output level.");
     outputAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::outputDb, outputSlider);
 
+    addLabeledSlider(envelopeDecaySlider, envelopeDecayLabel, "Envelope Decay");
+    envelopeDecaySlider.setNumDecimalPlacesToDisplay(2);
+    envelopeDecaySlider.setTooltip("Maps musical decay to the active chip's hardware envelope period. Zero preserves the macro's original envelope/level behavior.");
+    envelopeDecayAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::envelopeDecay, envelopeDecaySlider);
+
+    envelopeDecayValueLabel.setJustificationType(juce::Justification::centredLeft);
+    envelopeDecayValueLabel.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+    envelopeDecayValueLabel.setFont(juce::FontOptions(11.0f));
+    envelopeDecayValueLabel.setMinimumHorizontalScale(0.75f);
+    addAndMakeVisible(envelopeDecayValueLabel);
+
     const std::array<const char*, 4> ids {
         chipper::parameters::id::macroControl1,
         chipper::parameters::id::macroControl2,
@@ -323,6 +334,13 @@ void ChipperAudioProcessorEditor::resized()
         sourceChannelButtons[i].setBounds(sourceChannelBounds[i].reduced(8, 1));
     }
 
+    auto envelopePanel = moduleBounds[3].reduced(12, 9);
+    envelopePanel.removeFromTop(20);
+    envelopePanel.removeFromTop(30);
+    envelopePanel.removeFromTop(4);
+    envelopePanel.removeFromBottom(6);
+    placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopePanel);
+
     area.removeFromTop(12);
     globalStripBounds = area.removeFromTop(190);
     auto strip = globalStripBounds.reduced(12, 8);
@@ -519,6 +537,11 @@ bool ChipperAudioProcessorEditor::usesSourceChannelSurface(chipper::ChipMode mod
     return mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
 }
 
+bool ChipperAudioProcessorEditor::usesEnvelopeDecayControl(chipper::ChipMode mode) const
+{
+    return mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
+}
+
 void ChipperAudioProcessorEditor::setSourceChannelSurfaceVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
     const auto active = shouldBeVisible && usesSourceChannelSurface(mode);
@@ -530,6 +553,26 @@ void ChipperAudioProcessorEditor::setSourceChannelSurfaceVisible(chipper::ChipMo
 
     if (active)
         updateSourceChannelButtons(mode);
+}
+
+void ChipperAudioProcessorEditor::setEnvelopeDecayControlVisible(chipper::ChipMode mode, bool shouldBeVisible)
+{
+    const auto active = shouldBeVisible && usesEnvelopeDecayControl(mode);
+    envelopeDecayLabel.setVisible(active);
+    envelopeDecaySlider.setVisible(active);
+    envelopeDecayValueLabel.setVisible(active);
+    envelopeDecayLabel.setEnabled(active);
+    envelopeDecaySlider.setEnabled(active);
+    envelopeDecayValueLabel.setEnabled(active);
+    envelopeDecayLabel.setAlpha(active ? 1.0f : 0.55f);
+    envelopeDecaySlider.setAlpha(active ? 1.0f : 0.55f);
+    envelopeDecayValueLabel.setAlpha(active ? 1.0f : 0.55f);
+
+    for (auto& itemLabel : moduleItemLabels[3])
+        itemLabel.setVisible(! active && ! itemLabel.getText().isEmpty());
+
+    if (active)
+        updateEnvelopeDecayReadout(mode);
 }
 
 void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode mode)
@@ -573,6 +616,26 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         sourceChannelButtons[i].setButtonText((*labels)[i]);
         sourceChannelButtons[i].setTooltip(juce::String("Enable or mute ") + (*labels)[i]);
     }
+}
+
+void ChipperAudioProcessorEditor::updateEnvelopeDecayReadout(chipper::ChipMode mode)
+{
+    envelopeDecayValueLabel.setText(envelopeDecayReadout(mode, parameterValue(chipper::parameters::id::envelopeDecay)), juce::dontSendNotification);
+}
+
+juce::String ChipperAudioProcessorEditor::envelopeDecayReadout(chipper::ChipMode mode, float value) const
+{
+    if (value <= 0.01f)
+        return "Off: macro envelope/level unchanged";
+
+    if (mode == chipper::ChipMode::dmg)
+    {
+        const auto period = std::clamp(static_cast<int>(std::round(7.0f - (std::clamp(value, 0.0f, 1.0f) * 6.0f))), 1, 7);
+        return juce::String("DMG 64 Hz decay, period ") + juce::String(period);
+    }
+
+    const auto period = std::clamp(static_cast<int>(std::round(15.0f - (std::clamp(value, 0.0f, 1.0f) * 14.0f))), 1, 15);
+    return juce::String("NES envelope decay, period ") + juce::String(period);
 }
 
 void ChipperAudioProcessorEditor::updatePulseDutyButtons(float value, bool shouldBeVisible)
@@ -675,6 +738,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     controlValueLabels[4].setAlpha(hasLiveCore ? 1.0f : 0.55f);
     controlValueLabels[5].setAlpha(hasLiveCore ? 1.0f : 0.55f);
     setSourceChannelSurfaceVisible(mode, usesSourceChannelSurface(mode));
+    setEnvelopeDecayControlVisible(mode, usesEnvelopeDecayControl(mode) && hasLiveCore);
     updatePulseDutyButtons(parameterValue(chipper::parameters::id::macroControl1), usesPulseDutySegment(mode) && hasLiveCore);
     updateLiveControlReadouts();
     repaint();
@@ -692,6 +756,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto hasPulseDutySegment = usesPulseDutySegment(mode) && chipper::descriptorFor(mode).implemented;
     nativeSliders[0].setVisible(! hasPulseDutySegment);
     updatePulseDutyButtons(macroControl1, hasPulseDutySegment);
+    updateEnvelopeDecayReadout(mode);
 
     if (mode == chipper::ChipMode::nes)
     {

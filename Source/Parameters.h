@@ -23,6 +23,7 @@ inline constexpr auto source1Enabled = "source1Enabled";
 inline constexpr auto source2Enabled = "source2Enabled";
 inline constexpr auto source3Enabled = "source3Enabled";
 inline constexpr auto source4Enabled = "source4Enabled";
+inline constexpr auto envelopeDecay = "envelopeDecay";
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout();

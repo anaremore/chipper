@@ -45,9 +45,13 @@ private:
     juce::String dmgNoiseReadout(float value) const;
     juce::String dmgEnvelopeReadout(float value) const;
     bool usesSourceChannelSurface(chipper::ChipMode mode) const;
+    bool usesEnvelopeDecayControl(chipper::ChipMode mode) const;
     void setSourceChannelSurfaceVisible(chipper::ChipMode mode, bool shouldBeVisible);
+    void setEnvelopeDecayControlVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void updateSourceChannelButtons(chipper::ChipMode mode);
     void updatePulseDutyButtons(float value, bool shouldBeVisible);
+    void updateEnvelopeDecayReadout(chipper::ChipMode mode);
+    juce::String envelopeDecayReadout(chipper::ChipMode mode, float value) const;
 
     ChipperAudioProcessor& audioProcessor;
     juce::Label titleLabel;
@@ -58,6 +62,8 @@ private:
     juce::Label globalStripLabel;
     juce::Label clockLabel;
     juce::Label outputLabel;
+    juce::Label envelopeDecayLabel;
+    juce::Label envelopeDecayValueLabel;
     std::array<juce::Label, 4> headerControlLabels;
     std::array<juce::Label, uiModuleCount> moduleNumberLabels;
     std::array<juce::Label, uiModuleCount> moduleTitleLabels;
@@ -74,6 +80,7 @@ private:
 
     juce::Slider clockSlider;
     juce::Slider outputSlider;
+    juce::Slider envelopeDecaySlider;
     std::array<juce::Slider, 4> nativeSliders;
     std::array<juce::Label, 4> nativeGroupLabels;
     std::array<juce::Label, 4> nativeLabels;
@@ -88,6 +95,7 @@ private:
     std::unique_ptr<ComboBoxAttachment> playModeAttachment;
     std::unique_ptr<SliderAttachment> clockAttachment;
     std::unique_ptr<SliderAttachment> outputAttachment;
+    std::unique_ptr<SliderAttachment> envelopeDecayAttachment;
     std::array<std::unique_ptr<SliderAttachment>, 4> nativeAttachments;
     std::array<std::unique_ptr<ButtonAttachment>, sourceChannelCount> sourceEnableAttachments;
 
