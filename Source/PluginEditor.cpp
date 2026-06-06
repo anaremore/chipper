@@ -120,9 +120,10 @@ const char* sidVoiceWaveParameterId(size_t index)
 
 chipper::ChipParameterRole sidAdsrRole(size_t index)
 {
-    static constexpr std::array<chipper::ChipParameterRole, 3> roles {
+    static constexpr std::array<chipper::ChipParameterRole, 4> roles {
         chipper::ChipParameterRole::sidAttack,
         chipper::ChipParameterRole::sidDecay,
+        chipper::ChipParameterRole::sidSustain,
         chipper::ChipParameterRole::sidRelease
     };
 
@@ -131,9 +132,10 @@ chipper::ChipParameterRole sidAdsrRole(size_t index)
 
 const char* sidAdsrParameterId(size_t index)
 {
-    static constexpr std::array<const char*, 3> ids {
+    static constexpr std::array<const char*, 4> ids {
         chipper::parameters::id::sidAttack,
         chipper::parameters::id::sidDecay,
+        chipper::parameters::id::sidSustain,
         chipper::parameters::id::sidRelease
     };
 
@@ -330,7 +332,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     envelopeDecayValueLabel.setMinimumHorizontalScale(0.75f);
     addAndMakeVisible(envelopeDecayValueLabel);
 
-    const std::array<const char*, sidAdsrOverrideCount> sidAdsrLabelText { "Attack", "Decay", "Release" };
+    const std::array<const char*, sidAdsrOverrideCount> sidAdsrLabelText { "Attack", "Decay", "Sustain", "Release" };
     for (size_t i = 0; i < sidAdsrBoxes.size(); ++i)
     {
         auto& label = sidAdsrLabels[i];
@@ -338,6 +340,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         label.setJustificationType(juce::Justification::centredLeft);
         label.setColour(juce::Label::textColourId, juce::Colour(0xff56c7d8));
         label.setFont(juce::FontOptions(11.0f, juce::Font::bold));
+        label.setMinimumHorizontalScale(0.7f);
         label.setVisible(false);
         addAndMakeVisible(label);
 
@@ -1024,7 +1027,7 @@ void ChipperAudioProcessorEditor::placeLabeledSliderWithReadout(juce::Slider& sl
 void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> bounds)
 {
     auto overrideRow = bounds.removeFromTop(24).reduced(0, 1);
-    const auto gap = 8;
+    const auto gap = 6;
     const auto cellWidth = (overrideRow.getWidth() - (gap * static_cast<int>(sidAdsrBoxes.size() - 1u))) / static_cast<int>(sidAdsrBoxes.size());
     for (size_t i = 0; i < sidAdsrBoxes.size(); ++i)
     {
@@ -1032,7 +1035,7 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
         if (i + 1u < sidAdsrBoxes.size())
             overrideRow.removeFromLeft(gap);
 
-        sidAdsrLabels[i].setBounds(cell.removeFromLeft(46));
+        sidAdsrLabels[i].setBounds(cell.removeFromLeft(42));
         sidAdsrBoxes[i].setBounds(cell);
     }
 
@@ -1341,6 +1344,7 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
     setParameterValueFromUi(chipper::parameters::id::envelopeDecay, templ.envelopeDecay);
     setChoiceParameterFromUi(chipper::parameters::id::sidAttack, 0);
     setChoiceParameterFromUi(chipper::parameters::id::sidDecay, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::sidSustain, 0);
     setChoiceParameterFromUi(chipper::parameters::id::sidRelease, 0);
     setParameterValueFromUi(chipper::parameters::id::stereoSpread, templ.stereoSpread);
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, templ.waveShape);
@@ -1410,6 +1414,7 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
     setParameterValueFromUi(chipper::parameters::id::envelopeDecay, preset.envelopeDecay);
     setChoiceParameterFromUi(chipper::parameters::id::sidAttack, 0);
     setChoiceParameterFromUi(chipper::parameters::id::sidDecay, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::sidSustain, 0);
     setChoiceParameterFromUi(chipper::parameters::id::sidRelease, 0);
     setParameterValueFromUi(chipper::parameters::id::stereoSpread, preset.stereoSpread);
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, preset.waveShape);
@@ -1473,6 +1478,7 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice3WaveShape))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidAttack))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidDecay))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidSustain))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidRelease))));
 }
 
@@ -1942,10 +1948,13 @@ juce::String ChipperAudioProcessorEditor::sidCutoffReadout(float value) const
     return juce::String("FC registers ") + juce::String(cutoff) + "/2047";
 }
 
-juce::String ChipperAudioProcessorEditor::sidSustainReadout(float value) const
+juce::String ChipperAudioProcessorEditor::sidSustainReadout(const chipper::PatchConfig& patch) const
 {
-    const auto sustain = std::clamp(static_cast<int>(std::round(std::clamp(value, 0.0f, 1.0f) * 15.0f)), 0, 15);
-    return juce::String("SR sustain nibble ") + juce::String(sustain) + "/15";
+    const auto sustain = static_cast<int>(chipper::sidSustainNibbleForPatch(patch));
+    auto text = juce::String("SR sustain nibble ") + juce::String(sustain) + "/15";
+    if (patch.sidSustain > 0)
+        text += " override";
+    return text;
 }
 
 juce::String ChipperAudioProcessorEditor::sourceLevelReadout(size_t index) const
@@ -2727,7 +2736,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[0].setText(sidPulseWidthReadout(patch.control1), juce::dontSendNotification);
         controlValueLabels[1].setText(sidDetuneReadout(patch.control2), juce::dontSendNotification);
         controlValueLabels[2].setText(sidCutoffReadout(patch.control3), juce::dontSendNotification);
-        controlValueLabels[3].setText(sidSustainReadout(patch.control4), juce::dontSendNotification);
+        controlValueLabels[3].setText(sidSustainReadout(patch), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
     else

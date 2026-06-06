@@ -75,6 +75,7 @@ struct PatchConfig
     float envelopeDecay = 0.0f;
     int sidAttack = 0;
     int sidDecay = 0;
+    int sidSustain = 0;
     int sidRelease = 0;
     int waveShape = 0;
     int dmgWaveLevel = 0;

@@ -39,6 +39,7 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && std::abs(a.envelopeDecay - b.envelopeDecay) < tolerance
         && a.sidAttack == b.sidAttack
         && a.sidDecay == b.sidDecay
+        && a.sidSustain == b.sidSustain
         && a.sidRelease == b.sidRelease
         && a.waveShape == b.waveShape
         && a.dmgWaveLevel == b.dmgWaveLevel
@@ -63,6 +64,7 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && std::abs(a.envelopeDecay - b.envelopeDecay) < tolerance
         && a.sidAttack == b.sidAttack
         && a.sidDecay == b.sidDecay
+        && a.sidSustain == b.sidSustain
         && a.sidRelease == b.sidRelease
         && a.waveShape == b.waveShape
         && a.dmgWaveLevel == b.dmgWaveLevel
@@ -246,6 +248,7 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
     setPlainParameterValue(chipper::parameters::id::envelopeDecay, templ.envelopeDecay);
     setPlainParameterValue(chipper::parameters::id::sidAttack, 0.0f);
     setPlainParameterValue(chipper::parameters::id::sidDecay, 0.0f);
+    setPlainParameterValue(chipper::parameters::id::sidSustain, 0.0f);
     setPlainParameterValue(chipper::parameters::id::sidRelease, 0.0f);
     setPlainParameterValue(chipper::parameters::id::stereoSpread, templ.stereoSpread);
     setPlainParameterValue(chipper::parameters::id::waveShape, static_cast<float>(templ.waveShape));
@@ -356,6 +359,7 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidVoice3WaveShape)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidAttack)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidDecay)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidSustain)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidRelease)->load())));
 }
 

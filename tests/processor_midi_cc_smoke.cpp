@@ -151,6 +151,8 @@ int main()
                      "CC74 SID Bass macro should reset SID Attack to Macro");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidDecay), 0.0f, 0.0001f,
                      "CC74 SID Bass macro should reset SID Decay to Macro");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidSustain), 0.0f, 0.0001f,
+                     "CC74 SID Bass macro should reset SID Sustain to Macro");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidRelease), 0.0f, 0.0001f,
                      "CC74 SID Bass macro should reset SID Release to Macro");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymEnvelopeShape), 1.0f, 0.0001f,
@@ -189,6 +191,9 @@ int main()
     sendController(processor, 99, controllerValueForChoice(processor, chipper::parameters::id::sidDecay, 4));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidDecay), 4.0f, 0.0001f,
                      "CC99 should control SID Decay nibble choice");
+    sendController(processor, 100, controllerValueForChoice(processor, chipper::parameters::id::sidSustain, 13));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidSustain), 13.0f, 0.0001f,
+                     "CC100 should control SID Sustain nibble choice");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 0));
 

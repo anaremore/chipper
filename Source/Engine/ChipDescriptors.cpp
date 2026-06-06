@@ -490,6 +490,10 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
                           "sid.decay",
                           "Decay",
                           "Overrides the SID decay nibble in each voice's AD register. Macro follows ADSR Speed."),
+        sidAdsrNibbleSpec(ChipParameterRole::sidSustain,
+                          "sid.sustainOverride",
+                          "Sustain",
+                          "Overrides the SID sustain nibble in each voice's SR register. Macro follows the Sustain control."),
         sidAdsrNibbleSpec(ChipParameterRole::sidRelease,
                           "sid.release",
                           "Release",
@@ -999,6 +1003,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int sidVoice3WaveShape,
                             int sidAttack,
                             int sidDecay,
+                            int sidSustain,
                             int sidRelease)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
@@ -1021,6 +1026,7 @@ PatchConfig makePatchConfig(ChipMode mode,
         clampControl(envelopeDecay),
         std::clamp(sidAttack, 0, 16),
         std::clamp(sidDecay, 0, 16),
+        std::clamp(sidSustain, 0, 16),
         std::clamp(sidRelease, 0, 16),
         std::clamp(waveShape, 0, 4),
         std::clamp(dmgWaveLevel, 0, 4),
@@ -1369,6 +1375,14 @@ uint8_t sidDecayNibbleForPatch(const PatchConfig& patch)
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - speed) * 9.0f)), 0, 15));
 }
 
+uint8_t sidSustainNibbleForPatch(const PatchConfig& patch)
+{
+    if (patch.sidSustain > 0)
+        return static_cast<uint8_t>(std::clamp(patch.sidSustain - 1, 0, 15));
+
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control4) * 15.0f)), 0, 15));
+}
+
 uint8_t sidReleaseNibbleForPatch(const PatchConfig& patch)
 {
     if (patch.sidRelease > 0)
@@ -1384,8 +1398,7 @@ uint8_t sidAttackDecayForPatch(const PatchConfig& patch)
 
 uint8_t sidSustainReleaseForPatch(const PatchConfig& patch)
 {
-    const auto sustain = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control4) * 15.0f)), 0, 15));
-    return static_cast<uint8_t>((sustain << 4u) | sidReleaseNibbleForPatch(patch));
+    return static_cast<uint8_t>((sidSustainNibbleForPatch(patch) << 4u) | sidReleaseNibbleForPatch(patch));
 }
 
 uint8_t ym2149NoisePeriodForControl(float noisePitchControl)

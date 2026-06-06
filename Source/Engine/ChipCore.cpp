@@ -1317,7 +1317,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Three SID oscillator voices, 24-bit frequency-register pitch mapping, waveform control bits, 12-bit pulse width, control-register sync/ring bits with a musical approximation, gate-driven ADSR approximation with exact attack/decay/release nibble overrides, source trims, cutoff/resonance register writes, selectable partial 6581/8580 filter/output profiles, and a first-pass multimode filter approximation are modeled; exact 6581/8580 analog filter behavior, exact ADSR bugs, exact oscillator sync/ring timing, waveform-combination quirks, external input, DAC nonlinearity, and hardware validation are not complete.";
+        return "Three SID oscillator voices, 24-bit frequency-register pitch mapping, waveform control bits, 12-bit pulse width, control-register sync/ring bits with a musical approximation, gate-driven ADSR approximation with exact attack/decay/sustain/release nibble overrides, source trims, cutoff/resonance register writes, selectable partial 6581/8580 filter/output profiles, and a first-pass multimode filter approximation are modeled; exact 6581/8580 analog filter behavior, exact ADSR bugs, exact oscillator sync/ring timing, waveform-combination quirks, external input, DAC nonlinearity, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -1357,9 +1357,11 @@ public:
              << "\"modelOutputDrive\":" << sidModelOutputDrive() << ","
              << "\"attackChoice\":" << std::clamp(patch.sidAttack, 0, 16) << ","
              << "\"decayChoice\":" << std::clamp(patch.sidDecay, 0, 16) << ","
+             << "\"sustainChoice\":" << std::clamp(patch.sidSustain, 0, 16) << ","
              << "\"releaseChoice\":" << std::clamp(patch.sidRelease, 0, 16) << ","
              << "\"attackNibbleResolved\":" << static_cast<int>(sidAttackNibbleForPatch(patch)) << ","
              << "\"decayNibbleResolved\":" << static_cast<int>(sidDecayNibbleForPatch(patch)) << ","
+             << "\"sustainNibbleResolved\":" << static_cast<int>(sidSustainNibbleForPatch(patch)) << ","
              << "\"releaseNibbleResolved\":" << static_cast<int>(sidReleaseNibbleForPatch(patch)) << ","
              << "\"attackDecayRegister\":" << static_cast<int>(sidAttackDecayForPatch(patch)) << ","
              << "\"sustainReleaseRegister\":" << static_cast<int>(sidSustainReleaseForPatch(patch)) << ","

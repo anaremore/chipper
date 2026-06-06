@@ -36,7 +36,7 @@ private:
     static constexpr size_t snNoiseModeCount = 5;
     static constexpr size_t toneNoiseMixCount = 3;
     static constexpr size_t sidAdsrChoiceCount = 17;
-    static constexpr size_t sidAdsrOverrideCount = 3;
+    static constexpr size_t sidAdsrOverrideCount = 4;
 
     void timerCallback() override;
     void updateDescriptorText();
@@ -117,7 +117,7 @@ private:
     juce::String sidPulseWidthReadout(float value) const;
     juce::String sidDetuneReadout(float value) const;
     juce::String sidCutoffReadout(float value) const;
-    juce::String sidSustainReadout(float value) const;
+    juce::String sidSustainReadout(const chipper::PatchConfig& patch) const;
     juce::String sourceLevelReadout(size_t index) const;
     juce::String stereoSpreadReadout(chipper::ChipMode mode, float value) const;
     bool usesSourceChannelSurface(chipper::ChipMode mode) const;

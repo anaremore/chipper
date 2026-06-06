@@ -53,6 +53,7 @@ struct Options
     float envelopeDecay = 0.0f;
     int sidAttack = 0;
     int sidDecay = 0;
+    int sidSustain = 0;
     int sidRelease = 0;
     int waveShape = 0;
     int sidVoice2WaveShape = 0;
@@ -64,6 +65,7 @@ struct Options
     bool envelopeDecayProvided = false;
     bool sidAttackProvided = false;
     bool sidDecayProvided = false;
+    bool sidSustainProvided = false;
     bool sidReleaseProvided = false;
     bool waveShapeProvided = false;
     bool sidVoice2WaveShapeProvided = false;
@@ -359,7 +361,7 @@ void printUsage()
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
         << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --sid-adsr-speed 0.7 --sid-attack macro|0..15 --sid-decay macro|0..15 --sid-release macro|0..15 --wave-shape macro|tri|saw|pulse|steps|noise --sid-voice2-wave macro|tri|saw|pulse|noise --sid-voice3-wave macro|tri|saw|pulse|noise --dmg-wave-level 100|50|25|mute|macro --dmg-stereo-route both|left|right|split|macro --ym-envelope-shape triangle|lp|bp|hp|bypass --sid-filter-mode lp|bp|hp|bypass --sid-mod-mode macro|off|sync|ring|both --sid-model macro|6581|8580 --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --sid-adsr-speed 0.7 --sid-attack macro|0..15 --sid-decay macro|0..15 --sid-sustain macro|0..15 --sid-release macro|0..15 --wave-shape macro|tri|saw|pulse|steps|noise --sid-voice2-wave macro|tri|saw|pulse|noise --sid-voice3-wave macro|tri|saw|pulse|noise --dmg-wave-level 100|50|25|mute|macro --dmg-stereo-route both|left|right|split|macro --ym-envelope-shape triangle|lp|bp|hp|bypass --sid-filter-mode lp|bp|hp|bypass --sid-mod-mode macro|off|sync|ring|both --sid-model macro|6581|8580 --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -388,6 +390,7 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.envelopeDecay = preset.envelopeDecay;
     options.sidAttack = 0;
     options.sidDecay = 0;
+    options.sidSustain = 0;
     options.sidRelease = 0;
     options.waveShape = preset.waveShape;
     options.sidVoice2WaveShape = preset.sidVoice2WaveShape;
@@ -399,6 +402,7 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.envelopeDecayProvided = true;
     options.sidAttackProvided = true;
     options.sidDecayProvided = true;
+    options.sidSustainProvided = true;
     options.sidReleaseProvided = true;
     options.waveShapeProvided = true;
     options.sidVoice2WaveShapeProvided = true;
@@ -630,6 +634,13 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.sidDecayProvided = true;
         }
+        else if (arg == "--sid-sustain")
+        {
+            const auto* value = requireValue("--sid-sustain");
+            if (value == nullptr || ! parseSidAdsrNibbleChoice(std::string(value), options.sidSustain))
+                return false;
+            options.sidSustainProvided = true;
+        }
         else if (arg == "--sid-release")
         {
             const auto* value = requireValue("--sid-release");
@@ -793,6 +804,8 @@ void applyMacroTemplateDefaults(Options& options)
         options.sidAttack = 0;
     if (! options.sidDecayProvided)
         options.sidDecay = 0;
+    if (! options.sidSustainProvided)
+        options.sidSustain = 0;
     if (! options.sidReleaseProvided)
         options.sidRelease = 0;
     if (! options.stereoSpreadProvided)
@@ -1079,6 +1092,7 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::envelopeDecay: return "envelopeDecay";
         case chipper::ChipParameterRole::sidAttack: return "sidAttack";
         case chipper::ChipParameterRole::sidDecay: return "sidDecay";
+        case chipper::ChipParameterRole::sidSustain: return "sidSustain";
         case chipper::ChipParameterRole::sidRelease: return "sidRelease";
         case chipper::ChipParameterRole::waveShape: return "waveShape";
         case chipper::ChipParameterRole::sidVoice2WaveShape: return "sidVoice2WaveShape";
@@ -1399,6 +1413,7 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"sidVoice3WaveShape\": " << patch.sidVoice3WaveShape << ",\n"
         << "  \"sidAttack\": " << patch.sidAttack << ",\n"
         << "  \"sidDecay\": " << patch.sidDecay << ",\n"
+        << "  \"sidSustain\": " << patch.sidSustain << ",\n"
         << "  \"sidRelease\": " << patch.sidRelease << ",\n"
         << "  \"registerWriteCount\": " << registerWriteCount << ",\n"
         << "  \"noteEventCount\": " << noteEventCount << ",\n"
@@ -1463,6 +1478,7 @@ int main(int argc, char** argv)
                                                     options.sidVoice3WaveShape,
                                                     options.sidAttack,
                                                     options.sidDecay,
+                                                    options.sidSustain,
                                                     options.sidRelease);
         core->setPatch(patch);
         const auto events = loadEvents(options.eventFile);
