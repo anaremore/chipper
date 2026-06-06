@@ -149,7 +149,12 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
                       ParameterKind::chipRegister,
                       2.0f / 3.0f),
         sliderSpec(ChipParameterRole::macroControl2, "nes.sweepMotion", "Sweep Motion", "Pitch", "Scales musical pitch gestures into RP2A03 sweep/timer behavior."),
-        sliderSpec(ChipParameterRole::macroControl3, "nes.noiseBite", "Noise Bite", "Noise", "Moves the noise period, mode, and level used by percussion and SFX."),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "nes.noisePeriod",
+                   "Noise Period",
+                   "Noise",
+                   "Maps to the RP2A03 $400E noise period nibble; macros may also use it for percussion level.",
+                   ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4, "nes.channelFocus", "Channel Focus", "Mixer", "Balances pulse stack, triangle bass, and noise emphasis."),
         sourceSpec(ChipParameterRole::source1Enabled, "nes.pulse1.enabled", "Pulse 1", "Enable the first RP2A03 pulse source."),
         sourceSpec(ChipParameterRole::source2Enabled, "nes.pulse2.enabled", "Pulse 2", "Enable the second RP2A03 pulse source."),
@@ -182,7 +187,12 @@ std::vector<ChipParameterSpec> dmgParameterSpecs()
                       ParameterKind::chipRegister,
                       2.0f / 3.0f),
         sliderSpec(ChipParameterRole::macroControl2, "dmg.sweepShape", "Sweep Shape", "Pitch", "Scales CH1 sweep-like macro pitch offsets."),
-        sliderSpec(ChipParameterRole::macroControl3, "dmg.noiseClock", "Noise Clock", "Noise", "Moves the polynomial-noise clock shift while Noise Mode selects the LFSR width."),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "dmg.noiseClock",
+                   "Noise Clock",
+                   "Noise",
+                   "Maps to the DMG NR43 clock shift used by the musical noise control while Noise Mode selects the LFSR width.",
+                   ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "dmg.envelopeLevel",
                    "Envelope Level",
@@ -431,7 +441,7 @@ const std::vector<ChipDescriptor>& descriptors()
             {
                 { "duty", "Pulse Duty", "Channels", "Chooses the pulse duty family: 12.5%, 25%, 50%, or 75%." },
                 { "motion", "Sweep Motion", "Pitch", "Scales macro pitch rise/drop behavior." },
-                { "noise", "Noise Bite", "Noise", "Moves the noise period and level for drums, hits, and lasers." },
+                { "noise", "Noise Period", "Noise", "Maps musical noise color to the RP2A03 $400E period nibble." },
                 { "mix", "Channel Focus", "Mixer", "Balances pulse stack, triangle bass, and noise emphasis." },
             },
             nesModules(),
@@ -766,9 +776,14 @@ PatchConfig makePatchConfig(ChipMode mode,
     };
 }
 
+uint8_t nesNoisePeriodForControl(float noisePeriodControl)
+{
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - clampControl(noisePeriodControl)) * 15.0f)), 0, 15));
+}
+
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch)
 {
-    const auto period = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 14.0f)), 0, 15));
+    const auto period = nesNoisePeriodForControl(patch.control3);
     auto mode = uint8_t { 0x00u };
 
     switch (std::clamp(patch.snNoiseMode, 0, 2))
@@ -795,9 +810,14 @@ uint8_t dmgInitialEnvelopeLevelForControl(float envelopeLevelControl)
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(envelopeLevelControl) * 15.0f)), 1, 15));
 }
 
+uint8_t dmgNoiseClockShiftForControl(float noiseClockControl)
+{
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - clampControl(noiseClockControl)) * 7.0f)), 0, 7));
+}
+
 uint8_t dmgNoiseRegisterForPatch(const PatchConfig& patch)
 {
-    const auto shift = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 7.0f)), 0, 7));
+    const auto shift = dmgNoiseClockShiftForControl(patch.control3);
     auto width = uint8_t { 0x00u };
 
     switch (std::clamp(patch.snNoiseMode, 0, 2))

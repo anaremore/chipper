@@ -1188,12 +1188,12 @@ juce::String ChipperAudioProcessorEditor::nesSweepReadout(float value) const
 
 juce::String ChipperAudioProcessorEditor::nesNoiseReadout(float value) const
 {
-    const auto period = std::clamp(static_cast<int>(std::round((1.0f - value) * 14.0f)), 0, 15);
+    const auto period = chipper::nesNoisePeriodForControl(value);
     if (value < 0.25f)
-        return juce::String("Low grit, period ") + juce::String(period);
+        return juce::String("$400E period ") + juce::String(static_cast<int>(period)) + ", low grit";
     if (value < 0.60f)
-        return juce::String("Snare noise, period ") + juce::String(period);
-    return juce::String("Short hats, period ") + juce::String(period);
+        return juce::String("$400E period ") + juce::String(static_cast<int>(period)) + ", snare noise";
+    return juce::String("$400E period ") + juce::String(static_cast<int>(period)) + ", short hats";
 }
 
 juce::String ChipperAudioProcessorEditor::nesFocusReadout(float value) const
@@ -1219,8 +1219,8 @@ juce::String ChipperAudioProcessorEditor::dmgSweepReadout(float value) const
 
 juce::String ChipperAudioProcessorEditor::dmgNoiseReadout(float value) const
 {
-    const auto pitch = std::clamp(static_cast<int>(std::round((1.0f - value) * 7.0f)), 0, 7);
-    return juce::String("NR43 clock shift ") + juce::String(pitch) + ", divisor code 2";
+    const auto shift = chipper::dmgNoiseClockShiftForControl(value);
+    return juce::String("NR43 clock shift ") + juce::String(static_cast<int>(shift)) + ", divisor code 2";
 }
 
 juce::String ChipperAudioProcessorEditor::dmgEnvelopeReadout(float value) const
