@@ -125,6 +125,40 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(button);
     }
 
+    waveShapeLabel.setText("Wave Shape", juce::dontSendNotification);
+    waveShapeLabel.setJustificationType(juce::Justification::centredLeft);
+    waveShapeLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
+    waveShapeLabel.setFont(juce::FontOptions(14.0f, juce::Font::bold));
+    waveShapeLabel.setVisible(false);
+    addAndMakeVisible(waveShapeLabel);
+
+    waveShapeValueLabel.setJustificationType(juce::Justification::centredLeft);
+    waveShapeValueLabel.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+    waveShapeValueLabel.setFont(juce::FontOptions(11.0f));
+    waveShapeValueLabel.setMinimumHorizontalScale(0.75f);
+    waveShapeValueLabel.setVisible(false);
+    addAndMakeVisible(waveShapeValueLabel);
+
+    const std::array<const char*, waveShapeCount> waveLabels { "RAM", "Tri", "Saw", "Pulse", "Steps" };
+    for (size_t i = 0; i < waveShapeButtons.size(); ++i)
+    {
+        auto& button = waveShapeButtons[i];
+        button.setButtonText(waveLabels[i]);
+        button.setClickingTogglesState(false);
+        button.setTooltip(juce::String("DMG Wave RAM shape: ") + waveLabels[i]);
+        button.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff202c33));
+        button.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xfff0c94d));
+        button.setColour(juce::TextButton::textColourOffId, juce::Colour(0xffdbe8e5));
+        button.setColour(juce::TextButton::textColourOnId, juce::Colour(0xff101414));
+        button.onClick = [this, i]()
+        {
+            setChoiceParameterFromUi(chipper::parameters::id::waveShape, static_cast<int>(i));
+            updateLiveControlReadouts();
+        };
+        button.setVisible(false);
+        addAndMakeVisible(button);
+    }
+
     statusLabel.setFont(juce::FontOptions(13.0f));
     statusLabel.setJustificationType(juce::Justification::centredLeft);
     statusLabel.setColour(juce::Label::textColourId, juce::Colours::white);
@@ -334,6 +368,12 @@ void ChipperAudioProcessorEditor::resized()
         sourceChannelButtons[i].setBounds(sourceChannelBounds[i].reduced(8, 1));
     }
 
+    auto wavePanel = moduleBounds[2].reduced(12, 9);
+    wavePanel.removeFromTop(20);
+    wavePanel.removeFromTop(30);
+    wavePanel.removeFromTop(4);
+    placeWaveShapeSegment(wavePanel);
+
     auto envelopePanel = moduleBounds[3].reduced(12, 9);
     envelopePanel.removeFromTop(20);
     envelopePanel.removeFromTop(30);
@@ -445,6 +485,26 @@ void ChipperAudioProcessorEditor::placePulseDutySegment(juce::Rectangle<int> bou
     }
 }
 
+void ChipperAudioProcessorEditor::placeWaveShapeSegment(juce::Rectangle<int> bounds)
+{
+    waveShapeLabel.setBounds(bounds.removeFromTop(18));
+    waveShapeSegmentBounds = bounds.removeFromTop(28).reduced(0, 1);
+
+    const auto gap = 4;
+    const auto buttonWidth = (waveShapeSegmentBounds.getWidth() - (gap * static_cast<int>(waveShapeButtons.size() - 1u))) / static_cast<int>(waveShapeButtons.size());
+    for (size_t i = 0; i < waveShapeButtons.size(); ++i)
+    {
+        waveShapeButtons[i].setBounds({
+            waveShapeSegmentBounds.getX() + static_cast<int>(i) * (buttonWidth + gap),
+            waveShapeSegmentBounds.getY(),
+            buttonWidth,
+            waveShapeSegmentBounds.getHeight()
+        });
+    }
+
+    waveShapeValueLabel.setBounds(bounds);
+}
+
 float ChipperAudioProcessorEditor::parameterValue(const char* parameterId) const
 {
     if (const auto* value = audioProcessor.getValueTreeState().getRawParameterValue(parameterId))
@@ -464,9 +524,25 @@ void ChipperAudioProcessorEditor::setParameterValueFromUi(const char* parameterI
     }
 }
 
+void ChipperAudioProcessorEditor::setChoiceParameterFromUi(const char* parameterId, int choiceIndex)
+{
+    if (auto* parameter = audioProcessor.getValueTreeState().getParameter(parameterId))
+    {
+        const auto normalized = parameter->convertTo0to1(static_cast<float>(choiceIndex));
+        parameter->beginChangeGesture();
+        parameter->setValueNotifyingHost(normalized);
+        parameter->endChangeGesture();
+    }
+}
+
 bool ChipperAudioProcessorEditor::usesPulseDutySegment(chipper::ChipMode mode) const
 {
     return mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
+}
+
+bool ChipperAudioProcessorEditor::usesWaveShapeSegment(chipper::ChipMode mode) const
+{
+    return mode == chipper::ChipMode::dmg;
 }
 
 juce::String ChipperAudioProcessorEditor::pulseDutyReadout(chipper::ChipMode mode, float value) const
@@ -475,6 +551,20 @@ juce::String ChipperAudioProcessorEditor::pulseDutyReadout(chipper::ChipMode mod
     static constexpr std::array<const char*, 4> dmgDutyLabels { "12.5% thin pulse", "25% narrow pulse", "50% square", "75% wide pulse" };
     const auto index = static_cast<size_t>(std::clamp(static_cast<int>(std::round(value * 3.0f)), 0, 3));
     return mode == chipper::ChipMode::dmg ? dmgDutyLabels[index] : nesDutyLabels[index];
+}
+
+juce::String ChipperAudioProcessorEditor::waveShapeReadout(int choice) const
+{
+    switch (std::clamp(choice, 0, 4))
+    {
+        case 1: return "Writes 32-sample triangle into Wave RAM";
+        case 2: return "Writes 32-sample saw ramp into Wave RAM";
+        case 3: return "Writes 50% pulse into Wave RAM";
+        case 4: return "Writes stepped 4-level table into Wave RAM";
+        case 0:
+        default:
+            return "RAM: preserve current/register-trace Wave RAM";
+    }
 }
 
 juce::String ChipperAudioProcessorEditor::nesSweepReadout(float value) const
@@ -553,6 +643,24 @@ void ChipperAudioProcessorEditor::setSourceChannelSurfaceVisible(chipper::ChipMo
 
     if (active)
         updateSourceChannelButtons(mode);
+}
+
+void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
+{
+    const auto active = shouldBeVisible && usesWaveShapeSegment(mode);
+    waveShapeLabel.setVisible(active);
+    waveShapeValueLabel.setVisible(active);
+    for (auto& button : waveShapeButtons)
+        button.setVisible(active);
+
+    for (auto& itemLabel : moduleItemLabels[2])
+        itemLabel.setVisible(! active && ! itemLabel.getText().isEmpty());
+
+    if (active)
+    {
+        const auto choice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::waveShape)));
+        updateWaveShapeButtons(choice, true);
+    }
 }
 
 void ChipperAudioProcessorEditor::setEnvelopeDecayControlVisible(chipper::ChipMode mode, bool shouldBeVisible)
@@ -648,6 +756,19 @@ void ChipperAudioProcessorEditor::updatePulseDutyButtons(float value, bool shoul
     }
 }
 
+void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool shouldBeVisible)
+{
+    const auto selected = static_cast<size_t>(std::clamp(choice, 0, static_cast<int>(waveShapeButtons.size() - 1u)));
+    for (size_t i = 0; i < waveShapeButtons.size(); ++i)
+    {
+        waveShapeButtons[i].setVisible(shouldBeVisible);
+        waveShapeButtons[i].setToggleState(shouldBeVisible && i == selected, juce::dontSendNotification);
+    }
+
+    waveShapeValueLabel.setVisible(shouldBeVisible);
+    waveShapeValueLabel.setText(waveShapeReadout(static_cast<int>(selected)), juce::dontSendNotification);
+}
+
 void ChipperAudioProcessorEditor::updateDescriptorText()
 {
     const auto modeChoice = static_cast<int>(std::round(audioProcessor.getValueTreeState()
@@ -738,6 +859,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     controlValueLabels[4].setAlpha(hasLiveCore ? 1.0f : 0.55f);
     controlValueLabels[5].setAlpha(hasLiveCore ? 1.0f : 0.55f);
     setSourceChannelSurfaceVisible(mode, usesSourceChannelSurface(mode));
+    setWaveShapeSegmentVisible(mode, usesWaveShapeSegment(mode) && hasLiveCore);
     setEnvelopeDecayControlVisible(mode, usesEnvelopeDecayControl(mode) && hasLiveCore);
     updatePulseDutyButtons(parameterValue(chipper::parameters::id::macroControl1), usesPulseDutySegment(mode) && hasLiveCore);
     updateLiveControlReadouts();
@@ -752,10 +874,13 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto macroControl2 = parameterValue(chipper::parameters::id::macroControl2);
     const auto macroControl3 = parameterValue(chipper::parameters::id::macroControl3);
     const auto macroControl4 = parameterValue(chipper::parameters::id::macroControl4);
+    const auto waveShape = static_cast<int>(std::round(parameterValue(chipper::parameters::id::waveShape)));
 
     const auto hasPulseDutySegment = usesPulseDutySegment(mode) && chipper::descriptorFor(mode).implemented;
+    const auto hasWaveShapeSegment = usesWaveShapeSegment(mode) && chipper::descriptorFor(mode).implemented;
     nativeSliders[0].setVisible(! hasPulseDutySegment);
     updatePulseDutyButtons(macroControl1, hasPulseDutySegment);
+    updateWaveShapeButtons(waveShape, hasWaveShapeSegment);
     updateEnvelopeDecayReadout(mode);
 
     if (mode == chipper::ChipMode::nes)

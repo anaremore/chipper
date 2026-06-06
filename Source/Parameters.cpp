@@ -41,6 +41,11 @@ juce::StringArray playModeChoices()
     return { "Big Mono", "Chip Poly" };
 }
 
+juce::StringArray waveShapeChoices()
+{
+    return { "RAM", "Tri", "Saw", "Pulse", "Steps" };
+}
+
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
@@ -130,6 +135,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         "Envelope Decay",
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
         0.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::waveShape, 1 },
+        "Wave Shape",
+        waveShapeChoices(),
+        0));
 
     return { params.begin(), params.end() };
 }

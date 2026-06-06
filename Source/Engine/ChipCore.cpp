@@ -201,13 +201,7 @@ public:
         channelVelocity.fill(0.0f);
         channelStamp.fill(0);
         noteStamp = 0;
-
-        for (size_t i = 0; i < 16; ++i)
-        {
-            const auto high = static_cast<uint8_t>((i < 8 ? i : 15 - i) & 0x0f);
-            const auto low = static_cast<uint8_t>((15 - high) & 0x0f);
-            regs[0x20 + i] = static_cast<uint8_t>((high << 4u) | low);
-        }
+        loadDefaultWaveRam();
     }
 
     void setPatch(const PatchConfig& newPatch) override
@@ -352,9 +346,14 @@ public:
             silenceChannel(1);
 
         if ((enable & 0x04u) != 0)
+        {
+            writePatchWaveRam();
             writeWaveRegisters(waveNote, patch.macro == MacroKind::bass ? 0x20u : 0x40u);
+        }
         else
+        {
             silenceChannel(2);
+        }
 
         if ((enable & 0x08u) != 0)
             writeNoiseRegisters(noiseVol, noisePitch, patch.control3 > 0.55f);
@@ -449,7 +448,9 @@ public:
              << "\"noiseShift\":" << static_cast<int>(noiseClockShift()) << ","
              << "\"noiseDivisorCode\":" << static_cast<int>(noiseDivisorCode()) << ","
              << "\"noiseWidth7\":" << (noiseWidth7() ? 1 : 0) << ","
+             << "\"waveShape\":" << patch.waveShape << ","
              << "\"waveRam0\":" << static_cast<int>(regs[0x20]) << ","
+             << "\"waveRam15\":" << static_cast<int>(regs[0x2f]) << ","
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNotePulse1\":" << channelNotes[0] << ","
              << "\"assignedNotePulse2\":" << channelNotes[1] << ","
@@ -897,6 +898,7 @@ private:
         }
         else
         {
+            writePatchWaveRam();
             writeWaveRegisters(channelNotes[index], waveOutputLevelForVelocity(channelVelocity[index]));
         }
 
@@ -936,6 +938,51 @@ private:
         writeRegister(0xff1c, static_cast<uint8_t>(outputLevelBits & 0x60u));
         writeRegister(0xff1d, static_cast<uint8_t>(freq & 0xffu));
         writeRegister(0xff1e, static_cast<uint8_t>(0x80u | ((freq >> 8u) & 0x07u)));
+    }
+
+    void loadDefaultWaveRam()
+    {
+        for (size_t i = 0; i < 16; ++i)
+        {
+            const auto high = static_cast<uint8_t>((i < 8 ? i : 15 - i) & 0x0f);
+            const auto low = static_cast<uint8_t>((15 - high) & 0x0f);
+            regs[0x20 + i] = static_cast<uint8_t>((high << 4u) | low);
+        }
+    }
+
+    void writePatchWaveRam()
+    {
+        if (patch.waveShape <= 0)
+            return;
+
+        for (size_t i = 0; i < 16; ++i)
+            regs[0x20 + i] = packedWaveByte(patch.waveShape, i);
+    }
+
+    static uint8_t packedWaveByte(int shape, size_t byteIndex)
+    {
+        const auto high = waveSample(shape, byteIndex * 2u);
+        const auto low = waveSample(shape, (byteIndex * 2u) + 1u);
+        return static_cast<uint8_t>((high << 4u) | low);
+    }
+
+    static uint8_t waveSample(int shape, size_t sampleIndex)
+    {
+        const auto index = static_cast<int>(sampleIndex & 0x1fu);
+        switch (std::clamp(shape, 0, 4))
+        {
+            case 1:
+                return static_cast<uint8_t>(index < 16 ? index : 31 - index);
+            case 2:
+                return static_cast<uint8_t>(index / 2);
+            case 3:
+                return index < 16 ? uint8_t { 15 } : uint8_t { 0 };
+            case 4:
+                return static_cast<uint8_t>(((index / 4) % 4) * 5);
+            case 0:
+            default:
+                return 0;
+        }
     }
 
     void writeNoiseRegisters(uint8_t volume, uint8_t pitchCode, bool narrowMode)

@@ -61,7 +61,7 @@ std::array<ModuleDescriptor, 6> dmgModules()
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "DMG APU clean-room register model.", { "DMG profile", "CGB quirks planned", "Hybrid default", "Authentic still partial" }),
         makeModule("sources", "Channels", "Four hardware sound generators.", { "Pulse 1 / sweep", "Pulse 2", "Wave RAM", "Chip Poly ready" }),
-        makeModule("tone", "Wave / Noise", "Duty, wave RAM, and polynomial noise behavior.", { "Pulse duty", "Wave level", "Noise clock", "Narrow noise" }),
+        makeModule("tone", "Wave / Noise", "Duty, wave RAM, and polynomial noise behavior.", { "Pulse duty", "Wave shape", "Noise clock", "Narrow noise" }),
         makeModule("envelope", "Envelope", "Hardware envelope, length, and sweep groundwork.", { "64 Hz envelope", "256 Hz length", "DAC gating", "128 Hz CH1 sweep" }),
         makeModule("motion", "Motion", "Portable-game gesture templates.", { "Arp stack", "Pitch rise/drop", "Retrigger", "Coin/noise SFX" }),
         makeModule("output", "Output", "Compact handheld output character.", { "Output gain", "NR50 volume", "NR51 routing", "Speaker color planned" })
@@ -443,7 +443,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float control4,
                             PlayMode playMode,
                             std::array<bool, 4> sourceEnabled,
-                            float envelopeDecay)
+                            float envelopeDecay,
+                            int waveShape)
 {
     const auto& templ = macroTemplateFor(mode, macro);
     const auto blend = [](float templated, float user)
@@ -464,7 +465,8 @@ PatchConfig makePatchConfig(ChipMode mode,
         blend(templ.controls[3], control4),
         effectivePlayMode,
         sourceEnabled,
-        clampControl(envelopeDecay)
+        clampControl(envelopeDecay),
+        std::clamp(waveShape, 0, 4)
     };
 }
 
