@@ -596,16 +596,15 @@ void ChipperAudioProcessorEditor::resized()
     tonePanel.removeFromTop(4);
     placeWaveShapeSegment(tonePanel);
     placeSnNoiseModeSegment(tonePanel);
+    placeYmEnvelopeShapeSegment(tonePanel);
 
     auto envelopePanel = moduleBounds[3].reduced(12, 9);
     envelopePanel.removeFromTop(20);
     envelopePanel.removeFromTop(30);
     envelopePanel.removeFromTop(4);
     auto envelopeDecayPanel = envelopePanel;
-    auto ymEnvelopeShapePanel = envelopePanel;
     envelopeDecayPanel.removeFromBottom(6);
     placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
-    placeYmEnvelopeShapeSegment(ymEnvelopeShapePanel);
 
     area.removeFromTop(12);
     globalStripBounds = area.removeFromTop(190);
@@ -1457,6 +1456,15 @@ juce::String ChipperAudioProcessorEditor::envelopeDecayReadout(chipper::ChipMode
         return juce::String("DMG 64 Hz decay, period ") + juce::String(period);
     }
 
+    if (mode == chipper::ChipMode::ym2149)
+    {
+        const auto period = chipper::ym2149EnvelopePeriodForControl(value);
+        if (value <= 0.01f)
+            return juce::String("Default register period ") + juce::String(static_cast<int>(period));
+
+        return juce::String("Reg 11/12 period ") + juce::String(static_cast<int>(period));
+    }
+
     const auto period = std::clamp(static_cast<int>(std::round(15.0f - (std::clamp(value, 0.0f, 1.0f) * 14.0f))), 1, 15);
     return juce::String("NES envelope decay, period ") + juce::String(period);
 }
@@ -1633,10 +1641,10 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     setYmEnvelopeShapeSegmentVisible(mode, usesYmEnvelopeShapeSegment(mode) && hasLiveCore);
     setSnNoiseModeSegmentVisible(mode, usesSnNoiseModeSegment(mode) && hasLiveCore);
     setEnvelopeDecayControlVisible(mode, usesEnvelopeDecayControl(mode) && hasLiveCore);
-    const auto hasCustomToneSurface = hasLiveCore && (usesWaveShapeSegment(mode) || usesSnNoiseModeSegment(mode));
+    const auto hasCustomToneSurface = hasLiveCore && (usesWaveShapeSegment(mode) || usesSnNoiseModeSegment(mode) || usesYmEnvelopeShapeSegment(mode));
     for (auto& itemLabel : moduleItemLabels[2])
         itemLabel.setVisible(! hasCustomToneSurface && ! itemLabel.getText().isEmpty());
-    const auto hasCustomEnvelopeSurface = hasLiveCore && (usesEnvelopeDecayControl(mode) || usesYmEnvelopeShapeSegment(mode));
+    const auto hasCustomEnvelopeSurface = hasLiveCore && usesEnvelopeDecayControl(mode);
     for (auto& itemLabel : moduleItemLabels[3])
         itemLabel.setVisible(! hasCustomEnvelopeSurface && ! itemLabel.getText().isEmpty());
     updatePulseDutyButtons(parameterValue(chipper::parameters::id::macroControl1), usesPulseDutySegment(mode) && hasLiveCore);

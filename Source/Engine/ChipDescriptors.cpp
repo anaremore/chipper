@@ -238,6 +238,7 @@ std::vector<ChipParameterSpec> ym2149ParameterSpecs()
         sourceSpec(ChipParameterRole::source2Enabled, "ym2149.channelB.enabled", "Channel B", "Enable YM/AY channel B."),
         sourceSpec(ChipParameterRole::source3Enabled, "ym2149.channelC.enabled", "Channel C", "Enable YM/AY channel C."),
         sourceSpec(ChipParameterRole::source4Enabled, "ym2149.noise.enabled", "Shared Noise", "Enable the shared YM/AY noise source."),
+        envelopeSpec("ym2149.envelopeSpeed", "Envelope Speed", "Maps musical envelope speed to YM/AY registers 11 and 12. Zero uses the default register period."),
         segmentedSpec(ChipParameterRole::ymEnvelopeShape,
                       "ym2149.envelopeShape",
                       "Envelope Shape",
@@ -805,6 +806,18 @@ uint8_t ym2149MixerRegisterForControl(float toneNoiseControl)
     if (value > 0.66f)
         return 0x00u;
     return 0x38u;
+}
+
+uint16_t ym2149EnvelopePeriodForControl(float envelopeControl)
+{
+    const auto value = clampControl(envelopeControl);
+    if (value <= 0.01f)
+        return 0x0280u;
+
+    constexpr auto slowPeriod = 16384.0f;
+    constexpr auto fastPeriod = 16.0f;
+    const auto period = slowPeriod * std::pow(fastPeriod / slowPeriod, value);
+    return static_cast<uint16_t>(std::clamp(static_cast<int>(std::round(period)), 1, 0xffff));
 }
 
 uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch)

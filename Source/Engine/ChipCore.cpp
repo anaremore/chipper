@@ -2077,8 +2077,7 @@ public:
         writeSourceAwareYmVolumeRegister(0, volA, sourceAwareMixer);
         writeSourceAwareYmVolumeRegister(1, volB, sourceAwareMixer);
         writeSourceAwareYmVolumeRegister(2, volC, sourceAwareMixer);
-        writeRegister(11, 0x80);
-        writeRegister(12, 0x02);
+        writeYmEnvelopePeriod();
         writeRegister(13, ymEnvelopeShapeCode());
     }
 
@@ -2125,7 +2124,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Tone/noise registers, mixer bits, volume registers, basic envelope shapes, and YM channel allocation for Chip Poly play mode are modeled; exact analog output curve and timing validation are still required.";
+        return "Tone/noise registers, mixer bits, volume registers, basic envelope shapes and period registers, and YM channel allocation for Chip Poly play mode are modeled; exact analog output curve and timing validation are still required.";
     }
 
     std::string debugStateJson() const override
@@ -2149,6 +2148,7 @@ public:
              << "\"volumeA\":" << static_cast<int>(regs[8]) << ","
              << "\"volumeB\":" << static_cast<int>(regs[9]) << ","
              << "\"volumeC\":" << static_cast<int>(regs[10]) << ","
+             << "\"envelopeDecayControl\":" << patch.envelopeDecay << ","
              << "\"envelopePeriod\":" << envelopePeriodRegister() << ","
              << "\"envelopeShapeChoice\":" << patch.ymEnvelopeShape << ","
              << "\"envelopeShape\":" << static_cast<int>(regs[13] & 0x0f) << ","
@@ -2182,6 +2182,13 @@ private:
     uint16_t envelopePeriodRegister() const
     {
         return static_cast<uint16_t>(regs[11] | (regs[12] << 8u));
+    }
+
+    void writeYmEnvelopePeriod()
+    {
+        const auto period = ym2149EnvelopePeriodForControl(patch.envelopeDecay);
+        writeRegister(11, static_cast<uint8_t>(period & 0xffu));
+        writeRegister(12, static_cast<uint8_t>((period >> 8u) & 0xffu));
     }
 
     bool envelopeEnabled(int channel) const
@@ -2314,8 +2321,7 @@ private:
         writeYmVolumeRegister(static_cast<uint16_t>(8 + channel),
                               static_cast<unsigned>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15)));
         writeRegister(6, static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 30.0f)) + 1, 1, 31)));
-        writeRegister(11, 0x80);
-        writeRegister(12, 0x02);
+        writeYmEnvelopePeriod();
         writeRegister(13, ymEnvelopeShapeCode());
         refreshChipPolyMixer();
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
