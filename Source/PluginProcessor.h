@@ -56,6 +56,7 @@ private:
     bool handleMidiController(const juce::MidiMessage& message);
     bool setParameterFromMidiCc(const char* parameterId, int controllerValue);
     bool setPlainParameterValue(const char* parameterId, float plainValue);
+    void synchronizeMacroTemplateFromParameters();
     void applyCurrentMacroTemplateToParameters();
     void rememberHeldNote(int note, float velocity);
     void forgetHeldNote(int note);
@@ -69,6 +70,10 @@ private:
     std::vector<HeldMidiNote> heldNotes;
     chipper::PatchConfig activePatch;
     std::vector<chipper::RegisterWrite> pendingRegisterState;
+    chipper::PatchConfig lastObservedMacroPatch;
+    int lastObservedMacroModeChoice = -1;
+    int lastObservedMacroChoice = -1;
+    bool hasObservedMacroSnapshot = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipperAudioProcessor)
 };

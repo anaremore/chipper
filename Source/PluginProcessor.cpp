@@ -27,6 +27,21 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && a.ymEnvelopeShape == b.ymEnvelopeShape
         && a.snNoiseMode == b.snNoiseMode;
 }
+
+bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
+{
+    constexpr auto tolerance = 0.0001f;
+    return std::abs(a.control1 - b.control1) < tolerance
+        && std::abs(a.control2 - b.control2) < tolerance
+        && std::abs(a.control3 - b.control3) < tolerance
+        && std::abs(a.control4 - b.control4) < tolerance
+        && a.playMode == b.playMode
+        && a.sourceEnabled == b.sourceEnabled
+        && std::abs(a.envelopeDecay - b.envelopeDecay) < tolerance
+        && a.waveShape == b.waveShape
+        && a.ymEnvelopeShape == b.ymEnvelopeShape
+        && a.snNoiseMode == b.snNoiseMode;
+}
 }
 
 ChipperAudioProcessor::ChipperAudioProcessor()
@@ -39,6 +54,7 @@ void ChipperAudioProcessor::prepareToPlay(double sampleRate, int)
 {
     currentSampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
     core.reset();
+    hasObservedMacroSnapshot = false;
     ensureCore();
 }
 
@@ -195,8 +211,37 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
     setPlainParameterValue(chipper::parameters::id::snNoiseMode, static_cast<float>(templ.snNoiseMode));
 }
 
+void ChipperAudioProcessor::synchronizeMacroTemplateFromParameters()
+{
+    const auto modeChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::chipMode)->load()));
+    const auto macroChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::macro)->load()));
+    auto patch = currentPatchFromParameters();
+
+    if (! hasObservedMacroSnapshot)
+    {
+        lastObservedMacroModeChoice = modeChoice;
+        lastObservedMacroChoice = macroChoice;
+        lastObservedMacroPatch = patch;
+        hasObservedMacroSnapshot = true;
+        return;
+    }
+
+    const auto changedTemplateSelector = modeChoice != lastObservedMacroModeChoice || macroChoice != lastObservedMacroChoice;
+    if (changedTemplateSelector && patchControlsMatch(patch, lastObservedMacroPatch))
+    {
+        applyCurrentMacroTemplateToParameters();
+        patch = currentPatchFromParameters();
+    }
+
+    lastObservedMacroModeChoice = modeChoice;
+    lastObservedMacroChoice = macroChoice;
+    lastObservedMacroPatch = patch;
+}
+
 void ChipperAudioProcessor::ensureCore()
 {
+    synchronizeMacroTemplateFromParameters();
+
     const auto modeChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::chipMode)->load()));
     const auto accuracyChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::accuracy)->load()));
     const auto selectedMode = chipper::parameters::chipModeFromChoice(modeChoice);
@@ -349,6 +394,7 @@ void ChipperAudioProcessor::setStateInformation(const void* data, int sizeInByte
 
         apvts.replaceState(juce::ValueTree::fromXml(*xml));
         core.reset();
+        hasObservedMacroSnapshot = false;
     }
 }
 

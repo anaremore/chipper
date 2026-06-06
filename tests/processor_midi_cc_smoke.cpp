@@ -43,6 +43,19 @@ void sendController(ChipperAudioProcessor& processor, int controller, int value)
     processor.processBlock(buffer, midi);
 }
 
+void processEmptyBlock(ChipperAudioProcessor& processor)
+{
+    juce::AudioBuffer<float> buffer(2, 64);
+    juce::MidiBuffer midi;
+    processor.processBlock(buffer, midi);
+}
+
+void setPlainFromHost(ChipperAudioProcessor& processor, const char* parameterId, float plainValue)
+{
+    if (auto* parameter = processor.getValueTreeState().getParameter(parameterId))
+        parameter->setValueNotifyingHost(parameter->convertTo0to1(plainValue));
+}
+
 int controllerValueForChoice(ChipperAudioProcessor& processor, const char* parameterId, int choice)
 {
     auto* parameter = processor.getValueTreeState().getParameter(parameterId);
@@ -119,6 +132,32 @@ int main()
                      "CC74 Drum macro should enable NES noise source");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::envelopeDecay), 0.78f, 0.001f,
                      "CC74 Drum macro should apply NES envelope decay template");
+
+    setPlainFromHost(processor, chipper::parameters::id::macroControl1, 0.91f);
+    setPlainFromHost(processor, chipper::parameters::id::macroControl2, 0.92f);
+    setPlainFromHost(processor, chipper::parameters::id::macroControl3, 0.93f);
+    setPlainFromHost(processor, chipper::parameters::id::macroControl4, 0.94f);
+    processEmptyBlock(processor);
+
+    setPlainFromHost(processor, chipper::parameters::id::macro, 1.0f);
+    processEmptyBlock(processor);
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl1), 0.15f, 0.001f,
+                     "Host macro-only change should apply NES Coin control 1 template");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl2), 0.85f, 0.001f,
+                     "Host macro-only change should apply NES Coin control 2 template");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl3), 0.10f, 0.001f,
+                     "Host macro-only change should apply NES Coin control 3 template");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::source3Enabled), 0.0f, 0.0001f,
+                     "Host macro-only change should apply NES Coin source template");
+
+    setPlainFromHost(processor, chipper::parameters::id::macro, 3.0f);
+    setPlainFromHost(processor, chipper::parameters::id::macroControl1, 0.12f);
+    setPlainFromHost(processor, chipper::parameters::id::macroControl2, 0.34f);
+    processEmptyBlock(processor);
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl1), 0.12f, 0.001f,
+                     "Host macro plus control snapshot should preserve control 1");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl2), 0.34f, 0.001f,
+                     "Host macro plus control snapshot should preserve control 2");
 
     return ok ? 0 : 1;
 }
