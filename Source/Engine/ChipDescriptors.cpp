@@ -1456,6 +1456,24 @@ uint8_t sidSustainReleaseForPatch(const PatchConfig& patch)
     return static_cast<uint8_t>((sidSustainNibbleForPatch(patch) << 4u) | sidReleaseNibbleForPatch(patch));
 }
 
+double sidAttackSecondsForNibble(uint8_t nibble)
+{
+    static constexpr std::array<double, 16> times {
+        0.002, 0.008, 0.016, 0.024, 0.038, 0.056, 0.068, 0.080,
+        0.100, 0.250, 0.500, 0.800, 1.000, 3.000, 5.000, 8.000
+    };
+    return times[nibble & 0x0fu];
+}
+
+double sidDecayReleaseSecondsForNibble(uint8_t nibble)
+{
+    static constexpr std::array<double, 16> times {
+        0.006, 0.024, 0.048, 0.072, 0.114, 0.168, 0.204, 0.240,
+        0.300, 0.750, 1.500, 2.400, 3.000, 9.000, 15.000, 24.000
+    };
+    return times[nibble & 0x0fu];
+}
+
 uint8_t ym2149NoisePeriodForControl(float noisePitchControl)
 {
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - clampControl(noisePitchControl)) * 30.0f)) + 1, 1, 31));

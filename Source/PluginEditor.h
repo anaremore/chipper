@@ -29,6 +29,24 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipWaveformPreview)
 };
 
+class ChipEnvelopePreview final : public juce::Component,
+                                  public juce::SettableTooltipClient
+{
+public:
+    ChipEnvelopePreview() = default;
+
+    void setSidAdsr(uint8_t attack, uint8_t decay, uint8_t sustain, uint8_t release);
+    void paint(juce::Graphics& g) override;
+
+private:
+    uint8_t attackNibble = 0;
+    uint8_t decayNibble = 0;
+    uint8_t sustainNibble = 0;
+    uint8_t releaseNibble = 0;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipEnvelopePreview)
+};
+
 class ChipperAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                           private juce::Timer
 {
@@ -190,6 +208,7 @@ private:
     juce::Label stereoSpreadValueLabel;
     juce::Label envelopeDecayLabel;
     juce::Label envelopeDecayValueLabel;
+    ChipEnvelopePreview sidEnvelopePreview;
     std::array<juce::Label, sidAdsrOverrideCount> sidAdsrLabels;
     std::array<juce::ComboBox, sidAdsrOverrideCount> sidAdsrBoxes;
     juce::Label waveShapeLabel;

@@ -192,6 +192,8 @@ uint8_t sidSustainNibbleForPatch(const PatchConfig& patch);
 uint8_t sidReleaseNibbleForPatch(const PatchConfig& patch);
 uint8_t sidAttackDecayForPatch(const PatchConfig& patch);
 uint8_t sidSustainReleaseForPatch(const PatchConfig& patch);
+double sidAttackSecondsForNibble(uint8_t nibble);
+double sidDecayReleaseSecondsForNibble(uint8_t nibble);
 uint8_t ym2149NoisePeriodForControl(float noisePitchControl);
 uint8_t ym2149MixerRegisterForControl(float toneNoiseControl);
 uint8_t ym2149MixerRegisterWithChannelOverrides(const PatchConfig& patch, uint8_t macroMixer);

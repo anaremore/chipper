@@ -1584,20 +1584,12 @@ private:
 
     static double attackSeconds(uint8_t nibble)
     {
-        static constexpr std::array<double, 16> times {
-            0.002, 0.008, 0.016, 0.024, 0.038, 0.056, 0.068, 0.080,
-            0.100, 0.250, 0.500, 0.800, 1.000, 3.000, 5.000, 8.000
-        };
-        return times[nibble & 0x0fu];
+        return sidAttackSecondsForNibble(nibble);
     }
 
     static double decayReleaseSeconds(uint8_t nibble)
     {
-        static constexpr std::array<double, 16> times {
-            0.006, 0.024, 0.048, 0.072, 0.114, 0.168, 0.204, 0.240,
-            0.300, 0.750, 1.500, 2.400, 3.000, 9.000, 15.000, 24.000
-        };
-        return times[nibble & 0x0fu];
+        return sidDecayReleaseSecondsForNibble(nibble);
     }
 
     void tickEnvelope(size_t voice)
