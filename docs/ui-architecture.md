@@ -43,6 +43,8 @@ The first custom surface is the NES channel card grid inside Sources. It keeps t
 
 NES and DMG Pulse Duty use the first register-choice component. It presents a segmented button group over the stable `macroControl1` parameter because RP2A03 and DMG pulse duty are four-state register fields, not continuous values. Future chip controls should follow the same rule: use continuous controls only for continuous behavior, segmented/stepped controls for register-like behavior, and macro controls only when they intentionally map a musical gesture to chip-native states.
 
+NES and DMG source cards are the first stable non-macro channel controls. They attach to universal `source1Enabled` through `source4Enabled` parameters and map to native source enable behavior: pulse 1, pulse 2, triangle/wave, and noise. Future chip source cards should preserve that user promise: active cards must represent audible/native sources, not decorative labels.
+
 ## Data Model
 
 The UI should be built from chip definitions instead of per-chip hardcoded editor branches.
@@ -105,6 +107,7 @@ The editor asks the selected chip spec what modules and controls to show. The UI
 DAW automation IDs must remain stable after plugin load. Chipper should use a hybrid parameter strategy:
 
 - Universal automatable macros for common musical performance controls.
+- Universal source-enable parameters for finite native channels or source lanes.
 - A universal Play Mode parameter for how one patch uses native chip channels.
 - Stable chip-specific parameters grouped by chip and module.
 - Inactive chip parameters hidden from the Chipper UI, but not created or destroyed dynamically.

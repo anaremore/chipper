@@ -18,7 +18,8 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && std::abs(a.control2 - b.control2) < tolerance
         && std::abs(a.control3 - b.control3) < tolerance
         && std::abs(a.control4 - b.control4) < tolerance
-        && a.playMode == b.playMode;
+        && a.playMode == b.playMode
+        && a.sourceEnabled == b.sourceEnabled;
 }
 }
 
@@ -157,7 +158,13 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
         apvts.getRawParameterValue(chipper::parameters::id::macroControl2)->load(),
         apvts.getRawParameterValue(chipper::parameters::id::macroControl3)->load(),
         apvts.getRawParameterValue(chipper::parameters::id::macroControl4)->load(),
-        chipper::parameters::playModeFromChoice(playModeChoice));
+        chipper::parameters::playModeFromChoice(playModeChoice),
+        {
+            apvts.getRawParameterValue(chipper::parameters::id::source1Enabled)->load() >= 0.5f,
+            apvts.getRawParameterValue(chipper::parameters::id::source2Enabled)->load() >= 0.5f,
+            apvts.getRawParameterValue(chipper::parameters::id::source3Enabled)->load() >= 0.5f,
+            apvts.getRawParameterValue(chipper::parameters::id::source4Enabled)->load() >= 0.5f
+        });
 }
 
 void ChipperAudioProcessor::replayPendingRegisterState()

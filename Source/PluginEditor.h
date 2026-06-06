@@ -19,7 +19,7 @@ public:
 private:
     static constexpr size_t uiModuleCount = 6;
     static constexpr size_t uiModuleRows = 4;
-    static constexpr size_t nesChannelCount = 4;
+    static constexpr size_t sourceChannelCount = 4;
     static constexpr size_t liveControlCount = 6;
 
     void timerCallback() override;
@@ -44,7 +44,9 @@ private:
     juce::String dmgSweepReadout(float value) const;
     juce::String dmgNoiseReadout(float value) const;
     juce::String dmgEnvelopeReadout(float value) const;
-    void setNesChannelSurfaceVisible(bool shouldBeVisible);
+    bool usesSourceChannelSurface(chipper::ChipMode mode) const;
+    void setSourceChannelSurfaceVisible(chipper::ChipMode mode, bool shouldBeVisible);
+    void updateSourceChannelButtons(chipper::ChipMode mode);
     void updatePulseDutyButtons(float value, bool shouldBeVisible);
 
     ChipperAudioProcessor& audioProcessor;
@@ -61,7 +63,7 @@ private:
     std::array<juce::Label, uiModuleCount> moduleTitleLabels;
     std::array<juce::Label, uiModuleCount> moduleSummaryLabels;
     std::array<std::array<juce::Label, uiModuleRows>, uiModuleCount> moduleItemLabels;
-    std::array<juce::Label, nesChannelCount> nesChannelLabels;
+    std::array<juce::TextButton, sourceChannelCount> sourceChannelButtons;
     std::array<juce::Label, liveControlCount> controlValueLabels;
     std::array<juce::TextButton, 4> pulseDutyButtons;
 
@@ -78,6 +80,7 @@ private:
 
     using ComboBoxAttachment = juce::AudioProcessorValueTreeState::ComboBoxAttachment;
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+    using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
 
     std::unique_ptr<ComboBoxAttachment> chipModeAttachment;
     std::unique_ptr<ComboBoxAttachment> accuracyAttachment;
@@ -86,11 +89,12 @@ private:
     std::unique_ptr<SliderAttachment> clockAttachment;
     std::unique_ptr<SliderAttachment> outputAttachment;
     std::array<std::unique_ptr<SliderAttachment>, 4> nativeAttachments;
+    std::array<std::unique_ptr<ButtonAttachment>, sourceChannelCount> sourceEnableAttachments;
 
     chipper::ChipMode displayedMode = chipper::ChipMode::custom;
     bool descriptorTextInitialized = false;
     std::array<juce::Rectangle<int>, uiModuleCount> moduleBounds;
-    std::array<juce::Rectangle<int>, nesChannelCount> nesChannelBounds;
+    std::array<juce::Rectangle<int>, sourceChannelCount> sourceChannelBounds;
     juce::Rectangle<int> pulseDutySegmentBounds;
     juce::Rectangle<int> globalStripBounds;
 

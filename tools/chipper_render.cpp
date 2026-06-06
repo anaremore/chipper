@@ -2,6 +2,7 @@
 #include "Engine/ChipDescriptors.h"
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <cmath>
 #include <cstdint>
@@ -29,6 +30,7 @@ struct Options
     float control2 = 0.5f;
     float control3 = 0.5f;
     float control4 = 0.5f;
+    std::array<bool, 4> sourceEnabled { true, true, true, true };
     double clock = 1789773.0;
     double sampleRate = 48000.0;
     double seconds = 1.0;
@@ -92,7 +94,7 @@ void printUsage()
 {
     std::cerr
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
-        << "       Optional: --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5\n"
+        << "       Optional: --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -114,6 +116,15 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return nullptr;
             }
             return argv[++i];
+        };
+        auto parseToggle = [&](const char* name, bool& out) -> bool
+        {
+            const auto* value = requireValue(name);
+            uint32_t parsed = 0;
+            if (value == nullptr || ! parseNumber(std::string(value), parsed))
+                return false;
+            out = parsed != 0;
+            return true;
         };
 
         if (arg == "--chip")
@@ -190,6 +201,26 @@ bool parseArgs(int argc, char** argv, Options& options)
         {
             const auto* value = requireValue("--control4");
             if (value == nullptr || ! parseNumber(std::string(value), options.control4))
+                return false;
+        }
+        else if (arg == "--source1")
+        {
+            if (! parseToggle("--source1", options.sourceEnabled[0]))
+                return false;
+        }
+        else if (arg == "--source2")
+        {
+            if (! parseToggle("--source2", options.sourceEnabled[1]))
+                return false;
+        }
+        else if (arg == "--source3")
+        {
+            if (! parseToggle("--source3", options.sourceEnabled[2]))
+                return false;
+        }
+        else if (arg == "--source4")
+        {
+            if (! parseToggle("--source4", options.sourceEnabled[3]))
                 return false;
         }
         else if (arg == "--clock")
@@ -482,7 +513,8 @@ int main(int argc, char** argv)
                                                     options.control2,
                                                     options.control3,
                                                     options.control4,
-                                                    options.playMode);
+                                                    options.playMode,
+                                                    options.sourceEnabled);
         core->setPatch(patch);
         const auto events = loadEvents(options.eventFile);
         const auto registerWriteCount = static_cast<size_t>(std::count_if(events.begin(), events.end(), [](const auto& event) { return event.type == EventType::write; }));

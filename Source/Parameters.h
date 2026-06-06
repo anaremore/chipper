@@ -19,6 +19,10 @@ inline constexpr auto macroControl1 = "macroControl1";
 inline constexpr auto macroControl2 = "macroControl2";
 inline constexpr auto macroControl3 = "macroControl3";
 inline constexpr auto macroControl4 = "macroControl4";
+inline constexpr auto source1Enabled = "source1Enabled";
+inline constexpr auto source2Enabled = "source2Enabled";
+inline constexpr auto source3Enabled = "source3Enabled";
+inline constexpr auto source4Enabled = "source4Enabled";
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout();

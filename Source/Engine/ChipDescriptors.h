@@ -55,6 +55,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float control2,
                             float control3,
                             float control4,
-                            PlayMode playMode = PlayMode::stack);
+                            PlayMode playMode = PlayMode::stack,
+                            std::array<bool, 4> sourceEnabled = { true, true, true, true });
 
 } // namespace chipper

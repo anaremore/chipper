@@ -94,6 +94,22 @@ uint8_t dmgPulseDutyBits(DmgPulseDuty duty)
     return static_cast<uint8_t>(duty);
 }
 
+bool sourceEnabled(const PatchConfig& patch, size_t index)
+{
+    return index < patch.sourceEnabled.size() && patch.sourceEnabled[index];
+}
+
+uint8_t sourceEnableMask(const PatchConfig& patch)
+{
+    uint8_t mask = 0;
+    for (size_t i = 0; i < patch.sourceEnabled.size(); ++i)
+    {
+        if (patch.sourceEnabled[i])
+            mask |= static_cast<uint8_t>(1u << i);
+    }
+    return mask;
+}
+
 class UnsupportedCore final : public ChipCore
 {
 public:
@@ -185,7 +201,7 @@ public:
 
     void setPatch(const PatchConfig& newPatch) override
     {
-        if (newPatch.playMode != patch.playMode)
+        if (newPatch.playMode != patch.playMode || newPatch.sourceEnabled != patch.sourceEnabled)
             clearChipPolyState();
 
         patch = newPatch;
@@ -308,6 +324,8 @@ public:
                 break;
         }
 
+        enable = static_cast<unsigned>(0x80u | ((enable & 0x0fu) & sourceEnableMask(patch)));
+
         writeRegister(0xff26, 0x80);
         writeRegister(0xff24, 0x77);
         writeRegister(0xff25, 0xff);
@@ -405,6 +423,10 @@ public:
              << "\"waveFreqReg\":" << waveFrequencyRegister() << ","
              << "\"pulseDuty1\":" << static_cast<int>(pulseDutyIndex(0)) << ","
              << "\"pulseDuty2\":" << static_cast<int>(pulseDutyIndex(1)) << ","
+             << "\"sourceEnabled1\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
+             << "\"sourceEnabled2\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
+             << "\"sourceEnabled3\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
+             << "\"sourceEnabled4\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
              << "\"sweepShadow\":" << sweepShadowPeriod << ","
              << "\"sweepTimer\":" << static_cast<int>(sweepTimer) << ","
              << "\"sweepEnabled\":" << (sweepEnabled ? 1 : 0) << ","
@@ -780,12 +802,18 @@ private:
     {
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
+            if (! sourceEnabled(patch, channel))
+                continue;
+
             if (channelNotes[channel] == midiNote)
                 return static_cast<int>(channel);
         }
 
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
+            if (! sourceEnabled(patch, channel))
+                continue;
+
             if (channelNotes[channel] < 0)
                 return static_cast<int>(channel);
         }
@@ -1019,7 +1047,7 @@ public:
 
     void setPatch(const PatchConfig& newPatch) override
     {
-        if (newPatch.playMode != patch.playMode)
+        if (newPatch.playMode != patch.playMode || newPatch.sourceEnabled != patch.sourceEnabled)
             clearChipPolyState();
 
         patch = newPatch;
@@ -1157,6 +1185,8 @@ public:
                 break;
         }
 
+        enable &= sourceEnableMask(patch);
+
         writePulseRegisters(0x4000, duty, p1Vol, p1Note);
         writePulseRegisters(0x4004, offsetNesPulseDuty(duty, 1), p2Vol, p2Note);
 
@@ -1244,6 +1274,14 @@ public:
              << "\"triangleTimer\":" << timer[2] << ","
              << "\"pulseDuty1\":" << static_cast<int>(pulseDutyIndex(0)) << ","
              << "\"pulseDuty2\":" << static_cast<int>(pulseDutyIndex(1)) << ","
+             << "\"sourceEnabled1\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
+             << "\"sourceEnabled2\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
+             << "\"sourceEnabled3\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
+             << "\"sourceEnabled4\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+             << "\"enabled0\":" << (enabled[0] ? 1 : 0) << ","
+             << "\"enabled1\":" << (enabled[1] ? 1 : 0) << ","
+             << "\"enabled2\":" << (enabled[2] ? 1 : 0) << ","
+             << "\"enabled3\":" << (enabled[3] ? 1 : 0) << ","
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNotePulse1\":" << channelNotes[0] << ","
              << "\"assignedNotePulse2\":" << channelNotes[1] << ","
@@ -1603,12 +1641,18 @@ private:
     {
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
+            if (! sourceEnabled(patch, channel))
+                continue;
+
             if (channelNotes[channel] == midiNote)
                 return static_cast<int>(channel);
         }
 
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
+            if (! sourceEnabled(patch, channel))
+                continue;
+
             if (channelNotes[channel] < 0)
                 return static_cast<int>(channel);
         }

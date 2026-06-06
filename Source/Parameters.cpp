@@ -105,6 +105,26 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
         0.5f));
 
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID { id::source1Enabled, 1 },
+        "Source 1 Enabled",
+        true));
+
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID { id::source2Enabled, 1 },
+        "Source 2 Enabled",
+        true));
+
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID { id::source3Enabled, 1 },
+        "Source 3 Enabled",
+        true));
+
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID { id::source4Enabled, 1 },
+        "Source 4 Enabled",
+        true));
+
     return { params.begin(), params.end() };
 }
 

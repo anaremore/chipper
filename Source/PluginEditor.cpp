@@ -165,15 +165,24 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         }
     }
 
-    for (auto& channelLabel : nesChannelLabels)
+    const std::array<const char*, sourceChannelCount> sourceIds {
+        chipper::parameters::id::source1Enabled,
+        chipper::parameters::id::source2Enabled,
+        chipper::parameters::id::source3Enabled,
+        chipper::parameters::id::source4Enabled
+    };
+
+    for (size_t i = 0; i < sourceChannelButtons.size(); ++i)
     {
-        channelLabel.setJustificationType(juce::Justification::centredLeft);
-        channelLabel.setFont(juce::FontOptions(12.0f, juce::Font::bold));
-        channelLabel.setColour(juce::Label::textColourId, juce::Colour(0xffe6f2f0));
-        channelLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff202c33));
-        channelLabel.setMinimumHorizontalScale(0.70f);
-        channelLabel.setVisible(false);
-        addAndMakeVisible(channelLabel);
+        auto& button = sourceChannelButtons[i];
+        button.setClickingTogglesState(true);
+        button.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff202c33));
+        button.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xff203a30));
+        button.setColour(juce::TextButton::textColourOffId, juce::Colour(0xff93a2aa));
+        button.setColour(juce::TextButton::textColourOnId, juce::Colour(0xffe6f2f0));
+        button.setVisible(false);
+        addAndMakeVisible(button);
+        sourceEnableAttachments[i] = std::make_unique<ButtonAttachment>(state, sourceIds[i], button);
     }
 
     globalStripLabel.setText("Global Performance Controls", juce::dontSendNotification);
@@ -206,9 +215,9 @@ void ChipperAudioProcessorEditor::paint(juce::Graphics& g)
         g.drawRoundedRectangle(panel.reduced(0.5f), 6.0f, 1.0f);
     }
 
-    if (displayedMode == chipper::ChipMode::nes)
+    if (usesSourceChannelSurface(displayedMode))
     {
-        for (const auto& bounds : nesChannelBounds)
+        for (const auto& bounds : sourceChannelBounds)
         {
             if (bounds.isEmpty())
                 continue;
@@ -294,24 +303,24 @@ void ChipperAudioProcessorEditor::resized()
         }
     }
 
-    auto nesPanel = moduleBounds[1].reduced(12, 9);
-    nesPanel.removeFromTop(20);
-    nesPanel.removeFromTop(30);
-    nesPanel.removeFromTop(4);
-    const auto nesGap = 6;
-    const auto nesCardWidth = (nesPanel.getWidth() - nesGap) / 2;
-    const auto nesCardHeight = (nesPanel.getHeight() - nesGap) / 2;
-    for (size_t i = 0; i < nesChannelBounds.size(); ++i)
+    auto sourcePanel = moduleBounds[1].reduced(12, 9);
+    sourcePanel.removeFromTop(20);
+    sourcePanel.removeFromTop(30);
+    sourcePanel.removeFromTop(4);
+    const auto sourceGap = 6;
+    const auto sourceCardWidth = (sourcePanel.getWidth() - sourceGap) / 2;
+    const auto sourceCardHeight = (sourcePanel.getHeight() - sourceGap) / 2;
+    for (size_t i = 0; i < sourceChannelBounds.size(); ++i)
     {
         const auto row = static_cast<int>(i / 2);
         const auto column = static_cast<int>(i % 2);
-        nesChannelBounds[i] = {
-            nesPanel.getX() + (column * (nesCardWidth + nesGap)),
-            nesPanel.getY() + (row * (nesCardHeight + nesGap)),
-            nesCardWidth,
-            nesCardHeight
+        sourceChannelBounds[i] = {
+            sourcePanel.getX() + (column * (sourceCardWidth + sourceGap)),
+            sourcePanel.getY() + (row * (sourceCardHeight + sourceGap)),
+            sourceCardWidth,
+            sourceCardHeight
         };
-        nesChannelLabels[i].setBounds(nesChannelBounds[i].reduced(8, 1));
+        sourceChannelButtons[i].setBounds(sourceChannelBounds[i].reduced(8, 1));
     }
 
     area.removeFromTop(12);
@@ -505,13 +514,65 @@ juce::String ChipperAudioProcessorEditor::dmgEnvelopeReadout(float value) const
     return juce::String("Envelope start ") + juce::String(level) + "/15";
 }
 
-void ChipperAudioProcessorEditor::setNesChannelSurfaceVisible(bool shouldBeVisible)
+bool ChipperAudioProcessorEditor::usesSourceChannelSurface(chipper::ChipMode mode) const
 {
-    for (auto& channelLabel : nesChannelLabels)
-        channelLabel.setVisible(shouldBeVisible);
+    return mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
+}
+
+void ChipperAudioProcessorEditor::setSourceChannelSurfaceVisible(chipper::ChipMode mode, bool shouldBeVisible)
+{
+    const auto active = shouldBeVisible && usesSourceChannelSurface(mode);
+    for (auto& channelButton : sourceChannelButtons)
+        channelButton.setVisible(active);
 
     for (auto& itemLabel : moduleItemLabels[1])
-        itemLabel.setVisible(! shouldBeVisible && ! itemLabel.getText().isEmpty());
+        itemLabel.setVisible(! active && ! itemLabel.getText().isEmpty());
+
+    if (active)
+        updateSourceChannelButtons(mode);
+}
+
+void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode mode)
+{
+    static const std::array<const char*, sourceChannelCount> nesBigMonoLabels {
+        "Pulse 1  |  duty lead",
+        "Pulse 2  |  stack / sweep",
+        "Triangle | bass body",
+        "Noise    | snare / hats"
+    };
+    static const std::array<const char*, sourceChannelCount> nesChipPolyLabels {
+        "Pulse 1  |  note 1",
+        "Pulse 2  |  note 2",
+        "Triangle | note 3 bass",
+        "Noise    | mono SFX layer"
+    };
+    static const std::array<const char*, sourceChannelCount> dmgBigMonoLabels {
+        "Pulse 1  |  sweep voice",
+        "Pulse 2  |  support pulse",
+        "Wave     |  sample body",
+        "Noise    |  handheld grit"
+    };
+    static const std::array<const char*, sourceChannelCount> dmgChipPolyLabels {
+        "Pulse 1  |  note 1",
+        "Pulse 2  |  note 2",
+        "Wave     |  note 3",
+        "Noise    |  SFX layer"
+    };
+
+    const auto playModeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::playMode)));
+    const auto playMode = chipper::parameters::playModeFromChoice(playModeChoice);
+    const auto* labels = &nesBigMonoLabels;
+
+    if (mode == chipper::ChipMode::nes)
+        labels = playMode == chipper::PlayMode::chipPoly ? &nesChipPolyLabels : &nesBigMonoLabels;
+    else if (mode == chipper::ChipMode::dmg)
+        labels = playMode == chipper::PlayMode::chipPoly ? &dmgChipPolyLabels : &dmgBigMonoLabels;
+
+    for (size_t i = 0; i < sourceChannelButtons.size(); ++i)
+    {
+        sourceChannelButtons[i].setButtonText((*labels)[i]);
+        sourceChannelButtons[i].setTooltip(juce::String("Enable or mute ") + (*labels)[i]);
+    }
 }
 
 void ChipperAudioProcessorEditor::updatePulseDutyButtons(float value, bool shouldBeVisible)
@@ -613,7 +674,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     controlValueLabels[5].setEnabled(hasLiveCore);
     controlValueLabels[4].setAlpha(hasLiveCore ? 1.0f : 0.55f);
     controlValueLabels[5].setAlpha(hasLiveCore ? 1.0f : 0.55f);
-    setNesChannelSurfaceVisible(mode == chipper::ChipMode::nes);
+    setSourceChannelSurfaceVisible(mode, usesSourceChannelSurface(mode));
     updatePulseDutyButtons(parameterValue(chipper::parameters::id::macroControl1), usesPulseDutySegment(mode) && hasLiveCore);
     updateLiveControlReadouts();
     repaint();
@@ -639,22 +700,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[2].setText(nesNoiseReadout(macroControl3), juce::dontSendNotification);
         controlValueLabels[3].setText(nesFocusReadout(macroControl4), juce::dontSendNotification);
 
-        const auto playModeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::playMode)));
-        const auto playMode = chipper::parameters::playModeFromChoice(playModeChoice);
-        if (playMode == chipper::PlayMode::chipPoly)
-        {
-            nesChannelLabels[0].setText("Pulse 1  |  note 1", juce::dontSendNotification);
-            nesChannelLabels[1].setText("Pulse 2  |  note 2", juce::dontSendNotification);
-            nesChannelLabels[2].setText("Triangle | note 3 bass", juce::dontSendNotification);
-            nesChannelLabels[3].setText("Noise    | mono SFX layer", juce::dontSendNotification);
-        }
-        else
-        {
-            nesChannelLabels[0].setText("Pulse 1  |  duty lead", juce::dontSendNotification);
-            nesChannelLabels[1].setText("Pulse 2  |  stack / sweep", juce::dontSendNotification);
-            nesChannelLabels[2].setText("Triangle | bass body", juce::dontSendNotification);
-            nesChannelLabels[3].setText("Noise    | snare / hats", juce::dontSendNotification);
-        }
+        updateSourceChannelButtons(mode);
     }
     else if (mode == chipper::ChipMode::dmg)
     {
@@ -662,6 +708,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[1].setText(dmgSweepReadout(macroControl2), juce::dontSendNotification);
         controlValueLabels[2].setText(dmgNoiseReadout(macroControl3), juce::dontSendNotification);
         controlValueLabels[3].setText(dmgEnvelopeReadout(macroControl4), juce::dontSendNotification);
+        updateSourceChannelButtons(mode);
     }
     else
     {
