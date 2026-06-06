@@ -140,6 +140,7 @@ uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t dmgNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t ym2149MixerRegisterForControl(float toneNoiseControl);
 uint16_t ym2149EnvelopePeriodForControl(float envelopeControl);
+uint8_t sn76489NoiseAttenuationForControl(float noiseLevelControl);
 uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch);
 
 } // namespace chipper

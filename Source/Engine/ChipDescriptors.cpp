@@ -261,7 +261,12 @@ std::vector<ChipParameterSpec> sn76489ParameterSpecs()
         sliderSpec(ChipParameterRole::macroControl1, "sn76489.toneStack", "Tone Stack", "Channels", "Sets interval spread across the three tone channels."),
         sliderSpec(ChipParameterRole::macroControl2, "sn76489.pitchMotion", "Pitch Motion", "Pitch", "Scales macro pitch movement."),
         sliderSpec(ChipParameterRole::macroControl3, "sn76489.noiseBias", "Noise Bias", "Noise", "Biases the macro-selected noise register when Noise Mode is Macro."),
-        sliderSpec(ChipParameterRole::macroControl4, "sn76489.noiseLevel", "Noise Level", "Mixer", "Balances the noise channel against tone channels."),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "sn76489.noiseLevel",
+                   "Noise Level",
+                   "Mixer",
+                   "Maps to the SN76489 4-bit noise attenuation register; higher level means lower attenuation.",
+                   ParameterKind::chipRegister),
         sourceSpec(ChipParameterRole::source1Enabled, "sn76489.tone1.enabled", "Tone 1", "Enable SN76489 tone channel 1."),
         sourceSpec(ChipParameterRole::source2Enabled, "sn76489.tone2.enabled", "Tone 2", "Enable SN76489 tone channel 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "sn76489.tone3.enabled", "Tone 3", "Enable SN76489 tone channel 3."),
@@ -818,6 +823,12 @@ uint16_t ym2149EnvelopePeriodForControl(float envelopeControl)
     constexpr auto fastPeriod = 16.0f;
     const auto period = slowPeriod * std::pow(fastPeriod / slowPeriod, value);
     return static_cast<uint16_t>(std::clamp(static_cast<int>(std::round(period)), 1, 0xffff));
+}
+
+uint8_t sn76489NoiseAttenuationForControl(float noiseLevelControl)
+{
+    const auto levelStep = static_cast<int>(std::floor(clampControl(noiseLevelControl) * 15.0f));
+    return static_cast<uint8_t>(std::clamp(15 - levelStep, 0, 15));
 }
 
 uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch)

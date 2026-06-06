@@ -1265,8 +1265,14 @@ juce::String ChipperAudioProcessorEditor::snMotionReadout(float value) const
 
 juce::String ChipperAudioProcessorEditor::snLevelReadout(float value) const
 {
-    const auto attenuation = std::clamp(static_cast<int>(15 - std::round(value * 13.0f)), 0, 15);
-    return juce::String("Noise attenuation ") + juce::String(attenuation) + "/15";
+    const auto attenuation = chipper::sn76489NoiseAttenuationForControl(value);
+    const auto attenuationText = juce::String("Attenuation reg ") + juce::String(static_cast<int>(attenuation)) + "/15";
+    if (attenuation == 15u)
+        return attenuationText + ", muted";
+    if (attenuation == 0u)
+        return attenuationText + ", full level";
+
+    return attenuationText + juce::String(", -") + juce::String(static_cast<int>(attenuation) * 2) + " dB";
 }
 
 bool ChipperAudioProcessorEditor::usesSourceChannelSurface(chipper::ChipMode mode) const

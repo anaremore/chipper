@@ -2484,7 +2484,7 @@ public:
         auto note0 = midiNote;
         auto note1 = midiNote + std::max(1, spread / 2);
         auto note2 = midiNote + std::max(2, spread);
-        auto noiseAttenuation = static_cast<uint8_t>(std::clamp(static_cast<int>(15 - std::round(patch.control4 * 13.0f)), 0, 15));
+        auto noiseAttenuation = sn76489NoiseAttenuationForControl(patch.control4);
 
         switch (patch.macro)
         {
