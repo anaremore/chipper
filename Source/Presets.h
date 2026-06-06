@@ -30,6 +30,8 @@ struct PresetInfo
     double clockHz = 0.0;
     float stereoSpread = 0.0f;
     int dmgStereoRoute = 0;
+    int sidVoice2WaveShape = 0;
+    int sidVoice3WaveShape = 0;
 };
 
 const std::vector<PresetInfo>& presetCatalog();

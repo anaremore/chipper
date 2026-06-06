@@ -229,7 +229,9 @@ const std::vector<PresetInfo>& presetCatalog()
             -9.0f,
             985248.0,
             0.58f,
-            1
+            1,
+            3,
+            0
         },
         {
             "sid-pwm-lead",
@@ -249,13 +251,15 @@ const std::vector<PresetInfo>& presetCatalog()
             -10.0f,
             985248.0,
             0.36f,
-            2
+            2,
+            3,
+            3
         },
         {
             "sid-robot-arp",
             "SID FX",
             "SID Robot Arp",
-            "Saw-voice C64 stack for robotic arps and tight pattern movement.",
+            "Mixed saw, pulse, and triangle SID stack for robotic arps and tight pattern movement.",
             ChipMode::sid,
             AccuracyMode::hybrid,
             MacroKind::arp,
@@ -269,7 +273,9 @@ const std::vector<PresetInfo>& presetCatalog()
             -10.0f,
             985248.0,
             0.42f,
-            2
+            2,
+            3,
+            1
         },
         {
             "sid-noise-drum",
@@ -289,7 +295,9 @@ const std::vector<PresetInfo>& presetCatalog()
             -12.0f,
             985248.0,
             0.18f,
-            1
+            1,
+            0,
+            4
         },
         {
             "ym-three-voice-arp",
@@ -481,7 +489,9 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                            0,
                            preset.dmgStereoRoute,
                            preset.ymEnvelopeShape,
-                           preset.snNoiseMode);
+                           preset.snNoiseMode,
+                           preset.sidVoice2WaveShape,
+                           preset.sidVoice3WaveShape);
 }
 
 } // namespace chipper

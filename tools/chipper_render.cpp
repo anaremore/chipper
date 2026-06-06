@@ -357,12 +357,16 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.stereoSpreadProvided = true;
     options.envelopeDecay = preset.envelopeDecay;
     options.waveShape = preset.waveShape;
+    options.sidVoice2WaveShape = preset.sidVoice2WaveShape;
+    options.sidVoice3WaveShape = preset.sidVoice3WaveShape;
     options.dmgWaveLevel = 0;
     options.dmgStereoRoute = preset.dmgStereoRoute;
     options.ymEnvelopeShape = preset.ymEnvelopeShape;
     options.snNoiseMode = preset.snNoiseMode;
     options.envelopeDecayProvided = true;
     options.waveShapeProvided = true;
+    options.sidVoice2WaveShapeProvided = true;
+    options.sidVoice3WaveShapeProvided = true;
     options.dmgWaveLevelProvided = true;
     options.dmgStereoRouteProvided = true;
     options.ymEnvelopeShapeProvided = true;
@@ -1228,6 +1232,8 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
             << (preset.sourceEnabled[3] ? "true" : "false") << "],\n"
             << "      \"envelopeDecay\": " << preset.envelopeDecay << ",\n"
             << "      \"waveShape\": " << preset.waveShape << ",\n"
+            << "      \"sidVoice2WaveShape\": " << preset.sidVoice2WaveShape << ",\n"
+            << "      \"sidVoice3WaveShape\": " << preset.sidVoice3WaveShape << ",\n"
             << "      \"dmgStereoRoute\": " << preset.dmgStereoRoute << ",\n"
             << "      \"ymEnvelopeShape\": " << preset.ymEnvelopeShape << ",\n"
             << "      \"snNoiseMode\": " << preset.snNoiseMode << ",\n"

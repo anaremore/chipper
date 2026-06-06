@@ -225,6 +225,9 @@ add_test(NAME chipper_render_preset_sid_dirty_bass_smoke
 add_test(NAME chipper_render_preset_sid_pwm_lead_smoke
     COMMAND chipper_render --preset sid-pwm-lead --rate 48000 --seconds 0.04 --note 69 --out preset-sid-pwm-lead-smoke.wav --debug preset-sid-pwm-lead-smoke.json
 )
+add_test(NAME chipper_render_preset_sid_robot_arp_smoke
+    COMMAND chipper_render --preset sid-robot-arp --rate 48000 --seconds 0.04 --note 69 --out preset-sid-robot-arp-smoke.wav --debug preset-sid-robot-arp-smoke.json
+)
 add_test(NAME chipper_render_preset_ym_noise_hat_smoke
     COMMAND chipper_render --preset ym-noise-hat --rate 48000 --seconds 0.04 --note 72 --out preset-ym-noise-hat-smoke.wav --debug preset-ym-noise-hat-smoke.json
 )
@@ -692,14 +695,19 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_preset_dmg_power_up_assert PROPERTIES DEPENDS chipper_render_preset_dmg_power_up_smoke)
 
     add_test(NAME chipper_render_preset_sid_dirty_bass_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sid-dirty-bass-smoke.json --implemented-contains partial --preset sid-dirty-bass --macro Bass --play-mode "Big Mono" --output-db -9 --register-writes 0 --note-events 0 --min-peak 0.03 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min waveformChoice=3 --core-max waveformChoice=3 --core-min waveformBits=64 --core-max waveformBits=64 --core-min pulseWidthRegister=1976 --core-max pulseWidthRegister=1976 --core-min sustain0=12 --core-max sustain0=12
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sid-dirty-bass-smoke.json --implemented-contains partial --preset sid-dirty-bass --macro Bass --play-mode "Big Mono" --output-db -9 --register-writes 0 --note-events 0 --min-peak 0.03 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min waveformChoice=3 --core-max waveformChoice=3 --core-min waveformChoice1=3 --core-max waveformChoice1=3 --core-min waveformBits=64 --core-max waveformBits=64 --core-min waveformBits1=64 --core-max waveformBits1=64 --core-min pulseWidthRegister=1976 --core-max pulseWidthRegister=1976 --core-min sustain0=12 --core-max sustain0=12
     )
     set_tests_properties(chipper_render_preset_sid_dirty_bass_assert PROPERTIES DEPENDS chipper_render_preset_sid_dirty_bass_smoke)
 
     add_test(NAME chipper_render_preset_sid_pwm_lead_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sid-pwm-lead-smoke.json --implemented-contains partial --preset sid-pwm-lead --macro Lead --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.03 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min waveformChoice=3 --core-max waveformChoice=3 --core-min waveformBits=64 --core-max waveformBits=64 --core-min pulseWidthRegister=2335 --core-max pulseWidthRegister=2335 --core-min sustain0=11 --core-max sustain0=11
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sid-pwm-lead-smoke.json --implemented-contains partial --preset sid-pwm-lead --macro Lead --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.03 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min waveformChoice=3 --core-max waveformChoice=3 --core-min waveformChoice1=3 --core-max waveformChoice1=3 --core-min waveformChoice2=3 --core-max waveformChoice2=3 --core-min waveformBits=64 --core-max waveformBits=64 --core-min waveformBits1=64 --core-max waveformBits1=64 --core-min waveformBits2=64 --core-max waveformBits2=64 --core-min pulseWidthRegister=2335 --core-max pulseWidthRegister=2335 --core-min sustain0=11 --core-max sustain0=11
     )
     set_tests_properties(chipper_render_preset_sid_pwm_lead_assert PROPERTIES DEPENDS chipper_render_preset_sid_pwm_lead_smoke)
+
+    add_test(NAME chipper_render_preset_sid_robot_arp_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sid-robot-arp-smoke.json --implemented-contains partial --preset sid-robot-arp --macro Arp --play-mode "Chip Poly" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.03 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min waveformChoice0=2 --core-max waveformChoice0=2 --core-min waveformChoice1=3 --core-max waveformChoice1=3 --core-min waveformChoice2=1 --core-max waveformChoice2=1 --core-min waveformBits0=32 --core-max waveformBits0=32 --core-min waveformBits1=64 --core-max waveformBits1=64 --core-min waveformBits2=16 --core-max waveformBits2=16
+    )
+    set_tests_properties(chipper_render_preset_sid_robot_arp_assert PROPERTIES DEPENDS chipper_render_preset_sid_robot_arp_smoke)
 
     add_test(NAME chipper_render_preset_ym_noise_hat_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-noise-hat-smoke.json --implemented-contains partial --preset ym-noise-hat --macro Drum --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.05 --min-zero-crossings 100 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=0 --core-max sourceEnabledB=0 --core-min sourceEnabledC=0 --core-max sourceEnabledC=0 --core-min sourceEnabledNoise=1 --core-max sourceEnabledNoise=1 --core-min mixer=55 --core-max mixer=55 --core-min envelopeShapeChoice=1 --core-max envelopeShapeChoice=1
