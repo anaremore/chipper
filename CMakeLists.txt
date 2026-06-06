@@ -602,3 +602,43 @@ target_link_libraries(chipper_parameter_midi_cc_smoke
 add_test(NAME chipper_parameter_midi_cc_smoke
     COMMAND chipper_parameter_midi_cc_smoke
 )
+
+add_executable(chipper_processor_midi_cc_smoke
+    tests/processor_midi_cc_smoke.cpp
+    Source/Parameters.cpp
+    Source/Parameters.h
+    Source/PluginEditor.cpp
+    Source/PluginEditor.h
+    Source/PluginProcessor.cpp
+    Source/PluginProcessor.h
+)
+
+add_dependencies(chipper_processor_midi_cc_smoke chipper_build_info)
+
+target_include_directories(chipper_processor_midi_cc_smoke
+    PRIVATE
+        Source
+        "${CHIPPER_GENERATED_DIR}"
+        "${CMAKE_CURRENT_BINARY_DIR}/Chipper_artefacts/JuceLibraryCode"
+)
+
+target_compile_definitions(chipper_processor_midi_cc_smoke
+    PUBLIC
+        JUCE_USE_CURL=0
+        JUCE_WEB_BROWSER=0
+        JUCE_VST3_CAN_REPLACE_VST2=0
+        JucePlugin_Name="Chipper"
+)
+
+target_link_libraries(chipper_processor_midi_cc_smoke
+    PRIVATE
+        chipper_engine
+        juce::juce_audio_utils
+        juce::juce_dsp
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+add_test(NAME chipper_processor_midi_cc_smoke
+    COMMAND chipper_processor_midi_cc_smoke
+)
