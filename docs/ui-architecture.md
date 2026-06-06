@@ -47,6 +47,8 @@ NES, DMG, YM2149, and SN76489 source cards are the first stable non-macro channe
 
 SN76489 Noise Mode is the next register-choice surface. Its segmented choices map to the PSG noise-control bits, while `Macro` preserves the chip-specific macro template and shows the resolved register value in the readout. This establishes a broader rule: macro/preset selections are per-chip musical templates, and visible readouts should reflect the macro-resolved chip state rather than only raw control offsets.
 
+All current APVTS parameters also have fixed MIDI CC mappings. Hardware control should follow the same parameter surface as the UI and host automation: continuous parameters track the full CC range, discrete/register parameters quantize to their legal choices, and source-card toggles switch at the CC midpoint. When adding a new automatable APVTS parameter, add its default CC mapping at the same time so the plugin remains fully controllable from MIDI hardware.
+
 ## Data Model
 
 The UI should be built from chip definitions instead of per-chip hardcoded editor branches.

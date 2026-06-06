@@ -59,6 +59,33 @@ For rapid development without a UAC prompt, install to the per-user VST3 folder:
 
 This copies to `%LOCALAPPDATA%\Programs\Common\VST3`, which is the user-level VST3 location. You can still pass `-Destination` for a custom host scan folder.
 
+## MIDI CC Control
+
+Chipper accepts MIDI input for notes and parameter control. All current plugin parameters have fixed default MIDI CC mappings:
+
+| CC | Parameter |
+| --- | --- |
+| 70 | Chip Mode |
+| 71 | Accuracy |
+| 72 | Clock Rate Override |
+| 73 | Output Level |
+| 74 | Musical Macro |
+| 75 | Play Mode |
+| 76 | Native Control 1 |
+| 77 | Native Control 2 |
+| 78 | Native Control 3 |
+| 79 | Native Control 4 |
+| 80 | Source 1 Enabled |
+| 81 | Source 2 Enabled |
+| 82 | Source 3 Enabled |
+| 83 | Source 4 Enabled |
+| 84 | Envelope Decay |
+| 85 | Wave Shape |
+| 86 | YM Envelope Shape |
+| 87 | SN76489 Noise Mode |
+
+Continuous parameters use the full 0-127 CC range. Choice and register-style parameters quantize to their available choices, and source enables switch off below the midpoint and on at or above the midpoint.
+
 ## Command-Line Renderer
 
 The separate renderer is the verification path for chip cores:

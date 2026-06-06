@@ -4,6 +4,8 @@
 
 #include "Engine/ChipCore.h"
 
+#include <array>
+
 namespace chipper::parameters
 {
 
@@ -29,7 +31,19 @@ inline constexpr auto ymEnvelopeShape = "ymEnvelopeShape";
 inline constexpr auto snNoiseMode = "snNoiseMode";
 }
 
+struct MidiCcMapping
+{
+    int controller = 0;
+    const char* parameterId = nullptr;
+    const char* label = nullptr;
+};
+
+inline constexpr auto midiCcMappingCount = 18u;
+using MidiCcMappingList = std::array<MidiCcMapping, midiCcMappingCount>;
+
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
+const MidiCcMappingList& midiCcMappings();
+const char* parameterIdForMidiController(int controllerNumber);
 ChipMode chipModeFromChoice(int choice);
 AccuracyMode accuracyFromChoice(int choice);
 MacroKind macroFromChoice(int choice);

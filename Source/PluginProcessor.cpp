@@ -56,19 +56,22 @@ void ChipperAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     buffer.clear();
     ensureCore();
 
-    const auto outputDb = apvts.getRawParameterValue(chipper::parameters::id::outputDb)->load();
-    const auto outputGain = juce::Decibels::decibelsToGain(outputDb);
+    const auto readOutputGain = [this]
+    {
+        const auto outputDb = apvts.getRawParameterValue(chipper::parameters::id::outputDb)->load();
+        return juce::Decibels::decibelsToGain(outputDb);
+    };
 
     int renderedUntil = 0;
     for (const auto metadata : midiMessages)
     {
         const auto position = std::clamp(metadata.samplePosition, 0, buffer.getNumSamples());
-        renderRange(buffer, renderedUntil, position, outputGain);
+        renderRange(buffer, renderedUntil, position, readOutputGain());
         handleMidiMessage(metadata.getMessage());
         renderedUntil = position;
     }
 
-    renderRange(buffer, renderedUntil, buffer.getNumSamples(), outputGain);
+    renderRange(buffer, renderedUntil, buffer.getNumSamples(), readOutputGain());
 }
 
 void ChipperAudioProcessor::renderRange(juce::AudioBuffer<float>& buffer, int startSample, int endSample, float outputGain)
@@ -114,6 +117,31 @@ void ChipperAudioProcessor::handleMidiMessage(const juce::MidiMessage& message)
             core->noteOff(held.note);
         heldNotes.clear();
     }
+    else if (message.isController() && handleMidiController(message))
+    {
+        ensureCore();
+    }
+}
+
+bool ChipperAudioProcessor::handleMidiController(const juce::MidiMessage& message)
+{
+    const auto* parameterId = chipper::parameters::parameterIdForMidiController(message.getControllerNumber());
+    if (parameterId == nullptr)
+        return false;
+
+    return setParameterFromMidiCc(parameterId, message.getControllerValue());
+}
+
+bool ChipperAudioProcessor::setParameterFromMidiCc(const char* parameterId, int controllerValue)
+{
+    if (auto* parameter = apvts.getParameter(parameterId))
+    {
+        const auto normalized = juce::jlimit(0.0f, 1.0f, static_cast<float>(controllerValue) / 127.0f);
+        parameter->setValueNotifyingHost(normalized);
+        return true;
+    }
+
+    return false;
 }
 
 void ChipperAudioProcessor::ensureCore()

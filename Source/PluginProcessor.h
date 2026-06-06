@@ -53,6 +53,8 @@ private:
     void replayHeldNotes();
     void renderRange(juce::AudioBuffer<float>& buffer, int startSample, int endSample, float outputGain);
     void handleMidiMessage(const juce::MidiMessage& message);
+    bool handleMidiController(const juce::MidiMessage& message);
+    bool setParameterFromMidiCc(const char* parameterId, int controllerValue);
     void rememberHeldNote(int note, float velocity);
     void forgetHeldNote(int note);
 

@@ -56,6 +56,43 @@ juce::StringArray snNoiseModeChoices()
     return { "Macro", "Periodic Lo", "Periodic Hi", "White Lo", "White T3" };
 }
 
+const MidiCcMappingList& midiCcMappings()
+{
+    static constexpr MidiCcMappingList mappings {{
+        { 70, id::chipMode, "Chip Mode" },
+        { 71, id::accuracy, "Accuracy" },
+        { 72, id::clockHz, "Clock Rate Override" },
+        { 73, id::outputDb, "Output Level" },
+        { 74, id::macro, "Musical Macro" },
+        { 75, id::playMode, "Play Mode" },
+        { 76, id::macroControl1, "Native Control 1" },
+        { 77, id::macroControl2, "Native Control 2" },
+        { 78, id::macroControl3, "Native Control 3" },
+        { 79, id::macroControl4, "Native Control 4" },
+        { 80, id::source1Enabled, "Source 1 Enabled" },
+        { 81, id::source2Enabled, "Source 2 Enabled" },
+        { 82, id::source3Enabled, "Source 3 Enabled" },
+        { 83, id::source4Enabled, "Source 4 Enabled" },
+        { 84, id::envelopeDecay, "Envelope Decay" },
+        { 85, id::waveShape, "Wave Shape" },
+        { 86, id::ymEnvelopeShape, "YM Envelope Shape" },
+        { 87, id::snNoiseMode, "SN76489 Noise Mode" }
+    }};
+
+    return mappings;
+}
+
+const char* parameterIdForMidiController(int controllerNumber)
+{
+    for (const auto& mapping : midiCcMappings())
+    {
+        if (mapping.controller == controllerNumber)
+            return mapping.parameterId;
+    }
+
+    return nullptr;
+}
+
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
