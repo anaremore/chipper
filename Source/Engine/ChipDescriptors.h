@@ -117,6 +117,20 @@ struct ModuleDescriptor
     std::vector<std::string> items;
 };
 
+struct AccuracyDisclosure
+{
+    std::string badge = "Unverified planned";
+    std::string summary = "No accuracy claim: no audited audio core is integrated for this chip mode yet.";
+    std::string evidence = "Renderer metadata exists, but audio behavior is not implemented for this chip mode.";
+    std::vector<std::string> verifiedBehaviors;
+    std::vector<std::string> knownGaps {
+        "Audio core not integrated.",
+        "Reference emulator and hardware comparison are not complete."
+    };
+    bool hardwareValidated = false;
+    bool cycleAccurate = false;
+};
+
 struct MacroTemplate
 {
     MacroKind macro = MacroKind::manual;
@@ -143,6 +157,7 @@ struct ChipDescriptor
     bool implemented = false;
     bool supportsChipPoly = false;
     std::vector<ChipParameterSpec> parameters;
+    AccuracyDisclosure verification;
 };
 
 const ChipDescriptor& descriptorFor(ChipMode mode);

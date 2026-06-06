@@ -1340,6 +1340,18 @@ std::ostream& writeJsonString(std::ostream& out, std::string_view text)
     return out;
 }
 
+void writeJsonStringArray(std::ostream& out, const std::vector<std::string>& values, const std::string& indent)
+{
+    out << "[\n";
+    for (size_t i = 0; i < values.size(); ++i)
+    {
+        out << indent;
+        writeJsonString(out, values[i]);
+        out << (i + 1u == values.size() ? "\n" : ",\n");
+    }
+    out << indent.substr(0, indent.size() >= 2u ? indent.size() - 2u : 0u) << "]";
+}
+
 const char* toJsonString(chipper::ParameterKind kind)
 {
     switch (kind)
@@ -1460,6 +1472,25 @@ void writeDescriptorJson(std::ostream& out, chipper::ChipMode mode)
     out << ",\n"
         << "    \"implemented\": " << (descriptor.implemented ? "true" : "false") << ",\n"
         << "    \"supportsChipPoly\": " << (descriptor.supportsChipPoly ? "true" : "false") << ",\n"
+        << "    \"verification\": {\n"
+        << "      \"badge\": ";
+    writeJsonString(out, descriptor.verification.badge);
+    out << ",\n"
+        << "      \"summary\": ";
+    writeJsonString(out, descriptor.verification.summary);
+    out << ",\n"
+        << "      \"evidence\": ";
+    writeJsonString(out, descriptor.verification.evidence);
+    out << ",\n"
+        << "      \"hardwareValidated\": " << (descriptor.verification.hardwareValidated ? "true" : "false") << ",\n"
+        << "      \"cycleAccurate\": " << (descriptor.verification.cycleAccurate ? "true" : "false") << ",\n"
+        << "      \"verifiedBehaviors\": ";
+    writeJsonStringArray(out, descriptor.verification.verifiedBehaviors, "        ");
+    out << ",\n"
+        << "      \"knownGaps\": ";
+    writeJsonStringArray(out, descriptor.verification.knownGaps, "        ");
+    out << "\n"
+        << "    },\n"
         << "    \"macros\": [\n";
 
     for (size_t i = 0; i < descriptor.macros.size(); ++i)
@@ -1732,6 +1763,10 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"playMode\": \"" << chipper::toString(patch.playMode) << "\",\n"
         << "  \"requestedPlayMode\": \"" << chipper::toString(options.playMode) << "\",\n"
         << "  \"implementedAccuracy\": \"" << core.implementedAccuracy() << "\",\n"
+        << "  \"verificationBadge\": ";
+    writeJsonString(out, chipper::descriptorFor(options.chip).verification.badge);
+    out << ",\n"
+        << "  \"cycleAccurate\": " << (chipper::descriptorFor(options.chip).verification.cycleAccurate ? "true" : "false") << ",\n"
         << "  \"clockHz\": " << options.clock << ",\n"
         << "  \"sampleRate\": " << options.sampleRate << ",\n"
         << "  \"seconds\": " << options.seconds << ",\n"

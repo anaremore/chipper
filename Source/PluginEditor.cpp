@@ -685,6 +685,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
     coreReadinessLabel.setJustificationType(juce::Justification::centred);
     coreReadinessLabel.setFont(juce::FontOptions(12.0f, juce::Font::bold));
+    coreReadinessLabel.setMinimumHorizontalScale(0.70f);
     coreReadinessLabel.setColour(juce::Label::textColourId, juce::Colour(0xff101414));
     coreReadinessLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff56c7d8));
     addAndMakeVisible(coreReadinessLabel);
@@ -3831,10 +3832,30 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     updateMacroChoices(mode);
     updatePresetChoices(mode);
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
-    coreReadinessLabel.setText(hasLiveCore ? "LIVE" : "PLANNED", juce::dontSendNotification);
-    coreReadinessLabel.setTooltip(hasLiveCore
-                                      ? "This chip mode is backed by an active internal core."
-                                      : "This chip mode is a roadmap surface; controls are inactive until its core is implemented.");
+    auto verificationBadge = juce::String(descriptor.verification.badge);
+    coreReadinessLabel.setText(verificationBadge.toUpperCase(), juce::dontSendNotification);
+
+    auto verificationTooltip = juce::String(descriptor.verification.summary)
+        + "\nEvidence: " + juce::String(descriptor.verification.evidence);
+    if (! descriptor.verification.verifiedBehaviors.empty())
+    {
+        verificationTooltip += "\nVerified:";
+        for (const auto& behavior : descriptor.verification.verifiedBehaviors)
+            verificationTooltip += "\n- " + juce::String(behavior);
+    }
+    if (! descriptor.verification.knownGaps.empty())
+    {
+        verificationTooltip += "\nKnown gaps:";
+        for (const auto& gap : descriptor.verification.knownGaps)
+            verificationTooltip += "\n- " + juce::String(gap);
+    }
+    verificationTooltip += descriptor.verification.cycleAccurate
+        ? "\nCycle accuracy: claimed."
+        : "\nCycle accuracy: not claimed.";
+    verificationTooltip += descriptor.verification.hardwareValidated
+        ? "\nHardware validation: complete for the documented scope."
+        : "\nHardware validation: not complete.";
+    coreReadinessLabel.setTooltip(verificationTooltip);
     coreReadinessLabel.setColour(juce::Label::textColourId, hasLiveCore ? juce::Colour(0xff101414) : juce::Colour(0xffd9e1e8));
     coreReadinessLabel.setColour(juce::Label::backgroundColourId, hasLiveCore ? juce::Colour(0xff56c7d8) : juce::Colour(0xff344047));
     globalStripLabel.setText(hasLiveCore ? "Performance" : "Roadmap", juce::dontSendNotification);

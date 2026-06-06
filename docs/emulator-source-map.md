@@ -12,6 +12,14 @@ Every project listed here still needs a file-level license audit before any code
 - Treat MAME as a special case. MAME is extremely useful for documentation and edge cases; the project as a whole is GPL-2.0+, while many individual files are BSD-3-Clause. Audit each file header before reuse.
 - Keep the UI honest. A mode is "inspired" until register/timing behavior is implemented and verified.
 
+## Open-Source Path
+
+The owner is willing to make Chipper open source if that is the right product and licensing move. That improves the set of viable emulator-core options, but it does not remove the need for deliberate source hygiene.
+
+Before importing GPL-family or LGPL code, choose Chipper's project license and distribution model, then record the exact obligations in `THIRD_PARTY_NOTICES.md`. Open-source compatibility must be checked at the file level, not only at the repository level, because emulator projects often combine cores, tools, lookup tables, optional backends, generated data, and third-party dependencies under different terms.
+
+Until that decision is made, use GPL-family projects such as Furnace, reSIDfp, FigBug/SID, FigBug/PAPU, MAME aggregate sources, and similar trackers/emulators as references and validation targets only. Preset design may learn from public chip workflows, but Chipper presets must remain original Chipper parameter snapshots unless a separate rights review says otherwise.
+
 ## Preferred Implementation Tiers
 
 ### Tier 1: Permissive-First Candidates

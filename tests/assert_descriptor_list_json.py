@@ -10,6 +10,9 @@ def main() -> int:
     parser.add_argument("--chip-count", type=int)
     parser.add_argument("--chip", action="append", default=[], metavar="KEY")
     parser.add_argument("--implemented", action="append", default=[], metavar="KEY=0|1")
+    parser.add_argument("--verification-badge", action="append", default=[], metavar="KEY=BADGE")
+    parser.add_argument("--verification-cycle", action="append", default=[], metavar="KEY=0|1")
+    parser.add_argument("--verification-hardware", action="append", default=[], metavar="KEY=0|1")
     parser.add_argument("--param-surface", action="append", default=[], metavar="KEY:ROLE=SURFACE")
     parser.add_argument("--param-kind", action="append", default=[], metavar="KEY:ROLE=KIND")
     parser.add_argument("--param-choices", action="append", default=[], metavar="KEY:ROLE=COUNT")
@@ -115,6 +118,35 @@ def main() -> int:
         actual = bool(descriptors[chip].get("implemented", False))
         if actual != expected:
             failures.append(f"{chip}.implemented expected {expected}, got {actual}")
+
+    for assertion in args.verification_badge:
+        chip, _, expected = assertion.partition("=")
+        if not chip or not expected:
+            failures.append(f"bad verification badge assertion {assertion!r}")
+            continue
+        if chip not in descriptors:
+            failures.append(f"chip {chip!r} not found for assertion {assertion!r}")
+            continue
+        actual = descriptors[chip].get("verification", {}).get("badge")
+        if actual != expected:
+            failures.append(f"{chip}.verification.badge expected {expected!r}, got {actual!r}")
+
+    for argument_name, assertions, field_name in (
+        ("verification cycle", args.verification_cycle, "cycleAccurate"),
+        ("verification hardware", args.verification_hardware, "hardwareValidated"),
+    ):
+        for assertion in assertions:
+            chip, _, expected_text = assertion.partition("=")
+            if not chip or not expected_text:
+                failures.append(f"bad {argument_name} assertion {assertion!r}")
+                continue
+            if chip not in descriptors:
+                failures.append(f"chip {chip!r} not found for assertion {assertion!r}")
+                continue
+            expected = expected_text not in {"0", "false", "False"}
+            actual = bool(descriptors[chip].get("verification", {}).get(field_name, False))
+            if actual != expected:
+                failures.append(f"{chip}.verification.{field_name} expected {expected}, got {actual}")
 
     for assertion in args.param_surface:
         parsed = split_chip_assertion(assertion)

@@ -531,7 +531,7 @@ std::string ChipperAudioProcessor::currentCoreStatus() const
         return "No core loaded";
 
     const auto& descriptor = chipper::descriptorFor(activeMode);
-    return descriptor.displayName + " - " + core->implementedAccuracy() + " - active";
+    return descriptor.displayName + " - " + descriptor.verification.badge + " - active";
 }
 
 std::string ChipperAudioProcessor::currentCoreStatusDetail() const
@@ -540,7 +540,10 @@ std::string ChipperAudioProcessor::currentCoreStatusDetail() const
         return "No core loaded";
 
     const auto& descriptor = chipper::descriptorFor(activeMode);
-    return descriptor.displayName + ": " + core->implementedAccuracy() + ". " + descriptor.summary + " " + core->limitations();
+    return descriptor.displayName + ": " + descriptor.verification.badge + ". "
+        + descriptor.verification.summary + " "
+        + descriptor.summary + " "
+        + core->limitations();
 }
 
 ChipperAudioProcessor::OutputScopeSnapshot ChipperAudioProcessor::outputScopeSnapshot() const

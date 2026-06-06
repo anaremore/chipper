@@ -17,6 +17,30 @@ This list ranks near-term work by user value, implementation effort, and confide
 | 11 | Implement the next chip core only after a scoped accuracy plan exists; likely OPL2/OPL3 or YM2612 using a compatible high-quality FM core. | 8 | 9 | 5 | Completed license audit, a thin adapter spike, and renderer golden tests before VST UI exposure. |
 | 12 | Add hardware/reference comparison documentation and tolerance thresholds for each implemented chip. | 7 | 8 | 5 | Real hardware recordings, reproducible capture settings, and agreed spectral/timing tolerances. |
 
+## Chip UI And License Pass Order
+
+SID is the first proof-of-product chip because it exercises the hardest instrument UI ideas early: three independent oscillators, per-voice ADSR, PWM, sync/ring interaction, multimode filter routing, model selection, source scopes, and output monitoring. The pass is only done when cutoff, resonance, filter mode, and filter routing stay together in the Filter module; waveform choices stay with the voice cards; and ADSR controls remain per voice.
+
+After SID, prioritize the other implemented chips before adding planned chips:
+
+| Order | Chip | User Value | License / Source Posture | Next UI Value |
+| --- | --- | ---: | --- | --- |
+| 1 | SID / C64 | 10 | Current code is internal clean-room. GPL SID projects remain reference/validation only unless Chipper adopts a compatible open-source license. | Finish filter-first panel, per-voice ADSR readability, waveform/source scopes, and stronger preset delight. |
+| 2 | NES / RP2A03 | 10 | Current code is internal clean-room. FigBug/RP2A03 is license-sensitive and not vendored. | Make pulse/triangle/noise channels feel playable, expose DMC/direct DAC honestly, improve duty/sweep/noise percussion controls. |
+| 3 | Game Boy / DMG | 9 | Current code is internal clean-room. SameBoy needs file-level audit before extraction; FigBug/PAPU remains GPL reference-only. | Expose pulse duty/sweep, Wave RAM shape/level, NR51 stereo route, and noise width/clock as chip-native controls. |
+| 4 | YM2149 / AY | 8 | Current code is internal clean-room; permissive candidates exist in the source map and must be audited before reuse. | Improve A/B/C mixer rows, hardware envelope shape visualization, fake-chord/arpeggio controls, and shared noise clarity. |
+| 5 | SN76489 / Sega PSG | 8 | Current code is internal clean-room; permissive and LGPL-sensitive references are tracked separately. | Improve tone/noise channel cards, attenuation/noise mode controls, and arcade/Sega preset vocabulary. |
+| 6 | YM2612 / OPN2 and OPL2/OPL3 | 8 | Do not start VST UI exposure until an FM core license plan is chosen and documented. | Use a real operator/algorithm UI with envelope visuals instead of generic oscillator controls. |
+
+## Open-Source Decision Gate
+
+Chipper can be open sourced, but the project license should be chosen before importing GPL/LGPL code. Until that decision is made:
+
+- Keep current clean-room cores and permissive candidates as the preferred implementation path.
+- Treat GPL-family projects, including large tracker references, as behavior/UX/reference material only.
+- Treat LGPL candidates as possible future integrations only after deciding dynamic/static linking, relinkability, source distribution, attribution, and commercial distribution obligations.
+- Add exact upstream URL, revision, license file, and file-level audit notes to `THIRD_PARTY_NOTICES.md` before any code, lookup table, preset dump, sample, or derived asset enters the repo.
+
 ## Current Execution Rule
 
 Each completed development slice should:

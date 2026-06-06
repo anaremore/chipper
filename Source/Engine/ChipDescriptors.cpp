@@ -148,6 +148,20 @@ ChipParameterSpec stereoSpreadSpec(std::string id, std::string help)
     return { ChipParameterRole::stereoSpread, id, "Stereo Spread", "Output", help, ParameterKind::continuous, ControlSurface::slider, {}, 0.0f, 1.0f, 0.0f };
 }
 
+AccuracyDisclosure verifiedPartial(std::initializer_list<std::string> verifiedBehaviors,
+                                   std::initializer_list<std::string> knownGaps)
+{
+    return {
+        "Verified partial",
+        "Automated renderer regression coverage backs this partial clean-room register-level model.",
+        "CMake renderer tests assert descriptor metadata, register-derived debug JSON, source gating, preset snapshots, and MIDI CC mappings for the implemented behavior.",
+        std::vector<std::string>(verifiedBehaviors),
+        std::vector<std::string>(knownGaps),
+        false,
+        false
+    };
+}
+
 ChipParameterSpec envelopeSpec(std::string id, std::string label, std::string help)
 {
     return { ChipParameterRole::envelopeDecay, id, label, "Envelope", help, ParameterKind::chipRegister, ControlSurface::slider, {}, 0.0f, 1.0f, 0.0f };
@@ -787,7 +801,15 @@ const std::vector<ChipDescriptor>& descriptors()
             nesMacros(),
             true,
             true,
-            nesParameterSpecs()
+            nesParameterSpecs(),
+            verifiedPartial(
+                {
+                    "Pulse duty choices, pulse-2 duty override, sweep add/negate/mute paths, triangle linear counter behavior, noise mode/period controls, DMC direct level, frame-counter register paths, source gating, Chip Poly, presets, and MIDI CC metadata are covered by renderer tests."
+                },
+                {
+                    "DMC sample playback is not complete.",
+                    "Exact frame-sequencer cycle timing, hardware capture comparison, and cycle accuracy are not claimed."
+                })
         },
         {
             ChipMode::dmg,
@@ -803,7 +825,15 @@ const std::vector<ChipDescriptor>& descriptors()
             dmgMacros(),
             true,
             true,
-            dmgParameterSpecs()
+            dmgParameterSpecs(),
+            verifiedPartial(
+                {
+                    "Pulse duty, sweep shift/overflow, wave RAM shape/level, envelope level/decay, noise width/clock edge cases, NR52 status bits, NR51 stereo routing, source gating, Chip Poly, presets, and MIDI CC metadata are covered by renderer tests."
+                },
+                {
+                    "Exact DMG power-up behavior, all length-counter edge cases, hardware capture comparison, and cycle accuracy are not claimed.",
+                    "CGB-specific differences remain planned."
+                })
         },
         {
             ChipMode::sid,
@@ -819,7 +849,14 @@ const std::vector<ChipDescriptor>& descriptors()
             sidMacros(),
             true,
             true,
-            sidParameterSpecs()
+            sidParameterSpecs(),
+            verifiedPartial(
+                {
+                    "Voice waveform bits, per-voice waveform overrides, pulse-width register mapping, source gating, Chip Poly, sync/ring control bits, ADSR nibble overrides, filter mode/routing/resonance, 6581/8580 profile selection, presets, and MIDI CC metadata are covered by renderer tests."
+                },
+                {
+                    "Exact 6581/8580 analog filter behavior, ADSR bugs, oscillator sync/ring timing, waveform-combination quirks, external input, DAC nonlinearity, hardware capture comparison, and cycle accuracy are not claimed."
+                })
         },
         {
             ChipMode::ym2149,
@@ -835,7 +872,14 @@ const std::vector<ChipDescriptor>& descriptors()
             ym2149Macros(),
             true,
             true,
-            ym2149ParameterSpecs()
+            ym2149ParameterSpecs(),
+            verifiedPartial(
+                {
+                    "Three tone channels, shared noise period, register-7 tone/noise mixer bits, per-channel mixer overrides, envelope shape/speed/reset behavior, volume curve, source gating, Chip Poly, presets, and MIDI CC metadata are covered by renderer tests."
+                },
+                {
+                    "Chip-variant analog output differences, all envelope edge cases, hardware capture comparison, and cycle accuracy are not claimed."
+                })
         },
         {
             ChipMode::sn76489,
@@ -851,7 +895,14 @@ const std::vector<ChipDescriptor>& descriptors()
             sn76489Macros(),
             true,
             true,
-            sn76489ParameterSpecs()
+            sn76489ParameterSpecs(),
+            verifiedPartial(
+                {
+                    "Latch/register write behavior, tone period 0/1 edge cases, volume data writes, noise modes including Tone-3-clocked noise, noise attenuation, source gating, Chip Poly, presets, and MIDI CC metadata are covered by renderer tests."
+                },
+                {
+                    "Console-specific output coloration, hardware capture comparison, and cycle accuracy are not claimed."
+                })
         },
         {
             ChipMode::ym2612,

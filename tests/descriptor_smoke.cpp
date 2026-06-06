@@ -55,6 +55,18 @@ bool expectSpec(chipper::ChipMode mode,
     return ok;
 }
 
+bool expectSpecGroup(chipper::ChipMode mode, chipper::ChipParameterRole role, const std::string& group)
+{
+    const auto* spec = chipper::parameterSpecFor(mode, role);
+    bool ok = true;
+    ok &= expect(spec != nullptr, "missing parameter spec");
+    if (spec == nullptr)
+        return false;
+
+    ok &= expect(spec->group == group, spec->id + " should stay in the " + group + " group");
+    return ok;
+}
+
 bool expectMacroSourceMask(chipper::ChipMode mode, chipper::MacroKind macro, std::array<bool, 4> expected)
 {
     const auto& templ = chipper::macroTemplateFor(mode, macro);
@@ -138,6 +150,37 @@ bool expectLiveSourceLevelSpecs()
     return ok;
 }
 
+bool expectVerificationDisclosure()
+{
+    bool ok = true;
+
+    constexpr std::array liveModes {
+        chipper::ChipMode::nes,
+        chipper::ChipMode::dmg,
+        chipper::ChipMode::sid,
+        chipper::ChipMode::ym2149,
+        chipper::ChipMode::sn76489
+    };
+
+    for (const auto mode : liveModes)
+    {
+        const auto& disclosure = chipper::descriptorFor(mode).verification;
+        ok &= expect(disclosure.badge == "Verified partial", "live chip should disclose verified partial status");
+        ok &= expect(! disclosure.summary.empty(), "live chip verification summary should not be empty");
+        ok &= expect(! disclosure.evidence.empty(), "live chip verification evidence should not be empty");
+        ok &= expect(! disclosure.verifiedBehaviors.empty(), "live chip should list verified behavior");
+        ok &= expect(! disclosure.knownGaps.empty(), "live chip should list known gaps");
+        ok &= expect(! disclosure.hardwareValidated, "live chip should not claim hardware validation yet");
+        ok &= expect(! disclosure.cycleAccurate, "live chip should not claim cycle accuracy yet");
+    }
+
+    const auto& planned = chipper::descriptorFor(chipper::ChipMode::ym2612).verification;
+    ok &= expect(planned.badge == "Unverified planned", "planned chip should disclose unverified status");
+    ok &= expect(! planned.cycleAccurate, "planned chip should not claim cycle accuracy");
+
+    return ok;
+}
+
 } // namespace
 
 int main()
@@ -173,6 +216,7 @@ int main()
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Envelope Level");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Pulse Width");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Cutoff");
+    ok &= expectSpecGroup(chipper::ChipMode::sid, chipper::ChipParameterRole::macroControl3, "Filter");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Sustain");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::envelopeDecay, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "ADSR Speed");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::sidAttack, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "V1 Attack");
@@ -190,7 +234,9 @@ int main()
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::sidVoice2WaveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Voice 2 Wave");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::sidVoice3WaveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Voice 3 Wave");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::stereoSpread, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Resonance");
+    ok &= expectSpecGroup(chipper::ChipMode::sid, chipper::ChipParameterRole::stereoSpread, "Filter");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::sidFilterRouting, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Filter Routing");
+    ok &= expectSpecGroup(chipper::ChipMode::sid, chipper::ChipParameterRole::sidFilterRouting, "Filter");
     if (const auto* spec = chipper::parameterSpecFor(chipper::ChipMode::sid, chipper::ChipParameterRole::sidFilterRouting))
         ok &= expect(spec->choices.size() == 9u, "SID filter routing should expose nine choices");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "SID Model");
@@ -231,6 +277,7 @@ int main()
                  "SID should not expose a fourth voice source card yet");
     ok &= expectLiveSourceLevelSpecs();
     ok &= expectAutomatableDescriptorParametersHaveMidiCc();
+    ok &= expectVerificationDisclosure();
 
     return ok ? 0 : 1;
 }
