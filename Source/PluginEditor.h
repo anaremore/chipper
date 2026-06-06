@@ -99,6 +99,7 @@ private:
     juce::String snStackReadout(float value) const;
     juce::String snMotionReadout(float value) const;
     juce::String snLevelReadout(float value) const;
+    juce::String sourceLevelReadout(size_t index) const;
     bool usesSourceChannelSurface(chipper::ChipMode mode) const;
     bool usesEnvelopeDecayControl(chipper::ChipMode mode) const;
     void setSourceChannelSurfaceVisible(chipper::ChipMode mode, bool shouldBeVisible);
@@ -152,6 +153,7 @@ private:
     std::array<juce::TextButton, snNoiseModeCount> snNoiseModeButtons;
     std::array<juce::TextButton, toneNoiseMixCount> toneNoiseMixButtons;
     std::array<juce::Slider, sourceChannelCount> sourceLevelSliders;
+    std::array<juce::Label, sourceChannelCount> sourceLevelValueLabels;
 
     juce::ComboBox chipModeBox;
     juce::ComboBox accuracyBox;

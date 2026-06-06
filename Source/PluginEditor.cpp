@@ -552,6 +552,15 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         slider.setVisible(false);
         addAndMakeVisible(slider);
         sourceLevelAttachments[i] = std::make_unique<SliderAttachment>(state, sourceLevelIds[i], slider);
+
+        auto& valueLabel = sourceLevelValueLabels[i];
+        valueLabel.setJustificationType(juce::Justification::centred);
+        valueLabel.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+        valueLabel.setFont(juce::FontOptions(10.0f));
+        valueLabel.setMinimumHorizontalScale(0.70f);
+        valueLabel.setTooltip(withMidiCc("Source level trim.", sourceLevelIds[i]));
+        valueLabel.setVisible(false);
+        addAndMakeVisible(valueLabel);
     }
 
     globalStripLabel.setText("Global Performance Controls", juce::dontSendNotification);
@@ -686,22 +695,22 @@ void ChipperAudioProcessorEditor::resized()
     sourcePanel.removeFromTop(30);
     sourcePanel.removeFromTop(4);
     const auto sourceGap = 6;
-    const auto sourceCardWidth = (sourcePanel.getWidth() - sourceGap) / 2;
-    const auto sourceCardHeight = (sourcePanel.getHeight() - sourceGap) / 2;
+    const auto sourceCardWidth = (sourcePanel.getWidth() - (sourceGap * static_cast<int>(sourceChannelBounds.size() - 1u))) / static_cast<int>(sourceChannelBounds.size());
+    const auto sourceCardHeight = sourcePanel.getHeight();
     for (size_t i = 0; i < sourceChannelBounds.size(); ++i)
     {
-        const auto row = static_cast<int>(i / 2);
-        const auto column = static_cast<int>(i % 2);
         sourceChannelBounds[i] = {
-            sourcePanel.getX() + (column * (sourceCardWidth + sourceGap)),
-            sourcePanel.getY() + (row * (sourceCardHeight + sourceGap)),
+            sourcePanel.getX() + (static_cast<int>(i) * (sourceCardWidth + sourceGap)),
+            sourcePanel.getY(),
             sourceCardWidth,
             sourceCardHeight
         };
-        auto sourceCard = sourceChannelBounds[i].reduced(8, 2);
-        sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(20, sourceCard.getHeight())));
+        auto sourceCard = sourceChannelBounds[i].reduced(8, 4);
+        sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(18, sourceCard.getHeight())));
         sourceCard.removeFromTop(2);
         sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(14, sourceCard.getHeight())).reduced(0, 1));
+        sourceCard.removeFromTop(1);
+        sourceLevelValueLabels[i].setBounds(sourceCard.removeFromTop(std::min(12, sourceCard.getHeight())));
     }
 
     auto tonePanel = moduleBounds[2].reduced(12, 9);
@@ -1474,6 +1483,37 @@ juce::String ChipperAudioProcessorEditor::snLevelReadout(float value) const
     return attenuationText + juce::String(", -") + juce::String(static_cast<int>(attenuation) * 2) + " dB";
 }
 
+juce::String ChipperAudioProcessorEditor::sourceLevelReadout(size_t index) const
+{
+    static constexpr std::array<const char*, sourceChannelCount> sourceIds {
+        chipper::parameters::id::source1Enabled,
+        chipper::parameters::id::source2Enabled,
+        chipper::parameters::id::source3Enabled,
+        chipper::parameters::id::source4Enabled
+    };
+    static constexpr std::array<const char*, sourceChannelCount> sourceLevelIds {
+        chipper::parameters::id::source1Level,
+        chipper::parameters::id::source2Level,
+        chipper::parameters::id::source3Level,
+        chipper::parameters::id::source4Level
+    };
+
+    const auto safeIndex = std::min(index, sourceLevelIds.size() - 1u);
+    const auto enabled = parameterValue(sourceIds[safeIndex]) >= 0.5f;
+    const auto level = std::clamp(parameterValue(sourceLevelIds[safeIndex]), 0.0f, 1.0f);
+    const auto percent = static_cast<int>(std::round(level * 100.0f));
+
+    juce::String text;
+    if (! enabled)
+        text = "Off / ";
+
+    if (level <= 0.0001f)
+        return text + "0% / silent";
+
+    const auto db = 20.0f * std::log10(level);
+    return text + juce::String(percent) + "% / " + (std::abs(db) < 0.05f ? juce::String("0 dB") : juce::String(db, 1) + " dB");
+}
+
 bool ChipperAudioProcessorEditor::usesSourceChannelSurface(chipper::ChipMode mode) const
 {
     return chipper::chipHasParameterSurface(mode,
@@ -1495,6 +1535,8 @@ void ChipperAudioProcessorEditor::setSourceChannelSurfaceVisible(chipper::ChipMo
         channelButton.setVisible(active);
     for (auto& sourceSlider : sourceLevelSliders)
         sourceSlider.setVisible(active);
+    for (auto& sourceLabel : sourceLevelValueLabels)
+        sourceLabel.setVisible(active);
 
     for (auto& itemLabel : moduleItemLabels[1])
         itemLabel.setVisible(! active && ! itemLabel.getText().isEmpty());
@@ -1664,16 +1706,21 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
 
     for (size_t i = 0; i < sourceChannelButtons.size(); ++i)
     {
-        sourceChannelButtons[i].setButtonText((*labels)[i]);
-        if (const auto* spec = chipper::parameterSpecFor(mode, sourceRole(i)))
+        const auto* spec = chipper::parameterSpecFor(mode, sourceRole(i));
+        const auto* levelSpec = chipper::parameterSpecFor(mode, sourceLevelRole(i));
+        sourceChannelButtons[i].setButtonText(spec != nullptr ? spec->label : (*labels)[i]);
+        if (spec != nullptr)
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(juce::String(spec->label) + ": " + juce::String(spec->help), sourceRole(i)));
         else
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(juce::String("Enable or mute ") + (*labels)[i], sourceRole(i)));
 
-        if (const auto* levelSpec = chipper::parameterSpecFor(mode, sourceLevelRole(i)))
+        if (levelSpec != nullptr)
             sourceLevelSliders[i].setTooltip(withMidiCcForRole(juce::String(levelSpec->label) + ": " + juce::String(levelSpec->help), sourceLevelRole(i)));
         else
             sourceLevelSliders[i].setTooltip(withMidiCcForRole(juce::String("Trim level for ") + (*labels)[i], sourceLevelRole(i)));
+
+        sourceLevelValueLabels[i].setTooltip(sourceLevelSliders[i].getTooltip());
+        sourceLevelValueLabels[i].setText(sourceLevelReadout(i), juce::dontSendNotification);
     }
 }
 

@@ -92,6 +92,45 @@ bool expectAutomatableDescriptorParametersHaveMidiCc()
     return ok;
 }
 
+bool expectLiveSourceLevelSpecs()
+{
+    bool ok = true;
+    constexpr std::array liveModes {
+        chipper::ChipMode::nes,
+        chipper::ChipMode::dmg,
+        chipper::ChipMode::ym2149,
+        chipper::ChipMode::sn76489
+    };
+    constexpr std::array sourceLevelRoles {
+        chipper::ChipParameterRole::source1Level,
+        chipper::ChipParameterRole::source2Level,
+        chipper::ChipParameterRole::source3Level,
+        chipper::ChipParameterRole::source4Level
+    };
+
+    for (const auto mode : liveModes)
+    {
+        for (const auto role : sourceLevelRoles)
+        {
+            const auto* spec = chipper::parameterSpecFor(mode, role);
+            ok &= expect(spec != nullptr, "live chip missing source level spec");
+            if (spec == nullptr)
+                continue;
+
+            ok &= expect(spec->kind == chipper::ParameterKind::continuous, spec->id + " should be a continuous trim");
+            ok &= expect(spec->surface == chipper::ControlSurface::slider, spec->id + " should use a slider surface");
+            ok &= expect(spec->group == "Sources", spec->id + " should stay in the Sources group");
+
+            const auto* parameterId = chipper::parameterIdForChipParameterRole(role);
+            ok &= expect(parameterId != nullptr, spec->id + " has no APVTS parameter id");
+            if (parameterId != nullptr)
+                ok &= expect(chipper::midiControllerForParameterId(parameterId) >= 0, spec->id + " has no MIDI CC mapping");
+        }
+    }
+
+    return ok;
+}
+
 } // namespace
 
 int main()
@@ -141,6 +180,7 @@ int main()
                                                     chipper::ChipParameterRole::source1Enabled,
                                                     chipper::ControlSurface::sourceCards),
                  "planned SID should not expose live source cards yet");
+    ok &= expectLiveSourceLevelSpecs();
     ok &= expectAutomatableDescriptorParametersHaveMidiCc();
 
     return ok ? 0 : 1;
