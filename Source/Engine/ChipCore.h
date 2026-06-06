@@ -73,6 +73,7 @@ struct PatchConfig
     float envelopeDecay = 0.0f;
     int waveShape = 0;
     int ymEnvelopeShape = 0;
+    int snNoiseMode = 0;
 };
 
 struct StereoFrame

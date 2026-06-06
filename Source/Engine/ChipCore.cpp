@@ -1,4 +1,5 @@
 #include "Engine/ChipCore.h"
+#include "Engine/ChipDescriptors.h"
 
 #include <algorithm>
 #include <cctype>
@@ -2438,7 +2439,6 @@ public:
         auto note1 = midiNote + std::max(1, spread / 2);
         auto note2 = midiNote + std::max(2, spread);
         auto noiseAttenuation = static_cast<uint8_t>(std::clamp(static_cast<int>(15 - std::round(patch.control4 * 13.0f)), 0, 15));
-        auto noise = 0x03u;
 
         switch (patch.macro)
         {
@@ -2463,18 +2463,15 @@ public:
                 note0 = midiNote - 24;
                 note1 = midiNote - 12;
                 note2 = midiNote;
-                noise = patch.control3 > 0.5f ? 0x04u : 0x00u;
                 noiseAttenuation = 0x02u;
                 attenuation = { 0x0f, 0x0f, 0x0f, noiseAttenuation };
                 break;
             case MacroKind::hit:
-                noise = 0x04u | static_cast<unsigned>(std::round(patch.control3 * 2.0f));
                 attenuation = { 0x04, 0x0f, 0x0f, 0x03 };
                 break;
             case MacroKind::laser:
                 note0 = midiNote + 12 + static_cast<int>(std::round(patch.control2 * 12.0f));
                 note1 = midiNote - 12;
-                noise = 0x04u | static_cast<unsigned>(std::round(patch.control3 * 2.0f));
                 attenuation = { 0x01, 0x09, 0x0f, noiseAttenuation };
                 break;
             case MacroKind::jump:
@@ -2490,14 +2487,13 @@ public:
             case MacroKind::manual:
             default:
                 attenuation = { 0x02, 0x07, 0x09, noiseAttenuation };
-                noise = patch.control3 > 0.66f ? 0x04u : 0x03u;
                 break;
         }
 
         tonePeriod[0] = notePeriod(note0);
         tonePeriod[1] = notePeriod(note1);
         tonePeriod[2] = notePeriod(note2);
-        noiseControl = static_cast<uint8_t>(noise & 0x07u);
+        noiseControl = sn76489NoiseControlForPatch(patch);
     }
 
     void noteOff(int midiNote) override
@@ -2569,6 +2565,11 @@ public:
              << "\"period0\":" << tonePeriod[0] << ","
              << "\"period1\":" << tonePeriod[1] << ","
              << "\"period2\":" << tonePeriod[2] << ","
+             << "\"noiseControl\":" << static_cast<int>(noiseControl) << ","
+             << "\"noiseModeChoice\":" << std::clamp(patch.snNoiseMode, 0, 4) << ","
+             << "\"noiseWhite\":" << (((noiseControl & 0x04u) != 0) ? 1 : 0) << ","
+             << "\"noiseRate\":" << static_cast<int>(noiseControl & 0x03u) << ","
+             << "\"attenuationNoise\":" << static_cast<int>(attenuation[3]) << ","
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNote0\":" << channelNotes[0] << ","
              << "\"assignedNote1\":" << channelNotes[1] << ","

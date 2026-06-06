@@ -5,6 +5,7 @@
 #include "PluginProcessor.h"
 
 #include <array>
+#include <cstdint>
 
 class ChipperAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                           private juce::Timer
@@ -23,6 +24,7 @@ private:
     static constexpr size_t liveControlCount = 6;
     static constexpr size_t waveShapeCount = 5;
     static constexpr size_t ymEnvelopeShapeCount = 5;
+    static constexpr size_t snNoiseModeCount = 5;
 
     void timerCallback() override;
     void updateDescriptorText();
@@ -38,31 +40,48 @@ private:
     void placePulseDutySegment(juce::Rectangle<int> bounds);
     void placeWaveShapeSegment(juce::Rectangle<int> bounds);
     void placeYmEnvelopeShapeSegment(juce::Rectangle<int> bounds);
+    void placeSnNoiseModeSegment(juce::Rectangle<int> bounds);
     float parameterValue(const char* parameterId) const;
     void setParameterValueFromUi(const char* parameterId, float plainValue);
     void setChoiceParameterFromUi(const char* parameterId, int choiceIndex);
+    chipper::PatchConfig currentUiPatch(chipper::ChipMode mode,
+                                         float control1,
+                                         float control2,
+                                         float control3,
+                                         float control4,
+                                         int waveShape,
+                                         int ymEnvelopeShape,
+                                         int snNoiseMode) const;
     bool usesPulseDutySegment(chipper::ChipMode mode) const;
     bool usesWaveShapeSegment(chipper::ChipMode mode) const;
     bool usesYmEnvelopeShapeSegment(chipper::ChipMode mode) const;
+    bool usesSnNoiseModeSegment(chipper::ChipMode mode) const;
     juce::String pulseDutyReadout(chipper::ChipMode mode, float value) const;
     juce::String waveShapeReadout(int choice) const;
     juce::String ymEnvelopeShapeReadout(int choice) const;
+    juce::String snNoiseModeReadout(const chipper::PatchConfig& patch) const;
+    juce::String snNoiseRegisterLabel(uint8_t noiseControl) const;
     juce::String nesSweepReadout(float value) const;
     juce::String nesNoiseReadout(float value) const;
     juce::String nesFocusReadout(float value) const;
     juce::String dmgSweepReadout(float value) const;
     juce::String dmgNoiseReadout(float value) const;
     juce::String dmgEnvelopeReadout(float value) const;
+    juce::String snStackReadout(float value) const;
+    juce::String snMotionReadout(float value) const;
+    juce::String snLevelReadout(float value) const;
     bool usesSourceChannelSurface(chipper::ChipMode mode) const;
     bool usesEnvelopeDecayControl(chipper::ChipMode mode) const;
     void setSourceChannelSurfaceVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setWaveShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setYmEnvelopeShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
+    void setSnNoiseModeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setEnvelopeDecayControlVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void updateSourceChannelButtons(chipper::ChipMode mode);
     void updatePulseDutyButtons(float value, bool shouldBeVisible);
     void updateWaveShapeButtons(int choice, bool shouldBeVisible);
     void updateYmEnvelopeShapeButtons(int choice, bool shouldBeVisible);
+    void updateSnNoiseModeButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateEnvelopeDecayReadout(chipper::ChipMode mode);
     juce::String envelopeDecayReadout(chipper::ChipMode mode, float value) const;
 
@@ -81,6 +100,8 @@ private:
     juce::Label waveShapeValueLabel;
     juce::Label ymEnvelopeShapeLabel;
     juce::Label ymEnvelopeShapeValueLabel;
+    juce::Label snNoiseModeLabel;
+    juce::Label snNoiseModeValueLabel;
     std::array<juce::Label, 4> headerControlLabels;
     std::array<juce::Label, uiModuleCount> moduleNumberLabels;
     std::array<juce::Label, uiModuleCount> moduleTitleLabels;
@@ -91,6 +112,7 @@ private:
     std::array<juce::TextButton, 4> pulseDutyButtons;
     std::array<juce::TextButton, waveShapeCount> waveShapeButtons;
     std::array<juce::TextButton, ymEnvelopeShapeCount> ymEnvelopeShapeButtons;
+    std::array<juce::TextButton, snNoiseModeCount> snNoiseModeButtons;
 
     juce::ComboBox chipModeBox;
     juce::ComboBox accuracyBox;
@@ -125,6 +147,7 @@ private:
     juce::Rectangle<int> pulseDutySegmentBounds;
     juce::Rectangle<int> waveShapeSegmentBounds;
     juce::Rectangle<int> ymEnvelopeShapeSegmentBounds;
+    juce::Rectangle<int> snNoiseModeSegmentBounds;
     juce::Rectangle<int> globalStripBounds;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipperAudioProcessorEditor)

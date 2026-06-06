@@ -1,6 +1,7 @@
 #include "Engine/ChipDescriptors.h"
 
 #include <algorithm>
+#include <cmath>
 #include <initializer_list>
 
 namespace chipper
@@ -21,6 +22,22 @@ std::vector<MacroTemplate> commonMacros()
         { MacroKind::laser, "Laser", "Pitch drop with bite.", { 0.25f, 1.00f, 0.35f, 0.95f } },
         { MacroKind::jump, "Jump", "Rising blip.", { 0.25f, 0.70f, 0.05f, 0.80f } },
         { MacroKind::powerUp, "Power-Up", "Longer optimistic rise.", { 0.70f, 0.90f, 0.20f, 0.90f } },
+    };
+}
+
+std::vector<MacroTemplate> sn76489Macros()
+{
+    return {
+        { MacroKind::manual, "Manual", "Neutral PSG tone/noise mapping.", { 0.5f, 0.5f, 0.5f, 0.5f } },
+        { MacroKind::coin, "PSG Coin", "Bright tone-only arcade pop.", { 0.15f, 0.90f, 0.10f, 0.15f } },
+        { MacroKind::bass, "PSG Bass", "Low tone stack with muted noise.", { 0.35f, 0.20f, 0.10f, 0.20f } },
+        { MacroKind::lead, "PSG Lead", "Forward square lead across tone channels.", { 0.50f, 0.45f, 0.20f, 0.35f } },
+        { MacroKind::arp, "PSG Arp", "Three-tone fake chord spread.", { 0.75f, 0.75f, 0.15f, 0.30f } },
+        { MacroKind::drum, "PSG Drum", "Noise-channel percussion register setup.", { 0.20f, 0.15f, 0.80f, 1.00f } },
+        { MacroKind::hit, "PSG Hit", "Short noisy impact with tone accent.", { 0.25f, 0.30f, 0.75f, 0.95f } },
+        { MacroKind::laser, "PSG Laser", "Pitch motion with white-noise bite.", { 0.20f, 1.00f, 0.60f, 0.95f } },
+        { MacroKind::jump, "PSG Jump", "Rising tone blip with noise muted.", { 0.20f, 0.70f, 0.05f, 0.15f } },
+        { MacroKind::powerUp, "PSG Power-Up", "Wide triumphant tone stack.", { 0.85f, 0.90f, 0.20f, 0.25f } },
     };
 }
 
@@ -217,11 +234,11 @@ const std::vector<ChipDescriptor>& descriptors()
             {
                 { "stack", "Tone Stack", "Channels", "Sets interval spread across the three tone channels." },
                 { "motion", "Pitch Motion", "Pitch", "Scales macro pitch movement." },
-                { "noise", "Noise Mode", "Noise", "Moves between periodic and white-noise behaviors." },
+                { "noise", "Noise Bias", "Noise", "Biases the macro-selected noise register. Explicit SN Noise Mode choices override it." },
                 { "level", "Noise Level", "Mixer", "Balances the noise channel against tone channels." },
             },
             sn76489Modules(),
-            commonMacros(),
+            sn76489Macros(),
             true,
             true
         },
@@ -445,7 +462,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             std::array<bool, 4> sourceEnabled,
                             float envelopeDecay,
                             int waveShape,
-                            int ymEnvelopeShape)
+                            int ymEnvelopeShape,
+                            int snNoiseMode)
 {
     const auto& templ = macroTemplateFor(mode, macro);
     const auto blend = [](float templated, float user)
@@ -468,8 +486,36 @@ PatchConfig makePatchConfig(ChipMode mode,
         sourceEnabled,
         clampControl(envelopeDecay),
         std::clamp(waveShape, 0, 4),
-        std::clamp(ymEnvelopeShape, 0, 4)
+        std::clamp(ymEnvelopeShape, 0, 4),
+        std::clamp(snNoiseMode, 0, 4)
     };
+}
+
+uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch)
+{
+    switch (std::clamp(patch.snNoiseMode, 0, 4))
+    {
+        case 1: return 0x00u;
+        case 2: return 0x02u;
+        case 3: return 0x04u;
+        case 4: return 0x07u;
+        case 0:
+        default:
+            break;
+    }
+
+    switch (patch.macro)
+    {
+        case MacroKind::drum:
+            return patch.control3 > 0.5f ? 0x04u : 0x00u;
+        case MacroKind::hit:
+        case MacroKind::laser:
+            return static_cast<uint8_t>(0x04u | static_cast<unsigned>(std::round(patch.control3 * 2.0f)));
+        case MacroKind::lead:
+        case MacroKind::manual:
+        default:
+            return patch.control3 > 0.66f ? 0x04u : 0x03u;
+    }
 }
 
 } // namespace chipper

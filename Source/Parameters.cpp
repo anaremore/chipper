@@ -51,6 +51,11 @@ juce::StringArray ymEnvelopeShapeChoices()
     return { "Fixed", "Fall", "Rise", "Saw", "Triangle" };
 }
 
+juce::StringArray snNoiseModeChoices()
+{
+    return { "Macro", "Periodic Lo", "Periodic Hi", "White Lo", "White T3" };
+}
+
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
@@ -151,6 +156,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::ParameterID { id::ymEnvelopeShape, 1 },
         "YM Envelope Shape",
         ymEnvelopeShapeChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::snNoiseMode, 1 },
+        "SN76489 Noise Mode",
+        snNoiseModeChoices(),
         0));
 
     return { params.begin(), params.end() };
