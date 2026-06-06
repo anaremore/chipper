@@ -44,6 +44,7 @@ private:
     float parameterValue(const char* parameterId) const;
     void setParameterValueFromUi(const char* parameterId, float plainValue);
     void setChoiceParameterFromUi(const char* parameterId, int choiceIndex);
+    void updateMacroChoices(chipper::ChipMode mode);
     chipper::PatchConfig currentUiPatch(chipper::ChipMode mode,
                                          float control1,
                                          float control2,
@@ -56,6 +57,7 @@ private:
     bool usesWaveShapeSegment(chipper::ChipMode mode) const;
     bool usesYmEnvelopeShapeSegment(chipper::ChipMode mode) const;
     bool usesSnNoiseModeSegment(chipper::ChipMode mode) const;
+    juce::String macroTemplateReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String pulseDutyReadout(chipper::ChipMode mode, float value) const;
     juce::String waveShapeReadout(int choice) const;
     juce::String ymEnvelopeShapeReadout(int choice) const;
@@ -67,6 +69,10 @@ private:
     juce::String dmgSweepReadout(float value) const;
     juce::String dmgNoiseReadout(float value) const;
     juce::String dmgEnvelopeReadout(float value) const;
+    juce::String ymSpreadReadout(float value) const;
+    juce::String ymMotionReadout(float value) const;
+    juce::String ymNoiseReadout(float value) const;
+    juce::String ymToneNoiseReadout(float value) const;
     juce::String snStackReadout(float value) const;
     juce::String snMotionReadout(float value) const;
     juce::String snLevelReadout(float value) const;
@@ -90,6 +96,7 @@ private:
     juce::Label statusLabel;
     juce::Label buildLabel;
     juce::Label chipSummaryLabel;
+    juce::Label macroSummaryLabel;
     juce::Label coreReadinessLabel;
     juce::Label globalStripLabel;
     juce::Label clockLabel;

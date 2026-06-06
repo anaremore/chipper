@@ -304,6 +304,12 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     globalStripLabel.setFont(juce::FontOptions(14.0f, juce::Font::bold));
     addAndMakeVisible(globalStripLabel);
 
+    macroSummaryLabel.setJustificationType(juce::Justification::centredLeft);
+    macroSummaryLabel.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+    macroSummaryLabel.setFont(juce::FontOptions(12.0f));
+    macroSummaryLabel.setMinimumHorizontalScale(0.60f);
+    addAndMakeVisible(macroSummaryLabel);
+
     updateDescriptorText();
     updateLiveControlReadouts();
     startTimerHz(8);
@@ -456,7 +462,10 @@ void ChipperAudioProcessorEditor::resized()
     area.removeFromTop(12);
     globalStripBounds = area.removeFromTop(190);
     auto strip = globalStripBounds.reduced(12, 8);
-    globalStripLabel.setBounds(strip.removeFromTop(20));
+    auto stripHeader = strip.removeFromTop(20);
+    globalStripLabel.setBounds(stripHeader.removeFromLeft(160));
+    stripHeader.removeFromLeft(10);
+    macroSummaryLabel.setBounds(stripHeader);
     strip.removeFromTop(4);
 
     const auto controlGap = 10;
@@ -647,6 +656,24 @@ void ChipperAudioProcessorEditor::setChoiceParameterFromUi(const char* parameter
     }
 }
 
+void ChipperAudioProcessorEditor::updateMacroChoices(chipper::ChipMode mode)
+{
+    const auto order = chipper::macroOrder();
+    const auto selected = std::clamp(static_cast<int>(std::round(parameterValue(chipper::parameters::id::macro))),
+                                     0,
+                                     static_cast<int>(order.size() - 1u));
+
+    macroBox.clear(juce::dontSendNotification);
+    for (size_t i = 0; i < order.size(); ++i)
+    {
+        const auto& templ = chipper::macroTemplateFor(mode, order[i]);
+        const auto label = templ.label.empty() ? juce::String(chipper::toString(order[i])) : juce::String(templ.label);
+        macroBox.addItem(label, static_cast<int>(i + 1u));
+    }
+
+    macroBox.setSelectedItemIndex(selected, juce::dontSendNotification);
+}
+
 chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMode mode,
                                                                  float control1,
                                                                  float control2,
@@ -697,6 +724,29 @@ bool ChipperAudioProcessorEditor::usesYmEnvelopeShapeSegment(chipper::ChipMode m
 bool ChipperAudioProcessorEditor::usesSnNoiseModeSegment(chipper::ChipMode mode) const
 {
     return mode == chipper::ChipMode::sn76489;
+}
+
+juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
+{
+    const auto& templ = chipper::macroTemplateFor(mode, patch.macro);
+    const auto label = templ.label.empty() ? juce::String(chipper::toString(patch.macro)) : juce::String(templ.label);
+
+    if (! chipper::descriptorFor(mode).implemented)
+        return label + ": planned mapping";
+
+    if (mode == chipper::ChipMode::nes)
+        return label + " -> " + pulseDutyReadout(mode, patch.control1) + " | " + nesNoiseReadout(patch.control3) + " | " + nesFocusReadout(patch.control4);
+
+    if (mode == chipper::ChipMode::dmg)
+        return label + " -> " + pulseDutyReadout(mode, patch.control1) + " | " + dmgNoiseReadout(patch.control3) + " | " + dmgEnvelopeReadout(patch.control4);
+
+    if (mode == chipper::ChipMode::ym2149)
+        return label + " -> " + ymSpreadReadout(patch.control1) + " | " + ymNoiseReadout(patch.control3) + " | " + ymToneNoiseReadout(patch.control4);
+
+    if (mode == chipper::ChipMode::sn76489)
+        return label + " -> " + snStackReadout(patch.control1) + " | " + snNoiseModeReadout(patch) + " | " + snLevelReadout(patch.control4);
+
+    return label + ": " + juce::String(templ.help);
 }
 
 juce::String ChipperAudioProcessorEditor::pulseDutyReadout(chipper::ChipMode mode, float value) const
@@ -815,6 +865,36 @@ juce::String ChipperAudioProcessorEditor::dmgEnvelopeReadout(float value) const
 {
     const auto level = std::clamp(static_cast<int>(std::round(value * 15.0f)), 1, 15);
     return juce::String("Envelope start ") + juce::String(level) + "/15";
+}
+
+juce::String ChipperAudioProcessorEditor::ymSpreadReadout(float value) const
+{
+    const auto spread = std::clamp(static_cast<int>(std::round(value * 12.0f)), 0, 12);
+    return juce::String("A/B/C spread ") + juce::String(spread) + " semitones";
+}
+
+juce::String ChipperAudioProcessorEditor::ymMotionReadout(float value) const
+{
+    if (value < 0.25f)
+        return "Minimal pitch motion";
+    if (value < 0.65f)
+        return "Moderate pitch motion";
+    return "Wide arcade pitch motion";
+}
+
+juce::String ChipperAudioProcessorEditor::ymNoiseReadout(float value) const
+{
+    const auto period = std::clamp(static_cast<int>(std::round((1.0f - value) * 30.0f)) + 1, 1, 31);
+    return juce::String("Noise period ") + juce::String(period) + "/31";
+}
+
+juce::String ChipperAudioProcessorEditor::ymToneNoiseReadout(float value) const
+{
+    if (value < 0.33f)
+        return "Noise-only mixer bias";
+    if (value > 0.66f)
+        return "Tone+noise mixer bias";
+    return "Tone-only mixer bias";
 }
 
 juce::String ChipperAudioProcessorEditor::snStackReadout(float value) const
@@ -1058,6 +1138,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto hasLiveCore = descriptor.implemented;
     const auto supportsChipPoly = chipper::supportsPlayMode(mode, chipper::PlayMode::chipPoly);
 
+    updateMacroChoices(mode);
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
     coreReadinessLabel.setText(hasLiveCore ? "LIVE" : "PLANNED", juce::dontSendNotification);
     coreReadinessLabel.setTooltip(hasLiveCore
@@ -1066,6 +1147,9 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     coreReadinessLabel.setColour(juce::Label::textColourId, hasLiveCore ? juce::Colour(0xff101414) : juce::Colour(0xffd9e1e8));
     coreReadinessLabel.setColour(juce::Label::backgroundColourId, hasLiveCore ? juce::Colour(0xff56c7d8) : juce::Colour(0xff344047));
     globalStripLabel.setText(hasLiveCore ? "Live Chip Controls" : "Planned Control Surface", juce::dontSendNotification);
+    macroSummaryLabel.setVisible(hasLiveCore);
+    macroSummaryLabel.setEnabled(hasLiveCore);
+    macroSummaryLabel.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     accuracyBox.setEnabled(hasLiveCore);
     macroBox.setEnabled(hasLiveCore);
     playModeBox.setEnabled(hasLiveCore && supportsChipPoly);
@@ -1160,6 +1244,9 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto ymEnvelopeShape = static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape)));
     const auto snNoiseMode = static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode)));
     const auto patch = currentUiPatch(mode, macroControl1, macroControl2, macroControl3, macroControl4, waveShape, ymEnvelopeShape, snNoiseMode);
+    const auto macroText = macroTemplateReadout(mode, patch);
+    macroSummaryLabel.setText(macroText, juce::dontSendNotification);
+    macroBox.setTooltip(macroText);
 
     const auto hasPulseDutySegment = usesPulseDutySegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasWaveShapeSegment = usesWaveShapeSegment(mode) && chipper::descriptorFor(mode).implemented;
@@ -1188,6 +1275,13 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[2].setText(dmgNoiseReadout(patch.control3), juce::dontSendNotification);
         controlValueLabels[3].setText(dmgEnvelopeReadout(patch.control4), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
+    }
+    else if (mode == chipper::ChipMode::ym2149)
+    {
+        controlValueLabels[0].setText(ymSpreadReadout(patch.control1), juce::dontSendNotification);
+        controlValueLabels[1].setText(ymMotionReadout(patch.control2), juce::dontSendNotification);
+        controlValueLabels[2].setText(ymNoiseReadout(patch.control3), juce::dontSendNotification);
+        controlValueLabels[3].setText(ymToneNoiseReadout(patch.control4), juce::dontSendNotification);
     }
     else if (mode == chipper::ChipMode::sn76489)
     {
