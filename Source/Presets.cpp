@@ -228,7 +228,8 @@ const std::vector<PresetInfo>& presetCatalog()
             1,
             -9.0f,
             985248.0,
-            0.58f
+            0.58f,
+            1
         },
         {
             "sid-pwm-lead",
@@ -247,7 +248,8 @@ const std::vector<PresetInfo>& presetCatalog()
             1,
             -10.0f,
             985248.0,
-            0.36f
+            0.36f,
+            2
         },
         {
             "sid-robot-arp",
@@ -266,7 +268,8 @@ const std::vector<PresetInfo>& presetCatalog()
             1,
             -10.0f,
             985248.0,
-            0.42f
+            0.42f,
+            2
         },
         {
             "sid-noise-drum",
@@ -285,7 +288,8 @@ const std::vector<PresetInfo>& presetCatalog()
             1,
             -12.0f,
             985248.0,
-            0.18f
+            0.18f,
+            1
         },
         {
             "ym-three-voice-arp",

@@ -432,6 +432,17 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source1Level, "sid.voice1.level", "Voice 1 Level", "Modern trim for SID voice 1 after its envelope."),
         sourceLevelSpec(ChipParameterRole::source2Level, "sid.voice2.level", "Voice 2 Level", "Modern trim for SID voice 2 after its envelope."),
         sourceLevelSpec(ChipParameterRole::source3Level, "sid.voice3.level", "Voice 3 Level", "Modern trim for SID voice 3 after its envelope."),
+        segmentedSpec(ChipParameterRole::dmgStereoRoute,
+                      "sid.model",
+                      "SID Model",
+                      "Profile",
+                      "Selects the partial SID chip-variant profile used by Chipper's filter curve and output drive model. Macro resolves from the selected SID template.",
+                      {
+                          choice("Macro", "Resolve 6581/8580 from the selected SID macro.", 0.0f, 0),
+                          choice("6581", "Warmer, rougher 6581-style filter/output profile.", 0.25f, 1),
+                          choice("8580", "Cleaner, brighter 8580-style filter/output profile.", 0.5f, 2)
+                      },
+                      ParameterKind::chipRegister),
         envelopeSpec("sid.adsrSpeed", "ADSR Speed", "Maps musical envelope speed to SID attack/decay/release nibbles while Sustain uses the dedicated control."),
         segmentedSpec(ChipParameterRole::waveShape,
                       "sid.waveform",
@@ -546,7 +557,7 @@ std::array<ModuleDescriptor, 6> sn76489Modules()
 std::array<ModuleDescriptor, 6> sidModules()
 {
     return std::array<ModuleDescriptor, 6> {
-        makeModule("profile", "Profile", "SID clean-room voice-core groundwork.", { "6581/8580 variants planned", "PAL clock default", "Hybrid default", "Authentic still partial" }),
+        makeModule("profile", "Profile", "SID clean-room voice-core groundwork.", { "6581 / 8580 model", "PAL clock default", "Hybrid default", "Authentic still partial" }),
         makeModule("sources", "Voices", "Three SID oscillator voices.", { "Voice 1", "Voice 2", "Voice 3", "External input planned" }),
         makeModule("tone", "Wave / Filter", "Register-backed oscillator shape plus first-pass filter control.", { "Waveform bits", "Pulse width", "Filter mode", "Cutoff / resonance" }),
         makeModule("envelope", "Envelope", "SID-style ADSR gate behavior.", { "Attack/decay nibbles", "Sustain nibble", "Release nibble", "ADSR quirks planned" }),
@@ -1220,6 +1231,39 @@ uint8_t sidModulationBitsForPatch(const PatchConfig& patch, size_t voice)
         default:
             return 0x00u;
     }
+}
+
+int sidModelChoiceForPatch(const PatchConfig& patch)
+{
+    auto choice = std::clamp(patch.dmgStereoRoute, 0, 2);
+    if (choice == 0)
+    {
+        switch (patch.macro)
+        {
+            case MacroKind::lead:
+            case MacroKind::arp:
+            case MacroKind::powerUp:
+                choice = 2;
+                break;
+            case MacroKind::manual:
+            case MacroKind::coin:
+            case MacroKind::bass:
+            case MacroKind::drum:
+            case MacroKind::hit:
+            case MacroKind::laser:
+            case MacroKind::jump:
+            default:
+                choice = 1;
+                break;
+        }
+    }
+
+    return choice == 2 ? 2 : 1;
+}
+
+int sidModelNumberForPatch(const PatchConfig& patch)
+{
+    return sidModelChoiceForPatch(patch) == 2 ? 8580 : 6581;
 }
 
 uint8_t sidAttackDecayForPatch(const PatchConfig& patch)

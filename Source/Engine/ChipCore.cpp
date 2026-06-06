@@ -1298,7 +1298,7 @@ public:
         if (activeVoices > 0.0)
             mixed /= std::max(1.0, activeVoices);
 
-        const auto output = static_cast<float>(applySidOutputFilter(mixed) * sidMasterVolume() * 0.85);
+        const auto output = static_cast<float>(applySidOutputDrive(applySidOutputFilter(mixed)) * sidMasterVolume() * 0.85);
         return { output, output };
     }
 
@@ -1317,7 +1317,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Three SID oscillator voices, 24-bit frequency-register pitch mapping, waveform control bits, 12-bit pulse width, control-register sync/ring bits with a musical approximation, gate-driven ADSR approximation, source trims, cutoff/resonance register writes, and a first-pass multimode filter approximation are modeled; 6581/8580 analog filter behavior, exact ADSR bugs, exact oscillator sync/ring timing, waveform-combination quirks, external input, DAC nonlinearity, and hardware validation are not complete.";
+        return "Three SID oscillator voices, 24-bit frequency-register pitch mapping, waveform control bits, 12-bit pulse width, control-register sync/ring bits with a musical approximation, gate-driven ADSR approximation, source trims, cutoff/resonance register writes, selectable partial 6581/8580 filter/output profiles, and a first-pass multimode filter approximation are modeled; exact 6581/8580 analog filter behavior, exact ADSR bugs, exact oscillator sync/ring timing, waveform-combination quirks, external input, DAC nonlinearity, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -1329,6 +1329,8 @@ public:
              << "\"clockHz\":" << clock << ","
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
+             << "\"sidModelChoice\":" << sidModelChoiceForPatch(patch) << ","
+             << "\"sidModelNumber\":" << sidModelNumberForPatch(patch) << ","
              << "\"waveformChoice\":" << std::clamp(patch.waveShape, 0, 4) << ","
              << "\"waveformBits\":" << static_cast<int>(sidWaveformControlForPatch(patch)) << ","
              << "\"modModeChoice\":" << std::clamp(patch.snNoiseMode, 0, 4) << ","
@@ -1344,6 +1346,9 @@ public:
              << "\"filterModeChoice\":" << std::clamp(patch.ymEnvelopeShape, 0, 4) << ","
              << "\"filterModeBits\":" << static_cast<int>(sidFilterModeBitsForPatch(patch)) << ","
              << "\"filterModeVolume\":" << static_cast<int>(regs[0x18]) << ","
+             << "\"modelCutoffHz\":" << sidModelCutoffHz() << ","
+             << "\"modelFilterDamping\":" << sidModelFilterDamping() << ","
+             << "\"modelOutputDrive\":" << sidModelOutputDrive() << ","
              << "\"attackDecayRegister\":" << static_cast<int>(sidAttackDecayForPatch(patch)) << ","
              << "\"sustainReleaseRegister\":" << static_cast<int>(sidSustainReleaseForPatch(patch)) << ","
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
@@ -1762,17 +1767,48 @@ private:
         return (static_cast<double>(output) / 127.5) - 1.0;
     }
 
+    double sidModelCutoffHz() const
+    {
+        const auto cutoffNorm = static_cast<double>(filterCutoffRegister()) / 2047.0;
+        if (sidModelChoiceForPatch(patch) == 2)
+            return 45.0 + (std::pow(cutoffNorm, 1.55) * 14000.0);
+
+        return 120.0 + (std::pow(cutoffNorm, 2.35) * 9000.0);
+    }
+
+    double sidModelFilterDamping() const
+    {
+        const auto resonance = static_cast<double>(sidFilterResonanceForControl(patch.stereoSpread)) / 15.0;
+        if (sidModelChoiceForPatch(patch) == 2)
+            return std::clamp(1.10 - (resonance * 0.82), 0.12, 1.10);
+
+        return std::clamp(1.35 - (resonance * 0.68), 0.25, 1.35);
+    }
+
+    double sidModelOutputDrive() const
+    {
+        return sidModelChoiceForPatch(patch) == 2 ? 0.96 : 1.32;
+    }
+
+    double applySidOutputDrive(double input) const
+    {
+        const auto drive = sidModelOutputDrive();
+        if (drive <= 1.0)
+            return input * drive;
+
+        const auto normalizer = std::tanh(drive);
+        return normalizer > 0.0 ? std::tanh(input * drive) / normalizer : input;
+    }
+
     double applySidOutputFilter(double input)
     {
         const auto modeBits = regs[0x18] & 0x70u;
         if (modeBits == 0)
             return input;
 
-        const auto cutoffNorm = static_cast<double>(filterCutoffRegister()) / 2047.0;
-        const auto cutoffHz = 80.0 + (cutoffNorm * cutoffNorm * 12000.0);
+        const auto cutoffHz = sidModelCutoffHz();
         const auto coefficient = std::clamp(2.0 * std::sin((0.5 * twoPi * cutoffHz) / std::max(1.0, sampleRate)), 0.001, 0.99);
-        const auto resonance = static_cast<double>(sidFilterResonanceForControl(patch.stereoSpread)) / 15.0;
-        const auto damping = std::clamp(1.20 - (resonance * 0.90), 0.15, 1.20);
+        const auto damping = sidModelFilterDamping();
 
         filterLowpass += coefficient * filterBandpass;
         const auto highpass = input - filterLowpass - (damping * filterBandpass);

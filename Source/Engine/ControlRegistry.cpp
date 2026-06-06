@@ -30,7 +30,7 @@ const MidiCcMappingList& midiCcMappings()
         { 91, parameter_ids::snNoiseMode, "Noise Mode / SID Osc Mod" },
         { 92, parameter_ids::dmgWaveLevel, "DMG Wave Level" },
         { 93, parameter_ids::stereoSpread, "Stereo Spread / SID Resonance" },
-        { 94, parameter_ids::dmgStereoRoute, "DMG Stereo Routing" }
+        { 94, parameter_ids::dmgStereoRoute, "DMG Stereo Routing / SID Model" }
     }};
 
     return mappings;

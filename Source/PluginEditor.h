@@ -86,6 +86,7 @@ private:
     juce::String waveShapeReadout(chipper::ChipMode mode, int choice) const;
     juce::String dmgWaveLevelReadout(const chipper::PatchConfig& patch) const;
     juce::String dmgStereoRouteReadout(const chipper::PatchConfig& patch) const;
+    juce::String sidModelReadout(const chipper::PatchConfig& patch) const;
     juce::String ymEnvelopeShapeReadout(int choice) const;
     juce::String sidFilterModeReadout(const chipper::PatchConfig& patch) const;
     juce::String sidModModeReadout(const chipper::PatchConfig& patch) const;
@@ -129,7 +130,7 @@ private:
     void updatePulseDutyButtons(float value, bool shouldBeVisible);
     void updateWaveShapeButtons(int choice, bool shouldBeVisible);
     void updateDmgWaveLevelButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
-    void updateDmgStereoRouteButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
+    void updateDmgStereoRouteButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateYmEnvelopeShapeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateSnNoiseModeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateToneNoiseMixButtons(float value, bool shouldBeVisible);

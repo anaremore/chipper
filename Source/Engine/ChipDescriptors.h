@@ -163,6 +163,8 @@ uint8_t sidWaveformControlForPatch(const PatchConfig& patch);
 uint8_t sidFilterModeBitsForPatch(const PatchConfig& patch);
 uint8_t sidFilterResonanceForControl(float resonanceControl);
 uint8_t sidModulationBitsForPatch(const PatchConfig& patch, size_t voice);
+int sidModelChoiceForPatch(const PatchConfig& patch);
+int sidModelNumberForPatch(const PatchConfig& patch);
 uint8_t sidAttackDecayForPatch(const PatchConfig& patch);
 uint8_t sidSustainReleaseForPatch(const PatchConfig& patch);
 uint8_t ym2149NoisePeriodForControl(float noisePitchControl);

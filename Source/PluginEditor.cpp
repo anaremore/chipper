@@ -795,7 +795,12 @@ void ChipperAudioProcessorEditor::resized()
     outputPanel.removeFromTop(4);
     outputPanel.removeFromBottom(6);
     placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, outputPanel);
-    placeDmgStereoRouteSegment(outputPanel);
+
+    auto profilePanel = moduleBounds[0].reduced(12, 9);
+    profilePanel.removeFromTop(20);
+    profilePanel.removeFromTop(30);
+    profilePanel.removeFromTop(4);
+    placeDmgStereoRouteSegment(displayedMode == chipper::ChipMode::sid ? profilePanel : outputPanel);
 
     area.removeFromTop(12);
     globalStripBounds = area.removeFromTop(190);
@@ -1339,7 +1344,7 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
         return label + " -> " + snStackReadout(patch.control1) + " | " + snNoiseModeReadout(patch) + " | " + snLevelReadout(patch.control4);
 
     if (mode == chipper::ChipMode::sid)
-        return label + " -> " + waveShapeReadout(mode, patch.waveShape) + " | " + sidFilterModeReadout(patch) + " | " + sidModModeReadout(patch);
+        return label + " -> " + sidModelReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + " | " + sidFilterModeReadout(patch) + " | " + sidModModeReadout(patch);
 
     return label + ": " + juce::String(templ.help);
 }
@@ -1417,6 +1422,14 @@ juce::String ChipperAudioProcessorEditor::dmgStereoRouteReadout(const chipper::P
 
     const auto resolvedText = registerText + ", " + routeText;
     return patch.dmgStereoRoute == 0 ? juce::String("Macro -> ") + resolvedText : resolvedText;
+}
+
+juce::String ChipperAudioProcessorEditor::sidModelReadout(const chipper::PatchConfig& patch) const
+{
+    const auto model = chipper::sidModelNumberForPatch(patch);
+    const auto detail = model == 8580 ? "cleaner/brighter filter profile" : "warmer/rougher filter profile";
+    const auto text = juce::String("SID ") + juce::String(model) + ", " + detail;
+    return std::clamp(patch.dmgStereoRoute, 0, 2) == 0 ? juce::String("Macro -> ") + text : text;
 }
 
 juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) const
@@ -1863,7 +1876,7 @@ void ChipperAudioProcessorEditor::setDmgStereoRouteSegmentVisible(chipper::ChipM
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
             parameterValue(chipper::parameters::id::stereoSpread));
-        updateDmgStereoRouteButtons(patch, true);
+        updateDmgStereoRouteButtons(mode, patch, true);
     }
 }
 
@@ -2138,17 +2151,26 @@ void ChipperAudioProcessorEditor::updateDmgWaveLevelButtons(const chipper::Patch
     dmgWaveLevelValueLabel.setText(dmgWaveLevelReadout(patch), juce::dontSendNotification);
 }
 
-void ChipperAudioProcessorEditor::updateDmgStereoRouteButtons(const chipper::PatchConfig& patch, bool shouldBeVisible)
+void ChipperAudioProcessorEditor::updateDmgStereoRouteButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible)
 {
-    const auto selected = static_cast<size_t>(std::clamp(patch.dmgStereoRoute, 0, static_cast<int>(dmgStereoRouteButtons.size() - 1u)));
+    const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::dmgStereoRoute);
+    const auto choiceCount = spec == nullptr || spec->choices.empty()
+                                 ? dmgStereoRouteButtons.size()
+                                 : std::min(dmgStereoRouteButtons.size(), spec->choices.size());
+    const auto selected = static_cast<size_t>(std::clamp(patch.dmgStereoRoute, 0, static_cast<int>(choiceCount - 1u)));
+    layoutSegmentedButtons(dmgStereoRouteButtons, dmgStereoRouteSegmentBounds, choiceCount);
     for (size_t i = 0; i < dmgStereoRouteButtons.size(); ++i)
     {
-        dmgStereoRouteButtons[i].setVisible(shouldBeVisible);
-        dmgStereoRouteButtons[i].setToggleState(shouldBeVisible && i == selected, juce::dontSendNotification);
+        const auto visible = shouldBeVisible && i < choiceCount;
+        dmgStereoRouteButtons[i].setVisible(visible);
+        dmgStereoRouteButtons[i].setToggleState(visible && i == selected, juce::dontSendNotification);
     }
 
     dmgStereoRouteValueLabel.setVisible(shouldBeVisible);
-    dmgStereoRouteValueLabel.setText(dmgStereoRouteReadout(patch), juce::dontSendNotification);
+    dmgStereoRouteValueLabel.setText(mode == chipper::ChipMode::sid
+                                         ? sidModelReadout(patch)
+                                         : dmgStereoRouteReadout(patch),
+                                     juce::dontSendNotification);
 }
 
 void ChipperAudioProcessorEditor::updateYmEnvelopeShapeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible)
@@ -2294,6 +2316,9 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     setSnNoiseModeSegmentVisible(mode, usesSnNoiseModeSegment(mode) && hasLiveCore);
     setEnvelopeDecayControlVisible(mode, usesEnvelopeDecayControl(mode) && hasLiveCore);
     setStereoSpreadControlVisible(mode, usesStereoSpreadControl(mode) && hasLiveCore);
+    const auto hasCustomProfileSurface = hasLiveCore && mode == chipper::ChipMode::sid && usesDmgStereoRouteSegment(mode);
+    for (auto& itemLabel : moduleItemLabels[0])
+        itemLabel.setVisible(! hasCustomProfileSurface && ! itemLabel.getText().isEmpty());
     const auto hasCustomToneSurface = hasLiveCore && (usesWaveShapeSegment(mode)
         || usesDmgWaveLevelSegment(mode)
         || (mode != chipper::ChipMode::sid && usesSnNoiseModeSegment(mode))
@@ -2306,7 +2331,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto hasCustomMotionSurface = hasLiveCore && mode == chipper::ChipMode::sid && usesSnNoiseModeSegment(mode);
     for (auto& itemLabel : moduleItemLabels[4])
         itemLabel.setVisible(! hasCustomMotionSurface && ! itemLabel.getText().isEmpty());
-    const auto hasCustomOutputSurface = hasLiveCore && (usesStereoSpreadControl(mode) || usesDmgStereoRouteSegment(mode));
+    const auto hasCustomOutputSurface = hasLiveCore && (usesStereoSpreadControl(mode) || (mode != chipper::ChipMode::sid && usesDmgStereoRouteSegment(mode)));
     for (auto& itemLabel : moduleItemLabels[5])
         itemLabel.setVisible(! hasCustomOutputSurface && ! itemLabel.getText().isEmpty());
     updatePulseDutyButtons(parameterValue(chipper::parameters::id::macroControl1), usesPulseDutySegment(mode) && hasLiveCore);
@@ -2346,7 +2371,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     updateToneNoiseMixButtons(patch.control4, hasToneNoiseMixSegment);
     updateWaveShapeButtons(waveShape, hasWaveShapeSegment);
     updateDmgWaveLevelButtons(patch, hasDmgWaveLevelSegment);
-    updateDmgStereoRouteButtons(patch, hasDmgStereoRouteSegment);
+    updateDmgStereoRouteButtons(mode, patch, hasDmgStereoRouteSegment);
     updateYmEnvelopeShapeButtons(mode, patch, hasYmEnvelopeShapeSegment);
     updateSnNoiseModeButtons(mode, patch, hasSnNoiseModeSegment);
     updateEnvelopeDecayReadout(mode);

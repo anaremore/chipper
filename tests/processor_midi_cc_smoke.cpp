@@ -147,6 +147,8 @@ int main()
                      "CC74 SID Bass macro should apply SID LP filter-mode template");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::snNoiseMode), 1.0f, 0.0001f,
                      "CC74 SID Bass macro should apply SID oscillator-mod template");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::dmgStereoRoute), 0.0f, 0.0001f,
+                     "CC74 SID Bass macro should keep SID Model on Macro");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::stereoSpread), 0.58f, 0.001f,
                      "CC74 SID Bass macro should apply SID resonance template");
 
@@ -156,6 +158,9 @@ int main()
     sendController(processor, 91, controllerValueForChoice(processor, chipper::parameters::id::snNoiseMode, 4));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::snNoiseMode), 4.0f, 0.0001f,
                      "CC91 should control the SID Osc Mod/Noise Mode choice parameter");
+    sendController(processor, 94, controllerValueForChoice(processor, chipper::parameters::id::dmgStereoRoute, 2));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::dmgStereoRoute), 2.0f, 0.0001f,
+                     "CC94 should control the SID Model/DMG Stereo Route choice parameter");
     sendController(processor, 93, 127);
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::stereoSpread), 1.0f, 0.0001f,
                      "CC93 should control the SID Resonance/Stereo Spread parameter");
