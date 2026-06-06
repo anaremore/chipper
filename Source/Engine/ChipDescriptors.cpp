@@ -542,9 +542,9 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
                       "sid.model",
                       "SID Model",
                       "Profile",
-                      "Selects the partial SID chip-variant profile used by Chipper's filter curve and output drive model. Macro resolves from the selected SID template.",
+                      "Selects the partial SID chip-variant profile used by Chipper's filter curve and output drive model. Auto resolves from the selected SID template.",
                       {
-                          choice("Macro", "Resolve 6581/8580 from the selected SID macro.", 0.0f, 0),
+                          choice("Auto", "Resolve 6581/8580 from the selected SID template.", 0.0f, 0),
                           choice("6581", "Warmer, rougher 6581-style filter/output profile.", 0.25f, 1),
                           choice("8580", "Cleaner, brighter 8580-style filter/output profile.", 0.5f, 2)
                       },
@@ -632,7 +632,7 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
                       ParameterKind::chipRegister),
         segmentedSpec(ChipParameterRole::snNoiseMode,
                       "sid.oscMod",
-                      "Osc Mod",
+                      "Osc Interaction",
                       "Motion",
                       "Maps to SID control-register sync/ring bits on voices 2 and 3. Macro uses the selected SID musical template.",
                       {
@@ -719,9 +719,9 @@ std::array<ModuleDescriptor, 6> sidModules()
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "SID clean-room voice-core groundwork.", { "6581 / 8580 model", "PAL clock default", "Hybrid default", "Authentic still partial" }),
         makeModule("sources", "Voices", "Three SID oscillator voices.", { "Voice 1", "Voice 2", "Voice 3", "External input planned" }),
-        makeModule("tone", "Wave / Filter", "Register-backed oscillator shape plus first-pass filter control.", { "Waveform bits", "Pulse width", "Filter mode", "Cutoff / resonance" }),
+        makeModule("tone", "Filter", "Register-backed SID filter mode and voice routing.", { "Filter mode", "Voice routing", "Cutoff", "Resonance" }),
         makeModule("envelope", "Envelope", "SID-style ADSR gate behavior.", { "Attack/decay nibbles", "Sustain nibble", "Release nibble", "ADSR quirks planned" }),
-        makeModule("motion", "Motion", "Classic SID modulation gestures.", { "Voice detune", "PWM-ready width", "Sync / ring mod", "Macro motion" }),
+        makeModule("motion", "Motion", "Classic SID modulation gestures.", { "Voice detune", "PWM-ready width", "Osc interaction", "Macro motion" }),
         makeModule("output", "Output", "Warm mono C64-style output groundwork.", { "Output gain", "Voice trims", "Drive planned", "Known differences" })
     };
 }

@@ -248,6 +248,7 @@ private:
     juce::Label envelopeDecayValueLabel;
     std::array<juce::Label, sidAdsrVoiceCount> sidEnvelopeVoiceLabels;
     std::array<ChipEnvelopePreview, sidAdsrVoiceCount> sidEnvelopePreviews;
+    std::array<juce::Label, sidAdsrFieldCount> sidAdsrHeaderLabels;
     std::array<juce::Label, sidAdsrOverrideCount> sidAdsrLabels;
     std::array<juce::ComboBox, sidAdsrOverrideCount> sidAdsrBoxes;
     juce::Label waveShapeLabel;
