@@ -137,6 +137,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int ymEnvelopeShape = 0,
                             int snNoiseMode = 0);
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
+uint8_t dmgInitialEnvelopeLevelForControl(float envelopeLevelControl);
 uint8_t dmgNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t ym2149NoisePeriodForControl(float noisePitchControl);
 uint8_t ym2149MixerRegisterForControl(float toneNoiseControl);

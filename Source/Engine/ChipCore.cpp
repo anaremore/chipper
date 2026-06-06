@@ -264,7 +264,7 @@ public:
         noteVelocity = static_cast<float>(clamp01(velocity));
 
         const auto duty = dmgPulseDutyFromControl(patch.control1);
-        const auto envelope = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control4 * 15.0f)), 1, 15));
+        const auto envelope = dmgInitialEnvelopeLevelForControl(patch.control4);
         auto ch1Note = midiNote;
         auto ch2Note = midiNote + 7;
         auto waveNote = midiNote - 12;
@@ -891,12 +891,12 @@ private:
 
         if (channel == 0)
         {
-            const auto volume = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15));
+            const auto volume = scaledChipPolyEnvelopeVolume(index);
             writePulseRegisters(0, dmgPulseDutyFromControl(patch.control1), volume, channelNotes[index]);
         }
         else if (channel == 1)
         {
-            const auto volume = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15));
+            const auto volume = scaledChipPolyEnvelopeVolume(index);
             writePulseRegisters(1, dmgPulseDutyFromControl(patch.control1), volume, channelNotes[index]);
         }
         else
@@ -932,6 +932,15 @@ private:
         writeRegister(static_cast<uint16_t>(base + 1), dmgEnvelopeRegisterValue(volume));
         writeRegister(static_cast<uint16_t>(base + 2), static_cast<uint8_t>(freq & 0xffu));
         writeRegister(static_cast<uint16_t>(base + 3), static_cast<uint8_t>(0x80u | ((freq >> 8u) & 0x07u)));
+    }
+
+    uint8_t scaledChipPolyEnvelopeVolume(size_t index) const
+    {
+        const auto maxVolume = static_cast<int>(dmgInitialEnvelopeLevelForControl(patch.control4));
+        if (channelVelocity[index] <= 0.0f)
+            return 0;
+
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<float>(maxVolume) * channelVelocity[index])), 1, 15));
     }
 
     void writeWaveRegisters(int midiNote, unsigned outputLevelBits)

@@ -183,7 +183,12 @@ std::vector<ChipParameterSpec> dmgParameterSpecs()
                       2.0f / 3.0f),
         sliderSpec(ChipParameterRole::macroControl2, "dmg.sweepShape", "Sweep Shape", "Pitch", "Scales CH1 sweep-like macro pitch offsets."),
         sliderSpec(ChipParameterRole::macroControl3, "dmg.noiseClock", "Noise Clock", "Noise", "Moves the polynomial-noise clock shift while Noise Mode selects the LFSR width."),
-        sliderSpec(ChipParameterRole::macroControl4, "dmg.envelopeLevel", "Envelope Level", "Mixer", "Sets initial envelope level for macro templates."),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "dmg.envelopeLevel",
+                   "Envelope Level",
+                   "Envelope",
+                   "Maps to the DMG NRx2 initial volume register nibble for pulse channels.",
+                   ParameterKind::chipRegister),
         sourceSpec(ChipParameterRole::source1Enabled, "dmg.pulse1.enabled", "Pulse 1", "Enable DMG pulse channel 1."),
         sourceSpec(ChipParameterRole::source2Enabled, "dmg.pulse2.enabled", "Pulse 2", "Enable DMG pulse channel 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "dmg.wave.enabled", "Wave", "Enable the DMG Wave RAM channel."),
@@ -783,6 +788,11 @@ uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch)
     }
 
     return static_cast<uint8_t>(mode | period);
+}
+
+uint8_t dmgInitialEnvelopeLevelForControl(float envelopeLevelControl)
+{
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(envelopeLevelControl) * 15.0f)), 1, 15));
 }
 
 uint8_t dmgNoiseRegisterForPatch(const PatchConfig& patch)

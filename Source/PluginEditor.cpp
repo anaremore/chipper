@@ -1225,8 +1225,8 @@ juce::String ChipperAudioProcessorEditor::dmgNoiseReadout(float value) const
 
 juce::String ChipperAudioProcessorEditor::dmgEnvelopeReadout(float value) const
 {
-    const auto level = std::clamp(static_cast<int>(std::round(value * 15.0f)), 1, 15);
-    return juce::String("Envelope start ") + juce::String(level) + "/15";
+    const auto level = chipper::dmgInitialEnvelopeLevelForControl(value);
+    return juce::String("NRx2 initial volume ") + juce::String(static_cast<int>(level)) + "/15";
 }
 
 juce::String ChipperAudioProcessorEditor::ymSpreadReadout(float value) const
