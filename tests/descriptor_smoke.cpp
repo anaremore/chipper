@@ -61,6 +61,12 @@ bool expectMacroSourceMask(chipper::ChipMode mode, chipper::MacroKind macro, std
     return expect(templ.sourceEnabled == expected, templ.label + " has unexpected source mask");
 }
 
+bool expectMacroLabel(chipper::ChipMode mode, chipper::MacroKind macro, const std::string& expected)
+{
+    const auto& templ = chipper::macroTemplateFor(mode, macro);
+    return expect(templ.label == expected, "macro label expected " + expected + ", got " + templ.label);
+}
+
 bool expectAutomatableDescriptorParametersHaveMidiCc()
 {
     bool ok = true;
@@ -113,6 +119,10 @@ int main()
     ok &= expectMacroSourceMask(chipper::ChipMode::dmg, chipper::MacroKind::bass, { false, false, true, false });
     ok &= expectMacroSourceMask(chipper::ChipMode::ym2149, chipper::MacroKind::drum, { true, false, false, true });
     ok &= expectMacroSourceMask(chipper::ChipMode::sn76489, chipper::MacroKind::drum, { false, false, false, true });
+    ok &= expectMacroLabel(chipper::ChipMode::nes, chipper::MacroKind::coin, "NES Coin Blip");
+    ok &= expectMacroLabel(chipper::ChipMode::dmg, chipper::MacroKind::bass, "DMG Wave Bass");
+    ok &= expectMacroLabel(chipper::ChipMode::ym2149, chipper::MacroKind::drum, "YM Noise Perc");
+    ok &= expectMacroLabel(chipper::ChipMode::sn76489, chipper::MacroKind::drum, "PSG Drum");
 
     ok &= expect(chipper::chipHasParameterSurface(chipper::ChipMode::ym2149,
                                                   chipper::ChipParameterRole::source1Enabled,

@@ -14,6 +14,7 @@ def main() -> int:
     parser.add_argument("--param-kind", action="append", default=[], metavar="KEY:ROLE=KIND")
     parser.add_argument("--param-choices", action="append", default=[], metavar="KEY:ROLE=COUNT")
     parser.add_argument("--param-midi-cc", action="append", default=[], metavar="KEY:ROLE=CC")
+    parser.add_argument("--macro-label", action="append", default=[], metavar="KEY:MACRO=LABEL")
     parser.add_argument("--macro-source", action="append", default=[], metavar="KEY:MACRO=1010")
     parser.add_argument("--preset", action="append", default=[], metavar="ID")
     args = parser.parse_args()
@@ -149,6 +150,23 @@ def main() -> int:
         actual = parameters[role].get("midiCc")
         if actual != expected:
             failures.append(f"{chip}.{role}.midiCc expected {expected}, got {actual}")
+
+    for assertion in args.macro_label:
+        chip_and_macro, _, expected = assertion.partition("=")
+        chip, _, macro = chip_and_macro.partition(":")
+        if not chip or not macro or not expected:
+            failures.append(f"bad macro label assertion {assertion!r}")
+            continue
+        if chip not in descriptors:
+            failures.append(f"chip {chip!r} not found for assertion {assertion!r}")
+            continue
+        macros = macros_for(chip)
+        if macro not in macros:
+            failures.append(f"{chip} macro {macro!r} not found")
+            continue
+        actual = macros[macro].get("label")
+        if actual != expected:
+            failures.append(f"{chip}.{macro}.label expected {expected!r}, got {actual!r}")
 
     for assertion in args.macro_source:
         chip_and_macro, _, expected = assertion.partition("=")

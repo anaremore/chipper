@@ -92,6 +92,21 @@ juce::String choiceTooltip(const chipper::ChipParameterSpec& spec, size_t choice
     return juce::String(spec.help);
 }
 
+juce::String withMidiCc(juce::String text, const char* parameterId)
+{
+    const auto controller = chipper::parameters::midiControllerForParameterId(parameterId);
+    if (controller < 0)
+        return text;
+
+    const auto ccText = juce::String("MIDI CC ") + juce::String(controller);
+    return text.isEmpty() ? ccText : text + "\n" + ccText;
+}
+
+juce::String withMidiCcForRole(juce::String text, chipper::ChipParameterRole role)
+{
+    return withMidiCc(text, chipper::parameters::parameterIdForChipParameterRole(role));
+}
+
 template <typename ButtonArray>
 void layoutSegmentedButtons(ButtonArray& buttons, juce::Rectangle<int> bounds, size_t visibleCount)
 {
@@ -143,11 +158,11 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     presetBox.setTextWhenNothingSelected("Factory Preset");
     macroBox.addItemList(chipper::parameters::macroChoices(), 1);
     playModeBox.addItemList(chipper::parameters::playModeChoices(), 1);
-    chipModeBox.setTooltip("Selects the chip model or planned chip family.");
-    accuracyBox.setTooltip("Selects the requested accuracy tier for the active core.");
+    chipModeBox.setTooltip(withMidiCc("Selects the chip model or planned chip family.", chipper::parameters::id::chipMode));
+    accuracyBox.setTooltip(withMidiCc("Selects the requested accuracy tier for the active core.", chipper::parameters::id::accuracy));
     presetBox.setTooltip("Applies a factory preset for the selected chip mode.");
-    macroBox.setTooltip("Applies a chip-specific musical register template.");
-    playModeBox.setTooltip("Chooses how incoming notes use the chip channels inside one patch.");
+    macroBox.setTooltip(withMidiCc("Applies a chip-specific musical register template.", chipper::parameters::id::macro));
+    playModeBox.setTooltip(withMidiCc("Chooses how incoming notes use the chip channels inside one patch.", chipper::parameters::id::playMode));
 
     const std::array<const char*, 5> headerNames { "Preset", "Chip Mode", "Accuracy", "Macro", "Play Mode" };
     for (size_t i = 0; i < headerControlLabels.size(); ++i)
@@ -181,17 +196,17 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addLabeledSlider(clockSlider, clockLabel, "Clock");
     clockSlider.setTextValueSuffix(" Hz");
     clockSlider.setSkewFactor(0.35);
-    clockSlider.setTooltip("Optional chip clock override. Zero uses the documented default for the selected mode.");
+    clockSlider.setTooltip(withMidiCc("Optional chip clock override. Zero uses the documented default for the selected mode.", chipper::parameters::id::clockHz));
     clockAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::clockHz, clockSlider);
 
     addLabeledSlider(outputSlider, outputLabel, "Output");
     outputSlider.setTextValueSuffix(" dB");
-    outputSlider.setTooltip("Final plugin output level.");
+    outputSlider.setTooltip(withMidiCc("Final plugin output level.", chipper::parameters::id::outputDb));
     outputAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::outputDb, outputSlider);
 
     addLabeledSlider(envelopeDecaySlider, envelopeDecayLabel, "Envelope Decay");
     envelopeDecaySlider.setNumDecimalPlacesToDisplay(2);
-    envelopeDecaySlider.setTooltip("Maps musical decay to the active chip's hardware envelope period. Zero preserves the macro's original envelope/level behavior.");
+    envelopeDecaySlider.setTooltip(withMidiCc("Maps musical decay to the active chip's hardware envelope period. Zero preserves the macro's original envelope/level behavior.", chipper::parameters::id::envelopeDecay));
     envelopeDecayAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::envelopeDecay, envelopeDecaySlider);
 
     envelopeDecayValueLabel.setJustificationType(juce::Justification::centredLeft);
@@ -836,7 +851,7 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
                 continue;
 
             buttons[i].setButtonText(spec->choices[i].label);
-            buttons[i].setTooltip(choiceTooltip(*spec, i));
+            buttons[i].setTooltip(withMidiCcForRole(choiceTooltip(*spec, i), spec->role));
         }
     };
 
@@ -846,33 +861,33 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
     if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::waveShape))
     {
         waveShapeLabel.setText(spec->label, juce::dontSendNotification);
-        waveShapeLabel.setTooltip(spec->help);
-        waveShapeValueLabel.setTooltip(spec->help);
+        waveShapeLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
+        waveShapeValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         applyChoices(waveShapeButtons, spec);
     }
 
     if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::ymEnvelopeShape))
     {
         ymEnvelopeShapeLabel.setText(spec->label, juce::dontSendNotification);
-        ymEnvelopeShapeLabel.setTooltip(spec->help);
-        ymEnvelopeShapeValueLabel.setTooltip(spec->help);
+        ymEnvelopeShapeLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
+        ymEnvelopeShapeValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         applyChoices(ymEnvelopeShapeButtons, spec);
     }
 
     if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::snNoiseMode))
     {
         snNoiseModeLabel.setText(spec->label, juce::dontSendNotification);
-        snNoiseModeLabel.setTooltip(spec->help);
-        snNoiseModeValueLabel.setTooltip(spec->help);
+        snNoiseModeLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
+        snNoiseModeValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         applyChoices(snNoiseModeButtons, spec);
     }
 
     if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::envelopeDecay))
     {
         envelopeDecayLabel.setText(spec->label, juce::dontSendNotification);
-        envelopeDecayLabel.setTooltip(spec->help);
-        envelopeDecaySlider.setTooltip(spec->help);
-        envelopeDecayValueLabel.setTooltip(spec->help);
+        envelopeDecayLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
+        envelopeDecaySlider.setTooltip(withMidiCcForRole(spec->help, spec->role));
+        envelopeDecayValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
     }
 }
 
@@ -1440,9 +1455,9 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
     {
         sourceChannelButtons[i].setButtonText((*labels)[i]);
         if (const auto* spec = chipper::parameterSpecFor(mode, sourceRole(i)))
-            sourceChannelButtons[i].setTooltip(juce::String(spec->label) + ": " + juce::String(spec->help));
+            sourceChannelButtons[i].setTooltip(withMidiCcForRole(juce::String(spec->label) + ": " + juce::String(spec->help), sourceRole(i)));
         else
-            sourceChannelButtons[i].setTooltip(juce::String("Enable or mute ") + (*labels)[i]);
+            sourceChannelButtons[i].setTooltip(withMidiCcForRole(juce::String("Enable or mute ") + (*labels)[i], sourceRole(i)));
     }
 }
 
@@ -1607,8 +1622,8 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
             const auto active = hasLiveCore;
             nativeGroupLabels[i].setText(spec != nullptr ? spec->group : descriptor.controls[i].group, juce::dontSendNotification);
             nativeLabels[i].setText(spec != nullptr ? spec->label : descriptor.controls[i].label, juce::dontSendNotification);
-            nativeSliders[i].setTooltip(spec != nullptr ? spec->help : descriptor.controls[i].help);
-            controlValueLabels[i].setTooltip(spec != nullptr ? spec->help : descriptor.controls[i].help);
+            nativeSliders[i].setTooltip(withMidiCcForRole(spec != nullptr ? spec->help : descriptor.controls[i].help, macroControlRole(i)));
+            controlValueLabels[i].setTooltip(withMidiCcForRole(spec != nullptr ? spec->help : descriptor.controls[i].help, macroControlRole(i)));
             nativeGroupLabels[i].setVisible(true);
             nativeLabels[i].setVisible(true);
             nativeSliders[i].setVisible(true);
@@ -1672,7 +1687,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto patch = currentUiPatch(mode, macroControl1, macroControl2, macroControl3, macroControl4, waveShape, ymEnvelopeShape, snNoiseMode);
     const auto macroText = macroTemplateReadout(mode, patch);
     macroSummaryLabel.setText(macroText, juce::dontSendNotification);
-    macroBox.setTooltip(macroText);
+    macroBox.setTooltip(withMidiCc(macroText, chipper::parameters::id::macro));
 
     const auto hasPulseDutySegment = usesPulseDutySegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasWaveShapeSegment = usesWaveShapeSegment(mode) && chipper::descriptorFor(mode).implemented;
