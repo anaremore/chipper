@@ -249,6 +249,27 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(button);
     }
 
+    const std::array<const char*, toneNoiseMixCount> toneNoiseLabels { "Noise", "Tone", "Both" };
+    for (size_t i = 0; i < toneNoiseMixButtons.size(); ++i)
+    {
+        auto& button = toneNoiseMixButtons[i];
+        button.setButtonText(toneNoiseLabels[i]);
+        button.setClickingTogglesState(false);
+        button.setTooltip(juce::String("YM2149 tone/noise mixer: ") + toneNoiseLabels[i]);
+        button.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff202c33));
+        button.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xfff0c94d));
+        button.setColour(juce::TextButton::textColourOffId, juce::Colour(0xffdbe8e5));
+        button.setColour(juce::TextButton::textColourOnId, juce::Colour(0xff101414));
+        button.onClick = [this, i]()
+        {
+            const auto value = static_cast<float>(i) / static_cast<float>(toneNoiseMixButtons.size() - 1u);
+            setParameterValueFromUi(chipper::parameters::id::macroControl4, value);
+            updateLiveControlReadouts();
+        };
+        button.setVisible(false);
+        addAndMakeVisible(button);
+    }
+
     waveShapeLabel.setText("Wave Shape", juce::dontSendNotification);
     waveShapeLabel.setJustificationType(juce::Justification::centredLeft);
     waveShapeLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
@@ -617,6 +638,7 @@ void ChipperAudioProcessorEditor::resized()
     placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[1]);
     placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[2]);
     placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[3]);
+    placeToneNoiseMixSegment(controlCells[3]);
     placeLabeledSliderWithReadout(clockSlider, clockLabel, controlValueLabels[4], controlCells[4]);
     placeLabeledSliderWithReadout(outputSlider, outputLabel, controlValueLabels[5], controlCells[5]);
 
@@ -708,6 +730,13 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
     layoutSegmentedButtons(snNoiseModeButtons, snNoiseModeSegmentBounds, snNoiseModeButtons.size());
 
     snNoiseModeValueLabel.setBounds(bounds);
+}
+
+void ChipperAudioProcessorEditor::placeToneNoiseMixSegment(juce::Rectangle<int> bounds)
+{
+    bounds.removeFromTop(30);
+    toneNoiseMixSegmentBounds = bounds.removeFromTop(26).reduced(0, 1);
+    layoutSegmentedButtons(toneNoiseMixButtons, toneNoiseMixSegmentBounds, toneNoiseMixButtons.size());
 }
 
 float ChipperAudioProcessorEditor::parameterValue(const char* parameterId) const
@@ -813,6 +842,7 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
     };
 
     applyChoices(pulseDutyButtons, chipper::parameterSpecFor(mode, chipper::ChipParameterRole::macroControl1));
+    applyChoices(toneNoiseMixButtons, chipper::parameterSpecFor(mode, chipper::ChipParameterRole::macroControl4));
 
     if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::waveShape))
     {
@@ -1003,6 +1033,13 @@ bool ChipperAudioProcessorEditor::usesSnNoiseModeSegment(chipper::ChipMode mode)
 {
     return chipper::chipHasParameterSurface(mode,
                                             chipper::ChipParameterRole::snNoiseMode,
+                                            chipper::ControlSurface::segmentedChoice);
+}
+
+bool ChipperAudioProcessorEditor::usesToneNoiseMixSegment(chipper::ChipMode mode) const
+{
+    return chipper::chipHasParameterSurface(mode,
+                                            chipper::ChipParameterRole::macroControl4,
                                             chipper::ControlSurface::segmentedChoice);
 }
 
@@ -1201,11 +1238,15 @@ juce::String ChipperAudioProcessorEditor::ymNoiseReadout(float value) const
 
 juce::String ChipperAudioProcessorEditor::ymToneNoiseReadout(float value) const
 {
-    if (value < 0.33f)
-        return "Noise-only mixer bias";
-    if (value > 0.66f)
-        return "Tone+noise mixer bias";
-    return "Tone-only mixer bias";
+    const auto mixer = chipper::ym2149MixerRegisterForControl(value);
+    switch (mixer)
+    {
+        case 0x07u: return "Reg 7=0x07, noise only";
+        case 0x00u: return "Reg 7=0x00, tone + noise";
+        case 0x38u:
+        default:
+            return "Reg 7=0x38, tone only";
+    }
 }
 
 juce::String ChipperAudioProcessorEditor::snStackReadout(float value) const
@@ -1430,6 +1471,18 @@ void ChipperAudioProcessorEditor::updatePulseDutyButtons(float value, bool shoul
     }
 }
 
+void ChipperAudioProcessorEditor::updateToneNoiseMixButtons(float value, bool shouldBeVisible)
+{
+    const auto mixer = chipper::ym2149MixerRegisterForControl(value);
+    const auto selected = mixer == 0x07u ? size_t { 0u } : (mixer == 0x00u ? size_t { 2u } : size_t { 1u });
+    layoutSegmentedButtons(toneNoiseMixButtons, toneNoiseMixSegmentBounds, toneNoiseMixButtons.size());
+    for (size_t i = 0; i < toneNoiseMixButtons.size(); ++i)
+    {
+        toneNoiseMixButtons[i].setVisible(shouldBeVisible);
+        toneNoiseMixButtons[i].setToggleState(shouldBeVisible && i == selected, juce::dontSendNotification);
+    }
+}
+
 void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool shouldBeVisible)
 {
     const auto selected = static_cast<size_t>(std::clamp(choice, 0, static_cast<int>(waveShapeButtons.size() - 1u)));
@@ -1611,8 +1664,11 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto hasWaveShapeSegment = usesWaveShapeSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasYmEnvelopeShapeSegment = usesYmEnvelopeShapeSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasSnNoiseModeSegment = usesSnNoiseModeSegment(mode) && chipper::descriptorFor(mode).implemented;
+    const auto hasToneNoiseMixSegment = usesToneNoiseMixSegment(mode) && chipper::descriptorFor(mode).implemented;
     nativeSliders[0].setVisible(! hasPulseDutySegment);
+    nativeSliders[3].setVisible(! hasToneNoiseMixSegment);
     updatePulseDutyButtons(patch.control1, hasPulseDutySegment);
+    updateToneNoiseMixButtons(patch.control4, hasToneNoiseMixSegment);
     updateWaveShapeButtons(waveShape, hasWaveShapeSegment);
     updateYmEnvelopeShapeButtons(ymEnvelopeShape, hasYmEnvelopeShapeSegment);
     updateSnNoiseModeButtons(mode, patch, hasSnNoiseModeSegment);

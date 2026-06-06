@@ -222,7 +222,18 @@ std::vector<ChipParameterSpec> ym2149ParameterSpecs()
         sliderSpec(ChipParameterRole::macroControl1, "ym2149.channelSpread", "Channel Spread", "Channels", "Sets A/B/C interval spread for chords and fake arps."),
         sliderSpec(ChipParameterRole::macroControl2, "ym2149.pitchMotion", "Pitch Motion", "Pitch", "Scales macro pitch movement."),
         sliderSpec(ChipParameterRole::macroControl3, "ym2149.noisePitch", "Noise Pitch", "Noise", "Sets the shared noise generator period."),
-        sliderSpec(ChipParameterRole::macroControl4, "ym2149.toneNoiseMix", "Tone/Noise Mix", "Mixer", "Blends tone-only, noise-only, and combined mixer behavior."),
+        segmentedSpec(ChipParameterRole::macroControl4,
+                      "ym2149.toneNoiseMix",
+                      "Tone/Noise Mix",
+                      "Mixer",
+                      "Maps to YM/AY register 7 mixer bits for tone-only, noise-only, or combined tone+noise output.",
+                      {
+                          choice("Noise", "Register 7 = 0x07: tone disabled and shared noise enabled on A/B/C.", 0.0f, 0),
+                          choice("Tone", "Register 7 = 0x38: tone enabled and shared noise disabled on A/B/C.", 0.5f, 1),
+                          choice("Both", "Register 7 = 0x00: tone and shared noise both enabled on A/B/C.", 1.0f, 2)
+                      },
+                      ParameterKind::chipRegister,
+                      0.5f),
         sourceSpec(ChipParameterRole::source1Enabled, "ym2149.channelA.enabled", "Channel A", "Enable YM/AY channel A."),
         sourceSpec(ChipParameterRole::source2Enabled, "ym2149.channelB.enabled", "Channel B", "Enable YM/AY channel B."),
         sourceSpec(ChipParameterRole::source3Enabled, "ym2149.channelC.enabled", "Channel C", "Enable YM/AY channel C."),
@@ -784,6 +795,16 @@ uint8_t dmgNoiseRegisterForPatch(const PatchConfig& patch)
     }
 
     return static_cast<uint8_t>((shift << 4u) | width | 0x02u);
+}
+
+uint8_t ym2149MixerRegisterForControl(float toneNoiseControl)
+{
+    const auto value = clampControl(toneNoiseControl);
+    if (value < 0.33f)
+        return 0x07u;
+    if (value > 0.66f)
+        return 0x00u;
+    return 0x38u;
 }
 
 uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch)

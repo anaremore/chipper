@@ -2064,7 +2064,7 @@ public:
             case MacroKind::lead:
             case MacroKind::manual:
             default:
-                mixer = patch.control4 > 0.66f ? 0x00u : (patch.control4 < 0.33f ? 0x07u : 0x38u);
+                mixer = ym2149MixerRegisterForControl(patch.control4);
                 break;
         }
 

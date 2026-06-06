@@ -31,6 +31,7 @@ private:
     static constexpr size_t waveShapeCount = 5;
     static constexpr size_t ymEnvelopeShapeCount = 5;
     static constexpr size_t snNoiseModeCount = 5;
+    static constexpr size_t toneNoiseMixCount = 3;
 
     void timerCallback() override;
     void updateDescriptorText();
@@ -47,6 +48,7 @@ private:
     void placeWaveShapeSegment(juce::Rectangle<int> bounds);
     void placeYmEnvelopeShapeSegment(juce::Rectangle<int> bounds);
     void placeSnNoiseModeSegment(juce::Rectangle<int> bounds);
+    void placeToneNoiseMixSegment(juce::Rectangle<int> bounds);
     float parameterValue(const char* parameterId) const;
     void setParameterValueFromUi(const char* parameterId, float plainValue);
     void setPlainParameterValueFromUi(const char* parameterId, float plainValue);
@@ -69,6 +71,7 @@ private:
     bool usesWaveShapeSegment(chipper::ChipMode mode) const;
     bool usesYmEnvelopeShapeSegment(chipper::ChipMode mode) const;
     bool usesSnNoiseModeSegment(chipper::ChipMode mode) const;
+    bool usesToneNoiseMixSegment(chipper::ChipMode mode) const;
     juce::String macroTemplateReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String pulseDutyReadout(chipper::ChipMode mode, float value) const;
     juce::String waveShapeReadout(int choice) const;
@@ -103,6 +106,7 @@ private:
     void updateWaveShapeButtons(int choice, bool shouldBeVisible);
     void updateYmEnvelopeShapeButtons(int choice, bool shouldBeVisible);
     void updateSnNoiseModeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
+    void updateToneNoiseMixButtons(float value, bool shouldBeVisible);
     void updateEnvelopeDecayReadout(chipper::ChipMode mode);
     juce::String envelopeDecayReadout(chipper::ChipMode mode, float value) const;
 
@@ -135,6 +139,7 @@ private:
     std::array<juce::TextButton, waveShapeCount> waveShapeButtons;
     std::array<juce::TextButton, ymEnvelopeShapeCount> ymEnvelopeShapeButtons;
     std::array<juce::TextButton, snNoiseModeCount> snNoiseModeButtons;
+    std::array<juce::TextButton, toneNoiseMixCount> toneNoiseMixButtons;
 
     juce::ComboBox chipModeBox;
     juce::ComboBox accuracyBox;
@@ -174,6 +179,7 @@ private:
     juce::Rectangle<int> waveShapeSegmentBounds;
     juce::Rectangle<int> ymEnvelopeShapeSegmentBounds;
     juce::Rectangle<int> snNoiseModeSegmentBounds;
+    juce::Rectangle<int> toneNoiseMixSegmentBounds;
     juce::Rectangle<int> globalStripBounds;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipperAudioProcessorEditor)
