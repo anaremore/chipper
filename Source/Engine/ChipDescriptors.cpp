@@ -186,7 +186,12 @@ std::vector<ChipParameterSpec> dmgParameterSpecs()
                       pulseDutyChoices("Thin 1/8 handheld pulse.", "Narrow 1/4 handheld pulse.", "Square 1/2 pulse.", "Wide 3/4 handheld pulse."),
                       ParameterKind::chipRegister,
                       2.0f / 3.0f),
-        sliderSpec(ChipParameterRole::macroControl2, "dmg.sweepShape", "Sweep Shape", "Pitch", "Scales CH1 sweep-like macro pitch offsets."),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "dmg.sweepShift",
+                   "Sweep Shift",
+                   "Pitch",
+                   "Maps to the DMG NR10 sweep-shift bits for channel 1; macros may also use it for pitch gestures.",
+                   ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl3,
                    "dmg.noiseClock",
                    "Noise Clock",
@@ -456,7 +461,7 @@ const std::vector<ChipDescriptor>& descriptors()
             "Two pulse channels, wave RAM, and noise controls map to the partial DMG APU register model.",
             {
                 { "duty", "Pulse Duty", "Pulse", "Chooses the pulse duty family for channel 1 and 2." },
-                { "sweep", "Sweep Shape", "Pitch", "Scales sweep-like macro pitch offsets." },
+                { "sweep", "Sweep Shift", "Pitch", "Maps pitch gestures to the DMG NR10 sweep shift." },
                 { "noise", "Noise Clock", "Noise", "Moves the noise clock and narrow-noise behavior." },
                 { "level", "Envelope Level", "Mixer", "Sets the initial envelope level used by macro templates." },
             },
@@ -808,6 +813,16 @@ uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch)
 uint8_t dmgInitialEnvelopeLevelForControl(float envelopeLevelControl)
 {
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(envelopeLevelControl) * 15.0f)), 1, 15));
+}
+
+uint8_t dmgSweepShiftForControl(float sweepControl)
+{
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(sweepControl) * 7.0f)), 0, 7));
+}
+
+uint8_t dmgSweepRegisterForControl(float sweepControl)
+{
+    return static_cast<uint8_t>(0x18u | dmgSweepShiftForControl(sweepControl));
 }
 
 uint8_t dmgNoiseClockShiftForControl(float noiseClockControl)

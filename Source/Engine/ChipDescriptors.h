@@ -138,6 +138,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int snNoiseMode = 0);
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t nesNoisePeriodForControl(float noisePeriodControl);
+uint8_t dmgSweepShiftForControl(float sweepControl);
+uint8_t dmgSweepRegisterForControl(float sweepControl);
 uint8_t dmgInitialEnvelopeLevelForControl(float envelopeLevelControl);
 uint8_t dmgNoiseClockShiftForControl(float noiseClockControl);
 uint8_t dmgNoiseRegisterForPatch(const PatchConfig& patch);

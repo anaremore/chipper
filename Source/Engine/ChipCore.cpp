@@ -335,7 +335,7 @@ public:
         writeRegister(0xff26, 0x80);
         writeRegister(0xff24, 0x77);
         writeRegister(0xff25, 0xff);
-        writeRegister(0xff10, static_cast<uint8_t>(0x18u | std::clamp(static_cast<int>(std::round(patch.control2 * 7.0f)), 0, 7)));
+        writeRegister(0xff10, dmgSweepRegisterForControl(patch.control2));
         if ((enable & 0x01u) != 0)
             writePulseRegisters(0, duty, ch1Vol, ch1Note);
         else
@@ -438,9 +438,13 @@ public:
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
              << "\"sourceEnabled4\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+             << "\"sweepRegister\":" << static_cast<int>(regs[0x00]) << ","
              << "\"sweepShadow\":" << sweepShadowPeriod << ","
              << "\"sweepTimer\":" << static_cast<int>(sweepTimer) << ","
              << "\"sweepEnabled\":" << (sweepEnabled ? 1 : 0) << ","
+             << "\"sweepPace\":" << static_cast<int>(sweepPace()) << ","
+             << "\"sweepShift\":" << static_cast<int>(sweepShift()) << ","
+             << "\"sweepSubtract\":" << (sweepSubtract() ? 1 : 0) << ","
              << "\"nr50\":" << static_cast<int>(regs[0x14]) << ","
              << "\"nr51\":" << static_cast<int>(regs[0x15]) << ","
              << "\"leftVolume\":" << outputVolume(true) << ","

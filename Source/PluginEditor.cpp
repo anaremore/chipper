@@ -1207,14 +1207,17 @@ juce::String ChipperAudioProcessorEditor::nesFocusReadout(float value) const
 
 juce::String ChipperAudioProcessorEditor::dmgSweepReadout(float value) const
 {
-    const auto shift = std::clamp(static_cast<int>(std::round(value * 7.0f)), 0, 7);
+    const auto reg = chipper::dmgSweepRegisterForControl(value);
+    const auto shift = chipper::dmgSweepShiftForControl(value);
+    const auto prefix = juce::String("NR10 0x") + juce::String::toHexString(static_cast<int>(reg)).toUpperCase()
+        + juce::String(", shift ") + juce::String(static_cast<int>(shift));
     if (shift == 0)
-        return "CH1 sweep mostly off";
+        return prefix + ", mostly off";
     if (shift <= 2)
-        return juce::String("Small CH1 sweep, shift ") + juce::String(shift);
+        return prefix + ", small sweep";
     if (shift <= 5)
-        return juce::String("Arcade pitch bend, shift ") + juce::String(shift);
-    return juce::String("Fast sweep, shift ") + juce::String(shift);
+        return prefix + ", pitch bend";
+    return prefix + ", fast sweep";
 }
 
 juce::String ChipperAudioProcessorEditor::dmgNoiseReadout(float value) const
