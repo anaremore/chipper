@@ -107,6 +107,32 @@ juce::String withMidiCcForRole(juce::String text, chipper::ChipParameterRole rol
     return withMidiCc(text, chipper::parameters::parameterIdForChipParameterRole(role));
 }
 
+juce::String midiCcRangeLabel()
+{
+    const auto& mappings = chipper::parameters::midiCcMappings();
+    auto minController = 127;
+    auto maxController = 0;
+
+    for (const auto& mapping : mappings)
+    {
+        minController = std::min(minController, mapping.controller);
+        maxController = std::max(maxController, mapping.controller);
+    }
+
+    return juce::String("MIDI CC ") + juce::String(minController) + "-" + juce::String(maxController);
+}
+
+juce::String midiCcMapTooltip()
+{
+    juce::String text("Fixed MIDI CC map\n");
+
+    for (const auto& mapping : chipper::parameters::midiCcMappings())
+        text += juce::String("CC ") + juce::String(mapping.controller) + " - " + juce::String(mapping.label) + "\n";
+
+    text += "\nAll current plugin parameters have default MIDI CC control. Choice/register controls quantize to legal chip values.";
+    return text;
+}
+
 template <typename ButtonArray>
 void layoutSegmentedButtons(ButtonArray& buttons, juce::Rectangle<int> bounds, size_t visibleCount)
 {
@@ -402,6 +428,14 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     buildLabel.setTooltip(juce::String("Built ") + chipper::build::builtAtUtc + " from " + chipper::build::gitState + " source");
     addAndMakeVisible(buildLabel);
 
+    midiCcLabel.setFont(juce::FontOptions(11.0f, juce::Font::bold));
+    midiCcLabel.setJustificationType(juce::Justification::centred);
+    midiCcLabel.setColour(juce::Label::textColourId, juce::Colour(0xff56c7d8));
+    midiCcLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff18252d));
+    midiCcLabel.setText(midiCcRangeLabel(), juce::dontSendNotification);
+    midiCcLabel.setTooltip(midiCcMapTooltip());
+    addAndMakeVisible(midiCcLabel);
+
     chipSummaryLabel.setFont(juce::FontOptions(14.0f));
     chipSummaryLabel.setJustificationType(juce::Justification::centredLeft);
     chipSummaryLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
@@ -658,6 +692,8 @@ void ChipperAudioProcessorEditor::resized()
 
     auto footer = getLocalBounds().reduced(16).removeFromBottom(44);
     buildLabel.setBounds(footer.removeFromRight(190));
+    footer.removeFromRight(8);
+    midiCcLabel.setBounds(footer.removeFromRight(136));
     footer.removeFromRight(8);
     statusLabel.setBounds(footer);
 }

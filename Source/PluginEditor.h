@@ -114,6 +114,7 @@ private:
     juce::Label titleLabel;
     juce::Label statusLabel;
     juce::Label buildLabel;
+    juce::Label midiCcLabel;
     juce::Label chipSummaryLabel;
     juce::Label macroSummaryLabel;
     juce::Label coreReadinessLabel;
