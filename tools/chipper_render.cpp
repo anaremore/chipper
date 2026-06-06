@@ -266,13 +266,39 @@ bool parseSnNoiseMode(const std::string& text, int& out)
     return true;
 }
 
+bool parseSidModMode(const std::string& text, int& out)
+{
+    uint32_t numeric = 0;
+    if (parseNumber(text, numeric))
+    {
+        out = std::clamp(static_cast<int>(numeric), 0, 4);
+        return true;
+    }
+
+    const auto key = normalizedToken(text);
+    if (key == "macro" || key == "auto" || key == "default")
+        out = 0;
+    else if (key == "off" || key == "none" || key == "clear")
+        out = 1;
+    else if (key == "sync" || key == "hardsync")
+        out = 2;
+    else if (key == "ring" || key == "ringmod" || key == "ringmodulation")
+        out = 3;
+    else if (key == "both" || key == "syncring" || key == "ringsync" || key == "syncandring")
+        out = 4;
+    else
+        return false;
+
+    return true;
+}
+
 void printUsage()
 {
     std::cerr
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
         << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --wave-shape tri|saw|pulse|steps|noise --dmg-wave-level 100|50|25|mute|macro --dmg-stereo-route both|left|right|split|macro --ym-envelope-shape triangle|lp|bp|hp|bypass --sid-filter-mode lp|bp|hp|bypass --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --wave-shape tri|saw|pulse|steps|noise --dmg-wave-level 100|50|25|mute|macro --dmg-stereo-route both|left|right|split|macro --ym-envelope-shape triangle|lp|bp|hp|bypass --sid-filter-mode lp|bp|hp|bypass --sid-mod-mode macro|off|sync|ring|both --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -553,6 +579,13 @@ bool parseArgs(int argc, char** argv, Options& options)
             if (value == nullptr || ! parseYmEnvelopeShape(std::string(value), options.ymEnvelopeShape))
                 return false;
             options.ymEnvelopeShapeProvided = true;
+        }
+        else if (arg == "--sid-mod-mode")
+        {
+            const auto* value = requireValue("--sid-mod-mode");
+            if (value == nullptr || ! parseSidModMode(std::string(value), options.snNoiseMode))
+                return false;
+            options.snNoiseModeProvided = true;
         }
         else if (arg == "--sn-noise-mode")
         {

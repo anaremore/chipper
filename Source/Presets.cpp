@@ -225,7 +225,7 @@ const std::vector<PresetInfo>& presetCatalog()
             0.28f,
             3,
             1,
-            0,
+            1,
             -9.0f,
             985248.0,
             0.58f
@@ -244,7 +244,7 @@ const std::vector<PresetInfo>& presetCatalog()
             0.32f,
             3,
             1,
-            0,
+            1,
             -10.0f,
             985248.0,
             0.36f
@@ -263,7 +263,7 @@ const std::vector<PresetInfo>& presetCatalog()
             0.25f,
             2,
             2,
-            0,
+            1,
             -10.0f,
             985248.0,
             0.42f
@@ -282,7 +282,7 @@ const std::vector<PresetInfo>& presetCatalog()
             0.95f,
             4,
             1,
-            0,
+            1,
             -12.0f,
             985248.0,
             0.18f

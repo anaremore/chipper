@@ -1121,6 +1121,7 @@ public:
         clock = chipClockHz > 0.0 ? chipClockHz : 985248.0;
         regs.fill(0);
         phase.fill(0.0);
+        oscillatorWrapped.fill(false);
         noisePhase.fill(0.0);
         envelope.fill(0.0);
         envelopeState.fill(EnvelopeState::release);
@@ -1316,7 +1317,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Three SID oscillator voices, 24-bit frequency-register pitch mapping, waveform control bits, 12-bit pulse width, gate-driven ADSR approximation, source trims, cutoff/resonance register writes, and a first-pass multimode filter approximation are modeled; 6581/8580 analog filter behavior, exact ADSR bugs, oscillator sync/ring interactions, waveform-combination quirks, external input, DAC nonlinearity, and hardware validation are not complete.";
+        return "Three SID oscillator voices, 24-bit frequency-register pitch mapping, waveform control bits, 12-bit pulse width, control-register sync/ring bits with a musical approximation, gate-driven ADSR approximation, source trims, cutoff/resonance register writes, and a first-pass multimode filter approximation are modeled; 6581/8580 analog filter behavior, exact ADSR bugs, exact oscillator sync/ring timing, waveform-combination quirks, external input, DAC nonlinearity, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -1330,6 +1331,10 @@ public:
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"waveformChoice\":" << std::clamp(patch.waveShape, 0, 4) << ","
              << "\"waveformBits\":" << static_cast<int>(sidWaveformControlForPatch(patch)) << ","
+             << "\"modModeChoice\":" << std::clamp(patch.snNoiseMode, 0, 4) << ","
+             << "\"modBits0\":" << static_cast<int>(sidModulationBitsForPatch(patch, 0)) << ","
+             << "\"modBits1\":" << static_cast<int>(sidModulationBitsForPatch(patch, 1)) << ","
+             << "\"modBits2\":" << static_cast<int>(sidModulationBitsForPatch(patch, 2)) << ","
              << "\"pulseWidthControl\":" << patch.control1 << ","
              << "\"pulseWidthRegister\":" << sidPulseWidthForControl(patch.control1) << ","
              << "\"filterCutoffRegister\":" << filterCutoffRegister() << ","
@@ -1411,6 +1416,12 @@ private:
     static size_t voiceBase(size_t voice)
     {
         return std::min(voice, voiceCount - 1u) * 7u;
+    }
+
+    static size_t previousVoice(size_t voice)
+    {
+        const auto safeVoice = std::min(voice, voiceCount - 1u);
+        return safeVoice == 0 ? voiceCount - 1u : safeVoice - 1u;
     }
 
     static uint32_t sidNoiseSeed(size_t voice)
@@ -1511,7 +1522,7 @@ private:
         writeRegister(static_cast<uint16_t>(0xd403 + base), static_cast<uint8_t>((pulseWidth >> 8u) & 0x0fu));
         writeRegister(static_cast<uint16_t>(0xd405 + base), sidAttackDecayForPatch(patch));
         writeRegister(static_cast<uint16_t>(0xd406 + base), sidSustainReleaseForPatch(patch));
-        writeRegister(static_cast<uint16_t>(0xd404 + base), static_cast<uint8_t>(waveformBits | 0x01u));
+        writeRegister(static_cast<uint16_t>(0xd404 + base), static_cast<uint8_t>(waveformBits | sidModulationBitsForPatch(patch, voice) | 0x01u));
     }
 
     void writeFilterRegisters()
@@ -1696,7 +1707,15 @@ private:
             return 0.0;
 
         const auto hz = oscillatorFrequency(voice);
-        phase[voice] = wrapPhase(phase[voice] + hz / sampleRate);
+        const auto nextPhase = phase[voice] + (hz / sampleRate);
+        phase[voice] = wrapPhase(nextPhase);
+        oscillatorWrapped[voice] = nextPhase >= 1.0;
+
+        if ((controlRegister(voice) & 0x02u) != 0 && oscillatorWrapped[previousVoice(voice)])
+        {
+            phase[voice] = 0.0;
+            oscillatorWrapped[voice] = true;
+        }
 
         const auto waveform = controlRegister(voice) & 0xf0u;
         if ((waveform & 0x80u) != 0)
@@ -1709,7 +1728,12 @@ private:
         if ((waveform & 0x20u) != 0)
             return (phase[voice] * 2.0) - 1.0;
         if ((waveform & 0x10u) != 0)
-            return phase[voice] < 0.5 ? (-1.0 + (phase[voice] * 4.0)) : (3.0 - (phase[voice] * 4.0));
+        {
+            auto triangle = phase[voice] < 0.5 ? (-1.0 + (phase[voice] * 4.0)) : (3.0 - (phase[voice] * 4.0));
+            if ((controlRegister(voice) & 0x04u) != 0 && phase[previousVoice(voice)] >= 0.5)
+                triangle = -triangle;
+            return triangle;
+        }
 
         return 0.0;
     }
@@ -1770,6 +1794,7 @@ private:
     double clock = 985248.0;
     std::array<uint8_t, 0x19> regs {};
     std::array<double, voiceCount> phase {};
+    std::array<bool, voiceCount> oscillatorWrapped {};
     std::array<double, voiceCount> noisePhase {};
     std::array<double, voiceCount> envelope {};
     std::array<EnvelopeState, voiceCount> envelopeState {};

@@ -92,16 +92,16 @@ std::vector<MacroTemplate> sn76489Macros()
 std::vector<MacroTemplate> sidMacros()
 {
     return {
-        { MacroKind::manual, "SID Manual", "Neutral three-voice SID oscillator mapping.", { 0.50f, 0.25f, 0.70f, 0.70f }, { true, true, true, false }, 0.35f, 0, 1, 0, 0, 0.25f },
-        { MacroKind::coin, "SID Coin", "Short gated pulse pop with a bright C64 edge.", { 0.35f, 0.80f, 0.90f, 0.45f }, { true, false, false, false }, 0.70f, 3, 3, 0, 0, 0.15f },
-        { MacroKind::bass, "SID Dirty Bass", "Pulse-heavy dual voice bass with a low-pass-style cutoff macro.", { 0.48f, 0.18f, 0.40f, 0.82f }, { true, true, false, false }, 0.28f, 3, 1, 0, 0, 0.58f },
-        { MacroKind::lead, "SID PWM Lead", "Three-voice pulse stack ready for animated width and detune.", { 0.58f, 0.40f, 0.72f, 0.70f }, { true, true, true, false }, 0.32f, 3, 1, 0, 0, 0.36f },
-        { MacroKind::arp, "SID Robot Arp", "Saw stack for hard-edged robotic arps.", { 0.50f, 0.78f, 0.85f, 0.60f }, { true, true, true, false }, 0.25f, 2, 2, 0, 0, 0.42f },
-        { MacroKind::drum, "SID Noise Drum", "Noise voice with fast hardware-style decay.", { 0.50f, 0.10f, 0.80f, 0.20f }, { false, false, true, false }, 0.95f, 4, 1, 0, 0, 0.18f },
-        { MacroKind::hit, "SID Grit Hit", "Short noisy impact with a pulse transient.", { 0.42f, 0.30f, 0.65f, 0.28f }, { true, false, true, false }, 0.88f, 4, 2, 0, 0, 0.50f },
-        { MacroKind::laser, "SID Sync Sweep", "Pitch-spread saw/pulse sweep gesture.", { 0.30f, 1.00f, 0.92f, 0.45f }, { true, true, false, false }, 0.55f, 2, 2, 0, 0, 0.65f },
-        { MacroKind::jump, "SID Jump", "Quick triangle/pulse blip.", { 0.38f, 0.62f, 0.78f, 0.42f }, { true, false, false, false }, 0.50f, 1, 3, 0, 0, 0.20f },
-        { MacroKind::powerUp, "SID Filter Rise", "Bright stacked rise with cutoff opened by the macro.", { 0.62f, 0.88f, 0.95f, 0.65f }, { true, true, true, false }, 0.22f, 2, 1, 0, 0, 0.48f },
+        { MacroKind::manual, "SID Manual", "Neutral three-voice SID oscillator mapping.", { 0.50f, 0.25f, 0.70f, 0.70f }, { true, true, true, false }, 0.35f, 0, 1, 1, 0, 0.25f },
+        { MacroKind::coin, "SID Coin", "Short gated pulse pop with a bright C64 edge.", { 0.35f, 0.80f, 0.90f, 0.45f }, { true, false, false, false }, 0.70f, 3, 3, 1, 0, 0.15f },
+        { MacroKind::bass, "SID Dirty Bass", "Pulse-heavy dual voice bass with a low-pass-style cutoff macro.", { 0.48f, 0.18f, 0.40f, 0.82f }, { true, true, false, false }, 0.28f, 3, 1, 1, 0, 0.58f },
+        { MacroKind::lead, "SID PWM Lead", "Three-voice pulse stack ready for animated width and detune.", { 0.58f, 0.40f, 0.72f, 0.70f }, { true, true, true, false }, 0.32f, 3, 1, 1, 0, 0.36f },
+        { MacroKind::arp, "SID Robot Arp", "Saw stack for hard-edged robotic arps.", { 0.50f, 0.78f, 0.85f, 0.60f }, { true, true, true, false }, 0.25f, 2, 2, 1, 0, 0.42f },
+        { MacroKind::drum, "SID Noise Drum", "Noise voice with fast hardware-style decay.", { 0.50f, 0.10f, 0.80f, 0.20f }, { false, false, true, false }, 0.95f, 4, 1, 1, 0, 0.18f },
+        { MacroKind::hit, "SID Grit Hit", "Short noisy impact with a pulse transient.", { 0.42f, 0.30f, 0.65f, 0.28f }, { true, false, true, false }, 0.88f, 4, 2, 3, 0, 0.50f },
+        { MacroKind::laser, "SID Sync Sweep", "Pitch-spread saw/pulse sweep gesture.", { 0.30f, 1.00f, 0.92f, 0.45f }, { true, true, false, false }, 0.55f, 2, 2, 2, 0, 0.65f },
+        { MacroKind::jump, "SID Jump", "Quick triangle/pulse blip.", { 0.38f, 0.62f, 0.78f, 0.42f }, { true, false, false, false }, 0.50f, 1, 3, 1, 0, 0.20f },
+        { MacroKind::powerUp, "SID Filter Rise", "Bright stacked rise with cutoff opened by the macro.", { 0.62f, 0.88f, 0.95f, 0.65f }, { true, true, true, false }, 0.22f, 2, 1, 2, 0, 0.48f },
     };
 }
 
@@ -458,6 +458,19 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
                           choice("HP", "$D418 bit 0x40: high-pass filter output.", 0.75f, 3),
                           choice("Off", "$D418 filter bits cleared; bypass Chipper's SID filter approximation.", 1.0f, 4)
                       },
+                      ParameterKind::chipRegister),
+        segmentedSpec(ChipParameterRole::snNoiseMode,
+                      "sid.oscMod",
+                      "Osc Mod",
+                      "Motion",
+                      "Maps to SID control-register sync/ring bits on voices 2 and 3. Macro uses the selected SID musical template.",
+                      {
+                          choice("Macro", "Resolve oscillator modulation from the selected SID macro.", 0.0f, 0),
+                          choice("Off", "Clear SID sync and ring bits.", 0.25f, 1),
+                          choice("Sync", "Set the SID hard-sync bit on stacked follower voices.", 0.5f, 2),
+                          choice("Ring", "Set the SID ring-mod bit on stacked follower voices.", 0.75f, 3),
+                          choice("Both", "Set both SID sync and ring bits on stacked follower voices.", 1.0f, 4)
+                      },
                       ParameterKind::chipRegister)
     };
 }
@@ -537,7 +550,7 @@ std::array<ModuleDescriptor, 6> sidModules()
         makeModule("sources", "Voices", "Three SID oscillator voices.", { "Voice 1", "Voice 2", "Voice 3", "External input planned" }),
         makeModule("tone", "Wave / Filter", "Register-backed oscillator shape plus first-pass filter control.", { "Waveform bits", "Pulse width", "Filter mode", "Cutoff / resonance" }),
         makeModule("envelope", "Envelope", "SID-style ADSR gate behavior.", { "Attack/decay nibbles", "Sustain nibble", "Release nibble", "ADSR quirks planned" }),
-        makeModule("motion", "Motion", "Classic SID modulation gestures.", { "Voice detune", "PWM-ready width", "Sync planned", "Ring mod planned" }),
+        makeModule("motion", "Motion", "Classic SID modulation gestures.", { "Voice detune", "PWM-ready width", "Sync / ring mod", "Macro motion" }),
         makeModule("output", "Output", "Warm mono C64-style output groundwork.", { "Output gain", "Voice trims", "Drive planned", "Known differences" })
     };
 }
@@ -1165,6 +1178,48 @@ uint8_t sidFilterModeBitsForPatch(const PatchConfig& patch)
 uint8_t sidFilterResonanceForControl(float resonanceControl)
 {
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(resonanceControl) * 15.0f)), 0, 15));
+}
+
+uint8_t sidModulationBitsForPatch(const PatchConfig& patch, size_t voice)
+{
+    if (voice == 0)
+        return 0x00u;
+
+    auto choice = std::clamp(patch.snNoiseMode, 0, 4);
+    if (choice == 0)
+    {
+        switch (patch.macro)
+        {
+            case MacroKind::hit:
+                choice = 3;
+                break;
+            case MacroKind::laser:
+            case MacroKind::powerUp:
+                choice = 2;
+                break;
+            case MacroKind::manual:
+            case MacroKind::coin:
+            case MacroKind::bass:
+            case MacroKind::lead:
+            case MacroKind::arp:
+            case MacroKind::drum:
+            case MacroKind::jump:
+            default:
+                choice = 1;
+                break;
+        }
+    }
+
+    switch (choice)
+    {
+        case 2: return 0x02u;
+        case 3: return 0x04u;
+        case 4: return 0x06u;
+        case 1:
+        case 0:
+        default:
+            return 0x00u;
+    }
 }
 
 uint8_t sidAttackDecayForPatch(const PatchConfig& patch)

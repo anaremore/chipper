@@ -773,8 +773,13 @@ void ChipperAudioProcessorEditor::resized()
 
     placeWaveShapeSegment(primaryTonePanel);
     placeDmgWaveLevelSegment(secondaryTonePanel);
-    placeSnNoiseModeSegment(primaryTonePanel);
     placeYmEnvelopeShapeSegment(displayedMode == chipper::ChipMode::sid ? secondaryTonePanel : primaryTonePanel);
+
+    auto motionPanel = moduleBounds[4].reduced(12, 9);
+    motionPanel.removeFromTop(20);
+    motionPanel.removeFromTop(30);
+    motionPanel.removeFromTop(4);
+    placeSnNoiseModeSegment(displayedMode == chipper::ChipMode::sid ? motionPanel : primaryTonePanel);
 
     auto envelopePanel = moduleBounds[3].reduced(12, 9);
     envelopePanel.removeFromTop(20);
@@ -1334,7 +1339,7 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
         return label + " -> " + snStackReadout(patch.control1) + " | " + snNoiseModeReadout(patch) + " | " + snLevelReadout(patch.control4);
 
     if (mode == chipper::ChipMode::sid)
-        return label + " -> " + waveShapeReadout(mode, patch.waveShape) + " | " + sidFilterModeReadout(patch) + " | " + sidSustainReadout(patch.control4);
+        return label + " -> " + waveShapeReadout(mode, patch.waveShape) + " | " + sidFilterModeReadout(patch) + " | " + sidModModeReadout(patch);
 
     return label + ": " + juce::String(templ.help);
 }
@@ -1449,6 +1454,27 @@ juce::String ChipperAudioProcessorEditor::sidFilterModeReadout(const chipper::Pa
     return patch.ymEnvelopeShape == 0 ? juce::String("Macro -> ") + text : text;
 }
 
+juce::String ChipperAudioProcessorEditor::sidModModeReadout(const chipper::PatchConfig& patch) const
+{
+    const auto bits = chipper::sidModulationBitsForPatch(patch, 1);
+    juce::String resolved;
+    switch (bits)
+    {
+        case 0x02u: resolved = "sync on voices 2/3"; break;
+        case 0x04u: resolved = "ring on voices 2/3"; break;
+        case 0x06u: resolved = "sync + ring on voices 2/3"; break;
+        case 0x00u:
+        default:
+            resolved = "off";
+            break;
+    }
+
+    const auto registerText = juce::String("CTRL bits 0x")
+        + juce::String::toHexString(static_cast<int>(bits)).paddedLeft('0', 2).toUpperCase();
+    const auto text = registerText + ", " + resolved;
+    return patch.snNoiseMode == 0 ? juce::String("Macro -> ") + text : text;
+}
+
 juce::String ChipperAudioProcessorEditor::snNoiseRegisterLabel(uint8_t noiseControl) const
 {
     const auto rate = noiseControl & 0x03u;
@@ -1475,6 +1501,9 @@ juce::String ChipperAudioProcessorEditor::noiseModeReadout(chipper::ChipMode mod
 
     if (mode == chipper::ChipMode::dmg)
         return dmgNoiseModeReadout(patch);
+
+    if (mode == chipper::ChipMode::sid)
+        return sidModModeReadout(patch);
 
     return snNoiseModeReadout(patch);
 }
@@ -2265,12 +2294,18 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     setSnNoiseModeSegmentVisible(mode, usesSnNoiseModeSegment(mode) && hasLiveCore);
     setEnvelopeDecayControlVisible(mode, usesEnvelopeDecayControl(mode) && hasLiveCore);
     setStereoSpreadControlVisible(mode, usesStereoSpreadControl(mode) && hasLiveCore);
-    const auto hasCustomToneSurface = hasLiveCore && (usesWaveShapeSegment(mode) || usesDmgWaveLevelSegment(mode) || usesSnNoiseModeSegment(mode) || usesYmEnvelopeShapeSegment(mode));
+    const auto hasCustomToneSurface = hasLiveCore && (usesWaveShapeSegment(mode)
+        || usesDmgWaveLevelSegment(mode)
+        || (mode != chipper::ChipMode::sid && usesSnNoiseModeSegment(mode))
+        || usesYmEnvelopeShapeSegment(mode));
     for (auto& itemLabel : moduleItemLabels[2])
         itemLabel.setVisible(! hasCustomToneSurface && ! itemLabel.getText().isEmpty());
     const auto hasCustomEnvelopeSurface = hasLiveCore && usesEnvelopeDecayControl(mode);
     for (auto& itemLabel : moduleItemLabels[3])
         itemLabel.setVisible(! hasCustomEnvelopeSurface && ! itemLabel.getText().isEmpty());
+    const auto hasCustomMotionSurface = hasLiveCore && mode == chipper::ChipMode::sid && usesSnNoiseModeSegment(mode);
+    for (auto& itemLabel : moduleItemLabels[4])
+        itemLabel.setVisible(! hasCustomMotionSurface && ! itemLabel.getText().isEmpty());
     const auto hasCustomOutputSurface = hasLiveCore && (usesStereoSpreadControl(mode) || usesDmgStereoRouteSegment(mode));
     for (auto& itemLabel : moduleItemLabels[5])
         itemLabel.setVisible(! hasCustomOutputSurface && ! itemLabel.getText().isEmpty());

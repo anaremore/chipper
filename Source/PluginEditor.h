@@ -88,6 +88,7 @@ private:
     juce::String dmgStereoRouteReadout(const chipper::PatchConfig& patch) const;
     juce::String ymEnvelopeShapeReadout(int choice) const;
     juce::String sidFilterModeReadout(const chipper::PatchConfig& patch) const;
+    juce::String sidModModeReadout(const chipper::PatchConfig& patch) const;
     juce::String noiseModeReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String nesNoiseModeReadout(const chipper::PatchConfig& patch) const;
     juce::String dmgNoiseModeReadout(const chipper::PatchConfig& patch) const;
