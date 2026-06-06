@@ -1,0 +1,8 @@
+# YM2149/AY fixed-volume curve trace.
+# The note establishes tone periods; the following register writes override the
+# macro volume registers so debug JSON can assert the DAC mapping directly.
+note_on 0 72 1.0
+write 1 7 0x38
+write 1 8 15
+write 1 9 10
+write 1 10 0

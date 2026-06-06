@@ -2145,7 +2145,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Tone/noise registers, mixer bits, volume registers, YM-style 32-step envelope counter/reset behavior, and YM channel allocation for Chip Poly play mode are modeled; exact analog output curve, AY/YM variant differences, and hardware timing validation are still required.";
+        return "Tone/noise registers, mixer bits, logarithmic DAC volume approximation, YM-style 32-step envelope counter/reset behavior, and YM channel allocation for Chip Poly play mode are modeled; exact analog output curve, AY/YM variant differences, and hardware timing validation are still required.";
     }
 
     std::string debugStateJson() const override
@@ -2166,9 +2166,13 @@ public:
              << "\"sourceEnabledB\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabledC\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
              << "\"sourceEnabledNoise\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+             << "\"volumeCurve\":\"ayYmLogApprox1_5dB\","
              << "\"volumeA\":" << static_cast<int>(regs[8]) << ","
              << "\"volumeB\":" << static_cast<int>(regs[9]) << ","
              << "\"volumeC\":" << static_cast<int>(regs[10]) << ","
+             << "\"linearVolumeA\":" << channelVolume(0) << ","
+             << "\"linearVolumeB\":" << channelVolume(1) << ","
+             << "\"linearVolumeC\":" << channelVolume(2) << ","
              << "\"envelopeDecayControl\":" << patch.envelopeDecay << ","
              << "\"envelopePeriod\":" << envelopePeriodRegister() << ","
              << "\"envelopeShapeChoice\":" << patch.ymEnvelopeShape << ","
@@ -2176,6 +2180,7 @@ public:
              << "\"envelopeStepResolution\":" << envelopeStepResolution << ","
              << "\"envelopeStepRateHz\":" << envelopeStepRateHz() << ","
              << "\"envelopeCounter\":" << envelopeCounter << ","
+             << "\"envelopeLinearLevel\":" << envelopeVolume << ","
              << "\"envelopeDirection\":" << envelopeDirection << ","
              << "\"envelopeHolding\":" << (envelopeHolding ? 1 : 0) << ","
              << "\"envelopeResetCount\":" << envelopeResetCount << ","
@@ -2376,7 +2381,28 @@ private:
         const auto volReg = regs[static_cast<size_t>(8 + channel)];
         if ((volReg & 0x10) != 0)
             return envelopeVolume;
-        return static_cast<double>(volReg & 0x0f) / 15.0;
+        return fixedVolumeToLinear(volReg);
+    }
+
+    static double logarithmicLevelToLinear(int level, int maxLevel)
+    {
+        if (level <= 0 || maxLevel <= 0)
+            return 0.0;
+
+        constexpr double dbPerStep = 1.5;
+        const auto clipped = std::clamp(level, 0, maxLevel);
+        const auto stepsBelowMax = maxLevel - clipped;
+        return std::pow(10.0, (-dbPerStep * static_cast<double>(stepsBelowMax)) / 20.0);
+    }
+
+    static double fixedVolumeToLinear(uint8_t volume)
+    {
+        return logarithmicLevelToLinear(static_cast<int>(volume & 0x0f), 15);
+    }
+
+    static double envelopeCounterToLinear(int counter)
+    {
+        return logarithmicLevelToLinear(counter, envelopeStepResolution - 1);
     }
 
     void updateNoise()
@@ -2407,7 +2433,7 @@ private:
         envelopeDirection = attack ? 1 : -1;
         envelopeCounter = attack ? 0 : envelopeStepResolution - 1;
         envelopeHolding = false;
-        envelopeVolume = static_cast<double>(envelopeCounter) / static_cast<double>(envelopeStepResolution - 1);
+        envelopeVolume = envelopeCounterToLinear(envelopeCounter);
         ++envelopeResetCount;
     }
 
@@ -2456,7 +2482,7 @@ private:
             advanceEnvelopeCounter();
         }
 
-        envelopeVolume = static_cast<double>(envelopeCounter) / static_cast<double>(envelopeStepResolution - 1);
+        envelopeVolume = envelopeCounterToLinear(envelopeCounter);
     }
 
     double renderChannel(int channel)

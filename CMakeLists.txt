@@ -105,6 +105,9 @@ add_test(NAME chipper_render_ym2149_envelope_fast_smoke
 add_test(NAME chipper_render_ym2149_envelope_reset_smoke
     COMMAND chipper_render --chip ym2149 --accuracy authentic --macro manual --ym-envelope-shape fall --envelope-decay 1.0 --clock 2000000 --rate 48000 --seconds 0.001 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2149-envelope-reset-events.txt --out ym-envelope-reset-smoke.wav --debug ym-envelope-reset-smoke.json
 )
+add_test(NAME chipper_render_ym2149_volume_curve_smoke
+    COMMAND chipper_render --chip ym2149 --accuracy authentic --macro manual --clock 2000000 --rate 48000 --seconds 0.01 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2149-volume-curve-events.txt --out ym-volume-curve-smoke.wav --debug ym-volume-curve-smoke.json
+)
 add_test(NAME chipper_render_sn76489_smoke
     COMMAND chipper_render --chip sn76489 --accuracy authentic --clock 3579545 --rate 48000 --seconds 0.10 --note 76 --out sn-smoke.wav --debug sn-smoke.json
 )
@@ -428,6 +431,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-envelope-reset-smoke.json --implemented-contains partial --macro Manual --register-writes 1 --note-events 1 --min-peak 0.02 --core-min envelopeDecayControl=1 --core-max envelopeDecayControl=1 --core-min envelopePeriod=16 --core-max envelopePeriod=16 --core-min envelopeShape=13 --core-max envelopeShape=13 --core-min envelopeStepResolution=32 --core-max envelopeStepResolution=32 --core-min envelopeStepRateHz=15625 --core-max envelopeStepRateHz=15625 --core-min envelopeResetCount=2 --core-max envelopeResetCount=2 --core-min envelopeCounter=7 --core-max envelopeCounter=7 --core-min envelopeDirection=1 --core-max envelopeDirection=1 --core-min envelopeHolding=0 --core-max envelopeHolding=0
     )
     set_tests_properties(chipper_render_ym2149_envelope_reset_assert PROPERTIES DEPENDS chipper_render_ym2149_envelope_reset_smoke)
+
+    add_test(NAME chipper_render_ym2149_volume_curve_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-volume-curve-smoke.json --implemented-contains partial --macro Manual --register-writes 4 --note-events 1 --min-peak 0.1 --core-min volumeA=15 --core-max volumeA=15 --core-min volumeB=10 --core-max volumeB=10 --core-min volumeC=0 --core-max volumeC=0 --core-min linearVolumeA=1 --core-max linearVolumeA=1 --core-min linearVolumeB=0.421 --core-max linearVolumeB=0.423 --core-min linearVolumeC=0 --core-max linearVolumeC=0
+    )
+    set_tests_properties(chipper_render_ym2149_volume_curve_assert PROPERTIES DEPENDS chipper_render_ym2149_volume_curve_smoke)
 
     add_test(NAME chipper_render_sn76489_chip_poly_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sn-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 3 --min-peak 0.1 --core-min activeChannels=3 --core-max activeChannels=3 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min period0=428 --core-max period0=428 --core-min period1=339 --core-max period1=339 --core-min period2=285 --core-max period2=285
