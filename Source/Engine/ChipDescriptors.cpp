@@ -513,23 +513,14 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int ymEnvelopeShape,
                             int snNoiseMode)
 {
-    const auto& templ = macroTemplateFor(mode, macro);
-    const auto blend = [](float templated, float user)
-    {
-        return clampControl(templated + ((user - 0.5f) * 0.6f));
-    };
-
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
-    const auto effectiveControl1 = (mode == ChipMode::nes || mode == ChipMode::dmg)
-        ? clampControl(control1)
-        : blend(templ.controls[0], control1);
 
     return {
         macro,
-        effectiveControl1,
-        blend(templ.controls[1], control2),
-        blend(templ.controls[2], control3),
-        blend(templ.controls[3], control4),
+        clampControl(control1),
+        clampControl(control2),
+        clampControl(control3),
+        clampControl(control4),
         effectivePlayMode,
         sourceEnabled,
         clampControl(envelopeDecay),

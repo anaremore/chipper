@@ -45,6 +45,7 @@ private:
     void setParameterValueFromUi(const char* parameterId, float plainValue);
     void setChoiceParameterFromUi(const char* parameterId, int choiceIndex);
     void updateMacroChoices(chipper::ChipMode mode);
+    void applySelectedMacroTemplate();
     chipper::PatchConfig currentUiPatch(chipper::ChipMode mode,
                                          float control1,
                                          float control2,
@@ -149,6 +150,7 @@ private:
 
     chipper::ChipMode displayedMode = chipper::ChipMode::custom;
     bool descriptorTextInitialized = false;
+    bool suppressMacroTemplateApply = false;
     std::array<juce::Rectangle<int>, uiModuleCount> moduleBounds;
     std::array<juce::Rectangle<int>, sourceChannelCount> sourceChannelBounds;
     juce::Rectangle<int> pulseDutySegmentBounds;

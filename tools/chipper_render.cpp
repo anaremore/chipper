@@ -31,6 +31,7 @@ struct Options
     float control2 = 0.5f;
     float control3 = 0.5f;
     float control4 = 0.5f;
+    std::array<bool, 4> controlProvided {};
     std::array<bool, 4> sourceEnabled { true, true, true, true };
     float envelopeDecay = 0.0f;
     int waveShape = 0;
@@ -274,24 +275,28 @@ bool parseArgs(int argc, char** argv, Options& options)
             const auto* value = requireValue("--control1");
             if (value == nullptr || ! parseNumber(std::string(value), options.control1))
                 return false;
+            options.controlProvided[0] = true;
         }
         else if (arg == "--control2")
         {
             const auto* value = requireValue("--control2");
             if (value == nullptr || ! parseNumber(std::string(value), options.control2))
                 return false;
+            options.controlProvided[1] = true;
         }
         else if (arg == "--control3")
         {
             const auto* value = requireValue("--control3");
             if (value == nullptr || ! parseNumber(std::string(value), options.control3))
                 return false;
+            options.controlProvided[2] = true;
         }
         else if (arg == "--control4")
         {
             const auto* value = requireValue("--control4");
             if (value == nullptr || ! parseNumber(std::string(value), options.control4))
                 return false;
+            options.controlProvided[3] = true;
         }
         else if (arg == "--source1")
         {
@@ -395,6 +400,17 @@ bool parseArgs(int argc, char** argv, Options& options)
     }
 
     return options.sampleRate > 0.0 && options.clock >= 0.0 && options.seconds > 0.0;
+}
+
+void applyMacroTemplateDefaults(Options& options)
+{
+    const auto& templ = chipper::macroTemplateFor(options.chip, options.macro);
+    std::array<float*, 4> controls { &options.control1, &options.control2, &options.control3, &options.control4 };
+    for (size_t i = 0; i < controls.size(); ++i)
+    {
+        if (! options.controlProvided[i])
+            *controls[i] = templ.controls[i];
+    }
 }
 
 std::vector<ScheduledEvent> loadEvents(const std::filesystem::path& path)
@@ -619,6 +635,7 @@ int main(int argc, char** argv)
             return 2;
         }
 
+        applyMacroTemplateDefaults(options);
         auto core = chipper::createChipCore(options.chip, options.accuracy);
         core->reset(options.sampleRate, options.clock);
         const auto patch = chipper::makePatchConfig(options.chip,

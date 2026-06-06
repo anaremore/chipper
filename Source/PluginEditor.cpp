@@ -53,6 +53,10 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     accuracyAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::accuracy, accuracyBox);
     macroAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::macro, macroBox);
     playModeAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::playMode, playModeBox);
+    macroBox.onChange = [this]()
+    {
+        applySelectedMacroTemplate();
+    };
 
     addLabeledSlider(clockSlider, clockLabel, "Clock");
     clockSlider.setTextValueSuffix(" Hz");
@@ -663,6 +667,7 @@ void ChipperAudioProcessorEditor::updateMacroChoices(chipper::ChipMode mode)
                                      0,
                                      static_cast<int>(order.size() - 1u));
 
+    const juce::ScopedValueSetter<bool> suppress(suppressMacroTemplateApply, true);
     macroBox.clear(juce::dontSendNotification);
     for (size_t i = 0; i < order.size(); ++i)
     {
@@ -672,6 +677,37 @@ void ChipperAudioProcessorEditor::updateMacroChoices(chipper::ChipMode mode)
     }
 
     macroBox.setSelectedItemIndex(selected, juce::dontSendNotification);
+}
+
+void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
+{
+    if (suppressMacroTemplateApply)
+        return;
+
+    const auto modeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::chipMode)));
+    const auto mode = chipper::parameters::chipModeFromChoice(modeChoice);
+    if (! chipper::descriptorFor(mode).implemented)
+        return;
+
+    const auto selected = macroBox.getSelectedItemIndex();
+    if (selected < 0)
+        return;
+
+    const auto order = chipper::macroOrder();
+    const auto macroIndex = static_cast<size_t>(std::clamp(selected, 0, static_cast<int>(order.size() - 1u)));
+    const auto& templ = chipper::macroTemplateFor(mode, order[macroIndex]);
+    const std::array<const char*, 4> ids {
+        chipper::parameters::id::macroControl1,
+        chipper::parameters::id::macroControl2,
+        chipper::parameters::id::macroControl3,
+        chipper::parameters::id::macroControl4
+    };
+
+    const juce::ScopedValueSetter<bool> suppress(suppressMacroTemplateApply, true);
+    for (size_t i = 0; i < ids.size(); ++i)
+        setParameterValueFromUi(ids[i], templ.controls[i]);
+
+    updateLiveControlReadouts();
 }
 
 chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMode mode,
