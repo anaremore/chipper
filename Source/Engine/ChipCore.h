@@ -99,6 +99,8 @@ struct PatchConfig
     int snNoiseMode = 0;
     int sidVoice2WaveShape = 0;
     int sidVoice3WaveShape = 0;
+    float sidVoice2PulseWidth = 0.5f;
+    float sidVoice3PulseWidth = 0.5f;
 };
 
 struct StereoFrame

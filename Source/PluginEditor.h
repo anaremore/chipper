@@ -170,6 +170,7 @@ private:
     juce::String sidFilterModeReadout(const chipper::PatchConfig& patch) const;
     juce::String sidFilterRoutingReadout(const chipper::PatchConfig& patch) const;
     juce::String sidVoiceWaveSummary(const chipper::PatchConfig& patch) const;
+    juce::String sidVoicePulseWidthReadout(const chipper::PatchConfig& patch, size_t voice) const;
     juce::String sidModModeReadout(const chipper::PatchConfig& patch) const;
     juce::String noiseModeReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String nesNoiseModeReadout(const chipper::PatchConfig& patch) const;
@@ -204,6 +205,7 @@ private:
     void setPulse2DutySegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setWaveShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setSidVoiceWaveControlsVisible(bool shouldBeVisible);
+    void setSidVoicePulseWidthControlsVisible(bool shouldBeVisible);
     void setDmgWaveLevelSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setDmgStereoRouteSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setYmEnvelopeShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
@@ -219,6 +221,7 @@ private:
     void updatePulse2DutyButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateWaveShapeButtons(int choice, bool shouldBeVisible);
     void updateSidVoiceWaveControls(bool shouldBeVisible);
+    void updateSidVoicePulseWidthControls(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateDmgWaveLevelButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateDmgStereoRouteButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateYmEnvelopeShapeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
@@ -256,6 +259,8 @@ private:
     juce::Label pulse2DutyLabel;
     juce::Label pulse2DutyValueLabel;
     std::array<juce::Label, sidVoiceWaveCount> sidVoiceWaveLabels;
+    std::array<juce::Label, sidVoiceWaveCount> sidVoicePulseWidthLabels;
+    std::array<juce::Label, sidVoiceWaveCount> sidVoicePulseWidthValueLabels;
     std::array<ChipWaveformPreview, sourceChannelCount> sourcePreviewScopes;
     juce::Label dmgWaveLevelLabel;
     juce::Label dmgWaveLevelValueLabel;
@@ -282,9 +287,11 @@ private:
     std::array<juce::TextButton, pulse2DutyCount> pulse2DutyButtons;
     std::array<juce::TextButton, waveShapeCount> waveShapeButtons;
     std::array<juce::ComboBox, sidVoiceWaveCount> sidVoiceWaveBoxes;
+    std::array<juce::Slider, sidVoiceWaveCount> sidVoicePulseWidthSliders;
     std::array<juce::TextButton, dmgWaveLevelCount> dmgWaveLevelButtons;
     std::array<juce::TextButton, dmgStereoRouteCount> dmgStereoRouteButtons;
     std::array<juce::TextButton, ymEnvelopeShapeCount> ymEnvelopeShapeButtons;
+    juce::ComboBox sidFilterModeBox;
     juce::ComboBox sidFilterRoutingBox;
     std::array<juce::TextButton, snNoiseModeCount> snNoiseModeButtons;
     std::array<juce::TextButton, toneNoiseMixCount> toneNoiseMixButtons;
@@ -320,6 +327,7 @@ private:
     std::unique_ptr<ComboBoxAttachment> sidFilterRoutingAttachment;
     std::unique_ptr<SliderAttachment> envelopeDecayAttachment;
     std::array<std::unique_ptr<SliderAttachment>, 4> nativeAttachments;
+    std::array<std::unique_ptr<SliderAttachment>, sidVoiceWaveCount> sidVoicePulseWidthAttachments;
     std::array<std::unique_ptr<SliderAttachment>, sourceChannelCount> sourceLevelAttachments;
     std::array<std::unique_ptr<ButtonAttachment>, sourceChannelCount> sourceEnableAttachments;
 

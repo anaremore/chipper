@@ -1,5 +1,6 @@
 param(
     [string] $Configuration = "Release",
+    [string] $BuildRoot = "build",
     [ValidateSet("Global", "User")]
     [string] $Scope = "Global",
     [string] $Destination
@@ -8,7 +9,12 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$source = Join-Path $repoRoot "build\Chipper_artefacts\$Configuration\VST3\Chipper.vst3"
+$buildRootPath = if ([System.IO.Path]::IsPathRooted($BuildRoot)) {
+    $BuildRoot
+} else {
+    Join-Path $repoRoot $BuildRoot
+}
+$source = Join-Path $buildRootPath "Chipper_artefacts\$Configuration\VST3\Chipper.vst3"
 
 if (-not (Test-Path -LiteralPath $source)) {
     throw "VST3 bundle not found: $source"

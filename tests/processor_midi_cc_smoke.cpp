@@ -156,6 +156,10 @@ int main()
                      "CC74 SID Bass macro should reset SID Voice 2 waveform to Macro");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3WaveShape), 0.0f, 0.0001f,
                      "CC74 SID Bass macro should reset SID Voice 3 waveform to Macro");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice2PulseWidth), 0.48f, 0.001f,
+                     "CC74 SID Bass macro should apply SID Voice 2 pulse-width template");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3PulseWidth), 0.48f, 0.001f,
+                     "CC74 SID Bass macro should apply SID Voice 3 pulse-width template");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidAttack), 0.0f, 0.0001f,
                      "CC74 SID Bass macro should reset SID Attack to Macro");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidDecay), 0.0f, 0.0001f,
@@ -239,6 +243,12 @@ int main()
     sendController(processor, 113, controllerValueForChoice(processor, chipper::parameters::id::sidFilterRouting, 4));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidFilterRouting), 4.0f, 0.0001f,
                      "CC113 should control SID Filter Routing choice");
+    sendController(processor, 114, 32);
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice2PulseWidth), 32.0f / 127.0f, 0.0001f,
+                     "CC114 should control SID Voice 2 pulse width");
+    sendController(processor, 115, 96);
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3PulseWidth), 96.0f / 127.0f, 0.0001f,
+                     "CC115 should control SID Voice 3 pulse width");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 3));
     sendController(processor, 101, controllerValueForChoice(processor, chipper::parameters::id::ymChannelAMix, 1));

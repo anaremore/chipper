@@ -48,13 +48,13 @@ juce::StringArray waveShapeChoices()
 
 juce::StringArray sidVoiceWaveShapeChoices()
 {
-    return { "Macro", "Tri", "Saw", "Pulse", "Noise" };
+    return { "Follow", "Tri", "Saw", "Pulse", "Noise" };
 }
 
 juce::StringArray sidAdsrNibbleChoices()
 {
     return {
-        "Macro",
+        "Follow",
         "0", "1", "2", "3",
         "4", "5", "6", "7",
         "8", "9", "10", "11",
@@ -65,7 +65,7 @@ juce::StringArray sidAdsrNibbleChoices()
 juce::StringArray sidFilterRoutingChoices()
 {
     return {
-        "Macro",
+        "Follow",
         "All",
         "V1",
         "V2",
@@ -79,17 +79,17 @@ juce::StringArray sidFilterRoutingChoices()
 
 juce::StringArray pulse2DutyChoices()
 {
-    return { "Macro", "12.5%", "25%", "50%", "75%" };
+    return { "Follow", "12.5%", "25%", "50%", "75%" };
 }
 
 juce::StringArray dmgWaveLevelChoices()
 {
-    return { "Macro", "Mute", "100%", "50%", "25%" };
+    return { "Follow", "Mute", "100%", "50%", "25%" };
 }
 
 juce::StringArray dmgStereoRouteChoices()
 {
-    return { "Macro", "Both", "Left", "Right", "Split" };
+    return { "Follow", "Both", "Left", "Right", "Split" };
 }
 
 juce::StringArray ymEnvelopeShapeChoices()
@@ -99,12 +99,12 @@ juce::StringArray ymEnvelopeShapeChoices()
 
 juce::StringArray ymChannelMixChoices()
 {
-    return { "Macro", "Tone", "Noise", "Both", "Off" };
+    return { "Follow", "Tone", "Noise", "Both", "Off" };
 }
 
 juce::StringArray snNoiseModeChoices()
 {
-    return { "Macro", "Mode 1", "Mode 2", "Mode 3", "Mode 4" };
+    return { "Follow", "Mode 1", "Mode 2", "Mode 3", "Mode 4" };
 }
 
 const MidiCcMappingList& midiCcMappings()
@@ -329,6 +329,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         "SID Filter Routing",
         sidFilterRoutingChoices(),
         0));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::sidVoice2PulseWidth, 1 },
+        "SID Voice 2 Pulse Width",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        0.5f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::sidVoice3PulseWidth, 1 },
+        "SID Voice 3 Pulse Width",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        0.5f));
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::waveShape, 1 },

@@ -1366,6 +1366,11 @@ public:
              << "\"modBits2\":" << static_cast<int>(sidModulationBitsForPatch(patch, 2)) << ","
              << "\"pulseWidthControl\":" << patch.control1 << ","
              << "\"pulseWidthRegister\":" << sidPulseWidthForControl(patch.control1) << ","
+             << "\"pulseWidthControl1\":" << patch.sidVoice2PulseWidth << ","
+             << "\"pulseWidthControl2\":" << patch.sidVoice3PulseWidth << ","
+             << "\"pulseWidthRegister0\":" << sidPulseWidthForVoice(patch, 0) << ","
+             << "\"pulseWidthRegister1\":" << sidPulseWidthForVoice(patch, 1) << ","
+             << "\"pulseWidthRegister2\":" << sidPulseWidthForVoice(patch, 2) << ","
              << "\"filterCutoffRegister\":" << filterCutoffRegister() << ","
              << "\"filterResonanceControl\":" << patch.stereoSpread << ","
              << "\"filterResonanceNibble\":" << static_cast<int>(sidFilterResonanceForControl(patch.stereoSpread)) << ","
@@ -1575,7 +1580,7 @@ private:
     {
         const auto base = voiceBase(voice);
         const auto freq = frequencyRegisterForNote(midiNote);
-        const auto pulseWidth = sidPulseWidthForControl(patch.control1);
+        const auto pulseWidth = sidPulseWidthForVoice(patch, voice);
         writeRegister(static_cast<uint16_t>(0xd400 + base), static_cast<uint8_t>(freq & 0xffu));
         writeRegister(static_cast<uint16_t>(0xd401 + base), static_cast<uint8_t>((freq >> 8u) & 0xffu));
         writeRegister(static_cast<uint16_t>(0xd402 + base), static_cast<uint8_t>(pulseWidth & 0xffu));
@@ -1774,6 +1779,9 @@ private:
             return renderNoise(voice, hz);
         if ((waveform & 0x40u) != 0)
         {
+            if (pulseWidthRegister(voice) == 0)
+                return 0.0;
+
             const auto width = std::clamp(static_cast<double>(pulseWidthRegister(voice)) / 4096.0, 1.0 / 4096.0, 4095.0 / 4096.0);
             return phase[voice] < width ? 1.0 : -1.0;
         }

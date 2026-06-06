@@ -75,6 +75,8 @@ struct Options
     int ymChannelCMix = 0;
     int snNoiseMode = 0;
     int sidFilterRouting = 0;
+    float sidVoice2PulseWidth = 0.5f;
+    float sidVoice3PulseWidth = 0.5f;
     bool envelopeDecayProvided = false;
     bool sidAttackProvided = false;
     bool sidDecayProvided = false;
@@ -100,6 +102,8 @@ struct Options
     bool ymChannelCMixProvided = false;
     bool snNoiseModeProvided = false;
     bool sidFilterRoutingProvided = false;
+    bool sidVoice2PulseWidthProvided = false;
+    bool sidVoice3PulseWidthProvided = false;
     float outputDb = 0.0f;
     double clock = 1789773.0;
     double sampleRate = 48000.0;
@@ -177,7 +181,7 @@ bool parseWaveShape(const std::string& text, int& out)
     }
 
     const auto key = normalizedToken(text);
-    if (key == "ram" || key == "manual" || key == "trace" || key == "macro" || key == "auto" || key == "default")
+    if (key == "ram" || key == "manual" || key == "trace" || key == "macro" || key == "follow" || key == "auto" || key == "default")
         out = 0;
     else if (key == "tri" || key == "triangle")
         out = 1;
@@ -203,7 +207,7 @@ bool parseYmEnvelopeShape(const std::string& text, int& out)
     }
 
     const auto key = normalizedToken(text);
-    if (key == "fixed" || key == "off" || key == "volume" || key == "macro" || key == "default")
+    if (key == "fixed" || key == "off" || key == "volume" || key == "macro" || key == "follow" || key == "default")
         out = 0;
     else if (key == "fall" || key == "decay" || key == "fallhold")
         out = 1;
@@ -229,7 +233,7 @@ bool parseSidFilterMode(const std::string& text, int& out)
     }
 
     const auto key = normalizedToken(text);
-    if (key == "macro" || key == "auto" || key == "default")
+    if (key == "macro" || key == "follow" || key == "auto" || key == "default")
         out = 0;
     else if (key == "lp" || key == "lowpass")
         out = 1;
@@ -268,7 +272,7 @@ bool parseSidAdsrNibbleChoice(const std::string& text, int& out)
     }
 
     const auto key = normalizedToken(text);
-    if (key == "macro" || key == "auto" || key == "default")
+    if (key == "macro" || key == "follow" || key == "auto" || key == "default")
     {
         out = 0;
         return true;
@@ -294,7 +298,7 @@ bool parseDmgWaveLevel(const std::string& text, int& out)
     }
 
     const auto key = normalizedToken(text);
-    if (key == "macro" || key == "auto" || key == "default")
+    if (key == "macro" || key == "follow" || key == "auto" || key == "default")
         out = 0;
     else if (key == "mute" || key == "off" || key == "0" || key == "0percent")
         out = 1;
@@ -329,7 +333,7 @@ bool parsePulse2Duty(const std::string& text, int& out)
     }
 
     const auto key = normalizedToken(text);
-    if (key == "macro" || key == "auto" || key == "default")
+    if (key == "macro" || key == "follow" || key == "auto" || key == "default")
         out = 0;
     else if (key == "125" || key == "12.5" || key == "12_5" || key == "thin" || key == "eighth")
         out = 1;
@@ -355,7 +359,7 @@ bool parseDmgStereoRoute(const std::string& text, int& out)
     }
 
     const auto key = normalizedToken(text);
-    if (key == "macro" || key == "auto" || key == "default")
+    if (key == "macro" || key == "follow" || key == "auto" || key == "default")
         out = 0;
     else if (key == "both" || key == "center" || key == "mono" || key == "all")
         out = 1;
@@ -381,7 +385,7 @@ bool parseYmChannelMix(const std::string& text, int& out)
     }
 
     const auto key = normalizedToken(text);
-    if (key == "macro" || key == "auto" || key == "default")
+    if (key == "macro" || key == "follow" || key == "auto" || key == "default")
         out = 0;
     else if (key == "tone" || key == "toneonly" || key == "square")
         out = 1;
@@ -407,7 +411,7 @@ bool parseSnNoiseMode(const std::string& text, int& out)
     }
 
     const auto key = normalizedToken(text);
-    if (key == "macro" || key == "auto" || key == "off")
+    if (key == "macro" || key == "follow" || key == "auto" || key == "off")
         out = 0;
     else if (key == "long" || key == "longlfsr" || key == "wide" || key == "15bit" || key == "15bitlfsr" || key == "periodic" || key == "periodiclo" || key == "periodiclow" || key == "plo" || key == "p0")
         out = 1;
@@ -433,7 +437,7 @@ bool parseSidModMode(const std::string& text, int& out)
     }
 
     const auto key = normalizedToken(text);
-    if (key == "macro" || key == "auto" || key == "default")
+    if (key == "macro" || key == "follow" || key == "auto" || key == "default")
         out = 0;
     else if (key == "off" || key == "none" || key == "clear")
         out = 1;
@@ -464,7 +468,7 @@ bool parseSidModel(const std::string& text, int& out)
     }
 
     const auto key = normalizedToken(text);
-    if (key == "macro" || key == "auto" || key == "default")
+    if (key == "macro" || key == "follow" || key == "auto" || key == "default")
         out = 0;
     else if (key == "6581" || key == "mos6581" || key == "warm" || key == "rough")
         out = 1;
@@ -486,7 +490,7 @@ bool parseSidFilterRouting(const std::string& text, int& out)
     }
 
     const auto key = normalizedToken(text);
-    if (key == "macro" || key == "auto" || key == "default")
+    if (key == "macro" || key == "follow" || key == "auto" || key == "default")
         out = 0;
     else if (key == "all" || key == "123" || key == "v123" || key == "voices123")
         out = 1;
@@ -516,7 +520,7 @@ void printUsage()
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
         << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --sid-adsr-speed 0.7 --sid-attack macro|0..15 --sid-decay macro|0..15 --sid-sustain macro|0..15 --sid-release macro|0..15 --sid-voice2-attack macro|0..15 --sid-voice2-decay macro|0..15 --sid-voice2-sustain macro|0..15 --sid-voice2-release macro|0..15 --sid-voice3-attack macro|0..15 --sid-voice3-decay macro|0..15 --sid-voice3-sustain macro|0..15 --sid-voice3-release macro|0..15 --wave-shape macro|tri|saw|pulse|steps|noise --sid-voice2-wave macro|tri|saw|pulse|noise --sid-voice3-wave macro|tri|saw|pulse|noise --nes-pulse2-duty macro|12.5|25|50|75 --dmg-wave-level 100|50|25|mute|macro --dmg-stereo-route both|left|right|split|macro --ym-envelope-shape fixed|fall|rise|saw|triangle --ym-channel-a-mix macro|tone|noise|both|off --ym-channel-b-mix macro|tone|noise|both|off --ym-channel-c-mix macro|tone|noise|both|off --sid-filter-mode macro|lp|bp|hp|off|notch|lp+bp|bp+hp|all --sid-filter-routing macro|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none --sid-mod-mode macro|off|sync|ring|both --sid-model macro|6581|8580 --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --sid-adsr-speed 0.7 --sid-attack macro|0..15 --sid-decay macro|0..15 --sid-sustain macro|0..15 --sid-release macro|0..15 --sid-voice2-attack macro|0..15 --sid-voice2-decay macro|0..15 --sid-voice2-sustain macro|0..15 --sid-voice2-release macro|0..15 --sid-voice3-attack macro|0..15 --sid-voice3-decay macro|0..15 --sid-voice3-sustain macro|0..15 --sid-voice3-release macro|0..15 --wave-shape macro|tri|saw|pulse|steps|noise --sid-voice2-wave macro|tri|saw|pulse|noise --sid-voice3-wave macro|tri|saw|pulse|noise --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty macro|12.5|25|50|75 --dmg-wave-level 100|50|25|mute|macro --dmg-stereo-route both|left|right|split|macro --ym-envelope-shape fixed|fall|rise|saw|triangle --ym-channel-a-mix macro|tone|noise|both|off --ym-channel-b-mix macro|tone|noise|both|off --ym-channel-c-mix macro|tone|noise|both|off --sid-filter-mode macro|lp|bp|hp|off|notch|lp+bp|bp+hp|all --sid-filter-routing macro|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none --sid-mod-mode macro|off|sync|ring|both --sid-model macro|6581|8580 --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -568,6 +572,8 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.ymChannelCMix = 0;
     options.snNoiseMode = preset.snNoiseMode;
     options.sidFilterRouting = preset.sidFilterRouting;
+    options.sidVoice2PulseWidth = preset.controls[0];
+    options.sidVoice3PulseWidth = preset.controls[0];
     options.envelopeDecayProvided = true;
     options.sidAttackProvided = true;
     options.sidDecayProvided = true;
@@ -593,6 +599,8 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.ymChannelCMixProvided = true;
     options.snNoiseModeProvided = true;
     options.sidFilterRoutingProvided = true;
+    options.sidVoice2PulseWidthProvided = true;
+    options.sidVoice3PulseWidthProvided = true;
     options.outputDb = preset.outputDb;
     options.clock = preset.clockHz;
 }
@@ -907,6 +915,22 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.sidVoice3WaveShapeProvided = true;
         }
+        else if (arg == "--sid-voice2-pulse-width" || arg == "--sid-v2-pw")
+        {
+            const auto* value = requireValue(arg.c_str());
+            if (value == nullptr || ! parseNumber(std::string(value), options.sidVoice2PulseWidth))
+                return false;
+            options.sidVoice2PulseWidth = std::clamp(options.sidVoice2PulseWidth, 0.0f, 1.0f);
+            options.sidVoice2PulseWidthProvided = true;
+        }
+        else if (arg == "--sid-voice3-pulse-width" || arg == "--sid-v3-pw")
+        {
+            const auto* value = requireValue(arg.c_str());
+            if (value == nullptr || ! parseNumber(std::string(value), options.sidVoice3PulseWidth))
+                return false;
+            options.sidVoice3PulseWidth = std::clamp(options.sidVoice3PulseWidth, 0.0f, 1.0f);
+            options.sidVoice3PulseWidthProvided = true;
+        }
         else if (arg == "--nes-pulse2-duty")
         {
             const auto* value = requireValue("--nes-pulse2-duty");
@@ -1105,6 +1129,10 @@ void applyMacroTemplateDefaults(Options& options)
         options.sidVoice2WaveShape = 0;
     if (! options.sidVoice3WaveShapeProvided)
         options.sidVoice3WaveShape = 0;
+    if (! options.sidVoice2PulseWidthProvided)
+        options.sidVoice2PulseWidth = options.control1;
+    if (! options.sidVoice3PulseWidthProvided)
+        options.sidVoice3PulseWidth = options.control1;
     if (! options.pulse2DutyProvided)
         options.pulse2Duty = 0;
     if (! options.dmgWaveLevelProvided)
@@ -1401,6 +1429,8 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::source4Level: return "source4Level";
         case chipper::ChipParameterRole::stereoSpread: return "stereoSpread";
         case chipper::ChipParameterRole::sidFilterRouting: return "sidFilterRouting";
+        case chipper::ChipParameterRole::sidVoice2PulseWidth: return "sidVoice2PulseWidth";
+        case chipper::ChipParameterRole::sidVoice3PulseWidth: return "sidVoice3PulseWidth";
         case chipper::ChipParameterRole::envelopeDecay: return "envelopeDecay";
         case chipper::ChipParameterRole::sidAttack: return "sidAttack";
         case chipper::ChipParameterRole::sidDecay: return "sidDecay";
@@ -1775,6 +1805,8 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"outputGain\": " << decibelsToGain(options.outputDb) << ",\n"
         << "  \"stereoSpread\": " << patch.stereoSpread << ",\n"
         << "  \"sidFilterRouting\": " << patch.sidFilterRouting << ",\n"
+        << "  \"sidVoice2PulseWidth\": " << patch.sidVoice2PulseWidth << ",\n"
+        << "  \"sidVoice3PulseWidth\": " << patch.sidVoice3PulseWidth << ",\n"
         << "  \"pulse2Duty\": " << patch.pulse2Duty << ",\n"
         << "  \"dmgStereoRoute\": " << patch.dmgStereoRoute << ",\n"
         << "  \"ymChannelAMix\": " << patch.ymChannelAMix << ",\n"
@@ -1871,7 +1903,9 @@ int main(int argc, char** argv)
                                                     options.sidVoice3Decay,
                                                     options.sidVoice3Sustain,
                                                     options.sidVoice3Release,
-                                                    options.sidFilterRouting);
+                                                    options.sidFilterRouting,
+                                                    options.sidVoice2PulseWidth,
+                                                    options.sidVoice3PulseWidth);
         core->setPatch(patch);
         const auto events = loadEvents(options.eventFile);
         const auto registerWriteCount = static_cast<size_t>(std::count_if(events.begin(), events.end(), [](const auto& event) { return event.type == EventType::write; }));

@@ -143,6 +143,11 @@ ChipParameterSpec sourceLevelSpec(ChipParameterRole role, std::string id, std::s
     return { role, id, label, "Sources", help, ParameterKind::continuous, ControlSurface::slider, {}, 0.0f, 1.0f, 1.0f };
 }
 
+ChipParameterSpec sidPulseWidthSpec(ChipParameterRole role, std::string id, std::string label, std::string help)
+{
+    return { role, id, label, "Voices", help, ParameterKind::chipRegister, ControlSurface::slider, {}, 0.0f, 1.0f, 0.5f };
+}
+
 ChipParameterSpec stereoSpreadSpec(std::string id, std::string help)
 {
     return { ChipParameterRole::stereoSpread, id, "Stereo Spread", "Output", help, ParameterKind::continuous, ControlSurface::slider, {}, 0.0f, 1.0f, 0.0f };
@@ -170,7 +175,7 @@ ChipParameterSpec envelopeSpec(std::string id, std::string label, std::string he
 std::vector<ParameterChoiceSpec> sidWaveformChoices()
 {
     return {
-        choice("Macro", "Resolve this voice from the selected SID macro or Voice 1 waveform.", 0.0f, 0),
+        choice("Follow", "Resolve this voice from the selected SID macro or Voice 1 waveform.", 0.0f, 0),
         choice("Tri", "Control bit 0x10: triangle waveform.", 0.25f, 1),
         choice("Saw", "Control bit 0x20: sawtooth waveform.", 0.5f, 2),
         choice("Pulse", "Control bit 0x40: pulse waveform using the Pulse Width control.", 0.75f, 3),
@@ -187,7 +192,7 @@ std::vector<ParameterChoiceSpec> sidAdsrNibbleChoices(std::string fieldName)
 {
     std::vector<ParameterChoiceSpec> choices;
     choices.reserve(17);
-    choices.push_back(choice("Macro", "Resolve " + fieldName + " from ADSR Speed and the selected SID macro.", 0.0f, 0));
+    choices.push_back(choice("Follow", "Resolve " + fieldName + " from ADSR Speed and the selected SID macro.", 0.0f, 0));
     for (int nibble = 0; nibble <= 15; ++nibble)
     {
         const auto normalized = static_cast<float>(nibble + 1) / 16.0f;
@@ -208,7 +213,7 @@ ChipParameterSpec sidAdsrNibbleSpec(ChipParameterRole role, std::string id, std:
 std::vector<ParameterChoiceSpec> ymChannelMixChoices(std::string channelName)
 {
     return {
-        choice("Macro", "Follow the global Tone/Noise Mix for YM/AY channel " + channelName + ".", 0.0f, 0),
+        choice("Follow", "Follow the global Tone/Noise Mix for YM/AY channel " + channelName + ".", 0.0f, 0),
         choice("Tone", "Enable tone and disable shared noise for YM/AY channel " + channelName + ".", 0.25f, 1),
         choice("Noise", "Disable tone and enable shared noise for YM/AY channel " + channelName + ".", 0.5f, 2),
         choice("Both", "Enable tone and shared noise together for YM/AY channel " + channelName + ".", 0.75f, 3),
@@ -222,7 +227,7 @@ ChipParameterSpec ymChannelMixSpec(ChipParameterRole role, std::string id, std::
              id,
              label,
              "Mixer",
-             "Overrides YM/AY register 7 tone/noise enable bits for channel " + channelName + ". Macro follows the global Tone/Noise Mix.",
+             "Overrides YM/AY register 7 tone/noise enable bits for channel " + channelName + ". Follow uses the global Tone/Noise Mix.",
              ParameterKind::chipRegister,
              ControlSurface::menu,
              ymChannelMixChoices(channelName),
@@ -244,7 +249,7 @@ std::vector<ParameterChoiceSpec> pulseDutyChoices(std::string thinHelp, std::str
 std::vector<ParameterChoiceSpec> pulse2DutyChoices(std::string macroHelp)
 {
     return {
-        choice("Macro", macroHelp, 0.0f, 0),
+        choice("Follow", macroHelp, 0.0f, 0),
         choice("12.5%", "Write duty bits 00 to pulse channel 2.", 0.25f, 1),
         choice("25%", "Write duty bits 01 to pulse channel 2.", 0.5f, 2),
         choice("50%", "Write duty bits 10 to pulse channel 2.", 0.75f, 3),
@@ -267,7 +272,7 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
                       "nes.pulse2Duty",
                       "Pulse 2 Duty",
                       "Channels",
-                      "Overrides the RP2A03 pulse 2 duty register field. Macro follows the selected NES template.",
+                      "Overrides the RP2A03 pulse 2 duty register field. Follow uses the selected NES template.",
                       pulse2DutyChoices("Keep the current musical template: stacked Big Mono offsets Pulse 2 by one duty step; Chip Poly follows Pulse 1."),
                       ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl2, "nes.sweepMotion", "Sweep Motion", "Pitch", "Scales musical pitch gestures into RP2A03 sweep/timer behavior."),
@@ -291,9 +296,9 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
                       "nes.noiseMode",
                       "Noise Mode",
                       "Noise",
-                      "Maps to RP2A03 $400E bit 7: long LFSR noise or short-loop metallic noise. Macro resolves from the selected musical template.",
+                      "Maps to RP2A03 $400E bit 7: long LFSR noise or short-loop metallic noise. Follow resolves from the selected musical template.",
                       {
-                          choice("Macro", "Use the selected NES macro to choose long or short noise.", 0.0f, 0),
+                          choice("Follow", "Use the selected NES macro to choose long or short noise.", 0.0f, 0),
                           choice("Long", "Bit 7 = 0, long 15-bit LFSR noise for softer hats and static.", 0.5f, 1),
                           choice("Short", "Bit 7 = 1, short-loop metallic noise for snares and pitched grit.", 1.0f, 2)
                       },
@@ -343,9 +348,9 @@ std::vector<ChipParameterSpec> dmgParameterSpecs()
                       "dmg.noiseMode",
                       "Noise Mode",
                       "Noise",
-                      "Maps to NR43 bit 3: 15-bit LFSR noise or 7-bit metallic short noise. Macro resolves from the selected DMG template.",
+                      "Maps to NR43 bit 3: 15-bit LFSR noise or 7-bit metallic short noise. Follow resolves from the selected DMG template.",
                       {
-                          choice("Macro", "Use the selected DMG macro to choose the noise width.", 0.0f, 0),
+                          choice("Follow", "Use the selected DMG macro to choose the noise width.", 0.0f, 0),
                           choice("15-bit", "NR43 bit 3 = 0, standard wide LFSR noise.", 0.5f, 1),
                           choice("7-bit", "NR43 bit 3 = 1, narrow metallic LFSR noise.", 1.0f, 2)
                       },
@@ -367,9 +372,9 @@ std::vector<ChipParameterSpec> dmgParameterSpecs()
                       "dmg.waveLevel",
                       "Wave Level",
                       "Wave RAM",
-                      "Maps to DMG NR32 channel-3 output level bits. Macro preserves velocity/macro defaults.",
+                      "Maps to DMG NR32 channel-3 output level bits. Follow preserves velocity/macro defaults.",
                       {
-                          choice("Macro", "Use the selected DMG macro or Chip Poly velocity to choose NR32 output level.", 0.0f, 0),
+                          choice("Follow", "Use the selected DMG macro or Chip Poly velocity to choose NR32 output level.", 0.0f, 0),
                           choice("Mute", "NR32 bits 00: wave DAC on but channel-3 output muted.", 0.25f, 1),
                           choice("100%", "NR32 bits 01: full wave output level.", 0.5f, 2),
                           choice("50%", "NR32 bits 10: half wave output level.", 0.75f, 3),
@@ -380,9 +385,9 @@ std::vector<ChipParameterSpec> dmgParameterSpecs()
                       "dmg.stereoRoute",
                       "Stereo Route",
                       "Output",
-                      "Maps to DMG NR51 output-routing bits for each hardware channel. Macro uses the selected DMG template.",
+                      "Maps to DMG NR51 output-routing bits for each hardware channel. Follow uses the selected DMG template.",
                       {
-                          choice("Macro", "Use the selected DMG macro's NR51 routing choice.", 0.0f, 0),
+                          choice("Follow", "Use the selected DMG macro's NR51 routing choice.", 0.0f, 0),
                           choice("Both", "NR51 = 0xFF: route all channels to left and right.", 0.25f, 1),
                           choice("Left", "NR51 = 0xF0: route all channels to left only.", 0.5f, 2),
                           choice("Right", "NR51 = 0x0F: route all channels to right only.", 0.75f, 3),
@@ -453,7 +458,7 @@ std::vector<ChipParameterSpec> sn76489ParameterSpecs()
                    "sn76489.noiseBias",
                    "Noise Bias",
                    "Noise",
-                   "Biases the macro-selected SN76489 noise-control register bits when Noise Mode is Macro; explicit Noise Mode choices override it.",
+                   "Biases the macro-selected SN76489 noise-control register bits when Noise Mode is Follow; explicit Noise Mode choices override it.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "sn76489.noiseLevel",
@@ -474,9 +479,9 @@ std::vector<ChipParameterSpec> sn76489ParameterSpecs()
                       "sn76489.noiseMode",
                       "Noise Mode",
                       "Noise",
-                      "Maps to the SN76489 noise-control register. Macro resolves from the current musical template.",
+                      "Maps to the SN76489 noise-control register. Follow resolves from the current musical template.",
                       {
-                          choice("Macro", "Use the chip-specific macro to choose the noise register bits.", 0.0f, 0),
+                          choice("Follow", "Use the chip-specific macro to choose the noise register bits.", 0.0f, 0),
                           choice("P-Lo", "Periodic noise, low rate.", 0.25f, 1),
                           choice("P-Hi", "Periodic noise, high rate.", 0.5f, 2),
                           choice("W-Lo", "White noise, low rate.", 0.75f, 3),
@@ -522,11 +527,11 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
           "sid.filterRouting",
           "Filter Routing",
           "Filter",
-          "Maps to the SID $D417 voice-routing bits. Macro follows the enabled SID voices; explicit choices write the filter input bits directly.",
+          "Maps to the SID $D417 voice-routing bits. Follow uses the enabled SID voices; explicit choices write the filter input bits directly.",
           ParameterKind::chipRegister,
           ControlSurface::menu,
           {
-              choice("Macro", "Route the currently enabled SID voices through the filter.", 0.0f, 0),
+              choice("Follow", "Route the currently enabled SID voices through the filter.", 0.0f, 0),
               choice("All", "$D417 bits 0-2 set: voices 1, 2, and 3 enter the filter.", 0.125f, 1),
               choice("V1", "$D417 bit 0: route voice 1 only.", 0.25f, 2),
               choice("V2", "$D417 bit 1: route voice 2 only.", 0.375f, 3),
@@ -552,6 +557,14 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source1Level, "sid.voice1.level", "Voice 1 Level", "Modern trim for SID voice 1 after its envelope."),
         sourceLevelSpec(ChipParameterRole::source2Level, "sid.voice2.level", "Voice 2 Level", "Modern trim for SID voice 2 after its envelope."),
         sourceLevelSpec(ChipParameterRole::source3Level, "sid.voice3.level", "Voice 3 Level", "Modern trim for SID voice 3 after its envelope."),
+        sidPulseWidthSpec(ChipParameterRole::sidVoice2PulseWidth,
+                          "sid.voice2.pulseWidth",
+                          "Voice 2 PW",
+                          "Writes SID voice 2's independent 12-bit pulse-width register pair at $D409/$D40A."),
+        sidPulseWidthSpec(ChipParameterRole::sidVoice3PulseWidth,
+                          "sid.voice3.pulseWidth",
+                          "Voice 3 PW",
+                          "Writes SID voice 3's independent 12-bit pulse-width register pair at $D410/$D411."),
         segmentedSpec(ChipParameterRole::dmgStereoRoute,
                       "sid.model",
                       "SID Model",
@@ -567,90 +580,94 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
         sidAdsrNibbleSpec(ChipParameterRole::sidAttack,
                           "sid.attack",
                           "V1 Attack",
-                          "Overrides SID voice 1 attack nibble in its AD register. Macro follows ADSR Speed."),
+                          "Overrides SID voice 1 attack nibble in its AD register. Follow uses ADSR Speed."),
         sidAdsrNibbleSpec(ChipParameterRole::sidDecay,
                           "sid.decay",
                           "V1 Decay",
-                          "Overrides SID voice 1 decay nibble in its AD register. Macro follows ADSR Speed."),
+                          "Overrides SID voice 1 decay nibble in its AD register. Follow uses ADSR Speed."),
         sidAdsrNibbleSpec(ChipParameterRole::sidSustain,
                           "sid.sustainOverride",
                           "V1 Sustain",
-                          "Overrides SID voice 1 sustain nibble in its SR register. Macro follows the Sustain control."),
+                          "Overrides SID voice 1 sustain nibble in its SR register. Follow uses the Sustain control."),
         sidAdsrNibbleSpec(ChipParameterRole::sidRelease,
                           "sid.release",
                           "V1 Release",
-                          "Overrides SID voice 1 release nibble in its SR register. Macro follows ADSR Speed."),
+                          "Overrides SID voice 1 release nibble in its SR register. Follow uses ADSR Speed."),
         sidAdsrNibbleSpec(ChipParameterRole::sidVoice2Attack,
                           "sid.voice2.attack",
                           "V2 Attack",
-                          "Overrides SID voice 2 attack nibble in its AD register. Macro follows ADSR Speed."),
+                          "Overrides SID voice 2 attack nibble in its AD register. Follow uses ADSR Speed."),
         sidAdsrNibbleSpec(ChipParameterRole::sidVoice2Decay,
                           "sid.voice2.decay",
                           "V2 Decay",
-                          "Overrides SID voice 2 decay nibble in its AD register. Macro follows ADSR Speed."),
+                          "Overrides SID voice 2 decay nibble in its AD register. Follow uses ADSR Speed."),
         sidAdsrNibbleSpec(ChipParameterRole::sidVoice2Sustain,
                           "sid.voice2.sustain",
                           "V2 Sustain",
-                          "Overrides SID voice 2 sustain nibble in its SR register. Macro follows the Sustain control."),
+                          "Overrides SID voice 2 sustain nibble in its SR register. Follow uses the Sustain control."),
         sidAdsrNibbleSpec(ChipParameterRole::sidVoice2Release,
                           "sid.voice2.release",
                           "V2 Release",
-                          "Overrides SID voice 2 release nibble in its SR register. Macro follows ADSR Speed."),
+                          "Overrides SID voice 2 release nibble in its SR register. Follow uses ADSR Speed."),
         sidAdsrNibbleSpec(ChipParameterRole::sidVoice3Attack,
                           "sid.voice3.attack",
                           "V3 Attack",
-                          "Overrides SID voice 3 attack nibble in its AD register. Macro follows ADSR Speed."),
+                          "Overrides SID voice 3 attack nibble in its AD register. Follow uses ADSR Speed."),
         sidAdsrNibbleSpec(ChipParameterRole::sidVoice3Decay,
                           "sid.voice3.decay",
                           "V3 Decay",
-                          "Overrides SID voice 3 decay nibble in its AD register. Macro follows ADSR Speed."),
+                          "Overrides SID voice 3 decay nibble in its AD register. Follow uses ADSR Speed."),
         sidAdsrNibbleSpec(ChipParameterRole::sidVoice3Sustain,
                           "sid.voice3.sustain",
                           "V3 Sustain",
-                          "Overrides SID voice 3 sustain nibble in its SR register. Macro follows the Sustain control."),
+                          "Overrides SID voice 3 sustain nibble in its SR register. Follow uses the Sustain control."),
         sidAdsrNibbleSpec(ChipParameterRole::sidVoice3Release,
                           "sid.voice3.release",
                           "V3 Release",
-                          "Overrides SID voice 3 release nibble in its SR register. Macro follows ADSR Speed."),
+                          "Overrides SID voice 3 release nibble in its SR register. Follow uses ADSR Speed."),
         segmentedSpec(ChipParameterRole::waveShape,
                       "sid.waveform",
                       "Voice 1 Wave",
                       "Voices",
-                      "Maps Voice 1 to SID control-register waveform bits. Voice 2 and Voice 3 can follow Macro or choose their own waveform.",
+                      "Maps Voice 1 to SID control-register waveform bits. Voice 2 and Voice 3 can follow the template or choose their own waveform.",
                       sidWaveformChoices(),
                       ParameterKind::chipRegister),
         sidVoiceWaveSpec(ChipParameterRole::sidVoice2WaveShape,
                          "sid.voice2.waveform",
                          "Voice 2 Wave",
-                         "Maps Voice 2 to its own SID control-register waveform bits. Macro follows Voice 1 or the selected SID template."),
+                         "Maps Voice 2 to its own SID control-register waveform bits. Follow uses Voice 1 or the selected SID template."),
         sidVoiceWaveSpec(ChipParameterRole::sidVoice3WaveShape,
                          "sid.voice3.waveform",
                          "Voice 3 Wave",
-                         "Maps Voice 3 to its own SID control-register waveform bits. Macro follows Voice 1 or the selected SID template."),
-        segmentedSpec(ChipParameterRole::ymEnvelopeShape,
-                      "sid.filterMode",
-                      "Filter Mode",
-                      "Filter",
-                      "Maps to SID $D418 filter-mode bits, including combined mode-bit outputs. Macro uses the selected SID musical template.",
-                      {
-                          choice("Macro", "Resolve LP/BP/HP from the selected SID macro.", 0.0f, 0),
-                          choice("LP", "$D418 bit 0x10: low-pass filter output.", 0.125f, 1),
-                          choice("BP", "$D418 bit 0x20: band-pass filter output.", 0.25f, 2),
-                          choice("HP", "$D418 bit 0x40: high-pass filter output.", 0.375f, 3),
-                          choice("Off", "$D418 filter bits cleared; bypass Chipper's SID filter approximation.", 0.5f, 4),
-                          choice("Notch", "$D418 bits 0x50: combined low-pass and high-pass output.", 0.625f, 5),
-                          choice("LP+BP", "$D418 bits 0x30: combined low-pass and band-pass output.", 0.75f, 6),
-                          choice("BP+HP", "$D418 bits 0x60: combined band-pass and high-pass output.", 0.875f, 7),
-                          choice("All", "$D418 bits 0x70: low-pass, band-pass, and high-pass outputs summed.", 1.0f, 8)
-                      },
-                      ParameterKind::chipRegister),
+                         "Maps Voice 3 to its own SID control-register waveform bits. Follow uses Voice 1 or the selected SID template."),
+        { ChipParameterRole::ymEnvelopeShape,
+          "sid.filterMode",
+          "Filter Mode",
+          "Filter",
+          "Maps to SID $D418 filter-mode bits, including combined mode-bit outputs. Follow uses the selected SID musical template.",
+          ParameterKind::chipRegister,
+          ControlSurface::menu,
+          {
+              choice("Follow", "Resolve LP/BP/HP from the selected SID macro.", 0.0f, 0),
+              choice("LP", "$D418 bit 0x10: low-pass filter output.", 0.125f, 1),
+              choice("BP", "$D418 bit 0x20: band-pass filter output.", 0.25f, 2),
+              choice("HP", "$D418 bit 0x40: high-pass filter output.", 0.375f, 3),
+              choice("Off", "$D418 filter bits cleared; bypass Chipper's SID filter approximation.", 0.5f, 4),
+              choice("Notch", "$D418 bits 0x50: combined low-pass and high-pass output.", 0.625f, 5),
+              choice("LP+BP", "$D418 bits 0x30: combined low-pass and band-pass output.", 0.75f, 6),
+              choice("BP+HP", "$D418 bits 0x60: combined band-pass and high-pass output.", 0.875f, 7),
+              choice("All", "$D418 bits 0x70: low-pass, band-pass, and high-pass outputs summed.", 1.0f, 8)
+          },
+          0.0f,
+          1.0f,
+          0.0f },
         segmentedSpec(ChipParameterRole::snNoiseMode,
                       "sid.oscMod",
                       "Osc Interaction",
                       "Motion",
-                      "Maps to SID control-register sync/ring bits on voices 2 and 3. Macro uses the selected SID musical template.",
+                      "Maps to SID control-register sync/ring bits on voices 2 and 3. Follow uses the selected SID musical template.",
                       {
-                          choice("Macro", "Resolve oscillator modulation from the selected SID macro.", 0.0f, 0),
+                          choice("Follow", "Resolve oscillator modulation from the selected SID macro.", 0.0f, 0),
                           choice("Off", "Clear SID sync and ring bits.", 0.25f, 1),
                           choice("Sync", "Set the SID hard-sync bit on stacked follower voices.", 0.5f, 2),
                           choice("Ring", "Set the SID ring-mod bit on stacked follower voices.", 0.75f, 3),
@@ -1172,7 +1189,9 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int sidVoice3Decay,
                             int sidVoice3Sustain,
                             int sidVoice3Release,
-                            int sidFilterRouting)
+                            int sidFilterRouting,
+                            float sidVoice2PulseWidth,
+                            float sidVoice3PulseWidth)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : 4;
@@ -1216,7 +1235,9 @@ PatchConfig makePatchConfig(ChipMode mode,
         std::clamp(ymChannelCMix, 0, 4),
         std::clamp(snNoiseMode, 0, 4),
         std::clamp(sidVoice2WaveShape, 0, 4),
-        std::clamp(sidVoice3WaveShape, 0, 4)
+        std::clamp(sidVoice3WaveShape, 0, 4),
+        clampControl(sidVoice2PulseWidth),
+        clampControl(sidVoice3PulseWidth)
     };
 }
 
@@ -1353,7 +1374,19 @@ uint8_t dmgStereoRouteRegisterForPatch(const PatchConfig& patch)
 
 uint16_t sidPulseWidthForControl(float pulseWidthControl)
 {
-    return static_cast<uint16_t>(std::clamp(static_cast<int>(std::round(0x0100 + (clampControl(pulseWidthControl) * 0x0e00))), 0, 0x0fff));
+    return static_cast<uint16_t>(std::clamp(static_cast<int>(std::round(clampControl(pulseWidthControl) * 4095.0f)), 0, 0x0fff));
+}
+
+uint16_t sidPulseWidthForVoice(const PatchConfig& patch, size_t voice)
+{
+    switch (std::min(voice, size_t { 2u }))
+    {
+        case 1: return sidPulseWidthForControl(patch.sidVoice2PulseWidth);
+        case 2: return sidPulseWidthForControl(patch.sidVoice3PulseWidth);
+        case 0:
+        default:
+            return sidPulseWidthForControl(patch.control1);
+    }
 }
 
 uint8_t sidWaveformControlForChoice(int choice)

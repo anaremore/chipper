@@ -60,7 +60,9 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && a.ymChannelCMix == b.ymChannelCMix
         && a.snNoiseMode == b.snNoiseMode
         && a.sidVoice2WaveShape == b.sidVoice2WaveShape
-        && a.sidVoice3WaveShape == b.sidVoice3WaveShape;
+        && a.sidVoice3WaveShape == b.sidVoice3WaveShape
+        && std::abs(a.sidVoice2PulseWidth - b.sidVoice2PulseWidth) < tolerance
+        && std::abs(a.sidVoice3PulseWidth - b.sidVoice3PulseWidth) < tolerance;
 }
 
 bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
@@ -98,7 +100,9 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && a.ymChannelCMix == b.ymChannelCMix
         && a.snNoiseMode == b.snNoiseMode
         && a.sidVoice2WaveShape == b.sidVoice2WaveShape
-        && a.sidVoice3WaveShape == b.sidVoice3WaveShape;
+        && a.sidVoice3WaveShape == b.sidVoice3WaveShape
+        && std::abs(a.sidVoice2PulseWidth - b.sidVoice2PulseWidth) < tolerance
+        && std::abs(a.sidVoice3PulseWidth - b.sidVoice3PulseWidth) < tolerance;
 }
 }
 
@@ -296,6 +300,8 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
     setPlainParameterValue(chipper::parameters::id::sidVoice3Sustain, 0.0f);
     setPlainParameterValue(chipper::parameters::id::sidVoice3Release, 0.0f);
     setPlainParameterValue(chipper::parameters::id::sidFilterRouting, 0.0f);
+    setPlainParameterValue(chipper::parameters::id::sidVoice2PulseWidth, templ.controls[0]);
+    setPlainParameterValue(chipper::parameters::id::sidVoice3PulseWidth, templ.controls[0]);
     setPlainParameterValue(chipper::parameters::id::stereoSpread, templ.stereoSpread);
     setPlainParameterValue(chipper::parameters::id::waveShape, static_cast<float>(templ.waveShape));
     setPlainParameterValue(chipper::parameters::id::sidVoice2WaveShape, 0.0f);
@@ -423,7 +429,9 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidVoice3Decay)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidVoice3Sustain)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidVoice3Release)->load())),
-        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidFilterRouting)->load())));
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidFilterRouting)->load())),
+        apvts.getRawParameterValue(chipper::parameters::id::sidVoice2PulseWidth)->load(),
+        apvts.getRawParameterValue(chipper::parameters::id::sidVoice3PulseWidth)->load());
 }
 
 void ChipperAudioProcessor::replayPendingRegisterState()

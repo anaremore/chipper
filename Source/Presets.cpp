@@ -1218,7 +1218,9 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                            preset.sidVoice3Decay,
                            preset.sidVoice3Sustain,
                            preset.sidVoice3Release,
-                           preset.sidFilterRouting);
+                           preset.sidFilterRouting,
+                           preset.controls[0],
+                           preset.controls[0]);
 }
 
 } // namespace chipper
