@@ -974,8 +974,14 @@ void ChipperAudioProcessorEditor::resized()
 
     auto sourcePanel = moduleBounds[1].reduced(12, 9);
     sourcePanel.removeFromTop(20);
-    sourcePanel.removeFromTop(30);
-    sourcePanel.removeFromTop(4);
+    if (displayedMode == chipper::ChipMode::sid)
+        sourcePanel.removeFromTop(4);
+    else
+    {
+        sourcePanel.removeFromTop(30);
+        sourcePanel.removeFromTop(4);
+    }
+
     const auto sourceGap = 6;
     const auto visibleSourceCards = visibleSourceCardCount(displayedMode);
     const auto sourceCardWidth = (sourcePanel.getWidth() - (sourceGap * static_cast<int>(visibleSourceCards - 1u))) / static_cast<int>(visibleSourceCards);
@@ -988,6 +994,11 @@ void ChipperAudioProcessorEditor::resized()
             sourceChannelButtons[i].setBounds({});
             sourceLevelSliders[i].setBounds({});
             sourceLevelValueLabels[i].setBounds({});
+            if (displayedMode == chipper::ChipMode::sid && i < sidVoiceWaveCount)
+            {
+                sidVoiceWaveLabels[i].setBounds({});
+                sidVoiceWaveBoxes[i].setBounds({});
+            }
             continue;
         }
 
@@ -1000,6 +1011,15 @@ void ChipperAudioProcessorEditor::resized()
         auto sourceCard = sourceChannelBounds[i].reduced(8, 4);
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(18, sourceCard.getHeight())));
         sourceCard.removeFromTop(2);
+
+        if (displayedMode == chipper::ChipMode::sid && i < sidVoiceWaveCount)
+        {
+            auto waveRow = sourceCard.removeFromTop(std::min(22, sourceCard.getHeight()));
+            sidVoiceWaveLabels[i].setBounds(waveRow.removeFromLeft(38));
+            sidVoiceWaveBoxes[i].setBounds(waveRow);
+            sourceCard.removeFromTop(2);
+        }
+
         sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(14, sourceCard.getHeight())).reduced(0, 1));
         sourceCard.removeFromTop(1);
         sourceLevelValueLabels[i].setBounds(sourceCard.removeFromTop(std::min(12, sourceCard.getHeight())));
@@ -1223,6 +1243,12 @@ void ChipperAudioProcessorEditor::placeWaveShapeSegment(juce::Rectangle<int> bou
 void ChipperAudioProcessorEditor::placeSidVoiceWaveControls(juce::Rectangle<int> bounds)
 {
     waveShapeLabel.setBounds(bounds.removeFromTop(16));
+    if (displayedMode == chipper::ChipMode::sid)
+    {
+        waveShapeValueLabel.setBounds(bounds);
+        return;
+    }
+
     auto row = bounds.removeFromTop(28).reduced(0, 2);
     const auto gap = 6;
     const auto width = (row.getWidth() - (gap * static_cast<int>(sidVoiceWaveBoxes.size() - 1u))) / static_cast<int>(sidVoiceWaveBoxes.size());
@@ -1422,6 +1448,7 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
         waveShapeLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         waveShapeValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         applyChoices(waveShapeButtons, spec);
+        sidVoiceWaveLabels[0].setText(mode == chipper::ChipMode::sid ? "Wave" : "V1", juce::dontSendNotification);
         sidVoiceWaveLabels[0].setTooltip(withMidiCcForRole(spec->help, spec->role));
         sidVoiceWaveBoxes[0].setTooltip(withMidiCcForRole(spec->help, spec->role));
     }
@@ -1430,7 +1457,10 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
     {
         if (const auto* spec = chipper::parameterSpecFor(mode, sidVoiceWaveRole(i)))
         {
-            sidVoiceWaveLabels[i].setText(juce::String("V") + juce::String(static_cast<int>(i + 1u)), juce::dontSendNotification);
+            sidVoiceWaveLabels[i].setText(mode == chipper::ChipMode::sid
+                                              ? juce::String("Wave")
+                                              : juce::String("V") + juce::String(static_cast<int>(i + 1u)),
+                                          juce::dontSendNotification);
             sidVoiceWaveLabels[i].setTooltip(withMidiCcForRole(spec->help, spec->role));
             sidVoiceWaveBoxes[i].setTooltip(withMidiCcForRole(spec->help, spec->role));
         }
@@ -2772,20 +2802,9 @@ void ChipperAudioProcessorEditor::updateSidVoiceWaveControls(bool shouldBeVisibl
 {
     waveShapeLabel.setVisible(shouldBeVisible);
     waveShapeValueLabel.setVisible(shouldBeVisible);
-    for (size_t i = 0; i < sidVoiceWaveBoxes.size(); ++i)
-    {
-        const auto selected = static_cast<int>(std::round(parameterValue(sidVoiceWaveParameterId(i))));
-        sidVoiceWaveLabels[i].setVisible(shouldBeVisible);
-        sidVoiceWaveBoxes[i].setVisible(shouldBeVisible);
-        sidVoiceWaveBoxes[i].setSelectedItemIndex(std::clamp(selected, 0, 4), juce::dontSendNotification);
-    }
 
-    if (! shouldBeVisible)
-        return;
-
-    const auto mode = chipper::ChipMode::sid;
     const auto patch = currentUiPatch(
-        mode,
+        chipper::ChipMode::sid,
         parameterValue(chipper::parameters::id::macroControl1),
         parameterValue(chipper::parameters::id::macroControl2),
         parameterValue(chipper::parameters::id::macroControl3),
@@ -2796,6 +2815,28 @@ void ChipperAudioProcessorEditor::updateSidVoiceWaveControls(bool shouldBeVisibl
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
         parameterValue(chipper::parameters::id::stereoSpread));
+
+    for (size_t i = 0; i < sidVoiceWaveBoxes.size(); ++i)
+    {
+        const auto selected = static_cast<int>(std::round(parameterValue(sidVoiceWaveParameterId(i))));
+        sidVoiceWaveLabels[i].setVisible(shouldBeVisible);
+        sidVoiceWaveBoxes[i].setVisible(shouldBeVisible);
+        sidVoiceWaveBoxes[i].setSelectedItemIndex(std::clamp(selected, 0, 4), juce::dontSendNotification);
+
+        if (shouldBeVisible)
+        {
+            const auto bits = chipper::sidWaveformControlForVoice(patch, i);
+            const auto tooltip = juce::String("SID voice waveform register choice.")
+                + "\nResolved waveform: " + sidWaveNameForControlBits(bits)
+                + "\nCTRL waveform bits 0x" + byteHex(bits);
+            sidVoiceWaveLabels[i].setTooltip(withMidiCcForRole(tooltip, sidVoiceWaveRole(i)));
+            sidVoiceWaveBoxes[i].setTooltip(withMidiCcForRole(tooltip, sidVoiceWaveRole(i)));
+        }
+    }
+
+    if (! shouldBeVisible)
+        return;
+
     waveShapeValueLabel.setText(sidVoiceWaveSummary(patch), juce::dontSendNotification);
 }
 
@@ -2946,6 +2987,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         const auto& module = descriptor.modules[i];
         moduleTitleLabels[i].setText(module.title, juce::dontSendNotification);
         moduleSummaryLabels[i].setText(module.summary, juce::dontSendNotification);
+        moduleSummaryLabels[i].setVisible(true);
 
         for (size_t item = 0; item < moduleItemLabels[i].size(); ++item)
         {
@@ -3009,6 +3051,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     setSnNoiseModeSegmentVisible(mode, usesSnNoiseModeSegment(mode) && hasLiveCore);
     setEnvelopeDecayControlVisible(mode, usesEnvelopeDecayControl(mode) && hasLiveCore);
     setStereoSpreadControlVisible(mode, usesStereoSpreadControl(mode) && hasLiveCore);
+    moduleSummaryLabels[1].setVisible(!(hasLiveCore && mode == chipper::ChipMode::sid && usesSourceChannelSurface(mode)));
     const auto hasCustomProfileSurface = hasLiveCore && mode == chipper::ChipMode::sid && usesDmgStereoRouteSegment(mode);
     for (auto& itemLabel : moduleItemLabels[0])
         itemLabel.setVisible(! hasCustomProfileSurface && ! itemLabel.getText().isEmpty());
