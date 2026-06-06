@@ -1231,8 +1231,8 @@ juce::String ChipperAudioProcessorEditor::ymMotionReadout(float value) const
 
 juce::String ChipperAudioProcessorEditor::ymNoiseReadout(float value) const
 {
-    const auto period = std::clamp(static_cast<int>(std::round((1.0f - value) * 30.0f)) + 1, 1, 31);
-    return juce::String("Noise period ") + juce::String(period) + "/31";
+    const auto period = chipper::ym2149NoisePeriodForControl(value);
+    return juce::String("Reg 6 period ") + juce::String(static_cast<int>(period)) + "/31";
 }
 
 juce::String ChipperAudioProcessorEditor::ymToneNoiseReadout(float value) const

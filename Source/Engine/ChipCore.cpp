@@ -2000,7 +2000,7 @@ public:
         heldNote = midiNote;
         noteVelocity = static_cast<float>(clamp01(velocity));
         const auto spread = static_cast<int>(std::round(patch.control1 * 12.0f));
-        const auto noisePitch = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 30.0f)) + 1, 1, 31));
+        const auto noisePitch = ym2149NoisePeriodForControl(patch.control3);
         auto noteA = midiNote;
         auto noteB = midiNote + std::max(1, spread / 2);
         auto noteC = midiNote + std::max(2, spread);
@@ -2320,7 +2320,7 @@ private:
         writeTone(channel, channelNotes[index]);
         writeYmVolumeRegister(static_cast<uint16_t>(8 + channel),
                               static_cast<unsigned>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15)));
-        writeRegister(6, static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 30.0f)) + 1, 1, 31)));
+        writeRegister(6, ym2149NoisePeriodForControl(patch.control3));
         writeYmEnvelopePeriod();
         writeRegister(13, ymEnvelopeShapeCode());
         refreshChipPolyMixer();

@@ -221,7 +221,12 @@ std::vector<ChipParameterSpec> ym2149ParameterSpecs()
     return {
         sliderSpec(ChipParameterRole::macroControl1, "ym2149.channelSpread", "Channel Spread", "Channels", "Sets A/B/C interval spread for chords and fake arps."),
         sliderSpec(ChipParameterRole::macroControl2, "ym2149.pitchMotion", "Pitch Motion", "Pitch", "Scales macro pitch movement."),
-        sliderSpec(ChipParameterRole::macroControl3, "ym2149.noisePitch", "Noise Pitch", "Noise", "Sets the shared noise generator period."),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "ym2149.noisePitch",
+                   "Noise Pitch",
+                   "Noise",
+                   "Maps to YM/AY register 6, the 5-bit shared noise period.",
+                   ParameterKind::chipRegister),
         segmentedSpec(ChipParameterRole::macroControl4,
                       "ym2149.toneNoiseMix",
                       "Tone/Noise Mix",
@@ -801,6 +806,11 @@ uint8_t dmgNoiseRegisterForPatch(const PatchConfig& patch)
     }
 
     return static_cast<uint8_t>((shift << 4u) | width | 0x02u);
+}
+
+uint8_t ym2149NoisePeriodForControl(float noisePitchControl)
+{
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - clampControl(noisePitchControl)) * 30.0f)) + 1, 1, 31));
 }
 
 uint8_t ym2149MixerRegisterForControl(float toneNoiseControl)
