@@ -60,6 +60,9 @@ add_test(NAME chipper_render_sid_model_6581_smoke
 add_test(NAME chipper_render_sid_model_8580_smoke
     COMMAND chipper_render --chip sid --accuracy authentic --macro manual --sid-model 8580 --wave-shape pulse --sid-filter-mode lp --control3 0.65 --stereo-spread 0.7 --clock 985248 --rate 48000 --seconds 0.04 --note 69 --out sid-model-8580-smoke.wav --debug sid-model-8580-smoke.json
 )
+add_test(NAME chipper_render_sid_adsr_fast_smoke
+    COMMAND chipper_render --chip sid --accuracy authentic --macro manual --wave-shape pulse --sid-adsr-speed 1.0 --control4 0.8 --clock 985248 --rate 48000 --seconds 0.04 --note 69 --out sid-adsr-fast-smoke.wav --debug sid-adsr-fast-smoke.json
+)
 add_test(NAME chipper_render_sid_pulse_width_min_smoke
     COMMAND chipper_render --chip sid --accuracy authentic --macro manual --control1 0.0 --wave-shape pulse --clock 985248 --rate 48000 --seconds 0.03 --note 69 --out sid-pulse-width-min-smoke.wav --debug sid-pulse-width-min-smoke.json
 )
@@ -424,6 +427,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-model-8580-smoke.json --implemented-contains partial --macro Manual --min-peak 0.001 --register-writes 0 --note-events 0 --core-min sidModelChoice=2 --core-max sidModelChoice=2 --core-min sidModelNumber=8580 --core-max sidModelNumber=8580 --core-min filterCutoffRegister=1330 --core-max filterCutoffRegister=1332 --core-min modelCutoffHz=7220 --core-max modelCutoffHz=7270 --core-min modelFilterDamping=0.49 --core-max modelFilterDamping=0.51 --core-min modelOutputDrive=0.96 --core-max modelOutputDrive=0.96
     )
     set_tests_properties(chipper_render_sid_model_8580_assert PROPERTIES DEPENDS chipper_render_sid_model_8580_smoke)
+
+    add_test(NAME chipper_render_sid_adsr_fast_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-adsr-fast-smoke.json --implemented-contains partial --macro Manual --min-peak 0.05 --register-writes 0 --note-events 0 --core-min attackDecayRegister=0 --core-max attackDecayRegister=0 --core-min sustainReleaseRegister=192 --core-max sustainReleaseRegister=192 --core-min attack0=0 --core-max attack0=0 --core-min decay0=0 --core-max decay0=0 --core-min sustain0=12 --core-max sustain0=12 --core-min release0=0 --core-max release0=0 --descriptor-param-kind envelopeDecay=chipRegister --descriptor-param-surface envelopeDecay=slider --descriptor-param-label "envelopeDecay=ADSR Speed"
+    )
+    set_tests_properties(chipper_render_sid_adsr_fast_assert PROPERTIES DEPENDS chipper_render_sid_adsr_fast_smoke)
 
     add_test(NAME chipper_render_sid_pulse_width_min_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-pulse-width-min-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --core-min pulseWidthRegister=256 --core-max pulseWidthRegister=256 --core-min pulseWidth0=256 --core-max pulseWidth0=256

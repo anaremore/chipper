@@ -76,7 +76,7 @@ These are musically and technically valuable, but direct embedding should wait u
 
 ## Furnace Review Notes
 
-Reviewed 2026-06-06 from `tildearrow/furnace` upstream `master`.
+Reviewed 2026-06-06 from `tildearrow/furnace` upstream `master` at commit `436d5222d5111273c3ef2b6ea2e5b4e10dcea65d`.
 
 Furnace is valuable to Chipper as a broad comparison target because its public README lists direct overlap with nearly every requested Chipper family: NES/RP2A03, Game Boy, SID, AY/YM2149, SN76489, YM2612, OPL2/OPL3, SNES, POKEY, Amiga, HuC6280, Namco WSG, YM2151, YM2413, and Konami SCC/SCC+. It is also a useful product reference for chip-specific macros, tracker workflows, per-chip export/render behavior, and practical preset vocabulary.
 

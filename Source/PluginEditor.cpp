@@ -145,6 +145,28 @@ juce::String midiCcMapTooltip()
     return text;
 }
 
+juce::String byteHex(uint8_t value)
+{
+    return juce::String::toHexString(static_cast<int>(value)).paddedLeft('0', 2).toUpperCase();
+}
+
+juce::String sidAdsrNibbleReadout(const chipper::PatchConfig& patch)
+{
+    const auto ad = chipper::sidAttackDecayForPatch(patch);
+    const auto sr = chipper::sidSustainReleaseForPatch(patch);
+    const auto attack = static_cast<int>((ad >> 4u) & 0x0fu);
+    const auto decay = static_cast<int>(ad & 0x0fu);
+    const auto sustain = static_cast<int>((sr >> 4u) & 0x0fu);
+    const auto release = static_cast<int>(sr & 0x0fu);
+
+    return juce::String("AD 0x") + byteHex(ad)
+        + " A" + juce::String(attack)
+        + "/D" + juce::String(decay)
+        + " | SR 0x" + byteHex(sr)
+        + " S" + juce::String(sustain)
+        + "/R" + juce::String(release);
+}
+
 template <typename ButtonArray>
 void layoutSegmentedButtons(ButtonArray& buttons, juce::Rectangle<int> bounds, size_t visibleCount)
 {
@@ -1714,7 +1736,7 @@ juce::String ChipperAudioProcessorEditor::sidCutoffReadout(float value) const
 juce::String ChipperAudioProcessorEditor::sidSustainReadout(float value) const
 {
     const auto sustain = std::clamp(static_cast<int>(std::round(std::clamp(value, 0.0f, 1.0f) * 15.0f)), 0, 15);
-    return juce::String("SR sustain nibble ") + juce::String(sustain) + "/15";
+    return juce::String("SR sustain nibble ") + juce::String(sustain) + "/15; release from ADSR Speed";
 }
 
 juce::String ChipperAudioProcessorEditor::sourceLevelReadout(size_t index) const
@@ -2091,10 +2113,7 @@ juce::String ChipperAudioProcessorEditor::envelopeDecayReadout(chipper::ChipMode
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
             parameterValue(chipper::parameters::id::stereoSpread));
-        const auto ad = chipper::sidAttackDecayForPatch(patch);
-        const auto sr = chipper::sidSustainReleaseForPatch(patch);
-        return juce::String("AD=0x") + juce::String::toHexString(static_cast<int>(ad)).paddedLeft('0', 2).toUpperCase()
-             + ", SR=0x" + juce::String::toHexString(static_cast<int>(sr)).paddedLeft('0', 2).toUpperCase();
+        return sidAdsrNibbleReadout(patch);
     }
 
     const auto period = std::clamp(static_cast<int>(std::round(15.0f - (std::clamp(value, 0.0f, 1.0f) * 14.0f))), 1, 15);
