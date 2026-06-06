@@ -135,6 +135,9 @@ add_test(NAME chipper_render_sn76489_register_trace_smoke
 add_test(NAME chipper_render_sn76489_tone_zero_smoke
     COMMAND chipper_render --chip sn76489 --accuracy authentic --macro manual --source2 0 --source3 0 --source4 0 --clock 3579545 --rate 48000 --seconds 0.02 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/sn76489-tone-period-zero-events.txt --out sn-tone-zero-smoke.wav --debug sn-tone-zero-smoke.json
 )
+add_test(NAME chipper_render_sn76489_tone_one_smoke
+    COMMAND chipper_render --chip sn76489 --accuracy authentic --macro manual --source2 0 --source3 0 --source4 0 --clock 3579545 --rate 48000 --seconds 0.02 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/sn76489-tone-period-one-events.txt --out sn-tone-one-smoke.wav --debug sn-tone-one-smoke.json
+)
 add_test(NAME chipper_render_sn76489_volume_data_smoke
     COMMAND chipper_render --chip sn76489 --accuracy authentic --macro manual --source2 0 --source3 0 --source4 0 --clock 3579545 --rate 48000 --seconds 0.02 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/sn76489-volume-data-events.txt --out sn-volume-data-smoke.wav --debug sn-volume-data-smoke.json
 )
@@ -444,6 +447,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sn-tone-zero-smoke.json --implemented-contains partial --macro Manual --register-writes 3 --note-events 0 --min-peak 0.19 --max-peak 0.21 --min-rms 0.19 --max-rms 0.21 --max-zero-crossings 0 --core-min period0=0 --core-max period0=0 --core-min toneConstant0=1 --core-max toneConstant0=1 --core-min toneConstant1=0 --core-max toneConstant1=0 --core-min toneConstant2=0 --core-max toneConstant2=0 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0 --core-min attenuation0=0 --core-max attenuation0=0 --core-min attenuation1=15 --core-max attenuation1=15 --core-min attenuation2=15 --core-max attenuation2=15 --core-min attenuationNoise=15 --core-max attenuationNoise=15
     )
     set_tests_properties(chipper_render_sn76489_tone_zero_assert PROPERTIES DEPENDS chipper_render_sn76489_tone_zero_smoke)
+
+    add_test(NAME chipper_render_sn76489_tone_one_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sn-tone-one-smoke.json --implemented-contains partial --macro Manual --register-writes 3 --note-events 0 --min-peak 0.19 --max-peak 0.21 --min-rms 0.19 --max-rms 0.21 --max-zero-crossings 1 --core-min period0=1 --core-max period0=1 --core-min toneConstant0=1 --core-max toneConstant0=1 --core-min toneConstant1=0 --core-max toneConstant1=0 --core-min toneConstant2=0 --core-max toneConstant2=0 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0 --core-min attenuation0=0 --core-max attenuation0=0 --core-min attenuation1=15 --core-max attenuation1=15 --core-min attenuation2=15 --core-max attenuation2=15 --core-min attenuationNoise=15 --core-max attenuationNoise=15
+    )
+    set_tests_properties(chipper_render_sn76489_tone_one_assert PROPERTIES DEPENDS chipper_render_sn76489_tone_one_smoke)
 
     add_test(NAME chipper_render_sn76489_volume_data_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sn-volume-data-smoke.json --implemented-contains partial --macro Manual --register-writes 4 --note-events 0 --min-peak 0.19 --max-peak 0.21 --min-rms 0.19 --max-rms 0.21 --max-zero-crossings 1 --core-min period0=0 --core-max period0=0 --core-min toneConstant0=1 --core-max toneConstant0=1 --core-min volumeDataByteWrites=1 --core-max volumeDataByteWrites=1 --core-min attenuation0=0 --core-max attenuation0=0 --core-min attenuation1=15 --core-max attenuation1=15 --core-min attenuation2=15 --core-max attenuation2=15 --core-min attenuationNoise=15 --core-max attenuationNoise=15
