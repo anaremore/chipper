@@ -71,6 +71,15 @@ int controllerValueForChoice(ChipperAudioProcessor& processor, const char* param
 
     return 0;
 }
+
+float scopePeak(const ChipperAudioProcessor::OutputScopeSnapshot& snapshot)
+{
+    auto peak = 0.0f;
+    for (const auto sample : snapshot)
+        peak = std::max(peak, std::abs(sample));
+
+    return peak;
+}
 }
 
 int main()
@@ -279,6 +288,18 @@ int main()
                      "Host macro plus control snapshot should preserve control 1");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl2), 0.34f, 0.001f,
                      "Host macro plus control snapshot should preserve control 2");
+
+    ChipperAudioProcessor scopeProcessor;
+    scopeProcessor.prepareToPlay(48000.0, 128);
+    ok &= expectNear(scopePeak(scopeProcessor.outputScopeSnapshot()), 0.0f, 0.0001f,
+                     "Output scope should start silent");
+
+    juce::AudioBuffer<float> scopeBuffer(2, 128);
+    juce::MidiBuffer scopeMidi;
+    scopeMidi.addEvent(juce::MidiMessage::noteOn(1, 69, static_cast<juce::uint8>(100)), 0);
+    scopeProcessor.processBlock(scopeBuffer, scopeMidi);
+    ok &= expect(scopePeak(scopeProcessor.outputScopeSnapshot()) > 0.001f,
+                 "Output scope should capture rendered post-trim audio");
 
     return ok ? 0 : 1;
 }

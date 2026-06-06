@@ -139,5 +139,6 @@ Single-screen layout:
 - **Shape:** only chip-authentic controls plus clearly labeled hybrid tone/crunch when enabled.
 - **Envelope/Motion:** maps to chip envelopes, sweeps, timers, FM envelopes, or sample playback behavior.
 - **SFX:** type, length, pitch movement, brightness, crunch, noise.
+- **Visuals:** source cards may show register-resolved waveform/envelope state, while the Output performance cell may show actual post-trim audio from processor telemetry.
 
 Controls use plain names and tooltips. Mode-specific controls remain musically labeled and avoid register names, hex values, and chip-documentation jargon in the main workflow.

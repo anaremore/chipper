@@ -60,6 +60,22 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipEnvelopePreview)
 };
 
+class OutputScopePreview final : public juce::Component,
+                                 public juce::SettableTooltipClient
+{
+public:
+    OutputScopePreview() = default;
+
+    void setSamples(const ChipperAudioProcessor::OutputScopeSnapshot& newSamples);
+    void paint(juce::Graphics& g) override;
+
+private:
+    ChipperAudioProcessor::OutputScopeSnapshot samples {};
+    float peak = 0.0f;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OutputScopePreview)
+};
+
 class ChipperAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                           private juce::Timer
 {
@@ -225,6 +241,7 @@ private:
     juce::Label globalStripLabel;
     juce::Label clockLabel;
     juce::Label outputLabel;
+    OutputScopePreview outputScopePreview;
     juce::Label stereoSpreadLabel;
     juce::Label stereoSpreadValueLabel;
     juce::Label envelopeDecayLabel;

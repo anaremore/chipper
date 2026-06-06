@@ -12,6 +12,7 @@ The product rule is strict: UX can be simple, but chip modes must not be generic
 - **Signal flow:** Chip mode and source mix -> envelope -> motion -> crunch/tone/filter -> output
 - **Core sounds:** register-backed pulse/square/noise/FM/sample/wavetable behavior where implemented
 - **Performance:** host-synced arp, retrigger, vibrato, glide, pitch rise/drop/coin/jump/laser motion
+- **Visual feedback:** chip-state source scopes, SID ADSR previews, and a post-trim final-output scope
 - **SFX helper:** kick, snare, hat, explosion, laser, jump, coin, power-up, hit, menu blip
 - **Presets:** curated bank covering NES, SID, YM, Sega PSG, arcade, tracker, FM, and modern hybrid chip categories
 

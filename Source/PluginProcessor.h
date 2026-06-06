@@ -5,9 +5,16 @@
 #include "Engine/ChipCore.h"
 #include "Parameters.h"
 
+#include <array>
+#include <atomic>
+#include <vector>
+
 class ChipperAudioProcessor final : public juce::AudioProcessor
 {
 public:
+    static constexpr size_t outputScopeSampleCount = 256;
+    using OutputScopeSnapshot = std::array<float, outputScopeSampleCount>;
+
     ChipperAudioProcessor();
     ~ChipperAudioProcessor() override = default;
 
@@ -40,6 +47,7 @@ public:
     std::string currentCoreStatus() const;
     std::string currentCoreStatusDetail() const;
     chipper::ChipMode currentChipMode() const { return activeMode; }
+    OutputScopeSnapshot outputScopeSnapshot() const;
 
 private:
     struct HeldMidiNote
@@ -53,6 +61,7 @@ private:
     void replayPendingRegisterState();
     void replayHeldNotes();
     void renderRange(juce::AudioBuffer<float>& buffer, int startSample, int endSample, float outputGain);
+    void pushOutputScopeSample(float sample) noexcept;
     void handleMidiMessage(const juce::MidiMessage& message);
     bool handleMidiController(const juce::MidiMessage& message);
     bool setParameterFromMidiCc(const char* parameterId, int controllerValue);
@@ -75,6 +84,8 @@ private:
     int lastObservedMacroModeChoice = -1;
     int lastObservedMacroChoice = -1;
     bool hasObservedMacroSnapshot = false;
+    std::array<std::atomic<float>, outputScopeSampleCount> outputScopeBuffer {};
+    std::atomic<size_t> outputScopeWriteIndex { 0 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipperAudioProcessor)
 };

@@ -608,6 +608,67 @@ void ChipEnvelopePreview::paint(juce::Graphics& g)
     g.strokePath(path, juce::PathStrokeType(1.5f));
 }
 
+void OutputScopePreview::setSamples(const ChipperAudioProcessor::OutputScopeSnapshot& newSamples)
+{
+    samples = newSamples;
+    peak = 0.0f;
+    for (const auto sample : samples)
+        peak = std::max(peak, std::abs(sample));
+
+    repaint();
+}
+
+void OutputScopePreview::paint(juce::Graphics& g)
+{
+    const auto bounds = getLocalBounds().toFloat().reduced(1.0f);
+    if (bounds.isEmpty())
+        return;
+
+    g.setColour(juce::Colour(0xff10181c));
+    g.fillRoundedRectangle(bounds, 4.0f);
+    g.setColour(juce::Colour(0xff2a3a40));
+    g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+    const auto graph = bounds.reduced(5.0f, 4.0f);
+    const auto left = graph.getX();
+    const auto right = graph.getRight();
+    const auto top = graph.getY();
+    const auto bottom = graph.getBottom();
+    const auto mid = graph.getCentreY();
+    const auto width = std::max(1.0f, graph.getWidth());
+    const auto halfHeight = std::max(1.0f, graph.getHeight() * 0.48f);
+
+    g.setColour(juce::Colour(0xff243139).withAlpha(0.72f));
+    g.drawHorizontalLine(static_cast<int>(std::round(mid)), left, right);
+
+    for (int i = 1; i < 4; ++i)
+    {
+        const auto x = left + (width * static_cast<float>(i) / 4.0f);
+        g.drawVerticalLine(static_cast<int>(std::round(x)), top, bottom);
+    }
+
+    juce::Path waveform;
+    for (size_t i = 0; i < samples.size(); ++i)
+    {
+        const auto x = left + (width * static_cast<float>(i) / static_cast<float>(samples.size() - 1u));
+        const auto y = juce::jlimit(top, bottom, mid - (samples[i] * halfHeight));
+        if (i == 0)
+            waveform.startNewSubPath(x, y);
+        else
+            waveform.lineTo(x, y);
+    }
+
+    const auto scopeColour = peak > 0.86f ? juce::Colour(0xfff0c94d) : juce::Colour(0xff56c7d8);
+    g.setColour(scopeColour.withAlpha(0.16f + (std::min(peak, 1.0f) * 0.18f)));
+    g.strokePath(waveform, juce::PathStrokeType(3.0f));
+    g.setColour(scopeColour);
+    g.strokePath(waveform, juce::PathStrokeType(1.25f));
+
+    const auto peakLineWidth = graph.getWidth() * std::min(peak, 1.0f);
+    g.setColour(scopeColour.withAlpha(0.45f));
+    g.fillRect(juce::Rectangle<float>(left, bottom - 1.0f, peakLineWidth, 1.0f));
+}
+
 ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& processor)
     : AudioProcessorEditor(processor),
       audioProcessor(processor)
@@ -678,6 +739,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     outputSlider.setTextValueSuffix(" dB");
     outputSlider.setTooltip(withMidiCc("Final plugin output level.", chipper::parameters::id::outputDb));
     outputAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::outputDb, outputSlider);
+
+    outputScopePreview.setTooltip("Final post-trim audio scope. It follows the actual plugin output, not a symbolic oscillator preview.");
+    addAndMakeVisible(outputScopePreview);
 
     addLabeledSlider(stereoSpreadSlider, stereoSpreadLabel, "Stereo Spread");
     stereoSpreadSlider.setNumDecimalPlacesToDisplay(2);
@@ -1232,7 +1296,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
     updateDescriptorText();
     updateLiveControlReadouts();
-    startTimerHz(8);
+    outputScopePreview.setSamples(audioProcessor.outputScopeSnapshot());
+    startTimerHz(12);
 }
 
 void ChipperAudioProcessorEditor::paint(juce::Graphics& g)
@@ -1507,7 +1572,13 @@ void ChipperAudioProcessorEditor::resized()
     placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[3]);
     placeToneNoiseMixSegment(controlCells[3]);
     placeLabeledSliderWithReadout(clockSlider, clockLabel, controlValueLabels[4], controlCells[4]);
-    placeLabeledSliderWithReadout(outputSlider, outputLabel, controlValueLabels[5], controlCells[5]);
+
+    auto outputCell = controlCells[5];
+    outputLabel.setBounds(outputCell.removeFromTop(18));
+    outputSlider.setBounds(outputCell.removeFromTop(28).reduced(0, 1));
+    controlValueLabels[5].setBounds(outputCell.removeFromTop(14));
+    outputCell.removeFromTop(3);
+    outputScopePreview.setBounds(outputCell.reduced(0, 1));
 
     auto footer = getLocalBounds().reduced(16).removeFromBottom(44);
     buildLabel.setBounds(footer.removeFromRight(190));
@@ -1523,6 +1594,7 @@ void ChipperAudioProcessorEditor::timerCallback()
     updateLiveControlReadouts();
     statusLabel.setText(audioProcessor.currentCoreStatus(), juce::dontSendNotification);
     statusLabel.setTooltip(audioProcessor.currentCoreStatusDetail());
+    outputScopePreview.setSamples(audioProcessor.outputScopeSnapshot());
 }
 
 void ChipperAudioProcessorEditor::addLabeledSlider(juce::Slider& slider, juce::Label& label, const juce::String& fallbackText)

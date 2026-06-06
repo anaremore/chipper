@@ -113,6 +113,9 @@ void ChipperAudioProcessor::prepareToPlay(double sampleRate, int)
     currentSampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
     core.reset();
     hasObservedMacroSnapshot = false;
+    for (auto& sample : outputScopeBuffer)
+        sample.store(0.0f, std::memory_order_relaxed);
+    outputScopeWriteIndex.store(0u, std::memory_order_release);
     ensureCore();
 }
 
@@ -166,7 +169,15 @@ void ChipperAudioProcessor::renderRange(juce::AudioBuffer<float>& buffer, int st
             buffer.setSample(0, sample, left);
         if (channels > 1)
             buffer.setSample(1, sample, right);
+
+        pushOutputScopeSample((left + right) * 0.5f);
     }
+}
+
+void ChipperAudioProcessor::pushOutputScopeSample(float sample) noexcept
+{
+    const auto index = outputScopeWriteIndex.fetch_add(1u, std::memory_order_relaxed);
+    outputScopeBuffer[index % outputScopeSampleCount].store(juce::jlimit(-1.0f, 1.0f, sample), std::memory_order_relaxed);
 }
 
 void ChipperAudioProcessor::handleMidiMessage(const juce::MidiMessage& message)
@@ -530,6 +541,22 @@ std::string ChipperAudioProcessor::currentCoreStatusDetail() const
 
     const auto& descriptor = chipper::descriptorFor(activeMode);
     return descriptor.displayName + ": " + core->implementedAccuracy() + ". " + descriptor.summary + " " + core->limitations();
+}
+
+ChipperAudioProcessor::OutputScopeSnapshot ChipperAudioProcessor::outputScopeSnapshot() const
+{
+    OutputScopeSnapshot snapshot {};
+    const auto writeIndex = outputScopeWriteIndex.load(std::memory_order_acquire);
+    const auto validSampleCount = std::min(writeIndex, outputScopeSampleCount);
+    const auto padding = outputScopeSampleCount - validSampleCount;
+
+    for (size_t i = 0; i < validSampleCount; ++i)
+    {
+        const auto logicalIndex = writeIndex - validSampleCount + i;
+        snapshot[padding + i] = outputScopeBuffer[logicalIndex % outputScopeSampleCount].load(std::memory_order_relaxed);
+    }
+
+    return snapshot;
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
