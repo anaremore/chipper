@@ -1012,6 +1012,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         box.setTooltip(withMidiCcForRole("SID voice waveform register choice.", sidVoiceWaveRole(i)));
         box.onChange = [this, i]()
         {
+            if (suppressManualChoiceCallbacks)
+                return;
+
             const auto selected = sidVoiceWaveBoxes[i].getSelectedItemIndex();
             if (selected >= 0)
             {
@@ -1159,6 +1162,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     sidFilterModeBox.setTooltip(withMidiCcForRole("SID filter mode bits.", chipper::ChipParameterRole::ymEnvelopeShape));
     sidFilterModeBox.onChange = [this]()
     {
+        if (suppressManualChoiceCallbacks)
+            return;
+
         const auto selected = sidFilterModeBox.getSelectedItemIndex();
         if (selected >= 0)
         {
@@ -1219,6 +1225,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         box.setTooltip(withMidiCcForRole("YM/AY channel tone/noise mixer override.", ymChannelMixRole(i)));
         box.onChange = [this, i]()
         {
+            if (suppressManualChoiceCallbacks)
+                return;
+
             const auto selected = ymChannelMixBoxes[i].getSelectedItemIndex();
             if (selected >= 0)
             {
@@ -2092,6 +2101,8 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
 
 void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode mode)
 {
+    const juce::ScopedValueSetter<bool> suppressChoices(suppressManualChoiceCallbacks, true);
+
     const auto applyChoices = [](auto& buttons, const chipper::ChipParameterSpec* spec)
     {
         if (spec == nullptr)
@@ -3783,6 +3794,8 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
 
 void ChipperAudioProcessorEditor::updateSidVoiceWaveControls(bool shouldBeVisible)
 {
+    const juce::ScopedValueSetter<bool> suppressChoices(suppressManualChoiceCallbacks, true);
+
     waveShapeLabel.setVisible(false);
     waveShapeValueLabel.setVisible(false);
 
@@ -3886,6 +3899,8 @@ void ChipperAudioProcessorEditor::updateDmgStereoRouteButtons(chipper::ChipMode 
 
 void ChipperAudioProcessorEditor::updateYmEnvelopeShapeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible)
 {
+    const juce::ScopedValueSetter<bool> suppressChoices(suppressManualChoiceCallbacks, true);
+
     const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::ymEnvelopeShape);
     const auto visibleCount = spec != nullptr
                                   ? std::min(ymEnvelopeShapeButtons.size(), spec->choices.size())
@@ -3954,6 +3969,8 @@ void ChipperAudioProcessorEditor::updateSidFilterRoutingControl(bool shouldBeVis
 
 void ChipperAudioProcessorEditor::updateYmChannelMixControls(bool shouldBeVisible)
 {
+    const juce::ScopedValueSetter<bool> suppressChoices(suppressManualChoiceCallbacks, true);
+
     for (size_t i = 0; i < ymChannelMixBoxes.size(); ++i)
     {
         const auto selected = static_cast<int>(std::round(parameterValue(ymChannelMixParameterId(i))));

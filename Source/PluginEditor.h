@@ -336,6 +336,7 @@ private:
     bool descriptorTextInitialized = false;
     bool suppressMacroTemplateApply = false;
     bool suppressPresetApply = false;
+    bool suppressManualChoiceCallbacks = false;
     std::array<juce::Rectangle<int>, uiModuleCount> moduleBounds;
     std::array<juce::Rectangle<int>, sourceChannelCount> sourceChannelBounds;
     juce::Rectangle<int> pulseDutySegmentBounds;
