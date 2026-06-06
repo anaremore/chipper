@@ -83,7 +83,7 @@ private:
     bool usesToneNoiseMixSegment(chipper::ChipMode mode) const;
     juce::String macroTemplateReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String pulseDutyReadout(chipper::ChipMode mode, float value) const;
-    juce::String waveShapeReadout(int choice) const;
+    juce::String waveShapeReadout(chipper::ChipMode mode, int choice) const;
     juce::String dmgWaveLevelReadout(const chipper::PatchConfig& patch) const;
     juce::String dmgStereoRouteReadout(const chipper::PatchConfig& patch) const;
     juce::String ymEnvelopeShapeReadout(int choice) const;
@@ -105,6 +105,10 @@ private:
     juce::String snStackReadout(float value) const;
     juce::String snMotionReadout(float value) const;
     juce::String snLevelReadout(float value) const;
+    juce::String sidPulseWidthReadout(float value) const;
+    juce::String sidDetuneReadout(float value) const;
+    juce::String sidCutoffReadout(float value) const;
+    juce::String sidSustainReadout(float value) const;
     juce::String sourceLevelReadout(size_t index) const;
     juce::String stereoSpreadReadout(chipper::ChipMode mode, float value) const;
     bool usesSourceChannelSurface(chipper::ChipMode mode) const;

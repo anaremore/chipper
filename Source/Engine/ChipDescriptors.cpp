@@ -89,6 +89,22 @@ std::vector<MacroTemplate> sn76489Macros()
     };
 }
 
+std::vector<MacroTemplate> sidMacros()
+{
+    return {
+        { MacroKind::manual, "SID Manual", "Neutral three-voice SID oscillator mapping.", { 0.50f, 0.25f, 0.70f, 0.70f }, { true, true, true, false }, 0.35f, 0 },
+        { MacroKind::coin, "SID Coin", "Short gated pulse pop with a bright C64 edge.", { 0.35f, 0.80f, 0.90f, 0.45f }, { true, false, false, false }, 0.70f, 3 },
+        { MacroKind::bass, "SID Dirty Bass", "Pulse-heavy dual voice bass with a low-pass-style cutoff macro.", { 0.48f, 0.18f, 0.40f, 0.82f }, { true, true, false, false }, 0.28f, 3 },
+        { MacroKind::lead, "SID PWM Lead", "Three-voice pulse stack ready for animated width and detune.", { 0.58f, 0.40f, 0.72f, 0.70f }, { true, true, true, false }, 0.32f, 3 },
+        { MacroKind::arp, "SID Robot Arp", "Saw stack for hard-edged robotic arps.", { 0.50f, 0.78f, 0.85f, 0.60f }, { true, true, true, false }, 0.25f, 2 },
+        { MacroKind::drum, "SID Noise Drum", "Noise voice with fast hardware-style decay.", { 0.50f, 0.10f, 0.80f, 0.20f }, { false, false, true, false }, 0.95f, 4 },
+        { MacroKind::hit, "SID Grit Hit", "Short noisy impact with a pulse transient.", { 0.42f, 0.30f, 0.65f, 0.28f }, { true, false, true, false }, 0.88f, 4 },
+        { MacroKind::laser, "SID Sync Sweep", "Pitch-spread saw/pulse sweep gesture.", { 0.30f, 1.00f, 0.92f, 0.45f }, { true, true, false, false }, 0.55f, 2 },
+        { MacroKind::jump, "SID Jump", "Quick triangle/pulse blip.", { 0.38f, 0.62f, 0.78f, 0.42f }, { true, false, false, false }, 0.50f, 1 },
+        { MacroKind::powerUp, "SID Filter Rise", "Bright stacked rise with cutoff opened by the macro.", { 0.62f, 0.88f, 0.95f, 0.65f }, { true, true, true, false }, 0.22f, 2 },
+    };
+}
+
 ParameterChoiceSpec choice(std::string label, std::string help, float normalizedValue, int choiceValue)
 {
     return { label, help, normalizedValue, choiceValue };
@@ -371,6 +387,57 @@ std::vector<ChipParameterSpec> sn76489ParameterSpecs()
     };
 }
 
+std::vector<ChipParameterSpec> sidParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "sid.pulseWidth",
+                   "Pulse Width",
+                   "Voices",
+                   "Maps to the SID 12-bit pulse-width registers for pulse waveform voices.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "sid.voiceDetune",
+                   "Voice Detune",
+                   "Pitch",
+                   "Offsets voices 2 and 3 in semitone steps for stacked SID patches."),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "sid.filterCutoff",
+                   "Cutoff",
+                   "Filter",
+                   "Writes SID filter cutoff registers and drives Chipper's first-pass low-pass approximation. Exact 6581/8580 filter behavior is not yet verified.",
+                   ParameterKind::chipRegister,
+                   0.75f),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "sid.sustain",
+                   "Sustain",
+                   "Envelope",
+                   "Maps to the SID sustain nibble in each voice's SR register.",
+                   ParameterKind::chipRegister,
+                   0.7f),
+        sourceSpec(ChipParameterRole::source1Enabled, "sid.voice1.enabled", "Voice 1", "Enable SID voice 1."),
+        sourceSpec(ChipParameterRole::source2Enabled, "sid.voice2.enabled", "Voice 2", "Enable SID voice 2."),
+        sourceSpec(ChipParameterRole::source3Enabled, "sid.voice3.enabled", "Voice 3", "Enable SID voice 3."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "sid.voice1.level", "Voice 1 Level", "Modern trim for SID voice 1 after its envelope."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "sid.voice2.level", "Voice 2 Level", "Modern trim for SID voice 2 after its envelope."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "sid.voice3.level", "Voice 3 Level", "Modern trim for SID voice 3 after its envelope."),
+        envelopeSpec("sid.adsrSpeed", "ADSR Speed", "Maps musical envelope speed to SID attack/decay/release nibbles while Sustain uses the dedicated control."),
+        segmentedSpec(ChipParameterRole::waveShape,
+                      "sid.waveform",
+                      "Waveform",
+                      "Voices",
+                      "Maps to SID control-register waveform bits for all active voices. Macro resolves from the selected SID template.",
+                      {
+                          choice("Macro", "Use the selected SID macro's waveform choice.", 0.0f, 0),
+                          choice("Tri", "Control bit 0x10: triangle waveform.", 0.25f, 1),
+                          choice("Saw", "Control bit 0x20: sawtooth waveform.", 0.5f, 2),
+                          choice("Pulse", "Control bit 0x40: pulse waveform using the Pulse Width control.", 0.75f, 3),
+                          choice("Noise", "Control bit 0x80: SID noise waveform.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister)
+    };
+}
+
 ModuleDescriptor makeModule(std::string id, std::string title, std::string summary, std::initializer_list<const char*> items)
 {
     ModuleDescriptor module { id, title, summary, {} };
@@ -442,12 +509,12 @@ std::array<ModuleDescriptor, 6> sn76489Modules()
 std::array<ModuleDescriptor, 6> sidModules()
 {
     return std::array<ModuleDescriptor, 6> {
-        makeModule("profile", "Profile", "SID strategy is planned; no accurate core is integrated.", { "6581 planned", "8580 planned", "PAL/NTSC planned", "License decision required" }),
-        makeModule("sources", "Voices", "Three SID oscillator voices.", { "Voice 1", "Voice 2", "Voice 3", "Noise / pulse / saw / tri" }),
-        makeModule("tone", "Filter", "Analog-style multimode filter controls.", { "Cutoff", "Resonance", "LP / BP / HP", "Drive / drift" }),
-        makeModule("envelope", "Envelope", "SID ADSR behavior and quirks.", { "Attack", "Decay", "Sustain", "Release" }),
-        makeModule("motion", "Motion", "Classic SID modulation gestures.", { "PWM", "Sync", "Ring mod", "Vibrato / arp" }),
-        makeModule("output", "Output", "Warm driven C64 output character.", { "Output gain", "6581/8580 color", "Filter drive", "Known differences" })
+        makeModule("profile", "Profile", "SID clean-room voice-core groundwork.", { "6581/8580 variants planned", "PAL clock default", "Hybrid default", "Authentic still partial" }),
+        makeModule("sources", "Voices", "Three SID oscillator voices.", { "Voice 1", "Voice 2", "Voice 3", "External input planned" }),
+        makeModule("tone", "Wave / Filter", "Register-backed oscillator shape plus first-pass filter control.", { "Waveform bits", "Pulse width", "Cutoff registers", "Filter model partial" }),
+        makeModule("envelope", "Envelope", "SID-style ADSR gate behavior.", { "Attack/decay nibbles", "Sustain nibble", "Release nibble", "ADSR quirks planned" }),
+        makeModule("motion", "Motion", "Classic SID modulation gestures.", { "Voice detune", "PWM-ready width", "Sync planned", "Ring mod planned" }),
+        makeModule("output", "Output", "Warm mono C64-style output groundwork.", { "Output gain", "Voice trims", "Drive planned", "Known differences" })
     };
 }
 
@@ -533,16 +600,18 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::sid,
             "SID / C64",
-            "Planned SID voice, PWM, filter, and ADSR UI. Audio remains silent until an audited SID strategy is implemented.",
+            "Three SID-style oscillator voices map to a partial clean-room register model with waveform, pulse-width, ADSR, and cutoff groundwork.",
             {
-                { "voiceMix", "Voice Mix", "Voices", "Planned control for the three SID voices." },
-                { "pwm", "PWM Depth", "Motion", "Planned control for pulse-width modulation amount." },
-                { "filter", "Filter Drive", "Filter", "Planned control for cutoff/resonance/drive mapping." },
-                { "drift", "Drift", "Character", "Planned control for chip instability and variant color." },
+                { "pulseWidth", "Pulse Width", "Voices", "Maps to the SID pulse-width registers." },
+                { "detune", "Voice Detune", "Pitch", "Offsets the three SID voices for stacked patches." },
+                { "cutoff", "Cutoff", "Filter", "Writes SID cutoff registers and drives the current partial filter model." },
+                { "sustain", "Sustain", "Envelope", "Maps to the SID sustain nibble." },
             },
             sidModules(),
-            commonMacros(),
-            false
+            sidMacros(),
+            true,
+            true,
+            sidParameterSpecs()
         },
         {
             ChipMode::ym2149,
@@ -982,6 +1051,67 @@ uint8_t dmgStereoRouteRegisterForPatch(const PatchConfig& patch)
         default:
             return 0xffu;
     }
+}
+
+uint16_t sidPulseWidthForControl(float pulseWidthControl)
+{
+    return static_cast<uint16_t>(std::clamp(static_cast<int>(std::round(0x0100 + (clampControl(pulseWidthControl) * 0x0e00))), 0, 0x0fff));
+}
+
+uint8_t sidWaveformControlForPatch(const PatchConfig& patch)
+{
+    auto choice = std::clamp(patch.waveShape, 0, 4);
+    if (choice == 0)
+    {
+        switch (patch.macro)
+        {
+            case MacroKind::drum:
+            case MacroKind::hit:
+                choice = 4;
+                break;
+            case MacroKind::arp:
+            case MacroKind::laser:
+            case MacroKind::powerUp:
+                choice = 2;
+                break;
+            case MacroKind::jump:
+                choice = 1;
+                break;
+            case MacroKind::manual:
+            case MacroKind::coin:
+            case MacroKind::bass:
+            case MacroKind::lead:
+            default:
+                choice = 3;
+                break;
+        }
+    }
+
+    switch (choice)
+    {
+        case 1: return 0x10u;
+        case 2: return 0x20u;
+        case 3: return 0x40u;
+        case 4: return 0x80u;
+        case 0:
+        default:
+            return 0x40u;
+    }
+}
+
+uint8_t sidAttackDecayForPatch(const PatchConfig& patch)
+{
+    const auto speed = clampControl(patch.envelopeDecay);
+    const auto attack = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - speed) * 6.0f)), 0, 15));
+    const auto decay = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - speed) * 9.0f)), 0, 15));
+    return static_cast<uint8_t>((attack << 4u) | decay);
+}
+
+uint8_t sidSustainReleaseForPatch(const PatchConfig& patch)
+{
+    const auto sustain = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control4) * 15.0f)), 0, 15));
+    const auto release = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - clampControl(patch.envelopeDecay)) * 9.0f)), 0, 15));
+    return static_cast<uint8_t>((sustain << 4u) | release);
 }
 
 uint8_t ym2149NoisePeriodForControl(float noisePitchControl)

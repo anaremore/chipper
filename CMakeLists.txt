@@ -39,8 +39,23 @@ add_test(NAME chipper_render_nes_smoke
 add_test(NAME chipper_render_nes_output_trim_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 0.04 --note 69 --output-db -24 --out nes-output-trim-smoke.wav --debug nes-output-trim-smoke.json
 )
-add_test(NAME chipper_render_sid_chip_poly_fallback_smoke
-    COMMAND chipper_render --chip sid --accuracy authentic --play-mode chip-poly --clock 985248 --rate 48000 --seconds 0.01 --note 69 --out sid-chip-poly-fallback-smoke.wav --debug sid-chip-poly-fallback-smoke.json
+add_test(NAME chipper_render_sid_smoke
+    COMMAND chipper_render --chip sid --accuracy authentic --macro lead --clock 985248 --rate 48000 --seconds 0.06 --note 69 --out sid-smoke.wav --debug sid-smoke.json
+)
+add_test(NAME chipper_render_sid_chip_poly_smoke
+    COMMAND chipper_render --chip sid --accuracy authentic --macro manual --play-mode chip-poly --clock 985248 --rate 48000 --seconds 0.06 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/sid-chip-poly-events.txt --out sid-chip-poly-smoke.wav --debug sid-chip-poly-smoke.json
+)
+add_test(NAME chipper_render_sid_wave_noise_smoke
+    COMMAND chipper_render --chip sid --accuracy authentic --macro manual --wave-shape noise --source1 0 --source2 0 --source3 1 --clock 985248 --rate 48000 --seconds 0.03 --note 69 --out sid-wave-noise-smoke.wav --debug sid-wave-noise-smoke.json
+)
+add_test(NAME chipper_render_sid_pulse_width_min_smoke
+    COMMAND chipper_render --chip sid --accuracy authentic --macro manual --control1 0.0 --wave-shape pulse --clock 985248 --rate 48000 --seconds 0.03 --note 69 --out sid-pulse-width-min-smoke.wav --debug sid-pulse-width-min-smoke.json
+)
+add_test(NAME chipper_render_sid_pulse_width_max_smoke
+    COMMAND chipper_render --chip sid --accuracy authentic --macro manual --control1 1.0 --wave-shape pulse --clock 985248 --rate 48000 --seconds 0.03 --note 69 --out sid-pulse-width-max-smoke.wav --debug sid-pulse-width-max-smoke.json
+)
+add_test(NAME chipper_render_sid_sources_off_smoke
+    COMMAND chipper_render --chip sid --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --clock 985248 --rate 48000 --seconds 0.03 --note 69 --out sid-sources-off-smoke.wav --debug sid-sources-off-smoke.json
 )
 add_test(NAME chipper_render_nes_chip_poly_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --macro manual --play-mode chip-poly --clock 1789773 --rate 48000 --seconds 0.02 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/nes-chip-poly-events.txt --out nes-chip-poly-smoke.wav --debug nes-chip-poly-smoke.json
@@ -179,6 +194,12 @@ add_test(NAME chipper_render_preset_dmg_wave_bass_smoke
 )
 add_test(NAME chipper_render_preset_dmg_power_up_smoke
     COMMAND chipper_render --preset dmg-power-up-rise --rate 48000 --seconds 0.04 --note 69 --out preset-dmg-power-up-smoke.wav --debug preset-dmg-power-up-smoke.json
+)
+add_test(NAME chipper_render_preset_sid_dirty_bass_smoke
+    COMMAND chipper_render --preset sid-dirty-bass --rate 48000 --seconds 0.04 --note 48 --out preset-sid-dirty-bass-smoke.wav --debug preset-sid-dirty-bass-smoke.json
+)
+add_test(NAME chipper_render_preset_sid_pwm_lead_smoke
+    COMMAND chipper_render --preset sid-pwm-lead --rate 48000 --seconds 0.04 --note 69 --out preset-sid-pwm-lead-smoke.wav --debug preset-sid-pwm-lead-smoke.json
 )
 add_test(NAME chipper_render_preset_ym_noise_hat_smoke
     COMMAND chipper_render --preset ym-noise-hat --rate 48000 --seconds 0.04 --note 72 --out preset-ym-noise-hat-smoke.wav --debug preset-ym-noise-hat-smoke.json
@@ -327,7 +348,7 @@ add_test(NAME chipper_render_describe_nes_smoke
 
 if (Python3_Interpreter_FOUND)
     add_test(NAME chipper_render_list_descriptors_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip nes --chip dmg --chip ym2149 --chip sn76489 --chip sid --chip ym2612 --chip custom --implemented nes=1 --implemented dmg=1 --implemented ym2149=1 --implemented sn76489=1 --implemented sid=0 --param-kind nes:macroControl1=chipRegister --param-surface nes:macroControl1=segmentedChoice --param-choices nes:macroControl1=4 --param-midi-cc nes:macroControl1=76 --param-kind nes:macroControl3=chipRegister --param-surface nes:macroControl3=slider --param-midi-cc nes:macroControl3=78 --param-surface nes:snNoiseMode=segmentedChoice --param-choices nes:snNoiseMode=3 --param-midi-cc nes:source1Level=84 --param-kind dmg:macroControl2=chipRegister --param-surface dmg:macroControl2=slider --param-midi-cc dmg:macroControl2=77 --param-kind dmg:macroControl3=chipRegister --param-surface dmg:macroControl3=slider --param-midi-cc dmg:macroControl3=78 --param-kind dmg:macroControl4=chipRegister --param-surface dmg:macroControl4=slider --param-midi-cc dmg:macroControl4=79 --param-surface dmg:waveShape=segmentedChoice --param-choices dmg:waveShape=5 --param-midi-cc dmg:waveShape=89 --param-surface dmg:dmgWaveLevel=segmentedChoice --param-choices dmg:dmgWaveLevel=5 --param-midi-cc dmg:dmgWaveLevel=92 --param-kind dmg:dmgStereoRoute=chipRegister --param-surface dmg:dmgStereoRoute=segmentedChoice --param-choices dmg:dmgStereoRoute=5 --param-midi-cc dmg:dmgStereoRoute=94 --param-surface dmg:snNoiseMode=segmentedChoice --param-choices dmg:snNoiseMode=3 --param-kind ym2149:macroControl3=chipRegister --param-surface ym2149:macroControl3=slider --param-midi-cc ym2149:macroControl3=78 --param-kind ym2149:macroControl4=chipRegister --param-surface ym2149:macroControl4=segmentedChoice --param-choices ym2149:macroControl4=3 --param-kind ym2149:envelopeDecay=chipRegister --param-surface ym2149:envelopeDecay=slider --param-midi-cc ym2149:envelopeDecay=88 --param-surface ym2149:ymEnvelopeShape=segmentedChoice --param-choices ym2149:ymEnvelopeShape=5 --param-midi-cc ym2149:source4Level=87 --param-kind ym2149:stereoSpread=continuous --param-surface ym2149:stereoSpread=slider --param-midi-cc ym2149:stereoSpread=93 --param-kind sn76489:macroControl3=chipRegister --param-surface sn76489:macroControl3=slider --param-midi-cc sn76489:macroControl3=78 --param-kind sn76489:macroControl4=chipRegister --param-surface sn76489:macroControl4=slider --param-midi-cc sn76489:macroControl4=79 --param-surface sn76489:snNoiseMode=segmentedChoice --param-choices sn76489:snNoiseMode=5 --param-kind sn76489:stereoSpread=continuous --param-surface sn76489:stereoSpread=slider --param-midi-cc sn76489:stereoSpread=93 --macro-label "nes:Coin=NES Coin Blip" --macro-label "dmg:Bass=DMG Wave Bass" --macro-label "ym2149:Drum=YM Noise Perc" --macro-label "sn76489:Drum=PSG Drum" --macro-source nes:Drum=0011 --macro-source dmg:Bass=0010 --macro-source ym2149:Drum=1001 --macro-source sn76489:Drum=0001 --preset nes-hero-pulse --preset nes-boss-damage --preset nes-power-up-rise --preset dmg-wave-bass --preset dmg-power-up-rise --preset ym-noise-hat --preset ym-fake-chord-stack --preset sn-noise-hit --preset sn-arcade-laser
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip nes --chip dmg --chip ym2149 --chip sn76489 --chip sid --chip ym2612 --chip custom --implemented nes=1 --implemented dmg=1 --implemented ym2149=1 --implemented sn76489=1 --implemented sid=1 --param-kind nes:macroControl1=chipRegister --param-surface nes:macroControl1=segmentedChoice --param-choices nes:macroControl1=4 --param-midi-cc nes:macroControl1=76 --param-kind nes:macroControl3=chipRegister --param-surface nes:macroControl3=slider --param-midi-cc nes:macroControl3=78 --param-surface nes:snNoiseMode=segmentedChoice --param-choices nes:snNoiseMode=3 --param-midi-cc nes:source1Level=84 --param-kind dmg:macroControl2=chipRegister --param-surface dmg:macroControl2=slider --param-midi-cc dmg:macroControl2=77 --param-kind dmg:macroControl3=chipRegister --param-surface dmg:macroControl3=slider --param-midi-cc dmg:macroControl3=78 --param-kind dmg:macroControl4=chipRegister --param-surface dmg:macroControl4=slider --param-midi-cc dmg:macroControl4=79 --param-surface dmg:waveShape=segmentedChoice --param-choices dmg:waveShape=5 --param-midi-cc dmg:waveShape=89 --param-surface dmg:dmgWaveLevel=segmentedChoice --param-choices dmg:dmgWaveLevel=5 --param-midi-cc dmg:dmgWaveLevel=92 --param-kind dmg:dmgStereoRoute=chipRegister --param-surface dmg:dmgStereoRoute=segmentedChoice --param-choices dmg:dmgStereoRoute=5 --param-midi-cc dmg:dmgStereoRoute=94 --param-surface dmg:snNoiseMode=segmentedChoice --param-choices dmg:snNoiseMode=3 --param-kind sid:macroControl1=chipRegister --param-surface sid:macroControl1=slider --param-midi-cc sid:macroControl1=76 --param-kind sid:macroControl3=chipRegister --param-surface sid:macroControl3=slider --param-midi-cc sid:macroControl3=78 --param-kind sid:macroControl4=chipRegister --param-surface sid:macroControl4=slider --param-midi-cc sid:macroControl4=79 --param-kind sid:envelopeDecay=chipRegister --param-surface sid:envelopeDecay=slider --param-midi-cc sid:envelopeDecay=88 --param-surface sid:waveShape=segmentedChoice --param-choices sid:waveShape=5 --param-midi-cc sid:waveShape=89 --param-midi-cc sid:source3Level=86 --param-kind ym2149:macroControl3=chipRegister --param-surface ym2149:macroControl3=slider --param-midi-cc ym2149:macroControl3=78 --param-kind ym2149:macroControl4=chipRegister --param-surface ym2149:macroControl4=segmentedChoice --param-choices ym2149:macroControl4=3 --param-kind ym2149:envelopeDecay=chipRegister --param-surface ym2149:envelopeDecay=slider --param-midi-cc ym2149:envelopeDecay=88 --param-surface ym2149:ymEnvelopeShape=segmentedChoice --param-choices ym2149:ymEnvelopeShape=5 --param-midi-cc ym2149:source4Level=87 --param-kind ym2149:stereoSpread=continuous --param-surface ym2149:stereoSpread=slider --param-midi-cc ym2149:stereoSpread=93 --param-kind sn76489:macroControl3=chipRegister --param-surface sn76489:macroControl3=slider --param-midi-cc sn76489:macroControl3=78 --param-kind sn76489:macroControl4=chipRegister --param-surface sn76489:macroControl4=slider --param-midi-cc sn76489:macroControl4=79 --param-surface sn76489:snNoiseMode=segmentedChoice --param-choices sn76489:snNoiseMode=5 --param-kind sn76489:stereoSpread=continuous --param-surface sn76489:stereoSpread=slider --param-midi-cc sn76489:stereoSpread=93 --macro-label "nes:Coin=NES Coin Blip" --macro-label "dmg:Bass=DMG Wave Bass" --macro-label "sid:Bass=SID Dirty Bass" --macro-label "ym2149:Drum=YM Noise Perc" --macro-label "sn76489:Drum=PSG Drum" --macro-source nes:Drum=0011 --macro-source dmg:Bass=0010 --macro-source sid:Drum=0010 --macro-source ym2149:Drum=1001 --macro-source sn76489:Drum=0001 --preset nes-hero-pulse --preset nes-boss-damage --preset nes-power-up-rise --preset dmg-wave-bass --preset dmg-power-up-rise --preset sid-dirty-bass --preset sid-pwm-lead --preset ym-noise-hat --preset ym-fake-chord-stack --preset sn-noise-hit --preset sn-arcade-laser
     )
     set_tests_properties(chipper_render_list_descriptors_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -351,10 +372,35 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_nes_output_trim_assert PROPERTIES DEPENDS chipper_render_nes_output_trim_smoke)
 
-    add_test(NAME chipper_render_sid_chip_poly_fallback_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-chip-poly-fallback-smoke.json --implemented-contains "not implemented" --macro Manual --play-mode "Big Mono" --max-peak 0.001 --max-rms 0.001 --register-writes 0 --note-events 0
+    add_test(NAME chipper_render_sid_json_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-smoke.json --implemented-contains partial --macro Lead --play-mode "Big Mono" --min-peak 0.1 --min-rms 0.05 --register-writes 0 --note-events 0 --core-min waveformBits=64 --core-max waveformBits=64 --core-min pulseWidthRegister=2335 --core-max pulseWidthRegister=2335 --core-min filterCutoffRegister=1474 --core-max filterCutoffRegister=1474 --core-min sustain0=11 --core-max sustain0=11 --core-min frequency0=7493 --core-max frequency0=7493 --descriptor-param-kind macroControl1=chipRegister --descriptor-param-surface macroControl1=slider --descriptor-param-label "macroControl1=Pulse Width" --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-choices waveShape=5
     )
-    set_tests_properties(chipper_render_sid_chip_poly_fallback_assert PROPERTIES DEPENDS chipper_render_sid_chip_poly_fallback_smoke)
+    set_tests_properties(chipper_render_sid_json_assert PROPERTIES DEPENDS chipper_render_sid_smoke)
+
+    add_test(NAME chipper_render_sid_chip_poly_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 3 --min-peak 0.1 --core-min activeChannels=3 --core-max activeChannels=3 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min frequency0=4455 --core-max frequency0=4455 --core-min frequency1=5613 --core-max frequency1=5613 --core-min frequency2=6675 --core-max frequency2=6675
+    )
+    set_tests_properties(chipper_render_sid_chip_poly_assert PROPERTIES DEPENDS chipper_render_sid_chip_poly_smoke)
+
+    add_test(NAME chipper_render_sid_wave_noise_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-wave-noise-smoke.json --implemented-contains partial --macro Manual --min-peak 0.05 --register-writes 0 --note-events 0 --core-min waveformChoice=4 --core-max waveformChoice=4 --core-min waveformBits=128 --core-max waveformBits=128 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min control2=128 --core-max control2=128
+    )
+    set_tests_properties(chipper_render_sid_wave_noise_assert PROPERTIES DEPENDS chipper_render_sid_wave_noise_smoke)
+
+    add_test(NAME chipper_render_sid_pulse_width_min_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-pulse-width-min-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --core-min pulseWidthRegister=256 --core-max pulseWidthRegister=256 --core-min pulseWidth0=256 --core-max pulseWidth0=256
+    )
+    set_tests_properties(chipper_render_sid_pulse_width_min_assert PROPERTIES DEPENDS chipper_render_sid_pulse_width_min_smoke)
+
+    add_test(NAME chipper_render_sid_pulse_width_max_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-pulse-width-max-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --core-min pulseWidthRegister=3840 --core-max pulseWidthRegister=3840 --core-min pulseWidth0=3840 --core-max pulseWidth0=3840
+    )
+    set_tests_properties(chipper_render_sid_pulse_width_max_assert PROPERTIES DEPENDS chipper_render_sid_pulse_width_max_smoke)
+
+    add_test(NAME chipper_render_sid_sources_off_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-sources-off-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --max-peak 0.001 --max-rms 0.001 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0
+    )
+    set_tests_properties(chipper_render_sid_sources_off_assert PROPERTIES DEPENDS chipper_render_sid_sources_off_smoke)
 
     add_test(NAME chipper_render_nes_chip_poly_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 3 --min-peak 0.1 --core-min activeChannels=3 --core-max activeChannels=3 --core-min assignedNotePulse1=60 --core-max assignedNotePulse1=60 --core-min assignedNotePulse2=64 --core-max assignedNotePulse2=64 --core-min assignedNoteTriangle=67 --core-max assignedNoteTriangle=67 --core-min pulseTimer1=427 --core-max pulseTimer1=427 --core-min pulseTimer2=338 --core-max pulseTimer2=338 --core-min triangleTimer=142 --core-max triangleTimer=142 --core-min triangleActive=1 --core-max triangleActive=1
@@ -575,6 +621,16 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-dmg-power-up-smoke.json --implemented-contains partial --preset dmg-power-up-rise --macro Power-Up --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.06 --min-left-peak 0.08 --min-right-peak 0.03 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min waveShape=2 --core-max waveShape=2 --core-min enabledWave=1 --core-max enabledWave=1 --core-min dmgStereoRoute=4 --core-max dmgStereoRoute=4 --core-min dmgStereoRouteRegister=90 --core-max dmgStereoRouteRegister=90 --core-min nr51=90 --core-max nr51=90
     )
     set_tests_properties(chipper_render_preset_dmg_power_up_assert PROPERTIES DEPENDS chipper_render_preset_dmg_power_up_smoke)
+
+    add_test(NAME chipper_render_preset_sid_dirty_bass_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sid-dirty-bass-smoke.json --implemented-contains partial --preset sid-dirty-bass --macro Bass --play-mode "Big Mono" --output-db -9 --register-writes 0 --note-events 0 --min-peak 0.03 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min waveformChoice=3 --core-max waveformChoice=3 --core-min waveformBits=64 --core-max waveformBits=64 --core-min pulseWidthRegister=1976 --core-max pulseWidthRegister=1976 --core-min sustain0=12 --core-max sustain0=12
+    )
+    set_tests_properties(chipper_render_preset_sid_dirty_bass_assert PROPERTIES DEPENDS chipper_render_preset_sid_dirty_bass_smoke)
+
+    add_test(NAME chipper_render_preset_sid_pwm_lead_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sid-pwm-lead-smoke.json --implemented-contains partial --preset sid-pwm-lead --macro Lead --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.03 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min waveformChoice=3 --core-max waveformChoice=3 --core-min waveformBits=64 --core-max waveformBits=64 --core-min pulseWidthRegister=2335 --core-max pulseWidthRegister=2335 --core-min sustain0=11 --core-max sustain0=11
+    )
+    set_tests_properties(chipper_render_preset_sid_pwm_lead_assert PROPERTIES DEPENDS chipper_render_preset_sid_pwm_lead_smoke)
 
     add_test(NAME chipper_render_preset_ym_noise_hat_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-noise-hat-smoke.json --implemented-contains partial --preset ym-noise-hat --macro Drum --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.05 --min-zero-crossings 100 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=0 --core-max sourceEnabledB=0 --core-min sourceEnabledC=0 --core-max sourceEnabledC=0 --core-min sourceEnabledNoise=1 --core-max sourceEnabledNoise=1 --core-min mixer=55 --core-max mixer=55 --core-min envelopeShapeChoice=1 --core-max envelopeShapeChoice=1

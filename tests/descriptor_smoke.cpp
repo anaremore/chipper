@@ -98,6 +98,7 @@ bool expectLiveSourceLevelSpecs()
     constexpr std::array liveModes {
         chipper::ChipMode::nes,
         chipper::ChipMode::dmg,
+        chipper::ChipMode::sid,
         chipper::ChipMode::ym2149,
         chipper::ChipMode::sn76489
     };
@@ -110,8 +111,10 @@ bool expectLiveSourceLevelSpecs()
 
     for (const auto mode : liveModes)
     {
-        for (const auto role : sourceLevelRoles)
+        const auto expectedSourceCount = mode == chipper::ChipMode::sid ? 3u : 4u;
+        for (size_t index = 0; index < expectedSourceCount; ++index)
         {
+            const auto role = sourceLevelRoles[index];
             const auto* spec = chipper::parameterSpecFor(mode, role);
             ok &= expect(spec != nullptr, "live chip missing source level spec");
             if (spec == nullptr)
@@ -126,6 +129,10 @@ bool expectLiveSourceLevelSpecs()
             if (parameterId != nullptr)
                 ok &= expect(chipper::midiControllerForParameterId(parameterId) >= 0, spec->id + " has no MIDI CC mapping");
         }
+
+        if (mode == chipper::ChipMode::sid)
+            ok &= expect(chipper::parameterSpecFor(mode, chipper::ChipParameterRole::source4Level) == nullptr,
+                         "SID should expose only its three oscillator voice trims");
     }
 
     return ok;
@@ -138,6 +145,7 @@ int main()
     bool ok = true;
 
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::nes).implemented, "NES descriptor should be implemented");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::sid).implemented, "SID descriptor should be partially implemented");
     ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl1, 4, "12.5%");
     ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::snNoiseMode, 3, "Macro");
     ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl1, 4, "12.5%");
@@ -145,6 +153,7 @@ int main()
     ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::dmgWaveLevel, 5, "Macro");
     ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::dmgStereoRoute, 5, "Macro");
     ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::snNoiseMode, 3, "Macro");
+    ok &= expectSegmentedRegister(chipper::ChipMode::sid, chipper::ChipParameterRole::waveShape, 5, "Macro");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2149, chipper::ChipParameterRole::macroControl4, 3, "Noise");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2149, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Fixed");
     ok &= expectSegmentedRegister(chipper::ChipMode::sn76489, chipper::ChipParameterRole::snNoiseMode, 5, "Macro");
@@ -154,6 +163,10 @@ int main()
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise Period");
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise Clock");
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Envelope Level");
+    ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Pulse Width");
+    ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Cutoff");
+    ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Sustain");
+    ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::envelopeDecay, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "ADSR Speed");
     ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise Pitch");
     ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::envelopeDecay, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Envelope Speed");
     ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::stereoSpread, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Stereo Spread");
@@ -164,10 +177,12 @@ int main()
 
     ok &= expectMacroSourceMask(chipper::ChipMode::nes, chipper::MacroKind::drum, { false, false, true, true });
     ok &= expectMacroSourceMask(chipper::ChipMode::dmg, chipper::MacroKind::bass, { false, false, true, false });
+    ok &= expectMacroSourceMask(chipper::ChipMode::sid, chipper::MacroKind::drum, { false, false, true, false });
     ok &= expectMacroSourceMask(chipper::ChipMode::ym2149, chipper::MacroKind::drum, { true, false, false, true });
     ok &= expectMacroSourceMask(chipper::ChipMode::sn76489, chipper::MacroKind::drum, { false, false, false, true });
     ok &= expectMacroLabel(chipper::ChipMode::nes, chipper::MacroKind::coin, "NES Coin Blip");
     ok &= expectMacroLabel(chipper::ChipMode::dmg, chipper::MacroKind::bass, "DMG Wave Bass");
+    ok &= expectMacroLabel(chipper::ChipMode::sid, chipper::MacroKind::bass, "SID Dirty Bass");
     ok &= expectMacroLabel(chipper::ChipMode::ym2149, chipper::MacroKind::drum, "YM Noise Perc");
     ok &= expectMacroLabel(chipper::ChipMode::sn76489, chipper::MacroKind::drum, "PSG Drum");
 
@@ -179,10 +194,14 @@ int main()
                                                   chipper::ChipParameterRole::source4Enabled,
                                                   chipper::ControlSurface::sourceCards),
                  "SN76489 noise should expose source cards");
+    ok &= expect(chipper::chipHasParameterSurface(chipper::ChipMode::sid,
+                                                  chipper::ChipParameterRole::source1Enabled,
+                                                  chipper::ControlSurface::sourceCards),
+                 "SID voice 1 should expose source cards");
     ok &= expect(! chipper::chipHasParameterSurface(chipper::ChipMode::sid,
-                                                    chipper::ChipParameterRole::source1Enabled,
+                                                    chipper::ChipParameterRole::source4Enabled,
                                                     chipper::ControlSurface::sourceCards),
-                 "planned SID should not expose live source cards yet");
+                 "SID should not expose a fourth voice source card yet");
     ok &= expectLiveSourceLevelSpecs();
     ok &= expectAutomatableDescriptorParametersHaveMidiCc();
 

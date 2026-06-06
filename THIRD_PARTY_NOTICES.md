@@ -10,6 +10,7 @@ The current partial chip cores are clean-room/internal implementations in `Sourc
 
 - NES / RP2A03 partial APU model
 - Game Boy / DMG partial APU model
+- SID / C64 partial voice/register model
 - YM2149 / AY partial PSG model
 - SN76489 partial PSG model
 

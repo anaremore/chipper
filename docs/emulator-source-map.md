@@ -60,7 +60,7 @@ These are musically and technically valuable, but direct embedding should wait u
 | --- | --- | --- | --- |
 | NES / RP2A03 | Clean-room register model; possible LGPL path later | FigBug/RP2A03, Game_Music_Emu, Furnace | Continue clean-room APU work first; use FigBug/GME as comparison targets, not copied code |
 | Game Boy / DMG | Clean-room model; SameBoy as audited reference/extraction candidate | SameBoy, FigBug/PAPU, Game_Music_Emu, Furnace | Continue Pan Docs-backed clean-room work; compare tracker-facing controls and behavior against Furnace/SameBoy, but evaluate SameBoy file-level license before extraction and keep Furnace reference-only unless Chipper goes GPL-compatible |
-| SID / C64 | Clean-room minimal hybrid first | libsidplayfp/reSIDfp, FigBug/SID, Furnace | Keep reference-only until Chipper chooses a GPL-compatible path or a permissive SID core is selected |
+| SID / C64 | Clean-room voice/register model first | libsidplayfp/reSIDfp, FigBug/SID, Furnace, MOS 6581 datasheet | Continue internal partial SID voice work; keep GPL SID projects reference-only until Chipper chooses a GPL-compatible path or a permissive SID core is selected |
 | YM2149 / AY | emu2149 or ayumi; ymfm if useful | Game_Music_Emu, Furnace, MAME | Evaluate emu2149/ayumi first; keep Chipper's current clean-room PSG as baseline |
 | SN76489 / Sega PSG | emu76489 | FigBug/SN76489, Game_Music_Emu, Furnace | Evaluate emu76489 first; use FigBug as LGPL comparison target |
 | YM2612 / Genesis FM | ymfm | Nuked-OPN2, Game_Music_Emu, Furnace | Use ymfm first for compatibility; consider Nuked-OPN2 only with an LGPL plan |

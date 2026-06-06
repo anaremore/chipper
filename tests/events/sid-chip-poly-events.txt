@@ -1,0 +1,4 @@
+# Three overlapping notes should occupy the three SID oscillator voices.
+note_on 0 60 1.0
+note_on 240 64 0.8
+note_on 480 67 0.7

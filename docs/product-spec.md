@@ -75,6 +75,10 @@ Factory preset v1 should prioritize implemented chips and avoid implying that pl
 - DMG Pocket Arp
 - DMG Noise Hat
 - DMG Power-Up Rise
+- SID Dirty Bass
+- SID PWM Lead
+- SID Robot Arp
+- SID Noise Drum
 - YM Three-Voice Arp
 - YM Fake Chord Stack
 - YM Menu Beep
@@ -86,9 +90,6 @@ Factory preset v1 should prioritize implemented chips and avoid implying that pl
 
 Roadmap preset targets, kept as product direction until their chip cores exist:
 
-- SID Dirty Bass
-- SID PWM Lead
-- SID Robot Arp
 - SID Filter Sweep
 - Genesis FM Bass
 - OPL Bell Lead
