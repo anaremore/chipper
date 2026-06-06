@@ -234,6 +234,7 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
         setPlainParameterValue(sourceLevelIds[i], 1.0f);
 
     setPlainParameterValue(chipper::parameters::id::envelopeDecay, templ.envelopeDecay);
+    setPlainParameterValue(chipper::parameters::id::stereoSpread, templ.stereoSpread);
     setPlainParameterValue(chipper::parameters::id::waveShape, static_cast<float>(templ.waveShape));
     setPlainParameterValue(chipper::parameters::id::dmgWaveLevel, 0.0f);
     setPlainParameterValue(chipper::parameters::id::dmgStereoRoute, static_cast<float>(templ.dmgStereoRoute));

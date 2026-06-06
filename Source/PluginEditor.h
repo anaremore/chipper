@@ -87,6 +87,7 @@ private:
     juce::String dmgWaveLevelReadout(const chipper::PatchConfig& patch) const;
     juce::String dmgStereoRouteReadout(const chipper::PatchConfig& patch) const;
     juce::String ymEnvelopeShapeReadout(int choice) const;
+    juce::String sidFilterModeReadout(const chipper::PatchConfig& patch) const;
     juce::String noiseModeReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String nesNoiseModeReadout(const chipper::PatchConfig& patch) const;
     juce::String dmgNoiseModeReadout(const chipper::PatchConfig& patch) const;
@@ -128,7 +129,7 @@ private:
     void updateWaveShapeButtons(int choice, bool shouldBeVisible);
     void updateDmgWaveLevelButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateDmgStereoRouteButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
-    void updateYmEnvelopeShapeButtons(int choice, bool shouldBeVisible);
+    void updateYmEnvelopeShapeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateSnNoiseModeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateToneNoiseMixButtons(float value, bool shouldBeVisible);
     void updateEnvelopeDecayReadout(chipper::ChipMode mode);

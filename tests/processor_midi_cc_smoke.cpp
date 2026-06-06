@@ -136,6 +136,26 @@ int main()
                      "CC74 Drum macro should reset DMG Wave Level to Macro");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::dmgStereoRoute), 0.0f, 0.0001f,
                      "CC74 NES Drum macro should keep DMG Stereo Routing at Macro");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::stereoSpread), 0.0f, 0.0001f,
+                     "CC74 NES Drum macro should reset stereo/spread role to the chip macro template");
+
+    sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 2));
+    sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 2));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::waveShape), 3.0f, 0.0001f,
+                     "CC74 SID Bass macro should apply SID pulse waveform template");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymEnvelopeShape), 1.0f, 0.0001f,
+                     "CC74 SID Bass macro should apply SID LP filter-mode template");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::stereoSpread), 0.58f, 0.001f,
+                     "CC74 SID Bass macro should apply SID resonance template");
+
+    sendController(processor, 90, controllerValueForChoice(processor, chipper::parameters::id::ymEnvelopeShape, 2));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymEnvelopeShape), 2.0f, 0.0001f,
+                     "CC90 should control the SID Filter Mode/YM Envelope Shape choice parameter");
+    sendController(processor, 93, 127);
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::stereoSpread), 1.0f, 0.0001f,
+                     "CC93 should control the SID Resonance/Stereo Spread parameter");
+
+    sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 0));
 
     setPlainFromHost(processor, chipper::parameters::id::macroControl1, 0.91f);
     setPlainFromHost(processor, chipper::parameters::id::macroControl2, 0.92f);

@@ -1132,6 +1132,7 @@ public:
         heldNote = -1;
         noteVelocity = 0.0f;
         filterLowpass = 0.0;
+        filterBandpass = 0.0;
     }
 
     void setPatch(const PatchConfig& newPatch) override
@@ -1315,7 +1316,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Three SID oscillator voices, 24-bit frequency-register pitch mapping, waveform control bits, 12-bit pulse width, gate-driven ADSR approximation, source trims, and cutoff register writes are modeled; 6581/8580 analog filter behavior, exact ADSR bugs, oscillator sync/ring interactions, waveform-combination quirks, external input, DAC nonlinearity, and hardware validation are not complete.";
+        return "Three SID oscillator voices, 24-bit frequency-register pitch mapping, waveform control bits, 12-bit pulse width, gate-driven ADSR approximation, source trims, cutoff/resonance register writes, and a first-pass multimode filter approximation are modeled; 6581/8580 analog filter behavior, exact ADSR bugs, oscillator sync/ring interactions, waveform-combination quirks, external input, DAC nonlinearity, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -1332,6 +1333,11 @@ public:
              << "\"pulseWidthControl\":" << patch.control1 << ","
              << "\"pulseWidthRegister\":" << sidPulseWidthForControl(patch.control1) << ","
              << "\"filterCutoffRegister\":" << filterCutoffRegister() << ","
+             << "\"filterResonanceControl\":" << patch.stereoSpread << ","
+             << "\"filterResonanceNibble\":" << static_cast<int>(sidFilterResonanceForControl(patch.stereoSpread)) << ","
+             << "\"filterRoutingRegister\":" << static_cast<int>(regs[0x17]) << ","
+             << "\"filterModeChoice\":" << std::clamp(patch.ymEnvelopeShape, 0, 4) << ","
+             << "\"filterModeBits\":" << static_cast<int>(sidFilterModeBitsForPatch(patch)) << ","
              << "\"filterModeVolume\":" << static_cast<int>(regs[0x18]) << ","
              << "\"attackDecayRegister\":" << static_cast<int>(sidAttackDecayForPatch(patch)) << ","
              << "\"sustainReleaseRegister\":" << static_cast<int>(sidSustainReleaseForPatch(patch)) << ","
@@ -1511,10 +1517,12 @@ private:
     void writeFilterRegisters()
     {
         const auto cutoff = static_cast<uint16_t>(std::clamp(static_cast<int>(std::round(clamp01(patch.control3) * 2047.0)), 0, 2047));
+        const auto resonance = sidFilterResonanceForControl(patch.stereoSpread);
+        const auto modeBits = sidFilterModeBitsForPatch(patch);
         writeRegister(0xd415, static_cast<uint8_t>(cutoff & 0x07u));
         writeRegister(0xd416, static_cast<uint8_t>((cutoff >> 3u) & 0xffu));
-        writeRegister(0xd417, 0x0fu);
-        writeRegister(0xd418, 0x1fu);
+        writeRegister(0xd417, static_cast<uint8_t>((resonance << 4u) | 0x07u));
+        writeRegister(0xd418, static_cast<uint8_t>(modeBits | 0x0fu));
     }
 
     void clearGate(size_t voice)
@@ -1732,13 +1740,29 @@ private:
 
     double applySidOutputFilter(double input)
     {
+        const auto modeBits = regs[0x18] & 0x70u;
+        if (modeBits == 0)
+            return input;
+
         const auto cutoffNorm = static_cast<double>(filterCutoffRegister()) / 2047.0;
         const auto cutoffHz = 80.0 + (cutoffNorm * cutoffNorm * 12000.0);
-        const auto rc = 1.0 / (twoPi * cutoffHz);
-        const auto dt = 1.0 / sampleRate;
-        const auto coefficient = dt / (rc + dt);
-        filterLowpass += coefficient * (input - filterLowpass);
-        return filterLowpass;
+        const auto coefficient = std::clamp(2.0 * std::sin((0.5 * twoPi * cutoffHz) / std::max(1.0, sampleRate)), 0.001, 0.99);
+        const auto resonance = static_cast<double>(sidFilterResonanceForControl(patch.stereoSpread)) / 15.0;
+        const auto damping = std::clamp(1.20 - (resonance * 0.90), 0.15, 1.20);
+
+        filterLowpass += coefficient * filterBandpass;
+        const auto highpass = input - filterLowpass - (damping * filterBandpass);
+        filterBandpass += coefficient * highpass;
+
+        auto output = 0.0;
+        if ((modeBits & 0x10u) != 0)
+            output += filterLowpass;
+        if ((modeBits & 0x20u) != 0)
+            output += filterBandpass;
+        if ((modeBits & 0x40u) != 0)
+            output += highpass;
+
+        return std::clamp(output, -4.0, 4.0);
     }
 
     AccuracyMode accuracy;
@@ -1757,6 +1781,7 @@ private:
     int heldNote = -1;
     float noteVelocity = 0.0f;
     double filterLowpass = 0.0;
+    double filterBandpass = 0.0;
     PatchConfig patch;
 };
 

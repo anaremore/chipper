@@ -110,6 +110,7 @@ struct MacroTemplate
     int ymEnvelopeShape = 0;
     int snNoiseMode = 0;
     int dmgStereoRoute = 0;
+    float stereoSpread = 0.0f;
 };
 
 struct ChipDescriptor
@@ -159,6 +160,8 @@ uint8_t dmgWaveOutputLevelBitsForPatch(const PatchConfig& patch, float velocity,
 uint8_t dmgStereoRouteRegisterForPatch(const PatchConfig& patch);
 uint16_t sidPulseWidthForControl(float pulseWidthControl);
 uint8_t sidWaveformControlForPatch(const PatchConfig& patch);
+uint8_t sidFilterModeBitsForPatch(const PatchConfig& patch);
+uint8_t sidFilterResonanceForControl(float resonanceControl);
 uint8_t sidAttackDecayForPatch(const PatchConfig& patch);
 uint8_t sidSustainReleaseForPatch(const PatchConfig& patch);
 uint8_t ym2149NoisePeriodForControl(float noisePitchControl);

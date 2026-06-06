@@ -38,7 +38,7 @@ Accuracy levels:
 - Arp, retrigger, pitch motion, vibrato, glide, output trim
 - Debug/validation export controls in the renderer, not the VST audio thread
 
-All current VST parameters have fixed default MIDI CC mappings. Chip-aware controls use the same stable APVTS parameters for UI, host automation, preset recall, and MIDI CC control; register-style choices quantize to legal chip values instead of exposing fake continuous states. Current DMG examples include `NR32` Wave Level and `NR51` Stereo Route.
+All current VST parameters have fixed default MIDI CC mappings. Chip-aware controls use the same stable APVTS parameters for UI, host automation, preset recall, and MIDI CC control; register-style choices quantize to legal chip values instead of exposing fake continuous states. Current examples include DMG `NR32` Wave Level, DMG `NR51` Stereo Route, SID `$D418` Filter Mode, and SID `$D417` Resonance.
 
 ## Preset Categories
 
