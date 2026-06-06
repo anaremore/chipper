@@ -182,13 +182,24 @@ std::vector<ChipParameterSpec> dmgParameterSpecs()
                       ParameterKind::chipRegister,
                       2.0f / 3.0f),
         sliderSpec(ChipParameterRole::macroControl2, "dmg.sweepShape", "Sweep Shape", "Pitch", "Scales CH1 sweep-like macro pitch offsets."),
-        sliderSpec(ChipParameterRole::macroControl3, "dmg.noiseClock", "Noise Clock", "Noise", "Moves polynomial-noise clock and width behavior."),
+        sliderSpec(ChipParameterRole::macroControl3, "dmg.noiseClock", "Noise Clock", "Noise", "Moves the polynomial-noise clock shift while Noise Mode selects the LFSR width."),
         sliderSpec(ChipParameterRole::macroControl4, "dmg.envelopeLevel", "Envelope Level", "Mixer", "Sets initial envelope level for macro templates."),
         sourceSpec(ChipParameterRole::source1Enabled, "dmg.pulse1.enabled", "Pulse 1", "Enable DMG pulse channel 1."),
         sourceSpec(ChipParameterRole::source2Enabled, "dmg.pulse2.enabled", "Pulse 2", "Enable DMG pulse channel 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "dmg.wave.enabled", "Wave", "Enable the DMG Wave RAM channel."),
         sourceSpec(ChipParameterRole::source4Enabled, "dmg.noise.enabled", "Noise", "Enable the DMG polynomial-noise channel."),
         envelopeSpec("dmg.envelopeDecay", "Envelope Decay", "Maps musical decay to DMG 64 Hz hardware envelope periods."),
+        segmentedSpec(ChipParameterRole::snNoiseMode,
+                      "dmg.noiseMode",
+                      "Noise Mode",
+                      "Noise",
+                      "Maps to NR43 bit 3: 15-bit LFSR noise or 7-bit metallic short noise. Macro resolves from the selected DMG template.",
+                      {
+                          choice("Macro", "Use the selected DMG macro to choose the noise width.", 0.0f, 0),
+                          choice("15-bit", "NR43 bit 3 = 0, standard wide LFSR noise.", 0.5f, 1),
+                          choice("7-bit", "NR43 bit 3 = 1, narrow metallic LFSR noise.", 1.0f, 2)
+                      },
+                      ParameterKind::chipRegister),
         segmentedSpec(ChipParameterRole::waveShape,
                       "dmg.waveShape",
                       "Wave Shape",
@@ -750,6 +761,29 @@ uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch)
     }
 
     return static_cast<uint8_t>(mode | period);
+}
+
+uint8_t dmgNoiseRegisterForPatch(const PatchConfig& patch)
+{
+    const auto shift = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 7.0f)), 0, 7));
+    auto width = uint8_t { 0x00u };
+
+    switch (std::clamp(patch.snNoiseMode, 0, 2))
+    {
+        case 1:
+            width = 0x00u;
+            break;
+        case 2:
+            width = 0x08u;
+            break;
+        case 0:
+        default:
+            if (patch.control3 > 0.55f)
+                width = 0x08u;
+            break;
+    }
+
+    return static_cast<uint8_t>((shift << 4u) | width | 0x02u);
 }
 
 uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch)

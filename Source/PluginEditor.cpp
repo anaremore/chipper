@@ -1037,7 +1037,7 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
         return label + " -> " + pulseDutyReadout(mode, patch.control1) + " | " + nesNoiseModeReadout(patch) + " | " + nesFocusReadout(patch.control4);
 
     if (mode == chipper::ChipMode::dmg)
-        return label + " -> " + pulseDutyReadout(mode, patch.control1) + " | " + dmgNoiseReadout(patch.control3) + " | " + dmgEnvelopeReadout(patch.control4);
+        return label + " -> " + pulseDutyReadout(mode, patch.control1) + " | " + dmgNoiseModeReadout(patch) + " | " + dmgEnvelopeReadout(patch.control4);
 
     if (mode == chipper::ChipMode::ym2149)
         return label + " -> " + ymSpreadReadout(patch.control1) + " | " + ymNoiseReadout(patch.control3) + " | " + ymToneNoiseReadout(patch.control4);
@@ -1108,6 +1108,9 @@ juce::String ChipperAudioProcessorEditor::noiseModeReadout(chipper::ChipMode mod
     if (mode == chipper::ChipMode::nes)
         return nesNoiseModeReadout(patch);
 
+    if (mode == chipper::ChipMode::dmg)
+        return dmgNoiseModeReadout(patch);
+
     return snNoiseModeReadout(patch);
 }
 
@@ -1118,6 +1121,17 @@ juce::String ChipperAudioProcessorEditor::nesNoiseModeReadout(const chipper::Pat
     const auto modeText = (noiseRegister & 0x80u) != 0 ? "short-loop" : "long LFSR";
     const auto periodText = juce::String("period ") + juce::String(static_cast<int>(noiseRegister & 0x0fu));
     const auto resolvedText = registerText + ", " + modeText + ", " + periodText;
+    return std::clamp(patch.snNoiseMode, 0, 2) == 0 ? juce::String("Macro -> ") + resolvedText : resolvedText;
+}
+
+juce::String ChipperAudioProcessorEditor::dmgNoiseModeReadout(const chipper::PatchConfig& patch) const
+{
+    const auto noiseRegister = chipper::dmgNoiseRegisterForPatch(patch);
+    const auto registerText = juce::String("NR43=0x") + juce::String::toHexString(static_cast<int>(noiseRegister)).paddedLeft('0', 2).toUpperCase();
+    const auto widthText = (noiseRegister & 0x08u) != 0 ? "7-bit LFSR" : "15-bit LFSR";
+    const auto shiftText = juce::String("shift ") + juce::String(static_cast<int>((noiseRegister >> 4u) & 0x0fu));
+    const auto divisorText = juce::String("divisor code ") + juce::String(static_cast<int>(noiseRegister & 0x07u));
+    const auto resolvedText = registerText + ", " + widthText + ", " + shiftText + ", " + divisorText;
     return std::clamp(patch.snNoiseMode, 0, 2) == 0 ? juce::String("Macro -> ") + resolvedText : resolvedText;
 }
 
@@ -1174,8 +1188,7 @@ juce::String ChipperAudioProcessorEditor::dmgSweepReadout(float value) const
 juce::String ChipperAudioProcessorEditor::dmgNoiseReadout(float value) const
 {
     const auto pitch = std::clamp(static_cast<int>(std::round((1.0f - value) * 7.0f)), 0, 7);
-    const auto width = value > 0.55f ? "7-bit narrow" : "15-bit wide";
-    return juce::String(width) + ", pitch " + juce::String(pitch);
+    return juce::String("NR43 clock shift ") + juce::String(pitch) + ", divisor code 2";
 }
 
 juce::String ChipperAudioProcessorEditor::dmgEnvelopeReadout(float value) const

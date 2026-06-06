@@ -75,6 +75,7 @@ private:
     juce::String ymEnvelopeShapeReadout(int choice) const;
     juce::String noiseModeReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String nesNoiseModeReadout(const chipper::PatchConfig& patch) const;
+    juce::String dmgNoiseModeReadout(const chipper::PatchConfig& patch) const;
     juce::String snNoiseModeReadout(const chipper::PatchConfig& patch) const;
     juce::String snNoiseRegisterLabel(uint8_t noiseControl) const;
     juce::String nesSweepReadout(float value) const;

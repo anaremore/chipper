@@ -84,7 +84,7 @@ Chipper accepts MIDI input for notes and parameter control. All current plugin p
 | 86 | YM Envelope Shape |
 | 87 | Noise Mode |
 
-Continuous parameters use the full 0-127 CC range. Choice and register-style parameters quantize to their available choices, and source enables switch off below the midpoint and on at or above the midpoint. Noise Mode is chip-aware: NES/RP2A03 resolves Macro, Long LFSR, or Short LFSR into `$400E`, while SN76489 resolves Macro or PSG noise-control choices into its noise register. Automated smoke tests assert that every APVTS parameter has exactly one default MIDI CC mapping and that each mapping works through the processor MIDI path.
+Continuous parameters use the full 0-127 CC range. Choice and register-style parameters quantize to their available choices, and source enables switch off below the midpoint and on at or above the midpoint. Noise Mode is chip-aware: NES/RP2A03 resolves Macro, Long LFSR, or Short LFSR into `$400E`; Game Boy/DMG resolves Macro, 15-bit LFSR, or 7-bit LFSR into `NR43`; and SN76489 resolves Macro or PSG noise-control choices into its noise register. Automated smoke tests assert that every APVTS parameter has exactly one default MIDI CC mapping and that each mapping works through the processor MIDI path.
 
 ## Command-Line Renderer
 

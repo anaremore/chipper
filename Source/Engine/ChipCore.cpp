@@ -265,7 +265,6 @@ public:
 
         const auto duty = dmgPulseDutyFromControl(patch.control1);
         const auto envelope = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control4 * 15.0f)), 1, 15));
-        const auto noisePitch = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 7.0f)), 0, 7));
         auto ch1Note = midiNote;
         auto ch2Note = midiNote + 7;
         auto waveNote = midiNote - 12;
@@ -358,7 +357,7 @@ public:
         }
 
         if ((enable & 0x08u) != 0)
-            writeNoiseRegisters(noiseVol, noisePitch, patch.control3 > 0.55f);
+            writeNoiseRegisters(noiseVol, dmgNoiseRegisterForPatch(patch));
         else
             silenceChannel(3);
     }
@@ -447,6 +446,8 @@ public:
              << "\"leftVolume\":" << outputVolume(true) << ","
              << "\"rightVolume\":" << outputVolume(false) << ","
              << "\"noiseClockHz\":" << noiseClockHz() << ","
+             << "\"noiseModeChoice\":" << std::clamp(patch.snNoiseMode, 0, 2) << ","
+             << "\"noiseRegister\":" << static_cast<int>(regs[0x12]) << ","
              << "\"noiseShift\":" << static_cast<int>(noiseClockShift()) << ","
              << "\"noiseDivisorCode\":" << static_cast<int>(noiseDivisorCode()) << ","
              << "\"noiseWidth7\":" << (noiseWidth7() ? 1 : 0) << ","
@@ -987,10 +988,10 @@ private:
         }
     }
 
-    void writeNoiseRegisters(uint8_t volume, uint8_t pitchCode, bool narrowMode)
+    void writeNoiseRegisters(uint8_t volume, uint8_t noiseRegister)
     {
         writeRegister(0xff21, dmgEnvelopeRegisterValue(volume));
-        writeRegister(0xff22, static_cast<uint8_t>((pitchCode << 4u) | (narrowMode ? 0x08u : 0x00u) | 0x02u));
+        writeRegister(0xff22, noiseRegister);
         writeRegister(0xff23, 0x80);
     }
 

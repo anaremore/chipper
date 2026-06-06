@@ -137,6 +137,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int ymEnvelopeShape = 0,
                             int snNoiseMode = 0);
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
+uint8_t dmgNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch);
 
 } // namespace chipper
