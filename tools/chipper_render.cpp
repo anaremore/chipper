@@ -183,9 +183,9 @@ bool parseSnNoiseMode(const std::string& text, int& out)
     const auto key = normalizedToken(text);
     if (key == "macro" || key == "auto" || key == "off")
         out = 0;
-    else if (key == "periodiclo" || key == "periodiclow" || key == "plo" || key == "p0")
+    else if (key == "long" || key == "longlfsr" || key == "periodic" || key == "periodiclo" || key == "periodiclow" || key == "plo" || key == "p0")
         out = 1;
-    else if (key == "periodichi" || key == "periodichigh" || key == "phi" || key == "p2")
+    else if (key == "short" || key == "shortloop" || key == "shortlfsr" || key == "periodichi" || key == "periodichigh" || key == "phi" || key == "p2")
         out = 2;
     else if (key == "whitelo" || key == "whitelow" || key == "wlo" || key == "white")
         out = 3;
@@ -203,7 +203,7 @@ void printUsage()
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
         << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --envelope-decay 0.7 --wave-shape tri --ym-envelope-shape triangle --sn-noise-mode white-t3\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --envelope-decay 0.7 --wave-shape tri --ym-envelope-shape triangle --sn-noise-mode white-t3|long|short\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"

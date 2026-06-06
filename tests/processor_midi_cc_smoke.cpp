@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -23,10 +24,23 @@ float parameterValue(ChipperAudioProcessor& processor, const char* parameterId)
     return -9999.0f;
 }
 
+float toleranceFor(float expected)
+{
+    return std::max(0.0001f, std::abs(expected) * 0.000001f);
+}
+
 bool expectNear(float actual, float expected, float tolerance, const std::string& message)
 {
     return expect(std::abs(actual - expected) <= tolerance,
                   message + " actual=" + std::to_string(actual) + " expected=" + std::to_string(expected));
+}
+
+void sendController(ChipperAudioProcessor& processor, int controller, int value)
+{
+    juce::AudioBuffer<float> buffer(2, 64);
+    juce::MidiBuffer midi;
+    midi.addEvent(juce::MidiMessage::controllerEvent(1, controller, value), 0);
+    processor.processBlock(buffer, midi);
 }
 }
 
@@ -35,40 +49,32 @@ int main()
     ChipperAudioProcessor processor;
     processor.prepareToPlay(48000.0, 64);
 
-    juce::AudioBuffer<float> buffer(2, 64);
-    juce::MidiBuffer midi;
-    midi.addEvent(juce::MidiMessage::controllerEvent(1, 76, 127), 0);
-    midi.addEvent(juce::MidiMessage::controllerEvent(1, 79, 0), 8);
-    midi.addEvent(juce::MidiMessage::controllerEvent(1, 80, 0), 16);
-    midi.addEvent(juce::MidiMessage::controllerEvent(1, 81, 127), 24);
-    midi.addEvent(juce::MidiMessage::controllerEvent(1, 74, 127), 32);
-    midi.addEvent(juce::MidiMessage::controllerEvent(1, 75, 127), 40);
-    midi.addEvent(juce::MidiMessage::controllerEvent(1, 85, 127), 48);
-    midi.addEvent(juce::MidiMessage::controllerEvent(1, 87, 127), 56);
-
-    processor.processBlock(buffer, midi);
-
     auto ok = true;
-    ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl1), 1.0f, 0.0001f,
-                     "CC76 should set Native Control 1 to maximum");
-    ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl4), 0.0f, 0.0001f,
-                     "CC79 should set Native Control 4 to minimum");
-    ok &= expectNear(parameterValue(processor, chipper::parameters::id::source1Enabled), 0.0f, 0.0001f,
-                     "CC80 should switch Source 1 off below the midpoint");
-    ok &= expectNear(parameterValue(processor, chipper::parameters::id::source2Enabled), 1.0f, 0.0001f,
-                     "CC81 should switch Source 2 on above the midpoint");
-    ok &= expectNear(parameterValue(processor, chipper::parameters::id::macro), 9.0f, 0.0001f,
-                     "CC74 should select the last Musical Macro choice at maximum");
-    ok &= expectNear(parameterValue(processor, chipper::parameters::id::playMode), 1.0f, 0.0001f,
-                     "CC75 should select Chip Poly at maximum");
-    ok &= expectNear(parameterValue(processor, chipper::parameters::id::waveShape), 4.0f, 0.0001f,
-                     "CC85 should select the last Wave Shape choice at maximum");
-    ok &= expectNear(parameterValue(processor, chipper::parameters::id::snNoiseMode), 4.0f, 0.0001f,
-                     "CC87 should select the last SN76489 Noise Mode choice at maximum");
 
-    juce::MidiBuffer unmappedMidi;
-    unmappedMidi.addEvent(juce::MidiMessage::controllerEvent(1, 69, 127), 0);
-    processor.processBlock(buffer, unmappedMidi);
+    for (const auto& mapping : chipper::parameters::midiCcMappings())
+    {
+        auto* parameter = processor.getValueTreeState().getParameter(mapping.parameterId);
+        ok &= expect(parameter != nullptr,
+                     std::string("Missing mapped parameter: ") + mapping.parameterId);
+        if (parameter == nullptr)
+            continue;
+
+        sendController(processor, mapping.controller, 0);
+        const auto expectedMinimum = parameter->convertFrom0to1(0.0f);
+        ok &= expectNear(parameterValue(processor, mapping.parameterId),
+                         expectedMinimum,
+                         toleranceFor(expectedMinimum),
+                         "CC" + std::to_string(mapping.controller) + " should set " + mapping.label + " to minimum");
+
+        sendController(processor, mapping.controller, 127);
+        const auto expectedMaximum = parameter->convertFrom0to1(1.0f);
+        ok &= expectNear(parameterValue(processor, mapping.parameterId),
+                         expectedMaximum,
+                         toleranceFor(expectedMaximum),
+                         "CC" + std::to_string(mapping.controller) + " should set " + mapping.label + " to maximum");
+    }
+
+    sendController(processor, 69, 127);
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl1), 1.0f, 0.0001f,
                      "Unmapped CC69 should not change mapped parameters");
 

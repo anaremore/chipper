@@ -52,6 +52,12 @@ add_test(NAME chipper_render_nes_sources_off_smoke
 add_test(NAME chipper_render_nes_envelope_decay_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --macro manual --source3 0 --source4 0 --envelope-decay 1.0 --clock 1789773 --rate 48000 --seconds 0.05 --note 69 --out nes-envelope-decay-smoke.wav --debug nes-envelope-decay-smoke.json
 )
+add_test(NAME chipper_render_nes_noise_long_smoke
+    COMMAND chipper_render --chip nes --accuracy authentic --macro drum --control3 1.0 --sn-noise-mode long --clock 1789773 --rate 48000 --seconds 0.01 --note 69 --out nes-noise-long-smoke.wav --debug nes-noise-long-smoke.json
+)
+add_test(NAME chipper_render_nes_noise_short_smoke
+    COMMAND chipper_render --chip nes --accuracy authentic --macro drum --control3 0.0 --sn-noise-mode short --clock 1789773 --rate 48000 --seconds 0.01 --note 69 --out nes-noise-short-smoke.wav --debug nes-noise-short-smoke.json
+)
 add_test(NAME chipper_render_ym2149_smoke
     COMMAND chipper_render --chip ym2149 --accuracy authentic --clock 2000000 --rate 48000 --seconds 0.10 --note 72 --out ym-smoke.wav --debug ym-smoke.json
 )
@@ -211,17 +217,17 @@ add_test(NAME chipper_render_describe_nes_smoke
 
 if (Python3_Interpreter_FOUND)
     add_test(NAME chipper_render_list_descriptors_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip nes --chip dmg --chip ym2149 --chip sn76489 --chip sid --chip ym2612 --chip custom --implemented nes=1 --implemented dmg=1 --implemented ym2149=1 --implemented sn76489=1 --implemented sid=0 --param-kind nes:macroControl1=chipRegister --param-surface nes:macroControl1=segmentedChoice --param-choices nes:macroControl1=4 --param-surface dmg:waveShape=segmentedChoice --param-choices dmg:waveShape=5 --param-surface ym2149:ymEnvelopeShape=segmentedChoice --param-choices ym2149:ymEnvelopeShape=5 --param-surface sn76489:snNoiseMode=segmentedChoice --param-choices sn76489:snNoiseMode=5 --macro-source nes:Drum=0011 --macro-source dmg:Bass=0010 --macro-source ym2149:Drum=1001 --macro-source sn76489:Drum=0001 --preset nes-hero-pulse --preset dmg-wave-bass --preset ym-noise-hat --preset sn-noise-hit
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip nes --chip dmg --chip ym2149 --chip sn76489 --chip sid --chip ym2612 --chip custom --implemented nes=1 --implemented dmg=1 --implemented ym2149=1 --implemented sn76489=1 --implemented sid=0 --param-kind nes:macroControl1=chipRegister --param-surface nes:macroControl1=segmentedChoice --param-choices nes:macroControl1=4 --param-surface nes:snNoiseMode=segmentedChoice --param-choices nes:snNoiseMode=3 --param-surface dmg:waveShape=segmentedChoice --param-choices dmg:waveShape=5 --param-surface ym2149:ymEnvelopeShape=segmentedChoice --param-choices ym2149:ymEnvelopeShape=5 --param-surface sn76489:snNoiseMode=segmentedChoice --param-choices sn76489:snNoiseMode=5 --macro-source nes:Drum=0011 --macro-source dmg:Bass=0010 --macro-source ym2149:Drum=1001 --macro-source sn76489:Drum=0001 --preset nes-hero-pulse --preset dmg-wave-bass --preset ym-noise-hat --preset sn-noise-hit
     )
     set_tests_properties(chipper_render_list_descriptors_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_describe_nes_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-descriptor.json --chip-count 1 --chip nes --implemented nes=1 --param-kind nes:macroControl1=chipRegister --param-surface nes:macroControl1=segmentedChoice --param-choices nes:macroControl1=4 --preset nes-hero-pulse
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-descriptor.json --chip-count 1 --chip nes --implemented nes=1 --param-kind nes:macroControl1=chipRegister --param-surface nes:macroControl1=segmentedChoice --param-choices nes:macroControl1=4 --param-surface nes:snNoiseMode=segmentedChoice --param-choices nes:snNoiseMode=3 --preset nes-hero-pulse
     )
     set_tests_properties(chipper_render_describe_nes_assert PROPERTIES DEPENDS chipper_render_describe_nes_smoke)
 
     add_test(NAME chipper_render_nes_json_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-smoke.json --implemented-contains partial --macro Manual --min-peak 0.1 --min-rms 0.05 --register-writes 0 --note-events 0 --min-zero-crossings 30 --max-zero-crossings 120 --descriptor-param-kind macroControl1=chipRegister --descriptor-param-surface macroControl1=segmentedChoice --descriptor-param-label "macroControl1=Pulse Duty" --descriptor-param-choices macroControl1=4
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-smoke.json --implemented-contains partial --macro Manual --min-peak 0.1 --min-rms 0.05 --register-writes 0 --note-events 0 --min-zero-crossings 30 --max-zero-crossings 120 --descriptor-param-kind macroControl1=chipRegister --descriptor-param-surface macroControl1=segmentedChoice --descriptor-param-label "macroControl1=Pulse Duty" --descriptor-param-choices macroControl1=4 --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=Noise Mode" --descriptor-param-choices snNoiseMode=3
     )
     set_tests_properties(chipper_render_nes_json_assert PROPERTIES DEPENDS chipper_render_nes_smoke)
 
@@ -254,6 +260,16 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-envelope-decay-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.1 --core-min envelopeDecayControl=1 --core-max envelopeDecayControl=1 --core-min envelopePeriod0=1 --core-max envelopePeriod0=1 --core-min envelopeConstant0=0 --core-max envelopeConstant0=0
     )
     set_tests_properties(chipper_render_nes_envelope_decay_assert PROPERTIES DEPENDS chipper_render_nes_envelope_decay_smoke)
+
+    add_test(NAME chipper_render_nes_noise_long_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-noise-long-smoke.json --implemented-contains partial --macro Drum --register-writes 0 --note-events 0 --core-min noiseModeChoice=1 --core-max noiseModeChoice=1 --core-min noiseShortMode=0 --core-max noiseShortMode=0 --core-min noiseRegister=0 --core-max noiseRegister=0
+    )
+    set_tests_properties(chipper_render_nes_noise_long_assert PROPERTIES DEPENDS chipper_render_nes_noise_long_smoke)
+
+    add_test(NAME chipper_render_nes_noise_short_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-noise-short-smoke.json --implemented-contains partial --macro Drum --register-writes 0 --note-events 0 --core-min noiseModeChoice=2 --core-max noiseModeChoice=2 --core-min noiseShortMode=1 --core-max noiseShortMode=1 --core-min noiseRegister=142 --core-max noiseRegister=142
+    )
+    set_tests_properties(chipper_render_nes_noise_short_assert PROPERTIES DEPENDS chipper_render_nes_noise_short_smoke)
 
     add_test(NAME chipper_render_ym2149_chip_poly_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 3 --min-peak 0.1 --core-min activeChannels=3 --core-max activeChannels=3 --core-min assignedNoteA=60 --core-max assignedNoteA=60 --core-min assignedNoteB=64 --core-max assignedNoteB=64 --core-min assignedNoteC=67 --core-max assignedNoteC=67 --core-min periodA=477 --core-max periodA=479 --core-min periodB=378 --core-max periodB=380 --core-min periodC=318 --core-max periodC=320

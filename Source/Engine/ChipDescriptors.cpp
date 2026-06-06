@@ -155,7 +155,18 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
         sourceSpec(ChipParameterRole::source2Enabled, "nes.pulse2.enabled", "Pulse 2", "Enable the second RP2A03 pulse source."),
         sourceSpec(ChipParameterRole::source3Enabled, "nes.triangle.enabled", "Triangle", "Enable the triangle bass source."),
         sourceSpec(ChipParameterRole::source4Enabled, "nes.noise.enabled", "Noise", "Enable the RP2A03 noise source."),
-        envelopeSpec("nes.envelopeDecay", "Envelope Decay", "Maps musical decay to APU envelope period values.")
+        envelopeSpec("nes.envelopeDecay", "Envelope Decay", "Maps musical decay to APU envelope period values."),
+        segmentedSpec(ChipParameterRole::snNoiseMode,
+                      "nes.noiseMode",
+                      "Noise Mode",
+                      "Noise",
+                      "Maps to RP2A03 $400E bit 7: long LFSR noise or short-loop metallic noise. Macro resolves from the selected musical template.",
+                      {
+                          choice("Macro", "Use the selected NES macro to choose long or short noise.", 0.0f, 0),
+                          choice("Long", "Bit 7 = 0, long 15-bit LFSR noise for softer hats and static.", 0.5f, 1),
+                          choice("Short", "Bit 7 = 1, short-loop metallic noise for snares and pitched grit.", 1.0f, 2)
+                      },
+                      ParameterKind::chipRegister)
     };
 }
 
@@ -715,6 +726,30 @@ PatchConfig makePatchConfig(ChipMode mode,
         std::clamp(ymEnvelopeShape, 0, 4),
         std::clamp(snNoiseMode, 0, 4)
     };
+}
+
+uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch)
+{
+    const auto period = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 14.0f)), 0, 15));
+    auto mode = uint8_t { 0x00u };
+
+    switch (std::clamp(patch.snNoiseMode, 0, 2))
+    {
+        case 1:
+            mode = 0x00u;
+            break;
+        case 2:
+            mode = 0x80u;
+            break;
+        case 0:
+        default:
+            if ((patch.macro == MacroKind::drum && patch.control3 > 0.55f)
+                || (patch.macro == MacroKind::hit && patch.control3 > 0.50f))
+                mode = 0x80u;
+            break;
+    }
+
+    return static_cast<uint8_t>(mode | period);
 }
 
 uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch)

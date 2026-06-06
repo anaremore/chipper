@@ -53,7 +53,7 @@ juce::StringArray ymEnvelopeShapeChoices()
 
 juce::StringArray snNoiseModeChoices()
 {
-    return { "Macro", "Periodic Lo", "Periodic Hi", "White Lo", "White T3" };
+    return { "Macro", "Mode 1", "Mode 2", "Mode 3", "Mode 4" };
 }
 
 const MidiCcMappingList& midiCcMappings()
@@ -76,7 +76,7 @@ const MidiCcMappingList& midiCcMappings()
         { 84, id::envelopeDecay, "Envelope Decay" },
         { 85, id::waveShape, "Wave Shape" },
         { 86, id::ymEnvelopeShape, "YM Envelope Shape" },
-        { 87, id::snNoiseMode, "SN76489 Noise Mode" }
+        { 87, id::snNoiseMode, "Noise Mode" }
     }};
 
     return mappings;
@@ -197,7 +197,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::snNoiseMode, 1 },
-        "SN76489 Noise Mode",
+        "Noise Mode",
         snNoiseModeChoices(),
         0));
 

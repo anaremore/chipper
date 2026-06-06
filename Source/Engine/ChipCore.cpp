@@ -1188,7 +1188,6 @@ public:
         heldNote = midiNote;
         noteVelocity = static_cast<float>(clamp01(velocity));
         const auto duty = nesPulseDutyFromControl(patch.control1);
-        const auto noisePeriod = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 14.0f)), 0, 15));
 
         auto p1Note = midiNote;
         auto p2Note = midiNote;
@@ -1197,7 +1196,6 @@ public:
         auto p2Vol = 8u;
         auto noiseVol = static_cast<unsigned>(std::round(patch.control3 * 12.0f));
         auto enable = 0x03u;
-        auto noiseMode = 0x00u;
 
         switch (patch.macro)
         {
@@ -1229,14 +1227,12 @@ public:
                 triNote = midiNote - 36;
                 noiseVol = static_cast<unsigned>(10u + std::round(patch.control3 * 5.0f));
                 enable = 0x0du;
-                noiseMode = patch.control3 > 0.55f ? 0x80u : 0x00u;
                 break;
             case MacroKind::hit:
                 p1Note = midiNote - 5;
                 p2Vol = 0u;
                 noiseVol = static_cast<unsigned>(8u + std::round(patch.control3 * 7.0f));
                 enable = 0x09u;
-                noiseMode = patch.control3 > 0.50f ? 0x80u : 0x00u;
                 break;
             case MacroKind::laser:
                 p1Note = midiNote + 7 + static_cast<int>(std::round(patch.control2 * 17.0f));
@@ -1282,7 +1278,7 @@ public:
         writeRegister(0x4005, pulse2Sweep);
         writeTriangleRegisters(triNote);
         writeRegister(0x400c, nesNoiseEnvelopeValue(noiseVol));
-        writeRegister(0x400e, static_cast<uint8_t>(noiseMode | noisePeriod));
+        writeRegister(0x400e, nesNoiseRegisterForPatch(patch));
         writeRegister(0x400f, 0x18);
         writeRegister(0x4015, static_cast<uint8_t>(enable));
     }
@@ -1353,6 +1349,10 @@ public:
              << "\"triangleTimer\":" << timer[2] << ","
              << "\"pulseDuty1\":" << static_cast<int>(pulseDutyIndex(0)) << ","
              << "\"pulseDuty2\":" << static_cast<int>(pulseDutyIndex(1)) << ","
+             << "\"noiseModeChoice\":" << std::clamp(patch.snNoiseMode, 0, 2) << ","
+             << "\"noiseRegister\":" << static_cast<int>(regs[0x0e]) << ","
+             << "\"noiseShortMode\":" << (((regs[0x0e] & 0x80u) != 0) ? 1 : 0) << ","
+             << "\"noisePeriod\":" << static_cast<int>(regs[0x0e] & 0x0fu) << ","
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
