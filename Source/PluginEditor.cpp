@@ -93,6 +93,27 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(valueLabel);
     }
 
+    const std::array<const char*, 4> dutyLabels { "12.5%", "25%", "50%", "75%" };
+    for (size_t i = 0; i < nesDutyButtons.size(); ++i)
+    {
+        auto& button = nesDutyButtons[i];
+        button.setButtonText(dutyLabels[i]);
+        button.setClickingTogglesState(false);
+        button.setTooltip(juce::String("NES pulse duty ") + dutyLabels[i]);
+        button.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff202c33));
+        button.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xfff0c94d));
+        button.setColour(juce::TextButton::textColourOffId, juce::Colour(0xffdbe8e5));
+        button.setColour(juce::TextButton::textColourOnId, juce::Colour(0xff101414));
+        button.onClick = [this, i]()
+        {
+            const auto value = static_cast<float>(i) / static_cast<float>(nesDutyButtons.size() - 1u);
+            setParameterValueFromUi(chipper::parameters::id::macroControl1, value);
+            updateLiveControlReadouts();
+        };
+        button.setVisible(false);
+        addAndMakeVisible(button);
+    }
+
     statusLabel.setFont(juce::FontOptions(13.0f));
     statusLabel.setJustificationType(juce::Justification::centredLeft);
     statusLabel.setColour(juce::Label::textColourId, juce::Colours::white);
@@ -317,6 +338,7 @@ void ChipperAudioProcessorEditor::resized()
     }
 
     placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlValueLabels[0], controlCells[0]);
+    placeNesDutySegment(controlCells[0]);
     placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[1]);
     placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[2]);
     placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[3]);
@@ -379,12 +401,40 @@ void ChipperAudioProcessorEditor::placeLabeledSliderWithReadout(juce::Slider& sl
     valueLabel.setBounds(bounds);
 }
 
+void ChipperAudioProcessorEditor::placeNesDutySegment(juce::Rectangle<int> bounds)
+{
+    bounds.removeFromTop(30);
+    nesDutySegmentBounds = bounds.removeFromTop(26).reduced(0, 1);
+    const auto gap = 4;
+    const auto buttonWidth = (nesDutySegmentBounds.getWidth() - (gap * static_cast<int>(nesDutyButtons.size() - 1u))) / static_cast<int>(nesDutyButtons.size());
+    for (size_t i = 0; i < nesDutyButtons.size(); ++i)
+    {
+        nesDutyButtons[i].setBounds({
+            nesDutySegmentBounds.getX() + static_cast<int>(i) * (buttonWidth + gap),
+            nesDutySegmentBounds.getY(),
+            buttonWidth,
+            nesDutySegmentBounds.getHeight()
+        });
+    }
+}
+
 float ChipperAudioProcessorEditor::parameterValue(const char* parameterId) const
 {
     if (const auto* value = audioProcessor.getValueTreeState().getRawParameterValue(parameterId))
         return value->load();
 
     return 0.0f;
+}
+
+void ChipperAudioProcessorEditor::setParameterValueFromUi(const char* parameterId, float plainValue)
+{
+    if (auto* parameter = audioProcessor.getValueTreeState().getParameter(parameterId))
+    {
+        const auto normalized = parameter->convertTo0to1(std::clamp(plainValue, 0.0f, 1.0f));
+        parameter->beginChangeGesture();
+        parameter->setValueNotifyingHost(normalized);
+        parameter->endChangeGesture();
+    }
 }
 
 juce::String ChipperAudioProcessorEditor::nesDutyReadout(float value) const
@@ -431,6 +481,16 @@ void ChipperAudioProcessorEditor::setNesChannelSurfaceVisible(bool shouldBeVisib
 
     for (auto& itemLabel : moduleItemLabels[1])
         itemLabel.setVisible(! shouldBeVisible && ! itemLabel.getText().isEmpty());
+}
+
+void ChipperAudioProcessorEditor::updateNesDutyButtons(float value, bool shouldBeVisible)
+{
+    const auto selected = static_cast<size_t>(std::clamp(static_cast<int>(std::round(value * 3.0f)), 0, 3));
+    for (size_t i = 0; i < nesDutyButtons.size(); ++i)
+    {
+        nesDutyButtons[i].setVisible(shouldBeVisible);
+        nesDutyButtons[i].setToggleState(shouldBeVisible && i == selected, juce::dontSendNotification);
+    }
 }
 
 void ChipperAudioProcessorEditor::updateDescriptorText()
@@ -523,6 +583,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     controlValueLabels[4].setAlpha(hasLiveCore ? 1.0f : 0.55f);
     controlValueLabels[5].setAlpha(hasLiveCore ? 1.0f : 0.55f);
     setNesChannelSurfaceVisible(mode == chipper::ChipMode::nes);
+    updateNesDutyButtons(parameterValue(chipper::parameters::id::macroControl1), mode == chipper::ChipMode::nes && hasLiveCore);
     updateLiveControlReadouts();
     repaint();
 }
@@ -538,6 +599,9 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
 
     if (mode == chipper::ChipMode::nes)
     {
+        const auto hasLiveCore = chipper::descriptorFor(mode).implemented;
+        nativeSliders[0].setVisible(false);
+        updateNesDutyButtons(macroControl1, hasLiveCore);
         controlValueLabels[0].setText(nesDutyReadout(macroControl1), juce::dontSendNotification);
         controlValueLabels[1].setText(nesSweepReadout(macroControl2), juce::dontSendNotification);
         controlValueLabels[2].setText(nesNoiseReadout(macroControl3), juce::dontSendNotification);
@@ -562,6 +626,8 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     }
     else
     {
+        nativeSliders[0].setVisible(true);
+        updateNesDutyButtons(macroControl1, false);
         controlValueLabels[0].setText(juce::String(macroControl1, 2), juce::dontSendNotification);
         controlValueLabels[1].setText(juce::String(macroControl2, 2), juce::dontSendNotification);
         controlValueLabels[2].setText(juce::String(macroControl3, 2), juce::dontSendNotification);

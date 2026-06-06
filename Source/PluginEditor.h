@@ -33,12 +33,15 @@ private:
                             juce::Label& valueLabel,
                             juce::Rectangle<int> bounds);
     void placeLabeledSliderWithReadout(juce::Slider& slider, juce::Label& label, juce::Label& valueLabel, juce::Rectangle<int> bounds);
+    void placeNesDutySegment(juce::Rectangle<int> bounds);
     float parameterValue(const char* parameterId) const;
+    void setParameterValueFromUi(const char* parameterId, float plainValue);
     juce::String nesDutyReadout(float value) const;
     juce::String nesSweepReadout(float value) const;
     juce::String nesNoiseReadout(float value) const;
     juce::String nesFocusReadout(float value) const;
     void setNesChannelSurfaceVisible(bool shouldBeVisible);
+    void updateNesDutyButtons(float value, bool shouldBeVisible);
 
     ChipperAudioProcessor& audioProcessor;
     juce::Label titleLabel;
@@ -56,6 +59,7 @@ private:
     std::array<std::array<juce::Label, uiModuleRows>, uiModuleCount> moduleItemLabels;
     std::array<juce::Label, nesChannelCount> nesChannelLabels;
     std::array<juce::Label, liveControlCount> controlValueLabels;
+    std::array<juce::TextButton, 4> nesDutyButtons;
 
     juce::ComboBox chipModeBox;
     juce::ComboBox accuracyBox;
@@ -83,6 +87,7 @@ private:
     bool descriptorTextInitialized = false;
     std::array<juce::Rectangle<int>, uiModuleCount> moduleBounds;
     std::array<juce::Rectangle<int>, nesChannelCount> nesChannelBounds;
+    juce::Rectangle<int> nesDutySegmentBounds;
     juce::Rectangle<int> globalStripBounds;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipperAudioProcessorEditor)

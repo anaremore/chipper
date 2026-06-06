@@ -48,6 +48,29 @@ std::string jsonEscape(std::string_view text)
     return out.str();
 }
 
+enum class NesPulseDuty : uint8_t
+{
+    duty12_5 = 0,
+    duty25 = 1,
+    duty50 = 2,
+    duty75 = 3
+};
+
+NesPulseDuty nesPulseDutyFromControl(float control)
+{
+    return static_cast<NesPulseDuty>(std::clamp(static_cast<int>(std::round(control * 3.0f)), 0, 3));
+}
+
+NesPulseDuty offsetNesPulseDuty(NesPulseDuty duty, int offset)
+{
+    return static_cast<NesPulseDuty>(std::clamp(static_cast<int>(duty) + offset, 0, 3));
+}
+
+uint8_t nesPulseDutyBits(NesPulseDuty duty)
+{
+    return static_cast<uint8_t>(duty);
+}
+
 class UnsupportedCore final : public ChipCore
 {
 public:
@@ -1028,7 +1051,7 @@ public:
 
         heldNote = midiNote;
         noteVelocity = static_cast<float>(clamp01(velocity));
-        const auto duty = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control1 * 3.0f)), 0, 3));
+        const auto duty = nesPulseDutyFromControl(patch.control1);
         const auto noisePeriod = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 14.0f)), 0, 15));
 
         auto p1Note = midiNote;
@@ -1106,7 +1129,7 @@ public:
         }
 
         writePulseRegisters(0x4000, duty, p1Vol, p1Note);
-        writePulseRegisters(0x4004, static_cast<uint8_t>(std::min<int>(3, duty + 1)), p2Vol, p2Note);
+        writePulseRegisters(0x4004, offsetNesPulseDuty(duty, 1), p2Vol, p2Note);
 
         const auto sweepShift = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(1.0f + patch.control2 * 2.0f)), 1, 3));
         const auto sweepPeriod = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control2 * 3.0f)), 0, 3) << 4u);
@@ -1190,6 +1213,8 @@ public:
              << "\"pulseTimer1\":" << timer[0] << ","
              << "\"pulseTimer2\":" << timer[1] << ","
              << "\"triangleTimer\":" << timer[2] << ","
+             << "\"pulseDuty1\":" << static_cast<int>(pulseDutyIndex(0)) << ","
+             << "\"pulseDuty2\":" << static_cast<int>(pulseDutyIndex(1)) << ","
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNotePulse1\":" << channelNotes[0] << ","
              << "\"assignedNotePulse2\":" << channelNotes[1] << ","
@@ -1521,7 +1546,7 @@ private:
         }
     }
 
-    void writePulseRegisters(uint16_t baseAddress, uint8_t duty, unsigned volume, int midiNote)
+    void writePulseRegisters(uint16_t baseAddress, NesPulseDuty duty, unsigned volume, int midiNote)
     {
         const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
         const auto pulseTimer = static_cast<int>(std::max(0.0, std::round(clock / (16.0 * hz) - 1.0)));
@@ -1531,7 +1556,7 @@ private:
             || patch.macro == MacroKind::bass
             || patch.macro == MacroKind::powerUp;
         const auto flags = constantVolume ? 0x10u : 0x00u;
-        writeRegister(baseAddress, static_cast<uint8_t>((duty << 6u) | flags | (std::min<unsigned>(15u, volume) & 0x0fu)));
+        writeRegister(baseAddress, static_cast<uint8_t>((nesPulseDutyBits(duty) << 6u) | flags | (std::min<unsigned>(15u, volume) & 0x0fu)));
         writeRegister(static_cast<uint16_t>(baseAddress + 2), static_cast<uint8_t>(pulseTimer & 0xff));
         writeRegister(static_cast<uint16_t>(baseAddress + 3), static_cast<uint8_t>((pulseTimer >> 8) & 0x07));
     }
@@ -1596,14 +1621,14 @@ private:
 
         if (channel == 0)
         {
-            const auto duty = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control1 * 3.0f)), 0, 3));
+            const auto duty = nesPulseDutyFromControl(patch.control1);
             const auto volume = static_cast<unsigned>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15));
             writeRegister(0x4001, 0x08);
             writePulseRegisters(0x4000, duty, volume, channelNotes[index]);
         }
         else if (channel == 1)
         {
-            const auto duty = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control1 * 3.0f)), 0, 3));
+            const auto duty = nesPulseDutyFromControl(patch.control1);
             const auto volume = static_cast<unsigned>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15));
             writeRegister(0x4005, 0x08);
             writePulseRegisters(0x4004, duty, volume, channelNotes[index]);
@@ -1637,11 +1662,16 @@ private:
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
     }
 
+    uint8_t pulseDutyIndex(int index) const
+    {
+        const auto regIndex = index == 0 ? 0x00 : 0x04;
+        return static_cast<uint8_t>((regs[regIndex] >> 6u) & 0x03u);
+    }
+
     double dutyForPulse(int index) const
     {
         static constexpr std::array<double, 4> duty = { 0.125, 0.25, 0.5, 0.75 };
-        const auto regIndex = index == 0 ? 0x00 : 0x04;
-        return duty[(regs[regIndex] >> 6u) & 0x03u];
+        return duty[pulseDutyIndex(index)];
     }
 
     double constantVolume(int regIndex) const
