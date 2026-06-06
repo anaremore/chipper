@@ -285,7 +285,12 @@ std::vector<ChipParameterSpec> sn76489ParameterSpecs()
     return {
         sliderSpec(ChipParameterRole::macroControl1, "sn76489.toneStack", "Tone Stack", "Channels", "Sets interval spread across the three tone channels."),
         sliderSpec(ChipParameterRole::macroControl2, "sn76489.pitchMotion", "Pitch Motion", "Pitch", "Scales macro pitch movement."),
-        sliderSpec(ChipParameterRole::macroControl3, "sn76489.noiseBias", "Noise Bias", "Noise", "Biases the macro-selected noise register when Noise Mode is Macro."),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "sn76489.noiseBias",
+                   "Noise Bias",
+                   "Noise",
+                   "Biases the macro-selected SN76489 noise-control register bits when Noise Mode is Macro; explicit Noise Mode choices override it.",
+                   ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "sn76489.noiseLevel",
                    "Noise Level",
