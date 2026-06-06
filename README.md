@@ -49,7 +49,7 @@ Install to the common Windows VST3 folder:
 .\scripts\install-vst3.ps1
 ```
 
-The installer removes the previous `Chipper.vst3` bundle before copying the new build, which avoids stale mixed bundles when a host has cached an older plugin. Installing to `C:\Program Files\Common Files\VST3` may require an elevated shell.
+The installer removes the previous `Chipper.vst3` bundle before copying the new build, which avoids stale mixed bundles when a host has cached an older plugin. Installing to `C:\Program Files\Common Files\VST3` requires an elevated shell; non-elevated global installs fail before deleting the old bundle.
 
 For rapid development without a UAC prompt, install to the per-user VST3 folder:
 

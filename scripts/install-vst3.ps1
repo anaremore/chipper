@@ -22,6 +22,16 @@ if (-not $PSBoundParameters.ContainsKey("Destination") -or [string]::IsNullOrWhi
     }
 }
 
+function Test-ProcessElevated {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+if ($Scope -eq "Global" -and -not (Test-ProcessElevated)) {
+    throw "Global VST3 install requires an elevated PowerShell. Use -Scope User for a no-UAC install to %LOCALAPPDATA%\Programs\Common\VST3."
+}
+
 New-Item -ItemType Directory -Force -Path $Destination | Out-Null
 
 $destinationRoot = (Resolve-Path -LiteralPath $Destination).ProviderPath
