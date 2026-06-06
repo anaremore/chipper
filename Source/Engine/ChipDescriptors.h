@@ -65,6 +65,9 @@ enum class ChipParameterRole
     dmgWaveLevel,
     dmgStereoRoute,
     ymEnvelopeShape,
+    ymChannelAMix,
+    ymChannelBMix,
+    ymChannelCMix,
     snNoiseMode,
     clockHz,
     outputDb
@@ -154,6 +157,9 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int dmgWaveLevel = 0,
                             int dmgStereoRoute = 0,
                             int ymEnvelopeShape = 0,
+                            int ymChannelAMix = 0,
+                            int ymChannelBMix = 0,
+                            int ymChannelCMix = 0,
                             int snNoiseMode = 0,
                             int sidVoice2WaveShape = 0,
                             int sidVoice3WaveShape = 0,
@@ -186,6 +192,8 @@ uint8_t sidAttackDecayForPatch(const PatchConfig& patch);
 uint8_t sidSustainReleaseForPatch(const PatchConfig& patch);
 uint8_t ym2149NoisePeriodForControl(float noisePitchControl);
 uint8_t ym2149MixerRegisterForControl(float toneNoiseControl);
+uint8_t ym2149MixerRegisterWithChannelOverrides(const PatchConfig& patch, uint8_t macroMixer);
+int ym2149ChannelMixChoiceForPatch(const PatchConfig& patch, size_t channel);
 uint16_t ym2149EnvelopePeriodForControl(float envelopeControl);
 uint8_t sn76489NoiseAttenuationForControl(float noiseLevelControl);
 uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch);

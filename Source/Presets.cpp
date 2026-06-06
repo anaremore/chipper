@@ -489,6 +489,9 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                            0,
                            preset.dmgStereoRoute,
                            preset.ymEnvelopeShape,
+                           0,
+                           0,
+                           0,
                            preset.snNoiseMode,
                            preset.sidVoice2WaveShape,
                            preset.sidVoice3WaveShape);

@@ -2858,7 +2858,7 @@ public:
         writeTone(0, noteA);
         writeTone(1, noteB);
         writeTone(2, noteC);
-        const auto sourceAwareMixer = applySourceMixerMask(static_cast<uint8_t>(mixer));
+        const auto sourceAwareMixer = applySourceMixerMask(ym2149MixerRegisterWithChannelOverrides(patch, static_cast<uint8_t>(mixer)));
         writeRegister(6, noisePitch);
         writeRegister(7, sourceAwareMixer);
         writeSourceAwareYmVolumeRegister(0, volA, sourceAwareMixer);
@@ -2918,7 +2918,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Tone/noise registers, mixer bits, logarithmic DAC volume approximation, YM-style 32-step envelope counter/reset behavior, and YM channel allocation for Chip Poly play mode are modeled; exact analog output curve, AY/YM variant differences, and hardware timing validation are still required.";
+        return "Tone/noise registers, mixer bits including per-channel tone/noise override choices, logarithmic DAC volume approximation, YM-style 32-step envelope counter/reset behavior, and YM channel allocation for Chip Poly play mode are modeled; exact analog output curve, AY/YM variant differences, and hardware timing validation are still required.";
     }
 
     std::string debugStateJson() const override
@@ -2934,6 +2934,15 @@ public:
              << "\"periodB\":" << tonePeriod(1) << ","
              << "\"periodC\":" << tonePeriod(2) << ","
              << "\"mixer\":" << static_cast<int>(regs[7]) << ","
+             << "\"channelMixChoiceA\":" << ym2149ChannelMixChoiceForPatch(patch, 0) << ","
+             << "\"channelMixChoiceB\":" << ym2149ChannelMixChoiceForPatch(patch, 1) << ","
+             << "\"channelMixChoiceC\":" << ym2149ChannelMixChoiceForPatch(patch, 2) << ","
+             << "\"toneEnabledA\":" << (((regs[7] & 0x01u) == 0) ? 1 : 0) << ","
+             << "\"toneEnabledB\":" << (((regs[7] & 0x02u) == 0) ? 1 : 0) << ","
+             << "\"toneEnabledC\":" << (((regs[7] & 0x04u) == 0) ? 1 : 0) << ","
+             << "\"noiseEnabledA\":" << (((regs[7] & 0x08u) == 0) ? 1 : 0) << ","
+             << "\"noiseEnabledB\":" << (((regs[7] & 0x10u) == 0) ? 1 : 0) << ","
+             << "\"noiseEnabledC\":" << (((regs[7] & 0x20u) == 0) ? 1 : 0) << ","
              << "\"noisePeriod\":" << static_cast<int>(regs[6] & 0x1f) << ","
              << "\"sourceEnabledA\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
              << "\"sourceEnabledB\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
@@ -3093,7 +3102,7 @@ private:
             if (channelNotes[channel] < 0 || ! sourceEnabled(patch, channel))
                 mixer = static_cast<uint8_t>(mixer | (1u << channel));
         }
-        writeRegister(7, applySourceMixerMask(mixer));
+        writeRegister(7, applySourceMixerMask(ym2149MixerRegisterWithChannelOverrides(patch, mixer)));
     }
 
     int activeChipPolyChannels() const

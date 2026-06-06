@@ -142,6 +142,28 @@ const char* sidAdsrParameterId(size_t index)
     return ids[std::min(index, ids.size() - 1u)];
 }
 
+chipper::ChipParameterRole ymChannelMixRole(size_t index)
+{
+    static constexpr std::array<chipper::ChipParameterRole, 3> roles {
+        chipper::ChipParameterRole::ymChannelAMix,
+        chipper::ChipParameterRole::ymChannelBMix,
+        chipper::ChipParameterRole::ymChannelCMix
+    };
+
+    return roles[std::min(index, roles.size() - 1u)];
+}
+
+const char* ymChannelMixParameterId(size_t index)
+{
+    static constexpr std::array<const char*, 3> ids {
+        chipper::parameters::id::ymChannelAMix,
+        chipper::parameters::id::ymChannelBMix,
+        chipper::parameters::id::ymChannelCMix
+    };
+
+    return ids[std::min(index, ids.size() - 1u)];
+}
+
 juce::String choiceTooltip(const chipper::ChipParameterSpec& spec, size_t choiceIndex)
 {
     if (choiceIndex < spec.choices.size() && ! spec.choices[choiceIndex].help.empty())
@@ -593,6 +615,47 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(button);
     }
 
+    ymChannelMixLabel.setText("Channel Mix", juce::dontSendNotification);
+    ymChannelMixLabel.setJustificationType(juce::Justification::centredLeft);
+    ymChannelMixLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
+    ymChannelMixLabel.setFont(juce::FontOptions(14.0f, juce::Font::bold));
+    ymChannelMixLabel.setVisible(false);
+    addAndMakeVisible(ymChannelMixLabel);
+
+    ymChannelMixValueLabel.setJustificationType(juce::Justification::centredLeft);
+    ymChannelMixValueLabel.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+    ymChannelMixValueLabel.setFont(juce::FontOptions(11.0f));
+    ymChannelMixValueLabel.setMinimumHorizontalScale(0.75f);
+    ymChannelMixValueLabel.setVisible(false);
+    addAndMakeVisible(ymChannelMixValueLabel);
+
+    const std::array<const char*, ymChannelMixCount> ymChannelMixLabelText { "A", "B", "C" };
+    for (size_t i = 0; i < ymChannelMixBoxes.size(); ++i)
+    {
+        auto& label = ymChannelMixLabels[i];
+        label.setText(ymChannelMixLabelText[i], juce::dontSendNotification);
+        label.setJustificationType(juce::Justification::centredLeft);
+        label.setColour(juce::Label::textColourId, juce::Colour(0xff56c7d8));
+        label.setFont(juce::FontOptions(11.0f, juce::Font::bold));
+        label.setVisible(false);
+        addAndMakeVisible(label);
+
+        auto& box = ymChannelMixBoxes[i];
+        box.addItemList(chipper::parameters::ymChannelMixChoices(), 1);
+        box.setVisible(false);
+        box.setTooltip(withMidiCcForRole("YM/AY channel tone/noise mixer override.", ymChannelMixRole(i)));
+        box.onChange = [this, i]()
+        {
+            const auto selected = ymChannelMixBoxes[i].getSelectedItemIndex();
+            if (selected >= 0)
+            {
+                setChoiceParameterFromUi(ymChannelMixParameterId(i), selected);
+                updateLiveControlReadouts();
+            }
+        };
+        addAndMakeVisible(box);
+    }
+
     snNoiseModeLabel.setText("Noise Mode", juce::dontSendNotification);
     snNoiseModeLabel.setJustificationType(juce::Justification::centredLeft);
     snNoiseModeLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
@@ -887,7 +950,9 @@ void ChipperAudioProcessorEditor::resized()
     tonePanel.removeFromTop(4);
     auto primaryTonePanel = tonePanel;
     auto secondaryTonePanel = tonePanel;
-    if (displayedMode == chipper::ChipMode::dmg || displayedMode == chipper::ChipMode::sid)
+    if (displayedMode == chipper::ChipMode::dmg
+        || displayedMode == chipper::ChipMode::sid
+        || displayedMode == chipper::ChipMode::ym2149)
     {
         primaryTonePanel = tonePanel.removeFromTop(58);
         tonePanel.removeFromTop(6);
@@ -896,10 +961,14 @@ void ChipperAudioProcessorEditor::resized()
 
     if (displayedMode == chipper::ChipMode::sid)
         placeSidVoiceWaveControls(primaryTonePanel);
+    else if (displayedMode == chipper::ChipMode::ym2149)
+        placeYmChannelMixControls(primaryTonePanel);
     else
         placeWaveShapeSegment(primaryTonePanel);
     placeDmgWaveLevelSegment(secondaryTonePanel);
-    placeYmEnvelopeShapeSegment(displayedMode == chipper::ChipMode::sid ? secondaryTonePanel : primaryTonePanel);
+    placeYmEnvelopeShapeSegment((displayedMode == chipper::ChipMode::sid || displayedMode == chipper::ChipMode::ym2149)
+                                    ? secondaryTonePanel
+                                    : primaryTonePanel);
 
     auto motionPanel = moduleBounds[4].reduced(12, 9);
     motionPanel.removeFromTop(20);
@@ -1106,6 +1175,26 @@ void ChipperAudioProcessorEditor::placeYmEnvelopeShapeSegment(juce::Rectangle<in
     ymEnvelopeShapeValueLabel.setBounds(bounds);
 }
 
+void ChipperAudioProcessorEditor::placeYmChannelMixControls(juce::Rectangle<int> bounds)
+{
+    ymChannelMixLabel.setBounds(bounds.removeFromTop(16));
+    auto row = bounds.removeFromTop(28).reduced(0, 2);
+    const auto gap = 6;
+    const auto width = (row.getWidth() - (gap * static_cast<int>(ymChannelMixBoxes.size() - 1u))) / static_cast<int>(ymChannelMixBoxes.size());
+
+    for (size_t i = 0; i < ymChannelMixBoxes.size(); ++i)
+    {
+        auto cell = row.removeFromLeft(width);
+        if (i + 1u < ymChannelMixBoxes.size())
+            row.removeFromLeft(gap);
+
+        ymChannelMixLabels[i].setBounds(cell.removeFromLeft(22));
+        ymChannelMixBoxes[i].setBounds(cell);
+    }
+
+    ymChannelMixValueLabel.setBounds(bounds);
+}
+
 void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> bounds)
 {
     snNoiseModeLabel.setBounds(bounds.removeFromTop(18));
@@ -1271,6 +1360,19 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
         applyChoices(ymEnvelopeShapeButtons, spec);
     }
 
+    ymChannelMixLabel.setText("Channel Mix", juce::dontSendNotification);
+    ymChannelMixLabel.setTooltip("Per-channel AY mixer overrides. Macro follows the global Tone/Noise Mix control.");
+    ymChannelMixValueLabel.setTooltip("Resolved YM/AY channel mixer choices.");
+    for (size_t i = 0; i < ymChannelMixBoxes.size(); ++i)
+    {
+        if (const auto* spec = chipper::parameterSpecFor(mode, ymChannelMixRole(i)))
+        {
+            ymChannelMixLabels[i].setText(spec->label, juce::dontSendNotification);
+            ymChannelMixLabels[i].setTooltip(withMidiCcForRole(spec->help, spec->role));
+            ymChannelMixBoxes[i].setTooltip(withMidiCcForRole(spec->help, spec->role));
+        }
+    }
+
     if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::snNoiseMode))
     {
         snNoiseModeLabel.setText(spec->label, juce::dontSendNotification);
@@ -1353,6 +1455,9 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
     setChoiceParameterFromUi(chipper::parameters::id::dmgWaveLevel, 0);
     setChoiceParameterFromUi(chipper::parameters::id::dmgStereoRoute, templ.dmgStereoRoute);
     setChoiceParameterFromUi(chipper::parameters::id::ymEnvelopeShape, templ.ymEnvelopeShape);
+    setChoiceParameterFromUi(chipper::parameters::id::ymChannelAMix, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::ymChannelBMix, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::ymChannelCMix, 0);
     setChoiceParameterFromUi(chipper::parameters::id::snNoiseMode, templ.snNoiseMode);
 
     const juce::ScopedValueSetter<bool> suppressPreset(suppressPresetApply, true);
@@ -1423,6 +1528,9 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
     setChoiceParameterFromUi(chipper::parameters::id::dmgWaveLevel, 0);
     setChoiceParameterFromUi(chipper::parameters::id::dmgStereoRoute, preset.dmgStereoRoute);
     setChoiceParameterFromUi(chipper::parameters::id::ymEnvelopeShape, preset.ymEnvelopeShape);
+    setChoiceParameterFromUi(chipper::parameters::id::ymChannelAMix, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::ymChannelBMix, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::ymChannelCMix, 0);
     setChoiceParameterFromUi(chipper::parameters::id::snNoiseMode, preset.snNoiseMode);
     setPlainParameterValueFromUi(chipper::parameters::id::clockHz, 0.0f);
     setPlainParameterValueFromUi(chipper::parameters::id::outputDb, preset.outputDb);
@@ -1473,6 +1581,9 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
         dmgWaveLevel,
         dmgStereoRoute,
         ymEnvelopeShape,
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymChannelAMix))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymChannelBMix))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymChannelCMix))),
         snNoiseMode,
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice2WaveShape))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice3WaveShape))),
@@ -1517,6 +1628,13 @@ bool ChipperAudioProcessorEditor::usesYmEnvelopeShapeSegment(chipper::ChipMode m
                                             chipper::ControlSurface::segmentedChoice);
 }
 
+bool ChipperAudioProcessorEditor::usesYmChannelMixControls(chipper::ChipMode mode) const
+{
+    return chipper::chipHasParameterSurface(mode,
+                                            chipper::ChipParameterRole::ymChannelAMix,
+                                            chipper::ControlSurface::menu);
+}
+
 bool ChipperAudioProcessorEditor::usesSnNoiseModeSegment(chipper::ChipMode mode) const
 {
     return chipper::chipHasParameterSurface(mode,
@@ -1546,7 +1664,7 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
         return label + " -> " + pulseDutyReadout(mode, patch.control1) + " | " + dmgWaveLevelReadout(patch) + " | " + dmgStereoRouteReadout(patch);
 
     if (mode == chipper::ChipMode::ym2149)
-        return label + " -> " + ymSpreadReadout(patch.control1) + " | " + ymNoiseReadout(patch.control3) + " | " + ymToneNoiseReadout(patch.control4);
+        return label + " -> " + ymSpreadReadout(patch.control1) + " | " + ymNoiseReadout(patch.control3) + " | " + ymChannelMixReadout(patch);
 
     if (mode == chipper::ChipMode::sn76489)
         return label + " -> " + snStackReadout(patch.control1) + " | " + snNoiseModeReadout(patch) + " | " + snLevelReadout(patch.control4);
@@ -1902,6 +2020,29 @@ juce::String ChipperAudioProcessorEditor::ymToneNoiseReadout(float value) const
     }
 }
 
+juce::String ChipperAudioProcessorEditor::ymChannelMixReadout(const chipper::PatchConfig& patch) const
+{
+    static constexpr std::array<const char*, 5> choiceLabels { "Macro", "Tone", "Noise", "Both", "Off" };
+    const auto macroMixer = chipper::ym2149MixerRegisterForControl(patch.control4);
+    const auto mixer = chipper::ym2149MixerRegisterWithChannelOverrides(patch, macroMixer);
+    juce::String text = "Reg 7=0x";
+    text += juce::String::toHexString(static_cast<int>(mixer)).paddedLeft('0', 2).toUpperCase();
+    text += " ";
+
+    for (size_t channel = 0; channel < ymChannelMixCount; ++channel)
+    {
+        if (channel > 0)
+            text += " | ";
+
+        const auto choice = static_cast<size_t>(std::clamp(chipper::ym2149ChannelMixChoiceForPatch(patch, channel), 0, 4));
+        text += juce::String::charToString(static_cast<juce_wchar>('A' + channel));
+        text += ":";
+        text += choiceLabels[choice];
+    }
+
+    return text;
+}
+
 juce::String ChipperAudioProcessorEditor::snStackReadout(float value) const
 {
     const auto spread = std::clamp(static_cast<int>(std::round(value * 12.0f)), 0, 12);
@@ -2165,6 +2306,19 @@ void ChipperAudioProcessorEditor::setYmEnvelopeShapeSegmentVisible(chipper::Chip
             parameterValue(chipper::parameters::id::stereoSpread));
         updateYmEnvelopeShapeButtons(mode, patch, true);
     }
+}
+
+void ChipperAudioProcessorEditor::setYmChannelMixControlsVisible(bool shouldBeVisible)
+{
+    ymChannelMixLabel.setVisible(shouldBeVisible);
+    ymChannelMixValueLabel.setVisible(shouldBeVisible);
+    for (auto& label : ymChannelMixLabels)
+        label.setVisible(shouldBeVisible);
+    for (auto& box : ymChannelMixBoxes)
+        box.setVisible(shouldBeVisible);
+
+    if (shouldBeVisible)
+        updateYmChannelMixControls(true);
 }
 
 void ChipperAudioProcessorEditor::setSnNoiseModeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
@@ -2509,6 +2663,36 @@ void ChipperAudioProcessorEditor::updateYmEnvelopeShapeButtons(chipper::ChipMode
                                       juce::dontSendNotification);
 }
 
+void ChipperAudioProcessorEditor::updateYmChannelMixControls(bool shouldBeVisible)
+{
+    for (size_t i = 0; i < ymChannelMixBoxes.size(); ++i)
+    {
+        const auto selected = static_cast<int>(std::round(parameterValue(ymChannelMixParameterId(i))));
+        ymChannelMixLabels[i].setVisible(shouldBeVisible);
+        ymChannelMixBoxes[i].setVisible(shouldBeVisible);
+        ymChannelMixBoxes[i].setSelectedItemIndex(std::clamp(selected, 0, 4), juce::dontSendNotification);
+    }
+
+    ymChannelMixLabel.setVisible(shouldBeVisible);
+    ymChannelMixValueLabel.setVisible(shouldBeVisible);
+    if (! shouldBeVisible)
+        return;
+
+    const auto patch = currentUiPatch(
+        chipper::ChipMode::ym2149,
+        parameterValue(chipper::parameters::id::macroControl1),
+        parameterValue(chipper::parameters::id::macroControl2),
+        parameterValue(chipper::parameters::id::macroControl3),
+        parameterValue(chipper::parameters::id::macroControl4),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::waveShape))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgWaveLevel))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgStereoRoute))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
+        parameterValue(chipper::parameters::id::stereoSpread));
+    ymChannelMixValueLabel.setText(ymChannelMixReadout(patch), juce::dontSendNotification);
+}
+
 void ChipperAudioProcessorEditor::updateSnNoiseModeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible)
 {
     const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::snNoiseMode);
@@ -2633,6 +2817,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     setDmgWaveLevelSegmentVisible(mode, usesDmgWaveLevelSegment(mode) && hasLiveCore);
     setDmgStereoRouteSegmentVisible(mode, usesDmgStereoRouteSegment(mode) && hasLiveCore);
     setYmEnvelopeShapeSegmentVisible(mode, usesYmEnvelopeShapeSegment(mode) && hasLiveCore);
+    setYmChannelMixControlsVisible(usesYmChannelMixControls(mode) && hasLiveCore);
     setSnNoiseModeSegmentVisible(mode, usesSnNoiseModeSegment(mode) && hasLiveCore);
     setEnvelopeDecayControlVisible(mode, usesEnvelopeDecayControl(mode) && hasLiveCore);
     setStereoSpreadControlVisible(mode, usesStereoSpreadControl(mode) && hasLiveCore);
@@ -2641,6 +2826,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         itemLabel.setVisible(! hasCustomProfileSurface && ! itemLabel.getText().isEmpty());
     const auto hasCustomToneSurface = hasLiveCore && (usesWaveShapeSegment(mode)
         || usesDmgWaveLevelSegment(mode)
+        || usesYmChannelMixControls(mode)
         || (mode != chipper::ChipMode::sid && usesSnNoiseModeSegment(mode))
         || usesYmEnvelopeShapeSegment(mode));
     for (auto& itemLabel : moduleItemLabels[2])
@@ -2683,6 +2869,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto hasDmgWaveLevelSegment = usesDmgWaveLevelSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasDmgStereoRouteSegment = usesDmgStereoRouteSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasYmEnvelopeShapeSegment = usesYmEnvelopeShapeSegment(mode) && chipper::descriptorFor(mode).implemented;
+    const auto hasYmChannelMixControls = usesYmChannelMixControls(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasSnNoiseModeSegment = usesSnNoiseModeSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasToneNoiseMixSegment = usesToneNoiseMixSegment(mode) && chipper::descriptorFor(mode).implemented;
     nativeSliders[0].setVisible(! hasPulseDutySegment);
@@ -2693,6 +2880,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     updateDmgWaveLevelButtons(patch, hasDmgWaveLevelSegment);
     updateDmgStereoRouteButtons(mode, patch, hasDmgStereoRouteSegment);
     updateYmEnvelopeShapeButtons(mode, patch, hasYmEnvelopeShapeSegment);
+    updateYmChannelMixControls(hasYmChannelMixControls);
     updateSnNoiseModeButtons(mode, patch, hasSnNoiseModeSegment);
     updateEnvelopeDecayReadout(mode);
     updateSidAdsrControls(mode == chipper::ChipMode::sid && usesEnvelopeDecayControl(mode) && chipper::descriptorFor(mode).implemented);
@@ -2720,7 +2908,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[0].setText(ymSpreadReadout(patch.control1), juce::dontSendNotification);
         controlValueLabels[1].setText(ymMotionReadout(patch.control2), juce::dontSendNotification);
         controlValueLabels[2].setText(ymNoiseReadout(patch.control3), juce::dontSendNotification);
-        controlValueLabels[3].setText(ymToneNoiseReadout(patch.control4), juce::dontSendNotification);
+        controlValueLabels[3].setText(ymToneNoiseReadout(patch.control4) + " | " + ymChannelMixReadout(patch), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
     else if (mode == chipper::ChipMode::sn76489)

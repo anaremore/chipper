@@ -195,6 +195,24 @@ int main()
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidSustain), 13.0f, 0.0001f,
                      "CC100 should control SID Sustain nibble choice");
 
+    sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 3));
+    sendController(processor, 101, controllerValueForChoice(processor, chipper::parameters::id::ymChannelAMix, 1));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymChannelAMix), 1.0f, 0.0001f,
+                     "CC101 should control YM Channel A mixer choice");
+    sendController(processor, 102, controllerValueForChoice(processor, chipper::parameters::id::ymChannelBMix, 2));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymChannelBMix), 2.0f, 0.0001f,
+                     "CC102 should control YM Channel B mixer choice");
+    sendController(processor, 103, controllerValueForChoice(processor, chipper::parameters::id::ymChannelCMix, 4));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymChannelCMix), 4.0f, 0.0001f,
+                     "CC103 should control YM Channel C mixer choice");
+    sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 4));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymChannelAMix), 0.0f, 0.0001f,
+                     "CC74 YM macro change should reset Channel A mixer to Macro");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymChannelBMix), 0.0f, 0.0001f,
+                     "CC74 YM macro change should reset Channel B mixer to Macro");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymChannelCMix), 0.0f, 0.0001f,
+                     "CC74 YM macro change should reset Channel C mixer to Macro");
+
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 0));
 
     setPlainFromHost(processor, chipper::parameters::id::macroControl1, 0.91f);

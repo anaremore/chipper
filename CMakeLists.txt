@@ -141,6 +141,9 @@ add_test(NAME chipper_render_ym2149_mixer_tone_smoke
 add_test(NAME chipper_render_ym2149_mixer_both_smoke
     COMMAND chipper_render --chip ym2149 --accuracy authentic --macro manual --control4 1.0 --clock 2000000 --rate 48000 --seconds 0.03 --note 72 --out ym-mixer-both-smoke.wav --debug ym-mixer-both-smoke.json
 )
+add_test(NAME chipper_render_ym2149_channel_mix_smoke
+    COMMAND chipper_render --chip ym2149 --accuracy authentic --macro manual --control4 0.5 --ym-channel-a-mix tone --ym-channel-b-mix noise --ym-channel-c-mix off --clock 2000000 --rate 48000 --seconds 0.03 --note 72 --out ym-channel-mix-smoke.wav --debug ym-channel-mix-smoke.json
+)
 add_test(NAME chipper_render_ym2149_envelope_fall_smoke
     COMMAND chipper_render --chip ym2149 --accuracy authentic --macro manual --ym-envelope-shape fall --clock 2000000 --rate 48000 --seconds 0.05 --note 72 --out ym-envelope-fall-smoke.wav --debug ym-envelope-fall-smoke.json
 )
@@ -387,8 +390,13 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_list_sid_voice_waves_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
+    add_test(NAME chipper_render_list_ym_channel_mix_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip ym2149 --param-kind ym2149:ymChannelAMix=chipRegister --param-surface ym2149:ymChannelAMix=menu --param-choices ym2149:ymChannelAMix=5 --param-midi-cc ym2149:ymChannelAMix=101 --param-kind ym2149:ymChannelBMix=chipRegister --param-surface ym2149:ymChannelBMix=menu --param-choices ym2149:ymChannelBMix=5 --param-midi-cc ym2149:ymChannelBMix=102 --param-kind ym2149:ymChannelCMix=chipRegister --param-surface ym2149:ymChannelCMix=menu --param-choices ym2149:ymChannelCMix=5 --param-midi-cc ym2149:ymChannelCMix=103
+    )
+    set_tests_properties(chipper_render_list_ym_channel_mix_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
+
     add_test(NAME chipper_render_list_cc_map_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --midi-cc-count 31 --midi-cc 70=chipMode --midi-cc 71=accuracy --midi-cc 72=clockHz --midi-cc 73=outputDb --midi-cc 74=macro --midi-cc 75=playMode --midi-cc 76=macroControl1 --midi-cc 77=macroControl2 --midi-cc 78=macroControl3 --midi-cc 79=macroControl4 --midi-cc 80=source1Enabled --midi-cc 81=source2Enabled --midi-cc 82=source3Enabled --midi-cc 83=source4Enabled --midi-cc 84=source1Level --midi-cc 85=source2Level --midi-cc 86=source3Level --midi-cc 87=source4Level --midi-cc 88=envelopeDecay --midi-cc 89=waveShape --midi-cc 90=ymEnvelopeShape --midi-cc 91=snNoiseMode --midi-cc 92=dmgWaveLevel --midi-cc 93=stereoSpread --midi-cc 94=dmgStereoRoute --midi-cc 95=sidVoice2WaveShape --midi-cc 96=sidVoice3WaveShape --midi-cc 97=sidAttack --midi-cc 98=sidRelease --midi-cc 99=sidDecay --midi-cc 100=sidSustain
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --midi-cc-count 34 --midi-cc 70=chipMode --midi-cc 71=accuracy --midi-cc 72=clockHz --midi-cc 73=outputDb --midi-cc 74=macro --midi-cc 75=playMode --midi-cc 76=macroControl1 --midi-cc 77=macroControl2 --midi-cc 78=macroControl3 --midi-cc 79=macroControl4 --midi-cc 80=source1Enabled --midi-cc 81=source2Enabled --midi-cc 82=source3Enabled --midi-cc 83=source4Enabled --midi-cc 84=source1Level --midi-cc 85=source2Level --midi-cc 86=source3Level --midi-cc 87=source4Level --midi-cc 88=envelopeDecay --midi-cc 89=waveShape --midi-cc 90=ymEnvelopeShape --midi-cc 91=snNoiseMode --midi-cc 92=dmgWaveLevel --midi-cc 93=stereoSpread --midi-cc 94=dmgStereoRoute --midi-cc 95=sidVoice2WaveShape --midi-cc 96=sidVoice3WaveShape --midi-cc 97=sidAttack --midi-cc 98=sidRelease --midi-cc 99=sidDecay --midi-cc 100=sidSustain --midi-cc 101=ymChannelAMix --midi-cc 102=ymChannelBMix --midi-cc 103=ymChannelCMix
     )
     set_tests_properties(chipper_render_list_cc_map_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -571,6 +579,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-mixer-both-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.02 --core-min mixer=0 --core-max mixer=0
     )
     set_tests_properties(chipper_render_ym2149_mixer_both_assert PROPERTIES DEPENDS chipper_render_ym2149_mixer_both_smoke)
+
+    add_test(NAME chipper_render_ym2149_channel_mix_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-channel-mix-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.02 --core-min mixer=46 --core-max mixer=46 --core-min channelMixChoiceA=1 --core-max channelMixChoiceA=1 --core-min channelMixChoiceB=2 --core-max channelMixChoiceB=2 --core-min channelMixChoiceC=4 --core-max channelMixChoiceC=4 --core-min toneEnabledA=1 --core-max toneEnabledA=1 --core-min noiseEnabledA=0 --core-max noiseEnabledA=0 --core-min toneEnabledB=0 --core-max toneEnabledB=0 --core-min noiseEnabledB=1 --core-max noiseEnabledB=1 --core-min toneEnabledC=0 --core-max toneEnabledC=0 --core-min noiseEnabledC=0 --core-max noiseEnabledC=0 --descriptor-param-kind ymChannelAMix=chipRegister --descriptor-param-surface ymChannelAMix=menu --descriptor-param-choices ymChannelAMix=5
+    )
+    set_tests_properties(chipper_render_ym2149_channel_mix_assert PROPERTIES DEPENDS chipper_render_ym2149_channel_mix_smoke)
 
     add_test(NAME chipper_render_ym2149_envelope_fall_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-envelope-fall-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.02 --core-min envelopeShapeChoice=1 --core-max envelopeShapeChoice=1 --core-min envelopeShape=9 --core-max envelopeShape=9 --core-min envelopeEnabledA=1 --core-max envelopeEnabledA=1 --core-min envelopeEnabledB=1 --core-max envelopeEnabledB=1 --core-min envelopeEnabledC=1 --core-max envelopeEnabledC=1 --core-min volumeA=16 --core-max volumeA=16 --descriptor-param-kind ymEnvelopeShape=chipRegister --descriptor-param-surface ymEnvelopeShape=segmentedChoice --descriptor-param-choices ymEnvelopeShape=5

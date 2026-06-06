@@ -35,6 +35,7 @@ private:
     static constexpr size_t ymEnvelopeShapeCount = 5;
     static constexpr size_t snNoiseModeCount = 5;
     static constexpr size_t toneNoiseMixCount = 3;
+    static constexpr size_t ymChannelMixCount = 3;
     static constexpr size_t sidAdsrChoiceCount = 17;
     static constexpr size_t sidAdsrOverrideCount = 4;
 
@@ -56,6 +57,7 @@ private:
     void placeDmgWaveLevelSegment(juce::Rectangle<int> bounds);
     void placeDmgStereoRouteSegment(juce::Rectangle<int> bounds);
     void placeYmEnvelopeShapeSegment(juce::Rectangle<int> bounds);
+    void placeYmChannelMixControls(juce::Rectangle<int> bounds);
     void placeSnNoiseModeSegment(juce::Rectangle<int> bounds);
     void placeToneNoiseMixSegment(juce::Rectangle<int> bounds);
     float parameterValue(const char* parameterId) const;
@@ -84,6 +86,7 @@ private:
     bool usesDmgWaveLevelSegment(chipper::ChipMode mode) const;
     bool usesDmgStereoRouteSegment(chipper::ChipMode mode) const;
     bool usesYmEnvelopeShapeSegment(chipper::ChipMode mode) const;
+    bool usesYmChannelMixControls(chipper::ChipMode mode) const;
     bool usesSnNoiseModeSegment(chipper::ChipMode mode) const;
     bool usesToneNoiseMixSegment(chipper::ChipMode mode) const;
     juce::String macroTemplateReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
@@ -111,6 +114,7 @@ private:
     juce::String ymMotionReadout(float value) const;
     juce::String ymNoiseReadout(float value) const;
     juce::String ymToneNoiseReadout(float value) const;
+    juce::String ymChannelMixReadout(const chipper::PatchConfig& patch) const;
     juce::String snStackReadout(float value) const;
     juce::String snMotionReadout(float value) const;
     juce::String snLevelReadout(float value) const;
@@ -130,6 +134,7 @@ private:
     void setDmgWaveLevelSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setDmgStereoRouteSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setYmEnvelopeShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
+    void setYmChannelMixControlsVisible(bool shouldBeVisible);
     void setSnNoiseModeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setEnvelopeDecayControlVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setSidAdsrControlsVisible(bool shouldBeVisible);
@@ -141,6 +146,7 @@ private:
     void updateDmgWaveLevelButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateDmgStereoRouteButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateYmEnvelopeShapeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
+    void updateYmChannelMixControls(bool shouldBeVisible);
     void updateSnNoiseModeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateToneNoiseMixButtons(float value, bool shouldBeVisible);
     void updateEnvelopeDecayReadout(chipper::ChipMode mode);
@@ -173,6 +179,10 @@ private:
     juce::Label dmgStereoRouteValueLabel;
     juce::Label ymEnvelopeShapeLabel;
     juce::Label ymEnvelopeShapeValueLabel;
+    juce::Label ymChannelMixLabel;
+    juce::Label ymChannelMixValueLabel;
+    std::array<juce::Label, ymChannelMixCount> ymChannelMixLabels;
+    std::array<juce::ComboBox, ymChannelMixCount> ymChannelMixBoxes;
     juce::Label snNoiseModeLabel;
     juce::Label snNoiseModeValueLabel;
     std::array<juce::Label, 5> headerControlLabels;

@@ -77,6 +77,11 @@ juce::StringArray ymEnvelopeShapeChoices()
     return { "Fixed", "Fall", "Rise", "Saw", "Triangle" };
 }
 
+juce::StringArray ymChannelMixChoices()
+{
+    return { "Macro", "Tone", "Noise", "Both", "Off" };
+}
+
 juce::StringArray snNoiseModeChoices()
 {
     return { "Macro", "Mode 1", "Mode 2", "Mode 3", "Mode 4" };
@@ -285,6 +290,24 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::ParameterID { id::ymEnvelopeShape, 1 },
         "YM Envelope Shape",
         ymEnvelopeShapeChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::ymChannelAMix, 1 },
+        "YM Channel A Mix",
+        ymChannelMixChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::ymChannelBMix, 1 },
+        "YM Channel B Mix",
+        ymChannelMixChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::ymChannelCMix, 1 },
+        "YM Channel C Mix",
+        ymChannelMixChoices(),
         0));
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(

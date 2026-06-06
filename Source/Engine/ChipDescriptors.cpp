@@ -191,6 +191,32 @@ ChipParameterSpec sidAdsrNibbleSpec(ChipParameterRole role, std::string id, std:
     return { role, id, label, "Envelope", help, ParameterKind::chipRegister, ControlSurface::menu, sidAdsrNibbleChoices(label), 0.0f, 1.0f, 0.0f };
 }
 
+std::vector<ParameterChoiceSpec> ymChannelMixChoices(std::string channelName)
+{
+    return {
+        choice("Macro", "Follow the global Tone/Noise Mix for YM/AY channel " + channelName + ".", 0.0f, 0),
+        choice("Tone", "Enable tone and disable shared noise for YM/AY channel " + channelName + ".", 0.25f, 1),
+        choice("Noise", "Disable tone and enable shared noise for YM/AY channel " + channelName + ".", 0.5f, 2),
+        choice("Both", "Enable tone and shared noise together for YM/AY channel " + channelName + ".", 0.75f, 3),
+        choice("Off", "Disable both tone and shared noise for YM/AY channel " + channelName + ".", 1.0f, 4)
+    };
+}
+
+ChipParameterSpec ymChannelMixSpec(ChipParameterRole role, std::string id, std::string label, std::string channelName)
+{
+    return { role,
+             id,
+             label,
+             "Mixer",
+             "Overrides YM/AY register 7 tone/noise enable bits for channel " + channelName + ". Macro follows the global Tone/Noise Mix.",
+             ParameterKind::chipRegister,
+             ControlSurface::menu,
+             ymChannelMixChoices(channelName),
+             0.0f,
+             1.0f,
+             0.0f };
+}
+
 std::vector<ParameterChoiceSpec> pulseDutyChoices(std::string thinHelp, std::string narrowHelp, std::string squareHelp, std::string wideHelp)
 {
     return {
@@ -365,6 +391,9 @@ std::vector<ChipParameterSpec> ym2149ParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source2Level, "ym2149.channelB.level", "Channel B Level", "Trims YM/AY channel B after its native volume register."),
         sourceLevelSpec(ChipParameterRole::source3Level, "ym2149.channelC.level", "Channel C Level", "Trims YM/AY channel C after its native volume register."),
         sourceLevelSpec(ChipParameterRole::source4Level, "ym2149.noise.level", "Noise Level", "Scales the shared noise gate where the mixer uses noise."),
+        ymChannelMixSpec(ChipParameterRole::ymChannelAMix, "ym2149.channelA.mix", "A Mix", "A"),
+        ymChannelMixSpec(ChipParameterRole::ymChannelBMix, "ym2149.channelB.mix", "B Mix", "B"),
+        ymChannelMixSpec(ChipParameterRole::ymChannelCMix, "ym2149.channelC.mix", "C Mix", "C"),
         stereoSpreadSpec("ym2149.stereoSpread", "Modern stereo convenience that spreads A/B/C across the stereo field; zero preserves mono chip output."),
         envelopeSpec("ym2149.envelopeSpeed", "Envelope Speed", "Maps musical envelope speed to YM/AY registers 11 and 12. Zero uses the default register period."),
         segmentedSpec(ChipParameterRole::ymEnvelopeShape,
@@ -998,6 +1027,9 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int dmgWaveLevel,
                             int dmgStereoRoute,
                             int ymEnvelopeShape,
+                            int ymChannelAMix,
+                            int ymChannelBMix,
+                            int ymChannelCMix,
                             int snNoiseMode,
                             int sidVoice2WaveShape,
                             int sidVoice3WaveShape,
@@ -1032,6 +1064,9 @@ PatchConfig makePatchConfig(ChipMode mode,
         std::clamp(dmgWaveLevel, 0, 4),
         std::clamp(dmgStereoRoute, 0, 4),
         std::clamp(ymEnvelopeShape, 0, 4),
+        std::clamp(ymChannelAMix, 0, 4),
+        std::clamp(ymChannelBMix, 0, 4),
+        std::clamp(ymChannelCMix, 0, 4),
         std::clamp(snNoiseMode, 0, 4),
         std::clamp(sidVoice2WaveShape, 0, 4),
         std::clamp(sidVoice3WaveShape, 0, 4)
@@ -1414,6 +1449,52 @@ uint8_t ym2149MixerRegisterForControl(float toneNoiseControl)
     if (value > 0.66f)
         return 0x00u;
     return 0x38u;
+}
+
+int ym2149ChannelMixChoiceForPatch(const PatchConfig& patch, size_t channel)
+{
+    switch (channel)
+    {
+        case 0: return std::clamp(patch.ymChannelAMix, 0, 4);
+        case 1: return std::clamp(patch.ymChannelBMix, 0, 4);
+        case 2: return std::clamp(patch.ymChannelCMix, 0, 4);
+        default: return 0;
+    }
+}
+
+uint8_t ym2149MixerRegisterWithChannelOverrides(const PatchConfig& patch, uint8_t macroMixer)
+{
+    auto mixer = macroMixer;
+
+    for (size_t channel = 0; channel < 3; ++channel)
+    {
+        const auto choice = ym2149ChannelMixChoiceForPatch(patch, channel);
+        if (choice == 0)
+            continue;
+
+        const auto toneBit = static_cast<uint8_t>(1u << channel);
+        const auto noiseBit = static_cast<uint8_t>(1u << (channel + 3u));
+        const auto clearMask = static_cast<uint8_t>(0xffu ^ (toneBit | noiseBit));
+        mixer = static_cast<uint8_t>(mixer & clearMask);
+
+        switch (choice)
+        {
+            case 1: // Tone
+                mixer = static_cast<uint8_t>(mixer | noiseBit);
+                break;
+            case 2: // Noise
+                mixer = static_cast<uint8_t>(mixer | toneBit);
+                break;
+            case 4: // Off
+                mixer = static_cast<uint8_t>(mixer | toneBit | noiseBit);
+                break;
+            case 3: // Both
+            default:
+                break;
+        }
+    }
+
+    return mixer;
 }
 
 uint16_t ym2149EnvelopePeriodForControl(float envelopeControl)

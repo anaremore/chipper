@@ -61,6 +61,9 @@ struct Options
     int dmgWaveLevel = 0;
     int dmgStereoRoute = 0;
     int ymEnvelopeShape = 0;
+    int ymChannelAMix = 0;
+    int ymChannelBMix = 0;
+    int ymChannelCMix = 0;
     int snNoiseMode = 0;
     bool envelopeDecayProvided = false;
     bool sidAttackProvided = false;
@@ -73,6 +76,9 @@ struct Options
     bool dmgWaveLevelProvided = false;
     bool dmgStereoRouteProvided = false;
     bool ymEnvelopeShapeProvided = false;
+    bool ymChannelAMixProvided = false;
+    bool ymChannelBMixProvided = false;
+    bool ymChannelCMixProvided = false;
     bool snNoiseModeProvided = false;
     float outputDb = 0.0f;
     double clock = 1789773.0;
@@ -276,6 +282,32 @@ bool parseDmgStereoRoute(const std::string& text, int& out)
     return true;
 }
 
+bool parseYmChannelMix(const std::string& text, int& out)
+{
+    uint32_t numeric = 0;
+    if (parseNumber(text, numeric))
+    {
+        out = std::clamp(static_cast<int>(numeric), 0, 4);
+        return true;
+    }
+
+    const auto key = normalizedToken(text);
+    if (key == "macro" || key == "auto" || key == "default")
+        out = 0;
+    else if (key == "tone" || key == "toneonly" || key == "square")
+        out = 1;
+    else if (key == "noise" || key == "noiseonly")
+        out = 2;
+    else if (key == "both" || key == "tonenoise" || key == "toneandnoise")
+        out = 3;
+    else if (key == "off" || key == "mute" || key == "silent")
+        out = 4;
+    else
+        return false;
+
+    return true;
+}
+
 bool parseSnNoiseMode(const std::string& text, int& out)
 {
     uint32_t numeric = 0;
@@ -361,7 +393,7 @@ void printUsage()
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
         << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --sid-adsr-speed 0.7 --sid-attack macro|0..15 --sid-decay macro|0..15 --sid-sustain macro|0..15 --sid-release macro|0..15 --wave-shape macro|tri|saw|pulse|steps|noise --sid-voice2-wave macro|tri|saw|pulse|noise --sid-voice3-wave macro|tri|saw|pulse|noise --dmg-wave-level 100|50|25|mute|macro --dmg-stereo-route both|left|right|split|macro --ym-envelope-shape triangle|lp|bp|hp|bypass --sid-filter-mode lp|bp|hp|bypass --sid-mod-mode macro|off|sync|ring|both --sid-model macro|6581|8580 --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --sid-adsr-speed 0.7 --sid-attack macro|0..15 --sid-decay macro|0..15 --sid-sustain macro|0..15 --sid-release macro|0..15 --wave-shape macro|tri|saw|pulse|steps|noise --sid-voice2-wave macro|tri|saw|pulse|noise --sid-voice3-wave macro|tri|saw|pulse|noise --dmg-wave-level 100|50|25|mute|macro --dmg-stereo-route both|left|right|split|macro --ym-envelope-shape triangle|lp|bp|hp|bypass --ym-channel-a-mix macro|tone|noise|both|off --ym-channel-b-mix macro|tone|noise|both|off --ym-channel-c-mix macro|tone|noise|both|off --sid-filter-mode lp|bp|hp|bypass --sid-mod-mode macro|off|sync|ring|both --sid-model macro|6581|8580 --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -398,6 +430,9 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.dmgWaveLevel = 0;
     options.dmgStereoRoute = preset.dmgStereoRoute;
     options.ymEnvelopeShape = preset.ymEnvelopeShape;
+    options.ymChannelAMix = 0;
+    options.ymChannelBMix = 0;
+    options.ymChannelCMix = 0;
     options.snNoiseMode = preset.snNoiseMode;
     options.envelopeDecayProvided = true;
     options.sidAttackProvided = true;
@@ -410,6 +445,9 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.dmgWaveLevelProvided = true;
     options.dmgStereoRouteProvided = true;
     options.ymEnvelopeShapeProvided = true;
+    options.ymChannelAMixProvided = true;
+    options.ymChannelBMixProvided = true;
+    options.ymChannelCMixProvided = true;
     options.snNoiseModeProvided = true;
     options.outputDb = preset.outputDb;
     options.clock = preset.clockHz;
@@ -697,6 +735,27 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.ymEnvelopeShapeProvided = true;
         }
+        else if (arg == "--ym-channel-a-mix")
+        {
+            const auto* value = requireValue("--ym-channel-a-mix");
+            if (value == nullptr || ! parseYmChannelMix(std::string(value), options.ymChannelAMix))
+                return false;
+            options.ymChannelAMixProvided = true;
+        }
+        else if (arg == "--ym-channel-b-mix")
+        {
+            const auto* value = requireValue("--ym-channel-b-mix");
+            if (value == nullptr || ! parseYmChannelMix(std::string(value), options.ymChannelBMix))
+                return false;
+            options.ymChannelBMixProvided = true;
+        }
+        else if (arg == "--ym-channel-c-mix")
+        {
+            const auto* value = requireValue("--ym-channel-c-mix");
+            if (value == nullptr || ! parseYmChannelMix(std::string(value), options.ymChannelCMix))
+                return false;
+            options.ymChannelCMixProvided = true;
+        }
         else if (arg == "--sid-filter-mode")
         {
             const auto* value = requireValue("--sid-filter-mode");
@@ -822,6 +881,12 @@ void applyMacroTemplateDefaults(Options& options)
         options.dmgStereoRoute = templ.dmgStereoRoute;
     if (! options.ymEnvelopeShapeProvided)
         options.ymEnvelopeShape = templ.ymEnvelopeShape;
+    if (! options.ymChannelAMixProvided)
+        options.ymChannelAMix = 0;
+    if (! options.ymChannelBMixProvided)
+        options.ymChannelBMix = 0;
+    if (! options.ymChannelCMixProvided)
+        options.ymChannelCMix = 0;
     if (! options.snNoiseModeProvided)
         options.snNoiseMode = templ.snNoiseMode;
 }
@@ -1100,6 +1165,9 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::dmgWaveLevel: return "dmgWaveLevel";
         case chipper::ChipParameterRole::dmgStereoRoute: return "dmgStereoRoute";
         case chipper::ChipParameterRole::ymEnvelopeShape: return "ymEnvelopeShape";
+        case chipper::ChipParameterRole::ymChannelAMix: return "ymChannelAMix";
+        case chipper::ChipParameterRole::ymChannelBMix: return "ymChannelBMix";
+        case chipper::ChipParameterRole::ymChannelCMix: return "ymChannelCMix";
         case chipper::ChipParameterRole::snNoiseMode: return "snNoiseMode";
         case chipper::ChipParameterRole::clockHz: return "clockHz";
         case chipper::ChipParameterRole::outputDb: return "outputDb";
@@ -1409,6 +1477,9 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"outputGain\": " << decibelsToGain(options.outputDb) << ",\n"
         << "  \"stereoSpread\": " << patch.stereoSpread << ",\n"
         << "  \"dmgStereoRoute\": " << patch.dmgStereoRoute << ",\n"
+        << "  \"ymChannelAMix\": " << patch.ymChannelAMix << ",\n"
+        << "  \"ymChannelBMix\": " << patch.ymChannelBMix << ",\n"
+        << "  \"ymChannelCMix\": " << patch.ymChannelCMix << ",\n"
         << "  \"sidVoice2WaveShape\": " << patch.sidVoice2WaveShape << ",\n"
         << "  \"sidVoice3WaveShape\": " << patch.sidVoice3WaveShape << ",\n"
         << "  \"sidAttack\": " << patch.sidAttack << ",\n"
@@ -1473,6 +1544,9 @@ int main(int argc, char** argv)
                                                     options.dmgWaveLevel,
                                                     options.dmgStereoRoute,
                                                     options.ymEnvelopeShape,
+                                                    options.ymChannelAMix,
+                                                    options.ymChannelBMix,
+                                                    options.ymChannelCMix,
                                                     options.snNoiseMode,
                                                     options.sidVoice2WaveShape,
                                                     options.sidVoice3WaveShape,

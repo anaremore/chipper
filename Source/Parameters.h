@@ -38,6 +38,7 @@ juce::StringArray sidAdsrNibbleChoices();
 juce::StringArray dmgWaveLevelChoices();
 juce::StringArray dmgStereoRouteChoices();
 juce::StringArray ymEnvelopeShapeChoices();
+juce::StringArray ymChannelMixChoices();
 juce::StringArray snNoiseModeChoices();
 
 } // namespace chipper::parameters

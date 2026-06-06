@@ -81,6 +81,9 @@ struct PatchConfig
     int dmgWaveLevel = 0;
     int dmgStereoRoute = 0;
     int ymEnvelopeShape = 0;
+    int ymChannelAMix = 0;
+    int ymChannelBMix = 0;
+    int ymChannelCMix = 0;
     // Generic chip noise-mode selector. SN76489 currently uses all 5 choices;
     // NES clamps to Macro/Long/Short via its descriptor.
     int snNoiseMode = 0;

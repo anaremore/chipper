@@ -81,7 +81,7 @@ int main()
 
     ok &= expect(chipper::parameters::parameterIdForMidiController(69) == nullptr,
                  "Unexpected MIDI CC mapping below the Chipper control block");
-    ok &= expect(chipper::parameters::parameterIdForMidiController(101) == nullptr,
+    ok &= expect(chipper::parameters::parameterIdForMidiController(104) == nullptr,
                  "Unexpected MIDI CC mapping above the Chipper control block");
     ok &= expect(chipper::parameters::midiControllerForParameterId("missingParameter") < 0,
                  "Unexpected MIDI CC mapping for missing parameter id");
