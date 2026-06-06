@@ -142,9 +142,9 @@ int main()
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::envelopeDecay), 0.78f, 0.001f,
                      "CC74 Drum macro should apply NES envelope decay template");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::dmgWaveLevel), 0.0f, 0.0001f,
-                     "CC74 Drum macro should reset DMG Wave Level to Macro");
+                     "CC74 Drum macro should reset DMG Wave Level to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::dmgStereoRoute), 0.0f, 0.0001f,
-                     "CC74 NES Drum macro should keep DMG Stereo Routing at Macro");
+                     "CC74 NES Drum macro should keep DMG Stereo Routing at Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::stereoSpread), 0.0f, 0.0001f,
                      "CC74 NES Drum macro should reset stereo/spread role to the chip macro template");
 
@@ -153,39 +153,39 @@ int main()
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::waveShape), 3.0f, 0.0001f,
                      "CC74 SID Bass macro should apply SID pulse waveform template");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice2WaveShape), 0.0f, 0.0001f,
-                     "CC74 SID Bass macro should reset SID Voice 2 waveform to Macro");
+                     "CC74 SID Bass macro should reset SID Voice 2 waveform to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3WaveShape), 0.0f, 0.0001f,
-                     "CC74 SID Bass macro should reset SID Voice 3 waveform to Macro");
+                     "CC74 SID Bass macro should reset SID Voice 3 waveform to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice2PulseWidth), 0.48f, 0.001f,
                      "CC74 SID Bass macro should apply SID Voice 2 pulse-width template");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3PulseWidth), 0.48f, 0.001f,
                      "CC74 SID Bass macro should apply SID Voice 3 pulse-width template");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidAttack), 0.0f, 0.0001f,
-                     "CC74 SID Bass macro should reset SID Attack to Macro");
+                     "CC74 SID Bass macro should reset SID Attack to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidDecay), 0.0f, 0.0001f,
-                     "CC74 SID Bass macro should reset SID Decay to Macro");
+                     "CC74 SID Bass macro should reset SID Decay to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidSustain), 0.0f, 0.0001f,
-                     "CC74 SID Bass macro should reset SID Sustain to Macro");
+                     "CC74 SID Bass macro should reset SID Sustain to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidRelease), 0.0f, 0.0001f,
-                     "CC74 SID Bass macro should reset SID Release to Macro");
+                     "CC74 SID Bass macro should reset SID Release to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice2Attack), 0.0f, 0.0001f,
-                     "CC74 SID Bass macro should reset SID Voice 2 Attack to Macro");
+                     "CC74 SID Bass macro should reset SID Voice 2 Attack to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice2Decay), 0.0f, 0.0001f,
-                     "CC74 SID Bass macro should reset SID Voice 2 Decay to Macro");
+                     "CC74 SID Bass macro should reset SID Voice 2 Decay to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice2Sustain), 0.0f, 0.0001f,
-                     "CC74 SID Bass macro should reset SID Voice 2 Sustain to Macro");
+                     "CC74 SID Bass macro should reset SID Voice 2 Sustain to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice2Release), 0.0f, 0.0001f,
-                     "CC74 SID Bass macro should reset SID Voice 2 Release to Macro");
+                     "CC74 SID Bass macro should reset SID Voice 2 Release to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3Attack), 0.0f, 0.0001f,
-                     "CC74 SID Bass macro should reset SID Voice 3 Attack to Macro");
+                     "CC74 SID Bass macro should reset SID Voice 3 Attack to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3Decay), 0.0f, 0.0001f,
-                     "CC74 SID Bass macro should reset SID Voice 3 Decay to Macro");
+                     "CC74 SID Bass macro should reset SID Voice 3 Decay to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3Sustain), 0.0f, 0.0001f,
-                     "CC74 SID Bass macro should reset SID Voice 3 Sustain to Macro");
+                     "CC74 SID Bass macro should reset SID Voice 3 Sustain to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3Release), 0.0f, 0.0001f,
-                     "CC74 SID Bass macro should reset SID Voice 3 Release to Macro");
+                     "CC74 SID Bass macro should reset SID Voice 3 Release to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidFilterRouting), 0.0f, 0.0001f,
-                     "CC74 SID Bass macro should reset SID Filter Routing to Macro");
+                     "CC74 SID Bass macro should reset SID Filter Routing to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymEnvelopeShape), 1.0f, 0.0001f,
                      "CC74 SID Bass macro should apply SID LP filter-mode template");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::snNoiseMode), 1.0f, 0.0001f,
@@ -262,11 +262,11 @@ int main()
                      "CC103 should control YM Channel C mixer choice");
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 4));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymChannelAMix), 0.0f, 0.0001f,
-                     "CC74 YM macro change should reset Channel A mixer to Macro");
+                     "CC74 YM macro change should reset Channel A mixer to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymChannelBMix), 0.0f, 0.0001f,
-                     "CC74 YM macro change should reset Channel B mixer to Macro");
+                     "CC74 YM macro change should reset Channel B mixer to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymChannelCMix), 0.0f, 0.0001f,
-                     "CC74 YM macro change should reset Channel C mixer to Macro");
+                     "CC74 YM macro change should reset Channel C mixer to Follow");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 0));
     sendController(processor, 104, controllerValueForChoice(processor, chipper::parameters::id::pulse2Duty, 4));
@@ -274,7 +274,7 @@ int main()
                      "CC104 should control NES Pulse 2 Duty");
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 2));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::pulse2Duty), 0.0f, 0.0001f,
-                     "CC74 NES macro change should reset Pulse 2 Duty to Macro");
+                     "CC74 NES macro change should reset Pulse 2 Duty to Follow");
 
     setPlainFromHost(processor, chipper::parameters::id::macroControl1, 0.91f);
     setPlainFromHost(processor, chipper::parameters::id::macroControl2, 0.92f);

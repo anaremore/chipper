@@ -728,7 +728,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     macroBox.setTooltip(withMidiCc("Applies a chip-specific musical register template.", chipper::parameters::id::macro));
     playModeBox.setTooltip(withMidiCc("Chooses how incoming notes use the chip channels inside one patch.", chipper::parameters::id::playMode));
 
-    const std::array<const char*, 5> headerNames { "Preset", "Chip Mode", "Accuracy", "Macro", "Play Mode" };
+    const std::array<const char*, 5> headerNames { "Preset", "Chip Mode", "Accuracy", "Template", "Play Mode" };
     for (size_t i = 0; i < headerControlLabels.size(); ++i)
     {
         headerControlLabels[i].setText(headerNames[i], juce::dontSendNotification);
