@@ -444,7 +444,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             PlayMode playMode,
                             std::array<bool, 4> sourceEnabled,
                             float envelopeDecay,
-                            int waveShape)
+                            int waveShape,
+                            int ymEnvelopeShape)
 {
     const auto& templ = macroTemplateFor(mode, macro);
     const auto blend = [](float templated, float user)
@@ -466,7 +467,8 @@ PatchConfig makePatchConfig(ChipMode mode,
         effectivePlayMode,
         sourceEnabled,
         clampControl(envelopeDecay),
-        std::clamp(waveShape, 0, 4)
+        std::clamp(waveShape, 0, 4),
+        std::clamp(ymEnvelopeShape, 0, 4)
     };
 }
 

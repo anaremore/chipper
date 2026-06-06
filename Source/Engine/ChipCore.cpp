@@ -2070,12 +2070,12 @@ public:
         writeTone(2, noteC);
         writeRegister(6, noisePitch);
         writeRegister(7, static_cast<uint8_t>(mixer));
-        writeRegister(8, static_cast<uint8_t>(std::min<unsigned>(15u, volA)));
-        writeRegister(9, static_cast<uint8_t>(std::min<unsigned>(15u, volB)));
-        writeRegister(10, static_cast<uint8_t>(std::min<unsigned>(15u, volC)));
+        writeYmVolumeRegister(8, volA);
+        writeYmVolumeRegister(9, volB);
+        writeYmVolumeRegister(10, volC);
         writeRegister(11, 0x80);
         writeRegister(12, 0x02);
-        writeRegister(13, patch.macro == MacroKind::powerUp ? 0x0a : 0x09);
+        writeRegister(13, ymEnvelopeShapeCode());
     }
 
     void noteOff(int midiNote) override
@@ -2136,6 +2136,17 @@ public:
              << "\"periodA\":" << tonePeriod(0) << ","
              << "\"periodB\":" << tonePeriod(1) << ","
              << "\"periodC\":" << tonePeriod(2) << ","
+             << "\"mixer\":" << static_cast<int>(regs[7]) << ","
+             << "\"noisePeriod\":" << static_cast<int>(regs[6] & 0x1f) << ","
+             << "\"volumeA\":" << static_cast<int>(regs[8]) << ","
+             << "\"volumeB\":" << static_cast<int>(regs[9]) << ","
+             << "\"volumeC\":" << static_cast<int>(regs[10]) << ","
+             << "\"envelopePeriod\":" << envelopePeriodRegister() << ","
+             << "\"envelopeShapeChoice\":" << patch.ymEnvelopeShape << ","
+             << "\"envelopeShape\":" << static_cast<int>(regs[13] & 0x0f) << ","
+             << "\"envelopeEnabledA\":" << (envelopeEnabled(0) ? 1 : 0) << ","
+             << "\"envelopeEnabledB\":" << (envelopeEnabled(1) ? 1 : 0) << ","
+             << "\"envelopeEnabledC\":" << (envelopeEnabled(2) ? 1 : 0) << ","
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNoteA\":" << channelNotes[0] << ","
              << "\"assignedNoteB\":" << channelNotes[1] << ","
@@ -2158,6 +2169,47 @@ private:
         const auto period = static_cast<int>(std::max(1.0, std::round(clock / (16.0 * midiNoteToHz(std::clamp(midiNote, 0, 127))))));
         writeRegister(static_cast<uint16_t>(channel * 2), static_cast<uint8_t>(period & 0xff));
         writeRegister(static_cast<uint16_t>(channel * 2 + 1), static_cast<uint8_t>((period >> 8) & 0x0f));
+    }
+
+    uint16_t envelopePeriodRegister() const
+    {
+        return static_cast<uint16_t>(regs[11] | (regs[12] << 8u));
+    }
+
+    bool envelopeEnabled(int channel) const
+    {
+        return channel >= 0 && channel < 3 && (regs[static_cast<size_t>(8 + channel)] & 0x10u) != 0;
+    }
+
+    bool patchEnvelopeEnabled() const
+    {
+        return patch.ymEnvelopeShape > 0;
+    }
+
+    uint8_t ymEnvelopeShapeCode() const
+    {
+        if (! patchEnvelopeEnabled())
+            return patch.macro == MacroKind::powerUp ? 0x0au : 0x09u;
+
+        switch (std::clamp(patch.ymEnvelopeShape, 0, 4))
+        {
+            case 1: return 0x09u; // Fall, hold low.
+            case 2: return 0x0du; // Rise, hold high.
+            case 3: return 0x08u; // Repeating saw down.
+            case 4: return 0x0eu; // Repeating triangle.
+            case 0:
+            default:
+                return 0x09u;
+        }
+    }
+
+    void writeYmVolumeRegister(uint16_t reg, unsigned volume)
+    {
+        const auto clipped = std::min<unsigned>(15u, volume);
+        if (patchEnvelopeEnabled() && clipped > 0)
+            writeRegister(reg, 0x10u);
+        else
+            writeRegister(reg, static_cast<uint8_t>(clipped));
     }
 
     int selectChipPolyChannel(int midiNote) const
@@ -2218,11 +2270,12 @@ private:
         channelStamp[index] = ++noteStamp;
 
         writeTone(channel, channelNotes[index]);
-        writeRegister(static_cast<uint16_t>(8 + channel), static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15)));
+        writeYmVolumeRegister(static_cast<uint16_t>(8 + channel),
+                              static_cast<unsigned>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15)));
         writeRegister(6, static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 30.0f)) + 1, 1, 31)));
         writeRegister(11, 0x80);
         writeRegister(12, 0x02);
-        writeRegister(13, 0x09);
+        writeRegister(13, ymEnvelopeShapeCode());
         refreshChipPolyMixer();
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
     }

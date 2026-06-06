@@ -34,6 +34,7 @@ struct Options
     std::array<bool, 4> sourceEnabled { true, true, true, true };
     float envelopeDecay = 0.0f;
     int waveShape = 0;
+    int ymEnvelopeShape = 0;
     double clock = 1789773.0;
     double sampleRate = 48000.0;
     double seconds = 1.0;
@@ -126,11 +127,37 @@ bool parseWaveShape(const std::string& text, int& out)
     return true;
 }
 
+bool parseYmEnvelopeShape(const std::string& text, int& out)
+{
+    uint32_t numeric = 0;
+    if (parseNumber(text, numeric))
+    {
+        out = std::clamp(static_cast<int>(numeric), 0, 4);
+        return true;
+    }
+
+    const auto key = normalizedToken(text);
+    if (key == "fixed" || key == "off" || key == "volume")
+        out = 0;
+    else if (key == "fall" || key == "decay" || key == "fallhold")
+        out = 1;
+    else if (key == "rise" || key == "attack" || key == "risehold")
+        out = 2;
+    else if (key == "saw" || key == "sawdown")
+        out = 3;
+    else if (key == "triangle" || key == "tri")
+        out = 4;
+    else
+        return false;
+
+    return true;
+}
+
 void printUsage()
 {
     std::cerr
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
-        << "       Optional: --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --envelope-decay 0.7 --wave-shape tri\n"
+        << "       Optional: --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --envelope-decay 0.7 --wave-shape tri --ym-envelope-shape triangle\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -269,6 +296,12 @@ bool parseArgs(int argc, char** argv, Options& options)
         {
             const auto* value = requireValue("--wave-shape");
             if (value == nullptr || ! parseWaveShape(std::string(value), options.waveShape))
+                return false;
+        }
+        else if (arg == "--ym-envelope-shape")
+        {
+            const auto* value = requireValue("--ym-envelope-shape");
+            if (value == nullptr || ! parseYmEnvelopeShape(std::string(value), options.ymEnvelopeShape))
                 return false;
         }
         else if (arg == "--clock")
@@ -564,7 +597,8 @@ int main(int argc, char** argv)
                                                     options.playMode,
                                                     options.sourceEnabled,
                                                     options.envelopeDecay,
-                                                    options.waveShape);
+                                                    options.waveShape,
+                                                    options.ymEnvelopeShape);
         core->setPatch(patch);
         const auto events = loadEvents(options.eventFile);
         const auto registerWriteCount = static_cast<size_t>(std::count_if(events.begin(), events.end(), [](const auto& event) { return event.type == EventType::write; }));

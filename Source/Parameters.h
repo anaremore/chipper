@@ -25,6 +25,7 @@ inline constexpr auto source3Enabled = "source3Enabled";
 inline constexpr auto source4Enabled = "source4Enabled";
 inline constexpr auto envelopeDecay = "envelopeDecay";
 inline constexpr auto waveShape = "waveShape";
+inline constexpr auto ymEnvelopeShape = "ymEnvelopeShape";
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
@@ -38,5 +39,6 @@ juce::StringArray accuracyChoices();
 juce::StringArray macroChoices();
 juce::StringArray playModeChoices();
 juce::StringArray waveShapeChoices();
+juce::StringArray ymEnvelopeShapeChoices();
 
 } // namespace chipper::parameters

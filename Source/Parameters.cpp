@@ -46,6 +46,11 @@ juce::StringArray waveShapeChoices()
     return { "RAM", "Tri", "Saw", "Pulse", "Steps" };
 }
 
+juce::StringArray ymEnvelopeShapeChoices()
+{
+    return { "Fixed", "Fall", "Rise", "Saw", "Triangle" };
+}
+
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
@@ -140,6 +145,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::ParameterID { id::waveShape, 1 },
         "Wave Shape",
         waveShapeChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::ymEnvelopeShape, 1 },
+        "YM Envelope Shape",
+        ymEnvelopeShapeChoices(),
         0));
 
     return { params.begin(), params.end() };

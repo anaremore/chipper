@@ -21,7 +21,8 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && a.playMode == b.playMode
         && a.sourceEnabled == b.sourceEnabled
         && std::abs(a.envelopeDecay - b.envelopeDecay) < tolerance
-        && a.waveShape == b.waveShape;
+        && a.waveShape == b.waveShape
+        && a.ymEnvelopeShape == b.ymEnvelopeShape;
 }
 }
 
@@ -168,7 +169,8 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
             apvts.getRawParameterValue(chipper::parameters::id::source4Enabled)->load() >= 0.5f
         },
         apvts.getRawParameterValue(chipper::parameters::id::envelopeDecay)->load(),
-        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::waveShape)->load())));
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::waveShape)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::ymEnvelopeShape)->load())));
 }
 
 void ChipperAudioProcessor::replayPendingRegisterState()

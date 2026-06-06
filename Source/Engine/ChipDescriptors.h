@@ -58,6 +58,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             PlayMode playMode = PlayMode::stack,
                             std::array<bool, 4> sourceEnabled = { true, true, true, true },
                             float envelopeDecay = 0.0f,
-                            int waveShape = 0);
+                            int waveShape = 0,
+                            int ymEnvelopeShape = 0);
 
 } // namespace chipper
