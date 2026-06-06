@@ -1290,8 +1290,18 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(slider);
         sourceLevelAttachments[i] = std::make_unique<SliderAttachment>(state, sourceLevelIds[i], slider);
 
+        auto& levelLabel = sourceLevelLabels[i];
+        levelLabel.setText("Level", juce::dontSendNotification);
+        levelLabel.setJustificationType(juce::Justification::centredLeft);
+        levelLabel.setColour(juce::Label::textColourId, juce::Colour(0xff56c7d8));
+        levelLabel.setFont(juce::FontOptions(10.0f, juce::Font::bold));
+        levelLabel.setMinimumHorizontalScale(0.70f);
+        levelLabel.setTooltip(withMidiCc("Source level trim.", sourceLevelIds[i]));
+        levelLabel.setVisible(false);
+        addAndMakeVisible(levelLabel);
+
         auto& valueLabel = sourceLevelValueLabels[i];
-        valueLabel.setJustificationType(juce::Justification::centred);
+        valueLabel.setJustificationType(juce::Justification::centredRight);
         valueLabel.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
         valueLabel.setFont(juce::FontOptions(10.0f));
         valueLabel.setMinimumHorizontalScale(0.70f);
@@ -1459,6 +1469,7 @@ void ChipperAudioProcessorEditor::resized()
             sourceChannelButtons[i].setBounds({});
             sourcePreviewScopes[i].setBounds({});
             sourceLevelSliders[i].setBounds({});
+            sourceLevelLabels[i].setBounds({});
             sourceLevelValueLabels[i].setBounds({});
             if (displayedMode == chipper::ChipMode::sid && i < sidVoiceWaveCount)
             {
@@ -1475,9 +1486,9 @@ void ChipperAudioProcessorEditor::resized()
             sourceCardHeight
         };
         auto sourceCard = sourceChannelBounds[i].reduced(8, displayedMode == chipper::ChipMode::sid ? 2 : 4);
-        sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(displayedMode == chipper::ChipMode::sid ? 16 : 18, sourceCard.getHeight())));
+        sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(displayedMode == chipper::ChipMode::sid ? 17 : 18, sourceCard.getHeight())));
         sourceCard.removeFromTop(2);
-        sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(15, sourceCard.getHeight())));
+        sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(displayedMode == chipper::ChipMode::sid ? 17 : 18, sourceCard.getHeight())));
         sourceCard.removeFromTop(1);
 
         if (displayedMode == chipper::ChipMode::sid && i < sidVoiceWaveCount)
@@ -1488,9 +1499,11 @@ void ChipperAudioProcessorEditor::resized()
             sourceCard.removeFromTop(1);
         }
 
-        sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(displayedMode == chipper::ChipMode::sid ? 12 : 14, sourceCard.getHeight())).reduced(0, 1));
+        auto levelRow = sourceCard.removeFromTop(std::min(12, sourceCard.getHeight()));
+        sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(48, levelRow.getWidth())));
+        sourceLevelValueLabels[i].setBounds(levelRow);
         sourceCard.removeFromTop(1);
-        sourceLevelValueLabels[i].setBounds(sourceCard.removeFromTop(std::min(displayedMode == chipper::ChipMode::sid ? 10 : 12, sourceCard.getHeight())));
+        sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(displayedMode == chipper::ChipMode::sid ? 11 : 14, sourceCard.getHeight())).reduced(0, 1));
     }
 
     auto tonePanel = moduleBounds[2].reduced(12, 9);
@@ -1515,10 +1528,33 @@ void ChipperAudioProcessorEditor::resized()
 
     if (displayedMode == chipper::ChipMode::sid)
     {
-        auto filterModePanel = tonePanel.removeFromTop(std::min(58, tonePanel.getHeight()));
+        const auto columnGap = 10;
+        auto leftColumn = tonePanel.removeFromLeft((tonePanel.getWidth() - columnGap) / 2);
+        tonePanel.removeFromLeft(columnGap);
+        auto rightColumn = tonePanel;
+
+        const auto placeFilterSlider = [](juce::Slider& slider,
+                                          juce::Label& label,
+                                          juce::Label& valueLabel,
+                                          juce::Rectangle<int> bounds)
+        {
+            auto header = bounds.removeFromTop(std::min(15, bounds.getHeight()));
+            label.setBounds(header.removeFromLeft(std::min(86, header.getWidth())));
+            valueLabel.setJustificationType(juce::Justification::centredRight);
+            valueLabel.setBounds(header);
+            bounds.removeFromTop(1);
+            slider.setBounds(bounds.removeFromTop(std::min(22, bounds.getHeight())).reduced(0, 1));
+        };
+
+        auto cutoffPanel = leftColumn.removeFromTop(std::min(40, leftColumn.getHeight()));
+        placeFilterSlider(nativeSliders[2], nativeLabels[2], controlValueLabels[2], cutoffPanel);
+        leftColumn.removeFromTop(6);
+        placeFilterSlider(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, leftColumn);
+
+        auto filterModePanel = rightColumn.removeFromTop(std::min(48, rightColumn.getHeight()));
         placeYmEnvelopeShapeSegment(filterModePanel);
-        tonePanel.removeFromTop(6);
-        placeSidFilterRoutingControl(tonePanel);
+        rightColumn.removeFromTop(6);
+        placeSidFilterRoutingControl(rightColumn);
     }
     else if (displayedMode == chipper::ChipMode::ym2149)
         placeYmChannelMixControls(primaryTonePanel);
@@ -1560,7 +1596,8 @@ void ChipperAudioProcessorEditor::resized()
     outputPanel.removeFromTop(30);
     outputPanel.removeFromTop(4);
     outputPanel.removeFromBottom(6);
-    placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, outputPanel);
+    if (displayedMode != chipper::ChipMode::sid)
+        placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, outputPanel);
 
     auto profilePanel = moduleBounds[0].reduced(12, 9);
     profilePanel.removeFromTop(20);
@@ -1597,12 +1634,19 @@ void ChipperAudioProcessorEditor::resized()
     placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlValueLabels[0], controlCells[0]);
     placePulseDutySegment(controlCells[0]);
     placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[1]);
-    placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[2]);
-    placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[3]);
-    placeToneNoiseMixSegment(controlCells[3]);
-    placeLabeledSliderWithReadout(clockSlider, clockLabel, controlValueLabels[4], controlCells[4]);
+    if (displayedMode != chipper::ChipMode::sid)
+        placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[2]);
 
-    auto outputCell = controlCells[5];
+    const auto sustainCell = displayedMode == chipper::ChipMode::sid ? controlCells[2] : controlCells[3];
+    placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], sustainCell);
+    placeToneNoiseMixSegment(sustainCell);
+
+    placeLabeledSliderWithReadout(clockSlider,
+                                  clockLabel,
+                                  controlValueLabels[4],
+                                  displayedMode == chipper::ChipMode::sid ? controlCells[3] : controlCells[4]);
+
+    auto outputCell = displayedMode == chipper::ChipMode::sid ? controlCells[4].getUnion(controlCells[5]) : controlCells[5];
     auto outputHeader = outputCell.removeFromTop(18);
     outputLabel.setBounds(outputHeader.removeFromLeft(96));
     controlValueLabels[5].setJustificationType(juce::Justification::centredRight);
@@ -1656,6 +1700,7 @@ void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
                                                      juce::Label& valueLabel,
                                                      juce::Rectangle<int> bounds)
 {
+    valueLabel.setJustificationType(juce::Justification::centredLeft);
     groupLabel.setBounds(bounds.removeFromTop(13));
     label.setBounds(bounds.removeFromTop(17));
     slider.setBounds(bounds.removeFromTop(26).reduced(0, 1));
@@ -1667,6 +1712,7 @@ void ChipperAudioProcessorEditor::placeLabeledSliderWithReadout(juce::Slider& sl
                                                                 juce::Label& valueLabel,
                                                                 juce::Rectangle<int> bounds)
 {
+    valueLabel.setJustificationType(juce::Justification::centredLeft);
     label.setBounds(bounds.removeFromTop(20));
     slider.setBounds(bounds.removeFromTop(30).reduced(0, 2));
     valueLabel.setBounds(bounds);
@@ -1815,11 +1861,12 @@ void ChipperAudioProcessorEditor::placeYmEnvelopeShapeSegment(juce::Rectangle<in
 
     if (displayedMode == chipper::ChipMode::sid)
     {
-        ymEnvelopeShapeLabel.setBounds(bounds.removeFromTop(std::min(17, bounds.getHeight())));
+        auto header = bounds.removeFromTop(std::min(16, bounds.getHeight()));
+        ymEnvelopeShapeLabel.setBounds(header.removeFromLeft(std::min(86, header.getWidth())));
+        ymEnvelopeShapeValueLabel.setJustificationType(juce::Justification::centredRight);
+        ymEnvelopeShapeValueLabel.setBounds(header);
         ymEnvelopeShapeSegmentBounds = bounds.removeFromTop(std::min(27, bounds.getHeight())).reduced(0, 1);
         layoutSegmentedButtons(ymEnvelopeShapeButtons, ymEnvelopeShapeSegmentBounds, visibleCount);
-        bounds.removeFromTop(2);
-        ymEnvelopeShapeValueLabel.setBounds(bounds);
         return;
     }
 
@@ -2902,6 +2949,7 @@ void ChipperAudioProcessorEditor::setSourceChannelSurfaceVisible(chipper::ChipMo
         sourceChannelButtons[i].setVisible(visible);
         sourcePreviewScopes[i].setVisible(visible);
         sourceLevelSliders[i].setVisible(visible && chipper::parameterSpecFor(mode, sourceLevelRole(i)) != nullptr);
+        sourceLevelLabels[i].setVisible(visible && chipper::parameterSpecFor(mode, sourceLevelRole(i)) != nullptr);
         sourceLevelValueLabels[i].setVisible(visible && chipper::parameterSpecFor(mode, sourceLevelRole(i)) != nullptr);
     }
 
@@ -3277,9 +3325,15 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(juce::String("Enable or mute ") + (*labels)[i], sourceRole(i)));
 
         if (levelSpec != nullptr)
+        {
+            sourceLevelLabels[i].setTooltip(withMidiCcForRole(juce::String(levelSpec->label) + ": " + juce::String(levelSpec->help), sourceLevelRole(i)));
             sourceLevelSliders[i].setTooltip(withMidiCcForRole(juce::String(levelSpec->label) + ": " + juce::String(levelSpec->help), sourceLevelRole(i)));
+        }
         else
+        {
+            sourceLevelLabels[i].setTooltip(withMidiCcForRole(juce::String("Trim level for ") + (*labels)[i], sourceLevelRole(i)));
             sourceLevelSliders[i].setTooltip(withMidiCcForRole(juce::String("Trim level for ") + (*labels)[i], sourceLevelRole(i)));
+        }
 
         sourceLevelValueLabels[i].setTooltip(sourceLevelSliders[i].getTooltip());
         sourceLevelValueLabels[i].setText(sourceLevelReadout(i), juce::dontSendNotification);
@@ -3895,7 +3949,9 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto hasCustomMotionSurface = hasLiveCore && mode == chipper::ChipMode::sid && usesSnNoiseModeSegment(mode);
     for (auto& itemLabel : moduleItemLabels[4])
         itemLabel.setVisible(! hasCustomMotionSurface && ! itemLabel.getText().isEmpty());
-    const auto hasCustomOutputSurface = hasLiveCore && (usesStereoSpreadControl(mode) || (mode != chipper::ChipMode::sid && usesDmgStereoRouteSegment(mode)));
+    const auto hasCustomOutputSurface = hasLiveCore
+        && mode != chipper::ChipMode::sid
+        && (usesStereoSpreadControl(mode) || usesDmgStereoRouteSegment(mode));
     for (auto& itemLabel : moduleItemLabels[5])
         itemLabel.setVisible(! hasCustomOutputSurface && ! itemLabel.getText().isEmpty());
     resized();

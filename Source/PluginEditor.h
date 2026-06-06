@@ -289,6 +289,7 @@ private:
     std::array<juce::TextButton, snNoiseModeCount> snNoiseModeButtons;
     std::array<juce::TextButton, toneNoiseMixCount> toneNoiseMixButtons;
     std::array<juce::Slider, sourceChannelCount> sourceLevelSliders;
+    std::array<juce::Label, sourceChannelCount> sourceLevelLabels;
     std::array<juce::Label, sourceChannelCount> sourceLevelValueLabels;
 
     juce::ComboBox chipModeBox;
