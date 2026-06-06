@@ -46,6 +46,8 @@ struct Options
     std::array<bool, 4> controlProvided {};
     std::array<bool, 4> sourceEnabled { true, true, true, true };
     std::array<bool, 4> sourceProvided {};
+    std::array<float, 4> sourceLevels { 1.0f, 1.0f, 1.0f, 1.0f };
+    std::array<bool, 4> sourceLevelProvided {};
     float envelopeDecay = 0.0f;
     int waveShape = 0;
     int ymEnvelopeShape = 0;
@@ -205,7 +207,7 @@ void printUsage()
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
         << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --envelope-decay 0.7 --wave-shape tri --ym-envelope-shape triangle --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --envelope-decay 0.7 --wave-shape tri --ym-envelope-shape triangle --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -228,6 +230,7 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.controlProvided = { true, true, true, true };
     options.sourceEnabled = preset.sourceEnabled;
     options.sourceProvided = { true, true, true, true };
+    options.sourceLevelProvided = { true, true, true, true };
     options.envelopeDecay = preset.envelopeDecay;
     options.waveShape = preset.waveShape;
     options.ymEnvelopeShape = preset.ymEnvelopeShape;
@@ -403,6 +406,34 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.sourceProvided[3] = true;
         }
+        else if (arg == "--level1")
+        {
+            const auto* value = requireValue("--level1");
+            if (value == nullptr || ! parseNumber(std::string(value), options.sourceLevels[0]))
+                return false;
+            options.sourceLevelProvided[0] = true;
+        }
+        else if (arg == "--level2")
+        {
+            const auto* value = requireValue("--level2");
+            if (value == nullptr || ! parseNumber(std::string(value), options.sourceLevels[1]))
+                return false;
+            options.sourceLevelProvided[1] = true;
+        }
+        else if (arg == "--level3")
+        {
+            const auto* value = requireValue("--level3");
+            if (value == nullptr || ! parseNumber(std::string(value), options.sourceLevels[2]))
+                return false;
+            options.sourceLevelProvided[2] = true;
+        }
+        else if (arg == "--level4")
+        {
+            const auto* value = requireValue("--level4");
+            if (value == nullptr || ! parseNumber(std::string(value), options.sourceLevels[3]))
+                return false;
+            options.sourceLevelProvided[3] = true;
+        }
         else if (arg == "--envelope-decay")
         {
             const auto* value = requireValue("--envelope-decay");
@@ -507,6 +538,8 @@ void applyMacroTemplateDefaults(Options& options)
             *controls[i] = templ.controls[i];
         if (! options.sourceProvided[i])
             options.sourceEnabled[i] = templ.sourceEnabled[i];
+        if (! options.sourceLevelProvided[i])
+            options.sourceLevels[i] = 1.0f;
     }
 
     if (! options.envelopeDecayProvided)
@@ -777,6 +810,10 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::source2Enabled: return "source2Enabled";
         case chipper::ChipParameterRole::source3Enabled: return "source3Enabled";
         case chipper::ChipParameterRole::source4Enabled: return "source4Enabled";
+        case chipper::ChipParameterRole::source1Level: return "source1Level";
+        case chipper::ChipParameterRole::source2Level: return "source2Level";
+        case chipper::ChipParameterRole::source3Level: return "source3Level";
+        case chipper::ChipParameterRole::source4Level: return "source4Level";
         case chipper::ChipParameterRole::envelopeDecay: return "envelopeDecay";
         case chipper::ChipParameterRole::waveShape: return "waveShape";
         case chipper::ChipParameterRole::ymEnvelopeShape: return "ymEnvelopeShape";
@@ -1132,6 +1169,7 @@ int main(int argc, char** argv)
                                                     options.control4,
                                                     options.playMode,
                                                     options.sourceEnabled,
+                                                    options.sourceLevels,
                                                     options.envelopeDecay,
                                                     options.waveShape,
                                                     options.ymEnvelopeShape,

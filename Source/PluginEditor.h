@@ -141,6 +141,7 @@ private:
     std::array<juce::TextButton, ymEnvelopeShapeCount> ymEnvelopeShapeButtons;
     std::array<juce::TextButton, snNoiseModeCount> snNoiseModeButtons;
     std::array<juce::TextButton, toneNoiseMixCount> toneNoiseMixButtons;
+    std::array<juce::Slider, sourceChannelCount> sourceLevelSliders;
 
     juce::ComboBox chipModeBox;
     juce::ComboBox accuracyBox;
@@ -167,6 +168,7 @@ private:
     std::unique_ptr<SliderAttachment> outputAttachment;
     std::unique_ptr<SliderAttachment> envelopeDecayAttachment;
     std::array<std::unique_ptr<SliderAttachment>, 4> nativeAttachments;
+    std::array<std::unique_ptr<SliderAttachment>, sourceChannelCount> sourceLevelAttachments;
     std::array<std::unique_ptr<ButtonAttachment>, sourceChannelCount> sourceEnableAttachments;
 
     chipper::ChipMode displayedMode = chipper::ChipMode::custom;

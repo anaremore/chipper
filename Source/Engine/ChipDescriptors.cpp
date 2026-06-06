@@ -122,6 +122,11 @@ ChipParameterSpec sourceSpec(ChipParameterRole role, std::string id, std::string
     return { role, id, label, "Sources", help, ParameterKind::booleanToggle, ControlSurface::sourceCards, {}, 0.0f, 1.0f, 1.0f };
 }
 
+ChipParameterSpec sourceLevelSpec(ChipParameterRole role, std::string id, std::string label, std::string help)
+{
+    return { role, id, label, "Sources", help, ParameterKind::continuous, ControlSurface::slider, {}, 0.0f, 1.0f, 1.0f };
+}
+
 ChipParameterSpec envelopeSpec(std::string id, std::string label, std::string help)
 {
     return { ChipParameterRole::envelopeDecay, id, label, "Envelope", help, ParameterKind::chipRegister, ControlSurface::slider, {}, 0.0f, 1.0f, 0.0f };
@@ -160,6 +165,10 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
         sourceSpec(ChipParameterRole::source2Enabled, "nes.pulse2.enabled", "Pulse 2", "Enable the second RP2A03 pulse source."),
         sourceSpec(ChipParameterRole::source3Enabled, "nes.triangle.enabled", "Triangle", "Enable the triangle bass source."),
         sourceSpec(ChipParameterRole::source4Enabled, "nes.noise.enabled", "Noise", "Enable the RP2A03 noise source."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "nes.pulse1.level", "Pulse 1 Level", "Modern trim for the first pulse source."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "nes.pulse2.level", "Pulse 2 Level", "Modern trim for the second pulse source."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "nes.triangle.level", "Triangle Level", "Modern trim for the triangle source."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "nes.noise.level", "Noise Level", "Modern trim for the noise source."),
         envelopeSpec("nes.envelopeDecay", "Envelope Decay", "Maps musical decay to APU envelope period values."),
         segmentedSpec(ChipParameterRole::snNoiseMode,
                       "nes.noiseMode",
@@ -208,6 +217,10 @@ std::vector<ChipParameterSpec> dmgParameterSpecs()
         sourceSpec(ChipParameterRole::source2Enabled, "dmg.pulse2.enabled", "Pulse 2", "Enable DMG pulse channel 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "dmg.wave.enabled", "Wave", "Enable the DMG Wave RAM channel."),
         sourceSpec(ChipParameterRole::source4Enabled, "dmg.noise.enabled", "Noise", "Enable the DMG polynomial-noise channel."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "dmg.pulse1.level", "Pulse 1 Level", "Modern trim for DMG pulse channel 1."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "dmg.pulse2.level", "Pulse 2 Level", "Modern trim for DMG pulse channel 2."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "dmg.wave.level", "Wave Level", "Modern trim for the Wave RAM channel."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "dmg.noise.level", "Noise Level", "Modern trim for the noise channel."),
         envelopeSpec("dmg.envelopeDecay", "Envelope Decay", "Maps musical decay to DMG 64 Hz hardware envelope periods."),
         segmentedSpec(ChipParameterRole::snNoiseMode,
                       "dmg.noiseMode",
@@ -263,6 +276,10 @@ std::vector<ChipParameterSpec> ym2149ParameterSpecs()
         sourceSpec(ChipParameterRole::source2Enabled, "ym2149.channelB.enabled", "Channel B", "Enable YM/AY channel B."),
         sourceSpec(ChipParameterRole::source3Enabled, "ym2149.channelC.enabled", "Channel C", "Enable YM/AY channel C."),
         sourceSpec(ChipParameterRole::source4Enabled, "ym2149.noise.enabled", "Shared Noise", "Enable the shared YM/AY noise source."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "ym2149.channelA.level", "Channel A Level", "Trims YM/AY channel A after its native volume register."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "ym2149.channelB.level", "Channel B Level", "Trims YM/AY channel B after its native volume register."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "ym2149.channelC.level", "Channel C Level", "Trims YM/AY channel C after its native volume register."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "ym2149.noise.level", "Noise Level", "Scales the shared noise gate where the mixer uses noise."),
         envelopeSpec("ym2149.envelopeSpeed", "Envelope Speed", "Maps musical envelope speed to YM/AY registers 11 and 12. Zero uses the default register period."),
         segmentedSpec(ChipParameterRole::ymEnvelopeShape,
                       "ym2149.envelopeShape",
@@ -301,6 +318,10 @@ std::vector<ChipParameterSpec> sn76489ParameterSpecs()
         sourceSpec(ChipParameterRole::source2Enabled, "sn76489.tone2.enabled", "Tone 2", "Enable SN76489 tone channel 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "sn76489.tone3.enabled", "Tone 3", "Enable SN76489 tone channel 3."),
         sourceSpec(ChipParameterRole::source4Enabled, "sn76489.noise.enabled", "Noise", "Enable the SN76489 noise channel."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "sn76489.tone1.level", "Tone 1 Level", "Trims SN76489 tone channel 1 after attenuation."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "sn76489.tone2.level", "Tone 2 Level", "Trims SN76489 tone channel 2 after attenuation."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "sn76489.tone3.level", "Tone 3 Level", "Trims SN76489 tone channel 3 after attenuation."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "sn76489.noise.level", "Noise Level", "Trims the SN76489 noise channel after attenuation."),
         segmentedSpec(ChipParameterRole::snNoiseMode,
                       "sn76489.noiseMode",
                       "Noise Mode",
@@ -764,6 +785,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float control4,
                             PlayMode playMode,
                             std::array<bool, 4> sourceEnabled,
+                            std::array<float, 4> sourceLevels,
                             float envelopeDecay,
                             int waveShape,
                             int ymEnvelopeShape,
@@ -779,6 +801,12 @@ PatchConfig makePatchConfig(ChipMode mode,
         clampControl(control4),
         effectivePlayMode,
         sourceEnabled,
+        {
+            clampControl(sourceLevels[0]),
+            clampControl(sourceLevels[1]),
+            clampControl(sourceLevels[2]),
+            clampControl(sourceLevels[3])
+        },
         clampControl(envelopeDecay),
         std::clamp(waveShape, 0, 4),
         std::clamp(ymEnvelopeShape, 0, 4),

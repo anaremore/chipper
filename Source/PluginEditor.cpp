@@ -84,6 +84,18 @@ chipper::ChipParameterRole sourceRole(size_t index)
     return roles[std::min(index, roles.size() - 1u)];
 }
 
+chipper::ChipParameterRole sourceLevelRole(size_t index)
+{
+    static constexpr std::array<chipper::ChipParameterRole, 4> roles {
+        chipper::ChipParameterRole::source1Level,
+        chipper::ChipParameterRole::source2Level,
+        chipper::ChipParameterRole::source3Level,
+        chipper::ChipParameterRole::source4Level
+    };
+
+    return roles[std::min(index, roles.size() - 1u)];
+}
+
 juce::String choiceTooltip(const chipper::ChipParameterSpec& spec, size_t choiceIndex)
 {
     if (choiceIndex < spec.choices.size() && ! spec.choices[choiceIndex].help.empty())
@@ -478,6 +490,12 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         chipper::parameters::id::source3Enabled,
         chipper::parameters::id::source4Enabled
     };
+    const std::array<const char*, sourceChannelCount> sourceLevelIds {
+        chipper::parameters::id::source1Level,
+        chipper::parameters::id::source2Level,
+        chipper::parameters::id::source3Level,
+        chipper::parameters::id::source4Level
+    };
 
     for (size_t i = 0; i < sourceChannelButtons.size(); ++i)
     {
@@ -490,6 +508,16 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         button.setVisible(false);
         addAndMakeVisible(button);
         sourceEnableAttachments[i] = std::make_unique<ButtonAttachment>(state, sourceIds[i], button);
+
+        auto& slider = sourceLevelSliders[i];
+        slider.setSliderStyle(juce::Slider::LinearHorizontal);
+        slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        slider.setColour(juce::Slider::trackColourId, juce::Colour(0xfff7d85a));
+        slider.setColour(juce::Slider::thumbColourId, juce::Colour(0xff56c7d8));
+        slider.setTooltip(withMidiCc("Source level trim.", sourceLevelIds[i]));
+        slider.setVisible(false);
+        addAndMakeVisible(slider);
+        sourceLevelAttachments[i] = std::make_unique<SliderAttachment>(state, sourceLevelIds[i], slider);
     }
 
     globalStripLabel.setText("Global Performance Controls", juce::dontSendNotification);
@@ -636,7 +664,10 @@ void ChipperAudioProcessorEditor::resized()
             sourceCardWidth,
             sourceCardHeight
         };
-        sourceChannelButtons[i].setBounds(sourceChannelBounds[i].reduced(8, 1));
+        auto sourceCard = sourceChannelBounds[i].reduced(8, 2);
+        sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(20, sourceCard.getHeight())));
+        sourceCard.removeFromTop(2);
+        sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(14, sourceCard.getHeight())).reduced(0, 1));
     }
 
     auto tonePanel = moduleBounds[2].reduced(12, 9);
@@ -956,12 +987,20 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
         chipper::parameters::id::source3Enabled,
         chipper::parameters::id::source4Enabled
     };
+    const std::array<const char*, 4> sourceLevelIds {
+        chipper::parameters::id::source1Level,
+        chipper::parameters::id::source2Level,
+        chipper::parameters::id::source3Level,
+        chipper::parameters::id::source4Level
+    };
 
     const juce::ScopedValueSetter<bool> suppress(suppressMacroTemplateApply, true);
     for (size_t i = 0; i < ids.size(); ++i)
         setParameterValueFromUi(ids[i], templ.controls[i]);
     for (size_t i = 0; i < sourceIds.size(); ++i)
         setParameterValueFromUi(sourceIds[i], templ.sourceEnabled[i] ? 1.0f : 0.0f);
+    for (size_t i = 0; i < sourceLevelIds.size(); ++i)
+        setParameterValueFromUi(sourceLevelIds[i], 1.0f);
     setParameterValueFromUi(chipper::parameters::id::envelopeDecay, templ.envelopeDecay);
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, templ.waveShape);
     setChoiceParameterFromUi(chipper::parameters::id::ymEnvelopeShape, templ.ymEnvelopeShape);
@@ -1001,6 +1040,12 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
         chipper::parameters::id::source3Enabled,
         chipper::parameters::id::source4Enabled
     };
+    const std::array<const char*, 4> sourceLevelIds {
+        chipper::parameters::id::source1Level,
+        chipper::parameters::id::source2Level,
+        chipper::parameters::id::source3Level,
+        chipper::parameters::id::source4Level
+    };
 
     const juce::ScopedValueSetter<bool> suppressMacro(suppressMacroTemplateApply, true);
     setChoiceParameterFromUi(chipper::parameters::id::chipMode, chipModeChoiceIndex(preset.chip));
@@ -1013,6 +1058,9 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
 
     for (size_t i = 0; i < sourceIds.size(); ++i)
         setParameterValueFromUi(sourceIds[i], preset.sourceEnabled[i] ? 1.0f : 0.0f);
+
+    for (size_t i = 0; i < sourceLevelIds.size(); ++i)
+        setParameterValueFromUi(sourceLevelIds[i], 1.0f);
 
     setParameterValueFromUi(chipper::parameters::id::envelopeDecay, preset.envelopeDecay);
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, preset.waveShape);
@@ -1051,6 +1099,12 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
             parameterValue(chipper::parameters::id::source2Enabled) >= 0.5f,
             parameterValue(chipper::parameters::id::source3Enabled) >= 0.5f,
             parameterValue(chipper::parameters::id::source4Enabled) >= 0.5f
+        },
+        {
+            parameterValue(chipper::parameters::id::source1Level),
+            parameterValue(chipper::parameters::id::source2Level),
+            parameterValue(chipper::parameters::id::source3Level),
+            parameterValue(chipper::parameters::id::source4Level)
         },
         parameterValue(chipper::parameters::id::envelopeDecay),
         waveShape,
@@ -1348,6 +1402,8 @@ void ChipperAudioProcessorEditor::setSourceChannelSurfaceVisible(chipper::ChipMo
     const auto active = shouldBeVisible && usesSourceChannelSurface(mode);
     for (auto& channelButton : sourceChannelButtons)
         channelButton.setVisible(active);
+    for (auto& sourceSlider : sourceLevelSliders)
+        sourceSlider.setVisible(active);
 
     for (auto& itemLabel : moduleItemLabels[1])
         itemLabel.setVisible(! active && ! itemLabel.getText().isEmpty());
@@ -1497,6 +1553,11 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(juce::String(spec->label) + ": " + juce::String(spec->help), sourceRole(i)));
         else
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(juce::String("Enable or mute ") + (*labels)[i], sourceRole(i)));
+
+        if (const auto* levelSpec = chipper::parameterSpecFor(mode, sourceLevelRole(i)))
+            sourceLevelSliders[i].setTooltip(withMidiCcForRole(juce::String(levelSpec->label) + ": " + juce::String(levelSpec->help), sourceLevelRole(i)));
+        else
+            sourceLevelSliders[i].setTooltip(withMidiCcForRole(juce::String("Trim level for ") + (*labels)[i], sourceLevelRole(i)));
     }
 }
 

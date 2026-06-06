@@ -166,6 +166,30 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         true));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::source1Level, 1 },
+        "Source 1 Level",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        1.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::source2Level, 1 },
+        "Source 2 Level",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        1.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::source3Level, 1 },
+        "Source 3 Level",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        1.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::source4Level, 1 },
+        "Source 4 Level",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        1.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID { id::envelopeDecay, 1 },
         "Envelope Decay",
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },

@@ -24,6 +24,10 @@ inline constexpr auto source1Enabled = "source1Enabled";
 inline constexpr auto source2Enabled = "source2Enabled";
 inline constexpr auto source3Enabled = "source3Enabled";
 inline constexpr auto source4Enabled = "source4Enabled";
+inline constexpr auto source1Level = "source1Level";
+inline constexpr auto source2Level = "source2Level";
+inline constexpr auto source3Level = "source3Level";
+inline constexpr auto source4Level = "source4Level";
 inline constexpr auto envelopeDecay = "envelopeDecay";
 inline constexpr auto waveShape = "waveShape";
 inline constexpr auto ymEnvelopeShape = "ymEnvelopeShape";
@@ -37,7 +41,7 @@ struct MidiCcMapping
     const char* label = nullptr;
 };
 
-inline constexpr auto midiCcMappingCount = 18u;
+inline constexpr auto midiCcMappingCount = 22u;
 using MidiCcMappingList = std::array<MidiCcMapping, midiCcMappingCount>;
 
 const MidiCcMappingList& midiCcMappings();

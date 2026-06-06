@@ -101,6 +101,11 @@ bool sourceEnabled(const PatchConfig& patch, size_t index)
     return index < patch.sourceEnabled.size() && patch.sourceEnabled[index];
 }
 
+double sourceLevel(const PatchConfig& patch, size_t index)
+{
+    return index < patch.sourceLevels.size() ? clamp01(patch.sourceLevels[index]) : 1.0;
+}
+
 uint8_t sourceEnableMask(const PatchConfig& patch)
 {
     uint8_t mask = 0;
@@ -381,10 +386,10 @@ public:
     {
         tickFrameSequencer();
 
-        const auto p1 = enabled[0] ? renderPulse(0) : 0.0;
-        const auto p2 = enabled[1] ? renderPulse(1) : 0.0;
-        const auto wave = enabled[2] ? renderWave() : 0.0;
-        const auto noise = enabled[3] ? renderNoise() : 0.0;
+        const auto p1 = enabled[0] ? renderPulse(0) * sourceLevel(patch, 0) : 0.0;
+        const auto p2 = enabled[1] ? renderPulse(1) * sourceLevel(patch, 1) : 0.0;
+        const auto wave = enabled[2] ? renderWave() * sourceLevel(patch, 2) : 0.0;
+        const auto noise = enabled[3] ? renderNoise() * sourceLevel(patch, 3) : 0.0;
         const std::array<double, 4> sources { p1, p2, wave, noise };
 
         double left = 0.0;
@@ -438,6 +443,10 @@ public:
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
              << "\"sourceEnabled4\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+             << "\"sourceLevel1\":" << sourceLevel(patch, 0) << ","
+             << "\"sourceLevel2\":" << sourceLevel(patch, 1) << ","
+             << "\"sourceLevel3\":" << sourceLevel(patch, 2) << ","
+             << "\"sourceLevel4\":" << sourceLevel(patch, 3) << ","
              << "\"sweepRegister\":" << static_cast<int>(regs[0x00]) << ","
              << "\"sweepShadow\":" << sweepShadowPeriod << ","
              << "\"sweepTimer\":" << static_cast<int>(sweepTimer) << ","
@@ -1316,10 +1325,10 @@ public:
     {
         tickFrameUnits();
 
-        const auto p1 = channelActive(0) ? renderPulse(0) : 0.0;
-        const auto p2 = channelActive(1) ? renderPulse(1) : 0.0;
-        const auto tri = triangleActive() ? renderTriangle() : 0.0;
-        const auto noi = channelActive(3) ? renderNoise() : 0.0;
+        const auto p1 = channelActive(0) ? renderPulse(0) * sourceLevel(patch, 0) : 0.0;
+        const auto p2 = channelActive(1) ? renderPulse(1) * sourceLevel(patch, 1) : 0.0;
+        const auto tri = triangleActive() ? renderTriangle() * sourceLevel(patch, 2) : 0.0;
+        const auto noi = channelActive(3) ? renderNoise() * sourceLevel(patch, 3) : 0.0;
         const auto dmc = static_cast<double>(dmcOutputLevel());
 
         const auto pulseSum = p1 + p2;
@@ -1371,6 +1380,10 @@ public:
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
              << "\"sourceEnabled4\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+             << "\"sourceLevel1\":" << sourceLevel(patch, 0) << ","
+             << "\"sourceLevel2\":" << sourceLevel(patch, 1) << ","
+             << "\"sourceLevel3\":" << sourceLevel(patch, 2) << ","
+             << "\"sourceLevel4\":" << sourceLevel(patch, 3) << ","
              << "\"enabled0\":" << (enabled[0] ? 1 : 0) << ","
              << "\"enabled1\":" << (enabled[1] ? 1 : 0) << ","
              << "\"enabled2\":" << (enabled[2] ? 1 : 0) << ","
@@ -2166,6 +2179,10 @@ public:
              << "\"sourceEnabledB\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabledC\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
              << "\"sourceEnabledNoise\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+             << "\"sourceLevelA\":" << sourceLevel(patch, 0) << ","
+             << "\"sourceLevelB\":" << sourceLevel(patch, 1) << ","
+             << "\"sourceLevelC\":" << sourceLevel(patch, 2) << ","
+             << "\"sourceLevelNoise\":" << sourceLevel(patch, 3) << ","
              << "\"volumeCurve\":\"ayYmLogApprox1_5dB\","
              << "\"volumeA\":" << static_cast<int>(regs[8]) << ","
              << "\"volumeB\":" << static_cast<int>(regs[9]) << ","
@@ -2495,8 +2512,18 @@ private:
         const auto noiseDisabled = (regs[7] & (1u << (channel + 3))) != 0;
         const auto tone = tonePhase[static_cast<size_t>(channel)] < 0.5 ? 1.0 : -1.0;
         const auto noise = (lfsr & 1u) != 0 ? 1.0 : -1.0;
-        const auto gate = (toneDisabled ? 1.0 : tone) * (noiseDisabled ? 1.0 : noise);
-        return gate * channelVolume(channel);
+        const auto channelTrim = sourceLevel(patch, static_cast<size_t>(channel));
+        const auto noiseTrim = sourceLevel(patch, 3);
+
+        double gate = 1.0;
+        if (toneDisabled && ! noiseDisabled)
+            gate = noise * noiseTrim;
+        else if (! toneDisabled && noiseDisabled)
+            gate = tone;
+        else if (! toneDisabled && ! noiseDisabled)
+            gate = tone * (1.0 + ((noise - 1.0) * noiseTrim));
+
+        return gate * channelVolume(channel) * channelTrim;
     }
 
     AccuracyMode accuracy;
@@ -2678,9 +2705,9 @@ public:
     {
         double mix = 0.0;
         for (int ch = 0; ch < 3; ++ch)
-            mix += renderTone(ch) * attenuationToLinear(attenuation[static_cast<size_t>(ch)]);
+            mix += renderTone(ch) * attenuationToLinear(attenuation[static_cast<size_t>(ch)]) * sourceLevel(patch, static_cast<size_t>(ch));
 
-        mix += renderNoise() * attenuationToLinear(attenuation[3]);
+        mix += renderNoise() * attenuationToLinear(attenuation[3]) * sourceLevel(patch, 3);
         const auto sample = static_cast<float>((mix / 4.0) * noteVelocity * 0.8);
         return { sample, sample };
     }
@@ -2744,6 +2771,10 @@ public:
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
              << "\"sourceEnabledNoise\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+             << "\"sourceLevel0\":" << sourceLevel(patch, 0) << ","
+             << "\"sourceLevel1\":" << sourceLevel(patch, 1) << ","
+             << "\"sourceLevel2\":" << sourceLevel(patch, 2) << ","
+             << "\"sourceLevelNoise\":" << sourceLevel(patch, 3) << ","
              << "\"attenuation0\":" << static_cast<int>(attenuation[0]) << ","
              << "\"attenuation1\":" << static_cast<int>(attenuation[1]) << ","
              << "\"attenuation2\":" << static_cast<int>(attenuation[2]) << ","

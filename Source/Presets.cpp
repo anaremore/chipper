@@ -386,6 +386,7 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                            preset.controls[3],
                            preset.playMode,
                            preset.sourceEnabled,
+                           { 1.0f, 1.0f, 1.0f, 1.0f },
                            preset.envelopeDecay,
                            preset.waveShape,
                            preset.ymEnvelopeShape,

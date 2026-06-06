@@ -70,6 +70,7 @@ struct PatchConfig
     float control4 = 0.5f;
     PlayMode playMode = PlayMode::stack;
     std::array<bool, 4> sourceEnabled { true, true, true, true };
+    std::array<float, 4> sourceLevels { 1.0f, 1.0f, 1.0f, 1.0f };
     float envelopeDecay = 0.0f;
     int waveShape = 0;
     int ymEnvelopeShape = 0;

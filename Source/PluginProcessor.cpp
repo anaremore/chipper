@@ -12,6 +12,18 @@ namespace
 constexpr auto coreStateTag = "CHIPPER_CORE_REGISTERS";
 constexpr auto registerTag = "REG";
 
+bool sourceLevelsMatch(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
+{
+    constexpr auto tolerance = 0.0001f;
+    for (size_t i = 0; i < a.sourceLevels.size(); ++i)
+    {
+        if (std::abs(a.sourceLevels[i] - b.sourceLevels[i]) >= tolerance)
+            return false;
+    }
+
+    return true;
+}
+
 bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
 {
     constexpr auto tolerance = 0.0001f;
@@ -22,6 +34,7 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && std::abs(a.control4 - b.control4) < tolerance
         && a.playMode == b.playMode
         && a.sourceEnabled == b.sourceEnabled
+        && sourceLevelsMatch(a, b)
         && std::abs(a.envelopeDecay - b.envelopeDecay) < tolerance
         && a.waveShape == b.waveShape
         && a.ymEnvelopeShape == b.ymEnvelopeShape
@@ -37,6 +50,7 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && std::abs(a.control4 - b.control4) < tolerance
         && a.playMode == b.playMode
         && a.sourceEnabled == b.sourceEnabled
+        && sourceLevelsMatch(a, b)
         && std::abs(a.envelopeDecay - b.envelopeDecay) < tolerance
         && a.waveShape == b.waveShape
         && a.ymEnvelopeShape == b.ymEnvelopeShape
@@ -199,11 +213,19 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
         chipper::parameters::id::source3Enabled,
         chipper::parameters::id::source4Enabled
     };
+    const std::array<const char*, 4> sourceLevelIds {
+        chipper::parameters::id::source1Level,
+        chipper::parameters::id::source2Level,
+        chipper::parameters::id::source3Level,
+        chipper::parameters::id::source4Level
+    };
 
     for (size_t i = 0; i < controlIds.size(); ++i)
         setPlainParameterValue(controlIds[i], templ.controls[i]);
     for (size_t i = 0; i < sourceIds.size(); ++i)
         setPlainParameterValue(sourceIds[i], templ.sourceEnabled[i] ? 1.0f : 0.0f);
+    for (size_t i = 0; i < sourceLevelIds.size(); ++i)
+        setPlainParameterValue(sourceLevelIds[i], 1.0f);
 
     setPlainParameterValue(chipper::parameters::id::envelopeDecay, templ.envelopeDecay);
     setPlainParameterValue(chipper::parameters::id::waveShape, static_cast<float>(templ.waveShape));
@@ -292,6 +314,12 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
             apvts.getRawParameterValue(chipper::parameters::id::source2Enabled)->load() >= 0.5f,
             apvts.getRawParameterValue(chipper::parameters::id::source3Enabled)->load() >= 0.5f,
             apvts.getRawParameterValue(chipper::parameters::id::source4Enabled)->load() >= 0.5f
+        },
+        {
+            apvts.getRawParameterValue(chipper::parameters::id::source1Level)->load(),
+            apvts.getRawParameterValue(chipper::parameters::id::source2Level)->load(),
+            apvts.getRawParameterValue(chipper::parameters::id::source3Level)->load(),
+            apvts.getRawParameterValue(chipper::parameters::id::source4Level)->load()
         },
         apvts.getRawParameterValue(chipper::parameters::id::envelopeDecay)->load(),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::waveShape)->load())),

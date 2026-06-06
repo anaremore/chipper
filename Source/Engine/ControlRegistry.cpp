@@ -20,10 +20,14 @@ const MidiCcMappingList& midiCcMappings()
         { 81, parameter_ids::source2Enabled, "Source 2 Enabled" },
         { 82, parameter_ids::source3Enabled, "Source 3 Enabled" },
         { 83, parameter_ids::source4Enabled, "Source 4 Enabled" },
-        { 84, parameter_ids::envelopeDecay, "Envelope Decay" },
-        { 85, parameter_ids::waveShape, "Wave Shape" },
-        { 86, parameter_ids::ymEnvelopeShape, "YM Envelope Shape" },
-        { 87, parameter_ids::snNoiseMode, "Noise Mode" }
+        { 84, parameter_ids::source1Level, "Source 1 Level" },
+        { 85, parameter_ids::source2Level, "Source 2 Level" },
+        { 86, parameter_ids::source3Level, "Source 3 Level" },
+        { 87, parameter_ids::source4Level, "Source 4 Level" },
+        { 88, parameter_ids::envelopeDecay, "Envelope Decay" },
+        { 89, parameter_ids::waveShape, "Wave Shape" },
+        { 90, parameter_ids::ymEnvelopeShape, "YM Envelope Shape" },
+        { 91, parameter_ids::snNoiseMode, "Noise Mode" }
     }};
 
     return mappings;
@@ -63,6 +67,10 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::source2Enabled: return parameter_ids::source2Enabled;
         case ChipParameterRole::source3Enabled: return parameter_ids::source3Enabled;
         case ChipParameterRole::source4Enabled: return parameter_ids::source4Enabled;
+        case ChipParameterRole::source1Level: return parameter_ids::source1Level;
+        case ChipParameterRole::source2Level: return parameter_ids::source2Level;
+        case ChipParameterRole::source3Level: return parameter_ids::source3Level;
+        case ChipParameterRole::source4Level: return parameter_ids::source4Level;
         case ChipParameterRole::envelopeDecay: return parameter_ids::envelopeDecay;
         case ChipParameterRole::waveShape: return parameter_ids::waveShape;
         case ChipParameterRole::ymEnvelopeShape: return parameter_ids::ymEnvelopeShape;
