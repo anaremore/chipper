@@ -60,6 +60,30 @@ int playModeChoiceIndex(chipper::PlayMode mode)
     return mode == chipper::PlayMode::chipPoly ? 1 : 0;
 }
 
+chipper::ChipParameterRole macroControlRole(size_t index)
+{
+    static constexpr std::array<chipper::ChipParameterRole, 4> roles {
+        chipper::ChipParameterRole::macroControl1,
+        chipper::ChipParameterRole::macroControl2,
+        chipper::ChipParameterRole::macroControl3,
+        chipper::ChipParameterRole::macroControl4
+    };
+
+    return roles[std::min(index, roles.size() - 1u)];
+}
+
+chipper::ChipParameterRole sourceRole(size_t index)
+{
+    static constexpr std::array<chipper::ChipParameterRole, 4> roles {
+        chipper::ChipParameterRole::source1Enabled,
+        chipper::ChipParameterRole::source2Enabled,
+        chipper::ChipParameterRole::source3Enabled,
+        chipper::ChipParameterRole::source4Enabled
+    };
+
+    return roles[std::min(index, roles.size() - 1u)];
+}
+
 juce::String choiceTooltip(const chipper::ChipParameterSpec& spec, size_t choiceIndex)
 {
     if (choiceIndex < spec.choices.size() && ! spec.choices[choiceIndex].help.empty())
@@ -1340,7 +1364,10 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
     for (size_t i = 0; i < sourceChannelButtons.size(); ++i)
     {
         sourceChannelButtons[i].setButtonText((*labels)[i]);
-        sourceChannelButtons[i].setTooltip(juce::String("Enable or mute ") + (*labels)[i]);
+        if (const auto* spec = chipper::parameterSpecFor(mode, sourceRole(i)))
+            sourceChannelButtons[i].setTooltip(juce::String(spec->label) + ": " + juce::String(spec->help));
+        else
+            sourceChannelButtons[i].setTooltip(juce::String("Enable or mute ") + (*labels)[i]);
     }
 }
 
@@ -1471,12 +1498,15 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
 
     for (size_t i = 0; i < nativeLabels.size(); ++i)
     {
-        if (i < descriptor.controls.size())
+        const auto* spec = chipper::parameterSpecFor(mode, macroControlRole(i));
+        const auto hasFallbackControl = i < descriptor.controls.size();
+        if (spec != nullptr || hasFallbackControl)
         {
             const auto active = hasLiveCore;
-            nativeGroupLabels[i].setText(descriptor.controls[i].group, juce::dontSendNotification);
-            nativeLabels[i].setText(descriptor.controls[i].label, juce::dontSendNotification);
-            nativeSliders[i].setTooltip(descriptor.controls[i].help);
+            nativeGroupLabels[i].setText(spec != nullptr ? spec->group : descriptor.controls[i].group, juce::dontSendNotification);
+            nativeLabels[i].setText(spec != nullptr ? spec->label : descriptor.controls[i].label, juce::dontSendNotification);
+            nativeSliders[i].setTooltip(spec != nullptr ? spec->help : descriptor.controls[i].help);
+            controlValueLabels[i].setTooltip(spec != nullptr ? spec->help : descriptor.controls[i].help);
             nativeGroupLabels[i].setVisible(true);
             nativeLabels[i].setVisible(true);
             nativeSliders[i].setVisible(true);
@@ -1495,6 +1525,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
             nativeGroupLabels[i].setText({}, juce::dontSendNotification);
             nativeLabels[i].setText("Native Control", juce::dontSendNotification);
             nativeSliders[i].setTooltip({});
+            controlValueLabels[i].setTooltip({});
             nativeGroupLabels[i].setVisible(false);
             nativeLabels[i].setVisible(false);
             nativeSliders[i].setVisible(false);

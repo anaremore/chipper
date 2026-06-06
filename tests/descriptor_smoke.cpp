@@ -34,6 +34,25 @@ bool expectSegmentedRegister(chipper::ChipMode mode,
     return ok;
 }
 
+bool expectSpec(chipper::ChipMode mode,
+                chipper::ChipParameterRole role,
+                chipper::ParameterKind kind,
+                chipper::ControlSurface surface,
+                const std::string& label)
+{
+    const auto* spec = chipper::parameterSpecFor(mode, role);
+    bool ok = true;
+    ok &= expect(spec != nullptr, "missing parameter spec");
+    if (spec == nullptr)
+        return false;
+
+    ok &= expect(spec->kind == kind, spec->id + " has unexpected kind");
+    ok &= expect(spec->surface == surface, spec->id + " has unexpected surface");
+    ok &= expect(spec->label == label, spec->id + " has unexpected label");
+    ok &= expect(! spec->help.empty(), spec->id + " should have user-facing help text");
+    return ok;
+}
+
 } // namespace
 
 int main()
@@ -46,6 +65,11 @@ int main()
     ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::waveShape, 5, "RAM");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2149, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Fixed");
     ok &= expectSegmentedRegister(chipper::ChipMode::sn76489, chipper::ChipParameterRole::snNoiseMode, 5, "Macro");
+
+    ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Sweep Motion");
+    ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Envelope Level");
+    ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Noise Pitch");
+    ok &= expectSpec(chipper::ChipMode::sn76489, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Tone Stack");
 
     ok &= expect(chipper::chipHasParameterSurface(chipper::ChipMode::ym2149,
                                                   chipper::ChipParameterRole::source1Enabled,
