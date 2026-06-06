@@ -97,6 +97,11 @@ struct MacroTemplate
     std::string label;
     std::string help;
     std::array<float, 4> controls { 0.5f, 0.5f, 0.5f, 0.5f };
+    std::array<bool, 4> sourceEnabled { true, true, true, true };
+    float envelopeDecay = 0.0f;
+    int waveShape = 0;
+    int ymEnvelopeShape = 0;
+    int snNoiseMode = 0;
 };
 
 struct ChipDescriptor

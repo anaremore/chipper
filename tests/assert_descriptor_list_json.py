@@ -13,6 +13,7 @@ def main() -> int:
     parser.add_argument("--param-surface", action="append", default=[], metavar="KEY:ROLE=SURFACE")
     parser.add_argument("--param-kind", action="append", default=[], metavar="KEY:ROLE=KIND")
     parser.add_argument("--param-choices", action="append", default=[], metavar="KEY:ROLE=COUNT")
+    parser.add_argument("--macro-source", action="append", default=[], metavar="KEY:MACRO=1010")
     parser.add_argument("--preset", action="append", default=[], metavar="ID")
     args = parser.parse_args()
 
@@ -63,6 +64,14 @@ def main() -> int:
             item.get("role"): item
             for item in descriptor.get("parameters", [])
             if isinstance(item, dict) and item.get("role")
+        }
+
+    def macros_for(chip: str) -> dict[str, dict]:
+        descriptor = descriptors.get(chip, {})
+        return {
+            item.get("kind"): item
+            for item in descriptor.get("macros", [])
+            if isinstance(item, dict) and item.get("kind")
         }
 
     for assertion in args.implemented:
@@ -121,6 +130,24 @@ def main() -> int:
         actual = len(parameters[role].get("choices", []))
         if actual != expected:
             failures.append(f"{chip}.{role}.choices expected {expected}, got {actual}")
+
+    for assertion in args.macro_source:
+        chip_and_macro, _, expected = assertion.partition("=")
+        chip, _, macro = chip_and_macro.partition(":")
+        if not chip or not macro or not expected:
+            failures.append(f"bad macro source assertion {assertion!r}")
+            continue
+        if chip not in descriptors:
+            failures.append(f"chip {chip!r} not found for assertion {assertion!r}")
+            continue
+        macros = macros_for(chip)
+        if macro not in macros:
+            failures.append(f"{chip} macro {macro!r} not found")
+            continue
+        actual_values = macros[macro].get("sourceEnabled", [])
+        actual = "".join("1" if bool(value) else "0" for value in actual_values)
+        if actual != expected:
+            failures.append(f"{chip}.{macro}.sourceEnabled expected {expected!r}, got {actual!r}")
 
     if failures:
         print("\n".join(failures), file=sys.stderr)

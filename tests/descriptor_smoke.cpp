@@ -1,5 +1,6 @@
 #include "Engine/ChipDescriptors.h"
 
+#include <array>
 #include <iostream>
 #include <string>
 
@@ -53,6 +54,12 @@ bool expectSpec(chipper::ChipMode mode,
     return ok;
 }
 
+bool expectMacroSourceMask(chipper::ChipMode mode, chipper::MacroKind macro, std::array<bool, 4> expected)
+{
+    const auto& templ = chipper::macroTemplateFor(mode, macro);
+    return expect(templ.sourceEnabled == expected, templ.label + " has unexpected source mask");
+}
+
 } // namespace
 
 int main()
@@ -70,6 +77,11 @@ int main()
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Envelope Level");
     ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Noise Pitch");
     ok &= expectSpec(chipper::ChipMode::sn76489, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Tone Stack");
+
+    ok &= expectMacroSourceMask(chipper::ChipMode::nes, chipper::MacroKind::drum, { false, false, true, true });
+    ok &= expectMacroSourceMask(chipper::ChipMode::dmg, chipper::MacroKind::bass, { false, false, true, false });
+    ok &= expectMacroSourceMask(chipper::ChipMode::ym2149, chipper::MacroKind::drum, { true, false, false, true });
+    ok &= expectMacroSourceMask(chipper::ChipMode::sn76489, chipper::MacroKind::drum, { false, false, false, true });
 
     ok &= expect(chipper::chipHasParameterSurface(chipper::ChipMode::ym2149,
                                                   chipper::ChipParameterRole::source1Enabled,

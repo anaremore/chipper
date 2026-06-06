@@ -889,10 +889,27 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
         chipper::parameters::id::macroControl3,
         chipper::parameters::id::macroControl4
     };
+    const std::array<const char*, 4> sourceIds {
+        chipper::parameters::id::source1Enabled,
+        chipper::parameters::id::source2Enabled,
+        chipper::parameters::id::source3Enabled,
+        chipper::parameters::id::source4Enabled
+    };
 
     const juce::ScopedValueSetter<bool> suppress(suppressMacroTemplateApply, true);
     for (size_t i = 0; i < ids.size(); ++i)
         setParameterValueFromUi(ids[i], templ.controls[i]);
+    for (size_t i = 0; i < sourceIds.size(); ++i)
+        setParameterValueFromUi(sourceIds[i], templ.sourceEnabled[i] ? 1.0f : 0.0f);
+    setParameterValueFromUi(chipper::parameters::id::envelopeDecay, templ.envelopeDecay);
+    setChoiceParameterFromUi(chipper::parameters::id::waveShape, templ.waveShape);
+    setChoiceParameterFromUi(chipper::parameters::id::ymEnvelopeShape, templ.ymEnvelopeShape);
+    setChoiceParameterFromUi(chipper::parameters::id::snNoiseMode, templ.snNoiseMode);
+
+    const juce::ScopedValueSetter<bool> suppressPreset(suppressPresetApply, true);
+    presetBox.setSelectedId(0, juce::dontSendNotification);
+    presetBox.setTextWhenNothingSelected("Factory Preset");
+    presetBox.setTooltip("Applies a factory preset for the selected chip mode.");
 
     updateLiveControlReadouts();
 }

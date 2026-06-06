@@ -44,10 +44,15 @@ struct Options
     float control4 = 0.5f;
     std::array<bool, 4> controlProvided {};
     std::array<bool, 4> sourceEnabled { true, true, true, true };
+    std::array<bool, 4> sourceProvided {};
     float envelopeDecay = 0.0f;
     int waveShape = 0;
     int ymEnvelopeShape = 0;
     int snNoiseMode = 0;
+    bool envelopeDecayProvided = false;
+    bool waveShapeProvided = false;
+    bool ymEnvelopeShapeProvided = false;
+    bool snNoiseModeProvided = false;
     double clock = 1789773.0;
     double sampleRate = 48000.0;
     double seconds = 1.0;
@@ -220,10 +225,15 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.control4 = preset.controls[3];
     options.controlProvided = { true, true, true, true };
     options.sourceEnabled = preset.sourceEnabled;
+    options.sourceProvided = { true, true, true, true };
     options.envelopeDecay = preset.envelopeDecay;
     options.waveShape = preset.waveShape;
     options.ymEnvelopeShape = preset.ymEnvelopeShape;
     options.snNoiseMode = preset.snNoiseMode;
+    options.envelopeDecayProvided = true;
+    options.waveShapeProvided = true;
+    options.ymEnvelopeShapeProvided = true;
+    options.snNoiseModeProvided = true;
     options.clock = preset.clockHz;
 }
 
@@ -370,45 +380,53 @@ bool parseArgs(int argc, char** argv, Options& options)
         {
             if (! parseToggle("--source1", options.sourceEnabled[0]))
                 return false;
+            options.sourceProvided[0] = true;
         }
         else if (arg == "--source2")
         {
             if (! parseToggle("--source2", options.sourceEnabled[1]))
                 return false;
+            options.sourceProvided[1] = true;
         }
         else if (arg == "--source3")
         {
             if (! parseToggle("--source3", options.sourceEnabled[2]))
                 return false;
+            options.sourceProvided[2] = true;
         }
         else if (arg == "--source4")
         {
             if (! parseToggle("--source4", options.sourceEnabled[3]))
                 return false;
+            options.sourceProvided[3] = true;
         }
         else if (arg == "--envelope-decay")
         {
             const auto* value = requireValue("--envelope-decay");
             if (value == nullptr || ! parseNumber(std::string(value), options.envelopeDecay))
                 return false;
+            options.envelopeDecayProvided = true;
         }
         else if (arg == "--wave-shape")
         {
             const auto* value = requireValue("--wave-shape");
             if (value == nullptr || ! parseWaveShape(std::string(value), options.waveShape))
                 return false;
+            options.waveShapeProvided = true;
         }
         else if (arg == "--ym-envelope-shape")
         {
             const auto* value = requireValue("--ym-envelope-shape");
             if (value == nullptr || ! parseYmEnvelopeShape(std::string(value), options.ymEnvelopeShape))
                 return false;
+            options.ymEnvelopeShapeProvided = true;
         }
         else if (arg == "--sn-noise-mode")
         {
             const auto* value = requireValue("--sn-noise-mode");
             if (value == nullptr || ! parseSnNoiseMode(std::string(value), options.snNoiseMode))
                 return false;
+            options.snNoiseModeProvided = true;
         }
         else if (arg == "--clock")
         {
@@ -478,7 +496,18 @@ void applyMacroTemplateDefaults(Options& options)
     {
         if (! options.controlProvided[i])
             *controls[i] = templ.controls[i];
+        if (! options.sourceProvided[i])
+            options.sourceEnabled[i] = templ.sourceEnabled[i];
     }
+
+    if (! options.envelopeDecayProvided)
+        options.envelopeDecay = templ.envelopeDecay;
+    if (! options.waveShapeProvided)
+        options.waveShape = templ.waveShape;
+    if (! options.ymEnvelopeShapeProvided)
+        options.ymEnvelopeShape = templ.ymEnvelopeShape;
+    if (! options.snNoiseModeProvided)
+        options.snNoiseMode = templ.snNoiseMode;
 }
 
 std::vector<ScheduledEvent> loadEvents(const std::filesystem::path& path)
@@ -790,7 +819,15 @@ void writeDescriptorJson(std::ostream& out, chipper::ChipMode mode)
             << macro.controls[0] << ", "
             << macro.controls[1] << ", "
             << macro.controls[2] << ", "
-            << macro.controls[3] << "] }"
+            << macro.controls[3] << "], \"sourceEnabled\": ["
+            << (macro.sourceEnabled[0] ? "true" : "false") << ", "
+            << (macro.sourceEnabled[1] ? "true" : "false") << ", "
+            << (macro.sourceEnabled[2] ? "true" : "false") << ", "
+            << (macro.sourceEnabled[3] ? "true" : "false") << "], \"envelopeDecay\": "
+            << macro.envelopeDecay << ", \"waveShape\": "
+            << macro.waveShape << ", \"ymEnvelopeShape\": "
+            << macro.ymEnvelopeShape << ", \"snNoiseMode\": "
+            << macro.snNoiseMode << " }"
             << (i + 1u == descriptor.macros.size() ? "\n" : ",\n");
     }
 
