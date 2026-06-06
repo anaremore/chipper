@@ -4,6 +4,8 @@
 #include "PluginEditor.h"
 
 #include <algorithm>
+#include <array>
+#include <string_view>
 
 namespace
 {
@@ -138,10 +140,59 @@ bool ChipperAudioProcessor::setParameterFromMidiCc(const char* parameterId, int 
     {
         const auto normalized = juce::jlimit(0.0f, 1.0f, static_cast<float>(controllerValue) / 127.0f);
         parameter->setValueNotifyingHost(normalized);
+
+        if (std::string_view(parameterId) == chipper::parameters::id::macro)
+            applyCurrentMacroTemplateToParameters();
+
         return true;
     }
 
     return false;
+}
+
+bool ChipperAudioProcessor::setPlainParameterValue(const char* parameterId, float plainValue)
+{
+    if (auto* parameter = apvts.getParameter(parameterId))
+    {
+        parameter->setValueNotifyingHost(parameter->convertTo0to1(plainValue));
+        return true;
+    }
+
+    return false;
+}
+
+void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
+{
+    const auto modeChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::chipMode)->load()));
+    const auto macroChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::macro)->load()));
+    const auto mode = chipper::parameters::chipModeFromChoice(modeChoice);
+
+    if (! chipper::descriptorFor(mode).implemented)
+        return;
+
+    const auto& templ = chipper::macroTemplateFor(mode, chipper::parameters::macroFromChoice(macroChoice));
+    const std::array<const char*, 4> controlIds {
+        chipper::parameters::id::macroControl1,
+        chipper::parameters::id::macroControl2,
+        chipper::parameters::id::macroControl3,
+        chipper::parameters::id::macroControl4
+    };
+    const std::array<const char*, 4> sourceIds {
+        chipper::parameters::id::source1Enabled,
+        chipper::parameters::id::source2Enabled,
+        chipper::parameters::id::source3Enabled,
+        chipper::parameters::id::source4Enabled
+    };
+
+    for (size_t i = 0; i < controlIds.size(); ++i)
+        setPlainParameterValue(controlIds[i], templ.controls[i]);
+    for (size_t i = 0; i < sourceIds.size(); ++i)
+        setPlainParameterValue(sourceIds[i], templ.sourceEnabled[i] ? 1.0f : 0.0f);
+
+    setPlainParameterValue(chipper::parameters::id::envelopeDecay, templ.envelopeDecay);
+    setPlainParameterValue(chipper::parameters::id::waveShape, static_cast<float>(templ.waveShape));
+    setPlainParameterValue(chipper::parameters::id::ymEnvelopeShape, static_cast<float>(templ.ymEnvelopeShape));
+    setPlainParameterValue(chipper::parameters::id::snNoiseMode, static_cast<float>(templ.snNoiseMode));
 }
 
 void ChipperAudioProcessor::ensureCore()

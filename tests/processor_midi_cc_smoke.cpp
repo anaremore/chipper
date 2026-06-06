@@ -42,6 +42,22 @@ void sendController(ChipperAudioProcessor& processor, int controller, int value)
     midi.addEvent(juce::MidiMessage::controllerEvent(1, controller, value), 0);
     processor.processBlock(buffer, midi);
 }
+
+int controllerValueForChoice(ChipperAudioProcessor& processor, const char* parameterId, int choice)
+{
+    auto* parameter = processor.getValueTreeState().getParameter(parameterId);
+    if (parameter == nullptr)
+        return 0;
+
+    for (int value = 0; value <= 127; ++value)
+    {
+        const auto plain = parameter->convertFrom0to1(static_cast<float>(value) / 127.0f);
+        if (static_cast<int>(std::round(plain)) == choice)
+            return value;
+    }
+
+    return 0;
+}
 }
 
 int main()
@@ -77,6 +93,32 @@ int main()
     sendController(processor, 69, 127);
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl1), 1.0f, 0.0001f,
                      "Unmapped CC69 should not change mapped parameters");
+
+    sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 0));
+    sendController(processor, 76, 127);
+    sendController(processor, 77, 127);
+    sendController(processor, 78, 0);
+    sendController(processor, 79, 0);
+    sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 5));
+
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl1), 0.40f, 0.001f,
+                     "CC74 Drum macro should apply NES control 1 template");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl2), 0.15f, 0.001f,
+                     "CC74 Drum macro should apply NES control 2 template");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl3), 0.80f, 0.001f,
+                     "CC74 Drum macro should apply NES control 3 template");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl4), 0.45f, 0.001f,
+                     "CC74 Drum macro should apply NES control 4 template");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::source1Enabled), 0.0f, 0.0001f,
+                     "CC74 Drum macro should mute NES pulse 1 source");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::source2Enabled), 0.0f, 0.0001f,
+                     "CC74 Drum macro should mute NES pulse 2 source");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::source3Enabled), 1.0f, 0.0001f,
+                     "CC74 Drum macro should enable NES triangle source");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::source4Enabled), 1.0f, 0.0001f,
+                     "CC74 Drum macro should enable NES noise source");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::envelopeDecay), 0.78f, 0.001f,
+                     "CC74 Drum macro should apply NES envelope decay template");
 
     return ok ? 0 : 1;
 }

@@ -55,6 +55,8 @@ private:
     void handleMidiMessage(const juce::MidiMessage& message);
     bool handleMidiController(const juce::MidiMessage& message);
     bool setParameterFromMidiCc(const char* parameterId, int controllerValue);
+    bool setPlainParameterValue(const char* parameterId, float plainValue);
+    void applyCurrentMacroTemplateToParameters();
     void rememberHeldNote(int note, float velocity);
     void forgetHeldNote(int note);
 
