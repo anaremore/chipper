@@ -92,6 +92,30 @@ juce::String choiceTooltip(const chipper::ChipParameterSpec& spec, size_t choice
     return juce::String(spec.help);
 }
 
+template <typename ButtonArray>
+void layoutSegmentedButtons(ButtonArray& buttons, juce::Rectangle<int> bounds, size_t visibleCount)
+{
+    const auto count = std::max<size_t>(1u, std::min(visibleCount, buttons.size()));
+    const auto gap = 4;
+    auto remainingWidth = std::max(1, bounds.getWidth() - (gap * static_cast<int>(count - 1u)));
+    auto x = bounds.getX();
+
+    for (size_t i = 0; i < buttons.size(); ++i)
+    {
+        if (i >= count)
+        {
+            buttons[i].setBounds({});
+            continue;
+        }
+
+        const auto remainingButtons = static_cast<int>(count - i);
+        const auto width = std::max(1, remainingWidth / remainingButtons);
+        buttons[i].setBounds({ x, bounds.getY(), width, bounds.getHeight() });
+        x += width + gap;
+        remainingWidth -= width;
+    }
+}
+
 } // namespace
 
 ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& processor)
@@ -656,35 +680,14 @@ void ChipperAudioProcessorEditor::placePulseDutySegment(juce::Rectangle<int> bou
 {
     bounds.removeFromTop(30);
     pulseDutySegmentBounds = bounds.removeFromTop(26).reduced(0, 1);
-    const auto gap = 4;
-    const auto buttonWidth = (pulseDutySegmentBounds.getWidth() - (gap * static_cast<int>(pulseDutyButtons.size() - 1u))) / static_cast<int>(pulseDutyButtons.size());
-    for (size_t i = 0; i < pulseDutyButtons.size(); ++i)
-    {
-        pulseDutyButtons[i].setBounds({
-            pulseDutySegmentBounds.getX() + static_cast<int>(i) * (buttonWidth + gap),
-            pulseDutySegmentBounds.getY(),
-            buttonWidth,
-            pulseDutySegmentBounds.getHeight()
-        });
-    }
+    layoutSegmentedButtons(pulseDutyButtons, pulseDutySegmentBounds, pulseDutyButtons.size());
 }
 
 void ChipperAudioProcessorEditor::placeWaveShapeSegment(juce::Rectangle<int> bounds)
 {
     waveShapeLabel.setBounds(bounds.removeFromTop(18));
     waveShapeSegmentBounds = bounds.removeFromTop(28).reduced(0, 1);
-
-    const auto gap = 4;
-    const auto buttonWidth = (waveShapeSegmentBounds.getWidth() - (gap * static_cast<int>(waveShapeButtons.size() - 1u))) / static_cast<int>(waveShapeButtons.size());
-    for (size_t i = 0; i < waveShapeButtons.size(); ++i)
-    {
-        waveShapeButtons[i].setBounds({
-            waveShapeSegmentBounds.getX() + static_cast<int>(i) * (buttonWidth + gap),
-            waveShapeSegmentBounds.getY(),
-            buttonWidth,
-            waveShapeSegmentBounds.getHeight()
-        });
-    }
+    layoutSegmentedButtons(waveShapeButtons, waveShapeSegmentBounds, waveShapeButtons.size());
 
     waveShapeValueLabel.setBounds(bounds);
 }
@@ -693,18 +696,7 @@ void ChipperAudioProcessorEditor::placeYmEnvelopeShapeSegment(juce::Rectangle<in
 {
     ymEnvelopeShapeLabel.setBounds(bounds.removeFromTop(18));
     ymEnvelopeShapeSegmentBounds = bounds.removeFromTop(28).reduced(0, 1);
-
-    const auto gap = 4;
-    const auto buttonWidth = (ymEnvelopeShapeSegmentBounds.getWidth() - (gap * static_cast<int>(ymEnvelopeShapeButtons.size() - 1u))) / static_cast<int>(ymEnvelopeShapeButtons.size());
-    for (size_t i = 0; i < ymEnvelopeShapeButtons.size(); ++i)
-    {
-        ymEnvelopeShapeButtons[i].setBounds({
-            ymEnvelopeShapeSegmentBounds.getX() + static_cast<int>(i) * (buttonWidth + gap),
-            ymEnvelopeShapeSegmentBounds.getY(),
-            buttonWidth,
-            ymEnvelopeShapeSegmentBounds.getHeight()
-        });
-    }
+    layoutSegmentedButtons(ymEnvelopeShapeButtons, ymEnvelopeShapeSegmentBounds, ymEnvelopeShapeButtons.size());
 
     ymEnvelopeShapeValueLabel.setBounds(bounds);
 }
@@ -713,18 +705,7 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
 {
     snNoiseModeLabel.setBounds(bounds.removeFromTop(18));
     snNoiseModeSegmentBounds = bounds.removeFromTop(28).reduced(0, 1);
-
-    const auto gap = 4;
-    const auto buttonWidth = (snNoiseModeSegmentBounds.getWidth() - (gap * static_cast<int>(snNoiseModeButtons.size() - 1u))) / static_cast<int>(snNoiseModeButtons.size());
-    for (size_t i = 0; i < snNoiseModeButtons.size(); ++i)
-    {
-        snNoiseModeButtons[i].setBounds({
-            snNoiseModeSegmentBounds.getX() + static_cast<int>(i) * (buttonWidth + gap),
-            snNoiseModeSegmentBounds.getY(),
-            buttonWidth,
-            snNoiseModeSegmentBounds.getHeight()
-        });
-    }
+    layoutSegmentedButtons(snNoiseModeButtons, snNoiseModeSegmentBounds, snNoiseModeButtons.size());
 
     snNoiseModeValueLabel.setBounds(bounds);
 }
@@ -1482,6 +1463,7 @@ void ChipperAudioProcessorEditor::updateSnNoiseModeButtons(chipper::ChipMode mod
                                  ? snNoiseModeButtons.size()
                                  : std::min(snNoiseModeButtons.size(), spec->choices.size());
     const auto selected = static_cast<size_t>(std::clamp(patch.snNoiseMode, 0, static_cast<int>(choiceCount - 1u)));
+    layoutSegmentedButtons(snNoiseModeButtons, snNoiseModeSegmentBounds, choiceCount);
     for (size_t i = 0; i < snNoiseModeButtons.size(); ++i)
     {
         const auto visible = shouldBeVisible && i < choiceCount;
