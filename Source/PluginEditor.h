@@ -19,12 +19,26 @@ public:
 private:
     static constexpr size_t uiModuleCount = 6;
     static constexpr size_t uiModuleRows = 4;
+    static constexpr size_t nesChannelCount = 4;
+    static constexpr size_t liveControlCount = 6;
 
     void timerCallback() override;
     void updateDescriptorText();
+    void updateLiveControlReadouts();
     void addLabeledSlider(juce::Slider& slider, juce::Label& label, const juce::String& fallbackText);
     void placeLabeledSlider(juce::Slider& slider, juce::Label& label, juce::Rectangle<int> bounds);
-    void placeGroupedSlider(juce::Slider& slider, juce::Label& groupLabel, juce::Label& label, juce::Rectangle<int> bounds);
+    void placeGroupedSlider(juce::Slider& slider,
+                            juce::Label& groupLabel,
+                            juce::Label& label,
+                            juce::Label& valueLabel,
+                            juce::Rectangle<int> bounds);
+    void placeLabeledSliderWithReadout(juce::Slider& slider, juce::Label& label, juce::Label& valueLabel, juce::Rectangle<int> bounds);
+    float parameterValue(const char* parameterId) const;
+    juce::String nesDutyReadout(float value) const;
+    juce::String nesSweepReadout(float value) const;
+    juce::String nesNoiseReadout(float value) const;
+    juce::String nesFocusReadout(float value) const;
+    void setNesChannelSurfaceVisible(bool shouldBeVisible);
 
     ChipperAudioProcessor& audioProcessor;
     juce::Label titleLabel;
@@ -40,6 +54,8 @@ private:
     std::array<juce::Label, uiModuleCount> moduleTitleLabels;
     std::array<juce::Label, uiModuleCount> moduleSummaryLabels;
     std::array<std::array<juce::Label, uiModuleRows>, uiModuleCount> moduleItemLabels;
+    std::array<juce::Label, nesChannelCount> nesChannelLabels;
+    std::array<juce::Label, liveControlCount> controlValueLabels;
 
     juce::ComboBox chipModeBox;
     juce::ComboBox accuracyBox;
@@ -66,6 +82,7 @@ private:
     chipper::ChipMode displayedMode = chipper::ChipMode::custom;
     bool descriptorTextInitialized = false;
     std::array<juce::Rectangle<int>, uiModuleCount> moduleBounds;
+    std::array<juce::Rectangle<int>, nesChannelCount> nesChannelBounds;
     juce::Rectangle<int> globalStripBounds;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipperAudioProcessorEditor)

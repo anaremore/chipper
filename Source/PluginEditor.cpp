@@ -3,11 +3,13 @@
 #include "ChipperBuildInfo.h"
 #include "Engine/ChipDescriptors.h"
 
+#include <cmath>
+
 ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& processor)
     : AudioProcessorEditor(processor),
       audioProcessor(processor)
 {
-    setSize(900, 700);
+    setSize(980, 800);
 
     auto& state = audioProcessor.getValueTreeState();
 
@@ -82,6 +84,15 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         nativeAttachments[i] = std::make_unique<SliderAttachment>(state, ids[i], nativeSliders[i]);
     }
 
+    for (auto& valueLabel : controlValueLabels)
+    {
+        valueLabel.setJustificationType(juce::Justification::centredLeft);
+        valueLabel.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+        valueLabel.setFont(juce::FontOptions(11.0f));
+        valueLabel.setMinimumHorizontalScale(0.75f);
+        addAndMakeVisible(valueLabel);
+    }
+
     statusLabel.setFont(juce::FontOptions(13.0f));
     statusLabel.setJustificationType(juce::Justification::centredLeft);
     statusLabel.setColour(juce::Label::textColourId, juce::Colours::white);
@@ -133,6 +144,17 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         }
     }
 
+    for (auto& channelLabel : nesChannelLabels)
+    {
+        channelLabel.setJustificationType(juce::Justification::centredLeft);
+        channelLabel.setFont(juce::FontOptions(12.0f, juce::Font::bold));
+        channelLabel.setColour(juce::Label::textColourId, juce::Colour(0xffe6f2f0));
+        channelLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff202c33));
+        channelLabel.setMinimumHorizontalScale(0.70f);
+        channelLabel.setVisible(false);
+        addAndMakeVisible(channelLabel);
+    }
+
     globalStripLabel.setText("Global Performance Controls", juce::dontSendNotification);
     globalStripLabel.setJustificationType(juce::Justification::centredLeft);
     globalStripLabel.setColour(juce::Label::textColourId, juce::Colour(0xfff0c94d));
@@ -140,6 +162,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addAndMakeVisible(globalStripLabel);
 
     updateDescriptorText();
+    updateLiveControlReadouts();
     startTimerHz(8);
 }
 
@@ -160,6 +183,21 @@ void ChipperAudioProcessorEditor::paint(juce::Graphics& g)
         g.fillRoundedRectangle(panel, 6.0f);
         g.setColour(juce::Colour(0xff34474c));
         g.drawRoundedRectangle(panel.reduced(0.5f), 6.0f, 1.0f);
+    }
+
+    if (displayedMode == chipper::ChipMode::nes)
+    {
+        for (const auto& bounds : nesChannelBounds)
+        {
+            if (bounds.isEmpty())
+                continue;
+
+            const auto card = bounds.toFloat();
+            g.setColour(juce::Colour(0xff202c33));
+            g.fillRoundedRectangle(card, 4.0f);
+            g.setColour(juce::Colour(0xff56c7d8).withAlpha(0.70f));
+            g.drawRoundedRectangle(card.reduced(0.5f), 4.0f, 1.0f);
+        }
     }
 
     if (! globalStripBounds.isEmpty())
@@ -198,7 +236,7 @@ void ChipperAudioProcessorEditor::resized()
     chipSummaryLabel.setBounds(area.removeFromTop(34));
     area.removeFromTop(10);
 
-    auto modules = area.removeFromTop(330);
+    auto modules = area.removeFromTop(390);
     const auto gap = 10;
     const auto columnWidth = (modules.getWidth() - gap) / 2;
     const auto rowHeight = (modules.getHeight() - (gap * 2)) / 3;
@@ -235,8 +273,28 @@ void ChipperAudioProcessorEditor::resized()
         }
     }
 
+    auto nesPanel = moduleBounds[1].reduced(12, 9);
+    nesPanel.removeFromTop(20);
+    nesPanel.removeFromTop(30);
+    nesPanel.removeFromTop(4);
+    const auto nesGap = 6;
+    const auto nesCardWidth = (nesPanel.getWidth() - nesGap) / 2;
+    const auto nesCardHeight = (nesPanel.getHeight() - nesGap) / 2;
+    for (size_t i = 0; i < nesChannelBounds.size(); ++i)
+    {
+        const auto row = static_cast<int>(i / 2);
+        const auto column = static_cast<int>(i % 2);
+        nesChannelBounds[i] = {
+            nesPanel.getX() + (column * (nesCardWidth + nesGap)),
+            nesPanel.getY() + (row * (nesCardHeight + nesGap)),
+            nesCardWidth,
+            nesCardHeight
+        };
+        nesChannelLabels[i].setBounds(nesChannelBounds[i].reduced(8, 1));
+    }
+
     area.removeFromTop(12);
-    globalStripBounds = area.removeFromTop(148);
+    globalStripBounds = area.removeFromTop(190);
     auto strip = globalStripBounds.reduced(12, 8);
     globalStripLabel.setBounds(strip.removeFromTop(20));
     strip.removeFromTop(4);
@@ -258,12 +316,12 @@ void ChipperAudioProcessorEditor::resized()
         };
     }
 
-    placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlCells[0]);
-    placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlCells[1]);
-    placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlCells[2]);
-    placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlCells[3]);
-    placeLabeledSlider(clockSlider, clockLabel, controlCells[4]);
-    placeLabeledSlider(outputSlider, outputLabel, controlCells[5]);
+    placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlValueLabels[0], controlCells[0]);
+    placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[1]);
+    placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[2]);
+    placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[3]);
+    placeLabeledSliderWithReadout(clockSlider, clockLabel, controlValueLabels[4], controlCells[4]);
+    placeLabeledSliderWithReadout(outputSlider, outputLabel, controlValueLabels[5], controlCells[5]);
 
     auto footer = getLocalBounds().reduced(16).removeFromBottom(44);
     buildLabel.setBounds(footer.removeFromRight(190));
@@ -274,6 +332,7 @@ void ChipperAudioProcessorEditor::resized()
 void ChipperAudioProcessorEditor::timerCallback()
 {
     updateDescriptorText();
+    updateLiveControlReadouts();
     statusLabel.setText(audioProcessor.currentCoreStatus(), juce::dontSendNotification);
 }
 
@@ -301,11 +360,77 @@ void ChipperAudioProcessorEditor::placeLabeledSlider(juce::Slider& slider, juce:
 void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
                                                      juce::Label& groupLabel,
                                                      juce::Label& label,
+                                                     juce::Label& valueLabel,
                                                      juce::Rectangle<int> bounds)
 {
     groupLabel.setBounds(bounds.removeFromTop(13));
     label.setBounds(bounds.removeFromTop(17));
-    slider.setBounds(bounds.reduced(0, 1));
+    slider.setBounds(bounds.removeFromTop(26).reduced(0, 1));
+    valueLabel.setBounds(bounds);
+}
+
+void ChipperAudioProcessorEditor::placeLabeledSliderWithReadout(juce::Slider& slider,
+                                                                juce::Label& label,
+                                                                juce::Label& valueLabel,
+                                                                juce::Rectangle<int> bounds)
+{
+    label.setBounds(bounds.removeFromTop(20));
+    slider.setBounds(bounds.removeFromTop(30).reduced(0, 2));
+    valueLabel.setBounds(bounds);
+}
+
+float ChipperAudioProcessorEditor::parameterValue(const char* parameterId) const
+{
+    if (const auto* value = audioProcessor.getValueTreeState().getRawParameterValue(parameterId))
+        return value->load();
+
+    return 0.0f;
+}
+
+juce::String ChipperAudioProcessorEditor::nesDutyReadout(float value) const
+{
+    static constexpr std::array<const char*, 4> dutyLabels { "12.5% narrow pulse", "25% hollow pulse", "50% square", "75% inverted pulse" };
+    const auto index = static_cast<size_t>(std::clamp(static_cast<int>(std::round(value * 3.0f)), 0, 3));
+    return dutyLabels[index];
+}
+
+juce::String ChipperAudioProcessorEditor::nesSweepReadout(float value) const
+{
+    if (value < 0.18f)
+        return "Sweep mostly off";
+    if (value < 0.45f)
+        return "Small pitch gestures";
+    if (value < 0.75f)
+        return "Coin / jump bends";
+    return "Deep laser sweep";
+}
+
+juce::String ChipperAudioProcessorEditor::nesNoiseReadout(float value) const
+{
+    const auto period = std::clamp(static_cast<int>(std::round((1.0f - value) * 14.0f)), 0, 15);
+    if (value < 0.25f)
+        return juce::String("Low grit, period ") + juce::String(period);
+    if (value < 0.60f)
+        return juce::String("Snare noise, period ") + juce::String(period);
+    return juce::String("Short hats, period ") + juce::String(period);
+}
+
+juce::String ChipperAudioProcessorEditor::nesFocusReadout(float value) const
+{
+    if (value < 0.33f)
+        return "Triangle bass focus";
+    if (value > 0.66f)
+        return "Pulse stack focus";
+    return "Pulse + triangle stack";
+}
+
+void ChipperAudioProcessorEditor::setNesChannelSurfaceVisible(bool shouldBeVisible)
+{
+    for (auto& channelLabel : nesChannelLabels)
+        channelLabel.setVisible(shouldBeVisible);
+
+    for (auto& itemLabel : moduleItemLabels[1])
+        itemLabel.setVisible(! shouldBeVisible && ! itemLabel.getText().isEmpty());
 }
 
 void ChipperAudioProcessorEditor::updateDescriptorText()
@@ -369,12 +494,15 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
             nativeGroupLabels[i].setVisible(true);
             nativeLabels[i].setVisible(true);
             nativeSliders[i].setVisible(true);
+            controlValueLabels[i].setVisible(true);
             nativeGroupLabels[i].setEnabled(active);
             nativeLabels[i].setEnabled(active);
             nativeSliders[i].setEnabled(active);
+            controlValueLabels[i].setEnabled(active);
             nativeGroupLabels[i].setAlpha(active ? 1.0f : 0.55f);
             nativeLabels[i].setAlpha(active ? 1.0f : 0.55f);
             nativeSliders[i].setAlpha(active ? 1.0f : 0.55f);
+            controlValueLabels[i].setAlpha(active ? 1.0f : 0.55f);
         }
         else
         {
@@ -384,8 +512,69 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
             nativeGroupLabels[i].setVisible(false);
             nativeLabels[i].setVisible(false);
             nativeSliders[i].setVisible(false);
+            controlValueLabels[i].setVisible(false);
         }
     }
 
+    controlValueLabels[4].setVisible(true);
+    controlValueLabels[5].setVisible(true);
+    controlValueLabels[4].setEnabled(hasLiveCore);
+    controlValueLabels[5].setEnabled(hasLiveCore);
+    controlValueLabels[4].setAlpha(hasLiveCore ? 1.0f : 0.55f);
+    controlValueLabels[5].setAlpha(hasLiveCore ? 1.0f : 0.55f);
+    setNesChannelSurfaceVisible(mode == chipper::ChipMode::nes);
+    updateLiveControlReadouts();
     repaint();
+}
+
+void ChipperAudioProcessorEditor::updateLiveControlReadouts()
+{
+    const auto modeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::chipMode)));
+    const auto mode = chipper::parameters::chipModeFromChoice(modeChoice);
+    const auto macroControl1 = parameterValue(chipper::parameters::id::macroControl1);
+    const auto macroControl2 = parameterValue(chipper::parameters::id::macroControl2);
+    const auto macroControl3 = parameterValue(chipper::parameters::id::macroControl3);
+    const auto macroControl4 = parameterValue(chipper::parameters::id::macroControl4);
+
+    if (mode == chipper::ChipMode::nes)
+    {
+        controlValueLabels[0].setText(nesDutyReadout(macroControl1), juce::dontSendNotification);
+        controlValueLabels[1].setText(nesSweepReadout(macroControl2), juce::dontSendNotification);
+        controlValueLabels[2].setText(nesNoiseReadout(macroControl3), juce::dontSendNotification);
+        controlValueLabels[3].setText(nesFocusReadout(macroControl4), juce::dontSendNotification);
+
+        const auto playModeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::playMode)));
+        const auto playMode = chipper::parameters::playModeFromChoice(playModeChoice);
+        if (playMode == chipper::PlayMode::chipPoly)
+        {
+            nesChannelLabels[0].setText("Pulse 1  |  note 1", juce::dontSendNotification);
+            nesChannelLabels[1].setText("Pulse 2  |  note 2", juce::dontSendNotification);
+            nesChannelLabels[2].setText("Triangle | note 3 bass", juce::dontSendNotification);
+            nesChannelLabels[3].setText("Noise    | mono SFX layer", juce::dontSendNotification);
+        }
+        else
+        {
+            nesChannelLabels[0].setText("Pulse 1  |  duty lead", juce::dontSendNotification);
+            nesChannelLabels[1].setText("Pulse 2  |  stack / sweep", juce::dontSendNotification);
+            nesChannelLabels[2].setText("Triangle | bass body", juce::dontSendNotification);
+            nesChannelLabels[3].setText("Noise    | snare / hats", juce::dontSendNotification);
+        }
+    }
+    else
+    {
+        controlValueLabels[0].setText(juce::String(macroControl1, 2), juce::dontSendNotification);
+        controlValueLabels[1].setText(juce::String(macroControl2, 2), juce::dontSendNotification);
+        controlValueLabels[2].setText(juce::String(macroControl3, 2), juce::dontSendNotification);
+        controlValueLabels[3].setText(juce::String(macroControl4, 2), juce::dontSendNotification);
+    }
+
+    const auto clock = parameterValue(chipper::parameters::id::clockHz);
+    const auto defaultClock = chipper::parameters::defaultClockForMode(mode);
+    const auto clockText = clock <= 0.0f
+        ? juce::String("Default ") + juce::String(defaultClock / 1000000.0, 2) + " MHz"
+        : juce::String("Override ") + juce::String(static_cast<double>(clock) / 1000000.0, 2) + " MHz";
+    controlValueLabels[4].setText(clockText, juce::dontSendNotification);
+
+    const auto outputDb = parameterValue(chipper::parameters::id::outputDb);
+    controlValueLabels[5].setText(juce::String("Output ") + juce::String(outputDb, 1) + " dB", juce::dontSendNotification);
 }
