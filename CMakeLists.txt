@@ -285,11 +285,26 @@ add_test(NAME chipper_render_preset_sid_gated_noise_tom_smoke
 add_test(NAME chipper_render_preset_ym_noise_hat_smoke
     COMMAND chipper_render --preset ym-noise-hat --rate 48000 --seconds 0.04 --note 72 --out preset-ym-noise-hat-smoke.wav --debug preset-ym-noise-hat-smoke.json
 )
+add_test(NAME chipper_render_preset_ym_three_voice_arp_smoke
+    COMMAND chipper_render --preset ym-three-voice-arp --rate 48000 --seconds 0.04 --note 60 --out preset-ym-three-voice-arp-smoke.wav --debug preset-ym-three-voice-arp-smoke.json
+)
 add_test(NAME chipper_render_preset_ym_fake_chord_smoke
     COMMAND chipper_render --preset ym-fake-chord-stack --rate 48000 --seconds 0.04 --note 60 --out preset-ym-fake-chord-smoke.wav --debug preset-ym-fake-chord-smoke.json
 )
+add_test(NAME chipper_render_preset_ym_menu_beep_smoke
+    COMMAND chipper_render --preset ym-menu-beep --rate 48000 --seconds 0.04 --note 76 --out preset-ym-menu-beep-smoke.wav --debug preset-ym-menu-beep-smoke.json
+)
+add_test(NAME chipper_render_preset_ym_bright_beep_smoke
+    COMMAND chipper_render --preset ym-bright-beep --rate 48000 --seconds 0.04 --note 76 --out preset-ym-bright-beep-smoke.wav --debug preset-ym-bright-beep-smoke.json
+)
 add_test(NAME chipper_render_preset_ym_envelope_bell_smoke
     COMMAND chipper_render --preset ym-envelope-bell --rate 48000 --seconds 0.04 --note 76 --out preset-ym-envelope-bell-smoke.wav --debug preset-ym-envelope-bell-smoke.json
+)
+add_test(NAME chipper_render_preset_ym_arcade_clang_smoke
+    COMMAND chipper_render --preset ym-arcade-clang --rate 48000 --seconds 0.04 --note 48 --out preset-ym-arcade-clang-smoke.wav --debug preset-ym-arcade-clang-smoke.json
+)
+add_test(NAME chipper_render_preset_ym_fast_minor_arp_smoke
+    COMMAND chipper_render --preset ym-fast-minor-arp --rate 48000 --seconds 0.04 --note 60 --out preset-ym-fast-minor-arp-smoke.wav --debug preset-ym-fast-minor-arp-smoke.json
 )
 add_test(NAME chipper_render_preset_sn_noise_hit_smoke
     COMMAND chipper_render --preset sn-noise-hit --rate 48000 --seconds 0.04 --note 60 --out preset-sn-noise-hit-smoke.wav --debug preset-sn-noise-hit-smoke.json
@@ -462,6 +477,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip nes --chip dmg --chip ym2149 --chip sn76489 --chip sid --chip ym2612 --chip custom --implemented nes=1 --implemented dmg=1 --implemented ym2149=1 --implemented sn76489=1 --implemented sid=1 --verification-badge "nes=Verified partial" --verification-badge "dmg=Verified partial" --verification-badge "sid=Verified partial" --verification-badge "ym2149=Verified partial" --verification-badge "sn76489=Verified partial" --verification-badge "ym2612=Unverified planned" --verification-cycle nes=0 --verification-cycle sid=0 --verification-hardware nes=0 --verification-hardware sid=0 --param-kind nes:macroControl1=chipRegister --param-surface nes:macroControl1=segmentedChoice --param-choices nes:macroControl1=4 --param-midi-cc nes:macroControl1=76 --param-kind nes:pulse2Duty=chipRegister --param-surface nes:pulse2Duty=segmentedChoice --param-choices nes:pulse2Duty=5 --param-midi-cc nes:pulse2Duty=104 --param-kind nes:macroControl3=chipRegister --param-surface nes:macroControl3=slider --param-midi-cc nes:macroControl3=78 --param-surface nes:snNoiseMode=segmentedChoice --param-choices nes:snNoiseMode=3 --param-midi-cc nes:source1Level=84 --param-kind dmg:macroControl2=chipRegister --param-surface dmg:macroControl2=slider --param-midi-cc dmg:macroControl2=77 --param-kind dmg:macroControl3=chipRegister --param-surface dmg:macroControl3=slider --param-midi-cc dmg:macroControl3=78 --param-kind dmg:macroControl4=chipRegister --param-surface dmg:macroControl4=slider --param-midi-cc dmg:macroControl4=79 --param-surface dmg:waveShape=segmentedChoice --param-choices dmg:waveShape=5 --param-midi-cc dmg:waveShape=89 --param-surface dmg:dmgWaveLevel=segmentedChoice --param-choices dmg:dmgWaveLevel=5 --param-midi-cc dmg:dmgWaveLevel=92 --param-kind dmg:dmgStereoRoute=chipRegister --param-surface dmg:dmgStereoRoute=segmentedChoice --param-choices dmg:dmgStereoRoute=5 --param-midi-cc dmg:dmgStereoRoute=94 --param-surface dmg:snNoiseMode=segmentedChoice --param-choices dmg:snNoiseMode=3 --param-kind sid:macroControl1=chipRegister --param-surface sid:macroControl1=slider --param-midi-cc sid:macroControl1=76 --param-kind sid:macroControl3=chipRegister --param-surface sid:macroControl3=slider --param-midi-cc sid:macroControl3=78 --param-kind sid:macroControl4=chipRegister --param-surface sid:macroControl4=slider --param-midi-cc sid:macroControl4=79 --param-kind sid:envelopeDecay=chipRegister --param-surface sid:envelopeDecay=slider --param-midi-cc sid:envelopeDecay=88 --param-surface sid:waveShape=segmentedChoice --param-choices sid:waveShape=5 --param-midi-cc sid:waveShape=89 --param-kind sid:ymEnvelopeShape=chipRegister --param-surface sid:ymEnvelopeShape=menu --param-choices sid:ymEnvelopeShape=9 --param-midi-cc sid:ymEnvelopeShape=90 --param-kind sid:snNoiseMode=chipRegister --param-surface sid:snNoiseMode=segmentedChoice --param-choices sid:snNoiseMode=5 --param-midi-cc sid:snNoiseMode=91 --param-kind sid:dmgStereoRoute=chipRegister --param-surface sid:dmgStereoRoute=segmentedChoice --param-choices sid:dmgStereoRoute=3 --param-midi-cc sid:dmgStereoRoute=94 --param-kind sid:stereoSpread=chipRegister --param-surface sid:stereoSpread=slider --param-midi-cc sid:stereoSpread=93 --param-kind sid:sidFilterRouting=chipRegister --param-surface sid:sidFilterRouting=menu --param-choices sid:sidFilterRouting=9 --param-midi-cc sid:sidFilterRouting=113 --param-kind sid:sidVoice2PulseWidth=chipRegister --param-surface sid:sidVoice2PulseWidth=slider --param-midi-cc sid:sidVoice2PulseWidth=114 --param-kind sid:sidVoice3PulseWidth=chipRegister --param-surface sid:sidVoice3PulseWidth=slider --param-midi-cc sid:sidVoice3PulseWidth=115 --param-midi-cc sid:source3Level=86 --param-kind ym2149:macroControl3=chipRegister --param-surface ym2149:macroControl3=slider --param-midi-cc ym2149:macroControl3=78 --param-kind ym2149:macroControl4=chipRegister --param-surface ym2149:macroControl4=segmentedChoice --param-choices ym2149:macroControl4=3 --param-kind ym2149:envelopeDecay=chipRegister --param-surface ym2149:envelopeDecay=slider --param-midi-cc ym2149:envelopeDecay=88 --param-surface ym2149:ymEnvelopeShape=segmentedChoice --param-choices ym2149:ymEnvelopeShape=5 --param-midi-cc ym2149:source4Level=87 --param-kind ym2149:stereoSpread=continuous --param-surface ym2149:stereoSpread=slider --param-midi-cc ym2149:stereoSpread=93 --param-kind sn76489:macroControl3=chipRegister --param-surface sn76489:macroControl3=slider --param-midi-cc sn76489:macroControl3=78 --param-kind sn76489:macroControl4=chipRegister --param-surface sn76489:macroControl4=slider --param-midi-cc sn76489:macroControl4=79 --param-surface sn76489:snNoiseMode=segmentedChoice --param-choices sn76489:snNoiseMode=5 --param-kind sn76489:stereoSpread=continuous --param-surface sn76489:stereoSpread=slider --param-midi-cc sn76489:stereoSpread=93 --macro-label "nes:Coin=NES Coin Blip" --macro-label "dmg:Bass=DMG Wave Bass" --macro-label "sid:Bass=SID Dirty Bass" --macro-label "ym2149:Drum=YM Noise Perc" --macro-label "sn76489:Drum=PSG Drum" --macro-source nes:Drum=0011 --macro-source dmg:Bass=0010 --macro-source sid:Drum=0010 --macro-source ym2149:Drum=1001 --macro-source sn76489:Drum=0001 --preset nes-hero-pulse --preset nes-boss-damage --preset nes-power-up-rise --preset dmg-wave-bass --preset dmg-power-up-rise --preset sid-dirty-bass --preset sid-pwm-lead --preset sid-filter-pluck --preset sid-8580-round-bass --preset sid-notch-pwm-keys --preset sid-lpbp-sweep-stack --preset sid-bphp-metal-bell --preset sid-allmode-growl --preset ym-noise-hat --preset ym-fake-chord-stack --preset ym-envelope-bell --preset sn-noise-hit --preset sn-arcade-laser --preset sn-tone-stack --preset sn-arcade-bass --preset sn-periodic-zap --preset sn-warning-alarm
     )
     set_tests_properties(chipper_render_list_descriptors_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
+
+    add_test(NAME chipper_render_list_ym_preset_catalog_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --preset ym-three-voice-arp --preset ym-menu-beep --preset ym-bright-beep --preset ym-arcade-clang --preset ym-fast-minor-arp --preset ym-triangle-env-keys
+    )
+    set_tests_properties(chipper_render_list_ym_preset_catalog_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_macro_catalog_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --macro-label "nes:Coin=NES Coin Blip" --macro-label "dmg:Power-Up=DMG Power-Up" --macro-label "sid:Laser=SID Sync Sweep" --macro-label "ym2149:Arp=YM Three-Voice Arp" --macro-label "sn76489:Manual=PSG Manual" --macro-label "sn76489:Drum=PSG Drum" --preset sid-wide-pwm-pad --preset sid-hard-sync-saw --preset sid-gated-noise-tom
@@ -898,15 +918,40 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_preset_ym_noise_hat_assert PROPERTIES DEPENDS chipper_render_preset_ym_noise_hat_smoke)
 
+    add_test(NAME chipper_render_preset_ym_three_voice_arp_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-three-voice-arp-smoke.json --implemented-contains partial --preset ym-three-voice-arp --macro Arp --play-mode "Chip Poly" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.05 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=1 --core-max sourceEnabledB=1 --core-min sourceEnabledC=1 --core-max sourceEnabledC=1 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0
+    )
+    set_tests_properties(chipper_render_preset_ym_three_voice_arp_assert PROPERTIES DEPENDS chipper_render_preset_ym_three_voice_arp_smoke)
+
     add_test(NAME chipper_render_preset_ym_fake_chord_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-fake-chord-smoke.json --implemented-contains partial --preset ym-fake-chord-stack --macro Arp --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.08 --min-zero-crossings 40 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=1 --core-max sourceEnabledB=1 --core-min sourceEnabledC=1 --core-max sourceEnabledC=1 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0
     )
     set_tests_properties(chipper_render_preset_ym_fake_chord_assert PROPERTIES DEPENDS chipper_render_preset_ym_fake_chord_smoke)
 
+    add_test(NAME chipper_render_preset_ym_menu_beep_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-menu-beep-smoke.json --implemented-contains partial --preset ym-menu-beep --macro Coin --play-mode "Big Mono" --output-db -9 --register-writes 0 --note-events 0 --min-peak 0.04 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=0 --core-max sourceEnabledB=0 --core-min sourceEnabledC=0 --core-max sourceEnabledC=0 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0
+    )
+    set_tests_properties(chipper_render_preset_ym_menu_beep_assert PROPERTIES DEPENDS chipper_render_preset_ym_menu_beep_smoke)
+
+    add_test(NAME chipper_render_preset_ym_bright_beep_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-bright-beep-smoke.json --implemented-contains partial --preset ym-bright-beep --macro Coin --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 0 --min-peak 0.04 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=0 --core-max sourceEnabledB=0 --core-min sourceEnabledC=0 --core-max sourceEnabledC=0 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0
+    )
+    set_tests_properties(chipper_render_preset_ym_bright_beep_assert PROPERTIES DEPENDS chipper_render_preset_ym_bright_beep_smoke)
+
     add_test(NAME chipper_render_preset_ym_envelope_bell_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-envelope-bell-smoke.json --implemented-contains partial --preset ym-envelope-bell --macro Lead --play-mode "Big Mono" --output-db -9 --register-writes 0 --note-events 0 --min-peak 0.02 --core-min envelopeShapeChoice=4 --core-max envelopeShapeChoice=4 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=1 --core-max sourceEnabledB=1 --core-min sourceEnabledC=1 --core-max sourceEnabledC=1 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0
     )
     set_tests_properties(chipper_render_preset_ym_envelope_bell_assert PROPERTIES DEPENDS chipper_render_preset_ym_envelope_bell_smoke)
+
+    add_test(NAME chipper_render_preset_ym_arcade_clang_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-arcade-clang-smoke.json --implemented-contains partial --preset ym-arcade-clang --macro Hit --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.02 --min-zero-crossings 40 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=1 --core-max sourceEnabledB=1 --core-min sourceEnabledC=0 --core-max sourceEnabledC=0 --core-min sourceEnabledNoise=1 --core-max sourceEnabledNoise=1 --core-min envelopeShapeChoice=2 --core-max envelopeShapeChoice=2
+    )
+    set_tests_properties(chipper_render_preset_ym_arcade_clang_assert PROPERTIES DEPENDS chipper_render_preset_ym_arcade_clang_smoke)
+
+    add_test(NAME chipper_render_preset_ym_fast_minor_arp_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-fast-minor-arp-smoke.json --implemented-contains partial --preset ym-fast-minor-arp --macro Arp --play-mode "Chip Poly" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.05 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=1 --core-max sourceEnabledB=1 --core-min sourceEnabledC=1 --core-max sourceEnabledC=1 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0
+    )
+    set_tests_properties(chipper_render_preset_ym_fast_minor_arp_assert PROPERTIES DEPENDS chipper_render_preset_ym_fast_minor_arp_smoke)
 
     add_test(NAME chipper_render_preset_sn_noise_hit_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sn-noise-hit-smoke.json --implemented-contains partial --preset sn-noise-hit --macro Drum --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.02 --min-zero-crossings 50 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabledNoise=1 --core-max sourceEnabledNoise=1 --core-min noiseModeChoice=3 --core-max noiseModeChoice=3 --core-min noiseControl=4 --core-max noiseControl=4 --core-min attenuationNoise=2 --core-max attenuationNoise=2
