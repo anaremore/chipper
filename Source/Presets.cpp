@@ -389,6 +389,7 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                            { 1.0f, 1.0f, 1.0f, 1.0f },
                            preset.envelopeDecay,
                            preset.waveShape,
+                           0,
                            preset.ymEnvelopeShape,
                            preset.snNoiseMode);
 }

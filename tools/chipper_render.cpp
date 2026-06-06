@@ -50,10 +50,12 @@ struct Options
     std::array<bool, 4> sourceLevelProvided {};
     float envelopeDecay = 0.0f;
     int waveShape = 0;
+    int dmgWaveLevel = 0;
     int ymEnvelopeShape = 0;
     int snNoiseMode = 0;
     bool envelopeDecayProvided = false;
     bool waveShapeProvided = false;
+    bool dmgWaveLevelProvided = false;
     bool ymEnvelopeShapeProvided = false;
     bool snNoiseModeProvided = false;
     float outputDb = 0.0f;
@@ -175,6 +177,39 @@ bool parseYmEnvelopeShape(const std::string& text, int& out)
     return true;
 }
 
+bool parseDmgWaveLevel(const std::string& text, int& out)
+{
+    uint32_t numeric = 0;
+    if (parseNumber(text, numeric))
+    {
+        if (numeric == 100)
+            out = 2;
+        else if (numeric == 50)
+            out = 3;
+        else if (numeric == 25)
+            out = 4;
+        else
+            out = std::clamp(static_cast<int>(numeric), 0, 4);
+        return true;
+    }
+
+    const auto key = normalizedToken(text);
+    if (key == "macro" || key == "auto" || key == "default")
+        out = 0;
+    else if (key == "mute" || key == "off" || key == "0" || key == "0percent")
+        out = 1;
+    else if (key == "100" || key == "100percent" || key == "full")
+        out = 2;
+    else if (key == "50" || key == "50percent" || key == "half")
+        out = 3;
+    else if (key == "25" || key == "25percent" || key == "quarter")
+        out = 4;
+    else
+        return false;
+
+    return true;
+}
+
 bool parseSnNoiseMode(const std::string& text, int& out)
 {
     uint32_t numeric = 0;
@@ -207,7 +242,7 @@ void printUsage()
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
         << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --envelope-decay 0.7 --wave-shape tri --ym-envelope-shape triangle --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --envelope-decay 0.7 --wave-shape tri --dmg-wave-level 100|50|25|mute|macro --ym-envelope-shape triangle --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -233,10 +268,12 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.sourceLevelProvided = { true, true, true, true };
     options.envelopeDecay = preset.envelopeDecay;
     options.waveShape = preset.waveShape;
+    options.dmgWaveLevel = 0;
     options.ymEnvelopeShape = preset.ymEnvelopeShape;
     options.snNoiseMode = preset.snNoiseMode;
     options.envelopeDecayProvided = true;
     options.waveShapeProvided = true;
+    options.dmgWaveLevelProvided = true;
     options.ymEnvelopeShapeProvided = true;
     options.snNoiseModeProvided = true;
     options.outputDb = preset.outputDb;
@@ -448,6 +485,13 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.waveShapeProvided = true;
         }
+        else if (arg == "--dmg-wave-level")
+        {
+            const auto* value = requireValue("--dmg-wave-level");
+            if (value == nullptr || ! parseDmgWaveLevel(std::string(value), options.dmgWaveLevel))
+                return false;
+            options.dmgWaveLevelProvided = true;
+        }
         else if (arg == "--ym-envelope-shape")
         {
             const auto* value = requireValue("--ym-envelope-shape");
@@ -546,6 +590,8 @@ void applyMacroTemplateDefaults(Options& options)
         options.envelopeDecay = templ.envelopeDecay;
     if (! options.waveShapeProvided)
         options.waveShape = templ.waveShape;
+    if (! options.dmgWaveLevelProvided)
+        options.dmgWaveLevel = 0;
     if (! options.ymEnvelopeShapeProvided)
         options.ymEnvelopeShape = templ.ymEnvelopeShape;
     if (! options.snNoiseModeProvided)
@@ -816,6 +862,7 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::source4Level: return "source4Level";
         case chipper::ChipParameterRole::envelopeDecay: return "envelopeDecay";
         case chipper::ChipParameterRole::waveShape: return "waveShape";
+        case chipper::ChipParameterRole::dmgWaveLevel: return "dmgWaveLevel";
         case chipper::ChipParameterRole::ymEnvelopeShape: return "ymEnvelopeShape";
         case chipper::ChipParameterRole::snNoiseMode: return "snNoiseMode";
         case chipper::ChipParameterRole::clockHz: return "clockHz";
@@ -1172,6 +1219,7 @@ int main(int argc, char** argv)
                                                     options.sourceLevels,
                                                     options.envelopeDecay,
                                                     options.waveShape,
+                                                    options.dmgWaveLevel,
                                                     options.ymEnvelopeShape,
                                                     options.snNoiseMode);
         core->setPatch(patch);

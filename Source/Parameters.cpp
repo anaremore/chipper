@@ -46,6 +46,11 @@ juce::StringArray waveShapeChoices()
     return { "RAM", "Tri", "Saw", "Pulse", "Steps" };
 }
 
+juce::StringArray dmgWaveLevelChoices()
+{
+    return { "Macro", "Mute", "100%", "50%", "25%" };
+}
+
 juce::StringArray ymEnvelopeShapeChoices()
 {
     return { "Fixed", "Fall", "Rise", "Saw", "Triangle" };
@@ -199,6 +204,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::ParameterID { id::waveShape, 1 },
         "Wave Shape",
         waveShapeChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::dmgWaveLevel, 1 },
+        "DMG Wave Level",
+        dmgWaveLevelChoices(),
         0));
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(

@@ -245,6 +245,19 @@ std::vector<ChipParameterSpec> dmgParameterSpecs()
                           choice("Pulse", "Write a 50% pulse into Wave RAM.", 0.75f, 3),
                           choice("Steps", "Write a stepped 4-level table into Wave RAM.", 1.0f, 4)
                       },
+                      ParameterKind::chipRegister),
+        segmentedSpec(ChipParameterRole::dmgWaveLevel,
+                      "dmg.waveLevel",
+                      "Wave Level",
+                      "Wave RAM",
+                      "Maps to DMG NR32 channel-3 output level bits. Macro preserves velocity/macro defaults.",
+                      {
+                          choice("Macro", "Use the selected DMG macro or Chip Poly velocity to choose NR32 output level.", 0.0f, 0),
+                          choice("Mute", "NR32 bits 00: wave DAC on but channel-3 output muted.", 0.25f, 1),
+                          choice("100%", "NR32 bits 01: full wave output level.", 0.5f, 2),
+                          choice("50%", "NR32 bits 10: half wave output level.", 0.75f, 3),
+                          choice("25%", "NR32 bits 11: quarter wave output level.", 1.0f, 4)
+                      },
                       ParameterKind::chipRegister)
     };
 }
@@ -375,7 +388,7 @@ std::array<ModuleDescriptor, 6> dmgModules()
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "DMG APU clean-room register model.", { "DMG profile", "CGB quirks planned", "Hybrid default", "Authentic still partial" }),
         makeModule("sources", "Channels", "Four hardware sound generators.", { "Pulse 1 / sweep", "Pulse 2", "Wave RAM", "Chip Poly ready" }),
-        makeModule("tone", "Wave / Noise", "Duty, wave RAM, and polynomial noise behavior.", { "Pulse duty", "Wave shape", "Noise clock", "Narrow noise" }),
+        makeModule("tone", "Wave / Noise", "Duty, wave RAM, and polynomial noise behavior.", { "Pulse duty", "Wave shape", "Wave level", "Noise clock" }),
         makeModule("envelope", "Envelope", "Hardware envelope, length, and sweep groundwork.", { "64 Hz envelope", "256 Hz length", "DAC gating", "128 Hz CH1 sweep" }),
         makeModule("motion", "Motion", "Portable-game gesture templates.", { "Arp stack", "Pitch rise/drop", "Retrigger", "Coin/noise SFX" }),
         makeModule("output", "Output", "Compact handheld output character.", { "Output gain", "NR50 volume", "NR51 routing", "Speaker color planned" })
@@ -788,6 +801,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             std::array<float, 4> sourceLevels,
                             float envelopeDecay,
                             int waveShape,
+                            int dmgWaveLevel,
                             int ymEnvelopeShape,
                             int snNoiseMode)
 {
@@ -809,6 +823,7 @@ PatchConfig makePatchConfig(ChipMode mode,
         },
         clampControl(envelopeDecay),
         std::clamp(waveShape, 0, 4),
+        std::clamp(dmgWaveLevel, 0, 4),
         std::clamp(ymEnvelopeShape, 0, 4),
         std::clamp(snNoiseMode, 0, 4)
     };
@@ -884,6 +899,34 @@ uint8_t dmgNoiseRegisterForPatch(const PatchConfig& patch)
     }
 
     return static_cast<uint8_t>((shift << 4u) | width | 0x02u);
+}
+
+uint8_t dmgWaveOutputLevelBitsForPatch(const PatchConfig& patch, float velocity, bool velocitySensitive)
+{
+    switch (std::clamp(patch.dmgWaveLevel, 0, 4))
+    {
+        case 1: return 0x00u;
+        case 2: return 0x20u;
+        case 3: return 0x40u;
+        case 4: return 0x60u;
+        case 0:
+        default:
+            break;
+    }
+
+    if (velocitySensitive)
+    {
+        const auto normalizedVelocity = clampControl(velocity);
+        if (normalizedVelocity <= 0.0f)
+            return 0x00u;
+        if (normalizedVelocity >= 0.75f)
+            return 0x20u;
+        if (normalizedVelocity >= 0.35f)
+            return 0x40u;
+        return 0x60u;
+    }
+
+    return patch.macro == MacroKind::bass ? 0x20u : 0x40u;
 }
 
 uint8_t ym2149NoisePeriodForControl(float noisePitchControl)

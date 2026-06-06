@@ -29,6 +29,7 @@ private:
     static constexpr size_t sourceChannelCount = 4;
     static constexpr size_t liveControlCount = 6;
     static constexpr size_t waveShapeCount = 5;
+    static constexpr size_t dmgWaveLevelCount = 5;
     static constexpr size_t ymEnvelopeShapeCount = 5;
     static constexpr size_t snNoiseModeCount = 5;
     static constexpr size_t toneNoiseMixCount = 3;
@@ -46,6 +47,7 @@ private:
     void placeLabeledSliderWithReadout(juce::Slider& slider, juce::Label& label, juce::Label& valueLabel, juce::Rectangle<int> bounds);
     void placePulseDutySegment(juce::Rectangle<int> bounds);
     void placeWaveShapeSegment(juce::Rectangle<int> bounds);
+    void placeDmgWaveLevelSegment(juce::Rectangle<int> bounds);
     void placeYmEnvelopeShapeSegment(juce::Rectangle<int> bounds);
     void placeSnNoiseModeSegment(juce::Rectangle<int> bounds);
     void placeToneNoiseMixSegment(juce::Rectangle<int> bounds);
@@ -65,16 +67,19 @@ private:
                                          float control3,
                                          float control4,
                                          int waveShape,
+                                         int dmgWaveLevel,
                                          int ymEnvelopeShape,
                                          int snNoiseMode) const;
     bool usesPulseDutySegment(chipper::ChipMode mode) const;
     bool usesWaveShapeSegment(chipper::ChipMode mode) const;
+    bool usesDmgWaveLevelSegment(chipper::ChipMode mode) const;
     bool usesYmEnvelopeShapeSegment(chipper::ChipMode mode) const;
     bool usesSnNoiseModeSegment(chipper::ChipMode mode) const;
     bool usesToneNoiseMixSegment(chipper::ChipMode mode) const;
     juce::String macroTemplateReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String pulseDutyReadout(chipper::ChipMode mode, float value) const;
     juce::String waveShapeReadout(int choice) const;
+    juce::String dmgWaveLevelReadout(const chipper::PatchConfig& patch) const;
     juce::String ymEnvelopeShapeReadout(int choice) const;
     juce::String noiseModeReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String nesNoiseModeReadout(const chipper::PatchConfig& patch) const;
@@ -98,12 +103,14 @@ private:
     bool usesEnvelopeDecayControl(chipper::ChipMode mode) const;
     void setSourceChannelSurfaceVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setWaveShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
+    void setDmgWaveLevelSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setYmEnvelopeShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setSnNoiseModeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setEnvelopeDecayControlVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void updateSourceChannelButtons(chipper::ChipMode mode);
     void updatePulseDutyButtons(float value, bool shouldBeVisible);
     void updateWaveShapeButtons(int choice, bool shouldBeVisible);
+    void updateDmgWaveLevelButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateYmEnvelopeShapeButtons(int choice, bool shouldBeVisible);
     void updateSnNoiseModeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateToneNoiseMixButtons(float value, bool shouldBeVisible);
@@ -125,6 +132,8 @@ private:
     juce::Label envelopeDecayValueLabel;
     juce::Label waveShapeLabel;
     juce::Label waveShapeValueLabel;
+    juce::Label dmgWaveLevelLabel;
+    juce::Label dmgWaveLevelValueLabel;
     juce::Label ymEnvelopeShapeLabel;
     juce::Label ymEnvelopeShapeValueLabel;
     juce::Label snNoiseModeLabel;
@@ -138,6 +147,7 @@ private:
     std::array<juce::Label, liveControlCount> controlValueLabels;
     std::array<juce::TextButton, 4> pulseDutyButtons;
     std::array<juce::TextButton, waveShapeCount> waveShapeButtons;
+    std::array<juce::TextButton, dmgWaveLevelCount> dmgWaveLevelButtons;
     std::array<juce::TextButton, ymEnvelopeShapeCount> ymEnvelopeShapeButtons;
     std::array<juce::TextButton, snNoiseModeCount> snNoiseModeButtons;
     std::array<juce::TextButton, toneNoiseMixCount> toneNoiseMixButtons;
@@ -180,6 +190,7 @@ private:
     std::array<juce::Rectangle<int>, sourceChannelCount> sourceChannelBounds;
     juce::Rectangle<int> pulseDutySegmentBounds;
     juce::Rectangle<int> waveShapeSegmentBounds;
+    juce::Rectangle<int> dmgWaveLevelSegmentBounds;
     juce::Rectangle<int> ymEnvelopeShapeSegmentBounds;
     juce::Rectangle<int> snNoiseModeSegmentBounds;
     juce::Rectangle<int> toneNoiseMixSegmentBounds;

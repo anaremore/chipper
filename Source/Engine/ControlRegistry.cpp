@@ -27,7 +27,8 @@ const MidiCcMappingList& midiCcMappings()
         { 88, parameter_ids::envelopeDecay, "Envelope Decay" },
         { 89, parameter_ids::waveShape, "Wave Shape" },
         { 90, parameter_ids::ymEnvelopeShape, "YM Envelope Shape" },
-        { 91, parameter_ids::snNoiseMode, "Noise Mode" }
+        { 91, parameter_ids::snNoiseMode, "Noise Mode" },
+        { 92, parameter_ids::dmgWaveLevel, "DMG Wave Level" }
     }};
 
     return mappings;
@@ -73,6 +74,7 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::source4Level: return parameter_ids::source4Level;
         case ChipParameterRole::envelopeDecay: return parameter_ids::envelopeDecay;
         case ChipParameterRole::waveShape: return parameter_ids::waveShape;
+        case ChipParameterRole::dmgWaveLevel: return parameter_ids::dmgWaveLevel;
         case ChipParameterRole::ymEnvelopeShape: return parameter_ids::ymEnvelopeShape;
         case ChipParameterRole::snNoiseMode: return parameter_ids::snNoiseMode;
         case ChipParameterRole::clockHz: return parameter_ids::clockHz;

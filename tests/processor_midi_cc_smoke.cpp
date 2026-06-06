@@ -132,6 +132,8 @@ int main()
                      "CC74 Drum macro should enable NES noise source");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::envelopeDecay), 0.78f, 0.001f,
                      "CC74 Drum macro should apply NES envelope decay template");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::dmgWaveLevel), 0.0f, 0.0001f,
+                     "CC74 Drum macro should reset DMG Wave Level to Macro");
 
     setPlainFromHost(processor, chipper::parameters::id::macroControl1, 0.91f);
     setPlainFromHost(processor, chipper::parameters::id::macroControl2, 0.92f);

@@ -73,6 +73,7 @@ struct PatchConfig
     std::array<float, 4> sourceLevels { 1.0f, 1.0f, 1.0f, 1.0f };
     float envelopeDecay = 0.0f;
     int waveShape = 0;
+    int dmgWaveLevel = 0;
     int ymEnvelopeShape = 0;
     // Generic chip noise-mode selector. SN76489 currently uses all 5 choices;
     // NES clamps to Macro/Long/Short via its descriptor.

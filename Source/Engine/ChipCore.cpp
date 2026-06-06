@@ -354,7 +354,7 @@ public:
         if ((enable & 0x04u) != 0)
         {
             writePatchWaveRam();
-            writeWaveRegisters(waveNote, patch.macro == MacroKind::bass ? 0x20u : 0x40u);
+            writeWaveRegisters(waveNote, dmgWaveOutputLevelBitsForPatch(patch, noteVelocity, false));
         }
         else
         {
@@ -465,6 +465,10 @@ public:
              << "\"noiseDivisorCode\":" << static_cast<int>(noiseDivisorCode()) << ","
              << "\"noiseWidth7\":" << (noiseWidth7() ? 1 : 0) << ","
              << "\"waveShape\":" << patch.waveShape << ","
+             << "\"dmgWaveLevel\":" << patch.dmgWaveLevel << ","
+             << "\"nr32\":" << static_cast<int>(regs[0x0c]) << ","
+             << "\"waveOutputLevelBits\":" << static_cast<int>(regs[0x0c] & 0x60u) << ","
+             << "\"waveOutputLevelCode\":" << static_cast<int>((regs[0x0c] >> 5u) & 0x03u) << ","
              << "\"waveRam0\":" << static_cast<int>(regs[0x20]) << ","
              << "\"waveRam15\":" << static_cast<int>(regs[0x2f]) << ","
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
@@ -865,17 +869,6 @@ private:
         return static_cast<int>(std::count_if(channelNotes.begin(), channelNotes.end(), [](int note) { return note >= 0; }));
     }
 
-    static uint8_t waveOutputLevelForVelocity(float velocity)
-    {
-        if (velocity <= 0.0f)
-            return 0x00u;
-        if (velocity >= 0.75f)
-            return 0x20u;
-        if (velocity >= 0.35f)
-            return 0x40u;
-        return 0x60u;
-    }
-
     void clearChipPolyState()
     {
         channelNotes.fill(-1);
@@ -915,7 +908,7 @@ private:
         else
         {
             writePatchWaveRam();
-            writeWaveRegisters(channelNotes[index], waveOutputLevelForVelocity(channelVelocity[index]));
+            writeWaveRegisters(channelNotes[index], dmgWaveOutputLevelBitsForPatch(patch, channelVelocity[index], true));
         }
 
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
