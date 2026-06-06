@@ -18,6 +18,21 @@ std::string presetKey(std::string_view text)
     return key;
 }
 
+PresetInfo withSourceLevels(PresetInfo preset, float source1, float source2, float source3, float source4)
+{
+    preset.source1Level = source1;
+    preset.source2Level = source2;
+    preset.source3Level = source3;
+    preset.source4Level = source4;
+    return preset;
+}
+
+PresetInfo withDmgWaveLevel(PresetInfo preset, int waveLevel)
+{
+    preset.dmgWaveLevel = waveLevel;
+    return preset;
+}
+
 } // namespace
 
 const std::vector<PresetInfo>& presetCatalog()
@@ -519,6 +534,29 @@ const std::vector<PresetInfo>& presetCatalog()
             -11.0f,
             1789773.0
         },
+        withSourceLevels(
+            {
+                "nes-duty-bass-duo",
+                "NES Bass",
+                "NES Duty Bass Duo",
+                "Triangle-weighted bass with two quiet duty pulses for bite and chord hints.",
+                ChipMode::nes,
+                AccuracyMode::hybrid,
+                MacroKind::bass,
+                PlayMode::stack,
+                { 0.33f, 0.18f, 0.04f, 0.30f },
+                { true, true, true, false },
+                0.08f,
+                0,
+                0,
+                0,
+                -9.0f,
+                1789773.0
+            },
+            0.52f,
+            0.38f,
+            1.0f,
+            1.0f),
         {
             "dmg-pulse-lead",
             "DMG Pulse",
@@ -599,6 +637,33 @@ const std::vector<PresetInfo>& presetCatalog()
             0.0f,
             4
         },
+        withDmgWaveLevel(
+            withSourceLevels(
+                {
+                    "dmg-step-wave-arp",
+                    "DMG Wave",
+                    "DMG Step Wave Arp",
+                    "Stepped Wave RAM arp with light pulse reinforcement and split handheld routing.",
+                    ChipMode::dmg,
+                    AccuracyMode::hybrid,
+                    MacroKind::arp,
+                    PlayMode::stack,
+                    { 0.42f, 0.28f, 0.14f, 0.74f },
+                    { true, true, true, false },
+                    0.18f,
+                    4,
+                    0,
+                    0,
+                    -10.0f,
+                    4194304.0,
+                    0.0f,
+                    4
+                },
+                0.35f,
+                0.22f,
+                0.95f,
+                1.0f),
+            2),
         {
             "sid-filter-pluck",
             "SID PWM Leads",
@@ -714,6 +779,34 @@ const std::vector<PresetInfo>& presetCatalog()
             4,
             4
         },
+        withSourceLevels(
+            {
+                "sid-filtered-noise-sweep",
+                "SID FX",
+                "SID Filtered Noise Sweep",
+                "Noise-heavy SID sweep with saw support and voice-3 filter routing.",
+                ChipMode::sid,
+                AccuracyMode::hybrid,
+                MacroKind::laser,
+                PlayMode::stack,
+                { 0.54f, 0.82f, 0.70f, 0.34f },
+                { false, true, true, false },
+                0.84f,
+                4,
+                2,
+                2,
+                -12.0f,
+                985248.0,
+                0.76f,
+                1,
+                2,
+                4,
+                4
+            },
+            0.20f,
+            0.55f,
+            0.82f,
+            1.0f),
         {
             "sid-notch-pwm-keys",
             "SID PWM Leads",
@@ -942,6 +1035,29 @@ const std::vector<PresetInfo>& presetCatalog()
             -10.0f,
             2000000.0
         },
+        withSourceLevels(
+            {
+                "ym-triangle-env-keys",
+                "YM Beeps",
+                "YM Triangle Env Keys",
+                "Three square channels under a repeating hardware-envelope triangle contour.",
+                ChipMode::ym2149,
+                AccuracyMode::hybrid,
+                MacroKind::lead,
+                PlayMode::stack,
+                { 0.58f, 0.26f, 0.22f, 0.62f },
+                { true, true, true, false },
+                0.82f,
+                0,
+                4,
+                0,
+                -10.0f,
+                2000000.0
+            },
+            0.95f,
+            0.68f,
+            0.48f,
+            1.0f),
         {
             "sn-tone-stack",
             "SN76489 / Sega PSG",
@@ -1013,7 +1129,30 @@ const std::vector<PresetInfo>& presetCatalog()
             4,
             -11.0f,
             3579545.0
-        }
+        },
+        withSourceLevels(
+            {
+                "sn-periodic-bass-click",
+                "SN76489 / Sega PSG",
+                "PSG Periodic Bass Click",
+                "Tone-1 bass with a periodic-noise click for Sega-style low-end accents.",
+                ChipMode::sn76489,
+                AccuracyMode::hybrid,
+                MacroKind::bass,
+                PlayMode::stack,
+                { 0.30f, 0.12f, 0.46f, 0.74f },
+                { true, false, false, true },
+                0.0f,
+                0,
+                0,
+                2,
+                -10.0f,
+                3579545.0
+            },
+            0.92f,
+            1.0f,
+            1.0f,
+            0.38f)
     };
 
     return presets;
@@ -1058,7 +1197,7 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                            preset.envelopeDecay,
                            preset.waveShape,
                            0,
-                           0,
+                           preset.dmgWaveLevel,
                            preset.dmgStereoRoute,
                            preset.ymEnvelopeShape,
                            0,

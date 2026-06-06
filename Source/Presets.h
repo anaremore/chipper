@@ -49,6 +49,7 @@ struct PresetInfo
     float source2Level = 1.0f;
     float source3Level = 1.0f;
     float source4Level = 1.0f;
+    int dmgWaveLevel = 0;
 };
 
 const std::vector<PresetInfo>& presetCatalog();

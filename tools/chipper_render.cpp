@@ -560,7 +560,7 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.sidVoice2WaveShape = preset.sidVoice2WaveShape;
     options.sidVoice3WaveShape = preset.sidVoice3WaveShape;
     options.pulse2Duty = 0;
-    options.dmgWaveLevel = 0;
+    options.dmgWaveLevel = preset.dmgWaveLevel;
     options.dmgStereoRoute = preset.dmgStereoRoute;
     options.ymEnvelopeShape = preset.ymEnvelopeShape;
     options.ymChannelAMix = 0;
@@ -1628,6 +1628,7 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
             << preset.source4Level << "],\n"
             << "      \"envelopeDecay\": " << preset.envelopeDecay << ",\n"
             << "      \"waveShape\": " << preset.waveShape << ",\n"
+            << "      \"dmgWaveLevel\": " << preset.dmgWaveLevel << ",\n"
             << "      \"sidVoice2WaveShape\": " << preset.sidVoice2WaveShape << ",\n"
             << "      \"sidVoice3WaveShape\": " << preset.sidVoice3WaveShape << ",\n"
             << "      \"sidFilterRouting\": " << preset.sidFilterRouting << ",\n"

@@ -84,6 +84,12 @@ Furnace should be treated as a discovery index, not a license shortcut. Its READ
 
 Licensing posture: Furnace's top-level `LICENSE` says most of Furnace is GPLv2-or-later, ASIO-enabled builds become GPLv3, and certain components have their own source/tree licenses. Keep Furnace reference-only unless Chipper intentionally adopts a compatible GPL distribution model and performs file-level audits for the exact source being reused.
 
+## Preset Reference Notes
+
+Open-source trackers and chip instruments may be used to improve Chipper's preset vocabulary, but not as unreviewed preset banks or code sources. Acceptable use includes comparing which chip-native controls matter to musicians, studying public chip workflow conventions, confirming useful instrument roles such as bass, lead, fake chord, noise percussion, UI blip, sweep, and riser, and building Chipper presets from its own clean-room/register-backed parameters.
+
+Do not copy songs, copyrighted preset banks, binary modules, patch dumps, or code-derived lookup tables into Chipper without a separate rights and license review. When a project is GPL-family or LGPL-sensitive, keep preset work at the level of behavior research and attribution unless Chipper's distribution model intentionally adopts the needed obligations. The first source-balanced factory presets use this rule: they are Chipper-authored settings over existing internal engines, inspired by public chip conventions and open-source tracker/instrument workflows, with no third-party code or patch data vendored.
+
 ## Audit Checklist Before Vendoring
 
 1. Record upstream URL, commit hash, release tag, license file, and all source file SPDX/header licenses.

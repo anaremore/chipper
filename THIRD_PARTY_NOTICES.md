@@ -31,6 +31,8 @@ Current priority candidates:
 - GPL/reference candidates: [FigBug/SID](https://github.com/FigBug/SID), [FigBug/PAPU](https://github.com/FigBug/PAPU), [libsidplayfp/reSIDfp](https://github.com/libsidplayfp/libsidplayfp), [Furnace](https://github.com/tildearrow/furnace), [MAME](https://www.mamedev.org/about.html), and GPL-family alternatives. Use as references or validation targets only unless Chipper adopts a compatible distribution model. Furnace was reviewed on 2026-06-06 as a broad chip-coverage, tracker UX, and emulator-core discovery reference; no Furnace code is vendored. Upstream states most Furnace is GPLv2-or-later, ASIO-enabled builds become GPLv3, and individual components may carry their own licenses.
 - MAME-specific note: MAME is valuable for hardware behavior and edge cases, but project-level and per-file licensing must be checked before any reuse.
 
+Preset and macro design may be informed by public chip documentation, open-source tracker workflows, and reference instruments listed above, but Chipper's factory presets are authored as Chipper parameter snapshots. Do not import third-party preset banks, songs, modules, patch dumps, samples, lookup tables, or code-derived assets without adding a specific license and rights review here.
+
 ## Contribution Rule
 
 When adding any third-party code:

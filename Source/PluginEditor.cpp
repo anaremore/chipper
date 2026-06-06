@@ -2184,7 +2184,7 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
     setChoiceParameterFromUi(chipper::parameters::id::sidVoice3WaveShape, preset.sidVoice3WaveShape);
     setChoiceParameterFromUi(chipper::parameters::id::sidFilterRouting, preset.sidFilterRouting);
     setChoiceParameterFromUi(chipper::parameters::id::pulse2Duty, 0);
-    setChoiceParameterFromUi(chipper::parameters::id::dmgWaveLevel, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::dmgWaveLevel, preset.dmgWaveLevel);
     setChoiceParameterFromUi(chipper::parameters::id::dmgStereoRoute, preset.dmgStereoRoute);
     setChoiceParameterFromUi(chipper::parameters::id::ymEnvelopeShape, preset.ymEnvelopeShape);
     setChoiceParameterFromUi(chipper::parameters::id::ymChannelAMix, 0);
