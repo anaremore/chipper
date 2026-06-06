@@ -1056,7 +1056,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     ymEnvelopeShapeValueLabel.setVisible(false);
     addAndMakeVisible(ymEnvelopeShapeValueLabel);
 
-    const std::array<const char*, ymEnvelopeShapeCount> ymEnvelopeLabels { "Fixed", "Fall", "Rise", "Saw", "Tri" };
+    const std::array<const char*, ymEnvelopeShapeCount> ymEnvelopeLabels {
+        "Fixed", "Fall", "Rise", "Saw", "Tri", "LP+HP", "LP+BP", "BP+HP", "All"
+    };
     for (size_t i = 0; i < ymEnvelopeShapeButtons.size(); ++i)
     {
         auto& button = ymEnvelopeShapeButtons[i];
@@ -1759,20 +1761,25 @@ void ChipperAudioProcessorEditor::placeDmgStereoRouteSegment(juce::Rectangle<int
 
 void ChipperAudioProcessorEditor::placeYmEnvelopeShapeSegment(juce::Rectangle<int> bounds)
 {
+    const auto* spec = chipper::parameterSpecFor(displayedMode, chipper::ChipParameterRole::ymEnvelopeShape);
+    const auto visibleCount = spec != nullptr
+                                  ? std::min(ymEnvelopeShapeButtons.size(), spec->choices.size())
+                                  : ymEnvelopeShapeButtons.size();
+
     if (displayedMode == chipper::ChipMode::sid)
     {
         auto row = bounds.removeFromTop(std::min(26, bounds.getHeight()));
         ymEnvelopeShapeLabel.setBounds(row.removeFromLeft(82));
         row.removeFromLeft(6);
         ymEnvelopeShapeSegmentBounds = row.reduced(0, 1);
-        layoutSegmentedButtons(ymEnvelopeShapeButtons, ymEnvelopeShapeSegmentBounds, ymEnvelopeShapeButtons.size());
+        layoutSegmentedButtons(ymEnvelopeShapeButtons, ymEnvelopeShapeSegmentBounds, visibleCount);
         ymEnvelopeShapeValueLabel.setBounds(bounds);
         return;
     }
 
     ymEnvelopeShapeLabel.setBounds(bounds.removeFromTop(18));
     ymEnvelopeShapeSegmentBounds = bounds.removeFromTop(28).reduced(0, 1);
-    layoutSegmentedButtons(ymEnvelopeShapeButtons, ymEnvelopeShapeSegmentBounds, ymEnvelopeShapeButtons.size());
+    layoutSegmentedButtons(ymEnvelopeShapeButtons, ymEnvelopeShapeSegmentBounds, visibleCount);
 
     ymEnvelopeShapeValueLabel.setBounds(bounds);
 }
@@ -2444,6 +2451,10 @@ juce::String ChipperAudioProcessorEditor::sidFilterModeReadout(const chipper::Pa
         case 0x10u: resolved = "LP"; break;
         case 0x20u: resolved = "BP"; break;
         case 0x40u: resolved = "HP"; break;
+        case 0x30u: resolved = "LP+BP"; break;
+        case 0x50u: resolved = "notch LP+HP"; break;
+        case 0x60u: resolved = "BP+HP"; break;
+        case 0x70u: resolved = "LP+BP+HP"; break;
         case 0x00u:
         default:
             resolved = "bypass";
@@ -3576,10 +3587,19 @@ void ChipperAudioProcessorEditor::updateDmgStereoRouteButtons(chipper::ChipMode 
 
 void ChipperAudioProcessorEditor::updateYmEnvelopeShapeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible)
 {
-    const auto selected = static_cast<size_t>(std::clamp(patch.ymEnvelopeShape, 0, static_cast<int>(ymEnvelopeShapeButtons.size() - 1u)));
+    const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::ymEnvelopeShape);
+    const auto visibleCount = spec != nullptr
+                                  ? std::min(ymEnvelopeShapeButtons.size(), spec->choices.size())
+                                  : ymEnvelopeShapeButtons.size();
+    const auto safeVisibleCount = std::max<size_t>(1u, visibleCount);
+    const auto selected = static_cast<size_t>(std::clamp(patch.ymEnvelopeShape, 0, static_cast<int>(safeVisibleCount - 1u)));
+
+    if (! ymEnvelopeShapeSegmentBounds.isEmpty())
+        layoutSegmentedButtons(ymEnvelopeShapeButtons, ymEnvelopeShapeSegmentBounds, safeVisibleCount);
+
     for (size_t i = 0; i < ymEnvelopeShapeButtons.size(); ++i)
     {
-        ymEnvelopeShapeButtons[i].setVisible(shouldBeVisible);
+        ymEnvelopeShapeButtons[i].setVisible(shouldBeVisible && i < safeVisibleCount);
         ymEnvelopeShapeButtons[i].setToggleState(shouldBeVisible && i == selected, juce::dontSendNotification);
     }
 

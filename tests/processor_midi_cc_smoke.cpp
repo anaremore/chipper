@@ -194,6 +194,9 @@ int main()
     sendController(processor, 90, controllerValueForChoice(processor, chipper::parameters::id::ymEnvelopeShape, 2));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymEnvelopeShape), 2.0f, 0.0001f,
                      "CC90 should control the SID Filter Mode/YM Envelope Shape choice parameter");
+    sendController(processor, 90, controllerValueForChoice(processor, chipper::parameters::id::ymEnvelopeShape, 5));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymEnvelopeShape), 5.0f, 0.0001f,
+                     "CC90 should reach SID combined filter-mode choices");
     sendController(processor, 91, controllerValueForChoice(processor, chipper::parameters::id::snNoiseMode, 4));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::snNoiseMode), 4.0f, 0.0001f,
                      "CC91 should control the SID Osc Mod/Noise Mode choice parameter");

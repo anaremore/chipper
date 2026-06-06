@@ -155,7 +155,7 @@ int main()
     ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::dmgStereoRoute, 5, "Macro");
     ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::snNoiseMode, 3, "Macro");
     ok &= expectSegmentedRegister(chipper::ChipMode::sid, chipper::ChipParameterRole::waveShape, 5, "Macro");
-    ok &= expectSegmentedRegister(chipper::ChipMode::sid, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Macro");
+    ok &= expectSegmentedRegister(chipper::ChipMode::sid, chipper::ChipParameterRole::ymEnvelopeShape, 9, "Macro");
     ok &= expectSegmentedRegister(chipper::ChipMode::sid, chipper::ChipParameterRole::snNoiseMode, 5, "Macro");
     ok &= expectSegmentedRegister(chipper::ChipMode::sid, chipper::ChipParameterRole::dmgStereoRoute, 3, "Macro");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2149, chipper::ChipParameterRole::macroControl4, 3, "Noise");

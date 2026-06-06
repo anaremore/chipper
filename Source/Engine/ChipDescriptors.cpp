@@ -617,13 +617,17 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
                       "sid.filterMode",
                       "Filter Mode",
                       "Filter",
-                      "Maps to SID $D418 filter-mode bits. Macro uses the selected SID musical template.",
+                      "Maps to SID $D418 filter-mode bits, including combined mode-bit outputs. Macro uses the selected SID musical template.",
                       {
                           choice("Macro", "Resolve LP/BP/HP from the selected SID macro.", 0.0f, 0),
-                          choice("LP", "$D418 bit 0x10: low-pass filter output.", 0.25f, 1),
-                          choice("BP", "$D418 bit 0x20: band-pass filter output.", 0.5f, 2),
-                          choice("HP", "$D418 bit 0x40: high-pass filter output.", 0.75f, 3),
-                          choice("Off", "$D418 filter bits cleared; bypass Chipper's SID filter approximation.", 1.0f, 4)
+                          choice("LP", "$D418 bit 0x10: low-pass filter output.", 0.125f, 1),
+                          choice("BP", "$D418 bit 0x20: band-pass filter output.", 0.25f, 2),
+                          choice("HP", "$D418 bit 0x40: high-pass filter output.", 0.375f, 3),
+                          choice("Off", "$D418 filter bits cleared; bypass Chipper's SID filter approximation.", 0.5f, 4),
+                          choice("Notch", "$D418 bits 0x50: combined low-pass and high-pass output.", 0.625f, 5),
+                          choice("LP+BP", "$D418 bits 0x30: combined low-pass and band-pass output.", 0.75f, 6),
+                          choice("BP+HP", "$D418 bits 0x60: combined band-pass and high-pass output.", 0.875f, 7),
+                          choice("All", "$D418 bits 0x70: low-pass, band-pass, and high-pass outputs summed.", 1.0f, 8)
                       },
                       ParameterKind::chipRegister),
         segmentedSpec(ChipParameterRole::snNoiseMode,
@@ -1120,6 +1124,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int sidFilterRouting)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
+    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : 4;
 
     return {
         macro,
@@ -1154,7 +1159,7 @@ PatchConfig makePatchConfig(ChipMode mode,
         std::clamp(pulse2Duty, 0, 4),
         std::clamp(dmgWaveLevel, 0, 4),
         std::clamp(dmgStereoRoute, 0, 4),
-        std::clamp(ymEnvelopeShape, 0, 4),
+        std::clamp(ymEnvelopeShape, 0, maxYmEnvelopeShape),
         std::clamp(ymChannelAMix, 0, 4),
         std::clamp(ymChannelBMix, 0, 4),
         std::clamp(ymChannelCMix, 0, 4),
@@ -1366,7 +1371,7 @@ uint8_t sidWaveformControlForVoice(const PatchConfig& patch, size_t voice)
 
 uint8_t sidFilterModeBitsForPatch(const PatchConfig& patch)
 {
-    auto choice = std::clamp(patch.ymEnvelopeShape, 0, 4);
+    auto choice = std::clamp(patch.ymEnvelopeShape, 0, 8);
     if (choice == 0)
     {
         switch (patch.macro)
@@ -1397,6 +1402,10 @@ uint8_t sidFilterModeBitsForPatch(const PatchConfig& patch)
         case 2: return 0x20u;
         case 3: return 0x40u;
         case 4: return 0x00u;
+        case 5: return 0x50u;
+        case 6: return 0x30u;
+        case 7: return 0x60u;
+        case 8: return 0x70u;
         case 0:
         default:
             return 0x10u;

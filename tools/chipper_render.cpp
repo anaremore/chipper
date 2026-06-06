@@ -203,16 +203,50 @@ bool parseYmEnvelopeShape(const std::string& text, int& out)
     }
 
     const auto key = normalizedToken(text);
-    if (key == "fixed" || key == "off" || key == "volume")
+    if (key == "fixed" || key == "off" || key == "volume" || key == "macro" || key == "default")
         out = 0;
-    else if (key == "fall" || key == "decay" || key == "fallhold" || key == "lp" || key == "lowpass")
+    else if (key == "fall" || key == "decay" || key == "fallhold")
         out = 1;
-    else if (key == "rise" || key == "attack" || key == "risehold" || key == "bp" || key == "bandpass")
+    else if (key == "rise" || key == "attack" || key == "risehold")
         out = 2;
-    else if (key == "saw" || key == "sawdown" || key == "hp" || key == "highpass")
+    else if (key == "saw" || key == "sawdown")
         out = 3;
-    else if (key == "triangle" || key == "tri" || key == "bypass" || key == "filteroff")
+    else if (key == "triangle" || key == "tri")
         out = 4;
+    else
+        return false;
+
+    return true;
+}
+
+bool parseSidFilterMode(const std::string& text, int& out)
+{
+    uint32_t numeric = 0;
+    if (parseNumber(text, numeric))
+    {
+        out = std::clamp(static_cast<int>(numeric), 0, 8);
+        return true;
+    }
+
+    const auto key = normalizedToken(text);
+    if (key == "macro" || key == "auto" || key == "default")
+        out = 0;
+    else if (key == "lp" || key == "lowpass")
+        out = 1;
+    else if (key == "bp" || key == "bandpass")
+        out = 2;
+    else if (key == "hp" || key == "highpass")
+        out = 3;
+    else if (key == "off" || key == "none" || key == "bypass" || key == "filteroff")
+        out = 4;
+    else if (key == "notch" || key == "br" || key == "bandreject" || key == "lphp" || key == "lp+hp")
+        out = 5;
+    else if (key == "lpbp" || key == "lp+bp" || key == "lowpassbandpass")
+        out = 6;
+    else if (key == "bphp" || key == "bp+hp" || key == "bandpasshighpass")
+        out = 7;
+    else if (key == "all" || key == "lpbphp" || key == "lp+bp+hp")
+        out = 8;
     else
         return false;
 
@@ -482,7 +516,7 @@ void printUsage()
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
         << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --sid-adsr-speed 0.7 --sid-attack macro|0..15 --sid-decay macro|0..15 --sid-sustain macro|0..15 --sid-release macro|0..15 --sid-voice2-attack macro|0..15 --sid-voice2-decay macro|0..15 --sid-voice2-sustain macro|0..15 --sid-voice2-release macro|0..15 --sid-voice3-attack macro|0..15 --sid-voice3-decay macro|0..15 --sid-voice3-sustain macro|0..15 --sid-voice3-release macro|0..15 --wave-shape macro|tri|saw|pulse|steps|noise --sid-voice2-wave macro|tri|saw|pulse|noise --sid-voice3-wave macro|tri|saw|pulse|noise --nes-pulse2-duty macro|12.5|25|50|75 --dmg-wave-level 100|50|25|mute|macro --dmg-stereo-route both|left|right|split|macro --ym-envelope-shape triangle|lp|bp|hp|bypass --ym-channel-a-mix macro|tone|noise|both|off --ym-channel-b-mix macro|tone|noise|both|off --ym-channel-c-mix macro|tone|noise|both|off --sid-filter-mode lp|bp|hp|bypass --sid-filter-routing macro|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none --sid-mod-mode macro|off|sync|ring|both --sid-model macro|6581|8580 --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --sid-adsr-speed 0.7 --sid-attack macro|0..15 --sid-decay macro|0..15 --sid-sustain macro|0..15 --sid-release macro|0..15 --sid-voice2-attack macro|0..15 --sid-voice2-decay macro|0..15 --sid-voice2-sustain macro|0..15 --sid-voice2-release macro|0..15 --sid-voice3-attack macro|0..15 --sid-voice3-decay macro|0..15 --sid-voice3-sustain macro|0..15 --sid-voice3-release macro|0..15 --wave-shape macro|tri|saw|pulse|steps|noise --sid-voice2-wave macro|tri|saw|pulse|noise --sid-voice3-wave macro|tri|saw|pulse|noise --nes-pulse2-duty macro|12.5|25|50|75 --dmg-wave-level 100|50|25|mute|macro --dmg-stereo-route both|left|right|split|macro --ym-envelope-shape fixed|fall|rise|saw|triangle --ym-channel-a-mix macro|tone|noise|both|off --ym-channel-b-mix macro|tone|noise|both|off --ym-channel-c-mix macro|tone|noise|both|off --sid-filter-mode macro|lp|bp|hp|off|notch|lp+bp|bp+hp|all --sid-filter-routing macro|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none --sid-mod-mode macro|off|sync|ring|both --sid-model macro|6581|8580 --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -931,7 +965,7 @@ bool parseArgs(int argc, char** argv, Options& options)
         else if (arg == "--sid-filter-mode")
         {
             const auto* value = requireValue("--sid-filter-mode");
-            if (value == nullptr || ! parseYmEnvelopeShape(std::string(value), options.ymEnvelopeShape))
+            if (value == nullptr || ! parseSidFilterMode(std::string(value), options.ymEnvelopeShape))
                 return false;
             options.ymEnvelopeShapeProvided = true;
         }

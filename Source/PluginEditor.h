@@ -96,7 +96,7 @@ private:
     static constexpr size_t sidVoiceWaveCount = 3;
     static constexpr size_t dmgWaveLevelCount = 5;
     static constexpr size_t dmgStereoRouteCount = 5;
-    static constexpr size_t ymEnvelopeShapeCount = 5;
+    static constexpr size_t ymEnvelopeShapeCount = 9;
     static constexpr size_t snNoiseModeCount = 5;
     static constexpr size_t toneNoiseMixCount = 3;
     static constexpr size_t ymChannelMixCount = 3;

@@ -1372,7 +1372,7 @@ public:
              << "\"filterRoutingChoice\":" << std::clamp(patch.sidFilterRouting, 0, 8) << ","
              << "\"filterRoutingBits\":" << static_cast<int>(sidFilterRoutingBitsForPatch(patch)) << ","
              << "\"filterRoutingRegister\":" << static_cast<int>(regs[0x17]) << ","
-             << "\"filterModeChoice\":" << std::clamp(patch.ymEnvelopeShape, 0, 4) << ","
+             << "\"filterModeChoice\":" << std::clamp(patch.ymEnvelopeShape, 0, 8) << ","
              << "\"filterModeBits\":" << static_cast<int>(sidFilterModeBitsForPatch(patch)) << ","
              << "\"filterModeVolume\":" << static_cast<int>(regs[0x18]) << ","
              << "\"modelCutoffHz\":" << sidModelCutoffHz() << ","

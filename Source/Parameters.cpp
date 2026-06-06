@@ -94,7 +94,7 @@ juce::StringArray dmgStereoRouteChoices()
 
 juce::StringArray ymEnvelopeShapeChoices()
 {
-    return { "Fixed", "Fall", "Rise", "Saw", "Triangle" };
+    return { "Fixed", "Fall", "Rise", "Saw", "Triangle", "LP+HP", "LP+BP", "BP+HP", "All" };
 }
 
 juce::StringArray ymChannelMixChoices()
