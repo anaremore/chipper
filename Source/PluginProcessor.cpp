@@ -35,6 +35,7 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && a.playMode == b.playMode
         && a.sourceEnabled == b.sourceEnabled
         && sourceLevelsMatch(a, b)
+        && std::abs(a.stereoSpread - b.stereoSpread) < tolerance
         && std::abs(a.envelopeDecay - b.envelopeDecay) < tolerance
         && a.waveShape == b.waveShape
         && a.dmgWaveLevel == b.dmgWaveLevel
@@ -52,6 +53,7 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && a.playMode == b.playMode
         && a.sourceEnabled == b.sourceEnabled
         && sourceLevelsMatch(a, b)
+        && std::abs(a.stereoSpread - b.stereoSpread) < tolerance
         && std::abs(a.envelopeDecay - b.envelopeDecay) < tolerance
         && a.waveShape == b.waveShape
         && a.dmgWaveLevel == b.dmgWaveLevel
@@ -324,6 +326,7 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
             apvts.getRawParameterValue(chipper::parameters::id::source3Level)->load(),
             apvts.getRawParameterValue(chipper::parameters::id::source4Level)->load()
         },
+        apvts.getRawParameterValue(chipper::parameters::id::stereoSpread)->load(),
         apvts.getRawParameterValue(chipper::parameters::id::envelopeDecay)->load(),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::waveShape)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::dmgWaveLevel)->load())),

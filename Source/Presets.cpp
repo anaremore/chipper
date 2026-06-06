@@ -387,6 +387,7 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                            preset.playMode,
                            preset.sourceEnabled,
                            { 1.0f, 1.0f, 1.0f, 1.0f },
+                           preset.stereoSpread,
                            preset.envelopeDecay,
                            preset.waveShape,
                            0,

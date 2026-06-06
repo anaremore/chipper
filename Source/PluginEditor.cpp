@@ -242,6 +242,17 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     outputSlider.setTooltip(withMidiCc("Final plugin output level.", chipper::parameters::id::outputDb));
     outputAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::outputDb, outputSlider);
 
+    addLabeledSlider(stereoSpreadSlider, stereoSpreadLabel, "Stereo Spread");
+    stereoSpreadSlider.setNumDecimalPlacesToDisplay(2);
+    stereoSpreadSlider.setTooltip(withMidiCc("Modern stereo spread for chips that expose it; zero preserves mono output.", chipper::parameters::id::stereoSpread));
+    stereoSpreadAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::stereoSpread, stereoSpreadSlider);
+
+    stereoSpreadValueLabel.setJustificationType(juce::Justification::centredLeft);
+    stereoSpreadValueLabel.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+    stereoSpreadValueLabel.setFont(juce::FontOptions(11.0f));
+    stereoSpreadValueLabel.setMinimumHorizontalScale(0.75f);
+    addAndMakeVisible(stereoSpreadValueLabel);
+
     addLabeledSlider(envelopeDecaySlider, envelopeDecayLabel, "Envelope Decay");
     envelopeDecaySlider.setNumDecimalPlacesToDisplay(2);
     envelopeDecaySlider.setTooltip(withMidiCc("Maps musical decay to the active chip's hardware envelope period. Zero preserves the macro's original envelope/level behavior.", chipper::parameters::id::envelopeDecay));
@@ -739,6 +750,13 @@ void ChipperAudioProcessorEditor::resized()
     envelopeDecayPanel.removeFromBottom(6);
     placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
 
+    auto outputPanel = moduleBounds[5].reduced(12, 9);
+    outputPanel.removeFromTop(20);
+    outputPanel.removeFromTop(30);
+    outputPanel.removeFromTop(4);
+    outputPanel.removeFromBottom(6);
+    placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, outputPanel);
+
     area.removeFromTop(12);
     globalStripBounds = area.removeFromTop(190);
     auto strip = globalStripBounds.reduced(12, 8);
@@ -1134,6 +1152,7 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
         setParameterValueFromUi(sourceLevelIds[i], 1.0f);
 
     setParameterValueFromUi(chipper::parameters::id::envelopeDecay, preset.envelopeDecay);
+    setParameterValueFromUi(chipper::parameters::id::stereoSpread, preset.stereoSpread);
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, preset.waveShape);
     setChoiceParameterFromUi(chipper::parameters::id::dmgWaveLevel, 0);
     setChoiceParameterFromUi(chipper::parameters::id::ymEnvelopeShape, preset.ymEnvelopeShape);
@@ -1154,7 +1173,8 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
                                                                  int waveShape,
                                                                  int dmgWaveLevel,
                                                                  int ymEnvelopeShape,
-                                                                 int snNoiseMode) const
+                                                                 int snNoiseMode,
+                                                                 float stereoSpread) const
 {
     const auto macroChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::macro)));
     const auto playModeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::playMode)));
@@ -1179,6 +1199,7 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
             parameterValue(chipper::parameters::id::source3Level),
             parameterValue(chipper::parameters::id::source4Level)
         },
+        stereoSpread,
         parameterValue(chipper::parameters::id::envelopeDecay),
         waveShape,
         dmgWaveLevel,
@@ -1365,6 +1386,21 @@ juce::String ChipperAudioProcessorEditor::snNoiseModeReadout(const chipper::Patc
     return patch.snNoiseMode == 0 ? juce::String("Macro -> ") + resolvedText : resolvedText;
 }
 
+juce::String ChipperAudioProcessorEditor::stereoSpreadReadout(chipper::ChipMode mode, float value) const
+{
+    const auto spread = std::clamp(value, 0.0f, 1.0f);
+    if (spread <= 0.01f)
+        return "Mono: authentic chip output width";
+
+    const auto percent = static_cast<int>(std::round(spread * 100.0f));
+    if (mode == chipper::ChipMode::ym2149)
+        return juce::String(percent) + "%: A left, B center, C right";
+    if (mode == chipper::ChipMode::sn76489)
+        return juce::String(percent) + "%: Tone 1 left, Tone 3 right";
+
+    return juce::String(percent) + "% modern stereo spread";
+}
+
 juce::String ChipperAudioProcessorEditor::nesSweepReadout(float value) const
 {
     if (value < 0.18f)
@@ -1528,6 +1564,13 @@ bool ChipperAudioProcessorEditor::usesEnvelopeDecayControl(chipper::ChipMode mod
                                             chipper::ControlSurface::slider);
 }
 
+bool ChipperAudioProcessorEditor::usesStereoSpreadControl(chipper::ChipMode mode) const
+{
+    return chipper::chipHasParameterSurface(mode,
+                                            chipper::ChipParameterRole::stereoSpread,
+                                            chipper::ControlSurface::slider);
+}
+
 void ChipperAudioProcessorEditor::setSourceChannelSurfaceVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
     const auto active = shouldBeVisible && usesSourceChannelSurface(mode);
@@ -1543,6 +1586,31 @@ void ChipperAudioProcessorEditor::setSourceChannelSurfaceVisible(chipper::ChipMo
 
     if (active)
         updateSourceChannelButtons(mode);
+}
+
+void ChipperAudioProcessorEditor::setStereoSpreadControlVisible(chipper::ChipMode mode, bool shouldBeVisible)
+{
+    const auto active = shouldBeVisible && usesStereoSpreadControl(mode);
+    stereoSpreadLabel.setVisible(active);
+    stereoSpreadSlider.setVisible(active);
+    stereoSpreadValueLabel.setVisible(active);
+    stereoSpreadLabel.setEnabled(active);
+    stereoSpreadSlider.setEnabled(active);
+    stereoSpreadValueLabel.setEnabled(active);
+    stereoSpreadLabel.setAlpha(active ? 1.0f : 0.55f);
+    stereoSpreadSlider.setAlpha(active ? 1.0f : 0.55f);
+    stereoSpreadValueLabel.setAlpha(active ? 1.0f : 0.55f);
+
+    if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::stereoSpread))
+    {
+        stereoSpreadLabel.setText(spec->label, juce::dontSendNotification);
+        stereoSpreadLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
+        stereoSpreadSlider.setTooltip(withMidiCcForRole(spec->help, spec->role));
+        stereoSpreadValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
+    }
+
+    if (active)
+        updateStereoSpreadReadout(mode);
 }
 
 void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
@@ -1579,7 +1647,8 @@ void ChipperAudioProcessorEditor::setDmgWaveLevelSegmentVisible(chipper::ChipMod
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::waveShape))),
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgWaveLevel))),
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
-            static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))));
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
+            parameterValue(chipper::parameters::id::stereoSpread));
         updateDmgWaveLevelButtons(patch, true);
     }
 }
@@ -1618,7 +1687,8 @@ void ChipperAudioProcessorEditor::setSnNoiseModeSegmentVisible(chipper::ChipMode
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::waveShape))),
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgWaveLevel))),
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
-            static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))));
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
+            parameterValue(chipper::parameters::id::stereoSpread));
         updateSnNoiseModeButtons(mode, patch, true);
     }
 }
@@ -1727,6 +1797,11 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
 void ChipperAudioProcessorEditor::updateEnvelopeDecayReadout(chipper::ChipMode mode)
 {
     envelopeDecayValueLabel.setText(envelopeDecayReadout(mode, parameterValue(chipper::parameters::id::envelopeDecay)), juce::dontSendNotification);
+}
+
+void ChipperAudioProcessorEditor::updateStereoSpreadReadout(chipper::ChipMode mode)
+{
+    stereoSpreadValueLabel.setText(stereoSpreadReadout(mode, parameterValue(chipper::parameters::id::stereoSpread)), juce::dontSendNotification);
 }
 
 juce::String ChipperAudioProcessorEditor::envelopeDecayReadout(chipper::ChipMode mode, float value) const
@@ -1939,12 +2014,16 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     setYmEnvelopeShapeSegmentVisible(mode, usesYmEnvelopeShapeSegment(mode) && hasLiveCore);
     setSnNoiseModeSegmentVisible(mode, usesSnNoiseModeSegment(mode) && hasLiveCore);
     setEnvelopeDecayControlVisible(mode, usesEnvelopeDecayControl(mode) && hasLiveCore);
+    setStereoSpreadControlVisible(mode, usesStereoSpreadControl(mode) && hasLiveCore);
     const auto hasCustomToneSurface = hasLiveCore && (usesWaveShapeSegment(mode) || usesDmgWaveLevelSegment(mode) || usesSnNoiseModeSegment(mode) || usesYmEnvelopeShapeSegment(mode));
     for (auto& itemLabel : moduleItemLabels[2])
         itemLabel.setVisible(! hasCustomToneSurface && ! itemLabel.getText().isEmpty());
     const auto hasCustomEnvelopeSurface = hasLiveCore && usesEnvelopeDecayControl(mode);
     for (auto& itemLabel : moduleItemLabels[3])
         itemLabel.setVisible(! hasCustomEnvelopeSurface && ! itemLabel.getText().isEmpty());
+    const auto hasCustomOutputSurface = hasLiveCore && usesStereoSpreadControl(mode);
+    for (auto& itemLabel : moduleItemLabels[5])
+        itemLabel.setVisible(! hasCustomOutputSurface && ! itemLabel.getText().isEmpty());
     updatePulseDutyButtons(parameterValue(chipper::parameters::id::macroControl1), usesPulseDutySegment(mode) && hasLiveCore);
     updateLiveControlReadouts();
     repaint();
@@ -1962,7 +2041,8 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto dmgWaveLevel = static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgWaveLevel)));
     const auto ymEnvelopeShape = static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape)));
     const auto snNoiseMode = static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode)));
-    const auto patch = currentUiPatch(mode, macroControl1, macroControl2, macroControl3, macroControl4, waveShape, dmgWaveLevel, ymEnvelopeShape, snNoiseMode);
+    const auto stereoSpread = parameterValue(chipper::parameters::id::stereoSpread);
+    const auto patch = currentUiPatch(mode, macroControl1, macroControl2, macroControl3, macroControl4, waveShape, dmgWaveLevel, ymEnvelopeShape, snNoiseMode, stereoSpread);
     const auto macroText = macroTemplateReadout(mode, patch);
     macroSummaryLabel.setText(macroText, juce::dontSendNotification);
     macroBox.setTooltip(withMidiCc(macroText, chipper::parameters::id::macro));
@@ -1982,6 +2062,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     updateYmEnvelopeShapeButtons(ymEnvelopeShape, hasYmEnvelopeShapeSegment);
     updateSnNoiseModeButtons(mode, patch, hasSnNoiseModeSegment);
     updateEnvelopeDecayReadout(mode);
+    updateStereoSpreadReadout(mode);
 
     if (mode == chipper::ChipMode::nes)
     {

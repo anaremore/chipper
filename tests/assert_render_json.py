@@ -12,6 +12,7 @@ def main() -> int:
     parser.add_argument("--play-mode")
     parser.add_argument("--output-db", type=float)
     parser.add_argument("--output-gain", type=float)
+    parser.add_argument("--stereo-spread", type=float)
     parser.add_argument("--min-peak", type=float)
     parser.add_argument("--max-peak", type=float)
     parser.add_argument("--min-rms", type=float)
@@ -24,6 +25,7 @@ def main() -> int:
     parser.add_argument("--max-left-rms", type=float)
     parser.add_argument("--min-right-rms", type=float)
     parser.add_argument("--max-right-rms", type=float)
+    parser.add_argument("--min-stereo-rms-delta", type=float)
     parser.add_argument("--register-writes", type=int)
     parser.add_argument("--note-events", type=int)
     parser.add_argument("--min-zero-crossings", type=int)
@@ -63,6 +65,11 @@ def main() -> int:
         if abs(actual - args.output_gain) > 0.001:
             failures.append(f"outputGain expected {args.output_gain}, got {actual}")
 
+    if args.stereo_spread is not None:
+        actual = float(data.get("stereoSpread", 0.0))
+        if abs(actual - args.stereo_spread) > 0.001:
+            failures.append(f"stereoSpread expected {args.stereo_spread}, got {actual}")
+
     if args.min_peak is not None and float(data.get("peak", 0.0)) < args.min_peak:
         failures.append(f"peak expected >= {args.min_peak}, got {data.get('peak')}")
 
@@ -86,6 +93,11 @@ def main() -> int:
             failures.append(f"{field} expected >= {lower}, got {actual}")
         if upper is not None and actual > upper:
             failures.append(f"{field} expected <= {upper}, got {actual}")
+
+    if args.min_stereo_rms_delta is not None:
+        actual = abs(float(data.get("leftRms", 0.0)) - float(data.get("rightRms", 0.0)))
+        if actual < args.min_stereo_rms_delta:
+            failures.append(f"abs(leftRms-rightRms) expected >= {args.min_stereo_rms_delta}, got {actual}")
 
     if args.register_writes is not None and int(data.get("registerWriteCount", -1)) != args.register_writes:
         failures.append(f"registerWriteCount expected {args.register_writes}, got {data.get('registerWriteCount')}")

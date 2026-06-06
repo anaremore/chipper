@@ -48,6 +48,8 @@ struct Options
     std::array<bool, 4> sourceProvided {};
     std::array<float, 4> sourceLevels { 1.0f, 1.0f, 1.0f, 1.0f };
     std::array<bool, 4> sourceLevelProvided {};
+    float stereoSpread = 0.0f;
+    bool stereoSpreadProvided = false;
     float envelopeDecay = 0.0f;
     int waveShape = 0;
     int dmgWaveLevel = 0;
@@ -242,7 +244,7 @@ void printUsage()
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
         << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --envelope-decay 0.7 --wave-shape tri --dmg-wave-level 100|50|25|mute|macro --ym-envelope-shape triangle --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --wave-shape tri --dmg-wave-level 100|50|25|mute|macro --ym-envelope-shape triangle --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -266,6 +268,8 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.sourceEnabled = preset.sourceEnabled;
     options.sourceProvided = { true, true, true, true };
     options.sourceLevelProvided = { true, true, true, true };
+    options.stereoSpread = preset.stereoSpread;
+    options.stereoSpreadProvided = true;
     options.envelopeDecay = preset.envelopeDecay;
     options.waveShape = preset.waveShape;
     options.dmgWaveLevel = 0;
@@ -478,6 +482,13 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.envelopeDecayProvided = true;
         }
+        else if (arg == "--stereo-spread")
+        {
+            const auto* value = requireValue("--stereo-spread");
+            if (value == nullptr || ! parseNumber(std::string(value), options.stereoSpread))
+                return false;
+            options.stereoSpreadProvided = true;
+        }
         else if (arg == "--wave-shape")
         {
             const auto* value = requireValue("--wave-shape");
@@ -588,6 +599,8 @@ void applyMacroTemplateDefaults(Options& options)
 
     if (! options.envelopeDecayProvided)
         options.envelopeDecay = templ.envelopeDecay;
+    if (! options.stereoSpreadProvided)
+        options.stereoSpread = 0.0f;
     if (! options.waveShapeProvided)
         options.waveShape = templ.waveShape;
     if (! options.dmgWaveLevelProvided)
@@ -860,6 +873,7 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::source2Level: return "source2Level";
         case chipper::ChipParameterRole::source3Level: return "source3Level";
         case chipper::ChipParameterRole::source4Level: return "source4Level";
+        case chipper::ChipParameterRole::stereoSpread: return "stereoSpread";
         case chipper::ChipParameterRole::envelopeDecay: return "envelopeDecay";
         case chipper::ChipParameterRole::waveShape: return "waveShape";
         case chipper::ChipParameterRole::dmgWaveLevel: return "dmgWaveLevel";
@@ -1077,7 +1091,8 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
             << "      \"ymEnvelopeShape\": " << preset.ymEnvelopeShape << ",\n"
             << "      \"snNoiseMode\": " << preset.snNoiseMode << ",\n"
             << "      \"outputDb\": " << preset.outputDb << ",\n"
-            << "      \"clockHz\": " << preset.clockHz << "\n"
+            << "      \"clockHz\": " << preset.clockHz << ",\n"
+            << "      \"stereoSpread\": " << preset.stereoSpread << "\n"
             << "    }";
         wrotePreset = true;
     }
@@ -1165,6 +1180,7 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"note\": " << options.note << ",\n"
         << "  \"outputDb\": " << options.outputDb << ",\n"
         << "  \"outputGain\": " << decibelsToGain(options.outputDb) << ",\n"
+        << "  \"stereoSpread\": " << patch.stereoSpread << ",\n"
         << "  \"registerWriteCount\": " << registerWriteCount << ",\n"
         << "  \"noteEventCount\": " << noteEventCount << ",\n"
         << "  \"renderedSamples\": " << stats.renderedSamples << ",\n"
@@ -1217,6 +1233,7 @@ int main(int argc, char** argv)
                                                     options.playMode,
                                                     options.sourceEnabled,
                                                     options.sourceLevels,
+                                                    options.stereoSpread,
                                                     options.envelopeDecay,
                                                     options.waveShape,
                                                     options.dmgWaveLevel,

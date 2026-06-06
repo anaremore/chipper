@@ -28,6 +28,7 @@ struct PresetInfo
     int snNoiseMode = 0;
     float outputDb = -9.0f;
     double clockHz = 0.0;
+    float stereoSpread = 0.0f;
 };
 
 const std::vector<PresetInfo>& presetCatalog();

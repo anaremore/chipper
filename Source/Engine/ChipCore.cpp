@@ -106,6 +106,14 @@ double sourceLevel(const PatchConfig& patch, size_t index)
     return index < patch.sourceLevels.size() ? clamp01(patch.sourceLevels[index]) : 1.0;
 }
 
+StereoFrame modernStereoGains(const PatchConfig& patch, double basePosition)
+{
+    const auto pan = std::clamp(basePosition * clamp01(patch.stereoSpread), -1.0, 1.0);
+    const auto left = pan > 0.0 ? 1.0 - (0.75 * pan) : 1.0;
+    const auto right = pan < 0.0 ? 1.0 + (0.75 * pan) : 1.0;
+    return { static_cast<float>(left), static_cast<float>(right) };
+}
+
 uint8_t sourceEnableMask(const PatchConfig& patch)
 {
     uint8_t mask = 0;
@@ -2128,12 +2136,19 @@ public:
         updateNoise();
         updateEnvelope();
 
-        double mix = 0.0;
+        static constexpr std::array<double, 3> panPositions { -1.0, 0.0, 1.0 };
+        double left = 0.0;
+        double right = 0.0;
         for (int ch = 0; ch < 3; ++ch)
-            mix += renderChannel(ch);
+        {
+            const auto channel = renderChannel(ch);
+            const auto gains = modernStereoGains(patch, panPositions[static_cast<size_t>(ch)]);
+            left += channel * gains.left;
+            right += channel * gains.right;
+        }
 
-        const auto sample = static_cast<float>((mix / 3.0) * noteVelocity * 0.7);
-        return { sample, sample };
+        const auto scale = static_cast<double>(noteVelocity) * 0.7 / 3.0;
+        return { static_cast<float>(left * scale), static_cast<float>(right * scale) };
     }
 
     std::vector<RegisterWrite> exportRegisterState() const override
@@ -2176,6 +2191,10 @@ public:
              << "\"sourceLevelB\":" << sourceLevel(patch, 1) << ","
              << "\"sourceLevelC\":" << sourceLevel(patch, 2) << ","
              << "\"sourceLevelNoise\":" << sourceLevel(patch, 3) << ","
+             << "\"stereoSpread\":" << clamp01(patch.stereoSpread) << ","
+             << "\"stereoPanA\":" << -clamp01(patch.stereoSpread) << ","
+             << "\"stereoPanB\":0,"
+             << "\"stereoPanC\":" << clamp01(patch.stereoSpread) << ","
              << "\"volumeCurve\":\"ayYmLogApprox1_5dB\","
              << "\"volumeA\":" << static_cast<int>(regs[8]) << ","
              << "\"volumeB\":" << static_cast<int>(regs[9]) << ","
@@ -2696,13 +2715,24 @@ public:
 
     StereoFrame renderSample() override
     {
-        double mix = 0.0;
+        static constexpr std::array<double, 4> panPositions { -1.0, 0.0, 1.0, 0.0 };
+        double left = 0.0;
+        double right = 0.0;
         for (int ch = 0; ch < 3; ++ch)
-            mix += renderTone(ch) * attenuationToLinear(attenuation[static_cast<size_t>(ch)]) * sourceLevel(patch, static_cast<size_t>(ch));
+        {
+            const auto channel = renderTone(ch) * attenuationToLinear(attenuation[static_cast<size_t>(ch)]) * sourceLevel(patch, static_cast<size_t>(ch));
+            const auto gains = modernStereoGains(patch, panPositions[static_cast<size_t>(ch)]);
+            left += channel * gains.left;
+            right += channel * gains.right;
+        }
 
-        mix += renderNoise() * attenuationToLinear(attenuation[3]) * sourceLevel(patch, 3);
-        const auto sample = static_cast<float>((mix / 4.0) * noteVelocity * 0.8);
-        return { sample, sample };
+        const auto noise = renderNoise() * attenuationToLinear(attenuation[3]) * sourceLevel(patch, 3);
+        const auto noiseGains = modernStereoGains(patch, panPositions[3]);
+        left += noise * noiseGains.left;
+        right += noise * noiseGains.right;
+
+        const auto scale = static_cast<double>(noteVelocity) * 0.8 / 4.0;
+        return { static_cast<float>(left * scale), static_cast<float>(right * scale) };
     }
 
     std::vector<RegisterWrite> exportRegisterState() const override
@@ -2768,6 +2798,11 @@ public:
              << "\"sourceLevel1\":" << sourceLevel(patch, 1) << ","
              << "\"sourceLevel2\":" << sourceLevel(patch, 2) << ","
              << "\"sourceLevelNoise\":" << sourceLevel(patch, 3) << ","
+             << "\"stereoSpread\":" << clamp01(patch.stereoSpread) << ","
+             << "\"stereoPan0\":" << -clamp01(patch.stereoSpread) << ","
+             << "\"stereoPan1\":0,"
+             << "\"stereoPan2\":" << clamp01(patch.stereoSpread) << ","
+             << "\"stereoPanNoise\":0,"
              << "\"attenuation0\":" << static_cast<int>(attenuation[0]) << ","
              << "\"attenuation1\":" << static_cast<int>(attenuation[1]) << ","
              << "\"attenuation2\":" << static_cast<int>(attenuation[2]) << ","

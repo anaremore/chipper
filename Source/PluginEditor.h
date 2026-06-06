@@ -69,7 +69,8 @@ private:
                                          int waveShape,
                                          int dmgWaveLevel,
                                          int ymEnvelopeShape,
-                                         int snNoiseMode) const;
+                                         int snNoiseMode,
+                                         float stereoSpread) const;
     bool usesPulseDutySegment(chipper::ChipMode mode) const;
     bool usesWaveShapeSegment(chipper::ChipMode mode) const;
     bool usesDmgWaveLevelSegment(chipper::ChipMode mode) const;
@@ -100,15 +101,19 @@ private:
     juce::String snMotionReadout(float value) const;
     juce::String snLevelReadout(float value) const;
     juce::String sourceLevelReadout(size_t index) const;
+    juce::String stereoSpreadReadout(chipper::ChipMode mode, float value) const;
     bool usesSourceChannelSurface(chipper::ChipMode mode) const;
     bool usesEnvelopeDecayControl(chipper::ChipMode mode) const;
+    bool usesStereoSpreadControl(chipper::ChipMode mode) const;
     void setSourceChannelSurfaceVisible(chipper::ChipMode mode, bool shouldBeVisible);
+    void setStereoSpreadControlVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setWaveShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setDmgWaveLevelSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setYmEnvelopeShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setSnNoiseModeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setEnvelopeDecayControlVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void updateSourceChannelButtons(chipper::ChipMode mode);
+    void updateStereoSpreadReadout(chipper::ChipMode mode);
     void updatePulseDutyButtons(float value, bool shouldBeVisible);
     void updateWaveShapeButtons(int choice, bool shouldBeVisible);
     void updateDmgWaveLevelButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
@@ -129,6 +134,8 @@ private:
     juce::Label globalStripLabel;
     juce::Label clockLabel;
     juce::Label outputLabel;
+    juce::Label stereoSpreadLabel;
+    juce::Label stereoSpreadValueLabel;
     juce::Label envelopeDecayLabel;
     juce::Label envelopeDecayValueLabel;
     juce::Label waveShapeLabel;
@@ -163,6 +170,7 @@ private:
 
     juce::Slider clockSlider;
     juce::Slider outputSlider;
+    juce::Slider stereoSpreadSlider;
     juce::Slider envelopeDecaySlider;
     std::array<juce::Slider, 4> nativeSliders;
     std::array<juce::Label, 4> nativeGroupLabels;
@@ -178,6 +186,7 @@ private:
     std::unique_ptr<ComboBoxAttachment> playModeAttachment;
     std::unique_ptr<SliderAttachment> clockAttachment;
     std::unique_ptr<SliderAttachment> outputAttachment;
+    std::unique_ptr<SliderAttachment> stereoSpreadAttachment;
     std::unique_ptr<SliderAttachment> envelopeDecayAttachment;
     std::array<std::unique_ptr<SliderAttachment>, 4> nativeAttachments;
     std::array<std::unique_ptr<SliderAttachment>, sourceChannelCount> sourceLevelAttachments;

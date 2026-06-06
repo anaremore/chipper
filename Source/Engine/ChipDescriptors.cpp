@@ -127,6 +127,11 @@ ChipParameterSpec sourceLevelSpec(ChipParameterRole role, std::string id, std::s
     return { role, id, label, "Sources", help, ParameterKind::continuous, ControlSurface::slider, {}, 0.0f, 1.0f, 1.0f };
 }
 
+ChipParameterSpec stereoSpreadSpec(std::string id, std::string help)
+{
+    return { ChipParameterRole::stereoSpread, id, "Stereo Spread", "Output", help, ParameterKind::continuous, ControlSurface::slider, {}, 0.0f, 1.0f, 0.0f };
+}
+
 ChipParameterSpec envelopeSpec(std::string id, std::string label, std::string help)
 {
     return { ChipParameterRole::envelopeDecay, id, label, "Envelope", help, ParameterKind::chipRegister, ControlSurface::slider, {}, 0.0f, 1.0f, 0.0f };
@@ -293,6 +298,7 @@ std::vector<ChipParameterSpec> ym2149ParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source2Level, "ym2149.channelB.level", "Channel B Level", "Trims YM/AY channel B after its native volume register."),
         sourceLevelSpec(ChipParameterRole::source3Level, "ym2149.channelC.level", "Channel C Level", "Trims YM/AY channel C after its native volume register."),
         sourceLevelSpec(ChipParameterRole::source4Level, "ym2149.noise.level", "Noise Level", "Scales the shared noise gate where the mixer uses noise."),
+        stereoSpreadSpec("ym2149.stereoSpread", "Modern stereo convenience that spreads A/B/C across the stereo field; zero preserves mono chip output."),
         envelopeSpec("ym2149.envelopeSpeed", "Envelope Speed", "Maps musical envelope speed to YM/AY registers 11 and 12. Zero uses the default register period."),
         segmentedSpec(ChipParameterRole::ymEnvelopeShape,
                       "ym2149.envelopeShape",
@@ -335,6 +341,7 @@ std::vector<ChipParameterSpec> sn76489ParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source2Level, "sn76489.tone2.level", "Tone 2 Level", "Trims SN76489 tone channel 2 after attenuation."),
         sourceLevelSpec(ChipParameterRole::source3Level, "sn76489.tone3.level", "Tone 3 Level", "Trims SN76489 tone channel 3 after attenuation."),
         sourceLevelSpec(ChipParameterRole::source4Level, "sn76489.noise.level", "Noise Level", "Trims the SN76489 noise channel after attenuation."),
+        stereoSpreadSpec("sn76489.stereoSpread", "Modern stereo convenience that spreads tone channels across the stereo field; zero preserves mono PSG output."),
         segmentedSpec(ChipParameterRole::snNoiseMode,
                       "sn76489.noiseMode",
                       "Noise Mode",
@@ -799,6 +806,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             PlayMode playMode,
                             std::array<bool, 4> sourceEnabled,
                             std::array<float, 4> sourceLevels,
+                            float stereoSpread,
                             float envelopeDecay,
                             int waveShape,
                             int dmgWaveLevel,
@@ -821,6 +829,7 @@ PatchConfig makePatchConfig(ChipMode mode,
             clampControl(sourceLevels[2]),
             clampControl(sourceLevels[3])
         },
+        clampControl(stereoSpread),
         clampControl(envelopeDecay),
         std::clamp(waveShape, 0, 4),
         std::clamp(dmgWaveLevel, 0, 4),

@@ -195,6 +195,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         1.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::stereoSpread, 1 },
+        "Stereo Spread",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        0.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID { id::envelopeDecay, 1 },
         "Envelope Decay",
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
