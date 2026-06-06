@@ -73,6 +73,8 @@ struct PatchConfig
     std::array<float, 4> sourceLevels { 1.0f, 1.0f, 1.0f, 1.0f };
     float stereoSpread = 0.0f;
     float envelopeDecay = 0.0f;
+    int sidAttack = 0;
+    int sidRelease = 0;
     int waveShape = 0;
     int dmgWaveLevel = 0;
     int dmgStereoRoute = 0;

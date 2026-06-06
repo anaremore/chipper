@@ -35,6 +35,8 @@ private:
     static constexpr size_t ymEnvelopeShapeCount = 5;
     static constexpr size_t snNoiseModeCount = 5;
     static constexpr size_t toneNoiseMixCount = 3;
+    static constexpr size_t sidAdsrChoiceCount = 17;
+    static constexpr size_t sidAdsrOverrideCount = 2;
 
     void timerCallback() override;
     void updateDescriptorText();
@@ -47,6 +49,7 @@ private:
                             juce::Label& valueLabel,
                             juce::Rectangle<int> bounds);
     void placeLabeledSliderWithReadout(juce::Slider& slider, juce::Label& label, juce::Label& valueLabel, juce::Rectangle<int> bounds);
+    void placeSidAdsrControls(juce::Rectangle<int> bounds);
     void placePulseDutySegment(juce::Rectangle<int> bounds);
     void placeWaveShapeSegment(juce::Rectangle<int> bounds);
     void placeSidVoiceWaveControls(juce::Rectangle<int> bounds);
@@ -129,6 +132,7 @@ private:
     void setYmEnvelopeShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setSnNoiseModeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setEnvelopeDecayControlVisible(chipper::ChipMode mode, bool shouldBeVisible);
+    void setSidAdsrControlsVisible(bool shouldBeVisible);
     void updateSourceChannelButtons(chipper::ChipMode mode);
     void updateStereoSpreadReadout(chipper::ChipMode mode);
     void updatePulseDutyButtons(float value, bool shouldBeVisible);
@@ -140,6 +144,7 @@ private:
     void updateSnNoiseModeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateToneNoiseMixButtons(float value, bool shouldBeVisible);
     void updateEnvelopeDecayReadout(chipper::ChipMode mode);
+    void updateSidAdsrControls(bool shouldBeVisible);
     juce::String envelopeDecayReadout(chipper::ChipMode mode, float value) const;
 
     ChipperAudioProcessor& audioProcessor;
@@ -157,6 +162,8 @@ private:
     juce::Label stereoSpreadValueLabel;
     juce::Label envelopeDecayLabel;
     juce::Label envelopeDecayValueLabel;
+    std::array<juce::Label, sidAdsrOverrideCount> sidAdsrLabels;
+    std::array<juce::ComboBox, sidAdsrOverrideCount> sidAdsrBoxes;
     juce::Label waveShapeLabel;
     juce::Label waveShapeValueLabel;
     std::array<juce::Label, sidVoiceWaveCount> sidVoiceWaveLabels;

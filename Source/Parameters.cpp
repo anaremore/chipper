@@ -51,6 +51,17 @@ juce::StringArray sidVoiceWaveShapeChoices()
     return { "Macro", "Tri", "Saw", "Pulse", "Noise" };
 }
 
+juce::StringArray sidAdsrNibbleChoices()
+{
+    return {
+        "Macro",
+        "0", "1", "2", "3",
+        "4", "5", "6", "7",
+        "8", "9", "10", "11",
+        "12", "13", "14", "15"
+    };
+}
+
 juce::StringArray dmgWaveLevelChoices()
 {
     return { "Macro", "Mute", "100%", "50%", "25%" };
@@ -215,6 +226,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         "Envelope Decay",
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
         0.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::sidAttack, 1 },
+        "SID Attack",
+        sidAdsrNibbleChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::sidRelease, 1 },
+        "SID Release",
+        sidAdsrNibbleChoices(),
+        0));
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::waveShape, 1 },

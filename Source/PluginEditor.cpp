@@ -118,6 +118,26 @@ const char* sidVoiceWaveParameterId(size_t index)
     return ids[std::min(index, ids.size() - 1u)];
 }
 
+chipper::ChipParameterRole sidAdsrRole(size_t index)
+{
+    static constexpr std::array<chipper::ChipParameterRole, 2> roles {
+        chipper::ChipParameterRole::sidAttack,
+        chipper::ChipParameterRole::sidRelease
+    };
+
+    return roles[std::min(index, roles.size() - 1u)];
+}
+
+const char* sidAdsrParameterId(size_t index)
+{
+    static constexpr std::array<const char*, 2> ids {
+        chipper::parameters::id::sidAttack,
+        chipper::parameters::id::sidRelease
+    };
+
+    return ids[std::min(index, ids.size() - 1u)];
+}
+
 juce::String choiceTooltip(const chipper::ChipParameterSpec& spec, size_t choiceIndex)
 {
     if (choiceIndex < spec.choices.size() && ! spec.choices[choiceIndex].help.empty())
@@ -307,6 +327,33 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     envelopeDecayValueLabel.setFont(juce::FontOptions(11.0f));
     envelopeDecayValueLabel.setMinimumHorizontalScale(0.75f);
     addAndMakeVisible(envelopeDecayValueLabel);
+
+    const std::array<const char*, sidAdsrOverrideCount> sidAdsrLabelText { "Attack", "Release" };
+    for (size_t i = 0; i < sidAdsrBoxes.size(); ++i)
+    {
+        auto& label = sidAdsrLabels[i];
+        label.setText(sidAdsrLabelText[i], juce::dontSendNotification);
+        label.setJustificationType(juce::Justification::centredLeft);
+        label.setColour(juce::Label::textColourId, juce::Colour(0xff56c7d8));
+        label.setFont(juce::FontOptions(11.0f, juce::Font::bold));
+        label.setVisible(false);
+        addAndMakeVisible(label);
+
+        auto& box = sidAdsrBoxes[i];
+        box.addItemList(chipper::parameters::sidAdsrNibbleChoices(), 1);
+        box.setVisible(false);
+        box.setTooltip(withMidiCcForRole("SID ADSR nibble override.", sidAdsrRole(i)));
+        box.onChange = [this, i]()
+        {
+            const auto selected = sidAdsrBoxes[i].getSelectedItemIndex();
+            if (selected >= 0)
+            {
+                setChoiceParameterFromUi(sidAdsrParameterId(i), selected);
+                updateLiveControlReadouts();
+            }
+        };
+        addAndMakeVisible(box);
+    }
 
     const std::array<const char*, 4> ids {
         chipper::parameters::id::macroControl1,
@@ -861,7 +908,10 @@ void ChipperAudioProcessorEditor::resized()
     envelopePanel.removeFromTop(4);
     auto envelopeDecayPanel = envelopePanel;
     envelopeDecayPanel.removeFromBottom(6);
-    placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
+    if (displayedMode == chipper::ChipMode::sid)
+        placeSidAdsrControls(envelopeDecayPanel);
+    else
+        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
 
     auto outputPanel = moduleBounds[5].reduced(12, 9);
     outputPanel.removeFromTop(20);
@@ -967,6 +1017,25 @@ void ChipperAudioProcessorEditor::placeLabeledSliderWithReadout(juce::Slider& sl
     label.setBounds(bounds.removeFromTop(20));
     slider.setBounds(bounds.removeFromTop(30).reduced(0, 2));
     valueLabel.setBounds(bounds);
+}
+
+void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> bounds)
+{
+    auto overrideRow = bounds.removeFromTop(24).reduced(0, 1);
+    const auto gap = 8;
+    const auto cellWidth = (overrideRow.getWidth() - gap) / 2;
+    for (size_t i = 0; i < sidAdsrBoxes.size(); ++i)
+    {
+        auto cell = overrideRow.removeFromLeft(cellWidth);
+        if (i + 1u < sidAdsrBoxes.size())
+            overrideRow.removeFromLeft(gap);
+
+        sidAdsrLabels[i].setBounds(cell.removeFromLeft(54));
+        sidAdsrBoxes[i].setBounds(cell);
+    }
+
+    bounds.removeFromTop(4);
+    placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, bounds);
 }
 
 void ChipperAudioProcessorEditor::placePulseDutySegment(juce::Rectangle<int> bounds)
@@ -1212,6 +1281,16 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
         envelopeDecaySlider.setTooltip(withMidiCcForRole(spec->help, spec->role));
         envelopeDecayValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
     }
+
+    for (size_t i = 0; i < sidAdsrBoxes.size(); ++i)
+    {
+        if (const auto* spec = chipper::parameterSpecFor(mode, sidAdsrRole(i)))
+        {
+            sidAdsrLabels[i].setText(spec->label, juce::dontSendNotification);
+            sidAdsrLabels[i].setTooltip(withMidiCcForRole(spec->help, spec->role));
+            sidAdsrBoxes[i].setTooltip(withMidiCcForRole(spec->help, spec->role));
+        }
+    }
 }
 
 void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
@@ -1258,6 +1337,8 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
     for (size_t i = 0; i < sourceLevelIds.size(); ++i)
         setParameterValueFromUi(sourceLevelIds[i], 1.0f);
     setParameterValueFromUi(chipper::parameters::id::envelopeDecay, templ.envelopeDecay);
+    setChoiceParameterFromUi(chipper::parameters::id::sidAttack, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::sidRelease, 0);
     setParameterValueFromUi(chipper::parameters::id::stereoSpread, templ.stereoSpread);
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, templ.waveShape);
     setChoiceParameterFromUi(chipper::parameters::id::sidVoice2WaveShape, 0);
@@ -1324,6 +1405,8 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
         setParameterValueFromUi(sourceLevelIds[i], 1.0f);
 
     setParameterValueFromUi(chipper::parameters::id::envelopeDecay, preset.envelopeDecay);
+    setChoiceParameterFromUi(chipper::parameters::id::sidAttack, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::sidRelease, 0);
     setParameterValueFromUi(chipper::parameters::id::stereoSpread, preset.stereoSpread);
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, preset.waveShape);
     setChoiceParameterFromUi(chipper::parameters::id::sidVoice2WaveShape, preset.sidVoice2WaveShape);
@@ -1383,7 +1466,9 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
         ymEnvelopeShape,
         snNoiseMode,
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice2WaveShape))),
-        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice3WaveShape))));
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice3WaveShape))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidAttack))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidRelease))));
 }
 
 bool ChipperAudioProcessorEditor::usesPulseDutySegment(chipper::ChipMode mode) const
@@ -1855,7 +1940,7 @@ juce::String ChipperAudioProcessorEditor::sidCutoffReadout(float value) const
 juce::String ChipperAudioProcessorEditor::sidSustainReadout(float value) const
 {
     const auto sustain = std::clamp(static_cast<int>(std::round(std::clamp(value, 0.0f, 1.0f) * 15.0f)), 0, 15);
-    return juce::String("SR sustain nibble ") + juce::String(sustain) + "/15; release from ADSR Speed";
+    return juce::String("SR sustain nibble ") + juce::String(sustain) + "/15";
 }
 
 juce::String ChipperAudioProcessorEditor::sourceLevelReadout(size_t index) const
@@ -2097,6 +2182,7 @@ void ChipperAudioProcessorEditor::setSnNoiseModeSegmentVisible(chipper::ChipMode
 void ChipperAudioProcessorEditor::setEnvelopeDecayControlVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
     const auto active = shouldBeVisible && usesEnvelopeDecayControl(mode);
+    setSidAdsrControlsVisible(active && mode == chipper::ChipMode::sid);
     envelopeDecayLabel.setVisible(active);
     envelopeDecaySlider.setVisible(active);
     envelopeDecayValueLabel.setVisible(active);
@@ -2109,6 +2195,17 @@ void ChipperAudioProcessorEditor::setEnvelopeDecayControlVisible(chipper::ChipMo
 
     if (active)
         updateEnvelopeDecayReadout(mode);
+}
+
+void ChipperAudioProcessorEditor::setSidAdsrControlsVisible(bool shouldBeVisible)
+{
+    for (auto& label : sidAdsrLabels)
+        label.setVisible(shouldBeVisible);
+    for (auto& box : sidAdsrBoxes)
+        box.setVisible(shouldBeVisible);
+
+    if (shouldBeVisible)
+        updateSidAdsrControls(true);
 }
 
 void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode mode)
@@ -2212,6 +2309,17 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
 void ChipperAudioProcessorEditor::updateEnvelopeDecayReadout(chipper::ChipMode mode)
 {
     envelopeDecayValueLabel.setText(envelopeDecayReadout(mode, parameterValue(chipper::parameters::id::envelopeDecay)), juce::dontSendNotification);
+}
+
+void ChipperAudioProcessorEditor::updateSidAdsrControls(bool shouldBeVisible)
+{
+    for (size_t i = 0; i < sidAdsrBoxes.size(); ++i)
+    {
+        const auto selected = static_cast<int>(std::round(parameterValue(sidAdsrParameterId(i))));
+        sidAdsrLabels[i].setVisible(shouldBeVisible);
+        sidAdsrBoxes[i].setVisible(shouldBeVisible);
+        sidAdsrBoxes[i].setSelectedItemIndex(std::clamp(selected, 0, static_cast<int>(sidAdsrChoiceCount - 1u)), juce::dontSendNotification);
+    }
 }
 
 void ChipperAudioProcessorEditor::updateStereoSpreadReadout(chipper::ChipMode mode)
@@ -2573,6 +2681,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     updateYmEnvelopeShapeButtons(mode, patch, hasYmEnvelopeShapeSegment);
     updateSnNoiseModeButtons(mode, patch, hasSnNoiseModeSegment);
     updateEnvelopeDecayReadout(mode);
+    updateSidAdsrControls(mode == chipper::ChipMode::sid && usesEnvelopeDecayControl(mode) && chipper::descriptorFor(mode).implemented);
     updateStereoSpreadReadout(mode);
 
     if (mode == chipper::ChipMode::nes)
