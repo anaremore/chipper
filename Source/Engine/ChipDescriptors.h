@@ -117,6 +117,7 @@ const MacroTemplate& macroTemplateFor(ChipMode mode, MacroKind macro);
 const ChipParameterSpec* parameterSpecFor(ChipMode mode, ChipParameterRole role);
 bool chipHasParameterSurface(ChipMode mode, ChipParameterRole role, ControlSurface surface);
 bool supportsPlayMode(ChipMode mode, PlayMode playMode);
+std::vector<ChipMode> chipModeOrder();
 std::vector<MacroKind> macroOrder();
 PatchConfig makePatchConfig(ChipMode mode,
                             MacroKind macro,

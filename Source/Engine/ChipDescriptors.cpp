@@ -660,6 +660,17 @@ bool supportsPlayMode(ChipMode mode, PlayMode playMode)
     return false;
 }
 
+std::vector<ChipMode> chipModeOrder()
+{
+    std::vector<ChipMode> modes;
+    const auto& items = descriptors();
+    modes.reserve(items.size() + 1u);
+    for (const auto& item : items)
+        modes.push_back(item.mode);
+    modes.push_back(ChipMode::custom);
+    return modes;
+}
+
 std::vector<MacroKind> macroOrder()
 {
     return {

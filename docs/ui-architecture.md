@@ -119,6 +119,8 @@ The top-level Macro parameter may remain a stable automation slot, but its displ
 
 Factory presets are curated snapshots over those same stable parameters, not separate sound engines. Each live-chip preset stores chip mode, accuracy tier, macro, play mode, native controls, source enables, chip-specific choices, and output trim. The VST applies those snapshots to APVTS parameters so DAW state remains ordinary plugin state, while `chipper_render --preset` uses the same catalog for regression coverage. Renderer debug JSON includes the active descriptor's macro, parameter, choice, and preset metadata so automated tests can verify that the UI/control vocabulary matches the engine-backed chip surface. Planned-chip preset names must stay out of the executable factory list until their cores exist.
 
+`chipper_render --list-descriptors --debug descriptors.json` exports the same chip descriptors, macro templates, parameter specs, and factory preset catalog without rendering audio. `chipper_render --describe-chip nes --debug nes.json` exports the same schema for one chip. This is the machine-readable contract for future dynamic UI work: chip-aware controls should be proven in descriptor metadata before the editor grows more chip-specific surfaces.
+
 ## Patch And Channel Model
 
 Chipper exposes one patch per plugin instance. A patch can use every native chip channel inside the selected chip core, but users should not have to compose like a tracker by default.

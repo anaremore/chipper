@@ -23,12 +23,20 @@
 namespace
 {
 
+enum class MetadataMode
+{
+    render,
+    listDescriptors,
+    describeChip
+};
+
 struct Options
 {
     chipper::ChipMode chip = chipper::ChipMode::nes;
     chipper::AccuracyMode accuracy = chipper::AccuracyMode::hybrid;
     chipper::MacroKind macro = chipper::MacroKind::manual;
     chipper::PlayMode playMode = chipper::PlayMode::stack;
+    MetadataMode metadataMode = MetadataMode::render;
     std::string presetId;
     float control1 = 0.5f;
     float control2 = 0.5f;
@@ -188,6 +196,8 @@ void printUsage()
 {
     std::cerr
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
+        << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
+        << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
         << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --envelope-decay 0.7 --wave-shape tri --ym-envelope-shape triangle --sn-noise-mode white-t3\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
@@ -253,6 +263,28 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             }
             applyPreset(options, *preset);
+        }
+        else if (arg == "--list-descriptors")
+        {
+            options.metadataMode = MetadataMode::listDescriptors;
+        }
+        else if (arg == "--describe")
+        {
+            options.metadataMode = MetadataMode::describeChip;
+        }
+        else if (arg == "--describe-chip")
+        {
+            const auto* value = requireValue("--describe-chip");
+            if (value == nullptr)
+                return false;
+            const auto parsed = chipper::parseChipMode(value);
+            if (! parsed)
+            {
+                std::cerr << "Unknown chip mode: " << value << "\n";
+                return false;
+            }
+            options.chip = *parsed;
+            options.metadataMode = MetadataMode::describeChip;
         }
         else if (arg == "--chip")
         {
@@ -703,6 +735,32 @@ const char* toJsonString(chipper::ChipParameterRole role)
     return "macroControl1";
 }
 
+const char* chipModeKey(chipper::ChipMode mode)
+{
+    switch (mode)
+    {
+        case chipper::ChipMode::nes: return "nes";
+        case chipper::ChipMode::dmg: return "dmg";
+        case chipper::ChipMode::sid: return "sid";
+        case chipper::ChipMode::ym2149: return "ym2149";
+        case chipper::ChipMode::sn76489: return "sn76489";
+        case chipper::ChipMode::ym2612: return "ym2612";
+        case chipper::ChipMode::opl3: return "opl3";
+        case chipper::ChipMode::spc700: return "spc700";
+        case chipper::ChipMode::pokey: return "pokey";
+        case chipper::ChipMode::paula: return "paula";
+        case chipper::ChipMode::huc6280: return "huc6280";
+        case chipper::ChipMode::namcoWsg: return "namcoWsg";
+        case chipper::ChipMode::ym2151: return "ym2151";
+        case chipper::ChipMode::ym2413: return "ym2413";
+        case chipper::ChipMode::scc: return "scc";
+        case chipper::ChipMode::arcade: return "arcade";
+        case chipper::ChipMode::custom: return "custom";
+    }
+
+    return "custom";
+}
+
 void writeDescriptorJson(std::ostream& out, chipper::ChipMode mode)
 {
     const auto& descriptor = chipper::descriptorFor(mode);
@@ -805,6 +863,106 @@ void writeDescriptorJson(std::ostream& out, chipper::ChipMode mode)
         << "  }";
 }
 
+bool includesMode(const std::vector<chipper::ChipMode>& modes, chipper::ChipMode mode)
+{
+    return std::find(modes.begin(), modes.end(), mode) != modes.end();
+}
+
+void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMode>& modes)
+{
+    const auto& presets = chipper::presetCatalog();
+    out << "  \"presets\": [\n";
+    bool wrotePreset = false;
+    for (const auto& preset : presets)
+    {
+        if (! includesMode(modes, preset.chip))
+            continue;
+
+        if (wrotePreset)
+            out << ",\n";
+
+        out << "    {\n"
+            << "      \"id\": ";
+        writeJsonString(out, preset.id);
+        out << ",\n"
+            << "      \"category\": ";
+        writeJsonString(out, preset.category);
+        out << ",\n"
+            << "      \"name\": ";
+        writeJsonString(out, preset.name);
+        out << ",\n"
+            << "      \"note\": ";
+        writeJsonString(out, preset.note);
+        out << ",\n"
+            << "      \"chipKey\": ";
+        writeJsonString(out, chipModeKey(preset.chip));
+        out << ",\n"
+            << "      \"chip\": ";
+        writeJsonString(out, chipper::toString(preset.chip));
+        out << ",\n"
+            << "      \"accuracy\": ";
+        writeJsonString(out, chipper::toString(preset.accuracy));
+        out << ",\n"
+            << "      \"macro\": ";
+        writeJsonString(out, chipper::toString(preset.macro));
+        out << ",\n"
+            << "      \"playMode\": ";
+        writeJsonString(out, chipper::toString(preset.playMode));
+        out << ",\n"
+            << "      \"controls\": [" << preset.controls[0] << ", "
+            << preset.controls[1] << ", "
+            << preset.controls[2] << ", "
+            << preset.controls[3] << "],\n"
+            << "      \"sourceEnabled\": ["
+            << (preset.sourceEnabled[0] ? "true" : "false") << ", "
+            << (preset.sourceEnabled[1] ? "true" : "false") << ", "
+            << (preset.sourceEnabled[2] ? "true" : "false") << ", "
+            << (preset.sourceEnabled[3] ? "true" : "false") << "],\n"
+            << "      \"envelopeDecay\": " << preset.envelopeDecay << ",\n"
+            << "      \"waveShape\": " << preset.waveShape << ",\n"
+            << "      \"ymEnvelopeShape\": " << preset.ymEnvelopeShape << ",\n"
+            << "      \"snNoiseMode\": " << preset.snNoiseMode << ",\n"
+            << "      \"outputDb\": " << preset.outputDb << ",\n"
+            << "      \"clockHz\": " << preset.clockHz << "\n"
+            << "    }";
+        wrotePreset = true;
+    }
+    if (wrotePreset)
+        out << "\n";
+    out << "  ]\n";
+}
+
+void writeDescriptorListJson(const std::filesystem::path& path, const std::vector<chipper::ChipMode>& modes)
+{
+    std::ofstream out(path);
+    if (! out)
+        throw std::runtime_error("Could not write descriptor JSON: " + path.string());
+
+    out << "{\n"
+        << "  \"schema\": \"chipper.descriptors.v1\",\n"
+        << "  \"descriptors\": [\n";
+
+    for (size_t i = 0; i < modes.size(); ++i)
+    {
+        const auto mode = modes[i];
+        out << "    {\n"
+            << "      \"chipKey\": ";
+        writeJsonString(out, chipModeKey(mode));
+        out << ",\n"
+            << "      \"chip\": ";
+        writeJsonString(out, chipper::toString(mode));
+        out << ",\n"
+            << "      \"descriptor\": ";
+        writeDescriptorJson(out, mode);
+        out << "\n"
+            << "    }" << (i + 1u == modes.size() ? "\n" : ",\n");
+    }
+
+    out << "  ],\n";
+    writePresetCatalogJson(out, modes);
+    out << "}\n";
+}
+
 void writeDebugJson(const std::filesystem::path& path,
                     const Options& options,
                     const chipper::PatchConfig& patch,
@@ -857,6 +1015,16 @@ int main(int argc, char** argv)
         {
             printUsage();
             return 2;
+        }
+
+        if (options.metadataMode != MetadataMode::render)
+        {
+            const auto modes = options.metadataMode == MetadataMode::listDescriptors
+                ? chipper::chipModeOrder()
+                : std::vector<chipper::ChipMode> { options.chip };
+            writeDescriptorListJson(options.debugPath, modes);
+            std::cout << "Wrote descriptor metadata to " << options.debugPath.string() << "\n";
+            return 0;
         }
 
         applyMacroTemplateDefaults(options);
