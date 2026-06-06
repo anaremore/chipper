@@ -51,6 +51,11 @@ juce::StringArray dmgWaveLevelChoices()
     return { "Macro", "Mute", "100%", "50%", "25%" };
 }
 
+juce::StringArray dmgStereoRouteChoices()
+{
+    return { "Macro", "Both", "Left", "Right", "Split" };
+}
+
 juce::StringArray ymEnvelopeShapeChoices()
 {
     return { "Fixed", "Fall", "Rise", "Saw", "Triangle" };
@@ -216,6 +221,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::ParameterID { id::dmgWaveLevel, 1 },
         "DMG Wave Level",
         dmgWaveLevelChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::dmgStereoRoute, 1 },
+        "DMG Stereo Routing",
+        dmgStereoRouteChoices(),
         0));
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(

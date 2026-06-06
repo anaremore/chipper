@@ -39,6 +39,7 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && std::abs(a.envelopeDecay - b.envelopeDecay) < tolerance
         && a.waveShape == b.waveShape
         && a.dmgWaveLevel == b.dmgWaveLevel
+        && a.dmgStereoRoute == b.dmgStereoRoute
         && a.ymEnvelopeShape == b.ymEnvelopeShape
         && a.snNoiseMode == b.snNoiseMode;
 }
@@ -57,6 +58,7 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && std::abs(a.envelopeDecay - b.envelopeDecay) < tolerance
         && a.waveShape == b.waveShape
         && a.dmgWaveLevel == b.dmgWaveLevel
+        && a.dmgStereoRoute == b.dmgStereoRoute
         && a.ymEnvelopeShape == b.ymEnvelopeShape
         && a.snNoiseMode == b.snNoiseMode;
 }
@@ -234,6 +236,7 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
     setPlainParameterValue(chipper::parameters::id::envelopeDecay, templ.envelopeDecay);
     setPlainParameterValue(chipper::parameters::id::waveShape, static_cast<float>(templ.waveShape));
     setPlainParameterValue(chipper::parameters::id::dmgWaveLevel, 0.0f);
+    setPlainParameterValue(chipper::parameters::id::dmgStereoRoute, static_cast<float>(templ.dmgStereoRoute));
     setPlainParameterValue(chipper::parameters::id::ymEnvelopeShape, static_cast<float>(templ.ymEnvelopeShape));
     setPlainParameterValue(chipper::parameters::id::snNoiseMode, static_cast<float>(templ.snNoiseMode));
 }
@@ -330,6 +333,7 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
         apvts.getRawParameterValue(chipper::parameters::id::envelopeDecay)->load(),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::waveShape)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::dmgWaveLevel)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::dmgStereoRoute)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::ymEnvelopeShape)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::snNoiseMode)->load())));
 }

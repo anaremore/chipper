@@ -32,6 +32,7 @@ inline constexpr auto stereoSpread = "stereoSpread";
 inline constexpr auto envelopeDecay = "envelopeDecay";
 inline constexpr auto waveShape = "waveShape";
 inline constexpr auto dmgWaveLevel = "dmgWaveLevel";
+inline constexpr auto dmgStereoRoute = "dmgStereoRoute";
 inline constexpr auto ymEnvelopeShape = "ymEnvelopeShape";
 inline constexpr auto snNoiseMode = "snNoiseMode";
 }
@@ -43,7 +44,7 @@ struct MidiCcMapping
     const char* label = nullptr;
 };
 
-inline constexpr auto midiCcMappingCount = 24u;
+inline constexpr auto midiCcMappingCount = 25u;
 using MidiCcMappingList = std::array<MidiCcMapping, midiCcMappingCount>;
 
 const MidiCcMappingList& midiCcMappings();

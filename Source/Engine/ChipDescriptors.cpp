@@ -45,15 +45,15 @@ std::vector<MacroTemplate> dmgMacros()
 {
     return {
         { MacroKind::manual, "DMG Manual", "Neutral DMG pulse/wave/noise mapping.", { 0.5f, 0.5f, 0.5f, 0.5f }, { true, true, true, true } },
-        { MacroKind::coin, "DMG Coin", "Handheld pulse pop with CH1 sweep flavor.", { 0.15f, 0.85f, 0.10f, 0.80f }, { true, true, false, false }, 0.35f },
-        { MacroKind::bass, "DMG Wave Bass", "Wave-channel body with restrained noise.", { 0.55f, 0.20f, 0.10f, 0.35f }, { false, false, true, false }, 0.0f, 1 },
-        { MacroKind::lead, "DMG Pulse Lead", "Compact dual-pulse melody setup.", { 0.70f, 0.50f, 0.20f, 0.55f }, { true, true, true, false } },
-        { MacroKind::arp, "DMG Pocket Arp", "Pulse and wave channels arranged for fast patterns.", { 0.65f, 0.75f, 0.15f, 0.60f }, { true, true, true, false }, 0.0f, 4 },
-        { MacroKind::drum, "DMG Noise Drum", "Polynomial-noise percussion setup.", { 0.40f, 0.15f, 0.80f, 0.45f }, { false, false, false, true }, 0.88f },
-        { MacroKind::hit, "DMG Hit", "Short handheld impact.", { 0.45f, 0.25f, 0.70f, 0.65f }, { true, false, false, true }, 0.60f },
-        { MacroKind::laser, "DMG Laser", "Sweep-heavy SFX tone with narrow-noise edge.", { 0.25f, 1.00f, 0.35f, 0.95f }, { true, true, false, true }, 0.40f },
-        { MacroKind::jump, "DMG Jump", "Quick rising pocket-game blip.", { 0.25f, 0.70f, 0.05f, 0.80f }, { true, false, false, false }, 0.30f },
-        { MacroKind::powerUp, "DMG Power-Up", "Longer rising handheld stack.", { 0.70f, 0.90f, 0.20f, 0.90f }, { true, true, true, false }, 0.0f, 2 },
+        { MacroKind::coin, "DMG Coin", "Handheld pulse pop with CH1 sweep flavor.", { 0.15f, 0.85f, 0.10f, 0.80f }, { true, true, false, false }, 0.35f, 0, 0, 0, 1 },
+        { MacroKind::bass, "DMG Wave Bass", "Wave-channel body with restrained noise.", { 0.55f, 0.20f, 0.10f, 0.35f }, { false, false, true, false }, 0.0f, 1, 0, 0, 1 },
+        { MacroKind::lead, "DMG Pulse Lead", "Compact dual-pulse melody setup.", { 0.70f, 0.50f, 0.20f, 0.55f }, { true, true, true, false }, 0.0f, 0, 0, 0, 4 },
+        { MacroKind::arp, "DMG Pocket Arp", "Pulse and wave channels arranged for fast patterns.", { 0.65f, 0.75f, 0.15f, 0.60f }, { true, true, true, false }, 0.0f, 4, 0, 0, 4 },
+        { MacroKind::drum, "DMG Noise Drum", "Polynomial-noise percussion setup.", { 0.40f, 0.15f, 0.80f, 0.45f }, { false, false, false, true }, 0.88f, 0, 0, 0, 1 },
+        { MacroKind::hit, "DMG Hit", "Short handheld impact.", { 0.45f, 0.25f, 0.70f, 0.65f }, { true, false, false, true }, 0.60f, 0, 0, 0, 1 },
+        { MacroKind::laser, "DMG Laser", "Sweep-heavy SFX tone with narrow-noise edge.", { 0.25f, 1.00f, 0.35f, 0.95f }, { true, true, false, true }, 0.40f, 0, 0, 0, 4 },
+        { MacroKind::jump, "DMG Jump", "Quick rising pocket-game blip.", { 0.25f, 0.70f, 0.05f, 0.80f }, { true, false, false, false }, 0.30f, 0, 0, 0, 1 },
+        { MacroKind::powerUp, "DMG Power-Up", "Longer rising handheld stack.", { 0.70f, 0.90f, 0.20f, 0.90f }, { true, true, true, false }, 0.0f, 2, 0, 0, 4 },
     };
 }
 
@@ -262,6 +262,19 @@ std::vector<ChipParameterSpec> dmgParameterSpecs()
                           choice("100%", "NR32 bits 01: full wave output level.", 0.5f, 2),
                           choice("50%", "NR32 bits 10: half wave output level.", 0.75f, 3),
                           choice("25%", "NR32 bits 11: quarter wave output level.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister),
+        segmentedSpec(ChipParameterRole::dmgStereoRoute,
+                      "dmg.stereoRoute",
+                      "Stereo Route",
+                      "Output",
+                      "Maps to DMG NR51 output-routing bits for each hardware channel. Macro uses the selected DMG template.",
+                      {
+                          choice("Macro", "Use the selected DMG macro's NR51 routing choice.", 0.0f, 0),
+                          choice("Both", "NR51 = 0xFF: route all channels to left and right.", 0.25f, 1),
+                          choice("Left", "NR51 = 0xF0: route all channels to left only.", 0.5f, 2),
+                          choice("Right", "NR51 = 0x0F: route all channels to right only.", 0.75f, 3),
+                          choice("Split", "NR51 = 0x5A: pulse 1 and wave left; pulse 2 and noise right.", 1.0f, 4)
                       },
                       ParameterKind::chipRegister)
     };
@@ -810,6 +823,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float envelopeDecay,
                             int waveShape,
                             int dmgWaveLevel,
+                            int dmgStereoRoute,
                             int ymEnvelopeShape,
                             int snNoiseMode)
 {
@@ -833,6 +847,7 @@ PatchConfig makePatchConfig(ChipMode mode,
         clampControl(envelopeDecay),
         std::clamp(waveShape, 0, 4),
         std::clamp(dmgWaveLevel, 0, 4),
+        std::clamp(dmgStereoRoute, 0, 4),
         std::clamp(ymEnvelopeShape, 0, 4),
         std::clamp(snNoiseMode, 0, 4)
     };
@@ -936,6 +951,37 @@ uint8_t dmgWaveOutputLevelBitsForPatch(const PatchConfig& patch, float velocity,
     }
 
     return patch.macro == MacroKind::bass ? 0x20u : 0x40u;
+}
+
+uint8_t dmgStereoRouteRegisterForPatch(const PatchConfig& patch)
+{
+    switch (std::clamp(patch.dmgStereoRoute, 0, 4))
+    {
+        case 1: return 0xffu;
+        case 2: return 0xf0u;
+        case 3: return 0x0fu;
+        case 4: return 0x5au;
+        case 0:
+        default:
+            break;
+    }
+
+    switch (patch.macro)
+    {
+        case MacroKind::lead:
+        case MacroKind::arp:
+        case MacroKind::laser:
+        case MacroKind::powerUp:
+            return 0x5au;
+        case MacroKind::manual:
+        case MacroKind::coin:
+        case MacroKind::bass:
+        case MacroKind::drum:
+        case MacroKind::hit:
+        case MacroKind::jump:
+        default:
+            return 0xffu;
+    }
 }
 
 uint8_t ym2149NoisePeriodForControl(float noisePitchControl)

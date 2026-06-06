@@ -347,7 +347,7 @@ public:
 
         writeRegister(0xff26, 0x80);
         writeRegister(0xff24, 0x77);
-        writeRegister(0xff25, 0xff);
+        writeRegister(0xff25, dmgStereoRouteRegisterForPatch(patch));
         writeRegister(0xff10, dmgSweepRegisterForControl(patch.control2));
         if ((enable & 0x01u) != 0)
             writePulseRegisters(0, duty, ch1Vol, ch1Note);
@@ -464,6 +464,8 @@ public:
              << "\"sweepSubtract\":" << (sweepSubtract() ? 1 : 0) << ","
              << "\"nr50\":" << static_cast<int>(regs[0x14]) << ","
              << "\"nr51\":" << static_cast<int>(regs[0x15]) << ","
+             << "\"dmgStereoRoute\":" << std::clamp(patch.dmgStereoRoute, 0, 4) << ","
+             << "\"dmgStereoRouteRegister\":" << static_cast<int>(dmgStereoRouteRegisterForPatch(patch)) << ","
              << "\"leftVolume\":" << outputVolume(true) << ","
              << "\"rightVolume\":" << outputVolume(false) << ","
              << "\"noiseClockHz\":" << noiseClockHz() << ","
@@ -901,7 +903,7 @@ private:
 
         writeRegister(0xff26, 0x80);
         writeRegister(0xff24, 0x77);
-        writeRegister(0xff25, 0xff);
+        writeRegister(0xff25, dmgStereoRouteRegisterForPatch(patch));
 
         if (channel == 0)
         {

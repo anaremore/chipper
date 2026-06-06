@@ -29,6 +29,7 @@ struct PresetInfo
     float outputDb = -9.0f;
     double clockHz = 0.0;
     float stereoSpread = 0.0f;
+    int dmgStereoRoute = 0;
 };
 
 const std::vector<PresetInfo>& presetCatalog();

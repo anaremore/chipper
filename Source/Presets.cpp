@@ -147,7 +147,9 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             0,
             -8.0f,
-            4194304.0
+            4194304.0,
+            0.0f,
+            1
         },
         {
             "dmg-pocket-arp",
@@ -165,7 +167,9 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             0,
             -10.0f,
-            4194304.0
+            4194304.0,
+            0.0f,
+            4
         },
         {
             "dmg-noise-hat",
@@ -183,7 +187,9 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             0,
             -12.0f,
-            4194304.0
+            4194304.0,
+            0.0f,
+            1
         },
         {
             "dmg-power-up-rise",
@@ -201,7 +207,9 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             0,
             -10.0f,
-            4194304.0
+            4194304.0,
+            0.0f,
+            4
         },
         {
             "ym-three-voice-arp",
@@ -391,6 +399,7 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                            preset.envelopeDecay,
                            preset.waveShape,
                            0,
+                           preset.dmgStereoRoute,
                            preset.ymEnvelopeShape,
                            preset.snNoiseMode);
 }

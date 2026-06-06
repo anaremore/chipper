@@ -57,6 +57,7 @@ enum class ChipParameterRole
     envelopeDecay,
     waveShape,
     dmgWaveLevel,
+    dmgStereoRoute,
     ymEnvelopeShape,
     snNoiseMode,
     clockHz,
@@ -108,6 +109,7 @@ struct MacroTemplate
     int waveShape = 0;
     int ymEnvelopeShape = 0;
     int snNoiseMode = 0;
+    int dmgStereoRoute = 0;
 };
 
 struct ChipDescriptor
@@ -143,6 +145,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float envelopeDecay = 0.0f,
                             int waveShape = 0,
                             int dmgWaveLevel = 0,
+                            int dmgStereoRoute = 0,
                             int ymEnvelopeShape = 0,
                             int snNoiseMode = 0);
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
@@ -153,6 +156,7 @@ uint8_t dmgInitialEnvelopeLevelForControl(float envelopeLevelControl);
 uint8_t dmgNoiseClockShiftForControl(float noiseClockControl);
 uint8_t dmgNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t dmgWaveOutputLevelBitsForPatch(const PatchConfig& patch, float velocity, bool velocitySensitive);
+uint8_t dmgStereoRouteRegisterForPatch(const PatchConfig& patch);
 uint8_t ym2149NoisePeriodForControl(float noisePitchControl);
 uint8_t ym2149MixerRegisterForControl(float toneNoiseControl);
 uint16_t ym2149EnvelopePeriodForControl(float envelopeControl);
