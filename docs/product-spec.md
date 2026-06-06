@@ -38,7 +38,7 @@ Accuracy levels:
 - Arp, retrigger, pitch motion, vibrato, glide, output trim
 - Debug/validation export controls in the renderer, not the VST audio thread
 
-All current VST parameters have fixed default MIDI CC mappings. Chip-aware controls use the same stable APVTS parameters for UI, host automation, preset recall, and MIDI CC control; register-style choices quantize to legal chip values instead of exposing fake continuous states. Current examples include DMG `NR32` Wave Level, DMG `NR51` Stereo Route, SID `$D418` Filter Mode, SID AD/SR attack/decay/sustain/release nibble overrides, SID voice control-register sync/ring Osc Mod, SID 6581/8580 Model profile, SID `$D417` Resonance, and YM2149 register 7 per-channel A/B/C tone/noise mixer overrides.
+All current VST parameters have fixed default MIDI CC mappings. Chip-aware controls use the same stable APVTS parameters for UI, host automation, preset recall, and MIDI CC control; register-style choices quantize to legal chip values instead of exposing fake continuous states. Current examples include NES Pulse 2 Duty override bits, DMG `NR32` Wave Level, DMG `NR51` Stereo Route, SID `$D418` Filter Mode, SID AD/SR attack/decay/sustain/release nibble overrides, SID voice control-register sync/ring Osc Mod, SID 6581/8580 Model profile, SID `$D417` Resonance, and YM2149 register 7 per-channel A/B/C tone/noise mixer overrides. Full ADSR controls should appear where the chip model actually owns ADSR or operator envelopes, such as SID and FM chips; APU/PSG chips should expose their native envelope, length, attenuation, or decay controls.
 
 ## Preset Categories
 

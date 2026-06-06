@@ -227,17 +227,35 @@ std::vector<ParameterChoiceSpec> pulseDutyChoices(std::string thinHelp, std::str
     };
 }
 
+std::vector<ParameterChoiceSpec> pulse2DutyChoices(std::string macroHelp)
+{
+    return {
+        choice("Macro", macroHelp, 0.0f, 0),
+        choice("12.5%", "Write duty bits 00 to pulse channel 2.", 0.25f, 1),
+        choice("25%", "Write duty bits 01 to pulse channel 2.", 0.5f, 2),
+        choice("50%", "Write duty bits 10 to pulse channel 2.", 0.75f, 3),
+        choice("75%", "Write duty bits 11 to pulse channel 2.", 1.0f, 4)
+    };
+}
+
 std::vector<ChipParameterSpec> nesParameterSpecs()
 {
     return {
         segmentedSpec(ChipParameterRole::macroControl1,
-                      "nes.pulseDuty",
-                      "Pulse Duty",
+                      "nes.pulse1Duty",
+                      "Pulse 1 Duty",
                       "Channels",
-                      "Maps to the RP2A03 pulse duty register field.",
+                      "Maps to the RP2A03 pulse 1 duty register field.",
                       pulseDutyChoices("Thin 1/8 pulse.", "Narrow 1/4 pulse.", "Square 1/2 pulse.", "Wide 3/4 inverted pulse."),
                       ParameterKind::chipRegister,
                       2.0f / 3.0f),
+        segmentedSpec(ChipParameterRole::pulse2Duty,
+                      "nes.pulse2Duty",
+                      "Pulse 2 Duty",
+                      "Channels",
+                      "Overrides the RP2A03 pulse 2 duty register field. Macro follows the selected NES template.",
+                      pulse2DutyChoices("Keep the current musical template: stacked Big Mono offsets Pulse 2 by one duty step; Chip Poly follows Pulse 1."),
+                      ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl2, "nes.sweepMotion", "Sweep Motion", "Pitch", "Scales musical pitch gestures into RP2A03 sweep/timer behavior."),
         sliderSpec(ChipParameterRole::macroControl3,
                    "nes.noisePeriod",
@@ -1024,6 +1042,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float stereoSpread,
                             float envelopeDecay,
                             int waveShape,
+                            int pulse2Duty,
                             int dmgWaveLevel,
                             int dmgStereoRoute,
                             int ymEnvelopeShape,
@@ -1061,6 +1080,7 @@ PatchConfig makePatchConfig(ChipMode mode,
         std::clamp(sidSustain, 0, 16),
         std::clamp(sidRelease, 0, 16),
         std::clamp(waveShape, 0, 4),
+        std::clamp(pulse2Duty, 0, 4),
         std::clamp(dmgWaveLevel, 0, 4),
         std::clamp(dmgStereoRoute, 0, 4),
         std::clamp(ymEnvelopeShape, 0, 4),

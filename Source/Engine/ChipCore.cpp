@@ -76,6 +76,15 @@ NesPulseDuty offsetNesPulseDuty(NesPulseDuty duty, int offset)
     return static_cast<NesPulseDuty>(std::clamp(static_cast<int>(duty) + offset, 0, 3));
 }
 
+NesPulseDuty nesPulse2DutyForPatch(const PatchConfig& patch, NesPulseDuty pulse1Duty, bool stackedMacroOffset)
+{
+    const auto choice = std::clamp(patch.pulse2Duty, 0, 4);
+    if (choice > 0)
+        return static_cast<NesPulseDuty>(choice - 1);
+
+    return stackedMacroOffset ? offsetNesPulseDuty(pulse1Duty, 1) : pulse1Duty;
+}
+
 uint8_t nesPulseDutyBits(NesPulseDuty duty)
 {
     return static_cast<uint8_t>(duty);
@@ -1964,6 +1973,7 @@ public:
         heldNote = midiNote;
         noteVelocity = static_cast<float>(clamp01(velocity));
         const auto duty = nesPulseDutyFromControl(patch.control1);
+        const auto pulse2Duty = nesPulse2DutyForPatch(patch, duty, true);
 
         auto p1Note = midiNote;
         auto p2Note = midiNote;
@@ -2039,7 +2049,7 @@ public:
         enable &= sourceEnableMask(patch);
 
         writePulseRegisters(0x4000, duty, p1Vol, p1Note);
-        writePulseRegisters(0x4004, offsetNesPulseDuty(duty, 1), p2Vol, p2Note);
+        writePulseRegisters(0x4004, pulse2Duty, p2Vol, p2Note);
 
         const auto sweepShift = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(1.0f + patch.control2 * 2.0f)), 1, 3));
         const auto sweepPeriod = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control2 * 3.0f)), 0, 3) << 4u);
@@ -2108,7 +2118,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Pulse, triangle, noise, timers, duty, enable bits, simple envelopes, length counters, triangle linear counter, DMC direct DAC level, basic pulse sweep updates/muting, $4017 frame-counter mode/inhibit behavior, nonlinear mixer, the documented NES output filter chain, and pulse/triangle allocation for Chip Poly play mode are approximated; DMC sample playback, exact frame sequencer cycle timing, advanced sweep edge cases, and hardware validation are not complete.";
+        return "Pulse, triangle, noise, timers, duty including explicit pulse 2 duty override, enable bits, simple envelopes, length counters, triangle linear counter, DMC direct DAC level, basic pulse sweep updates/muting, $4017 frame-counter mode/inhibit behavior, nonlinear mixer, the documented NES output filter chain, and pulse/triangle allocation for Chip Poly play mode are approximated; DMC sample playback, exact frame sequencer cycle timing, advanced sweep edge cases, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -2125,6 +2135,7 @@ public:
              << "\"triangleTimer\":" << timer[2] << ","
              << "\"pulseDuty1\":" << static_cast<int>(pulseDutyIndex(0)) << ","
              << "\"pulseDuty2\":" << static_cast<int>(pulseDutyIndex(1)) << ","
+             << "\"pulse2DutyChoice\":" << std::clamp(patch.pulse2Duty, 0, 4) << ","
              << "\"noiseModeChoice\":" << std::clamp(patch.snNoiseMode, 0, 2) << ","
              << "\"noiseRegister\":" << static_cast<int>(regs[0x0e]) << ","
              << "\"noiseShortMode\":" << (((regs[0x0e] & 0x80u) != 0) ? 1 : 0) << ","
@@ -2589,7 +2600,7 @@ private:
         }
         else if (channel == 1)
         {
-            const auto duty = nesPulseDutyFromControl(patch.control1);
+            const auto duty = nesPulse2DutyForPatch(patch, nesPulseDutyFromControl(patch.control1), false);
             const auto volume = static_cast<unsigned>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15));
             writeRegister(0x4005, 0x08);
             writePulseRegisters(0x4004, duty, volume, channelNotes[index]);

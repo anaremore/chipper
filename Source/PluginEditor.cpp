@@ -265,7 +265,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     : AudioProcessorEditor(processor),
       audioProcessor(processor)
 {
-    setSize(1080, 800);
+    setSize(1080, 840);
 
     auto& state = audioProcessor.getValueTreeState();
 
@@ -425,6 +425,40 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         {
             const auto value = static_cast<float>(i) / static_cast<float>(pulseDutyButtons.size() - 1u);
             setParameterValueFromUi(chipper::parameters::id::macroControl1, value);
+            updateLiveControlReadouts();
+        };
+        button.setVisible(false);
+        addAndMakeVisible(button);
+    }
+
+    pulse2DutyLabel.setText("Pulse 2 Duty", juce::dontSendNotification);
+    pulse2DutyLabel.setJustificationType(juce::Justification::centredLeft);
+    pulse2DutyLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
+    pulse2DutyLabel.setFont(juce::FontOptions(13.0f, juce::Font::bold));
+    pulse2DutyLabel.setVisible(false);
+    addAndMakeVisible(pulse2DutyLabel);
+
+    pulse2DutyValueLabel.setJustificationType(juce::Justification::centredRight);
+    pulse2DutyValueLabel.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+    pulse2DutyValueLabel.setFont(juce::FontOptions(10.0f));
+    pulse2DutyValueLabel.setMinimumHorizontalScale(0.55f);
+    pulse2DutyValueLabel.setVisible(false);
+    addAndMakeVisible(pulse2DutyValueLabel);
+
+    const std::array<const char*, pulse2DutyCount> pulse2Labels { "Macro", "12.5%", "25%", "50%", "75%" };
+    for (size_t i = 0; i < pulse2DutyButtons.size(); ++i)
+    {
+        auto& button = pulse2DutyButtons[i];
+        button.setButtonText(pulse2Labels[i]);
+        button.setClickingTogglesState(false);
+        button.setTooltip(juce::String("Pulse 2 duty ") + pulse2Labels[i]);
+        button.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff202c33));
+        button.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xfff0c94d));
+        button.setColour(juce::TextButton::textColourOffId, juce::Colour(0xffdbe8e5));
+        button.setColour(juce::TextButton::textColourOnId, juce::Colour(0xff101414));
+        button.onClick = [this, i]()
+        {
+            setChoiceParameterFromUi(chipper::parameters::id::pulse2Duty, static_cast<int>(i));
             updateLiveControlReadouts();
         };
         button.setVisible(false);
@@ -950,7 +984,8 @@ void ChipperAudioProcessorEditor::resized()
     tonePanel.removeFromTop(4);
     auto primaryTonePanel = tonePanel;
     auto secondaryTonePanel = tonePanel;
-    if (displayedMode == chipper::ChipMode::dmg
+    if (displayedMode == chipper::ChipMode::nes
+        || displayedMode == chipper::ChipMode::dmg
         || displayedMode == chipper::ChipMode::sid
         || displayedMode == chipper::ChipMode::ym2149)
     {
@@ -974,7 +1009,9 @@ void ChipperAudioProcessorEditor::resized()
     motionPanel.removeFromTop(20);
     motionPanel.removeFromTop(30);
     motionPanel.removeFromTop(4);
-    placeSnNoiseModeSegment(displayedMode == chipper::ChipMode::sid ? motionPanel : primaryTonePanel);
+    placeSnNoiseModeSegment(displayedMode == chipper::ChipMode::sid
+                                ? motionPanel
+                                : (displayedMode == chipper::ChipMode::nes ? secondaryTonePanel : primaryTonePanel));
 
     auto envelopePanel = moduleBounds[3].reduced(12, 9);
     envelopePanel.removeFromTop(20);
@@ -1001,7 +1038,7 @@ void ChipperAudioProcessorEditor::resized()
     placeDmgStereoRouteSegment(displayedMode == chipper::ChipMode::sid ? profilePanel : outputPanel);
 
     area.removeFromTop(12);
-    globalStripBounds = area.removeFromTop(190);
+    globalStripBounds = area.removeFromTop(230);
     auto strip = globalStripBounds.reduced(12, 8);
     auto stripHeader = strip.removeFromTop(20);
     globalStripLabel.setBounds(stripHeader.removeFromLeft(160));
@@ -1114,9 +1151,37 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
 
 void ChipperAudioProcessorEditor::placePulseDutySegment(juce::Rectangle<int> bounds)
 {
+    if (usesPulse2DutySegment(displayedMode))
+    {
+        nativeGroupLabels[0].setBounds(bounds.removeFromTop(13));
+
+        auto pulse1Header = bounds.removeFromTop(14);
+        nativeLabels[0].setBounds(pulse1Header.removeFromLeft(118));
+        controlValueLabels[0].setJustificationType(juce::Justification::centredRight);
+        controlValueLabels[0].setBounds(pulse1Header);
+
+        pulseDutySegmentBounds = bounds.removeFromTop(22).reduced(0, 1);
+        layoutSegmentedButtons(pulseDutyButtons, pulseDutySegmentBounds, pulseDutyButtons.size());
+
+        bounds.removeFromTop(3);
+        placePulse2DutySegment(bounds);
+        return;
+    }
+
+    controlValueLabels[0].setJustificationType(juce::Justification::centredLeft);
     bounds.removeFromTop(30);
     pulseDutySegmentBounds = bounds.removeFromTop(26).reduced(0, 1);
     layoutSegmentedButtons(pulseDutyButtons, pulseDutySegmentBounds, pulseDutyButtons.size());
+}
+
+void ChipperAudioProcessorEditor::placePulse2DutySegment(juce::Rectangle<int> bounds)
+{
+    auto header = bounds.removeFromTop(14);
+    pulse2DutyLabel.setBounds(header.removeFromLeft(118));
+    pulse2DutyValueLabel.setBounds(header);
+
+    pulse2DutySegmentBounds = bounds.removeFromTop(22).reduced(0, 1);
+    layoutSegmentedButtons(pulse2DutyButtons, pulse2DutySegmentBounds, pulse2DutyButtons.size());
 }
 
 void ChipperAudioProcessorEditor::placeWaveShapeSegment(juce::Rectangle<int> bounds)
@@ -1314,7 +1379,15 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
     };
 
     applyChoices(pulseDutyButtons, chipper::parameterSpecFor(mode, chipper::ChipParameterRole::macroControl1));
+    applyChoices(pulse2DutyButtons, chipper::parameterSpecFor(mode, chipper::ChipParameterRole::pulse2Duty));
     applyChoices(toneNoiseMixButtons, chipper::parameterSpecFor(mode, chipper::ChipParameterRole::macroControl4));
+
+    if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::pulse2Duty))
+    {
+        pulse2DutyLabel.setText(spec->label, juce::dontSendNotification);
+        pulse2DutyLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
+        pulse2DutyValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
+    }
 
     if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::waveShape))
     {
@@ -1452,6 +1525,7 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, templ.waveShape);
     setChoiceParameterFromUi(chipper::parameters::id::sidVoice2WaveShape, 0);
     setChoiceParameterFromUi(chipper::parameters::id::sidVoice3WaveShape, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::pulse2Duty, 0);
     setChoiceParameterFromUi(chipper::parameters::id::dmgWaveLevel, 0);
     setChoiceParameterFromUi(chipper::parameters::id::dmgStereoRoute, templ.dmgStereoRoute);
     setChoiceParameterFromUi(chipper::parameters::id::ymEnvelopeShape, templ.ymEnvelopeShape);
@@ -1525,6 +1599,7 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, preset.waveShape);
     setChoiceParameterFromUi(chipper::parameters::id::sidVoice2WaveShape, preset.sidVoice2WaveShape);
     setChoiceParameterFromUi(chipper::parameters::id::sidVoice3WaveShape, preset.sidVoice3WaveShape);
+    setChoiceParameterFromUi(chipper::parameters::id::pulse2Duty, 0);
     setChoiceParameterFromUi(chipper::parameters::id::dmgWaveLevel, 0);
     setChoiceParameterFromUi(chipper::parameters::id::dmgStereoRoute, preset.dmgStereoRoute);
     setChoiceParameterFromUi(chipper::parameters::id::ymEnvelopeShape, preset.ymEnvelopeShape);
@@ -1578,6 +1653,7 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
         stereoSpread,
         parameterValue(chipper::parameters::id::envelopeDecay),
         waveShape,
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::pulse2Duty))),
         dmgWaveLevel,
         dmgStereoRoute,
         ymEnvelopeShape,
@@ -1597,6 +1673,13 @@ bool ChipperAudioProcessorEditor::usesPulseDutySegment(chipper::ChipMode mode) c
 {
     return chipper::chipHasParameterSurface(mode,
                                             chipper::ChipParameterRole::macroControl1,
+                                            chipper::ControlSurface::segmentedChoice);
+}
+
+bool ChipperAudioProcessorEditor::usesPulse2DutySegment(chipper::ChipMode mode) const
+{
+    return chipper::chipHasParameterSurface(mode,
+                                            chipper::ChipParameterRole::pulse2Duty,
                                             chipper::ControlSurface::segmentedChoice);
 }
 
@@ -1658,7 +1741,7 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
         return label + ": planned mapping";
 
     if (mode == chipper::ChipMode::nes)
-        return label + " -> " + pulseDutyReadout(mode, patch.control1) + " | " + nesNoiseModeReadout(patch) + " | " + nesFocusReadout(patch.control4);
+        return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | " + nesNoiseModeReadout(patch) + " | " + nesFocusReadout(patch.control4);
 
     if (mode == chipper::ChipMode::dmg)
         return label + " -> " + pulseDutyReadout(mode, patch.control1) + " | " + dmgWaveLevelReadout(patch) + " | " + dmgStereoRouteReadout(patch);
@@ -1681,6 +1764,20 @@ juce::String ChipperAudioProcessorEditor::pulseDutyReadout(chipper::ChipMode mod
     static constexpr std::array<const char*, 4> dmgDutyLabels { "12.5% thin pulse", "25% narrow pulse", "50% square", "75% wide pulse" };
     const auto index = static_cast<size_t>(std::clamp(static_cast<int>(std::round(value * 3.0f)), 0, 3));
     return mode == chipper::ChipMode::dmg ? dmgDutyLabels[index] : nesDutyLabels[index];
+}
+
+juce::String ChipperAudioProcessorEditor::pulse2DutyReadout(const chipper::PatchConfig& patch) const
+{
+    static constexpr std::array<const char*, 4> dutyLabels { "12.5%", "25%", "50%", "75%" };
+    static constexpr std::array<const char*, 4> dutyBits { "00", "01", "10", "11" };
+    const auto choice = std::clamp(patch.pulse2Duty, 0, 4);
+    const auto primary = std::clamp(static_cast<int>(std::round(patch.control1 * 3.0f)), 0, 3);
+    const auto resolved = choice > 0
+                              ? choice - 1
+                              : (patch.playMode == chipper::PlayMode::chipPoly ? primary : std::min(primary + 1, 3));
+    const auto detail = juce::String("bits ") + dutyBits[static_cast<size_t>(resolved)] + ", " + dutyLabels[static_cast<size_t>(resolved)];
+
+    return choice == 0 ? juce::String("Macro -> ") + detail : detail;
 }
 
 juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mode, int choice) const
@@ -2194,6 +2291,32 @@ void ChipperAudioProcessorEditor::setStereoSpreadControlVisible(chipper::ChipMod
         updateStereoSpreadReadout(mode);
 }
 
+void ChipperAudioProcessorEditor::setPulse2DutySegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
+{
+    const auto active = shouldBeVisible && usesPulse2DutySegment(mode);
+    pulse2DutyLabel.setVisible(active);
+    pulse2DutyValueLabel.setVisible(active);
+    for (auto& button : pulse2DutyButtons)
+        button.setVisible(active);
+
+    if (active)
+    {
+        const auto patch = currentUiPatch(
+            mode,
+            parameterValue(chipper::parameters::id::macroControl1),
+            parameterValue(chipper::parameters::id::macroControl2),
+            parameterValue(chipper::parameters::id::macroControl3),
+            parameterValue(chipper::parameters::id::macroControl4),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::waveShape))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgWaveLevel))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgStereoRoute))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
+            parameterValue(chipper::parameters::id::stereoSpread));
+        updatePulse2DutyButtons(patch, true);
+    }
+}
+
 void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
     setSidVoiceWaveControlsVisible(shouldBeVisible && mode == chipper::ChipMode::sid);
@@ -2546,6 +2669,26 @@ void ChipperAudioProcessorEditor::updatePulseDutyButtons(float value, bool shoul
     }
 }
 
+void ChipperAudioProcessorEditor::updatePulse2DutyButtons(const chipper::PatchConfig& patch, bool shouldBeVisible)
+{
+    const auto* spec = chipper::parameterSpecFor(chipper::ChipMode::nes, chipper::ChipParameterRole::pulse2Duty);
+    const auto choiceCount = spec == nullptr || spec->choices.empty()
+                                 ? pulse2DutyButtons.size()
+                                 : std::min(pulse2DutyButtons.size(), spec->choices.size());
+    const auto selected = static_cast<size_t>(std::clamp(patch.pulse2Duty, 0, static_cast<int>(choiceCount - 1u)));
+    layoutSegmentedButtons(pulse2DutyButtons, pulse2DutySegmentBounds, choiceCount);
+    for (size_t i = 0; i < pulse2DutyButtons.size(); ++i)
+    {
+        const auto visible = shouldBeVisible && i < choiceCount;
+        pulse2DutyButtons[i].setVisible(visible);
+        pulse2DutyButtons[i].setToggleState(visible && i == selected, juce::dontSendNotification);
+    }
+
+    pulse2DutyLabel.setVisible(shouldBeVisible);
+    pulse2DutyValueLabel.setVisible(shouldBeVisible);
+    pulse2DutyValueLabel.setText(pulse2DutyReadout(patch), juce::dontSendNotification);
+}
+
 void ChipperAudioProcessorEditor::updateToneNoiseMixButtons(float value, bool shouldBeVisible)
 {
     const auto mixer = chipper::ym2149MixerRegisterForControl(value);
@@ -2813,6 +2956,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     controlValueLabels[4].setAlpha(hasLiveCore ? 1.0f : 0.55f);
     controlValueLabels[5].setAlpha(hasLiveCore ? 1.0f : 0.55f);
     setSourceChannelSurfaceVisible(mode, usesSourceChannelSurface(mode));
+    setPulse2DutySegmentVisible(mode, usesPulse2DutySegment(mode) && hasLiveCore);
     setWaveShapeSegmentVisible(mode, usesWaveShapeSegment(mode) && hasLiveCore);
     setDmgWaveLevelSegmentVisible(mode, usesDmgWaveLevelSegment(mode) && hasLiveCore);
     setDmgStereoRouteSegmentVisible(mode, usesDmgStereoRouteSegment(mode) && hasLiveCore);
@@ -2825,6 +2969,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     for (auto& itemLabel : moduleItemLabels[0])
         itemLabel.setVisible(! hasCustomProfileSurface && ! itemLabel.getText().isEmpty());
     const auto hasCustomToneSurface = hasLiveCore && (usesWaveShapeSegment(mode)
+        || usesPulse2DutySegment(mode)
         || usesDmgWaveLevelSegment(mode)
         || usesYmChannelMixControls(mode)
         || (mode != chipper::ChipMode::sid && usesSnNoiseModeSegment(mode))
@@ -2840,6 +2985,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto hasCustomOutputSurface = hasLiveCore && (usesStereoSpreadControl(mode) || (mode != chipper::ChipMode::sid && usesDmgStereoRouteSegment(mode)));
     for (auto& itemLabel : moduleItemLabels[5])
         itemLabel.setVisible(! hasCustomOutputSurface && ! itemLabel.getText().isEmpty());
+    resized();
     updatePulseDutyButtons(parameterValue(chipper::parameters::id::macroControl1), usesPulseDutySegment(mode) && hasLiveCore);
     updateLiveControlReadouts();
     repaint();
@@ -2865,6 +3011,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     macroBox.setTooltip(withMidiCc(macroText, chipper::parameters::id::macro));
 
     const auto hasPulseDutySegment = usesPulseDutySegment(mode) && chipper::descriptorFor(mode).implemented;
+    const auto hasPulse2DutySegment = usesPulse2DutySegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasWaveShapeSegment = usesWaveShapeSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasDmgWaveLevelSegment = usesDmgWaveLevelSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasDmgStereoRouteSegment = usesDmgStereoRouteSegment(mode) && chipper::descriptorFor(mode).implemented;
@@ -2875,6 +3022,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     nativeSliders[0].setVisible(! hasPulseDutySegment);
     nativeSliders[3].setVisible(! hasToneNoiseMixSegment);
     updatePulseDutyButtons(patch.control1, hasPulseDutySegment);
+    updatePulse2DutyButtons(patch, hasPulse2DutySegment);
     updateToneNoiseMixButtons(patch.control4, hasToneNoiseMixSegment);
     updateWaveShapeButtons(waveShape, hasWaveShapeSegment);
     updateDmgWaveLevelButtons(patch, hasDmgWaveLevelSegment);

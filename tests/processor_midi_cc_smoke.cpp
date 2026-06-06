@@ -214,6 +214,12 @@ int main()
                      "CC74 YM macro change should reset Channel C mixer to Macro");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 0));
+    sendController(processor, 104, controllerValueForChoice(processor, chipper::parameters::id::pulse2Duty, 4));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::pulse2Duty), 4.0f, 0.0001f,
+                     "CC104 should control NES Pulse 2 Duty");
+    sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 2));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::pulse2Duty), 0.0f, 0.0001f,
+                     "CC74 NES macro change should reset Pulse 2 Duty to Macro");
 
     setPlainFromHost(processor, chipper::parameters::id::macroControl1, 0.91f);
     setPlainFromHost(processor, chipper::parameters::id::macroControl2, 0.92f);

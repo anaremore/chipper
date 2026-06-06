@@ -62,6 +62,11 @@ juce::StringArray sidAdsrNibbleChoices()
     };
 }
 
+juce::StringArray pulse2DutyChoices()
+{
+    return { "Macro", "12.5%", "25%", "50%", "75%" };
+}
+
 juce::StringArray dmgWaveLevelChoices()
 {
     return { "Macro", "Mute", "100%", "50%", "25%" };
@@ -272,6 +277,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::ParameterID { id::sidVoice3WaveShape, 1 },
         "SID Voice 3 Waveform",
         sidVoiceWaveShapeChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::pulse2Duty, 1 },
+        "Pulse 2 Duty",
+        pulse2DutyChoices(),
         0));
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(

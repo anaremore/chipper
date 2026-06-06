@@ -42,6 +42,7 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && a.sidSustain == b.sidSustain
         && a.sidRelease == b.sidRelease
         && a.waveShape == b.waveShape
+        && a.pulse2Duty == b.pulse2Duty
         && a.dmgWaveLevel == b.dmgWaveLevel
         && a.dmgStereoRoute == b.dmgStereoRoute
         && a.ymEnvelopeShape == b.ymEnvelopeShape
@@ -70,6 +71,7 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && a.sidSustain == b.sidSustain
         && a.sidRelease == b.sidRelease
         && a.waveShape == b.waveShape
+        && a.pulse2Duty == b.pulse2Duty
         && a.dmgWaveLevel == b.dmgWaveLevel
         && a.dmgStereoRoute == b.dmgStereoRoute
         && a.ymEnvelopeShape == b.ymEnvelopeShape
@@ -260,6 +262,7 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
     setPlainParameterValue(chipper::parameters::id::waveShape, static_cast<float>(templ.waveShape));
     setPlainParameterValue(chipper::parameters::id::sidVoice2WaveShape, 0.0f);
     setPlainParameterValue(chipper::parameters::id::sidVoice3WaveShape, 0.0f);
+    setPlainParameterValue(chipper::parameters::id::pulse2Duty, 0.0f);
     setPlainParameterValue(chipper::parameters::id::dmgWaveLevel, 0.0f);
     setPlainParameterValue(chipper::parameters::id::dmgStereoRoute, static_cast<float>(templ.dmgStereoRoute));
     setPlainParameterValue(chipper::parameters::id::ymEnvelopeShape, static_cast<float>(templ.ymEnvelopeShape));
@@ -360,6 +363,7 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
         apvts.getRawParameterValue(chipper::parameters::id::stereoSpread)->load(),
         apvts.getRawParameterValue(chipper::parameters::id::envelopeDecay)->load(),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::waveShape)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::pulse2Duty)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::dmgWaveLevel)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::dmgStereoRoute)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::ymEnvelopeShape)->load())),

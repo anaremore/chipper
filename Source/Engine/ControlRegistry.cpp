@@ -39,7 +39,8 @@ const MidiCcMappingList& midiCcMappings()
         { 100, parameter_ids::sidSustain, "SID Sustain" },
         { 101, parameter_ids::ymChannelAMix, "YM Channel A Mix" },
         { 102, parameter_ids::ymChannelBMix, "YM Channel B Mix" },
-        { 103, parameter_ids::ymChannelCMix, "YM Channel C Mix" }
+        { 103, parameter_ids::ymChannelCMix, "YM Channel C Mix" },
+        { 104, parameter_ids::pulse2Duty, "Pulse 2 Duty" }
     }};
 
     return mappings;
@@ -92,6 +93,7 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::waveShape: return parameter_ids::waveShape;
         case ChipParameterRole::sidVoice2WaveShape: return parameter_ids::sidVoice2WaveShape;
         case ChipParameterRole::sidVoice3WaveShape: return parameter_ids::sidVoice3WaveShape;
+        case ChipParameterRole::pulse2Duty: return parameter_ids::pulse2Duty;
         case ChipParameterRole::dmgWaveLevel: return parameter_ids::dmgWaveLevel;
         case ChipParameterRole::dmgStereoRoute: return parameter_ids::dmgStereoRoute;
         case ChipParameterRole::ymEnvelopeShape: return parameter_ids::ymEnvelopeShape;

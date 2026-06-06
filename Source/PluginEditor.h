@@ -29,6 +29,7 @@ private:
     static constexpr size_t sourceChannelCount = 4;
     static constexpr size_t liveControlCount = 6;
     static constexpr size_t waveShapeCount = 5;
+    static constexpr size_t pulse2DutyCount = 5;
     static constexpr size_t sidVoiceWaveCount = 3;
     static constexpr size_t dmgWaveLevelCount = 5;
     static constexpr size_t dmgStereoRouteCount = 5;
@@ -52,6 +53,7 @@ private:
     void placeLabeledSliderWithReadout(juce::Slider& slider, juce::Label& label, juce::Label& valueLabel, juce::Rectangle<int> bounds);
     void placeSidAdsrControls(juce::Rectangle<int> bounds);
     void placePulseDutySegment(juce::Rectangle<int> bounds);
+    void placePulse2DutySegment(juce::Rectangle<int> bounds);
     void placeWaveShapeSegment(juce::Rectangle<int> bounds);
     void placeSidVoiceWaveControls(juce::Rectangle<int> bounds);
     void placeDmgWaveLevelSegment(juce::Rectangle<int> bounds);
@@ -82,6 +84,7 @@ private:
                                          int snNoiseMode,
                                          float stereoSpread) const;
     bool usesPulseDutySegment(chipper::ChipMode mode) const;
+    bool usesPulse2DutySegment(chipper::ChipMode mode) const;
     bool usesWaveShapeSegment(chipper::ChipMode mode) const;
     bool usesDmgWaveLevelSegment(chipper::ChipMode mode) const;
     bool usesDmgStereoRouteSegment(chipper::ChipMode mode) const;
@@ -91,6 +94,7 @@ private:
     bool usesToneNoiseMixSegment(chipper::ChipMode mode) const;
     juce::String macroTemplateReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String pulseDutyReadout(chipper::ChipMode mode, float value) const;
+    juce::String pulse2DutyReadout(const chipper::PatchConfig& patch) const;
     juce::String waveShapeReadout(chipper::ChipMode mode, int choice) const;
     juce::String dmgWaveLevelReadout(const chipper::PatchConfig& patch) const;
     juce::String dmgStereoRouteReadout(const chipper::PatchConfig& patch) const;
@@ -129,6 +133,7 @@ private:
     bool usesStereoSpreadControl(chipper::ChipMode mode) const;
     void setSourceChannelSurfaceVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setStereoSpreadControlVisible(chipper::ChipMode mode, bool shouldBeVisible);
+    void setPulse2DutySegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setWaveShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setSidVoiceWaveControlsVisible(bool shouldBeVisible);
     void setDmgWaveLevelSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
@@ -141,6 +146,7 @@ private:
     void updateSourceChannelButtons(chipper::ChipMode mode);
     void updateStereoSpreadReadout(chipper::ChipMode mode);
     void updatePulseDutyButtons(float value, bool shouldBeVisible);
+    void updatePulse2DutyButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateWaveShapeButtons(int choice, bool shouldBeVisible);
     void updateSidVoiceWaveControls(bool shouldBeVisible);
     void updateDmgWaveLevelButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
@@ -172,6 +178,8 @@ private:
     std::array<juce::ComboBox, sidAdsrOverrideCount> sidAdsrBoxes;
     juce::Label waveShapeLabel;
     juce::Label waveShapeValueLabel;
+    juce::Label pulse2DutyLabel;
+    juce::Label pulse2DutyValueLabel;
     std::array<juce::Label, sidVoiceWaveCount> sidVoiceWaveLabels;
     juce::Label dmgWaveLevelLabel;
     juce::Label dmgWaveLevelValueLabel;
@@ -193,6 +201,7 @@ private:
     std::array<juce::TextButton, sourceChannelCount> sourceChannelButtons;
     std::array<juce::Label, liveControlCount> controlValueLabels;
     std::array<juce::TextButton, 4> pulseDutyButtons;
+    std::array<juce::TextButton, pulse2DutyCount> pulse2DutyButtons;
     std::array<juce::TextButton, waveShapeCount> waveShapeButtons;
     std::array<juce::ComboBox, sidVoiceWaveCount> sidVoiceWaveBoxes;
     std::array<juce::TextButton, dmgWaveLevelCount> dmgWaveLevelButtons;
@@ -241,6 +250,7 @@ private:
     std::array<juce::Rectangle<int>, uiModuleCount> moduleBounds;
     std::array<juce::Rectangle<int>, sourceChannelCount> sourceChannelBounds;
     juce::Rectangle<int> pulseDutySegmentBounds;
+    juce::Rectangle<int> pulse2DutySegmentBounds;
     juce::Rectangle<int> waveShapeSegmentBounds;
     juce::Rectangle<int> dmgWaveLevelSegmentBounds;
     juce::Rectangle<int> dmgStereoRouteSegmentBounds;

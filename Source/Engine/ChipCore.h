@@ -78,6 +78,7 @@ struct PatchConfig
     int sidSustain = 0;
     int sidRelease = 0;
     int waveShape = 0;
+    int pulse2Duty = 0;
     int dmgWaveLevel = 0;
     int dmgStereoRoute = 0;
     int ymEnvelopeShape = 0;

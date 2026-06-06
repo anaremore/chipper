@@ -487,6 +487,7 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                            preset.envelopeDecay,
                            preset.waveShape,
                            0,
+                           0,
                            preset.dmgStereoRoute,
                            preset.ymEnvelopeShape,
                            0,

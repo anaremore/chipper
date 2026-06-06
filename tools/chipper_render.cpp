@@ -58,6 +58,7 @@ struct Options
     int waveShape = 0;
     int sidVoice2WaveShape = 0;
     int sidVoice3WaveShape = 0;
+    int pulse2Duty = 0;
     int dmgWaveLevel = 0;
     int dmgStereoRoute = 0;
     int ymEnvelopeShape = 0;
@@ -73,6 +74,7 @@ struct Options
     bool waveShapeProvided = false;
     bool sidVoice2WaveShapeProvided = false;
     bool sidVoice3WaveShapeProvided = false;
+    bool pulse2DutyProvided = false;
     bool dmgWaveLevelProvided = false;
     bool dmgStereoRouteProvided = false;
     bool ymEnvelopeShapeProvided = false;
@@ -256,6 +258,41 @@ bool parseDmgWaveLevel(const std::string& text, int& out)
     return true;
 }
 
+bool parsePulse2Duty(const std::string& text, int& out)
+{
+    uint32_t numeric = 0;
+    if (parseNumber(text, numeric))
+    {
+        if (numeric == 12)
+            out = 1;
+        else if (numeric == 25)
+            out = 2;
+        else if (numeric == 50)
+            out = 3;
+        else if (numeric == 75)
+            out = 4;
+        else
+            out = std::clamp(static_cast<int>(numeric), 0, 4);
+        return true;
+    }
+
+    const auto key = normalizedToken(text);
+    if (key == "macro" || key == "auto" || key == "default")
+        out = 0;
+    else if (key == "125" || key == "12.5" || key == "12_5" || key == "thin" || key == "eighth")
+        out = 1;
+    else if (key == "25" || key == "narrow" || key == "quarter")
+        out = 2;
+    else if (key == "50" || key == "square" || key == "half")
+        out = 3;
+    else if (key == "75" || key == "wide" || key == "threequarter" || key == "inverted")
+        out = 4;
+    else
+        return false;
+
+    return true;
+}
+
 bool parseDmgStereoRoute(const std::string& text, int& out)
 {
     uint32_t numeric = 0;
@@ -393,7 +430,7 @@ void printUsage()
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
         << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --sid-adsr-speed 0.7 --sid-attack macro|0..15 --sid-decay macro|0..15 --sid-sustain macro|0..15 --sid-release macro|0..15 --wave-shape macro|tri|saw|pulse|steps|noise --sid-voice2-wave macro|tri|saw|pulse|noise --sid-voice3-wave macro|tri|saw|pulse|noise --dmg-wave-level 100|50|25|mute|macro --dmg-stereo-route both|left|right|split|macro --ym-envelope-shape triangle|lp|bp|hp|bypass --ym-channel-a-mix macro|tone|noise|both|off --ym-channel-b-mix macro|tone|noise|both|off --ym-channel-c-mix macro|tone|noise|both|off --sid-filter-mode lp|bp|hp|bypass --sid-mod-mode macro|off|sync|ring|both --sid-model macro|6581|8580 --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --sid-adsr-speed 0.7 --sid-attack macro|0..15 --sid-decay macro|0..15 --sid-sustain macro|0..15 --sid-release macro|0..15 --wave-shape macro|tri|saw|pulse|steps|noise --sid-voice2-wave macro|tri|saw|pulse|noise --sid-voice3-wave macro|tri|saw|pulse|noise --nes-pulse2-duty macro|12.5|25|50|75 --dmg-wave-level 100|50|25|mute|macro --dmg-stereo-route both|left|right|split|macro --ym-envelope-shape triangle|lp|bp|hp|bypass --ym-channel-a-mix macro|tone|noise|both|off --ym-channel-b-mix macro|tone|noise|both|off --ym-channel-c-mix macro|tone|noise|both|off --sid-filter-mode lp|bp|hp|bypass --sid-mod-mode macro|off|sync|ring|both --sid-model macro|6581|8580 --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -427,6 +464,7 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.waveShape = preset.waveShape;
     options.sidVoice2WaveShape = preset.sidVoice2WaveShape;
     options.sidVoice3WaveShape = preset.sidVoice3WaveShape;
+    options.pulse2Duty = 0;
     options.dmgWaveLevel = 0;
     options.dmgStereoRoute = preset.dmgStereoRoute;
     options.ymEnvelopeShape = preset.ymEnvelopeShape;
@@ -442,6 +480,7 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.waveShapeProvided = true;
     options.sidVoice2WaveShapeProvided = true;
     options.sidVoice3WaveShapeProvided = true;
+    options.pulse2DutyProvided = true;
     options.dmgWaveLevelProvided = true;
     options.dmgStereoRouteProvided = true;
     options.ymEnvelopeShapeProvided = true;
@@ -707,6 +746,13 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.sidVoice3WaveShapeProvided = true;
         }
+        else if (arg == "--nes-pulse2-duty")
+        {
+            const auto* value = requireValue("--nes-pulse2-duty");
+            if (value == nullptr || ! parsePulse2Duty(std::string(value), options.pulse2Duty))
+                return false;
+            options.pulse2DutyProvided = true;
+        }
         else if (arg == "--dmg-wave-level")
         {
             const auto* value = requireValue("--dmg-wave-level");
@@ -875,6 +921,8 @@ void applyMacroTemplateDefaults(Options& options)
         options.sidVoice2WaveShape = 0;
     if (! options.sidVoice3WaveShapeProvided)
         options.sidVoice3WaveShape = 0;
+    if (! options.pulse2DutyProvided)
+        options.pulse2Duty = 0;
     if (! options.dmgWaveLevelProvided)
         options.dmgWaveLevel = 0;
     if (! options.dmgStereoRouteProvided)
@@ -1162,6 +1210,7 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::waveShape: return "waveShape";
         case chipper::ChipParameterRole::sidVoice2WaveShape: return "sidVoice2WaveShape";
         case chipper::ChipParameterRole::sidVoice3WaveShape: return "sidVoice3WaveShape";
+        case chipper::ChipParameterRole::pulse2Duty: return "pulse2Duty";
         case chipper::ChipParameterRole::dmgWaveLevel: return "dmgWaveLevel";
         case chipper::ChipParameterRole::dmgStereoRoute: return "dmgStereoRoute";
         case chipper::ChipParameterRole::ymEnvelopeShape: return "ymEnvelopeShape";
@@ -1476,6 +1525,7 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"outputDb\": " << options.outputDb << ",\n"
         << "  \"outputGain\": " << decibelsToGain(options.outputDb) << ",\n"
         << "  \"stereoSpread\": " << patch.stereoSpread << ",\n"
+        << "  \"pulse2Duty\": " << patch.pulse2Duty << ",\n"
         << "  \"dmgStereoRoute\": " << patch.dmgStereoRoute << ",\n"
         << "  \"ymChannelAMix\": " << patch.ymChannelAMix << ",\n"
         << "  \"ymChannelBMix\": " << patch.ymChannelBMix << ",\n"
@@ -1541,6 +1591,7 @@ int main(int argc, char** argv)
                                                     options.stereoSpread,
                                                     options.envelopeDecay,
                                                     options.waveShape,
+                                                    options.pulse2Duty,
                                                     options.dmgWaveLevel,
                                                     options.dmgStereoRoute,
                                                     options.ymEnvelopeShape,
