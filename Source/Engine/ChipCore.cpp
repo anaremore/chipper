@@ -2443,6 +2443,7 @@ public:
         noiseControl = 0x03;
         lfsr = 0x8000;
         noisePhase = 0.0;
+        noiseRegisterResets = 0;
         heldNote = -1;
         noteVelocity = 0.0f;
         channelNotes.fill(-1);
@@ -2469,7 +2470,7 @@ public:
             if (latchedIsVolume)
                 attenuation[latchedChannel] = data;
             else if (latchedChannel == 3)
-                noiseControl = data & 0x07u;
+                setNoiseControl(data, true);
             else
                 tonePeriod[latchedChannel] = static_cast<uint16_t>((tonePeriod[latchedChannel] & 0x3f0u) | data);
         }
@@ -2480,6 +2481,10 @@ public:
         else if (latchedChannel < 3)
         {
             tonePeriod[latchedChannel] = static_cast<uint16_t>(((value & 0x3fu) << 4u) | (tonePeriod[latchedChannel] & 0x0fu));
+        }
+        else
+        {
+            setNoiseControl(value, true);
         }
     }
 
@@ -2552,7 +2557,7 @@ public:
         tonePeriod[0] = notePeriod(note0);
         tonePeriod[1] = notePeriod(note1);
         tonePeriod[2] = notePeriod(note2);
-        noiseControl = sn76489NoiseControlForPatch(patch);
+        setNoiseControl(sn76489NoiseControlForPatch(patch), false);
         applySourceAttenuationMask();
     }
 
@@ -2610,7 +2615,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Latch/data writes, tone periods, attenuation, noise modes, and tone-channel allocation for Chip Poly play mode are modeled; exact variant behavior and hardware-level output validation are still required.";
+        return "Latch/data writes, tone periods, attenuation, noise data-byte updates, LFSR reset on noise-register writes, noise modes, and tone-channel allocation for Chip Poly play mode are modeled; exact variant behavior and hardware-level output validation are still required.";
     }
 
     std::string debugStateJson() const override
@@ -2631,6 +2636,8 @@ public:
              << "\"noiseRate\":" << static_cast<int>(noiseControl & 0x03u) << ","
              << "\"noiseTone3Clocked\":" << (((noiseControl & 0x03u) == 3) ? 1 : 0) << ","
              << "\"noiseDivider\":" << noiseClockDivider() << ","
+             << "\"noiseLfsr\":" << lfsr << ","
+             << "\"noiseRegisterResets\":" << noiseRegisterResets << ","
              << "\"sourceEnabled0\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
@@ -2776,6 +2783,14 @@ private:
         return (lfsr & 1u) != 0 ? 1.0 : -1.0;
     }
 
+    void setNoiseControl(uint8_t value, bool fromRegisterWrite)
+    {
+        noiseControl = value & 0x07u;
+        lfsr = 0x8000;
+        if (fromRegisterWrite)
+            ++noiseRegisterResets;
+    }
+
     int noiseClockDivider() const
     {
         static constexpr std::array<int, 4> noiseDividers = { 512, 1024, 2048, 1 };
@@ -2793,6 +2808,7 @@ private:
     bool latchedIsVolume = false;
     uint8_t noiseControl = 0x03;
     uint16_t lfsr = 0x8000;
+    uint32_t noiseRegisterResets = 0;
     double noisePhase = 0.0;
     int heldNote = -1;
     float noteVelocity = 0.0f;
