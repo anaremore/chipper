@@ -577,3 +577,28 @@ target_link_libraries(Chipper
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
+
+add_executable(chipper_parameter_midi_cc_smoke
+    tests/parameter_midi_cc_smoke.cpp
+    Source/Parameters.cpp
+    Source/Parameters.h
+)
+
+target_include_directories(chipper_parameter_midi_cc_smoke PRIVATE Source)
+
+target_compile_definitions(chipper_parameter_midi_cc_smoke
+    PUBLIC
+        JUCE_USE_CURL=0
+        JUCE_WEB_BROWSER=0
+)
+
+target_link_libraries(chipper_parameter_midi_cc_smoke
+    PRIVATE
+        juce::juce_audio_processors
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+add_test(NAME chipper_parameter_midi_cc_smoke
+    COMMAND chipper_parameter_midi_cc_smoke
+)
