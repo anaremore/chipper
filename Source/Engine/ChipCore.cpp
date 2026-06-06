@@ -2629,6 +2629,8 @@ public:
              << "\"noiseModeChoice\":" << std::clamp(patch.snNoiseMode, 0, 4) << ","
              << "\"noiseWhite\":" << (((noiseControl & 0x04u) != 0) ? 1 : 0) << ","
              << "\"noiseRate\":" << static_cast<int>(noiseControl & 0x03u) << ","
+             << "\"noiseTone3Clocked\":" << (((noiseControl & 0x03u) == 3) ? 1 : 0) << ","
+             << "\"noiseDivider\":" << noiseClockDivider() << ","
              << "\"sourceEnabled0\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
@@ -2759,9 +2761,7 @@ private:
 
     double renderNoise()
     {
-        static constexpr std::array<int, 4> noiseDividers = { 512, 1024, 2048, 1 };
-        const auto mode = noiseControl & 0x03u;
-        const auto divider = mode == 3 ? std::max<int>(1, tonePeriod[2] * 32) : noiseDividers[mode];
+        const auto divider = noiseClockDivider();
         const auto hz = clock / static_cast<double>(divider);
         noisePhase += hz / sampleRate;
         while (noisePhase >= 1.0)
@@ -2774,6 +2774,13 @@ private:
                 lfsr = 0x8000;
         }
         return (lfsr & 1u) != 0 ? 1.0 : -1.0;
+    }
+
+    int noiseClockDivider() const
+    {
+        static constexpr std::array<int, 4> noiseDividers = { 512, 1024, 2048, 1 };
+        const auto mode = noiseControl & 0x03u;
+        return mode == 3 ? std::max<int>(1, static_cast<int>(tonePeriod[2]) * 32) : noiseDividers[mode];
     }
 
     AccuracyMode accuracy;
