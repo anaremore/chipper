@@ -16,6 +16,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
@@ -620,6 +621,190 @@ chipper::RenderStats calculateStats(const std::vector<chipper::StereoFrame>& fra
     return stats;
 }
 
+std::string jsonEscaped(std::string_view text)
+{
+    std::string escaped;
+    escaped.reserve(text.size() + 2u);
+    for (const auto c : text)
+    {
+        switch (c)
+        {
+            case '\\': escaped += "\\\\"; break;
+            case '"': escaped += "\\\""; break;
+            case '\n': escaped += "\\n"; break;
+            case '\r': escaped += "\\r"; break;
+            case '\t': escaped += "\\t"; break;
+            default:
+                escaped += c;
+                break;
+        }
+    }
+
+    return escaped;
+}
+
+std::ostream& writeJsonString(std::ostream& out, std::string_view text)
+{
+    out << "\"" << jsonEscaped(text) << "\"";
+    return out;
+}
+
+const char* toJsonString(chipper::ParameterKind kind)
+{
+    switch (kind)
+    {
+        case chipper::ParameterKind::continuous: return "continuous";
+        case chipper::ParameterKind::discreteChoice: return "discreteChoice";
+        case chipper::ParameterKind::steppedNumeric: return "steppedNumeric";
+        case chipper::ParameterKind::booleanToggle: return "booleanToggle";
+        case chipper::ParameterKind::macro: return "macro";
+        case chipper::ParameterKind::chipRegister: return "chipRegister";
+        case chipper::ParameterKind::hiddenInternal: return "hiddenInternal";
+    }
+
+    return "continuous";
+}
+
+const char* toJsonString(chipper::ControlSurface surface)
+{
+    switch (surface)
+    {
+        case chipper::ControlSurface::slider: return "slider";
+        case chipper::ControlSurface::segmentedChoice: return "segmentedChoice";
+        case chipper::ControlSurface::sourceCards: return "sourceCards";
+        case chipper::ControlSurface::toggle: return "toggle";
+        case chipper::ControlSurface::menu: return "menu";
+        case chipper::ControlSurface::hidden: return "hidden";
+    }
+
+    return "slider";
+}
+
+const char* toJsonString(chipper::ChipParameterRole role)
+{
+    switch (role)
+    {
+        case chipper::ChipParameterRole::macroControl1: return "macroControl1";
+        case chipper::ChipParameterRole::macroControl2: return "macroControl2";
+        case chipper::ChipParameterRole::macroControl3: return "macroControl3";
+        case chipper::ChipParameterRole::macroControl4: return "macroControl4";
+        case chipper::ChipParameterRole::source1Enabled: return "source1Enabled";
+        case chipper::ChipParameterRole::source2Enabled: return "source2Enabled";
+        case chipper::ChipParameterRole::source3Enabled: return "source3Enabled";
+        case chipper::ChipParameterRole::source4Enabled: return "source4Enabled";
+        case chipper::ChipParameterRole::envelopeDecay: return "envelopeDecay";
+        case chipper::ChipParameterRole::waveShape: return "waveShape";
+        case chipper::ChipParameterRole::ymEnvelopeShape: return "ymEnvelopeShape";
+        case chipper::ChipParameterRole::snNoiseMode: return "snNoiseMode";
+        case chipper::ChipParameterRole::clockHz: return "clockHz";
+        case chipper::ChipParameterRole::outputDb: return "outputDb";
+    }
+
+    return "macroControl1";
+}
+
+void writeDescriptorJson(std::ostream& out, chipper::ChipMode mode)
+{
+    const auto& descriptor = chipper::descriptorFor(mode);
+    const auto presets = chipper::presetsForChip(mode);
+
+    out << "{\n"
+        << "    \"displayName\": ";
+    writeJsonString(out, descriptor.displayName);
+    out << ",\n"
+        << "    \"summary\": ";
+    writeJsonString(out, descriptor.summary);
+    out << ",\n"
+        << "    \"implemented\": " << (descriptor.implemented ? "true" : "false") << ",\n"
+        << "    \"supportsChipPoly\": " << (descriptor.supportsChipPoly ? "true" : "false") << ",\n"
+        << "    \"macros\": [\n";
+
+    for (size_t i = 0; i < descriptor.macros.size(); ++i)
+    {
+        const auto& macro = descriptor.macros[i];
+        out << "      { \"kind\": ";
+        writeJsonString(out, chipper::toString(macro.macro));
+        out << ", \"label\": ";
+        writeJsonString(out, macro.label);
+        out << ", \"help\": ";
+        writeJsonString(out, macro.help);
+        out << ", \"controls\": ["
+            << macro.controls[0] << ", "
+            << macro.controls[1] << ", "
+            << macro.controls[2] << ", "
+            << macro.controls[3] << "] }"
+            << (i + 1u == descriptor.macros.size() ? "\n" : ",\n");
+    }
+
+    out << "    ],\n"
+        << "    \"parameters\": [\n";
+
+    for (size_t i = 0; i < descriptor.parameters.size(); ++i)
+    {
+        const auto& parameter = descriptor.parameters[i];
+        out << "      {\n"
+            << "        \"role\": ";
+        writeJsonString(out, toJsonString(parameter.role));
+        out << ",\n"
+            << "        \"id\": ";
+        writeJsonString(out, parameter.id);
+        out << ",\n"
+            << "        \"label\": ";
+        writeJsonString(out, parameter.label);
+        out << ",\n"
+            << "        \"group\": ";
+        writeJsonString(out, parameter.group);
+        out << ",\n"
+            << "        \"help\": ";
+        writeJsonString(out, parameter.help);
+        out << ",\n"
+            << "        \"kind\": ";
+        writeJsonString(out, toJsonString(parameter.kind));
+        out << ",\n"
+            << "        \"surface\": ";
+        writeJsonString(out, toJsonString(parameter.surface));
+        out << ",\n"
+            << "        \"minValue\": " << parameter.minValue << ",\n"
+            << "        \"maxValue\": " << parameter.maxValue << ",\n"
+            << "        \"defaultValue\": " << parameter.defaultValue << ",\n"
+            << "        \"automatable\": " << (parameter.automatable ? "true" : "false") << ",\n"
+            << "        \"choices\": [\n";
+
+        for (size_t choiceIndex = 0; choiceIndex < parameter.choices.size(); ++choiceIndex)
+        {
+            const auto& choice = parameter.choices[choiceIndex];
+            out << "          { \"label\": ";
+            writeJsonString(out, choice.label);
+            out << ", \"help\": ";
+            writeJsonString(out, choice.help);
+            out << ", \"normalizedValue\": " << choice.normalizedValue
+                << ", \"choiceValue\": " << choice.choiceValue << " }"
+                << (choiceIndex + 1u == parameter.choices.size() ? "\n" : ",\n");
+        }
+
+        out << "        ]\n"
+            << "      }" << (i + 1u == descriptor.parameters.size() ? "\n" : ",\n");
+    }
+
+    out << "    ],\n"
+        << "    \"presets\": [\n";
+
+    for (size_t i = 0; i < presets.size(); ++i)
+    {
+        const auto& preset = *presets[i];
+        out << "      { \"id\": ";
+        writeJsonString(out, preset.id);
+        out << ", \"category\": ";
+        writeJsonString(out, preset.category);
+        out << ", \"name\": ";
+        writeJsonString(out, preset.name);
+        out << " }" << (i + 1u == presets.size() ? "\n" : ",\n");
+    }
+
+    out << "    ]\n"
+        << "  }";
+}
+
 void writeDebugJson(const std::filesystem::path& path,
                     const Options& options,
                     const chipper::PatchConfig& patch,
@@ -654,6 +839,9 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"leftRms\": " << stats.leftRms << ",\n"
         << "  \"rightRms\": " << stats.rightRms << ",\n"
         << "  \"zeroCrossings\": " << stats.zeroCrossings << ",\n"
+        << "  \"descriptor\": ";
+    writeDescriptorJson(out, options.chip);
+    out << ",\n"
         << "  \"coreState\": " << core.debugStateJson() << "\n"
         << "}\n";
 }

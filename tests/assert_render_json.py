@@ -28,6 +28,10 @@ def main() -> int:
     parser.add_argument("--max-zero-crossings", type=int)
     parser.add_argument("--core-max", action="append", default=[], metavar="FIELD=VALUE")
     parser.add_argument("--core-min", action="append", default=[], metavar="FIELD=VALUE")
+    parser.add_argument("--descriptor-param-kind", action="append", default=[], metavar="ROLE=KIND")
+    parser.add_argument("--descriptor-param-surface", action="append", default=[], metavar="ROLE=SURFACE")
+    parser.add_argument("--descriptor-param-label", action="append", default=[], metavar="ROLE=LABEL")
+    parser.add_argument("--descriptor-param-choices", action="append", default=[], metavar="ROLE=COUNT")
     args = parser.parse_args()
 
     with open(args.path, "r", encoding="utf-8") as handle:
@@ -104,6 +108,64 @@ def main() -> int:
         expected = float(value)
         if actual < expected:
             failures.append(f"coreState.{field} expected >= {expected}, got {actual}")
+
+    descriptor = data.get("descriptor", {})
+    parameters = {
+        item.get("role"): item
+        for item in descriptor.get("parameters", [])
+        if isinstance(item, dict) and item.get("role")
+    }
+
+    def split_descriptor_assertion(assertion: str) -> tuple[str, str] | None:
+        role, _, value = assertion.partition("=")
+        if not role or not value:
+            failures.append(f"bad descriptor assertion {assertion!r}")
+            return None
+        if role not in parameters:
+            failures.append(f"descriptor parameter {role!r} not found")
+            return None
+        return role, value
+
+    for assertion in args.descriptor_param_kind:
+        parsed = split_descriptor_assertion(assertion)
+        if parsed is None:
+            continue
+        role, expected = parsed
+        actual = parameters[role].get("kind")
+        if actual != expected:
+            failures.append(f"descriptor.{role}.kind expected {expected!r}, got {actual!r}")
+
+    for assertion in args.descriptor_param_surface:
+        parsed = split_descriptor_assertion(assertion)
+        if parsed is None:
+            continue
+        role, expected = parsed
+        actual = parameters[role].get("surface")
+        if actual != expected:
+            failures.append(f"descriptor.{role}.surface expected {expected!r}, got {actual!r}")
+
+    for assertion in args.descriptor_param_label:
+        parsed = split_descriptor_assertion(assertion)
+        if parsed is None:
+            continue
+        role, expected = parsed
+        actual = parameters[role].get("label")
+        if actual != expected:
+            failures.append(f"descriptor.{role}.label expected {expected!r}, got {actual!r}")
+
+    for assertion in args.descriptor_param_choices:
+        parsed = split_descriptor_assertion(assertion)
+        if parsed is None:
+            continue
+        role, expected_text = parsed
+        try:
+            expected = int(expected_text)
+        except ValueError:
+            failures.append(f"bad descriptor choice count {assertion!r}")
+            continue
+        actual = len(parameters[role].get("choices", []))
+        if actual != expected:
+            failures.append(f"descriptor.{role}.choices expected {expected}, got {actual}")
 
     if failures:
         print("\n".join(failures), file=sys.stderr)

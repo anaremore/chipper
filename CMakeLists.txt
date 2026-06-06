@@ -205,7 +205,7 @@ add_test(NAME chipper_render_nes_frame_counter_inhibit_smoke
 
 if (Python3_Interpreter_FOUND)
     add_test(NAME chipper_render_nes_json_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-smoke.json --implemented-contains partial --macro Manual --min-peak 0.1 --min-rms 0.05 --register-writes 0 --note-events 0 --min-zero-crossings 30 --max-zero-crossings 120
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-smoke.json --implemented-contains partial --macro Manual --min-peak 0.1 --min-rms 0.05 --register-writes 0 --note-events 0 --min-zero-crossings 30 --max-zero-crossings 120 --descriptor-param-kind macroControl1=chipRegister --descriptor-param-surface macroControl1=segmentedChoice --descriptor-param-label "macroControl1=Pulse Duty" --descriptor-param-choices macroControl1=4
     )
     set_tests_properties(chipper_render_nes_json_assert PROPERTIES DEPENDS chipper_render_nes_smoke)
 
@@ -260,7 +260,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_ym2149_noise_source_off_assert PROPERTIES DEPENDS chipper_render_ym2149_noise_source_off_smoke)
 
     add_test(NAME chipper_render_ym2149_envelope_fall_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-envelope-fall-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.02 --core-min envelopeShapeChoice=1 --core-max envelopeShapeChoice=1 --core-min envelopeShape=9 --core-max envelopeShape=9 --core-min envelopeEnabledA=1 --core-max envelopeEnabledA=1 --core-min envelopeEnabledB=1 --core-max envelopeEnabledB=1 --core-min envelopeEnabledC=1 --core-max envelopeEnabledC=1 --core-min volumeA=16 --core-max volumeA=16
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-envelope-fall-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.02 --core-min envelopeShapeChoice=1 --core-max envelopeShapeChoice=1 --core-min envelopeShape=9 --core-max envelopeShape=9 --core-min envelopeEnabledA=1 --core-max envelopeEnabledA=1 --core-min envelopeEnabledB=1 --core-max envelopeEnabledB=1 --core-min envelopeEnabledC=1 --core-max envelopeEnabledC=1 --core-min volumeA=16 --core-max volumeA=16 --descriptor-param-kind ymEnvelopeShape=chipRegister --descriptor-param-surface ymEnvelopeShape=segmentedChoice --descriptor-param-choices ymEnvelopeShape=5
     )
     set_tests_properties(chipper_render_ym2149_envelope_fall_assert PROPERTIES DEPENDS chipper_render_ym2149_envelope_fall_smoke)
 
@@ -295,7 +295,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_sn76489_noise_macro_assert PROPERTIES DEPENDS chipper_render_sn76489_noise_macro_smoke)
 
     add_test(NAME chipper_render_sn76489_noise_periodic_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sn-noise-periodic-smoke.json --implemented-contains partial --macro Drum --register-writes 0 --note-events 0 --min-peak 0.05 --core-min noiseModeChoice=2 --core-max noiseModeChoice=2 --core-min noiseControl=2 --core-max noiseControl=2 --core-min noiseWhite=0 --core-max noiseWhite=0 --core-min noiseRate=2 --core-max noiseRate=2 --core-min attenuationNoise=2 --core-max attenuationNoise=2
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sn-noise-periodic-smoke.json --implemented-contains partial --macro Drum --register-writes 0 --note-events 0 --min-peak 0.05 --core-min noiseModeChoice=2 --core-max noiseModeChoice=2 --core-min noiseControl=2 --core-max noiseControl=2 --core-min noiseWhite=0 --core-max noiseWhite=0 --core-min noiseRate=2 --core-max noiseRate=2 --core-min attenuationNoise=2 --core-max attenuationNoise=2 --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-choices snNoiseMode=5
     )
     set_tests_properties(chipper_render_sn76489_noise_periodic_assert PROPERTIES DEPENDS chipper_render_sn76489_noise_periodic_smoke)
 
@@ -350,7 +350,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_dmg_envelope_decay_assert PROPERTIES DEPENDS chipper_render_dmg_envelope_decay_smoke)
 
     add_test(NAME chipper_render_dmg_wave_triangle_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-wave-triangle-smoke.json --implemented-contains partial --macro Bass --register-writes 0 --note-events 0 --min-peak 0.03 --core-min waveShape=1 --core-max waveShape=1 --core-min waveRam0=1 --core-max waveRam0=1 --core-min waveRam15=16 --core-max waveRam15=16 --core-min enabledWave=1 --core-max enabledWave=1
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-wave-triangle-smoke.json --implemented-contains partial --macro Bass --register-writes 0 --note-events 0 --min-peak 0.03 --core-min waveShape=1 --core-max waveShape=1 --core-min waveRam0=1 --core-max waveRam0=1 --core-min waveRam15=16 --core-max waveRam15=16 --core-min enabledWave=1 --core-max enabledWave=1 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-choices waveShape=5
     )
     set_tests_properties(chipper_render_dmg_wave_triangle_assert PROPERTIES DEPENDS chipper_render_dmg_wave_triangle_smoke)
 
