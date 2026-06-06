@@ -218,6 +218,18 @@ juce::String byteHex(uint8_t value)
     return juce::String::toHexString(static_cast<int>(value)).paddedLeft('0', 2).toUpperCase();
 }
 
+const char* sidWaveNameForControlBits(uint8_t bits)
+{
+    switch (bits)
+    {
+        case 0x10u: return "Tri";
+        case 0x20u: return "Saw";
+        case 0x40u: return "Pulse";
+        case 0x80u: return "Noise";
+        default: return "Off";
+    }
+}
+
 juce::String sidAdsrNibbleReadout(const chipper::PatchConfig& patch)
 {
     const auto ad = chipper::sidAttackDecayForPatch(patch);
@@ -233,6 +245,11 @@ juce::String sidAdsrNibbleReadout(const chipper::PatchConfig& patch)
         + " | SR 0x" + byteHex(sr)
         + " S" + juce::String(sustain)
         + "/R" + juce::String(release);
+}
+
+size_t visibleSourceCardCount(chipper::ChipMode mode)
+{
+    return mode == chipper::ChipMode::sid ? size_t { 3u } : size_t { 4u };
 }
 
 template <typename ButtonArray>
@@ -960,10 +977,20 @@ void ChipperAudioProcessorEditor::resized()
     sourcePanel.removeFromTop(30);
     sourcePanel.removeFromTop(4);
     const auto sourceGap = 6;
-    const auto sourceCardWidth = (sourcePanel.getWidth() - (sourceGap * static_cast<int>(sourceChannelBounds.size() - 1u))) / static_cast<int>(sourceChannelBounds.size());
+    const auto visibleSourceCards = visibleSourceCardCount(displayedMode);
+    const auto sourceCardWidth = (sourcePanel.getWidth() - (sourceGap * static_cast<int>(visibleSourceCards - 1u))) / static_cast<int>(visibleSourceCards);
     const auto sourceCardHeight = sourcePanel.getHeight();
     for (size_t i = 0; i < sourceChannelBounds.size(); ++i)
     {
+        if (i >= visibleSourceCards)
+        {
+            sourceChannelBounds[i] = {};
+            sourceChannelButtons[i].setBounds({});
+            sourceLevelSliders[i].setBounds({});
+            sourceLevelValueLabels[i].setBounds({});
+            continue;
+        }
+
         sourceChannelBounds[i] = {
             sourcePanel.getX() + (static_cast<int>(i) * (sourceCardWidth + sourceGap)),
             sourcePanel.getY(),
@@ -1892,18 +1919,6 @@ juce::String ChipperAudioProcessorEditor::sidFilterModeReadout(const chipper::Pa
 
 juce::String ChipperAudioProcessorEditor::sidVoiceWaveSummary(const chipper::PatchConfig& patch) const
 {
-    const auto waveName = [](uint8_t bits) -> const char*
-    {
-        switch (bits)
-        {
-            case 0x10u: return "Tri";
-            case 0x20u: return "Saw";
-            case 0x40u: return "Pulse";
-            case 0x80u: return "Noise";
-            default: return "Off";
-        }
-    };
-
     juce::String text;
     for (size_t voice = 0; voice < sidVoiceWaveCount; ++voice)
     {
@@ -1913,7 +1928,7 @@ juce::String ChipperAudioProcessorEditor::sidVoiceWaveSummary(const chipper::Pat
 
         text += juce::String("V") + juce::String(static_cast<int>(voice + 1u))
             + " 0x" + byteHex(bits)
-            + " " + waveName(bits);
+            + " " + sidWaveNameForControlBits(bits);
     }
 
     return text;
@@ -2577,12 +2592,41 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
     else if (mode == chipper::ChipMode::sid)
         labels = playMode == chipper::PlayMode::chipPoly ? &sidChipPolyLabels : &sidBigMonoLabels;
 
+    const auto sidPatch = mode == chipper::ChipMode::sid
+                              ? currentUiPatch(
+                                  mode,
+                                  parameterValue(chipper::parameters::id::macroControl1),
+                                  parameterValue(chipper::parameters::id::macroControl2),
+                                  parameterValue(chipper::parameters::id::macroControl3),
+                                  parameterValue(chipper::parameters::id::macroControl4),
+                                  static_cast<int>(std::round(parameterValue(chipper::parameters::id::waveShape))),
+                                  static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgWaveLevel))),
+                                  static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgStereoRoute))),
+                                  static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
+                                  static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
+                                  parameterValue(chipper::parameters::id::stereoSpread))
+                              : chipper::PatchConfig {};
+
     for (size_t i = 0; i < sourceChannelButtons.size(); ++i)
     {
         const auto* spec = chipper::parameterSpecFor(mode, sourceRole(i));
         const auto* levelSpec = chipper::parameterSpecFor(mode, sourceLevelRole(i));
-        sourceChannelButtons[i].setButtonText(spec != nullptr ? spec->label : (*labels)[i]);
-        if (spec != nullptr)
+        const auto isSidVoice = mode == chipper::ChipMode::sid && i < sidVoiceWaveCount && spec != nullptr;
+        const auto sidWaveBits = isSidVoice ? chipper::sidWaveformControlForVoice(sidPatch, i) : uint8_t { 0u };
+        const auto buttonLabel = isSidVoice
+                                     ? (juce::String(spec->label) + " | " + sidWaveNameForControlBits(sidWaveBits))
+                                     : (spec != nullptr ? juce::String(spec->label) : juce::String((*labels)[i]));
+
+        sourceChannelButtons[i].setButtonText(buttonLabel);
+        if (isSidVoice)
+        {
+            sourceChannelButtons[i].setTooltip(withMidiCcForRole(buttonLabel
+                                                                     + ": " + juce::String(spec->help)
+                                                                     + "\nCTRL waveform bits 0x" + byteHex(sidWaveBits)
+                                                                     + "\n" + sidAdsrNibbleReadout(sidPatch),
+                                                                 sourceRole(i)));
+        }
+        else if (spec != nullptr)
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(juce::String(spec->label) + ": " + juce::String(spec->help), sourceRole(i)));
         else
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(juce::String("Enable or mute ") + (*labels)[i], sourceRole(i)));
