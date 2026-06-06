@@ -1,5 +1,6 @@
 #include "Engine/ChipCore.h"
 #include "Engine/ChipDescriptors.h"
+#include "Engine/ControlRegistry.h"
 #include "Presets.h"
 
 #include <algorithm>
@@ -837,10 +838,19 @@ void writeDescriptorJson(std::ostream& out, chipper::ChipMode mode)
     for (size_t i = 0; i < descriptor.parameters.size(); ++i)
     {
         const auto& parameter = descriptor.parameters[i];
+        const auto* parameterId = chipper::parameterIdForChipParameterRole(parameter.role);
+        const auto midiCc = parameterId == nullptr ? -1 : chipper::midiControllerForParameterId(parameterId);
         out << "      {\n"
             << "        \"role\": ";
         writeJsonString(out, toJsonString(parameter.role));
         out << ",\n"
+            << "        \"parameterId\": ";
+        if (parameterId != nullptr)
+            writeJsonString(out, parameterId);
+        else
+            out << "null";
+        out << ",\n"
+            << "        \"midiCc\": " << midiCc << ",\n"
             << "        \"id\": ";
         writeJsonString(out, parameter.id);
         out << ",\n"

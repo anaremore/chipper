@@ -75,12 +75,16 @@ int main()
                      std::string("MIDI CC mapping points at missing parameter: ") + mapping.parameterId);
         ok &= expect(chipper::parameters::parameterIdForMidiController(mapping.controller) == mapping.parameterId,
                      "MIDI CC lookup does not return the mapped parameter id");
+        ok &= expect(chipper::parameters::midiControllerForParameterId(mapping.parameterId) == mapping.controller,
+                     "MIDI CC reverse lookup does not return the mapped controller");
     }
 
     ok &= expect(chipper::parameters::parameterIdForMidiController(69) == nullptr,
                  "Unexpected MIDI CC mapping below the Chipper control block");
     ok &= expect(chipper::parameters::parameterIdForMidiController(88) == nullptr,
                  "Unexpected MIDI CC mapping above the Chipper control block");
+    ok &= expect(chipper::parameters::midiControllerForParameterId("missingParameter") < 0,
+                 "Unexpected MIDI CC mapping for missing parameter id");
 
     return ok ? 0 : 1;
 }

@@ -13,6 +13,7 @@ def main() -> int:
     parser.add_argument("--param-surface", action="append", default=[], metavar="KEY:ROLE=SURFACE")
     parser.add_argument("--param-kind", action="append", default=[], metavar="KEY:ROLE=KIND")
     parser.add_argument("--param-choices", action="append", default=[], metavar="KEY:ROLE=COUNT")
+    parser.add_argument("--param-midi-cc", action="append", default=[], metavar="KEY:ROLE=CC")
     parser.add_argument("--macro-source", action="append", default=[], metavar="KEY:MACRO=1010")
     parser.add_argument("--preset", action="append", default=[], metavar="ID")
     args = parser.parse_args()
@@ -130,6 +131,24 @@ def main() -> int:
         actual = len(parameters[role].get("choices", []))
         if actual != expected:
             failures.append(f"{chip}.{role}.choices expected {expected}, got {actual}")
+
+    for assertion in args.param_midi_cc:
+        parsed = split_chip_assertion(assertion)
+        if parsed is None:
+            continue
+        chip, role, expected_text = parsed
+        parameters = parameters_for(chip)
+        if role not in parameters:
+            failures.append(f"{chip} parameter {role!r} not found")
+            continue
+        try:
+            expected = int(expected_text)
+        except ValueError:
+            failures.append(f"bad MIDI CC value {assertion!r}")
+            continue
+        actual = parameters[role].get("midiCc")
+        if actual != expected:
+            failures.append(f"{chip}.{role}.midiCc expected {expected}, got {actual}")
 
     for assertion in args.macro_source:
         chip_and_macro, _, expected = assertion.partition("=")

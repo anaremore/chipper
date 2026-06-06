@@ -2,48 +2,27 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include "Engine/ControlRegistry.h"
 #include "Engine/ChipCore.h"
 
 #include <array>
+#include <string_view>
 
 namespace chipper::parameters
 {
 
-namespace id
-{
-inline constexpr auto chipMode = "chipMode";
-inline constexpr auto accuracy = "accuracy";
-inline constexpr auto clockHz = "clockHz";
-inline constexpr auto outputDb = "outputDb";
-inline constexpr auto macro = "macro";
-inline constexpr auto playMode = "playMode";
-inline constexpr auto macroControl1 = "macroControl1";
-inline constexpr auto macroControl2 = "macroControl2";
-inline constexpr auto macroControl3 = "macroControl3";
-inline constexpr auto macroControl4 = "macroControl4";
-inline constexpr auto source1Enabled = "source1Enabled";
-inline constexpr auto source2Enabled = "source2Enabled";
-inline constexpr auto source3Enabled = "source3Enabled";
-inline constexpr auto source4Enabled = "source4Enabled";
-inline constexpr auto envelopeDecay = "envelopeDecay";
-inline constexpr auto waveShape = "waveShape";
-inline constexpr auto ymEnvelopeShape = "ymEnvelopeShape";
-inline constexpr auto snNoiseMode = "snNoiseMode";
-}
+namespace id = ::chipper::parameter_ids;
 
-struct MidiCcMapping
-{
-    int controller = 0;
-    const char* parameterId = nullptr;
-    const char* label = nullptr;
-};
-
-inline constexpr auto midiCcMappingCount = 18u;
-using MidiCcMappingList = std::array<MidiCcMapping, midiCcMappingCount>;
+using MidiCcMapping = ::chipper::MidiCcMapping;
+using MidiCcMappingList = ::chipper::MidiCcMappingList;
+inline constexpr auto midiCcMappingCount = ::chipper::midiCcMappingCount;
 
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
 const MidiCcMappingList& midiCcMappings();
 const char* parameterIdForMidiController(int controllerNumber);
+int midiControllerForParameterId(std::string_view parameterId);
+const char* parameterIdForChipParameterRole(ChipParameterRole role);
+int midiControllerForChipParameterRole(ChipParameterRole role);
 ChipMode chipModeFromChoice(int choice);
 AccuracyMode accuracyFromChoice(int choice);
 MacroKind macroFromChoice(int choice);

@@ -10,6 +10,8 @@ option(CHIPPER_BUILD_PLUGIN "Build the JUCE VST3 plugin" ON)
 find_package(Python3 COMPONENTS Interpreter)
 
 add_library(chipper_engine STATIC
+    Source/Engine/ControlRegistry.cpp
+    Source/Engine/ControlRegistry.h
     Source/Engine/ChipDescriptors.cpp
     Source/Engine/ChipDescriptors.h
     Source/Engine/ChipCore.cpp
@@ -247,12 +249,12 @@ add_test(NAME chipper_render_describe_nes_smoke
 
 if (Python3_Interpreter_FOUND)
     add_test(NAME chipper_render_list_descriptors_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip nes --chip dmg --chip ym2149 --chip sn76489 --chip sid --chip ym2612 --chip custom --implemented nes=1 --implemented dmg=1 --implemented ym2149=1 --implemented sn76489=1 --implemented sid=0 --param-kind nes:macroControl1=chipRegister --param-surface nes:macroControl1=segmentedChoice --param-choices nes:macroControl1=4 --param-surface nes:snNoiseMode=segmentedChoice --param-choices nes:snNoiseMode=3 --param-surface dmg:waveShape=segmentedChoice --param-choices dmg:waveShape=5 --param-surface dmg:snNoiseMode=segmentedChoice --param-choices dmg:snNoiseMode=3 --param-kind ym2149:macroControl3=chipRegister --param-surface ym2149:macroControl3=slider --param-kind ym2149:macroControl4=chipRegister --param-surface ym2149:macroControl4=segmentedChoice --param-choices ym2149:macroControl4=3 --param-kind ym2149:envelopeDecay=chipRegister --param-surface ym2149:envelopeDecay=slider --param-surface ym2149:ymEnvelopeShape=segmentedChoice --param-choices ym2149:ymEnvelopeShape=5 --param-kind sn76489:macroControl4=chipRegister --param-surface sn76489:macroControl4=slider --param-surface sn76489:snNoiseMode=segmentedChoice --param-choices sn76489:snNoiseMode=5 --macro-source nes:Drum=0011 --macro-source dmg:Bass=0010 --macro-source ym2149:Drum=1001 --macro-source sn76489:Drum=0001 --preset nes-hero-pulse --preset dmg-wave-bass --preset ym-noise-hat --preset sn-noise-hit
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip nes --chip dmg --chip ym2149 --chip sn76489 --chip sid --chip ym2612 --chip custom --implemented nes=1 --implemented dmg=1 --implemented ym2149=1 --implemented sn76489=1 --implemented sid=0 --param-kind nes:macroControl1=chipRegister --param-surface nes:macroControl1=segmentedChoice --param-choices nes:macroControl1=4 --param-midi-cc nes:macroControl1=76 --param-surface nes:snNoiseMode=segmentedChoice --param-choices nes:snNoiseMode=3 --param-surface dmg:waveShape=segmentedChoice --param-choices dmg:waveShape=5 --param-midi-cc dmg:waveShape=85 --param-surface dmg:snNoiseMode=segmentedChoice --param-choices dmg:snNoiseMode=3 --param-kind ym2149:macroControl3=chipRegister --param-surface ym2149:macroControl3=slider --param-midi-cc ym2149:macroControl3=78 --param-kind ym2149:macroControl4=chipRegister --param-surface ym2149:macroControl4=segmentedChoice --param-choices ym2149:macroControl4=3 --param-kind ym2149:envelopeDecay=chipRegister --param-surface ym2149:envelopeDecay=slider --param-midi-cc ym2149:envelopeDecay=84 --param-surface ym2149:ymEnvelopeShape=segmentedChoice --param-choices ym2149:ymEnvelopeShape=5 --param-kind sn76489:macroControl4=chipRegister --param-surface sn76489:macroControl4=slider --param-midi-cc sn76489:macroControl4=79 --param-surface sn76489:snNoiseMode=segmentedChoice --param-choices sn76489:snNoiseMode=5 --macro-source nes:Drum=0011 --macro-source dmg:Bass=0010 --macro-source ym2149:Drum=1001 --macro-source sn76489:Drum=0001 --preset nes-hero-pulse --preset dmg-wave-bass --preset ym-noise-hat --preset sn-noise-hit
     )
     set_tests_properties(chipper_render_list_descriptors_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_describe_nes_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-descriptor.json --chip-count 1 --chip nes --implemented nes=1 --param-kind nes:macroControl1=chipRegister --param-surface nes:macroControl1=segmentedChoice --param-choices nes:macroControl1=4 --param-surface nes:snNoiseMode=segmentedChoice --param-choices nes:snNoiseMode=3 --preset nes-hero-pulse
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-descriptor.json --chip-count 1 --chip nes --implemented nes=1 --param-kind nes:macroControl1=chipRegister --param-surface nes:macroControl1=segmentedChoice --param-choices nes:macroControl1=4 --param-midi-cc nes:macroControl1=76 --param-surface nes:snNoiseMode=segmentedChoice --param-choices nes:snNoiseMode=3 --preset nes-hero-pulse
     )
     set_tests_properties(chipper_render_describe_nes_assert PROPERTIES DEPENDS chipper_render_describe_nes_smoke)
 
@@ -690,6 +692,7 @@ target_compile_definitions(chipper_parameter_midi_cc_smoke
 
 target_link_libraries(chipper_parameter_midi_cc_smoke
     PRIVATE
+        chipper_engine
         juce::juce_audio_processors
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags

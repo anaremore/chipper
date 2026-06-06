@@ -1,4 +1,5 @@
 #include "Engine/ChipDescriptors.h"
+#include "Engine/ControlRegistry.h"
 
 #include <array>
 #include <iostream>
@@ -60,6 +61,31 @@ bool expectMacroSourceMask(chipper::ChipMode mode, chipper::MacroKind macro, std
     return expect(templ.sourceEnabled == expected, templ.label + " has unexpected source mask");
 }
 
+bool expectAutomatableDescriptorParametersHaveMidiCc()
+{
+    bool ok = true;
+
+    for (const auto mode : chipper::chipModeOrder())
+    {
+        const auto& descriptor = chipper::descriptorFor(mode);
+        for (const auto& spec : descriptor.parameters)
+        {
+            if (! spec.automatable)
+                continue;
+
+            const auto* parameterId = chipper::parameterIdForChipParameterRole(spec.role);
+            ok &= expect(parameterId != nullptr, spec.id + " has no APVTS parameter id for MIDI CC control");
+            if (parameterId == nullptr)
+                continue;
+
+            ok &= expect(chipper::midiControllerForParameterId(parameterId) >= 0,
+                         spec.id + " maps to APVTS parameter " + parameterId + " without a default MIDI CC");
+        }
+    }
+
+    return ok;
+}
+
 } // namespace
 
 int main()
@@ -100,6 +126,7 @@ int main()
                                                     chipper::ChipParameterRole::source1Enabled,
                                                     chipper::ControlSurface::sourceCards),
                  "planned SID should not expose live source cards yet");
+    ok &= expectAutomatableDescriptorParametersHaveMidiCc();
 
     return ok ? 0 : 1;
 }
