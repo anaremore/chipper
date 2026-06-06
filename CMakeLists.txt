@@ -48,6 +48,9 @@ add_test(NAME chipper_render_sid_chip_poly_smoke
 add_test(NAME chipper_render_sid_wave_noise_smoke
     COMMAND chipper_render --chip sid --accuracy authentic --macro manual --wave-shape noise --source1 0 --source2 0 --source3 1 --clock 985248 --rate 48000 --seconds 0.03 --note 69 --out sid-wave-noise-smoke.wav --debug sid-wave-noise-smoke.json
 )
+add_test(NAME chipper_render_sid_voice_waves_smoke
+    COMMAND chipper_render --chip sid --accuracy authentic --macro manual --wave-shape pulse --sid-voice2-wave saw --sid-voice3-wave noise --clock 985248 --rate 48000 --seconds 0.04 --note 69 --out sid-voice-waves-smoke.wav --debug sid-voice-waves-smoke.json
+)
 add_test(NAME chipper_render_sid_mod_sync_smoke
     COMMAND chipper_render --chip sid --accuracy authentic --macro manual --wave-shape saw --sid-mod-mode sync --clock 985248 --rate 48000 --seconds 0.04 --note 69 --out sid-mod-sync-smoke.wav --debug sid-mod-sync-smoke.json
 )
@@ -373,8 +376,13 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_list_descriptors_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
+    add_test(NAME chipper_render_list_sid_voice_waves_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip sid --param-kind sid:sidVoice2WaveShape=chipRegister --param-surface sid:sidVoice2WaveShape=menu --param-choices sid:sidVoice2WaveShape=5 --param-midi-cc sid:sidVoice2WaveShape=95 --param-kind sid:sidVoice3WaveShape=chipRegister --param-surface sid:sidVoice3WaveShape=menu --param-choices sid:sidVoice3WaveShape=5 --param-midi-cc sid:sidVoice3WaveShape=96
+    )
+    set_tests_properties(chipper_render_list_sid_voice_waves_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
+
     add_test(NAME chipper_render_list_cc_map_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --midi-cc-count 25 --midi-cc 70=chipMode --midi-cc 71=accuracy --midi-cc 72=clockHz --midi-cc 73=outputDb --midi-cc 74=macro --midi-cc 75=playMode --midi-cc 76=macroControl1 --midi-cc 77=macroControl2 --midi-cc 78=macroControl3 --midi-cc 79=macroControl4 --midi-cc 80=source1Enabled --midi-cc 81=source2Enabled --midi-cc 82=source3Enabled --midi-cc 83=source4Enabled --midi-cc 84=source1Level --midi-cc 85=source2Level --midi-cc 86=source3Level --midi-cc 87=source4Level --midi-cc 88=envelopeDecay --midi-cc 89=waveShape --midi-cc 90=ymEnvelopeShape --midi-cc 91=snNoiseMode --midi-cc 92=dmgWaveLevel --midi-cc 93=stereoSpread --midi-cc 94=dmgStereoRoute
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --midi-cc-count 27 --midi-cc 70=chipMode --midi-cc 71=accuracy --midi-cc 72=clockHz --midi-cc 73=outputDb --midi-cc 74=macro --midi-cc 75=playMode --midi-cc 76=macroControl1 --midi-cc 77=macroControl2 --midi-cc 78=macroControl3 --midi-cc 79=macroControl4 --midi-cc 80=source1Enabled --midi-cc 81=source2Enabled --midi-cc 82=source3Enabled --midi-cc 83=source4Enabled --midi-cc 84=source1Level --midi-cc 85=source2Level --midi-cc 86=source3Level --midi-cc 87=source4Level --midi-cc 88=envelopeDecay --midi-cc 89=waveShape --midi-cc 90=ymEnvelopeShape --midi-cc 91=snNoiseMode --midi-cc 92=dmgWaveLevel --midi-cc 93=stereoSpread --midi-cc 94=dmgStereoRoute --midi-cc 95=sidVoice2WaveShape --midi-cc 96=sidVoice3WaveShape
     )
     set_tests_properties(chipper_render_list_cc_map_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -407,6 +415,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-wave-noise-smoke.json --implemented-contains partial --macro Manual --min-peak 0.05 --register-writes 0 --note-events 0 --core-min waveformChoice=4 --core-max waveformChoice=4 --core-min waveformBits=128 --core-max waveformBits=128 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min control2=128 --core-max control2=128
     )
     set_tests_properties(chipper_render_sid_wave_noise_assert PROPERTIES DEPENDS chipper_render_sid_wave_noise_smoke)
+
+    add_test(NAME chipper_render_sid_voice_waves_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-voice-waves-smoke.json --implemented-contains partial --macro Manual --min-peak 0.05 --register-writes 0 --note-events 0 --core-min waveformChoice0=3 --core-max waveformChoice0=3 --core-min waveformChoice1=2 --core-max waveformChoice1=2 --core-min waveformChoice2=4 --core-max waveformChoice2=4 --core-min waveformBits0=64 --core-max waveformBits0=64 --core-min waveformBits1=32 --core-max waveformBits1=32 --core-min waveformBits2=128 --core-max waveformBits2=128 --core-min control0=64 --core-max control0=64 --core-min control1=32 --core-max control1=32 --core-min control2=128 --core-max control2=128 --descriptor-param-kind sidVoice2WaveShape=chipRegister --descriptor-param-surface sidVoice2WaveShape=menu --descriptor-param-choices sidVoice2WaveShape=5 --descriptor-param-kind sidVoice3WaveShape=chipRegister --descriptor-param-surface sidVoice3WaveShape=menu --descriptor-param-choices sidVoice3WaveShape=5
+    )
+    set_tests_properties(chipper_render_sid_voice_waves_assert PROPERTIES DEPENDS chipper_render_sid_voice_waves_smoke)
 
     add_test(NAME chipper_render_sid_mod_sync_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-mod-sync-smoke.json --implemented-contains partial --macro Manual --min-peak 0.05 --register-writes 0 --note-events 0 --core-min waveformChoice=2 --core-max waveformChoice=2 --core-min waveformBits=32 --core-max waveformBits=32 --core-min modModeChoice=2 --core-max modModeChoice=2 --core-min modBits0=0 --core-max modBits0=0 --core-min modBits1=2 --core-max modBits1=2 --core-min modBits2=2 --core-max modBits2=2 --core-min control0=32 --core-max control0=32 --core-min control1=34 --core-max control1=34 --core-min control2=34 --core-max control2=34 --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-choices snNoiseMode=5

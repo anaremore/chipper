@@ -153,6 +153,22 @@ ChipParameterSpec envelopeSpec(std::string id, std::string label, std::string he
     return { ChipParameterRole::envelopeDecay, id, label, "Envelope", help, ParameterKind::chipRegister, ControlSurface::slider, {}, 0.0f, 1.0f, 0.0f };
 }
 
+std::vector<ParameterChoiceSpec> sidWaveformChoices()
+{
+    return {
+        choice("Macro", "Resolve this voice from the selected SID macro or Voice 1 waveform.", 0.0f, 0),
+        choice("Tri", "Control bit 0x10: triangle waveform.", 0.25f, 1),
+        choice("Saw", "Control bit 0x20: sawtooth waveform.", 0.5f, 2),
+        choice("Pulse", "Control bit 0x40: pulse waveform using the Pulse Width control.", 0.75f, 3),
+        choice("Noise", "Control bit 0x80: SID noise waveform.", 1.0f, 4)
+    };
+}
+
+ChipParameterSpec sidVoiceWaveSpec(ChipParameterRole role, std::string id, std::string label, std::string help)
+{
+    return { role, id, label, "Voices", help, ParameterKind::chipRegister, ControlSurface::menu, sidWaveformChoices(), 0.0f, 1.0f, 0.0f };
+}
+
 std::vector<ParameterChoiceSpec> pulseDutyChoices(std::string thinHelp, std::string narrowHelp, std::string squareHelp, std::string wideHelp)
 {
     return {
@@ -446,17 +462,19 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
         envelopeSpec("sid.adsrSpeed", "ADSR Speed", "Maps musical envelope speed to SID attack/decay/release nibbles while Sustain uses the dedicated control."),
         segmentedSpec(ChipParameterRole::waveShape,
                       "sid.waveform",
-                      "Waveform",
+                      "Voice 1 Wave",
                       "Voices",
-                      "Maps to SID control-register waveform bits for all active voices. Macro resolves from the selected SID template.",
-                      {
-                          choice("Macro", "Use the selected SID macro's waveform choice.", 0.0f, 0),
-                          choice("Tri", "Control bit 0x10: triangle waveform.", 0.25f, 1),
-                          choice("Saw", "Control bit 0x20: sawtooth waveform.", 0.5f, 2),
-                          choice("Pulse", "Control bit 0x40: pulse waveform using the Pulse Width control.", 0.75f, 3),
-                          choice("Noise", "Control bit 0x80: SID noise waveform.", 1.0f, 4)
-                      },
+                      "Maps Voice 1 to SID control-register waveform bits. Voice 2 and Voice 3 can follow Macro or choose their own waveform.",
+                      sidWaveformChoices(),
                       ParameterKind::chipRegister),
+        sidVoiceWaveSpec(ChipParameterRole::sidVoice2WaveShape,
+                         "sid.voice2.waveform",
+                         "Voice 2 Wave",
+                         "Maps Voice 2 to its own SID control-register waveform bits. Macro follows Voice 1 or the selected SID template."),
+        sidVoiceWaveSpec(ChipParameterRole::sidVoice3WaveShape,
+                         "sid.voice3.waveform",
+                         "Voice 3 Wave",
+                         "Maps Voice 3 to its own SID control-register waveform bits. Macro follows Voice 1 or the selected SID template."),
         segmentedSpec(ChipParameterRole::ymEnvelopeShape,
                       "sid.filterMode",
                       "Filter Mode",
@@ -942,7 +960,9 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int dmgWaveLevel,
                             int dmgStereoRoute,
                             int ymEnvelopeShape,
-                            int snNoiseMode)
+                            int snNoiseMode,
+                            int sidVoice2WaveShape,
+                            int sidVoice3WaveShape)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
 
@@ -966,7 +986,9 @@ PatchConfig makePatchConfig(ChipMode mode,
         std::clamp(dmgWaveLevel, 0, 4),
         std::clamp(dmgStereoRoute, 0, 4),
         std::clamp(ymEnvelopeShape, 0, 4),
-        std::clamp(snNoiseMode, 0, 4)
+        std::clamp(snNoiseMode, 0, 4),
+        std::clamp(sidVoice2WaveShape, 0, 4),
+        std::clamp(sidVoice3WaveShape, 0, 4)
     };
 }
 
@@ -1106,36 +1128,9 @@ uint16_t sidPulseWidthForControl(float pulseWidthControl)
     return static_cast<uint16_t>(std::clamp(static_cast<int>(std::round(0x0100 + (clampControl(pulseWidthControl) * 0x0e00))), 0, 0x0fff));
 }
 
-uint8_t sidWaveformControlForPatch(const PatchConfig& patch)
+uint8_t sidWaveformControlForChoice(int choice)
 {
-    auto choice = std::clamp(patch.waveShape, 0, 4);
-    if (choice == 0)
-    {
-        switch (patch.macro)
-        {
-            case MacroKind::drum:
-            case MacroKind::hit:
-                choice = 4;
-                break;
-            case MacroKind::arp:
-            case MacroKind::laser:
-            case MacroKind::powerUp:
-                choice = 2;
-                break;
-            case MacroKind::jump:
-                choice = 1;
-                break;
-            case MacroKind::manual:
-            case MacroKind::coin:
-            case MacroKind::bass:
-            case MacroKind::lead:
-            default:
-                choice = 3;
-                break;
-        }
-    }
-
-    switch (choice)
+    switch (std::clamp(choice, 0, 4))
     {
         case 1: return 0x10u;
         case 2: return 0x20u;
@@ -1145,6 +1140,56 @@ uint8_t sidWaveformControlForPatch(const PatchConfig& patch)
         default:
             return 0x40u;
     }
+}
+
+int sidResolvedWaveformChoiceForPatch(const PatchConfig& patch)
+{
+    auto choice = std::clamp(patch.waveShape, 0, 4);
+    if (choice != 0)
+        return choice;
+
+    switch (patch.macro)
+    {
+        case MacroKind::drum:
+        case MacroKind::hit:
+            return 4;
+        case MacroKind::arp:
+        case MacroKind::laser:
+        case MacroKind::powerUp:
+            return 2;
+        case MacroKind::jump:
+            return 1;
+        case MacroKind::manual:
+        case MacroKind::coin:
+        case MacroKind::bass:
+        case MacroKind::lead:
+        default:
+            return 3;
+    }
+}
+
+uint8_t sidWaveformControlForPatch(const PatchConfig& patch)
+{
+    return sidWaveformControlForChoice(sidResolvedWaveformChoiceForPatch(patch));
+}
+
+uint8_t sidWaveformControlForVoice(const PatchConfig& patch, size_t voice)
+{
+    auto choice = sidResolvedWaveformChoiceForPatch(patch);
+    if (voice == 1)
+    {
+        const auto voiceChoice = std::clamp(patch.sidVoice2WaveShape, 0, 4);
+        if (voiceChoice != 0)
+            choice = voiceChoice;
+    }
+    else if (voice == 2)
+    {
+        const auto voiceChoice = std::clamp(patch.sidVoice3WaveShape, 0, 4);
+        if (voiceChoice != 0)
+            choice = voiceChoice;
+    }
+
+    return sidWaveformControlForChoice(choice);
 }
 
 uint8_t sidFilterModeBitsForPatch(const PatchConfig& patch)

@@ -80,6 +80,8 @@ struct PatchConfig
     // Generic chip noise-mode selector. SN76489 currently uses all 5 choices;
     // NES clamps to Macro/Long/Short via its descriptor.
     int snNoiseMode = 0;
+    int sidVoice2WaveShape = 0;
+    int sidVoice3WaveShape = 0;
 };
 
 struct StereoFrame

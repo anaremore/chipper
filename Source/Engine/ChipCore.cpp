@@ -1253,7 +1253,7 @@ public:
             }
 
             voiceVelocity[voice] = noteVelocity;
-            writeVoiceRegisters(voice, notes[voice], sidWaveformControlForPatch(patch));
+            writeVoiceRegisters(voice, notes[voice], sidWaveformControlForVoice(patch, voice));
         }
     }
 
@@ -1333,6 +1333,12 @@ public:
              << "\"sidModelNumber\":" << sidModelNumberForPatch(patch) << ","
              << "\"waveformChoice\":" << std::clamp(patch.waveShape, 0, 4) << ","
              << "\"waveformBits\":" << static_cast<int>(sidWaveformControlForPatch(patch)) << ","
+             << "\"waveformChoice0\":" << std::clamp(patch.waveShape, 0, 4) << ","
+             << "\"waveformChoice1\":" << std::clamp(patch.sidVoice2WaveShape, 0, 4) << ","
+             << "\"waveformChoice2\":" << std::clamp(patch.sidVoice3WaveShape, 0, 4) << ","
+             << "\"waveformBits0\":" << static_cast<int>(sidWaveformControlForVoice(patch, 0)) << ","
+             << "\"waveformBits1\":" << static_cast<int>(sidWaveformControlForVoice(patch, 1)) << ","
+             << "\"waveformBits2\":" << static_cast<int>(sidWaveformControlForVoice(patch, 2)) << ","
              << "\"modModeChoice\":" << std::clamp(patch.snNoiseMode, 0, 4) << ","
              << "\"modBits0\":" << static_cast<int>(sidModulationBitsForPatch(patch, 0)) << ","
              << "\"modBits1\":" << static_cast<int>(sidModulationBitsForPatch(patch, 1)) << ","
@@ -1682,7 +1688,7 @@ private:
         channelStamp[voice] = ++noteStamp;
         voiceVelocity[voice] = static_cast<float>(clamp01(velocity));
         writeFilterRegisters();
-        writeVoiceRegisters(voice, channelNotes[voice], sidWaveformControlForPatch(patch));
+        writeVoiceRegisters(voice, channelNotes[voice], sidWaveformControlForVoice(patch, voice));
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
     }
 

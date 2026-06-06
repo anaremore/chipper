@@ -30,7 +30,9 @@ const MidiCcMappingList& midiCcMappings()
         { 91, parameter_ids::snNoiseMode, "Noise Mode / SID Osc Mod" },
         { 92, parameter_ids::dmgWaveLevel, "DMG Wave Level" },
         { 93, parameter_ids::stereoSpread, "Stereo Spread / SID Resonance" },
-        { 94, parameter_ids::dmgStereoRoute, "DMG Stereo Routing / SID Model" }
+        { 94, parameter_ids::dmgStereoRoute, "DMG Stereo Routing / SID Model" },
+        { 95, parameter_ids::sidVoice2WaveShape, "SID Voice 2 Waveform" },
+        { 96, parameter_ids::sidVoice3WaveShape, "SID Voice 3 Waveform" }
     }};
 
     return mappings;
@@ -77,6 +79,8 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::stereoSpread: return parameter_ids::stereoSpread;
         case ChipParameterRole::envelopeDecay: return parameter_ids::envelopeDecay;
         case ChipParameterRole::waveShape: return parameter_ids::waveShape;
+        case ChipParameterRole::sidVoice2WaveShape: return parameter_ids::sidVoice2WaveShape;
+        case ChipParameterRole::sidVoice3WaveShape: return parameter_ids::sidVoice3WaveShape;
         case ChipParameterRole::dmgWaveLevel: return parameter_ids::dmgWaveLevel;
         case ChipParameterRole::dmgStereoRoute: return parameter_ids::dmgStereoRoute;
         case ChipParameterRole::ymEnvelopeShape: return parameter_ids::ymEnvelopeShape;

@@ -46,6 +46,11 @@ juce::StringArray waveShapeChoices()
     return { "RAM", "Tri", "Saw", "Pulse", "Steps" };
 }
 
+juce::StringArray sidVoiceWaveShapeChoices()
+{
+    return { "Macro", "Tri", "Saw", "Pulse", "Noise" };
+}
+
 juce::StringArray dmgWaveLevelChoices()
 {
     return { "Macro", "Mute", "100%", "50%", "25%" };
@@ -215,6 +220,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::ParameterID { id::waveShape, 1 },
         "Wave Shape",
         waveShapeChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::sidVoice2WaveShape, 1 },
+        "SID Voice 2 Waveform",
+        sidVoiceWaveShapeChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::sidVoice3WaveShape, 1 },
+        "SID Voice 3 Waveform",
+        sidVoiceWaveShapeChoices(),
         0));
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
