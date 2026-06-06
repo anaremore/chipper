@@ -531,20 +531,52 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
         envelopeSpec("sid.adsrSpeed", "ADSR Speed", "Maps musical envelope speed to SID attack/decay/release nibbles while Sustain uses the dedicated control."),
         sidAdsrNibbleSpec(ChipParameterRole::sidAttack,
                           "sid.attack",
-                          "Attack",
-                          "Overrides the SID attack nibble in each voice's AD register. Macro follows ADSR Speed."),
+                          "V1 Attack",
+                          "Overrides SID voice 1 attack nibble in its AD register. Macro follows ADSR Speed."),
         sidAdsrNibbleSpec(ChipParameterRole::sidDecay,
                           "sid.decay",
-                          "Decay",
-                          "Overrides the SID decay nibble in each voice's AD register. Macro follows ADSR Speed."),
+                          "V1 Decay",
+                          "Overrides SID voice 1 decay nibble in its AD register. Macro follows ADSR Speed."),
         sidAdsrNibbleSpec(ChipParameterRole::sidSustain,
                           "sid.sustainOverride",
-                          "Sustain",
-                          "Overrides the SID sustain nibble in each voice's SR register. Macro follows the Sustain control."),
+                          "V1 Sustain",
+                          "Overrides SID voice 1 sustain nibble in its SR register. Macro follows the Sustain control."),
         sidAdsrNibbleSpec(ChipParameterRole::sidRelease,
                           "sid.release",
-                          "Release",
-                          "Overrides the SID release nibble in each voice's SR register. Macro follows ADSR Speed."),
+                          "V1 Release",
+                          "Overrides SID voice 1 release nibble in its SR register. Macro follows ADSR Speed."),
+        sidAdsrNibbleSpec(ChipParameterRole::sidVoice2Attack,
+                          "sid.voice2.attack",
+                          "V2 Attack",
+                          "Overrides SID voice 2 attack nibble in its AD register. Macro follows ADSR Speed."),
+        sidAdsrNibbleSpec(ChipParameterRole::sidVoice2Decay,
+                          "sid.voice2.decay",
+                          "V2 Decay",
+                          "Overrides SID voice 2 decay nibble in its AD register. Macro follows ADSR Speed."),
+        sidAdsrNibbleSpec(ChipParameterRole::sidVoice2Sustain,
+                          "sid.voice2.sustain",
+                          "V2 Sustain",
+                          "Overrides SID voice 2 sustain nibble in its SR register. Macro follows the Sustain control."),
+        sidAdsrNibbleSpec(ChipParameterRole::sidVoice2Release,
+                          "sid.voice2.release",
+                          "V2 Release",
+                          "Overrides SID voice 2 release nibble in its SR register. Macro follows ADSR Speed."),
+        sidAdsrNibbleSpec(ChipParameterRole::sidVoice3Attack,
+                          "sid.voice3.attack",
+                          "V3 Attack",
+                          "Overrides SID voice 3 attack nibble in its AD register. Macro follows ADSR Speed."),
+        sidAdsrNibbleSpec(ChipParameterRole::sidVoice3Decay,
+                          "sid.voice3.decay",
+                          "V3 Decay",
+                          "Overrides SID voice 3 decay nibble in its AD register. Macro follows ADSR Speed."),
+        sidAdsrNibbleSpec(ChipParameterRole::sidVoice3Sustain,
+                          "sid.voice3.sustain",
+                          "V3 Sustain",
+                          "Overrides SID voice 3 sustain nibble in its SR register. Macro follows the Sustain control."),
+        sidAdsrNibbleSpec(ChipParameterRole::sidVoice3Release,
+                          "sid.voice3.release",
+                          "V3 Release",
+                          "Overrides SID voice 3 release nibble in its SR register. Macro follows ADSR Speed."),
         segmentedSpec(ChipParameterRole::waveShape,
                       "sid.waveform",
                       "Voice 1 Wave",
@@ -1055,7 +1087,15 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int sidAttack,
                             int sidDecay,
                             int sidSustain,
-                            int sidRelease)
+                            int sidRelease,
+                            int sidVoice2Attack,
+                            int sidVoice2Decay,
+                            int sidVoice2Sustain,
+                            int sidVoice2Release,
+                            int sidVoice3Attack,
+                            int sidVoice3Decay,
+                            int sidVoice3Sustain,
+                            int sidVoice3Release)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
 
@@ -1079,6 +1119,14 @@ PatchConfig makePatchConfig(ChipMode mode,
         std::clamp(sidDecay, 0, 16),
         std::clamp(sidSustain, 0, 16),
         std::clamp(sidRelease, 0, 16),
+        std::clamp(sidVoice2Attack, 0, 16),
+        std::clamp(sidVoice2Decay, 0, 16),
+        std::clamp(sidVoice2Sustain, 0, 16),
+        std::clamp(sidVoice2Release, 0, 16),
+        std::clamp(sidVoice3Attack, 0, 16),
+        std::clamp(sidVoice3Decay, 0, 16),
+        std::clamp(sidVoice3Sustain, 0, 16),
+        std::clamp(sidVoice3Release, 0, 16),
         std::clamp(waveShape, 0, 4),
         std::clamp(pulse2Duty, 0, 4),
         std::clamp(dmgWaveLevel, 0, 4),
@@ -1412,48 +1460,122 @@ int sidModelNumberForPatch(const PatchConfig& patch)
     return sidModelChoiceForPatch(patch) == 2 ? 8580 : 6581;
 }
 
-uint8_t sidAttackNibbleForPatch(const PatchConfig& patch)
+int sidAttackChoiceForVoice(const PatchConfig& patch, size_t voice)
+{
+    if (voice == 1)
+        return patch.sidVoice2Attack;
+    if (voice == 2)
+        return patch.sidVoice3Attack;
+
+    return patch.sidAttack;
+}
+
+int sidDecayChoiceForVoice(const PatchConfig& patch, size_t voice)
+{
+    if (voice == 1)
+        return patch.sidVoice2Decay;
+    if (voice == 2)
+        return patch.sidVoice3Decay;
+
+    return patch.sidDecay;
+}
+
+int sidSustainChoiceForVoice(const PatchConfig& patch, size_t voice)
+{
+    if (voice == 1)
+        return patch.sidVoice2Sustain;
+    if (voice == 2)
+        return patch.sidVoice3Sustain;
+
+    return patch.sidSustain;
+}
+
+int sidReleaseChoiceForVoice(const PatchConfig& patch, size_t voice)
+{
+    if (voice == 1)
+        return patch.sidVoice2Release;
+    if (voice == 2)
+        return patch.sidVoice3Release;
+
+    return patch.sidRelease;
+}
+
+uint8_t sidAttackNibbleForVoice(const PatchConfig& patch, size_t voice)
 {
     const auto speed = clampControl(patch.envelopeDecay);
-    if (patch.sidAttack > 0)
-        return static_cast<uint8_t>(std::clamp(patch.sidAttack - 1, 0, 15));
+    const auto choice = sidAttackChoiceForVoice(patch, voice);
+    if (choice > 0)
+        return static_cast<uint8_t>(std::clamp(choice - 1, 0, 15));
 
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - speed) * 6.0f)), 0, 15));
 }
 
-uint8_t sidDecayNibbleForPatch(const PatchConfig& patch)
+uint8_t sidDecayNibbleForVoice(const PatchConfig& patch, size_t voice)
 {
     const auto speed = clampControl(patch.envelopeDecay);
-    if (patch.sidDecay > 0)
-        return static_cast<uint8_t>(std::clamp(patch.sidDecay - 1, 0, 15));
+    const auto choice = sidDecayChoiceForVoice(patch, voice);
+    if (choice > 0)
+        return static_cast<uint8_t>(std::clamp(choice - 1, 0, 15));
 
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - speed) * 9.0f)), 0, 15));
 }
 
-uint8_t sidSustainNibbleForPatch(const PatchConfig& patch)
+uint8_t sidSustainNibbleForVoice(const PatchConfig& patch, size_t voice)
 {
-    if (patch.sidSustain > 0)
-        return static_cast<uint8_t>(std::clamp(patch.sidSustain - 1, 0, 15));
+    const auto choice = sidSustainChoiceForVoice(patch, voice);
+    if (choice > 0)
+        return static_cast<uint8_t>(std::clamp(choice - 1, 0, 15));
 
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control4) * 15.0f)), 0, 15));
 }
 
-uint8_t sidReleaseNibbleForPatch(const PatchConfig& patch)
+uint8_t sidReleaseNibbleForVoice(const PatchConfig& patch, size_t voice)
 {
-    if (patch.sidRelease > 0)
-        return static_cast<uint8_t>(std::clamp(patch.sidRelease - 1, 0, 15));
+    const auto choice = sidReleaseChoiceForVoice(patch, voice);
+    if (choice > 0)
+        return static_cast<uint8_t>(std::clamp(choice - 1, 0, 15));
 
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - clampControl(patch.envelopeDecay)) * 9.0f)), 0, 15));
 }
 
+uint8_t sidAttackNibbleForPatch(const PatchConfig& patch)
+{
+    return sidAttackNibbleForVoice(patch, 0);
+}
+
+uint8_t sidDecayNibbleForPatch(const PatchConfig& patch)
+{
+    return sidDecayNibbleForVoice(patch, 0);
+}
+
+uint8_t sidSustainNibbleForPatch(const PatchConfig& patch)
+{
+    return sidSustainNibbleForVoice(patch, 0);
+}
+
+uint8_t sidReleaseNibbleForPatch(const PatchConfig& patch)
+{
+    return sidReleaseNibbleForVoice(patch, 0);
+}
+
 uint8_t sidAttackDecayForPatch(const PatchConfig& patch)
 {
-    return static_cast<uint8_t>((sidAttackNibbleForPatch(patch) << 4u) | sidDecayNibbleForPatch(patch));
+    return sidAttackDecayForVoice(patch, 0);
 }
 
 uint8_t sidSustainReleaseForPatch(const PatchConfig& patch)
 {
-    return static_cast<uint8_t>((sidSustainNibbleForPatch(patch) << 4u) | sidReleaseNibbleForPatch(patch));
+    return sidSustainReleaseForVoice(patch, 0);
+}
+
+uint8_t sidAttackDecayForVoice(const PatchConfig& patch, size_t voice)
+{
+    return static_cast<uint8_t>((sidAttackNibbleForVoice(patch, voice) << 4u) | sidDecayNibbleForVoice(patch, voice));
+}
+
+uint8_t sidSustainReleaseForVoice(const PatchConfig& patch, size_t voice)
+{
+    return static_cast<uint8_t>((sidSustainNibbleForVoice(patch, voice) << 4u) | sidReleaseNibbleForVoice(patch, voice));
 }
 
 double sidAttackSecondsForNibble(uint8_t nibble)

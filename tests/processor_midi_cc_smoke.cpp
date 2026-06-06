@@ -155,6 +155,22 @@ int main()
                      "CC74 SID Bass macro should reset SID Sustain to Macro");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidRelease), 0.0f, 0.0001f,
                      "CC74 SID Bass macro should reset SID Release to Macro");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice2Attack), 0.0f, 0.0001f,
+                     "CC74 SID Bass macro should reset SID Voice 2 Attack to Macro");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice2Decay), 0.0f, 0.0001f,
+                     "CC74 SID Bass macro should reset SID Voice 2 Decay to Macro");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice2Sustain), 0.0f, 0.0001f,
+                     "CC74 SID Bass macro should reset SID Voice 2 Sustain to Macro");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice2Release), 0.0f, 0.0001f,
+                     "CC74 SID Bass macro should reset SID Voice 2 Release to Macro");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3Attack), 0.0f, 0.0001f,
+                     "CC74 SID Bass macro should reset SID Voice 3 Attack to Macro");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3Decay), 0.0f, 0.0001f,
+                     "CC74 SID Bass macro should reset SID Voice 3 Decay to Macro");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3Sustain), 0.0f, 0.0001f,
+                     "CC74 SID Bass macro should reset SID Voice 3 Sustain to Macro");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3Release), 0.0f, 0.0001f,
+                     "CC74 SID Bass macro should reset SID Voice 3 Release to Macro");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymEnvelopeShape), 1.0f, 0.0001f,
                      "CC74 SID Bass macro should apply SID LP filter-mode template");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::snNoiseMode), 1.0f, 0.0001f,
@@ -194,6 +210,18 @@ int main()
     sendController(processor, 100, controllerValueForChoice(processor, chipper::parameters::id::sidSustain, 13));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidSustain), 13.0f, 0.0001f,
                      "CC100 should control SID Sustain nibble choice");
+    sendController(processor, 105, controllerValueForChoice(processor, chipper::parameters::id::sidVoice2Attack, 7));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice2Attack), 7.0f, 0.0001f,
+                     "CC105 should control SID Voice 2 Attack nibble choice");
+    sendController(processor, 108, controllerValueForChoice(processor, chipper::parameters::id::sidVoice2Release, 9));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice2Release), 9.0f, 0.0001f,
+                     "CC108 should control SID Voice 2 Release nibble choice");
+    sendController(processor, 109, controllerValueForChoice(processor, chipper::parameters::id::sidVoice3Attack, 5));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3Attack), 5.0f, 0.0001f,
+                     "CC109 should control SID Voice 3 Attack nibble choice");
+    sendController(processor, 112, controllerValueForChoice(processor, chipper::parameters::id::sidVoice3Release, 11));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3Release), 11.0f, 0.0001f,
+                     "CC112 should control SID Voice 3 Release nibble choice");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 3));
     sendController(processor, 101, controllerValueForChoice(processor, chipper::parameters::id::ymChannelAMix, 1));

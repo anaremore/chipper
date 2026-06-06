@@ -34,6 +34,14 @@ inline constexpr auto sidAttack = "sidAttack";
 inline constexpr auto sidDecay = "sidDecay";
 inline constexpr auto sidSustain = "sidSustain";
 inline constexpr auto sidRelease = "sidRelease";
+inline constexpr auto sidVoice2Attack = "sidVoice2Attack";
+inline constexpr auto sidVoice2Decay = "sidVoice2Decay";
+inline constexpr auto sidVoice2Sustain = "sidVoice2Sustain";
+inline constexpr auto sidVoice2Release = "sidVoice2Release";
+inline constexpr auto sidVoice3Attack = "sidVoice3Attack";
+inline constexpr auto sidVoice3Decay = "sidVoice3Decay";
+inline constexpr auto sidVoice3Sustain = "sidVoice3Sustain";
+inline constexpr auto sidVoice3Release = "sidVoice3Release";
 inline constexpr auto waveShape = "waveShape";
 inline constexpr auto sidVoice2WaveShape = "sidVoice2WaveShape";
 inline constexpr auto sidVoice3WaveShape = "sidVoice3WaveShape";
@@ -54,7 +62,7 @@ struct MidiCcMapping
     const char* label = nullptr;
 };
 
-inline constexpr auto midiCcMappingCount = 35u;
+inline constexpr auto midiCcMappingCount = 43u;
 using MidiCcMappingList = std::array<MidiCcMapping, midiCcMappingCount>;
 
 const MidiCcMappingList& midiCcMappings();

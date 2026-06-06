@@ -41,6 +41,14 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && a.sidDecay == b.sidDecay
         && a.sidSustain == b.sidSustain
         && a.sidRelease == b.sidRelease
+        && a.sidVoice2Attack == b.sidVoice2Attack
+        && a.sidVoice2Decay == b.sidVoice2Decay
+        && a.sidVoice2Sustain == b.sidVoice2Sustain
+        && a.sidVoice2Release == b.sidVoice2Release
+        && a.sidVoice3Attack == b.sidVoice3Attack
+        && a.sidVoice3Decay == b.sidVoice3Decay
+        && a.sidVoice3Sustain == b.sidVoice3Sustain
+        && a.sidVoice3Release == b.sidVoice3Release
         && a.waveShape == b.waveShape
         && a.pulse2Duty == b.pulse2Duty
         && a.dmgWaveLevel == b.dmgWaveLevel
@@ -70,6 +78,14 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && a.sidDecay == b.sidDecay
         && a.sidSustain == b.sidSustain
         && a.sidRelease == b.sidRelease
+        && a.sidVoice2Attack == b.sidVoice2Attack
+        && a.sidVoice2Decay == b.sidVoice2Decay
+        && a.sidVoice2Sustain == b.sidVoice2Sustain
+        && a.sidVoice2Release == b.sidVoice2Release
+        && a.sidVoice3Attack == b.sidVoice3Attack
+        && a.sidVoice3Decay == b.sidVoice3Decay
+        && a.sidVoice3Sustain == b.sidVoice3Sustain
+        && a.sidVoice3Release == b.sidVoice3Release
         && a.waveShape == b.waveShape
         && a.pulse2Duty == b.pulse2Duty
         && a.dmgWaveLevel == b.dmgWaveLevel
@@ -258,6 +274,14 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
     setPlainParameterValue(chipper::parameters::id::sidDecay, 0.0f);
     setPlainParameterValue(chipper::parameters::id::sidSustain, 0.0f);
     setPlainParameterValue(chipper::parameters::id::sidRelease, 0.0f);
+    setPlainParameterValue(chipper::parameters::id::sidVoice2Attack, 0.0f);
+    setPlainParameterValue(chipper::parameters::id::sidVoice2Decay, 0.0f);
+    setPlainParameterValue(chipper::parameters::id::sidVoice2Sustain, 0.0f);
+    setPlainParameterValue(chipper::parameters::id::sidVoice2Release, 0.0f);
+    setPlainParameterValue(chipper::parameters::id::sidVoice3Attack, 0.0f);
+    setPlainParameterValue(chipper::parameters::id::sidVoice3Decay, 0.0f);
+    setPlainParameterValue(chipper::parameters::id::sidVoice3Sustain, 0.0f);
+    setPlainParameterValue(chipper::parameters::id::sidVoice3Release, 0.0f);
     setPlainParameterValue(chipper::parameters::id::stereoSpread, templ.stereoSpread);
     setPlainParameterValue(chipper::parameters::id::waveShape, static_cast<float>(templ.waveShape));
     setPlainParameterValue(chipper::parameters::id::sidVoice2WaveShape, 0.0f);
@@ -376,7 +400,15 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidAttack)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidDecay)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidSustain)->load())),
-        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidRelease)->load())));
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidRelease)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidVoice2Attack)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidVoice2Decay)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidVoice2Sustain)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidVoice2Release)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidVoice3Attack)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidVoice3Decay)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidVoice3Sustain)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidVoice3Release)->load())));
 }
 
 void ChipperAudioProcessor::replayPendingRegisterState()

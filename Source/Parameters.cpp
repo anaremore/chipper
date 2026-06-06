@@ -239,25 +239,73 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::sidAttack, 1 },
-        "SID Attack",
+        "SID Voice 1 Attack",
         sidAdsrNibbleChoices(),
         0));
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::sidDecay, 1 },
-        "SID Decay",
+        "SID Voice 1 Decay",
         sidAdsrNibbleChoices(),
         0));
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::sidSustain, 1 },
-        "SID Sustain",
+        "SID Voice 1 Sustain",
         sidAdsrNibbleChoices(),
         0));
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::sidRelease, 1 },
-        "SID Release",
+        "SID Voice 1 Release",
+        sidAdsrNibbleChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::sidVoice2Attack, 1 },
+        "SID Voice 2 Attack",
+        sidAdsrNibbleChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::sidVoice2Decay, 1 },
+        "SID Voice 2 Decay",
+        sidAdsrNibbleChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::sidVoice2Sustain, 1 },
+        "SID Voice 2 Sustain",
+        sidAdsrNibbleChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::sidVoice2Release, 1 },
+        "SID Voice 2 Release",
+        sidAdsrNibbleChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::sidVoice3Attack, 1 },
+        "SID Voice 3 Attack",
+        sidAdsrNibbleChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::sidVoice3Decay, 1 },
+        "SID Voice 3 Decay",
+        sidAdsrNibbleChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::sidVoice3Sustain, 1 },
+        "SID Voice 3 Sustain",
+        sidAdsrNibbleChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::sidVoice3Release, 1 },
+        "SID Voice 3 Release",
         sidAdsrNibbleChoices(),
         0));
 

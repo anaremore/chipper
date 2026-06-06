@@ -120,11 +120,19 @@ const char* sidVoiceWaveParameterId(size_t index)
 
 chipper::ChipParameterRole sidAdsrRole(size_t index)
 {
-    static constexpr std::array<chipper::ChipParameterRole, 4> roles {
+    static constexpr std::array<chipper::ChipParameterRole, 12> roles {
         chipper::ChipParameterRole::sidAttack,
         chipper::ChipParameterRole::sidDecay,
         chipper::ChipParameterRole::sidSustain,
-        chipper::ChipParameterRole::sidRelease
+        chipper::ChipParameterRole::sidRelease,
+        chipper::ChipParameterRole::sidVoice2Attack,
+        chipper::ChipParameterRole::sidVoice2Decay,
+        chipper::ChipParameterRole::sidVoice2Sustain,
+        chipper::ChipParameterRole::sidVoice2Release,
+        chipper::ChipParameterRole::sidVoice3Attack,
+        chipper::ChipParameterRole::sidVoice3Decay,
+        chipper::ChipParameterRole::sidVoice3Sustain,
+        chipper::ChipParameterRole::sidVoice3Release
     };
 
     return roles[std::min(index, roles.size() - 1u)];
@@ -132,14 +140,28 @@ chipper::ChipParameterRole sidAdsrRole(size_t index)
 
 const char* sidAdsrParameterId(size_t index)
 {
-    static constexpr std::array<const char*, 4> ids {
+    static constexpr std::array<const char*, 12> ids {
         chipper::parameters::id::sidAttack,
         chipper::parameters::id::sidDecay,
         chipper::parameters::id::sidSustain,
-        chipper::parameters::id::sidRelease
+        chipper::parameters::id::sidRelease,
+        chipper::parameters::id::sidVoice2Attack,
+        chipper::parameters::id::sidVoice2Decay,
+        chipper::parameters::id::sidVoice2Sustain,
+        chipper::parameters::id::sidVoice2Release,
+        chipper::parameters::id::sidVoice3Attack,
+        chipper::parameters::id::sidVoice3Decay,
+        chipper::parameters::id::sidVoice3Sustain,
+        chipper::parameters::id::sidVoice3Release
     };
 
     return ids[std::min(index, ids.size() - 1u)];
+}
+
+const char* sidAdsrFieldLabel(size_t field)
+{
+    static constexpr std::array<const char*, 4> labels { "A", "D", "S", "R" };
+    return labels[std::min(field, labels.size() - 1u)];
 }
 
 chipper::ChipParameterRole ymChannelMixRole(size_t index)
@@ -230,21 +252,72 @@ const char* sidWaveNameForControlBits(uint8_t bits)
     }
 }
 
-juce::String sidAdsrNibbleReadout(const chipper::PatchConfig& patch)
+juce::String sidAdsrNibbleReadout(const chipper::PatchConfig& patch, size_t voice = 0)
 {
-    const auto ad = chipper::sidAttackDecayForPatch(patch);
-    const auto sr = chipper::sidSustainReleaseForPatch(patch);
+    const auto ad = chipper::sidAttackDecayForVoice(patch, voice);
+    const auto sr = chipper::sidSustainReleaseForVoice(patch, voice);
     const auto attack = static_cast<int>((ad >> 4u) & 0x0fu);
     const auto decay = static_cast<int>(ad & 0x0fu);
     const auto sustain = static_cast<int>((sr >> 4u) & 0x0fu);
     const auto release = static_cast<int>(sr & 0x0fu);
 
-    return juce::String("AD 0x") + byteHex(ad)
+    return juce::String("V") + juce::String(static_cast<int>(voice + 1u))
+        + " AD 0x" + byteHex(ad)
         + " A" + juce::String(attack)
         + "/D" + juce::String(decay)
         + " | SR 0x" + byteHex(sr)
         + " S" + juce::String(sustain)
         + "/R" + juce::String(release);
+}
+
+float pulseDutyRatioForChoice(int choice)
+{
+    static constexpr std::array<float, 4> duty {
+        0.125f,
+        0.25f,
+        0.5f,
+        0.75f
+    };
+
+    return duty[static_cast<size_t>(std::clamp(choice, 0, 3))];
+}
+
+float pulseDutyRatioForControl(float value)
+{
+    return pulseDutyRatioForChoice(static_cast<int>(std::round(std::clamp(value, 0.0f, 1.0f) * 3.0f)));
+}
+
+int nesPulse2DutyChoiceForPatch(const chipper::PatchConfig& patch)
+{
+    const auto primary = std::clamp(static_cast<int>(std::round(patch.control1 * 3.0f)), 0, 3);
+    const auto explicitChoice = std::clamp(patch.pulse2Duty, 0, 4);
+    if (explicitChoice > 0)
+        return explicitChoice - 1;
+
+    return patch.playMode == chipper::PlayMode::chipPoly ? primary : std::min(primary + 1, 3);
+}
+
+int dmgPulseDutyChoiceForSource(const chipper::PatchConfig& patch, size_t sourceIndex)
+{
+    const auto primary = std::clamp(static_cast<int>(std::round(patch.control1 * 3.0f)), 0, 3);
+    if (sourceIndex == 1 && patch.playMode != chipper::PlayMode::chipPoly)
+        return std::min(primary + 1, 3);
+
+    return primary;
+}
+
+ChipWaveformPreviewShape dmgWavePreviewShape(const chipper::PatchConfig& patch)
+{
+    switch (std::clamp(patch.waveShape, 0, 4))
+    {
+        case 1: return ChipWaveformPreviewShape::triangle;
+        case 2: return ChipWaveformPreviewShape::saw;
+        case 3: return ChipWaveformPreviewShape::pulse;
+        case 4: return ChipWaveformPreviewShape::stepped;
+        case 0:
+        default:
+            return ChipWaveformPreviewShape::stepped;
+    }
 }
 
 size_t visibleSourceCardCount(chipper::ChipMode mode)
@@ -278,15 +351,31 @@ void layoutSegmentedButtons(ButtonArray& buttons, juce::Rectangle<int> bounds, s
 
 } // namespace
 
-void ChipWaveformPreview::setSidWaveform(uint8_t bits, float pulseWidthRatio)
+void ChipWaveformPreview::setShape(ChipWaveformPreviewShape newShape, float pulseWidthRatio, bool shouldBeActive)
 {
     const auto clampedPulseWidth = std::clamp(pulseWidthRatio, 0.02f, 0.98f);
-    if (waveformBits == bits && std::abs(pulseWidth - clampedPulseWidth) < 0.001f)
+    if (shape == newShape && std::abs(pulseWidth - clampedPulseWidth) < 0.001f && active == shouldBeActive)
         return;
 
-    waveformBits = bits;
+    shape = newShape;
     pulseWidth = clampedPulseWidth;
+    active = shouldBeActive;
     repaint();
+}
+
+void ChipWaveformPreview::setSidWaveform(uint8_t bits, float pulseWidthRatio, bool shouldBeActive)
+{
+    const auto waveform = bits & 0xf0u;
+    if ((waveform & 0x80u) != 0u)
+        setShape(ChipWaveformPreviewShape::noise, pulseWidthRatio, shouldBeActive);
+    else if ((waveform & 0x40u) != 0u)
+        setShape(ChipWaveformPreviewShape::pulse, pulseWidthRatio, shouldBeActive);
+    else if ((waveform & 0x20u) != 0u)
+        setShape(ChipWaveformPreviewShape::saw, pulseWidthRatio, shouldBeActive);
+    else if ((waveform & 0x10u) != 0u)
+        setShape(ChipWaveformPreviewShape::triangle, pulseWidthRatio, shouldBeActive);
+    else
+        setShape(ChipWaveformPreviewShape::off, pulseWidthRatio, shouldBeActive);
 }
 
 void ChipWaveformPreview::paint(juce::Graphics& g)
@@ -312,11 +401,9 @@ void ChipWaveformPreview::paint(juce::Graphics& g)
     g.setColour(juce::Colour(0xff243139).withAlpha(0.80f));
     g.drawHorizontalLine(static_cast<int>(std::round(mid)), left, right);
 
-    juce::Path path;
-    const auto waveform = waveformBits & 0xf0u;
-
-    if ((waveform & 0x80u) != 0u)
+    const auto drawNoise = [&]()
     {
+        juce::Path path;
         uint32_t state = 0x2a6d365bu;
         path.startNewSubPath(left, mid);
         constexpr auto pointCount = 28;
@@ -328,9 +415,13 @@ void ChipWaveformPreview::paint(juce::Graphics& g)
             const auto y = bottom - (normalized * height);
             path.lineTo(x, y);
         }
-    }
-    else if ((waveform & 0x40u) != 0u)
+
+        return path;
+    };
+
+    const auto drawPulse = [&](float duty)
     {
+        juce::Path path;
         const auto high = top;
         const auto low = bottom;
         const auto period = width * 0.5f;
@@ -338,45 +429,85 @@ void ChipWaveformPreview::paint(juce::Graphics& g)
         for (int cycle = 0; cycle < 2; ++cycle)
         {
             const auto cycleStart = left + (static_cast<float>(cycle) * period);
-            const auto transition = cycleStart + (period * pulseWidth);
+            const auto transition = cycleStart + (period * duty);
             const auto cycleEnd = cycleStart + period;
             path.lineTo(transition, high);
             path.lineTo(transition, low);
             path.lineTo(cycleEnd, low);
             if (cycle == 0)
-            {
                 path.lineTo(cycleEnd, high);
-            }
         }
-    }
-    else if ((waveform & 0x20u) != 0u)
+
+        return path;
+    };
+
+    juce::Path path;
+    switch (shape)
     {
-        const auto period = width * 0.5f;
-        path.startNewSubPath(left, bottom);
-        for (int cycle = 0; cycle < 2; ++cycle)
+        case ChipWaveformPreviewShape::noise:
+            path = drawNoise();
+            break;
+
+        case ChipWaveformPreviewShape::toneNoise:
+            path = drawPulse(0.5f);
+            g.setColour((active ? juce::Colour(0xff56c7d8) : juce::Colour(0xff72818a)).withAlpha(0.46f));
+            g.strokePath(path, juce::PathStrokeType(1.1f));
+            path = drawNoise();
+            break;
+
+        case ChipWaveformPreviewShape::pulse:
+            path = drawPulse(pulseWidth);
+            break;
+
+        case ChipWaveformPreviewShape::saw:
         {
-            const auto cycleEnd = left + (static_cast<float>(cycle + 1) * period);
-            path.lineTo(cycleEnd, top);
-            if (cycle == 0)
-                path.lineTo(cycleEnd, bottom);
+            const auto period = width * 0.5f;
+            path.startNewSubPath(left, bottom);
+            for (int cycle = 0; cycle < 2; ++cycle)
+            {
+                const auto cycleEnd = left + (static_cast<float>(cycle + 1) * period);
+                path.lineTo(cycleEnd, top);
+                if (cycle == 0)
+                    path.lineTo(cycleEnd, bottom);
+            }
+            break;
         }
-    }
-    else if ((waveform & 0x10u) != 0u)
-    {
-        path.startNewSubPath(left, mid);
-        path.lineTo(left + width * 0.125f, top);
-        path.lineTo(left + width * 0.375f, bottom);
-        path.lineTo(left + width * 0.625f, top);
-        path.lineTo(left + width * 0.875f, bottom);
-        path.lineTo(right, mid);
-    }
-    else
-    {
-        path.startNewSubPath(left, mid);
-        path.lineTo(right, mid);
+
+        case ChipWaveformPreviewShape::triangle:
+            path.startNewSubPath(left, mid);
+            path.lineTo(left + width * 0.125f, top);
+            path.lineTo(left + width * 0.375f, bottom);
+            path.lineTo(left + width * 0.625f, top);
+            path.lineTo(left + width * 0.875f, bottom);
+            path.lineTo(right, mid);
+            break;
+
+        case ChipWaveformPreviewShape::stepped:
+        {
+            path.startNewSubPath(left, bottom);
+            static constexpr std::array<float, 8> steps { 0.18f, 0.42f, 0.70f, 0.92f, 0.70f, 0.42f, 0.18f, 0.54f };
+            const auto segment = width / static_cast<float>(steps.size());
+            for (size_t i = 0; i < steps.size(); ++i)
+            {
+                const auto x = left + (segment * static_cast<float>(i));
+                const auto nextX = i + 1u == steps.size() ? right : x + segment;
+                const auto y = bottom - (steps[i] * height);
+                path.lineTo(x, y);
+                path.lineTo(nextX, y);
+            }
+            break;
+        }
+
+        case ChipWaveformPreviewShape::off:
+        default:
+            path.startNewSubPath(left, mid);
+            path.lineTo(right, mid);
+            break;
     }
 
-    g.setColour(waveform == 0u ? juce::Colour(0xff72818a) : juce::Colour(0xff56c7d8));
+    g.setColour(shape == ChipWaveformPreviewShape::off
+                    ? juce::Colour(0xff72818a)
+                    : (active ? juce::Colour(0xff56c7d8) : juce::Colour(0xff72818a)));
     g.strokePath(path, juce::PathStrokeType(1.4f));
 }
 
@@ -553,16 +684,27 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     envelopeDecayValueLabel.setMinimumHorizontalScale(0.75f);
     addAndMakeVisible(envelopeDecayValueLabel);
 
-    sidEnvelopePreview.setTooltip("Register-resolved SID ADSR envelope preview.");
-    sidEnvelopePreview.setVisible(false);
-    addAndMakeVisible(sidEnvelopePreview);
+    for (size_t voice = 0; voice < sidEnvelopeVoiceLabels.size(); ++voice)
+    {
+        auto& label = sidEnvelopeVoiceLabels[voice];
+        label.setText(juce::String("V") + juce::String(static_cast<int>(voice + 1u)), juce::dontSendNotification);
+        label.setJustificationType(juce::Justification::centredLeft);
+        label.setColour(juce::Label::textColourId, juce::Colour(0xff56c7d8));
+        label.setFont(juce::FontOptions(11.0f, juce::Font::bold));
+        label.setVisible(false);
+        addAndMakeVisible(label);
 
-    const std::array<const char*, sidAdsrOverrideCount> sidAdsrLabelText { "Attack", "Decay", "Sustain", "Release" };
+        auto& preview = sidEnvelopePreviews[voice];
+        preview.setTooltip(juce::String("Register-resolved SID voice ") + juce::String(static_cast<int>(voice + 1u)) + " ADSR envelope preview.");
+        preview.setVisible(false);
+        addAndMakeVisible(preview);
+    }
+
     for (size_t i = 0; i < sidAdsrBoxes.size(); ++i)
     {
         auto& label = sidAdsrLabels[i];
-        label.setText(sidAdsrLabelText[i], juce::dontSendNotification);
-        label.setJustificationType(juce::Justification::centredLeft);
+        label.setText(sidAdsrFieldLabel(i % sidAdsrFieldCount), juce::dontSendNotification);
+        label.setJustificationType(juce::Justification::centred);
         label.setColour(juce::Label::textColourId, juce::Colour(0xff56c7d8));
         label.setFont(juce::FontOptions(11.0f, juce::Font::bold));
         label.setMinimumHorizontalScale(0.7f);
@@ -749,10 +891,6 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         };
         addAndMakeVisible(box);
 
-        auto& scope = sidVoicePreviewScopes[i];
-        scope.setTooltip("Register-resolved SID oscillator preview. Pulse width follows the SID pulse-width register.");
-        scope.setVisible(false);
-        addAndMakeVisible(scope);
     }
 
     dmgWaveLevelLabel.setText("Wave Level", juce::dontSendNotification);
@@ -1034,6 +1172,11 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         valueLabel.setTooltip(withMidiCc("Source level trim.", sourceLevelIds[i]));
         valueLabel.setVisible(false);
         addAndMakeVisible(valueLabel);
+
+        auto& scope = sourcePreviewScopes[i];
+        scope.setTooltip("Register-resolved source preview.");
+        scope.setVisible(false);
+        addAndMakeVisible(scope);
     }
 
     globalStripLabel.setText("Global Performance Controls", juce::dontSendNotification);
@@ -1165,7 +1308,8 @@ void ChipperAudioProcessorEditor::resized()
 
     auto sourcePanel = moduleBounds[1].reduced(12, 9);
     sourcePanel.removeFromTop(20);
-    if (displayedMode == chipper::ChipMode::sid)
+    const auto sourceSurfaceActive = chipper::descriptorFor(displayedMode).implemented && usesSourceChannelSurface(displayedMode);
+    if (sourceSurfaceActive)
         sourcePanel.removeFromTop(4);
     else
     {
@@ -1183,13 +1327,13 @@ void ChipperAudioProcessorEditor::resized()
         {
             sourceChannelBounds[i] = {};
             sourceChannelButtons[i].setBounds({});
+            sourcePreviewScopes[i].setBounds({});
             sourceLevelSliders[i].setBounds({});
             sourceLevelValueLabels[i].setBounds({});
             if (displayedMode == chipper::ChipMode::sid && i < sidVoiceWaveCount)
             {
                 sidVoiceWaveLabels[i].setBounds({});
                 sidVoiceWaveBoxes[i].setBounds({});
-                sidVoicePreviewScopes[i].setBounds({});
             }
             continue;
         }
@@ -1203,12 +1347,11 @@ void ChipperAudioProcessorEditor::resized()
         auto sourceCard = sourceChannelBounds[i].reduced(8, displayedMode == chipper::ChipMode::sid ? 2 : 4);
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(displayedMode == chipper::ChipMode::sid ? 16 : 18, sourceCard.getHeight())));
         sourceCard.removeFromTop(2);
+        sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(15, sourceCard.getHeight())));
+        sourceCard.removeFromTop(1);
 
         if (displayedMode == chipper::ChipMode::sid && i < sidVoiceWaveCount)
         {
-            sidVoicePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(15, sourceCard.getHeight())));
-            sourceCard.removeFromTop(1);
-
             auto waveRow = sourceCard.removeFromTop(std::min(20, sourceCard.getHeight()));
             sidVoiceWaveLabels[i].setBounds(waveRow.removeFromLeft(38));
             sidVoiceWaveBoxes[i].setBounds(waveRow);
@@ -1380,27 +1523,31 @@ void ChipperAudioProcessorEditor::placeLabeledSliderWithReadout(juce::Slider& sl
 
 void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> bounds)
 {
-    auto overrideRow = bounds.removeFromTop(std::min(23, bounds.getHeight())).reduced(0, 1);
-    const auto gap = 6;
-    const auto cellWidth = (overrideRow.getWidth() - (gap * static_cast<int>(sidAdsrBoxes.size() - 1u))) / static_cast<int>(sidAdsrBoxes.size());
-    for (size_t i = 0; i < sidAdsrBoxes.size(); ++i)
+    auto speedRow = bounds.removeFromTop(std::min(18, bounds.getHeight()));
+    envelopeDecayLabel.setBounds(speedRow.removeFromLeft(82));
+    envelopeDecayValueLabel.setBounds(speedRow.removeFromRight(108));
+    envelopeDecaySlider.setBounds(speedRow.reduced(0, 1));
+    bounds.removeFromTop(2);
+
+    const auto fieldGap = 3;
+    for (size_t voice = 0; voice < sidAdsrVoiceCount; ++voice)
     {
-        auto cell = overrideRow.removeFromLeft(cellWidth);
-        if (i + 1u < sidAdsrBoxes.size())
-            overrideRow.removeFromLeft(gap);
+        auto row = bounds.removeFromTop(std::min(19, bounds.getHeight())).reduced(0, 1);
+        sidEnvelopeVoiceLabels[voice].setBounds(row.removeFromLeft(24));
+        row.removeFromLeft(3);
 
-        sidAdsrLabels[i].setBounds(cell.removeFromLeft(42));
-        sidAdsrBoxes[i].setBounds(cell);
+        for (size_t field = 0; field < sidAdsrFieldCount; ++field)
+        {
+            auto cell = row.removeFromLeft(std::min(55, row.getWidth()));
+            const auto index = (voice * sidAdsrFieldCount) + field;
+            sidAdsrLabels[index].setBounds(cell.removeFromLeft(13));
+            sidAdsrBoxes[index].setBounds(cell);
+            row.removeFromLeft(fieldGap);
+        }
+
+        sidEnvelopePreviews[voice].setBounds(row);
+        bounds.removeFromTop(1);
     }
-
-    bounds.removeFromTop(2);
-    sidEnvelopePreview.setBounds(bounds.removeFromTop(std::min(24, bounds.getHeight())));
-    bounds.removeFromTop(2);
-
-    auto speedRow = bounds.removeFromTop(std::min(24, bounds.getHeight()));
-    envelopeDecayLabel.setBounds(speedRow.removeFromLeft(90));
-    envelopeDecayValueLabel.setBounds(speedRow.removeFromRight(110));
-    envelopeDecaySlider.setBounds(speedRow.reduced(0, 2));
 }
 
 void ChipperAudioProcessorEditor::placePulseDutySegment(juce::Rectangle<int> bounds)
@@ -1730,7 +1877,7 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
     {
         if (const auto* spec = chipper::parameterSpecFor(mode, sidAdsrRole(i)))
         {
-            sidAdsrLabels[i].setText(spec->label, juce::dontSendNotification);
+            sidAdsrLabels[i].setText(sidAdsrFieldLabel(i % sidAdsrFieldCount), juce::dontSendNotification);
             sidAdsrLabels[i].setTooltip(withMidiCcForRole(spec->help, spec->role));
             sidAdsrBoxes[i].setTooltip(withMidiCcForRole(spec->help, spec->role));
         }
@@ -1781,10 +1928,8 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
     for (size_t i = 0; i < sourceLevelIds.size(); ++i)
         setParameterValueFromUi(sourceLevelIds[i], 1.0f);
     setParameterValueFromUi(chipper::parameters::id::envelopeDecay, templ.envelopeDecay);
-    setChoiceParameterFromUi(chipper::parameters::id::sidAttack, 0);
-    setChoiceParameterFromUi(chipper::parameters::id::sidDecay, 0);
-    setChoiceParameterFromUi(chipper::parameters::id::sidSustain, 0);
-    setChoiceParameterFromUi(chipper::parameters::id::sidRelease, 0);
+    for (size_t i = 0; i < sidAdsrOverrideCount; ++i)
+        setChoiceParameterFromUi(sidAdsrParameterId(i), 0);
     setParameterValueFromUi(chipper::parameters::id::stereoSpread, templ.stereoSpread);
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, templ.waveShape);
     setChoiceParameterFromUi(chipper::parameters::id::sidVoice2WaveShape, 0);
@@ -1855,10 +2000,8 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
         setParameterValueFromUi(sourceLevelIds[i], 1.0f);
 
     setParameterValueFromUi(chipper::parameters::id::envelopeDecay, preset.envelopeDecay);
-    setChoiceParameterFromUi(chipper::parameters::id::sidAttack, 0);
-    setChoiceParameterFromUi(chipper::parameters::id::sidDecay, 0);
-    setChoiceParameterFromUi(chipper::parameters::id::sidSustain, 0);
-    setChoiceParameterFromUi(chipper::parameters::id::sidRelease, 0);
+    for (size_t i = 0; i < sidAdsrOverrideCount; ++i)
+        setChoiceParameterFromUi(sidAdsrParameterId(i), 0);
     setParameterValueFromUi(chipper::parameters::id::stereoSpread, preset.stereoSpread);
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, preset.waveShape);
     setChoiceParameterFromUi(chipper::parameters::id::sidVoice2WaveShape, preset.sidVoice2WaveShape);
@@ -1930,7 +2073,15 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidAttack))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidDecay))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidSustain))),
-        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidRelease))));
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidRelease))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice2Attack))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice2Decay))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice2Sustain))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice2Release))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice3Attack))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice3Decay))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice3Sustain))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice3Release))));
 }
 
 bool ChipperAudioProcessorEditor::usesPulseDutySegment(chipper::ChipMode mode) const
@@ -2440,10 +2591,15 @@ juce::String ChipperAudioProcessorEditor::sidCutoffReadout(float value) const
 
 juce::String ChipperAudioProcessorEditor::sidSustainReadout(const chipper::PatchConfig& patch) const
 {
-    const auto sustain = static_cast<int>(chipper::sidSustainNibbleForPatch(patch));
-    auto text = juce::String("SR sustain nibble ") + juce::String(sustain) + "/15";
-    if (patch.sidSustain > 0)
-        text += " override";
+    auto text = juce::String("Sustain nibbles ");
+    for (size_t voice = 0; voice < sidAdsrVoiceCount; ++voice)
+    {
+        if (voice > 0)
+            text += " | ";
+
+        text += "V" + juce::String(static_cast<int>(voice + 1u))
+            + ":" + juce::String(static_cast<int>(chipper::sidSustainNibbleForVoice(patch, voice)));
+    }
     return text;
 }
 
@@ -2507,6 +2663,7 @@ void ChipperAudioProcessorEditor::setSourceChannelSurfaceVisible(chipper::ChipMo
         const auto hasSource = chipper::parameterSpecFor(mode, sourceRole(i)) != nullptr;
         const auto visible = active && hasSource;
         sourceChannelButtons[i].setVisible(visible);
+        sourcePreviewScopes[i].setVisible(visible);
         sourceLevelSliders[i].setVisible(visible && chipper::parameterSpecFor(mode, sourceLevelRole(i)) != nullptr);
         sourceLevelValueLabels[i].setVisible(visible && chipper::parameterSpecFor(mode, sourceLevelRole(i)) != nullptr);
     }
@@ -2600,8 +2757,6 @@ void ChipperAudioProcessorEditor::setSidVoiceWaveControlsVisible(bool shouldBeVi
         label.setVisible(shouldBeVisible);
     for (auto& box : sidVoiceWaveBoxes)
         box.setVisible(shouldBeVisible);
-    for (auto& scope : sidVoicePreviewScopes)
-        scope.setVisible(shouldBeVisible);
 
     if (shouldBeVisible)
         updateSidVoiceWaveControls(true);
@@ -2744,7 +2899,10 @@ void ChipperAudioProcessorEditor::setEnvelopeDecayControlVisible(chipper::ChipMo
 
 void ChipperAudioProcessorEditor::setSidAdsrControlsVisible(bool shouldBeVisible)
 {
-    sidEnvelopePreview.setVisible(shouldBeVisible);
+    for (auto& label : sidEnvelopeVoiceLabels)
+        label.setVisible(shouldBeVisible);
+    for (auto& preview : sidEnvelopePreviews)
+        preview.setVisible(shouldBeVisible);
     for (auto& label : sidAdsrLabels)
         label.setVisible(shouldBeVisible);
     for (auto& box : sidAdsrBoxes)
@@ -2832,27 +2990,25 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
     else if (mode == chipper::ChipMode::sid)
         labels = playMode == chipper::PlayMode::chipPoly ? &sidChipPolyLabels : &sidBigMonoLabels;
 
-    const auto sidPatch = mode == chipper::ChipMode::sid
-                              ? currentUiPatch(
-                                  mode,
-                                  parameterValue(chipper::parameters::id::macroControl1),
-                                  parameterValue(chipper::parameters::id::macroControl2),
-                                  parameterValue(chipper::parameters::id::macroControl3),
-                                  parameterValue(chipper::parameters::id::macroControl4),
-                                  static_cast<int>(std::round(parameterValue(chipper::parameters::id::waveShape))),
-                                  static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgWaveLevel))),
-                                  static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgStereoRoute))),
-                                  static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
-                                  static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
-                                  parameterValue(chipper::parameters::id::stereoSpread))
-                              : chipper::PatchConfig {};
+    const auto patch = currentUiPatch(
+        mode,
+        parameterValue(chipper::parameters::id::macroControl1),
+        parameterValue(chipper::parameters::id::macroControl2),
+        parameterValue(chipper::parameters::id::macroControl3),
+        parameterValue(chipper::parameters::id::macroControl4),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::waveShape))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgWaveLevel))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgStereoRoute))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
+        parameterValue(chipper::parameters::id::stereoSpread));
 
     for (size_t i = 0; i < sourceChannelButtons.size(); ++i)
     {
         const auto* spec = chipper::parameterSpecFor(mode, sourceRole(i));
         const auto* levelSpec = chipper::parameterSpecFor(mode, sourceLevelRole(i));
         const auto isSidVoice = mode == chipper::ChipMode::sid && i < sidVoiceWaveCount && spec != nullptr;
-        const auto sidWaveBits = isSidVoice ? chipper::sidWaveformControlForVoice(sidPatch, i) : uint8_t { 0u };
+        const auto sidWaveBits = isSidVoice ? chipper::sidWaveformControlForVoice(patch, i) : uint8_t { 0u };
         const auto buttonLabel = isSidVoice
                                      ? (juce::String(spec->label) + " | " + sidWaveNameForControlBits(sidWaveBits))
                                      : (spec != nullptr ? juce::String(spec->label) : juce::String((*labels)[i]));
@@ -2863,7 +3019,7 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(buttonLabel
                                                                      + ": " + juce::String(spec->help)
                                                                      + "\nCTRL waveform bits 0x" + byteHex(sidWaveBits)
-                                                                     + "\n" + sidAdsrNibbleReadout(sidPatch),
+                                                                     + "\n" + sidAdsrNibbleReadout(patch, i),
                                                                  sourceRole(i)));
         }
         else if (spec != nullptr)
@@ -2878,7 +3034,129 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
 
         sourceLevelValueLabels[i].setTooltip(sourceLevelSliders[i].getTooltip());
         sourceLevelValueLabels[i].setText(sourceLevelReadout(i), juce::dontSendNotification);
+        updateSourcePreviewScope(mode, patch, i, spec != nullptr && chipper::descriptorFor(mode).implemented);
     }
+}
+
+void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index, bool shouldBeVisible)
+{
+    if (index >= sourcePreviewScopes.size())
+        return;
+
+    auto& scope = sourcePreviewScopes[index];
+    const auto hasSource = chipper::parameterSpecFor(mode, sourceRole(index)) != nullptr;
+    const auto visible = shouldBeVisible && hasSource && usesSourceChannelSurface(mode);
+    scope.setVisible(visible);
+    if (! visible)
+        return;
+
+    const auto sourceIsEnabled = patch.sourceEnabled[std::min(index, patch.sourceEnabled.size() - 1u)];
+    auto shape = ChipWaveformPreviewShape::off;
+    auto duty = 0.5f;
+    juce::String tooltip;
+
+    if (mode == chipper::ChipMode::nes)
+    {
+        if (index == 0)
+        {
+            shape = ChipWaveformPreviewShape::pulse;
+            duty = pulseDutyRatioForControl(patch.control1);
+            tooltip = "RP2A03 pulse 1 duty: " + pulseDutyReadout(mode, patch.control1);
+        }
+        else if (index == 1)
+        {
+            shape = ChipWaveformPreviewShape::pulse;
+            duty = pulseDutyRatioForChoice(nesPulse2DutyChoiceForPatch(patch));
+            tooltip = "RP2A03 pulse 2 duty: " + pulse2DutyReadout(patch);
+        }
+        else if (index == 2)
+        {
+            shape = ChipWaveformPreviewShape::triangle;
+            tooltip = "RP2A03 triangle sequencer preview.";
+        }
+        else
+        {
+            shape = ChipWaveformPreviewShape::noise;
+            tooltip = "RP2A03 noise channel: " + nesNoiseModeReadout(patch);
+        }
+    }
+    else if (mode == chipper::ChipMode::dmg)
+    {
+        if (index <= 1)
+        {
+            shape = ChipWaveformPreviewShape::pulse;
+            duty = pulseDutyRatioForChoice(dmgPulseDutyChoiceForSource(patch, index));
+            tooltip = juce::String(index == 0 ? "DMG pulse 1 duty: " : "DMG pulse 2 duty: ") + pulseDutyReadout(mode, patch.control1);
+        }
+        else if (index == 2)
+        {
+            shape = dmgWavePreviewShape(patch);
+            duty = 0.5f;
+            tooltip = "DMG Wave RAM: " + waveShapeReadout(mode, patch.waveShape) + "\n" + dmgWaveLevelReadout(patch);
+        }
+        else
+        {
+            shape = ChipWaveformPreviewShape::noise;
+            tooltip = "DMG noise channel: " + dmgNoiseModeReadout(patch);
+        }
+    }
+    else if (mode == chipper::ChipMode::sid && index < sidVoiceWaveCount)
+    {
+        const auto bits = chipper::sidWaveformControlForVoice(patch, index);
+        scope.setSidWaveform(bits, static_cast<float>(chipper::sidPulseWidthForControl(patch.control1)) / 4095.0f, sourceIsEnabled);
+        tooltip = juce::String("SID voice ") + juce::String(static_cast<int>(index + 1u))
+            + " waveform: " + sidWaveNameForControlBits(bits)
+            + "\nCTRL waveform bits 0x" + byteHex(bits)
+            + "\n" + sidAdsrNibbleReadout(patch, index)
+            + "\nPreview follows the SID pulse-width register for pulse waves.";
+        scope.setTooltip(withMidiCcForRole(tooltip, sourceRole(index)));
+        return;
+    }
+    else if (mode == chipper::ChipMode::ym2149)
+    {
+        if (index < 3)
+        {
+            const auto macroMixer = chipper::ym2149MixerRegisterForControl(patch.control4);
+            const auto mixer = chipper::ym2149MixerRegisterWithChannelOverrides(patch, macroMixer);
+            const auto toneEnabled = (mixer & static_cast<uint8_t>(1u << index)) == 0u;
+            const auto noiseEnabled = (mixer & static_cast<uint8_t>(1u << (index + 3u))) == 0u;
+            if (toneEnabled && noiseEnabled)
+                shape = ChipWaveformPreviewShape::toneNoise;
+            else if (toneEnabled)
+                shape = ChipWaveformPreviewShape::pulse;
+            else if (noiseEnabled)
+                shape = ChipWaveformPreviewShape::noise;
+            else
+                shape = ChipWaveformPreviewShape::off;
+
+            tooltip = juce::String("YM/AY channel ") + juce::String::charToString(static_cast<juce::juce_wchar>('A' + static_cast<int>(index)))
+                + " mixer: " + ymChannelMixReadout(patch);
+        }
+        else
+        {
+            shape = ChipWaveformPreviewShape::noise;
+            tooltip = "YM/AY shared noise generator: " + ymNoiseReadout(patch.control3);
+        }
+    }
+    else if (mode == chipper::ChipMode::sn76489)
+    {
+        if (index < 3)
+        {
+            shape = ChipWaveformPreviewShape::pulse;
+            tooltip = juce::String("SN76489 tone ") + juce::String(static_cast<int>(index + 1u)) + " square-wave channel.";
+        }
+        else
+        {
+            shape = ChipWaveformPreviewShape::noise;
+            tooltip = "SN76489 noise channel: " + snNoiseModeReadout(patch);
+        }
+    }
+
+    scope.setShape(shape, duty, sourceIsEnabled && shape != ChipWaveformPreviewShape::off);
+    if (tooltip.isEmpty())
+        tooltip = "Register-resolved source preview.";
+
+    scope.setTooltip(withMidiCcForRole(tooltip, sourceRole(index)));
 }
 
 void ChipperAudioProcessorEditor::updateEnvelopeDecayReadout(chipper::ChipMode mode)
@@ -2900,22 +3178,28 @@ void ChipperAudioProcessorEditor::updateSidAdsrControls(bool shouldBeVisible)
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
         parameterValue(chipper::parameters::id::stereoSpread));
-    const auto attack = chipper::sidAttackNibbleForPatch(patch);
-    const auto decay = chipper::sidDecayNibbleForPatch(patch);
-    const auto sustain = chipper::sidSustainNibbleForPatch(patch);
-    const auto release = chipper::sidReleaseNibbleForPatch(patch);
 
-    sidEnvelopePreview.setVisible(shouldBeVisible);
-    sidEnvelopePreview.setSidAdsr(attack, decay, sustain, release);
-
-    if (shouldBeVisible)
+    juce::String combinedTooltip;
+    for (size_t voice = 0; voice < sidAdsrVoiceCount; ++voice)
     {
-        const auto tooltip = sidAdsrNibbleReadout(patch)
+        const auto attack = chipper::sidAttackNibbleForVoice(patch, voice);
+        const auto decay = chipper::sidDecayNibbleForVoice(patch, voice);
+        const auto sustain = chipper::sidSustainNibbleForVoice(patch, voice);
+        const auto release = chipper::sidReleaseNibbleForVoice(patch, voice);
+        sidEnvelopeVoiceLabels[voice].setVisible(shouldBeVisible);
+        sidEnvelopePreviews[voice].setVisible(shouldBeVisible);
+        sidEnvelopePreviews[voice].setSidAdsr(attack, decay, sustain, release);
+
+        const auto tooltip = sidAdsrNibbleReadout(patch, voice)
             + "\nAttack approx " + juce::String(chipper::sidAttackSecondsForNibble(attack), 3) + " s"
             + " | Decay approx " + juce::String(chipper::sidDecayReleaseSecondsForNibble(decay), 3) + " s"
             + " | Release approx " + juce::String(chipper::sidDecayReleaseSecondsForNibble(release), 3) + " s";
-        sidEnvelopePreview.setTooltip(tooltip + "\nPreview follows Chipper's current SID ADSR approximation.");
-        envelopeDecayValueLabel.setTooltip(withMidiCcForRole(tooltip, chipper::ChipParameterRole::envelopeDecay));
+        sidEnvelopeVoiceLabels[voice].setTooltip(tooltip);
+        sidEnvelopePreviews[voice].setTooltip(tooltip + "\nPreview follows Chipper's current SID ADSR approximation for this voice.");
+
+        if (! combinedTooltip.isEmpty())
+            combinedTooltip += "\n";
+        combinedTooltip += tooltip;
     }
 
     for (size_t i = 0; i < sidAdsrBoxes.size(); ++i)
@@ -2925,6 +3209,9 @@ void ChipperAudioProcessorEditor::updateSidAdsrControls(bool shouldBeVisible)
         sidAdsrBoxes[i].setVisible(shouldBeVisible);
         sidAdsrBoxes[i].setSelectedItemIndex(std::clamp(selected, 0, static_cast<int>(sidAdsrChoiceCount - 1u)), juce::dontSendNotification);
     }
+
+    if (shouldBeVisible)
+        envelopeDecayValueLabel.setTooltip(withMidiCcForRole(combinedTooltip, chipper::ChipParameterRole::envelopeDecay));
 }
 
 void ChipperAudioProcessorEditor::updateStereoSpreadReadout(chipper::ChipMode mode)
@@ -2966,7 +3253,9 @@ juce::String ChipperAudioProcessorEditor::envelopeDecayReadout(chipper::ChipMode
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
             parameterValue(chipper::parameters::id::stereoSpread));
-        return sidAdsrNibbleReadout(patch);
+        return sidAdsrNibbleReadout(patch, 0)
+            + " | " + sidAdsrNibbleReadout(patch, 1)
+            + " | " + sidAdsrNibbleReadout(patch, 2);
     }
 
     const auto period = std::clamp(static_cast<int>(std::round(15.0f - (std::clamp(value, 0.0f, 1.0f) * 14.0f))), 1, 15);
@@ -3062,9 +3351,7 @@ void ChipperAudioProcessorEditor::updateSidVoiceWaveControls(bool shouldBeVisibl
         const auto bits = chipper::sidWaveformControlForVoice(patch, i);
         sidVoiceWaveLabels[i].setVisible(shouldBeVisible);
         sidVoiceWaveBoxes[i].setVisible(shouldBeVisible);
-        sidVoicePreviewScopes[i].setVisible(shouldBeVisible);
         sidVoiceWaveBoxes[i].setSelectedItemIndex(std::clamp(selected, 0, 4), juce::dontSendNotification);
-        sidVoicePreviewScopes[i].setSidWaveform(bits, static_cast<float>(chipper::sidPulseWidthForControl(patch.control1)) / 4095.0f);
 
         if (shouldBeVisible)
         {
@@ -3073,7 +3360,6 @@ void ChipperAudioProcessorEditor::updateSidVoiceWaveControls(bool shouldBeVisibl
                 + "\nCTRL waveform bits 0x" + byteHex(bits);
             sidVoiceWaveLabels[i].setTooltip(withMidiCcForRole(tooltip, sidVoiceWaveRole(i)));
             sidVoiceWaveBoxes[i].setTooltip(withMidiCcForRole(tooltip, sidVoiceWaveRole(i)));
-            sidVoicePreviewScopes[i].setTooltip(tooltip + "\nPreview follows the SID pulse-width register for pulse waves.");
         }
     }
 

@@ -77,6 +77,14 @@ struct PatchConfig
     int sidDecay = 0;
     int sidSustain = 0;
     int sidRelease = 0;
+    int sidVoice2Attack = 0;
+    int sidVoice2Decay = 0;
+    int sidVoice2Sustain = 0;
+    int sidVoice2Release = 0;
+    int sidVoice3Attack = 0;
+    int sidVoice3Decay = 0;
+    int sidVoice3Sustain = 0;
+    int sidVoice3Release = 0;
     int waveShape = 0;
     int pulse2Duty = 0;
     int dmgWaveLevel = 0;

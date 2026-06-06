@@ -59,6 +59,14 @@ enum class ChipParameterRole
     sidDecay,
     sidSustain,
     sidRelease,
+    sidVoice2Attack,
+    sidVoice2Decay,
+    sidVoice2Sustain,
+    sidVoice2Release,
+    sidVoice3Attack,
+    sidVoice3Decay,
+    sidVoice3Sustain,
+    sidVoice3Release,
     waveShape,
     sidVoice2WaveShape,
     sidVoice3WaveShape,
@@ -168,7 +176,15 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int sidAttack = 0,
                             int sidDecay = 0,
                             int sidSustain = 0,
-                            int sidRelease = 0);
+                            int sidRelease = 0,
+                            int sidVoice2Attack = 0,
+                            int sidVoice2Decay = 0,
+                            int sidVoice2Sustain = 0,
+                            int sidVoice2Release = 0,
+                            int sidVoice3Attack = 0,
+                            int sidVoice3Decay = 0,
+                            int sidVoice3Sustain = 0,
+                            int sidVoice3Release = 0);
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t nesNoisePeriodForControl(float noisePeriodControl);
 uint8_t dmgSweepShiftForControl(float sweepControl);
@@ -192,6 +208,12 @@ uint8_t sidSustainNibbleForPatch(const PatchConfig& patch);
 uint8_t sidReleaseNibbleForPatch(const PatchConfig& patch);
 uint8_t sidAttackDecayForPatch(const PatchConfig& patch);
 uint8_t sidSustainReleaseForPatch(const PatchConfig& patch);
+uint8_t sidAttackNibbleForVoice(const PatchConfig& patch, size_t voice);
+uint8_t sidDecayNibbleForVoice(const PatchConfig& patch, size_t voice);
+uint8_t sidSustainNibbleForVoice(const PatchConfig& patch, size_t voice);
+uint8_t sidReleaseNibbleForVoice(const PatchConfig& patch, size_t voice);
+uint8_t sidAttackDecayForVoice(const PatchConfig& patch, size_t voice);
+uint8_t sidSustainReleaseForVoice(const PatchConfig& patch, size_t voice);
 double sidAttackSecondsForNibble(uint8_t nibble);
 double sidDecayReleaseSecondsForNibble(uint8_t nibble);
 uint8_t ym2149NoisePeriodForControl(float noisePitchControl);

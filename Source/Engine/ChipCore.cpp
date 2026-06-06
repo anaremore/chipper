@@ -1368,12 +1368,30 @@ public:
              << "\"decayChoice\":" << std::clamp(patch.sidDecay, 0, 16) << ","
              << "\"sustainChoice\":" << std::clamp(patch.sidSustain, 0, 16) << ","
              << "\"releaseChoice\":" << std::clamp(patch.sidRelease, 0, 16) << ","
+             << "\"attackChoice0\":" << std::clamp(patch.sidAttack, 0, 16) << ","
+             << "\"decayChoice0\":" << std::clamp(patch.sidDecay, 0, 16) << ","
+             << "\"sustainChoice0\":" << std::clamp(patch.sidSustain, 0, 16) << ","
+             << "\"releaseChoice0\":" << std::clamp(patch.sidRelease, 0, 16) << ","
+             << "\"attackChoice1\":" << std::clamp(patch.sidVoice2Attack, 0, 16) << ","
+             << "\"decayChoice1\":" << std::clamp(patch.sidVoice2Decay, 0, 16) << ","
+             << "\"sustainChoice1\":" << std::clamp(patch.sidVoice2Sustain, 0, 16) << ","
+             << "\"releaseChoice1\":" << std::clamp(patch.sidVoice2Release, 0, 16) << ","
+             << "\"attackChoice2\":" << std::clamp(patch.sidVoice3Attack, 0, 16) << ","
+             << "\"decayChoice2\":" << std::clamp(patch.sidVoice3Decay, 0, 16) << ","
+             << "\"sustainChoice2\":" << std::clamp(patch.sidVoice3Sustain, 0, 16) << ","
+             << "\"releaseChoice2\":" << std::clamp(patch.sidVoice3Release, 0, 16) << ","
              << "\"attackNibbleResolved\":" << static_cast<int>(sidAttackNibbleForPatch(patch)) << ","
              << "\"decayNibbleResolved\":" << static_cast<int>(sidDecayNibbleForPatch(patch)) << ","
              << "\"sustainNibbleResolved\":" << static_cast<int>(sidSustainNibbleForPatch(patch)) << ","
              << "\"releaseNibbleResolved\":" << static_cast<int>(sidReleaseNibbleForPatch(patch)) << ","
              << "\"attackDecayRegister\":" << static_cast<int>(sidAttackDecayForPatch(patch)) << ","
              << "\"sustainReleaseRegister\":" << static_cast<int>(sidSustainReleaseForPatch(patch)) << ","
+             << "\"attackDecayRegister0\":" << static_cast<int>(sidAttackDecayForVoice(patch, 0)) << ","
+             << "\"sustainReleaseRegister0\":" << static_cast<int>(sidSustainReleaseForVoice(patch, 0)) << ","
+             << "\"attackDecayRegister1\":" << static_cast<int>(sidAttackDecayForVoice(patch, 1)) << ","
+             << "\"sustainReleaseRegister1\":" << static_cast<int>(sidSustainReleaseForVoice(patch, 1)) << ","
+             << "\"attackDecayRegister2\":" << static_cast<int>(sidAttackDecayForVoice(patch, 2)) << ","
+             << "\"sustainReleaseRegister2\":" << static_cast<int>(sidSustainReleaseForVoice(patch, 2)) << ","
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
@@ -1548,8 +1566,8 @@ private:
         writeRegister(static_cast<uint16_t>(0xd401 + base), static_cast<uint8_t>((freq >> 8u) & 0xffu));
         writeRegister(static_cast<uint16_t>(0xd402 + base), static_cast<uint8_t>(pulseWidth & 0xffu));
         writeRegister(static_cast<uint16_t>(0xd403 + base), static_cast<uint8_t>((pulseWidth >> 8u) & 0x0fu));
-        writeRegister(static_cast<uint16_t>(0xd405 + base), sidAttackDecayForPatch(patch));
-        writeRegister(static_cast<uint16_t>(0xd406 + base), sidSustainReleaseForPatch(patch));
+        writeRegister(static_cast<uint16_t>(0xd405 + base), sidAttackDecayForVoice(patch, voice));
+        writeRegister(static_cast<uint16_t>(0xd406 + base), sidSustainReleaseForVoice(patch, voice));
         writeRegister(static_cast<uint16_t>(0xd404 + base), static_cast<uint8_t>(waveformBits | sidModulationBitsForPatch(patch, voice) | 0x01u));
     }
 

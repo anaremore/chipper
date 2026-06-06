@@ -33,14 +33,22 @@ const MidiCcMappingList& midiCcMappings()
         { 94, parameter_ids::dmgStereoRoute, "DMG Stereo Routing / SID Model" },
         { 95, parameter_ids::sidVoice2WaveShape, "SID Voice 2 Waveform" },
         { 96, parameter_ids::sidVoice3WaveShape, "SID Voice 3 Waveform" },
-        { 97, parameter_ids::sidAttack, "SID Attack" },
-        { 98, parameter_ids::sidRelease, "SID Release" },
-        { 99, parameter_ids::sidDecay, "SID Decay" },
-        { 100, parameter_ids::sidSustain, "SID Sustain" },
+        { 97, parameter_ids::sidAttack, "SID Voice 1 Attack" },
+        { 98, parameter_ids::sidRelease, "SID Voice 1 Release" },
+        { 99, parameter_ids::sidDecay, "SID Voice 1 Decay" },
+        { 100, parameter_ids::sidSustain, "SID Voice 1 Sustain" },
         { 101, parameter_ids::ymChannelAMix, "YM Channel A Mix" },
         { 102, parameter_ids::ymChannelBMix, "YM Channel B Mix" },
         { 103, parameter_ids::ymChannelCMix, "YM Channel C Mix" },
-        { 104, parameter_ids::pulse2Duty, "Pulse 2 Duty" }
+        { 104, parameter_ids::pulse2Duty, "Pulse 2 Duty" },
+        { 105, parameter_ids::sidVoice2Attack, "SID Voice 2 Attack" },
+        { 106, parameter_ids::sidVoice2Decay, "SID Voice 2 Decay" },
+        { 107, parameter_ids::sidVoice2Sustain, "SID Voice 2 Sustain" },
+        { 108, parameter_ids::sidVoice2Release, "SID Voice 2 Release" },
+        { 109, parameter_ids::sidVoice3Attack, "SID Voice 3 Attack" },
+        { 110, parameter_ids::sidVoice3Decay, "SID Voice 3 Decay" },
+        { 111, parameter_ids::sidVoice3Sustain, "SID Voice 3 Sustain" },
+        { 112, parameter_ids::sidVoice3Release, "SID Voice 3 Release" }
     }};
 
     return mappings;
@@ -90,6 +98,14 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::sidDecay: return parameter_ids::sidDecay;
         case ChipParameterRole::sidSustain: return parameter_ids::sidSustain;
         case ChipParameterRole::sidRelease: return parameter_ids::sidRelease;
+        case ChipParameterRole::sidVoice2Attack: return parameter_ids::sidVoice2Attack;
+        case ChipParameterRole::sidVoice2Decay: return parameter_ids::sidVoice2Decay;
+        case ChipParameterRole::sidVoice2Sustain: return parameter_ids::sidVoice2Sustain;
+        case ChipParameterRole::sidVoice2Release: return parameter_ids::sidVoice2Release;
+        case ChipParameterRole::sidVoice3Attack: return parameter_ids::sidVoice3Attack;
+        case ChipParameterRole::sidVoice3Decay: return parameter_ids::sidVoice3Decay;
+        case ChipParameterRole::sidVoice3Sustain: return parameter_ids::sidVoice3Sustain;
+        case ChipParameterRole::sidVoice3Release: return parameter_ids::sidVoice3Release;
         case ChipParameterRole::waveShape: return parameter_ids::waveShape;
         case ChipParameterRole::sidVoice2WaveShape: return parameter_ids::sidVoice2WaveShape;
         case ChipParameterRole::sidVoice3WaveShape: return parameter_ids::sidVoice3WaveShape;

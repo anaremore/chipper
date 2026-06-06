@@ -13,18 +13,31 @@ namespace chipper
 struct PresetInfo;
 }
 
+enum class ChipWaveformPreviewShape
+{
+    off,
+    pulse,
+    triangle,
+    saw,
+    noise,
+    stepped,
+    toneNoise
+};
+
 class ChipWaveformPreview final : public juce::Component,
                                   public juce::SettableTooltipClient
 {
 public:
     ChipWaveformPreview() = default;
 
-    void setSidWaveform(uint8_t bits, float pulseWidthRatio);
+    void setShape(ChipWaveformPreviewShape newShape, float pulseWidthRatio = 0.5f, bool shouldBeActive = true);
+    void setSidWaveform(uint8_t bits, float pulseWidthRatio, bool shouldBeActive = true);
     void paint(juce::Graphics& g) override;
 
 private:
-    uint8_t waveformBits = 0;
+    ChipWaveformPreviewShape shape = ChipWaveformPreviewShape::off;
     float pulseWidth = 0.5f;
+    bool active = true;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipWaveformPreview)
 };
@@ -72,7 +85,9 @@ private:
     static constexpr size_t toneNoiseMixCount = 3;
     static constexpr size_t ymChannelMixCount = 3;
     static constexpr size_t sidAdsrChoiceCount = 17;
-    static constexpr size_t sidAdsrOverrideCount = 4;
+    static constexpr size_t sidAdsrFieldCount = 4;
+    static constexpr size_t sidAdsrVoiceCount = 3;
+    static constexpr size_t sidAdsrOverrideCount = sidAdsrFieldCount * sidAdsrVoiceCount;
 
     void timerCallback() override;
     void updateDescriptorText();
@@ -178,6 +193,7 @@ private:
     void setEnvelopeDecayControlVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setSidAdsrControlsVisible(bool shouldBeVisible);
     void updateSourceChannelButtons(chipper::ChipMode mode);
+    void updateSourcePreviewScope(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index, bool shouldBeVisible);
     void updateStereoSpreadReadout(chipper::ChipMode mode);
     void updatePulseDutyButtons(float value, bool shouldBeVisible);
     void updatePulse2DutyButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
@@ -208,7 +224,8 @@ private:
     juce::Label stereoSpreadValueLabel;
     juce::Label envelopeDecayLabel;
     juce::Label envelopeDecayValueLabel;
-    ChipEnvelopePreview sidEnvelopePreview;
+    std::array<juce::Label, sidAdsrVoiceCount> sidEnvelopeVoiceLabels;
+    std::array<ChipEnvelopePreview, sidAdsrVoiceCount> sidEnvelopePreviews;
     std::array<juce::Label, sidAdsrOverrideCount> sidAdsrLabels;
     std::array<juce::ComboBox, sidAdsrOverrideCount> sidAdsrBoxes;
     juce::Label waveShapeLabel;
@@ -216,7 +233,7 @@ private:
     juce::Label pulse2DutyLabel;
     juce::Label pulse2DutyValueLabel;
     std::array<juce::Label, sidVoiceWaveCount> sidVoiceWaveLabels;
-    std::array<ChipWaveformPreview, sidVoiceWaveCount> sidVoicePreviewScopes;
+    std::array<ChipWaveformPreview, sourceChannelCount> sourcePreviewScopes;
     juce::Label dmgWaveLevelLabel;
     juce::Label dmgWaveLevelValueLabel;
     juce::Label dmgStereoRouteLabel;
