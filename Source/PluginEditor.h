@@ -6,6 +6,12 @@
 
 #include <array>
 #include <cstdint>
+#include <vector>
+
+namespace chipper
+{
+struct PresetInfo;
+}
 
 class ChipperAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                           private juce::Timer
@@ -43,9 +49,13 @@ private:
     void placeSnNoiseModeSegment(juce::Rectangle<int> bounds);
     float parameterValue(const char* parameterId) const;
     void setParameterValueFromUi(const char* parameterId, float plainValue);
+    void setPlainParameterValueFromUi(const char* parameterId, float plainValue);
     void setChoiceParameterFromUi(const char* parameterId, int choiceIndex);
     void updateMacroChoices(chipper::ChipMode mode);
+    void updatePresetChoices(chipper::ChipMode mode);
     void applySelectedMacroTemplate();
+    void applySelectedPreset();
+    void applyFactoryPreset(const chipper::PresetInfo& preset);
     chipper::PatchConfig currentUiPatch(chipper::ChipMode mode,
                                          float control1,
                                          float control2,
@@ -110,7 +120,7 @@ private:
     juce::Label ymEnvelopeShapeValueLabel;
     juce::Label snNoiseModeLabel;
     juce::Label snNoiseModeValueLabel;
-    std::array<juce::Label, 4> headerControlLabels;
+    std::array<juce::Label, 5> headerControlLabels;
     std::array<juce::Label, uiModuleCount> moduleNumberLabels;
     std::array<juce::Label, uiModuleCount> moduleTitleLabels;
     std::array<juce::Label, uiModuleCount> moduleSummaryLabels;
@@ -124,6 +134,7 @@ private:
 
     juce::ComboBox chipModeBox;
     juce::ComboBox accuracyBox;
+    juce::ComboBox presetBox;
     juce::ComboBox macroBox;
     juce::ComboBox playModeBox;
 
@@ -149,8 +160,10 @@ private:
     std::array<std::unique_ptr<ButtonAttachment>, sourceChannelCount> sourceEnableAttachments;
 
     chipper::ChipMode displayedMode = chipper::ChipMode::custom;
+    std::vector<const chipper::PresetInfo*> displayedPresets;
     bool descriptorTextInitialized = false;
     bool suppressMacroTemplateApply = false;
+    bool suppressPresetApply = false;
     std::array<juce::Rectangle<int>, uiModuleCount> moduleBounds;
     std::array<juce::Rectangle<int>, sourceChannelCount> sourceChannelBounds;
     juce::Rectangle<int> pulseDutySegmentBounds;

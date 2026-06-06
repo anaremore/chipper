@@ -1,5 +1,6 @@
 #include "Engine/ChipCore.h"
 #include "Engine/ChipDescriptors.h"
+#include "Presets.h"
 
 #include <algorithm>
 #include <array>
@@ -27,6 +28,7 @@ struct Options
     chipper::AccuracyMode accuracy = chipper::AccuracyMode::hybrid;
     chipper::MacroKind macro = chipper::MacroKind::manual;
     chipper::PlayMode playMode = chipper::PlayMode::stack;
+    std::string presetId;
     float control1 = 0.5f;
     float control2 = 0.5f;
     float control3 = 0.5f;
@@ -185,13 +187,33 @@ void printUsage()
 {
     std::cerr
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
-        << "       Optional: --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --envelope-decay 0.7 --wave-shape tri --ym-envelope-shape triangle --sn-noise-mode white-t3\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --envelope-decay 0.7 --wave-shape tri --ym-envelope-shape triangle --sn-noise-mode white-t3\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
         << "  note_off <sample> <note>\n"
         << "  note <sample> <note> <velocity> <lengthSamples>\n"
         << "Addresses and values may be decimal or 0x-prefixed hex.\n";
+}
+
+void applyPreset(Options& options, const chipper::PresetInfo& preset)
+{
+    options.presetId = preset.id;
+    options.chip = preset.chip;
+    options.accuracy = preset.accuracy;
+    options.macro = preset.macro;
+    options.playMode = preset.playMode;
+    options.control1 = preset.controls[0];
+    options.control2 = preset.controls[1];
+    options.control3 = preset.controls[2];
+    options.control4 = preset.controls[3];
+    options.controlProvided = { true, true, true, true };
+    options.sourceEnabled = preset.sourceEnabled;
+    options.envelopeDecay = preset.envelopeDecay;
+    options.waveShape = preset.waveShape;
+    options.ymEnvelopeShape = preset.ymEnvelopeShape;
+    options.snNoiseMode = preset.snNoiseMode;
+    options.clock = preset.clockHz;
 }
 
 bool parseArgs(int argc, char** argv, Options& options)
@@ -218,7 +240,20 @@ bool parseArgs(int argc, char** argv, Options& options)
             return true;
         };
 
-        if (arg == "--chip")
+        if (arg == "--preset")
+        {
+            const auto* value = requireValue("--preset");
+            if (value == nullptr)
+                return false;
+            const auto* preset = chipper::presetById(value);
+            if (preset == nullptr)
+            {
+                std::cerr << "Unknown factory preset: " << value << "\n";
+                return false;
+            }
+            applyPreset(options, *preset);
+        }
+        else if (arg == "--chip")
         {
             const auto* value = requireValue("--chip");
             if (value == nullptr)
@@ -599,6 +634,7 @@ void writeDebugJson(const std::filesystem::path& path,
 
     out << "{\n"
         << "  \"chip\": \"" << chipper::toString(options.chip) << "\",\n"
+        << "  \"preset\": \"" << options.presetId << "\",\n"
         << "  \"requestedAccuracy\": \"" << chipper::toString(options.accuracy) << "\",\n"
         << "  \"macro\": \"" << chipper::toString(patch.macro) << "\",\n"
         << "  \"playMode\": \"" << chipper::toString(patch.playMode) << "\",\n"

@@ -61,20 +61,28 @@ Accuracy levels:
 
 ## Initial Preset Bank
 
+Factory preset v1 should prioritize implemented chips and avoid implying that planned chips already have audio cores. The first executable factory presets are:
+
 - NES Hero Pulse
 - NES Triangle Bass
 - NES Noise Snare
 - NES Coin Blip
 - DMG Wave Bass
+- DMG Pocket Arp
 - DMG Noise Hat
-- SID Dirty Bass
-- SID PWM Lead
-- SID Robot Arp
-- SID Filter Sweep
 - YM Three-Voice Arp
 - YM Menu Beep
 - YM Noise Hat
 - Sega PSG Lead
+- Sega PSG Coin
+- PSG Noise Hit
+
+Roadmap preset targets, kept as product direction until their chip cores exist:
+
+- SID Dirty Bass
+- SID PWM Lead
+- SID Robot Arp
+- SID Filter Sweep
 - Genesis FM Bass
 - OPL Bell Lead
 - Arcade Laser

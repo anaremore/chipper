@@ -2,14 +2,71 @@
 
 #include "ChipperBuildInfo.h"
 #include "Engine/ChipDescriptors.h"
+#include "Presets.h"
 
+#include <algorithm>
 #include <cmath>
+
+namespace
+{
+
+int chipModeChoiceIndex(chipper::ChipMode mode)
+{
+    switch (mode)
+    {
+        case chipper::ChipMode::nes: return 0;
+        case chipper::ChipMode::dmg: return 1;
+        case chipper::ChipMode::sid: return 2;
+        case chipper::ChipMode::ym2149: return 3;
+        case chipper::ChipMode::sn76489: return 4;
+        case chipper::ChipMode::ym2612: return 5;
+        case chipper::ChipMode::opl3: return 6;
+        case chipper::ChipMode::spc700: return 7;
+        case chipper::ChipMode::pokey: return 8;
+        case chipper::ChipMode::paula: return 9;
+        case chipper::ChipMode::huc6280: return 10;
+        case chipper::ChipMode::namcoWsg: return 11;
+        case chipper::ChipMode::ym2151: return 12;
+        case chipper::ChipMode::ym2413: return 13;
+        case chipper::ChipMode::scc: return 14;
+        case chipper::ChipMode::arcade: return 15;
+        case chipper::ChipMode::custom: return 16;
+    }
+
+    return 0;
+}
+
+int accuracyChoiceIndex(chipper::AccuracyMode mode)
+{
+    switch (mode)
+    {
+        case chipper::AccuracyMode::inspired: return 0;
+        case chipper::AccuracyMode::hybrid: return 1;
+        case chipper::AccuracyMode::authentic: return 2;
+    }
+
+    return 1;
+}
+
+int macroChoiceIndex(chipper::MacroKind macro)
+{
+    const auto order = chipper::macroOrder();
+    const auto iter = std::find(order.begin(), order.end(), macro);
+    return iter == order.end() ? 0 : static_cast<int>(std::distance(order.begin(), iter));
+}
+
+int playModeChoiceIndex(chipper::PlayMode mode)
+{
+    return mode == chipper::PlayMode::chipPoly ? 1 : 0;
+}
+
+} // namespace
 
 ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& processor)
     : AudioProcessorEditor(processor),
       audioProcessor(processor)
 {
-    setSize(980, 800);
+    setSize(1080, 800);
 
     auto& state = audioProcessor.getValueTreeState();
 
@@ -27,14 +84,16 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
     chipModeBox.addItemList(chipper::parameters::chipModeChoices(), 1);
     accuracyBox.addItemList(chipper::parameters::accuracyChoices(), 1);
+    presetBox.setTextWhenNothingSelected("Factory Preset");
     macroBox.addItemList(chipper::parameters::macroChoices(), 1);
     playModeBox.addItemList(chipper::parameters::playModeChoices(), 1);
     chipModeBox.setTooltip("Selects the chip model or planned chip family.");
     accuracyBox.setTooltip("Selects the requested accuracy tier for the active core.");
+    presetBox.setTooltip("Applies a factory preset for the selected chip mode.");
     macroBox.setTooltip("Applies a chip-specific musical register template.");
     playModeBox.setTooltip("Chooses how incoming notes use the chip channels inside one patch.");
 
-    const std::array<const char*, 4> headerNames { "Chip Mode", "Accuracy", "Macro", "Play Mode" };
+    const std::array<const char*, 5> headerNames { "Preset", "Chip Mode", "Accuracy", "Macro", "Play Mode" };
     for (size_t i = 0; i < headerControlLabels.size(); ++i)
     {
         headerControlLabels[i].setText(headerNames[i], juce::dontSendNotification);
@@ -44,6 +103,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(headerControlLabels[i]);
     }
 
+    addAndMakeVisible(presetBox);
     addAndMakeVisible(chipModeBox);
     addAndMakeVisible(accuracyBox);
     addAndMakeVisible(macroBox);
@@ -56,6 +116,10 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     macroBox.onChange = [this]()
     {
         applySelectedMacroTemplate();
+    };
+    presetBox.onChange = [this]()
+    {
+        applySelectedPreset();
     };
 
     addLabeledSlider(clockSlider, clockLabel, "Clock");
@@ -368,20 +432,23 @@ void ChipperAudioProcessorEditor::resized()
     auto area = getLocalBounds().reduced(16);
 
     auto top = area.removeFromTop(62);
-    titleLabel.setBounds(top.removeFromLeft(132));
     const auto placeHeaderCombo = [this](size_t index, juce::ComboBox& comboBox, juce::Rectangle<int> bounds)
     {
         headerControlLabels[index].setBounds(bounds.removeFromTop(16));
         comboBox.setBounds(bounds.reduced(0, 4));
     };
 
-    placeHeaderCombo(0, chipModeBox, top.removeFromLeft(220));
+    titleLabel.setBounds(top.removeFromLeft(122));
     top.removeFromLeft(8);
-    placeHeaderCombo(1, accuracyBox, top.removeFromLeft(126));
+    placeHeaderCombo(0, presetBox, top.removeFromLeft(210));
     top.removeFromLeft(8);
-    placeHeaderCombo(2, macroBox, top.removeFromLeft(136));
+    placeHeaderCombo(1, chipModeBox, top.removeFromLeft(210));
     top.removeFromLeft(8);
-    placeHeaderCombo(3, playModeBox, top.removeFromLeft(150));
+    placeHeaderCombo(2, accuracyBox, top.removeFromLeft(112));
+    top.removeFromLeft(8);
+    placeHeaderCombo(3, macroBox, top.removeFromLeft(136));
+    top.removeFromLeft(8);
+    placeHeaderCombo(4, playModeBox, top.removeFromLeft(136));
     top.removeFromLeft(8);
     coreReadinessLabel.setBounds(top.removeFromTop(44).reduced(0, 12));
 
@@ -649,6 +716,17 @@ void ChipperAudioProcessorEditor::setParameterValueFromUi(const char* parameterI
     }
 }
 
+void ChipperAudioProcessorEditor::setPlainParameterValueFromUi(const char* parameterId, float plainValue)
+{
+    if (auto* parameter = audioProcessor.getValueTreeState().getParameter(parameterId))
+    {
+        const auto normalized = parameter->convertTo0to1(plainValue);
+        parameter->beginChangeGesture();
+        parameter->setValueNotifyingHost(normalized);
+        parameter->endChangeGesture();
+    }
+}
+
 void ChipperAudioProcessorEditor::setChoiceParameterFromUi(const char* parameterId, int choiceIndex)
 {
     if (auto* parameter = audioProcessor.getValueTreeState().getParameter(parameterId))
@@ -679,6 +757,31 @@ void ChipperAudioProcessorEditor::updateMacroChoices(chipper::ChipMode mode)
     macroBox.setSelectedItemIndex(selected, juce::dontSendNotification);
 }
 
+void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
+{
+    const juce::ScopedValueSetter<bool> suppress(suppressPresetApply, true);
+    displayedPresets = chipper::presetsForChip(mode);
+    presetBox.clear(juce::dontSendNotification);
+
+    for (size_t i = 0; i < displayedPresets.size(); ++i)
+    {
+        const auto& preset = *displayedPresets[i];
+        presetBox.addItem(juce::String(preset.category) + " / " + juce::String(preset.name), static_cast<int>(i + 1u));
+    }
+
+    if (displayedPresets.empty())
+    {
+        presetBox.setText("No factory presets", juce::dontSendNotification);
+        presetBox.setTooltip("No factory presets are active for this planned chip mode yet.");
+    }
+    else
+    {
+        presetBox.setSelectedId(0, juce::dontSendNotification);
+        presetBox.setTextWhenNothingSelected("Factory Preset");
+        presetBox.setTooltip("Applies a factory preset for the selected chip mode.");
+    }
+}
+
 void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
 {
     if (suppressMacroTemplateApply)
@@ -707,6 +810,57 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
     for (size_t i = 0; i < ids.size(); ++i)
         setParameterValueFromUi(ids[i], templ.controls[i]);
 
+    updateLiveControlReadouts();
+}
+
+void ChipperAudioProcessorEditor::applySelectedPreset()
+{
+    if (suppressPresetApply)
+        return;
+
+    const auto selected = presetBox.getSelectedItemIndex();
+    if (selected < 0 || static_cast<size_t>(selected) >= displayedPresets.size())
+        return;
+
+    applyFactoryPreset(*displayedPresets[static_cast<size_t>(selected)]);
+}
+
+void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& preset)
+{
+    const std::array<const char*, 4> controlIds {
+        chipper::parameters::id::macroControl1,
+        chipper::parameters::id::macroControl2,
+        chipper::parameters::id::macroControl3,
+        chipper::parameters::id::macroControl4
+    };
+    const std::array<const char*, 4> sourceIds {
+        chipper::parameters::id::source1Enabled,
+        chipper::parameters::id::source2Enabled,
+        chipper::parameters::id::source3Enabled,
+        chipper::parameters::id::source4Enabled
+    };
+
+    const juce::ScopedValueSetter<bool> suppressMacro(suppressMacroTemplateApply, true);
+    setChoiceParameterFromUi(chipper::parameters::id::chipMode, chipModeChoiceIndex(preset.chip));
+    setChoiceParameterFromUi(chipper::parameters::id::accuracy, accuracyChoiceIndex(preset.accuracy));
+    setChoiceParameterFromUi(chipper::parameters::id::macro, macroChoiceIndex(preset.macro));
+    setChoiceParameterFromUi(chipper::parameters::id::playMode, playModeChoiceIndex(preset.playMode));
+
+    for (size_t i = 0; i < controlIds.size(); ++i)
+        setParameterValueFromUi(controlIds[i], preset.controls[i]);
+
+    for (size_t i = 0; i < sourceIds.size(); ++i)
+        setParameterValueFromUi(sourceIds[i], preset.sourceEnabled[i] ? 1.0f : 0.0f);
+
+    setParameterValueFromUi(chipper::parameters::id::envelopeDecay, preset.envelopeDecay);
+    setChoiceParameterFromUi(chipper::parameters::id::waveShape, preset.waveShape);
+    setChoiceParameterFromUi(chipper::parameters::id::ymEnvelopeShape, preset.ymEnvelopeShape);
+    setChoiceParameterFromUi(chipper::parameters::id::snNoiseMode, preset.snNoiseMode);
+    setPlainParameterValueFromUi(chipper::parameters::id::clockHz, 0.0f);
+    setPlainParameterValueFromUi(chipper::parameters::id::outputDb, preset.outputDb);
+
+    presetBox.setTooltip(juce::String(preset.name) + ": " + juce::String(preset.note));
+    updateDescriptorText();
     updateLiveControlReadouts();
 }
 
@@ -1203,6 +1357,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto supportsChipPoly = chipper::supportsPlayMode(mode, chipper::PlayMode::chipPoly);
 
     updateMacroChoices(mode);
+    updatePresetChoices(mode);
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
     coreReadinessLabel.setText(hasLiveCore ? "LIVE" : "PLANNED", juce::dontSendNotification);
     coreReadinessLabel.setTooltip(hasLiveCore
@@ -1215,6 +1370,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     macroSummaryLabel.setEnabled(hasLiveCore);
     macroSummaryLabel.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     accuracyBox.setEnabled(hasLiveCore);
+    presetBox.setEnabled(hasLiveCore && ! displayedPresets.empty());
     macroBox.setEnabled(hasLiveCore);
     playModeBox.setEnabled(hasLiveCore && supportsChipPoly);
     playModeBox.setTooltip(supportsChipPoly

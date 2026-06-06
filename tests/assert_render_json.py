@@ -7,6 +7,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Assert chipper_render debug JSON properties.")
     parser.add_argument("path")
     parser.add_argument("--implemented-contains")
+    parser.add_argument("--preset")
     parser.add_argument("--macro")
     parser.add_argument("--play-mode")
     parser.add_argument("--min-peak", type=float)
@@ -36,6 +37,9 @@ def main() -> int:
 
     if args.implemented_contains and args.implemented_contains not in data.get("implementedAccuracy", ""):
         failures.append(f"implementedAccuracy does not contain {args.implemented_contains!r}: {data.get('implementedAccuracy')!r}")
+
+    if args.preset and data.get("preset") != args.preset:
+        failures.append(f"preset expected {args.preset!r}, got {data.get('preset')!r}")
 
     if args.macro and data.get("macro") != args.macro:
         failures.append(f"macro expected {args.macro!r}, got {data.get('macro')!r}")
