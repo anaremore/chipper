@@ -41,7 +41,7 @@ Use JUCE's native plugin-safe controls for DAW-facing behavior: `ComboBox` for s
 
 The first custom surface is the NES channel card grid inside Sources. It keeps the stable six-slot shell, but makes Pulse 1, Pulse 2, Triangle, and Noise visible as chip channels. Similar chip surfaces should follow this pattern: PSG channel banks, FM operator grids, sampler voice banks, wavetable editors, and macro/readout tiles. These components should reflect stable parameters and tested engine behavior rather than presenting fake controls for planned features.
 
-NES Pulse Duty is the first register-choice component. It uses a segmented button group over the stable `macroControl1` parameter because RP2A03 pulse duty is a four-state register field, not a continuous value. Future chip controls should follow the same rule: use continuous controls only for continuous behavior, segmented/stepped controls for register-like behavior, and macro controls only when they intentionally map a musical gesture to chip-native states.
+NES and DMG Pulse Duty use the first register-choice component. It presents a segmented button group over the stable `macroControl1` parameter because RP2A03 and DMG pulse duty are four-state register fields, not continuous values. Future chip controls should follow the same rule: use continuous controls only for continuous behavior, segmented/stepped controls for register-like behavior, and macro controls only when they intentionally map a musical gesture to chip-native states.
 
 ## Data Model
 

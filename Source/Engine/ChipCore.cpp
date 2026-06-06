@@ -56,6 +56,14 @@ enum class NesPulseDuty : uint8_t
     duty75 = 3
 };
 
+enum class DmgPulseDuty : uint8_t
+{
+    duty12_5 = 0,
+    duty25 = 1,
+    duty50 = 2,
+    duty75 = 3
+};
+
 NesPulseDuty nesPulseDutyFromControl(float control)
 {
     return static_cast<NesPulseDuty>(std::clamp(static_cast<int>(std::round(control * 3.0f)), 0, 3));
@@ -67,6 +75,21 @@ NesPulseDuty offsetNesPulseDuty(NesPulseDuty duty, int offset)
 }
 
 uint8_t nesPulseDutyBits(NesPulseDuty duty)
+{
+    return static_cast<uint8_t>(duty);
+}
+
+DmgPulseDuty dmgPulseDutyFromControl(float control)
+{
+    return static_cast<DmgPulseDuty>(std::clamp(static_cast<int>(std::round(control * 3.0f)), 0, 3));
+}
+
+DmgPulseDuty offsetDmgPulseDuty(DmgPulseDuty duty, int offset)
+{
+    return static_cast<DmgPulseDuty>(std::clamp(static_cast<int>(duty) + offset, 0, 3));
+}
+
+uint8_t dmgPulseDutyBits(DmgPulseDuty duty)
 {
     return static_cast<uint8_t>(duty);
 }
@@ -217,7 +240,7 @@ public:
         heldNote = midiNote;
         noteVelocity = static_cast<float>(clamp01(velocity));
 
-        const auto duty = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control1 * 3.0f)), 0, 3));
+        const auto duty = dmgPulseDutyFromControl(patch.control1);
         const auto envelope = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control4 * 15.0f)), 1, 15));
         const auto noisePitch = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - patch.control3) * 7.0f)), 0, 7));
         auto ch1Note = midiNote;
@@ -295,7 +318,7 @@ public:
             silenceChannel(0);
 
         if ((enable & 0x02u) != 0)
-            writePulseRegisters(1, static_cast<uint8_t>(std::min<int>(3, duty + 1)), ch2Vol, ch2Note);
+            writePulseRegisters(1, offsetDmgPulseDuty(duty, 1), ch2Vol, ch2Note);
         else
             silenceChannel(1);
 
@@ -380,6 +403,8 @@ public:
              << "\"pulse1FreqReg\":" << pulseFrequencyRegister(0) << ","
              << "\"pulse2FreqReg\":" << pulseFrequencyRegister(1) << ","
              << "\"waveFreqReg\":" << waveFrequencyRegister() << ","
+             << "\"pulseDuty1\":" << static_cast<int>(pulseDutyIndex(0)) << ","
+             << "\"pulseDuty2\":" << static_cast<int>(pulseDutyIndex(1)) << ","
              << "\"sweepShadow\":" << sweepShadowPeriod << ","
              << "\"sweepTimer\":" << static_cast<int>(sweepTimer) << ","
              << "\"sweepEnabled\":" << (sweepEnabled ? 1 : 0) << ","
@@ -427,6 +452,11 @@ private:
         const auto loIndex = channel == 0 ? 0x03 : 0x08;
         const auto hiIndex = channel == 0 ? 0x04 : 0x09;
         return static_cast<uint16_t>(regs[loIndex] | ((regs[hiIndex] & 0x07u) << 8u));
+    }
+
+    uint8_t pulseDutyIndex(int channel) const
+    {
+        return static_cast<uint8_t>((regs[channel == 0 ? 0x01 : 0x06] >> 6u) & 0x03u);
     }
 
     uint16_t waveFrequencyRegister() const
@@ -809,12 +839,12 @@ private:
         if (channel == 0)
         {
             const auto volume = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15));
-            writePulseRegisters(0, static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control1 * 3.0f)), 0, 3)), volume, channelNotes[index]);
+            writePulseRegisters(0, dmgPulseDutyFromControl(patch.control1), volume, channelNotes[index]);
         }
         else if (channel == 1)
         {
             const auto volume = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15));
-            writePulseRegisters(1, static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control1 * 3.0f)), 0, 3)), volume, channelNotes[index]);
+            writePulseRegisters(1, dmgPulseDutyFromControl(patch.control1), volume, channelNotes[index]);
         }
         else
         {
@@ -840,11 +870,11 @@ private:
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
     }
 
-    void writePulseRegisters(int channel, uint8_t duty, uint8_t volume, int midiNote)
+    void writePulseRegisters(int channel, DmgPulseDuty duty, uint8_t volume, int midiNote)
     {
         const auto base = channel == 0 ? 0xff11 : 0xff16;
         const auto freq = dmgFrequencyRegister(131072.0, 1.0, midiNote);
-        writeRegister(static_cast<uint16_t>(base), static_cast<uint8_t>((duty << 6u) | 0x3fu));
+        writeRegister(static_cast<uint16_t>(base), static_cast<uint8_t>((dmgPulseDutyBits(duty) << 6u) | 0x3fu));
         writeRegister(static_cast<uint16_t>(base + 1), static_cast<uint8_t>((std::min<uint8_t>(15, volume) << 4u) | 0x08u));
         writeRegister(static_cast<uint16_t>(base + 2), static_cast<uint8_t>(freq & 0xffu));
         writeRegister(static_cast<uint16_t>(base + 3), static_cast<uint8_t>(0x80u | ((freq >> 8u) & 0x07u)));
@@ -883,8 +913,7 @@ private:
         const auto hz = 131072.0 / static_cast<double>(period);
         phase[channel] = wrapPhase(phase[channel] + hz / sampleRate);
 
-        const auto dutyIndex = (regs[channel == 0 ? 0x01 : 0x06] >> 6u) & 0x03u;
-        const auto amp = phase[channel] < dutyTable[dutyIndex] ? 1.0 : -1.0;
+        const auto amp = phase[channel] < dutyTable[pulseDutyIndex(channel)] ? 1.0 : -1.0;
         return amp * envelopeVolume(channel == 0 ? 0x02 : 0x07);
     }
 

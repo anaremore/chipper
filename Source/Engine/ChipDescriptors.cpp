@@ -450,7 +450,7 @@ PatchConfig makePatchConfig(ChipMode mode,
     };
 
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
-    const auto effectiveControl1 = mode == ChipMode::nes
+    const auto effectiveControl1 = (mode == ChipMode::nes || mode == ChipMode::dmg)
         ? clampControl(control1)
         : blend(templ.controls[0], control1);
 
