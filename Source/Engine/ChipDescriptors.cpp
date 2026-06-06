@@ -486,6 +486,10 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
                           "sid.attack",
                           "Attack",
                           "Overrides the SID attack nibble in each voice's AD register. Macro follows ADSR Speed."),
+        sidAdsrNibbleSpec(ChipParameterRole::sidDecay,
+                          "sid.decay",
+                          "Decay",
+                          "Overrides the SID decay nibble in each voice's AD register. Macro follows ADSR Speed."),
         sidAdsrNibbleSpec(ChipParameterRole::sidRelease,
                           "sid.release",
                           "Release",
@@ -994,6 +998,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int sidVoice2WaveShape,
                             int sidVoice3WaveShape,
                             int sidAttack,
+                            int sidDecay,
                             int sidRelease)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
@@ -1015,6 +1020,7 @@ PatchConfig makePatchConfig(ChipMode mode,
         clampControl(stereoSpread),
         clampControl(envelopeDecay),
         std::clamp(sidAttack, 0, 16),
+        std::clamp(sidDecay, 0, 16),
         std::clamp(sidRelease, 0, 16),
         std::clamp(waveShape, 0, 4),
         std::clamp(dmgWaveLevel, 0, 4),
@@ -1357,6 +1363,9 @@ uint8_t sidAttackNibbleForPatch(const PatchConfig& patch)
 uint8_t sidDecayNibbleForPatch(const PatchConfig& patch)
 {
     const auto speed = clampControl(patch.envelopeDecay);
+    if (patch.sidDecay > 0)
+        return static_cast<uint8_t>(std::clamp(patch.sidDecay - 1, 0, 15));
+
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - speed) * 9.0f)), 0, 15));
 }
 

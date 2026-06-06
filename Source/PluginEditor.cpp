@@ -120,8 +120,9 @@ const char* sidVoiceWaveParameterId(size_t index)
 
 chipper::ChipParameterRole sidAdsrRole(size_t index)
 {
-    static constexpr std::array<chipper::ChipParameterRole, 2> roles {
+    static constexpr std::array<chipper::ChipParameterRole, 3> roles {
         chipper::ChipParameterRole::sidAttack,
+        chipper::ChipParameterRole::sidDecay,
         chipper::ChipParameterRole::sidRelease
     };
 
@@ -130,8 +131,9 @@ chipper::ChipParameterRole sidAdsrRole(size_t index)
 
 const char* sidAdsrParameterId(size_t index)
 {
-    static constexpr std::array<const char*, 2> ids {
+    static constexpr std::array<const char*, 3> ids {
         chipper::parameters::id::sidAttack,
+        chipper::parameters::id::sidDecay,
         chipper::parameters::id::sidRelease
     };
 
@@ -328,7 +330,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     envelopeDecayValueLabel.setMinimumHorizontalScale(0.75f);
     addAndMakeVisible(envelopeDecayValueLabel);
 
-    const std::array<const char*, sidAdsrOverrideCount> sidAdsrLabelText { "Attack", "Release" };
+    const std::array<const char*, sidAdsrOverrideCount> sidAdsrLabelText { "Attack", "Decay", "Release" };
     for (size_t i = 0; i < sidAdsrBoxes.size(); ++i)
     {
         auto& label = sidAdsrLabels[i];
@@ -1023,14 +1025,14 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
 {
     auto overrideRow = bounds.removeFromTop(24).reduced(0, 1);
     const auto gap = 8;
-    const auto cellWidth = (overrideRow.getWidth() - gap) / 2;
+    const auto cellWidth = (overrideRow.getWidth() - (gap * static_cast<int>(sidAdsrBoxes.size() - 1u))) / static_cast<int>(sidAdsrBoxes.size());
     for (size_t i = 0; i < sidAdsrBoxes.size(); ++i)
     {
         auto cell = overrideRow.removeFromLeft(cellWidth);
         if (i + 1u < sidAdsrBoxes.size())
             overrideRow.removeFromLeft(gap);
 
-        sidAdsrLabels[i].setBounds(cell.removeFromLeft(54));
+        sidAdsrLabels[i].setBounds(cell.removeFromLeft(46));
         sidAdsrBoxes[i].setBounds(cell);
     }
 
@@ -1338,6 +1340,7 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
         setParameterValueFromUi(sourceLevelIds[i], 1.0f);
     setParameterValueFromUi(chipper::parameters::id::envelopeDecay, templ.envelopeDecay);
     setChoiceParameterFromUi(chipper::parameters::id::sidAttack, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::sidDecay, 0);
     setChoiceParameterFromUi(chipper::parameters::id::sidRelease, 0);
     setParameterValueFromUi(chipper::parameters::id::stereoSpread, templ.stereoSpread);
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, templ.waveShape);
@@ -1406,6 +1409,7 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
 
     setParameterValueFromUi(chipper::parameters::id::envelopeDecay, preset.envelopeDecay);
     setChoiceParameterFromUi(chipper::parameters::id::sidAttack, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::sidDecay, 0);
     setChoiceParameterFromUi(chipper::parameters::id::sidRelease, 0);
     setParameterValueFromUi(chipper::parameters::id::stereoSpread, preset.stereoSpread);
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, preset.waveShape);
@@ -1468,6 +1472,7 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice2WaveShape))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice3WaveShape))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidAttack))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidDecay))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidRelease))));
 }
 

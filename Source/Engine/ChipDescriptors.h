@@ -56,6 +56,7 @@ enum class ChipParameterRole
     stereoSpread,
     envelopeDecay,
     sidAttack,
+    sidDecay,
     sidRelease,
     waveShape,
     sidVoice2WaveShape,
@@ -156,6 +157,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int sidVoice2WaveShape = 0,
                             int sidVoice3WaveShape = 0,
                             int sidAttack = 0,
+                            int sidDecay = 0,
                             int sidRelease = 0);
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t nesNoisePeriodForControl(float noisePeriodControl);

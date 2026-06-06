@@ -34,7 +34,8 @@ const MidiCcMappingList& midiCcMappings()
         { 95, parameter_ids::sidVoice2WaveShape, "SID Voice 2 Waveform" },
         { 96, parameter_ids::sidVoice3WaveShape, "SID Voice 3 Waveform" },
         { 97, parameter_ids::sidAttack, "SID Attack" },
-        { 98, parameter_ids::sidRelease, "SID Release" }
+        { 98, parameter_ids::sidRelease, "SID Release" },
+        { 99, parameter_ids::sidDecay, "SID Decay" }
     }};
 
     return mappings;
@@ -81,6 +82,7 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::stereoSpread: return parameter_ids::stereoSpread;
         case ChipParameterRole::envelopeDecay: return parameter_ids::envelopeDecay;
         case ChipParameterRole::sidAttack: return parameter_ids::sidAttack;
+        case ChipParameterRole::sidDecay: return parameter_ids::sidDecay;
         case ChipParameterRole::sidRelease: return parameter_ids::sidRelease;
         case ChipParameterRole::waveShape: return parameter_ids::waveShape;
         case ChipParameterRole::sidVoice2WaveShape: return parameter_ids::sidVoice2WaveShape;

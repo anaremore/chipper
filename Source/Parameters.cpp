@@ -234,6 +234,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         0));
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::sidDecay, 1 },
+        "SID Decay",
+        sidAdsrNibbleChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::sidRelease, 1 },
         "SID Release",
         sidAdsrNibbleChoices(),

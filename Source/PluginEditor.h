@@ -36,7 +36,7 @@ private:
     static constexpr size_t snNoiseModeCount = 5;
     static constexpr size_t toneNoiseMixCount = 3;
     static constexpr size_t sidAdsrChoiceCount = 17;
-    static constexpr size_t sidAdsrOverrideCount = 2;
+    static constexpr size_t sidAdsrOverrideCount = 3;
 
     void timerCallback() override;
     void updateDescriptorText();
