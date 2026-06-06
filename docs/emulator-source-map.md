@@ -74,6 +74,16 @@ These are musically and technically valuable, but direct embedding should wait u
 | YM2413 / OPLL | emu2413 or ymfm | Nuked-OPLL, Furnace | Prefer emu2413/ymfm; keep Nuked-OPLL reference-only unless licensing changes |
 | Konami SCC | emu2212 | vgsound_emu, Furnace | Evaluate emu2212 first |
 
+## Furnace Review Notes
+
+Reviewed 2026-06-06 from `tildearrow/furnace` upstream `master`.
+
+Furnace is valuable to Chipper as a broad comparison target because its public README lists direct overlap with nearly every requested Chipper family: NES/RP2A03, Game Boy, SID, AY/YM2149, SN76489, YM2612, OPL2/OPL3, SNES, POKEY, Amiga, HuC6280, Namco WSG, YM2151, YM2413, and Konami SCC/SCC+. It is also a useful product reference for chip-specific macros, tracker workflows, per-chip export/render behavior, and practical preset vocabulary.
+
+Furnace should be treated as a discovery index, not a license shortcut. Its README says it uses quality emulation cores including Nuked, MAME, SameBoy, Mednafen PCE, NSFplay, puNES, reSID, Stella, SAASound, vgsound_emu, and ymfm. If Chipper evaluates one of those cores, audit that core at its own upstream source, commit, and license files rather than relying on Furnace's aggregate tree.
+
+Licensing posture: Furnace's top-level `LICENSE` says most of Furnace is GPLv2-or-later, ASIO-enabled builds become GPLv3, and certain components have their own source/tree licenses. Keep Furnace reference-only unless Chipper intentionally adopts a compatible GPL distribution model and performs file-level audits for the exact source being reused.
+
 ## Audit Checklist Before Vendoring
 
 1. Record upstream URL, commit hash, release tag, license file, and all source file SPDX/header licenses.
