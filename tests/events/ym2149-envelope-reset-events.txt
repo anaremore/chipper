@@ -1,0 +1,4 @@
+# YM2149 envelope reset trace: start a held note, then rewrite the shape register.
+# The shape write should reset the envelope clock/counter during playback.
+note_on 0 72 1.0
+write 24 13 0x0d

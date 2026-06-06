@@ -1979,7 +1979,12 @@ public:
         regs.fill(0);
         tonePhase.fill(0.0);
         noisePhase = 0.0;
-        envelopePhase = 0.0;
+        envelopeStepPhase = 0.0;
+        envelopeCounter = 0;
+        envelopeDirection = 1;
+        envelopeHolding = false;
+        envelopeResetCount = 0;
+        envelopeVolume = 0.0;
         lfsr = 0x1ffff;
         heldNote = -1;
         noteVelocity = 0.0f;
@@ -1999,7 +2004,10 @@ public:
 
     void writeRegister(uint16_t address, uint8_t value) override
     {
-        regs[address & 0x0f] = value;
+        const auto reg = static_cast<size_t>(address & 0x0f);
+        regs[reg] = value;
+        if (reg == 13)
+            resetEnvelopeCounter();
     }
 
     void noteOn(int midiNote, float velocity) override
@@ -2137,7 +2145,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Tone/noise registers, mixer bits, volume registers, basic envelope shapes and period registers, and YM channel allocation for Chip Poly play mode are modeled; exact analog output curve and timing validation are still required.";
+        return "Tone/noise registers, mixer bits, volume registers, YM-style 32-step envelope counter/reset behavior, and YM channel allocation for Chip Poly play mode are modeled; exact analog output curve, AY/YM variant differences, and hardware timing validation are still required.";
     }
 
     std::string debugStateJson() const override
@@ -2165,6 +2173,12 @@ public:
              << "\"envelopePeriod\":" << envelopePeriodRegister() << ","
              << "\"envelopeShapeChoice\":" << patch.ymEnvelopeShape << ","
              << "\"envelopeShape\":" << static_cast<int>(regs[13] & 0x0f) << ","
+             << "\"envelopeStepResolution\":" << envelopeStepResolution << ","
+             << "\"envelopeStepRateHz\":" << envelopeStepRateHz() << ","
+             << "\"envelopeCounter\":" << envelopeCounter << ","
+             << "\"envelopeDirection\":" << envelopeDirection << ","
+             << "\"envelopeHolding\":" << (envelopeHolding ? 1 : 0) << ","
+             << "\"envelopeResetCount\":" << envelopeResetCount << ","
              << "\"envelopeEnabledA\":" << (envelopeEnabled(0) ? 1 : 0) << ","
              << "\"envelopeEnabledB\":" << (envelopeEnabled(1) ? 1 : 0) << ","
              << "\"envelopeEnabledC\":" << (envelopeEnabled(2) ? 1 : 0) << ","
@@ -2380,18 +2394,69 @@ private:
         }
     }
 
+    double envelopeStepRateHz() const
+    {
+        const auto period = std::max(1, static_cast<int>(envelopePeriodRegister()));
+        return clock / (8.0 * static_cast<double>(period));
+    }
+
+    void resetEnvelopeCounter()
+    {
+        const auto attack = (regs[13] & 0x04u) != 0;
+        envelopeStepPhase = 0.0;
+        envelopeDirection = attack ? 1 : -1;
+        envelopeCounter = attack ? 0 : envelopeStepResolution - 1;
+        envelopeHolding = false;
+        envelopeVolume = static_cast<double>(envelopeCounter) / static_cast<double>(envelopeStepResolution - 1);
+        ++envelopeResetCount;
+    }
+
+    void advanceEnvelopeCounter()
+    {
+        if (envelopeHolding)
+            return;
+
+        envelopeCounter += envelopeDirection;
+        if (envelopeCounter >= 0 && envelopeCounter < envelopeStepResolution)
+            return;
+
+        const auto shape = regs[13] & 0x0f;
+        const auto cont = (shape & 0x08u) != 0;
+        const auto attack = (shape & 0x04u) != 0;
+        const auto alternate = (shape & 0x02u) != 0;
+        const auto hold = (shape & 0x01u) != 0;
+
+        if (! cont)
+        {
+            envelopeCounter = 0;
+            envelopeHolding = true;
+            return;
+        }
+
+        if (hold)
+        {
+            envelopeCounter = alternate ? (attack ? 0 : envelopeStepResolution - 1)
+                                        : (envelopeDirection > 0 ? envelopeStepResolution - 1 : 0);
+            envelopeHolding = true;
+            return;
+        }
+
+        if (alternate)
+            envelopeDirection = -envelopeDirection;
+
+        envelopeCounter = envelopeDirection > 0 ? 0 : envelopeStepResolution - 1;
+    }
+
     void updateEnvelope()
     {
-        const auto period = std::max(1, static_cast<int>(regs[11] | (regs[12] << 8)));
-        const auto hz = clock / (256.0 * static_cast<double>(period));
-        envelopePhase = wrapPhase(envelopePhase + hz / sampleRate);
-        const auto shape = regs[13] & 0x0f;
-        const auto rising = (shape & 0x04) != 0;
-        const auto hold = (shape & 0x01) != 0;
-        auto value = rising ? envelopePhase : (1.0 - envelopePhase);
-        if (hold && envelopePhase > 0.98)
-            value = rising ? 1.0 : 0.0;
-        envelopeVolume = clamp01(value);
+        envelopeStepPhase += envelopeStepRateHz() / sampleRate;
+        while (envelopeStepPhase >= 1.0)
+        {
+            envelopeStepPhase -= 1.0;
+            advanceEnvelopeCounter();
+        }
+
+        envelopeVolume = static_cast<double>(envelopeCounter) / static_cast<double>(envelopeStepResolution - 1);
     }
 
     double renderChannel(int channel)
@@ -2409,13 +2474,18 @@ private:
     }
 
     AccuracyMode accuracy;
+    static constexpr int envelopeStepResolution = 32;
     double sampleRate = 48000.0;
     double clock = 2000000.0;
     std::array<uint8_t, 16> regs {};
     std::array<double, 3> tonePhase {};
     double noisePhase = 0.0;
-    double envelopePhase = 0.0;
+    double envelopeStepPhase = 0.0;
     double envelopeVolume = 0.0;
+    int envelopeCounter = 0;
+    int envelopeDirection = 1;
+    int envelopeResetCount = 0;
+    bool envelopeHolding = false;
     uint32_t lfsr = 0x1ffff;
     int heldNote = -1;
     float noteVelocity = 0.0f;
