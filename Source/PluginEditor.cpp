@@ -956,7 +956,7 @@ juce::String ChipperAudioProcessorEditor::snLevelReadout(float value) const
 
 bool ChipperAudioProcessorEditor::usesSourceChannelSurface(chipper::ChipMode mode) const
 {
-    return mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::ym2149;
+    return mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::ym2149 || mode == chipper::ChipMode::sn76489;
 }
 
 bool ChipperAudioProcessorEditor::usesEnvelopeDecayControl(chipper::ChipMode mode) const
@@ -1085,6 +1085,18 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Channel C | note 3",
         "Noise     | shared layer"
     };
+    static const std::array<const char*, sourceChannelCount> snBigMonoLabels {
+        "Tone 1 | lead tone",
+        "Tone 2 | chord tone",
+        "Tone 3 | bass / noise clock",
+        "Noise  | PSG noise"
+    };
+    static const std::array<const char*, sourceChannelCount> snChipPolyLabels {
+        "Tone 1 | note 1",
+        "Tone 2 | note 2",
+        "Tone 3 | note 3",
+        "Noise  | mono SFX layer"
+    };
 
     const auto playModeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::playMode)));
     const auto playMode = chipper::parameters::playModeFromChoice(playModeChoice);
@@ -1096,6 +1108,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         labels = playMode == chipper::PlayMode::chipPoly ? &dmgChipPolyLabels : &dmgBigMonoLabels;
     else if (mode == chipper::ChipMode::ym2149)
         labels = playMode == chipper::PlayMode::chipPoly ? &ymChipPolyLabels : &ymBigMonoLabels;
+    else if (mode == chipper::ChipMode::sn76489)
+        labels = playMode == chipper::PlayMode::chipPoly ? &snChipPolyLabels : &snBigMonoLabels;
 
     for (size_t i = 0; i < sourceChannelButtons.size(); ++i)
     {
@@ -1332,6 +1346,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[1].setText(ymMotionReadout(patch.control2), juce::dontSendNotification);
         controlValueLabels[2].setText(ymNoiseReadout(patch.control3), juce::dontSendNotification);
         controlValueLabels[3].setText(ymToneNoiseReadout(patch.control4), juce::dontSendNotification);
+        updateSourceChannelButtons(mode);
     }
     else if (mode == chipper::ChipMode::sn76489)
     {
@@ -1339,6 +1354,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[1].setText(snMotionReadout(patch.control2), juce::dontSendNotification);
         controlValueLabels[2].setText(snNoiseModeReadout(patch), juce::dontSendNotification);
         controlValueLabels[3].setText(snLevelReadout(patch.control4), juce::dontSendNotification);
+        updateSourceChannelButtons(mode);
     }
     else
     {

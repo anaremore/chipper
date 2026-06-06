@@ -71,6 +71,15 @@ add_test(NAME chipper_render_sn76489_smoke
 add_test(NAME chipper_render_sn76489_chip_poly_smoke
     COMMAND chipper_render --chip sn76489 --accuracy authentic --macro manual --play-mode chip-poly --clock 3579545 --rate 48000 --seconds 0.02 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/sn76489-chip-poly-events.txt --out sn-chip-poly-smoke.wav --debug sn-chip-poly-smoke.json
 )
+add_test(NAME chipper_render_sn76489_source0_off_smoke
+    COMMAND chipper_render --chip sn76489 --accuracy authentic --macro manual --source1 0 --clock 3579545 --rate 48000 --seconds 0.03 --note 76 --out sn-source0-off-smoke.wav --debug sn-source0-off-smoke.json
+)
+add_test(NAME chipper_render_sn76489_sources_off_smoke
+    COMMAND chipper_render --chip sn76489 --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 0 --clock 3579545 --rate 48000 --seconds 0.03 --note 76 --out sn-sources-off-smoke.wav --debug sn-sources-off-smoke.json
+)
+add_test(NAME chipper_render_sn76489_noise_source_off_smoke
+    COMMAND chipper_render --chip sn76489 --accuracy authentic --macro drum --source4 0 --sn-noise-mode white-t3 --clock 3579545 --rate 48000 --seconds 0.03 --note 60 --out sn-noise-source-off-smoke.wav --debug sn-noise-source-off-smoke.json
+)
 add_test(NAME chipper_render_sn76489_noise_macro_smoke
     COMMAND chipper_render --chip sn76489 --accuracy authentic --macro drum --sn-noise-mode macro --clock 3579545 --rate 48000 --seconds 0.04 --note 60 --out sn-noise-macro-smoke.wav --debug sn-noise-macro-smoke.json
 )
@@ -244,6 +253,21 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sn-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 3 --min-peak 0.1 --core-min activeChannels=3 --core-max activeChannels=3 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min period0=428 --core-max period0=428 --core-min period1=339 --core-max period1=339 --core-min period2=285 --core-max period2=285
     )
     set_tests_properties(chipper_render_sn76489_chip_poly_assert PROPERTIES DEPENDS chipper_render_sn76489_chip_poly_smoke)
+
+    add_test(NAME chipper_render_sn76489_source0_off_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sn-source0-off-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.03 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabledNoise=1 --core-max sourceEnabledNoise=1 --core-min attenuation0=15 --core-max attenuation0=15 --core-min attenuation1=7 --core-max attenuation1=7 --core-min attenuation2=9 --core-max attenuation2=9 --core-min attenuationNoise=8 --core-max attenuationNoise=8
+    )
+    set_tests_properties(chipper_render_sn76489_source0_off_assert PROPERTIES DEPENDS chipper_render_sn76489_source0_off_smoke)
+
+    add_test(NAME chipper_render_sn76489_sources_off_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sn-sources-off-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --max-peak 0.001 --max-rms 0.001 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0 --core-min attenuation0=15 --core-max attenuation0=15 --core-min attenuation1=15 --core-max attenuation1=15 --core-min attenuation2=15 --core-max attenuation2=15 --core-min attenuationNoise=15 --core-max attenuationNoise=15
+    )
+    set_tests_properties(chipper_render_sn76489_sources_off_assert PROPERTIES DEPENDS chipper_render_sn76489_sources_off_smoke)
+
+    add_test(NAME chipper_render_sn76489_noise_source_off_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sn-noise-source-off-smoke.json --implemented-contains partial --macro Drum --register-writes 0 --note-events 0 --max-peak 0.001 --max-rms 0.001 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0 --core-min noiseModeChoice=4 --core-max noiseModeChoice=4 --core-min noiseControl=7 --core-max noiseControl=7 --core-min attenuation0=15 --core-max attenuation0=15 --core-min attenuation1=15 --core-max attenuation1=15 --core-min attenuation2=15 --core-max attenuation2=15 --core-min attenuationNoise=15 --core-max attenuationNoise=15
+    )
+    set_tests_properties(chipper_render_sn76489_noise_source_off_assert PROPERTIES DEPENDS chipper_render_sn76489_noise_source_off_smoke)
 
     add_test(NAME chipper_render_sn76489_noise_macro_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sn-noise-macro-smoke.json --implemented-contains partial --macro Drum --register-writes 0 --note-events 0 --min-peak 0.05 --core-min noiseModeChoice=0 --core-max noiseModeChoice=0 --core-min noiseControl=4 --core-max noiseControl=4 --core-min noiseWhite=1 --core-max noiseWhite=1 --core-min noiseRate=0 --core-max noiseRate=0 --core-min attenuationNoise=2 --core-max attenuationNoise=2

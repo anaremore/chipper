@@ -6,6 +6,7 @@
 #include <cmath>
 #include <iomanip>
 #include <iterator>
+#include <limits>
 #include <numeric>
 #include <sstream>
 
@@ -2432,7 +2433,7 @@ public:
 
     void setPatch(const PatchConfig& newPatch) override
     {
-        if (newPatch.playMode != patch.playMode)
+        if (newPatch.playMode != patch.playMode || newPatch.sourceEnabled != patch.sourceEnabled)
             clearChipPolyState();
 
         patch = newPatch;
@@ -2532,6 +2533,7 @@ public:
         tonePeriod[1] = notePeriod(note1);
         tonePeriod[2] = notePeriod(note2);
         noiseControl = sn76489NoiseControlForPatch(patch);
+        applySourceAttenuationMask();
     }
 
     void noteOff(int midiNote) override
@@ -2607,6 +2609,13 @@ public:
              << "\"noiseModeChoice\":" << std::clamp(patch.snNoiseMode, 0, 4) << ","
              << "\"noiseWhite\":" << (((noiseControl & 0x04u) != 0) ? 1 : 0) << ","
              << "\"noiseRate\":" << static_cast<int>(noiseControl & 0x03u) << ","
+             << "\"sourceEnabled0\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
+             << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
+             << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
+             << "\"sourceEnabledNoise\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+             << "\"attenuation0\":" << static_cast<int>(attenuation[0]) << ","
+             << "\"attenuation1\":" << static_cast<int>(attenuation[1]) << ","
+             << "\"attenuation2\":" << static_cast<int>(attenuation[2]) << ","
              << "\"attenuationNoise\":" << static_cast<int>(attenuation[3]) << ","
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNote0\":" << channelNotes[0] << ","
@@ -2630,27 +2639,52 @@ private:
         return static_cast<uint16_t>(std::clamp(std::round(clock / (32.0 * midiNoteToHz(std::clamp(midiNote, 0, 127)))), 1.0, 1023.0));
     }
 
+    void applySourceAttenuationMask()
+    {
+        for (size_t channel = 0; channel < attenuation.size(); ++channel)
+        {
+            if (! sourceEnabled(patch, channel))
+                attenuation[channel] = 0x0f;
+        }
+    }
+
     int selectChipPolyChannel(int midiNote) const
     {
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
-            if (channelNotes[channel] == midiNote)
+            if (sourceEnabled(patch, channel) && channelNotes[channel] == midiNote)
                 return static_cast<int>(channel);
         }
 
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
-            if (channelNotes[channel] < 0)
+            if (sourceEnabled(patch, channel) && channelNotes[channel] < 0)
                 return static_cast<int>(channel);
         }
 
-        const auto oldest = std::min_element(channelStamp.begin(), channelStamp.end());
-        return static_cast<int>(std::distance(channelStamp.begin(), oldest));
+        auto oldestChannel = -1;
+        auto oldestStamp = std::numeric_limits<uint64_t>::max();
+        for (size_t channel = 0; channel < channelStamp.size(); ++channel)
+        {
+            if (sourceEnabled(patch, channel) && channelStamp[channel] < oldestStamp)
+            {
+                oldestStamp = channelStamp[channel];
+                oldestChannel = static_cast<int>(channel);
+            }
+        }
+
+        return oldestChannel;
     }
 
     int activeChipPolyChannels() const
     {
-        return static_cast<int>(std::count_if(channelNotes.begin(), channelNotes.end(), [](int note) { return note >= 0; }));
+        int active = 0;
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (sourceEnabled(patch, channel) && channelNotes[channel] >= 0)
+                ++active;
+        }
+        return active;
     }
 
     void clearChipPolyState()
