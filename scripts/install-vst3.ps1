@@ -1,6 +1,8 @@
 param(
     [string] $Configuration = "Release",
-    [string] $Destination = "C:\Program Files\Common Files\VST3"
+    [ValidateSet("Global", "User")]
+    [string] $Scope = "Global",
+    [string] $Destination
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,6 +12,14 @@ $source = Join-Path $repoRoot "build\Chipper_artefacts\$Configuration\VST3\Chipp
 
 if (-not (Test-Path -LiteralPath $source)) {
     throw "VST3 bundle not found: $source"
+}
+
+if (-not $PSBoundParameters.ContainsKey("Destination") -or [string]::IsNullOrWhiteSpace($Destination)) {
+    if ($Scope -eq "User") {
+        $Destination = Join-Path $env:LOCALAPPDATA "Programs\Common\VST3"
+    } else {
+        $Destination = "C:\Program Files\Common Files\VST3"
+    }
 }
 
 New-Item -ItemType Directory -Force -Path $Destination | Out-Null

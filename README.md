@@ -51,11 +51,13 @@ Install to the common Windows VST3 folder:
 
 The installer removes the previous `Chipper.vst3` bundle before copying the new build, which avoids stale mixed bundles when a host has cached an older plugin. Installing to `C:\Program Files\Common Files\VST3` may require an elevated shell.
 
-If you do not have an elevated shell, a per-user fallback location is:
+For rapid development without a UAC prompt, install to the per-user VST3 folder:
 
 ```powershell
-.\scripts\install-vst3.ps1 -Destination "$env:LOCALAPPDATA\Programs\Common\VST3"
+.\scripts\install-vst3.ps1 -Scope User
 ```
+
+This copies to `%LOCALAPPDATA%\Programs\Common\VST3`, which is the user-level VST3 location. You can still pass `-Destination` for a custom host scan folder.
 
 ## Command-Line Renderer
 
