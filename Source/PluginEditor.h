@@ -53,6 +53,7 @@ private:
     void setChoiceParameterFromUi(const char* parameterId, int choiceIndex);
     void updateMacroChoices(chipper::ChipMode mode);
     void updatePresetChoices(chipper::ChipMode mode);
+    void updateSegmentedControlSpecs(chipper::ChipMode mode);
     void applySelectedMacroTemplate();
     void applySelectedPreset();
     void applyFactoryPreset(const chipper::PresetInfo& preset);

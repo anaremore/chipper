@@ -18,6 +18,71 @@ struct ControlDescriptor
     std::string help;
 };
 
+enum class ParameterKind
+{
+    continuous,
+    discreteChoice,
+    steppedNumeric,
+    booleanToggle,
+    macro,
+    chipRegister,
+    hiddenInternal
+};
+
+enum class ControlSurface
+{
+    slider,
+    segmentedChoice,
+    sourceCards,
+    toggle,
+    menu,
+    hidden
+};
+
+enum class ChipParameterRole
+{
+    macroControl1,
+    macroControl2,
+    macroControl3,
+    macroControl4,
+    source1Enabled,
+    source2Enabled,
+    source3Enabled,
+    source4Enabled,
+    envelopeDecay,
+    waveShape,
+    ymEnvelopeShape,
+    snNoiseMode,
+    clockHz,
+    outputDb
+};
+
+struct ParameterChoiceSpec
+{
+    std::string label;
+    std::string help;
+    float normalizedValue = 0.0f;
+    int choiceValue = 0;
+};
+
+struct ChipParameterSpec
+{
+    ChipParameterRole role = ChipParameterRole::macroControl1;
+    std::string id;
+    std::string label;
+    std::string group;
+    std::string help;
+    ParameterKind kind = ParameterKind::continuous;
+    ControlSurface surface = ControlSurface::slider;
+    std::vector<ParameterChoiceSpec> choices;
+    float minValue = 0.0f;
+    float maxValue = 1.0f;
+    float defaultValue = 0.0f;
+    bool automatable = true;
+    bool authenticOnly = false;
+    bool hybridOnly = false;
+};
+
 struct ModuleDescriptor
 {
     std::string id;
@@ -44,10 +109,13 @@ struct ChipDescriptor
     std::vector<MacroTemplate> macros;
     bool implemented = false;
     bool supportsChipPoly = false;
+    std::vector<ChipParameterSpec> parameters;
 };
 
 const ChipDescriptor& descriptorFor(ChipMode mode);
 const MacroTemplate& macroTemplateFor(ChipMode mode, MacroKind macro);
+const ChipParameterSpec* parameterSpecFor(ChipMode mode, ChipParameterRole role);
+bool chipHasParameterSurface(ChipMode mode, ChipParameterRole role, ControlSurface surface);
 bool supportsPlayMode(ChipMode mode, PlayMode playMode);
 std::vector<MacroKind> macroOrder();
 PatchConfig makePatchConfig(ChipMode mode,

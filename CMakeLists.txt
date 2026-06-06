@@ -24,7 +24,13 @@ target_compile_features(chipper_engine PUBLIC cxx_std_20)
 add_executable(chipper_render tools/chipper_render.cpp)
 target_link_libraries(chipper_render PRIVATE chipper_engine)
 
+add_executable(chipper_descriptor_smoke tests/descriptor_smoke.cpp)
+target_link_libraries(chipper_descriptor_smoke PRIVATE chipper_engine)
+
 enable_testing()
+add_test(NAME chipper_descriptor_smoke
+    COMMAND chipper_descriptor_smoke
+)
 add_test(NAME chipper_render_nes_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 0.10 --note 69 --out nes-smoke.wav --debug nes-smoke.json
 )

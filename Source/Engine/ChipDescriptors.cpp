@@ -89,6 +89,165 @@ std::vector<MacroTemplate> sn76489Macros()
     };
 }
 
+ParameterChoiceSpec choice(std::string label, std::string help, float normalizedValue, int choiceValue)
+{
+    return { label, help, normalizedValue, choiceValue };
+}
+
+ChipParameterSpec sliderSpec(ChipParameterRole role,
+                             std::string id,
+                             std::string label,
+                             std::string group,
+                             std::string help,
+                             ParameterKind kind = ParameterKind::macro,
+                             float defaultValue = 0.5f)
+{
+    return { role, id, label, group, help, kind, ControlSurface::slider, {}, 0.0f, 1.0f, defaultValue };
+}
+
+ChipParameterSpec segmentedSpec(ChipParameterRole role,
+                                std::string id,
+                                std::string label,
+                                std::string group,
+                                std::string help,
+                                std::vector<ParameterChoiceSpec> choices,
+                                ParameterKind kind = ParameterKind::chipRegister,
+                                float defaultValue = 0.0f)
+{
+    return { role, id, label, group, help, kind, ControlSurface::segmentedChoice, choices, 0.0f, 1.0f, defaultValue };
+}
+
+ChipParameterSpec sourceSpec(ChipParameterRole role, std::string id, std::string label, std::string help)
+{
+    return { role, id, label, "Sources", help, ParameterKind::booleanToggle, ControlSurface::sourceCards, {}, 0.0f, 1.0f, 1.0f };
+}
+
+ChipParameterSpec envelopeSpec(std::string id, std::string label, std::string help)
+{
+    return { ChipParameterRole::envelopeDecay, id, label, "Envelope", help, ParameterKind::chipRegister, ControlSurface::slider, {}, 0.0f, 1.0f, 0.0f };
+}
+
+std::vector<ParameterChoiceSpec> pulseDutyChoices(std::string thinHelp, std::string narrowHelp, std::string squareHelp, std::string wideHelp)
+{
+    return {
+        choice("12.5%", thinHelp, 0.0f, 0),
+        choice("25%", narrowHelp, 1.0f / 3.0f, 1),
+        choice("50%", squareHelp, 2.0f / 3.0f, 2),
+        choice("75%", wideHelp, 1.0f, 3)
+    };
+}
+
+std::vector<ChipParameterSpec> nesParameterSpecs()
+{
+    return {
+        segmentedSpec(ChipParameterRole::macroControl1,
+                      "nes.pulseDuty",
+                      "Pulse Duty",
+                      "Channels",
+                      "Maps to the RP2A03 pulse duty register field.",
+                      pulseDutyChoices("Thin 1/8 pulse.", "Narrow 1/4 pulse.", "Square 1/2 pulse.", "Wide 3/4 inverted pulse."),
+                      ParameterKind::chipRegister,
+                      2.0f / 3.0f),
+        sliderSpec(ChipParameterRole::macroControl2, "nes.sweepMotion", "Sweep Motion", "Pitch", "Scales musical pitch gestures into RP2A03 sweep/timer behavior."),
+        sliderSpec(ChipParameterRole::macroControl3, "nes.noiseBite", "Noise Bite", "Noise", "Moves the noise period, mode, and level used by percussion and SFX."),
+        sliderSpec(ChipParameterRole::macroControl4, "nes.channelFocus", "Channel Focus", "Mixer", "Balances pulse stack, triangle bass, and noise emphasis."),
+        sourceSpec(ChipParameterRole::source1Enabled, "nes.pulse1.enabled", "Pulse 1", "Enable the first RP2A03 pulse source."),
+        sourceSpec(ChipParameterRole::source2Enabled, "nes.pulse2.enabled", "Pulse 2", "Enable the second RP2A03 pulse source."),
+        sourceSpec(ChipParameterRole::source3Enabled, "nes.triangle.enabled", "Triangle", "Enable the triangle bass source."),
+        sourceSpec(ChipParameterRole::source4Enabled, "nes.noise.enabled", "Noise", "Enable the RP2A03 noise source."),
+        envelopeSpec("nes.envelopeDecay", "Envelope Decay", "Maps musical decay to APU envelope period values.")
+    };
+}
+
+std::vector<ChipParameterSpec> dmgParameterSpecs()
+{
+    return {
+        segmentedSpec(ChipParameterRole::macroControl1,
+                      "dmg.pulseDuty",
+                      "Pulse Duty",
+                      "Pulse",
+                      "Maps to the DMG pulse duty register field for channels 1 and 2.",
+                      pulseDutyChoices("Thin 1/8 handheld pulse.", "Narrow 1/4 handheld pulse.", "Square 1/2 pulse.", "Wide 3/4 handheld pulse."),
+                      ParameterKind::chipRegister,
+                      2.0f / 3.0f),
+        sliderSpec(ChipParameterRole::macroControl2, "dmg.sweepShape", "Sweep Shape", "Pitch", "Scales CH1 sweep-like macro pitch offsets."),
+        sliderSpec(ChipParameterRole::macroControl3, "dmg.noiseClock", "Noise Clock", "Noise", "Moves polynomial-noise clock and width behavior."),
+        sliderSpec(ChipParameterRole::macroControl4, "dmg.envelopeLevel", "Envelope Level", "Mixer", "Sets initial envelope level for macro templates."),
+        sourceSpec(ChipParameterRole::source1Enabled, "dmg.pulse1.enabled", "Pulse 1", "Enable DMG pulse channel 1."),
+        sourceSpec(ChipParameterRole::source2Enabled, "dmg.pulse2.enabled", "Pulse 2", "Enable DMG pulse channel 2."),
+        sourceSpec(ChipParameterRole::source3Enabled, "dmg.wave.enabled", "Wave", "Enable the DMG Wave RAM channel."),
+        sourceSpec(ChipParameterRole::source4Enabled, "dmg.noise.enabled", "Noise", "Enable the DMG polynomial-noise channel."),
+        envelopeSpec("dmg.envelopeDecay", "Envelope Decay", "Maps musical decay to DMG 64 Hz hardware envelope periods."),
+        segmentedSpec(ChipParameterRole::waveShape,
+                      "dmg.waveShape",
+                      "Wave Shape",
+                      "Wave RAM",
+                      "Writes a helper shape into the DMG wave table when not preserving register-trace RAM.",
+                      {
+                          choice("RAM", "Preserve current/register-trace Wave RAM.", 0.0f, 0),
+                          choice("Tri", "Write a 32-sample triangle into Wave RAM.", 0.25f, 1),
+                          choice("Saw", "Write a 32-sample saw ramp into Wave RAM.", 0.5f, 2),
+                          choice("Pulse", "Write a 50% pulse into Wave RAM.", 0.75f, 3),
+                          choice("Steps", "Write a stepped 4-level table into Wave RAM.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister)
+    };
+}
+
+std::vector<ChipParameterSpec> ym2149ParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1, "ym2149.channelSpread", "Channel Spread", "Channels", "Sets A/B/C interval spread for chords and fake arps."),
+        sliderSpec(ChipParameterRole::macroControl2, "ym2149.pitchMotion", "Pitch Motion", "Pitch", "Scales macro pitch movement."),
+        sliderSpec(ChipParameterRole::macroControl3, "ym2149.noisePitch", "Noise Pitch", "Noise", "Sets the shared noise generator period."),
+        sliderSpec(ChipParameterRole::macroControl4, "ym2149.toneNoiseMix", "Tone/Noise Mix", "Mixer", "Blends tone-only, noise-only, and combined mixer behavior."),
+        sourceSpec(ChipParameterRole::source1Enabled, "ym2149.channelA.enabled", "Channel A", "Enable YM/AY channel A."),
+        sourceSpec(ChipParameterRole::source2Enabled, "ym2149.channelB.enabled", "Channel B", "Enable YM/AY channel B."),
+        sourceSpec(ChipParameterRole::source3Enabled, "ym2149.channelC.enabled", "Channel C", "Enable YM/AY channel C."),
+        sourceSpec(ChipParameterRole::source4Enabled, "ym2149.noise.enabled", "Shared Noise", "Enable the shared YM/AY noise source."),
+        segmentedSpec(ChipParameterRole::ymEnvelopeShape,
+                      "ym2149.envelopeShape",
+                      "Envelope Shape",
+                      "Envelope",
+                      "Maps directly to the YM/AY hardware envelope shape register.",
+                      {
+                          choice("Fixed", "Use fixed volume registers; envelope bit off.", 0.0f, 0),
+                          choice("Fall", "Register 13 = 0x09, fall then hold low.", 0.25f, 1),
+                          choice("Rise", "Register 13 = 0x0D, rise then hold high.", 0.5f, 2),
+                          choice("Saw", "Register 13 = 0x08, repeating saw down.", 0.75f, 3),
+                          choice("Tri", "Register 13 = 0x0E, repeating triangle.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister)
+    };
+}
+
+std::vector<ChipParameterSpec> sn76489ParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1, "sn76489.toneStack", "Tone Stack", "Channels", "Sets interval spread across the three tone channels."),
+        sliderSpec(ChipParameterRole::macroControl2, "sn76489.pitchMotion", "Pitch Motion", "Pitch", "Scales macro pitch movement."),
+        sliderSpec(ChipParameterRole::macroControl3, "sn76489.noiseBias", "Noise Bias", "Noise", "Biases the macro-selected noise register when Noise Mode is Macro."),
+        sliderSpec(ChipParameterRole::macroControl4, "sn76489.noiseLevel", "Noise Level", "Mixer", "Balances the noise channel against tone channels."),
+        sourceSpec(ChipParameterRole::source1Enabled, "sn76489.tone1.enabled", "Tone 1", "Enable SN76489 tone channel 1."),
+        sourceSpec(ChipParameterRole::source2Enabled, "sn76489.tone2.enabled", "Tone 2", "Enable SN76489 tone channel 2."),
+        sourceSpec(ChipParameterRole::source3Enabled, "sn76489.tone3.enabled", "Tone 3", "Enable SN76489 tone channel 3."),
+        sourceSpec(ChipParameterRole::source4Enabled, "sn76489.noise.enabled", "Noise", "Enable the SN76489 noise channel."),
+        segmentedSpec(ChipParameterRole::snNoiseMode,
+                      "sn76489.noiseMode",
+                      "Noise Mode",
+                      "Noise",
+                      "Maps to the SN76489 noise-control register. Macro resolves from the current musical template.",
+                      {
+                          choice("Macro", "Use the chip-specific macro to choose the noise register bits.", 0.0f, 0),
+                          choice("P-Lo", "Periodic noise, low rate.", 0.25f, 1),
+                          choice("P-Hi", "Periodic noise, high rate.", 0.5f, 2),
+                          choice("W-Lo", "White noise, low rate.", 0.75f, 3),
+                          choice("W-T3", "White noise clocked from tone 3.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister)
+    };
+}
+
 ModuleDescriptor makeModule(std::string id, std::string title, std::string summary, std::initializer_list<const char*> items)
 {
     ModuleDescriptor module { id, title, summary, {} };
@@ -229,7 +388,8 @@ const std::vector<ChipDescriptor>& descriptors()
             nesModules(),
             nesMacros(),
             true,
-            true
+            true,
+            nesParameterSpecs()
         },
         {
             ChipMode::dmg,
@@ -244,7 +404,8 @@ const std::vector<ChipDescriptor>& descriptors()
             dmgModules(),
             dmgMacros(),
             true,
-            true
+            true,
+            dmgParameterSpecs()
         },
         {
             ChipMode::sid,
@@ -273,7 +434,8 @@ const std::vector<ChipDescriptor>& descriptors()
             ym2149Modules(),
             ym2149Macros(),
             true,
-            true
+            true,
+            ym2149ParameterSpecs()
         },
         {
             ChipMode::sn76489,
@@ -288,7 +450,8 @@ const std::vector<ChipDescriptor>& descriptors()
             sn76489Modules(),
             sn76489Macros(),
             true,
-            true
+            true,
+            sn76489ParameterSpecs()
         },
         {
             ChipMode::ym2612,
@@ -470,6 +633,19 @@ const MacroTemplate& macroTemplateFor(ChipMode mode, MacroKind macro)
         return *iter;
 
     return descriptor.macros.front();
+}
+
+const ChipParameterSpec* parameterSpecFor(ChipMode mode, ChipParameterRole role)
+{
+    const auto& descriptor = descriptorFor(mode);
+    const auto iter = std::find_if(descriptor.parameters.begin(), descriptor.parameters.end(), [role](const auto& item) { return item.role == role; });
+    return iter != descriptor.parameters.end() ? &*iter : nullptr;
+}
+
+bool chipHasParameterSurface(ChipMode mode, ChipParameterRole role, ControlSurface surface)
+{
+    const auto* spec = parameterSpecFor(mode, role);
+    return spec != nullptr && spec->surface == surface;
 }
 
 bool supportsPlayMode(ChipMode mode, PlayMode playMode)

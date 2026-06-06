@@ -60,6 +60,14 @@ int playModeChoiceIndex(chipper::PlayMode mode)
     return mode == chipper::PlayMode::chipPoly ? 1 : 0;
 }
 
+juce::String choiceTooltip(const chipper::ChipParameterSpec& spec, size_t choiceIndex)
+{
+    if (choiceIndex < spec.choices.size() && ! spec.choices[choiceIndex].help.empty())
+        return juce::String(spec.choices[choiceIndex].help);
+
+    return juce::String(spec.help);
+}
+
 } // namespace
 
 ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& processor)
@@ -782,6 +790,58 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
     }
 }
 
+void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode mode)
+{
+    const auto applyChoices = [](auto& buttons, const chipper::ChipParameterSpec* spec)
+    {
+        if (spec == nullptr)
+            return;
+
+        for (size_t i = 0; i < buttons.size(); ++i)
+        {
+            if (i >= spec->choices.size())
+                continue;
+
+            buttons[i].setButtonText(spec->choices[i].label);
+            buttons[i].setTooltip(choiceTooltip(*spec, i));
+        }
+    };
+
+    applyChoices(pulseDutyButtons, chipper::parameterSpecFor(mode, chipper::ChipParameterRole::macroControl1));
+
+    if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::waveShape))
+    {
+        waveShapeLabel.setText(spec->label, juce::dontSendNotification);
+        waveShapeLabel.setTooltip(spec->help);
+        waveShapeValueLabel.setTooltip(spec->help);
+        applyChoices(waveShapeButtons, spec);
+    }
+
+    if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::ymEnvelopeShape))
+    {
+        ymEnvelopeShapeLabel.setText(spec->label, juce::dontSendNotification);
+        ymEnvelopeShapeLabel.setTooltip(spec->help);
+        ymEnvelopeShapeValueLabel.setTooltip(spec->help);
+        applyChoices(ymEnvelopeShapeButtons, spec);
+    }
+
+    if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::snNoiseMode))
+    {
+        snNoiseModeLabel.setText(spec->label, juce::dontSendNotification);
+        snNoiseModeLabel.setTooltip(spec->help);
+        snNoiseModeValueLabel.setTooltip(spec->help);
+        applyChoices(snNoiseModeButtons, spec);
+    }
+
+    if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::envelopeDecay))
+    {
+        envelopeDecayLabel.setText(spec->label, juce::dontSendNotification);
+        envelopeDecayLabel.setTooltip(spec->help);
+        envelopeDecaySlider.setTooltip(spec->help);
+        envelopeDecayValueLabel.setTooltip(spec->help);
+    }
+}
+
 void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
 {
     if (suppressMacroTemplateApply)
@@ -898,22 +958,30 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
 
 bool ChipperAudioProcessorEditor::usesPulseDutySegment(chipper::ChipMode mode) const
 {
-    return mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
+    return chipper::chipHasParameterSurface(mode,
+                                            chipper::ChipParameterRole::macroControl1,
+                                            chipper::ControlSurface::segmentedChoice);
 }
 
 bool ChipperAudioProcessorEditor::usesWaveShapeSegment(chipper::ChipMode mode) const
 {
-    return mode == chipper::ChipMode::dmg;
+    return chipper::chipHasParameterSurface(mode,
+                                            chipper::ChipParameterRole::waveShape,
+                                            chipper::ControlSurface::segmentedChoice);
 }
 
 bool ChipperAudioProcessorEditor::usesYmEnvelopeShapeSegment(chipper::ChipMode mode) const
 {
-    return mode == chipper::ChipMode::ym2149;
+    return chipper::chipHasParameterSurface(mode,
+                                            chipper::ChipParameterRole::ymEnvelopeShape,
+                                            chipper::ControlSurface::segmentedChoice);
 }
 
 bool ChipperAudioProcessorEditor::usesSnNoiseModeSegment(chipper::ChipMode mode) const
 {
-    return mode == chipper::ChipMode::sn76489;
+    return chipper::chipHasParameterSurface(mode,
+                                            chipper::ChipParameterRole::snNoiseMode,
+                                            chipper::ControlSurface::segmentedChoice);
 }
 
 juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
@@ -1110,12 +1178,16 @@ juce::String ChipperAudioProcessorEditor::snLevelReadout(float value) const
 
 bool ChipperAudioProcessorEditor::usesSourceChannelSurface(chipper::ChipMode mode) const
 {
-    return mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::ym2149 || mode == chipper::ChipMode::sn76489;
+    return chipper::chipHasParameterSurface(mode,
+                                            chipper::ChipParameterRole::source1Enabled,
+                                            chipper::ControlSurface::sourceCards);
 }
 
 bool ChipperAudioProcessorEditor::usesEnvelopeDecayControl(chipper::ChipMode mode) const
 {
-    return mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
+    return chipper::chipHasParameterSurface(mode,
+                                            chipper::ChipParameterRole::envelopeDecay,
+                                            chipper::ControlSurface::slider);
 }
 
 void ChipperAudioProcessorEditor::setSourceChannelSurfaceVisible(chipper::ChipMode mode, bool shouldBeVisible)
@@ -1430,6 +1502,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         }
     }
 
+    updateSegmentedControlSpecs(mode);
     controlValueLabels[4].setVisible(true);
     controlValueLabels[5].setVisible(true);
     controlValueLabels[4].setEnabled(hasLiveCore);

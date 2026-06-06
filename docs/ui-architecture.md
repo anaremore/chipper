@@ -41,7 +41,7 @@ Use JUCE's native plugin-safe controls for DAW-facing behavior: `ComboBox` for s
 
 The first custom surface is the NES channel card grid inside Sources. It keeps the stable six-slot shell, but makes Pulse 1, Pulse 2, Triangle, and Noise visible as chip channels. Similar chip surfaces should follow this pattern: PSG channel banks, FM operator grids, sampler voice banks, wavetable editors, and macro/readout tiles. These components should reflect stable parameters and tested engine behavior rather than presenting fake controls for planned features.
 
-NES and DMG Pulse Duty use the first register-choice component. It presents a segmented button group over the stable `macroControl1` parameter because RP2A03 and DMG pulse duty are four-state register fields, not continuous values. Future chip controls should follow the same rule: use continuous controls only for continuous behavior, segmented/stepped controls for register-like behavior, and macro controls only when they intentionally map a musical gesture to chip-native states.
+NES and DMG Pulse Duty use the first register-choice component. It presents a segmented button group over the stable `macroControl1` parameter because RP2A03 and DMG pulse duty are four-state register fields, not continuous values. DMG Wave Shape, YM2149 Envelope Shape, and SN76489 Noise Mode follow the same pattern through `ChipParameterSpec` metadata. Future chip controls should follow the same rule: use continuous controls only for continuous behavior, segmented/stepped controls for register-like behavior, and macro controls only when they intentionally map a musical gesture to chip-native states.
 
 NES, DMG, YM2149, and SN76489 source cards are the first stable non-macro channel controls. They attach to universal `source1Enabled` through `source4Enabled` parameters and map to native source behavior: pulse 1, pulse 2, triangle/wave, and noise for APU-style chips; channel A, channel B, channel C, and shared noise for YM2149/AY; tone 1, tone 2, tone 3, and noise for SN76489. The YM cards drive register 7 mixer bits and source-aware volume writes, while the SN cards drive PSG attenuation state, so muted channels cannot leak accidental constant output. Future chip source cards should preserve that user promise: active cards must represent audible/native sources, not decorative labels.
 
@@ -74,7 +74,7 @@ enum class ParameterKind
     hiddenInternal
 };
 
-struct ParameterSpec
+struct ChipParameterSpec
 {
     std::string id;
     std::string label;
@@ -102,7 +102,7 @@ struct ChipSpec
 };
 ```
 
-The editor asks the selected chip spec what modules and controls to show. The UI should not need SID, NES, or YM2612-specific register knowledge; that belongs in the chip adapter and engine mapping layer.
+The editor asks the selected chip spec what modules and controls to show. The UI should not need SID, NES, or YM2612-specific register knowledge; that belongs in the chip adapter and engine mapping layer. The current implementation has started this migration with `ChipParameterSpec`, `ParameterKind`, and `ControlSurface` declarations in `ChipDescriptor`; live segmented/register surfaces are now descriptor-driven, while planned chips intentionally omit live specs.
 
 ## Parameter Strategy
 
@@ -147,6 +147,6 @@ Authentic mode should expose chip-native behavior. Hybrid mode can add musical h
 
 ## Current Bridge
 
-The current `ChipDescriptor` layer is the first implemented step toward this system. It provides chip names, summaries, macro templates, chip-specific labels and groups for the universal macro controls, implementation status, Chip Poly capability, and six stable UI module definitions per chip. The JUCE editor renders those numbered modules in a fixed shell and updates their contents from the selected descriptor. Implemented chips show live macro/native controls and live readouts; planned chips keep roadmap module text visible but disable inactive controls so the UI does not imply sound behavior that is not backed by a core. The shared Play Mode parameter is the first patch/channel control exposed globally; NES / RP2A03, Game Boy / DMG, YM2149 / AY, and SN76489 currently implement Chip Poly allocation across their finite pitched channels. YM2149 and SN76489 also expose their A/B/C/noise and tone/noise source cards in the same source surface, with renderer coverage for mixer or attenuation state plus source flags. Current live readouts, visible controls, the Macro dropdown, and the factory preset dropdown are based on shared catalog/descriptor data and `PatchConfig`; the renderer also seeds unspecified controls from the selected macro template or applies a named factory preset so CLI renders match the VST behavior.
+The current `ChipDescriptor` layer is the first implemented step toward this system. It provides chip names, summaries, macro templates, chip-specific labels and groups for the universal macro controls, implementation status, Chip Poly capability, six stable UI module definitions per chip, and first-pass `ChipParameterSpec` metadata for live controls. The JUCE editor renders those numbered modules in a fixed shell and updates their contents from the selected descriptor. Implemented chips show live macro/native controls and live readouts; planned chips keep roadmap module text visible but disable inactive controls so the UI does not imply sound behavior that is not backed by a core. The shared Play Mode parameter is the first patch/channel control exposed globally; NES / RP2A03, Game Boy / DMG, YM2149 / AY, and SN76489 currently implement Chip Poly allocation across their finite pitched channels. YM2149 and SN76489 also expose their A/B/C/noise and tone/noise source cards in the same source surface, with renderer coverage for mixer or attenuation state plus source flags. Current live readouts, visible controls, segmented register controls, the Macro dropdown, and the factory preset dropdown are based on shared catalog/descriptor data and `PatchConfig`; the renderer also seeds unspecified controls from the selected macro template or applies a named factory preset so CLI renders match the VST behavior.
 
 Future UI work should keep expanding `ChipDescriptor` into richer module and parameter specs rather than adding chip-specific editor branches.
