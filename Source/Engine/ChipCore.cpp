@@ -1976,7 +1976,7 @@ public:
 
     void setPatch(const PatchConfig& newPatch) override
     {
-        if (newPatch.playMode != patch.playMode)
+        if (newPatch.playMode != patch.playMode || newPatch.sourceEnabled != patch.sourceEnabled)
             clearChipPolyState();
 
         patch = newPatch;
@@ -2069,11 +2069,12 @@ public:
         writeTone(0, noteA);
         writeTone(1, noteB);
         writeTone(2, noteC);
+        const auto sourceAwareMixer = applySourceMixerMask(static_cast<uint8_t>(mixer));
         writeRegister(6, noisePitch);
-        writeRegister(7, static_cast<uint8_t>(mixer));
-        writeYmVolumeRegister(8, volA);
-        writeYmVolumeRegister(9, volB);
-        writeYmVolumeRegister(10, volC);
+        writeRegister(7, sourceAwareMixer);
+        writeSourceAwareYmVolumeRegister(0, volA, sourceAwareMixer);
+        writeSourceAwareYmVolumeRegister(1, volB, sourceAwareMixer);
+        writeSourceAwareYmVolumeRegister(2, volC, sourceAwareMixer);
         writeRegister(11, 0x80);
         writeRegister(12, 0x02);
         writeRegister(13, ymEnvelopeShapeCode());
@@ -2139,6 +2140,10 @@ public:
              << "\"periodC\":" << tonePeriod(2) << ","
              << "\"mixer\":" << static_cast<int>(regs[7]) << ","
              << "\"noisePeriod\":" << static_cast<int>(regs[6] & 0x1f) << ","
+             << "\"sourceEnabledA\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
+             << "\"sourceEnabledB\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
+             << "\"sourceEnabledC\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
+             << "\"sourceEnabledNoise\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
              << "\"volumeA\":" << static_cast<int>(regs[8]) << ","
              << "\"volumeB\":" << static_cast<int>(regs[9]) << ","
              << "\"volumeC\":" << static_cast<int>(regs[10]) << ","
@@ -2213,17 +2218,44 @@ private:
             writeRegister(reg, static_cast<uint8_t>(clipped));
     }
 
+    uint8_t applySourceMixerMask(uint8_t mixer) const
+    {
+        for (int channel = 0; channel < 3; ++channel)
+        {
+            if (! sourceEnabled(patch, static_cast<size_t>(channel)))
+                mixer = static_cast<uint8_t>(mixer | (1u << channel) | (1u << (channel + 3)));
+        }
+
+        if (! sourceEnabled(patch, 3))
+            mixer = static_cast<uint8_t>(mixer | 0x38u);
+
+        return mixer;
+    }
+
+    void writeSourceAwareYmVolumeRegister(int channel, unsigned volume, uint8_t mixer)
+    {
+        const auto toneDisabled = (mixer & (1u << channel)) != 0;
+        const auto noiseDisabled = (mixer & (1u << (channel + 3))) != 0;
+        if (! sourceEnabled(patch, static_cast<size_t>(channel)) || (toneDisabled && noiseDisabled))
+        {
+            writeRegister(static_cast<uint16_t>(8 + channel), 0);
+            return;
+        }
+
+        writeYmVolumeRegister(static_cast<uint16_t>(8 + channel), volume);
+    }
+
     int selectChipPolyChannel(int midiNote) const
     {
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
-            if (channelNotes[channel] == midiNote)
+            if (sourceEnabled(patch, channel) && channelNotes[channel] == midiNote)
                 return static_cast<int>(channel);
         }
 
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
-            if (channelNotes[channel] < 0)
+            if (sourceEnabled(patch, channel) && channelNotes[channel] < 0)
                 return static_cast<int>(channel);
         }
 
@@ -2236,15 +2268,21 @@ private:
         uint8_t mixer = 0x38u; // Noise disabled for A/B/C; active channels keep tone enabled.
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
-            if (channelNotes[channel] < 0)
+            if (channelNotes[channel] < 0 || ! sourceEnabled(patch, channel))
                 mixer = static_cast<uint8_t>(mixer | (1u << channel));
         }
-        writeRegister(7, mixer);
+        writeRegister(7, applySourceMixerMask(mixer));
     }
 
     int activeChipPolyChannels() const
     {
-        return static_cast<int>(std::count_if(channelNotes.begin(), channelNotes.end(), [](int note) { return note >= 0; }));
+        int active = 0;
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (sourceEnabled(patch, channel) && channelNotes[channel] >= 0)
+                ++active;
+        }
+        return active;
     }
 
     void clearChipPolyState()

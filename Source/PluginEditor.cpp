@@ -956,7 +956,7 @@ juce::String ChipperAudioProcessorEditor::snLevelReadout(float value) const
 
 bool ChipperAudioProcessorEditor::usesSourceChannelSurface(chipper::ChipMode mode) const
 {
-    return mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
+    return mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::ym2149;
 }
 
 bool ChipperAudioProcessorEditor::usesEnvelopeDecayControl(chipper::ChipMode mode) const
@@ -1073,6 +1073,18 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Wave     |  note 3",
         "Noise    |  SFX layer"
     };
+    static const std::array<const char*, sourceChannelCount> ymBigMonoLabels {
+        "Channel A | tone lead",
+        "Channel B | chord tone",
+        "Channel C | bass / stack",
+        "Noise     | shared PSG"
+    };
+    static const std::array<const char*, sourceChannelCount> ymChipPolyLabels {
+        "Channel A | note 1",
+        "Channel B | note 2",
+        "Channel C | note 3",
+        "Noise     | shared layer"
+    };
 
     const auto playModeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::playMode)));
     const auto playMode = chipper::parameters::playModeFromChoice(playModeChoice);
@@ -1082,6 +1094,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         labels = playMode == chipper::PlayMode::chipPoly ? &nesChipPolyLabels : &nesBigMonoLabels;
     else if (mode == chipper::ChipMode::dmg)
         labels = playMode == chipper::PlayMode::chipPoly ? &dmgChipPolyLabels : &dmgBigMonoLabels;
+    else if (mode == chipper::ChipMode::ym2149)
+        labels = playMode == chipper::PlayMode::chipPoly ? &ymChipPolyLabels : &ymBigMonoLabels;
 
     for (size_t i = 0; i < sourceChannelButtons.size(); ++i)
     {
