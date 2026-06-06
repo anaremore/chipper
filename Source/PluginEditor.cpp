@@ -278,6 +278,108 @@ void layoutSegmentedButtons(ButtonArray& buttons, juce::Rectangle<int> bounds, s
 
 } // namespace
 
+void ChipWaveformPreview::setSidWaveform(uint8_t bits, float pulseWidthRatio)
+{
+    const auto clampedPulseWidth = std::clamp(pulseWidthRatio, 0.02f, 0.98f);
+    if (waveformBits == bits && std::abs(pulseWidth - clampedPulseWidth) < 0.001f)
+        return;
+
+    waveformBits = bits;
+    pulseWidth = clampedPulseWidth;
+    repaint();
+}
+
+void ChipWaveformPreview::paint(juce::Graphics& g)
+{
+    const auto bounds = getLocalBounds().toFloat().reduced(1.0f);
+    if (bounds.isEmpty())
+        return;
+
+    g.setColour(juce::Colour(0xff10181c));
+    g.fillRoundedRectangle(bounds, 3.0f);
+    g.setColour(juce::Colour(0xff2a3a40));
+    g.drawRoundedRectangle(bounds, 3.0f, 1.0f);
+
+    const auto graph = bounds.reduced(4.0f, 3.0f);
+    const auto top = graph.getY();
+    const auto bottom = graph.getBottom();
+    const auto mid = graph.getCentreY();
+    const auto left = graph.getX();
+    const auto right = graph.getRight();
+    const auto width = std::max(1.0f, graph.getWidth());
+    const auto height = std::max(1.0f, graph.getHeight());
+
+    g.setColour(juce::Colour(0xff243139).withAlpha(0.80f));
+    g.drawHorizontalLine(static_cast<int>(std::round(mid)), left, right);
+
+    juce::Path path;
+    const auto waveform = waveformBits & 0xf0u;
+
+    if ((waveform & 0x80u) != 0u)
+    {
+        uint32_t state = 0x2a6d365bu;
+        path.startNewSubPath(left, mid);
+        constexpr auto pointCount = 28;
+        for (int i = 0; i < pointCount; ++i)
+        {
+            state = (state * 1664525u) + 1013904223u;
+            const auto x = left + (width * static_cast<float>(i) / static_cast<float>(pointCount - 1));
+            const auto normalized = static_cast<float>((state >> 24u) & 0xffu) / 255.0f;
+            const auto y = bottom - (normalized * height);
+            path.lineTo(x, y);
+        }
+    }
+    else if ((waveform & 0x40u) != 0u)
+    {
+        const auto high = top;
+        const auto low = bottom;
+        const auto period = width * 0.5f;
+        path.startNewSubPath(left, high);
+        for (int cycle = 0; cycle < 2; ++cycle)
+        {
+            const auto cycleStart = left + (static_cast<float>(cycle) * period);
+            const auto transition = cycleStart + (period * pulseWidth);
+            const auto cycleEnd = cycleStart + period;
+            path.lineTo(transition, high);
+            path.lineTo(transition, low);
+            path.lineTo(cycleEnd, low);
+            if (cycle == 0)
+            {
+                path.lineTo(cycleEnd, high);
+            }
+        }
+    }
+    else if ((waveform & 0x20u) != 0u)
+    {
+        const auto period = width * 0.5f;
+        path.startNewSubPath(left, bottom);
+        for (int cycle = 0; cycle < 2; ++cycle)
+        {
+            const auto cycleEnd = left + (static_cast<float>(cycle + 1) * period);
+            path.lineTo(cycleEnd, top);
+            if (cycle == 0)
+                path.lineTo(cycleEnd, bottom);
+        }
+    }
+    else if ((waveform & 0x10u) != 0u)
+    {
+        path.startNewSubPath(left, mid);
+        path.lineTo(left + width * 0.125f, top);
+        path.lineTo(left + width * 0.375f, bottom);
+        path.lineTo(left + width * 0.625f, top);
+        path.lineTo(left + width * 0.875f, bottom);
+        path.lineTo(right, mid);
+    }
+    else
+    {
+        path.startNewSubPath(left, mid);
+        path.lineTo(right, mid);
+    }
+
+    g.setColour(waveform == 0u ? juce::Colour(0xff72818a) : juce::Colour(0xff56c7d8));
+    g.strokePath(path, juce::PathStrokeType(1.4f));
+}
+
 ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& processor)
     : AudioProcessorEditor(processor),
       audioProcessor(processor)
@@ -562,6 +664,11 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
             }
         };
         addAndMakeVisible(box);
+
+        auto& scope = sidVoicePreviewScopes[i];
+        scope.setTooltip("Register-resolved SID oscillator preview. Pulse width follows the SID pulse-width register.");
+        scope.setVisible(false);
+        addAndMakeVisible(scope);
     }
 
     dmgWaveLevelLabel.setText("Wave Level", juce::dontSendNotification);
@@ -998,6 +1105,7 @@ void ChipperAudioProcessorEditor::resized()
             {
                 sidVoiceWaveLabels[i].setBounds({});
                 sidVoiceWaveBoxes[i].setBounds({});
+                sidVoicePreviewScopes[i].setBounds({});
             }
             continue;
         }
@@ -1008,21 +1116,24 @@ void ChipperAudioProcessorEditor::resized()
             sourceCardWidth,
             sourceCardHeight
         };
-        auto sourceCard = sourceChannelBounds[i].reduced(8, 4);
-        sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(18, sourceCard.getHeight())));
+        auto sourceCard = sourceChannelBounds[i].reduced(8, displayedMode == chipper::ChipMode::sid ? 2 : 4);
+        sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(displayedMode == chipper::ChipMode::sid ? 16 : 18, sourceCard.getHeight())));
         sourceCard.removeFromTop(2);
 
         if (displayedMode == chipper::ChipMode::sid && i < sidVoiceWaveCount)
         {
-            auto waveRow = sourceCard.removeFromTop(std::min(22, sourceCard.getHeight()));
+            sidVoicePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(15, sourceCard.getHeight())));
+            sourceCard.removeFromTop(1);
+
+            auto waveRow = sourceCard.removeFromTop(std::min(20, sourceCard.getHeight()));
             sidVoiceWaveLabels[i].setBounds(waveRow.removeFromLeft(38));
             sidVoiceWaveBoxes[i].setBounds(waveRow);
-            sourceCard.removeFromTop(2);
+            sourceCard.removeFromTop(1);
         }
 
-        sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(14, sourceCard.getHeight())).reduced(0, 1));
+        sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(displayedMode == chipper::ChipMode::sid ? 12 : 14, sourceCard.getHeight())).reduced(0, 1));
         sourceCard.removeFromTop(1);
-        sourceLevelValueLabels[i].setBounds(sourceCard.removeFromTop(std::min(12, sourceCard.getHeight())));
+        sourceLevelValueLabels[i].setBounds(sourceCard.removeFromTop(std::min(displayedMode == chipper::ChipMode::sid ? 10 : 12, sourceCard.getHeight())));
     }
 
     auto tonePanel = moduleBounds[2].reduced(12, 9);
@@ -2393,6 +2504,8 @@ void ChipperAudioProcessorEditor::setSidVoiceWaveControlsVisible(bool shouldBeVi
         label.setVisible(shouldBeVisible);
     for (auto& box : sidVoiceWaveBoxes)
         box.setVisible(shouldBeVisible);
+    for (auto& scope : sidVoicePreviewScopes)
+        scope.setVisible(shouldBeVisible);
 
     if (shouldBeVisible)
         updateSidVoiceWaveControls(true);
@@ -2819,18 +2932,21 @@ void ChipperAudioProcessorEditor::updateSidVoiceWaveControls(bool shouldBeVisibl
     for (size_t i = 0; i < sidVoiceWaveBoxes.size(); ++i)
     {
         const auto selected = static_cast<int>(std::round(parameterValue(sidVoiceWaveParameterId(i))));
+        const auto bits = chipper::sidWaveformControlForVoice(patch, i);
         sidVoiceWaveLabels[i].setVisible(shouldBeVisible);
         sidVoiceWaveBoxes[i].setVisible(shouldBeVisible);
+        sidVoicePreviewScopes[i].setVisible(shouldBeVisible);
         sidVoiceWaveBoxes[i].setSelectedItemIndex(std::clamp(selected, 0, 4), juce::dontSendNotification);
+        sidVoicePreviewScopes[i].setSidWaveform(bits, static_cast<float>(chipper::sidPulseWidthForControl(patch.control1)) / 4095.0f);
 
         if (shouldBeVisible)
         {
-            const auto bits = chipper::sidWaveformControlForVoice(patch, i);
             const auto tooltip = juce::String("SID voice waveform register choice.")
                 + "\nResolved waveform: " + sidWaveNameForControlBits(bits)
                 + "\nCTRL waveform bits 0x" + byteHex(bits);
             sidVoiceWaveLabels[i].setTooltip(withMidiCcForRole(tooltip, sidVoiceWaveRole(i)));
             sidVoiceWaveBoxes[i].setTooltip(withMidiCcForRole(tooltip, sidVoiceWaveRole(i)));
+            sidVoicePreviewScopes[i].setTooltip(tooltip + "\nPreview follows the SID pulse-width register for pulse waves.");
         }
     }
 

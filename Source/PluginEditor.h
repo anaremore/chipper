@@ -13,6 +13,22 @@ namespace chipper
 struct PresetInfo;
 }
 
+class ChipWaveformPreview final : public juce::Component,
+                                  public juce::SettableTooltipClient
+{
+public:
+    ChipWaveformPreview() = default;
+
+    void setSidWaveform(uint8_t bits, float pulseWidthRatio);
+    void paint(juce::Graphics& g) override;
+
+private:
+    uint8_t waveformBits = 0;
+    float pulseWidth = 0.5f;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipWaveformPreview)
+};
+
 class ChipperAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                           private juce::Timer
 {
@@ -181,6 +197,7 @@ private:
     juce::Label pulse2DutyLabel;
     juce::Label pulse2DutyValueLabel;
     std::array<juce::Label, sidVoiceWaveCount> sidVoiceWaveLabels;
+    std::array<ChipWaveformPreview, sidVoiceWaveCount> sidVoicePreviewScopes;
     juce::Label dmgWaveLevelLabel;
     juce::Label dmgWaveLevelValueLabel;
     juce::Label dmgStereoRouteLabel;
