@@ -54,6 +54,7 @@ struct Options
     bool waveShapeProvided = false;
     bool ymEnvelopeShapeProvided = false;
     bool snNoiseModeProvided = false;
+    float outputDb = 0.0f;
     double clock = 1789773.0;
     double sampleRate = 48000.0;
     double seconds = 1.0;
@@ -204,7 +205,7 @@ void printUsage()
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
         << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --envelope-decay 0.7 --wave-shape tri --ym-envelope-shape triangle --sn-noise-mode white-t3|long|short|15-bit|7-bit\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --envelope-decay 0.7 --wave-shape tri --ym-envelope-shape triangle --sn-noise-mode white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -235,6 +236,7 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.waveShapeProvided = true;
     options.ymEnvelopeShapeProvided = true;
     options.snNoiseModeProvided = true;
+    options.outputDb = preset.outputDb;
     options.clock = preset.clockHz;
 }
 
@@ -428,6 +430,12 @@ bool parseArgs(int argc, char** argv, Options& options)
             if (value == nullptr || ! parseSnNoiseMode(std::string(value), options.snNoiseMode))
                 return false;
             options.snNoiseModeProvided = true;
+        }
+        else if (arg == "--output-db")
+        {
+            const auto* value = requireValue("--output-db");
+            if (value == nullptr || ! parseNumber(std::string(value), options.outputDb))
+                return false;
         }
         else if (arg == "--clock")
         {
@@ -681,6 +689,21 @@ chipper::RenderStats calculateStats(const std::vector<chipper::StereoFrame>& fra
     stats.leftRms = frames.empty() ? 0.0 : std::sqrt(leftEnergy / static_cast<double>(frames.size()));
     stats.rightRms = frames.empty() ? 0.0 : std::sqrt(rightEnergy / static_cast<double>(frames.size()));
     return stats;
+}
+
+float decibelsToGain(float db)
+{
+    return std::pow(10.0f, db / 20.0f);
+}
+
+void applyOutputGain(std::vector<chipper::StereoFrame>& frames, float outputDb)
+{
+    const auto gain = decibelsToGain(outputDb);
+    for (auto& frame : frames)
+    {
+        frame.left = std::clamp(frame.left * gain, -1.0f, 1.0f);
+        frame.right = std::clamp(frame.right * gain, -1.0f, 1.0f);
+    }
 }
 
 std::string jsonEscaped(std::string_view text)
@@ -1034,6 +1057,8 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"sampleRate\": " << options.sampleRate << ",\n"
         << "  \"seconds\": " << options.seconds << ",\n"
         << "  \"note\": " << options.note << ",\n"
+        << "  \"outputDb\": " << options.outputDb << ",\n"
+        << "  \"outputGain\": " << decibelsToGain(options.outputDb) << ",\n"
         << "  \"registerWriteCount\": " << registerWriteCount << ",\n"
         << "  \"noteEventCount\": " << noteEventCount << ",\n"
         << "  \"renderedSamples\": " << stats.renderedSamples << ",\n"
@@ -1121,6 +1146,7 @@ int main(int argc, char** argv)
         }
 
         core->noteOff(options.note);
+        applyOutputGain(frames, options.outputDb);
         const auto stats = calculateStats(frames);
         writeWav(options.wavPath, frames, options.sampleRate);
         writeDebugJson(options.debugPath, options, patch, *core, stats, registerWriteCount, noteEventCount);

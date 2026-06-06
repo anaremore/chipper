@@ -92,10 +92,10 @@ The separate renderer is the verification path for chip cores:
 
 ```powershell
 cmake --build build --config Release --target chipper_render
-build\Release\chipper_render.exe --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out nes.wav --debug nes.json
+build\Release\chipper_render.exe --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --output-db -9 --out nes.wav --debug nes.json
 ```
 
-It accepts chip mode, accuracy, musical macro, native macro controls, clock rate, note input, register-write event files, render length, and writes WAV plus debug JSON. Golden WAV/reference metadata should be added only from trusted emulator or hardware comparisons.
+It accepts chip mode, accuracy, musical macro, native macro controls, output trim, clock rate, note input, register-write event files, render length, and writes WAV plus debug JSON. Factory presets apply the same output-trim snapshot in the renderer that the VST applies in the editor, and debug JSON records `outputDb` plus the resolved linear gain. Golden WAV/reference metadata should be added only from trusted emulator or hardware comparisons.
 
 Event trace files support:
 

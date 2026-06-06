@@ -10,6 +10,8 @@ def main() -> int:
     parser.add_argument("--preset")
     parser.add_argument("--macro")
     parser.add_argument("--play-mode")
+    parser.add_argument("--output-db", type=float)
+    parser.add_argument("--output-gain", type=float)
     parser.add_argument("--min-peak", type=float)
     parser.add_argument("--max-peak", type=float)
     parser.add_argument("--min-rms", type=float)
@@ -50,6 +52,16 @@ def main() -> int:
 
     if args.play_mode and data.get("playMode") != args.play_mode:
         failures.append(f"playMode expected {args.play_mode!r}, got {data.get('playMode')!r}")
+
+    if args.output_db is not None:
+        actual = float(data.get("outputDb", 0.0))
+        if abs(actual - args.output_db) > 0.001:
+            failures.append(f"outputDb expected {args.output_db}, got {actual}")
+
+    if args.output_gain is not None:
+        actual = float(data.get("outputGain", 0.0))
+        if abs(actual - args.output_gain) > 0.001:
+            failures.append(f"outputGain expected {args.output_gain}, got {actual}")
 
     if args.min_peak is not None and float(data.get("peak", 0.0)) < args.min_peak:
         failures.append(f"peak expected >= {args.min_peak}, got {data.get('peak')}")

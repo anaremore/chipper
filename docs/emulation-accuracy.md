@@ -46,7 +46,7 @@ The command-line renderer is the truth source for core validation. It accepts:
 It outputs:
 
 - WAV audio
-- debug JSON with mode, clock, sample rate, event count, peak/RMS, per-channel stereo peak/RMS, zero crossings, implemented accuracy, and known limitations
+- debug JSON with mode, clock, sample rate, output trim, event count, peak/RMS, per-channel stereo peak/RMS, zero crossings, implemented accuracy, and known limitations
 
 ## Regression Tests
 
