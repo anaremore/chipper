@@ -2156,8 +2156,22 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
         setParameterValueFromUi(sourceLevelIds[i], 1.0f);
 
     setParameterValueFromUi(chipper::parameters::id::envelopeDecay, preset.envelopeDecay);
+    const std::array<int, sidAdsrOverrideCount> sidAdsrChoices {
+        preset.sidAttack,
+        preset.sidDecay,
+        preset.sidSustain,
+        preset.sidRelease,
+        preset.sidVoice2Attack,
+        preset.sidVoice2Decay,
+        preset.sidVoice2Sustain,
+        preset.sidVoice2Release,
+        preset.sidVoice3Attack,
+        preset.sidVoice3Decay,
+        preset.sidVoice3Sustain,
+        preset.sidVoice3Release
+    };
     for (size_t i = 0; i < sidAdsrOverrideCount; ++i)
-        setChoiceParameterFromUi(sidAdsrParameterId(i), 0);
+        setChoiceParameterFromUi(sidAdsrParameterId(i), sidAdsrChoices[i]);
     setParameterValueFromUi(chipper::parameters::id::stereoSpread, preset.stereoSpread);
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, preset.waveShape);
     setChoiceParameterFromUi(chipper::parameters::id::sidVoice2WaveShape, preset.sidVoice2WaveShape);

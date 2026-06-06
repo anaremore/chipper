@@ -543,18 +543,18 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.stereoSpread = preset.stereoSpread;
     options.stereoSpreadProvided = true;
     options.envelopeDecay = preset.envelopeDecay;
-    options.sidAttack = 0;
-    options.sidDecay = 0;
-    options.sidSustain = 0;
-    options.sidRelease = 0;
-    options.sidVoice2Attack = 0;
-    options.sidVoice2Decay = 0;
-    options.sidVoice2Sustain = 0;
-    options.sidVoice2Release = 0;
-    options.sidVoice3Attack = 0;
-    options.sidVoice3Decay = 0;
-    options.sidVoice3Sustain = 0;
-    options.sidVoice3Release = 0;
+    options.sidAttack = preset.sidAttack;
+    options.sidDecay = preset.sidDecay;
+    options.sidSustain = preset.sidSustain;
+    options.sidRelease = preset.sidRelease;
+    options.sidVoice2Attack = preset.sidVoice2Attack;
+    options.sidVoice2Decay = preset.sidVoice2Decay;
+    options.sidVoice2Sustain = preset.sidVoice2Sustain;
+    options.sidVoice2Release = preset.sidVoice2Release;
+    options.sidVoice3Attack = preset.sidVoice3Attack;
+    options.sidVoice3Decay = preset.sidVoice3Decay;
+    options.sidVoice3Sustain = preset.sidVoice3Sustain;
+    options.sidVoice3Release = preset.sidVoice3Release;
     options.waveShape = preset.waveShape;
     options.sidVoice2WaveShape = preset.sidVoice2WaveShape;
     options.sidVoice3WaveShape = preset.sidVoice3WaveShape;
@@ -1626,6 +1626,19 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
             << "      \"sidVoice2WaveShape\": " << preset.sidVoice2WaveShape << ",\n"
             << "      \"sidVoice3WaveShape\": " << preset.sidVoice3WaveShape << ",\n"
             << "      \"sidFilterRouting\": " << preset.sidFilterRouting << ",\n"
+            << "      \"sidAdsr\": ["
+            << preset.sidAttack << ", "
+            << preset.sidDecay << ", "
+            << preset.sidSustain << ", "
+            << preset.sidRelease << ", "
+            << preset.sidVoice2Attack << ", "
+            << preset.sidVoice2Decay << ", "
+            << preset.sidVoice2Sustain << ", "
+            << preset.sidVoice2Release << ", "
+            << preset.sidVoice3Attack << ", "
+            << preset.sidVoice3Decay << ", "
+            << preset.sidVoice3Sustain << ", "
+            << preset.sidVoice3Release << "],\n"
             << "      \"dmgStereoRoute\": " << preset.dmgStereoRoute << ",\n"
             << "      \"ymEnvelopeShape\": " << preset.ymEnvelopeShape << ",\n"
             << "      \"snNoiseMode\": " << preset.snNoiseMode << ",\n"

@@ -92,6 +92,10 @@ Factory preset v1 should prioritize implemented chips and avoid implying that pl
 - SID Sync Saw Lead
 - SID Ring Bell
 - SID Noise Riser
+- SID Notch PWM Keys
+- SID LP+BP Sweep Stack
+- SID BP+HP Metal Bell
+- SID All-Mode Growl
 - YM Three-Voice Arp
 - YM Fake Chord Stack
 - YM Menu Beep
@@ -111,7 +115,6 @@ Factory preset v1 should prioritize implemented chips and avoid implying that pl
 
 Roadmap preset targets, kept as product direction until their chip cores exist:
 
-- SID Filter Sweep
 - Genesis FM Bass
 - OPL Bell Lead
 
