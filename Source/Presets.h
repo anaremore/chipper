@@ -45,6 +45,10 @@ struct PresetInfo
     int sidVoice3Decay = 0;
     int sidVoice3Sustain = 0;
     int sidVoice3Release = 0;
+    float source1Level = 1.0f;
+    float source2Level = 1.0f;
+    float source3Level = 1.0f;
+    float source4Level = 1.0f;
 };
 
 const std::vector<PresetInfo>& presetCatalog();

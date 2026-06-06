@@ -539,6 +539,7 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.controlProvided = { true, true, true, true };
     options.sourceEnabled = preset.sourceEnabled;
     options.sourceProvided = { true, true, true, true };
+    options.sourceLevels = { preset.source1Level, preset.source2Level, preset.source3Level, preset.source4Level };
     options.sourceLevelProvided = { true, true, true, true };
     options.stereoSpread = preset.stereoSpread;
     options.stereoSpreadProvided = true;
@@ -1621,6 +1622,10 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
             << (preset.sourceEnabled[1] ? "true" : "false") << ", "
             << (preset.sourceEnabled[2] ? "true" : "false") << ", "
             << (preset.sourceEnabled[3] ? "true" : "false") << "],\n"
+            << "      \"sourceLevels\": [" << preset.source1Level << ", "
+            << preset.source2Level << ", "
+            << preset.source3Level << ", "
+            << preset.source4Level << "],\n"
             << "      \"envelopeDecay\": " << preset.envelopeDecay << ",\n"
             << "      \"waveShape\": " << preset.waveShape << ",\n"
             << "      \"sidVoice2WaveShape\": " << preset.sidVoice2WaveShape << ",\n"

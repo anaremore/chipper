@@ -2152,8 +2152,14 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
     for (size_t i = 0; i < sourceIds.size(); ++i)
         setParameterValueFromUi(sourceIds[i], preset.sourceEnabled[i] ? 1.0f : 0.0f);
 
+    const std::array<float, 4> sourceLevels {
+        preset.source1Level,
+        preset.source2Level,
+        preset.source3Level,
+        preset.source4Level
+    };
     for (size_t i = 0; i < sourceLevelIds.size(); ++i)
-        setParameterValueFromUi(sourceLevelIds[i], 1.0f);
+        setParameterValueFromUi(sourceLevelIds[i], sourceLevels[i]);
 
     setParameterValueFromUi(chipper::parameters::id::envelopeDecay, preset.envelopeDecay);
     const std::array<int, sidAdsrOverrideCount> sidAdsrChoices {

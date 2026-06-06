@@ -747,7 +747,11 @@ const std::vector<PresetInfo>& presetCatalog()
             1,
             6,
             5,
-            3
+            3,
+            0.92f,
+            0.78f,
+            0.55f,
+            1.0f
         },
         {
             "sid-lpbp-sweep-stack",
@@ -782,7 +786,11 @@ const std::vector<PresetInfo>& presetCatalog()
             1,
             7,
             8,
-            4
+            4,
+            0.88f,
+            0.62f,
+            0.45f,
+            1.0f
         },
         {
             "sid-bphp-metal-bell",
@@ -817,7 +825,11 @@ const std::vector<PresetInfo>& presetCatalog()
             1,
             8,
             5,
-            10
+            10,
+            0.65f,
+            0.90f,
+            0.52f,
+            1.0f
         },
         {
             "sid-allmode-growl",
@@ -852,7 +864,11 @@ const std::vector<PresetInfo>& presetCatalog()
             1,
             4,
             7,
-            3
+            3,
+            0.82f,
+            0.58f,
+            0.36f,
+            1.0f
         },
         {
             "ym-bright-beep",
@@ -1037,7 +1053,7 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                            preset.controls[3],
                            preset.playMode,
                            preset.sourceEnabled,
-                           { 1.0f, 1.0f, 1.0f, 1.0f },
+                           { preset.source1Level, preset.source2Level, preset.source3Level, preset.source4Level },
                            preset.stereoSpread,
                            preset.envelopeDecay,
                            preset.waveShape,
