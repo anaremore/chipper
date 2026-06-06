@@ -1,0 +1,5 @@
+# SN76489 volume latch/data trace: latch channel 0 silent, then data byte opens volume.
+write 0 0x00 0x80
+write 1 0x00 0x00
+write 2 0x00 0x9f
+write 3 0x00 0x00

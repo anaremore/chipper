@@ -2444,6 +2444,7 @@ public:
         lfsr = 0x8000;
         noisePhase = 0.0;
         noiseRegisterResets = 0;
+        volumeDataByteWrites = 0;
         heldNote = -1;
         noteVelocity = 0.0f;
         channelNotes.fill(-1);
@@ -2477,6 +2478,7 @@ public:
         else if (latchedIsVolume)
         {
             attenuation[latchedChannel] = value & 0x0fu;
+            ++volumeDataByteWrites;
         }
         else if (latchedChannel < 3)
         {
@@ -2615,7 +2617,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Latch/data writes, tone periods including period 0/1 constant output, attenuation, noise data-byte updates, LFSR reset on noise-register writes, noise modes, and tone-channel allocation for Chip Poly play mode are modeled; exact variant behavior and hardware-level output validation are still required.";
+        return "Latch/data writes, tone periods including period 0/1 constant output, attenuation including volume-register data-byte writes, noise data-byte updates, LFSR reset on noise-register writes, noise modes, and tone-channel allocation for Chip Poly play mode are modeled; exact variant behavior and hardware-level output validation are still required.";
     }
 
     std::string debugStateJson() const override
@@ -2641,6 +2643,7 @@ public:
              << "\"noiseDivider\":" << noiseClockDivider() << ","
              << "\"noiseLfsr\":" << lfsr << ","
              << "\"noiseRegisterResets\":" << noiseRegisterResets << ","
+             << "\"volumeDataByteWrites\":" << volumeDataByteWrites << ","
              << "\"sourceEnabled0\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
@@ -2820,6 +2823,7 @@ private:
     uint8_t noiseControl = 0x03;
     uint16_t lfsr = 0x8000;
     uint32_t noiseRegisterResets = 0;
+    uint32_t volumeDataByteWrites = 0;
     double noisePhase = 0.0;
     int heldNote = -1;
     float noteVelocity = 0.0f;
