@@ -1002,6 +1002,26 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
     out << "  ]\n";
 }
 
+void writeMidiCcMappingJson(std::ostream& out)
+{
+    const auto& mappings = chipper::midiCcMappings();
+    out << "  \"midiCcMappings\": [\n";
+    for (size_t i = 0; i < mappings.size(); ++i)
+    {
+        const auto& mapping = mappings[i];
+        out << "    {\n"
+            << "      \"cc\": " << mapping.controller << ",\n"
+            << "      \"parameterId\": ";
+        writeJsonString(out, mapping.parameterId != nullptr ? mapping.parameterId : "");
+        out << ",\n"
+            << "      \"label\": ";
+        writeJsonString(out, mapping.label != nullptr ? mapping.label : "");
+        out << "\n"
+            << "    }" << (i + 1u == mappings.size() ? "\n" : ",\n");
+    }
+    out << "  ]";
+}
+
 void writeDescriptorListJson(const std::filesystem::path& path, const std::vector<chipper::ChipMode>& modes)
 {
     std::ofstream out(path);
@@ -1030,6 +1050,8 @@ void writeDescriptorListJson(const std::filesystem::path& path, const std::vecto
 
     out << "  ],\n";
     writePresetCatalogJson(out, modes);
+    out << ",\n";
+    writeMidiCcMappingJson(out);
     out << "}\n";
 }
 

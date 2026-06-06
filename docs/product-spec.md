@@ -38,6 +38,8 @@ Accuracy levels:
 - Arp, retrigger, pitch motion, vibrato, glide, output trim
 - Debug/validation export controls in the renderer, not the VST audio thread
 
+All current VST parameters have fixed default MIDI CC mappings. Chip-aware controls use the same stable APVTS parameters for UI, host automation, preset recall, and MIDI CC control; register-style choices quantize to legal chip values instead of exposing fake continuous states.
+
 ## Preset Categories
 
 - NES Leads

@@ -14,6 +14,8 @@ def main() -> int:
     parser.add_argument("--param-kind", action="append", default=[], metavar="KEY:ROLE=KIND")
     parser.add_argument("--param-choices", action="append", default=[], metavar="KEY:ROLE=COUNT")
     parser.add_argument("--param-midi-cc", action="append", default=[], metavar="KEY:ROLE=CC")
+    parser.add_argument("--midi-cc-count", type=int)
+    parser.add_argument("--midi-cc", action="append", default=[], metavar="CC=PARAMETER_ID")
     parser.add_argument("--macro-label", action="append", default=[], metavar="KEY:MACRO=LABEL")
     parser.add_argument("--macro-source", action="append", default=[], metavar="KEY:MACRO=1010")
     parser.add_argument("--preset", action="append", default=[], metavar="ID")
@@ -37,6 +39,11 @@ def main() -> int:
         for item in data.get("presets", [])
         if isinstance(item, dict) and item.get("id")
     }
+    midi_cc_mappings = {
+        int(item.get("cc")): item
+        for item in data.get("midiCcMappings", [])
+        if isinstance(item, dict) and isinstance(item.get("cc"), int)
+    }
 
     if args.chip_count is not None and len(descriptors) != args.chip_count:
         failures.append(f"chip count expected {args.chip_count}, got {len(descriptors)}")
@@ -48,6 +55,26 @@ def main() -> int:
     for preset in args.preset:
         if preset not in presets:
             failures.append(f"preset {preset!r} not found")
+
+    if args.midi_cc_count is not None and len(midi_cc_mappings) != args.midi_cc_count:
+        failures.append(f"MIDI CC count expected {args.midi_cc_count}, got {len(midi_cc_mappings)}")
+
+    for assertion in args.midi_cc:
+        cc_text, _, expected = assertion.partition("=")
+        if not cc_text or not expected:
+            failures.append(f"bad MIDI CC assertion {assertion!r}")
+            continue
+        try:
+            cc = int(cc_text)
+        except ValueError:
+            failures.append(f"bad MIDI CC value {assertion!r}")
+            continue
+        if cc not in midi_cc_mappings:
+            failures.append(f"MIDI CC {cc} not found")
+            continue
+        actual = midi_cc_mappings[cc].get("parameterId")
+        if actual != expected:
+            failures.append(f"MIDI CC {cc} expected {expected!r}, got {actual!r}")
 
     def split_chip_assertion(assertion: str) -> tuple[str, str, str] | None:
         chip_and_role, _, value = assertion.partition("=")

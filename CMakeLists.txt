@@ -301,6 +301,11 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_list_descriptors_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
+    add_test(NAME chipper_render_list_cc_map_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --midi-cc-count 18 --midi-cc 70=chipMode --midi-cc 71=accuracy --midi-cc 72=clockHz --midi-cc 73=outputDb --midi-cc 74=macro --midi-cc 75=playMode --midi-cc 76=macroControl1 --midi-cc 77=macroControl2 --midi-cc 78=macroControl3 --midi-cc 79=macroControl4 --midi-cc 80=source1Enabled --midi-cc 81=source2Enabled --midi-cc 82=source3Enabled --midi-cc 83=source4Enabled --midi-cc 84=envelopeDecay --midi-cc 85=waveShape --midi-cc 86=ymEnvelopeShape --midi-cc 87=snNoiseMode
+    )
+    set_tests_properties(chipper_render_list_cc_map_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
+
     add_test(NAME chipper_render_describe_nes_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-descriptor.json --chip-count 1 --chip nes --implemented nes=1 --param-kind nes:macroControl1=chipRegister --param-surface nes:macroControl1=segmentedChoice --param-choices nes:macroControl1=4 --param-midi-cc nes:macroControl1=76 --param-surface nes:snNoiseMode=segmentedChoice --param-choices nes:snNoiseMode=3 --macro-label "nes:Coin=NES Coin Blip" --preset nes-hero-pulse
     )
