@@ -150,14 +150,29 @@ add_test(NAME chipper_render_sn76489_noise_level_max_smoke
 add_test(NAME chipper_render_preset_nes_hero_smoke
     COMMAND chipper_render --preset nes-hero-pulse --rate 48000 --seconds 0.04 --note 69 --out preset-nes-hero-smoke.wav --debug preset-nes-hero-smoke.json
 )
+add_test(NAME chipper_render_preset_nes_boss_damage_smoke
+    COMMAND chipper_render --preset nes-boss-damage --rate 48000 --seconds 0.04 --note 48 --out preset-nes-boss-damage-smoke.wav --debug preset-nes-boss-damage-smoke.json
+)
+add_test(NAME chipper_render_preset_nes_power_up_smoke
+    COMMAND chipper_render --preset nes-power-up-rise --rate 48000 --seconds 0.04 --note 69 --out preset-nes-power-up-smoke.wav --debug preset-nes-power-up-smoke.json
+)
 add_test(NAME chipper_render_preset_dmg_wave_bass_smoke
     COMMAND chipper_render --preset dmg-wave-bass --rate 48000 --seconds 0.04 --note 48 --out preset-dmg-wave-bass-smoke.wav --debug preset-dmg-wave-bass-smoke.json
+)
+add_test(NAME chipper_render_preset_dmg_power_up_smoke
+    COMMAND chipper_render --preset dmg-power-up-rise --rate 48000 --seconds 0.04 --note 69 --out preset-dmg-power-up-smoke.wav --debug preset-dmg-power-up-smoke.json
 )
 add_test(NAME chipper_render_preset_ym_noise_hat_smoke
     COMMAND chipper_render --preset ym-noise-hat --rate 48000 --seconds 0.04 --note 72 --out preset-ym-noise-hat-smoke.wav --debug preset-ym-noise-hat-smoke.json
 )
+add_test(NAME chipper_render_preset_ym_fake_chord_smoke
+    COMMAND chipper_render --preset ym-fake-chord-stack --rate 48000 --seconds 0.04 --note 60 --out preset-ym-fake-chord-smoke.wav --debug preset-ym-fake-chord-smoke.json
+)
 add_test(NAME chipper_render_preset_sn_noise_hit_smoke
     COMMAND chipper_render --preset sn-noise-hit --rate 48000 --seconds 0.04 --note 60 --out preset-sn-noise-hit-smoke.wav --debug preset-sn-noise-hit-smoke.json
+)
+add_test(NAME chipper_render_preset_sn_arcade_laser_smoke
+    COMMAND chipper_render --preset sn-arcade-laser --rate 48000 --seconds 0.04 --note 69 --out preset-sn-arcade-laser-smoke.wav --debug preset-sn-arcade-laser-smoke.json
 )
 add_test(NAME chipper_render_nes_coin_macro_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --macro coin --clock 1789773 --rate 48000 --seconds 0.10 --note 69 --out nes-coin-smoke.wav --debug nes-coin-smoke.json
@@ -279,7 +294,7 @@ add_test(NAME chipper_render_describe_nes_smoke
 
 if (Python3_Interpreter_FOUND)
     add_test(NAME chipper_render_list_descriptors_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip nes --chip dmg --chip ym2149 --chip sn76489 --chip sid --chip ym2612 --chip custom --implemented nes=1 --implemented dmg=1 --implemented ym2149=1 --implemented sn76489=1 --implemented sid=0 --param-kind nes:macroControl1=chipRegister --param-surface nes:macroControl1=segmentedChoice --param-choices nes:macroControl1=4 --param-midi-cc nes:macroControl1=76 --param-kind nes:macroControl3=chipRegister --param-surface nes:macroControl3=slider --param-midi-cc nes:macroControl3=78 --param-surface nes:snNoiseMode=segmentedChoice --param-choices nes:snNoiseMode=3 --param-kind dmg:macroControl2=chipRegister --param-surface dmg:macroControl2=slider --param-midi-cc dmg:macroControl2=77 --param-kind dmg:macroControl3=chipRegister --param-surface dmg:macroControl3=slider --param-midi-cc dmg:macroControl3=78 --param-kind dmg:macroControl4=chipRegister --param-surface dmg:macroControl4=slider --param-midi-cc dmg:macroControl4=79 --param-surface dmg:waveShape=segmentedChoice --param-choices dmg:waveShape=5 --param-midi-cc dmg:waveShape=85 --param-surface dmg:snNoiseMode=segmentedChoice --param-choices dmg:snNoiseMode=3 --param-kind ym2149:macroControl3=chipRegister --param-surface ym2149:macroControl3=slider --param-midi-cc ym2149:macroControl3=78 --param-kind ym2149:macroControl4=chipRegister --param-surface ym2149:macroControl4=segmentedChoice --param-choices ym2149:macroControl4=3 --param-kind ym2149:envelopeDecay=chipRegister --param-surface ym2149:envelopeDecay=slider --param-midi-cc ym2149:envelopeDecay=84 --param-surface ym2149:ymEnvelopeShape=segmentedChoice --param-choices ym2149:ymEnvelopeShape=5 --param-kind sn76489:macroControl3=chipRegister --param-surface sn76489:macroControl3=slider --param-midi-cc sn76489:macroControl3=78 --param-kind sn76489:macroControl4=chipRegister --param-surface sn76489:macroControl4=slider --param-midi-cc sn76489:macroControl4=79 --param-surface sn76489:snNoiseMode=segmentedChoice --param-choices sn76489:snNoiseMode=5 --macro-label "nes:Coin=NES Coin Blip" --macro-label "dmg:Bass=DMG Wave Bass" --macro-label "ym2149:Drum=YM Noise Perc" --macro-label "sn76489:Drum=PSG Drum" --macro-source nes:Drum=0011 --macro-source dmg:Bass=0010 --macro-source ym2149:Drum=1001 --macro-source sn76489:Drum=0001 --preset nes-hero-pulse --preset dmg-wave-bass --preset ym-noise-hat --preset sn-noise-hit
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip nes --chip dmg --chip ym2149 --chip sn76489 --chip sid --chip ym2612 --chip custom --implemented nes=1 --implemented dmg=1 --implemented ym2149=1 --implemented sn76489=1 --implemented sid=0 --param-kind nes:macroControl1=chipRegister --param-surface nes:macroControl1=segmentedChoice --param-choices nes:macroControl1=4 --param-midi-cc nes:macroControl1=76 --param-kind nes:macroControl3=chipRegister --param-surface nes:macroControl3=slider --param-midi-cc nes:macroControl3=78 --param-surface nes:snNoiseMode=segmentedChoice --param-choices nes:snNoiseMode=3 --param-kind dmg:macroControl2=chipRegister --param-surface dmg:macroControl2=slider --param-midi-cc dmg:macroControl2=77 --param-kind dmg:macroControl3=chipRegister --param-surface dmg:macroControl3=slider --param-midi-cc dmg:macroControl3=78 --param-kind dmg:macroControl4=chipRegister --param-surface dmg:macroControl4=slider --param-midi-cc dmg:macroControl4=79 --param-surface dmg:waveShape=segmentedChoice --param-choices dmg:waveShape=5 --param-midi-cc dmg:waveShape=85 --param-surface dmg:snNoiseMode=segmentedChoice --param-choices dmg:snNoiseMode=3 --param-kind ym2149:macroControl3=chipRegister --param-surface ym2149:macroControl3=slider --param-midi-cc ym2149:macroControl3=78 --param-kind ym2149:macroControl4=chipRegister --param-surface ym2149:macroControl4=segmentedChoice --param-choices ym2149:macroControl4=3 --param-kind ym2149:envelopeDecay=chipRegister --param-surface ym2149:envelopeDecay=slider --param-midi-cc ym2149:envelopeDecay=84 --param-surface ym2149:ymEnvelopeShape=segmentedChoice --param-choices ym2149:ymEnvelopeShape=5 --param-kind sn76489:macroControl3=chipRegister --param-surface sn76489:macroControl3=slider --param-midi-cc sn76489:macroControl3=78 --param-kind sn76489:macroControl4=chipRegister --param-surface sn76489:macroControl4=slider --param-midi-cc sn76489:macroControl4=79 --param-surface sn76489:snNoiseMode=segmentedChoice --param-choices sn76489:snNoiseMode=5 --macro-label "nes:Coin=NES Coin Blip" --macro-label "dmg:Bass=DMG Wave Bass" --macro-label "ym2149:Drum=YM Noise Perc" --macro-label "sn76489:Drum=PSG Drum" --macro-source nes:Drum=0011 --macro-source dmg:Bass=0010 --macro-source ym2149:Drum=1001 --macro-source sn76489:Drum=0001 --preset nes-hero-pulse --preset nes-boss-damage --preset nes-power-up-rise --preset dmg-wave-bass --preset dmg-power-up-rise --preset ym-noise-hat --preset ym-fake-chord-stack --preset sn-noise-hit --preset sn-arcade-laser
     )
     set_tests_properties(chipper_render_list_descriptors_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -473,20 +488,45 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_preset_nes_hero_assert PROPERTIES DEPENDS chipper_render_preset_nes_hero_smoke)
 
+    add_test(NAME chipper_render_preset_nes_boss_damage_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-boss-damage-smoke.json --implemented-contains partial --preset nes-boss-damage --macro Hit --play-mode "Big Mono" --register-writes 0 --note-events 0 --min-peak 0.1 --min-zero-crossings 100 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1 --core-min noiseModeChoice=2 --core-max noiseModeChoice=2
+    )
+    set_tests_properties(chipper_render_preset_nes_boss_damage_assert PROPERTIES DEPENDS chipper_render_preset_nes_boss_damage_smoke)
+
+    add_test(NAME chipper_render_preset_nes_power_up_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-power-up-smoke.json --implemented-contains partial --preset nes-power-up-rise --macro Power-Up --play-mode "Big Mono" --register-writes 0 --note-events 0 --min-peak 0.1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0
+    )
+    set_tests_properties(chipper_render_preset_nes_power_up_assert PROPERTIES DEPENDS chipper_render_preset_nes_power_up_smoke)
+
     add_test(NAME chipper_render_preset_dmg_wave_bass_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-dmg-wave-bass-smoke.json --implemented-contains partial --preset dmg-wave-bass --macro Bass --play-mode "Big Mono" --register-writes 0 --note-events 0 --min-peak 0.1 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min waveShape=1 --core-max waveShape=1 --core-min enabledWave=1 --core-max enabledWave=1
     )
     set_tests_properties(chipper_render_preset_dmg_wave_bass_assert PROPERTIES DEPENDS chipper_render_preset_dmg_wave_bass_smoke)
+
+    add_test(NAME chipper_render_preset_dmg_power_up_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-dmg-power-up-smoke.json --implemented-contains partial --preset dmg-power-up-rise --macro Power-Up --play-mode "Big Mono" --register-writes 0 --note-events 0 --min-peak 0.1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min waveShape=2 --core-max waveShape=2 --core-min enabledWave=1 --core-max enabledWave=1
+    )
+    set_tests_properties(chipper_render_preset_dmg_power_up_assert PROPERTIES DEPENDS chipper_render_preset_dmg_power_up_smoke)
 
     add_test(NAME chipper_render_preset_ym_noise_hat_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-noise-hat-smoke.json --implemented-contains partial --preset ym-noise-hat --macro Drum --play-mode "Big Mono" --register-writes 0 --note-events 0 --min-peak 0.1 --min-zero-crossings 100 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=0 --core-max sourceEnabledB=0 --core-min sourceEnabledC=0 --core-max sourceEnabledC=0 --core-min sourceEnabledNoise=1 --core-max sourceEnabledNoise=1 --core-min mixer=55 --core-max mixer=55 --core-min envelopeShapeChoice=1 --core-max envelopeShapeChoice=1
     )
     set_tests_properties(chipper_render_preset_ym_noise_hat_assert PROPERTIES DEPENDS chipper_render_preset_ym_noise_hat_smoke)
 
+    add_test(NAME chipper_render_preset_ym_fake_chord_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-fake-chord-smoke.json --implemented-contains partial --preset ym-fake-chord-stack --macro Arp --play-mode "Big Mono" --register-writes 0 --note-events 0 --min-peak 0.1 --min-zero-crossings 40 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=1 --core-max sourceEnabledB=1 --core-min sourceEnabledC=1 --core-max sourceEnabledC=1 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0
+    )
+    set_tests_properties(chipper_render_preset_ym_fake_chord_assert PROPERTIES DEPENDS chipper_render_preset_ym_fake_chord_smoke)
+
     add_test(NAME chipper_render_preset_sn_noise_hit_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sn-noise-hit-smoke.json --implemented-contains partial --preset sn-noise-hit --macro Drum --play-mode "Big Mono" --register-writes 0 --note-events 0 --min-peak 0.05 --min-zero-crossings 50 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabledNoise=1 --core-max sourceEnabledNoise=1 --core-min noiseModeChoice=3 --core-max noiseModeChoice=3 --core-min noiseControl=4 --core-max noiseControl=4 --core-min attenuationNoise=2 --core-max attenuationNoise=2
     )
     set_tests_properties(chipper_render_preset_sn_noise_hit_assert PROPERTIES DEPENDS chipper_render_preset_sn_noise_hit_smoke)
+
+    add_test(NAME chipper_render_preset_sn_arcade_laser_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sn-arcade-laser-smoke.json --implemented-contains partial --preset sn-arcade-laser --macro Laser --play-mode "Big Mono" --register-writes 0 --note-events 0 --min-peak 0.05 --min-zero-crossings 50 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabledNoise=1 --core-max sourceEnabledNoise=1 --core-min noiseModeChoice=4 --core-max noiseModeChoice=4 --core-min noiseControl=7 --core-max noiseControl=7
+    )
+    set_tests_properties(chipper_render_preset_sn_arcade_laser_assert PROPERTIES DEPENDS chipper_render_preset_sn_arcade_laser_smoke)
 
     add_test(NAME chipper_render_dmg_json_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-smoke.json --implemented-contains partial --macro Lead --min-peak 0.1 --min-rms 0.03 --register-writes 0 --note-events 0 --min-zero-crossings 30 --max-zero-crossings 80 --core-min pulse1FreqReg=800 --core-max pulse1FreqReg=860 --core-min sweepRegister=28 --core-max sweepRegister=28 --core-min sweepPace=1 --core-max sweepPace=1 --core-min sweepShift=4 --core-max sweepShift=4 --core-min sweepSubtract=1 --core-max sweepSubtract=1 --core-min sweepEnabled=1 --core-max sweepEnabled=1 --core-min enabled0=1 --core-max enabled0=1 --core-min enabledNoise=0 --core-max enabledNoise=0 --descriptor-param-kind macroControl2=chipRegister --descriptor-param-surface macroControl2=slider --descriptor-param-label "macroControl2=Sweep Shift" --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=Noise Mode" --descriptor-param-choices snNoiseMode=3

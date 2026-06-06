@@ -67,14 +67,19 @@ Factory preset v1 should prioritize implemented chips and avoid implying that pl
 - NES Triangle Bass
 - NES Noise Snare
 - NES Coin Blip
+- NES Boss Damage
+- NES Power-Up Rise
 - DMG Wave Bass
 - DMG Pocket Arp
 - DMG Noise Hat
+- DMG Power-Up Rise
 - YM Three-Voice Arp
+- YM Fake Chord Stack
 - YM Menu Beep
 - YM Noise Hat
 - Sega PSG Lead
 - Sega PSG Coin
+- Sega PSG Arcade Laser
 - PSG Noise Hit
 
 Roadmap preset targets, kept as product direction until their chip cores exist:
@@ -85,10 +90,6 @@ Roadmap preset targets, kept as product direction until their chip cores exist:
 - SID Filter Sweep
 - Genesis FM Bass
 - OPL Bell Lead
-- Arcade Laser
-- Fake Chord Stack
-- Boss Damage
-- Power-Up Rise
 
 ## DSP Architecture Outline
 
