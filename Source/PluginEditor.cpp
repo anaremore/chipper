@@ -855,6 +855,37 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
             }
         };
         addAndMakeVisible(box);
+
+        auto& slider = sidAdsrSliders[i];
+        slider.setSliderStyle(juce::Slider::LinearVertical);
+        slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 50, 16);
+        slider.setRange(0.0, static_cast<double>(sidAdsrChoiceCount - 1u), 1.0);
+        slider.setColour(juce::Slider::trackColourId, juce::Colour(0xfff7d85a));
+        slider.setColour(juce::Slider::thumbColourId, juce::Colour(0xff56c7d8));
+        slider.setColour(juce::Slider::textBoxTextColourId, juce::Colour(0xfff4f7f8));
+        slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour(0xff10181c));
+        slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colour(0xff53636c));
+        slider.textFromValueFunction = [](double value)
+        {
+            const auto choice = static_cast<int>(std::round(value));
+            return choice <= 0 ? juce::String("Follow") : juce::String(choice - 1);
+        };
+        slider.valueFromTextFunction = [](const juce::String& text)
+        {
+            const auto trimmed = text.trim();
+            if (trimmed.equalsIgnoreCase("follow") || trimmed.equalsIgnoreCase("f"))
+                return 0.0;
+
+            return static_cast<double>(std::clamp(trimmed.getIntValue() + 1, 0, static_cast<int>(sidAdsrChoiceCount - 1u)));
+        };
+        slider.setTooltip(withMidiCcForRole("SID ADSR nibble override.", sidAdsrRole(i)));
+        slider.onValueChange = [this, i]()
+        {
+            setChoiceParameterFromUi(sidAdsrParameterId(i), static_cast<int>(std::round(sidAdsrSliders[i].getValue())));
+            updateLiveControlReadouts();
+        };
+        slider.setVisible(false);
+        addAndMakeVisible(slider);
     }
 
     const std::array<const char*, 4> ids {
@@ -1615,33 +1646,34 @@ void ChipperAudioProcessorEditor::resized()
 
     if (displayedMode == chipper::ChipMode::sid)
     {
-        const auto columnGap = 10;
-        auto leftColumn = tonePanel.removeFromLeft((tonePanel.getWidth() - columnGap) / 2);
-        tonePanel.removeFromLeft(columnGap);
-        auto rightColumn = tonePanel;
-
         const auto placeFilterSlider = [](juce::Slider& slider,
                                           juce::Label& label,
                                           juce::Label& valueLabel,
                                           juce::Rectangle<int> bounds)
         {
-            auto header = bounds.removeFromTop(std::min(15, bounds.getHeight()));
-            label.setBounds(header.removeFromLeft(std::min(86, header.getWidth())));
+            auto header = bounds.removeFromTop(std::min(16, bounds.getHeight()));
+            label.setBounds(header.removeFromLeft(std::min(92, header.getWidth())));
             valueLabel.setJustificationType(juce::Justification::centredRight);
             valueLabel.setBounds(header);
-            bounds.removeFromTop(1);
+            bounds.removeFromTop(2);
             slider.setBounds(bounds.removeFromTop(std::min(22, bounds.getHeight())).reduced(0, 1));
         };
 
-        auto cutoffPanel = leftColumn.removeFromTop(std::min(40, leftColumn.getHeight()));
-        placeFilterSlider(nativeSliders[2], nativeLabels[2], controlValueLabels[2], cutoffPanel);
-        leftColumn.removeFromTop(6);
-        placeFilterSlider(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, leftColumn);
+        const auto columnGap = 12;
+        const auto rowGap = 6;
+        auto topRow = tonePanel.removeFromTop(std::min(36, tonePanel.getHeight()));
+        tonePanel.removeFromTop(rowGap);
+        auto bottomRow = tonePanel;
 
-        auto filterModePanel = rightColumn.removeFromTop(std::min(48, rightColumn.getHeight()));
-        placeYmEnvelopeShapeSegment(filterModePanel);
-        rightColumn.removeFromTop(6);
-        placeSidFilterRoutingControl(rightColumn);
+        auto cutoffPanel = topRow.removeFromLeft((topRow.getWidth() - columnGap) / 2);
+        topRow.removeFromLeft(columnGap);
+        placeFilterSlider(nativeSliders[2], nativeLabels[2], controlValueLabels[2], cutoffPanel);
+        placeFilterSlider(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, topRow);
+
+        auto modePanel = bottomRow.removeFromLeft((bottomRow.getWidth() - columnGap) / 2);
+        bottomRow.removeFromLeft(columnGap);
+        placeYmEnvelopeShapeSegment(modePanel);
+        placeSidFilterRoutingControl(bottomRow);
     }
     else if (displayedMode == chipper::ChipMode::ym2149)
         placeYmChannelMixControls(primaryTonePanel);
@@ -1739,8 +1771,8 @@ void ChipperAudioProcessorEditor::resized()
     controlValueLabels[5].setJustificationType(juce::Justification::centredRight);
     controlValueLabels[5].setBounds(outputHeader);
     outputCell.removeFromTop(3);
-    outputSlider.setBounds(outputCell.removeFromTop(24).reduced(0, 1));
-    outputCell.removeFromTop(4);
+    outputSlider.setBounds(outputCell.removeFromTop(displayedMode == chipper::ChipMode::sid ? 18 : 24).reduced(0, 1));
+    outputCell.removeFromTop(displayedMode == chipper::ChipMode::sid ? 2 : 4);
     outputScopePreview.setBounds(outputCell.reduced(0, 1));
 
     auto footer = getLocalBounds().reduced(16).removeFromBottom(44);
@@ -1811,43 +1843,39 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
     envelopeDecayLabel.setBounds(speedRow.removeFromLeft(82));
     envelopeDecayValueLabel.setBounds(speedRow.removeFromRight(116));
     envelopeDecaySlider.setBounds(speedRow.reduced(0, 1));
-    bounds.removeFromTop(3);
+    bounds.removeFromTop(6);
 
-    constexpr auto voiceWidth = 24;
-    constexpr auto voiceGap = 4;
-    constexpr auto fieldGap = 4;
-    constexpr auto fieldWidth = 58;
+    for (auto& label : sidAdsrHeaderLabels)
+        label.setBounds({});
 
-    auto headerRow = bounds.removeFromTop(std::min(15, bounds.getHeight()));
-    headerRow.removeFromLeft(voiceWidth + voiceGap);
-    for (size_t field = 0; field < sidAdsrFieldCount; ++field)
-    {
-        auto cell = headerRow.removeFromLeft(std::min(fieldWidth, headerRow.getWidth()));
-        sidAdsrHeaderLabels[field].setBounds(cell);
-        if (field + 1u < sidAdsrFieldCount)
-            headerRow.removeFromLeft(fieldGap);
-    }
-    bounds.removeFromTop(1);
-
+    constexpr auto voiceGap = 10;
+    const auto voiceWidth = (bounds.getWidth() - (voiceGap * static_cast<int>(sidAdsrVoiceCount - 1u))) / static_cast<int>(sidAdsrVoiceCount);
+    const auto voiceHeight = bounds.getHeight();
     for (size_t voice = 0; voice < sidAdsrVoiceCount; ++voice)
     {
-        auto row = bounds.removeFromTop(std::min(22, bounds.getHeight())).reduced(0, 1);
-        sidEnvelopeVoiceLabels[voice].setBounds(row.removeFromLeft(voiceWidth));
-        row.removeFromLeft(voiceGap);
+        auto voiceColumn = bounds.removeFromLeft(voiceWidth).reduced(0, 1);
+        if (voice + 1u < sidAdsrVoiceCount)
+            bounds.removeFromLeft(voiceGap);
 
+        sidEnvelopeVoiceLabels[voice].setBounds(voiceColumn.removeFromTop(std::min(16, voiceColumn.getHeight())));
+        voiceColumn.removeFromTop(2);
+        sidEnvelopePreviews[voice].setBounds(voiceColumn.removeFromTop(std::min(30, voiceColumn.getHeight())).reduced(0, 1));
+        voiceColumn.removeFromTop(3);
+
+        auto sliderRow = voiceColumn.withHeight(std::min(voiceColumn.getHeight(), std::max(52, voiceHeight - 51)));
+        constexpr auto fieldGap = 4;
+        const auto fieldWidth = (sliderRow.getWidth() - (fieldGap * static_cast<int>(sidAdsrFieldCount - 1u))) / static_cast<int>(sidAdsrFieldCount);
         for (size_t field = 0; field < sidAdsrFieldCount; ++field)
         {
             const auto index = (voice * sidAdsrFieldCount) + field;
-            auto cell = row.removeFromLeft(std::min(fieldWidth, row.getWidth()));
-            sidAdsrLabels[index].setBounds({});
-            sidAdsrLabels[index].setVisible(false);
-            sidAdsrBoxes[index].setBounds(cell);
+            auto cell = sliderRow.removeFromLeft(fieldWidth);
             if (field + 1u < sidAdsrFieldCount)
-                row.removeFromLeft(fieldGap);
-        }
+                sliderRow.removeFromLeft(fieldGap);
 
-        sidEnvelopePreviews[voice].setBounds(row.reduced(6, 1));
-        bounds.removeFromTop(1);
+            sidAdsrLabels[index].setBounds(cell.removeFromTop(13));
+            sidAdsrSliders[index].setBounds(cell.reduced(0, 1));
+            sidAdsrBoxes[index].setBounds({});
+        }
     }
 }
 
@@ -3354,11 +3382,13 @@ void ChipperAudioProcessorEditor::setSidAdsrControlsVisible(bool shouldBeVisible
     for (auto& preview : sidEnvelopePreviews)
         preview.setVisible(shouldBeVisible);
     for (auto& label : sidAdsrHeaderLabels)
-        label.setVisible(shouldBeVisible);
-    for (auto& label : sidAdsrLabels)
         label.setVisible(false);
+    for (auto& label : sidAdsrLabels)
+        label.setVisible(shouldBeVisible);
     for (auto& box : sidAdsrBoxes)
-        box.setVisible(shouldBeVisible);
+        box.setVisible(false);
+    for (auto& slider : sidAdsrSliders)
+        slider.setVisible(shouldBeVisible);
 
     if (shouldBeVisible)
         updateSidAdsrControls(true);
@@ -3643,7 +3673,7 @@ void ChipperAudioProcessorEditor::updateSidAdsrControls(bool shouldBeVisible)
 
     juce::String combinedTooltip;
     for (auto& label : sidAdsrHeaderLabels)
-        label.setVisible(shouldBeVisible);
+        label.setVisible(false);
 
     for (size_t voice = 0; voice < sidAdsrVoiceCount; ++voice)
     {
@@ -3670,9 +3700,20 @@ void ChipperAudioProcessorEditor::updateSidAdsrControls(bool shouldBeVisible)
     for (size_t i = 0; i < sidAdsrBoxes.size(); ++i)
     {
         const auto selected = static_cast<int>(std::round(parameterValue(sidAdsrParameterId(i))));
-        sidAdsrLabels[i].setVisible(false);
-        sidAdsrBoxes[i].setVisible(shouldBeVisible);
+        const auto clamped = std::clamp(selected, 0, static_cast<int>(sidAdsrChoiceCount - 1u));
+        const auto nibbleText = clamped == 0 ? juce::String("Follow") : juce::String(clamped - 1);
+        sidAdsrLabels[i].setVisible(shouldBeVisible);
+        sidAdsrLabels[i].setTooltip(withMidiCcForRole(juce::String("SID ") + sidAdsrFieldLabel(i % sidAdsrFieldCount)
+                                                          + " override: " + nibbleText,
+                                                      sidAdsrRole(i)));
+        sidAdsrBoxes[i].setVisible(false);
         sidAdsrBoxes[i].setSelectedItemIndex(std::clamp(selected, 0, static_cast<int>(sidAdsrChoiceCount - 1u)), juce::dontSendNotification);
+        sidAdsrSliders[i].setVisible(shouldBeVisible);
+        sidAdsrSliders[i].setTooltip(withMidiCcForRole(juce::String("SID ") + sidAdsrFieldLabel(i % sidAdsrFieldCount)
+                                                           + " override: " + nibbleText
+                                                           + ". Follow uses the macro/control-resolved register nibble.",
+                                                       sidAdsrRole(i)));
+        sidAdsrSliders[i].setValue(clamped, juce::dontSendNotification);
     }
 
     if (shouldBeVisible)

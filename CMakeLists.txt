@@ -93,6 +93,9 @@ add_test(NAME chipper_render_sid_filter_notch_smoke
 add_test(NAME chipper_render_sid_filter_route_v3_smoke
     COMMAND chipper_render --chip sid --accuracy authentic --macro manual --wave-shape pulse --sid-filter-mode lp --sid-filter-routing v3 --stereo-spread 0.0 --control3 0.45 --clock 985248 --rate 48000 --seconds 0.04 --note 69 --out sid-filter-route-v3-smoke.wav --debug sid-filter-route-v3-smoke.json
 )
+add_test(NAME chipper_render_sid_follow_aliases_smoke
+    COMMAND chipper_render --chip sid --accuracy authentic --macro lead --wave-shape follow --sid-voice2-wave follow --sid-voice3-wave follow --sid-filter-mode follow --sid-filter-routing follow --sid-mod-mode follow --sid-model follow --sid-attack follow --sid-decay follow --sid-sustain follow --sid-release follow --clock 985248 --rate 48000 --seconds 0.04 --note 69 --out sid-follow-aliases-smoke.wav --debug sid-follow-aliases-smoke.json
+)
 add_test(NAME chipper_render_nes_chip_poly_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --macro manual --play-mode chip-poly --clock 1789773 --rate 48000 --seconds 0.02 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/nes-chip-poly-events.txt --out nes-chip-poly-smoke.wav --debug nes-chip-poly-smoke.json
 )
@@ -104,6 +107,9 @@ add_test(NAME chipper_render_nes_duty_75_smoke
 )
 add_test(NAME chipper_render_nes_pulse2_duty_override_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --macro manual --control1 0.0 --nes-pulse2-duty 75 --clock 1789773 --rate 48000 --seconds 0.01 --note 69 --out nes-pulse2-duty-smoke.wav --debug nes-pulse2-duty-smoke.json
+)
+add_test(NAME chipper_render_nes_pulse2_duty_follow_smoke
+    COMMAND chipper_render --chip nes --accuracy authentic --macro manual --control1 0.0 --nes-pulse2-duty follow --clock 1789773 --rate 48000 --seconds 0.01 --note 69 --out nes-pulse2-duty-follow-smoke.wav --debug nes-pulse2-duty-follow-smoke.json
 )
 add_test(NAME chipper_render_nes_sources_off_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 0 --clock 1789773 --rate 48000 --seconds 0.01 --note 69 --out nes-sources-off-smoke.wav --debug nes-sources-off-smoke.json
@@ -155,6 +161,9 @@ add_test(NAME chipper_render_ym2149_mixer_both_smoke
 )
 add_test(NAME chipper_render_ym2149_channel_mix_smoke
     COMMAND chipper_render --chip ym2149 --accuracy authentic --macro manual --control4 0.5 --ym-channel-a-mix tone --ym-channel-b-mix noise --ym-channel-c-mix off --clock 2000000 --rate 48000 --seconds 0.03 --note 72 --out ym-channel-mix-smoke.wav --debug ym-channel-mix-smoke.json
+)
+add_test(NAME chipper_render_ym2149_channel_mix_follow_smoke
+    COMMAND chipper_render --chip ym2149 --accuracy authentic --macro manual --control4 0.5 --ym-channel-a-mix follow --ym-channel-b-mix follow --ym-channel-c-mix follow --clock 2000000 --rate 48000 --seconds 0.03 --note 72 --out ym-channel-mix-follow-smoke.wav --debug ym-channel-mix-follow-smoke.json
 )
 add_test(NAME chipper_render_ym2149_envelope_fall_smoke
     COMMAND chipper_render --chip ym2149 --accuracy authentic --macro manual --ym-envelope-shape fall --clock 2000000 --rate 48000 --seconds 0.05 --note 72 --out ym-envelope-fall-smoke.wav --debug ym-envelope-fall-smoke.json
@@ -260,6 +269,18 @@ add_test(NAME chipper_render_preset_sid_bphp_metal_bell_smoke
 )
 add_test(NAME chipper_render_preset_sid_allmode_growl_smoke
     COMMAND chipper_render --preset sid-allmode-growl --rate 48000 --seconds 0.04 --note 48 --out preset-sid-allmode-growl-smoke.wav --debug preset-sid-allmode-growl-smoke.json
+)
+add_test(NAME chipper_render_preset_sid_pwm_bass_split_smoke
+    COMMAND chipper_render --preset sid-pwm-bass-split --rate 48000 --seconds 0.04 --note 48 --out preset-sid-pwm-bass-split-smoke.wav --debug preset-sid-pwm-bass-split-smoke.json
+)
+add_test(NAME chipper_render_preset_sid_wide_pwm_pad_smoke
+    COMMAND chipper_render --preset sid-wide-pwm-pad --rate 48000 --seconds 0.08 --note 60 --out preset-sid-wide-pwm-pad-smoke.wav --debug preset-sid-wide-pwm-pad-smoke.json
+)
+add_test(NAME chipper_render_preset_sid_hard_sync_saw_smoke
+    COMMAND chipper_render --preset sid-hard-sync-saw --rate 48000 --seconds 0.04 --note 69 --out preset-sid-hard-sync-saw-smoke.wav --debug preset-sid-hard-sync-saw-smoke.json
+)
+add_test(NAME chipper_render_preset_sid_gated_noise_tom_smoke
+    COMMAND chipper_render --preset sid-gated-noise-tom --rate 48000 --seconds 0.04 --note 43 --out preset-sid-gated-noise-tom-smoke.wav --debug preset-sid-gated-noise-tom-smoke.json
 )
 add_test(NAME chipper_render_preset_ym_noise_hat_smoke
     COMMAND chipper_render --preset ym-noise-hat --rate 48000 --seconds 0.04 --note 72 --out preset-ym-noise-hat-smoke.wav --debug preset-ym-noise-hat-smoke.json
@@ -553,6 +574,11 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_sid_filter_route_v3_assert PROPERTIES DEPENDS chipper_render_sid_filter_route_v3_smoke)
 
+    add_test(NAME chipper_render_sid_follow_aliases_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-follow-aliases-smoke.json --implemented-contains partial --macro Lead --register-writes 0 --note-events 0 --min-peak 0.05 --core-min waveformChoice=0 --core-max waveformChoice=0 --core-min waveformChoice1=0 --core-max waveformChoice1=0 --core-min waveformChoice2=0 --core-max waveformChoice2=0 --core-min waveformBits=64 --core-max waveformBits=64 --core-min filterModeChoice=0 --core-max filterModeChoice=0 --core-min filterModeBits=16 --core-max filterModeBits=16 --core-min filterRoutingChoice=0 --core-max filterRoutingChoice=0 --core-min filterRoutingBits=7 --core-max filterRoutingBits=7 --core-min modModeChoice=0 --core-max modModeChoice=0 --core-min modBits1=0 --core-max modBits1=0 --core-min modBits2=0 --core-max modBits2=0 --core-min sidModelChoice=2 --core-max sidModelChoice=2 --core-min attackChoice=0 --core-max attackChoice=0 --core-min decayChoice=0 --core-max decayChoice=0 --core-min sustainChoice=0 --core-max sustainChoice=0 --core-min releaseChoice=0 --core-max releaseChoice=0
+    )
+    set_tests_properties(chipper_render_sid_follow_aliases_assert PROPERTIES DEPENDS chipper_render_sid_follow_aliases_smoke)
+
     add_test(NAME chipper_render_nes_chip_poly_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 3 --min-peak 0.1 --core-min activeChannels=3 --core-max activeChannels=3 --core-min assignedNotePulse1=60 --core-max assignedNotePulse1=60 --core-min assignedNotePulse2=64 --core-max assignedNotePulse2=64 --core-min assignedNoteTriangle=67 --core-max assignedNoteTriangle=67 --core-min pulseTimer1=427 --core-max pulseTimer1=427 --core-min pulseTimer2=338 --core-max pulseTimer2=338 --core-min triangleTimer=142 --core-max triangleTimer=142 --core-min triangleActive=1 --core-max triangleActive=1
     )
@@ -572,6 +598,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-pulse2-duty-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.1 --core-min pulseDuty1=0 --core-max pulseDuty1=0 --core-min pulseDuty2=3 --core-max pulseDuty2=3 --core-min pulse2DutyChoice=4 --core-max pulse2DutyChoice=4 --descriptor-param-kind pulse2Duty=chipRegister --descriptor-param-surface pulse2Duty=segmentedChoice --descriptor-param-label "pulse2Duty=Pulse 2 Duty" --descriptor-param-choices pulse2Duty=5
     )
     set_tests_properties(chipper_render_nes_pulse2_duty_override_assert PROPERTIES DEPENDS chipper_render_nes_pulse2_duty_override_smoke)
+
+    add_test(NAME chipper_render_nes_pulse2_duty_follow_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-pulse2-duty-follow-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.1 --core-min pulseDuty1=0 --core-max pulseDuty1=0 --core-min pulseDuty2=1 --core-max pulseDuty2=1 --core-min pulse2DutyChoice=0 --core-max pulse2DutyChoice=0
+    )
+    set_tests_properties(chipper_render_nes_pulse2_duty_follow_assert PROPERTIES DEPENDS chipper_render_nes_pulse2_duty_follow_smoke)
 
     add_test(NAME chipper_render_nes_sources_off_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-sources-off-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --max-peak 0.001 --max-rms 0.001 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min enabled0=0 --core-max enabled0=0 --core-min enabled1=0 --core-max enabled1=0 --core-min enabled2=0 --core-max enabled2=0 --core-min enabled3=0 --core-max enabled3=0
@@ -652,6 +683,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-channel-mix-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.02 --core-min mixer=46 --core-max mixer=46 --core-min channelMixChoiceA=1 --core-max channelMixChoiceA=1 --core-min channelMixChoiceB=2 --core-max channelMixChoiceB=2 --core-min channelMixChoiceC=4 --core-max channelMixChoiceC=4 --core-min toneEnabledA=1 --core-max toneEnabledA=1 --core-min noiseEnabledA=0 --core-max noiseEnabledA=0 --core-min toneEnabledB=0 --core-max toneEnabledB=0 --core-min noiseEnabledB=1 --core-max noiseEnabledB=1 --core-min toneEnabledC=0 --core-max toneEnabledC=0 --core-min noiseEnabledC=0 --core-max noiseEnabledC=0 --descriptor-param-kind ymChannelAMix=chipRegister --descriptor-param-surface ymChannelAMix=menu --descriptor-param-choices ymChannelAMix=5
     )
     set_tests_properties(chipper_render_ym2149_channel_mix_assert PROPERTIES DEPENDS chipper_render_ym2149_channel_mix_smoke)
+
+    add_test(NAME chipper_render_ym2149_channel_mix_follow_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-channel-mix-follow-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.02 --core-min mixer=56 --core-max mixer=56 --core-min channelMixChoiceA=0 --core-max channelMixChoiceA=0 --core-min channelMixChoiceB=0 --core-max channelMixChoiceB=0 --core-min channelMixChoiceC=0 --core-max channelMixChoiceC=0 --core-min toneEnabledA=1 --core-max toneEnabledA=1 --core-min noiseEnabledA=0 --core-max noiseEnabledA=0 --core-min toneEnabledB=1 --core-max toneEnabledB=1 --core-min noiseEnabledB=0 --core-max noiseEnabledB=0 --core-min toneEnabledC=1 --core-max toneEnabledC=1 --core-min noiseEnabledC=0 --core-max noiseEnabledC=0
+    )
+    set_tests_properties(chipper_render_ym2149_channel_mix_follow_assert PROPERTIES DEPENDS chipper_render_ym2149_channel_mix_follow_smoke)
 
     add_test(NAME chipper_render_ym2149_envelope_fall_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-envelope-fall-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.02 --core-min envelopeShapeChoice=1 --core-max envelopeShapeChoice=1 --core-min envelopeShape=9 --core-max envelopeShape=9 --core-min envelopeEnabledA=1 --core-max envelopeEnabledA=1 --core-min envelopeEnabledB=1 --core-max envelopeEnabledB=1 --core-min envelopeEnabledC=1 --core-max envelopeEnabledC=1 --core-min volumeA=16 --core-max volumeA=16 --descriptor-param-kind ymEnvelopeShape=chipRegister --descriptor-param-surface ymEnvelopeShape=segmentedChoice --descriptor-param-choices ymEnvelopeShape=5
@@ -822,6 +858,26 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sid-allmode-growl-smoke.json --implemented-contains partial --preset sid-allmode-growl --macro Bass --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.01 --core-min filterModeChoice=8 --core-max filterModeChoice=8 --core-min filterModeBits=112 --core-max filterModeBits=112 --core-min filterModeVolume=127 --core-max filterModeVolume=127 --core-min modModeChoice=4 --core-max modModeChoice=4 --core-min waveformChoice0=3 --core-max waveformChoice0=3 --core-min waveformChoice1=2 --core-max waveformChoice1=2 --core-min waveformChoice2=4 --core-max waveformChoice2=4 --core-min sourceLevel1=0.82 --core-max sourceLevel1=0.82 --core-min sourceLevel2=0.58 --core-max sourceLevel2=0.58 --core-min sourceLevel3=0.36 --core-max sourceLevel3=0.36 --core-min attackChoice0=1 --core-max attackChoice0=1 --core-min decayChoice0=5 --core-max decayChoice0=5 --core-min sustainChoice0=13 --core-max sustainChoice0=13 --core-min releaseChoice0=4 --core-max releaseChoice0=4
     )
     set_tests_properties(chipper_render_preset_sid_allmode_growl_assert PROPERTIES DEPENDS chipper_render_preset_sid_allmode_growl_smoke)
+
+    add_test(NAME chipper_render_preset_sid_pwm_bass_split_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sid-pwm-bass-split-smoke.json --implemented-contains partial --preset sid-pwm-bass-split --macro Bass --play-mode "Big Mono" --output-db -9 --register-writes 0 --note-events 0 --min-peak 0.02 --core-min filterModeChoice=1 --core-max filterModeChoice=1 --core-min filterModeBits=16 --core-max filterModeBits=16 --core-min filterRoutingChoice=5 --core-max filterRoutingChoice=5 --core-min filterRoutingBits=3 --core-max filterRoutingBits=3 --core-min sidModelChoice=2 --core-max sidModelChoice=2 --core-min waveformChoice0=3 --core-max waveformChoice0=3 --core-min waveformChoice1=3 --core-max waveformChoice1=3 --core-min waveformChoice2=2 --core-max waveformChoice2=2 --core-min sourceLevel1=0.9 --core-max sourceLevel1=0.9 --core-min sourceLevel2=0.72 --core-max sourceLevel2=0.72 --core-min sourceLevel3=0.28 --core-max sourceLevel3=0.28 --core-min attackChoice0=1 --core-max attackChoice0=1 --core-min decayChoice0=5 --core-max decayChoice0=5 --core-min sustainChoice0=14 --core-max sustainChoice0=14 --core-min releaseChoice0=4 --core-max releaseChoice0=4 --core-min attackChoice1=1 --core-max attackChoice1=1 --core-min decayChoice1=6 --core-max decayChoice1=6 --core-min sustainChoice1=12 --core-max sustainChoice1=12 --core-min releaseChoice1=4 --core-max releaseChoice1=4
+    )
+    set_tests_properties(chipper_render_preset_sid_pwm_bass_split_assert PROPERTIES DEPENDS chipper_render_preset_sid_pwm_bass_split_smoke)
+
+    add_test(NAME chipper_render_preset_sid_wide_pwm_pad_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sid-wide-pwm-pad-smoke.json --implemented-contains partial --preset sid-wide-pwm-pad --macro Lead --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.005 --core-min filterModeChoice=1 --core-max filterModeChoice=1 --core-min filterModeBits=16 --core-max filterModeBits=16 --core-min filterRoutingChoice=1 --core-max filterRoutingChoice=1 --core-min filterRoutingBits=7 --core-max filterRoutingBits=7 --core-min sidModelChoice=1 --core-max sidModelChoice=1 --core-min waveformChoice0=3 --core-max waveformChoice0=3 --core-min waveformChoice1=3 --core-max waveformChoice1=3 --core-min waveformChoice2=3 --core-max waveformChoice2=3 --core-min sourceLevel1=0.72 --core-max sourceLevel1=0.72 --core-min sourceLevel2=0.68 --core-max sourceLevel2=0.68 --core-min sourceLevel3=0.6 --core-max sourceLevel3=0.6 --core-min attackChoice0=3 --core-max attackChoice0=3 --core-min decayChoice0=9 --core-max decayChoice0=9 --core-min sustainChoice0=12 --core-max sustainChoice0=12 --core-min releaseChoice0=8 --core-max releaseChoice0=8
+    )
+    set_tests_properties(chipper_render_preset_sid_wide_pwm_pad_assert PROPERTIES DEPENDS chipper_render_preset_sid_wide_pwm_pad_smoke)
+
+    add_test(NAME chipper_render_preset_sid_hard_sync_saw_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sid-hard-sync-saw-smoke.json --implemented-contains partial --preset sid-hard-sync-saw --macro Lead --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.01 --core-min filterModeChoice=3 --core-max filterModeChoice=3 --core-min filterModeBits=64 --core-max filterModeBits=64 --core-min filterRoutingChoice=3 --core-max filterRoutingChoice=3 --core-min filterRoutingBits=2 --core-max filterRoutingBits=2 --core-min modModeChoice=2 --core-max modModeChoice=2 --core-min sidModelChoice=2 --core-max sidModelChoice=2 --core-min waveformChoice0=2 --core-max waveformChoice0=2 --core-min waveformChoice1=2 --core-max waveformChoice1=2 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceLevel1=0.86 --core-max sourceLevel1=0.86 --core-min sourceLevel2=0.74 --core-max sourceLevel2=0.74
+    )
+    set_tests_properties(chipper_render_preset_sid_hard_sync_saw_assert PROPERTIES DEPENDS chipper_render_preset_sid_hard_sync_saw_smoke)
+
+    add_test(NAME chipper_render_preset_sid_gated_noise_tom_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sid-gated-noise-tom-smoke.json --implemented-contains partial --preset sid-gated-noise-tom --macro Drum --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 0 --min-peak 0.005 --core-min filterModeChoice=2 --core-max filterModeChoice=2 --core-min filterModeBits=32 --core-max filterModeBits=32 --core-min filterRoutingChoice=4 --core-max filterRoutingChoice=4 --core-min filterRoutingBits=4 --core-max filterRoutingBits=4 --core-min sidModelChoice=2 --core-max sidModelChoice=2 --core-min waveformChoice0=3 --core-max waveformChoice0=3 --core-min waveformChoice2=4 --core-max waveformChoice2=4 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceLevel1=0.5 --core-max sourceLevel1=0.5 --core-min sourceLevel3=0.92 --core-max sourceLevel3=0.92
+    )
+    set_tests_properties(chipper_render_preset_sid_gated_noise_tom_assert PROPERTIES DEPENDS chipper_render_preset_sid_gated_noise_tom_smoke)
 
     add_test(NAME chipper_render_preset_ym_noise_hat_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-noise-hat-smoke.json --implemented-contains partial --preset ym-noise-hat --macro Drum --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.05 --min-zero-crossings 100 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=0 --core-max sourceEnabledB=0 --core-min sourceEnabledC=0 --core-max sourceEnabledC=0 --core-min sourceEnabledNoise=1 --core-max sourceEnabledNoise=1 --core-min mixer=55 --core-max mixer=55 --core-min envelopeShapeChoice=1 --core-max envelopeShapeChoice=1

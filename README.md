@@ -14,7 +14,7 @@ The product rule is strict: UX can be simple, but chip modes must not be generic
 - **Performance:** host-synced arp, retrigger, vibrato, glide, pitch rise/drop/coin/jump/laser motion
 - **Visual feedback:** chip-state source scopes, SID ADSR previews, and a post-trim final-output scope
 - **SFX helper:** kick, snare, hat, explosion, laser, jump, coin, power-up, hit, menu blip
-- **Presets:** curated bank covering NES, SID, YM, Sega PSG, arcade, tracker, FM, and modern hybrid chip categories
+- **Presets:** curated bank covering NES, SID, YM, Sega PSG, arcade, tracker, FM, and modern hybrid chip categories, including SID patches that pin per-voice waveforms, ADSR nibbles, filter routing, and source levels
 
 ## Build
 
@@ -133,7 +133,7 @@ Automated smoke tests assert that every APVTS parameter has exactly one default 
 
 Factory presets can pin source-level balances, DMG Wave Level choices, SID filter-mode combinations, filter routing, per-voice waveforms, and per-voice ADSR nibble choices, so choosing a preset updates the visible controls to match the rendered patch rather than hiding those decisions inside the engine.
 
-The command-line renderer exposes the same NES Pulse 2 Duty override as `--nes-pulse2-duty macro|12.5|25|50|75`, the same SID Filter Mode choices as `--sid-filter-mode macro|lp|bp|hp|off|notch|lp+bp|bp+hp|all`, the same SID Filter Routing choices as `--sid-filter-routing macro|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none`, the same independent SID pulse-width controls as `--sid-voice2-pulse-width` and `--sid-voice3-pulse-width`, and the same YM channel mixer overrides as `--ym-channel-a-mix`, `--ym-channel-b-mix`, and `--ym-channel-c-mix`. Debug JSON reports the stored choices, resolved register values, and per-channel tone/noise/filter-routing enables so UI, MIDI, renderer, and engine behavior can be tested against one contract. CLI choice arguments still accept `macro` as a stable script-friendly alias for the UI's Follow choice.
+The command-line renderer exposes the same NES Pulse 2 Duty override as `--nes-pulse2-duty follow|12.5|25|50|75`, the same SID Filter Mode choices as `--sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all`, the same SID Filter Routing choices as `--sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none`, the same independent SID pulse-width controls as `--sid-voice2-pulse-width` and `--sid-voice3-pulse-width`, and the same YM channel mixer overrides as `--ym-channel-a-mix`, `--ym-channel-b-mix`, and `--ym-channel-c-mix`. Debug JSON reports the stored choices, resolved register values, and per-channel tone/noise/filter-routing enables so UI, MIDI, renderer, and engine behavior can be tested against one contract. CLI choice arguments still accept `macro` as a stable script-friendly alias for the UI's Follow choice.
 
 ## Command-Line Renderer
 
@@ -144,7 +144,7 @@ cmake --build build --config Release --target chipper_render
 build\Release\chipper_render.exe --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --output-db -9 --out nes.wav --debug nes.json
 ```
 
-It accepts chip mode, accuracy, musical macro, native macro controls, output trim, clock rate, note input, register-write event files, render length, and writes WAV plus debug JSON. SID scripts may use `--sid-adsr-speed` as a readable alias for the shared `--envelope-decay` control, plus `--sid-attack macro|0..15`, `--sid-decay macro|0..15`, `--sid-sustain macro|0..15`, and `--sid-release macro|0..15` for exact AD/SR nibble overrides; debug JSON reports the resolved SID AD/SR register bytes, A/D/S/R nibbles, and all three 12-bit pulse-width registers. Factory presets apply the same output-trim snapshot in the renderer that the VST applies in the editor, and debug JSON records `outputDb` plus the resolved linear gain. Golden WAV/reference metadata should be added only from trusted emulator or hardware comparisons.
+It accepts chip mode, accuracy, musical macro, native macro controls, output trim, clock rate, note input, register-write event files, render length, and writes WAV plus debug JSON. SID scripts may use `--sid-adsr-speed` as a readable alias for the shared `--envelope-decay` control, plus `--sid-attack follow|0..15`, `--sid-decay follow|0..15`, `--sid-sustain follow|0..15`, and `--sid-release follow|0..15` for exact AD/SR nibble overrides; debug JSON reports the resolved SID AD/SR register bytes, A/D/S/R nibbles, and all three 12-bit pulse-width registers. Factory presets apply the same output-trim snapshot in the renderer that the VST applies in the editor, and debug JSON records `outputDb` plus the resolved linear gain. Golden WAV/reference metadata should be added only from trusted emulator or hardware comparisons.
 
 Event trace files support:
 

@@ -254,6 +254,7 @@ private:
     std::array<juce::Label, sidAdsrFieldCount> sidAdsrHeaderLabels;
     std::array<juce::Label, sidAdsrOverrideCount> sidAdsrLabels;
     std::array<juce::ComboBox, sidAdsrOverrideCount> sidAdsrBoxes;
+    std::array<juce::Slider, sidAdsrOverrideCount> sidAdsrSliders;
     juce::Label waveShapeLabel;
     juce::Label waveShapeValueLabel;
     juce::Label pulse2DutyLabel;

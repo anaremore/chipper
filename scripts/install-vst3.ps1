@@ -3,7 +3,8 @@ param(
     [string] $BuildRoot = "build",
     [ValidateSet("Global", "User")]
     [string] $Scope = "Global",
-    [string] $Destination
+    [string] $Destination,
+    [string] $FallbackDestination
 )
 
 $ErrorActionPreference = "Stop"
@@ -18,6 +19,39 @@ $source = Join-Path $buildRootPath "Chipper_artefacts\$Configuration\VST3\Chippe
 
 if (-not (Test-Path -LiteralPath $source)) {
     throw "VST3 bundle not found: $source"
+}
+
+function New-ChipperFallbackDestination {
+    if ($PSBoundParameters.ContainsKey("FallbackDestination") -and -not [string]::IsNullOrWhiteSpace($FallbackDestination)) {
+        return $FallbackDestination
+    }
+
+    $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    return Join-Path $env:TEMP "Chipper-VST3-install-$stamp"
+}
+
+function Copy-ChipperBundle {
+    param(
+        [string] $SourceBundle,
+        [string] $DestinationRoot,
+        [string] $MessagePrefix = "Installed"
+    )
+
+    New-Item -ItemType Directory -Force -Path $DestinationRoot | Out-Null
+    Copy-Item -Recurse -Force -LiteralPath $SourceBundle -Destination $DestinationRoot
+    Write-Host "$MessagePrefix Chipper.vst3 to $DestinationRoot"
+}
+
+function Copy-ChipperBundleToFallback {
+    param(
+        [string] $Reason
+    )
+
+    $fallbackRoot = New-ChipperFallbackDestination
+    Write-Warning "$Reason"
+    Write-Warning "Falling back to a writable VST3 bundle folder: $fallbackRoot"
+    Copy-ChipperBundle -SourceBundle $source -DestinationRoot $fallbackRoot -MessagePrefix "Installed fallback"
+    Write-Warning "Add this folder to your host's VST3 scan paths, or fix permissions on the requested VST3 folder and rerun the installer."
 }
 
 if (-not $PSBoundParameters.ContainsKey("Destination") -or [string]::IsNullOrWhiteSpace($Destination)) {
@@ -38,7 +72,12 @@ if ($Scope -eq "Global" -and -not (Test-ProcessElevated)) {
     throw "Global VST3 install requires an elevated PowerShell. Use -Scope User for a no-UAC install to %LOCALAPPDATA%\Programs\Common\VST3."
 }
 
-New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+try {
+    New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+} catch {
+    Copy-ChipperBundleToFallback -Reason "Could not create or access requested VST3 destination '$Destination': $($_.Exception.Message)"
+    return
+}
 
 $destinationRoot = (Resolve-Path -LiteralPath $Destination).ProviderPath
 $target = Join-Path $destinationRoot "Chipper.vst3"
@@ -95,9 +134,17 @@ if (Test-Path -LiteralPath $targetFullPath) {
     }
 
     Write-Host "Removing existing Chipper.vst3 from $destinationRoot"
-    Remove-Item -Recurse -Force -LiteralPath $targetFullPath
+    try {
+        Remove-Item -Recurse -Force -LiteralPath $targetFullPath
+    } catch {
+        Copy-ChipperBundleToFallback -Reason "Could not remove existing Chipper.vst3 at '$targetFullPath': $($_.Exception.Message)"
+        return
+    }
 }
 
-Copy-Item -Recurse -Force -LiteralPath $source -Destination $destinationRoot
-
-Write-Host "Installed Chipper.vst3 to $destinationRoot"
+try {
+    Copy-ChipperBundle -SourceBundle $source -DestinationRoot $destinationRoot
+} catch {
+    Copy-ChipperBundleToFallback -Reason "Could not copy Chipper.vst3 to '$destinationRoot': $($_.Exception.Message)"
+    return
+}
