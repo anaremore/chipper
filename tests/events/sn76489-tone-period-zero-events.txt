@@ -1,0 +1,4 @@
+# SN76489 tone period 0/1 is a constant-output edge case used by PCM tricks.
+write 0 0x00 0x80
+write 1 0x00 0x00
+write 2 0x00 0x90

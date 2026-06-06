@@ -2615,7 +2615,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Latch/data writes, tone periods, attenuation, noise data-byte updates, LFSR reset on noise-register writes, noise modes, and tone-channel allocation for Chip Poly play mode are modeled; exact variant behavior and hardware-level output validation are still required.";
+        return "Latch/data writes, tone periods including period 0/1 constant output, attenuation, noise data-byte updates, LFSR reset on noise-register writes, noise modes, and tone-channel allocation for Chip Poly play mode are modeled; exact variant behavior and hardware-level output validation are still required.";
     }
 
     std::string debugStateJson() const override
@@ -2630,6 +2630,9 @@ public:
              << "\"period0\":" << tonePeriod[0] << ","
              << "\"period1\":" << tonePeriod[1] << ","
              << "\"period2\":" << tonePeriod[2] << ","
+             << "\"toneConstant0\":" << (toneConstant(0) ? 1 : 0) << ","
+             << "\"toneConstant1\":" << (toneConstant(1) ? 1 : 0) << ","
+             << "\"toneConstant2\":" << (toneConstant(2) ? 1 : 0) << ","
              << "\"noiseControl\":" << static_cast<int>(noiseControl) << ","
              << "\"noiseModeChoice\":" << std::clamp(patch.snNoiseMode, 0, 4) << ","
              << "\"noiseWhite\":" << (((noiseControl & 0x04u) != 0) ? 1 : 0) << ","
@@ -2760,10 +2763,18 @@ private:
 
     double renderTone(int channel)
     {
+        if (toneConstant(channel))
+            return 1.0;
+
         const auto period = std::max<uint16_t>(1, tonePeriod[static_cast<size_t>(channel)]);
         const auto hz = clock / (32.0 * static_cast<double>(period));
         phase[static_cast<size_t>(channel)] = wrapPhase(phase[static_cast<size_t>(channel)] + hz / sampleRate);
         return phase[static_cast<size_t>(channel)] < 0.5 ? 1.0 : -1.0;
+    }
+
+    bool toneConstant(int channel) const
+    {
+        return tonePeriod[static_cast<size_t>(channel)] <= 1;
     }
 
     double renderNoise()
