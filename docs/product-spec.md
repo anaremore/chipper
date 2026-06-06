@@ -38,7 +38,7 @@ Accuracy levels:
 - Arp, retrigger, pitch motion, vibrato, glide, output trim
 - Debug/validation export controls in the renderer, not the VST audio thread
 
-All current VST parameters have fixed default MIDI CC mappings. Chip-aware controls use the same stable APVTS parameters for UI, host automation, preset recall, and MIDI CC control; register-style choices quantize to legal chip values instead of exposing fake continuous states. Current examples include NES Pulse 2 Duty override bits, DMG `NR32` Wave Level, DMG `NR51` Stereo Route, SID `$D418` Filter Mode, per-voice SID AD/SR attack/decay/sustain/release nibble overrides, SID voice control-register sync/ring Osc Mod, SID 6581/8580 Model profile, SID `$D417` Resonance, and YM2149 register 7 per-channel A/B/C tone/noise mixer overrides. Full ADSR controls should appear where the chip model actually owns ADSR or operator envelopes, such as SID and FM chips; APU/PSG chips should expose their native envelope, length, attenuation, or decay controls.
+All current VST parameters have fixed default MIDI CC mappings. Chip-aware controls use the same stable APVTS parameters for UI, host automation, preset recall, and MIDI CC control; register-style choices quantize to legal chip values instead of exposing fake continuous states. Current examples include NES Pulse 2 Duty override bits, DMG `NR32` Wave Level, DMG `NR51` Stereo Route, SID `$D418` Filter Mode, per-voice SID AD/SR attack/decay/sustain/release nibble overrides, SID voice control-register sync/ring Osc Mod, SID 6581/8580 Model profile, SID `$D417` Resonance, SID `$D417` voice filter routing, and YM2149 register 7 per-channel A/B/C tone/noise mixer overrides. Full ADSR controls should appear where the chip model actually owns ADSR or operator envelopes, such as SID and FM chips; APU/PSG chips should expose their native envelope, length, attenuation, or decay controls.
 
 ## Preset Categories
 
@@ -71,22 +71,43 @@ Factory preset v1 should prioritize implemented chips and avoid implying that pl
 - NES Coin Blip
 - NES Boss Damage
 - NES Power-Up Rise
+- NES Thin Duty Pluck
+- NES Duty Arp Runner
+- NES Triangle Kick
+- NES Menu Confirm
 - DMG Wave Bass
 - DMG Pocket Arp
 - DMG Noise Hat
 - DMG Power-Up Rise
+- DMG Pulse Lead
+- DMG Wave Glass
+- DMG Noise Kick
+- DMG Split Chord
 - SID Dirty Bass
 - SID PWM Lead
 - SID Robot Arp
 - SID Noise Drum
+- SID Filter Pluck
+- SID 8580 Round Bass
+- SID Sync Saw Lead
+- SID Ring Bell
+- SID Noise Riser
 - YM Three-Voice Arp
 - YM Fake Chord Stack
 - YM Menu Beep
 - YM Noise Hat
+- YM Bright Beep
+- YM Envelope Bell
+- YM Arcade Clang
+- YM Fast Minor Arp
 - Sega PSG Lead
 - Sega PSG Coin
 - Sega PSG Arcade Laser
 - PSG Noise Hit
+- PSG Tone Stack
+- PSG Arcade Bass
+- PSG Periodic Zap
+- PSG Warning Alarm
 
 Roadmap preset targets, kept as product direction until their chip cores exist:
 

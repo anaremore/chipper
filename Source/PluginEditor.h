@@ -88,6 +88,7 @@ private:
     static constexpr size_t sidAdsrFieldCount = 4;
     static constexpr size_t sidAdsrVoiceCount = 3;
     static constexpr size_t sidAdsrOverrideCount = sidAdsrFieldCount * sidAdsrVoiceCount;
+    static constexpr size_t sidFilterRoutingChoiceCount = 9;
 
     void timerCallback() override;
     void updateDescriptorText();
@@ -108,6 +109,7 @@ private:
     void placeDmgWaveLevelSegment(juce::Rectangle<int> bounds);
     void placeDmgStereoRouteSegment(juce::Rectangle<int> bounds);
     void placeYmEnvelopeShapeSegment(juce::Rectangle<int> bounds);
+    void placeSidFilterRoutingControl(juce::Rectangle<int> bounds);
     void placeYmChannelMixControls(juce::Rectangle<int> bounds);
     void placeSnNoiseModeSegment(juce::Rectangle<int> bounds);
     void placeToneNoiseMixSegment(juce::Rectangle<int> bounds);
@@ -150,6 +152,7 @@ private:
     juce::String sidModelReadout(const chipper::PatchConfig& patch) const;
     juce::String ymEnvelopeShapeReadout(int choice) const;
     juce::String sidFilterModeReadout(const chipper::PatchConfig& patch) const;
+    juce::String sidFilterRoutingReadout(const chipper::PatchConfig& patch) const;
     juce::String sidVoiceWaveSummary(const chipper::PatchConfig& patch) const;
     juce::String sidModModeReadout(const chipper::PatchConfig& patch) const;
     juce::String noiseModeReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
@@ -188,6 +191,7 @@ private:
     void setDmgWaveLevelSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setDmgStereoRouteSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setYmEnvelopeShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
+    void setSidFilterRoutingControlVisible(bool shouldBeVisible);
     void setYmChannelMixControlsVisible(bool shouldBeVisible);
     void setSnNoiseModeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setEnvelopeDecayControlVisible(chipper::ChipMode mode, bool shouldBeVisible);
@@ -202,6 +206,7 @@ private:
     void updateDmgWaveLevelButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateDmgStereoRouteButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateYmEnvelopeShapeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
+    void updateSidFilterRoutingControl(bool shouldBeVisible);
     void updateYmChannelMixControls(bool shouldBeVisible);
     void updateSnNoiseModeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateToneNoiseMixButtons(float value, bool shouldBeVisible);
@@ -240,6 +245,8 @@ private:
     juce::Label dmgStereoRouteValueLabel;
     juce::Label ymEnvelopeShapeLabel;
     juce::Label ymEnvelopeShapeValueLabel;
+    juce::Label sidFilterRoutingLabel;
+    juce::Label sidFilterRoutingValueLabel;
     juce::Label ymChannelMixLabel;
     juce::Label ymChannelMixValueLabel;
     std::array<juce::Label, ymChannelMixCount> ymChannelMixLabels;
@@ -260,6 +267,7 @@ private:
     std::array<juce::TextButton, dmgWaveLevelCount> dmgWaveLevelButtons;
     std::array<juce::TextButton, dmgStereoRouteCount> dmgStereoRouteButtons;
     std::array<juce::TextButton, ymEnvelopeShapeCount> ymEnvelopeShapeButtons;
+    juce::ComboBox sidFilterRoutingBox;
     std::array<juce::TextButton, snNoiseModeCount> snNoiseModeButtons;
     std::array<juce::TextButton, toneNoiseMixCount> toneNoiseMixButtons;
     std::array<juce::Slider, sourceChannelCount> sourceLevelSliders;
@@ -290,6 +298,7 @@ private:
     std::unique_ptr<SliderAttachment> clockAttachment;
     std::unique_ptr<SliderAttachment> outputAttachment;
     std::unique_ptr<SliderAttachment> stereoSpreadAttachment;
+    std::unique_ptr<ComboBoxAttachment> sidFilterRoutingAttachment;
     std::unique_ptr<SliderAttachment> envelopeDecayAttachment;
     std::array<std::unique_ptr<SliderAttachment>, 4> nativeAttachments;
     std::array<std::unique_ptr<SliderAttachment>, sourceChannelCount> sourceLevelAttachments;

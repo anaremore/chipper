@@ -54,6 +54,7 @@ enum class ChipParameterRole
     source3Level,
     source4Level,
     stereoSpread,
+    sidFilterRouting,
     envelopeDecay,
     sidAttack,
     sidDecay,
@@ -184,7 +185,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int sidVoice3Attack = 0,
                             int sidVoice3Decay = 0,
                             int sidVoice3Sustain = 0,
-                            int sidVoice3Release = 0);
+                            int sidVoice3Release = 0,
+                            int sidFilterRouting = 0);
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t nesNoisePeriodForControl(float noisePeriodControl);
 uint8_t dmgSweepShiftForControl(float sweepControl);
@@ -198,6 +200,7 @@ uint16_t sidPulseWidthForControl(float pulseWidthControl);
 uint8_t sidWaveformControlForPatch(const PatchConfig& patch);
 uint8_t sidWaveformControlForVoice(const PatchConfig& patch, size_t voice);
 uint8_t sidFilterModeBitsForPatch(const PatchConfig& patch);
+uint8_t sidFilterRoutingBitsForPatch(const PatchConfig& patch);
 uint8_t sidFilterResonanceForControl(float resonanceControl);
 uint8_t sidModulationBitsForPatch(const PatchConfig& patch, size_t voice);
 int sidModelChoiceForPatch(const PatchConfig& patch);

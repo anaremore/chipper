@@ -171,6 +171,8 @@ int main()
                      "CC74 SID Bass macro should reset SID Voice 3 Sustain to Macro");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3Release), 0.0f, 0.0001f,
                      "CC74 SID Bass macro should reset SID Voice 3 Release to Macro");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidFilterRouting), 0.0f, 0.0001f,
+                     "CC74 SID Bass macro should reset SID Filter Routing to Macro");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymEnvelopeShape), 1.0f, 0.0001f,
                      "CC74 SID Bass macro should apply SID LP filter-mode template");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::snNoiseMode), 1.0f, 0.0001f,
@@ -222,6 +224,9 @@ int main()
     sendController(processor, 112, controllerValueForChoice(processor, chipper::parameters::id::sidVoice3Release, 11));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3Release), 11.0f, 0.0001f,
                      "CC112 should control SID Voice 3 Release nibble choice");
+    sendController(processor, 113, controllerValueForChoice(processor, chipper::parameters::id::sidFilterRouting, 4));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidFilterRouting), 4.0f, 0.0001f,
+                     "CC113 should control SID Filter Routing choice");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 3));
     sendController(processor, 101, controllerValueForChoice(processor, chipper::parameters::id::ymChannelAMix, 1));

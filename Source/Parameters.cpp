@@ -62,6 +62,21 @@ juce::StringArray sidAdsrNibbleChoices()
     };
 }
 
+juce::StringArray sidFilterRoutingChoices()
+{
+    return {
+        "Macro",
+        "All",
+        "V1",
+        "V2",
+        "V3",
+        "V1+V2",
+        "V1+V3",
+        "V2+V3",
+        "None"
+    };
+}
+
 juce::StringArray pulse2DutyChoices()
 {
     return { "Macro", "12.5%", "25%", "50%", "75%" };
@@ -307,6 +322,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::ParameterID { id::sidVoice3Release, 1 },
         "SID Voice 3 Release",
         sidAdsrNibbleChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::sidFilterRouting, 1 },
+        "SID Filter Routing",
+        sidFilterRoutingChoices(),
         0));
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(

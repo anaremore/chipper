@@ -252,6 +252,23 @@ const char* sidWaveNameForControlBits(uint8_t bits)
     }
 }
 
+juce::String sidFilterRoutingName(uint8_t bits)
+{
+    switch (bits & 0x07u)
+    {
+        case 0x00u: return "none";
+        case 0x01u: return "V1";
+        case 0x02u: return "V2";
+        case 0x03u: return "V1+V2";
+        case 0x04u: return "V3";
+        case 0x05u: return "V1+V3";
+        case 0x06u: return "V2+V3";
+        case 0x07u:
+        default:
+            return "all voices";
+    }
+}
+
 juce::String sidAdsrNibbleReadout(const chipper::PatchConfig& patch, size_t voice = 0)
 {
     const auto ad = chipper::sidAttackDecayForVoice(patch, voice);
@@ -595,7 +612,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     : AudioProcessorEditor(processor),
       audioProcessor(processor)
 {
-    setSize(1080, 840);
+    setSize(1180, 920);
 
     auto& state = audioProcessor.getValueTreeState();
 
@@ -995,6 +1012,26 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(button);
     }
 
+    sidFilterRoutingLabel.setText("Filter Routing", juce::dontSendNotification);
+    sidFilterRoutingLabel.setJustificationType(juce::Justification::centredLeft);
+    sidFilterRoutingLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
+    sidFilterRoutingLabel.setFont(juce::FontOptions(13.0f, juce::Font::bold));
+    sidFilterRoutingLabel.setVisible(false);
+    addAndMakeVisible(sidFilterRoutingLabel);
+
+    sidFilterRoutingBox.addItemList(chipper::parameters::sidFilterRoutingChoices(), 1);
+    sidFilterRoutingBox.setVisible(false);
+    sidFilterRoutingBox.setTooltip(withMidiCcForRole("SID filter input routing.", chipper::ChipParameterRole::sidFilterRouting));
+    sidFilterRoutingAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::sidFilterRouting, sidFilterRoutingBox);
+    addAndMakeVisible(sidFilterRoutingBox);
+
+    sidFilterRoutingValueLabel.setJustificationType(juce::Justification::centredLeft);
+    sidFilterRoutingValueLabel.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+    sidFilterRoutingValueLabel.setFont(juce::FontOptions(10.5f));
+    sidFilterRoutingValueLabel.setMinimumHorizontalScale(0.6f);
+    sidFilterRoutingValueLabel.setVisible(false);
+    addAndMakeVisible(sidFilterRoutingValueLabel);
+
     ymChannelMixLabel.setText("Channel Mix", juce::dontSendNotification);
     ymChannelMixLabel.setJustificationType(juce::Justification::centredLeft);
     ymChannelMixLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
@@ -1070,11 +1107,12 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(button);
     }
 
-    statusLabel.setFont(juce::FontOptions(13.0f));
+    statusLabel.setFont(juce::FontOptions(12.0f));
     statusLabel.setJustificationType(juce::Justification::centredLeft);
     statusLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     statusLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff1f2a34));
     statusLabel.setText("Loading chip core...", juce::dontSendNotification);
+    statusLabel.setMinimumHorizontalScale(0.70f);
     addAndMakeVisible(statusLabel);
 
     buildLabel.setFont(juce::FontOptions(11.0f));
@@ -1096,6 +1134,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     chipSummaryLabel.setFont(juce::FontOptions(14.0f));
     chipSummaryLabel.setJustificationType(juce::Justification::centredLeft);
     chipSummaryLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
+    chipSummaryLabel.setMinimumHorizontalScale(0.75f);
     addAndMakeVisible(chipSummaryLabel);
 
     for (size_t i = 0; i < moduleTitleLabels.size(); ++i)
@@ -1112,19 +1151,19 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         moduleTitleLabels[i].setColour(juce::Label::textColourId, juce::Colour(0xfff0c94d));
         addAndMakeVisible(moduleTitleLabels[i]);
 
-        moduleSummaryLabels[i].setFont(juce::FontOptions(12.0f));
+        moduleSummaryLabels[i].setFont(juce::FontOptions(11.0f));
         moduleSummaryLabels[i].setJustificationType(juce::Justification::centredLeft);
         moduleSummaryLabels[i].setColour(juce::Label::textColourId, juce::Colour(0xffc8d4dc));
-        moduleSummaryLabels[i].setMinimumHorizontalScale(0.80f);
+        moduleSummaryLabels[i].setMinimumHorizontalScale(0.70f);
         addAndMakeVisible(moduleSummaryLabels[i]);
 
         for (auto& itemLabel : moduleItemLabels[i])
         {
-            itemLabel.setFont(juce::FontOptions(12.0f, juce::Font::bold));
+            itemLabel.setFont(juce::FontOptions(11.0f, juce::Font::bold));
             itemLabel.setJustificationType(juce::Justification::centredLeft);
             itemLabel.setColour(juce::Label::textColourId, juce::Colour(0xffdbe8e5));
             itemLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff243038));
-            itemLabel.setMinimumHorizontalScale(0.75f);
+            itemLabel.setMinimumHorizontalScale(0.68f);
             addAndMakeVisible(itemLabel);
         }
     }
@@ -1269,7 +1308,10 @@ void ChipperAudioProcessorEditor::resized()
     chipSummaryLabel.setBounds(area.removeFromTop(34));
     area.removeFromTop(10);
 
-    auto modules = area.removeFromTop(390);
+    constexpr auto footerReserve = 52;
+    constexpr auto performanceStripHeight = 234;
+    const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, 492);
+    auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
     const auto columnWidth = (modules.getWidth() - gap) / 2;
     const auto rowHeight = (modules.getHeight() - (gap * 2)) / 3;
@@ -1371,7 +1413,6 @@ void ChipperAudioProcessorEditor::resized()
     auto secondaryTonePanel = tonePanel;
     if (displayedMode == chipper::ChipMode::nes
         || displayedMode == chipper::ChipMode::dmg
-        || displayedMode == chipper::ChipMode::sid
         || displayedMode == chipper::ChipMode::ym2149)
     {
         primaryTonePanel = tonePanel.removeFromTop(58);
@@ -1380,15 +1421,20 @@ void ChipperAudioProcessorEditor::resized()
     }
 
     if (displayedMode == chipper::ChipMode::sid)
-        placeSidVoiceWaveControls(primaryTonePanel);
+    {
+        auto filterModePanel = tonePanel.removeFromTop(26);
+        placeYmEnvelopeShapeSegment(filterModePanel);
+        placeSidFilterRoutingControl(tonePanel);
+    }
     else if (displayedMode == chipper::ChipMode::ym2149)
         placeYmChannelMixControls(primaryTonePanel);
     else
         placeWaveShapeSegment(primaryTonePanel);
-    placeDmgWaveLevelSegment(secondaryTonePanel);
-    placeYmEnvelopeShapeSegment((displayedMode == chipper::ChipMode::sid || displayedMode == chipper::ChipMode::ym2149)
-                                    ? secondaryTonePanel
-                                    : primaryTonePanel);
+    if (displayedMode != chipper::ChipMode::sid)
+    {
+        placeDmgWaveLevelSegment(secondaryTonePanel);
+        placeYmEnvelopeShapeSegment(displayedMode == chipper::ChipMode::ym2149 ? secondaryTonePanel : primaryTonePanel);
+    }
 
     auto motionPanel = moduleBounds[4].reduced(12, 9);
     motionPanel.removeFromTop(20);
@@ -1429,10 +1475,10 @@ void ChipperAudioProcessorEditor::resized()
     placeDmgStereoRouteSegment(displayedMode == chipper::ChipMode::sid ? profilePanel : outputPanel);
 
     area.removeFromTop(12);
-    globalStripBounds = area.removeFromTop(230);
+    globalStripBounds = area.removeFromTop(performanceStripHeight);
     auto strip = globalStripBounds.reduced(12, 8);
     auto stripHeader = strip.removeFromTop(20);
-    globalStripLabel.setBounds(stripHeader.removeFromLeft(160));
+    globalStripLabel.setBounds(stripHeader.removeFromLeft(176));
     stripHeader.removeFromLeft(10);
     macroSummaryLabel.setBounds(stripHeader);
     strip.removeFromTop(4);
@@ -1476,6 +1522,7 @@ void ChipperAudioProcessorEditor::timerCallback()
     updateDescriptorText();
     updateLiveControlReadouts();
     statusLabel.setText(audioProcessor.currentCoreStatus(), juce::dontSendNotification);
+    statusLabel.setTooltip(audioProcessor.currentCoreStatusDetail());
 }
 
 void ChipperAudioProcessorEditor::addLabeledSlider(juce::Slider& slider, juce::Label& label, const juce::String& fallbackText)
@@ -1640,11 +1687,32 @@ void ChipperAudioProcessorEditor::placeDmgStereoRouteSegment(juce::Rectangle<int
 
 void ChipperAudioProcessorEditor::placeYmEnvelopeShapeSegment(juce::Rectangle<int> bounds)
 {
+    if (displayedMode == chipper::ChipMode::sid)
+    {
+        auto row = bounds.removeFromTop(std::min(26, bounds.getHeight()));
+        ymEnvelopeShapeLabel.setBounds(row.removeFromLeft(82));
+        row.removeFromLeft(6);
+        ymEnvelopeShapeSegmentBounds = row.reduced(0, 1);
+        layoutSegmentedButtons(ymEnvelopeShapeButtons, ymEnvelopeShapeSegmentBounds, ymEnvelopeShapeButtons.size());
+        ymEnvelopeShapeValueLabel.setBounds(bounds);
+        return;
+    }
+
     ymEnvelopeShapeLabel.setBounds(bounds.removeFromTop(18));
     ymEnvelopeShapeSegmentBounds = bounds.removeFromTop(28).reduced(0, 1);
     layoutSegmentedButtons(ymEnvelopeShapeButtons, ymEnvelopeShapeSegmentBounds, ymEnvelopeShapeButtons.size());
 
     ymEnvelopeShapeValueLabel.setBounds(bounds);
+}
+
+void ChipperAudioProcessorEditor::placeSidFilterRoutingControl(juce::Rectangle<int> bounds)
+{
+    auto row = bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1);
+    sidFilterRoutingLabel.setBounds(row.removeFromLeft(96));
+    row.removeFromLeft(6);
+    sidFilterRoutingBox.setBounds(row.removeFromLeft(std::min(128, row.getWidth())));
+    row.removeFromLeft(8);
+    sidFilterRoutingValueLabel.setBounds(row);
 }
 
 void ChipperAudioProcessorEditor::placeYmChannelMixControls(juce::Rectangle<int> bounds)
@@ -1844,6 +1912,14 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
         applyChoices(ymEnvelopeShapeButtons, spec);
     }
 
+    if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::sidFilterRouting))
+    {
+        sidFilterRoutingLabel.setText(spec->label, juce::dontSendNotification);
+        sidFilterRoutingLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
+        sidFilterRoutingBox.setTooltip(withMidiCcForRole(spec->help, spec->role));
+        sidFilterRoutingValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
+    }
+
     ymChannelMixLabel.setText("Channel Mix", juce::dontSendNotification);
     ymChannelMixLabel.setTooltip("Per-channel AY mixer overrides. Macro follows the global Tone/Noise Mix control.");
     ymChannelMixValueLabel.setTooltip("Resolved YM/AY channel mixer choices.");
@@ -1934,6 +2010,7 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, templ.waveShape);
     setChoiceParameterFromUi(chipper::parameters::id::sidVoice2WaveShape, 0);
     setChoiceParameterFromUi(chipper::parameters::id::sidVoice3WaveShape, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::sidFilterRouting, 0);
     setChoiceParameterFromUi(chipper::parameters::id::pulse2Duty, 0);
     setChoiceParameterFromUi(chipper::parameters::id::dmgWaveLevel, 0);
     setChoiceParameterFromUi(chipper::parameters::id::dmgStereoRoute, templ.dmgStereoRoute);
@@ -2006,6 +2083,7 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
     setChoiceParameterFromUi(chipper::parameters::id::waveShape, preset.waveShape);
     setChoiceParameterFromUi(chipper::parameters::id::sidVoice2WaveShape, preset.sidVoice2WaveShape);
     setChoiceParameterFromUi(chipper::parameters::id::sidVoice3WaveShape, preset.sidVoice3WaveShape);
+    setChoiceParameterFromUi(chipper::parameters::id::sidFilterRouting, preset.sidFilterRouting);
     setChoiceParameterFromUi(chipper::parameters::id::pulse2Duty, 0);
     setChoiceParameterFromUi(chipper::parameters::id::dmgWaveLevel, 0);
     setChoiceParameterFromUi(chipper::parameters::id::dmgStereoRoute, preset.dmgStereoRoute);
@@ -2081,7 +2159,8 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice3Attack))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice3Decay))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice3Sustain))),
-        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice3Release))));
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice3Release))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidFilterRouting))));
 }
 
 bool ChipperAudioProcessorEditor::usesPulseDutySegment(chipper::ChipMode mode) const
@@ -2303,6 +2382,15 @@ juce::String ChipperAudioProcessorEditor::sidFilterModeReadout(const chipper::Pa
         + juce::String::toHexString(static_cast<int>(modeBits)).paddedLeft('0', 2).toUpperCase();
     const auto text = registerText + ", " + resolved;
     return patch.ymEnvelopeShape == 0 ? juce::String("Macro -> ") + text : text;
+}
+
+juce::String ChipperAudioProcessorEditor::sidFilterRoutingReadout(const chipper::PatchConfig& patch) const
+{
+    const auto bits = chipper::sidFilterRoutingBitsForPatch(patch);
+    const auto registerText = juce::String("$D417 low 0x")
+        + juce::String::toHexString(static_cast<int>(bits & 0x07u)).toUpperCase();
+    const auto text = registerText + ", " + sidFilterRoutingName(bits);
+    return patch.sidFilterRouting == 0 ? juce::String("Macro -> ") + text : text;
 }
 
 juce::String ChipperAudioProcessorEditor::sidVoiceWaveSummary(const chipper::PatchConfig& patch) const
@@ -2838,6 +2926,16 @@ void ChipperAudioProcessorEditor::setYmEnvelopeShapeSegmentVisible(chipper::Chip
             parameterValue(chipper::parameters::id::stereoSpread));
         updateYmEnvelopeShapeButtons(mode, patch, true);
     }
+}
+
+void ChipperAudioProcessorEditor::setSidFilterRoutingControlVisible(bool shouldBeVisible)
+{
+    sidFilterRoutingLabel.setVisible(shouldBeVisible);
+    sidFilterRoutingBox.setVisible(shouldBeVisible);
+    sidFilterRoutingValueLabel.setVisible(shouldBeVisible);
+
+    if (shouldBeVisible)
+        updateSidFilterRoutingControl(true);
 }
 
 void ChipperAudioProcessorEditor::setYmChannelMixControlsVisible(bool shouldBeVisible)
@@ -3420,6 +3518,35 @@ void ChipperAudioProcessorEditor::updateYmEnvelopeShapeButtons(chipper::ChipMode
                                       juce::dontSendNotification);
 }
 
+void ChipperAudioProcessorEditor::updateSidFilterRoutingControl(bool shouldBeVisible)
+{
+    sidFilterRoutingLabel.setVisible(shouldBeVisible);
+    sidFilterRoutingBox.setVisible(shouldBeVisible);
+    sidFilterRoutingValueLabel.setVisible(shouldBeVisible);
+
+    if (! shouldBeVisible)
+        return;
+
+    const auto selected = static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidFilterRouting)));
+    sidFilterRoutingBox.setSelectedItemIndex(std::clamp(selected, 0, static_cast<int>(sidFilterRoutingChoiceCount - 1u)), juce::dontSendNotification);
+
+    const auto modeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::chipMode)));
+    const auto mode = chipper::parameters::chipModeFromChoice(modeChoice);
+    const auto patch = currentUiPatch(
+        mode,
+        parameterValue(chipper::parameters::id::macroControl1),
+        parameterValue(chipper::parameters::id::macroControl2),
+        parameterValue(chipper::parameters::id::macroControl3),
+        parameterValue(chipper::parameters::id::macroControl4),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::waveShape))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgWaveLevel))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgStereoRoute))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
+        parameterValue(chipper::parameters::id::stereoSpread));
+    sidFilterRoutingValueLabel.setText(sidFilterRoutingReadout(patch), juce::dontSendNotification);
+}
+
 void ChipperAudioProcessorEditor::updateYmChannelMixControls(bool shouldBeVisible)
 {
     for (size_t i = 0; i < ymChannelMixBoxes.size(); ++i)
@@ -3493,7 +3620,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
                                       : "This chip mode is a roadmap surface; controls are inactive until its core is implemented.");
     coreReadinessLabel.setColour(juce::Label::textColourId, hasLiveCore ? juce::Colour(0xff101414) : juce::Colour(0xffd9e1e8));
     coreReadinessLabel.setColour(juce::Label::backgroundColourId, hasLiveCore ? juce::Colour(0xff56c7d8) : juce::Colour(0xff344047));
-    globalStripLabel.setText(hasLiveCore ? "Live Chip Controls" : "Planned Control Surface", juce::dontSendNotification);
+    globalStripLabel.setText(hasLiveCore ? "Performance Controls" : "Planned Control Surface", juce::dontSendNotification);
     macroSummaryLabel.setVisible(hasLiveCore);
     macroSummaryLabel.setEnabled(hasLiveCore);
     macroSummaryLabel.setAlpha(hasLiveCore ? 1.0f : 0.55f);
@@ -3580,6 +3707,10 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     setSnNoiseModeSegmentVisible(mode, usesSnNoiseModeSegment(mode) && hasLiveCore);
     setEnvelopeDecayControlVisible(mode, usesEnvelopeDecayControl(mode) && hasLiveCore);
     setStereoSpreadControlVisible(mode, usesStereoSpreadControl(mode) && hasLiveCore);
+    const auto hasSidFilterRoutingControl = hasLiveCore
+        && mode == chipper::ChipMode::sid
+        && chipper::parameterSpecFor(mode, chipper::ChipParameterRole::sidFilterRouting) != nullptr;
+    setSidFilterRoutingControlVisible(hasSidFilterRoutingControl);
     moduleSummaryLabels[1].setVisible(!(hasLiveCore && mode == chipper::ChipMode::sid && usesSourceChannelSurface(mode)));
     moduleSummaryLabels[3].setVisible(!(hasLiveCore && mode == chipper::ChipMode::sid && usesEnvelopeDecayControl(mode)));
     const auto hasCustomProfileSurface = hasLiveCore && mode == chipper::ChipMode::sid && usesDmgStereoRouteSegment(mode);
@@ -3590,7 +3721,8 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         || usesDmgWaveLevelSegment(mode)
         || usesYmChannelMixControls(mode)
         || (mode != chipper::ChipMode::sid && usesSnNoiseModeSegment(mode))
-        || usesYmEnvelopeShapeSegment(mode));
+        || usesYmEnvelopeShapeSegment(mode)
+        || hasSidFilterRoutingControl);
     for (auto& itemLabel : moduleItemLabels[2])
         itemLabel.setVisible(! hasCustomToneSurface && ! itemLabel.getText().isEmpty());
     const auto hasCustomEnvelopeSurface = hasLiveCore && usesEnvelopeDecayControl(mode);
@@ -3633,6 +3765,9 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto hasDmgWaveLevelSegment = usesDmgWaveLevelSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasDmgStereoRouteSegment = usesDmgStereoRouteSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasYmEnvelopeShapeSegment = usesYmEnvelopeShapeSegment(mode) && chipper::descriptorFor(mode).implemented;
+    const auto hasSidFilterRoutingControl = mode == chipper::ChipMode::sid
+        && chipper::parameterSpecFor(mode, chipper::ChipParameterRole::sidFilterRouting) != nullptr
+        && chipper::descriptorFor(mode).implemented;
     const auto hasYmChannelMixControls = usesYmChannelMixControls(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasSnNoiseModeSegment = usesSnNoiseModeSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasToneNoiseMixSegment = usesToneNoiseMixSegment(mode) && chipper::descriptorFor(mode).implemented;
@@ -3645,6 +3780,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     updateDmgWaveLevelButtons(patch, hasDmgWaveLevelSegment);
     updateDmgStereoRouteButtons(mode, patch, hasDmgStereoRouteSegment);
     updateYmEnvelopeShapeButtons(mode, patch, hasYmEnvelopeShapeSegment);
+    updateSidFilterRoutingControl(hasSidFilterRoutingControl);
     updateYmChannelMixControls(hasYmChannelMixControls);
     updateSnNoiseModeButtons(mode, patch, hasSnNoiseModeSegment);
     updateEnvelopeDecayReadout(mode);

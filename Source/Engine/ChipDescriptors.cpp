@@ -504,6 +504,27 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
           0.0f,
           1.0f,
           0.25f },
+        { ChipParameterRole::sidFilterRouting,
+          "sid.filterRouting",
+          "Filter Routing",
+          "Filter",
+          "Maps to the SID $D417 voice-routing bits. Macro follows the enabled SID voices; explicit choices write the filter input bits directly.",
+          ParameterKind::chipRegister,
+          ControlSurface::menu,
+          {
+              choice("Macro", "Route the currently enabled SID voices through the filter.", 0.0f, 0),
+              choice("All", "$D417 bits 0-2 set: voices 1, 2, and 3 enter the filter.", 0.125f, 1),
+              choice("V1", "$D417 bit 0: route voice 1 only.", 0.25f, 2),
+              choice("V2", "$D417 bit 1: route voice 2 only.", 0.375f, 3),
+              choice("V3", "$D417 bit 2: route voice 3 only.", 0.5f, 4),
+              choice("V1+V2", "$D417 bits 0 and 1.", 0.625f, 5),
+              choice("V1+V3", "$D417 bits 0 and 2.", 0.75f, 6),
+              choice("V2+V3", "$D417 bits 1 and 2.", 0.875f, 7),
+              choice("None", "$D417 routing bits cleared; voices bypass the filter.", 1.0f, 8)
+          },
+          0.0f,
+          1.0f,
+          0.0f },
         sliderSpec(ChipParameterRole::macroControl4,
                    "sid.sustain",
                    "Sustain",
@@ -1095,7 +1116,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int sidVoice3Attack,
                             int sidVoice3Decay,
                             int sidVoice3Sustain,
-                            int sidVoice3Release)
+                            int sidVoice3Release,
+                            int sidFilterRouting)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
 
@@ -1114,6 +1136,7 @@ PatchConfig makePatchConfig(ChipMode mode,
             clampControl(sourceLevels[3])
         },
         clampControl(stereoSpread),
+        std::clamp(sidFilterRouting, 0, 8),
         clampControl(envelopeDecay),
         std::clamp(sidAttack, 0, 16),
         std::clamp(sidDecay, 0, 16),
@@ -1377,6 +1400,34 @@ uint8_t sidFilterModeBitsForPatch(const PatchConfig& patch)
         case 0:
         default:
             return 0x10u;
+    }
+}
+
+uint8_t sidFilterRoutingBitsForPatch(const PatchConfig& patch)
+{
+    const auto choice = std::clamp(patch.sidFilterRouting, 0, 8);
+    switch (choice)
+    {
+        case 1: return 0x07u;
+        case 2: return 0x01u;
+        case 3: return 0x02u;
+        case 4: return 0x04u;
+        case 5: return 0x03u;
+        case 6: return 0x05u;
+        case 7: return 0x06u;
+        case 8: return 0x00u;
+        case 0:
+        default:
+        {
+            uint8_t bits = 0u;
+            for (size_t voice = 0; voice < 3u; ++voice)
+            {
+                if (voice < patch.sourceEnabled.size() && patch.sourceEnabled[voice])
+                    bits = static_cast<uint8_t>(bits | (1u << voice));
+            }
+
+            return bits == 0u ? 0x07u : static_cast<uint8_t>(bits & 0x07u);
+        }
     }
 }
 

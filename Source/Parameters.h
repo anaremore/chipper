@@ -35,6 +35,7 @@ juce::StringArray playModeChoices();
 juce::StringArray waveShapeChoices();
 juce::StringArray sidVoiceWaveShapeChoices();
 juce::StringArray sidAdsrNibbleChoices();
+juce::StringArray sidFilterRoutingChoices();
 juce::StringArray pulse2DutyChoices();
 juce::StringArray dmgWaveLevelChoices();
 juce::StringArray dmgStereoRouteChoices();

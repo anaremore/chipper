@@ -1287,7 +1287,10 @@ public:
     StereoFrame renderSample() override
     {
         double mixed = 0.0;
+        double filteredMixed = 0.0;
+        double directMixed = 0.0;
         double activeVoices = 0.0;
+        const auto filterRouting = regs[0x17] & 0x07u;
         for (size_t voice = 0; voice < voiceCount; ++voice)
         {
             tickEnvelope(voice);
@@ -1301,13 +1304,22 @@ public:
 
             const auto sample = renderVoice(voice) * env * sourceLevel(patch, voice) * voiceVelocity[voice];
             mixed += sample;
+            if ((filterRouting & (1u << voice)) != 0u)
+                filteredMixed += sample;
+            else
+                directMixed += sample;
             activeVoices += 1.0;
         }
 
         if (activeVoices > 0.0)
+        {
             mixed /= std::max(1.0, activeVoices);
+            filteredMixed /= std::max(1.0, activeVoices);
+            directMixed /= std::max(1.0, activeVoices);
+        }
 
-        const auto output = static_cast<float>(applySidOutputDrive(applySidOutputFilter(mixed)) * sidMasterVolume() * 0.85);
+        const auto routedOutput = filterRouting == 0x07u ? applySidOutputFilter(mixed) : (directMixed + applySidOutputFilter(filteredMixed));
+        const auto output = static_cast<float>(applySidOutputDrive(routedOutput) * sidMasterVolume() * 0.85);
         return { output, output };
     }
 
@@ -1326,7 +1338,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Three SID oscillator voices, 24-bit frequency-register pitch mapping, waveform control bits, 12-bit pulse width, control-register sync/ring bits with a musical approximation, gate-driven ADSR approximation with exact attack/decay/sustain/release nibble overrides, source trims, cutoff/resonance register writes, selectable partial 6581/8580 filter/output profiles, and a first-pass multimode filter approximation are modeled; exact 6581/8580 analog filter behavior, exact ADSR bugs, exact oscillator sync/ring timing, waveform-combination quirks, external input, DAC nonlinearity, and hardware validation are not complete.";
+        return "Three SID oscillator voices, 24-bit frequency-register pitch mapping, waveform control bits, 12-bit pulse width, control-register sync/ring bits with a musical approximation, gate-driven ADSR approximation with exact attack/decay/sustain/release nibble overrides, source trims, cutoff/resonance/filter-routing register writes, selectable partial 6581/8580 filter/output profiles, and a first-pass multimode filter approximation are modeled; exact 6581/8580 analog filter behavior, exact ADSR bugs, exact oscillator sync/ring timing, waveform-combination quirks, external input, DAC nonlinearity, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -1357,6 +1369,8 @@ public:
              << "\"filterCutoffRegister\":" << filterCutoffRegister() << ","
              << "\"filterResonanceControl\":" << patch.stereoSpread << ","
              << "\"filterResonanceNibble\":" << static_cast<int>(sidFilterResonanceForControl(patch.stereoSpread)) << ","
+             << "\"filterRoutingChoice\":" << std::clamp(patch.sidFilterRouting, 0, 8) << ","
+             << "\"filterRoutingBits\":" << static_cast<int>(sidFilterRoutingBitsForPatch(patch)) << ","
              << "\"filterRoutingRegister\":" << static_cast<int>(regs[0x17]) << ","
              << "\"filterModeChoice\":" << std::clamp(patch.ymEnvelopeShape, 0, 4) << ","
              << "\"filterModeBits\":" << static_cast<int>(sidFilterModeBitsForPatch(patch)) << ","
@@ -1578,7 +1592,7 @@ private:
         const auto modeBits = sidFilterModeBitsForPatch(patch);
         writeRegister(0xd415, static_cast<uint8_t>(cutoff & 0x07u));
         writeRegister(0xd416, static_cast<uint8_t>((cutoff >> 3u) & 0xffu));
-        writeRegister(0xd417, static_cast<uint8_t>((resonance << 4u) | 0x07u));
+        writeRegister(0xd417, static_cast<uint8_t>((resonance << 4u) | sidFilterRoutingBitsForPatch(patch)));
         writeRegister(0xd418, static_cast<uint8_t>(modeBits | 0x0fu));
     }
 

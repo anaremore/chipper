@@ -29,6 +29,7 @@ inline constexpr auto source2Level = "source2Level";
 inline constexpr auto source3Level = "source3Level";
 inline constexpr auto source4Level = "source4Level";
 inline constexpr auto stereoSpread = "stereoSpread";
+inline constexpr auto sidFilterRouting = "sidFilterRouting";
 inline constexpr auto envelopeDecay = "envelopeDecay";
 inline constexpr auto sidAttack = "sidAttack";
 inline constexpr auto sidDecay = "sidDecay";
@@ -62,7 +63,7 @@ struct MidiCcMapping
     const char* label = nullptr;
 };
 
-inline constexpr auto midiCcMappingCount = 43u;
+inline constexpr auto midiCcMappingCount = 44u;
 using MidiCcMappingList = std::array<MidiCcMapping, midiCcMappingCount>;
 
 const MidiCcMappingList& midiCcMappings();

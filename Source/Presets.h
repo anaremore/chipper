@@ -32,6 +32,7 @@ struct PresetInfo
     int dmgStereoRoute = 0;
     int sidVoice2WaveShape = 0;
     int sidVoice3WaveShape = 0;
+    int sidFilterRouting = 0;
 };
 
 const std::vector<PresetInfo>& presetCatalog();

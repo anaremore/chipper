@@ -48,7 +48,8 @@ const MidiCcMappingList& midiCcMappings()
         { 109, parameter_ids::sidVoice3Attack, "SID Voice 3 Attack" },
         { 110, parameter_ids::sidVoice3Decay, "SID Voice 3 Decay" },
         { 111, parameter_ids::sidVoice3Sustain, "SID Voice 3 Sustain" },
-        { 112, parameter_ids::sidVoice3Release, "SID Voice 3 Release" }
+        { 112, parameter_ids::sidVoice3Release, "SID Voice 3 Release" },
+        { 113, parameter_ids::sidFilterRouting, "SID Filter Routing" }
     }};
 
     return mappings;
@@ -93,6 +94,7 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::source3Level: return parameter_ids::source3Level;
         case ChipParameterRole::source4Level: return parameter_ids::source4Level;
         case ChipParameterRole::stereoSpread: return parameter_ids::stereoSpread;
+        case ChipParameterRole::sidFilterRouting: return parameter_ids::sidFilterRouting;
         case ChipParameterRole::envelopeDecay: return parameter_ids::envelopeDecay;
         case ChipParameterRole::sidAttack: return parameter_ids::sidAttack;
         case ChipParameterRole::sidDecay: return parameter_ids::sidDecay;

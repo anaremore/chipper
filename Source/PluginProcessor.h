@@ -38,6 +38,7 @@ public:
     juce::AudioProcessorValueTreeState& getValueTreeState() { return apvts; }
     const juce::AudioProcessorValueTreeState& getValueTreeState() const { return apvts; }
     std::string currentCoreStatus() const;
+    std::string currentCoreStatusDetail() const;
     chipper::ChipMode currentChipMode() const { return activeMode; }
 
 private:
