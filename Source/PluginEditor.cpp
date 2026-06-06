@@ -1597,13 +1597,15 @@ void ChipperAudioProcessorEditor::resized()
             sourceCardWidth,
             sourceCardHeight
         };
-        auto sourceCard = sourceChannelBounds[i].reduced(8, displayedMode == chipper::ChipMode::sid ? 2 : 4);
-        sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(displayedMode == chipper::ChipMode::sid ? 17 : 18, sourceCard.getHeight())));
+        const auto isSidSourceCard = displayedMode == chipper::ChipMode::sid;
+        auto sourceCard = sourceChannelBounds[i].reduced(8, isSidSourceCard ? 2 : 4);
+        sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(isSidSourceCard ? 17 : 18, sourceCard.getHeight())));
         sourceCard.removeFromTop(2);
-        sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(displayedMode == chipper::ChipMode::sid ? 17 : 18, sourceCard.getHeight())));
+        const auto previewHeight = std::clamp(sourceCard.getHeight() / 4, isSidSourceCard ? 22 : 20, isSidSourceCard ? 32 : 28);
+        sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(previewHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(1);
 
-        if (displayedMode == chipper::ChipMode::sid && i < sidVoiceWaveCount)
+        if (isSidSourceCard && i < sidVoiceWaveCount)
         {
             auto waveRow = sourceCard.removeFromTop(std::min(20, sourceCard.getHeight()));
             sidVoiceWaveLabels[i].setBounds(waveRow.removeFromLeft(38));
@@ -1621,7 +1623,7 @@ void ChipperAudioProcessorEditor::resized()
         sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(48, levelRow.getWidth())));
         sourceLevelValueLabels[i].setBounds(levelRow);
         sourceCard.removeFromTop(1);
-        sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(displayedMode == chipper::ChipMode::sid ? 11 : 14, sourceCard.getHeight())).reduced(0, 1));
+        sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(isSidSourceCard ? 11 : 14, sourceCard.getHeight())).reduced(0, 1));
     }
 
     auto tonePanel = moduleBounds[2].reduced(12, 9);
@@ -1859,7 +1861,8 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
 
         sidEnvelopeVoiceLabels[voice].setBounds(voiceColumn.removeFromTop(std::min(16, voiceColumn.getHeight())));
         voiceColumn.removeFromTop(2);
-        sidEnvelopePreviews[voice].setBounds(voiceColumn.removeFromTop(std::min(30, voiceColumn.getHeight())).reduced(0, 1));
+        const auto envelopePreviewHeight = std::clamp(voiceColumn.getHeight() / 4, 32, 42);
+        sidEnvelopePreviews[voice].setBounds(voiceColumn.removeFromTop(std::min(envelopePreviewHeight, voiceColumn.getHeight())).reduced(0, 1));
         voiceColumn.removeFromTop(3);
 
         auto sliderRow = voiceColumn.withHeight(std::min(voiceColumn.getHeight(), std::max(52, voiceHeight - 51)));
