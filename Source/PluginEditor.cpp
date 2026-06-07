@@ -3544,6 +3544,51 @@ juce::String ChipperAudioProcessorEditor::snLevelReadout(float value) const
     return attenuationText + juce::String(", -") + juce::String(static_cast<int>(attenuation) * 2) + " dB";
 }
 
+juce::String ChipperAudioProcessorEditor::snSourceCardLabel(const chipper::PatchConfig& patch, size_t index) const
+{
+    const auto noiseControl = chipper::sn76489NoiseControlForPatch(patch);
+    const auto noiseClockedByTone3 = (noiseControl & 0x03u) == 0x03u;
+
+    if (index == 0)
+        return "Tone 1 | lead";
+    if (index == 1)
+        return "Tone 2 | support";
+    if (index == 2)
+        return noiseClockedByTone3 ? "Tone 3 | noise clock" : "Tone 3 | bass";
+
+    const auto kind = (noiseControl & 0x04u) != 0 ? "white" : "periodic";
+    const auto rate = noiseControl & 0x03u;
+    const auto rateText = rate == 3u ? "T3" : (rate == 0u ? "/512" : (rate == 1u ? "/1024" : "/2048"));
+    return juce::String("Noise | ") + kind + " " + rateText;
+}
+
+juce::String ChipperAudioProcessorEditor::snSourceCardTooltip(const chipper::PatchConfig& patch,
+                                                              size_t index,
+                                                              const chipper::ChipParameterSpec* spec) const
+{
+    const auto noiseControl = chipper::sn76489NoiseControlForPatch(patch);
+    const auto base = spec != nullptr
+                          ? juce::String(spec->label) + ": " + juce::String(spec->help)
+                          : juce::String("SN76489 source");
+
+    if (index < 3)
+    {
+        auto text = base + "\nNative square-wave tone channel.";
+        if (index == 2)
+        {
+            text += "\nCurrent noise clock: ";
+            text += (noiseControl & 0x03u) == 0x03u ? "Tone 3 period" : "internal PSG divider";
+        }
+        text += "\nSource Level is a modern trim after the PSG attenuation stage.";
+        return text;
+    }
+
+    return base
+        + "\nNoise register: Reg E=0x" + juce::String::toHexString(static_cast<int>(noiseControl)).toUpperCase()
+        + ", " + snNoiseRegisterLabel(noiseControl)
+        + "\nNoise attenuation: " + snLevelReadout(patch.control4);
+}
+
 juce::String ChipperAudioProcessorEditor::nesDmcDirectReadout(float value) const
 {
     const auto level = chipper::nesDmcDirectLevelForControl(value);
@@ -4060,9 +4105,13 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         const auto* levelSpec = chipper::parameterSpecFor(mode, sourceLevelRole(i));
         const auto isSidVoice = mode == chipper::ChipMode::sid && i < sidVoiceWaveCount && spec != nullptr;
         const auto sidWaveBits = isSidVoice ? chipper::sidWaveformControlForVoice(patch, i) : uint8_t { 0u };
-        const auto buttonLabel = isSidVoice
-                                     ? (juce::String(spec->label) + " | " + sidWaveNameForControlBits(sidWaveBits))
-                                     : (spec != nullptr ? juce::String(spec->label) : juce::String((*labels)[i]));
+        juce::String buttonLabel;
+        if (isSidVoice)
+            buttonLabel = juce::String(spec->label) + " | " + sidWaveNameForControlBits(sidWaveBits);
+        else if (mode == chipper::ChipMode::sn76489 && spec != nullptr)
+            buttonLabel = snSourceCardLabel(patch, i);
+        else
+            buttonLabel = spec != nullptr ? juce::String(spec->label) : juce::String((*labels)[i]);
 
         sourceChannelButtons[i].setButtonText(buttonLabel);
         if (isSidVoice)
@@ -4074,6 +4123,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
                                                                      + "\n" + sidAdsrNibbleReadout(patch, i),
                                                                  sourceRole(i)));
         }
+        else if (mode == chipper::ChipMode::sn76489 && spec != nullptr)
+            sourceChannelButtons[i].setTooltip(withMidiCcForRole(snSourceCardTooltip(patch, i, spec), sourceRole(i)));
         else if (spec != nullptr)
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(juce::String(spec->label) + ": " + juce::String(spec->help), sourceRole(i)));
         else

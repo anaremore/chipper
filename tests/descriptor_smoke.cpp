@@ -334,6 +334,14 @@ int main()
     ok &= expectSpec(chipper::ChipMode::sn76489, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise Bias");
     ok &= expectSpec(chipper::ChipMode::sn76489, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise Level");
     ok &= expectSpec(chipper::ChipMode::sn76489, chipper::ChipParameterRole::stereoSpread, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Stereo Spread");
+    ok &= expectSpecHelpContains(chipper::ChipMode::sn76489,
+                                 chipper::ChipParameterRole::source3Enabled,
+                                 "clock the native noise generator",
+                                 "SN76489 Tone 3 source help should disclose tone-3-clocked noise behavior");
+    ok &= expectSpecHelpContains(chipper::ChipMode::sn76489,
+                                 chipper::ChipParameterRole::source4Enabled,
+                                 "noise-control register",
+                                 "SN76489 noise source help should disclose the native noise register");
 
     ok &= expectMacroSourceMask(chipper::ChipMode::nes, chipper::MacroKind::drum, { false, false, true, true });
     ok &= expectMacroSourceMask(chipper::ChipMode::dmg, chipper::MacroKind::bass, { false, false, true, false });

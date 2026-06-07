@@ -203,6 +203,8 @@ private:
     juce::String snStackReadout(float value) const;
     juce::String snMotionReadout(float value) const;
     juce::String snLevelReadout(float value) const;
+    juce::String snSourceCardLabel(const chipper::PatchConfig& patch, size_t index) const;
+    juce::String snSourceCardTooltip(const chipper::PatchConfig& patch, size_t index, const chipper::ChipParameterSpec* spec) const;
     juce::String nesDmcDirectReadout(float value) const;
     juce::String sidPulseWidthReadout(float value) const;
     juce::String sidDetuneReadout(float value) const;
