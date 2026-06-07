@@ -611,6 +611,15 @@ add_test(NAME chipper_render_namco_wsg_steps_smoke
 add_test(NAME chipper_render_namco_wsg_chip_poly_smoke
     COMMAND chipper_render --chip namco --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 2 --clock 96000 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/namco-wsg-chip-poly-events.txt --out namco-wsg-chip-poly-smoke.wav --debug namco-wsg-chip-poly-smoke.json
 )
+add_test(NAME chipper_render_arcade_smoke
+    COMMAND chipper_render --chip arcade --accuracy hybrid --macro coin --wave-shape 1 --clock 3579545 --rate 48000 --seconds 0.05 --note 76 --out arcade-smoke.wav --debug arcade-smoke.json
+)
+add_test(NAME chipper_render_arcade_laser_smoke
+    COMMAND chipper_render --chip arcade --accuracy hybrid --macro laser --wave-shape 2 --source1 1 --source2 1 --source3 0 --source4 1 --clock 3579545 --rate 48000 --seconds 0.05 --note 69 --out arcade-laser-smoke.wav --debug arcade-laser-smoke.json
+)
+add_test(NAME chipper_render_arcade_chip_poly_smoke
+    COMMAND chipper_render --chip arcade --accuracy hybrid --macro manual --play-mode chip-poly --wave-shape pulse --clock 3579545 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/arcade-chip-poly-events.txt --out arcade-chip-poly-smoke.wav --debug arcade-chip-poly-smoke.json
+)
 add_test(NAME chipper_render_list_descriptors_smoke
     COMMAND chipper_render --list-descriptors --debug chipper-descriptors.json
 )
@@ -677,6 +686,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip namcoWsg --implemented namcoWsg=1 --verification-badge "namcoWsg=Verified partial" --verification-cycle namcoWsg=0 --verification-hardware namcoWsg=0 --param-kind namcoWsg:waveShape=chipRegister --param-surface namcoWsg:waveShape=segmentedChoice --param-choices namcoWsg:waveShape=5 --param-midi-cc namcoWsg:waveShape=89 --param-kind namcoWsg:macroControl3=chipRegister --param-surface namcoWsg:macroControl3=slider --param-midi-cc namcoWsg:macroControl3=78 --param-kind namcoWsg:macroControl4=chipRegister --param-surface namcoWsg:macroControl4=slider --param-midi-cc namcoWsg:macroControl4=79 --param-surface namcoWsg:stereoSpread=slider --param-midi-cc namcoWsg:stereoSpread=93 --macro-label "namcoWsg:Lead=Namco Arcade Lead" --macro-source namcoWsg:Drum=0011 --preset namco-arcade-lead --preset namco-wave-tick
     )
     set_tests_properties(chipper_render_list_namco_wsg_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
+
+    add_test(NAME chipper_render_list_arcade_descriptor_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip arcade --implemented arcade=1 --verification-badge "arcade=Verified partial" --verification-cycle arcade=0 --verification-hardware arcade=0 --param-kind arcade:waveShape=chipRegister --param-surface arcade:waveShape=segmentedChoice --param-choices arcade:waveShape=5 --param-midi-cc arcade:waveShape=89 --param-kind arcade:macroControl3=chipRegister --param-surface arcade:macroControl3=slider --param-midi-cc arcade:macroControl3=78 --param-kind arcade:macroControl4=chipRegister --param-surface arcade:macroControl4=slider --param-midi-cc arcade:macroControl4=79 --param-surface arcade:stereoSpread=slider --param-midi-cc arcade:stereoSpread=93 --macro-label "arcade:Laser=Arcade Laser" --macro-source arcade:Drum=0011 --preset arcade-coin-stack --preset arcade-laser-cabinet --preset arcade-boss-hit --preset arcade-power-rise
+    )
+    set_tests_properties(chipper_render_list_arcade_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_ym_channel_mix_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip ym2149 --param-kind ym2149:ymChannelAMix=chipRegister --param-surface ym2149:ymChannelAMix=menu --param-choices ym2149:ymChannelAMix=5 --param-midi-cc ym2149:ymChannelAMix=101 --param-kind ym2149:ymChannelBMix=chipRegister --param-surface ym2149:ymChannelBMix=menu --param-choices ym2149:ymChannelBMix=5 --param-midi-cc ym2149:ymChannelBMix=102 --param-kind ym2149:ymChannelCMix=chipRegister --param-surface ym2149:ymChannelCMix=menu --param-choices ym2149:ymChannelCMix=5 --param-midi-cc ym2149:ymChannelCMix=103
@@ -1377,6 +1391,21 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sn-periodic-bass-click-smoke.json --implemented-contains partial --preset sn-periodic-bass-click --macro Bass --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.04 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabledNoise=1 --core-max sourceEnabledNoise=1 --core-min sourceLevel0=0.92 --core-max sourceLevel0=0.92 --core-min sourceLevelNoise=0.38 --core-max sourceLevelNoise=0.38 --core-min noiseModeChoice=2 --core-max noiseModeChoice=2 --core-min noiseControl=2 --core-max noiseControl=2
     )
     set_tests_properties(chipper_render_preset_sn_periodic_bass_click_assert PROPERTIES DEPENDS chipper_render_preset_sn_periodic_bass_click_smoke)
+
+    add_test(NAME chipper_render_arcade_json_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/arcade-smoke.json --implemented-contains partial --verification-badge "Verified partial" --macro Coin --play-mode "Big Mono" --register-writes 0 --note-events 0 --min-peak 0.02 --min-zero-crossings 30 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-choices waveShape=5 --descriptor-param-label "waveShape=Source Shape"
+    )
+    set_tests_properties(chipper_render_arcade_json_assert PROPERTIES DEPENDS chipper_render_arcade_smoke)
+
+    add_test(NAME chipper_render_arcade_laser_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/arcade-laser-smoke.json --implemented-contains partial --macro Laser --play-mode "Big Mono" --register-writes 0 --note-events 0 --min-peak 0.01 --min-zero-crossings 40 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min waveShapeChoice=2 --core-max waveShapeChoice=2
+    )
+    set_tests_properties(chipper_render_arcade_laser_assert PROPERTIES DEPENDS chipper_render_arcade_laser_smoke)
+
+    add_test(NAME chipper_render_arcade_chip_poly_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/arcade-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 6 --min-peak 0.02 --core-min activeChannels=3 --core-max activeChannels=3 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1
+    )
+    set_tests_properties(chipper_render_arcade_chip_poly_assert PROPERTIES DEPENDS chipper_render_arcade_chip_poly_smoke)
 
     add_test(NAME chipper_render_dmg_json_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-smoke.json --implemented-contains partial --macro Lead --min-peak 0.08 --min-left-peak 0.1 --min-rms 0.03 --register-writes 0 --note-events 0 --min-zero-crossings 30 --max-zero-crossings 80 --core-min pulse1FreqReg=800 --core-max pulse1FreqReg=860 --core-min sweepRegister=28 --core-max sweepRegister=28 --core-min sweepPace=1 --core-max sweepPace=1 --core-min sweepShift=4 --core-max sweepShift=4 --core-min sweepSubtract=1 --core-max sweepSubtract=1 --core-min sweepEnabled=1 --core-max sweepEnabled=1 --core-min enabled0=1 --core-max enabled0=1 --core-min enabledNoise=0 --core-max enabledNoise=0 --core-min dmgStereoRoute=4 --core-max dmgStereoRoute=4 --core-min dmgStereoRouteRegister=90 --core-max dmgStereoRouteRegister=90 --core-min nr51=90 --core-max nr51=90 --descriptor-param-kind macroControl2=chipRegister --descriptor-param-surface macroControl2=slider --descriptor-param-label "macroControl2=Sweep Shift" --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=Noise Mode" --descriptor-param-choices snNoiseMode=3

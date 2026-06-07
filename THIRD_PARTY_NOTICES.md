@@ -19,8 +19,9 @@ The current partial chip cores are clean-room/internal implementations in `Sourc
 - PC Engine HuC6280 partial wavetable/noise model
 - Namco arcade WSG partial wavetable model
 - Konami SCC partial wavetable model
+- Arcade Hybrid original composition/performance layer
 
-These implementations are not claimed to be cycle-accurate. See `docs/emulation-accuracy.md` for current accuracy status and known limitations.
+These implementations are not claimed to be cycle-accurate. Arcade Hybrid is not a single hardware-chip emulator; it is an original Chipper performance layer. See `docs/emulation-accuracy.md` for current accuracy status and known limitations.
 
 ## Candidate Cores Not Yet Vendored
 

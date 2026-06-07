@@ -13,7 +13,7 @@ The plugin must not use generic retro oscillators with famous chip labels. Each 
 - **SN76489:** three tone channels, noise modes, attenuation, Sega PSG behavior.
 - **YM2612/OPN2:** six-channel FM, operators, algorithms, feedback, LFO, DAC behavior, stereo.
 - **OPL2/OPL3:** two-operator FM, rhythm mode, waveform variants, envelopes, stereo for OPL3.
-- **Expansion:** SPC700-style sample playback, Paula, HuC6280 wavetable, Namco WSG, YM2151, YM2413/OPLL, Konami SCC. SPC700-style, POKEY, Paula, HuC6280, Namco WSG, and SCC have started as audible partial clean-room expansion cores.
+- **Expansion:** SPC700-style sample playback, Paula, HuC6280 wavetable, Namco WSG, YM2151, YM2413/OPLL, Konami SCC. SPC700-style, POKEY, Paula, HuC6280, Namco WSG, and SCC have started as audible partial clean-room expansion cores. Arcade Hybrid is an audible verified-partial Chipper composition layer for arcade-style SFX, not a single hardware chip emulator.
 
 Accuracy levels:
 
@@ -140,6 +140,10 @@ Planned chip modes may expose chip-specific roadmap templates in the Template dr
 - SCC Wave Bass
 - SCC Five-Voice Arp
 - SCC Wave Tick
+- Arcade Coin Stack
+- Arcade Laser Cabinet
+- Arcade Boss Hit
+- Arcade Power-Up Rise
 
 Roadmap preset targets, kept as product direction until their chip cores exist:
 
