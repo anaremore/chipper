@@ -102,6 +102,9 @@ add_test(NAME chipper_render_sid_filter_all_smoke
 add_test(NAME chipper_render_sid_filter_route_v3_smoke
     COMMAND chipper_render --chip sid --accuracy authentic --macro manual --wave-shape pulse --sid-filter-mode lp --sid-filter-routing v3 --stereo-spread 0.0 --control3 0.45 --clock 985248 --rate 48000 --seconds 0.04 --note 69 --out sid-filter-route-v3-smoke.wav --debug sid-filter-route-v3-smoke.json
 )
+add_test(NAME chipper_render_sid_filter_exact_bits_smoke
+    COMMAND chipper_render --chip sid --accuracy authentic --macro manual --wave-shape pulse --sid-filter-mode 0x50 --sid-filter-routing 0x05 --stereo-spread 0.0 --control3 0.55 --clock 985248 --rate 48000 --seconds 0.04 --note 69 --out sid-filter-exact-bits-smoke.wav --debug sid-filter-exact-bits-smoke.json
+)
 add_test(NAME chipper_render_sid_follow_aliases_smoke
     COMMAND chipper_render --chip sid --accuracy authentic --macro lead --wave-shape follow --sid-voice2-wave follow --sid-voice3-wave follow --sid-filter-mode follow --sid-filter-routing follow --sid-mod-mode follow --sid-model follow --sid-attack follow --sid-decay follow --sid-sustain follow --sid-release follow --clock 985248 --rate 48000 --seconds 0.04 --note 69 --out sid-follow-aliases-smoke.wav --debug sid-follow-aliases-smoke.json
 )
@@ -685,6 +688,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-filter-route-v3-smoke.json --implemented-contains partial --macro Manual --min-peak 0.01 --register-writes 0 --note-events 0 --core-min filterRoutingChoice=4 --core-max filterRoutingChoice=4 --core-min filterRoutingBits=4 --core-max filterRoutingBits=4 --core-min filterRoutingRegister=4 --core-max filterRoutingRegister=4 --descriptor-param-kind sidFilterRouting=chipRegister --descriptor-param-surface sidFilterRouting=menu --descriptor-param-label "sidFilterRouting=Filter Routing" --descriptor-param-choices sidFilterRouting=9
     )
     set_tests_properties(chipper_render_sid_filter_route_v3_assert PROPERTIES DEPENDS chipper_render_sid_filter_route_v3_smoke)
+
+    add_test(NAME chipper_render_sid_filter_exact_bits_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-filter-exact-bits-smoke.json --implemented-contains partial --macro Manual --min-peak 0.001 --register-writes 0 --note-events 0 --core-min filterModeChoice=5 --core-max filterModeChoice=5 --core-min filterModeBits=80 --core-max filterModeBits=80 --core-min filterModeVolume=95 --core-max filterModeVolume=95 --core-min filterRoutingChoice=6 --core-max filterRoutingChoice=6 --core-min filterRoutingBits=5 --core-max filterRoutingBits=5 --core-min filterRoutingRegister=5 --core-max filterRoutingRegister=5
+    )
+    set_tests_properties(chipper_render_sid_filter_exact_bits_assert PROPERTIES DEPENDS chipper_render_sid_filter_exact_bits_smoke)
 
     add_test(NAME chipper_render_sid_follow_aliases_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-follow-aliases-smoke.json --implemented-contains partial --macro Lead --register-writes 0 --note-events 0 --min-peak 0.05 --core-min waveformChoice=0 --core-max waveformChoice=0 --core-min waveformChoice1=0 --core-max waveformChoice1=0 --core-min waveformChoice2=0 --core-max waveformChoice2=0 --core-min waveformBits=64 --core-max waveformBits=64 --core-min filterModeChoice=0 --core-max filterModeChoice=0 --core-min filterModeBits=16 --core-max filterModeBits=16 --core-min filterRoutingChoice=0 --core-max filterRoutingChoice=0 --core-min filterRoutingBits=7 --core-max filterRoutingBits=7 --core-min modModeChoice=0 --core-max modModeChoice=0 --core-min modBits1=0 --core-max modBits1=0 --core-min modBits2=0 --core-max modBits2=0 --core-min sidModelChoice=2 --core-max sidModelChoice=2 --core-min attackChoice=0 --core-max attackChoice=0 --core-min decayChoice=0 --core-max decayChoice=0 --core-min sustainChoice=0 --core-max sustainChoice=0 --core-min releaseChoice=0 --core-max releaseChoice=0
