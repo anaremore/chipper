@@ -15,7 +15,13 @@ constexpr auto coreStateTag = "CHIPPER_CORE_REGISTERS";
 constexpr auto registerTag = "REG";
 constexpr auto dmcBankStateTag = "CHIPPER_DMC_BANK";
 constexpr auto dmcSampleStateTag = "DMC_SAMPLE";
-constexpr auto dmcNoteMapBaseNote = 36;
+
+juce::String midiNoteName(int note)
+{
+    static constexpr std::array<const char*, 12> names { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+    const auto clampedNote = std::clamp(note, 0, 127);
+    return juce::String(names[static_cast<size_t>(clampedNote % 12)]) + juce::String((clampedNote / 12) - 2);
+}
 
 bool sourceLevelsMatch(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
 {
@@ -223,8 +229,9 @@ ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSample
 
     DmcSamplePlaybackInfo info;
     const auto manualSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
-    const auto playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
-    const auto selectedSlot = playbackMode == 1 && activeDmcSampleSlot >= 0 ? activeDmcSampleSlot : manualSlot;
+    info.playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
+    info.mapRootNote = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcMapRoot)->load())), 0, 127);
+    const auto selectedSlot = info.playbackMode == 1 && activeDmcSampleSlot >= 0 ? activeDmcSampleSlot : manualSlot;
     info.rateIndex = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcRateIndex)->load()));
     info.rateIndex = std::clamp(info.rateIndex, 0, 15);
 
@@ -261,6 +268,7 @@ ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSample
     const auto& slot = *activeSlots[safeSlot];
     info.activeSlot = static_cast<int>(safeSlot);
     info.activeSlotCount = static_cast<int>(activeSlots.size());
+    info.mapHighNote = std::clamp(info.mapRootNote + info.activeSlotCount - 1, 0, 127);
     info.sampleName = slot.name;
     info.byteCount = static_cast<int>(slot.bytes.size());
     info.bitCount = info.byteCount * 8;
@@ -269,6 +277,8 @@ ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSample
         + ": " + info.sampleName + " (" + juce::String(info.byteCount) + " bytes, "
         + juce::String(info.durationMs, info.durationMs < 10.0 ? 1 : 0) + " ms @ rate "
         + juce::String(info.rateIndex) + ")";
+    if (info.playbackMode == 1)
+        info.statusLine += " | Map " + midiNoteName(info.mapRootNote) + "-" + midiNoteName(info.mapHighNote);
     return info;
 }
 
@@ -533,6 +543,7 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
     setPlainParameterValue(chipper::parameters::id::nesDmcDirectLevel, templ.nesDmcDirectLevel);
     setPlainParameterValue(chipper::parameters::id::nesDmcRateIndex, 15.0f);
     setPlainParameterValue(chipper::parameters::id::nesDmcPlaybackMode, 0.0f);
+    setPlainParameterValue(chipper::parameters::id::nesDmcMapRoot, 36.0f);
 }
 
 void ChipperAudioProcessor::synchronizeMacroTemplateFromParameters()
@@ -675,7 +686,8 @@ void ChipperAudioProcessor::applyMappedDmcSampleForMidiNote(int midiNote)
     if (activeSlotCount <= 0)
         return;
 
-    const auto mappedSlot = std::clamp(midiNote - dmcNoteMapBaseNote, 0, activeSlotCount - 1);
+    const auto mapRootNote = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcMapRoot)->load())), 0, 127);
+    const auto mappedSlot = std::clamp(midiNote - mapRootNote, 0, activeSlotCount - 1);
     applyDmcSampleSlotToCore(mappedSlot);
 }
 

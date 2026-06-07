@@ -327,6 +327,7 @@ private:
     juce::TextButton dmcSampleBankButton;
     juce::ComboBox dmcSampleSlotBox;
     juce::ComboBox dmcPlaybackModeBox;
+    juce::ComboBox dmcMapRootBox;
     juce::Slider outputSlider;
     juce::Slider stereoSpreadSlider;
     juce::Slider envelopeDecaySlider;
@@ -346,6 +347,7 @@ private:
     std::unique_ptr<SliderAttachment> dmcDirectAttachment;
     std::unique_ptr<ComboBoxAttachment> dmcRateAttachment;
     std::unique_ptr<ComboBoxAttachment> dmcPlaybackModeAttachment;
+    std::unique_ptr<ComboBoxAttachment> dmcMapRootAttachment;
     std::unique_ptr<SliderAttachment> outputAttachment;
     std::unique_ptr<SliderAttachment> stereoSpreadAttachment;
     std::unique_ptr<ComboBoxAttachment> sidFilterRoutingAttachment;

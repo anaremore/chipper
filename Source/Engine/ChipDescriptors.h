@@ -86,6 +86,7 @@ enum class ChipParameterRole
     nesDmcSampleSlot,
     nesDmcRateIndex,
     nesDmcPlaybackMode,
+    nesDmcMapRoot,
     clockHz,
     outputDb
 };

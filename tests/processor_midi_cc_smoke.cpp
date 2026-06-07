@@ -120,9 +120,9 @@ int main()
                          "CC" + std::to_string(mapping.controller) + " should set " + mapping.label + " to maximum");
     }
 
-    sendController(processor, 69, 127);
+    sendController(processor, 68, 127);
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl1), 1.0f, 0.0001f,
-                     "Unmapped CC69 should not change mapped parameters");
+                     "Unmapped CC68 should not change mapped parameters");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 0));
     sendController(processor, 76, 127);
@@ -275,6 +275,9 @@ int main()
     sendController(processor, 119, controllerValueForChoice(processor, chipper::parameters::id::nesDmcPlaybackMode, 1));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 1.0f, 0.0001f,
                      "CC119 should control NES DMC Playback Mode");
+    sendController(processor, 69, controllerValueForChoice(processor, chipper::parameters::id::nesDmcMapRoot, 36));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcMapRoot), 36.0f, 0.0001f,
+                     "CC69 should control NES DMC Map Root");
 
     auto dmcDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-dmc-bank-curation-test");
     dmcDir.deleteRecursively();
@@ -331,6 +334,18 @@ int main()
     playbackInfo = processor.nesDmcSamplePlaybackInfo();
     ok &= expect(playbackInfo.activeSlot == 31 && playbackInfo.sampleName == "sample-31.dmc",
                  "DMC Note Map should clamp high notes to the final active slot");
+    ok &= expect(playbackInfo.statusLine.contains("Map C1-G3"),
+                 "DMC Note Map status should show the selected key span");
+
+    sendController(processor, 69, controllerValueForChoice(processor, chipper::parameters::id::nesDmcMapRoot, 40));
+    dmcMapMidi.clear();
+    dmcMapMidi.addEvent(juce::MidiMessage::noteOn(1, 40, static_cast<juce::uint8>(100)), 0);
+    processor.processBlock(dmcMapBuffer, dmcMapMidi);
+    playbackInfo = processor.nesDmcSamplePlaybackInfo();
+    ok &= expect(playbackInfo.activeSlot == 0 && playbackInfo.sampleName == "sample-00.dmc",
+                 "DMC Note Map root should remap the selected root note to active slot 1");
+    ok &= expect(playbackInfo.statusLine.contains("Map E1-B3"),
+                 "DMC Note Map status should follow the remapped key span");
 
     processor.setNesDmcSampleIncluded(0, false);
     activeNames = processor.nesDmcSampleNames();
@@ -387,6 +402,8 @@ int main()
                      "CC74 NES Bass macro should keep DMC Direct silent");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 0.0f, 0.0001f,
                      "CC74 NES macro change should reset DMC playback mode to Manual Slot");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcMapRoot), 36.0f, 0.0001f,
+                     "CC74 NES macro change should reset DMC Map Root to C1");
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 5));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcDirectLevel), 0.32f, 0.001f,
                      "CC74 NES Drum macro should apply DMC Direct template level");

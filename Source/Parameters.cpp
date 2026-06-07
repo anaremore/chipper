@@ -156,6 +156,17 @@ juce::StringArray nesDmcPlaybackModeChoices()
     return { "Manual Slot", "Note Map" };
 }
 
+juce::StringArray midiNoteChoices()
+{
+    static constexpr std::array<const char*, 12> names { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+
+    juce::StringArray choices;
+    for (int note = 0; note < 128; ++note)
+        choices.add(juce::String(names[static_cast<size_t>(note % 12)]) + juce::String((note / 12) - 2));
+
+    return choices;
+}
+
 const MidiCcMappingList& midiCcMappings()
 {
     return ::chipper::midiCcMappings();
@@ -481,6 +492,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         "NES DMC Playback Mode",
         nesDmcPlaybackModeChoices(),
         0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::nesDmcMapRoot, 1 },
+        "NES DMC Map Root",
+        midiNoteChoices(),
+        36));
 
     return { params.begin(), params.end() };
 }

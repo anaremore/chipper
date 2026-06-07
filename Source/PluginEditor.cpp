@@ -989,7 +989,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     dmcSampleBankButton.onClick = [this] { showDmcSampleBankEditor(); };
     addAndMakeVisible(dmcSampleBankButton);
 
-    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("NES-only DMC playback mode. Manual Slot uses the selected sample; Note Map maps checked bank slots across MIDI notes from C1 upward.", chipper::ChipParameterRole::nesDmcPlaybackMode));
+    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("NES-only DMC playback mode. Manual Slot uses the selected sample; Note Map maps checked bank slots upward from the DMC Map Root.", chipper::ChipParameterRole::nesDmcPlaybackMode));
     {
         const auto choices = chipper::parameters::nesDmcPlaybackModeChoices();
         for (int i = 0; i < choices.size(); ++i)
@@ -997,6 +997,15 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     }
     addAndMakeVisible(dmcPlaybackModeBox);
     dmcPlaybackModeAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::nesDmcPlaybackMode, dmcPlaybackModeBox);
+
+    dmcMapRootBox.setTooltip(withMidiCcForRole("NES-only DMC Note Map root. Checked sample slots map upward from this MIDI note.", chipper::ChipParameterRole::nesDmcMapRoot));
+    {
+        const auto choices = chipper::parameters::midiNoteChoices();
+        for (int i = 0; i < choices.size(); ++i)
+            dmcMapRootBox.addItem(choices[i], i + 1);
+    }
+    addAndMakeVisible(dmcMapRootBox);
+    dmcMapRootAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::nesDmcMapRoot, dmcMapRootBox);
 
     dmcSampleSlotBox.setTextWhenNothingSelected("No samples");
     dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the active sample from the loaded .dmc bank. MIDI CC117 selects the same slot.", chipper::ChipParameterRole::nesDmcSampleSlot));
@@ -2075,7 +2084,11 @@ void ChipperAudioProcessorEditor::resized()
         sampleHeader.removeFromLeft(4);
         dmcSampleBankButton.setBounds(sampleHeader.removeFromLeft(buttonWidth).reduced(0, 1));
         dmcCell.removeFromTop(2);
-        dmcSampleSlotBox.setBounds(dmcCell.removeFromTop(22).reduced(0, 1));
+        auto sampleRow = dmcCell.removeFromTop(22);
+        auto rootCell = sampleRow.removeFromRight(78);
+        sampleRow.removeFromRight(6);
+        dmcSampleSlotBox.setBounds(sampleRow.reduced(0, 1));
+        dmcMapRootBox.setBounds(rootCell.reduced(0, 1));
         dmcCell.removeFromTop(2);
         dmcSampleStatusLabel.setBounds(dmcCell.reduced(0, 1));
     }
@@ -2092,6 +2105,7 @@ void ChipperAudioProcessorEditor::resized()
         dmcSampleBankButton.setBounds({});
         dmcSampleSlotBox.setBounds({});
         dmcPlaybackModeBox.setBounds({});
+        dmcMapRootBox.setBounds({});
         placeLabeledSliderWithReadout(clockSlider, clockLabel, controlValueLabels[4], utilityCell);
     }
 
@@ -4479,7 +4493,13 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
             + juce::String(playbackInfo.bitCount) + " DPCM bits, approx "
             + juce::String(playbackInfo.durationMs, playbackInfo.durationMs < 10.0 ? 1 : 0) + " ms at this rate.";
     }
-    sampleTooltip += "\nManual Slot plays the selected dropdown slot. Note Map maps checked slots across MIDI notes from C1 upward; the NES DMC lane remains monophonic.";
+    sampleTooltip += "\nManual Slot plays the selected dropdown slot. Note Map maps checked slots upward from the DMC Map Root; the NES DMC lane remains monophonic.";
+    if (playbackInfo.playbackMode == 1 && playbackInfo.activeSlotCount > 0)
+        sampleTooltip += "\nCurrent map span: "
+            + chipper::parameters::midiNoteChoices()[playbackInfo.mapRootNote]
+            + " to "
+            + chipper::parameters::midiNoteChoices()[playbackInfo.mapHighNote]
+            + ".";
     sampleTooltip += "\nFolder loads create a local checklist; checked entries become up to 32 CC117-addressable slots. WAV-to-DMC conversion is planned.";
     dmcSampleStatusLabel.setTooltip(withMidiCcForRole(sampleTooltip, chipper::ChipParameterRole::nesDmcSampleSlot));
 }
@@ -4620,6 +4640,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcSampleBankButton.setVisible(showDmcSampleControls);
     dmcSampleSlotBox.setVisible(showDmcSampleControls);
     dmcPlaybackModeBox.setVisible(showDmcSampleControls);
+    dmcMapRootBox.setVisible(showDmcSampleControls);
     dmcSampleLabel.setEnabled(showDmcSampleControls);
     dmcSampleStatusLabel.setEnabled(showDmcSampleControls);
     dmcSampleFileButton.setEnabled(showDmcSampleControls);
@@ -4627,10 +4648,12 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcSampleBankButton.setEnabled(showDmcSampleControls);
     dmcSampleSlotBox.setEnabled(showDmcSampleControls);
     dmcPlaybackModeBox.setEnabled(showDmcSampleControls);
+    dmcMapRootBox.setEnabled(showDmcSampleControls);
     dmcSampleLabel.setAlpha(showDmcSampleControls ? 1.0f : 0.55f);
     dmcSampleStatusLabel.setAlpha(showDmcSampleControls ? 1.0f : 0.55f);
     dmcSampleBankButton.setAlpha(showDmcSampleControls ? 1.0f : 0.55f);
     dmcPlaybackModeBox.setAlpha(showDmcSampleControls ? 1.0f : 0.55f);
+    dmcMapRootBox.setAlpha(showDmcSampleControls ? 1.0f : 0.55f);
     clockLabel.setVisible(mode != chipper::ChipMode::nes);
     clockSlider.setVisible(mode != chipper::ChipMode::nes);
 

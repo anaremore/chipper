@@ -60,6 +60,7 @@ inline constexpr auto nesDmcDirectLevel = "nesDmcDirectLevel";
 inline constexpr auto nesDmcSampleSlot = "nesDmcSampleSlot";
 inline constexpr auto nesDmcRateIndex = "nesDmcRateIndex";
 inline constexpr auto nesDmcPlaybackMode = "nesDmcPlaybackMode";
+inline constexpr auto nesDmcMapRoot = "nesDmcMapRoot";
 }
 
 struct MidiCcMapping
@@ -69,7 +70,7 @@ struct MidiCcMapping
     const char* label = nullptr;
 };
 
-inline constexpr auto midiCcMappingCount = 50u;
+inline constexpr auto midiCcMappingCount = 51u;
 using MidiCcMappingList = std::array<MidiCcMapping, midiCcMappingCount>;
 
 const MidiCcMappingList& midiCcMappings();

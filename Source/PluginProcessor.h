@@ -43,6 +43,9 @@ public:
         int byteCount = 0;
         int bitCount = 0;
         int rateIndex = 15;
+        int playbackMode = 0;
+        int mapRootNote = 36;
+        int mapHighNote = 36;
         double bitRateHz = 0.0;
         double durationMs = 0.0;
     };

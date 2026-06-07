@@ -1603,6 +1603,7 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::nesDmcSampleSlot: return "nesDmcSampleSlot";
         case chipper::ChipParameterRole::nesDmcRateIndex: return "nesDmcRateIndex";
         case chipper::ChipParameterRole::nesDmcPlaybackMode: return "nesDmcPlaybackMode";
+        case chipper::ChipParameterRole::nesDmcMapRoot: return "nesDmcMapRoot";
         case chipper::ChipParameterRole::clockHz: return "clockHz";
         case chipper::ChipParameterRole::outputDb: return "outputDb";
     }
