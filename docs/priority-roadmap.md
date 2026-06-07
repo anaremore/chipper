@@ -36,8 +36,7 @@ After SID, prioritize the other implemented chips before adding planned chips:
 | 9 | PC Engine HuC6280 | 7 | Current code is internal clean-room partial; MAME/GME/Furnace/HuSIC remain reference or audit targets only. | Replace the generic four-source view with six wavetable lanes, wave RAM visuals, noise/LFO controls, and PC Engine preset vocabulary. |
 | 10 | Namco arcade WSG | 7 | Current code is internal clean-room partial; MAME/Furnace remain reference or audit targets only. | Replace the generic four-source view with WSG lane banks, 4-bit wave RAM visuals, enable/volume controls, and arcade preset vocabulary. |
 | 11 | Konami SCC | 7 | Current code is internal clean-room partial; emu2212 remains a permissive candidate/reference until audited. | Replace the generic four-source view with five wavetable lanes, wave RAM visuals/editing, key/volume controls, and Konami preset vocabulary. |
-| 12 | Arcade Hybrid | 8 | Current code is an original Chipper hybrid layer; no arcade-board or third-party emulator code is vendored. | Refine four-lane source UI, add better output/source scopes, and eventually let verified chip cores feed the performance layer without overclaiming hardware accuracy. |
-| 13 | YM2612 / OPN2 and OPL2/OPL3 | 8 | Do not start VST UI exposure until an FM core license plan is chosen and documented. | Use a real operator/algorithm UI with envelope visuals instead of generic oscillator controls. |
+| 12 | YM2612 / OPN2 and OPL2/OPL3 | 8 | Do not start VST UI exposure until an FM core license plan is chosen and documented. | Use a real operator/algorithm UI with envelope visuals instead of generic oscillator controls. |
 
 ## Wide Chip Implementation Queue
 
@@ -58,9 +57,9 @@ Going wide is useful now, but only if planned modes stay honest. Planned chip de
 | 11 | HuC6280 deeper pass | Turn the new partial PC Engine core into a first-class six-channel wavetable instrument. | Continue clean-room; audit MAME/GME/Furnace/HuSIC before any reuse. | Six wavetable channel strips with wave RAM preview/editing, native noise, LFO, channel balance, and source scopes. | 6 |
 | 12 | Namco WSG deeper pass | Turn the new partial Namco WSG core into a first-class arcade wavetable instrument. | Continue clean-room; audit any MAME/Furnace-derived references before reuse. | Wavetable lane banks with 4-bit waveform memory, voice-count variants, enable masks, levels, tuning, and source scopes. | 6 |
 | 13 | POKEY deeper pass | Improve the new partial Atari core. | Continue clean-room; web-pokey/MAME/Furnace reference-only unless audited. | Add AUDCTL channel pairing, high-pass filters, stronger polynomial validation, and source-card visuals. | 6 |
-| 14 | Arcade Hybrid refinement | Make the new verified-partial hybrid SFX layer feel like a polished arcade performance instrument. | Keep current internal composition layer; future embedded sources must come only from verified Chipper cores or audited third-party cores. | Four clear source lanes, bigger scopes, source routing into verified chip blocks, and preset/browser polish without false single-chip accuracy claims. | 8 |
-
 Confidence improves most by doing small adapter spikes, adding renderer traces before UI exposure, and recording exact upstream commit/license details before any third-party source enters the tree.
+
+Arcade-style sounds should come from named chip modes such as YM2149, SN76489, Namco WSG, SCC, and future YM2151 work rather than from an undefined generic arcade mode.
 
 ## Open-Source Decision Gate
 

@@ -374,7 +374,7 @@ private:
     std::array<std::unique_ptr<ButtonAttachment>, sourceChannelCount> sourceEnableAttachments;
     std::unique_ptr<juce::FileChooser> dmcSampleChooser;
 
-    chipper::ChipMode displayedMode = chipper::ChipMode::custom;
+    chipper::ChipMode displayedMode = chipper::ChipMode::nes;
     std::vector<const chipper::PresetInfo*> displayedPresets;
     bool descriptorTextInitialized = false;
     int displayedDmcSampleCount = -1;

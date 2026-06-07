@@ -28,7 +28,7 @@ REQUIRED_CATEGORIES = {
     "YM Noise Percussion",
 }
 
-IMPLEMENTED_CHIPS = {"nes", "dmg", "sid", "ym2149", "sn76489", "spc700", "pokey", "paula", "huc6280", "namcoWsg", "scc", "arcade"}
+IMPLEMENTED_CHIPS = {"nes", "dmg", "sid", "ym2149", "sn76489", "spc700", "pokey", "paula", "huc6280", "namcoWsg", "scc"}
 
 EXPECTED_CATEGORY_PREFIXES = {
     "nes": ("NES", "Arcade", "Classic"),
@@ -42,7 +42,6 @@ EXPECTED_CATEGORY_PREFIXES = {
     "huc6280": ("PC Engine", "Arcade", "Classic"),
     "namcoWsg": ("Namco", "Arcade", "Classic"),
     "scc": ("Konami", "Arcade", "Classic"),
-    "arcade": ("Arcade", "Classic", "Modern"),
 }
 
 

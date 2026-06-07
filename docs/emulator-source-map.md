@@ -92,7 +92,6 @@ These are musically and technically valuable, but direct embedding should wait u
 | YM2151 / arcade FM | ymfm | Furnace, MAME | Use ymfm as first implementation candidate |
 | YM2413 / OPLL | emu2413 or ymfm | Nuked-OPLL, Furnace | Prefer emu2413/ymfm; keep Nuked-OPLL reference-only unless licensing changes |
 | Konami SCC | Current clean-room partial wavetable model; emu2212 remains a future audit candidate | vgsound_emu, Furnace, MAME | Continue clean-room work; evaluate emu2212 before any future reuse and keep Furnace/vgsound/MAME as comparison or audit targets only |
-| Arcade Hybrid | Current original Chipper hybrid composition layer | Public arcade SFX workflows, Furnace/tracker UX, implemented Chipper chip cores | Keep as internal composition/performance layer; do not present as a single arcade-chip emulator, and audit any future embedded source core separately |
 
 ## Furnace Review Notes
 

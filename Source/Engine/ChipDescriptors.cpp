@@ -154,22 +154,6 @@ std::vector<MacroTemplate> namcoWsgMacros()
     };
 }
 
-std::vector<MacroTemplate> arcadeHybridMacros()
-{
-    return {
-        { MacroKind::manual, "Arcade Manual", "Neutral four-lane hybrid arcade mapping.", { 0.50f, 0.50f, 0.34f, 0.72f }, { true, true, true, true }, 0.08f, 0 },
-        { MacroKind::coin, "Arcade Coin Stack", "Bright coin and menu chirp from stacked pulse and stepped-wave lanes.", { 0.16f, 0.82f, 0.20f, 0.78f }, { true, true, false, false }, 0.24f, 1 },
-        { MacroKind::bass, "Arcade Cabinet Bass", "Cabinet-forward square bass with a low supporting lane.", { 0.30f, 0.18f, 0.18f, 0.88f }, { true, true, false, false }, 0.10f, 3 },
-        { MacroKind::lead, "Arcade Bright Lead", "Forward hybrid lead with pulse edge and stepped-wave color.", { 0.64f, 0.42f, 0.25f, 0.82f }, { true, true, true, false }, 0.10f, 1 },
-        { MacroKind::arp, "Arcade Attract Arp", "Fast attract-mode stack for fake chords and UI arps.", { 0.88f, 0.72f, 0.28f, 0.78f }, { true, true, true, true }, 0.08f, 1 },
-        { MacroKind::drum, "Arcade Noise Perc", "Short noise/sample lane percussion with a tone click.", { 0.32f, 0.18f, 0.88f, 0.82f }, { false, false, true, true }, 0.68f, 4 },
-        { MacroKind::hit, "Arcade Boss Hit", "Dense damage impact with burst noise and low transient body.", { 0.44f, 0.30f, 0.82f, 0.86f }, { true, false, true, true }, 0.64f, 4 },
-        { MacroKind::laser, "Arcade Laser", "Classic downward zap over stepped-wave and noise lanes.", { 0.26f, 0.96f, 0.62f, 0.82f }, { true, true, false, true }, 0.36f, 2 },
-        { MacroKind::jump, "Arcade Jump", "Quick rising platform blip.", { 0.22f, 0.74f, 0.14f, 0.76f }, { true, false, false, false }, 0.18f, 3 },
-        { MacroKind::powerUp, "Arcade Power-Up", "Longer celebratory rise with all four hybrid lanes.", { 0.74f, 0.92f, 0.34f, 0.84f }, { true, true, true, true }, 0.16f, 1 }
-    };
-}
-
 AccuracyDisclosure plannedDisclosure(std::string sourcePlan,
                                      std::string uiPlan,
                                      std::vector<std::string> blockers)
@@ -1093,58 +1077,6 @@ std::vector<ChipParameterSpec> namcoWsgParameterSpecs()
     };
 }
 
-std::vector<ChipParameterSpec> arcadeHybridParameterSpecs()
-{
-    return {
-        sliderSpec(ChipParameterRole::macroControl1,
-                   "arcade.sourceStack",
-                   "Source Stack",
-                   "Sources",
-                   "Sets interval spread and pulse width across the four Arcade Hybrid source lanes."),
-        sliderSpec(ChipParameterRole::macroControl2,
-                   "arcade.pitchMotion",
-                   "Pitch Motion",
-                   "Motion",
-                   "Offsets coin, jump, laser, and power-up pitch gestures."),
-        sliderSpec(ChipParameterRole::macroControl3,
-                   "arcade.noiseImpact",
-                   "Noise / Impact",
-                   "Noise",
-                   "Controls the burst/noise lane level for percussion, hit, and laser templates.",
-                   ParameterKind::chipRegister),
-        sliderSpec(ChipParameterRole::macroControl4,
-                   "arcade.layerLevel",
-                   "Layer Level",
-                   "Mixer",
-                   "Maps to simplified 4-bit source-lane level registers.",
-                   ParameterKind::chipRegister,
-                   0.72f),
-        sourceSpec(ChipParameterRole::source1Enabled, "arcade.lane1.enabled", "PSG Tone", "Enable the square/PSG-style tone lane."),
-        sourceSpec(ChipParameterRole::source2Enabled, "arcade.lane2.enabled", "Wave Lane", "Enable the stepped wavetable-style lane."),
-        sourceSpec(ChipParameterRole::source3Enabled, "arcade.lane3.enabled", "Sample Lane", "Enable the short sample/transient lane."),
-        sourceSpec(ChipParameterRole::source4Enabled, "arcade.lane4.enabled", "Noise / SFX", "Enable the noise and laser/SFX lane."),
-        sourceLevelSpec(ChipParameterRole::source1Level, "arcade.lane1.level", "PSG Tone Level", "Modern trim after the lane 1 level register."),
-        sourceLevelSpec(ChipParameterRole::source2Level, "arcade.lane2.level", "Wave Lane Level", "Modern trim after the lane 2 level register."),
-        sourceLevelSpec(ChipParameterRole::source3Level, "arcade.lane3.level", "Sample Lane Level", "Modern trim after the lane 3 level register."),
-        sourceLevelSpec(ChipParameterRole::source4Level, "arcade.lane4.level", "Noise / SFX Level", "Modern trim after the lane 4 level register."),
-        stereoSpreadSpec("arcade.cabinetSpread", "Modern stereo convenience that spreads the hybrid arcade lanes; zero preserves centered cabinet-style output."),
-        envelopeSpec("arcade.decay", "Decay", "Applies a musical one-shot decay helper for arcade UI and SFX templates."),
-        segmentedSpec(ChipParameterRole::waveShape,
-                      "arcade.sourceShape",
-                      "Source Shape",
-                      "Sources",
-                      "Selects the generated Arcade Hybrid lane shape. Follow resolves from the selected template.",
-                      {
-                          choice("Follow", "Use the selected Arcade Hybrid template shape.", 0.0f, 0),
-                          choice("Steps", "Stepped low-bit arcade wave.", 0.25f, 1),
-                          choice("Tri", "Triangle-style source lane.", 0.5f, 2),
-                          choice("Pulse", "Pulse/PSG-style source lane.", 0.75f, 3),
-                          choice("Noise", "Burst/noise source lane.", 1.0f, 4)
-                      },
-                      ParameterKind::chipRegister)
-    };
-}
-
 std::vector<ChipParameterSpec> sidParameterSpecs()
 {
     return {
@@ -1444,9 +1376,9 @@ std::array<ModuleDescriptor, 6> sampleModules(std::string profile, std::string s
 const ChipDescriptor& fallbackDescriptor()
 {
     static const ChipDescriptor descriptor {
-        ChipMode::custom,
-        "Planned Chip Mode",
-        "No audited core is integrated yet. Controls are placeholders until this chip has a register model.",
+        ChipMode::nes,
+        "Unknown / Retired Chip Mode",
+        "This stored chip mode is not product-facing. Select a named chip mode with an audited or planned register target.",
         {
             { "native1", "Native Control 1", "Planned", "Reserved for the audited chip core." },
             { "native2", "Native Control 2", "Planned", "Reserved for the audited chip core." },
@@ -1872,40 +1804,6 @@ const std::vector<ChipDescriptor>& descriptors()
                     "SCC+ bank behavior, channel 4/5 shared-wave quirks, exact DAC/output curve, timing edge cases, and hardware validation are not complete.",
                     "Evaluate `emu2212` as a permissive candidate/reference before any future source reuse."
                 })
-        },
-        {
-            ChipMode::arcade,
-            "Arcade Hybrid",
-            "Playable hybrid arcade SFX layer built from original Chipper tone, wavetable, sample/noise, and gesture lanes.",
-            {
-                { "tone", "PSG Tone", "Sources", "Square/PSG-style source lane." },
-                { "wave", "Wave Lane", "Sources", "Stepped wavetable-style source lane." },
-                { "noise", "Noise / SFX", "Noise", "Burst, impact, and laser lane." },
-                { "cabinet", "Cabinet Spread", "Output", "Modern spread/level helper; not a hardware cabinet model." },
-            },
-            {
-                makeModule("profile", "Profile", "Original Chipper hybrid performance layer.", { "Not one arcade chip", "Four source lanes", "Hybrid default", "No cycle claim" }),
-                makeModule("channels", "Sources", "Four lane arcade stack exposed musically.", { "PSG Tone", "Wave Lane", "Sample Lane", "Noise / SFX" }),
-                makeModule("shape", "Shape / Mixer", "Generated source shapes and lane stack behavior.", { "Source Shape", "Source Stack", "4-bit levels", "Chip Poly" }),
-                makeModule("envelope", "Envelope", "Musical one-shot decay helper.", { "Decay", "Coin blips", "Perc hits", "Power-up rise" }),
-                makeModule("motion", "Motion", "Arcade gestures mapped to lane pitch and noise motion.", { "Coin sweep", "Laser zap", "Jump rise", "Attract arp" }),
-                makeModule("output", "Output", "Centered cabinet-style output with optional modern spread.", { "Layer level", "Cabinet spread", "Verified partial", "Known gaps" })
-            },
-            arcadeHybridMacros(),
-            true,
-            true,
-            arcadeHybridParameterSpecs(),
-            verifiedPartial(
-                {
-                    "Four original Chipper hybrid lanes are audible and controllable: PSG-style tone, stepped wave, sample/transient, and noise/SFX.",
-                    "Template macros update source enables, lane levels, wave shape, pitch gestures, and decay behavior.",
-                    "Chip Poly allocates notes across the four exposed lanes for playable arcade stacks."
-                },
-                {
-                    "This is not a single hardware chip, arcade board, or cycle-accurate emulator.",
-                    "Exact source-chip composition, arcade-board DAC/mixer behavior, cabinet response, and hardware validation are intentionally outside this hybrid layer.",
-                    "Future work should add per-source routing into verified chip cores once those engines expose stable embeddable voices."
-                })
         }
     };
     return items;
@@ -1964,10 +1862,9 @@ std::vector<ChipMode> chipModeOrder()
 {
     std::vector<ChipMode> modes;
     const auto& items = descriptors();
-    modes.reserve(items.size() + 1u);
+    modes.reserve(items.size());
     for (const auto& item : items)
         modes.push_back(item.mode);
-    modes.push_back(ChipMode::custom);
     return modes;
 }
 

@@ -32,8 +32,9 @@ int chipModeChoiceIndex(chipper::ChipMode mode)
         case chipper::ChipMode::ym2151: return 12;
         case chipper::ChipMode::ym2413: return 13;
         case chipper::ChipMode::scc: return 14;
-        case chipper::ChipMode::arcade: return 15;
-        case chipper::ChipMode::custom: return 16;
+        case chipper::ChipMode::arcade:
+        case chipper::ChipMode::custom:
+            return 0;
     }
 
     return 0;

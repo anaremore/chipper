@@ -184,8 +184,7 @@ bool expectVerificationDisclosure()
         chipper::ChipMode::pokey,
         chipper::ChipMode::huc6280,
         chipper::ChipMode::namcoWsg,
-        chipper::ChipMode::scc,
-        chipper::ChipMode::arcade
+        chipper::ChipMode::scc
     };
 
     for (const auto mode : liveModes)
@@ -242,8 +241,6 @@ int main()
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::namcoWsg).supportsChipPoly, "Namco WSG should support Chip Poly across exposed wavetable lanes");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).implemented, "SCC descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).supportsChipPoly, "SCC should support Chip Poly across exposed wavetable channels");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::arcade).implemented, "Arcade Hybrid descriptor should be partially implemented");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::arcade).supportsChipPoly, "Arcade Hybrid should support Chip Poly across four source lanes");
     ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl1, 4, "12.5%");
     ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::pulse2Duty, 5, "Follow");
     ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::snNoiseMode, 3, "Follow");
@@ -393,11 +390,6 @@ int main()
     ok &= expectMacroLabel(chipper::ChipMode::scc, chipper::MacroKind::powerUp, "SCC Power Wave");
     ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, 5, "Follow");
-    ok &= expectMacroLabel(chipper::ChipMode::arcade, chipper::MacroKind::laser, "Arcade Laser");
-    ok &= expectSpec(chipper::ChipMode::arcade, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Source Shape");
-    ok &= expectSegmentedRegister(chipper::ChipMode::arcade, chipper::ChipParameterRole::waveShape, 5, "Follow");
-    ok &= expectSpec(chipper::ChipMode::arcade, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise / Impact");
-    ok &= expectSpec(chipper::ChipMode::arcade, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Layer Level");
 
     ok &= expect(chipper::chipHasParameterSurface(chipper::ChipMode::ym2149,
                                                   chipper::ChipParameterRole::source1Enabled,
