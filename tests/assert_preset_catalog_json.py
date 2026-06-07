@@ -16,6 +16,7 @@ REQUIRED_CATEGORIES = {
     "PC Engine HuC6280",
     "Konami SCC",
     "Namco WSG",
+    "Amiga Paula",
     "SID Bass",
     "SID FX",
     "SID PWM Leads",
@@ -26,7 +27,7 @@ REQUIRED_CATEGORIES = {
     "YM Noise Percussion",
 }
 
-IMPLEMENTED_CHIPS = {"nes", "dmg", "sid", "ym2149", "sn76489", "pokey", "huc6280", "namcoWsg", "scc"}
+IMPLEMENTED_CHIPS = {"nes", "dmg", "sid", "ym2149", "sn76489", "pokey", "paula", "huc6280", "namcoWsg", "scc"}
 
 EXPECTED_CATEGORY_PREFIXES = {
     "nes": ("NES", "Arcade", "Classic"),
@@ -35,6 +36,7 @@ EXPECTED_CATEGORY_PREFIXES = {
     "ym2149": ("YM", "Arcade", "Classic"),
     "sn76489": ("SN76489", "Arcade", "Classic"),
     "pokey": ("Atari", "Arcade", "Classic"),
+    "paula": ("Amiga", "Tracker", "Classic"),
     "huc6280": ("PC Engine", "Arcade", "Classic"),
     "namcoWsg": ("Namco", "Arcade", "Classic"),
     "scc": ("Konami", "Arcade", "Classic"),

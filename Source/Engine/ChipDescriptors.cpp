@@ -74,6 +74,22 @@ std::vector<MacroTemplate> pokeyMacros()
     };
 }
 
+std::vector<MacroTemplate> paulaMacros()
+{
+    return {
+        { MacroKind::manual, "Paula Manual", "Neutral four-channel Amiga tracker-sampler mapping.", { 0.50f, 0.50f, 0.45f, 0.72f }, { true, true, true, true }, 0.0f, 3 },
+        { MacroKind::coin, "Paula Chip Blip", "Short pitched sample chirp for UI sounds.", { 0.18f, 0.74f, 0.22f, 0.78f }, { true, false, false, false }, 0.20f, 1 },
+        { MacroKind::bass, "Paula Tracker Bass", "Low looping 8-bit sample bass with a second channel body.", { 0.30f, 0.26f, 0.60f, 0.84f }, { true, true, false, false }, 0.08f, 2 },
+        { MacroKind::lead, "Paula Chip Lead", "Bright tracker lead from a compact ramp sample.", { 0.58f, 0.46f, 0.55f, 0.80f }, { true, true, true, false }, 0.10f, 1 },
+        { MacroKind::arp, "Paula Tracker Arp", "Four Paula sample channels arranged for fake chords and arps.", { 0.86f, 0.70f, 0.58f, 0.76f }, { true, true, true, true }, 0.08f, 1 },
+        { MacroKind::drum, "Paula Noise Tick", "Short one-shot noise burst for tracker percussion.", { 0.30f, 0.20f, 0.12f, 0.82f }, { false, false, true, true }, 0.66f, 4 },
+        { MacroKind::hit, "Paula Damage Hit", "Crunchy four-channel one-shot impact.", { 0.44f, 0.30f, 0.14f, 0.86f }, { true, false, true, true }, 0.62f, 4 },
+        { MacroKind::laser, "Paula Rate Sweep", "Sample-period sweep SFX gesture.", { 0.24f, 0.96f, 0.32f, 0.78f }, { true, true, false, true }, 0.34f, 1 },
+        { MacroKind::jump, "Paula Jump", "Quick upward tracker-sample blip.", { 0.22f, 0.72f, 0.30f, 0.74f }, { true, false, false, false }, 0.16f, 1 },
+        { MacroKind::powerUp, "Paula Power Rise", "Longer multi-channel sample rise.", { 0.74f, 0.92f, 0.62f, 0.82f }, { true, true, true, true }, 0.14f, 3 }
+    };
+}
+
 std::vector<MacroTemplate> huc6280Macros()
 {
     return {
@@ -801,6 +817,58 @@ std::vector<ChipParameterSpec> pokeyParameterSpecs()
     };
 }
 
+std::vector<ChipParameterSpec> paulaParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "paula.channelSpread",
+                   "Channel Spread",
+                   "Channels",
+                   "Sets pitch interval spread across the four Paula sample channels."),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "paula.periodMotion",
+                   "Period Motion",
+                   "Pitch",
+                   "Offsets tracker sample periods for chip-like pitch gestures."),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "paula.loopBias",
+                   "Loop Bias",
+                   "Sample",
+                   "Controls whether templates behave more like looping instruments or short one-shots.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "paula.channelVolume",
+                   "Channel Volume",
+                   "Mixer",
+                   "Maps to the 0-64 Paula channel volume range.",
+                   ParameterKind::chipRegister,
+                   0.72f),
+        sourceSpec(ChipParameterRole::source1Enabled, "paula.channel1.enabled", "Channel 1", "Enable Paula sample channel 1."),
+        sourceSpec(ChipParameterRole::source2Enabled, "paula.channel2.enabled", "Channel 2", "Enable Paula sample channel 2."),
+        sourceSpec(ChipParameterRole::source3Enabled, "paula.channel3.enabled", "Channel 3", "Enable Paula sample channel 3."),
+        sourceSpec(ChipParameterRole::source4Enabled, "paula.channel4.enabled", "Channel 4", "Enable Paula sample channel 4."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "paula.channel1.level", "Channel 1 Level", "Modern trim after Paula channel 1 volume."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "paula.channel2.level", "Channel 2 Level", "Modern trim after Paula channel 2 volume."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "paula.channel3.level", "Channel 3 Level", "Modern trim after Paula channel 3 volume."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "paula.channel4.level", "Channel 4 Level", "Modern trim after Paula channel 4 volume."),
+        stereoSpreadSpec("paula.stereoSpread", "Modern stereo spread around the classic Paula channel layout; zero preserves centered output."),
+        envelopeSpec("paula.decay", "Decay", "Applies a musical decay helper while native channel volume remains visible in debug state."),
+        segmentedSpec(ChipParameterRole::waveShape,
+                      "paula.sampleShape",
+                      "Sample Shape",
+                      "Sample",
+                      "Selects the generated 8-bit sample template. Follow resolves from the selected tracker template.",
+                      {
+                          choice("Follow", "Use the selected Paula template sample.", 0.0f, 0),
+                          choice("Ramp", "Rough 8-bit ramp sample for buzzy tracker leads.", 0.25f, 1),
+                          choice("Tri", "Triangle-style looped sample for bass.", 0.5f, 2),
+                          choice("Sine", "Rounded looped sample.", 0.75f, 3),
+                          choice("Noise", "Short decaying noise sample for percussion.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister)
+    };
+}
+
 std::vector<ChipParameterSpec> huc6280ParameterSpecs()
 {
     return {
@@ -1499,24 +1567,35 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::paula,
             "Amiga Paula",
-            "Planned tracker sampler mode. No Paula model is integrated yet.",
+            "Partial clean-room Amiga Paula tracker-sampler model with four 8-bit sample channels.",
             {
-                { "sample", "Sample Mix", "Sources", "Planned four-channel sample mix." },
-                { "period", "Period", "Tone", "Planned Paula period control." },
-                { "loop", "Loop", "Envelope", "Planned loop and one-shot behavior." },
-                { "tracker", "Tracker Grit", "Output", "Planned tracker coloration." },
+                { "sample", "Sample Mix", "Sources", "Four 8-bit sample channels with source enables and trims." },
+                { "period", "Period", "Tone", "Paula-style period mapping from notes to sample playback rate." },
+                { "loop", "Loop", "Envelope", "Loop/one-shot control plus musical decay helper." },
+                { "tracker", "Tracker Grit", "Output", "Hard-panned tracker channel layout with 8-bit templates." },
             },
-            sampleModules("Paula tracker-sampler strategy planned.", "Tracker Channels", "Sample Period"),
-            plannedSampleMacros("Paula", "tracker sample"),
-            false,
-            false,
-            {},
-            plannedDisclosure(
-                "start with a clean-room four-channel tracker sampler model and compare against audited ProTracker/Paula references.",
-                "Paula UI should use four sample-channel strips with period, loop, volume, panning, and tracker-style retrigger controls.",
+            {
+                makeModule("profile", "Profile", "Paula clean-room tracker sampler groundwork.", { "Amiga family", "3.55 MHz PAL default", "Hybrid default", "Authentic still partial" }),
+                makeModule("sources", "Channels", "Four native Paula sample channels.", { "Channel 1", "Channel 2", "Channel 3", "Channel 4" }),
+                makeModule("sample", "Sample / Period", "8-bit sample templates with Paula-style period playback.", { "Ramp", "Triangle", "Sine", "Noise burst" }),
+                makeModule("envelope", "Loop / Decay", "Looped instrument and one-shot tracker behavior.", { "Loop bias", "One-shot drums", "Decay helper", "Register readout" }),
+                makeModule("motion", "Motion", "Tracker SFX gestures mapped to sample periods.", { "Tracker arp", "Rate sweep", "Jump blip", "Damage hit" }),
+                makeModule("output", "Output", "Classic hard-panned Amiga channel layout groundwork.", { "0-64 volume", "Stereo spread convenience", "External samples planned", "Known differences" })
+            },
+            paulaMacros(),
+            true,
+            true,
+            paulaParameterSpecs(),
+            verifiedPartial(
                 {
-                    "No Paula DMA/sample-channel model is integrated.",
-                    "Sample period timing, loop behavior, channel panning, and tracker effects are not implemented."
+                    "Four sample channels render 8-bit generated templates with period, volume, enable, loop, and sample-template register paths.",
+                    "Source enables, source levels, chip-poly allocation, sample-shape choices, hard-panned output, and debug JSON are covered by automated renderer tests.",
+                    "No third-party Paula, ProTracker, or module-player source code is vendored in this clean-room partial model."
+                },
+                {
+                    "DMA pointer reload timing, exact sample memory addressing, interrupt behavior, CIA/video timing, and ProTracker effect commands are not implemented.",
+                    "PAL/NTSC period tables, anti-aliasing/output filtering, and analog output behavior need comparison against trusted emulators and hardware captures.",
+                    "External IFF/8SVX/MOD sample import is planned but not part of this partial core yet."
                 })
         },
         {

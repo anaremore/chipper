@@ -14,6 +14,7 @@ The current partial chip cores are clean-room/internal implementations in `Sourc
 - YM2149 / AY partial PSG model
 - SN76489 partial PSG model
 - Atari POKEY partial polynomial/timer model
+- Amiga Paula partial tracker-sampler model
 - PC Engine HuC6280 partial wavetable/noise model
 - Namco arcade WSG partial wavetable model
 - Konami SCC partial wavetable model
