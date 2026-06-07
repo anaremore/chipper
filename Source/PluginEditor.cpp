@@ -3987,9 +3987,10 @@ void ChipperAudioProcessorEditor::updateSidVoiceWaveControls(bool shouldBeVisibl
     {
         const auto selected = static_cast<int>(std::round(parameterValue(sidVoiceWaveParameterId(i))));
         const auto bits = chipper::sidWaveformControlForVoice(patch, i);
+        const auto maxChoice = std::max(0, sidVoiceWaveBoxes[i].getNumItems() - 1);
         sidVoiceWaveLabels[i].setVisible(shouldBeVisible);
         sidVoiceWaveBoxes[i].setVisible(shouldBeVisible);
-        sidVoiceWaveBoxes[i].setSelectedItemIndex(std::clamp(selected, 0, 4), juce::dontSendNotification);
+        sidVoiceWaveBoxes[i].setSelectedItemIndex(std::clamp(selected, 0, maxChoice), juce::dontSendNotification);
 
         if (shouldBeVisible)
         {

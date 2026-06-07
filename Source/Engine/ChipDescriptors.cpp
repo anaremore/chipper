@@ -604,10 +604,16 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
                    0.7f),
         sourceSpec(ChipParameterRole::source1Enabled, "sid.voice1.enabled", "Voice 1", "Enable SID voice 1."),
         sourceSpec(ChipParameterRole::source2Enabled, "sid.voice2.enabled", "Voice 2", "Enable SID voice 2."),
-        sourceSpec(ChipParameterRole::source3Enabled, "sid.voice3.enabled", "Voice 3", "Enable SID voice 3."),
+        sourceSpec(ChipParameterRole::source3Enabled,
+                   "sid.voice3.enabled",
+                   "Voice 3",
+                   "Enable SID voice 3 audio output. OSC3/ENV3 utility-read and silent modulation-source behavior are planned separately."),
         sourceLevelSpec(ChipParameterRole::source1Level, "sid.voice1.level", "Voice 1 Level", "Modern trim for SID voice 1 after its envelope."),
         sourceLevelSpec(ChipParameterRole::source2Level, "sid.voice2.level", "Voice 2 Level", "Modern trim for SID voice 2 after its envelope."),
-        sourceLevelSpec(ChipParameterRole::source3Level, "sid.voice3.level", "Voice 3 Level", "Modern trim for SID voice 3 after its envelope."),
+        sourceLevelSpec(ChipParameterRole::source3Level,
+                        "sid.voice3.level",
+                        "Voice 3 Level",
+                        "Modern trim for audible SID voice 3 after its envelope; it does not model OSC3/ENV3 utility routing yet."),
         sidPulseWidthSpec(ChipParameterRole::sidVoice2PulseWidth,
                           "sid.voice2.pulseWidth",
                           "Voice 2 PW",
@@ -690,7 +696,7 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
         sidVoiceWaveSpec(ChipParameterRole::sidVoice3WaveShape,
                          "sid.voice3.waveform",
                          "Voice 3 Wave",
-                         "Maps Voice 3 to its own SID control-register waveform bits. Follow uses Voice 1 or the selected SID template."),
+                         "Maps audible Voice 3 to its own SID control-register waveform bits. Follow uses Voice 1 or the selected SID template; OSC3 readback is not modeled yet."),
         { ChipParameterRole::ymEnvelopeShape,
           "sid.filterMode",
           "Filter Mode",
@@ -800,7 +806,7 @@ std::array<ModuleDescriptor, 6> sidModules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "SID clean-room voice-core groundwork.", { "6581 / 8580 model", "PAL clock default", "Hybrid default", "Authentic still partial" }),
-        makeModule("sources", "Voices", "Three SID oscillator voices.", { "Voice 1", "Voice 2", "Voice 3", "External input planned" }),
+        makeModule("sources", "Voices", "Three SID oscillator voices.", { "Voice 1", "Voice 2", "Audible Voice 3", "OSC3/ENV3 utility planned" }),
         makeModule("tone", "Filter", "Register-backed SID filter mode and voice routing.", { "Filter mode", "Voice routing", "Cutoff", "Resonance" }),
         makeModule("envelope", "Envelope", "SID-style ADSR gate behavior.", { "Attack/decay nibbles", "Sustain nibble", "Release nibble", "ADSR quirks planned" }),
         makeModule("motion", "Motion", "Classic SID modulation gestures.", { "Voice detune", "PWM-ready width", "Osc interaction", "Template motion" }),
@@ -923,7 +929,7 @@ const std::vector<ChipDescriptor>& descriptors()
                     "Voice waveform bits, per-voice waveform overrides, pulse-width register mapping, source gating, Chip Poly, sync/ring control bits, ADSR nibble overrides, filter mode/routing/resonance, 6581/8580 profile selection, presets, and MIDI CC metadata are covered by renderer tests."
                 },
                 {
-                    "Exact 6581/8580 analog filter behavior, ADSR bugs, oscillator sync/ring timing, waveform-combination quirks, external input, DAC nonlinearity, hardware capture comparison, and cycle accuracy are not claimed."
+                    "OSC3/ENV3 voice-3 readback, silent Voice 3 utility/mod-source behavior, model-specific Voice 3 noise leakage, exact 6581/8580 analog filter behavior, ADSR bugs, oscillator sync/ring timing, waveform-combination quirks, external input, DAC nonlinearity, hardware capture comparison, and cycle accuracy are not claimed."
                 })
         },
         {

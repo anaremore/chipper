@@ -67,6 +67,21 @@ bool expectSpecGroup(chipper::ChipMode mode, chipper::ChipParameterRole role, co
     return ok;
 }
 
+bool expectSpecHelpContains(chipper::ChipMode mode,
+                            chipper::ChipParameterRole role,
+                            const std::string& needle,
+                            const std::string& message)
+{
+    const auto* spec = chipper::parameterSpecFor(mode, role);
+    bool ok = true;
+    ok &= expect(spec != nullptr, "missing parameter spec");
+    if (spec == nullptr)
+        return false;
+
+    ok &= expect(spec->help.find(needle) != std::string::npos, message);
+    return ok;
+}
+
 bool expectMacroSourceMask(chipper::ChipMode mode, chipper::MacroKind macro, std::array<bool, 4> expected)
 {
     const auto& templ = chipper::macroTemplateFor(mode, macro);
@@ -237,6 +252,14 @@ int main()
     ok &= expectSpecGroup(chipper::ChipMode::sid, chipper::ChipParameterRole::sidVoice2PulseWidth, "Voices");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::sidVoice3PulseWidth, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Voice 3 PW");
     ok &= expectSpecGroup(chipper::ChipMode::sid, chipper::ChipParameterRole::sidVoice3PulseWidth, "Voices");
+    ok &= expectSpecHelpContains(chipper::ChipMode::sid,
+                                 chipper::ChipParameterRole::source3Enabled,
+                                 "OSC3/ENV3",
+                                 "SID voice 3 enable help should disclose utility-read behavior is separate from audio output");
+    ok &= expectSpecHelpContains(chipper::ChipMode::sid,
+                                 chipper::ChipParameterRole::source3Level,
+                                 "audible SID voice 3",
+                                 "SID voice 3 level help should clarify it trims audible voice 3");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Filter Mode");
     if (const auto* spec = chipper::parameterSpecFor(chipper::ChipMode::sid, chipper::ChipParameterRole::ymEnvelopeShape))
     {
