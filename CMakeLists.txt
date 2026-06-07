@@ -183,6 +183,9 @@ add_test(NAME chipper_render_ym2149_envelope_triangle_smoke
 add_test(NAME chipper_render_ym2149_envelope_code0f_smoke
     COMMAND chipper_render --chip ym2149 --accuracy authentic --macro manual --ym-envelope-shape 0x0f --clock 2000000 --rate 48000 --seconds 0.05 --note 72 --out ym-envelope-code0f-smoke.wav --debug ym-envelope-code0f-smoke.json
 )
+add_test(NAME chipper_render_ym2149_envelope_code10_smoke
+    COMMAND chipper_render --chip ym2149 --accuracy authentic --macro manual --ym-envelope-shape code10 --clock 2000000 --rate 48000 --seconds 0.05 --note 72 --out ym-envelope-code10-smoke.wav --debug ym-envelope-code10-smoke.json
+)
 add_test(NAME chipper_render_ym2149_envelope_fast_smoke
     COMMAND chipper_render --chip ym2149 --accuracy authentic --macro manual --ym-envelope-shape triangle --envelope-decay 1.0 --clock 2000000 --rate 48000 --seconds 0.05 --note 72 --out ym-envelope-fast-smoke.wav --debug ym-envelope-fast-smoke.json
 )
@@ -812,6 +815,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-envelope-code0f-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.02 --core-min envelopeShapeChoice=20 --core-max envelopeShapeChoice=20 --core-min envelopeShape=15 --core-max envelopeShape=15 --core-min envelopeEnabledA=1 --core-max envelopeEnabledA=1 --core-min envelopeEnabledB=1 --core-max envelopeEnabledB=1 --core-min envelopeEnabledC=1 --core-max envelopeEnabledC=1
     )
     set_tests_properties(chipper_render_ym2149_envelope_code0f_assert PROPERTIES DEPENDS chipper_render_ym2149_envelope_code0f_smoke)
+
+    add_test(NAME chipper_render_ym2149_envelope_code10_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-envelope-code10-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.02 --core-min envelopeShapeChoice=15 --core-max envelopeShapeChoice=15 --core-min envelopeShape=10 --core-max envelopeShape=10 --core-min envelopeEnabledA=1 --core-max envelopeEnabledA=1 --core-min envelopeEnabledB=1 --core-max envelopeEnabledB=1 --core-min envelopeEnabledC=1 --core-max envelopeEnabledC=1
+    )
+    set_tests_properties(chipper_render_ym2149_envelope_code10_assert PROPERTIES DEPENDS chipper_render_ym2149_envelope_code10_smoke)
 
     add_test(NAME chipper_render_ym2149_envelope_fast_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-envelope-fast-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.02 --core-min envelopeDecayControl=1 --core-max envelopeDecayControl=1 --core-min envelopeShapeChoice=4 --core-max envelopeShapeChoice=4 --core-min envelopeShape=14 --core-max envelopeShape=14 --core-min envelopePeriod=16 --core-max envelopePeriod=16 --descriptor-param-kind envelopeDecay=chipRegister --descriptor-param-surface envelopeDecay=slider --descriptor-param-label "envelopeDecay=Envelope Speed"

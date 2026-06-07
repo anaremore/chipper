@@ -222,10 +222,24 @@ bool parseYmEnvelopeShape(const std::string& text, int& out)
         if (suffix.empty())
             return false;
 
+        auto view = std::string_view(suffix);
+        auto base = 10;
+        if (view.size() > 2u && view[0] == '0' && view[1] == 'x')
+        {
+            base = 16;
+            view.remove_prefix(2);
+        }
+        else if (std::any_of(view.begin(), view.end(), [](char c) {
+                     return (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+                 }))
+        {
+            base = 16;
+        }
+
         uint32_t code = 0;
-        const auto* first = suffix.data();
-        const auto* last = suffix.data() + suffix.size();
-        const auto result = std::from_chars(first, last, code, 16);
+        const auto* first = view.data();
+        const auto* last = view.data() + view.size();
+        const auto result = std::from_chars(first, last, code, base);
         if (result.ec != std::errc() || result.ptr != last)
             return false;
 
