@@ -5767,7 +5767,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room sample-voice model"; }
     std::string limitations() const override
     {
-        return "Eight lo-fi sample voices, pitch, volume, simplified ADSR/gain state, generated sample templates, and a musical echo-color helper are modeled; BRR decoding, SPC700 CPU timing, S-DSP register edge cases, noise, FIR echo, sample directory addressing, and hardware validation are not complete.";
+        return "Eight lo-fi sample voices, pitch, volume, simplified ADSR/gain state, generated sample templates, Gaussian-style 4-tap sample interpolation, and a musical echo-color helper are modeled; BRR decoding, exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, noise, FIR echo, sample directory addressing, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -5797,6 +5797,8 @@ public:
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
              << "\"sampleLength0\":" << sampleRam[0].size() << ","
+             << "\"gaussianStyleInterpolation\":1,"
+             << "\"interpolationTaps\":4,"
              << "\"uiExposesFirstFourVoices\":1,"
              << "\"internalChannelCount\":8,"
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
@@ -5899,8 +5901,7 @@ private:
         if ((enabledMask & (1u << voice)) == 0 || sampleRam[voice].empty() || volume[voice] == 0)
             return 0.0;
 
-        const auto index = static_cast<size_t>(position[voice]) % sampleRam[voice].size();
-        const auto sample = sampleRam[voice][index] * (static_cast<double>(volume[voice]) / 127.0) * envelope[voice];
+        const auto sample = interpolatedSample(voice, position[voice]) * (static_cast<double>(volume[voice]) / 127.0) * envelope[voice];
         const auto playbackHz = (static_cast<double>(pitch[voice]) / (4096.0 * 16.0)) * 32000.0;
         position[voice] += (playbackHz * static_cast<double>(sampleRam[voice].size())) / sampleRate;
 
@@ -5911,6 +5912,31 @@ private:
             envelope[voice] = std::max(0.0, envelope[voice] * (1.0 - static_cast<double>(patch.envelopeDecay) * 0.00045));
 
         return sample;
+    }
+
+    double interpolatedSample(size_t voice, double samplePosition) const
+    {
+        const auto& data = sampleRam[voice];
+        if (data.empty())
+            return 0.0;
+
+        const auto length = static_cast<int>(data.size());
+        const auto base = static_cast<int>(std::floor(samplePosition));
+        const auto frac = std::clamp(samplePosition - static_cast<double>(base), 0.0, 0.999999);
+        static constexpr auto sigma = 0.58;
+
+        auto weighted = 0.0;
+        auto weightSum = 0.0;
+        for (int tap = -1; tap <= 2; ++tap)
+        {
+            const auto wrapped = (base + tap + length) % length;
+            const auto distance = static_cast<double>(tap) - frac;
+            const auto weight = std::exp(-(distance * distance) / (2.0 * sigma * sigma));
+            weighted += data[static_cast<size_t>(wrapped)] * weight;
+            weightSum += weight;
+        }
+
+        return weightSum > 0.0 ? weighted / weightSum : data[static_cast<size_t>(base % length)];
     }
 
     int selectChipPolyChannel(int midiNote) const
