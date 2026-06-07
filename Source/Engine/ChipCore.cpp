@@ -2744,7 +2744,10 @@ private:
         channelVelocity[index] = static_cast<float>(clamp01(velocity));
         channelStamp[index] = ++noteStamp;
 
-        writeRegister(0x4015, 0x07);
+        auto enable = static_cast<uint8_t>(sourceEnableMask(patch) & 0x0fu);
+        if (! dmcSample.empty() && sourceEnabled(patch, 3))
+            enable = static_cast<uint8_t>(enable | 0x10u);
+        writeRegister(0x4015, enable);
 
         if (channel == 0)
         {
