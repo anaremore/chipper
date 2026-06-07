@@ -161,6 +161,28 @@ function New-ChipperFallbackDestination {
     return Join-Path $env:TEMP "Chipper-VST3-install-$stamp"
 }
 
+function Copy-ChipperLegalNotices {
+    param(
+        [string] $BundlePath
+    )
+
+    $resourcesPath = Join-Path $BundlePath "Contents\Resources"
+    $legalPath = Join-Path $resourcesPath "Legal"
+    New-Item -ItemType Directory -Force -Path $legalPath | Out-Null
+
+    $noticesSource = Join-Path $repoRoot "THIRD_PARTY_NOTICES.md"
+    if (Test-Path -LiteralPath $noticesSource) {
+        Copy-Item -Force -LiteralPath $noticesSource -Destination (Join-Path $legalPath "THIRD_PARTY_NOTICES.md")
+    }
+
+    $emu2413License = Join-Path $repoRoot "ThirdParty\emu2413\LICENSE"
+    if (Test-Path -LiteralPath $emu2413License) {
+        $emu2413Path = Join-Path $legalPath "emu2413"
+        New-Item -ItemType Directory -Force -Path $emu2413Path | Out-Null
+        Copy-Item -Force -LiteralPath $emu2413License -Destination (Join-Path $emu2413Path "LICENSE")
+    }
+}
+
 function Copy-ChipperBundle {
     param(
         [string] $SourceBundle,
@@ -170,6 +192,7 @@ function Copy-ChipperBundle {
 
     New-Item -ItemType Directory -Force -Path $DestinationRoot | Out-Null
     Copy-Item -Recurse -Force -LiteralPath $SourceBundle -Destination $DestinationRoot
+    Copy-ChipperLegalNotices -BundlePath (Join-Path $DestinationRoot "Chipper.vst3")
     Write-Host "$MessagePrefix Chipper.vst3 to $DestinationRoot"
 }
 
@@ -408,6 +431,7 @@ function Install-ChipperBundleToDestination {
     Write-ChipperInstalledBuildMarker -BundlePath $targetFullPath -BuildInfo $buildInfo
     Write-ChipperBundleReport -Label "Installed after replace" -BundlePath $targetFullPath
     Write-Host "Installed build marker: $(Join-Path $targetFullPath 'ChipperBuildInfo.txt')"
+    Write-Host "Installed legal notices: $(Join-Path $targetFullPath 'Contents\Resources\Legal\THIRD_PARTY_NOTICES.md')"
 
     if ($WarnAboutOtherScope) {
         Show-ChipperOtherScopeInstallWarning -InstalledBundlePath $targetFullPath -InstalledScope $InstallScope
