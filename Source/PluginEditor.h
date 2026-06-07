@@ -21,6 +21,7 @@ enum class ChipWaveformPreviewShape
     saw,
     noise,
     stepped,
+    combined,
     toneNoise
 };
 

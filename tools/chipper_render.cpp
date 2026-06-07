@@ -178,7 +178,7 @@ bool parseWaveShape(const std::string& text, int& out)
     uint32_t numeric = 0;
     if (parseNumber(text, numeric))
     {
-        out = std::clamp(static_cast<int>(numeric), 0, 4);
+        out = std::clamp(static_cast<int>(numeric), 0, 8);
         return true;
     }
 
@@ -193,6 +193,14 @@ bool parseWaveShape(const std::string& text, int& out)
         out = 3;
     else if (key == "steps" || key == "step" || key == "noise")
         out = 4;
+    else if (key == "tri+saw" || key == "triangle+saw" || key == "trisaw" || key == "trianglesaw")
+        out = 5;
+    else if (key == "tri+pulse" || key == "triangle+pulse" || key == "trisquare" || key == "tripulse" || key == "trianglepulse")
+        out = 6;
+    else if (key == "saw+pulse" || key == "sawsquare" || key == "sawpulse")
+        out = 7;
+    else if (key == "tri+saw+pulse" || key == "triangle+saw+pulse" || key == "trisawpulse" || key == "trianglesawpulse")
+        out = 8;
     else
         return false;
 

@@ -1198,7 +1198,6 @@ public:
         auto note0 = heldNote;
         auto note1 = heldNote + std::max(1, static_cast<int>(std::round(patch.control2 * 7.0f)));
         auto note2 = heldNote + std::max(2, static_cast<int>(std::round(patch.control2 * 12.0f)));
-        auto enable = sourceEnableMask(patch) & 0x07u;
 
         switch (patch.macro)
         {
@@ -1206,45 +1205,37 @@ public:
                 note0 = heldNote + 12 + static_cast<int>(std::round(patch.control2 * 7.0f));
                 note1 = note0 + 12;
                 note2 = note0 + 19;
-                enable = 0x01u;
                 break;
             case MacroKind::bass:
                 note0 = heldNote - 12;
                 note1 = heldNote - 24;
                 note2 = heldNote - 5;
-                enable = 0x03u;
                 break;
             case MacroKind::arp:
                 note1 = heldNote + 7;
                 note2 = heldNote + 12;
-                enable = 0x07u;
                 break;
             case MacroKind::drum:
                 note0 = heldNote - 24;
                 note1 = heldNote - 12;
                 note2 = heldNote;
-                enable = 0x04u;
                 break;
             case MacroKind::hit:
                 note2 = heldNote - 12;
-                enable = 0x05u;
                 break;
             case MacroKind::laser:
                 note0 = heldNote + 12 + static_cast<int>(std::round(patch.control2 * 12.0f));
                 note1 = heldNote - 12;
                 note2 = heldNote + 7;
-                enable = 0x03u;
                 break;
             case MacroKind::jump:
                 note0 = heldNote + static_cast<int>(std::round(patch.control2 * 12.0f));
                 note1 = note0 + 7;
                 note2 = note0 + 12;
-                enable = 0x01u;
                 break;
             case MacroKind::powerUp:
                 note1 = heldNote + 5;
                 note2 = heldNote + 12;
-                enable = 0x07u;
                 break;
             case MacroKind::lead:
             case MacroKind::manual:
@@ -1252,7 +1243,7 @@ public:
                 break;
         }
 
-        enable &= sourceEnableMask(patch) & 0x07u;
+        const auto enable = sourceEnableMask(patch) & 0x07u;
         writeFilterRegisters();
 
         const std::array<int, 3> notes { note0, note1, note2 };
@@ -1356,11 +1347,11 @@ public:
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"sidModelChoice\":" << sidModelChoiceForPatch(patch) << ","
              << "\"sidModelNumber\":" << sidModelNumberForPatch(patch) << ","
-             << "\"waveformChoice\":" << std::clamp(patch.waveShape, 0, 4) << ","
+             << "\"waveformChoice\":" << std::clamp(patch.waveShape, 0, 8) << ","
              << "\"waveformBits\":" << static_cast<int>(sidWaveformControlForPatch(patch)) << ","
-             << "\"waveformChoice0\":" << std::clamp(patch.waveShape, 0, 4) << ","
-             << "\"waveformChoice1\":" << std::clamp(patch.sidVoice2WaveShape, 0, 4) << ","
-             << "\"waveformChoice2\":" << std::clamp(patch.sidVoice3WaveShape, 0, 4) << ","
+             << "\"waveformChoice0\":" << std::clamp(patch.waveShape, 0, 8) << ","
+             << "\"waveformChoice1\":" << std::clamp(patch.sidVoice2WaveShape, 0, 8) << ","
+             << "\"waveformChoice2\":" << std::clamp(patch.sidVoice3WaveShape, 0, 8) << ","
              << "\"waveformBits0\":" << static_cast<int>(sidWaveformControlForVoice(patch, 0)) << ","
              << "\"waveformBits1\":" << static_cast<int>(sidWaveformControlForVoice(patch, 1)) << ","
              << "\"waveformBits2\":" << static_cast<int>(sidWaveformControlForVoice(patch, 2)) << ","
@@ -1781,23 +1772,34 @@ private:
         const auto waveform = controlRegister(voice) & 0xf0u;
         if ((waveform & 0x80u) != 0)
             return renderNoise(voice, hz);
+
+        double mixed = 0.0;
+        auto activeWaveforms = 0;
         if ((waveform & 0x40u) != 0)
         {
-            if (pulseWidthRegister(voice) == 0)
-                return 0.0;
-
-            const auto width = std::clamp(static_cast<double>(pulseWidthRegister(voice)) / 4096.0, 1.0 / 4096.0, 4095.0 / 4096.0);
-            return phase[voice] < width ? 1.0 : -1.0;
+            if (pulseWidthRegister(voice) != 0)
+            {
+                const auto width = std::clamp(static_cast<double>(pulseWidthRegister(voice)) / 4096.0, 1.0 / 4096.0, 4095.0 / 4096.0);
+                mixed += phase[voice] < width ? 1.0 : -1.0;
+                ++activeWaveforms;
+            }
         }
         if ((waveform & 0x20u) != 0)
-            return (phase[voice] * 2.0) - 1.0;
+        {
+            mixed += (phase[voice] * 2.0) - 1.0;
+            ++activeWaveforms;
+        }
         if ((waveform & 0x10u) != 0)
         {
             auto triangle = phase[voice] < 0.5 ? (-1.0 + (phase[voice] * 4.0)) : (3.0 - (phase[voice] * 4.0));
             if ((controlRegister(voice) & 0x04u) != 0 && phase[previousVoice(voice)] >= 0.5)
                 triangle = -triangle;
-            return triangle;
+            mixed += triangle;
+            ++activeWaveforms;
         }
+
+        if (activeWaveforms > 0)
+            return mixed / static_cast<double>(activeWaveforms);
 
         return 0.0;
     }

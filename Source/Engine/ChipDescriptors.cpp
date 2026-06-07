@@ -197,10 +197,14 @@ std::vector<ParameterChoiceSpec> sidWaveformChoices()
 {
     return {
         choice("Follow", "Resolve this voice from the selected SID macro or Voice 1 waveform.", 0.0f, 0),
-        choice("Tri", "Control bit 0x10: triangle waveform.", 0.25f, 1),
-        choice("Saw", "Control bit 0x20: sawtooth waveform.", 0.5f, 2),
-        choice("Pulse", "Control bit 0x40: pulse waveform using the Pulse Width control.", 0.75f, 3),
-        choice("Noise", "Control bit 0x80: SID noise waveform.", 1.0f, 4)
+        choice("Tri", "Control bit 0x10: triangle waveform.", 0.125f, 1),
+        choice("Saw", "Control bit 0x20: sawtooth waveform.", 0.25f, 2),
+        choice("Pulse", "Control bit 0x40: pulse waveform using the Pulse Width control.", 0.375f, 3),
+        choice("Noise", "Control bit 0x80: SID noise waveform.", 0.5f, 4),
+        choice("Tri+Saw", "Control bits 0x30: triangle and sawtooth selected together; output is a musical approximation of SID combined waveform behavior.", 0.625f, 5),
+        choice("Tri+Pulse", "Control bits 0x50: triangle and pulse selected together; output is a musical approximation of SID combined waveform behavior.", 0.75f, 6),
+        choice("Saw+Pulse", "Control bits 0x60: sawtooth and pulse selected together; output is a musical approximation of SID combined waveform behavior.", 0.875f, 7),
+        choice("Tri+Saw+Pulse", "Control bits 0x70: triangle, sawtooth, and pulse selected together; output is a musical approximation of SID combined waveform behavior.", 1.0f, 8)
     };
 }
 
@@ -1243,6 +1247,7 @@ PatchConfig makePatchConfig(ChipMode mode,
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : 20;
+    const auto maxWaveShape = mode == ChipMode::sid ? 8 : 4;
 
     return {
         macro,
@@ -1273,7 +1278,7 @@ PatchConfig makePatchConfig(ChipMode mode,
         std::clamp(sidVoice3Decay, 0, 16),
         std::clamp(sidVoice3Sustain, 0, 16),
         std::clamp(sidVoice3Release, 0, 16),
-        std::clamp(waveShape, 0, 4),
+        std::clamp(waveShape, 0, maxWaveShape),
         std::clamp(pulse2Duty, 0, 4),
         std::clamp(dmgWaveLevel, 0, 4),
         std::clamp(dmgStereoRoute, 0, 4),
@@ -1282,8 +1287,8 @@ PatchConfig makePatchConfig(ChipMode mode,
         std::clamp(ymChannelBMix, 0, 4),
         std::clamp(ymChannelCMix, 0, 4),
         std::clamp(snNoiseMode, 0, 4),
-        std::clamp(sidVoice2WaveShape, 0, 4),
-        std::clamp(sidVoice3WaveShape, 0, 4),
+        std::clamp(sidVoice2WaveShape, 0, 8),
+        std::clamp(sidVoice3WaveShape, 0, 8),
         clampControl(sidVoice2PulseWidth),
         clampControl(sidVoice3PulseWidth),
         clampControl(nesDmcDirectLevel)
@@ -1445,12 +1450,16 @@ uint16_t sidPulseWidthForVoice(const PatchConfig& patch, size_t voice)
 
 uint8_t sidWaveformControlForChoice(int choice)
 {
-    switch (std::clamp(choice, 0, 4))
+    switch (std::clamp(choice, 0, 8))
     {
         case 1: return 0x10u;
         case 2: return 0x20u;
         case 3: return 0x40u;
         case 4: return 0x80u;
+        case 5: return 0x30u;
+        case 6: return 0x50u;
+        case 7: return 0x60u;
+        case 8: return 0x70u;
         case 0:
         default:
             return 0x40u;
@@ -1459,7 +1468,7 @@ uint8_t sidWaveformControlForChoice(int choice)
 
 int sidResolvedWaveformChoiceForPatch(const PatchConfig& patch)
 {
-    auto choice = std::clamp(patch.waveShape, 0, 4);
+    auto choice = std::clamp(patch.waveShape, 0, 8);
     if (choice != 0)
         return choice;
 
@@ -1493,13 +1502,13 @@ uint8_t sidWaveformControlForVoice(const PatchConfig& patch, size_t voice)
     auto choice = sidResolvedWaveformChoiceForPatch(patch);
     if (voice == 1)
     {
-        const auto voiceChoice = std::clamp(patch.sidVoice2WaveShape, 0, 4);
+        const auto voiceChoice = std::clamp(patch.sidVoice2WaveShape, 0, 8);
         if (voiceChoice != 0)
             choice = voiceChoice;
     }
     else if (voice == 2)
     {
-        const auto voiceChoice = std::clamp(patch.sidVoice3WaveShape, 0, 4);
+        const auto voiceChoice = std::clamp(patch.sidVoice3WaveShape, 0, 8);
         if (voiceChoice != 0)
             choice = voiceChoice;
     }

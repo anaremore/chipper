@@ -5,6 +5,7 @@
 #include "Presets.h"
 
 #include <algorithm>
+#include <bit>
 #include <cmath>
 
 namespace
@@ -273,7 +274,11 @@ const char* sidWaveNameForControlBits(uint8_t bits)
     {
         case 0x10u: return "Tri";
         case 0x20u: return "Saw";
+        case 0x30u: return "Tri+Saw";
         case 0x40u: return "Pulse";
+        case 0x50u: return "Tri+Pulse";
+        case 0x60u: return "Saw+Pulse";
+        case 0x70u: return "Tri+Saw+Pulse";
         case 0x80u: return "Noise";
         default: return "Off";
     }
@@ -412,6 +417,8 @@ void ChipWaveformPreview::setSidWaveform(uint8_t bits, float pulseWidthRatio, bo
     const auto waveform = bits & 0xf0u;
     if ((waveform & 0x80u) != 0u)
         setShape(ChipWaveformPreviewShape::noise, pulseWidthRatio, shouldBeActive);
+    else if (std::popcount(static_cast<unsigned>(waveform)) > 1)
+        setShape(ChipWaveformPreviewShape::combined, pulseWidthRatio, shouldBeActive);
     else if ((waveform & 0x40u) != 0u)
         setShape(ChipWaveformPreviewShape::pulse, pulseWidthRatio, shouldBeActive);
     else if ((waveform & 0x20u) != 0u)
@@ -538,6 +545,19 @@ void ChipWaveformPreview::paint(juce::Graphics& g)
                 const auto y = bottom - (steps[i] * height);
                 path.lineTo(x, y);
                 path.lineTo(nextX, y);
+            }
+            break;
+        }
+
+        case ChipWaveformPreviewShape::combined:
+        {
+            path.startNewSubPath(left, mid);
+            static constexpr std::array<float, 10> points { 0.52f, 0.90f, 0.76f, 0.28f, 0.12f, 0.72f, 0.60f, 0.18f, 0.96f, 0.42f };
+            for (size_t i = 0; i < points.size(); ++i)
+            {
+                const auto x = left + (width * static_cast<float>(i) / static_cast<float>(points.size() - 1u));
+                const auto y = bottom - (points[i] * height);
+                path.lineTo(x, y);
             }
             break;
         }
@@ -1923,9 +1943,9 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
         sidEnvelopeVoiceLabels[voice].setBounds(voiceColumn.removeFromTop(std::min(15, voiceColumn.getHeight())));
         voiceColumn.removeFromTop(1);
 
-        const auto minimumControlHeight = 36;
-        const auto previewReserve = voiceColumn.getHeight() >= 64 ? 18 : 0;
-        auto sliderRow = voiceColumn.removeFromTop(std::max(minimumControlHeight, voiceColumn.getHeight() - previewReserve - 2));
+        const auto minimumControlHeight = 46;
+        const auto previewReserve = voiceColumn.getHeight() >= 86 ? 42 : (voiceColumn.getHeight() >= 70 ? 32 : 0);
+        auto sliderRow = voiceColumn.removeFromTop(std::max(minimumControlHeight, voiceColumn.getHeight() - previewReserve - 4));
         sliderRow = sliderRow.withHeight(std::min(sliderRow.getHeight(), voiceHeight));
 
         constexpr auto fieldGap = 4;
@@ -1943,9 +1963,9 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
             sidAdsrBoxes[index].setBounds({});
         }
 
-        voiceColumn.removeFromTop(2);
-        if (voiceColumn.getHeight() >= 14)
-            sidEnvelopePreviews[voice].setBounds(voiceColumn.removeFromTop(std::min(20, voiceColumn.getHeight())).reduced(0, 1));
+        voiceColumn.removeFromTop(4);
+        if (voiceColumn.getHeight() >= 24)
+            sidEnvelopePreviews[voice].setBounds(voiceColumn.removeFromTop(std::min(40, voiceColumn.getHeight())).reduced(0, 1));
         else
             sidEnvelopePreviews[voice].setBounds({});
     }

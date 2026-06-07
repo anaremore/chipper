@@ -43,12 +43,12 @@ juce::StringArray playModeChoices()
 
 juce::StringArray waveShapeChoices()
 {
-    return { "RAM", "Tri", "Saw", "Pulse", "Steps" };
+    return { "Follow/RAM", "Tri", "Saw", "Pulse", "Noise/Steps", "Tri+Saw", "Tri+Pulse", "Saw+Pulse", "Tri+Saw+Pulse" };
 }
 
 juce::StringArray sidVoiceWaveShapeChoices()
 {
-    return { "Follow", "Tri", "Saw", "Pulse", "Noise" };
+    return { "Follow", "Tri", "Saw", "Pulse", "Noise", "Tri+Saw", "Tri+Pulse", "Saw+Pulse", "Tri+Saw+Pulse" };
 }
 
 juce::StringArray sidAdsrNibbleChoices()
