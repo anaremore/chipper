@@ -42,6 +42,22 @@ std::vector<MacroTemplate> plannedFmMacros(std::string familyName, bool rhythmFo
     };
 }
 
+std::vector<MacroTemplate> ym2413Macros()
+{
+    return {
+        { MacroKind::manual, "OPLL Manual", "Neutral YM2413 melodic-channel preset instrument mapping.", { 0.50f, 0.50f, 0.25f, 0.72f }, { true, true, true, true }, 0.0f, 0 },
+        { MacroKind::coin, "OPLL UI Chime", "Short bright OPLL vibraphone-style game UI chime.", { 0.80f, 0.72f, 0.22f, 0.78f }, { true, false, false, false }, 0.18f, 1 },
+        { MacroKind::bass, "OPLL Preset Bass", "Low preset-FM bass using the YM2413 instrument table.", { 0.85f, 0.22f, 0.16f, 0.86f }, { true, true, false, false }, 0.08f, 2 },
+        { MacroKind::lead, "OPLL Brass Lead", "Forward OPLL trumpet/lead tone with a supporting octave lane.", { 0.45f, 0.48f, 0.24f, 0.80f }, { true, true, true, false }, 0.10f, 3 },
+        { MacroKind::arp, "OPLL Organ Arp", "Preset organ stack for fast fake-chord arps.", { 0.55f, 0.70f, 0.18f, 0.78f }, { true, true, true, true }, 0.08f, 4 },
+        { MacroKind::drum, "OPLL Perc Hit", "Melodic-channel percussion placeholder until native rhythm mode lands.", { 0.95f, 0.18f, 0.32f, 0.72f }, { false, false, true, true }, 0.55f, 0 },
+        { MacroKind::hit, "OPLL Impact", "Short preset-FM impact using stacked melodic channels.", { 0.92f, 0.25f, 0.45f, 0.76f }, { true, false, true, true }, 0.50f, 0 },
+        { MacroKind::laser, "OPLL Sweep Zap", "OPLL pitch-mod SFX with vibrato-like retrigger motion.", { 0.70f, 0.95f, 0.78f, 0.76f }, { true, true, false, false }, 0.24f, 0 },
+        { MacroKind::jump, "OPLL Jump Bell", "Quick rising FM bell gesture.", { 0.80f, 0.70f, 0.22f, 0.76f }, { true, false, false, false }, 0.18f, 1 },
+        { MacroKind::powerUp, "OPLL Power Organ", "Longer optimistic preset-FM rise.", { 0.55f, 0.88f, 0.30f, 0.82f }, { true, true, true, true }, 0.14f, 4 }
+    };
+}
+
 std::vector<MacroTemplate> plannedSampleMacros(std::string familyName, std::string sampleTerm)
 {
     return {
@@ -424,6 +440,62 @@ std::vector<ParameterChoiceSpec> pulse2DutyChoices(std::string macroHelp)
         choice("25%", "Write duty bits 01 to pulse channel 2.", 0.5f, 2),
         choice("50%", "Write duty bits 10 to pulse channel 2.", 0.75f, 3),
         choice("75%", "Write duty bits 11 to pulse channel 2.", 1.0f, 4)
+    };
+}
+
+std::vector<ParameterChoiceSpec> ym2413InstrumentChoices()
+{
+    return {
+        choice("Follow", "Resolve the YM2413 preset instrument from the selected OPLL template.", 0.0f, 0),
+        choice("Bell", "Use a vibraphone/chime-style OPLL preset instrument.", 0.25f, 1),
+        choice("Bass", "Use a bass-oriented OPLL preset instrument.", 0.5f, 2),
+        choice("Lead", "Use a trumpet/lead OPLL preset instrument.", 0.75f, 3),
+        choice("Organ", "Use an organ-style OPLL preset instrument for chords and arps.", 1.0f, 4)
+    };
+}
+
+std::vector<ChipParameterSpec> ym2413ParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "ym2413.instrumentBias",
+                   "Instrument Bias",
+                   "Preset FM",
+                   "In Follow mode this chooses across the YM2413 preset instrument numbers; explicit Instrument choices override it.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "ym2413.pitchSpread",
+                   "Pitch Spread",
+                   "Pitch",
+                   "Offsets stacked melodic OPLL channels while preserving native f-number/block register writes."),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "ym2413.motion",
+                   "Motion",
+                   "Motion",
+                   "Scales musical pitch-motion templates. Native OPLL LFO/custom patch controls are planned separately.",
+                   ParameterKind::macro),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "ym2413.channelVolume",
+                   "Channel Volume",
+                   "Mixer",
+                   "Maps to the YM2413 channel volume nibble in registers $30-$38.",
+                   ParameterKind::chipRegister,
+                   0.72f),
+        segmentedSpec(ChipParameterRole::waveShape,
+                      "ym2413.instrument",
+                      "Instrument",
+                      "Preset FM",
+                      "Chooses a musical group of YM2413 ROM preset instruments. Follow lets the selected template choose the instrument.",
+                      ym2413InstrumentChoices(),
+                      ParameterKind::chipRegister),
+        sourceSpec(ChipParameterRole::source1Enabled, "ym2413.ch1.enabled", "OPLL Ch 1", "Enable exposed YM2413 melodic channel 1."),
+        sourceSpec(ChipParameterRole::source2Enabled, "ym2413.ch2.enabled", "OPLL Ch 2", "Enable exposed YM2413 melodic channel 2."),
+        sourceSpec(ChipParameterRole::source3Enabled, "ym2413.ch3.enabled", "OPLL Ch 3", "Enable exposed YM2413 melodic channel 3."),
+        sourceSpec(ChipParameterRole::source4Enabled, "ym2413.ch4.enabled", "OPLL Ch 4", "Enable exposed YM2413 melodic channel 4. Internal channels 5-9 remain reserved for a dedicated OPLL UI pass."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "ym2413.ch1.level", "Ch 1 Level", "Modern trim before writing the YM2413 channel volume nibble."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "ym2413.ch2.level", "Ch 2 Level", "Modern trim before writing the YM2413 channel volume nibble."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "ym2413.ch3.level", "Ch 3 Level", "Modern trim before writing the YM2413 channel volume nibble."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "ym2413.ch4.level", "Ch 4 Level", "Modern trim before writing the YM2413 channel volume nibble.")
     };
 }
 
@@ -1753,24 +1825,35 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2413,
             "YM2413 / OPLL",
-            "Planned preset-FM mode. No OPLL core is integrated yet.",
+            "MIT emu2413-backed partial YM2413/OPLL preset-FM melodic-channel mode.",
             {
-                { "instrument", "Instrument", "FM", "Planned preset instrument selector." },
-                { "modulator", "Modulator", "Operators", "Planned modulator macro." },
-                { "carrier", "Carrier", "Operators", "Planned carrier macro." },
-                { "tremolo", "Tremolo", "Motion", "Planned vibrato/tremolo helper." },
+                { "instrument", "Instrument", "Preset FM", "YM2413 ROM preset instrument selection for melodic channels." },
+                { "pitch", "F-Number / Block", "Pitch", "MIDI notes map to native f-number and block register writes." },
+                { "volume", "Channel Volume", "Mixer", "Source trims map to channel volume nibbles." },
+                { "core", "emu2413 Core", "Accuracy", "MIT-licensed OPLL synthesis core by Mitsutaka Okazaki." },
             },
-            fmModules("YM2413/OPLL strategy planned.", "Preset FM Voices", "Operators"),
-            plannedFmMacros("OPLL"),
-            false,
-            false,
-            {},
-            plannedDisclosure(
-                "evaluate `ymfm` or `emu2413` after a file-level license audit.",
-                "YM2413 UI should emphasize preset instruments, limited user patch controls, rhythm mode, and approachable OPLL macros.",
+            {
+                makeModule("profile", "Profile", "YM2413/OPLL preset-FM groundwork backed by emu2413.", { "YM2413 family", "3.58 MHz default", "MIT emu2413 core", "Authentic still partial" }),
+                makeModule("sources", "Preset FM Voices", "Nine internal melodic channels; first four exposed.", { "Channel 1", "Channel 2", "Channel 3", "Channel 4" }),
+                makeModule("instrument", "Instrument / Pitch", "Preset instrument, f-number, block, and key-on register writes.", { "ROM preset instruments", "F-number", "Block", "Key-on" }),
+                makeModule("envelope", "OPLL Envelopes", "Native preset patch envelopes come from the OPLL core.", { "ROM patch ADSR", "Volume nibbles", "Custom patch planned", "Rhythm mode planned" }),
+                makeModule("motion", "Motion", "Musical OPLL templates mapped to melodic-channel registers.", { "UI chime", "Organ arp", "Sweep zap", "Power organ" }),
+                makeModule("output", "Output", "Mono/stereo render through emu2413 with modern output trim.", { "Channel volume", "Output gain", "Known differences", "No cycle claim" })
+            },
+            ym2413Macros(),
+            true,
+            true,
+            ym2413ParameterSpecs(),
+            verifiedPartial(
                 {
-                    "No YM2413/OPLL core is integrated.",
-                    "Preset instrument table, rhythm mode, and limited patch editing are not implemented."
+                    "MIT-licensed emu2413 is vendored as the OPLL synthesis core and driven through YM2413 register writes.",
+                    "Preset instrument, channel volume, f-number, block, and key-on registers render audible melodic-channel output.",
+                    "Descriptor metadata, MIDI CC mappings, renderer debug JSON, chip-poly allocation, presets, and smoke output are covered by automated tests."
+                },
+                {
+                    "Native rhythm mode, custom user patch editing, VRC7/YMF281 patch-set selection, stereo/pan extensions, and golden reference comparison are not complete.",
+                    "The current UI exposes the first four melodic channels through Chipper's generic source surface; channels 5-9 need a dedicated OPLL layout pass.",
+                    "Hardware validation and trusted-emulator spectral/timing comparisons are not complete, so this mode is not labeled cycle-accurate."
                 })
         },
         {

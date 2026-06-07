@@ -46,7 +46,7 @@ These should be evaluated first because their upstream license posture appears m
 | [ymfm](https://github.com/aaronsgiles/ymfm) | YM2149, YM2151/OPM, YM2612/OPN2, OPL2/OPL3, YM2413/OPLL | GitHub reports BSD-3-Clause |
 | [digital-sound-antiques/emu2149](https://github.com/digital-sound-antiques/emu2149) | YM2149 / AY PSG | GitHub reports MIT |
 | [digital-sound-antiques/emu76489](https://github.com/digital-sound-antiques/emu76489) | SN76489 / Sega PSG | GitHub reports MIT |
-| [digital-sound-antiques/emu2413](https://github.com/digital-sound-antiques/emu2413) | YM2413 / OPLL | GitHub reports MIT |
+| [digital-sound-antiques/emu2413](https://github.com/digital-sound-antiques/emu2413) | YM2413 / OPLL | MIT; vendored at `813cff619f5f01c47bd5c0588c1fd8435530b125` |
 | [digital-sound-antiques/emu2212](https://github.com/digital-sound-antiques/emu2212) | Konami SCC | GitHub reports MIT |
 | [ayumi](https://github.com/true-grue/ayumi) | AY-3-8910 / YM2149 | GitHub reports MIT |
 | [SameBoy](https://github.com/LIJI32/SameBoy) | Game Boy / DMG reference or possible extraction | Upstream reports an Expat-style license, with folder-specific exceptions to audit |
@@ -98,7 +98,7 @@ These are musically and technically valuable, but direct embedding should wait u
 | PC Engine HuC6280 | Current clean-room partial wavetable/noise model | MAME c6280, Game_Music_Emu, Furnace, HuSIC | Continue clean-room work; use MAME/GME/Furnace/HuSIC as comparison and audit targets only unless an exact source/license review is recorded |
 | Namco arcade WSG | Current clean-room partial wavetable model | MAME Namco WSG, Furnace | Continue clean-room work; keep MAME/Furnace as comparison and audit targets only unless exact source/file licenses are recorded |
 | YM2151 / arcade FM | ymfm | Furnace, MAME | Use ymfm as first implementation candidate |
-| YM2413 / OPLL | emu2413 or ymfm | Nuked-OPLL, Furnace | Prefer emu2413/ymfm; keep Nuked-OPLL reference-only unless licensing changes |
+| YM2413 / OPLL | emu2413 vendored; ymfm remains broader FM candidate | Nuked-OPLL, Furnace | emu2413 MIT core is used for the first partial OPLL melodic-channel adapter; keep Nuked-OPLL reference-only unless licensing changes |
 | Konami SCC | Current clean-room partial wavetable model; emu2212 remains a future audit candidate | vgsound_emu, Furnace, MAME | Continue clean-room work; evaluate emu2212 before any future reuse and keep Furnace/vgsound/MAME as comparison or audit targets only |
 
 ## Furnace Review Notes

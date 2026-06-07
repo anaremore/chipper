@@ -13,7 +13,7 @@ The plugin must not use generic retro oscillators with famous chip labels. Each 
 - **SN76489:** three tone channels, noise modes, attenuation, Sega PSG behavior.
 - **YM2612/OPN2:** six-channel FM, operators, algorithms, feedback, LFO, DAC behavior, stereo.
 - **OPL2/OPL3:** two-operator FM, rhythm mode, waveform variants, envelopes, stereo for OPL3.
-- **Expansion:** SPC700-style sample playback, Paula, HuC6280 wavetable, Namco WSG, YM2151, YM2413/OPLL, Konami SCC. SPC700-style, POKEY, Paula, HuC6280, Namco WSG, and SCC have started as audible partial clean-room expansion cores.
+- **Expansion:** SPC700-style sample playback, Paula, HuC6280 wavetable, Namco WSG, YM2151, YM2413/OPLL, Konami SCC. SPC700-style, POKEY, Paula, HuC6280, Namco WSG, YM2413/OPLL, and SCC have started as audible partial expansion cores; YM2413/OPLL is backed by vendored MIT emu2413.
 
 Accuracy levels:
 
