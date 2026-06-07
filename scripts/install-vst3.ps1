@@ -73,6 +73,53 @@ function Write-ChipperBundleReport {
     Write-Host ("{0} binary: {1} bytes, modified {2}" -f $Label, $binary.Length, $binary.LastWriteTime)
 }
 
+function Get-ChipperDefaultVst3Root {
+    param([string] $InstallScope)
+
+    if ($InstallScope -eq "User") {
+        return Join-Path $env:LOCALAPPDATA "Programs\Common\VST3"
+    }
+
+    return "C:\Program Files\Common Files\VST3"
+}
+
+function Test-ChipperSamePath {
+    param(
+        [string] $Left,
+        [string] $Right
+    )
+
+    $leftFullPath = [System.IO.Path]::GetFullPath($Left)
+    $rightFullPath = [System.IO.Path]::GetFullPath($Right)
+    return [System.String]::Equals($leftFullPath, $rightFullPath, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Show-ChipperOtherScopeInstallWarning {
+    param(
+        [string] $InstalledBundlePath,
+        [string] $InstalledScope
+    )
+
+    $otherScope = if ($InstalledScope -eq "User") { "Global" } else { "User" }
+    $otherRoot = Get-ChipperDefaultVst3Root -InstallScope $otherScope
+    $otherBundle = Join-Path $otherRoot "Chipper.vst3"
+
+    if ((Test-ChipperSamePath -Left $InstalledBundlePath -Right $otherBundle) -or
+        -not (Test-Path -LiteralPath $otherBundle)) {
+        return
+    }
+
+    Write-Warning "Another Chipper.vst3 exists in the $otherScope VST3 folder:"
+    Write-ChipperBundleReport -Label "$otherScope install" -BundlePath $otherBundle
+    Write-Warning "Some hosts scan the global VST3 folder before the user VST3 folder, so this can look like an old build is still installed."
+
+    if ($otherScope -eq "Global") {
+        Write-Warning "To update that copy, open PowerShell as Administrator and run: .\install-vst3.ps1 -Scope Global"
+    } else {
+        Write-Warning "To update that copy without UAC, run: .\install-vst3.ps1 -Scope User"
+    }
+}
+
 function Write-ChipperInstalledBuildMarker {
     param(
         [string] $BundlePath,
@@ -267,11 +314,7 @@ function Copy-ChipperBundleWithRetry {
 }
 
 if (-not $PSBoundParameters.ContainsKey("Destination") -or [string]::IsNullOrWhiteSpace($Destination)) {
-    if ($Scope -eq "User") {
-        $Destination = Join-Path $env:LOCALAPPDATA "Programs\Common\VST3"
-    } else {
-        $Destination = "C:\Program Files\Common Files\VST3"
-    }
+    $Destination = Get-ChipperDefaultVst3Root -InstallScope $Scope
 }
 
 function Test-ProcessElevated {
@@ -363,3 +406,4 @@ if (-not (Copy-ChipperBundleWithRetry -SourceBundle $source -DestinationRoot $de
 Write-ChipperInstalledBuildMarker -BundlePath $targetFullPath -BuildInfo $buildInfo
 Write-ChipperBundleReport -Label "Installed after replace" -BundlePath $targetFullPath
 Write-Host "Installed build marker: $(Join-Path $targetFullPath 'ChipperBuildInfo.txt')"
+Show-ChipperOtherScopeInstallWarning -InstalledBundlePath $targetFullPath -InstalledScope $Scope
