@@ -228,7 +228,7 @@ std::vector<ParameterChoiceSpec> sidAdsrNibbleChoices(std::string fieldName)
 
 ChipParameterSpec sidAdsrNibbleSpec(ChipParameterRole role, std::string id, std::string label, std::string help)
 {
-    return { role, id, label, "Envelope", help, ParameterKind::chipRegister, ControlSurface::menu, sidAdsrNibbleChoices(label), 0.0f, 1.0f, 0.0f };
+    return { role, id, label, "Envelope", help, ParameterKind::chipRegister, ControlSurface::steppedSlider, sidAdsrNibbleChoices(label), 0.0f, 1.0f, 0.0f };
 }
 
 std::vector<ParameterChoiceSpec> ymChannelMixChoices(std::string channelName)

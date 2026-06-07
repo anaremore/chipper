@@ -1498,6 +1498,7 @@ const char* toJsonString(chipper::ControlSurface surface)
     switch (surface)
     {
         case chipper::ControlSurface::slider: return "slider";
+        case chipper::ControlSurface::steppedSlider: return "steppedSlider";
         case chipper::ControlSurface::segmentedChoice: return "segmentedChoice";
         case chipper::ControlSurface::sourceCards: return "sourceCards";
         case chipper::ControlSurface::toggle: return "toggle";

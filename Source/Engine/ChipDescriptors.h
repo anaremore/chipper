@@ -32,6 +32,7 @@ enum class ParameterKind
 enum class ControlSurface
 {
     slider,
+    steppedSlider,
     segmentedChoice,
     sourceCards,
     toggle,
