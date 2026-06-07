@@ -20,6 +20,17 @@ Before importing GPL-family or LGPL code, choose Chipper's project license and d
 
 Until that decision is made, use GPL-family projects such as Furnace, reSIDfp, FigBug/SID, FigBug/PAPU, MAME aggregate sources, and similar trackers/emulators as references and validation targets only. Preset design may learn from public chip workflows, but Chipper presets must remain original Chipper parameter snapshots unless a separate rights review says otherwise.
 
+## Latest Source Check
+
+Checked 2026-06-07 from upstream GitHub pages/license files:
+
+- FigBug/SID is a C64 SID VST/AU reference and GitHub reports GPL-3.0. Keep reference-only unless Chipper adopts a compatible distribution model.
+- FigBug/RP2A03 is an NES RP2A03 VST/AU reference and GitHub reports LGPL-2.1. Treat as license-sensitive comparison material until an LGPL compliance path is chosen.
+- FigBug/PAPU is a Game Boy PAPU VST/AU reference and GitHub reports GPL-2.0. Keep reference-only unless Chipper adopts a compatible distribution model.
+- FigBug/SN76489 is an SN76489 VST/AU reference and GitHub reports LGPL-2.1. Treat as license-sensitive comparison material until an LGPL compliance path is chosen.
+- Furnace's top-level license file says most Furnace is GPLv2-or-later, ASIO-enabled builds become GPLv3, and included components may carry their own licenses. Use Furnace as a tracker/product/reference index, not as a source shortcut.
+- ymfm's repository describes BSD-licensed Yamaha FM cores and GitHub reports BSD-3-Clause, making it the first FM-family candidate to audit for YM2612, OPL2/OPL3, YM2151, and YM2413.
+
 ## Preferred Implementation Tiers
 
 ### Tier 1: Permissive-First Candidates

@@ -32,6 +32,28 @@ After SID, prioritize the other implemented chips before adding planned chips:
 | 5 | SN76489 / Sega PSG | 8 | Current code is internal clean-room; permissive and LGPL-sensitive references are tracked separately. | Improve tone/noise channel cards, attenuation/noise mode controls, and arcade/Sega preset vocabulary. |
 | 6 | YM2612 / OPN2 and OPL2/OPL3 | 8 | Do not start VST UI exposure until an FM core license plan is chosen and documented. | Use a real operator/algorithm UI with envelope visuals instead of generic oscillator controls. |
 
+## Wide Chip Implementation Queue
+
+Going wide is useful now, but only if planned modes stay honest. Planned chip descriptors should expose roadmap templates, source strategy, UI shape, and blockers while continuing to render silence or unsupported-core output until a verified core exists.
+
+| Order | Chip Family | First Value To Deliver | Likely Source Path | UI Shape | Confidence |
+| --- | --- | --- | --- | --- | ---: |
+| 1 | YM2612 / OPN2 | Real Genesis-style FM bass/lead core with operator automation. | Audit and spike `ymfm` first; keep Nuked-OPN2 as LGPL-sensitive comparison. | Six FM voice strips with algorithm, feedback, operator envelope/level, DAC, and stereo. | 6 |
+| 2 | OPL2/OPL3 | DOS FM instruments and rhythm-mode kits. | Audit and spike `ymfm` first; keep Nuked-OPL3 as LGPL-sensitive comparison. | Operator-pair editor with waveform selector, rhythm mode, feedback, tremolo/vibrato, and per-operator envelopes. | 6 |
+| 3 | YM2149 / AY polish | Stronger early-computer beeps, arps, and noise percussion from an already implemented core. | Continue clean-room; evaluate `emu2149` or `ayumi` if needed. | Three channel strips plus shared noise/envelope shape visualization. | 8 |
+| 4 | SN76489 polish | Better Sega PSG/arcade immediacy from an already implemented core. | Continue clean-room; evaluate `emu76489`; FigBug/SN76489 remains LGPL-sensitive reference. | Three tone strips plus noise strip with attenuation and noise-control choices. | 8 |
+| 5 | Game Boy / DMG polish | Game Boy pulse/wave/noise patches with clearer Wave RAM and stereo routing. | Continue clean-room; SameBoy only after file-level audit; FigBug/PAPU remains GPL reference. | Four APU lanes with pulse sweep, Wave RAM view, NR32 level, NR51 routing, and noise width. | 7 |
+| 6 | Amiga Paula | Tracker sample playback as a musician-friendly sampler mode. | Clean-room sampler model with audited ProTracker/Paula references. | Four sample channels with period, loop, volume, panning, retrigger, and sample browser. | 7 |
+| 7 | SPC700-style | Lo-fi sample playback and SNES-flavored ambience without overclaiming DSP accuracy. | Separate sampler/DSP design; Furnace and MAME as reference-only until audited. | Sample voice bank with rate, ADSR/gain, echo color, and clear "style" labeling. | 5 |
+| 8 | YM2151 / OPM | Arcade/X68000 four-op FM leads and metallic basses. | Audit and spike `ymfm`. | Eight four-operator voices with algorithm, feedback, LFO PM/AM, and envelopes. | 6 |
+| 9 | YM2413 / OPLL | Preset-FM quick sounds and UI/game chimes. | Audit `ymfm` and `emu2413`. | Preset instrument selector plus limited editable patch/rhythm controls. | 7 |
+| 10 | Konami SCC | Five-channel wavetable stack and crunchy arps. | Audit `emu2212`; clean-room fallback feasible. | Five wavetable strips with wave edit/slot, level, tuning, and stack/spread macros. | 7 |
+| 11 | POKEY | Atari polynomial/noise character. | Clean-room or permissive candidate; MAME/Furnace reference-only unless audited. | Four channels, distortion codes, polynomial noise, channel pairing, and high-pass behavior. | 5 |
+| 12 | HuC6280 / Namco WSG | Wavetable arcade/console colors. | Clean-room first; audit any MAME/Furnace-derived references before reuse. | Wavetable channel banks with waveform memory, noise/LFO where native, and source scopes. | 5 |
+| 13 | Arcade Hybrid | Delightful cross-chip SFX layer. | Compose only from verified Chipper cores and original templates. | Performance layer over verified sources with no false single-chip accuracy claim. | 8 |
+
+Confidence improves most by doing small adapter spikes, adding renderer traces before UI exposure, and recording exact upstream commit/license details before any third-party source enters the tree.
+
 ## Open-Source Decision Gate
 
 Chipper can be open sourced, but the project license should be chosen before importing GPL/LGPL code. Until that decision is made:

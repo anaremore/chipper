@@ -90,6 +90,22 @@ std::vector<MacroTemplate> plannedArcadeMacros()
     };
 }
 
+AccuracyDisclosure plannedDisclosure(std::string sourcePlan,
+                                     std::string uiPlan,
+                                     std::vector<std::string> blockers)
+{
+    AccuracyDisclosure disclosure;
+    disclosure.summary = "Planned mode only: " + sourcePlan;
+    disclosure.evidence = "No VST audio core is integrated yet. The editor exposes roadmap templates so users can see the intended instrument shape without an accuracy claim.";
+    disclosure.verifiedBehaviors = {
+        "Descriptor, template, and automation metadata can be listed by the renderer.",
+        uiPlan
+    };
+    disclosure.knownGaps = std::move(blockers);
+    disclosure.knownGaps.push_back("Renderer audio, golden references, and hardware/emulator comparisons are not complete.");
+    return disclosure;
+}
+
 std::vector<MacroTemplate> nesMacros()
 {
     auto macros = std::vector<MacroTemplate> {
@@ -1133,7 +1149,16 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             fmModules("YM2612/OPN2 strategy planned.", "FM Voices", "Operators"),
             plannedFmMacros("OPN2"),
-            false
+            false,
+            false,
+            {},
+            plannedDisclosure(
+                "evaluate `ymfm` as the permissive-first OPN2 core before considering LGPL alternatives.",
+                "FM UI should use six voices with operator algorithm, feedback, envelope, DAC, and stereo controls.",
+                {
+                    "No audited YM2612/OPN2 core is integrated.",
+                    "OPN2 register adapter, operator UI, and DAC/stereo behavior are not implemented."
+                })
         },
         {
             ChipMode::opl3,
@@ -1147,7 +1172,16 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             fmModules("OPL2/OPL3 strategy planned.", "FM Voices", "Operator Pairs"),
             plannedFmMacros("OPL", true),
-            false
+            false,
+            false,
+            {},
+            plannedDisclosure(
+                "evaluate `ymfm` as the permissive-first OPL2/OPL3 core before considering LGPL alternatives.",
+                "OPL UI should use operator-pair cards, algorithm/feedback controls, rhythm mode, waveforms, and per-operator envelopes.",
+                {
+                    "No audited OPL2/OPL3 core is integrated.",
+                    "Operator-pair routing, rhythm mode, and OPL waveform controls are not implemented."
+                })
         },
         {
             ChipMode::spc700,
@@ -1161,7 +1195,16 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             sampleModules("SNES sample-style strategy planned.", "Sample Voices", "Lo-fi Sample"),
             plannedSampleMacros("SPC700", "BRR sample"),
-            false
+            false,
+            false,
+            {},
+            plannedDisclosure(
+                "design a sampler/DSP path separately; treat Furnace and other trackers as reference-only until audited.",
+                "SPC700-style UI should focus on sample slots, pitch/rate, ADSR or gain, voice mix, echo color, and clear lo-fi limitations.",
+                {
+                    "No SPC700/DSP or BRR decode path is integrated.",
+                    "Sample import, BRR behavior, echo/FIR, and voice scheduling are not implemented."
+                })
         },
         {
             ChipMode::pokey,
@@ -1175,7 +1218,16 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             plannedModules("POKEY Channels", "Distortion / Noise"),
             plannedPokeyMacros(),
-            false
+            false,
+            false,
+            {},
+            plannedDisclosure(
+                "evaluate clean-room POKEY work or a permissive candidate before touching MAME/Furnace references.",
+                "POKEY UI should expose four channels, distortion codes, polynomial noise, channel pairing, and high-pass behavior.",
+                {
+                    "No POKEY core is integrated.",
+                    "Polynomial counters, distortion codes, timers, and channel-pair behavior are not implemented."
+                })
         },
         {
             ChipMode::paula,
@@ -1189,7 +1241,16 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             sampleModules("Paula tracker-sampler strategy planned.", "Tracker Channels", "Sample Period"),
             plannedSampleMacros("Paula", "tracker sample"),
-            false
+            false,
+            false,
+            {},
+            plannedDisclosure(
+                "start with a clean-room four-channel tracker sampler model and compare against audited ProTracker/Paula references.",
+                "Paula UI should use four sample-channel strips with period, loop, volume, panning, and tracker-style retrigger controls.",
+                {
+                    "No Paula DMA/sample-channel model is integrated.",
+                    "Sample period timing, loop behavior, channel panning, and tracker effects are not implemented."
+                })
         },
         {
             ChipMode::huc6280,
@@ -1203,7 +1264,16 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             sampleModules("HuC6280 wavetable strategy planned.", "Wavetable Voices", "Wave / Noise"),
             plannedSampleMacros("HuC6280", "wavetable"),
-            false
+            false,
+            false,
+            {},
+            plannedDisclosure(
+                "build a clean-room wavetable/noise model from public register behavior, with audited emulator comparison later.",
+                "HuC6280 UI should expose wavetable voice strips, waveform RAM, noise, LFO, channel levels, and stereo conveniences.",
+                {
+                    "No HuC6280 core is integrated.",
+                    "Wave RAM playback, noise, LFO, channel control, and stereo behavior are not implemented."
+                })
         },
         {
             ChipMode::namcoWsg,
@@ -1217,7 +1287,16 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             sampleModules("Namco WSG strategy planned.", "WSG Voices", "Wave Shape"),
             plannedSampleMacros("Namco WSG", "waveform"),
-            false
+            false,
+            false,
+            {},
+            plannedDisclosure(
+                "build a clean-room arcade wavetable model and audit any MAME/Furnace-derived references before reuse.",
+                "Namco WSG UI should expose voice count, waveform shape/step, tuning, level, and arcade SFX templates.",
+                {
+                    "No Namco WSG core is integrated.",
+                    "Wavetable memory, voice timing, and arcade output validation are not implemented."
+                })
         },
         {
             ChipMode::ym2151,
@@ -1231,7 +1310,16 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             fmModules("YM2151/OPM strategy planned.", "FM Voices", "Operators"),
             plannedFmMacros("OPM"),
-            false
+            false,
+            false,
+            {},
+            plannedDisclosure(
+                "evaluate `ymfm` as the permissive-first OPM core for YM2151/arcade/X68000 behavior.",
+                "YM2151 UI should use eight four-operator voices with algorithm, feedback, LFO PM/AM, and per-operator envelopes.",
+                {
+                    "No YM2151/OPM core is integrated.",
+                    "Four-operator voice routing, LFO, noise, and register-level FM behavior are not implemented."
+                })
         },
         {
             ChipMode::ym2413,
@@ -1245,7 +1333,16 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             fmModules("YM2413/OPLL strategy planned.", "Preset FM Voices", "Operators"),
             plannedFmMacros("OPLL"),
-            false
+            false,
+            false,
+            {},
+            plannedDisclosure(
+                "evaluate `ymfm` or `emu2413` after a file-level license audit.",
+                "YM2413 UI should emphasize preset instruments, limited user patch controls, rhythm mode, and approachable OPLL macros.",
+                {
+                    "No YM2413/OPLL core is integrated.",
+                    "Preset instrument table, rhythm mode, and limited patch editing are not implemented."
+                })
         },
         {
             ChipMode::scc,
@@ -1259,7 +1356,16 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             sampleModules("Konami SCC wavetable strategy planned.", "Wavetable Channels", "Wave Shape"),
             plannedSampleMacros("SCC", "wavetable"),
-            false
+            false,
+            false,
+            {},
+            plannedDisclosure(
+                "evaluate `emu2212` as the permissive-first SCC candidate before other references.",
+                "SCC UI should use five wavetable channel strips with waveform editing, level, tuning, and stack/spread macros.",
+                {
+                    "No SCC core is integrated.",
+                    "Waveform RAM, five-channel timing, and SCC/SCC+ differences are not implemented."
+                })
         },
         {
             ChipMode::arcade,
@@ -1273,7 +1379,16 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             plannedModules("Arcade Sources", "SFX Shape"),
             plannedArcadeMacros(),
-            false
+            false,
+            false,
+            {},
+            plannedDisclosure(
+                "compose this mode only from verified Chipper cores and original Chipper SFX templates.",
+                "Arcade Hybrid UI should act as a performance layer over verified chip blocks, with clear source routing and no false single-chip claim.",
+                {
+                    "No hybrid arcade engine is integrated.",
+                    "Cross-chip source blending, SFX routing, and preset validation are not implemented."
+                })
         }
     };
     return items;

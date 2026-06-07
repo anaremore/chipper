@@ -189,9 +189,31 @@ bool expectVerificationDisclosure()
         ok &= expect(! disclosure.cycleAccurate, "live chip should not claim cycle accuracy yet");
     }
 
-    const auto& planned = chipper::descriptorFor(chipper::ChipMode::ym2612).verification;
-    ok &= expect(planned.badge == "Unverified planned", "planned chip should disclose unverified status");
-    ok &= expect(! planned.cycleAccurate, "planned chip should not claim cycle accuracy");
+    constexpr std::array plannedModes {
+        chipper::ChipMode::ym2612,
+        chipper::ChipMode::opl3,
+        chipper::ChipMode::spc700,
+        chipper::ChipMode::pokey,
+        chipper::ChipMode::paula,
+        chipper::ChipMode::huc6280,
+        chipper::ChipMode::namcoWsg,
+        chipper::ChipMode::ym2151,
+        chipper::ChipMode::ym2413,
+        chipper::ChipMode::scc,
+        chipper::ChipMode::arcade
+    };
+
+    for (const auto mode : plannedModes)
+    {
+        const auto& planned = chipper::descriptorFor(mode).verification;
+        ok &= expect(planned.badge == "Unverified planned", "planned chip should disclose unverified status");
+        ok &= expect(planned.summary.find("Planned mode only") != std::string::npos, "planned chip should explain planned-only status");
+        ok &= expect(planned.evidence.find("No VST audio core") != std::string::npos, "planned chip should avoid implying implemented audio");
+        ok &= expect(planned.verifiedBehaviors.size() >= 2u, "planned chip should list descriptor/UI roadmap evidence");
+        ok &= expect(planned.knownGaps.size() >= 3u, "planned chip should list implementation blockers");
+        ok &= expect(! planned.hardwareValidated, "planned chip should not claim hardware validation");
+        ok &= expect(! planned.cycleAccurate, "planned chip should not claim cycle accuracy");
+    }
 
     return ok;
 }
