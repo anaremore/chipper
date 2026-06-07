@@ -610,6 +610,9 @@ add_test(NAME chipper_render_scc_steps_smoke
 add_test(NAME chipper_render_scc_chip_poly_smoke
     COMMAND chipper_render --chip scc --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 2 --clock 3579545 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/scc-chip-poly-events.txt --out scc-chip-poly-smoke.wav --debug scc-chip-poly-smoke.json
 )
+add_test(NAME chipper_render_scc_register_trace_smoke
+    COMMAND chipper_render --chip scc --accuracy authentic --macro manual --clock 3579545 --rate 48000 --seconds 0.05 --note 60 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/scc-register-trace-events.txt --out scc-register-trace-smoke.wav --debug scc-register-trace-smoke.json
+)
 add_test(NAME chipper_render_namco_wsg_smoke
     COMMAND chipper_render --chip namco --accuracy authentic --macro lead --wave-shape 1 --clock 96000 --rate 48000 --seconds 0.05 --note 64 --out namco-wsg-smoke.wav --debug namco-wsg-smoke.json
 )
@@ -1149,6 +1152,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/scc-chip-poly-smoke.json --implemented-contains emu2212 --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 4 --min-peak 0.05 --core-min activeChannels=4 --core-max activeChannels=4 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min internalChannelCount=5 --core-max internalChannelCount=5 --core-min keyOnMask=15 --core-max keyOnMask=15
     )
     set_tests_properties(chipper_render_scc_chip_poly_assert PROPERTIES DEPENDS chipper_render_scc_chip_poly_smoke)
+
+    add_test(NAME chipper_render_scc_register_trace_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/scc-register-trace-smoke.json --implemented-contains emu2212 --macro Manual --register-writes 4 --note-events 0 --min-peak 0.05 --min-rms 0.02 --core-min period0=320 --core-max period0=320 --core-min volume0=15 --core-max volume0=15 --core-min internalChannelCount=5 --core-max internalChannelCount=5
+    )
+    set_tests_properties(chipper_render_scc_register_trace_assert PROPERTIES DEPENDS chipper_render_scc_register_trace_smoke)
 
     add_test(NAME chipper_render_namco_wsg_json_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/namco-wsg-smoke.json --implemented-contains partial --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.05 --min-rms 0.02 --register-writes 0 --note-events 0 --core-min internalChannelCount=8 --core-max internalChannelCount=8 --core-min uiExposesFirstFourChannels=1 --core-max uiExposesFirstFourChannels=1 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min period0=8 --core-max period0=10 --core-min enableMask=0 --core-max enableMask=0 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Wave Shape" --descriptor-param-choices waveShape=5

@@ -1,0 +1,7 @@
+# SCC register trace: write channel 1 period, volume, and key-on through
+# Chipper's stable SCC register aliases. The adapter maps these to emu2212
+# wave/frequency/volume/key registers internally.
+write 0 0xa0 0x40
+write 1 0xa1 0x01
+write 2 0xaa 0x0f
+write 3 0xaf 0x01
