@@ -11,7 +11,7 @@ if (NOT DEFINED CHIPPER_VERSION)
 endif()
 
 execute_process(
-    COMMAND git -C "${SOURCE_DIR}" rev-parse --short=10 HEAD
+    COMMAND git -c "safe.directory=${SOURCE_DIR}" -C "${SOURCE_DIR}" rev-parse --short=10 HEAD
     OUTPUT_VARIABLE CHIPPER_GIT_SHA
     OUTPUT_STRIP_TRAILING_WHITESPACE
     ERROR_QUIET
@@ -22,7 +22,7 @@ if ("${CHIPPER_GIT_SHA}" STREQUAL "")
 endif()
 
 execute_process(
-    COMMAND git -C "${SOURCE_DIR}" status --porcelain --untracked-files=no
+    COMMAND git -c "safe.directory=${SOURCE_DIR}" -C "${SOURCE_DIR}" status --porcelain --untracked-files=no
     OUTPUT_VARIABLE CHIPPER_GIT_STATUS
     OUTPUT_STRIP_TRAILING_WHITESPACE
     ERROR_QUIET

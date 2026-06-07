@@ -22,6 +22,88 @@ if (-not (Test-Path -LiteralPath $source)) {
     throw "VST3 bundle not found: $source"
 }
 
+function Get-ChipperBuildInfo {
+    $headerPath = Join-Path $buildRootPath "generated\ChipperBuildInfo.h"
+    $info = [ordered]@{
+        Label = "unknown"
+        Version = "unknown"
+        GitSha = "unknown"
+        GitState = "unknown"
+        BuiltAtUtc = "unknown"
+    }
+
+    if (-not (Test-Path -LiteralPath $headerPath)) {
+        return [pscustomobject]$info
+    }
+
+    foreach ($line in Get-Content -LiteralPath $headerPath) {
+        if ($line -match 'inline constexpr auto ([A-Za-z]+) = "([^"]*)";') {
+            switch ($matches[1]) {
+                "version" { $info.Version = $matches[2] }
+                "gitSha" { $info.GitSha = $matches[2] }
+                "gitState" { $info.GitState = $matches[2] }
+                "builtAtUtc" { $info.BuiltAtUtc = $matches[2] }
+                "label" { $info.Label = $matches[2] }
+            }
+        }
+    }
+
+    return [pscustomobject]$info
+}
+
+function Get-ChipperBundleBinaryPath {
+    param([string] $BundlePath)
+
+    return Join-Path $BundlePath "Contents\x86_64-win\Chipper.vst3"
+}
+
+function Write-ChipperBundleReport {
+    param(
+        [string] $Label,
+        [string] $BundlePath
+    )
+
+    $binaryPath = Get-ChipperBundleBinaryPath -BundlePath $BundlePath
+    if (-not (Test-Path -LiteralPath $binaryPath)) {
+        Write-Host "$Label binary: not found at $binaryPath"
+        return
+    }
+
+    $binary = Get-Item -LiteralPath $binaryPath
+    Write-Host ("{0} binary: {1} bytes, modified {2}" -f $Label, $binary.Length, $binary.LastWriteTime)
+}
+
+function Write-ChipperInstalledBuildMarker {
+    param(
+        [string] $BundlePath,
+        [pscustomobject] $BuildInfo
+    )
+
+    $markerPath = Join-Path $BundlePath "ChipperBuildInfo.txt"
+    $binaryPath = Get-ChipperBundleBinaryPath -BundlePath $BundlePath
+    $binary = if (Test-Path -LiteralPath $binaryPath) { Get-Item -LiteralPath $binaryPath } else { $null }
+    $lines = @(
+        "Name: Chipper",
+        "Build: $($BuildInfo.Label)",
+        "Version: $($BuildInfo.Version)",
+        "Git SHA: $($BuildInfo.GitSha)",
+        "Git State: $($BuildInfo.GitState)",
+        "Built UTC: $($BuildInfo.BuiltAtUtc)",
+        "Installed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss K')"
+    )
+
+    if ($null -ne $binary) {
+        $lines += "Binary Modified: $($binary.LastWriteTime)"
+        $lines += "Binary Bytes: $($binary.Length)"
+    }
+
+    Set-Content -LiteralPath $markerPath -Value $lines
+}
+
+$buildInfo = Get-ChipperBuildInfo
+Write-Host "Source build: $($buildInfo.Label) ($($buildInfo.GitState), built $($buildInfo.BuiltAtUtc))"
+Write-ChipperBundleReport -Label "Source" -BundlePath $source
+
 function New-ChipperFallbackDestination {
     if ($PSBoundParameters.ContainsKey("FallbackDestination") -and -not [string]::IsNullOrWhiteSpace($FallbackDestination)) {
         return $FallbackDestination
@@ -108,6 +190,53 @@ function Remove-ChipperBundleWithRetry {
 
         Write-Warning "Could not remove existing Chipper.vst3 at '$BundlePath': $firstError"
         return $false
+    }
+}
+
+function Get-ChipperLikelyHostProcesses {
+    $hostNamePatterns = @(
+        "*Ableton*",
+        "*Live*",
+        "*REAPER*",
+        "*Bitwig*",
+        "*FL*",
+        "*Cubase*",
+        "*Studio One*",
+        "*Nuendo*",
+        "*Cakewalk*",
+        "*Waveform*"
+    )
+
+    $matches = @()
+    foreach ($process in Get-Process) {
+        foreach ($pattern in $hostNamePatterns) {
+            if ($process.ProcessName -like $pattern) {
+                $matches += [pscustomobject]@{
+                    Id = $process.Id
+                    Name = $process.ProcessName
+                    Path = $process.Path
+                }
+                break
+            }
+        }
+    }
+
+    return $matches | Sort-Object Name, Id
+}
+
+function Show-ChipperInstallDiagnostics {
+    param([string] $Reason)
+
+    Write-Warning $Reason
+    $likelyHosts = @(Get-ChipperLikelyHostProcesses)
+    if ($likelyHosts.Count -eq 0) {
+        Write-Warning "No common DAW/plugin host process names were detected, but a host or scanner may still be holding the VST3 bundle."
+        return
+    }
+
+    Write-Warning "Close these likely host/scanner processes, then rerun the installer:"
+    foreach ($hostProcess in $likelyHosts) {
+        Write-Warning ("  PID {0}: {1} ({2})" -f $hostProcess.Id, $hostProcess.Name, $hostProcess.Path)
     }
 }
 
@@ -206,6 +335,7 @@ if (-not $targetFullPath.StartsWith($destinationPrefix, [System.StringComparison
 }
 
 if (Test-Path -LiteralPath $targetFullPath) {
+    Write-ChipperBundleReport -Label "Installed before replace" -BundlePath $targetFullPath
     $moduleHolders = @(Get-ChipperModuleHolders -PluginBinary $targetBinary)
     if ($moduleHolders.Count -gt 0) {
         Write-Host "Chipper.vst3 is currently loaded by:"
@@ -218,12 +348,18 @@ if (Test-Path -LiteralPath $targetFullPath) {
 
     Write-Host "Removing existing Chipper.vst3 from $destinationRoot"
     if (-not (Remove-ChipperBundleWithRetry -BundlePath $targetFullPath)) {
+        Show-ChipperInstallDiagnostics -Reason "The existing Chipper.vst3 could not be removed."
         Copy-ChipperBundleToFallback -Reason "Could not remove existing Chipper.vst3 at '$targetFullPath'."
         return
     }
 }
 
 if (-not (Copy-ChipperBundleWithRetry -SourceBundle $source -DestinationRoot $destinationRoot)) {
+    Show-ChipperInstallDiagnostics -Reason "The new Chipper.vst3 could not be copied into the destination."
     Copy-ChipperBundleToFallback -Reason "Could not copy Chipper.vst3 to '$destinationRoot'."
     return
 }
+
+Write-ChipperInstalledBuildMarker -BundlePath $targetFullPath -BuildInfo $buildInfo
+Write-ChipperBundleReport -Label "Installed after replace" -BundlePath $targetFullPath
+Write-Host "Installed build marker: $(Join-Path $targetFullPath 'ChipperBuildInfo.txt')"
