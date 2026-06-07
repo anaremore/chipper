@@ -704,7 +704,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     : AudioProcessorEditor(processor),
       audioProcessor(processor)
 {
-    setSize(1180, 920);
+    setResizable(true, true);
+    setResizeLimits(1180, 920, 1600, 1280);
+    setSize(1180, 1040);
 
     auto& state = audioProcessor.getValueTreeState();
 
@@ -1530,20 +1532,56 @@ void ChipperAudioProcessorEditor::resized()
     area.removeFromTop(10);
 
     constexpr auto footerReserve = 52;
-    constexpr auto performanceStripHeight = 300;
-    const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, 492);
+    const auto sidLayout = displayedMode == chipper::ChipMode::sid;
+    const auto performanceStripHeight = sidLayout ? 260 : 300;
+    const auto maxModulesHeight = sidLayout ? 620 : 492;
+    const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
     const auto columnWidth = (modules.getWidth() - gap) / 2;
     const auto rowHeight = (modules.getHeight() - (gap * 2)) / 3;
 
+    if (sidLayout)
+    {
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.27)), 126, 166);
+        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.26)), 118, 156);
+        const auto envelopeHeight = std::max(160, modules.getHeight() - topRowHeight - middleRowHeight - (gap * 2));
+        const auto leftX = modules.getX();
+        const auto rightX = modules.getX() + columnWidth + gap;
+        const auto topY = modules.getY();
+        const auto middleY = topY + topRowHeight + gap;
+        const auto envelopeY = middleY + middleRowHeight + gap;
+
+        moduleBounds[0] = { leftX, topY, columnWidth, topRowHeight };
+        moduleBounds[1] = { rightX, topY, columnWidth, topRowHeight };
+        moduleBounds[2] = { leftX, middleY, columnWidth, middleRowHeight };
+        moduleBounds[3] = { modules.getX(), envelopeY, modules.getWidth(), envelopeHeight };
+        moduleBounds[4] = { rightX, middleY, columnWidth, middleRowHeight };
+        moduleBounds[5] = {};
+    }
+    else
+    {
+        for (size_t i = 0; i < moduleBounds.size(); ++i)
+        {
+            const auto row = static_cast<int>(i / 2);
+            const auto column = static_cast<int>(i % 2);
+            const auto x = modules.getX() + (column * (columnWidth + gap));
+            const auto y = modules.getY() + (row * (rowHeight + gap));
+            moduleBounds[i] = { x, y, columnWidth, rowHeight };
+        }
+    }
+
     for (size_t i = 0; i < moduleBounds.size(); ++i)
     {
-        const auto row = static_cast<int>(i / 2);
-        const auto column = static_cast<int>(i % 2);
-        const auto x = modules.getX() + (column * (columnWidth + gap));
-        const auto y = modules.getY() + (row * (rowHeight + gap));
-        moduleBounds[i] = { x, y, columnWidth, rowHeight };
+        if (moduleBounds[i].isEmpty())
+        {
+            moduleNumberLabels[i].setBounds({});
+            moduleTitleLabels[i].setBounds({});
+            moduleSummaryLabels[i].setBounds({});
+            for (auto& itemLabel : moduleItemLabels[i])
+                itemLabel.setBounds({});
+            continue;
+        }
 
         auto panel = moduleBounds[i].reduced(12, 9);
         auto titleRow = panel.removeFromTop(20);

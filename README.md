@@ -73,6 +73,12 @@ Global installs target `C:\Program Files\Common Files\VST3`; non-elevated global
 
 If both the user and global VST3 folders contain `Chipper.vst3`, the installer reports the other copy after a successful install. Some hosts scan the global VST3 folder before the user VST3 folder, so a stale global copy can make the plugin look old even when the no-UAC user install succeeded.
 
+To update both copies in one pass, open PowerShell as Administrator and run:
+
+```powershell
+.\install-vst3.ps1 -Scope Both
+```
+
 ## MIDI CC Control
 
 Chipper accepts MIDI input for notes and parameter control. All current plugin parameters have fixed default MIDI CC mappings:

@@ -1,7 +1,7 @@
 param(
     [string] $Configuration = "Release",
     [string] $BuildRoot = "build",
-    [ValidateSet("Global", "User")]
+    [ValidateSet("Global", "User", "Both")]
     [string] $Scope = "Global",
     [string] $Destination,
     [string] $FallbackDestination,
@@ -114,9 +114,9 @@ function Show-ChipperOtherScopeInstallWarning {
     Write-Warning "Some hosts scan the global VST3 folder before the user VST3 folder, so this can look like an old build is still installed."
 
     if ($otherScope -eq "Global") {
-        Write-Warning "To update that copy, open PowerShell as Administrator and run: .\install-vst3.ps1 -Scope Global"
+        Write-Warning "To keep both copies in sync, open PowerShell as Administrator and run: .\install-vst3.ps1 -Scope Both"
     } else {
-        Write-Warning "To update that copy without UAC, run: .\install-vst3.ps1 -Scope User"
+        Write-Warning "To keep both copies in sync, open PowerShell as Administrator and run: .\install-vst3.ps1 -Scope Both"
     }
 }
 
@@ -148,6 +148,7 @@ function Write-ChipperInstalledBuildMarker {
 }
 
 $buildInfo = Get-ChipperBuildInfo
+$activeInstallScope = $Scope
 Write-Host "Source build: $($buildInfo.Label) ($($buildInfo.GitState), built $($buildInfo.BuiltAtUtc))"
 Write-ChipperBundleReport -Label "Source" -BundlePath $source
 
@@ -193,7 +194,7 @@ function Grant-ChipperCurrentUserAccess {
         [string] $PathToRepair
     )
 
-    if ($Scope -ne "User" -or -not (Test-Path -LiteralPath $PathToRepair)) {
+    if ($activeInstallScope -ne "User" -or -not (Test-Path -LiteralPath $PathToRepair)) {
         return $false
     }
 
@@ -313,35 +314,11 @@ function Copy-ChipperBundleWithRetry {
     }
 }
 
-if (-not $PSBoundParameters.ContainsKey("Destination") -or [string]::IsNullOrWhiteSpace($Destination)) {
-    $Destination = Get-ChipperDefaultVst3Root -InstallScope $Scope
-}
-
 function Test-ProcessElevated {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = [Security.Principal.WindowsPrincipal]::new($identity)
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
-
-if ($Scope -eq "Global" -and -not (Test-ProcessElevated)) {
-    throw "Global VST3 install requires an elevated PowerShell. Use -Scope User for a no-UAC install to %LOCALAPPDATA%\Programs\Common\VST3."
-}
-
-try {
-    New-Item -ItemType Directory -Force -Path $Destination | Out-Null
-} catch {
-    Copy-ChipperBundleToFallback -Reason "Could not create or access requested VST3 destination '$Destination': $($_.Exception.Message)"
-    return
-}
-
-$destinationRoot = (Resolve-Path -LiteralPath $Destination).ProviderPath
-$target = Join-Path $destinationRoot "Chipper.vst3"
-$targetFullPath = [System.IO.Path]::GetFullPath($target)
-$destinationFullPath = [System.IO.Path]::GetFullPath($destinationRoot)
-$destinationPrefix = $destinationFullPath.TrimEnd(
-    [System.IO.Path]::DirectorySeparatorChar,
-    [System.IO.Path]::AltDirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
-$targetBinary = Join-Path $targetFullPath "Contents\x86_64-win\Chipper.vst3"
 
 function Get-ChipperModuleHolders {
     param([string] $PluginBinary)
@@ -372,38 +349,93 @@ function Get-ChipperModuleHolders {
     return $holders
 }
 
-if (-not $targetFullPath.StartsWith($destinationPrefix, [System.StringComparison]::OrdinalIgnoreCase) -or
-    (Split-Path -Leaf $targetFullPath) -ne "Chipper.vst3") {
-    throw "Refusing to remove unexpected VST3 target: $targetFullPath"
-}
+function Install-ChipperBundleToDestination {
+    param(
+        [string] $InstallScope,
+        [string] $InstallDestination,
+        [bool] $WarnAboutOtherScope = $true
+    )
 
-if (Test-Path -LiteralPath $targetFullPath) {
-    Write-ChipperBundleReport -Label "Installed before replace" -BundlePath $targetFullPath
-    $moduleHolders = @(Get-ChipperModuleHolders -PluginBinary $targetBinary)
-    if ($moduleHolders.Count -gt 0) {
-        Write-Host "Chipper.vst3 is currently loaded by:"
-        foreach ($holder in $moduleHolders) {
-            Write-Host ("  PID {0}: {1} ({2})" -f $holder.Id, $holder.Name, $holder.Path)
-        }
+    $script:activeInstallScope = $InstallScope
 
-        throw "Close the host process and rerun the installer so Chipper.vst3 can be replaced safely."
-    }
-
-    Write-Host "Removing existing Chipper.vst3 from $destinationRoot"
-    if (-not (Remove-ChipperBundleWithRetry -BundlePath $targetFullPath)) {
-        Show-ChipperInstallDiagnostics -Reason "The existing Chipper.vst3 could not be removed."
-        Copy-ChipperBundleToFallback -Reason "Could not remove existing Chipper.vst3 at '$targetFullPath'."
+    try {
+        New-Item -ItemType Directory -Force -Path $InstallDestination | Out-Null
+    } catch {
+        Copy-ChipperBundleToFallback -Reason "Could not create or access requested VST3 destination '$InstallDestination': $($_.Exception.Message)"
         return
     }
+
+    $destinationRoot = (Resolve-Path -LiteralPath $InstallDestination).ProviderPath
+    $target = Join-Path $destinationRoot "Chipper.vst3"
+    $targetFullPath = [System.IO.Path]::GetFullPath($target)
+    $destinationFullPath = [System.IO.Path]::GetFullPath($destinationRoot)
+    $destinationPrefix = $destinationFullPath.TrimEnd(
+        [System.IO.Path]::DirectorySeparatorChar,
+        [System.IO.Path]::AltDirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+    $targetBinary = Join-Path $targetFullPath "Contents\x86_64-win\Chipper.vst3"
+
+    if (-not $targetFullPath.StartsWith($destinationPrefix, [System.StringComparison]::OrdinalIgnoreCase) -or
+        (Split-Path -Leaf $targetFullPath) -ne "Chipper.vst3") {
+        throw "Refusing to remove unexpected VST3 target: $targetFullPath"
+    }
+
+    if (Test-Path -LiteralPath $targetFullPath) {
+        Write-ChipperBundleReport -Label "Installed before replace" -BundlePath $targetFullPath
+        $moduleHolders = @(Get-ChipperModuleHolders -PluginBinary $targetBinary)
+        if ($moduleHolders.Count -gt 0) {
+            Write-Host "Chipper.vst3 is currently loaded by:"
+            foreach ($holder in $moduleHolders) {
+                Write-Host ("  PID {0}: {1} ({2})" -f $holder.Id, $holder.Name, $holder.Path)
+            }
+
+            throw "Close the host process and rerun the installer so Chipper.vst3 can be replaced safely."
+        }
+
+        Write-Host "Removing existing Chipper.vst3 from $destinationRoot"
+        if (-not (Remove-ChipperBundleWithRetry -BundlePath $targetFullPath)) {
+            Show-ChipperInstallDiagnostics -Reason "The existing Chipper.vst3 could not be removed."
+            Copy-ChipperBundleToFallback -Reason "Could not remove existing Chipper.vst3 at '$targetFullPath'."
+            return
+        }
+    }
+
+    if (-not (Copy-ChipperBundleWithRetry -SourceBundle $source -DestinationRoot $destinationRoot)) {
+        Show-ChipperInstallDiagnostics -Reason "The new Chipper.vst3 could not be copied into the destination."
+        Copy-ChipperBundleToFallback -Reason "Could not copy Chipper.vst3 to '$destinationRoot'."
+        return
+    }
+
+    Write-ChipperInstalledBuildMarker -BundlePath $targetFullPath -BuildInfo $buildInfo
+    Write-ChipperBundleReport -Label "Installed after replace" -BundlePath $targetFullPath
+    Write-Host "Installed build marker: $(Join-Path $targetFullPath 'ChipperBuildInfo.txt')"
+
+    if ($WarnAboutOtherScope) {
+        Show-ChipperOtherScopeInstallWarning -InstalledBundlePath $targetFullPath -InstalledScope $InstallScope
+    }
 }
 
-if (-not (Copy-ChipperBundleWithRetry -SourceBundle $source -DestinationRoot $destinationRoot)) {
-    Show-ChipperInstallDiagnostics -Reason "The new Chipper.vst3 could not be copied into the destination."
-    Copy-ChipperBundleToFallback -Reason "Could not copy Chipper.vst3 to '$destinationRoot'."
+if ($Scope -eq "Both") {
+    if ($PSBoundParameters.ContainsKey("Destination") -and -not [string]::IsNullOrWhiteSpace($Destination)) {
+        throw "-Destination cannot be combined with -Scope Both. Use -Scope User or -Scope Global for a custom destination."
+    }
+
+    if (-not (Test-ProcessElevated)) {
+        throw "Both-scope VST3 install requires an elevated PowerShell because the global VST3 folder is under Program Files. Use -Scope User for a no-UAC install."
+    }
+
+    Install-ChipperBundleToDestination -InstallScope "User" -InstallDestination (Get-ChipperDefaultVst3Root -InstallScope "User") -WarnAboutOtherScope $false
+    Write-Host ""
+    Install-ChipperBundleToDestination -InstallScope "Global" -InstallDestination (Get-ChipperDefaultVst3Root -InstallScope "Global") -WarnAboutOtherScope $false
+    Write-Host "Installed Chipper.vst3 to both User and Global VST3 folders."
     return
 }
 
-Write-ChipperInstalledBuildMarker -BundlePath $targetFullPath -BuildInfo $buildInfo
-Write-ChipperBundleReport -Label "Installed after replace" -BundlePath $targetFullPath
-Write-Host "Installed build marker: $(Join-Path $targetFullPath 'ChipperBuildInfo.txt')"
-Show-ChipperOtherScopeInstallWarning -InstalledBundlePath $targetFullPath -InstalledScope $Scope
+if (-not $PSBoundParameters.ContainsKey("Destination") -or [string]::IsNullOrWhiteSpace($Destination)) {
+    $Destination = Get-ChipperDefaultVst3Root -InstallScope $Scope
+}
+
+if ($Scope -eq "Global" -and -not (Test-ProcessElevated)) {
+    throw "Global VST3 install requires an elevated PowerShell. Use -Scope User for a no-UAC install to %LOCALAPPDATA%\Programs\Common\VST3."
+}
+
+Install-ChipperBundleToDestination -InstallScope $Scope -InstallDestination $Destination -WarnAboutOtherScope $true

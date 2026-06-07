@@ -1,7 +1,7 @@
 param(
     [string] $Configuration = "Release",
     [string] $BuildRoot = "build-codex",
-    [ValidateSet("Global", "User")]
+    [ValidateSet("Global", "User", "Both")]
     [string] $Scope = "User",
     [string] $Destination,
     [string] $FallbackDestination,
