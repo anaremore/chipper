@@ -90,6 +90,15 @@ add_test(NAME chipper_render_sid_filter_bypass_smoke
 add_test(NAME chipper_render_sid_filter_notch_smoke
     COMMAND chipper_render --chip sid --accuracy authentic --macro manual --wave-shape pulse --sid-filter-mode notch --stereo-spread 1.0 --control3 0.55 --clock 985248 --rate 48000 --seconds 0.04 --note 69 --out sid-filter-notch-smoke.wav --debug sid-filter-notch-smoke.json
 )
+add_test(NAME chipper_render_sid_filter_lpbp_smoke
+    COMMAND chipper_render --chip sid --accuracy authentic --macro manual --wave-shape pulse --sid-filter-mode lp+bp --stereo-spread 1.0 --control3 0.55 --clock 985248 --rate 48000 --seconds 0.04 --note 69 --out sid-filter-lpbp-smoke.wav --debug sid-filter-lpbp-smoke.json
+)
+add_test(NAME chipper_render_sid_filter_bphp_smoke
+    COMMAND chipper_render --chip sid --accuracy authentic --macro manual --wave-shape pulse --sid-filter-mode bp+hp --stereo-spread 1.0 --control3 0.55 --clock 985248 --rate 48000 --seconds 0.04 --note 69 --out sid-filter-bphp-smoke.wav --debug sid-filter-bphp-smoke.json
+)
+add_test(NAME chipper_render_sid_filter_all_smoke
+    COMMAND chipper_render --chip sid --accuracy authentic --macro manual --wave-shape pulse --sid-filter-mode all --stereo-spread 1.0 --control3 0.55 --clock 985248 --rate 48000 --seconds 0.04 --note 69 --out sid-filter-all-smoke.wav --debug sid-filter-all-smoke.json
+)
 add_test(NAME chipper_render_sid_filter_route_v3_smoke
     COMMAND chipper_render --chip sid --accuracy authentic --macro manual --wave-shape pulse --sid-filter-mode lp --sid-filter-routing v3 --stereo-spread 0.0 --control3 0.45 --clock 985248 --rate 48000 --seconds 0.04 --note 69 --out sid-filter-route-v3-smoke.wav --debug sid-filter-route-v3-smoke.json
 )
@@ -639,6 +648,21 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-filter-notch-smoke.json --implemented-contains partial --macro Manual --min-peak 0.001 --register-writes 0 --note-events 0 --core-min filterModeChoice=5 --core-max filterModeChoice=5 --core-min filterModeBits=80 --core-max filterModeBits=80 --core-min filterModeVolume=95 --core-max filterModeVolume=95 --core-min filterResonanceNibble=15 --core-max filterResonanceNibble=15 --core-min filterRoutingRegister=247 --core-max filterRoutingRegister=247
     )
     set_tests_properties(chipper_render_sid_filter_notch_assert PROPERTIES DEPENDS chipper_render_sid_filter_notch_smoke)
+
+    add_test(NAME chipper_render_sid_filter_lpbp_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-filter-lpbp-smoke.json --implemented-contains partial --macro Manual --min-peak 0.001 --register-writes 0 --note-events 0 --core-min filterModeChoice=6 --core-max filterModeChoice=6 --core-min filterModeBits=48 --core-max filterModeBits=48 --core-min filterModeVolume=63 --core-max filterModeVolume=63 --core-min filterResonanceNibble=15 --core-max filterResonanceNibble=15 --core-min filterRoutingRegister=247 --core-max filterRoutingRegister=247
+    )
+    set_tests_properties(chipper_render_sid_filter_lpbp_assert PROPERTIES DEPENDS chipper_render_sid_filter_lpbp_smoke)
+
+    add_test(NAME chipper_render_sid_filter_bphp_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-filter-bphp-smoke.json --implemented-contains partial --macro Manual --min-peak 0.001 --register-writes 0 --note-events 0 --core-min filterModeChoice=7 --core-max filterModeChoice=7 --core-min filterModeBits=96 --core-max filterModeBits=96 --core-min filterModeVolume=111 --core-max filterModeVolume=111 --core-min filterResonanceNibble=15 --core-max filterResonanceNibble=15 --core-min filterRoutingRegister=247 --core-max filterRoutingRegister=247
+    )
+    set_tests_properties(chipper_render_sid_filter_bphp_assert PROPERTIES DEPENDS chipper_render_sid_filter_bphp_smoke)
+
+    add_test(NAME chipper_render_sid_filter_all_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-filter-all-smoke.json --implemented-contains partial --macro Manual --min-peak 0.001 --register-writes 0 --note-events 0 --core-min filterModeChoice=8 --core-max filterModeChoice=8 --core-min filterModeBits=112 --core-max filterModeBits=112 --core-min filterModeVolume=127 --core-max filterModeVolume=127 --core-min filterResonanceNibble=15 --core-max filterResonanceNibble=15 --core-min filterRoutingRegister=247 --core-max filterRoutingRegister=247
+    )
+    set_tests_properties(chipper_render_sid_filter_all_assert PROPERTIES DEPENDS chipper_render_sid_filter_all_smoke)
 
     add_test(NAME chipper_render_sid_filter_route_v3_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sid-filter-route-v3-smoke.json --implemented-contains partial --macro Manual --min-peak 0.01 --register-writes 0 --note-events 0 --core-min filterRoutingChoice=4 --core-max filterRoutingChoice=4 --core-min filterRoutingBits=4 --core-max filterRoutingBits=4 --core-min filterRoutingRegister=4 --core-max filterRoutingRegister=4 --descriptor-param-kind sidFilterRouting=chipRegister --descriptor-param-surface sidFilterRouting=menu --descriptor-param-label "sidFilterRouting=Filter Routing" --descriptor-param-choices sidFilterRouting=9
