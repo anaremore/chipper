@@ -284,6 +284,22 @@ const char* sidWaveNameForControlBits(uint8_t bits)
     }
 }
 
+int sidWaveChoiceForControlBits(uint8_t bits)
+{
+    switch (bits)
+    {
+        case 0x10u: return 1;
+        case 0x20u: return 2;
+        case 0x40u: return 3;
+        case 0x80u: return 4;
+        case 0x30u: return 5;
+        case 0x50u: return 6;
+        case 0x60u: return 7;
+        case 0x70u: return 8;
+        default: return 0;
+    }
+}
+
 juce::String sidFilterRoutingName(uint8_t bits)
 {
     switch (bits & 0x07u)
@@ -1086,7 +1102,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
             if (suppressManualChoiceCallbacks)
                 return;
 
-            const auto selected = sidVoiceWaveBoxes[i].getSelectedItemIndex();
+            const auto selected = sidVoiceWaveBoxes[i].getSelectedId() - 1;
             if (selected >= 0)
             {
                 setChoiceParameterFromUi(sidVoiceWaveParameterId(i), selected);
@@ -3988,9 +4004,10 @@ void ChipperAudioProcessorEditor::updateSidVoiceWaveControls(bool shouldBeVisibl
         const auto selected = static_cast<int>(std::round(parameterValue(sidVoiceWaveParameterId(i))));
         const auto bits = chipper::sidWaveformControlForVoice(patch, i);
         const auto maxChoice = std::max(0, sidVoiceWaveBoxes[i].getNumItems() - 1);
+        const auto displayChoice = selected == 0 ? 0 : sidWaveChoiceForControlBits(bits);
         sidVoiceWaveLabels[i].setVisible(shouldBeVisible);
         sidVoiceWaveBoxes[i].setVisible(shouldBeVisible);
-        sidVoiceWaveBoxes[i].setSelectedItemIndex(std::clamp(selected, 0, maxChoice), juce::dontSendNotification);
+        sidVoiceWaveBoxes[i].setSelectedId(std::clamp(displayChoice, 0, maxChoice) + 1, juce::dontSendNotification);
 
         if (shouldBeVisible)
         {
