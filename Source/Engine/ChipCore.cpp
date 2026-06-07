@@ -352,7 +352,11 @@ public:
                 break;
         }
 
-        enable = static_cast<unsigned>(0x80u | ((enable & 0x0fu) & sourceEnableMask(patch)));
+        const auto requestedSources = sourceEnableMask(patch);
+        auto enabledSources = static_cast<unsigned>((enable & 0x0fu) & requestedSources);
+        if (enabledSources == 0u && requestedSources != 0u)
+            enabledSources = requestedSources;
+        enable = static_cast<unsigned>(0x80u | enabledSources);
 
         writeRegister(0xff26, 0x80);
         writeRegister(0xff24, 0x77);

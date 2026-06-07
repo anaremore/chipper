@@ -234,6 +234,15 @@ add_test(NAME chipper_render_sn76489_noise_level_max_smoke
 add_test(NAME chipper_render_preset_nes_hero_smoke
     COMMAND chipper_render --preset nes-hero-pulse --rate 48000 --seconds 0.04 --note 69 --out preset-nes-hero-smoke.wav --debug preset-nes-hero-smoke.json
 )
+add_test(NAME chipper_render_preset_nes_triangle_bass_smoke
+    COMMAND chipper_render --preset nes-triangle-bass --rate 48000 --seconds 0.04 --note 48 --out preset-nes-triangle-bass-smoke.wav --debug preset-nes-triangle-bass-smoke.json
+)
+add_test(NAME chipper_render_preset_nes_noise_snare_smoke
+    COMMAND chipper_render --preset nes-noise-snare --rate 48000 --seconds 0.04 --note 60 --out preset-nes-noise-snare-smoke.wav --debug preset-nes-noise-snare-smoke.json
+)
+add_test(NAME chipper_render_preset_nes_coin_blip_smoke
+    COMMAND chipper_render --preset nes-coin-blip --rate 48000 --seconds 0.04 --note 76 --out preset-nes-coin-blip-smoke.wav --debug preset-nes-coin-blip-smoke.json
+)
 add_test(NAME chipper_render_preset_nes_boss_damage_smoke
     COMMAND chipper_render --preset nes-boss-damage --rate 48000 --seconds 0.04 --note 48 --out preset-nes-boss-damage-smoke.wav --debug preset-nes-boss-damage-smoke.json
 )
@@ -242,6 +251,12 @@ add_test(NAME chipper_render_preset_nes_power_up_smoke
 )
 add_test(NAME chipper_render_preset_dmg_wave_bass_smoke
     COMMAND chipper_render --preset dmg-wave-bass --rate 48000 --seconds 0.04 --note 48 --out preset-dmg-wave-bass-smoke.wav --debug preset-dmg-wave-bass-smoke.json
+)
+add_test(NAME chipper_render_preset_dmg_pocket_arp_smoke
+    COMMAND chipper_render --preset dmg-pocket-arp --rate 48000 --seconds 0.04 --note 69 --out preset-dmg-pocket-arp-smoke.wav --debug preset-dmg-pocket-arp-smoke.json
+)
+add_test(NAME chipper_render_preset_dmg_noise_hat_smoke
+    COMMAND chipper_render --preset dmg-noise-hat --rate 48000 --seconds 0.04 --note 72 --out preset-dmg-noise-hat-smoke.wav --debug preset-dmg-noise-hat-smoke.json
 )
 add_test(NAME chipper_render_preset_dmg_power_up_smoke
     COMMAND chipper_render --preset dmg-power-up-rise --rate 48000 --seconds 0.04 --note 69 --out preset-dmg-power-up-smoke.wav --debug preset-dmg-power-up-smoke.json
@@ -309,6 +324,12 @@ add_test(NAME chipper_render_preset_ym_fast_minor_arp_smoke
 add_test(NAME chipper_render_preset_sn_noise_hit_smoke
     COMMAND chipper_render --preset sn-noise-hit --rate 48000 --seconds 0.04 --note 60 --out preset-sn-noise-hit-smoke.wav --debug preset-sn-noise-hit-smoke.json
 )
+add_test(NAME chipper_render_preset_sn_psg_lead_smoke
+    COMMAND chipper_render --preset sn-psg-lead --rate 48000 --seconds 0.04 --note 69 --out preset-sn-psg-lead-smoke.wav --debug preset-sn-psg-lead-smoke.json
+)
+add_test(NAME chipper_render_preset_sn_psg_coin_smoke
+    COMMAND chipper_render --preset sn-psg-coin --rate 48000 --seconds 0.04 --note 76 --out preset-sn-psg-coin-smoke.wav --debug preset-sn-psg-coin-smoke.json
+)
 add_test(NAME chipper_render_preset_sn_arcade_laser_smoke
     COMMAND chipper_render --preset sn-arcade-laser --rate 48000 --seconds 0.04 --note 69 --out preset-sn-arcade-laser-smoke.wav --debug preset-sn-arcade-laser-smoke.json
 )
@@ -329,6 +350,18 @@ add_test(NAME chipper_render_preset_nes_duty_bass_duo_smoke
 )
 add_test(NAME chipper_render_preset_dmg_step_wave_arp_smoke
     COMMAND chipper_render --preset dmg-step-wave-arp --rate 48000 --seconds 0.04 --note 69 --out preset-dmg-step-wave-arp-smoke.wav --debug preset-dmg-step-wave-arp-smoke.json
+)
+add_test(NAME chipper_render_preset_dmg_pulse_lead_smoke
+    COMMAND chipper_render --preset dmg-pulse-lead --rate 48000 --seconds 0.04 --note 69 --out preset-dmg-pulse-lead-smoke.wav --debug preset-dmg-pulse-lead-smoke.json
+)
+add_test(NAME chipper_render_preset_dmg_wave_glass_smoke
+    COMMAND chipper_render --preset dmg-wave-glass --rate 48000 --seconds 0.04 --note 69 --out preset-dmg-wave-glass-smoke.wav --debug preset-dmg-wave-glass-smoke.json
+)
+add_test(NAME chipper_render_preset_dmg_noise_kick_smoke
+    COMMAND chipper_render --preset dmg-noise-kick --rate 48000 --seconds 0.04 --note 48 --out preset-dmg-noise-kick-smoke.wav --debug preset-dmg-noise-kick-smoke.json
+)
+add_test(NAME chipper_render_preset_dmg_split_chord_smoke
+    COMMAND chipper_render --preset dmg-split-chord --rate 48000 --seconds 0.04 --note 60 --out preset-dmg-split-chord-smoke.wav --debug preset-dmg-split-chord-smoke.json
 )
 add_test(NAME chipper_render_preset_sid_filtered_noise_sweep_smoke
     COMMAND chipper_render --preset sid-filtered-noise-sweep --rate 48000 --seconds 0.04 --note 69 --out preset-sid-filtered-noise-sweep-smoke.wav --debug preset-sid-filtered-noise-sweep-smoke.json
@@ -484,7 +517,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_ym_preset_catalog_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_macro_catalog_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --macro-label "nes:Coin=NES Coin Blip" --macro-label "dmg:Power-Up=DMG Power-Up" --macro-label "sid:Laser=SID Sync Sweep" --macro-label "ym2149:Arp=YM Three-Voice Arp" --macro-label "sn76489:Manual=PSG Manual" --macro-label "sn76489:Drum=PSG Drum" --preset sid-wide-pwm-pad --preset sid-hard-sync-saw --preset sid-gated-noise-tom
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --macro-label "nes:Coin=NES Coin Blip" --macro-label "dmg:Power-Up=DMG Power-Up" --macro-label "sid:Laser=SID Sync Sweep" --macro-label "ym2149:Arp=YM Three-Voice Arp" --macro-label "sn76489:Manual=PSG Manual" --macro-label "sn76489:Drum=PSG Drum" --preset nes-triangle-bass --preset nes-noise-snare --preset nes-coin-blip --preset dmg-pocket-arp --preset dmg-noise-hat --preset dmg-pulse-lead --preset dmg-wave-glass --preset dmg-noise-kick --preset dmg-split-chord --preset sid-wide-pwm-pad --preset sid-hard-sync-saw --preset sid-gated-noise-tom --preset sn-psg-lead --preset sn-psg-coin
     )
     set_tests_properties(chipper_render_list_macro_catalog_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -833,6 +866,21 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_preset_nes_hero_assert PROPERTIES DEPENDS chipper_render_preset_nes_hero_smoke)
 
+    add_test(NAME chipper_render_preset_nes_triangle_bass_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-triangle-bass-smoke.json --implemented-contains partial --preset nes-triangle-bass --macro Bass --play-mode "Big Mono" --output-db -8 --register-writes 0 --note-events 0 --min-peak 0.04 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min pulseDuty1=2 --core-max pulseDuty1=2
+    )
+    set_tests_properties(chipper_render_preset_nes_triangle_bass_assert PROPERTIES DEPENDS chipper_render_preset_nes_triangle_bass_smoke)
+
+    add_test(NAME chipper_render_preset_nes_noise_snare_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-noise-snare-smoke.json --implemented-contains partial --preset nes-noise-snare --macro Drum --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.04 --min-zero-crossings 100 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1
+    )
+    set_tests_properties(chipper_render_preset_nes_noise_snare_assert PROPERTIES DEPENDS chipper_render_preset_nes_noise_snare_smoke)
+
+    add_test(NAME chipper_render_preset_nes_coin_blip_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-coin-blip-smoke.json --implemented-contains partial --preset nes-coin-blip --macro Coin --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 0 --min-peak 0.03 --min-zero-crossings 40 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min pulseDuty1=0 --core-max pulseDuty1=0
+    )
+    set_tests_properties(chipper_render_preset_nes_coin_blip_assert PROPERTIES DEPENDS chipper_render_preset_nes_coin_blip_smoke)
+
     add_test(NAME chipper_render_preset_nes_boss_damage_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-boss-damage-smoke.json --implemented-contains partial --preset nes-boss-damage --macro Hit --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.08 --min-zero-crossings 100 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1 --core-min noiseModeChoice=2 --core-max noiseModeChoice=2
     )
@@ -847,6 +895,16 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-dmg-wave-bass-smoke.json --implemented-contains partial --preset dmg-wave-bass --macro Bass --play-mode "Big Mono" --output-db -8 --register-writes 0 --note-events 0 --min-peak 0.08 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min waveShape=1 --core-max waveShape=1 --core-min enabledWave=1 --core-max enabledWave=1
     )
     set_tests_properties(chipper_render_preset_dmg_wave_bass_assert PROPERTIES DEPENDS chipper_render_preset_dmg_wave_bass_smoke)
+
+    add_test(NAME chipper_render_preset_dmg_pocket_arp_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-dmg-pocket-arp-smoke.json --implemented-contains partial --preset dmg-pocket-arp --macro Arp --play-mode "Chip Poly" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.01 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min waveShape=4 --core-max waveShape=4 --core-min nr51=90 --core-max nr51=90
+    )
+    set_tests_properties(chipper_render_preset_dmg_pocket_arp_assert PROPERTIES DEPENDS chipper_render_preset_dmg_pocket_arp_smoke)
+
+    add_test(NAME chipper_render_preset_dmg_noise_hat_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-dmg-noise-hat-smoke.json --implemented-contains partial --preset dmg-noise-hat --macro Drum --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.02 --min-zero-crossings 100 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1 --core-min enabledNoise=1 --core-max enabledNoise=1
+    )
+    set_tests_properties(chipper_render_preset_dmg_noise_hat_assert PROPERTIES DEPENDS chipper_render_preset_dmg_noise_hat_smoke)
 
     add_test(NAME chipper_render_preset_dmg_power_up_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-dmg-power-up-smoke.json --implemented-contains partial --preset dmg-power-up-rise --macro Power-Up --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.06 --min-left-peak 0.08 --min-right-peak 0.03 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min waveShape=2 --core-max waveShape=2 --core-min enabledWave=1 --core-max enabledWave=1 --core-min dmgStereoRoute=4 --core-max dmgStereoRoute=4 --core-min dmgStereoRouteRegister=90 --core-max dmgStereoRouteRegister=90 --core-min nr51=90 --core-max nr51=90
@@ -958,6 +1016,16 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_preset_sn_noise_hit_assert PROPERTIES DEPENDS chipper_render_preset_sn_noise_hit_smoke)
 
+    add_test(NAME chipper_render_preset_sn_psg_lead_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sn-psg-lead-smoke.json --implemented-contains partial --preset sn-psg-lead --macro Lead --play-mode "Big Mono" --output-db -7 --register-writes 0 --note-events 0 --min-peak 0.04 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0 --core-min attenuation0=2 --core-max attenuation0=2
+    )
+    set_tests_properties(chipper_render_preset_sn_psg_lead_assert PROPERTIES DEPENDS chipper_render_preset_sn_psg_lead_smoke)
+
+    add_test(NAME chipper_render_preset_sn_psg_coin_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sn-psg-coin-smoke.json --implemented-contains partial --preset sn-psg-coin --macro Coin --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 0 --min-peak 0.02 --min-zero-crossings 40 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0 --core-min attenuation0=1 --core-max attenuation0=1
+    )
+    set_tests_properties(chipper_render_preset_sn_psg_coin_assert PROPERTIES DEPENDS chipper_render_preset_sn_psg_coin_smoke)
+
     add_test(NAME chipper_render_preset_sn_arcade_laser_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sn-arcade-laser-smoke.json --implemented-contains partial --preset sn-arcade-laser --macro Laser --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 0 --min-peak 0.04 --min-zero-crossings 50 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabledNoise=1 --core-max sourceEnabledNoise=1 --core-min noiseModeChoice=4 --core-max noiseModeChoice=4 --core-min noiseControl=7 --core-max noiseControl=7
     )
@@ -992,6 +1060,26 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-dmg-step-wave-arp-smoke.json --implemented-contains partial --preset dmg-step-wave-arp --macro Arp --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.04 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min sourceLevel1=0.35 --core-max sourceLevel1=0.35 --core-min sourceLevel2=0.22 --core-max sourceLevel2=0.22 --core-min sourceLevel3=0.95 --core-max sourceLevel3=0.95 --core-min waveShape=4 --core-max waveShape=4 --core-min dmgWaveLevel=2 --core-max dmgWaveLevel=2 --core-min nr32=32 --core-max nr32=32 --core-min dmgStereoRoute=4 --core-max dmgStereoRoute=4 --core-min enabledWave=1 --core-max enabledWave=1
     )
     set_tests_properties(chipper_render_preset_dmg_step_wave_arp_assert PROPERTIES DEPENDS chipper_render_preset_dmg_step_wave_arp_smoke)
+
+    add_test(NAME chipper_render_preset_dmg_pulse_lead_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-dmg-pulse-lead-smoke.json --implemented-contains partial --preset dmg-pulse-lead --macro Lead --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.02 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min pulseDuty1=2 --core-max pulseDuty1=2 --core-min nr51=90 --core-max nr51=90
+    )
+    set_tests_properties(chipper_render_preset_dmg_pulse_lead_assert PROPERTIES DEPENDS chipper_render_preset_dmg_pulse_lead_smoke)
+
+    add_test(NAME chipper_render_preset_dmg_wave_glass_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-dmg-wave-glass-smoke.json --implemented-contains partial --preset dmg-wave-glass --macro Lead --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 0 --min-peak 0.01 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min enabledWave=1 --core-max enabledWave=1 --core-min waveShape=2 --core-max waveShape=2 --core-min nr32=64 --core-max nr32=64
+    )
+    set_tests_properties(chipper_render_preset_dmg_wave_glass_assert PROPERTIES DEPENDS chipper_render_preset_dmg_wave_glass_smoke)
+
+    add_test(NAME chipper_render_preset_dmg_noise_kick_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-dmg-noise-kick-smoke.json --implemented-contains partial --preset dmg-noise-kick --macro Drum --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.02 --min-zero-crossings 100 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1 --core-min enabledNoise=1 --core-max enabledNoise=1 --core-min noiseModeChoice=2 --core-max noiseModeChoice=2
+    )
+    set_tests_properties(chipper_render_preset_dmg_noise_kick_assert PROPERTIES DEPENDS chipper_render_preset_dmg_noise_kick_smoke)
+
+    add_test(NAME chipper_render_preset_dmg_split_chord_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-dmg-split-chord-smoke.json --implemented-contains partial --preset dmg-split-chord --macro Arp --play-mode "Chip Poly" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.01 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min waveShape=4 --core-max waveShape=4 --core-min nr51=90 --core-max nr51=90
+    )
+    set_tests_properties(chipper_render_preset_dmg_split_chord_assert PROPERTIES DEPENDS chipper_render_preset_dmg_split_chord_smoke)
 
     add_test(NAME chipper_render_preset_sid_filtered_noise_sweep_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sid-filtered-noise-sweep-smoke.json --implemented-contains partial --preset sid-filtered-noise-sweep --macro Laser --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.01 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceLevel1=0.2 --core-max sourceLevel1=0.2 --core-min sourceLevel2=0.55 --core-max sourceLevel2=0.55 --core-min sourceLevel3=0.82 --core-max sourceLevel3=0.82 --core-min waveformChoice0=4 --core-max waveformChoice0=4 --core-min waveformChoice1=2 --core-max waveformChoice1=2 --core-min waveformChoice2=4 --core-max waveformChoice2=4 --core-min filterModeChoice=2 --core-max filterModeChoice=2 --core-min modModeChoice=2 --core-max modModeChoice=2 --core-min filterRoutingChoice=4 --core-max filterRoutingChoice=4 --core-min filterRoutingBits=4 --core-max filterRoutingBits=4
