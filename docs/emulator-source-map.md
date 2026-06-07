@@ -30,6 +30,10 @@ Checked 2026-06-07 from upstream GitHub pages/license files:
 - FigBug/SN76489 is an SN76489 VST/AU reference and GitHub reports LGPL-2.1. Treat as license-sensitive comparison material until an LGPL compliance path is chosen.
 - Furnace's top-level license file says most Furnace is GPLv2-or-later, ASIO-enabled builds become GPLv3, and included components may carry their own licenses. Use Furnace as a tracker/product/reference index, not as a source shortcut.
 - ymfm's repository describes BSD-licensed Yamaha FM cores and GitHub reports BSD-3-Clause, making it the first FM-family candidate to audit for YM2612, OPL2/OPL3, YM2151, and YM2413.
+- osoumen/C700 is a dedicated SNES sampler/emulation VST reference and GitHub reports LGPL-2.1. Treat as license-sensitive comparison material, especially for BRR/sample-bank UI and SPC file workflow.
+- blarggs-audio-libraries/snes_spc is a foundational SPC700/S-DSP emulator library and its README/license metadata report LGPL-2.1. Treat as license-sensitive unless an LGPL compliance path is chosen.
+- emu-rs/snes-apu reports BSD-2-Clause, but its README attributes core SMP work to higan and DSP envelope work to Blargg's snes_spc. Treat as a promising candidate only after file-level and provenance audit.
+- nyanpasu64-backup/snes-echo reports BSD-3-Clause and is a Faust SNES echo/reverb model that explicitly does not strive for bit accuracy. Treat as a useful echo/FIR reference or possible permissive DSP candidate after file-level audit.
 
 ## Preferred Implementation Tiers
 
@@ -47,6 +51,8 @@ These should be evaluated first because their upstream license posture appears m
 | [ayumi](https://github.com/true-grue/ayumi) | AY-3-8910 / YM2149 | GitHub reports MIT |
 | [SameBoy](https://github.com/LIJI32/SameBoy) | Game Boy / DMG reference or possible extraction | Upstream reports an Expat-style license, with folder-specific exceptions to audit |
 | [web-pokey](https://github.com/mrk-its/web-pokey) | Atari POKEY behavior reference or port candidate | GitHub reports MIT |
+| [emu-rs/snes-apu](https://github.com/emu-rs/snes-apu) | SNES SPC700/S-DSP behavior candidate | GitHub reports BSD-2-Clause, but upstream attribution to higan and Blargg requires provenance audit before reuse |
+| [nyanpasu64-backup/snes-echo](https://github.com/nyanpasu64-backup/snes-echo) | SNES echo/FIR behavior reference or DSP candidate | GitHub reports BSD-3-Clause; README says it targets audible similarity rather than bit accuracy |
 | [pt2-clone](https://github.com/8bitbubsy/pt2-clone) | Amiga Paula / ProTracker behavior reference | Candidate; audit before reuse |
 
 ### Tier 2: Strong But License-Sensitive
@@ -59,6 +65,8 @@ These may be excellent accuracy choices, but require an explicit LGPL compliance
 | [Nuked-OPL3](https://github.com/nukeykt/Nuked-OPL3) | High-accuracy YMF262/OPL3 | GitHub reports LGPL-2.1 |
 | [FigBug/RP2A03](https://github.com/FigBug/RP2A03) | NES/RP2A03 VST reference and test-oracle candidate | GitHub reports LGPL-2.1 |
 | [FigBug/SN76489](https://github.com/FigBug/SN76489) | SN76489 VST reference and test-oracle candidate | GitHub reports LGPL-2.1 |
+| [osoumen/C700](https://github.com/osoumen/C700) | SNES sampler/VST workflow, BRR/SPC loading, sample-bank UX, and hardware-sync reference | GitHub reports LGPL-2.1 |
+| [blarggs-audio-libraries/snes_spc](https://github.com/blarggs-audio-libraries/snes_spc) | SPC700/S-DSP emulator and reference-output candidate | GitHub reports LGPL-2.1 |
 | [Game_Music_Emu](https://github.com/libgme/game-music-emu) | Playback/reference for many console music formats and chips | GitHub reports LGPL-2.1; upstream notes GPL implications for some optional MAME YM2612 usage |
 
 ### Tier 3: Reference / Validation Only Unless Chipper Goes GPL-Compatible
@@ -84,7 +92,7 @@ These are musically and technically valuable, but direct embedding should wait u
 | SN76489 / Sega PSG | emu76489 | FigBug/SN76489, Game_Music_Emu, Furnace | Evaluate emu76489 first; use FigBug as LGPL comparison target |
 | YM2612 / Genesis FM | ymfm | Nuked-OPN2, Game_Music_Emu, Furnace | Use ymfm first for compatibility; consider Nuked-OPN2 only with an LGPL plan |
 | OPL2 / OPL3 / DOS FM | ymfm | Nuked-OPL3, Furnace | Use ymfm first; reserve Nuked-OPL3 for optional stricter mode if licensing is settled |
-| SNES SPC700-style | Current clean-room partial sample-voice model; Game_Music_Emu remains a future audit candidate | Furnace, MAME | Continue clean-room sample-voice work; compare BRR/S-DSP behavior against trusted references, but do not reuse SPC700, BRR, S-DSP, or tracker-player code until exact source licenses are recorded |
+| SNES SPC700-style | Current clean-room partial sample-voice model; emu-rs/snes-apu and snes-echo are permissive-looking audit candidates | C700, blargg snes_spc, Game_Music_Emu, Furnace, MAME | Continue clean-room sample-voice work; audit snes-apu provenance and snes-echo DSP before reuse; keep C700, blargg snes_spc, GME, Furnace, and MAME as comparison/reference material until licensing is deliberately chosen |
 | Atari POKEY | Current clean-room partial model; web-pokey remains a future audit candidate | Game_Music_Emu, MAME, Furnace | Continue clean-room POKEY work for now; audit web-pokey and MAME file headers before any reuse |
 | Amiga Paula | Current clean-room partial tracker sampler; pt2-clone reference remains a future audit candidate | Paula Tracker / PaulaLib, libxmp, Furnace | Continue clean-room period/volume/channel work; compare against tracker references, but do not reuse Paula/MOD code or sample data until exact source licenses are recorded |
 | PC Engine HuC6280 | Current clean-room partial wavetable/noise model | MAME c6280, Game_Music_Emu, Furnace, HuSIC | Continue clean-room work; use MAME/GME/Furnace/HuSIC as comparison and audit targets only unless an exact source/license review is recorded |
