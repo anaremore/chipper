@@ -181,15 +181,18 @@ juce::Result ChipperAudioProcessor::loadNesDmcSampleDirectory(const juce::File& 
     files.sort();
 
     std::vector<DmcSampleSlot> loaded;
-    loaded.reserve(static_cast<size_t>(std::min(32, files.size())));
+    loaded.reserve(static_cast<size_t>(std::min(128, files.size())));
     for (const auto& file : files)
     {
-        if (loaded.size() >= 32u)
+        if (loaded.size() >= 128u)
             break;
 
         DmcSampleSlot slot;
         if (readDmcSampleFile(file, slot).wasOk())
+        {
+            slot.included = loaded.size() < 32u;
             loaded.push_back(std::move(slot));
+        }
     }
 
     if (loaded.empty())
@@ -214,9 +217,22 @@ juce::String ChipperAudioProcessor::nesDmcSampleBankStatus() const
     if (dmcSampleBank.empty())
         return "No DMC samples loaded";
 
-    const auto safeSlot = static_cast<size_t>(std::clamp(selectedSlot, 0, static_cast<int>(dmcSampleBank.size() - 1u)));
-    const auto& slot = dmcSampleBank[safeSlot];
-    return "Slot " + juce::String(static_cast<int>(safeSlot + 1u)) + "/" + juce::String(static_cast<int>(dmcSampleBank.size()))
+    std::vector<const DmcSampleSlot*> activeSlots;
+    activeSlots.reserve(32u);
+    for (const auto& slot : dmcSampleBank)
+    {
+        if (slot.included)
+            activeSlots.push_back(&slot);
+        if (activeSlots.size() >= 32u)
+            break;
+    }
+
+    if (activeSlots.empty())
+        return "No DMC samples checked";
+
+    const auto safeSlot = static_cast<size_t>(std::clamp(selectedSlot, 0, static_cast<int>(activeSlots.size() - 1u)));
+    const auto& slot = *activeSlots[safeSlot];
+    return "Slot " + juce::String(static_cast<int>(safeSlot + 1u)) + "/" + juce::String(static_cast<int>(activeSlots.size()))
         + ": " + slot.name + " (" + juce::String(static_cast<int>(slot.bytes.size())) + " bytes)";
 }
 
@@ -225,9 +241,64 @@ juce::StringArray ChipperAudioProcessor::nesDmcSampleNames() const
     juce::StringArray names;
     const std::lock_guard<std::mutex> lock(dmcSampleMutex);
     for (const auto& slot : dmcSampleBank)
+    {
+        if (! slot.included)
+            continue;
+
         names.add(slot.name);
+        if (names.size() >= 32)
+            break;
+    }
 
     return names;
+}
+
+std::vector<ChipperAudioProcessor::DmcSampleEntryInfo> ChipperAudioProcessor::nesDmcSampleEntryInfo() const
+{
+    std::vector<DmcSampleEntryInfo> entries;
+    const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+    entries.reserve(dmcSampleBank.size());
+
+    int activeIndex = 0;
+    for (const auto& slot : dmcSampleBank)
+    {
+        const auto participates = slot.included && activeIndex < 32;
+        entries.push_back({ slot.name, slot.path, static_cast<int>(slot.bytes.size()), slot.included, participates });
+        if (slot.included)
+            ++activeIndex;
+    }
+
+    return entries;
+}
+
+void ChipperAudioProcessor::setNesDmcSampleIncluded(int index, bool shouldBeIncluded)
+{
+    bool changed = false;
+    {
+        const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+        if (index >= 0 && index < static_cast<int>(dmcSampleBank.size()))
+        {
+            auto& slot = dmcSampleBank[static_cast<size_t>(index)];
+            if (slot.included != shouldBeIncluded)
+            {
+                slot.included = shouldBeIncluded;
+                changed = true;
+                ++dmcSampleBankRevision;
+            }
+        }
+    }
+
+    if (! changed)
+        return;
+
+    setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
+    activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+}
+
+uint64_t ChipperAudioProcessor::nesDmcSampleRevision() const
+{
+    const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+    return dmcSampleBankRevision;
 }
 
 bool ChipperAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -500,8 +571,21 @@ void ChipperAudioProcessor::applySelectedDmcSampleToCore()
         revision = dmcSampleBankRevision;
         if (! dmcSampleBank.empty())
         {
-            const auto safeSlot = static_cast<size_t>(std::clamp(selectedSlot, 0, static_cast<int>(dmcSampleBank.size() - 1u)));
-            selectedBytes = dmcSampleBank[safeSlot].bytes;
+            std::vector<const DmcSampleSlot*> activeSlots;
+            activeSlots.reserve(32u);
+            for (const auto& slot : dmcSampleBank)
+            {
+                if (slot.included)
+                    activeSlots.push_back(&slot);
+                if (activeSlots.size() >= 32u)
+                    break;
+            }
+
+            if (! activeSlots.empty())
+            {
+                const auto safeSlot = static_cast<size_t>(std::clamp(selectedSlot, 0, static_cast<int>(activeSlots.size() - 1u)));
+                selectedBytes = activeSlots[safeSlot]->bytes;
+            }
         }
     }
 

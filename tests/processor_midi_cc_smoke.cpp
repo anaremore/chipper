@@ -1,9 +1,11 @@
 #include "PluginProcessor.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace
 {
@@ -79,6 +81,12 @@ float scopePeak(const ChipperAudioProcessor::OutputScopeSnapshot& snapshot)
         peak = std::max(peak, std::abs(sample));
 
     return peak;
+}
+
+bool writeDmcFixture(const juce::File& file, uint8_t seed)
+{
+    const std::array<uint8_t, 4> bytes { seed, static_cast<uint8_t>(seed ^ 0x55u), 0xf0u, 0x0fu };
+    return file.replaceWithData(bytes.data(), bytes.size());
 }
 }
 
@@ -255,6 +263,37 @@ int main()
     sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 12));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcSampleSlot), 12.0f, 0.0001f,
                      "CC117 should control NES DMC Sample Slot");
+
+    auto dmcDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-dmc-bank-curation-test");
+    dmcDir.deleteRecursively();
+    ok &= expect(dmcDir.createDirectory().wasOk(), "Should create temporary DMC bank test directory");
+    for (int i = 0; i < 34; ++i)
+    {
+        const auto name = "sample-" + juce::String(i).paddedLeft('0', 2) + ".dmc";
+        ok &= expect(writeDmcFixture(dmcDir.getChildFile(name), static_cast<uint8_t>(i + 1)),
+                     "Should write temporary DMC fixture " + name.toStdString());
+    }
+
+    ok &= expect(processor.loadNesDmcSampleDirectory(dmcDir).wasOk(), "Should load DMC sample directory");
+    auto entryInfo = processor.nesDmcSampleEntryInfo();
+    auto activeNames = processor.nesDmcSampleNames();
+    ok &= expect(entryInfo.size() == 34u, "DMC folder should stage more than 32 library entries");
+    ok &= expect(activeNames.size() == 32, "DMC active bank should default to 32 checked slots");
+    ok &= expect(entryInfo.size() > 32u && ! entryInfo[32].included && ! entryInfo[32].activeSlot,
+                 "DMC entries after the first 32 should default unchecked and inactive");
+
+    processor.setNesDmcSampleIncluded(0, false);
+    activeNames = processor.nesDmcSampleNames();
+    ok &= expect(activeNames.size() == 31, "Unchecking a DMC slot should remove it from the active bank");
+    ok &= expect(activeNames[0] == "sample-01.dmc", "DMC active bank should close gaps after an entry is unchecked");
+
+    processor.setNesDmcSampleIncluded(32, true);
+    activeNames = processor.nesDmcSampleNames();
+    entryInfo = processor.nesDmcSampleEntryInfo();
+    ok &= expect(activeNames.size() == 32, "Checking a staged DMC entry should refill the active bank");
+    ok &= expect(activeNames[31] == "sample-32.dmc", "Checked staged DMC entry should become the final active slot");
+    ok &= expect(entryInfo[32].included && entryInfo[32].activeSlot, "Checked staged DMC entry should report active");
+    dmcDir.deleteRecursively();
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 3));
     sendController(processor, 101, controllerValueForChoice(processor, chipper::parameters::id::ymChannelAMix, 1));

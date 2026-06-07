@@ -22,6 +22,16 @@ public:
         juce::String name;
         juce::String path;
         std::vector<uint8_t> bytes;
+        bool included = true;
+    };
+
+    struct DmcSampleEntryInfo
+    {
+        juce::String name;
+        juce::String path;
+        int byteCount = 0;
+        bool included = true;
+        bool activeSlot = false;
     };
 
     ChipperAudioProcessor();
@@ -61,6 +71,9 @@ public:
     juce::Result loadNesDmcSampleDirectory(const juce::File& directory);
     juce::String nesDmcSampleBankStatus() const;
     juce::StringArray nesDmcSampleNames() const;
+    std::vector<DmcSampleEntryInfo> nesDmcSampleEntryInfo() const;
+    void setNesDmcSampleIncluded(int index, bool shouldBeIncluded);
+    uint64_t nesDmcSampleRevision() const;
 
 private:
     struct HeldMidiNote

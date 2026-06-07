@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cstdint>
+#include <limits>
 #include <vector>
 
 namespace chipper
@@ -236,6 +237,7 @@ private:
     void updateDmcSampleControls();
     void chooseDmcSampleFile();
     void chooseDmcSampleDirectory();
+    void showDmcSampleBankEditor();
     void handleDmcSampleLoadResult(const juce::Result& result);
     juce::String envelopeDecayReadout(chipper::ChipMode mode, float value) const;
 
@@ -320,6 +322,7 @@ private:
     juce::Slider dmcDirectSlider;
     juce::TextButton dmcSampleFileButton;
     juce::TextButton dmcSampleFolderButton;
+    juce::TextButton dmcSampleBankButton;
     juce::ComboBox dmcSampleSlotBox;
     juce::Slider outputSlider;
     juce::Slider stereoSpreadSlider;
@@ -352,6 +355,7 @@ private:
     std::vector<const chipper::PresetInfo*> displayedPresets;
     bool descriptorTextInitialized = false;
     int displayedDmcSampleCount = -1;
+    uint64_t displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();
     bool suppressMacroTemplateApply = false;
     bool suppressPresetApply = false;
     bool suppressManualChoiceCallbacks = false;
