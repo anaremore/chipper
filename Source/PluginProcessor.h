@@ -34,6 +34,19 @@ public:
         bool activeSlot = false;
     };
 
+    struct DmcSamplePlaybackInfo
+    {
+        juce::String statusLine;
+        juce::String sampleName;
+        int activeSlot = -1;
+        int activeSlotCount = 0;
+        int byteCount = 0;
+        int bitCount = 0;
+        int rateIndex = 15;
+        double bitRateHz = 0.0;
+        double durationMs = 0.0;
+    };
+
     ChipperAudioProcessor();
     ~ChipperAudioProcessor() override = default;
 
@@ -70,6 +83,7 @@ public:
     juce::Result loadNesDmcSampleFile(const juce::File& file);
     juce::Result loadNesDmcSampleDirectory(const juce::File& directory);
     juce::String nesDmcSampleBankStatus() const;
+    DmcSamplePlaybackInfo nesDmcSamplePlaybackInfo() const;
     juce::StringArray nesDmcSampleNames() const;
     std::vector<DmcSampleEntryInfo> nesDmcSampleEntryInfo() const;
     void setNesDmcSampleIncluded(int index, bool shouldBeIncluded);
@@ -89,6 +103,8 @@ private:
     void renderRange(juce::AudioBuffer<float>& buffer, int startSample, int endSample, float outputGain);
     void pushOutputScopeSample(float sample) noexcept;
     void applySelectedDmcSampleToCore();
+    void applyDmcSampleSlotToCore(int requestedSlot);
+    void applyMappedDmcSampleForMidiNote(int midiNote);
     void handleMidiMessage(const juce::MidiMessage& message);
     bool handleMidiController(const juce::MidiMessage& message);
     bool setParameterFromMidiCc(const char* parameterId, int controllerValue);

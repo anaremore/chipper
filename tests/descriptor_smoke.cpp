@@ -236,6 +236,9 @@ int main()
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcRateIndex, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "DMC Rate");
     ok &= expectSpecGroup(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcRateIndex, "DMC");
     ok &= expectSpecHelpContains(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcRateIndex, "$4010", "NES DMC rate help should mention the hardware rate register");
+    ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcPlaybackMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "DMC Playback");
+    ok &= expectSpecGroup(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcPlaybackMode, "DMC");
+    ok &= expectSpecHelpContains(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcPlaybackMode, "MIDI notes", "NES DMC playback mode help should explain note mapping");
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Sweep Shift");
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise Period");
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise Clock");

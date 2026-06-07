@@ -367,6 +367,16 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
           0.0f,
           15.0f,
           15.0f },
+        segmentedSpec(ChipParameterRole::nesDmcPlaybackMode,
+                      "nes.dmcPlaybackMode",
+                      "DMC Playback",
+                      "DMC",
+                      "Chooses whether the DMC lane plays the selected manual slot or maps the checked DMC bank across MIDI notes starting at C1.",
+                      {
+                          choice("Manual", "Use the selected DMC Sample Slot for every note.", 0.0f, 0),
+                          choice("Note Map", "Map checked DMC bank slots across MIDI notes from C1 upward; the NES DMC lane remains monophonic.", 1.0f, 1)
+                      },
+                      ParameterKind::chipRegister),
         envelopeSpec("nes.envelopeDecay", "Envelope Decay", "Maps musical decay to APU envelope period values."),
         segmentedSpec(ChipParameterRole::snNoiseMode,
                       "nes.noiseMode",

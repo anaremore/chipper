@@ -54,7 +54,8 @@ const MidiCcMappingList& midiCcMappings()
         { 115, parameter_ids::sidVoice3PulseWidth, "SID Voice 3 Pulse Width" },
         { 116, parameter_ids::nesDmcDirectLevel, "NES DMC Direct Level" },
         { 117, parameter_ids::nesDmcSampleSlot, "NES DMC Sample Slot" },
-        { 118, parameter_ids::nesDmcRateIndex, "NES DMC Rate Index" }
+        { 118, parameter_ids::nesDmcRateIndex, "NES DMC Rate Index" },
+        { 119, parameter_ids::nesDmcPlaybackMode, "NES DMC Playback Mode" }
     }};
 
     return mappings;
@@ -129,6 +130,7 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::nesDmcDirectLevel: return parameter_ids::nesDmcDirectLevel;
         case ChipParameterRole::nesDmcSampleSlot: return parameter_ids::nesDmcSampleSlot;
         case ChipParameterRole::nesDmcRateIndex: return parameter_ids::nesDmcRateIndex;
+        case ChipParameterRole::nesDmcPlaybackMode: return parameter_ids::nesDmcPlaybackMode;
         case ChipParameterRole::clockHz: return parameter_ids::clockHz;
         case ChipParameterRole::outputDb: return parameter_ids::outputDb;
     }

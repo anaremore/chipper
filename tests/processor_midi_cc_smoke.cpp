@@ -257,6 +257,12 @@ int main()
     sendController(processor, 115, 96);
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3PulseWidth), 96.0f / 127.0f, 0.0001f,
                      "CC115 should control SID Voice 3 pulse width");
+    sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 0));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::chipMode), 0.0f, 0.0001f,
+                     "DMC bank behavior should be exercised in NES mode");
+    setPlainFromHost(processor, chipper::parameters::id::clockHz, 0.0f);
+    processEmptyBlock(processor);
+
     sendController(processor, 116, 100);
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcDirectLevel), 0.787f, 0.0001f,
                      "CC116 should control NES DMC Direct Level");
@@ -266,6 +272,9 @@ int main()
     sendController(processor, 118, controllerValueForChoice(processor, chipper::parameters::id::nesDmcRateIndex, 3));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcRateIndex), 3.0f, 0.0001f,
                      "CC118 should control NES DMC Rate Index");
+    sendController(processor, 119, controllerValueForChoice(processor, chipper::parameters::id::nesDmcPlaybackMode, 1));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 1.0f, 0.0001f,
+                     "CC119 should control NES DMC Playback Mode");
 
     auto dmcDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-dmc-bank-curation-test");
     dmcDir.deleteRecursively();
@@ -284,6 +293,44 @@ int main()
     ok &= expect(activeNames.size() == 32, "DMC active bank should default to 32 checked slots");
     ok &= expect(entryInfo.size() > 32u && ! entryInfo[32].included && ! entryInfo[32].activeSlot,
                  "DMC entries after the first 32 should default unchecked and inactive");
+    auto playbackInfo = processor.nesDmcSamplePlaybackInfo();
+    ok &= expect(playbackInfo.activeSlot == 0, "DMC playback info should report the selected active slot");
+    ok &= expect(playbackInfo.activeSlotCount == 32, "DMC playback info should report active bank count");
+    ok &= expect(playbackInfo.byteCount == 4, "DMC playback info should report selected byte count");
+    ok &= expect(playbackInfo.bitCount == 32, "DMC playback info should report selected bit count");
+    ok &= expect(playbackInfo.rateIndex == 3, "DMC playback info should follow the CC118-selected rate index");
+    ok &= expect(playbackInfo.bitRateHz > 5500.0 && playbackInfo.bitRateHz < 5600.0,
+                 "DMC playback info should estimate bit clock from the selected rate index");
+    ok &= expect(playbackInfo.statusLine.contains("bytes") && playbackInfo.statusLine.contains("ms @ rate 3"),
+                 "DMC status should include bytes, duration, and rate");
+
+    sendController(processor, 118, controllerValueForChoice(processor, chipper::parameters::id::nesDmcRateIndex, 15));
+    playbackInfo = processor.nesDmcSamplePlaybackInfo();
+    ok &= expect(playbackInfo.rateIndex == 15, "DMC playback info should update after rate CC changes");
+    ok &= expect(playbackInfo.durationMs < 1.1 && playbackInfo.durationMs > 0.9,
+                 "DMC playback info should estimate short fixture duration at the fastest rate");
+
+    juce::AudioBuffer<float> dmcMapBuffer(2, 64);
+    juce::MidiBuffer dmcMapMidi;
+    dmcMapMidi.addEvent(juce::MidiMessage::noteOn(1, 36, static_cast<juce::uint8>(100)), 0);
+    processor.processBlock(dmcMapBuffer, dmcMapMidi);
+    playbackInfo = processor.nesDmcSamplePlaybackInfo();
+    ok &= expect(playbackInfo.activeSlot == 0 && playbackInfo.sampleName == "sample-00.dmc",
+                 "DMC Note Map should map C1 to active slot 1");
+
+    dmcMapMidi.clear();
+    dmcMapMidi.addEvent(juce::MidiMessage::noteOn(1, 40, static_cast<juce::uint8>(100)), 0);
+    processor.processBlock(dmcMapBuffer, dmcMapMidi);
+    playbackInfo = processor.nesDmcSamplePlaybackInfo();
+    ok &= expect(playbackInfo.activeSlot == 4 && playbackInfo.sampleName == "sample-04.dmc",
+                 "DMC Note Map should map E1 to active slot 5");
+
+    dmcMapMidi.clear();
+    dmcMapMidi.addEvent(juce::MidiMessage::noteOn(1, 96, static_cast<juce::uint8>(100)), 0);
+    processor.processBlock(dmcMapBuffer, dmcMapMidi);
+    playbackInfo = processor.nesDmcSamplePlaybackInfo();
+    ok &= expect(playbackInfo.activeSlot == 31 && playbackInfo.sampleName == "sample-31.dmc",
+                 "DMC Note Map should clamp high notes to the final active slot");
 
     processor.setNesDmcSampleIncluded(0, false);
     activeNames = processor.nesDmcSampleNames();
@@ -338,6 +385,8 @@ int main()
                      "CC74 NES macro change should reset Pulse 2 Duty to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcDirectLevel), 0.0f, 0.0001f,
                      "CC74 NES Bass macro should keep DMC Direct silent");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 0.0f, 0.0001f,
+                     "CC74 NES macro change should reset DMC playback mode to Manual Slot");
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 5));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcDirectLevel), 0.32f, 0.001f,
                      "CC74 NES Drum macro should apply DMC Direct template level");
