@@ -33,6 +33,12 @@ PresetInfo withDmgWaveLevel(PresetInfo preset, int waveLevel)
     return preset;
 }
 
+PresetInfo withNesDmcDirect(PresetInfo preset, float level)
+{
+    preset.nesDmcDirectLevel = level;
+    return preset;
+}
+
 } // namespace
 
 const std::vector<PresetInfo>& presetCatalog()
@@ -74,7 +80,7 @@ const std::vector<PresetInfo>& presetCatalog()
             -8.0f,
             1789773.0
         },
-        {
+        withNesDmcDirect({
             "nes-noise-snare",
             "NES Drums",
             "NES Noise Snare",
@@ -91,7 +97,7 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             -10.0f,
             1789773.0
-        },
+        }, 0.34f),
         {
             "nes-coin-blip",
             "Arcade UI",
@@ -110,7 +116,7 @@ const std::vector<PresetInfo>& presetCatalog()
             -11.0f,
             1789773.0
         },
-        {
+        withNesDmcDirect({
             "nes-boss-damage",
             "Classic Game SFX",
             "NES Boss Damage",
@@ -127,7 +133,7 @@ const std::vector<PresetInfo>& presetCatalog()
             2,
             -12.0f,
             1789773.0
-        },
+        }, 0.66f),
         {
             "nes-power-up-rise",
             "Classic Game SFX",
@@ -1380,7 +1386,8 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                            preset.sidVoice3Release,
                            preset.sidFilterRouting,
                            preset.controls[0],
-                           preset.controls[0]);
+                           preset.controls[0],
+                           preset.nesDmcDirectLevel);
 }
 
 } // namespace chipper

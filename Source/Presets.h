@@ -50,6 +50,7 @@ struct PresetInfo
     float source3Level = 1.0f;
     float source4Level = 1.0f;
     int dmgWaveLevel = 0;
+    float nesDmcDirectLevel = 0.0f;
 };
 
 const std::vector<PresetInfo>& presetCatalog();

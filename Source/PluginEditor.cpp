@@ -2347,6 +2347,7 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
     setChoiceParameterFromUi(chipper::parameters::id::ymChannelBMix, 0);
     setChoiceParameterFromUi(chipper::parameters::id::ymChannelCMix, 0);
     setChoiceParameterFromUi(chipper::parameters::id::snNoiseMode, templ.snNoiseMode);
+    setParameterValueFromUi(chipper::parameters::id::nesDmcDirectLevel, templ.nesDmcDirectLevel);
 
     const juce::ScopedValueSetter<bool> suppressPreset(suppressPresetApply, true);
     presetBox.setSelectedId(0, juce::dontSendNotification);
@@ -2442,6 +2443,7 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
     setChoiceParameterFromUi(chipper::parameters::id::ymChannelBMix, 0);
     setChoiceParameterFromUi(chipper::parameters::id::ymChannelCMix, 0);
     setChoiceParameterFromUi(chipper::parameters::id::snNoiseMode, preset.snNoiseMode);
+    setParameterValueFromUi(chipper::parameters::id::nesDmcDirectLevel, preset.nesDmcDirectLevel);
     setPlainParameterValueFromUi(chipper::parameters::id::clockHz, 0.0f);
     setPlainParameterValueFromUi(chipper::parameters::id::outputDb, preset.outputDb);
 

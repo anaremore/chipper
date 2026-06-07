@@ -250,7 +250,7 @@ int main()
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3PulseWidth), 96.0f / 127.0f, 0.0001f,
                      "CC115 should control SID Voice 3 pulse width");
     sendController(processor, 116, 100);
-    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcDirectLevel), 100.0f / 127.0f, 0.0001f,
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcDirectLevel), 0.787f, 0.0001f,
                      "CC116 should control NES DMC Direct Level");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 3));
@@ -278,6 +278,11 @@ int main()
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 2));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::pulse2Duty), 0.0f, 0.0001f,
                      "CC74 NES macro change should reset Pulse 2 Duty to Follow");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcDirectLevel), 0.0f, 0.0001f,
+                     "CC74 NES Bass macro should keep DMC Direct silent");
+    sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 5));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcDirectLevel), 0.32f, 0.001f,
+                     "CC74 NES Drum macro should apply DMC Direct template level");
 
     setPlainFromHost(processor, chipper::parameters::id::macroControl1, 0.91f);
     setPlainFromHost(processor, chipper::parameters::id::macroControl2, 0.92f);
@@ -295,6 +300,8 @@ int main()
                      "Host macro-only change should apply NES Coin control 3 template");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::source3Enabled), 0.0f, 0.0001f,
                      "Host macro-only change should apply NES Coin source template");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcDirectLevel), 0.0f, 0.0001f,
+                     "Host macro-only Coin change should reset DMC Direct template level");
 
     setPlainFromHost(processor, chipper::parameters::id::macro, 3.0f);
     setPlainFromHost(processor, chipper::parameters::id::macroControl1, 0.12f);

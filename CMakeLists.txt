@@ -726,7 +726,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_nes_noise_long_assert PROPERTIES DEPENDS chipper_render_nes_noise_long_smoke)
 
     add_test(NAME chipper_render_nes_noise_short_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-noise-short-smoke.json --implemented-contains partial --macro Drum --register-writes 0 --note-events 0 --core-min noiseModeChoice=2 --core-max noiseModeChoice=2 --core-min noiseShortMode=1 --core-max noiseShortMode=1 --core-min noiseRegister=143 --core-max noiseRegister=143 --core-min noisePeriod=15 --core-max noisePeriod=15
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-noise-short-smoke.json --implemented-contains partial --macro Drum --register-writes 0 --note-events 0 --core-min noiseModeChoice=2 --core-max noiseModeChoice=2 --core-min dmcDirectControl=0.32 --core-max dmcDirectControl=0.32 --core-min dmcLevel=41 --core-max dmcLevel=41 --core-min noiseShortMode=1 --core-max noiseShortMode=1 --core-min noiseRegister=143 --core-max noiseRegister=143 --core-min noisePeriod=15 --core-max noisePeriod=15
     )
     set_tests_properties(chipper_render_nes_noise_short_assert PROPERTIES DEPENDS chipper_render_nes_noise_short_smoke)
 
@@ -911,7 +911,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_preset_nes_triangle_bass_assert PROPERTIES DEPENDS chipper_render_preset_nes_triangle_bass_smoke)
 
     add_test(NAME chipper_render_preset_nes_noise_snare_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-noise-snare-smoke.json --implemented-contains partial --preset nes-noise-snare --macro Drum --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.04 --min-zero-crossings 100 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-noise-snare-smoke.json --implemented-contains partial --preset nes-noise-snare --macro Drum --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.04 --min-zero-crossings 100 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1 --core-min dmcDirectControl=0.34 --core-max dmcDirectControl=0.34 --core-min dmcLevel=43 --core-max dmcLevel=43
     )
     set_tests_properties(chipper_render_preset_nes_noise_snare_assert PROPERTIES DEPENDS chipper_render_preset_nes_noise_snare_smoke)
 
@@ -921,7 +921,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_preset_nes_coin_blip_assert PROPERTIES DEPENDS chipper_render_preset_nes_coin_blip_smoke)
 
     add_test(NAME chipper_render_preset_nes_boss_damage_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-boss-damage-smoke.json --implemented-contains partial --preset nes-boss-damage --macro Hit --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.08 --min-zero-crossings 100 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1 --core-min noiseModeChoice=2 --core-max noiseModeChoice=2
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-boss-damage-smoke.json --implemented-contains partial --preset nes-boss-damage --macro Hit --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.08 --min-zero-crossings 100 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1 --core-min noiseModeChoice=2 --core-max noiseModeChoice=2 --core-min dmcDirectControl=0.66 --core-max dmcDirectControl=0.66 --core-min dmcLevel=84 --core-max dmcLevel=84
     )
     set_tests_properties(chipper_render_preset_nes_boss_damage_assert PROPERTIES DEPENDS chipper_render_preset_nes_boss_damage_smoke)
 

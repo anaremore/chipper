@@ -576,7 +576,7 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.sidFilterRouting = preset.sidFilterRouting;
     options.sidVoice2PulseWidth = preset.controls[0];
     options.sidVoice3PulseWidth = preset.controls[0];
-    options.nesDmcDirectLevel = 0.0f;
+    options.nesDmcDirectLevel = preset.nesDmcDirectLevel;
     options.envelopeDecayProvided = true;
     options.sidAttackProvided = true;
     options.sidDecayProvided = true;
@@ -1164,7 +1164,7 @@ void applyMacroTemplateDefaults(Options& options)
     if (! options.sidFilterRoutingProvided)
         options.sidFilterRouting = 0;
     if (! options.nesDmcDirectLevelProvided)
-        options.nesDmcDirectLevel = 0.0f;
+        options.nesDmcDirectLevel = templ.nesDmcDirectLevel;
 }
 
 std::vector<ScheduledEvent> loadEvents(const std::filesystem::path& path)
@@ -1561,7 +1561,8 @@ void writeDescriptorJson(std::ostream& out, chipper::ChipMode mode)
             << macro.ymEnvelopeShape << ", \"snNoiseMode\": "
             << macro.snNoiseMode << ", \"dmgStereoRoute\": "
             << macro.dmgStereoRoute << ", \"stereoSpread\": "
-            << macro.stereoSpread << " }"
+            << macro.stereoSpread << ", \"nesDmcDirectLevel\": "
+            << macro.nesDmcDirectLevel << " }"
             << (i + 1u == descriptor.macros.size() ? "\n" : ",\n");
     }
 
@@ -1724,6 +1725,7 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
             << "      \"dmgStereoRoute\": " << preset.dmgStereoRoute << ",\n"
             << "      \"ymEnvelopeShape\": " << preset.ymEnvelopeShape << ",\n"
             << "      \"snNoiseMode\": " << preset.snNoiseMode << ",\n"
+            << "      \"nesDmcDirectLevel\": " << preset.nesDmcDirectLevel << ",\n"
             << "      \"outputDb\": " << preset.outputDb << ",\n"
             << "      \"clockHz\": " << preset.clockHz << ",\n"
             << "      \"stereoSpread\": " << preset.stereoSpread << "\n"

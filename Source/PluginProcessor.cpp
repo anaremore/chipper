@@ -316,6 +316,7 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
     setPlainParameterValue(chipper::parameters::id::ymChannelBMix, 0.0f);
     setPlainParameterValue(chipper::parameters::id::ymChannelCMix, 0.0f);
     setPlainParameterValue(chipper::parameters::id::snNoiseMode, static_cast<float>(templ.snNoiseMode));
+    setPlainParameterValue(chipper::parameters::id::nesDmcDirectLevel, templ.nesDmcDirectLevel);
 }
 
 void ChipperAudioProcessor::synchronizeMacroTemplateFromParameters()

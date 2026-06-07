@@ -27,7 +27,7 @@ std::vector<MacroTemplate> commonMacros()
 
 std::vector<MacroTemplate> nesMacros()
 {
-    return {
+    auto macros = std::vector<MacroTemplate> {
         { MacroKind::manual, "NES Manual", "Neutral RP2A03 pulse/triangle/noise mapping.", { 0.5f, 0.5f, 0.5f, 0.5f }, { true, true, true, true } },
         { MacroKind::coin, "NES Coin Blip", "Bright pulse pop with short register-style pitch lift.", { 0.15f, 0.85f, 0.10f, 0.80f }, { true, true, false, false }, 0.45f },
         { MacroKind::bass, "NES Triangle Bass", "Triangle-weighted bass body with supporting pulse.", { 0.55f, 0.20f, 0.10f, 0.35f }, { true, false, true, false } },
@@ -39,6 +39,27 @@ std::vector<MacroTemplate> nesMacros()
         { MacroKind::jump, "NES Jump", "Rising pulse blip.", { 0.25f, 0.70f, 0.05f, 0.80f }, { true, false, false, false }, 0.35f },
         { MacroKind::powerUp, "NES Power-Up", "Optimistic rising pulse stack.", { 0.70f, 0.90f, 0.20f, 0.90f }, { true, true, true, false } },
     };
+
+    for (auto& macro : macros)
+    {
+        switch (macro.macro)
+        {
+            case MacroKind::drum:
+                macro.nesDmcDirectLevel = 0.32f;
+                break;
+            case MacroKind::hit:
+                macro.nesDmcDirectLevel = 0.62f;
+                break;
+            case MacroKind::laser:
+                macro.nesDmcDirectLevel = 0.24f;
+                break;
+            default:
+                macro.nesDmcDirectLevel = 0.0f;
+                break;
+        }
+    }
+
+    return macros;
 }
 
 std::vector<MacroTemplate> dmgMacros()

@@ -147,6 +147,7 @@ struct MacroTemplate
     int snNoiseMode = 0;
     int dmgStereoRoute = 0;
     float stereoSpread = 0.0f;
+    float nesDmcDirectLevel = 0.0f;
 };
 
 struct ChipDescriptor
