@@ -106,6 +106,22 @@ std::vector<MacroTemplate> sccMacros()
     };
 }
 
+std::vector<MacroTemplate> namcoWsgMacros()
+{
+    return {
+        { MacroKind::manual, "Namco WSG Manual", "Neutral eight-lane arcade wavetable mapping.", { 0.50f, 0.50f, 0.26f, 0.72f }, { true, true, true, true }, 0.0f, 0 },
+        { MacroKind::coin, "Namco Coin Ping", "Bright arcade coin chirp from compact 4-bit waves.", { 0.16f, 0.78f, 0.20f, 0.78f }, { true, false, false, false }, 0.18f, 1 },
+        { MacroKind::bass, "Namco Wave Bass", "Rounded arcade wavetable bass with a low octave layer.", { 0.28f, 0.22f, 0.24f, 0.84f }, { true, true, false, false }, 0.08f, 2 },
+        { MacroKind::lead, "Namco Arcade Lead", "Forward WSG lead with a 4-bit ramp bite.", { 0.56f, 0.42f, 0.32f, 0.80f }, { true, true, true, false }, 0.10f, 1 },
+        { MacroKind::arp, "Namco Tracker Arp", "Stacked arcade wavetable lanes for fast arps.", { 0.90f, 0.72f, 0.36f, 0.76f }, { true, true, true, true }, 0.08f, 0 },
+        { MacroKind::drum, "Namco Wave Tick", "Short stepped-wave percussion.", { 0.30f, 0.20f, 0.86f, 0.82f }, { false, false, true, true }, 0.66f, 4 },
+        { MacroKind::hit, "Namco Damage Hit", "Dense arcade impact using internal extra lanes.", { 0.46f, 0.34f, 0.80f, 0.86f }, { true, false, true, true }, 0.62f, 4 },
+        { MacroKind::laser, "Namco Sweep Zap", "Stepped arcade laser sweep.", { 0.24f, 0.96f, 0.72f, 0.78f }, { true, true, false, true }, 0.34f, 3 },
+        { MacroKind::jump, "Namco Jump", "Quick rising arcade blip.", { 0.22f, 0.72f, 0.26f, 0.74f }, { true, false, false, false }, 0.16f, 1 },
+        { MacroKind::powerUp, "Namco Power Wave", "Longer multi-lane arcade rise.", { 0.74f, 0.92f, 0.42f, 0.82f }, { true, true, true, true }, 0.14f, 2 }
+    };
+}
+
 std::vector<MacroTemplate> plannedArcadeMacros()
 {
     return {
@@ -889,6 +905,58 @@ std::vector<ChipParameterSpec> sccParameterSpecs()
     };
 }
 
+std::vector<ChipParameterSpec> namcoWsgParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "namcoWsg.channelSpread",
+                   "Channel Spread",
+                   "Channels",
+                   "Sets interval spread across the Namco WSG wavetable lanes."),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "namcoWsg.pitchMotion",
+                   "Pitch",
+                   "Pitch",
+                   "Offsets arcade pitch gestures and lane intervals."),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "namcoWsg.waveSkew",
+                   "Wave Skew",
+                   "Wave",
+                   "Shapes generated 4-bit waveform RAM templates.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "namcoWsg.channelVolume",
+                   "Channel Volume",
+                   "Mixer",
+                   "Maps to simplified 4-bit Namco WSG lane volume registers.",
+                   ParameterKind::chipRegister,
+                   0.72f),
+        sourceSpec(ChipParameterRole::source1Enabled, "namcoWsg.channel1.enabled", "Lane 1", "Enable Namco WSG wavetable lane 1."),
+        sourceSpec(ChipParameterRole::source2Enabled, "namcoWsg.channel2.enabled", "Lane 2", "Enable Namco WSG wavetable lane 2."),
+        sourceSpec(ChipParameterRole::source3Enabled, "namcoWsg.channel3.enabled", "Lane 3", "Enable Namco WSG wavetable lane 3."),
+        sourceSpec(ChipParameterRole::source4Enabled, "namcoWsg.channel4.enabled", "Lane 4", "Enable Namco WSG wavetable lane 4. Lanes 5-8 need a dedicated WSG UI pass."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "namcoWsg.channel1.level", "Lane 1 Level", "Modern trim after Namco WSG lane 1 volume."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "namcoWsg.channel2.level", "Lane 2 Level", "Modern trim after Namco WSG lane 2 volume."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "namcoWsg.channel3.level", "Lane 3 Level", "Modern trim after Namco WSG lane 3 volume."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "namcoWsg.channel4.level", "Lane 4 Level", "Modern trim after Namco WSG lane 4 volume."),
+        stereoSpreadSpec("namcoWsg.stereoSpread", "Modern stereo convenience that spreads audible WSG lanes; zero preserves centered output."),
+        envelopeSpec("namcoWsg.decay", "Decay", "Applies a musical decay helper while native volume/enables remain visible in debug state."),
+        segmentedSpec(ChipParameterRole::waveShape,
+                      "namcoWsg.waveShape",
+                      "Wave Shape",
+                      "Wave",
+                      "Selects the generated 32-sample 4-bit waveform RAM template. Follow resolves from the selected template.",
+                      {
+                          choice("Follow", "Use the selected Namco WSG template waveform.", 0.0f, 0),
+                          choice("Ramp", "Rising 4-bit wave RAM.", 0.25f, 1),
+                          choice("Tri", "Triangle-style 32-sample wave RAM.", 0.5f, 2),
+                          choice("Pulse", "Pulse-style wave RAM using Wave Skew as width.", 0.75f, 3),
+                          choice("Steps", "Stepped arcade wave RAM texture.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister)
+    };
+}
+
 std::vector<ChipParameterSpec> sidParameterSpecs()
 {
     return {
@@ -1488,24 +1556,33 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::namcoWsg,
             "Namco arcade WSG",
-            "Planned arcade wavetable mode. No Namco WSG core is integrated yet.",
+            "Partial clean-room Namco arcade WSG wavetable model with eight internal lanes.",
             {
-                { "voices", "Voice Count", "Sources", "Planned WSG voice stack." },
-                { "wave", "Wave Step", "Tone", "Planned waveform step control." },
-                { "bright", "Brightness", "Tone", "Planned arcade brightness control." },
-                { "grit", "Arcade Grit", "Output", "Planned cabinet/output helper." },
+                { "wave", "Wave RAM", "Wave", "32-sample 4-bit wavetable lanes." },
+                { "vol", "Volume", "Mixer", "Simplified 4-bit lane volumes." },
+                { "enable", "Lane Enables", "Channels", "Enable-mask register path." },
+                { "arcade", "Arcade Stack", "Motion", "Internal multi-lane WSG templates." },
             },
-            sampleModules("Namco WSG strategy planned.", "WSG Voices", "Wave Shape"),
-            plannedSampleMacros("Namco WSG", "waveform"),
-            false,
-            false,
-            {},
-            plannedDisclosure(
-                "build a clean-room arcade wavetable model and audit any MAME/Furnace-derived references before reuse.",
-                "Namco WSG UI should expose voice count, waveform shape/step, tuning, level, and arcade SFX templates.",
+            {
+                makeModule("profile", "Profile", "Namco WSG clean-room groundwork.", { "Arcade wavetable family", "96 kHz default", "Hybrid default", "Authentic still partial" }),
+                makeModule("sources", "WSG Lanes", "Eight internal wavetable lanes.", { "Lanes 1-4 exposed", "Lanes 5-8 internal", "4-bit wave RAM", "Enable mask" }),
+                makeModule("wave", "Wave / Mixer", "Wave RAM plus frequency and volume behavior.", { "Wave shape", "Wave skew", "4-bit volume", "Pitch periods" }),
+                makeModule("motion", "Motion", "Arcade SFX gestures mapped to lane frequency registers.", { "Coin ping", "Sweep zap", "Tracker arp", "Wave tick" }),
+                makeModule("output", "Output", "Centered arcade wavetable output with optional modern spread.", { "Output gain", "Stereo spread", "Verified partial", "Known gaps" })
+            },
+            namcoWsgMacros(),
+            true,
+            true,
+            namcoWsgParameterSpecs(),
+            verifiedPartial(
                 {
-                    "No Namco WSG core is integrated.",
-                    "Wavetable memory, voice timing, and arcade output validation are not implemented."
+                    "Eight simplified wavetable lanes, 32-sample 4-bit wave RAM templates, frequency, volume, and enable register paths are modeled.",
+                    "The existing UI exposes the first four generic source controls; lanes 5-8 can participate internally in stack templates until a dedicated WSG layout lands.",
+                    "No third-party Namco WSG source code is vendored in this clean-room partial model."
+                },
+                {
+                    "Exact Namco custom-chip variants, voice count differences, waveform addressing, DAC/output curve, and timing edge cases are not implemented.",
+                    "Hardware validation and comparisons against audited reference emulators remain required."
                 })
         },
         {

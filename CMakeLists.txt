@@ -584,6 +584,15 @@ add_test(NAME chipper_render_scc_steps_smoke
 add_test(NAME chipper_render_scc_chip_poly_smoke
     COMMAND chipper_render --chip scc --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 2 --clock 3579545 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/scc-chip-poly-events.txt --out scc-chip-poly-smoke.wav --debug scc-chip-poly-smoke.json
 )
+add_test(NAME chipper_render_namco_wsg_smoke
+    COMMAND chipper_render --chip namco --accuracy authentic --macro lead --wave-shape 1 --clock 96000 --rate 48000 --seconds 0.05 --note 64 --out namco-wsg-smoke.wav --debug namco-wsg-smoke.json
+)
+add_test(NAME chipper_render_namco_wsg_steps_smoke
+    COMMAND chipper_render --chip namco --accuracy authentic --macro drum --wave-shape noise --source1 0 --source2 0 --source3 1 --source4 1 --clock 96000 --rate 48000 --seconds 0.05 --note 48 --out namco-wsg-steps-smoke.wav --debug namco-wsg-steps-smoke.json
+)
+add_test(NAME chipper_render_namco_wsg_chip_poly_smoke
+    COMMAND chipper_render --chip namco --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 2 --clock 96000 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/namco-wsg-chip-poly-events.txt --out namco-wsg-chip-poly-smoke.wav --debug namco-wsg-chip-poly-smoke.json
+)
 add_test(NAME chipper_render_list_descriptors_smoke
     COMMAND chipper_render --list-descriptors --debug chipper-descriptors.json
 )
@@ -635,6 +644,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip scc --implemented scc=1 --verification-badge "scc=Verified partial" --verification-cycle scc=0 --verification-hardware scc=0 --param-kind scc:waveShape=chipRegister --param-surface scc:waveShape=segmentedChoice --param-choices scc:waveShape=5 --param-midi-cc scc:waveShape=89 --param-kind scc:macroControl3=chipRegister --param-surface scc:macroControl3=slider --param-midi-cc scc:macroControl3=78 --param-kind scc:macroControl4=chipRegister --param-surface scc:macroControl4=slider --param-midi-cc scc:macroControl4=79 --param-surface scc:stereoSpread=slider --param-midi-cc scc:stereoSpread=93 --macro-label "scc:Lead=SCC Arcade Lead" --macro-source scc:Drum=0011 --preset scc-arcade-lead --preset scc-wave-tick
     )
     set_tests_properties(chipper_render_list_scc_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
+
+    add_test(NAME chipper_render_list_namco_wsg_descriptor_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip namcoWsg --implemented namcoWsg=1 --verification-badge "namcoWsg=Verified partial" --verification-cycle namcoWsg=0 --verification-hardware namcoWsg=0 --param-kind namcoWsg:waveShape=chipRegister --param-surface namcoWsg:waveShape=segmentedChoice --param-choices namcoWsg:waveShape=5 --param-midi-cc namcoWsg:waveShape=89 --param-kind namcoWsg:macroControl3=chipRegister --param-surface namcoWsg:macroControl3=slider --param-midi-cc namcoWsg:macroControl3=78 --param-kind namcoWsg:macroControl4=chipRegister --param-surface namcoWsg:macroControl4=slider --param-midi-cc namcoWsg:macroControl4=79 --param-surface namcoWsg:stereoSpread=slider --param-midi-cc namcoWsg:stereoSpread=93 --macro-label "namcoWsg:Lead=Namco Arcade Lead" --macro-source namcoWsg:Drum=0011 --preset namco-arcade-lead --preset namco-wave-tick
+    )
+    set_tests_properties(chipper_render_list_namco_wsg_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_ym_channel_mix_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip ym2149 --param-kind ym2149:ymChannelAMix=chipRegister --param-surface ym2149:ymChannelAMix=menu --param-choices ym2149:ymChannelAMix=5 --param-midi-cc ym2149:ymChannelAMix=101 --param-kind ym2149:ymChannelBMix=chipRegister --param-surface ym2149:ymChannelBMix=menu --param-choices ym2149:ymChannelBMix=5 --param-midi-cc ym2149:ymChannelBMix=102 --param-kind ym2149:ymChannelCMix=chipRegister --param-surface ym2149:ymChannelCMix=menu --param-choices ym2149:ymChannelCMix=5 --param-midi-cc ym2149:ymChannelCMix=103
@@ -1055,6 +1069,21 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/scc-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 4 --min-peak 0.05 --core-min activeChannels=4 --core-max activeChannels=4 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min internalChannelCount=5 --core-max internalChannelCount=5 --core-min keyOnMask=15 --core-max keyOnMask=15
     )
     set_tests_properties(chipper_render_scc_chip_poly_assert PROPERTIES DEPENDS chipper_render_scc_chip_poly_smoke)
+
+    add_test(NAME chipper_render_namco_wsg_json_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/namco-wsg-smoke.json --implemented-contains partial --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.05 --min-rms 0.02 --register-writes 0 --note-events 0 --core-min internalChannelCount=8 --core-max internalChannelCount=8 --core-min uiExposesFirstFourChannels=1 --core-max uiExposesFirstFourChannels=1 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min period0=8 --core-max period0=10 --core-min enableMask=0 --core-max enableMask=0 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Wave Shape" --descriptor-param-choices waveShape=5
+    )
+    set_tests_properties(chipper_render_namco_wsg_json_assert PROPERTIES DEPENDS chipper_render_namco_wsg_smoke)
+
+    add_test(NAME chipper_render_namco_wsg_steps_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/namco-wsg-steps-smoke.json --implemented-contains partial --macro Drum --min-peak 0.05 --register-writes 0 --note-events 0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min waveShapeChoice=4 --core-max waveShapeChoice=4 --core-min internalChannelCount=8 --core-max internalChannelCount=8 --core-min enableMask=0 --core-max enableMask=0
+    )
+    set_tests_properties(chipper_render_namco_wsg_steps_assert PROPERTIES DEPENDS chipper_render_namco_wsg_steps_smoke)
+
+    add_test(NAME chipper_render_namco_wsg_chip_poly_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/namco-wsg-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 4 --min-peak 0.05 --core-min activeChannels=4 --core-max activeChannels=4 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min internalChannelCount=8 --core-max internalChannelCount=8 --core-min enableMask=15 --core-max enableMask=15
+    )
+    set_tests_properties(chipper_render_namco_wsg_chip_poly_assert PROPERTIES DEPENDS chipper_render_namco_wsg_chip_poly_smoke)
 
     add_test(NAME chipper_render_preset_nes_hero_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-hero-smoke.json --implemented-contains partial --preset nes-hero-pulse --macro Lead --play-mode "Big Mono" --output-db -9 --register-writes 0 --note-events 0 --min-peak 0.1 --core-min pulseDuty1=2 --core-max pulseDuty1=2 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0
