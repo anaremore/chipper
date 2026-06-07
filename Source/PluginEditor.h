@@ -255,6 +255,7 @@ private:
     std::array<ChipEnvelopePreview, sidAdsrVoiceCount> sidEnvelopePreviews;
     std::array<juce::Label, sidAdsrFieldCount> sidAdsrHeaderLabels;
     std::array<juce::Label, sidAdsrOverrideCount> sidAdsrLabels;
+    std::array<juce::Label, sidAdsrOverrideCount> sidAdsrValueLabels;
     std::array<juce::ComboBox, sidAdsrOverrideCount> sidAdsrBoxes;
     std::array<juce::Slider, sidAdsrOverrideCount> sidAdsrSliders;
     juce::Label waveShapeLabel;

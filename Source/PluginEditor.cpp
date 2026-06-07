@@ -846,6 +846,14 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         label.setVisible(false);
         addAndMakeVisible(label);
 
+        auto& valueLabel = sidAdsrValueLabels[i];
+        valueLabel.setJustificationType(juce::Justification::centred);
+        valueLabel.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+        valueLabel.setFont(juce::FontOptions(9.5f, juce::Font::bold));
+        valueLabel.setMinimumHorizontalScale(0.55f);
+        valueLabel.setVisible(false);
+        addAndMakeVisible(valueLabel);
+
         auto& box = sidAdsrBoxes[i];
         box.addItemList(chipper::parameters::sidAdsrNibbleChoices(), 1);
         box.setJustificationType(juce::Justification::centred);
@@ -864,7 +872,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
         auto& slider = sidAdsrSliders[i];
         slider.setSliderStyle(juce::Slider::LinearVertical);
-        slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 50, 16);
+        slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
         slider.setRange(0.0, static_cast<double>(sidAdsrChoiceCount - 1u), 1.0);
         slider.setColour(juce::Slider::trackColourId, juce::Colour(0xfff7d85a));
         slider.setColour(juce::Slider::thumbColourId, juce::Colour(0xff56c7d8));
@@ -1891,6 +1899,7 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
                 sliderRow.removeFromLeft(fieldGap);
 
             sidAdsrLabels[index].setBounds(cell.removeFromTop(13));
+            sidAdsrValueLabels[index].setBounds(cell.removeFromBottom(15));
             sidAdsrSliders[index].setBounds(cell.reduced(0, 1));
             sidAdsrBoxes[index].setBounds({});
         }
@@ -3415,6 +3424,8 @@ void ChipperAudioProcessorEditor::setSidAdsrControlsVisible(bool shouldBeVisible
         label.setVisible(false);
     for (auto& label : sidAdsrLabels)
         label.setVisible(shouldBeVisible);
+    for (auto& label : sidAdsrValueLabels)
+        label.setVisible(shouldBeVisible);
     for (auto& box : sidAdsrBoxes)
         box.setVisible(false);
     for (auto& slider : sidAdsrSliders)
@@ -3705,12 +3716,15 @@ void ChipperAudioProcessorEditor::updateSidAdsrControls(bool shouldBeVisible)
     for (auto& label : sidAdsrHeaderLabels)
         label.setVisible(false);
 
+    std::array<std::array<int, sidAdsrFieldCount>, sidAdsrVoiceCount> resolvedNibbles {};
+
     for (size_t voice = 0; voice < sidAdsrVoiceCount; ++voice)
     {
         const auto attack = chipper::sidAttackNibbleForVoice(patch, voice);
         const auto decay = chipper::sidDecayNibbleForVoice(patch, voice);
         const auto sustain = chipper::sidSustainNibbleForVoice(patch, voice);
         const auto release = chipper::sidReleaseNibbleForVoice(patch, voice);
+        resolvedNibbles[voice] = { attack, decay, sustain, release };
         sidEnvelopeVoiceLabels[voice].setVisible(shouldBeVisible);
         sidEnvelopePreviews[voice].setVisible(shouldBeVisible);
         sidEnvelopePreviews[voice].setSidAdsr(attack, decay, sustain, release);
@@ -3731,11 +3745,22 @@ void ChipperAudioProcessorEditor::updateSidAdsrControls(bool shouldBeVisible)
     {
         const auto selected = static_cast<int>(std::round(parameterValue(sidAdsrParameterId(i))));
         const auto clamped = std::clamp(selected, 0, static_cast<int>(sidAdsrChoiceCount - 1u));
-        const auto nibbleText = clamped == 0 ? juce::String("Follow") : juce::String(clamped - 1);
+        const auto voice = i / sidAdsrFieldCount;
+        const auto field = i % sidAdsrFieldCount;
+        const auto resolvedNibble = resolvedNibbles[voice][field];
+        const auto nibbleText = clamped == 0 ? juce::String("Follow -> ") + juce::String(resolvedNibble)
+                                             : juce::String(clamped - 1);
         sidAdsrLabels[i].setVisible(shouldBeVisible);
         sidAdsrLabels[i].setTooltip(withMidiCcForRole(juce::String("SID ") + sidAdsrFieldLabel(i % sidAdsrFieldCount)
                                                           + " override: " + nibbleText,
                                                       sidAdsrRole(i)));
+        sidAdsrValueLabels[i].setVisible(shouldBeVisible);
+        sidAdsrValueLabels[i].setText(clamped == 0 ? juce::String("F->") + juce::String(resolvedNibble)
+                                                   : juce::String(clamped - 1),
+                                      juce::dontSendNotification);
+        sidAdsrValueLabels[i].setTooltip(withMidiCcForRole(juce::String("SID ") + sidAdsrFieldLabel(i % sidAdsrFieldCount)
+                                                               + " override: " + nibbleText,
+                                                           sidAdsrRole(i)));
         sidAdsrBoxes[i].setVisible(false);
         sidAdsrBoxes[i].setSelectedItemIndex(std::clamp(selected, 0, static_cast<int>(sidAdsrChoiceCount - 1u)), juce::dontSendNotification);
         sidAdsrSliders[i].setVisible(shouldBeVisible);
