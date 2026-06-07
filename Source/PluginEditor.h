@@ -51,13 +51,23 @@ public:
     ChipEnvelopePreview() = default;
 
     void setSidAdsr(uint8_t attack, uint8_t decay, uint8_t sustain, uint8_t release);
+    void setYmEnvelope(uint8_t shapeCode, bool envelopeEnabled);
     void paint(juce::Graphics& g) override;
 
 private:
+    enum class Mode
+    {
+        sidAdsr,
+        ymEnvelope
+    };
+
+    Mode mode = Mode::sidAdsr;
     uint8_t attackNibble = 0;
     uint8_t decayNibble = 0;
     uint8_t sustainNibble = 0;
     uint8_t releaseNibble = 0;
+    uint8_t ymShapeCode = 0x09u;
+    bool ymEnabled = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipEnvelopePreview)
 };
@@ -228,6 +238,7 @@ private:
     void updateDmgWaveLevelButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateDmgStereoRouteButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateYmEnvelopeShapeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
+    void updateYmEnvelopePreview(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateSidFilterRoutingControl(bool shouldBeVisible);
     void updateYmChannelMixControls(bool shouldBeVisible);
     void updateSnNoiseModeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
@@ -263,6 +274,7 @@ private:
     juce::Label envelopeDecayValueLabel;
     std::array<juce::Label, sidAdsrVoiceCount> sidEnvelopeVoiceLabels;
     std::array<ChipEnvelopePreview, sidAdsrVoiceCount> sidEnvelopePreviews;
+    ChipEnvelopePreview ymEnvelopePreview;
     std::array<juce::Label, sidAdsrFieldCount> sidAdsrHeaderLabels;
     std::array<juce::Label, sidAdsrOverrideCount> sidAdsrLabels;
     std::array<juce::Label, sidAdsrOverrideCount> sidAdsrValueLabels;

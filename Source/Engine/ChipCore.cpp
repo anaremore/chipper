@@ -3219,20 +3219,7 @@ private:
         if (! patchEnvelopeEnabled())
             return patch.macro == MacroKind::powerUp ? 0x0au : 0x09u;
 
-        const auto shapeChoice = std::clamp(patch.ymEnvelopeShape, 0, 20);
-        if (shapeChoice >= 5)
-            return static_cast<uint8_t>(shapeChoice - 5);
-
-        switch (shapeChoice)
-        {
-            case 1: return 0x09u; // Fall, hold low.
-            case 2: return 0x0du; // Rise, hold high.
-            case 3: return 0x08u; // Repeating saw down.
-            case 4: return 0x0eu; // Repeating triangle.
-            case 0:
-            default:
-                return 0x09u;
-        }
+        return ym2149EnvelopeShapeCodeForChoice(patch.ymEnvelopeShape);
     }
 
     void writeYmVolumeRegister(uint16_t reg, unsigned volume)

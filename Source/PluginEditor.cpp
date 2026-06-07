@@ -777,12 +777,15 @@ void ChipWaveformPreview::paint(juce::Graphics& g)
 
 void ChipEnvelopePreview::setSidAdsr(uint8_t attack, uint8_t decay, uint8_t sustain, uint8_t release)
 {
+    const auto previousMode = mode;
+    mode = Mode::sidAdsr;
     attack &= 0x0fu;
     decay &= 0x0fu;
     sustain &= 0x0fu;
     release &= 0x0fu;
 
-    if (attackNibble == attack
+    if (previousMode == mode
+        && attackNibble == attack
         && decayNibble == decay
         && sustainNibble == sustain
         && releaseNibble == release)
@@ -792,6 +795,20 @@ void ChipEnvelopePreview::setSidAdsr(uint8_t attack, uint8_t decay, uint8_t sust
     decayNibble = decay;
     sustainNibble = sustain;
     releaseNibble = release;
+    repaint();
+}
+
+void ChipEnvelopePreview::setYmEnvelope(uint8_t shapeCode, bool envelopeEnabled)
+{
+    const auto previousMode = mode;
+    mode = Mode::ymEnvelope;
+    shapeCode &= 0x0fu;
+
+    if (previousMode == mode && ymShapeCode == shapeCode && ymEnabled == envelopeEnabled)
+        return;
+
+    ymShapeCode = shapeCode;
+    ymEnabled = envelopeEnabled;
     repaint();
 }
 
@@ -813,6 +830,80 @@ void ChipEnvelopePreview::paint(juce::Graphics& g)
     const auto bottom = graph.getBottom();
     const auto width = std::max(1.0f, graph.getWidth());
     const auto height = std::max(1.0f, graph.getHeight());
+
+    if (mode == Mode::ymEnvelope)
+    {
+        const auto highY = top;
+        const auto lowY = bottom;
+        const auto midY = graph.getCentreY();
+
+        g.setColour(juce::Colour(0xff243139).withAlpha(0.72f));
+        g.drawHorizontalLine(static_cast<int>(std::round(midY)), left, right);
+        for (int i = 1; i < 4; ++i)
+        {
+            const auto x = left + (width * static_cast<float>(i) / 4.0f);
+            g.drawVerticalLine(static_cast<int>(std::round(x)), top, bottom);
+        }
+
+        juce::Path path;
+        const auto segment = width / 4.0f;
+
+        if (! ymEnabled)
+        {
+            path.startNewSubPath(left, midY);
+            path.lineTo(right, midY);
+        }
+        else
+        {
+            const auto cont = (ymShapeCode & 0x08u) != 0u;
+            const auto attack = (ymShapeCode & 0x04u) != 0u;
+            const auto alternate = (ymShapeCode & 0x02u) != 0u;
+            const auto hold = (ymShapeCode & 0x01u) != 0u;
+            auto rising = attack;
+            path.startNewSubPath(left, rising ? lowY : highY);
+
+            if (! cont)
+            {
+                path.lineTo(left + segment, rising ? highY : lowY);
+                path.lineTo(right, lowY);
+            }
+            else if (hold)
+            {
+                path.lineTo(left + segment, rising ? highY : lowY);
+                const auto heldHigh = attack == alternate;
+                path.lineTo(right, heldHigh ? highY : lowY);
+            }
+            else
+            {
+                auto x = left;
+                for (int i = 0; i < 4; ++i)
+                {
+                    path.lineTo(x + segment, rising ? highY : lowY);
+                    x += segment;
+                    if (alternate)
+                        rising = ! rising;
+                    else
+                    {
+                        path.lineTo(x, rising ? lowY : highY);
+                    }
+                }
+            }
+        }
+
+        g.setColour(ymEnabled ? juce::Colour(0xff56c7d8).withAlpha(0.13f)
+                              : juce::Colour(0xff72818a).withAlpha(0.10f));
+        juce::Path fill;
+        fill.startNewSubPath(left, bottom);
+        fill.addPath(path);
+        fill.lineTo(right, bottom);
+        fill.closeSubPath();
+        g.fillPath(fill);
+
+        g.setColour(ymEnabled ? juce::Colour(0xff56c7d8) : juce::Colour(0xff72818a));
+        g.strokePath(path, juce::PathStrokeType(1.5f));
+        return;
+    }
+
     const auto sustainY = bottom - ((static_cast<float>(sustainNibble) / 15.0f) * height);
 
     const auto stageWeight = [](double seconds)
@@ -1122,6 +1213,10 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         preview.setVisible(false);
         addAndMakeVisible(preview);
     }
+
+    ymEnvelopePreview.setTooltip("YM/AY hardware envelope shape preview. It follows register 13 when the envelope shape is enabled.");
+    ymEnvelopePreview.setVisible(false);
+    addAndMakeVisible(ymEnvelopePreview);
 
     static constexpr std::array<const char*, sidAdsrFieldCount> sidAdsrHeaders { "Atk", "Dec", "Sus", "Rel" };
     static constexpr std::array<const char*, sidAdsrFieldCount> sidAdsrHeaderTooltips {
@@ -2062,9 +2157,22 @@ void ChipperAudioProcessorEditor::resized()
     auto envelopeDecayPanel = envelopePanel;
     envelopeDecayPanel.removeFromBottom(6);
     if (displayedMode == chipper::ChipMode::sid)
+    {
+        ymEnvelopePreview.setBounds({});
         placeSidAdsrControls(envelopeDecayPanel);
+    }
+    else if (displayedMode == chipper::ChipMode::ym2149)
+    {
+        auto speedArea = envelopeDecayPanel.removeFromTop(std::min(56, envelopeDecayPanel.getHeight()));
+        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, speedArea);
+        envelopeDecayPanel.removeFromTop(6);
+        ymEnvelopePreview.setBounds(envelopeDecayPanel.reduced(0, 1));
+    }
     else
+    {
         placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
+        ymEnvelopePreview.setBounds({});
+    }
 
     auto outputPanel = moduleBounds[5].reduced(12, 9);
     outputPanel.removeFromTop(20);
@@ -3801,6 +3909,7 @@ void ChipperAudioProcessorEditor::setEnvelopeDecayControlVisible(chipper::ChipMo
 {
     const auto active = shouldBeVisible && usesEnvelopeDecayControl(mode);
     setSidAdsrControlsVisible(active && mode == chipper::ChipMode::sid);
+    ymEnvelopePreview.setVisible(active && mode == chipper::ChipMode::ym2149);
     envelopeDecayLabel.setVisible(active);
     envelopeDecaySlider.setVisible(active);
     envelopeDecayValueLabel.setVisible(active);
@@ -3812,7 +3921,25 @@ void ChipperAudioProcessorEditor::setEnvelopeDecayControlVisible(chipper::ChipMo
     envelopeDecayValueLabel.setAlpha(active ? 1.0f : 0.55f);
 
     if (active)
+    {
         updateEnvelopeDecayReadout(mode);
+        if (mode == chipper::ChipMode::ym2149)
+        {
+            const auto patch = currentUiPatch(
+                mode,
+                parameterValue(chipper::parameters::id::macroControl1),
+                parameterValue(chipper::parameters::id::macroControl2),
+                parameterValue(chipper::parameters::id::macroControl3),
+                parameterValue(chipper::parameters::id::macroControl4),
+                static_cast<int>(std::round(parameterValue(chipper::parameters::id::waveShape))),
+                static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgWaveLevel))),
+                static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgStereoRoute))),
+                static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
+                static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
+                parameterValue(chipper::parameters::id::stereoSpread));
+            updateYmEnvelopePreview(mode, patch, true);
+        }
+    }
 }
 
 void ChipperAudioProcessorEditor::setSidAdsrControlsVisible(bool shouldBeVisible)
@@ -4421,6 +4548,7 @@ void ChipperAudioProcessorEditor::updateYmEnvelopeShapeButtons(chipper::ChipMode
                                               ? sidFilterModeReadout(patch)
                                               : ymEnvelopeShapeReadout(static_cast<int>(selected)),
                                           juce::dontSendNotification);
+        updateYmEnvelopePreview(mode, patch, shouldBeVisible);
         return;
     }
 
@@ -4440,6 +4568,28 @@ void ChipperAudioProcessorEditor::updateYmEnvelopeShapeButtons(chipper::ChipMode
                                           ? sidFilterModeReadout(patch)
                                           : ymEnvelopeShapeReadout(static_cast<int>(selected)),
                                       juce::dontSendNotification);
+
+    updateYmEnvelopePreview(mode, patch, shouldBeVisible);
+}
+
+void ChipperAudioProcessorEditor::updateYmEnvelopePreview(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible)
+{
+    const auto active = shouldBeVisible
+        && mode == chipper::ChipMode::ym2149
+        && chipper::descriptorFor(mode).implemented;
+    ymEnvelopePreview.setVisible(active);
+    if (! active)
+        return;
+
+    const auto envelopeEnabled = patch.ymEnvelopeShape > 0;
+    const auto shapeCode = chipper::ym2149EnvelopeShapeCodeForChoice(patch.ymEnvelopeShape);
+    ymEnvelopePreview.setYmEnvelope(shapeCode, envelopeEnabled);
+    ymEnvelopePreview.setTooltip(withMidiCcForRole(juce::String("YM/AY envelope preview: ")
+                                                       + ymEnvelopeShapeReadout(patch.ymEnvelopeShape)
+                                                       + "\nRegister 13 shape code 0x" + byteHex(shapeCode)
+                                                       + (envelopeEnabled ? "\nEnvelope volume bit enabled on active channels."
+                                                                          : "\nFixed-volume mode; envelope bit is off."),
+                                                   chipper::ChipParameterRole::ymEnvelopeShape));
 }
 
 void ChipperAudioProcessorEditor::updateSidFilterRoutingControl(bool shouldBeVisible)

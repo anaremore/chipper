@@ -324,6 +324,11 @@ int main()
         ok &= expect(! spec->choices.empty() && spec->choices.front().label == "Fixed", "YM envelope shape should keep Fixed as the inherited choice");
         ok &= expect(spec->choices.size() > 20u && spec->choices[20].label == "0x0F", "YM envelope shape should expose register code 0x0F");
     }
+    ok &= expect(chipper::ym2149EnvelopeShapeCodeForChoice(1) == 0x09u, "YM Fall shortcut should map to shape code 0x09");
+    ok &= expect(chipper::ym2149EnvelopeShapeCodeForChoice(2) == 0x0du, "YM Rise shortcut should map to shape code 0x0D");
+    ok &= expect(chipper::ym2149EnvelopeShapeCodeForChoice(3) == 0x08u, "YM Saw shortcut should map to shape code 0x08");
+    ok &= expect(chipper::ym2149EnvelopeShapeCodeForChoice(4) == 0x0eu, "YM Tri shortcut should map to shape code 0x0E");
+    ok &= expect(chipper::ym2149EnvelopeShapeCodeForChoice(20) == 0x0fu, "YM exact 0x0F choice should map to shape code 0x0F");
     ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::stereoSpread, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Stereo Spread");
     ok &= expectSpec(chipper::ChipMode::sn76489, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Tone Stack");
     ok &= expectSpec(chipper::ChipMode::sn76489, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise Bias");
