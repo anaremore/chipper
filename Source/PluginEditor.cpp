@@ -3331,12 +3331,13 @@ void ChipperAudioProcessorEditor::setDmgStereoRouteSegmentVisible(chipper::ChipM
 void ChipperAudioProcessorEditor::setYmEnvelopeShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
     const auto active = shouldBeVisible && usesYmEnvelopeShapeSegment(mode);
-    const auto usesSidDropdown = active && mode == chipper::ChipMode::sid;
+    const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::ymEnvelopeShape);
+    const auto usesMenu = active && spec != nullptr && spec->surface == chipper::ControlSurface::menu;
     ymEnvelopeShapeLabel.setVisible(active);
     ymEnvelopeShapeValueLabel.setVisible(active);
-    sidFilterModeBox.setVisible(usesSidDropdown);
+    sidFilterModeBox.setVisible(usesMenu);
     for (auto& button : ymEnvelopeShapeButtons)
-        button.setVisible(active && ! usesSidDropdown);
+        button.setVisible(active && ! usesMenu);
 
     if (active)
     {
