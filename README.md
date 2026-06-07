@@ -45,27 +45,31 @@ The built plugin bundle is expected at:
 build\Chipper_artefacts\Release\VST3\Chipper.vst3
 ```
 
-Install to the common Windows VST3 folder:
+Install the current local development build:
 
 ```powershell
-.\scripts\install-vst3.ps1
+.\install-vst3.ps1
 ```
 
-The installer removes the previous `Chipper.vst3` bundle before copying the new build, which avoids stale mixed bundles when a host has cached an older plugin. Installing to `C:\Program Files\Common Files\VST3` requires an elevated shell; non-elevated global installs fail before deleting the old bundle.
+The root installer defaults to `-BuildRoot build-codex -Scope User`, which copies the latest Codex-built artifact to `%LOCALAPPDATA%\Programs\Common\VST3` without a UAC prompt. It removes the previous `Chipper.vst3` bundle before copying the new build, which avoids stale mixed bundles when a host has cached an older plugin.
 
-For rapid development without a UAC prompt, install to the per-user VST3 folder:
+If Ableton or another host still has Chipper loaded, the root installer fails instead of writing a fallback copy somewhere your host may not scan. Close the host and rerun the command. To intentionally allow a fallback folder for manual scanning, pass `-AllowFallback`.
+
+For an explicit build folder, pass `-BuildRoot`:
 
 ```powershell
-.\scripts\install-vst3.ps1 -Scope User
+.\install-vst3.ps1 -BuildRoot build
 ```
 
-This copies to `%LOCALAPPDATA%\Programs\Common\VST3`, which is the user-level VST3 location. User-scope installs also retry replacement after repairing the current user's access to a stale `Chipper.vst3` bundle, which keeps rapid build/install loops out of UAC when the host has been closed. You can still pass `-Destination` for a custom host scan folder.
+User-scope installs also retry replacement after repairing the current user's access to a stale `Chipper.vst3` bundle, which keeps rapid build/install loops out of UAC when the host has been closed. You can still pass `-Destination` for a custom host scan folder.
 
-If you build in a non-default CMake folder, pass it with `-BuildRoot`, for example:
+Install to the common Windows VST3 folder only from an elevated shell:
 
 ```powershell
-.\scripts\install-vst3.ps1 -Scope User -BuildRoot build-codex
+.\install-vst3.ps1 -Scope Global
 ```
+
+Global installs target `C:\Program Files\Common Files\VST3`; non-elevated global installs fail before deleting the old bundle. The lower-level `.\scripts\install-vst3.ps1` remains available and defaults to `-BuildRoot build -Scope Global` for release-style workflows.
 
 ## MIDI CC Control
 

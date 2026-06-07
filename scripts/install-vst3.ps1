@@ -4,7 +4,8 @@ param(
     [ValidateSet("Global", "User")]
     [string] $Scope = "Global",
     [string] $Destination,
-    [string] $FallbackDestination
+    [string] $FallbackDestination,
+    [switch] $FailOnFallback
 )
 
 $ErrorActionPreference = "Stop"
@@ -46,6 +47,10 @@ function Copy-ChipperBundleToFallback {
     param(
         [string] $Reason
     )
+
+    if ($FailOnFallback) {
+        throw "$Reason No fallback install was written because -FailOnFallback was set."
+    }
 
     $fallbackRoot = New-ChipperFallbackDestination
     Write-Warning "$Reason"
