@@ -193,7 +193,6 @@ bool expectVerificationDisclosure()
         chipper::ChipMode::ym2612,
         chipper::ChipMode::opl3,
         chipper::ChipMode::spc700,
-        chipper::ChipMode::pokey,
         chipper::ChipMode::paula,
         chipper::ChipMode::huc6280,
         chipper::ChipMode::namcoWsg,
@@ -226,6 +225,8 @@ int main()
 
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::nes).implemented, "NES descriptor should be implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::sid).implemented, "SID descriptor should be partially implemented");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::pokey).implemented, "POKEY descriptor should be partially implemented");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::pokey).supportsChipPoly, "POKEY should support Chip Poly across four channels");
     ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl1, 4, "12.5%");
     ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::pulse2Duty, 5, "Follow");
     ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::snNoiseMode, 3, "Follow");
@@ -356,7 +357,9 @@ int main()
     ok &= expectMacroLabel(chipper::ChipMode::ym2612, chipper::MacroKind::bass, "OPN2 FM Bass Plan");
     ok &= expectMacroLabel(chipper::ChipMode::opl3, chipper::MacroKind::drum, "OPL Rhythm Kit Plan");
     ok &= expectMacroLabel(chipper::ChipMode::spc700, chipper::MacroKind::drum, "SPC700 Drum Map Plan");
-    ok &= expectMacroLabel(chipper::ChipMode::pokey, chipper::MacroKind::lead, "POKEY Buzzy Lead Plan");
+    ok &= expectMacroLabel(chipper::ChipMode::pokey, chipper::MacroKind::lead, "POKEY Buzzy Lead");
+    ok &= expectSpec(chipper::ChipMode::pokey, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Distortion Code");
+    ok &= expectSegmentedRegister(chipper::ChipMode::pokey, chipper::ChipParameterRole::waveShape, 5, "Follow");
     ok &= expectMacroLabel(chipper::ChipMode::paula, chipper::MacroKind::arp, "Paula Tracker Arp Plan");
     ok &= expectMacroLabel(chipper::ChipMode::huc6280, chipper::MacroKind::lead, "HuC6280 Lead Sample Plan");
     ok &= expectMacroLabel(chipper::ChipMode::namcoWsg, chipper::MacroKind::arp, "Namco WSG Tracker Arp Plan");

@@ -58,19 +58,19 @@ std::vector<MacroTemplate> plannedSampleMacros(std::string familyName, std::stri
     };
 }
 
-std::vector<MacroTemplate> plannedPokeyMacros()
+std::vector<MacroTemplate> pokeyMacros()
 {
     return {
-        { MacroKind::manual, "POKEY Manual Plan", "Roadmap template for direct channel, distortion, and polynomial-counter editing.", { 0.50f, 0.50f, 0.50f, 0.50f } },
-        { MacroKind::coin, "POKEY Console Blip Plan", "Roadmap template for sharp Atari UI blips.", { 0.20f, 0.65f, 0.20f, 0.45f } },
-        { MacroKind::bass, "POKEY Distortion Bass Plan", "Roadmap template for low distortion-code bass.", { 0.35f, 0.35f, 0.30f, 0.55f } },
-        { MacroKind::lead, "POKEY Buzzy Lead Plan", "Roadmap template for bright polynomial lead tones.", { 0.70f, 0.45f, 0.35f, 0.60f } },
-        { MacroKind::arp, "POKEY Four-Channel Arp Plan", "Roadmap template for channel-stacked Atari arps.", { 0.80f, 0.70f, 0.25f, 0.55f } },
-        { MacroKind::drum, "POKEY Poly Perc Plan", "Roadmap template for polynomial-noise percussion.", { 0.35f, 0.20f, 0.85f, 0.50f } },
-        { MacroKind::hit, "POKEY Impact Plan", "Roadmap template for harsh noise impacts.", { 0.45f, 0.30f, 0.75f, 0.60f } },
-        { MacroKind::laser, "POKEY Pitch Drop Plan", "Roadmap template for Atari pitch-drop SFX.", { 0.25f, 0.95f, 0.55f, 0.75f } },
-        { MacroKind::jump, "POKEY Jump Plan", "Roadmap template for quick upward channel gestures.", { 0.25f, 0.70f, 0.15f, 0.45f } },
-        { MacroKind::powerUp, "POKEY Power Rise Plan", "Roadmap template for longer multi-channel rises.", { 0.70f, 0.90f, 0.30f, 0.75f } }
+        { MacroKind::manual, "POKEY Manual", "Neutral four-channel Atari POKEY mapping.", { 0.50f, 0.50f, 0.50f, 0.50f }, { true, true, true, true }, 0.0f, 0 },
+        { MacroKind::coin, "POKEY Console Blip", "Sharp Atari UI blip with one bright channel.", { 0.18f, 0.72f, 0.18f, 0.70f }, { true, false, false, false }, 0.25f, 0 },
+        { MacroKind::bass, "POKEY Distortion Bass", "Low two-channel tone with restrained polynomial edge.", { 0.32f, 0.22f, 0.28f, 0.62f }, { true, true, false, false }, 0.08f, 0 },
+        { MacroKind::lead, "POKEY Buzzy Lead", "Forward Atari lead using audible distortion-code color.", { 0.68f, 0.42f, 0.40f, 0.72f }, { true, true, true, false }, 0.10f, 2 },
+        { MacroKind::arp, "POKEY Four-Channel Arp", "Four POKEY channels arranged for fake chords and fast patterns.", { 0.82f, 0.70f, 0.25f, 0.62f }, { true, true, true, true }, 0.08f, 0 },
+        { MacroKind::drum, "POKEY Poly Perc", "Polynomial-noise percussion using the channel control nibbles.", { 0.28f, 0.18f, 0.88f, 0.78f }, { false, false, true, true }, 0.80f, 3 },
+        { MacroKind::hit, "POKEY Impact", "Harsh short noise impact.", { 0.40f, 0.25f, 0.78f, 0.82f }, { true, false, true, true }, 0.70f, 3 },
+        { MacroKind::laser, "POKEY Pitch Drop", "Atari pitch-drop SFX gesture.", { 0.22f, 0.95f, 0.55f, 0.76f }, { true, true, false, true }, 0.35f, 2 },
+        { MacroKind::jump, "POKEY Jump", "Quick upward console-game tone.", { 0.22f, 0.70f, 0.16f, 0.62f }, { true, false, false, false }, 0.20f, 0 },
+        { MacroKind::powerUp, "POKEY Power Rise", "Longer multi-channel Atari rise.", { 0.72f, 0.90f, 0.30f, 0.78f }, { true, true, true, true }, 0.15f, 1 }
     };
 }
 
@@ -701,6 +701,58 @@ std::vector<ChipParameterSpec> sn76489ParameterSpecs()
     };
 }
 
+std::vector<ChipParameterSpec> pokeyParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "pokey.channelSpread",
+                   "Channel Spread",
+                   "Channels",
+                   "Sets interval spread across the four POKEY channels."),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "pokey.pitchMotion",
+                   "Pitch",
+                   "Pitch",
+                   "Offsets template pitch gestures and channel intervals."),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "pokey.distortionBias",
+                   "Distortion Bias",
+                   "Distortion",
+                   "Biases the selected POKEY AUDC distortion/noise character when Distortion Code is Follow.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "pokey.volume",
+                   "Volume",
+                   "Mixer",
+                   "Maps to the 4-bit AUDV volume nibble for active POKEY channels.",
+                   ParameterKind::chipRegister,
+                   0.65f),
+        sourceSpec(ChipParameterRole::source1Enabled, "pokey.channel1.enabled", "Channel 1", "Enable POKEY audio channel 1."),
+        sourceSpec(ChipParameterRole::source2Enabled, "pokey.channel2.enabled", "Channel 2", "Enable POKEY audio channel 2."),
+        sourceSpec(ChipParameterRole::source3Enabled, "pokey.channel3.enabled", "Channel 3", "Enable POKEY audio channel 3."),
+        sourceSpec(ChipParameterRole::source4Enabled, "pokey.channel4.enabled", "Channel 4", "Enable POKEY audio channel 4."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "pokey.channel1.level", "Channel 1 Level", "Modern trim after POKEY channel 1 AUDV volume."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "pokey.channel2.level", "Channel 2 Level", "Modern trim after POKEY channel 2 AUDV volume."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "pokey.channel3.level", "Channel 3 Level", "Modern trim after POKEY channel 3 AUDV volume."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "pokey.channel4.level", "Channel 4 Level", "Modern trim after POKEY channel 4 AUDV volume."),
+        stereoSpreadSpec("pokey.stereoSpread", "Modern stereo convenience that spreads POKEY channels 1-4; zero preserves mono output."),
+        envelopeSpec("pokey.decay", "Decay", "Applies a musical post-register decay helper while the AUDV nibble remains visible in debug state."),
+        segmentedSpec(ChipParameterRole::waveShape,
+                      "pokey.distortionCode",
+                      "Distortion Code",
+                      "Distortion",
+                      "Selects the modeled POKEY AUDC high-nibble behavior. Follow resolves from the selected template.",
+                      {
+                          choice("Follow", "Use the selected POKEY template and Distortion Bias control.", 0.0f, 0),
+                          choice("Pure", "AUDC-style pure tone path with the 4-bit volume nibble.", 0.25f, 1),
+                          choice("Poly4", "Short polynomial texture for buzzy tones.", 0.5f, 2),
+                          choice("Poly5", "Medium polynomial texture for metallic Atari noise.", 0.75f, 3),
+                          choice("Poly17", "Long polynomial noise texture for percussion and grit.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister)
+    };
+}
+
 std::vector<ChipParameterSpec> sidParameterSpecs()
 {
     return {
@@ -1209,24 +1261,35 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::pokey,
             "Atari POKEY",
-            "Planned polynomial-counter tone/noise mode. No POKEY core is integrated yet.",
+            "Partial clean-room Atari POKEY tone/noise model with four AUDC/AUDF/AUDV-style channels.",
             {
-                { "channels", "Channel Mix", "Sources", "Planned four-channel mix control." },
-                { "distortion", "Distortion", "Tone", "Planned POKEY distortion selector." },
-                { "poly", "Poly Noise", "Noise", "Planned polynomial noise control." },
-                { "filter", "High-pass", "Output", "Planned channel filter helper." },
+                { "channels", "Channel Mix", "Sources", "Four POKEY channel enables and level trims." },
+                { "distortion", "Distortion", "Tone", "AUDC-style pure tone and polynomial noise choices." },
+                { "poly", "Poly Noise", "Noise", "Poly4, Poly5, and Poly17-inspired texture paths." },
+                { "volume", "AUDV Volume", "Output", "4-bit channel volume nibble plus modern output trim." },
             },
-            plannedModules("POKEY Channels", "Distortion / Noise"),
-            plannedPokeyMacros(),
-            false,
-            false,
-            {},
-            plannedDisclosure(
-                "evaluate clean-room POKEY work or a permissive candidate before touching MAME/Furnace references.",
-                "POKEY UI should expose four channels, distortion codes, polynomial noise, channel pairing, and high-pass behavior.",
+            {
+                makeModule("profile", "Profile", "POKEY clean-room groundwork.", { "Atari 8-bit family", "1.79 MHz default", "Hybrid default", "Authentic still partial" }),
+                makeModule("sources", "Channels", "Four native POKEY audio channels.", { "Channel 1", "Channel 2", "Channel 3", "Channel 4" }),
+                makeModule("tone", "Distortion / Noise", "AUDC-style tone and polynomial texture controls.", { "Pure tone", "Poly4", "Poly5", "Poly17" }),
+                makeModule("envelope", "Volume", "AUDV volume nibble plus musical decay helper.", { "4-bit volume", "Per-channel trims", "Decay helper", "Register readout" }),
+                makeModule("motion", "Motion", "Atari SFX gestures mapped to channel timers.", { "Console blip", "Pitch drop", "Four-channel arp", "Poly perc" }),
+                makeModule("output", "Output", "Bright mono Atari-style output groundwork.", { "Output gain", "Stereo spread convenience", "AUDCTL planned", "Known differences" })
+            },
+            pokeyMacros(),
+            true,
+            true,
+            pokeyParameterSpecs(),
+            verifiedPartial(
                 {
-                    "No POKEY core is integrated.",
-                    "Polynomial counters, distortion codes, timers, and channel-pair behavior are not implemented."
+                    "Four AUDF/AUDC/AUDV-style channels render audible tone or polynomial-noise textures.",
+                    "Source enables, source levels, chip-poly allocation, distortion choices, volume nibble mapping, and debug JSON are covered by automated renderer tests.",
+                    "No third-party POKEY source code is vendored in this clean-room partial model."
+                },
+                {
+                    "AUDCTL channel pairing, 1.79 MHz direct clocks, high-pass filters, serial/I/O behavior, and SKCTL side effects are not implemented.",
+                    "Polynomial taps and timer edge behavior are musical approximations pending comparison against trusted emulators and hardware captures.",
+                    "Output DAC, exact volume curve, and Atari model differences are not hardware validated."
                 })
         },
         {
@@ -2195,6 +2258,43 @@ uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch)
         default:
             return patch.control3 > 0.66f ? 0x04u : 0x03u;
     }
+}
+
+uint8_t pokeyAudcForPatch(const PatchConfig& patch)
+{
+    auto choiceValue = std::clamp(patch.waveShape, 0, 4);
+    if (choiceValue == 0)
+    {
+        if (patch.macro == MacroKind::drum || patch.macro == MacroKind::hit)
+            choiceValue = 4;
+        else if (patch.macro == MacroKind::lead || patch.macro == MacroKind::laser)
+            choiceValue = patch.control3 > 0.55f ? 3 : 2;
+        else
+            choiceValue = patch.control3 > 0.65f ? 2 : 1;
+    }
+
+    const auto volume = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control4) * 15.0f)), 0, 15));
+    uint8_t distortion = 0xa0u; // Pure tone.
+    switch (choiceValue)
+    {
+        case 2: distortion = 0x20u; break; // Poly4-ish.
+        case 3: distortion = 0x40u; break; // Poly5-ish.
+        case 4: distortion = 0x80u; break; // Poly17-ish.
+        case 1:
+        default:
+            distortion = 0xa0u;
+            break;
+    }
+
+    return static_cast<uint8_t>(distortion | volume);
+}
+
+uint8_t pokeyAudfForNote(double clockHz, int midiNote)
+{
+    const auto safeClock = clockHz > 0.0 ? clockHz : 1789790.0;
+    const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
+    const auto divisor = std::round(safeClock / (56.0 * hz) - 1.0);
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(divisor), 0, 255));
 }
 
 } // namespace chipper

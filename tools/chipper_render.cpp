@@ -201,6 +201,14 @@ bool parseWaveShape(const std::string& text, int& out)
         out = 3;
     else if (key == "steps" || key == "step" || key == "noise")
         out = 4;
+    else if (key == "pure")
+        out = 1;
+    else if (key == "poly4" || key == "pokeypoly4")
+        out = 2;
+    else if (key == "poly5" || key == "pokeypoly5")
+        out = 3;
+    else if (key == "poly17" || key == "poly9" || key == "pokeypoly17")
+        out = 4;
     else if (key == "tri+saw" || key == "triangle+saw" || key == "trisaw" || key == "trianglesaw")
         out = 5;
     else if (key == "tri+pulse" || key == "triangle+pulse" || key == "trisquare" || key == "tripulse" || key == "trianglepulse")

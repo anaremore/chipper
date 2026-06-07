@@ -3504,6 +3504,376 @@ private:
     PatchConfig patch;
 };
 
+class PokeyCore final : public ChipCore
+{
+public:
+    explicit PokeyCore(AccuracyMode selectedAccuracy) : accuracy(selectedAccuracy) {}
+
+    void reset(double outputSampleRate, double chipClockHz) override
+    {
+        sampleRate = outputSampleRate;
+        clock = chipClockHz > 0.0 ? chipClockHz : 1789790.0;
+        audf.fill(0xff);
+        audc.fill(0x00);
+        phase.fill(0.0);
+        audctl = 0x00;
+        poly4 = 0x0fu;
+        poly5 = 0x1fu;
+        poly17 = 0x1ffffu;
+        heldNote = -1;
+        noteVelocity = 0.0f;
+        channelNotes.fill(-1);
+        channelVelocity.fill(0.0f);
+        channelStamp.fill(0);
+        noteStamp = 0;
+    }
+
+    void setPatch(const PatchConfig& newPatch) override
+    {
+        if (newPatch.playMode != patch.playMode || newPatch.sourceEnabled != patch.sourceEnabled)
+            clearChipPolyState();
+
+        patch = newPatch;
+    }
+
+    void writeRegister(uint16_t address, uint8_t value) override
+    {
+        const auto index = static_cast<uint8_t>(address & 0x0fu);
+        switch (index)
+        {
+            case 0x00: audf[0] = value; break;
+            case 0x01: audc[0] = value; break;
+            case 0x02: audf[1] = value; break;
+            case 0x03: audc[1] = value; break;
+            case 0x04: audf[2] = value; break;
+            case 0x05: audc[2] = value; break;
+            case 0x06: audf[3] = value; break;
+            case 0x07: audc[3] = value; break;
+            case 0x08: audctl = value; break;
+            default: break;
+        }
+    }
+
+    void noteOn(int midiNote, float velocity) override
+    {
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            noteOnChipPoly(midiNote, velocity);
+            return;
+        }
+
+        heldNote = std::clamp(midiNote, 0, 127);
+        noteVelocity = static_cast<float>(clamp01(velocity));
+        const auto spread = static_cast<int>(std::round(patch.control1 * 12.0f));
+        std::array<int, 4> notes {
+            heldNote,
+            heldNote + std::max(1, spread / 3),
+            heldNote + std::max(2, (spread * 2) / 3),
+            heldNote + std::max(3, spread)
+        };
+
+        switch (patch.macro)
+        {
+            case MacroKind::coin:
+                notes = { heldNote + 24, heldNote + 31, heldNote + 36, heldNote + 43 };
+                break;
+            case MacroKind::bass:
+                notes = { heldNote - 24, heldNote - 12, heldNote - 5, heldNote };
+                break;
+            case MacroKind::drum:
+                notes = { heldNote - 24, heldNote - 12, heldNote, heldNote + 7 };
+                break;
+            case MacroKind::laser:
+                notes = { heldNote + 12 + static_cast<int>(std::round(patch.control2 * 12.0f)), heldNote, heldNote - 12, heldNote - 19 };
+                break;
+            case MacroKind::jump:
+                notes = { heldNote + static_cast<int>(std::round(patch.control2 * 12.0f)), heldNote + 7, heldNote + 12, heldNote + 19 };
+                break;
+            case MacroKind::powerUp:
+                notes = { heldNote, heldNote + 5, heldNote + 12, heldNote + 17 };
+                break;
+            case MacroKind::arp:
+                notes = { heldNote, heldNote + 4, heldNote + 7, heldNote + 12 };
+                break;
+            case MacroKind::lead:
+            case MacroKind::hit:
+            case MacroKind::manual:
+            default:
+                break;
+        }
+
+        const auto control = pokeyAudcForPatch(patch);
+        for (size_t channel = 0; channel < 4; ++channel)
+        {
+            audf[channel] = pokeyAudfForNote(clock, notes[channel]);
+            audc[channel] = sourceEnabled(patch, channel) ? control : 0x00u;
+        }
+    }
+
+    void noteOff(int midiNote) override
+    {
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            noteOffChipPoly(midiNote);
+            return;
+        }
+
+        if (midiNote == heldNote)
+        {
+            heldNote = -1;
+            noteVelocity = 0.0f;
+        }
+    }
+
+    StereoFrame renderSample() override
+    {
+        static constexpr std::array<double, 4> panPositions { -1.0, -0.35, 0.35, 1.0 };
+        double left = 0.0;
+        double right = 0.0;
+
+        for (size_t channel = 0; channel < 4; ++channel)
+        {
+            const auto sample = renderChannel(channel) * sourceLevel(patch, channel);
+            const auto gains = modernStereoGains(patch, panPositions[channel]);
+            left += sample * gains.left;
+            right += sample * gains.right;
+        }
+
+        const auto scale = static_cast<double>(noteVelocity) * 0.85 / 4.0;
+        return { static_cast<float>(left * scale), static_cast<float>(right * scale) };
+    }
+
+    std::vector<RegisterWrite> exportRegisterState() const override
+    {
+        std::vector<RegisterWrite> writes;
+        writes.reserve(9);
+        for (uint8_t channel = 0; channel < 4; ++channel)
+        {
+            writes.push_back({ 0, static_cast<uint16_t>(channel * 2u), audf[channel] });
+            writes.push_back({ 0, static_cast<uint16_t>(channel * 2u + 1u), audc[channel] });
+        }
+        writes.push_back({ 0, 0x08, audctl });
+        return writes;
+    }
+
+    ChipMode mode() const override { return ChipMode::pokey; }
+    AccuracyMode requestedAccuracy() const override { return accuracy; }
+    std::string modeName() const override { return "Atari POKEY"; }
+    std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
+    std::string limitations() const override
+    {
+        return "Four AUDF/AUDC/AUDV-style channels, note-to-timer writes, source gating, chip-poly allocation, and simplified pure/poly4/poly5/poly17 texture paths are modeled; AUDCTL channel pairing, high-pass filters, exact polynomial taps, serial behavior, DAC curve, and hardware validation are not complete.";
+    }
+
+    std::string debugStateJson() const override
+    {
+        std::ostringstream json;
+        json << "{"
+             << "\"mode\":\"Atari POKEY\","
+             << "\"implementedAccuracy\":\"partial clean-room register-level\","
+             << "\"clockHz\":" << clock << ","
+             << "\"macro\":\"" << toString(patch.macro) << "\","
+             << "\"playMode\":\"" << toString(patch.playMode) << "\","
+             << "\"audf0\":" << static_cast<int>(audf[0]) << ","
+             << "\"audf1\":" << static_cast<int>(audf[1]) << ","
+             << "\"audf2\":" << static_cast<int>(audf[2]) << ","
+             << "\"audf3\":" << static_cast<int>(audf[3]) << ","
+             << "\"audc0\":" << static_cast<int>(audc[0]) << ","
+             << "\"audc1\":" << static_cast<int>(audc[1]) << ","
+             << "\"audc2\":" << static_cast<int>(audc[2]) << ","
+             << "\"audc3\":" << static_cast<int>(audc[3]) << ","
+             << "\"audctl\":" << static_cast<int>(audctl) << ","
+             << "\"distortionChoice\":" << std::clamp(patch.waveShape, 0, 4) << ","
+             << "\"distortionCode\":" << static_cast<int>(pokeyAudcForPatch(patch) & 0xf0u) << ","
+             << "\"volumeNibble\":" << static_cast<int>(pokeyAudcForPatch(patch) & 0x0fu) << ","
+             << "\"sourceEnabled0\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
+             << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
+             << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
+             << "\"sourceEnabled3\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+             << "\"sourceLevel0\":" << sourceLevel(patch, 0) << ","
+             << "\"sourceLevel1\":" << sourceLevel(patch, 1) << ","
+             << "\"sourceLevel2\":" << sourceLevel(patch, 2) << ","
+             << "\"sourceLevel3\":" << sourceLevel(patch, 3) << ","
+             << "\"stereoSpread\":" << clamp01(patch.stereoSpread) << ","
+             << "\"activeChannels\":" << activeChipPolyChannels() << ","
+             << "\"assignedNote0\":" << channelNotes[0] << ","
+             << "\"assignedNote1\":" << channelNotes[1] << ","
+             << "\"assignedNote2\":" << channelNotes[2] << ","
+             << "\"assignedNote3\":" << channelNotes[3] << ","
+             << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
+             << "}";
+        return json.str();
+    }
+
+private:
+    static double volumeToLinear(uint8_t control)
+    {
+        return static_cast<double>(control & 0x0fu) / 15.0;
+    }
+
+    double channelClockHz(size_t channel) const
+    {
+        const auto period = static_cast<double>(audf[channel]) + 1.0;
+        return clock / (56.0 * period);
+    }
+
+    double renderChannel(size_t channel)
+    {
+        if (! sourceEnabled(patch, channel))
+            return 0.0;
+
+        const auto volume = volumeToLinear(audc[channel]);
+        if (volume <= 0.0)
+            return 0.0;
+
+        const auto hz = channelClockHz(channel);
+        phase[channel] = wrapPhase(phase[channel] + hz / sampleRate);
+        if (phase[channel] < 0.5)
+            return lastOutput[channel] * volume;
+
+        phase[channel] -= 0.5;
+        const auto distortion = audc[channel] & 0xf0u;
+        if (distortion == 0x20u)
+            clockPoly4(channel);
+        else if (distortion == 0x40u)
+            clockPoly5(channel);
+        else if (distortion == 0x80u)
+            clockPoly17(channel);
+        else
+            lastOutput[channel] = -lastOutput[channel];
+
+        return lastOutput[channel] * volume;
+    }
+
+    void clockPoly4(size_t channel)
+    {
+        const auto feedback = ((poly4 & 1u) ^ ((poly4 >> 1u) & 1u)) & 1u;
+        poly4 = static_cast<uint8_t>(((poly4 >> 1u) | (feedback << 3u)) & 0x0fu);
+        if (poly4 == 0)
+            poly4 = 0x0fu;
+        lastOutput[channel] = (poly4 & 1u) != 0 ? 1.0 : -1.0;
+    }
+
+    void clockPoly5(size_t channel)
+    {
+        const auto feedback = ((poly5 & 1u) ^ ((poly5 >> 2u) & 1u)) & 1u;
+        poly5 = static_cast<uint8_t>(((poly5 >> 1u) | (feedback << 4u)) & 0x1fu);
+        if (poly5 == 0)
+            poly5 = 0x1fu;
+        lastOutput[channel] = (poly5 & 1u) != 0 ? 1.0 : -1.0;
+    }
+
+    void clockPoly17(size_t channel)
+    {
+        const auto feedback = ((poly17 & 1u) ^ ((poly17 >> 5u) & 1u)) & 1u;
+        poly17 = ((poly17 >> 1u) | (feedback << 16u)) & 0x1ffffu;
+        if (poly17 == 0)
+            poly17 = 0x1ffffu;
+        lastOutput[channel] = (poly17 & 1u) != 0 ? 1.0 : -1.0;
+    }
+
+    int selectChipPolyChannel(int midiNote) const
+    {
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (sourceEnabled(patch, channel) && channelNotes[channel] == midiNote)
+                return static_cast<int>(channel);
+        }
+
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (sourceEnabled(patch, channel) && channelNotes[channel] < 0)
+                return static_cast<int>(channel);
+        }
+
+        auto oldestChannel = -1;
+        auto oldestStamp = std::numeric_limits<uint64_t>::max();
+        for (size_t channel = 0; channel < channelStamp.size(); ++channel)
+        {
+            if (sourceEnabled(patch, channel) && channelStamp[channel] < oldestStamp)
+            {
+                oldestStamp = channelStamp[channel];
+                oldestChannel = static_cast<int>(channel);
+            }
+        }
+
+        return oldestChannel;
+    }
+
+    int activeChipPolyChannels() const
+    {
+        int active = 0;
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (sourceEnabled(patch, channel) && channelNotes[channel] >= 0)
+                ++active;
+        }
+        return active;
+    }
+
+    void clearChipPolyState()
+    {
+        channelNotes.fill(-1);
+        channelVelocity.fill(0.0f);
+        channelStamp.fill(0);
+        noteStamp = 0;
+        noteVelocity = 0.0f;
+        audc.fill(0x00);
+    }
+
+    void noteOnChipPoly(int midiNote, float velocity)
+    {
+        const auto channel = selectChipPolyChannel(midiNote);
+        if (channel < 0)
+            return;
+
+        const auto index = static_cast<size_t>(channel);
+        channelNotes[index] = std::clamp(midiNote, 0, 127);
+        channelVelocity[index] = static_cast<float>(clamp01(velocity));
+        channelStamp[index] = ++noteStamp;
+        audf[index] = pokeyAudfForNote(clock, channelNotes[index]);
+        const auto baseControl = pokeyAudcForPatch(patch) & 0xf0u;
+        const auto volume = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15));
+        audc[index] = static_cast<uint8_t>(baseControl | volume);
+        noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
+    }
+
+    void noteOffChipPoly(int midiNote)
+    {
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (channelNotes[channel] != midiNote)
+                continue;
+
+            channelNotes[channel] = -1;
+            channelVelocity[channel] = 0.0f;
+            channelStamp[channel] = 0;
+            audc[channel] = 0x00;
+        }
+
+        noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
+    }
+
+    AccuracyMode accuracy;
+    double sampleRate = 48000.0;
+    double clock = 1789790.0;
+    std::array<uint8_t, 4> audf {};
+    std::array<uint8_t, 4> audc {};
+    uint8_t audctl = 0x00;
+    std::array<double, 4> phase {};
+    std::array<double, 4> lastOutput { 1.0, 1.0, 1.0, 1.0 };
+    uint8_t poly4 = 0x0f;
+    uint8_t poly5 = 0x1f;
+    uint32_t poly17 = 0x1ffff;
+    int heldNote = -1;
+    float noteVelocity = 0.0f;
+    std::array<int, 4> channelNotes {};
+    std::array<float, 4> channelVelocity {};
+    std::array<uint64_t, 4> channelStamp {};
+    uint64_t noteStamp = 0;
+    PatchConfig patch;
+};
+
 class Sn76489Core final : public ChipCore
 {
 public:
@@ -3943,6 +4313,7 @@ std::unique_ptr<ChipCore> createChipCore(ChipMode mode, AccuracyMode accuracy)
         case ChipMode::sid: return std::make_unique<SidCore>(accuracy);
         case ChipMode::ym2149: return std::make_unique<Ym2149Core>(accuracy);
         case ChipMode::sn76489: return std::make_unique<Sn76489Core>(accuracy);
+        case ChipMode::pokey: return std::make_unique<PokeyCore>(accuracy);
         default: return std::make_unique<UnsupportedCore>(mode, accuracy);
     }
 }

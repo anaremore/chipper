@@ -260,5 +260,7 @@ uint8_t ym2149EnvelopeShapeCodeForChoice(int shapeChoice);
 uint16_t ym2149EnvelopePeriodForControl(float envelopeControl);
 uint8_t sn76489NoiseAttenuationForControl(float noiseLevelControl);
 uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch);
+uint8_t pokeyAudcForPatch(const PatchConfig& patch);
+uint8_t pokeyAudfForNote(double clockHz, int midiNote);
 
 } // namespace chipper

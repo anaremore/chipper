@@ -17,12 +17,13 @@ REQUIRED_CATEGORIES = {
     "SID FX",
     "SID PWM Leads",
     "SN76489 / Sega PSG",
+    "Atari POKEY",
     "YM Arps",
     "YM Beeps",
     "YM Noise Percussion",
 }
 
-IMPLEMENTED_CHIPS = {"nes", "dmg", "sid", "ym2149", "sn76489"}
+IMPLEMENTED_CHIPS = {"nes", "dmg", "sid", "ym2149", "sn76489", "pokey"}
 
 EXPECTED_CATEGORY_PREFIXES = {
     "nes": ("NES", "Arcade", "Classic"),
@@ -30,6 +31,7 @@ EXPECTED_CATEGORY_PREFIXES = {
     "sid": ("SID", "Modern", "Classic"),
     "ym2149": ("YM", "Arcade", "Classic"),
     "sn76489": ("SN76489", "Arcade", "Classic"),
+    "pokey": ("Atari", "Arcade", "Classic"),
 }
 
 
