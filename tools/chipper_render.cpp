@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <sstream>
 #include <stdexcept>
@@ -112,6 +113,7 @@ struct Options
     double seconds = 1.0;
     int note = 69;
     std::filesystem::path eventFile;
+    std::filesystem::path nesDmcSamplePath;
     std::filesystem::path wavPath = "chipper-render.wav";
     std::filesystem::path debugPath = "chipper-render.json";
 };
@@ -613,7 +615,7 @@ void printUsage()
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
         << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-sample path.dmc --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -1041,6 +1043,13 @@ bool parseArgs(int argc, char** argv, Options& options)
             options.nesDmcDirectLevel = std::clamp(options.nesDmcDirectLevel, 0.0f, 1.0f);
             options.nesDmcDirectLevelProvided = true;
         }
+        else if (arg == "--nes-dmc-sample")
+        {
+            const auto* value = requireValue("--nes-dmc-sample");
+            if (value == nullptr)
+                return false;
+            options.nesDmcSamplePath = value;
+        }
         else if (arg == "--dmg-wave-level")
         {
             const auto* value = requireValue("--dmg-wave-level");
@@ -1353,6 +1362,21 @@ std::vector<ScheduledEvent> loadEvents(const std::filesystem::path& path)
         return static_cast<int>(a.type) < static_cast<int>(b.type);
     });
     return events;
+}
+
+std::vector<uint8_t> loadBinaryFile(const std::filesystem::path& path)
+{
+    if (path.empty())
+        return {};
+
+    std::ifstream in(path, std::ios::binary);
+    if (! in)
+        throw std::runtime_error("Could not open binary sample file: " + path.string());
+
+    return {
+        std::istreambuf_iterator<char>(in),
+        std::istreambuf_iterator<char>()
+    };
 }
 
 void writeU16(std::ofstream& out, uint16_t value)
@@ -1918,6 +1942,9 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"sidVoice3PulseWidth\": " << patch.sidVoice3PulseWidth << ",\n"
         << "  \"pulse2Duty\": " << patch.pulse2Duty << ",\n"
         << "  \"nesDmcDirectLevel\": " << patch.nesDmcDirectLevel << ",\n"
+        << "  \"nesDmcSamplePath\": ";
+    writeJsonString(out, options.nesDmcSamplePath.string());
+    out << ",\n"
         << "  \"dmgStereoRoute\": " << patch.dmgStereoRoute << ",\n"
         << "  \"ymChannelAMix\": " << patch.ymChannelAMix << ",\n"
         << "  \"ymChannelBMix\": " << patch.ymChannelBMix << ",\n"
@@ -1979,6 +2006,8 @@ int main(int argc, char** argv)
         applyMacroTemplateDefaults(options);
         auto core = chipper::createChipCore(options.chip, options.accuracy);
         core->reset(options.sampleRate, options.clock);
+        if (! options.nesDmcSamplePath.empty())
+            core->setExternalSampleData(loadBinaryFile(options.nesDmcSamplePath));
         const auto patch = chipper::makePatchConfig(options.chip,
                                                     options.macro,
                                                     options.control1,

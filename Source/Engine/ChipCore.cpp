@@ -9,6 +9,7 @@
 #include <limits>
 #include <numeric>
 #include <sstream>
+#include <utility>
 
 namespace chipper
 {
@@ -1945,6 +1946,11 @@ public:
         channelVelocity.fill(0.0f);
         channelStamp.fill(0);
         noteStamp = 0;
+        dmcActive = false;
+        dmcByteIndex = 0;
+        dmcBitIndex = 0;
+        dmcPhase = 0.0;
+        dmcBitsPlayed = 0;
     }
 
     void setPatch(const PatchConfig& newPatch) override
@@ -1954,6 +1960,16 @@ public:
 
         patch = newPatch;
         regs[0x11] = nesDmcDirectLevelForControl(patch.nesDmcDirectLevel);
+    }
+
+    void setExternalSampleData(std::vector<uint8_t> data) override
+    {
+        dmcSample = std::move(data);
+        dmcActive = false;
+        dmcByteIndex = 0;
+        dmcBitIndex = 0;
+        dmcPhase = 0.0;
+        dmcBitsPlayed = 0;
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -1987,6 +2003,10 @@ public:
             enabled[1] = (value & 0x02) != 0;
             enabled[2] = (value & 0x04) != 0;
             enabled[3] = (value & 0x08) != 0;
+            if ((value & 0x10u) != 0)
+                startDmcSample();
+            else
+                dmcActive = false;
             for (size_t i = 0; i < enabled.size(); ++i)
             {
                 if (! enabled[i])
@@ -2011,6 +2031,7 @@ public:
 
         heldNote = midiNote;
         noteVelocity = static_cast<float>(clamp01(velocity));
+        startDmcSample();
         const auto duty = nesPulseDutyFromControl(patch.control1);
         const auto pulse2Duty = nesPulse2DutyForPatch(patch, duty, true);
 
@@ -2086,6 +2107,8 @@ public:
         }
 
         enable &= sourceEnableMask(patch);
+        if (! dmcSample.empty() && sourceEnabled(patch, 3))
+            enable |= 0x10u;
 
         writePulseRegisters(0x4000, duty, p1Vol, p1Note);
         writePulseRegisters(0x4004, pulse2Duty, p2Vol, p2Note);
@@ -2126,6 +2149,7 @@ public:
     StereoFrame renderSample() override
     {
         tickFrameUnits();
+        tickDmcSample();
 
         const auto p1 = channelActive(0) ? renderPulse(0) * sourceLevel(patch, 0) : 0.0;
         const auto p2 = channelActive(1) ? renderPulse(1) * sourceLevel(patch, 1) : 0.0;
@@ -2157,7 +2181,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Pulse, triangle, noise, timers, duty including explicit pulse 2 duty override, enable bits, simple envelopes, length counters, triangle linear counter, DMC direct DAC level, basic pulse sweep updates/muting, $4017 frame-counter mode/inhibit behavior, nonlinear mixer, the documented NES output filter chain, and pulse/triangle allocation for Chip Poly play mode are approximated; DMC sample playback, exact frame sequencer cycle timing, advanced sweep edge cases, and hardware validation are not complete.";
+        return "Pulse, triangle, noise, timers, duty including explicit pulse 2 duty override, enable bits, simple envelopes, length counters, triangle linear counter, DMC direct DAC level, external DPCM byte stepping, basic pulse sweep updates/muting, $4017 frame-counter mode/inhibit behavior, nonlinear mixer, the documented NES output filter chain, and pulse/triangle allocation for Chip Poly play mode are approximated; exact DMC DMA/address/IRQ timing, exact frame sequencer cycle timing, advanced sweep edge cases, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -2188,6 +2212,14 @@ public:
              << "\"sourceLevel3\":" << sourceLevel(patch, 2) << ","
              << "\"sourceLevel4\":" << sourceLevel(patch, 3) << ","
              << "\"dmcDirectControl\":" << patch.nesDmcDirectLevel << ","
+             << "\"dmcSampleLoaded\":" << (dmcSample.empty() ? 0 : 1) << ","
+             << "\"dmcSampleBytes\":" << dmcSample.size() << ","
+             << "\"dmcSampleActive\":" << (dmcActive ? 1 : 0) << ","
+             << "\"dmcSampleByteIndex\":" << dmcByteIndex << ","
+             << "\"dmcSampleBitIndex\":" << static_cast<int>(dmcBitIndex) << ","
+             << "\"dmcSampleBitsPlayed\":" << dmcBitsPlayed << ","
+             << "\"dmcRateIndex\":" << static_cast<int>(dmcRateIndex()) << ","
+             << "\"dmcRatePeriodCycles\":" << dmcRatePeriodCycles() << ","
              << "\"enabled0\":" << (enabled[0] ? 1 : 0) << ","
              << "\"enabled1\":" << (enabled[1] ? 1 : 0) << ","
              << "\"enabled2\":" << (enabled[2] ? 1 : 0) << ","
@@ -2271,6 +2303,89 @@ private:
     uint8_t dmcOutputLevel() const
     {
         return static_cast<uint8_t>(regs[0x11] & 0x7fu);
+    }
+
+    uint8_t dmcRateIndex() const
+    {
+        return static_cast<uint8_t>(regs[0x10] & 0x0fu);
+    }
+
+    int dmcRatePeriodCycles() const
+    {
+        static constexpr std::array<int, 16> ntscPeriods {
+            428, 380, 340, 320, 286, 254, 226, 214,
+            190, 160, 142, 128, 106, 85, 72, 54
+        };
+        return ntscPeriods[dmcRateIndex()];
+    }
+
+    bool dmcLoopEnabled() const
+    {
+        return (regs[0x10] & 0x40u) != 0;
+    }
+
+    void startDmcSample()
+    {
+        if (dmcSample.empty())
+            return;
+
+        dmcActive = true;
+        dmcByteIndex = 0;
+        dmcBitIndex = 0;
+        dmcPhase = 0.0;
+        dmcBitsPlayed = 0;
+    }
+
+    void tickDmcSample()
+    {
+        if (! dmcActive || dmcSample.empty() || sampleRate <= 0.0)
+            return;
+
+        dmcPhase += clock / (static_cast<double>(dmcRatePeriodCycles()) * sampleRate);
+        while (dmcPhase >= 1.0 && dmcActive)
+        {
+            dmcPhase -= 1.0;
+            stepDmcBit();
+        }
+    }
+
+    void stepDmcBit()
+    {
+        if (dmcByteIndex >= dmcSample.size())
+        {
+            if (dmcLoopEnabled())
+            {
+                dmcByteIndex = 0;
+                dmcBitIndex = 0;
+            }
+            else
+            {
+                dmcActive = false;
+                return;
+            }
+        }
+
+        const auto byte = dmcSample[dmcByteIndex];
+        const auto bit = (byte >> dmcBitIndex) & 0x01u;
+        auto level = dmcOutputLevel();
+        if (bit != 0)
+        {
+            if (level <= 125u)
+                level = static_cast<uint8_t>(level + 2u);
+        }
+        else if (level >= 2u)
+        {
+            level = static_cast<uint8_t>(level - 2u);
+        }
+        regs[0x11] = level;
+        ++dmcBitsPlayed;
+
+        ++dmcBitIndex;
+        if (dmcBitIndex >= 8u)
+        {
+            dmcBitIndex = 0;
+            ++dmcByteIndex;
+        }
     }
 
     double highPass(double input, double cutoffHz, double& previousInput, double& previousOutput) const
@@ -2781,6 +2896,12 @@ private:
     std::array<float, 3> channelVelocity {};
     std::array<uint64_t, 3> channelStamp {};
     uint64_t noteStamp = 0;
+    std::vector<uint8_t> dmcSample;
+    bool dmcActive = false;
+    size_t dmcByteIndex = 0;
+    uint8_t dmcBitIndex = 0;
+    double dmcPhase = 0.0;
+    uint64_t dmcBitsPlayed = 0;
     PatchConfig patch;
 };
 

@@ -519,6 +519,15 @@ add_test(NAME chipper_render_nes_dmc_direct_parameter_low_smoke
 add_test(NAME chipper_render_nes_dmc_direct_parameter_high_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 0 --nes-dmc-direct-level 1.0 --clock 1789773 --rate 48000 --seconds 0.004 --out nes-dmc-direct-parameter-high-smoke.wav --debug nes-dmc-direct-parameter-high-smoke.json
 )
+if (Python3_EXECUTABLE)
+    add_test(NAME chipper_generate_nes_dmc_fixture
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/write_binary_fixture.py ${CMAKE_CURRENT_BINARY_DIR}/generated-nes-dmc-sample.dmc "55 aa f0 0f"
+    )
+    add_test(NAME chipper_render_nes_dmc_sample_smoke
+        COMMAND chipper_render --chip nes --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 1 --nes-dmc-direct-level 0.5 --nes-dmc-sample ${CMAKE_CURRENT_BINARY_DIR}/generated-nes-dmc-sample.dmc --clock 1789773 --rate 48000 --seconds 0.01 --out nes-dmc-sample-smoke.wav --debug nes-dmc-sample-smoke.json
+    )
+    set_tests_properties(chipper_render_nes_dmc_sample_smoke PROPERTIES DEPENDS chipper_generate_nes_dmc_fixture)
+endif()
 add_test(NAME chipper_render_nes_frame_counter_5step_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --macro manual --clock 1789773 --rate 48000 --seconds 0.001 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/nes-frame-counter-5step-events.txt --out nes-frame-counter-5step-smoke.wav --debug nes-frame-counter-5step-smoke.json
 )
@@ -1374,6 +1383,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-dmc-direct-parameter-high-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.65 --max-peak 0.95 --core-min dmcDirectControl=1 --core-max dmcDirectControl=1 --core-min dmcLevel=127 --core-max dmcLevel=127
     )
     set_tests_properties(chipper_render_nes_dmc_direct_parameter_high_assert PROPERTIES DEPENDS chipper_render_nes_dmc_direct_parameter_high_smoke)
+
+    add_test(NAME chipper_render_nes_dmc_sample_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-dmc-sample-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.2 --core-min dmcSampleLoaded=1 --core-max dmcSampleLoaded=1 --core-min dmcSampleBytes=4 --core-max dmcSampleBytes=4 --core-min dmcSampleBitsPlayed=30 --core-min dmcLevel=40 --core-max dmcLevel=90
+    )
+    set_tests_properties(chipper_render_nes_dmc_sample_assert PROPERTIES DEPENDS chipper_render_nes_dmc_sample_smoke)
 
     add_test(NAME chipper_render_nes_frame_counter_5step_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-frame-counter-5step-smoke.json --implemented-contains partial --macro Manual --register-writes 5 --note-events 0 --core-min frameCounterFiveStep=1 --core-max frameCounterFiveStep=1 --core-min frameIrqInhibit=0 --core-max frameIrqInhibit=0 --core-min frameIrqFlag=0 --core-max frameIrqFlag=0 --core-min frameSequenceStep=0 --core-max frameSequenceStep=0 --core-min linearCounter=2 --core-max linearCounter=2 --core-min linearReloadFlag=0 --core-max linearReloadFlag=0 --core-min lengthTriangle=9 --core-max lengthTriangle=9
