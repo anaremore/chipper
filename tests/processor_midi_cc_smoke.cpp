@@ -307,6 +307,31 @@ int main()
     ok &= expect(playbackInfo.statusLine.contains("bytes") && playbackInfo.statusLine.contains("ms @ rate 3"),
                  "DMC status should include bytes, duration, and rate");
 
+    processor.clearNesDmcSampleSelection();
+    activeNames = processor.nesDmcSampleNames();
+    playbackInfo = processor.nesDmcSamplePlaybackInfo();
+    ok &= expect(activeNames.isEmpty(), "DMC clear action should uncheck every active sample");
+    ok &= expect(playbackInfo.statusLine == "No DMC samples checked", "DMC status should report an empty checked bank");
+
+    processor.invertNesDmcSampleSelection();
+    activeNames = processor.nesDmcSampleNames();
+    entryInfo = processor.nesDmcSampleEntryInfo();
+    ok &= expect(activeNames.size() == 32, "DMC invert action should activate the first 32 checked slots after clearing");
+    ok &= expect(entryInfo[32].included && ! entryInfo[32].activeSlot,
+                 "DMC invert action should keep checked entries beyond 32 staged but inactive");
+
+    processor.selectFirstNesDmcSamples(8);
+    activeNames = processor.nesDmcSampleNames();
+    entryInfo = processor.nesDmcSampleEntryInfo();
+    ok &= expect(activeNames.size() == 8 && activeNames[7] == "sample-07.dmc",
+                 "DMC first-N action should check the requested leading subset");
+    ok &= expect(! entryInfo[8].included, "DMC first-N action should uncheck entries after the requested count");
+
+    processor.selectFirstNesDmcSamples(32);
+    activeNames = processor.nesDmcSampleNames();
+    ok &= expect(activeNames.size() == 32 && activeNames[31] == "sample-31.dmc",
+                 "DMC first-32 action should restore the default active bank");
+
     sendController(processor, 118, controllerValueForChoice(processor, chipper::parameters::id::nesDmcRateIndex, 15));
     playbackInfo = processor.nesDmcSamplePlaybackInfo();
     ok &= expect(playbackInfo.rateIndex == 15, "DMC playback info should update after rate CC changes");

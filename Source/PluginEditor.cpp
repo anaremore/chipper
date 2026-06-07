@@ -202,6 +202,33 @@ public:
         helper.setMinimumHorizontalScale(0.65f);
         addAndMakeVisible(helper);
 
+        selectFirstButton.setButtonText("First 32");
+        selectFirstButton.setTooltip("Check the first 32 loaded DMC files and uncheck the rest.");
+        selectFirstButton.onClick = [this]
+        {
+            audioProcessor.selectFirstNesDmcSamples(32);
+            refreshAfterEdit();
+        };
+        addAndMakeVisible(selectFirstButton);
+
+        invertButton.setButtonText("Invert");
+        invertButton.setTooltip("Invert checked DMC files. Only the first 32 checked files become active slots.");
+        invertButton.onClick = [this]
+        {
+            audioProcessor.invertNesDmcSampleSelection();
+            refreshAfterEdit();
+        };
+        addAndMakeVisible(invertButton);
+
+        clearButton.setButtonText("Clear");
+        clearButton.setTooltip("Uncheck every DMC file in this bank.");
+        clearButton.onClick = [this]
+        {
+            audioProcessor.clearNesDmcSampleSelection();
+            refreshAfterEdit();
+        };
+        addAndMakeVisible(clearButton);
+
         listContent = std::make_unique<juce::Component>();
         viewport.setViewedComponent(listContent.get(), false);
         viewport.setScrollBarsShown(true, false);
@@ -223,6 +250,12 @@ public:
         auto area = getLocalBounds().reduced(14);
         title.setBounds(area.removeFromTop(22));
         helper.setBounds(area.removeFromTop(34));
+        auto actionRow = area.removeFromTop(26);
+        selectFirstButton.setBounds(actionRow.removeFromLeft(92).reduced(0, 1));
+        actionRow.removeFromLeft(6);
+        invertButton.setBounds(actionRow.removeFromLeft(76).reduced(0, 1));
+        actionRow.removeFromLeft(6);
+        clearButton.setBounds(actionRow.removeFromLeft(76).reduced(0, 1));
         area.removeFromTop(6);
         viewport.setBounds(area);
 
@@ -287,7 +320,7 @@ private:
             auto empty = std::make_unique<Row>(audioProcessor,
                                                0,
                                                ChipperAudioProcessor::DmcSampleEntryInfo { "No .dmc files loaded", {}, 0, false, false },
-                                               onRefresh);
+                                               [this] { refreshAfterEdit(); });
             empty->setEnabled(false);
             listContent->addAndMakeVisible(*empty);
             rows.push_back(std::move(empty));
@@ -296,16 +329,35 @@ private:
 
         for (size_t i = 0; i < entries.size(); ++i)
         {
-            auto row = std::make_unique<Row>(audioProcessor, static_cast<int>(i), entries[i], onRefresh);
+            auto row = std::make_unique<Row>(audioProcessor, static_cast<int>(i), entries[i], [this] { refreshAfterEdit(); });
             listContent->addAndMakeVisible(*row);
             rows.push_back(std::move(row));
         }
+    }
+
+    void refreshAfterEdit()
+    {
+        if (onRefresh)
+            onRefresh();
+
+        const juce::Component::SafePointer<DmcSampleBankEditorComponent> safeThis(this);
+        juce::MessageManager::callAsync([safeThis]
+        {
+            if (safeThis == nullptr)
+                return;
+
+            safeThis->rebuildRows();
+            safeThis->resized();
+        });
     }
 
     ChipperAudioProcessor& audioProcessor;
     std::function<void()> onRefresh;
     juce::Label title;
     juce::Label helper;
+    juce::TextButton selectFirstButton;
+    juce::TextButton invertButton;
+    juce::TextButton clearButton;
     juce::Viewport viewport;
     std::unique_ptr<juce::Component> listContent;
     std::vector<std::unique_ptr<Row>> rows;

@@ -90,6 +90,9 @@ public:
     juce::StringArray nesDmcSampleNames() const;
     std::vector<DmcSampleEntryInfo> nesDmcSampleEntryInfo() const;
     void setNesDmcSampleIncluded(int index, bool shouldBeIncluded);
+    void selectFirstNesDmcSamples(int maxCount);
+    void clearNesDmcSampleSelection();
+    void invertNesDmcSampleSelection();
     uint64_t nesDmcSampleRevision() const;
 
 private:

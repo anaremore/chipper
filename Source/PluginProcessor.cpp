@@ -346,6 +346,80 @@ void ChipperAudioProcessor::setNesDmcSampleIncluded(int index, bool shouldBeIncl
     activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
 }
 
+void ChipperAudioProcessor::selectFirstNesDmcSamples(int maxCount)
+{
+    bool changed = false;
+    {
+        const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+        const auto clampedCount = std::clamp(maxCount, 0, 32);
+        for (size_t i = 0; i < dmcSampleBank.size(); ++i)
+        {
+            const auto shouldBeIncluded = static_cast<int>(i) < clampedCount;
+            if (dmcSampleBank[i].included != shouldBeIncluded)
+            {
+                dmcSampleBank[i].included = shouldBeIncluded;
+                changed = true;
+            }
+        }
+
+        if (changed)
+            ++dmcSampleBankRevision;
+    }
+
+    if (! changed)
+        return;
+
+    setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
+    activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+}
+
+void ChipperAudioProcessor::clearNesDmcSampleSelection()
+{
+    bool changed = false;
+    {
+        const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+        for (auto& slot : dmcSampleBank)
+        {
+            if (slot.included)
+            {
+                slot.included = false;
+                changed = true;
+            }
+        }
+
+        if (changed)
+            ++dmcSampleBankRevision;
+    }
+
+    if (! changed)
+        return;
+
+    setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
+    activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+}
+
+void ChipperAudioProcessor::invertNesDmcSampleSelection()
+{
+    bool changed = false;
+    {
+        const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+        for (auto& slot : dmcSampleBank)
+        {
+            slot.included = ! slot.included;
+            changed = true;
+        }
+
+        if (changed)
+            ++dmcSampleBankRevision;
+    }
+
+    if (! changed)
+        return;
+
+    setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
+    activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+}
+
 uint64_t ChipperAudioProcessor::nesDmcSampleRevision() const
 {
     const std::lock_guard<std::mutex> lock(dmcSampleMutex);
