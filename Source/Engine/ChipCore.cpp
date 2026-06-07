@@ -5553,6 +5553,467 @@ private:
     PatchConfig patch;
 };
 
+class Spc700Core final : public ChipCore
+{
+public:
+    explicit Spc700Core(AccuracyMode requested)
+        : accuracy(requested)
+    {
+        channelNotes.fill(-1);
+        reset(sampleRate, clock);
+    }
+
+    void reset(double outputSampleRate, double chipClockHz) override
+    {
+        sampleRate = outputSampleRate > 0.0 ? outputSampleRate : 48000.0;
+        clock = chipClockHz > 0.0 ? chipClockHz : 32000.0;
+        pitch.fill(0x1000);
+        volume.fill(0);
+        adsr.fill(0);
+        gain.fill(0);
+        enabledMask = 0;
+        keyOnMask = 0;
+        position.fill(0.0);
+        envelope.fill(0.0);
+        channelNotes.fill(-1);
+        channelVelocity.fill(0.0f);
+        channelStamp.fill(0);
+        noteStamp = 0;
+        heldNote = -1;
+        noteVelocity = 0.0f;
+        sampleTemplate = 0;
+        echoMemory.fill(0.0);
+        echoIndex = 0;
+        for (size_t voice = 0; voice < sampleRam.size(); ++voice)
+            seedSample(voice);
+    }
+
+    void setPatch(const PatchConfig& nextPatch) override
+    {
+        if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled)
+            clearChipPolyState();
+
+        patch = nextPatch;
+        const auto nextTemplate = resolvedSampleTemplate();
+        if (nextTemplate != sampleTemplate)
+        {
+            sampleTemplate = nextTemplate;
+            for (size_t voice = 0; voice < sampleRam.size(); ++voice)
+                seedSample(voice);
+        }
+    }
+
+    void writeRegister(uint16_t address, uint8_t value) override
+    {
+        const auto reg = static_cast<uint8_t>(address & 0xffu);
+        const auto voice = static_cast<size_t>((reg >> 4u) & 7u);
+        const auto offset = reg & 0x0fu;
+
+        switch (offset)
+        {
+            case 0: pitch[voice] = static_cast<uint16_t>((pitch[voice] & 0xff00u) | value); break;
+            case 1: pitch[voice] = static_cast<uint16_t>((pitch[voice] & 0x00ffu) | ((value & 0x3fu) << 8u)); break;
+            case 2: volume[voice] = value & 0x7fu; break;
+            case 3: adsr[voice] = value; break;
+            case 4: gain[voice] = value & 0x7fu; break;
+            case 5:
+                sampleTemplate = value % 5u;
+                seedSample(voice);
+                break;
+            case 6:
+                if ((value & 0x01u) != 0)
+                    enabledMask |= static_cast<uint8_t>(1u << voice);
+                else
+                    enabledMask &= static_cast<uint8_t>(~(1u << voice));
+                break;
+            default:
+                break;
+        }
+    }
+
+    void noteOn(int midiNote, float velocity) override
+    {
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            noteOnChipPoly(midiNote, velocity);
+            return;
+        }
+
+        heldNote = std::clamp(midiNote, 0, 127);
+        noteVelocity = static_cast<float>(clamp01(velocity));
+        const auto spread = static_cast<int>(std::round(patch.control1 * 19.0f));
+        std::array<int, 8> notes {
+            heldNote,
+            heldNote + std::max(1, spread / 4),
+            heldNote + std::max(2, spread / 2),
+            heldNote + std::max(3, (spread * 3) / 4),
+            heldNote - 12,
+            heldNote + 12,
+            heldNote + 19,
+            heldNote + 24
+        };
+
+        switch (patch.macro)
+        {
+            case MacroKind::bass:
+                notes = { heldNote - 24, heldNote - 12, heldNote, heldNote + 7, heldNote - 17, heldNote + 12, heldNote + 19, heldNote + 24 };
+                break;
+            case MacroKind::arp:
+                notes = { heldNote, heldNote + 4, heldNote + 7, heldNote + 12, heldNote + 16, heldNote + 19, heldNote + 24, heldNote + 28 };
+                break;
+            case MacroKind::drum:
+            case MacroKind::hit:
+                notes = { heldNote - 24, heldNote - 17, heldNote - 12, heldNote, heldNote + 7, heldNote + 12, heldNote + 19, heldNote + 24 };
+                break;
+            case MacroKind::coin:
+                notes = { heldNote + 24, heldNote + 31, heldNote + 36, heldNote + 43, heldNote + 48, heldNote + 55, heldNote + 60, heldNote + 67 };
+                break;
+            case MacroKind::laser:
+                for (size_t voice = 0; voice < notes.size(); ++voice)
+                    notes[voice] = heldNote + 24 - static_cast<int>(voice * 4) + static_cast<int>(std::round(patch.control2 * 12.0f));
+                break;
+            case MacroKind::jump:
+                notes = { heldNote + static_cast<int>(std::round(patch.control2 * 12.0f)), heldNote + 7, heldNote + 12, heldNote + 19, heldNote + 24, heldNote + 31, heldNote + 36, heldNote + 43 };
+                break;
+            case MacroKind::powerUp:
+                notes = { heldNote, heldNote + 5, heldNote + 12, heldNote + 17, heldNote + 24, heldNote + 29, heldNote + 36, heldNote + 41 };
+                break;
+            case MacroKind::lead:
+            case MacroKind::manual:
+            default:
+                break;
+        }
+
+        enabledMask = 0;
+        keyOnMask = 0;
+        for (size_t voice = 0; voice < pitch.size(); ++voice)
+            triggerVoice(voice, notes[voice], noteVelocity, voiceActiveForPatch(voice));
+    }
+
+    void noteOff(int midiNote) override
+    {
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            noteOffChipPoly(midiNote);
+            return;
+        }
+
+        if (midiNote == heldNote)
+        {
+            heldNote = -1;
+            noteVelocity = 0.0f;
+            enabledMask = 0;
+            keyOnMask = 0;
+        }
+    }
+
+    StereoFrame renderSample() override
+    {
+        static constexpr std::array<double, 8> panPositions { -1.0, -0.72, -0.44, -0.16, 0.16, 0.44, 0.72, 1.0 };
+        double left = 0.0;
+        double right = 0.0;
+        auto audibleCount = 0;
+
+        for (size_t voice = 0; voice < pitch.size(); ++voice)
+        {
+            const auto sample = renderVoice(voice);
+            if (std::abs(sample) <= 1.0e-9)
+                continue;
+
+            ++audibleCount;
+            const auto spread = std::clamp(static_cast<double>(patch.stereoSpread), 0.0, 1.0);
+            const auto pan = panPositions[voice] * spread;
+            left += sample * (pan <= 0.0 ? 1.0 : 1.0 - pan);
+            right += sample * (pan >= 0.0 ? 1.0 : 1.0 + pan);
+        }
+
+        if (audibleCount > 0)
+        {
+            left /= static_cast<double>(audibleCount);
+            right /= static_cast<double>(audibleCount);
+        }
+
+        const auto echoAmount = std::clamp(static_cast<double>(patch.control3) * 0.45, 0.0, 0.45);
+        const auto echo = echoMemory[echoIndex];
+        echoMemory[echoIndex] = ((left + right) * 0.5) + (echo * 0.35);
+        echoIndex = (echoIndex + 1) % echoMemory.size();
+        left += echo * echoAmount;
+        right += echo * echoAmount;
+
+        return { static_cast<float>(std::clamp(left, -1.0, 1.0)),
+                 static_cast<float>(std::clamp(right, -1.0, 1.0)) };
+    }
+
+    std::vector<RegisterWrite> exportRegisterState() const override
+    {
+        std::vector<RegisterWrite> writes;
+        for (uint8_t voice = 0; voice < pitch.size(); ++voice)
+        {
+            const auto base = static_cast<uint16_t>(voice * 0x10u);
+            writes.push_back({ 0, base, static_cast<uint8_t>(pitch[voice] & 0xffu) });
+            writes.push_back({ 0, static_cast<uint16_t>(base + 1u), static_cast<uint8_t>((pitch[voice] >> 8u) & 0x3fu) });
+            writes.push_back({ 0, static_cast<uint16_t>(base + 2u), volume[voice] });
+            writes.push_back({ 0, static_cast<uint16_t>(base + 3u), adsr[voice] });
+            writes.push_back({ 0, static_cast<uint16_t>(base + 4u), gain[voice] });
+            writes.push_back({ 0, static_cast<uint16_t>(base + 5u), sampleTemplate });
+            writes.push_back({ 0, static_cast<uint16_t>(base + 6u), static_cast<uint8_t>((enabledMask >> voice) & 1u) });
+        }
+        return writes;
+    }
+
+    ChipMode mode() const override { return ChipMode::spc700; }
+    AccuracyMode requestedAccuracy() const override { return accuracy; }
+    std::string modeName() const override { return "SNES SPC700-style"; }
+    std::string implementedAccuracy() const override { return "partial clean-room sample-voice model"; }
+    std::string limitations() const override
+    {
+        return "Eight lo-fi sample voices, pitch, volume, simplified ADSR/gain state, generated sample templates, and a musical echo-color helper are modeled; BRR decoding, SPC700 CPU timing, S-DSP register edge cases, noise, FIR echo, sample directory addressing, and hardware validation are not complete.";
+    }
+
+    std::string debugStateJson() const override
+    {
+        std::ostringstream json;
+        json << "{"
+             << "\"mode\":\"SNES SPC700-style\","
+             << "\"implementedAccuracy\":\"partial clean-room sample-voice model\","
+             << "\"clockHz\":" << clock << ","
+             << "\"macro\":\"" << toString(patch.macro) << "\","
+             << "\"playMode\":\"" << toString(patch.playMode) << "\","
+             << "\"waveShapeChoice\":" << static_cast<int>(sampleTemplate) << ","
+             << "\"pitch0\":" << pitch[0] << ","
+             << "\"pitch1\":" << pitch[1] << ","
+             << "\"pitch2\":" << pitch[2] << ","
+             << "\"pitch3\":" << pitch[3] << ","
+             << "\"volume0\":" << static_cast<int>(volume[0]) << ","
+             << "\"volume1\":" << static_cast<int>(volume[1]) << ","
+             << "\"volume2\":" << static_cast<int>(volume[2]) << ","
+             << "\"volume3\":" << static_cast<int>(volume[3]) << ","
+             << "\"adsr0\":" << static_cast<int>(adsr[0]) << ","
+             << "\"gain0\":" << static_cast<int>(gain[0]) << ","
+             << "\"enabledMask\":" << static_cast<int>(enabledMask) << ","
+             << "\"keyOnMask\":" << static_cast<int>(keyOnMask) << ","
+             << "\"sourceEnabled0\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
+             << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
+             << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
+             << "\"sourceEnabled3\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+             << "\"sampleLength0\":" << sampleRam[0].size() << ","
+             << "\"uiExposesFirstFourVoices\":1,"
+             << "\"internalChannelCount\":8,"
+             << "\"activeChannels\":" << activeChipPolyChannels() << ","
+             << "\"assignedNote0\":" << channelNotes[0] << ","
+             << "\"assignedNote1\":" << channelNotes[1] << ","
+             << "\"assignedNote2\":" << channelNotes[2] << ","
+             << "\"assignedNote3\":" << channelNotes[3] << ","
+             << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
+             << "}";
+        return json.str();
+    }
+
+private:
+    uint16_t spcPitchForNote(int midiNote) const
+    {
+        const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
+        return static_cast<uint16_t>(std::clamp(std::round((hz / 32000.0) * 4096.0 * 16.0), 1.0, 16383.0));
+    }
+
+    uint8_t voiceVolumeForPatch(size_t voice, float velocity) const
+    {
+        const auto base = std::clamp(static_cast<int>(std::round(patch.control4 * 127.0f)), 1, 127);
+        const auto trim = voice < 4 ? sourceLevel(patch, voice) : 0.72f;
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<double>(base) * trim * clamp01(velocity))), 0, 127));
+    }
+
+    bool voiceActiveForPatch(size_t voice) const
+    {
+        if (voice < 4)
+            return sourceEnabled(patch, voice);
+
+        return patch.macro == MacroKind::arp
+            || patch.macro == MacroKind::hit
+            || patch.macro == MacroKind::laser
+            || patch.macro == MacroKind::powerUp;
+    }
+
+    uint8_t resolvedSampleTemplate() const
+    {
+        const auto choiceValue = std::clamp(patch.waveShape, 0, 4);
+        if (choiceValue > 0)
+            return static_cast<uint8_t>(choiceValue);
+
+        switch (patch.macro)
+        {
+            case MacroKind::bass: return 2;
+            case MacroKind::drum:
+            case MacroKind::hit: return 4;
+            case MacroKind::lead:
+            case MacroKind::arp: return 1;
+            default: return 3;
+        }
+    }
+
+    void seedSample(size_t voice)
+    {
+        auto data = std::vector<double>(64, 0.0);
+        const auto choice = sampleTemplate == 0 ? resolvedSampleTemplate() : sampleTemplate;
+        for (size_t i = 0; i < data.size(); ++i)
+        {
+            const auto phaseValue = static_cast<double>(i) / static_cast<double>(data.size());
+            double sample = 0.0;
+            switch (choice)
+            {
+                case 1: sample = std::sin(twoPi * phaseValue) * 0.75 + (((i / 8u) & 1u) ? 0.12 : -0.12); break;
+                case 2: sample = phaseValue < 0.5 ? (phaseValue * 4.0) - 1.0 : 3.0 - (phaseValue * 4.0); break;
+                case 3: sample = phaseValue < 0.5 ? 0.78 : -0.78; break;
+                case 4:
+                {
+                    const auto hash = (static_cast<int>(i) * 1664525u + static_cast<int>(voice) * 1013904223u) & 0xffffu;
+                    const auto burst = std::exp(-phaseValue * 7.0);
+                    sample = ((static_cast<double>(hash) / 32767.5) - 1.0) * burst;
+                    break;
+                }
+                default: sample = std::sin(twoPi * phaseValue); break;
+            }
+            data[i] = std::clamp(std::round(sample * 127.0) / 127.0, -1.0, 1.0);
+        }
+        sampleRam[voice] = std::move(data);
+    }
+
+    void triggerVoice(size_t voice, int midiNote, float velocity, bool shouldEnable)
+    {
+        pitch[voice] = spcPitchForNote(midiNote + static_cast<int>(std::round((patch.control2 - 0.5f) * 12.0f)));
+        volume[voice] = voiceVolumeForPatch(voice, velocity);
+        adsr[voice] = static_cast<uint8_t>(0x80u | std::clamp(static_cast<int>(std::round(patch.envelopeDecay * 15.0f)), 0, 15));
+        gain[voice] = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control4 * 127.0f)), 0, 127));
+        position[voice] = 0.0;
+        envelope[voice] = shouldEnable ? 1.0 : 0.0;
+        seedSample(voice);
+        if (shouldEnable && volume[voice] > 0)
+        {
+            enabledMask |= static_cast<uint8_t>(1u << voice);
+            keyOnMask |= static_cast<uint8_t>(1u << voice);
+        }
+    }
+
+    double renderVoice(size_t voice)
+    {
+        if ((enabledMask & (1u << voice)) == 0 || sampleRam[voice].empty() || volume[voice] == 0)
+            return 0.0;
+
+        const auto index = static_cast<size_t>(position[voice]) % sampleRam[voice].size();
+        const auto sample = sampleRam[voice][index] * (static_cast<double>(volume[voice]) / 127.0) * envelope[voice];
+        const auto playbackHz = (static_cast<double>(pitch[voice]) / (4096.0 * 16.0)) * 32000.0;
+        position[voice] += (playbackHz * static_cast<double>(sampleRam[voice].size())) / sampleRate;
+
+        if (position[voice] >= static_cast<double>(sampleRam[voice].size()))
+            position[voice] = std::fmod(position[voice], static_cast<double>(sampleRam[voice].size()));
+
+        if (patch.envelopeDecay > 0.001f)
+            envelope[voice] = std::max(0.0, envelope[voice] * (1.0 - static_cast<double>(patch.envelopeDecay) * 0.00045));
+
+        return sample;
+    }
+
+    int selectChipPolyChannel(int midiNote) const
+    {
+        for (size_t voice = 0; voice < channelNotes.size(); ++voice)
+        {
+            if (sourceEnabled(patch, voice) && channelNotes[voice] == midiNote)
+                return static_cast<int>(voice);
+        }
+        for (size_t voice = 0; voice < channelNotes.size(); ++voice)
+        {
+            if (sourceEnabled(patch, voice) && channelNotes[voice] < 0)
+                return static_cast<int>(voice);
+        }
+
+        auto oldestVoice = -1;
+        auto oldestStamp = std::numeric_limits<uint64_t>::max();
+        for (size_t voice = 0; voice < channelStamp.size(); ++voice)
+        {
+            if (sourceEnabled(patch, voice) && channelStamp[voice] < oldestStamp)
+            {
+                oldestStamp = channelStamp[voice];
+                oldestVoice = static_cast<int>(voice);
+            }
+        }
+        return oldestVoice;
+    }
+
+    int activeChipPolyChannels() const
+    {
+        int active = 0;
+        for (size_t voice = 0; voice < channelNotes.size(); ++voice)
+        {
+            if (sourceEnabled(patch, voice) && channelNotes[voice] >= 0)
+                ++active;
+        }
+        return active;
+    }
+
+    void clearChipPolyState()
+    {
+        channelNotes.fill(-1);
+        channelVelocity.fill(0.0f);
+        channelStamp.fill(0);
+        noteStamp = 0;
+        noteVelocity = 0.0f;
+        enabledMask = 0;
+        keyOnMask = 0;
+    }
+
+    void noteOnChipPoly(int midiNote, float velocity)
+    {
+        const auto voice = selectChipPolyChannel(midiNote);
+        if (voice < 0)
+            return;
+
+        const auto index = static_cast<size_t>(voice);
+        channelNotes[index] = std::clamp(midiNote, 0, 127);
+        channelVelocity[index] = static_cast<float>(clamp01(velocity));
+        channelStamp[index] = ++noteStamp;
+        triggerVoice(index, channelNotes[index], channelVelocity[index], true);
+        noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
+    }
+
+    void noteOffChipPoly(int midiNote)
+    {
+        for (size_t voice = 0; voice < channelNotes.size(); ++voice)
+        {
+            if (channelNotes[voice] != midiNote)
+                continue;
+
+            channelNotes[voice] = -1;
+            channelVelocity[voice] = 0.0f;
+            channelStamp[voice] = 0;
+            enabledMask &= static_cast<uint8_t>(~(1u << voice));
+        }
+        noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
+    }
+
+    AccuracyMode accuracy;
+    double sampleRate = 48000.0;
+    double clock = 32000.0;
+    std::array<uint16_t, 8> pitch {};
+    std::array<uint8_t, 8> volume {};
+    std::array<uint8_t, 8> adsr {};
+    std::array<uint8_t, 8> gain {};
+    uint8_t enabledMask = 0;
+    uint8_t keyOnMask = 0;
+    uint8_t sampleTemplate = 0;
+    std::array<std::vector<double>, 8> sampleRam {};
+    std::array<double, 8> position {};
+    std::array<double, 8> envelope {};
+    std::array<double, 512> echoMemory {};
+    size_t echoIndex = 0;
+    int heldNote = -1;
+    float noteVelocity = 0.0f;
+    std::array<int, 4> channelNotes {};
+    std::array<float, 4> channelVelocity {};
+    std::array<uint64_t, 4> channelStamp {};
+    uint64_t noteStamp = 0;
+    PatchConfig patch;
+};
+
 class PaulaCore final : public ChipCore
 {
 public:
@@ -5989,6 +6450,7 @@ std::unique_ptr<ChipCore> createChipCore(ChipMode mode, AccuracyMode accuracy)
         case ChipMode::sid: return std::make_unique<SidCore>(accuracy);
         case ChipMode::ym2149: return std::make_unique<Ym2149Core>(accuracy);
         case ChipMode::sn76489: return std::make_unique<Sn76489Core>(accuracy);
+        case ChipMode::spc700: return std::make_unique<Spc700Core>(accuracy);
         case ChipMode::pokey: return std::make_unique<PokeyCore>(accuracy);
         case ChipMode::paula: return std::make_unique<PaulaCore>(accuracy);
         case ChipMode::huc6280: return std::make_unique<Huc6280Core>(accuracy);

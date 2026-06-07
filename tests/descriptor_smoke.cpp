@@ -128,6 +128,7 @@ bool expectLiveSourceLevelSpecs()
         chipper::ChipMode::sid,
         chipper::ChipMode::ym2149,
         chipper::ChipMode::sn76489,
+        chipper::ChipMode::spc700,
         chipper::ChipMode::pokey,
         chipper::ChipMode::paula,
         chipper::ChipMode::huc6280,
@@ -201,7 +202,6 @@ bool expectVerificationDisclosure()
     constexpr std::array plannedModes {
         chipper::ChipMode::ym2612,
         chipper::ChipMode::opl3,
-        chipper::ChipMode::spc700,
         chipper::ChipMode::ym2151,
         chipper::ChipMode::ym2413,
         chipper::ChipMode::arcade
@@ -230,6 +230,8 @@ int main()
 
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::nes).implemented, "NES descriptor should be implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::sid).implemented, "SID descriptor should be partially implemented");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::spc700).implemented, "SPC700 descriptor should be partially implemented");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::spc700).supportsChipPoly, "SPC700 should support Chip Poly across exposed sample voices");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::pokey).implemented, "POKEY descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::pokey).supportsChipPoly, "POKEY should support Chip Poly across four channels");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::paula).implemented, "Paula descriptor should be partially implemented");
@@ -369,7 +371,9 @@ int main()
     ok &= expectMacroLabel(chipper::ChipMode::sn76489, chipper::MacroKind::drum, "PSG Drum");
     ok &= expectMacroLabel(chipper::ChipMode::ym2612, chipper::MacroKind::bass, "OPN2 FM Bass Plan");
     ok &= expectMacroLabel(chipper::ChipMode::opl3, chipper::MacroKind::drum, "OPL Rhythm Kit Plan");
-    ok &= expectMacroLabel(chipper::ChipMode::spc700, chipper::MacroKind::drum, "SPC700 Drum Map Plan");
+    ok &= expectMacroLabel(chipper::ChipMode::spc700, chipper::MacroKind::drum, "SPC700 Drum Map");
+    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Sample Shape");
+    ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, 5, "Follow");
     ok &= expectMacroLabel(chipper::ChipMode::pokey, chipper::MacroKind::lead, "POKEY Buzzy Lead");
     ok &= expectSpec(chipper::ChipMode::pokey, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Distortion Code");
     ok &= expectSegmentedRegister(chipper::ChipMode::pokey, chipper::ChipParameterRole::waveShape, 5, "Follow");

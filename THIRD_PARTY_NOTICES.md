@@ -13,6 +13,7 @@ The current partial chip cores are clean-room/internal implementations in `Sourc
 - SID / C64 partial voice/register model
 - YM2149 / AY partial PSG model
 - SN76489 partial PSG model
+- SNES SPC700-style partial sample-voice model
 - Atari POKEY partial polynomial/timer model
 - Amiga Paula partial tracker-sampler model
 - PC Engine HuC6280 partial wavetable/noise model

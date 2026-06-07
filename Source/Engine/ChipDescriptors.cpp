@@ -74,6 +74,22 @@ std::vector<MacroTemplate> pokeyMacros()
     };
 }
 
+std::vector<MacroTemplate> spc700Macros()
+{
+    return {
+        { MacroKind::manual, "SPC700 Manual", "Neutral eight-voice lo-fi sample mapping.", { 0.50f, 0.50f, 0.22f, 0.72f }, { true, true, true, true }, 0.0f, 3 },
+        { MacroKind::coin, "SPC700 UI Chime", "Short bright sample chime for menu and UI sounds.", { 0.18f, 0.74f, 0.20f, 0.78f }, { true, false, false, false }, 0.20f, 1 },
+        { MacroKind::bass, "SPC700 Soft Bass", "Rounded low sample bass with subtle echo color.", { 0.30f, 0.24f, 0.26f, 0.84f }, { true, true, false, false }, 0.08f, 2 },
+        { MacroKind::lead, "SPC700 Bell Lead", "Bright lo-fi sample lead with SNES-style softness.", { 0.58f, 0.46f, 0.30f, 0.80f }, { true, true, true, false }, 0.10f, 1 },
+        { MacroKind::arp, "SPC700 Voice Arp", "Stacked sample voices for fake chords and arps.", { 0.86f, 0.70f, 0.28f, 0.76f }, { true, true, true, true }, 0.08f, 1 },
+        { MacroKind::drum, "SPC700 Drum Map", "Short lo-fi noise sample percussion.", { 0.30f, 0.20f, 0.10f, 0.82f }, { false, false, true, true }, 0.66f, 4 },
+        { MacroKind::hit, "SPC700 Damage Hit", "Layered sample impact with echo color.", { 0.44f, 0.30f, 0.18f, 0.86f }, { true, false, true, true }, 0.62f, 4 },
+        { MacroKind::laser, "SPC700 Pitch Sweep", "Sample-pitch sweep SFX gesture.", { 0.24f, 0.96f, 0.22f, 0.78f }, { true, true, false, true }, 0.34f, 1 },
+        { MacroKind::jump, "SPC700 Jump", "Quick upward SNES-style sample blip.", { 0.22f, 0.72f, 0.18f, 0.74f }, { true, false, false, false }, 0.16f, 1 },
+        { MacroKind::powerUp, "SPC700 Power Rise", "Longer multi-voice sample rise.", { 0.74f, 0.92f, 0.36f, 0.82f }, { true, true, true, true }, 0.14f, 3 }
+    };
+}
+
 std::vector<MacroTemplate> paulaMacros()
 {
     return {
@@ -817,6 +833,58 @@ std::vector<ChipParameterSpec> pokeyParameterSpecs()
     };
 }
 
+std::vector<ChipParameterSpec> spc700ParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "spc700.voiceSpread",
+                   "Voice Spread",
+                   "Voices",
+                   "Sets pitch interval spread across SPC700-style sample voices."),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "spc700.pitchMotion",
+                   "Pitch",
+                   "Pitch",
+                   "Offsets sample pitch gestures and stacked voice intervals."),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "spc700.echoColor",
+                   "Echo Color",
+                   "Echo",
+                   "Controls a musical echo-color helper. This is not a verified S-DSP FIR echo model.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "spc700.voiceVolume",
+                   "Voice Volume",
+                   "Mixer",
+                   "Maps to simplified 7-bit per-voice volume/gain state.",
+                   ParameterKind::chipRegister,
+                   0.72f),
+        sourceSpec(ChipParameterRole::source1Enabled, "spc700.voice1.enabled", "Voice 1", "Enable SPC700-style sample voice 1."),
+        sourceSpec(ChipParameterRole::source2Enabled, "spc700.voice2.enabled", "Voice 2", "Enable SPC700-style sample voice 2."),
+        sourceSpec(ChipParameterRole::source3Enabled, "spc700.voice3.enabled", "Voice 3", "Enable SPC700-style sample voice 3."),
+        sourceSpec(ChipParameterRole::source4Enabled, "spc700.voice4.enabled", "Voice 4", "Enable SPC700-style sample voice 4. Voices 5-8 need a dedicated sample-voice UI pass."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "spc700.voice1.level", "Voice 1 Level", "Modern trim after SPC700-style voice 1 volume."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "spc700.voice2.level", "Voice 2 Level", "Modern trim after SPC700-style voice 2 volume."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "spc700.voice3.level", "Voice 3 Level", "Modern trim after SPC700-style voice 3 volume."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "spc700.voice4.level", "Voice 4 Level", "Modern trim after SPC700-style voice 4 volume."),
+        stereoSpreadSpec("spc700.stereoSpread", "Modern stereo convenience that spreads exposed sample voices; zero preserves centered output."),
+        envelopeSpec("spc700.adsrSpeed", "ADSR / Gain Speed", "Applies a simplified envelope decay helper while ADSR/gain state remains visible in debug JSON."),
+        segmentedSpec(ChipParameterRole::waveShape,
+                      "spc700.sampleShape",
+                      "Sample Shape",
+                      "Sample",
+                      "Selects the generated lo-fi sample template. Follow resolves from the selected SPC700 template.",
+                      {
+                          choice("Follow", "Use the selected SPC700 template sample.", 0.0f, 0),
+                          choice("Bell", "Rounded sample with stepped lo-fi edge.", 0.25f, 1),
+                          choice("Tri", "Triangle-style looped sample for bass.", 0.5f, 2),
+                          choice("Pulse", "Two-level looped sample.", 0.75f, 3),
+                          choice("Noise", "Short decaying noise sample for drums.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister)
+    };
+}
+
 std::vector<ChipParameterSpec> paulaParameterSpecs()
 {
     return {
@@ -1510,24 +1578,35 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::spc700,
             "SNES SPC700-style",
-            "Planned lo-fi sample playback mode. No SPC700/DSP core is integrated yet.",
+            "Partial clean-room SNES-style lo-fi sample-voice model with eight internal voices.",
             {
-                { "sample", "Sample Slot", "Sources", "Planned sample source selector." },
-                { "rate", "Playback Rate", "Tone", "Planned lo-fi rate control." },
-                { "envelope", "Envelope", "Envelope", "Planned ADSR/gain helper." },
-                { "echo", "Echo Color", "Output", "Planned SNES-style ambience helper." },
+                { "voices", "Sample Voices", "Sources", "Eight internal lo-fi sample voices; first four exposed in the current UI." },
+                { "sample", "Sample Color", "Tone", "Generated lo-fi sample templates until BRR decoding is implemented." },
+                { "echo", "Echo Color", "Output", "Musical echo-color helper, not verified S-DSP FIR echo." },
+                { "adsr", "ADSR/Gain", "Envelope", "Simplified ADSR/gain-style state and decay helper." },
             },
-            sampleModules("SNES sample-style strategy planned.", "Sample Voices", "Lo-fi Sample"),
-            plannedSampleMacros("SPC700", "BRR sample"),
-            false,
-            false,
-            {},
-            plannedDisclosure(
-                "design a sampler/DSP path separately; treat Furnace and other trackers as reference-only until audited.",
-                "SPC700-style UI should focus on sample slots, pitch/rate, ADSR or gain, voice mix, echo color, and clear lo-fi limitations.",
+            {
+                makeModule("profile", "Profile", "SPC700-style clean-room sample groundwork.", { "SNES family", "32 kHz DSP-rate default", "Hybrid default", "Authentic still partial" }),
+                makeModule("sources", "Sample Voices", "Eight internal voices with first four exposed.", { "Voice 1", "Voice 2", "Voice 3", "Voice 4" }),
+                makeModule("sample", "Sample / Pitch", "Generated lo-fi templates with simplified pitch registers.", { "Bell", "Triangle", "Pulse", "Noise burst" }),
+                makeModule("envelope", "ADSR / Gain", "Simplified gain and envelope decay helper.", { "ADSR state", "Gain state", "Decay helper", "Register readout" }),
+                makeModule("motion", "Motion", "SNES-style SFX gestures mapped to sample pitch.", { "Voice arp", "Pitch sweep", "Jump blip", "Damage hit" }),
+                makeModule("output", "Output", "Soft sample output with echo-color helper.", { "Voice volume", "Stereo spread convenience", "Echo color", "Known differences" })
+            },
+            spc700Macros(),
+            true,
+            true,
+            spc700ParameterSpecs(),
+            verifiedPartial(
                 {
-                    "No SPC700/DSP or BRR decode path is integrated.",
-                    "Sample import, BRR behavior, echo/FIR, and voice scheduling are not implemented."
+                    "Eight generated lo-fi sample voices render with pitch, volume, simplified ADSR/gain state, key-on/enabled masks, and a musical echo-color helper.",
+                    "Source enables, source levels, sample-shape choices, chip-poly allocation across the first four exposed voices, presets, and debug JSON are covered by automated renderer tests.",
+                    "No third-party SPC700, S-DSP, BRR, SNES, or tracker-player source code is vendored in this clean-room partial model."
+                },
+                {
+                    "BRR decoding, source directory/sample memory addressing, S-DSP noise, pitch modulation, FIR echo, exact ADSR/gain envelope timing, and SPC700 CPU timing are not implemented.",
+                    "Voice scheduling, loop points, echo buffer behavior, output filtering, and hardware validation still require trusted emulator and capture comparison.",
+                    "This mode is labeled SPC700-style because the implementation is a musical sample-voice approximation, not a verified SNES audio subsystem emulator."
                 })
         },
         {
