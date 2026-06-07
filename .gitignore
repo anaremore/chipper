@@ -24,3 +24,4 @@ JUCE/
 *.jucer
 __pycache__/
 *.py[cod]
+.codex-audit/
