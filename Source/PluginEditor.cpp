@@ -667,7 +667,11 @@ void OutputScopePreview::paint(juce::Graphics& g)
 
     g.setColour(juce::Colour(0xff243139).withAlpha(0.72f));
     g.drawHorizontalLine(static_cast<int>(std::round(mid)), left, right);
+    g.setColour(juce::Colour(0xff243139).withAlpha(0.36f));
+    g.drawHorizontalLine(static_cast<int>(std::round(top + (graph.getHeight() * 0.25f))), left, right);
+    g.drawHorizontalLine(static_cast<int>(std::round(top + (graph.getHeight() * 0.75f))), left, right);
 
+    g.setColour(juce::Colour(0xff243139).withAlpha(0.72f));
     for (int i = 1; i < 4; ++i)
     {
         const auto x = left + (width * static_cast<float>(i) / 4.0f);
@@ -1530,7 +1534,7 @@ void ChipperAudioProcessorEditor::resized()
     area.removeFromTop(10);
 
     constexpr auto footerReserve = 52;
-    constexpr auto performanceStripHeight = 250;
+    constexpr auto performanceStripHeight = 280;
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, 492);
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
@@ -1796,8 +1800,8 @@ void ChipperAudioProcessorEditor::resized()
     controlValueLabels[5].setJustificationType(juce::Justification::centredRight);
     controlValueLabels[5].setBounds(outputHeader);
     outputCell.removeFromTop(3);
-    outputSlider.setBounds(outputCell.removeFromTop(displayedMode == chipper::ChipMode::sid ? 18 : 24).reduced(0, 1));
-    outputCell.removeFromTop(displayedMode == chipper::ChipMode::sid ? 2 : 4);
+    outputSlider.setBounds(outputCell.removeFromTop(18).reduced(0, 1));
+    outputCell.removeFromTop(2);
     outputScopePreview.setBounds(outputCell.reduced(0, 1));
 
     auto footer = getLocalBounds().reduced(16).removeFromBottom(44);
