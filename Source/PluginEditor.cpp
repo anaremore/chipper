@@ -807,7 +807,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
     addLabeledSlider(dmcDirectSlider, dmcDirectLabel, "DMC Direct");
     dmcDirectSlider.setNumDecimalPlacesToDisplay(2);
-    dmcDirectSlider.setTooltip(withMidiCcForRole("RP2A03 $4011 direct DAC load. Adds DMC grit without claiming full DPCM sample playback.", chipper::ChipParameterRole::nesDmcDirectLevel));
+    dmcDirectSlider.setTooltip(withMidiCcForRole("RP2A03 $4011 direct DAC load. Renderer playback can step external .dmc bytes; VST sample directory/import UI remains planned.", chipper::ChipParameterRole::nesDmcDirectLevel));
     dmcDirectLabel.setTooltip(dmcDirectSlider.getTooltip());
     dmcDirectAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::nesDmcDirectLevel, dmcDirectSlider);
 
@@ -3532,13 +3532,13 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Pulse 1  |  duty lead",
         "Pulse 2  |  stack / sweep",
         "Triangle | bass body",
-        "Noise    | snare / hats"
+        "Noise/DMC | snare / sample"
     };
     static const std::array<const char*, sourceChannelCount> nesChipPolyLabels {
         "Pulse 1  |  note 1",
         "Pulse 2  |  note 2",
         "Triangle | note 3 bass",
-        "Noise    | mono SFX layer"
+        "Noise/DMC | mono SFX"
     };
     static const std::array<const char*, sourceChannelCount> dmgBigMonoLabels {
         "Pulse 1  |  sweep voice",
@@ -3700,7 +3700,9 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
         else
         {
             shape = ChipWaveformPreviewShape::noise;
-            tooltip = "RP2A03 noise channel: " + nesNoiseModeReadout(patch);
+            tooltip = "RP2A03 noise / DMC lane: " + nesNoiseModeReadout(patch)
+                + "\nDMC Direct " + nesDmcDirectReadout(patch.nesDmcDirectLevel)
+                + "\nExternal .dmc playback is renderer-backed; VST sample browser remains planned.";
         }
     }
     else if (mode == chipper::ChipMode::dmg)
@@ -4495,7 +4497,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     if (mode == chipper::ChipMode::nes)
     {
         controlValueLabels[4].setText(nesDmcDirectReadout(parameterValue(chipper::parameters::id::nesDmcDirectLevel)), juce::dontSendNotification);
-        controlValueLabels[4].setTooltip(withMidiCcForRole("RP2A03 $4011 DMC direct DAC load. Direct-level grit only; DPCM sample playback is not implemented.", chipper::ChipParameterRole::nesDmcDirectLevel));
+        controlValueLabels[4].setTooltip(withMidiCcForRole("RP2A03 $4011 DMC direct DAC load. Renderer playback can step external .dmc bytes; VST sample directory/import UI remains planned.", chipper::ChipParameterRole::nesDmcDirectLevel));
     }
     else
     {

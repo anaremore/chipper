@@ -223,8 +223,13 @@ int main()
 
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Sweep Motion");
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::pulse2Duty, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Pulse 2 Duty");
+    ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::source4Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Noise / DMC");
+    ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::source4Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Noise Level");
+    ok &= expectSpecHelpContains(chipper::ChipMode::nes, chipper::ChipParameterRole::source4Enabled, "external DPCM sample lane", "NES source 4 should disclose the DMC sample lane");
+    ok &= expectSpecHelpContains(chipper::ChipMode::nes, chipper::ChipParameterRole::source4Level, "noise source", "NES source 4 level should stay honest about trimming noise");
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcDirectLevel, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "DMC Direct Level");
     ok &= expectSpecGroup(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcDirectLevel, "DMC");
+    ok &= expectSpecHelpContains(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcDirectLevel, "external .dmc bytes", "NES DMC direct help should mention renderer-backed sample byte stepping");
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Sweep Shift");
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise Period");
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise Clock");
