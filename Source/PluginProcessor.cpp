@@ -5,6 +5,8 @@
 
 #include <algorithm>
 #include <array>
+#include <cstring>
+#include <filesystem>
 #include <string_view>
 
 namespace
@@ -106,6 +108,28 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && std::abs(a.sidVoice3PulseWidth - b.sidVoice3PulseWidth) < tolerance
         && std::abs(a.nesDmcDirectLevel - b.nesDmcDirectLevel) < tolerance;
 }
+
+juce::Result readDmcSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    if (! file.existsAsFile())
+        return juce::Result::fail("DMC sample file does not exist: " + file.getFullPathName());
+
+    if (! file.hasFileExtension(".dmc"))
+        return juce::Result::fail("Only .dmc files are supported in this build. WAV-to-DMC import is planned.");
+
+    juce::MemoryBlock block;
+    if (! file.loadFileAsData(block))
+        return juce::Result::fail("Could not read DMC sample file: " + file.getFullPathName());
+
+    if (block.getSize() == 0u)
+        return juce::Result::fail("DMC sample file is empty: " + file.getFullPathName());
+
+    slot.name = file.getFileName();
+    slot.path = file.getFullPathName();
+    slot.bytes.resize(block.getSize());
+    std::memcpy(slot.bytes.data(), block.getData(), block.getSize());
+    return juce::Result::ok();
+}
 }
 
 ChipperAudioProcessor::ChipperAudioProcessor()
@@ -127,6 +151,83 @@ void ChipperAudioProcessor::prepareToPlay(double sampleRate, int)
 
 void ChipperAudioProcessor::releaseResources()
 {
+}
+
+juce::Result ChipperAudioProcessor::loadNesDmcSampleFile(const juce::File& file)
+{
+    DmcSampleSlot slot;
+    if (auto result = readDmcSampleFile(file, slot); result.failed())
+        return result;
+
+    {
+        const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+        dmcSampleBank.clear();
+        dmcSampleBank.push_back(std::move(slot));
+        ++dmcSampleBankRevision;
+    }
+
+    setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
+    activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+    return juce::Result::ok();
+}
+
+juce::Result ChipperAudioProcessor::loadNesDmcSampleDirectory(const juce::File& directory)
+{
+    if (! directory.isDirectory())
+        return juce::Result::fail("DMC sample directory does not exist: " + directory.getFullPathName());
+
+    juce::Array<juce::File> files;
+    directory.findChildFiles(files, juce::File::findFiles, false, "*.dmc");
+    files.sort();
+
+    std::vector<DmcSampleSlot> loaded;
+    loaded.reserve(static_cast<size_t>(std::min(32, files.size())));
+    for (const auto& file : files)
+    {
+        if (loaded.size() >= 32u)
+            break;
+
+        DmcSampleSlot slot;
+        if (readDmcSampleFile(file, slot).wasOk())
+            loaded.push_back(std::move(slot));
+    }
+
+    if (loaded.empty())
+        return juce::Result::fail("No readable .dmc files found in: " + directory.getFullPathName());
+
+    {
+        const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+        dmcSampleBank = std::move(loaded);
+        ++dmcSampleBankRevision;
+    }
+
+    setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
+    activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+    return juce::Result::ok();
+}
+
+juce::String ChipperAudioProcessor::nesDmcSampleBankStatus() const
+{
+    const auto selectedSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
+
+    const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+    if (dmcSampleBank.empty())
+        return "No DMC samples loaded";
+
+    const auto safeSlot = static_cast<size_t>(std::clamp(selectedSlot, 0, static_cast<int>(dmcSampleBank.size() - 1u)));
+    const auto& slot = dmcSampleBank[safeSlot];
+    return "Slot " + juce::String(static_cast<int>(safeSlot + 1u)) + "/" + juce::String(static_cast<int>(dmcSampleBank.size()))
+        + ": " + slot.name + " (" + juce::String(static_cast<int>(slot.bytes.size())) + " bytes)";
+}
+
+juce::StringArray ChipperAudioProcessor::nesDmcSampleNames() const
+{
+    juce::StringArray names;
+    const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+    for (const auto& slot : dmcSampleBank)
+        names.add(slot.name);
+
+    return names;
 }
 
 bool ChipperAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -367,6 +468,7 @@ void ChipperAudioProcessor::ensureCore()
             replayHeldNotes();
         }
 
+        applySelectedDmcSampleToCore();
         return;
     }
 
@@ -377,8 +479,38 @@ void ChipperAudioProcessor::ensureCore()
     core = chipper::createChipCore(activeMode, activeAccuracy);
     core->reset(currentSampleRate, activeClock);
     core->setPatch(activePatch);
+    activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+    activeDmcSampleSlot = -1;
+    applySelectedDmcSampleToCore();
     replayPendingRegisterState();
     replayHeldNotes();
+}
+
+void ChipperAudioProcessor::applySelectedDmcSampleToCore()
+{
+    if (core == nullptr || activeMode != chipper::ChipMode::nes)
+        return;
+
+    const auto selectedSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
+
+    std::vector<uint8_t> selectedBytes;
+    uint64_t revision = 0;
+    {
+        const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+        revision = dmcSampleBankRevision;
+        if (! dmcSampleBank.empty())
+        {
+            const auto safeSlot = static_cast<size_t>(std::clamp(selectedSlot, 0, static_cast<int>(dmcSampleBank.size() - 1u)));
+            selectedBytes = dmcSampleBank[safeSlot].bytes;
+        }
+    }
+
+    if (revision == activeDmcSampleBankRevision && selectedSlot == activeDmcSampleSlot)
+        return;
+
+    activeDmcSampleBankRevision = revision;
+    activeDmcSampleSlot = selectedSlot;
+    core->setExternalSampleData(std::move(selectedBytes));
 }
 
 chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const

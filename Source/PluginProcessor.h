@@ -7,6 +7,9 @@
 
 #include <array>
 #include <atomic>
+#include <limits>
+#include <mutex>
+#include <string>
 #include <vector>
 
 class ChipperAudioProcessor final : public juce::AudioProcessor
@@ -14,6 +17,12 @@ class ChipperAudioProcessor final : public juce::AudioProcessor
 public:
     static constexpr size_t outputScopeSampleCount = 256;
     using OutputScopeSnapshot = std::array<float, outputScopeSampleCount>;
+    struct DmcSampleSlot
+    {
+        juce::String name;
+        juce::String path;
+        std::vector<uint8_t> bytes;
+    };
 
     ChipperAudioProcessor();
     ~ChipperAudioProcessor() override = default;
@@ -48,6 +57,10 @@ public:
     std::string currentCoreStatusDetail() const;
     chipper::ChipMode currentChipMode() const { return activeMode; }
     OutputScopeSnapshot outputScopeSnapshot() const;
+    juce::Result loadNesDmcSampleFile(const juce::File& file);
+    juce::Result loadNesDmcSampleDirectory(const juce::File& directory);
+    juce::String nesDmcSampleBankStatus() const;
+    juce::StringArray nesDmcSampleNames() const;
 
 private:
     struct HeldMidiNote
@@ -62,6 +75,7 @@ private:
     void replayHeldNotes();
     void renderRange(juce::AudioBuffer<float>& buffer, int startSample, int endSample, float outputGain);
     void pushOutputScopeSample(float sample) noexcept;
+    void applySelectedDmcSampleToCore();
     void handleMidiMessage(const juce::MidiMessage& message);
     bool handleMidiController(const juce::MidiMessage& message);
     bool setParameterFromMidiCc(const char* parameterId, int controllerValue);
@@ -78,6 +92,11 @@ private:
     double activeClock = 1789773.0;
     double currentSampleRate = 48000.0;
     std::vector<HeldMidiNote> heldNotes;
+    mutable std::mutex dmcSampleMutex;
+    std::vector<DmcSampleSlot> dmcSampleBank;
+    uint64_t dmcSampleBankRevision = 0;
+    uint64_t activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+    int activeDmcSampleSlot = -1;
     chipper::PatchConfig activePatch;
     std::vector<chipper::RegisterWrite> pendingRegisterState;
     chipper::PatchConfig lastObservedMacroPatch;

@@ -436,6 +436,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
         0.0f));
 
+    params.push_back(std::make_unique<juce::AudioParameterInt>(
+        juce::ParameterID { id::nesDmcSampleSlot, 1 },
+        "NES DMC Sample Slot",
+        0,
+        31,
+        0));
+
     return { params.begin(), params.end() };
 }
 

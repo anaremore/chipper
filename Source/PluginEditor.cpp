@@ -811,6 +811,43 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     dmcDirectLabel.setTooltip(dmcDirectSlider.getTooltip());
     dmcDirectAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::nesDmcDirectLevel, dmcDirectSlider);
 
+    dmcSampleLabel.setText("DMC Sample", juce::dontSendNotification);
+    dmcSampleLabel.setJustificationType(juce::Justification::centredLeft);
+    dmcSampleLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
+    dmcSampleLabel.setFont(juce::FontOptions(13.0f, juce::Font::bold));
+    dmcSampleLabel.setTooltip(withMidiCcForRole("Load one .dmc file or a folder of .dmc files. CC selects the active preloaded sample slot.", chipper::ChipParameterRole::nesDmcSampleSlot));
+    addAndMakeVisible(dmcSampleLabel);
+
+    dmcSampleStatusLabel.setJustificationType(juce::Justification::centredLeft);
+    dmcSampleStatusLabel.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+    dmcSampleStatusLabel.setFont(juce::FontOptions(10.0f));
+    dmcSampleStatusLabel.setMinimumHorizontalScale(0.55f);
+    dmcSampleStatusLabel.setTooltip(withMidiCcForRole("Loaded .dmc bank status. WAV-to-DMC conversion is planned, not active in this build.", chipper::ChipParameterRole::nesDmcSampleSlot));
+    addAndMakeVisible(dmcSampleStatusLabel);
+
+    dmcSampleFileButton.setButtonText("File");
+    dmcSampleFileButton.setTooltip("Load one user-provided .dmc file as a one-slot bank.");
+    dmcSampleFileButton.onClick = [this] { chooseDmcSampleFile(); };
+    addAndMakeVisible(dmcSampleFileButton);
+
+    dmcSampleFolderButton.setButtonText("Folder");
+    dmcSampleFolderButton.setTooltip("Load up to 32 user-provided .dmc files from a folder. CC117 switches slots.");
+    dmcSampleFolderButton.onClick = [this] { chooseDmcSampleDirectory(); };
+    addAndMakeVisible(dmcSampleFolderButton);
+
+    dmcSampleSlotBox.setTextWhenNothingSelected("No samples");
+    dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the active sample from the loaded .dmc bank. MIDI CC117 selects the same slot.", chipper::ChipParameterRole::nesDmcSampleSlot));
+    dmcSampleSlotBox.onChange = [this]()
+    {
+        if (suppressManualChoiceCallbacks)
+            return;
+
+        const auto selected = dmcSampleSlotBox.getSelectedId() - 1;
+        if (selected >= 0)
+            setPlainParameterValueFromUi(chipper::parameters::id::nesDmcSampleSlot, static_cast<float>(selected));
+    };
+    addAndMakeVisible(dmcSampleSlotBox);
+
     addLabeledSlider(outputSlider, outputLabel, "Output");
     outputSlider.setTextValueSuffix(" dB");
     outputSlider.setTooltip(withMidiCc("Final plugin output level.", chipper::parameters::id::outputDb));
@@ -1855,12 +1892,30 @@ void ChipperAudioProcessorEditor::resized()
     {
         clockSlider.setBounds({});
         clockLabel.setBounds({});
-        placeLabeledSliderWithReadout(dmcDirectSlider, dmcDirectLabel, controlValueLabels[4], utilityCell);
+        auto dmcCell = utilityCell;
+        auto directCell = dmcCell.removeFromTop(std::max(44, dmcCell.getHeight() / 2));
+        placeLabeledSliderWithReadout(dmcDirectSlider, dmcDirectLabel, controlValueLabels[4], directCell);
+        dmcCell.removeFromTop(4);
+        auto sampleHeader = dmcCell.removeFromTop(20);
+        dmcSampleLabel.setBounds(sampleHeader.removeFromLeft(86));
+        const auto buttonWidth = std::max(44, sampleHeader.getWidth() / 2 - 3);
+        dmcSampleFileButton.setBounds(sampleHeader.removeFromLeft(buttonWidth).reduced(0, 1));
+        sampleHeader.removeFromLeft(6);
+        dmcSampleFolderButton.setBounds(sampleHeader.removeFromLeft(buttonWidth).reduced(0, 1));
+        dmcCell.removeFromTop(2);
+        dmcSampleSlotBox.setBounds(dmcCell.removeFromTop(22).reduced(0, 1));
+        dmcCell.removeFromTop(2);
+        dmcSampleStatusLabel.setBounds(dmcCell.reduced(0, 1));
     }
     else
     {
         dmcDirectSlider.setBounds({});
         dmcDirectLabel.setBounds({});
+        dmcSampleLabel.setBounds({});
+        dmcSampleStatusLabel.setBounds({});
+        dmcSampleFileButton.setBounds({});
+        dmcSampleFolderButton.setBounds({});
+        dmcSampleSlotBox.setBounds({});
         placeLabeledSliderWithReadout(clockSlider, clockLabel, controlValueLabels[4], utilityCell);
     }
 
@@ -4212,6 +4267,79 @@ void ChipperAudioProcessorEditor::updateSnNoiseModeButtons(chipper::ChipMode mod
     snNoiseModeValueLabel.setText(noiseModeReadout(mode, patch), juce::dontSendNotification);
 }
 
+void ChipperAudioProcessorEditor::updateDmcSampleControls()
+{
+    const auto names = audioProcessor.nesDmcSampleNames();
+    const auto sampleCount = names.size();
+    const auto selectedSlot = static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcSampleSlot)));
+
+    const juce::ScopedValueSetter<bool> suppress(suppressManualChoiceCallbacks, true);
+    if (sampleCount != displayedDmcSampleCount)
+    {
+        dmcSampleSlotBox.clear(juce::dontSendNotification);
+        for (int i = 0; i < sampleCount; ++i)
+            dmcSampleSlotBox.addItem(juce::String(i + 1).paddedLeft('0', 2) + "  " + names[i], i + 1);
+
+        displayedDmcSampleCount = sampleCount;
+    }
+
+    if (sampleCount > 0)
+        dmcSampleSlotBox.setSelectedId(std::clamp(selectedSlot, 0, sampleCount - 1) + 1, juce::dontSendNotification);
+    else
+        dmcSampleSlotBox.setSelectedId(0, juce::dontSendNotification);
+
+    dmcSampleSlotBox.setEnabled(sampleCount > 0);
+    dmcSampleStatusLabel.setText(audioProcessor.nesDmcSampleBankStatus(), juce::dontSendNotification);
+    dmcSampleStatusLabel.setTooltip(withMidiCcForRole(audioProcessor.nesDmcSampleBankStatus()
+                                                          + "\nFolder loads use the first 32 sorted .dmc files in this build. Checkbox bank curation and WAV-to-DMC conversion are planned.",
+                                                      chipper::ChipParameterRole::nesDmcSampleSlot));
+}
+
+void ChipperAudioProcessorEditor::chooseDmcSampleFile()
+{
+    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose a NES DMC sample",
+                                                           juce::File {},
+                                                           "*.dmc");
+    dmcSampleChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                                  [this](const juce::FileChooser& chooser)
+                                  {
+                                      const auto file = chooser.getResult();
+                                      if (file == juce::File {})
+                                          return;
+
+                                      handleDmcSampleLoadResult(audioProcessor.loadNesDmcSampleFile(file));
+                                  });
+}
+
+void ChipperAudioProcessorEditor::chooseDmcSampleDirectory()
+{
+    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose a folder of NES DMC samples",
+                                                           juce::File {},
+                                                           "*.dmc");
+    dmcSampleChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
+                                  [this](const juce::FileChooser& chooser)
+                                  {
+                                      const auto directory = chooser.getResult();
+                                      if (directory == juce::File {})
+                                          return;
+
+                                      handleDmcSampleLoadResult(audioProcessor.loadNesDmcSampleDirectory(directory));
+                                  });
+}
+
+void ChipperAudioProcessorEditor::handleDmcSampleLoadResult(const juce::Result& result)
+{
+    if (result.failed())
+    {
+        dmcSampleStatusLabel.setText(result.getErrorMessage(), juce::dontSendNotification);
+        dmcSampleStatusLabel.setTooltip(result.getErrorMessage());
+        return;
+    }
+
+    displayedDmcSampleCount = -1;
+    updateDmcSampleControls();
+}
+
 void ChipperAudioProcessorEditor::updateDescriptorText()
 {
     const auto modeChoice = static_cast<int>(std::round(audioProcessor.getValueTreeState()
@@ -4276,6 +4404,19 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcDirectSlider.setEnabled(hasLiveCore);
     dmcDirectLabel.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     dmcDirectSlider.setAlpha(hasLiveCore ? 1.0f : 0.55f);
+    const auto showDmcSampleControls = hasLiveCore && mode == chipper::ChipMode::nes;
+    dmcSampleLabel.setVisible(showDmcSampleControls);
+    dmcSampleStatusLabel.setVisible(showDmcSampleControls);
+    dmcSampleFileButton.setVisible(showDmcSampleControls);
+    dmcSampleFolderButton.setVisible(showDmcSampleControls);
+    dmcSampleSlotBox.setVisible(showDmcSampleControls);
+    dmcSampleLabel.setEnabled(showDmcSampleControls);
+    dmcSampleStatusLabel.setEnabled(showDmcSampleControls);
+    dmcSampleFileButton.setEnabled(showDmcSampleControls);
+    dmcSampleFolderButton.setEnabled(showDmcSampleControls);
+    dmcSampleSlotBox.setEnabled(showDmcSampleControls);
+    dmcSampleLabel.setAlpha(showDmcSampleControls ? 1.0f : 0.55f);
+    dmcSampleStatusLabel.setAlpha(showDmcSampleControls ? 1.0f : 0.55f);
     clockLabel.setVisible(mode != chipper::ChipMode::nes);
     clockSlider.setVisible(mode != chipper::ChipMode::nes);
 
@@ -4498,6 +4639,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     {
         controlValueLabels[4].setText(nesDmcDirectReadout(parameterValue(chipper::parameters::id::nesDmcDirectLevel)), juce::dontSendNotification);
         controlValueLabels[4].setTooltip(withMidiCcForRole("RP2A03 $4011 DMC direct DAC load. Renderer playback can step external .dmc bytes; VST sample directory/import UI remains planned.", chipper::ChipParameterRole::nesDmcDirectLevel));
+        updateDmcSampleControls();
     }
     else
     {

@@ -1586,6 +1586,7 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::ymChannelCMix: return "ymChannelCMix";
         case chipper::ChipParameterRole::snNoiseMode: return "snNoiseMode";
         case chipper::ChipParameterRole::nesDmcDirectLevel: return "nesDmcDirectLevel";
+        case chipper::ChipParameterRole::nesDmcSampleSlot: return "nesDmcSampleSlot";
         case chipper::ChipParameterRole::clockHz: return "clockHz";
         case chipper::ChipParameterRole::outputDb: return "outputDb";
     }

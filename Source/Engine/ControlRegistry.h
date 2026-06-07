@@ -57,6 +57,7 @@ inline constexpr auto ymChannelBMix = "ymChannelBMix";
 inline constexpr auto ymChannelCMix = "ymChannelCMix";
 inline constexpr auto snNoiseMode = "snNoiseMode";
 inline constexpr auto nesDmcDirectLevel = "nesDmcDirectLevel";
+inline constexpr auto nesDmcSampleSlot = "nesDmcSampleSlot";
 }
 
 struct MidiCcMapping
@@ -66,7 +67,7 @@ struct MidiCcMapping
     const char* label = nullptr;
 };
 
-inline constexpr auto midiCcMappingCount = 47u;
+inline constexpr auto midiCcMappingCount = 48u;
 using MidiCcMappingList = std::array<MidiCcMapping, midiCcMappingCount>;
 
 const MidiCcMappingList& midiCcMappings();

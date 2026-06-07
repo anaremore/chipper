@@ -252,6 +252,9 @@ int main()
     sendController(processor, 116, 100);
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcDirectLevel), 0.787f, 0.0001f,
                      "CC116 should control NES DMC Direct Level");
+    sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 12));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcSampleSlot), 12.0f, 0.0001f,
+                     "CC117 should control NES DMC Sample Slot");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 3));
     sendController(processor, 101, controllerValueForChoice(processor, chipper::parameters::id::ymChannelAMix, 1));

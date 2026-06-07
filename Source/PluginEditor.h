@@ -233,6 +233,10 @@ private:
     void updateToneNoiseMixButtons(float value, bool shouldBeVisible);
     void updateEnvelopeDecayReadout(chipper::ChipMode mode);
     void updateSidAdsrControls(bool shouldBeVisible);
+    void updateDmcSampleControls();
+    void chooseDmcSampleFile();
+    void chooseDmcSampleDirectory();
+    void handleDmcSampleLoadResult(const juce::Result& result);
     juce::String envelopeDecayReadout(chipper::ChipMode mode, float value) const;
 
     ChipperAudioProcessor& audioProcessor;
@@ -246,6 +250,8 @@ private:
     juce::Label globalStripLabel;
     juce::Label clockLabel;
     juce::Label dmcDirectLabel;
+    juce::Label dmcSampleLabel;
+    juce::Label dmcSampleStatusLabel;
     juce::Label outputLabel;
     OutputScopePreview outputScopePreview;
     juce::Label stereoSpreadLabel;
@@ -312,6 +318,9 @@ private:
 
     juce::Slider clockSlider;
     juce::Slider dmcDirectSlider;
+    juce::TextButton dmcSampleFileButton;
+    juce::TextButton dmcSampleFolderButton;
+    juce::ComboBox dmcSampleSlotBox;
     juce::Slider outputSlider;
     juce::Slider stereoSpreadSlider;
     juce::Slider envelopeDecaySlider;
@@ -337,10 +346,12 @@ private:
     std::array<std::unique_ptr<SliderAttachment>, sidVoiceWaveCount> sidVoicePulseWidthAttachments;
     std::array<std::unique_ptr<SliderAttachment>, sourceChannelCount> sourceLevelAttachments;
     std::array<std::unique_ptr<ButtonAttachment>, sourceChannelCount> sourceEnableAttachments;
+    std::unique_ptr<juce::FileChooser> dmcSampleChooser;
 
     chipper::ChipMode displayedMode = chipper::ChipMode::custom;
     std::vector<const chipper::PresetInfo*> displayedPresets;
     bool descriptorTextInitialized = false;
+    int displayedDmcSampleCount = -1;
     bool suppressMacroTemplateApply = false;
     bool suppressPresetApply = false;
     bool suppressManualChoiceCallbacks = false;

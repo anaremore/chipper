@@ -83,6 +83,7 @@ enum class ChipParameterRole
     ymChannelCMix,
     snNoiseMode,
     nesDmcDirectLevel,
+    nesDmcSampleSlot,
     clockHz,
     outputDb
 };
