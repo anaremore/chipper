@@ -13,6 +13,8 @@ namespace
 {
 constexpr auto coreStateTag = "CHIPPER_CORE_REGISTERS";
 constexpr auto registerTag = "REG";
+constexpr auto dmcBankStateTag = "CHIPPER_DMC_BANK";
+constexpr auto dmcSampleStateTag = "DMC_SAMPLE";
 
 bool sourceLevelsMatch(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
 {
@@ -65,7 +67,8 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && a.sidVoice3WaveShape == b.sidVoice3WaveShape
         && std::abs(a.sidVoice2PulseWidth - b.sidVoice2PulseWidth) < tolerance
         && std::abs(a.sidVoice3PulseWidth - b.sidVoice3PulseWidth) < tolerance
-        && std::abs(a.nesDmcDirectLevel - b.nesDmcDirectLevel) < tolerance;
+        && std::abs(a.nesDmcDirectLevel - b.nesDmcDirectLevel) < tolerance
+        && a.nesDmcRateIndex == b.nesDmcRateIndex;
 }
 
 bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
@@ -106,7 +109,8 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && a.sidVoice3WaveShape == b.sidVoice3WaveShape
         && std::abs(a.sidVoice2PulseWidth - b.sidVoice2PulseWidth) < tolerance
         && std::abs(a.sidVoice3PulseWidth - b.sidVoice3PulseWidth) < tolerance
-        && std::abs(a.nesDmcDirectLevel - b.nesDmcDirectLevel) < tolerance;
+        && std::abs(a.nesDmcDirectLevel - b.nesDmcDirectLevel) < tolerance
+        && a.nesDmcRateIndex == b.nesDmcRateIndex;
 }
 
 juce::Result readDmcSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
@@ -489,6 +493,7 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
     setPlainParameterValue(chipper::parameters::id::ymChannelCMix, 0.0f);
     setPlainParameterValue(chipper::parameters::id::snNoiseMode, static_cast<float>(templ.snNoiseMode));
     setPlainParameterValue(chipper::parameters::id::nesDmcDirectLevel, templ.nesDmcDirectLevel);
+    setPlainParameterValue(chipper::parameters::id::nesDmcRateIndex, 15.0f);
 }
 
 void ChipperAudioProcessor::synchronizeMacroTemplateFromParameters()
@@ -651,7 +656,8 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidFilterRouting)->load())),
         apvts.getRawParameterValue(chipper::parameters::id::sidVoice2PulseWidth)->load(),
         apvts.getRawParameterValue(chipper::parameters::id::sidVoice3PulseWidth)->load(),
-        apvts.getRawParameterValue(chipper::parameters::id::nesDmcDirectLevel)->load());
+        apvts.getRawParameterValue(chipper::parameters::id::nesDmcDirectLevel)->load(),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcRateIndex)->load())));
 }
 
 void ChipperAudioProcessor::replayPendingRegisterState()
@@ -703,6 +709,8 @@ void ChipperAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
     const std::unique_ptr<juce::XmlElement> xml(state.createXml());
     while (auto* existingCoreState = xml->getChildByName(coreStateTag))
         xml->removeChildElement(existingCoreState, true);
+    while (auto* existingDmcBankState = xml->getChildByName(dmcBankStateTag))
+        xml->removeChildElement(existingDmcBankState, true);
 
     if (core != nullptr)
     {
@@ -722,6 +730,25 @@ void ChipperAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 
         xml->addChildElement(coreState);
     }
+
+    {
+        const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+        if (! dmcSampleBank.empty())
+        {
+            auto* dmcBankState = new juce::XmlElement(dmcBankStateTag);
+            dmcBankState->setAttribute("count", static_cast<int>(dmcSampleBank.size()));
+            for (const auto& slot : dmcSampleBank)
+            {
+                auto* sample = new juce::XmlElement(dmcSampleStateTag);
+                sample->setAttribute("path", slot.path);
+                sample->setAttribute("included", slot.included ? 1 : 0);
+                dmcBankState->addChildElement(sample);
+            }
+
+            xml->addChildElement(dmcBankState);
+        }
+    }
+
     copyXmlToBinary(*xml, destData);
 }
 
@@ -731,6 +758,7 @@ void ChipperAudioProcessor::setStateInformation(const void* data, int sizeInByte
     if (xml != nullptr && xml->hasTagName(apvts.state.getType()))
     {
         pendingRegisterState.clear();
+        std::vector<DmcSampleSlot> restoredDmcBank;
         if (auto* coreState = xml->getChildByName(coreStateTag))
         {
             for (const auto* child : coreState->getChildIterator())
@@ -747,7 +775,32 @@ void ChipperAudioProcessor::setStateInformation(const void* data, int sizeInByte
             xml->removeChildElement(coreState, true);
         }
 
+        if (auto* dmcBankState = xml->getChildByName(dmcBankStateTag))
+        {
+            restoredDmcBank.reserve(static_cast<size_t>(std::max(0, dmcBankState->getIntAttribute("count"))));
+            for (const auto* child : dmcBankState->getChildIterator())
+            {
+                if (child == nullptr || ! child->hasTagName(dmcSampleStateTag))
+                    continue;
+
+                DmcSampleSlot slot;
+                if (readDmcSampleFile(juce::File(child->getStringAttribute("path")), slot).wasOk())
+                {
+                    slot.included = child->getBoolAttribute("included", true);
+                    restoredDmcBank.push_back(std::move(slot));
+                }
+            }
+            xml->removeChildElement(dmcBankState, true);
+        }
+
         apvts.replaceState(juce::ValueTree::fromXml(*xml));
+        {
+            const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+            dmcSampleBank = std::move(restoredDmcBank);
+            ++dmcSampleBankRevision;
+        }
+        activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+        activeDmcSampleSlot = -1;
         core.reset();
         hasObservedMacroSnapshot = false;
     }

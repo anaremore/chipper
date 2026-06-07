@@ -252,6 +252,7 @@ private:
     juce::Label globalStripLabel;
     juce::Label clockLabel;
     juce::Label dmcDirectLabel;
+    juce::Label dmcRateLabel;
     juce::Label dmcSampleLabel;
     juce::Label dmcSampleStatusLabel;
     juce::Label outputLabel;
@@ -320,6 +321,7 @@ private:
 
     juce::Slider clockSlider;
     juce::Slider dmcDirectSlider;
+    juce::ComboBox dmcRateBox;
     juce::TextButton dmcSampleFileButton;
     juce::TextButton dmcSampleFolderButton;
     juce::TextButton dmcSampleBankButton;
@@ -341,6 +343,7 @@ private:
     std::unique_ptr<ComboBoxAttachment> playModeAttachment;
     std::unique_ptr<SliderAttachment> clockAttachment;
     std::unique_ptr<SliderAttachment> dmcDirectAttachment;
+    std::unique_ptr<ComboBoxAttachment> dmcRateAttachment;
     std::unique_ptr<SliderAttachment> outputAttachment;
     std::unique_ptr<SliderAttachment> stereoSpreadAttachment;
     std::unique_ptr<ComboBoxAttachment> sidFilterRoutingAttachment;

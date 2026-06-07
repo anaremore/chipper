@@ -339,6 +339,34 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
           0.0f,
           31.0f,
           0.0f },
+        { ChipParameterRole::nesDmcRateIndex,
+          "nes.dmcRateIndex",
+          "DMC Rate",
+          "DMC",
+          "Maps to the RP2A03 $4010 DMC rate index. Match this to the DPCM encode rate to avoid aliasing or noisy, mis-clocked playback.",
+          ParameterKind::chipRegister,
+          ControlSurface::menu,
+          {
+              choice("0 4.18 kHz", "$4010 rate index 0, NTSC period 428 CPU cycles.", 0.0f / 15.0f, 0),
+              choice("1 4.71 kHz", "$4010 rate index 1, NTSC period 380 CPU cycles.", 1.0f / 15.0f, 1),
+              choice("2 5.26 kHz", "$4010 rate index 2, NTSC period 340 CPU cycles.", 2.0f / 15.0f, 2),
+              choice("3 5.59 kHz", "$4010 rate index 3, NTSC period 320 CPU cycles.", 3.0f / 15.0f, 3),
+              choice("4 6.26 kHz", "$4010 rate index 4, NTSC period 286 CPU cycles.", 4.0f / 15.0f, 4),
+              choice("5 7.05 kHz", "$4010 rate index 5, NTSC period 254 CPU cycles.", 5.0f / 15.0f, 5),
+              choice("6 7.92 kHz", "$4010 rate index 6, NTSC period 226 CPU cycles.", 6.0f / 15.0f, 6),
+              choice("7 8.36 kHz", "$4010 rate index 7, NTSC period 214 CPU cycles.", 7.0f / 15.0f, 7),
+              choice("8 9.42 kHz", "$4010 rate index 8, NTSC period 190 CPU cycles.", 8.0f / 15.0f, 8),
+              choice("9 11.19 kHz", "$4010 rate index 9, NTSC period 160 CPU cycles.", 9.0f / 15.0f, 9),
+              choice("10 12.60 kHz", "$4010 rate index 10, NTSC period 142 CPU cycles.", 10.0f / 15.0f, 10),
+              choice("11 13.98 kHz", "$4010 rate index 11, NTSC period 128 CPU cycles.", 11.0f / 15.0f, 11),
+              choice("12 16.88 kHz", "$4010 rate index 12, NTSC period 106 CPU cycles.", 12.0f / 15.0f, 12),
+              choice("13 21.10 kHz", "$4010 rate index 13, NTSC period 85 CPU cycles.", 13.0f / 15.0f, 13),
+              choice("14 24.86 kHz", "$4010 rate index 14, NTSC period 72 CPU cycles.", 14.0f / 15.0f, 14),
+              choice("15 33.14 kHz", "$4010 rate index 15, NTSC period 54 CPU cycles.", 1.0f, 15)
+          },
+          0.0f,
+          15.0f,
+          15.0f },
         envelopeSpec("nes.envelopeDecay", "Envelope Decay", "Maps musical decay to APU envelope period values."),
         segmentedSpec(ChipParameterRole::snNoiseMode,
                       "nes.noiseMode",
@@ -1266,7 +1294,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int sidFilterRouting,
                             float sidVoice2PulseWidth,
                             float sidVoice3PulseWidth,
-                            float nesDmcDirectLevel)
+                            float nesDmcDirectLevel,
+                            int nesDmcRateIndex)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : 20;
@@ -1314,7 +1343,8 @@ PatchConfig makePatchConfig(ChipMode mode,
         std::clamp(sidVoice3WaveShape, 0, 8),
         clampControl(sidVoice2PulseWidth),
         clampControl(sidVoice3PulseWidth),
-        clampControl(nesDmcDirectLevel)
+        clampControl(nesDmcDirectLevel),
+        std::clamp(nesDmcRateIndex, 0, 15)
     };
 }
 

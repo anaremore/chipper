@@ -233,6 +233,9 @@ int main()
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcSampleSlot, chipper::ParameterKind::steppedNumeric, chipper::ControlSurface::steppedSlider, "DMC Sample Slot");
     ok &= expectSpecGroup(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcSampleSlot, "DMC");
     ok &= expectSpecHelpContains(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcSampleSlot, "checked .dmc sample", "NES DMC sample slot help should disclose checked bank behavior");
+    ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcRateIndex, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "DMC Rate");
+    ok &= expectSpecGroup(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcRateIndex, "DMC");
+    ok &= expectSpecHelpContains(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcRateIndex, "$4010", "NES DMC rate help should mention the hardware rate register");
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Sweep Shift");
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise Period");
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise Clock");

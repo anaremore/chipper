@@ -42,5 +42,6 @@ juce::StringArray dmgStereoRouteChoices();
 juce::StringArray ymEnvelopeShapeChoices();
 juce::StringArray ymChannelMixChoices();
 juce::StringArray snNoiseModeChoices();
+juce::StringArray nesDmcRateChoices();
 
 } // namespace chipper::parameters

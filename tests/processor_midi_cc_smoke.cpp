@@ -263,6 +263,9 @@ int main()
     sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 12));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcSampleSlot), 12.0f, 0.0001f,
                      "CC117 should control NES DMC Sample Slot");
+    sendController(processor, 118, controllerValueForChoice(processor, chipper::parameters::id::nesDmcRateIndex, 3));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcRateIndex), 3.0f, 0.0001f,
+                     "CC118 should control NES DMC Rate Index");
 
     auto dmcDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-dmc-bank-curation-test");
     dmcDir.deleteRecursively();
@@ -293,6 +296,19 @@ int main()
     ok &= expect(activeNames.size() == 32, "Checking a staged DMC entry should refill the active bank");
     ok &= expect(activeNames[31] == "sample-32.dmc", "Checked staged DMC entry should become the final active slot");
     ok &= expect(entryInfo[32].included && entryInfo[32].activeSlot, "Checked staged DMC entry should report active");
+
+    juce::MemoryBlock savedState;
+    processor.getStateInformation(savedState);
+    ChipperAudioProcessor restoredProcessor;
+    restoredProcessor.prepareToPlay(48000.0, 64);
+    restoredProcessor.setStateInformation(savedState.getData(), static_cast<int>(savedState.getSize()));
+    auto restoredEntries = restoredProcessor.nesDmcSampleEntryInfo();
+    auto restoredActiveNames = restoredProcessor.nesDmcSampleNames();
+    ok &= expect(restoredEntries.size() == 34u, "DMC state restore should reload staged sample paths");
+    ok &= expect(restoredActiveNames.size() == 32, "DMC state restore should preserve active slot count");
+    ok &= expect(restoredEntries[0].included == false, "DMC state restore should preserve unchecked entries");
+    ok &= expect(restoredEntries[32].included && restoredEntries[32].activeSlot, "DMC state restore should preserve checked staged entries");
+    ok &= expect(restoredActiveNames[31] == "sample-32.dmc", "DMC state restore should preserve active bank ordering");
     dmcDir.deleteRecursively();
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 3));

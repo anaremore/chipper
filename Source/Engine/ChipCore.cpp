@@ -2128,6 +2128,7 @@ public:
         writeRegister(0x400c, nesNoiseEnvelopeValue(noiseVol));
         writeRegister(0x400e, nesNoiseRegisterForPatch(patch));
         writeRegister(0x400f, 0x18);
+        regs[0x10] = static_cast<uint8_t>((regs[0x10] & 0xf0u) | static_cast<uint8_t>(patch.nesDmcRateIndex & 0x0f));
         writeRegister(0x4015, static_cast<uint8_t>(enable));
     }
 

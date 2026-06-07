@@ -129,6 +129,28 @@ juce::StringArray snNoiseModeChoices()
     return { "Follow", "Mode 1", "Mode 2", "Mode 3", "Mode 4" };
 }
 
+juce::StringArray nesDmcRateChoices()
+{
+    return {
+        "0 4.18 kHz",
+        "1 4.71 kHz",
+        "2 5.26 kHz",
+        "3 5.59 kHz",
+        "4 6.26 kHz",
+        "5 7.05 kHz",
+        "6 7.92 kHz",
+        "7 8.36 kHz",
+        "8 9.42 kHz",
+        "9 11.19 kHz",
+        "10 12.60 kHz",
+        "11 13.98 kHz",
+        "12 16.88 kHz",
+        "13 21.10 kHz",
+        "14 24.86 kHz",
+        "15 33.14 kHz"
+    };
+}
+
 const MidiCcMappingList& midiCcMappings()
 {
     return ::chipper::midiCcMappings();
@@ -442,6 +464,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         0,
         31,
         0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::nesDmcRateIndex, 1 },
+        "NES DMC Rate",
+        nesDmcRateChoices(),
+        15));
 
     return { params.begin(), params.end() };
 }

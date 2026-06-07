@@ -943,6 +943,23 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     dmcDirectLabel.setTooltip(dmcDirectSlider.getTooltip());
     dmcDirectAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::nesDmcDirectLevel, dmcDirectSlider);
 
+    dmcRateLabel.setText("DMC Rate", juce::dontSendNotification);
+    dmcRateLabel.setJustificationType(juce::Justification::centredLeft);
+    dmcRateLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
+    dmcRateLabel.setFont(juce::FontOptions(13.0f, juce::Font::bold));
+    dmcRateLabel.setTooltip(withMidiCcForRole("RP2A03 $4010 DMC rate index. Match this to the sample's DPCM encode rate.", chipper::ChipParameterRole::nesDmcRateIndex));
+    addAndMakeVisible(dmcRateLabel);
+
+    dmcRateBox.setTextWhenNothingSelected("Rate");
+    dmcRateBox.setTooltip(dmcRateLabel.getTooltip());
+    {
+        const auto choices = chipper::parameters::nesDmcRateChoices();
+        for (int i = 0; i < choices.size(); ++i)
+            dmcRateBox.addItem(choices[i], i + 1);
+    }
+    addAndMakeVisible(dmcRateBox);
+    dmcRateAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::nesDmcRateIndex, dmcRateBox);
+
     dmcSampleLabel.setText("DMC Sample", juce::dontSendNotification);
     dmcSampleLabel.setJustificationType(juce::Justification::centredLeft);
     dmcSampleLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
@@ -2031,7 +2048,11 @@ void ChipperAudioProcessorEditor::resized()
         clockLabel.setBounds({});
         auto dmcCell = utilityCell;
         auto directCell = dmcCell.removeFromTop(std::max(44, dmcCell.getHeight() / 2));
+        auto rateCell = directCell.removeFromRight(std::max(116, directCell.getWidth() / 3));
+        directCell.removeFromRight(8);
         placeLabeledSliderWithReadout(dmcDirectSlider, dmcDirectLabel, controlValueLabels[4], directCell);
+        dmcRateLabel.setBounds(rateCell.removeFromTop(16));
+        dmcRateBox.setBounds(rateCell.removeFromTop(24).reduced(0, 1));
         dmcCell.removeFromTop(4);
         auto sampleHeader = dmcCell.removeFromTop(20);
         dmcSampleLabel.setBounds(sampleHeader.removeFromLeft(78));
@@ -2050,6 +2071,8 @@ void ChipperAudioProcessorEditor::resized()
     {
         dmcDirectSlider.setBounds({});
         dmcDirectLabel.setBounds({});
+        dmcRateLabel.setBounds({});
+        dmcRateBox.setBounds({});
         dmcSampleLabel.setBounds({});
         dmcSampleStatusLabel.setBounds({});
         dmcSampleFileButton.setBounds({});
@@ -2800,7 +2823,8 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidFilterRouting))),
         parameterValue(chipper::parameters::id::sidVoice2PulseWidth),
         parameterValue(chipper::parameters::id::sidVoice3PulseWidth),
-        parameterValue(chipper::parameters::id::nesDmcDirectLevel));
+        parameterValue(chipper::parameters::id::nesDmcDirectLevel),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcRateIndex))));
 }
 
 bool ChipperAudioProcessorEditor::usesPulseDutySegment(chipper::ChipMode mode) const
@@ -4555,10 +4579,16 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     clockSlider.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     dmcDirectLabel.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);
     dmcDirectSlider.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);
+    dmcRateLabel.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);
+    dmcRateBox.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);
     dmcDirectLabel.setEnabled(hasLiveCore);
     dmcDirectSlider.setEnabled(hasLiveCore);
+    dmcRateLabel.setEnabled(hasLiveCore);
+    dmcRateBox.setEnabled(hasLiveCore);
     dmcDirectLabel.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     dmcDirectSlider.setAlpha(hasLiveCore ? 1.0f : 0.55f);
+    dmcRateLabel.setAlpha(hasLiveCore ? 1.0f : 0.55f);
+    dmcRateBox.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     const auto showDmcSampleControls = hasLiveCore && mode == chipper::ChipMode::nes;
     dmcSampleLabel.setVisible(showDmcSampleControls);
     dmcSampleStatusLabel.setVisible(showDmcSampleControls);
