@@ -388,6 +388,17 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
           0.0f,
           127.0f,
           36.0f },
+        { ChipParameterRole::nesDmcLoop,
+          "nes.dmcLoop",
+          "DMC Loop",
+          "DMC",
+          "Maps to the RP2A03 $4010 loop bit. Off plays the selected DMC sample once; Loop repeats it from the first byte.",
+          ParameterKind::chipRegister,
+          ControlSurface::toggle,
+          {},
+          0.0f,
+          1.0f,
+          0.0f },
         envelopeSpec("nes.envelopeDecay", "Envelope Decay", "Maps musical decay to APU envelope period values."),
         segmentedSpec(ChipParameterRole::snNoiseMode,
                       "nes.noiseMode",
@@ -944,7 +955,7 @@ const std::vector<ChipDescriptor>& descriptors()
             nesParameterSpecs(),
             verifiedPartial(
                 {
-                    "Pulse duty choices, pulse-2 duty override, sweep add/negate/mute paths, triangle linear counter behavior, noise mode/period controls, DMC direct level via event traces and APVTS/CC parameter mapping, external DPCM byte stepping from a generated test fixture, frame-counter register paths, source gating, Chip Poly, presets, and MIDI CC metadata are covered by renderer tests."
+                    "Pulse duty choices, pulse-2 duty override, sweep add/negate/mute paths, triangle linear counter behavior, noise mode/period controls, DMC direct level via event traces and APVTS/CC parameter mapping, DMC rate and loop-bit controls, external DPCM byte stepping from a generated test fixture, frame-counter register paths, source gating, Chip Poly, presets, and MIDI CC metadata are covered by renderer tests."
                 },
                 {
                     "Exact DMC DMA/address/IRQ timing, frame-sequencer cycle timing, hardware capture comparison, and cycle accuracy are not claimed.",
@@ -1316,7 +1327,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float sidVoice2PulseWidth,
                             float sidVoice3PulseWidth,
                             float nesDmcDirectLevel,
-                            int nesDmcRateIndex)
+                            int nesDmcRateIndex,
+                            bool nesDmcLoop)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : 20;
@@ -1365,7 +1377,8 @@ PatchConfig makePatchConfig(ChipMode mode,
         clampControl(sidVoice2PulseWidth),
         clampControl(sidVoice3PulseWidth),
         clampControl(nesDmcDirectLevel),
-        std::clamp(nesDmcRateIndex, 0, 15)
+        std::clamp(nesDmcRateIndex, 0, 15),
+        nesDmcLoop
     };
 }
 

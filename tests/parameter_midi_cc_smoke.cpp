@@ -79,7 +79,7 @@ int main()
                      "MIDI CC reverse lookup does not return the mapped controller");
     }
 
-    ok &= expect(chipper::parameters::parameterIdForMidiController(68) == nullptr,
+    ok &= expect(chipper::parameters::parameterIdForMidiController(67) == nullptr,
                  "Unexpected MIDI CC mapping below the Chipper control block");
     ok &= expect(chipper::parameters::parameterIdForMidiController(120) == nullptr,
                  "Unexpected MIDI CC mapping above the Chipper control block");

@@ -120,9 +120,9 @@ int main()
                          "CC" + std::to_string(mapping.controller) + " should set " + mapping.label + " to maximum");
     }
 
-    sendController(processor, 68, 127);
+    sendController(processor, 67, 127);
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl1), 1.0f, 0.0001f,
-                     "Unmapped CC68 should not change mapped parameters");
+                     "Unmapped CC67 should not change mapped parameters");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 0));
     sendController(processor, 76, 127);
@@ -278,6 +278,9 @@ int main()
     sendController(processor, 69, controllerValueForChoice(processor, chipper::parameters::id::nesDmcMapRoot, 36));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcMapRoot), 36.0f, 0.0001f,
                      "CC69 should control NES DMC Map Root");
+    sendController(processor, 68, 127);
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcLoop), 1.0f, 0.0001f,
+                     "CC68 should control NES DMC Loop");
 
     auto dmcDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-dmc-bank-curation-test");
     dmcDir.deleteRecursively();
@@ -302,10 +305,11 @@ int main()
     ok &= expect(playbackInfo.byteCount == 4, "DMC playback info should report selected byte count");
     ok &= expect(playbackInfo.bitCount == 32, "DMC playback info should report selected bit count");
     ok &= expect(playbackInfo.rateIndex == 3, "DMC playback info should follow the CC118-selected rate index");
+    ok &= expect(playbackInfo.loopEnabled, "DMC playback info should follow the CC68 loop toggle");
     ok &= expect(playbackInfo.bitRateHz > 5500.0 && playbackInfo.bitRateHz < 5600.0,
                  "DMC playback info should estimate bit clock from the selected rate index");
-    ok &= expect(playbackInfo.statusLine.contains("bytes") && playbackInfo.statusLine.contains("ms @ rate 3"),
-                 "DMC status should include bytes, duration, and rate");
+    ok &= expect(playbackInfo.statusLine.contains("bytes") && playbackInfo.statusLine.contains("ms @ rate 3") && playbackInfo.statusLine.contains("Loop"),
+                 "DMC status should include bytes, duration, rate, and loop state");
 
     processor.clearNesDmcSampleSelection();
     activeNames = processor.nesDmcSampleNames();
@@ -429,6 +433,8 @@ int main()
                      "CC74 NES macro change should reset DMC playback mode to Manual Slot");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcMapRoot), 36.0f, 0.0001f,
                      "CC74 NES macro change should reset DMC Map Root to C1");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcLoop), 0.0f, 0.0001f,
+                     "CC74 NES macro change should reset DMC Loop to one-shot");
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 5));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcDirectLevel), 0.32f, 0.001f,
                      "CC74 NES Drum macro should apply DMC Direct template level");

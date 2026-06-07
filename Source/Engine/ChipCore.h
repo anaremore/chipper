@@ -103,6 +103,7 @@ struct PatchConfig
     float sidVoice3PulseWidth = 0.5f;
     float nesDmcDirectLevel = 0.0f;
     int nesDmcRateIndex = 15;
+    bool nesDmcLoop = false;
 };
 
 struct StereoFrame

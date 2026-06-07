@@ -1959,6 +1959,10 @@ public:
             clearChipPolyState();
 
         patch = newPatch;
+        if (patch.nesDmcLoop)
+            regs[0x10] = static_cast<uint8_t>(regs[0x10] | 0x40u);
+        else
+            regs[0x10] = static_cast<uint8_t>(regs[0x10] & ~0x40u);
         regs[0x11] = nesDmcDirectLevelForControl(patch.nesDmcDirectLevel);
     }
 
@@ -2221,6 +2225,8 @@ public:
              << "\"dmcSampleBitsPlayed\":" << dmcBitsPlayed << ","
              << "\"dmcRateIndex\":" << static_cast<int>(dmcRateIndex()) << ","
              << "\"dmcRatePeriodCycles\":" << dmcRatePeriodCycles() << ","
+             << "\"dmcLoopEnabled\":" << (dmcLoopEnabled() ? 1 : 0) << ","
+             << "\"dmcControlRegister\":" << static_cast<int>(regs[0x10]) << ","
              << "\"enabled0\":" << (enabled[0] ? 1 : 0) << ","
              << "\"enabled1\":" << (enabled[1] ? 1 : 0) << ","
              << "\"enabled2\":" << (enabled[2] ? 1 : 0) << ","

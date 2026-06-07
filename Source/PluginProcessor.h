@@ -46,6 +46,7 @@ public:
         int playbackMode = 0;
         int mapRootNote = 36;
         int mapHighNote = 36;
+        bool loopEnabled = false;
         double bitRateHz = 0.0;
         double durationMs = 0.0;
     };

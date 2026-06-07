@@ -499,6 +499,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         midiNoteChoices(),
         36));
 
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID { id::nesDmcLoop, 1 },
+        "NES DMC Loop",
+        false));
+
     return { params.begin(), params.end() };
 }
 
