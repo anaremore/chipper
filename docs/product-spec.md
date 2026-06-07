@@ -9,7 +9,7 @@ The plugin must not use generic retro oscillators with famous chip labels. Each 
 - **NES/RP2A03:** two pulse channels, triangle, noise, DMC behavior, nonlinear mixer.
 - **Game Boy/DMG:** two pulse channels, wave RAM channel, noise, envelopes, length, sweep.
 - **SID/C64:** 6581/8580 variants, three oscillator voices, pulse/saw/triangle/noise, PWM, sync/ring mod, ADSR quirks, filter, resonance, drive.
-- **YM2149/AY:** three square tone channels, shared noise, mixer bits, hardware envelope shapes, buzzy arcade/computer character.
+- **YM2149/AY:** three square tone channels backed by `emu2149`, shared noise, mixer bits, hardware envelope shapes, buzzy arcade/computer character.
 - **SN76489:** three tone channels, noise modes, attenuation, Sega PSG behavior. The current partial core is backed by vendored MIT emu76489.
 - **YM2612/OPN2:** six-channel FM, operators, algorithms, feedback, LFO, DAC behavior, stereo.
 - **OPL2/OPL3:** two-operator FM, rhythm mode, waveform variants, envelopes, stereo for OPL3.

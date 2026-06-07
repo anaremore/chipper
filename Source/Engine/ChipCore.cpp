@@ -13,6 +13,7 @@
 
 extern "C"
 {
+#include "emu2149.h"
 #include "emu2413.h"
 #include "emu76489.h"
 }
@@ -2935,26 +2936,31 @@ class Ym2149Core final : public ChipCore
 public:
     explicit Ym2149Core(AccuracyMode selectedAccuracy) : accuracy(selectedAccuracy) {}
 
+    ~Ym2149Core() override
+    {
+        if (emu != nullptr)
+            PSG_delete(emu);
+    }
+
     void reset(double outputSampleRate, double chipClockHz) override
     {
         sampleRate = outputSampleRate;
         clock = chipClockHz > 0.0 ? chipClockHz : 2000000.0;
+        resetEmu();
         regs.fill(0);
-        tonePhase.fill(0.0);
-        noisePhase = 0.0;
         envelopeStepPhase = 0.0;
         envelopeCounter = 0;
         envelopeDirection = 1;
         envelopeHolding = false;
         envelopeResetCount = 0;
         envelopeVolume = 0.0;
-        lfsr = 0x1ffff;
         heldNote = -1;
         noteVelocity = 0.0f;
         channelNotes.fill(-1);
         channelVelocity.fill(0.0f);
         channelStamp.fill(0);
         noteStamp = 0;
+        syncEmuRegisters();
     }
 
     void setPatch(const PatchConfig& newPatch) override
@@ -2963,6 +2969,7 @@ public:
             clearChipPolyState();
 
         patch = newPatch;
+        syncEmuRegisters();
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -2971,6 +2978,7 @@ public:
         regs[reg] = value;
         if (reg == 13)
             resetEnvelopeCounter();
+        writeEmuRegister(static_cast<uint8_t>(reg), value);
     }
 
     void noteOn(int midiNote, float velocity) override
@@ -3082,8 +3090,9 @@ public:
 
     StereoFrame renderSample() override
     {
-        updateNoise();
         updateEnvelope();
+        if (emu != nullptr)
+            static_cast<void>(PSG_calc(emu));
 
         static constexpr std::array<double, 3> panPositions { -1.0, 0.0, 1.0 };
         double left = 0.0;
@@ -3112,10 +3121,10 @@ public:
     ChipMode mode() const override { return ChipMode::ym2149; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
     std::string modeName() const override { return "YM2149 / AY-3-8910"; }
-    std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
+    std::string implementedAccuracy() const override { return "partial emu2149-backed register-level"; }
     std::string limitations() const override
     {
-        return "Tone/noise registers, mixer bits including per-channel tone/noise override choices, logarithmic DAC volume approximation, YM-style 32-step envelope counter/reset behavior, and YM channel allocation for Chip Poly play mode are modeled; exact analog output curve, AY/YM variant differences, and hardware timing validation are still required.";
+        return "MIT emu2149 is used for YM2149/AY tone/noise/envelope generation while Chipper maps musical controls to PSG register writes; per-channel source trims, modern stereo spread, macro templates, and Chip Poly allocation remain Chipper-side instrument conveniences. Exact analog output curve, AY/YM variant differences, external golden comparison, and hardware timing validation are still required.";
     }
 
     std::string debugStateJson() const override
@@ -3123,7 +3132,8 @@ public:
         std::ostringstream json;
         json << "{"
              << "\"mode\":\"YM2149 / AY-3-8910\","
-             << "\"implementedAccuracy\":\"partial clean-room register-level\","
+             << "\"implementedAccuracy\":\"partial emu2149-backed register-level\","
+             << "\"core\":\"emu2149\","
              << "\"clockHz\":" << clock << ","
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
@@ -3264,6 +3274,36 @@ private:
         writeYmVolumeRegister(static_cast<uint16_t>(8 + channel), volume);
     }
 
+    void resetEmu()
+    {
+        if (emu != nullptr)
+            PSG_delete(emu);
+
+        emu = PSG_new(static_cast<uint32_t>(std::max(1.0, std::round(clock))),
+                      static_cast<uint32_t>(std::max(1.0, std::round(sampleRate))));
+        if (emu != nullptr)
+        {
+            PSG_reset(emu);
+            PSG_setQuality(emu, 0);
+            PSG_setVolumeMode(emu, 1);
+        }
+    }
+
+    void writeEmuRegister(uint8_t reg, uint8_t value)
+    {
+        if (emu != nullptr)
+            PSG_writeReg(emu, reg, value);
+    }
+
+    void syncEmuRegisters()
+    {
+        if (emu == nullptr)
+            return;
+
+        for (uint8_t reg = 0; reg < regs.size(); ++reg)
+            writeEmuRegister(reg, regs[reg]);
+    }
+
     int selectChipPolyChannel(int midiNote) const
     {
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
@@ -3383,21 +3423,6 @@ private:
         return logarithmicLevelToLinear(counter, envelopeStepResolution - 1);
     }
 
-    void updateNoise()
-    {
-        const auto period = std::max(1, static_cast<int>(regs[6] & 0x1f));
-        const auto hz = clock / (16.0 * static_cast<double>(period));
-        noisePhase += hz / sampleRate;
-        while (noisePhase >= 1.0)
-        {
-            noisePhase -= 1.0;
-            const auto feedback = (lfsr & 1u) ^ ((lfsr >> 3u) & 1u);
-            lfsr = ((lfsr >> 1u) | (feedback << 16u)) & 0x1ffffu;
-            if (lfsr == 0)
-                lfsr = 1;
-        }
-    }
-
     double envelopeStepRateHz() const
     {
         const auto period = std::max(1, static_cast<int>(envelopePeriodRegister()));
@@ -3465,42 +3490,39 @@ private:
 
     double renderChannel(int channel)
     {
-        const auto period = tonePeriod(channel);
-        const auto hz = clock / (16.0 * static_cast<double>(period));
-        tonePhase[static_cast<size_t>(channel)] = wrapPhase(tonePhase[static_cast<size_t>(channel)] + hz / sampleRate);
+        if (emu == nullptr || channel < 0 || channel >= 3)
+            return 0.0;
 
         const auto toneDisabled = (regs[7] & (1u << channel)) != 0;
         const auto noiseDisabled = (regs[7] & (1u << (channel + 3))) != 0;
-        const auto tone = tonePhase[static_cast<size_t>(channel)] < 0.5 ? 1.0 : -1.0;
-        const auto noise = (lfsr & 1u) != 0 ? 1.0 : -1.0;
+        if (toneDisabled && noiseDisabled)
+            return 0.0;
+
         const auto channelTrim = sourceLevel(patch, static_cast<size_t>(channel));
         const auto noiseTrim = sourceLevel(patch, 3);
-
-        double gate = 1.0;
+        auto trim = channelTrim;
         if (toneDisabled && ! noiseDisabled)
-            gate = noise * noiseTrim;
-        else if (! toneDisabled && noiseDisabled)
-            gate = tone;
+            trim *= noiseTrim;
         else if (! toneDisabled && ! noiseDisabled)
-            gate = tone * (1.0 + ((noise - 1.0) * noiseTrim));
+            trim *= std::max(0.0, 0.5 + (noiseTrim * 0.5));
 
-        return gate * channelVolume(channel) * channelTrim;
+        const auto raw = static_cast<double>(emu->ch_out[static_cast<size_t>(channel)]) / 2048.0;
+        const auto centered = raw - channelVolume(channel);
+        return centered * trim;
     }
 
     AccuracyMode accuracy;
     static constexpr int envelopeStepResolution = 32;
     double sampleRate = 48000.0;
     double clock = 2000000.0;
+    PSG* emu = nullptr;
     std::array<uint8_t, 16> regs {};
-    std::array<double, 3> tonePhase {};
-    double noisePhase = 0.0;
     double envelopeStepPhase = 0.0;
     double envelopeVolume = 0.0;
     int envelopeCounter = 0;
     int envelopeDirection = 1;
     int envelopeResetCount = 0;
     bool envelopeHolding = false;
-    uint32_t lfsr = 0x1ffff;
     int heldNote = -1;
     float noteVelocity = 0.0f;
     std::array<int, 3> channelNotes { -1, -1, -1 };

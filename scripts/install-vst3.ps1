@@ -188,6 +188,13 @@ function Copy-ChipperLegalNotices {
         New-Item -ItemType Directory -Force -Path $emu76489Path | Out-Null
         Copy-Item -Force -LiteralPath $emu76489License -Destination (Join-Path $emu76489Path "LICENSE")
     }
+
+    $emu2149License = Join-Path $repoRoot "ThirdParty\emu2149\LICENSE"
+    if (Test-Path -LiteralPath $emu2149License) {
+        $emu2149Path = Join-Path $legalPath "emu2149"
+        New-Item -ItemType Directory -Force -Path $emu2149Path | Out-Null
+        Copy-Item -Force -LiteralPath $emu2149License -Destination (Join-Path $emu2149Path "LICENSE")
+    }
 }
 
 function Copy-ChipperBundle {

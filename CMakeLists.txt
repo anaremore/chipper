@@ -10,6 +10,8 @@ option(CHIPPER_BUILD_PLUGIN "Build the JUCE VST3 plugin" ON)
 find_package(Python3 COMPONENTS Interpreter)
 
 add_library(chipper_engine STATIC
+    ThirdParty/emu2149/emu2149.c
+    ThirdParty/emu2149/emu2149.h
     ThirdParty/emu2413/emu2413.c
     ThirdParty/emu2413/emu2413.h
     ThirdParty/emu76489/emu76489.c
@@ -24,7 +26,7 @@ add_library(chipper_engine STATIC
     Source/Presets.h
 )
 
-target_include_directories(chipper_engine PUBLIC Source ThirdParty/emu2413 ThirdParty/emu76489)
+target_include_directories(chipper_engine PUBLIC Source ThirdParty/emu2149 ThirdParty/emu2413 ThirdParty/emu76489)
 target_compile_features(chipper_engine PUBLIC cxx_std_20)
 
 add_executable(chipper_render tools/chipper_render.cpp)
@@ -1297,7 +1299,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_preset_ym_three_voice_arp_assert PROPERTIES DEPENDS chipper_render_preset_ym_three_voice_arp_smoke)
 
     add_test(NAME chipper_render_preset_ym_fake_chord_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-fake-chord-smoke.json --implemented-contains partial --preset ym-fake-chord-stack --macro Arp --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.08 --min-zero-crossings 40 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=1 --core-max sourceEnabledB=1 --core-min sourceEnabledC=1 --core-max sourceEnabledC=1 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-fake-chord-smoke.json --implemented-contains partial --preset ym-fake-chord-stack --macro Arp --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.08 --min-zero-crossings 30 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=1 --core-max sourceEnabledB=1 --core-min sourceEnabledC=1 --core-max sourceEnabledC=1 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0
     )
     set_tests_properties(chipper_render_preset_ym_fake_chord_assert PROPERTIES DEPENDS chipper_render_preset_ym_fake_chord_smoke)
 

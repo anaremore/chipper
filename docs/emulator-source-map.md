@@ -44,7 +44,7 @@ These should be evaluated first because their upstream license posture appears m
 | Project | Candidate Use | Upstream License Posture |
 | --- | --- | --- |
 | [ymfm](https://github.com/aaronsgiles/ymfm) | YM2149, YM2151/OPM, YM2612/OPN2, OPL2/OPL3, YM2413/OPLL | GitHub reports BSD-3-Clause |
-| [digital-sound-antiques/emu2149](https://github.com/digital-sound-antiques/emu2149) | YM2149 / AY PSG | GitHub reports MIT |
+| [digital-sound-antiques/emu2149](https://github.com/digital-sound-antiques/emu2149) | YM2149 / AY PSG | MIT; vendored at `02fc5f0b411c35e3d69cc7f161595b56b4fda4f2`; source header cites psg.vhd, NEZplug, MAME `ay8910.c`, MSX-Datapack, and AY datasheet as references, so provenance is explicitly noted |
 | [digital-sound-antiques/emu76489](https://github.com/digital-sound-antiques/emu76489) | SN76489 / Sega PSG | MIT; vendored at `2da50f887bf998e796c700e1a03f76c62a3809ff` |
 | [digital-sound-antiques/emu2413](https://github.com/digital-sound-antiques/emu2413) | YM2413 / OPLL | MIT; vendored at `813cff619f5f01c47bd5c0588c1fd8435530b125` |
 | [digital-sound-antiques/emu2212](https://github.com/digital-sound-antiques/emu2212) | Konami SCC | GitHub reports MIT |
@@ -88,7 +88,7 @@ These are musically and technically valuable, but direct embedding should wait u
 | NES / RP2A03 | Clean-room register model; possible LGPL path later | FigBug/RP2A03, Game_Music_Emu, Furnace | Continue clean-room APU work first; use FigBug/GME as comparison targets, not copied code |
 | Game Boy / DMG | Clean-room model; SameBoy as audited reference/extraction candidate | SameBoy, FigBug/PAPU, Game_Music_Emu, Furnace | Continue Pan Docs-backed clean-room work; compare tracker-facing controls and behavior against Furnace/SameBoy, but evaluate SameBoy file-level license before extraction and keep Furnace reference-only unless Chipper goes GPL-compatible |
 | SID / C64 | Clean-room voice/register model first | libsidplayfp/reSIDfp, FigBug/SID, Furnace, MOS 6581 datasheet | Continue internal partial SID voice work; keep GPL SID projects reference-only until Chipper chooses a GPL-compatible path or a permissive SID core is selected |
-| YM2149 / AY | emu2149 or ayumi; ymfm if useful | Game_Music_Emu, Furnace, MAME | Evaluate emu2149/ayumi first; keep Chipper's current clean-room PSG as baseline |
+| YM2149 / AY | emu2149 vendored; ayumi and ymfm remain alternates | Game_Music_Emu, Furnace, MAME | MIT emu2149 now backs the partial PSG core; preserve Chipper's register/macro adapter and add golden comparisons before increasing accuracy claims |
 | SN76489 / Sega PSG | emu76489 vendored | FigBug/SN76489, Game_Music_Emu, Furnace | MIT emu76489 now backs the partial PSG core; use FigBug as LGPL comparison target and add golden comparisons/hardware validation before upgrading accuracy claims |
 | YM2612 / Genesis FM | ymfm | Nuked-OPN2, Game_Music_Emu, Furnace | Use ymfm first for compatibility; consider Nuked-OPN2 only with an LGPL plan |
 | OPL2 / OPL3 / DOS FM | ymfm | Nuked-OPL3, Furnace | Use ymfm first; reserve Nuked-OPL3 for optional stricter mode if licensing is settled |
@@ -113,7 +113,7 @@ Licensing posture: Furnace's top-level `LICENSE` says most of Furnace is GPLv2-o
 
 ## SNES / SPC700 Review Notes
 
-The SNES path is tracked in more detail in `docs/snes-spc700-plan.md`. Chipper should treat SNES as an eight-voice BRR sample instrument with S-DSP envelopes, Gaussian interpolation, voice pitch modulation/noise options, and shared echo/FIR behavior. The mode should not be designed like the raw PSG/APU chips.
+The SNES path is tracked in more detail in `docs/snes-spc700-plan.md`. Chipper should treat SNES as an eight-voice BRR sample-player instrument with S-DSP envelopes, Gaussian interpolation, voice pitch modulation/noise options, and shared echo/FIR behavior. The mode should not be designed like the raw PSG/APU chips or a generic oscillator synth.
 
 The current source posture is: C700 and Blargg `snes_spc` are valuable but LGPL-sensitive; Furnace is reference-only unless Chipper goes GPL-compatible; `emu-rs/snes-apu` is a promising BSD-2-Clause candidate that needs provenance audit because it credits higan and Blargg-derived behavior; `snes-echo` is BSD-3-Clause and useful for echo research, but it explicitly targets audible similarity rather than bit accuracy. No SNES third-party code is currently vendored.
 
