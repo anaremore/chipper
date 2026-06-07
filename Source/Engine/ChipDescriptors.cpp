@@ -1588,46 +1588,46 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2612,
             "YM2612 / Genesis FM",
-            "Planned six-voice FM mode. No OPN2 core is integrated yet.",
+            "Planned six-voice FM mode using the audited ymfm path. No OPN2 adapter is integrated yet.",
             {
                 { "algorithm", "Algorithm", "FM", "Planned OPN2 algorithm selection." },
                 { "feedback", "Feedback", "FM", "Planned feedback amount." },
                 { "operator", "Operator Tone", "Operators", "Planned operator ratio/level macro." },
                 { "dac", "DAC Grit", "Output", "Planned DAC and stereo output character." },
             },
-            fmModules("YM2612/OPN2 strategy planned.", "FM Voices", "Operators"),
+            fmModules("YM2612/OPN2 ymfm strategy audited.", "FM Voices", "Operators"),
             plannedFmMacros("OPN2"),
             false,
             false,
             {},
             plannedDisclosure(
-                "evaluate `ymfm` as the permissive-first OPN2 core before considering LGPL alternatives.",
+                "`ymfm` is audited as the permissive-first OPN2 core before considering LGPL alternatives.",
                 "FM UI should use six voices with operator algorithm, feedback, envelope, DAC, and stereo controls.",
                 {
-                    "No audited YM2612/OPN2 core is integrated.",
+                    "No YM2612/OPN2 adapter is integrated.",
                     "OPN2 register adapter, operator UI, and DAC/stereo behavior are not implemented."
                 })
         },
         {
             ChipMode::opl3,
             "OPL2/OPL3 / DOS FM",
-            "Planned two-operator FM mode. No OPL core is integrated yet.",
+            "Planned two-operator FM mode using the audited ymfm path. No OPL adapter is integrated yet.",
             {
                 { "algorithm", "Operator Pair", "FM", "Planned modulator/carrier balance." },
                 { "feedback", "Feedback", "FM", "Planned feedback amount." },
                 { "rhythm", "Rhythm Mode", "Drums", "Planned OPL rhythm-mode helper." },
                 { "tremolo", "Tremolo", "Motion", "Planned tremolo/vibrato helper." },
             },
-            fmModules("OPL2/OPL3 strategy planned.", "FM Voices", "Operator Pairs"),
+            fmModules("OPL2/OPL3 ymfm strategy audited.", "FM Voices", "Operator Pairs"),
             plannedFmMacros("OPL", true),
             false,
             false,
             {},
             plannedDisclosure(
-                "evaluate `ymfm` as the permissive-first OPL2/OPL3 core before considering LGPL alternatives.",
+                "`ymfm` is audited as the permissive-first OPL2/OPL3 core before considering LGPL alternatives.",
                 "OPL UI should use operator-pair cards, algorithm/feedback controls, rhythm mode, waveforms, and per-operator envelopes.",
                 {
-                    "No audited OPL2/OPL3 core is integrated.",
+                    "No OPL2/OPL3 adapter is integrated.",
                     "Operator-pair routing, rhythm mode, and OPL waveform controls are not implemented."
                 })
         },
@@ -1802,23 +1802,23 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2151,
             "YM2151 arcade FM",
-            "Planned arcade/X68000 four-operator FM mode. No OPM core is integrated yet.",
+            "Planned arcade/X68000 four-operator FM mode using the audited ymfm path. No OPM adapter is integrated yet.",
             {
                 { "algorithm", "Algorithm", "FM", "Planned OPM algorithm selection." },
                 { "feedback", "Feedback", "FM", "Planned feedback amount." },
                 { "operator", "Operator Tone", "Operators", "Planned four-operator macro." },
                 { "lfo", "LFO", "Motion", "Planned PM/AM LFO helper." },
             },
-            fmModules("YM2151/OPM strategy planned.", "FM Voices", "Operators"),
+            fmModules("YM2151/OPM ymfm strategy audited.", "FM Voices", "Operators"),
             plannedFmMacros("OPM"),
             false,
             false,
             {},
             plannedDisclosure(
-                "evaluate `ymfm` as the permissive-first OPM core for YM2151/arcade/X68000 behavior.",
+                "`ymfm` is audited as the permissive-first OPM core for YM2151/arcade/X68000 behavior.",
                 "YM2151 UI should use eight four-operator voices with algorithm, feedback, LFO PM/AM, and per-operator envelopes.",
                 {
-                    "No YM2151/OPM core is integrated.",
+                    "No YM2151/OPM adapter is integrated.",
                     "Four-operator voice routing, LFO, noise, and register-level FM behavior are not implemented."
                 })
         },
