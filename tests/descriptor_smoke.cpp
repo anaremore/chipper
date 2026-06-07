@@ -318,6 +318,17 @@ int main()
     ok &= expectMacroLabel(chipper::ChipMode::sid, chipper::MacroKind::bass, "SID Dirty Bass");
     ok &= expectMacroLabel(chipper::ChipMode::ym2149, chipper::MacroKind::drum, "YM Noise Perc");
     ok &= expectMacroLabel(chipper::ChipMode::sn76489, chipper::MacroKind::drum, "PSG Drum");
+    ok &= expectMacroLabel(chipper::ChipMode::ym2612, chipper::MacroKind::bass, "OPN2 FM Bass Plan");
+    ok &= expectMacroLabel(chipper::ChipMode::opl3, chipper::MacroKind::drum, "OPL Rhythm Kit Plan");
+    ok &= expectMacroLabel(chipper::ChipMode::spc700, chipper::MacroKind::drum, "SPC700 Drum Map Plan");
+    ok &= expectMacroLabel(chipper::ChipMode::pokey, chipper::MacroKind::lead, "POKEY Buzzy Lead Plan");
+    ok &= expectMacroLabel(chipper::ChipMode::paula, chipper::MacroKind::arp, "Paula Tracker Arp Plan");
+    ok &= expectMacroLabel(chipper::ChipMode::huc6280, chipper::MacroKind::lead, "HuC6280 Lead Sample Plan");
+    ok &= expectMacroLabel(chipper::ChipMode::namcoWsg, chipper::MacroKind::arp, "Namco WSG Tracker Arp Plan");
+    ok &= expectMacroLabel(chipper::ChipMode::ym2151, chipper::MacroKind::lead, "OPM Metallic Lead Plan");
+    ok &= expectMacroLabel(chipper::ChipMode::ym2413, chipper::MacroKind::coin, "OPLL UI Chime Plan");
+    ok &= expectMacroLabel(chipper::ChipMode::scc, chipper::MacroKind::powerUp, "SCC Tracker Rise Plan");
+    ok &= expectMacroLabel(chipper::ChipMode::arcade, chipper::MacroKind::laser, "Arcade Laser Plan");
 
     ok &= expect(chipper::chipHasParameterSurface(chipper::ChipMode::ym2149,
                                                   chipper::ChipParameterRole::source1Enabled,

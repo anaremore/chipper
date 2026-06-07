@@ -25,6 +25,71 @@ std::vector<MacroTemplate> commonMacros()
     };
 }
 
+std::vector<MacroTemplate> plannedFmMacros(std::string familyName, bool rhythmFocused = false)
+{
+    const auto rhythmLabel = rhythmFocused ? "Rhythm Kit Plan" : "DAC Drum Plan";
+    return {
+        { MacroKind::manual, familyName + " Manual Plan", "Roadmap template for direct algorithm/operator editing once an audited FM core is integrated.", { 0.50f, 0.50f, 0.50f, 0.50f } },
+        { MacroKind::coin, familyName + " UI Chime Plan", "Roadmap template for short FM game UI chimes.", { 0.20f, 0.70f, 0.35f, 0.30f } },
+        { MacroKind::bass, familyName + " FM Bass Plan", "Roadmap template for feedback-heavy chip bass.", { 0.35f, 0.75f, 0.25f, 0.55f } },
+        { MacroKind::lead, familyName + " Metallic Lead Plan", "Roadmap template for bright operator-ratio lead sounds.", { 0.65f, 0.60f, 0.45f, 0.70f } },
+        { MacroKind::arp, familyName + " Algorithm Arp Plan", "Roadmap template for algorithm-aware fake chords and arps.", { 0.75f, 0.50f, 0.35f, 0.60f } },
+        { MacroKind::drum, familyName + " " + rhythmLabel, "Roadmap template for native FM percussion behavior where the chip supports it.", { 0.25f, 0.80f, 0.75f, 0.45f } },
+        { MacroKind::hit, familyName + " FM Impact Plan", "Roadmap template for short noisy/operator impact sounds.", { 0.45f, 0.85f, 0.65f, 0.40f } },
+        { MacroKind::laser, familyName + " Pitch Sweep Plan", "Roadmap template for FM pitch-mod SFX.", { 0.30f, 0.95f, 0.50f, 0.75f } },
+        { MacroKind::jump, familyName + " Rise Blip Plan", "Roadmap template for quick game-rise tones.", { 0.20f, 0.60f, 0.25f, 0.35f } },
+        { MacroKind::powerUp, familyName + " Power Sweep Plan", "Roadmap template for longer algorithm and pitch sweeps.", { 0.70f, 0.90f, 0.40f, 0.80f } }
+    };
+}
+
+std::vector<MacroTemplate> plannedSampleMacros(std::string familyName, std::string sampleTerm)
+{
+    return {
+        { MacroKind::manual, familyName + " Manual Plan", "Roadmap template for direct " + sampleTerm + " channel editing once a validated core exists.", { 0.50f, 0.50f, 0.50f, 0.50f } },
+        { MacroKind::coin, familyName + " Short Blip Plan", "Roadmap template for tiny pitched " + sampleTerm + " UI sounds.", { 0.25f, 0.60f, 0.25f, 0.40f } },
+        { MacroKind::bass, familyName + " Low Sample Plan", "Roadmap template for low-rate bass playback.", { 0.35f, 0.40f, 0.20f, 0.55f } },
+        { MacroKind::lead, familyName + " Lead Sample Plan", "Roadmap template for melodic " + sampleTerm + " playback.", { 0.65f, 0.50f, 0.30f, 0.65f } },
+        { MacroKind::arp, familyName + " Tracker Arp Plan", "Roadmap template for retriggered sample arps.", { 0.80f, 0.65f, 0.35f, 0.55f } },
+        { MacroKind::drum, familyName + " Drum Map Plan", "Roadmap template for mapped one-shot percussion.", { 0.35f, 0.25f, 0.85f, 0.45f } },
+        { MacroKind::hit, familyName + " Impact Plan", "Roadmap template for gritty one-shot hits.", { 0.45f, 0.30f, 0.75f, 0.50f } },
+        { MacroKind::laser, familyName + " Rate Sweep Plan", "Roadmap template for sample-rate pitch sweep SFX.", { 0.25f, 0.95f, 0.50f, 0.70f } },
+        { MacroKind::jump, familyName + " Jump Sample Plan", "Roadmap template for short upward sample gestures.", { 0.25f, 0.70f, 0.20f, 0.45f } },
+        { MacroKind::powerUp, familyName + " Tracker Rise Plan", "Roadmap template for longer retrigger/rate-rise patterns.", { 0.75f, 0.90f, 0.35f, 0.70f } }
+    };
+}
+
+std::vector<MacroTemplate> plannedPokeyMacros()
+{
+    return {
+        { MacroKind::manual, "POKEY Manual Plan", "Roadmap template for direct channel, distortion, and polynomial-counter editing.", { 0.50f, 0.50f, 0.50f, 0.50f } },
+        { MacroKind::coin, "POKEY Console Blip Plan", "Roadmap template for sharp Atari UI blips.", { 0.20f, 0.65f, 0.20f, 0.45f } },
+        { MacroKind::bass, "POKEY Distortion Bass Plan", "Roadmap template for low distortion-code bass.", { 0.35f, 0.35f, 0.30f, 0.55f } },
+        { MacroKind::lead, "POKEY Buzzy Lead Plan", "Roadmap template for bright polynomial lead tones.", { 0.70f, 0.45f, 0.35f, 0.60f } },
+        { MacroKind::arp, "POKEY Four-Channel Arp Plan", "Roadmap template for channel-stacked Atari arps.", { 0.80f, 0.70f, 0.25f, 0.55f } },
+        { MacroKind::drum, "POKEY Poly Perc Plan", "Roadmap template for polynomial-noise percussion.", { 0.35f, 0.20f, 0.85f, 0.50f } },
+        { MacroKind::hit, "POKEY Impact Plan", "Roadmap template for harsh noise impacts.", { 0.45f, 0.30f, 0.75f, 0.60f } },
+        { MacroKind::laser, "POKEY Pitch Drop Plan", "Roadmap template for Atari pitch-drop SFX.", { 0.25f, 0.95f, 0.55f, 0.75f } },
+        { MacroKind::jump, "POKEY Jump Plan", "Roadmap template for quick upward channel gestures.", { 0.25f, 0.70f, 0.15f, 0.45f } },
+        { MacroKind::powerUp, "POKEY Power Rise Plan", "Roadmap template for longer multi-channel rises.", { 0.70f, 0.90f, 0.30f, 0.75f } }
+    };
+}
+
+std::vector<MacroTemplate> plannedArcadeMacros()
+{
+    return {
+        { MacroKind::manual, "Arcade Manual Plan", "Roadmap template for hybrid arcade source blending once verified building blocks are available.", { 0.50f, 0.50f, 0.50f, 0.50f } },
+        { MacroKind::coin, "Arcade Coin Plan", "Roadmap template for classic coin and menu chirps.", { 0.15f, 0.80f, 0.25f, 0.55f } },
+        { MacroKind::bass, "Arcade Bass Plan", "Roadmap template for cabinet-forward low tones.", { 0.45f, 0.35f, 0.25f, 0.60f } },
+        { MacroKind::lead, "Arcade Lead Plan", "Roadmap template for bright arcade melody tones.", { 0.70f, 0.55f, 0.30f, 0.65f } },
+        { MacroKind::arp, "Arcade Pattern Arp Plan", "Roadmap template for fast attract-mode arps.", { 0.85f, 0.75f, 0.25f, 0.55f } },
+        { MacroKind::drum, "Arcade Noise Perc Plan", "Roadmap template for short arcade percussion bursts.", { 0.35f, 0.25f, 0.85f, 0.50f } },
+        { MacroKind::hit, "Arcade Damage Hit Plan", "Roadmap template for boss damage and impact sounds.", { 0.45f, 0.30f, 0.75f, 0.65f } },
+        { MacroKind::laser, "Arcade Laser Plan", "Roadmap template for classic laser zaps.", { 0.25f, 1.00f, 0.45f, 0.80f } },
+        { MacroKind::jump, "Arcade Jump Plan", "Roadmap template for quick platformer jumps.", { 0.25f, 0.70f, 0.15f, 0.50f } },
+        { MacroKind::powerUp, "Arcade Power-Up Plan", "Roadmap template for celebratory rise patterns.", { 0.75f, 0.90f, 0.35f, 0.80f } }
+    };
+}
+
 std::vector<MacroTemplate> nesMacros()
 {
     auto macros = std::vector<MacroTemplate> {
@@ -1067,7 +1132,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "dac", "DAC Grit", "Output", "Planned DAC and stereo output character." },
             },
             fmModules("YM2612/OPN2 strategy planned.", "FM Voices", "Operators"),
-            commonMacros(),
+            plannedFmMacros("OPN2"),
             false
         },
         {
@@ -1081,7 +1146,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "tremolo", "Tremolo", "Motion", "Planned tremolo/vibrato helper." },
             },
             fmModules("OPL2/OPL3 strategy planned.", "FM Voices", "Operator Pairs"),
-            commonMacros(),
+            plannedFmMacros("OPL", true),
             false
         },
         {
@@ -1095,7 +1160,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "echo", "Echo Color", "Output", "Planned SNES-style ambience helper." },
             },
             sampleModules("SNES sample-style strategy planned.", "Sample Voices", "Lo-fi Sample"),
-            commonMacros(),
+            plannedSampleMacros("SPC700", "BRR sample"),
             false
         },
         {
@@ -1109,7 +1174,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "filter", "High-pass", "Output", "Planned channel filter helper." },
             },
             plannedModules("POKEY Channels", "Distortion / Noise"),
-            commonMacros(),
+            plannedPokeyMacros(),
             false
         },
         {
@@ -1123,7 +1188,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "tracker", "Tracker Grit", "Output", "Planned tracker coloration." },
             },
             sampleModules("Paula tracker-sampler strategy planned.", "Tracker Channels", "Sample Period"),
-            commonMacros(),
+            plannedSampleMacros("Paula", "tracker sample"),
             false
         },
         {
@@ -1137,7 +1202,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "stereo", "Stereo", "Output", "Planned modern stereo spread." },
             },
             sampleModules("HuC6280 wavetable strategy planned.", "Wavetable Voices", "Wave / Noise"),
-            commonMacros(),
+            plannedSampleMacros("HuC6280", "wavetable"),
             false
         },
         {
@@ -1151,7 +1216,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "grit", "Arcade Grit", "Output", "Planned cabinet/output helper." },
             },
             sampleModules("Namco WSG strategy planned.", "WSG Voices", "Wave Shape"),
-            commonMacros(),
+            plannedSampleMacros("Namco WSG", "waveform"),
             false
         },
         {
@@ -1165,7 +1230,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "lfo", "LFO", "Motion", "Planned PM/AM LFO helper." },
             },
             fmModules("YM2151/OPM strategy planned.", "FM Voices", "Operators"),
-            commonMacros(),
+            plannedFmMacros("OPM"),
             false
         },
         {
@@ -1179,7 +1244,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "tremolo", "Tremolo", "Motion", "Planned vibrato/tremolo helper." },
             },
             fmModules("YM2413/OPLL strategy planned.", "Preset FM Voices", "Operators"),
-            commonMacros(),
+            plannedFmMacros("OPLL"),
             false
         },
         {
@@ -1193,7 +1258,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "crunch", "Crunch", "Output", "Planned output crunch." },
             },
             sampleModules("Konami SCC wavetable strategy planned.", "Wavetable Channels", "Wave Shape"),
-            commonMacros(),
+            plannedSampleMacros("SCC", "wavetable"),
             false
         },
         {
@@ -1207,7 +1272,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "cabinet", "Cabinet Bite", "Output", "Planned output coloration." },
             },
             plannedModules("Arcade Sources", "SFX Shape"),
-            commonMacros(),
+            plannedArcadeMacros(),
             false
         }
     };

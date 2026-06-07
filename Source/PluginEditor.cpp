@@ -2987,7 +2987,7 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
     const auto label = templ.label.empty() ? juce::String(chipper::toString(patch.macro)) : juce::String(templ.label);
 
     if (! chipper::descriptorFor(mode).implemented)
-        return label + ": planned mapping";
+        return label + ": " + juce::String(templ.help) + " Audio core not integrated yet.";
 
     if (mode == chipper::ChipMode::nes)
         return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | " + nesNoiseModeReadout(patch) + " | " + nesFocusReadout(patch.control4);
@@ -4674,12 +4674,15 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     coreReadinessLabel.setColour(juce::Label::textColourId, hasLiveCore ? juce::Colour(0xff101414) : juce::Colour(0xffd9e1e8));
     coreReadinessLabel.setColour(juce::Label::backgroundColourId, hasLiveCore ? juce::Colour(0xff56c7d8) : juce::Colour(0xff344047));
     globalStripLabel.setText(hasLiveCore ? "Performance" : "Roadmap", juce::dontSendNotification);
-    macroSummaryLabel.setVisible(hasLiveCore);
-    macroSummaryLabel.setEnabled(hasLiveCore);
-    macroSummaryLabel.setAlpha(hasLiveCore ? 1.0f : 0.55f);
+    macroSummaryLabel.setVisible(true);
+    macroSummaryLabel.setEnabled(true);
+    macroSummaryLabel.setAlpha(hasLiveCore ? 1.0f : 0.85f);
     accuracyBox.setEnabled(hasLiveCore);
     presetBox.setEnabled(hasLiveCore && ! displayedPresets.empty());
-    macroBox.setEnabled(hasLiveCore);
+    macroBox.setEnabled(true);
+    macroBox.setTooltip(hasLiveCore
+                            ? "Applies a chip-specific musical template to native controls."
+                            : "Browses chip-specific roadmap templates. Audio remains disabled until this chip has an audited or clean-room core.");
     playModeBox.setEnabled(hasLiveCore && supportsChipPoly);
     playModeBox.setTooltip(supportsChipPoly
                                ? "Chooses how incoming notes use the chip channels inside one patch."

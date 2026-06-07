@@ -65,6 +65,8 @@ All current VST parameters have fixed default MIDI CC mappings. Chip-aware contr
 
 Factory preset v1 should prioritize implemented chips and avoid implying that planned chips already have audio cores. The first executable factory presets are:
 
+Planned chip modes may expose chip-specific roadmap templates in the Template dropdown, such as OPN2 FM Bass Plan or SPC700 Drum Map Plan, but those templates are UI/planning metadata only until the chip has an audited or clean-room audio core. They should not be listed as factory presets or described as audible patches.
+
 - NES Hero Pulse
 - NES Triangle Bass
 - NES Noise Snare
