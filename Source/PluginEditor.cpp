@@ -1041,7 +1041,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     dmcSampleBankButton.onClick = [this] { showDmcSampleBankEditor(); };
     addAndMakeVisible(dmcSampleBankButton);
 
-    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("NES-only DMC playback mode. Manual Slot uses the selected sample; Note Map maps checked bank slots upward from the DMC Map Root.", chipper::ChipParameterRole::nesDmcPlaybackMode));
+    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("NES-only DMC playback mode. Manual Slot uses the selected sample; Note Map maps checked bank slots upward from the DMC Map Root; Sample Map Only also mutes pulse, triangle, and noise for a DMC sample keyboard.", chipper::ChipParameterRole::nesDmcPlaybackMode));
     {
         const auto choices = chipper::parameters::nesDmcPlaybackModeChoices();
         for (int i = 0; i < choices.size(); ++i)
@@ -2913,7 +2913,9 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
         parameterValue(chipper::parameters::id::sidVoice3PulseWidth),
         parameterValue(chipper::parameters::id::nesDmcDirectLevel),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcRateIndex))),
-        parameterValue(chipper::parameters::id::nesDmcLoop) >= 0.5f);
+        parameterValue(chipper::parameters::id::nesDmcLoop) >= 0.5f,
+        mode == chipper::ChipMode::nes
+            && static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcPlaybackMode))) == 2);
 }
 
 bool ChipperAudioProcessorEditor::usesPulseDutySegment(chipper::ChipMode mode) const
@@ -4558,8 +4560,8 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
     sampleTooltip += playbackInfo.loopEnabled
         ? "\nLoop is on: $4010 bit 6 restarts playback from byte 0 when the sample ends."
         : "\nLoop is off: playback stops when the selected DMC sample ends.";
-    sampleTooltip += "\nManual Slot plays the selected dropdown slot. Note Map maps checked slots upward from the DMC Map Root; the NES DMC lane remains monophonic.";
-    if (playbackInfo.playbackMode == 1 && playbackInfo.activeSlotCount > 0)
+    sampleTooltip += "\nManual Slot plays the selected dropdown slot. Note Map maps checked slots upward from the DMC Map Root; Sample Map Only maps notes and suppresses pulse, triangle, and noise.";
+    if (playbackInfo.playbackMode != 0 && playbackInfo.activeSlotCount > 0)
         sampleTooltip += "\nCurrent map span: "
             + chipper::parameters::midiNoteChoices()[playbackInfo.mapRootNote]
             + " to "

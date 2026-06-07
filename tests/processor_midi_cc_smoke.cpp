@@ -275,6 +275,10 @@ int main()
     sendController(processor, 119, controllerValueForChoice(processor, chipper::parameters::id::nesDmcPlaybackMode, 1));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 1.0f, 0.0001f,
                      "CC119 should control NES DMC Playback Mode");
+    sendController(processor, 119, controllerValueForChoice(processor, chipper::parameters::id::nesDmcPlaybackMode, 2));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 2.0f, 0.0001f,
+                     "CC119 should reach NES DMC Sample Map Only mode");
+    sendController(processor, 119, controllerValueForChoice(processor, chipper::parameters::id::nesDmcPlaybackMode, 1));
     sendController(processor, 69, controllerValueForChoice(processor, chipper::parameters::id::nesDmcMapRoot, 36));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcMapRoot), 36.0f, 0.0001f,
                      "CC69 should control NES DMC Map Root");

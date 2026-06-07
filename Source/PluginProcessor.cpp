@@ -76,7 +76,8 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && std::abs(a.sidVoice3PulseWidth - b.sidVoice3PulseWidth) < tolerance
         && std::abs(a.nesDmcDirectLevel - b.nesDmcDirectLevel) < tolerance
         && a.nesDmcRateIndex == b.nesDmcRateIndex
-        && a.nesDmcLoop == b.nesDmcLoop;
+        && a.nesDmcLoop == b.nesDmcLoop
+        && a.nesDmcOnly == b.nesDmcOnly;
 }
 
 bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
@@ -119,7 +120,8 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && std::abs(a.sidVoice3PulseWidth - b.sidVoice3PulseWidth) < tolerance
         && std::abs(a.nesDmcDirectLevel - b.nesDmcDirectLevel) < tolerance
         && a.nesDmcRateIndex == b.nesDmcRateIndex
-        && a.nesDmcLoop == b.nesDmcLoop;
+        && a.nesDmcLoop == b.nesDmcLoop
+        && a.nesDmcOnly == b.nesDmcOnly;
 }
 
 juce::Result readDmcSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
@@ -234,7 +236,7 @@ ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSample
     info.playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
     info.mapRootNote = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcMapRoot)->load())), 0, 127);
     info.loopEnabled = apvts.getRawParameterValue(chipper::parameters::id::nesDmcLoop)->load() >= 0.5f;
-    const auto selectedSlot = info.playbackMode == 1 && activeDmcSampleSlot >= 0 ? activeDmcSampleSlot : manualSlot;
+    const auto selectedSlot = info.playbackMode != 0 && activeDmcSampleSlot >= 0 ? activeDmcSampleSlot : manualSlot;
     info.rateIndex = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcRateIndex)->load()));
     info.rateIndex = std::clamp(info.rateIndex, 0, 15);
 
@@ -280,7 +282,7 @@ ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSample
         + ": " + info.sampleName + " (" + juce::String(info.byteCount) + " bytes, "
         + juce::String(info.durationMs, info.durationMs < 10.0 ? 1 : 0) + " ms @ rate "
         + juce::String(info.rateIndex) + (info.loopEnabled ? ", Loop)" : ", One-shot)");
-    if (info.playbackMode == 1)
+    if (info.playbackMode != 0)
         info.statusLine += " | Map " + midiNoteName(info.mapRootNote) + "-" + midiNoteName(info.mapHighNote);
     return info;
 }
@@ -697,7 +699,7 @@ void ChipperAudioProcessor::applySelectedDmcSampleToCore()
 
     const auto selectedSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
     const auto playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
-    applyDmcSampleSlotToCore(playbackMode == 1 && activeDmcSampleSlot >= 0 ? activeDmcSampleSlot : selectedSlot);
+    applyDmcSampleSlotToCore(playbackMode != 0 && activeDmcSampleSlot >= 0 ? activeDmcSampleSlot : selectedSlot);
 }
 
 void ChipperAudioProcessor::applyDmcSampleSlotToCore(int requestedSlot)
@@ -746,7 +748,7 @@ void ChipperAudioProcessor::applyMappedDmcSampleForMidiNote(int midiNote)
         return;
 
     const auto playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
-    if (playbackMode != 1)
+    if (playbackMode == 0)
         return;
 
     auto activeSlotCount = 0;
@@ -775,8 +777,11 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
     const auto macroChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::macro)->load()));
     const auto playModeChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::playMode)->load()));
 
+    const auto selectedMode = chipper::parameters::chipModeFromChoice(modeChoice);
+    const auto dmcPlaybackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
+
     return chipper::makePatchConfig(
-        chipper::parameters::chipModeFromChoice(modeChoice),
+        selectedMode,
         chipper::parameters::macroFromChoice(macroChoice),
         apvts.getRawParameterValue(chipper::parameters::id::macroControl1)->load(),
         apvts.getRawParameterValue(chipper::parameters::id::macroControl2)->load(),
@@ -825,7 +830,8 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
         apvts.getRawParameterValue(chipper::parameters::id::sidVoice3PulseWidth)->load(),
         apvts.getRawParameterValue(chipper::parameters::id::nesDmcDirectLevel)->load(),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcRateIndex)->load())),
-        apvts.getRawParameterValue(chipper::parameters::id::nesDmcLoop)->load() >= 0.5f);
+        apvts.getRawParameterValue(chipper::parameters::id::nesDmcLoop)->load() >= 0.5f,
+        selectedMode == chipper::ChipMode::nes && dmcPlaybackMode == 2);
 }
 
 void ChipperAudioProcessor::replayPendingRegisterState()

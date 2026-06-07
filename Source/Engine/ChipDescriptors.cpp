@@ -371,10 +371,11 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
                       "nes.dmcPlaybackMode",
                       "DMC Playback",
                       "DMC",
-                      "Chooses whether the DMC lane plays the selected manual slot or maps the checked DMC bank across MIDI notes starting at C1.",
+                      "Chooses whether the DMC lane plays the selected manual slot, maps the checked DMC bank across MIDI notes, or suppresses the other NES generators for a DMC-only sample map.",
                       {
                           choice("Manual", "Use the selected DMC Sample Slot for every note.", 0.0f, 0),
-                          choice("Note Map", "Map checked DMC bank slots across MIDI notes from C1 upward; the NES DMC lane remains monophonic.", 1.0f, 1)
+                          choice("Note Map", "Map checked DMC bank slots across MIDI notes from C1 upward; the NES DMC lane remains monophonic.", 0.5f, 1),
+                          choice("Sample Map Only", "Map checked DMC bank slots across MIDI notes while muting pulse, triangle, and noise for a focused DMC sample-keyboard lane.", 1.0f, 2)
                       },
                       ParameterKind::chipRegister),
         { ChipParameterRole::nesDmcMapRoot,
@@ -1328,7 +1329,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float sidVoice3PulseWidth,
                             float nesDmcDirectLevel,
                             int nesDmcRateIndex,
-                            bool nesDmcLoop)
+                            bool nesDmcLoop,
+                            bool nesDmcOnly)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : 20;
@@ -1378,7 +1380,8 @@ PatchConfig makePatchConfig(ChipMode mode,
         clampControl(sidVoice3PulseWidth),
         clampControl(nesDmcDirectLevel),
         std::clamp(nesDmcRateIndex, 0, 15),
-        nesDmcLoop
+        nesDmcLoop,
+        nesDmcOnly
     };
 }
 

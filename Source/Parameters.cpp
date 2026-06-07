@@ -153,7 +153,7 @@ juce::StringArray nesDmcRateChoices()
 
 juce::StringArray nesDmcPlaybackModeChoices()
 {
-    return { "Manual Slot", "Note Map" };
+    return { "Manual Slot", "Note Map", "Sample Map Only" };
 }
 
 juce::StringArray midiNoteChoices()

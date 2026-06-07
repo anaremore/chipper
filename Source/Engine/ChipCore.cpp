@@ -2110,9 +2110,17 @@ public:
                 break;
         }
 
-        enable &= sourceEnableMask(patch);
-        if (! dmcSample.empty() && sourceEnabled(patch, 3))
-            enable |= 0x10u;
+        if (patch.nesDmcOnly)
+        {
+            enable = dmcSample.empty() ? 0u : 0x10u;
+            noiseVol = 0u;
+        }
+        else
+        {
+            enable &= sourceEnableMask(patch);
+            if (! dmcSample.empty() && sourceEnabled(patch, 3))
+                enable |= 0x10u;
+        }
 
         writePulseRegisters(0x4000, duty, p1Vol, p1Note);
         writePulseRegisters(0x4004, pulse2Duty, p2Vol, p2Note);
@@ -2217,6 +2225,7 @@ public:
              << "\"sourceLevel3\":" << sourceLevel(patch, 2) << ","
              << "\"sourceLevel4\":" << sourceLevel(patch, 3) << ","
              << "\"dmcDirectControl\":" << patch.nesDmcDirectLevel << ","
+             << "\"nesDmcOnly\":" << (patch.nesDmcOnly ? 1 : 0) << ","
              << "\"dmcSampleLoaded\":" << (dmcSample.empty() ? 0 : 1) << ","
              << "\"dmcSampleBytes\":" << dmcSample.size() << ","
              << "\"dmcSampleActive\":" << (dmcActive ? 1 : 0) << ","

@@ -104,6 +104,7 @@ struct PatchConfig
     float nesDmcDirectLevel = 0.0f;
     int nesDmcRateIndex = 15;
     bool nesDmcLoop = false;
+    bool nesDmcOnly = false;
 };
 
 struct StereoFrame

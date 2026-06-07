@@ -216,7 +216,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float sidVoice3PulseWidth = 0.5f,
                             float nesDmcDirectLevel = 0.0f,
                             int nesDmcRateIndex = 15,
-                            bool nesDmcLoop = false);
+                            bool nesDmcLoop = false,
+                            bool nesDmcOnly = false);
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t nesNoisePeriodForControl(float noisePeriodControl);
 uint8_t nesDmcDirectLevelForControl(float levelControl);

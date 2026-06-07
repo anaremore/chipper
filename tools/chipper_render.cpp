@@ -110,6 +110,8 @@ struct Options
     bool nesDmcRateIndexProvided = false;
     bool nesDmcLoop = false;
     bool nesDmcLoopProvided = false;
+    bool nesDmcOnly = false;
+    bool nesDmcOnlyProvided = false;
     float outputDb = 0.0f;
     double clock = 1789773.0;
     double sampleRate = 48000.0;
@@ -619,7 +621,7 @@ void printUsage()
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
         << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-sample path.dmc --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -1065,6 +1067,12 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.nesDmcLoopProvided = true;
         }
+        else if (arg == "--nes-dmc-only")
+        {
+            if (! parseToggle("--nes-dmc-only", options.nesDmcOnly))
+                return false;
+            options.nesDmcOnlyProvided = true;
+        }
         else if (arg == "--nes-dmc-sample")
         {
             const auto* value = requireValue("--nes-dmc-sample");
@@ -1291,6 +1299,8 @@ void applyMacroTemplateDefaults(Options& options)
         options.nesDmcRateIndex = 15;
     if (! options.nesDmcLoopProvided)
         options.nesDmcLoop = false;
+    if (! options.nesDmcOnlyProvided)
+        options.nesDmcOnly = false;
 }
 
 std::vector<ScheduledEvent> loadEvents(const std::filesystem::path& path)
@@ -1975,6 +1985,7 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"nesDmcDirectLevel\": " << patch.nesDmcDirectLevel << ",\n"
         << "  \"nesDmcRateIndex\": " << patch.nesDmcRateIndex << ",\n"
         << "  \"nesDmcLoop\": " << (patch.nesDmcLoop ? "true" : "false") << ",\n"
+        << "  \"nesDmcOnly\": " << (patch.nesDmcOnly ? "true" : "false") << ",\n"
         << "  \"nesDmcSamplePath\": ";
     writeJsonString(out, options.nesDmcSamplePath.string());
     out << ",\n"
@@ -2080,7 +2091,8 @@ int main(int argc, char** argv)
                                                     options.sidVoice3PulseWidth,
                                                     options.nesDmcDirectLevel,
                                                     options.nesDmcRateIndex,
-                                                    options.nesDmcLoop);
+                                                    options.nesDmcLoop,
+                                                    options.nesDmcOnly);
         core->setPatch(patch);
         const auto events = loadEvents(options.eventFile);
         const auto registerWriteCount = static_cast<size_t>(std::count_if(events.begin(), events.end(), [](const auto& event) { return event.type == EventType::write; }));
