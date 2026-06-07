@@ -91,7 +91,7 @@ These are musically and technically valuable, but direct embedding should wait u
 | Namco arcade WSG | Clean-room wavetable model | MAME Namco WSG, Furnace | Use register docs and audited MAME files only |
 | YM2151 / arcade FM | ymfm | Furnace, MAME | Use ymfm as first implementation candidate |
 | YM2413 / OPLL | emu2413 or ymfm | Nuked-OPLL, Furnace | Prefer emu2413/ymfm; keep Nuked-OPLL reference-only unless licensing changes |
-| Konami SCC | emu2212 | vgsound_emu, Furnace | Evaluate emu2212 first |
+| Konami SCC | Current clean-room partial wavetable model; emu2212 remains a future audit candidate | vgsound_emu, Furnace, MAME | Continue clean-room work; evaluate emu2212 before any future reuse and keep Furnace/vgsound/MAME as comparison or audit targets only |
 
 ## Furnace Review Notes
 

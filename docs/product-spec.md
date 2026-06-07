@@ -13,7 +13,7 @@ The plugin must not use generic retro oscillators with famous chip labels. Each 
 - **SN76489:** three tone channels, noise modes, attenuation, Sega PSG behavior.
 - **YM2612/OPN2:** six-channel FM, operators, algorithms, feedback, LFO, DAC behavior, stereo.
 - **OPL2/OPL3:** two-operator FM, rhythm mode, waveform variants, envelopes, stereo for OPL3.
-- **Expansion:** SPC700-style sample playback, Paula, HuC6280 wavetable, Namco WSG, YM2151, YM2413/OPLL, Konami SCC. POKEY and HuC6280 have started as audible partial clean-room expansion cores.
+- **Expansion:** SPC700-style sample playback, Paula, HuC6280 wavetable, Namco WSG, YM2151, YM2413/OPLL, Konami SCC. POKEY, HuC6280, and SCC have started as audible partial clean-room expansion cores.
 
 Accuracy levels:
 
@@ -55,6 +55,7 @@ All current VST parameters have fixed default MIDI CC mappings. Chip-aware contr
 - SN76489 / Sega PSG
 - Atari POKEY
 - PC Engine HuC6280
+- Konami SCC
 - Genesis FM
 - DOS FM
 - Arcade FM
@@ -120,6 +121,10 @@ Planned chip modes may expose chip-specific roadmap templates in the Template dr
 - HuC6280 Wave Bass
 - HuC6280 Six-Wave Arp
 - HuC6280 Noise Tap
+- SCC Arcade Lead
+- SCC Wave Bass
+- SCC Five-Voice Arp
+- SCC Wave Tick
 
 Roadmap preset targets, kept as product direction until their chip cores exist:
 

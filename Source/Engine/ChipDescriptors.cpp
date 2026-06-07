@@ -90,6 +90,22 @@ std::vector<MacroTemplate> huc6280Macros()
     };
 }
 
+std::vector<MacroTemplate> sccMacros()
+{
+    return {
+        { MacroKind::manual, "SCC Manual", "Neutral five-channel Konami wavetable mapping.", { 0.50f, 0.50f, 0.30f, 0.72f }, { true, true, true, true }, 0.0f, 0 },
+        { MacroKind::coin, "SCC Coin Ping", "Bright arcade wavetable UI ping.", { 0.18f, 0.76f, 0.22f, 0.78f }, { true, false, false, false }, 0.18f, 1 },
+        { MacroKind::bass, "SCC Wave Bass", "Rounded SCC bass with a second-channel body.", { 0.26f, 0.24f, 0.28f, 0.84f }, { true, true, false, false }, 0.08f, 2 },
+        { MacroKind::lead, "SCC Arcade Lead", "Forward Konami wavetable lead.", { 0.54f, 0.42f, 0.32f, 0.80f }, { true, true, true, false }, 0.10f, 1 },
+        { MacroKind::arp, "SCC Five-Voice Arp", "Stacked wave channels for crunchy fake chords and arps.", { 0.88f, 0.72f, 0.34f, 0.76f }, { true, true, true, true }, 0.08f, 0 },
+        { MacroKind::drum, "SCC Wave Tick", "Short stepped-wave percussion.", { 0.30f, 0.18f, 0.86f, 0.82f }, { false, false, true, true }, 0.66f, 4 },
+        { MacroKind::hit, "SCC Damage Hit", "Dense five-channel wavetable impact.", { 0.44f, 0.32f, 0.78f, 0.86f }, { true, false, true, true }, 0.62f, 4 },
+        { MacroKind::laser, "SCC Sweep Zap", "Arcade sweep over stepped wave RAM.", { 0.24f, 0.96f, 0.70f, 0.78f }, { true, true, false, true }, 0.34f, 3 },
+        { MacroKind::jump, "SCC Jump", "Quick rising wavetable blip.", { 0.22f, 0.72f, 0.28f, 0.74f }, { true, false, false, false }, 0.16f, 1 },
+        { MacroKind::powerUp, "SCC Power Wave", "Longer five-channel rise.", { 0.74f, 0.92f, 0.40f, 0.82f }, { true, true, true, true }, 0.14f, 2 }
+    };
+}
+
 std::vector<MacroTemplate> plannedArcadeMacros()
 {
     return {
@@ -821,6 +837,58 @@ std::vector<ChipParameterSpec> huc6280ParameterSpecs()
     };
 }
 
+std::vector<ChipParameterSpec> sccParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "scc.channelSpread",
+                   "Channel Spread",
+                   "Channels",
+                   "Sets interval spread across the Konami SCC wavetable channels."),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "scc.pitchMotion",
+                   "Pitch",
+                   "Pitch",
+                   "Offsets musical pitch gestures and channel intervals."),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "scc.waveSkew",
+                   "Wave Skew",
+                   "Wave",
+                   "Shapes generated waveform RAM templates while preserving 32-byte SCC wave memory.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "scc.channelVolume",
+                   "Channel Volume",
+                   "Mixer",
+                   "Maps to the 4-bit SCC channel volume registers.",
+                   ParameterKind::chipRegister,
+                   0.72f),
+        sourceSpec(ChipParameterRole::source1Enabled, "scc.channel1.enabled", "Channel 1", "Enable SCC wavetable channel 1."),
+        sourceSpec(ChipParameterRole::source2Enabled, "scc.channel2.enabled", "Channel 2", "Enable SCC wavetable channel 2."),
+        sourceSpec(ChipParameterRole::source3Enabled, "scc.channel3.enabled", "Channel 3", "Enable SCC wavetable channel 3."),
+        sourceSpec(ChipParameterRole::source4Enabled, "scc.channel4.enabled", "Channel 4", "Enable SCC wavetable channel 4. Channel 5 needs a dedicated five-lane UI pass."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "scc.channel1.level", "Channel 1 Level", "Modern trim after SCC channel 1 volume."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "scc.channel2.level", "Channel 2 Level", "Modern trim after SCC channel 2 volume."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "scc.channel3.level", "Channel 3 Level", "Modern trim after SCC channel 3 volume."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "scc.channel4.level", "Channel 4 Level", "Modern trim after SCC channel 4 volume."),
+        stereoSpreadSpec("scc.stereoSpread", "Modern stereo convenience that spreads audible SCC channels; zero preserves centered output."),
+        envelopeSpec("scc.decay", "Decay", "Applies a musical decay helper while native key/volume registers remain visible in debug state."),
+        segmentedSpec(ChipParameterRole::waveShape,
+                      "scc.waveShape",
+                      "Wave Shape",
+                      "Wave",
+                      "Selects the generated 32-byte waveform RAM template. Follow resolves from the selected template.",
+                      {
+                          choice("Follow", "Use the selected SCC template waveform.", 0.0f, 0),
+                          choice("Ramp", "Rising 8-bit wave RAM.", 0.25f, 1),
+                          choice("Tri", "Triangle-style 32-byte wave RAM.", 0.5f, 2),
+                          choice("Pulse", "Pulse-style SCC wave RAM using Wave Skew as width.", 0.75f, 3),
+                          choice("Steps", "Stepped arcade wave RAM texture.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister)
+    };
+}
+
 std::vector<ChipParameterSpec> sidParameterSpecs()
 {
     return {
@@ -1489,24 +1557,33 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::scc,
             "Konami SCC",
-            "Planned five-channel wavetable mode. No SCC core is integrated yet.",
+            "Partial clean-room Konami SCC wavetable model with five internal channels.",
             {
-                { "stack", "Wave Stack", "Sources", "Planned SCC channel stack." },
-                { "spread", "Channel Spread", "Motion", "Planned interval spread helper." },
-                { "morph", "Wave Morph", "Tone", "Planned wave morph helper." },
-                { "crunch", "Crunch", "Output", "Planned output crunch." },
+                { "wave", "Wave RAM", "Wave", "32-byte SCC wave memory templates." },
+                { "vol", "Volume", "Mixer", "4-bit channel volume registers." },
+                { "key", "Key Mask", "Channels", "Key-on register path." },
+                { "stack", "Wave Stack", "Motion", "Five-channel wavetable stack templates." },
             },
-            sampleModules("Konami SCC wavetable strategy planned.", "Wavetable Channels", "Wave Shape"),
-            plannedSampleMacros("SCC", "wavetable"),
-            false,
-            false,
-            {},
-            plannedDisclosure(
-                "evaluate `emu2212` as the permissive-first SCC candidate before other references.",
-                "SCC UI should use five wavetable channel strips with waveform editing, level, tuning, and stack/spread macros.",
+            {
+                makeModule("profile", "Profile", "Konami SCC clean-room groundwork.", { "Konami wavetable family", "3.58 MHz default", "Hybrid default", "Authentic still partial" }),
+                makeModule("sources", "Wavetable Voices", "Five internal SCC channels.", { "Channels 1-4 exposed", "Channel 5 internal", "32-byte wave RAM", "Key-on mask" }),
+                makeModule("wave", "Wave / Mixer", "Wave RAM plus frequency and volume behavior.", { "Wave shape", "Wave skew", "4-bit volume", "Pitch periods" }),
+                makeModule("motion", "Motion", "Arcade SFX gestures mapped to frequency registers.", { "Coin ping", "Sweep zap", "Five-voice arp", "Wave tick" }),
+                makeModule("output", "Output", "Centered SCC output with optional modern spread.", { "Output gain", "Stereo spread", "Verified partial", "Known gaps" })
+            },
+            sccMacros(),
+            true,
+            true,
+            sccParameterSpecs(),
+            verifiedPartial(
                 {
-                    "No SCC core is integrated.",
-                    "Waveform RAM, five-channel timing, and SCC/SCC+ differences are not implemented."
+                    "Five frequency, volume, key-on, and waveform-RAM register paths are modeled.",
+                    "The existing UI exposes the first four generic source controls; channel 5 can participate internally in stack templates until a five-lane SCC layout lands.",
+                    "No third-party SCC source code is vendored in this clean-room partial model."
+                },
+                {
+                    "SCC+ bank behavior, channel 4/5 shared-wave quirks, exact DAC/output curve, timing edge cases, and hardware validation are not complete.",
+                    "Evaluate `emu2212` as a permissive candidate/reference before any future source reuse."
                 })
         },
         {

@@ -15,6 +15,7 @@ The current partial chip cores are clean-room/internal implementations in `Sourc
 - SN76489 partial PSG model
 - Atari POKEY partial polynomial/timer model
 - PC Engine HuC6280 partial wavetable/noise model
+- Konami SCC partial wavetable model
 
 These implementations are not claimed to be cycle-accurate. See `docs/emulation-accuracy.md` for current accuracy status and known limitations.
 

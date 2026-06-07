@@ -32,7 +32,8 @@ After SID, prioritize the other implemented chips before adding planned chips:
 | 5 | SN76489 / Sega PSG | 8 | Current code is internal clean-room; permissive and LGPL-sensitive references are tracked separately. | Improve tone/noise channel cards, attenuation/noise mode controls, and arcade/Sega preset vocabulary. |
 | 6 | Atari POKEY | 7 | Current code is internal clean-room partial; web-pokey remains a permissive candidate/reference until audited. | Expand beyond the first AUDF/AUDC/AUDV pass with clearer distortion-code UI, AUDCTL pairing/high-pass controls, and Atari preset vocabulary. |
 | 7 | PC Engine HuC6280 | 7 | Current code is internal clean-room partial; MAME/GME/Furnace/HuSIC remain reference or audit targets only. | Replace the generic four-source view with six wavetable lanes, wave RAM visuals, noise/LFO controls, and PC Engine preset vocabulary. |
-| 8 | YM2612 / OPN2 and OPL2/OPL3 | 8 | Do not start VST UI exposure until an FM core license plan is chosen and documented. | Use a real operator/algorithm UI with envelope visuals instead of generic oscillator controls. |
+| 8 | Konami SCC | 7 | Current code is internal clean-room partial; emu2212 remains a permissive candidate/reference until audited. | Replace the generic four-source view with five wavetable lanes, wave RAM visuals/editing, key/volume controls, and Konami preset vocabulary. |
+| 9 | YM2612 / OPN2 and OPL2/OPL3 | 8 | Do not start VST UI exposure until an FM core license plan is chosen and documented. | Use a real operator/algorithm UI with envelope visuals instead of generic oscillator controls. |
 
 ## Wide Chip Implementation Queue
 
@@ -49,7 +50,7 @@ Going wide is useful now, but only if planned modes stay honest. Planned chip de
 | 7 | SPC700-style | Lo-fi sample playback and SNES-flavored ambience without overclaiming DSP accuracy. | Separate sampler/DSP design; Furnace and MAME as reference-only until audited. | Sample voice bank with rate, ADSR/gain, echo color, and clear "style" labeling. | 5 |
 | 8 | YM2151 / OPM | Arcade/X68000 four-op FM leads and metallic basses. | Audit and spike `ymfm`. | Eight four-operator voices with algorithm, feedback, LFO PM/AM, and envelopes. | 6 |
 | 9 | YM2413 / OPLL | Preset-FM quick sounds and UI/game chimes. | Audit `ymfm` and `emu2413`. | Preset instrument selector plus limited editable patch/rhythm controls. | 7 |
-| 10 | Konami SCC | Five-channel wavetable stack and crunchy arps. | Audit `emu2212`; clean-room fallback feasible. | Five wavetable strips with wave edit/slot, level, tuning, and stack/spread macros. | 7 |
+| 10 | SCC deeper pass | Turn the new partial Konami SCC core into a first-class five-channel wavetable instrument. | Continue clean-room; audit `emu2212` before any reuse. | Five wavetable strips with wave edit/slot, level, tuning, key mask, and stack/spread macros. | 7 |
 | 11 | HuC6280 deeper pass | Turn the new partial PC Engine core into a first-class six-channel wavetable instrument. | Continue clean-room; audit MAME/GME/Furnace/HuSIC before any reuse. | Six wavetable channel strips with wave RAM preview/editing, native noise, LFO, channel balance, and source scopes. | 6 |
 | 12 | Namco WSG | Wavetable arcade color from another historically important wave-memory family. | Clean-room first; audit any MAME/Furnace-derived references before reuse. | Wavetable channel banks with waveform memory and source scopes. | 5 |
 | 13 | POKEY deeper pass | Improve the new partial Atari core. | Continue clean-room; web-pokey/MAME/Furnace reference-only unless audited. | Add AUDCTL channel pairing, high-pass filters, stronger polynomial validation, and source-card visuals. | 6 |

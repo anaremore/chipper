@@ -29,7 +29,7 @@ Source candidates, reference projects, validation targets, and license-audit tie
 | Namco arcade WSG | Wavetable voices | Clean-room register model feasible | Internal possible | Planned; descriptor discloses clean-room arcade wavetable strategy, voice/wave UI intent, and missing voice timing/output validation |
 | YM2151 / OPM | Four-op FM | `ymfm` candidate | BSD-3-Clause candidate; audit before vendoring | Planned; descriptor discloses `ymfm`-first source strategy, four-operator UI intent, and missing OPM/LFO validation |
 | YM2413 / OPLL | Preset FM | `ymfm` or `emu2413` candidate | BSD-3-Clause/MIT candidates; audit before vendoring | Planned; descriptor discloses permissive candidate strategy, preset-FM UI intent, and missing instrument/rhythm/patch validation |
-| Konami SCC | Wavetable voices | `emu2212` or clean-room candidate | MIT candidate; audit before vendoring | Planned; descriptor discloses `emu2212`-first strategy, five-channel wavetable UI intent, and missing SCC/SCC+ validation |
+| Konami SCC | Wavetable voices | Clean-room register model; `emu2212` remains a permissive candidate/reference after audit | Internal; no SCC emulator code is vendored | Partial core with five internal wavetable channels, 32-byte waveform RAM templates, frequency/volume/key-on register paths, first-four UI/source exposure, stack templates that can use channel 5 internally, tested descriptor/preset/render smoke behavior, and tested Chip Poly allocation across the four exposed channels; SCC+ bank behavior, channel 4/5 wave-memory quirks, exact DAC/output curve, timer edge timing, and hardware validation still required |
 
 ## Renderer Requirements
 
@@ -81,3 +81,4 @@ Golden WAV/reference outputs must include versioned metadata and source provenan
 - SN76489 PSG register, latch/data, noise, and attenuation behavior: https://www.smspower.org/Development/SN76489
 - Atari POKEY register layout, audio frequency/control/volume concepts, and AUDCTL behavior: https://www.atariarchives.org/dere/chapt08.php
 - PC Engine / TurboGrafx-16 HuC6280 PSG behavior is currently implemented from public register-level documentation and cross-emulator behavior notes without vendored third-party source; exact upstream reference commits and licenses must be added to `docs/emulator-source-map.md` before any external HuC6280 code is imported.
+- Konami SCC wavetable behavior is currently implemented from public register-level documentation and cross-emulator behavior notes without vendored third-party source; exact upstream reference commits and licenses must be added to `docs/emulator-source-map.md` before any external SCC code is imported.
