@@ -94,7 +94,29 @@ juce::StringArray dmgStereoRouteChoices()
 
 juce::StringArray ymEnvelopeShapeChoices()
 {
-    return { "Fixed", "Fall", "Rise", "Saw", "Triangle", "LP+HP", "LP+BP", "BP+HP", "All" };
+    return {
+        "Fixed / Follow",
+        "Fall / LP",
+        "Rise / BP",
+        "Saw / HP",
+        "Triangle / Off",
+        "Code 0x00 / Notch",
+        "Code 0x01 / LP+BP",
+        "Code 0x02 / BP+HP",
+        "Code 0x03 / All",
+        "Code 0x04",
+        "Code 0x05",
+        "Code 0x06",
+        "Code 0x07",
+        "Code 0x08",
+        "Code 0x09",
+        "Code 0x0A",
+        "Code 0x0B",
+        "Code 0x0C",
+        "Code 0x0D",
+        "Code 0x0E",
+        "Code 0x0F"
+    };
 }
 
 juce::StringArray ymChannelMixChoices()

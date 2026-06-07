@@ -460,19 +460,39 @@ std::vector<ChipParameterSpec> ym2149ParameterSpecs()
         ymChannelMixSpec(ChipParameterRole::ymChannelCMix, "ym2149.channelC.mix", "C Mix", "C"),
         stereoSpreadSpec("ym2149.stereoSpread", "Modern stereo convenience that spreads A/B/C across the stereo field; zero preserves mono chip output."),
         envelopeSpec("ym2149.envelopeSpeed", "Envelope Speed", "Maps musical envelope speed to YM/AY registers 11 and 12. Zero uses the default register period."),
-        segmentedSpec(ChipParameterRole::ymEnvelopeShape,
-                      "ym2149.envelopeShape",
-                      "Envelope Shape",
-                      "Envelope",
-                      "Maps directly to the YM/AY hardware envelope shape register.",
-                      {
-                          choice("Fixed", "Use fixed volume registers; envelope bit off.", 0.0f, 0),
-                          choice("Fall", "Register 13 = 0x09, fall then hold low.", 0.25f, 1),
-                          choice("Rise", "Register 13 = 0x0D, rise then hold high.", 0.5f, 2),
-                          choice("Saw", "Register 13 = 0x08, repeating saw down.", 0.75f, 3),
-                          choice("Tri", "Register 13 = 0x0E, repeating triangle.", 1.0f, 4)
-                      },
-                      ParameterKind::chipRegister)
+        { ChipParameterRole::ymEnvelopeShape,
+          "ym2149.envelopeShape",
+          "Envelope Shape",
+          "Envelope",
+          "Maps directly to the YM/AY hardware envelope shape register.",
+          ParameterKind::chipRegister,
+          ControlSurface::menu,
+          {
+              choice("Fixed", "Use fixed volume registers; envelope bit off.", 0.0f, 0),
+              choice("Fall", "Register 13 = 0x09, fall then hold low.", 0.25f, 1),
+              choice("Rise", "Register 13 = 0x0D, rise then hold high.", 0.5f, 2),
+              choice("Saw", "Register 13 = 0x08, repeating saw down.", 0.75f, 3),
+              choice("Tri", "Register 13 = 0x0E, repeating triangle.", 1.0f, 4),
+              choice("0x00", "Write exact envelope shape code 0x00.", 0.0f, 5),
+              choice("0x01", "Write exact envelope shape code 0x01.", 0.0f, 6),
+              choice("0x02", "Write exact envelope shape code 0x02.", 0.0f, 7),
+              choice("0x03", "Write exact envelope shape code 0x03.", 0.0f, 8),
+              choice("0x04", "Write exact envelope shape code 0x04.", 0.0f, 9),
+              choice("0x05", "Write exact envelope shape code 0x05.", 0.0f, 10),
+              choice("0x06", "Write exact envelope shape code 0x06.", 0.0f, 11),
+              choice("0x07", "Write exact envelope shape code 0x07.", 0.0f, 12),
+              choice("0x08", "Write exact envelope shape code 0x08.", 0.0f, 13),
+              choice("0x09", "Write exact envelope shape code 0x09.", 0.0f, 14),
+              choice("0x0A", "Write exact envelope shape code 0x0A.", 0.0f, 15),
+              choice("0x0B", "Write exact envelope shape code 0x0B.", 0.0f, 16),
+              choice("0x0C", "Write exact envelope shape code 0x0C.", 0.0f, 17),
+              choice("0x0D", "Write exact envelope shape code 0x0D.", 0.0f, 18),
+              choice("0x0E", "Write exact envelope shape code 0x0E.", 0.0f, 19),
+              choice("0x0F", "Write exact envelope shape code 0x0F.", 0.0f, 20)
+          },
+          0.0f,
+          1.0f,
+          0.0f }
     };
 }
 
@@ -1222,7 +1242,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float nesDmcDirectLevel)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
-    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : 4;
+    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : 20;
 
     return {
         macro,

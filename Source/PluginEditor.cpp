@@ -1185,15 +1185,11 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     ymEnvelopeShapeValueLabel.setVisible(false);
     addAndMakeVisible(ymEnvelopeShapeValueLabel);
 
-    const std::array<const char*, ymEnvelopeShapeCount> ymEnvelopeLabels {
-        "Fixed", "Fall", "Rise", "Saw", "Tri", "LP+HP", "LP+BP", "BP+HP", "All"
-    };
     for (size_t i = 0; i < ymEnvelopeShapeButtons.size(); ++i)
     {
         auto& button = ymEnvelopeShapeButtons[i];
-        button.setButtonText(ymEnvelopeLabels[i]);
         button.setClickingTogglesState(false);
-        button.setTooltip(juce::String("YM2149 envelope shape: ") + ymEnvelopeLabels[i]);
+        button.setTooltip("YM2149 envelope shape.");
         button.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff202c33));
         button.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xfff0c94d));
         button.setColour(juce::TextButton::textColourOffId, juce::Colour(0xffdbe8e5));
@@ -2005,7 +2001,7 @@ void ChipperAudioProcessorEditor::placeYmEnvelopeShapeSegment(juce::Rectangle<in
                                   ? std::min(ymEnvelopeShapeButtons.size(), spec->choices.size())
                                   : ymEnvelopeShapeButtons.size();
 
-    if (displayedMode == chipper::ChipMode::sid)
+    if (spec != nullptr && spec->surface == chipper::ControlSurface::menu)
     {
         auto header = bounds.removeFromTop(std::min(16, bounds.getHeight()));
         ymEnvelopeShapeLabel.setBounds(header.removeFromLeft(std::min(96, header.getWidth())));
@@ -2719,7 +2715,16 @@ juce::String ChipperAudioProcessorEditor::sidModelReadout(const chipper::PatchCo
 
 juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) const
 {
-    switch (std::clamp(choice, 0, 4))
+    const auto clamped = std::clamp(choice, 0, 20);
+    if (clamped >= 5)
+    {
+        const auto code = clamped - 5;
+        return juce::String("Register 13 = 0x")
+            + juce::String::toHexString(code).toUpperCase()
+            + ", exact AY/YM envelope shape";
+    }
+
+    switch (clamped)
     {
         case 1: return "Register 13 = 0x09, fall then hold low";
         case 2: return "Register 13 = 0x0D, rise then hold high";
@@ -4008,7 +4013,7 @@ void ChipperAudioProcessorEditor::updateYmEnvelopeShapeButtons(chipper::ChipMode
     const auto safeVisibleCount = std::max<size_t>(1u, visibleCount);
     const auto selected = static_cast<size_t>(std::clamp(patch.ymEnvelopeShape, 0, static_cast<int>(safeVisibleCount - 1u)));
 
-    if (mode == chipper::ChipMode::sid)
+    if (spec != nullptr && spec->surface == chipper::ControlSurface::menu)
     {
         for (auto& button : ymEnvelopeShapeButtons)
             button.setVisible(false);
@@ -4016,7 +4021,10 @@ void ChipperAudioProcessorEditor::updateYmEnvelopeShapeButtons(chipper::ChipMode
         sidFilterModeBox.setVisible(shouldBeVisible);
         sidFilterModeBox.setSelectedItemIndex(static_cast<int>(selected), juce::dontSendNotification);
         ymEnvelopeShapeValueLabel.setVisible(shouldBeVisible);
-        ymEnvelopeShapeValueLabel.setText(sidFilterModeReadout(patch), juce::dontSendNotification);
+        ymEnvelopeShapeValueLabel.setText(mode == chipper::ChipMode::sid
+                                              ? sidFilterModeReadout(patch)
+                                              : ymEnvelopeShapeReadout(static_cast<int>(selected)),
+                                          juce::dontSendNotification);
         return;
     }
 

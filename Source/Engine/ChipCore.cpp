@@ -3077,7 +3077,11 @@ private:
         if (! patchEnvelopeEnabled())
             return patch.macro == MacroKind::powerUp ? 0x0au : 0x09u;
 
-        switch (std::clamp(patch.ymEnvelopeShape, 0, 4))
+        const auto shapeChoice = std::clamp(patch.ymEnvelopeShape, 0, 20);
+        if (shapeChoice >= 5)
+            return static_cast<uint8_t>(shapeChoice - 5);
+
+        switch (shapeChoice)
         {
             case 1: return 0x09u; // Fall, hold low.
             case 2: return 0x0du; // Rise, hold high.

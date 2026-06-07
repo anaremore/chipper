@@ -201,14 +201,43 @@ bool parseWaveShape(const std::string& text, int& out)
 
 bool parseYmEnvelopeShape(const std::string& text, int& out)
 {
+    if (text.size() > 2u && text[0] == '0' && (text[1] == 'x' || text[1] == 'X'))
+    {
+        uint32_t code = 0;
+        if (! parseNumber(text, code))
+            return false;
+        out = 5 + std::clamp(static_cast<int>(code), 0, 15);
+        return true;
+    }
+
     uint32_t numeric = 0;
     if (parseNumber(text, numeric))
     {
-        out = std::clamp(static_cast<int>(numeric), 0, 4);
+        out = std::clamp(static_cast<int>(numeric), 0, 20);
         return true;
     }
 
     const auto key = normalizedToken(text);
+    auto parseExactCode = [&out](const std::string& suffix) {
+        if (suffix.empty())
+            return false;
+
+        uint32_t code = 0;
+        const auto* first = suffix.data();
+        const auto* last = suffix.data() + suffix.size();
+        const auto result = std::from_chars(first, last, code, 16);
+        if (result.ec != std::errc() || result.ptr != last)
+            return false;
+
+        out = 5 + std::clamp(static_cast<int>(code), 0, 15);
+        return true;
+    };
+
+    if (key.rfind("code", 0) == 0 && parseExactCode(key.substr(4)))
+        return true;
+    if (key.rfind("shape", 0) == 0 && parseExactCode(key.substr(5)))
+        return true;
+
     if (key == "fixed" || key == "off" || key == "volume" || key == "macro" || key == "follow" || key == "default")
         out = 0;
     else if (key == "fall" || key == "decay" || key == "fallhold")
@@ -522,7 +551,7 @@ void printUsage()
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
         << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --ym-envelope-shape fixed|fall|rise|saw|triangle --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
