@@ -14,6 +14,7 @@
 extern "C"
 {
 #include "emu2413.h"
+#include "emu76489.h"
 }
 
 namespace chipper
@@ -3884,18 +3885,23 @@ class Sn76489Core final : public ChipCore
 public:
     explicit Sn76489Core(AccuracyMode selectedAccuracy) : accuracy(selectedAccuracy) {}
 
+    ~Sn76489Core() override
+    {
+        if (emu != nullptr)
+            SNG_delete(emu);
+    }
+
     void reset(double outputSampleRate, double chipClockHz) override
     {
         sampleRate = outputSampleRate;
         clock = chipClockHz > 0.0 ? chipClockHz : 3579545.0;
+        resetEmu();
         tonePeriod = { 0x3ff, 0x3ff, 0x3ff };
         attenuation = { 0x0f, 0x0f, 0x0f, 0x0f };
-        phase.fill(0.0);
         latchedChannel = 0;
         latchedIsVolume = false;
         noiseControl = 0x03;
         lfsr = 0x8000;
-        noisePhase = 0.0;
         noiseRegisterResets = 0;
         volumeDataByteWrites = 0;
         heldNote = -1;
@@ -3904,6 +3910,7 @@ public:
         channelVelocity.fill(0.0f);
         channelStamp.fill(0);
         noteStamp = 0;
+        syncEmuRegisters();
     }
 
     void setPatch(const PatchConfig& newPatch) override
@@ -3912,6 +3919,8 @@ public:
             clearChipPolyState();
 
         patch = newPatch;
+        if (emu != nullptr)
+            syncEmuRegisters();
     }
 
     void writeRegister(uint16_t, uint8_t value) override
@@ -3922,20 +3931,30 @@ public:
             latchedIsVolume = (value & 0x10u) != 0;
             const auto data = value & 0x0fu;
             if (latchedIsVolume)
+            {
                 attenuation[latchedChannel] = data;
+                writeEmuVolumeLatch(latchedChannel);
+            }
             else if (latchedChannel == 3)
+            {
                 setNoiseControl(data, true);
+            }
             else
+            {
                 tonePeriod[latchedChannel] = static_cast<uint16_t>((tonePeriod[latchedChannel] & 0x3f0u) | data);
+                writeEmuTone(latchedChannel);
+            }
         }
         else if (latchedIsVolume)
         {
             attenuation[latchedChannel] = value & 0x0fu;
             ++volumeDataByteWrites;
+            writeEmuVolumeLatch(latchedChannel);
         }
         else if (latchedChannel < 3)
         {
             tonePeriod[latchedChannel] = static_cast<uint16_t>(((value & 0x3fu) << 4u) | (tonePeriod[latchedChannel] & 0x0fu));
+            writeEmuTone(latchedChannel);
         }
         else
         {
@@ -4014,6 +4033,7 @@ public:
         tonePeriod[2] = notePeriod(note2);
         setNoiseControl(sn76489NoiseControlForPatch(patch), false);
         applySourceAttenuationMask();
+        syncEmuRegisters();
     }
 
     void noteOff(int midiNote) override
@@ -4034,22 +4054,25 @@ public:
     StereoFrame renderSample() override
     {
         static constexpr std::array<double, 4> panPositions { -1.0, 0.0, 1.0, 0.0 };
+        if (emu != nullptr)
+            static_cast<void>(SNG_calc(emu));
+
         double left = 0.0;
         double right = 0.0;
         for (int ch = 0; ch < 3; ++ch)
         {
-            const auto channel = renderTone(ch) * attenuationToLinear(attenuation[static_cast<size_t>(ch)]) * sourceLevel(patch, static_cast<size_t>(ch));
+            const auto channel = renderEmuChannel(ch) * sourceLevel(patch, static_cast<size_t>(ch));
             const auto gains = modernStereoGains(patch, panPositions[static_cast<size_t>(ch)]);
             left += channel * gains.left;
             right += channel * gains.right;
         }
 
-        const auto noise = renderNoise() * attenuationToLinear(attenuation[3]) * sourceLevel(patch, 3);
+        const auto noise = renderEmuChannel(3) * sourceLevel(patch, 3);
         const auto noiseGains = modernStereoGains(patch, panPositions[3]);
         left += noise * noiseGains.left;
         right += noise * noiseGains.right;
 
-        const auto scale = static_cast<double>(noteVelocity) * 0.8 / 4.0;
+        const auto scale = static_cast<double>(noteVelocity) * 1.6 / 4.0;
         return { static_cast<float>(left * scale), static_cast<float>(right * scale) };
     }
 
@@ -4078,10 +4101,10 @@ public:
     ChipMode mode() const override { return ChipMode::sn76489; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
     std::string modeName() const override { return "SN76489 / Sega PSG"; }
-    std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
+    std::string implementedAccuracy() const override { return "partial emu76489-backed register-level"; }
     std::string limitations() const override
     {
-        return "Latch/data writes, tone periods including period 0/1 constant output, attenuation including volume-register data-byte writes, noise data-byte updates, LFSR reset on noise-register writes, noise modes, and tone-channel allocation for Chip Poly play mode are modeled; exact variant behavior and hardware-level output validation are still required.";
+        return "MIT emu76489 is used for SN76489 tone/noise generation while Chipper maps musical controls to PSG latch/register writes; source trims, modern stereo spread, and Chip Poly allocation remain Chipper-side conveniences. Exact chip variant behavior, external golden comparison, and hardware-level output validation are still required.";
     }
 
     std::string debugStateJson() const override
@@ -4089,7 +4112,8 @@ public:
         std::ostringstream json;
         json << "{"
              << "\"mode\":\"SN76489 / Sega PSG\","
-             << "\"implementedAccuracy\":\"partial clean-room register-level\","
+             << "\"implementedAccuracy\":\"partial emu76489-backed register-level\","
+             << "\"core\":\"emu76489\","
              << "\"clockHz\":" << clock << ","
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
@@ -4135,13 +4159,6 @@ public:
     }
 
 private:
-    static double attenuationToLinear(uint8_t value)
-    {
-        if ((value & 0x0f) == 0x0f)
-            return 0.0;
-        return std::pow(10.0, -2.0 * static_cast<double>(value & 0x0f) / 20.0);
-    }
-
     uint16_t notePeriod(int midiNote) const
     {
         return static_cast<uint16_t>(std::clamp(std::round(clock / (32.0 * midiNoteToHz(std::clamp(midiNote, 0, 127)))), 1.0, 1023.0));
@@ -4154,6 +4171,61 @@ private:
             if (! sourceEnabled(patch, channel))
                 attenuation[channel] = 0x0f;
         }
+    }
+
+    void resetEmu()
+    {
+        if (emu != nullptr)
+            SNG_delete(emu);
+
+        emu = SNG_new(static_cast<uint32_t>(std::max(1.0, std::round(clock))),
+                      static_cast<uint32_t>(std::max(1.0, std::round(sampleRate))));
+        if (emu != nullptr)
+        {
+            SNG_reset(emu);
+            SNG_set_quality(emu, 0);
+        }
+    }
+
+    void writeEmuByte(uint8_t value)
+    {
+        if (emu != nullptr)
+            SNG_writeIO(emu, value);
+    }
+
+    void writeEmuTone(uint8_t channel)
+    {
+        if (channel >= 3)
+            return;
+
+        const auto period = tonePeriod[static_cast<size_t>(channel)] & 0x03ffu;
+        writeEmuByte(static_cast<uint8_t>(0x80u | (channel << 5u) | (period & 0x0fu)));
+        writeEmuByte(static_cast<uint8_t>((period >> 4u) & 0x3fu));
+    }
+
+    void writeEmuVolumeLatch(uint8_t channel)
+    {
+        if (channel >= 4)
+            return;
+
+        writeEmuByte(static_cast<uint8_t>(0x90u | (channel << 5u) | (attenuation[static_cast<size_t>(channel)] & 0x0fu)));
+    }
+
+    void writeEmuNoiseLatch()
+    {
+        writeEmuByte(static_cast<uint8_t>(0xe0u | (noiseControl & 0x07u)));
+    }
+
+    void syncEmuRegisters()
+    {
+        if (emu == nullptr)
+            return;
+
+        for (uint8_t channel = 0; channel < 3; ++channel)
+            writeEmuTone(channel);
+        writeEmuNoiseLatch();
+        for (uint8_t channel = 0; channel < 4; ++channel)
+            writeEmuVolumeLatch(channel);
     }
 
     int selectChipPolyChannel(int midiNote) const
@@ -4219,6 +4291,7 @@ private:
         attenuation[index] = static_cast<uint8_t>(std::clamp(static_cast<int>(15 - std::round(channelVelocity[index] * 15.0f)), 0, 15));
         attenuation[3] = 0x0f;
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
+        syncEmuRegisters();
     }
 
     void noteOffChipPoly(int midiNote)
@@ -4235,39 +4308,20 @@ private:
         }
 
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
+        syncEmuRegisters();
     }
 
-    double renderTone(int channel)
+    double renderEmuChannel(int channel) const
     {
-        if (toneConstant(channel))
-            return 1.0;
+        if (emu == nullptr || channel < 0 || channel >= 4)
+            return 0.0;
 
-        const auto period = std::max<uint16_t>(1, tonePeriod[static_cast<size_t>(channel)]);
-        const auto hz = clock / (32.0 * static_cast<double>(period));
-        phase[static_cast<size_t>(channel)] = wrapPhase(phase[static_cast<size_t>(channel)] + hz / sampleRate);
-        return phase[static_cast<size_t>(channel)] < 0.5 ? 1.0 : -1.0;
+        return static_cast<double>(emu->ch_out[static_cast<size_t>(channel)]) / 8192.0;
     }
 
     bool toneConstant(int channel) const
     {
         return tonePeriod[static_cast<size_t>(channel)] <= 1;
-    }
-
-    double renderNoise()
-    {
-        const auto divider = noiseClockDivider();
-        const auto hz = clock / static_cast<double>(divider);
-        noisePhase += hz / sampleRate;
-        while (noisePhase >= 1.0)
-        {
-            noisePhase -= 1.0;
-            const auto white = (noiseControl & 0x04u) != 0;
-            const auto feedback = white ? ((lfsr & 1u) ^ ((lfsr >> 3u) & 1u)) : (lfsr & 1u);
-            lfsr = static_cast<uint16_t>((lfsr >> 1u) | (feedback << 15u));
-            if (lfsr == 0)
-                lfsr = 0x8000;
-        }
-        return (lfsr & 1u) != 0 ? 1.0 : -1.0;
     }
 
     void setNoiseControl(uint8_t value, bool fromRegisterWrite)
@@ -4276,6 +4330,7 @@ private:
         lfsr = 0x8000;
         if (fromRegisterWrite)
             ++noiseRegisterResets;
+        writeEmuNoiseLatch();
     }
 
     int noiseClockDivider() const
@@ -4288,16 +4343,15 @@ private:
     AccuracyMode accuracy;
     double sampleRate = 48000.0;
     double clock = 3579545.0;
+    SNG* emu = nullptr;
     std::array<uint16_t, 3> tonePeriod {};
     std::array<uint8_t, 4> attenuation {};
-    std::array<double, 3> phase {};
     uint8_t latchedChannel = 0;
     bool latchedIsVolume = false;
     uint8_t noiseControl = 0x03;
     uint16_t lfsr = 0x8000;
     uint32_t noiseRegisterResets = 0;
     uint32_t volumeDataByteWrites = 0;
-    double noisePhase = 0.0;
     int heldNote = -1;
     float noteVelocity = 0.0f;
     std::array<int, 3> channelNotes { -1, -1, -1 };

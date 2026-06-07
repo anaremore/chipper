@@ -45,7 +45,7 @@ These should be evaluated first because their upstream license posture appears m
 | --- | --- | --- |
 | [ymfm](https://github.com/aaronsgiles/ymfm) | YM2149, YM2151/OPM, YM2612/OPN2, OPL2/OPL3, YM2413/OPLL | GitHub reports BSD-3-Clause |
 | [digital-sound-antiques/emu2149](https://github.com/digital-sound-antiques/emu2149) | YM2149 / AY PSG | GitHub reports MIT |
-| [digital-sound-antiques/emu76489](https://github.com/digital-sound-antiques/emu76489) | SN76489 / Sega PSG | GitHub reports MIT |
+| [digital-sound-antiques/emu76489](https://github.com/digital-sound-antiques/emu76489) | SN76489 / Sega PSG | MIT; vendored at `2da50f887bf998e796c700e1a03f76c62a3809ff` |
 | [digital-sound-antiques/emu2413](https://github.com/digital-sound-antiques/emu2413) | YM2413 / OPLL | MIT; vendored at `813cff619f5f01c47bd5c0588c1fd8435530b125` |
 | [digital-sound-antiques/emu2212](https://github.com/digital-sound-antiques/emu2212) | Konami SCC | GitHub reports MIT |
 | [ayumi](https://github.com/true-grue/ayumi) | AY-3-8910 / YM2149 | GitHub reports MIT |
@@ -89,7 +89,7 @@ These are musically and technically valuable, but direct embedding should wait u
 | Game Boy / DMG | Clean-room model; SameBoy as audited reference/extraction candidate | SameBoy, FigBug/PAPU, Game_Music_Emu, Furnace | Continue Pan Docs-backed clean-room work; compare tracker-facing controls and behavior against Furnace/SameBoy, but evaluate SameBoy file-level license before extraction and keep Furnace reference-only unless Chipper goes GPL-compatible |
 | SID / C64 | Clean-room voice/register model first | libsidplayfp/reSIDfp, FigBug/SID, Furnace, MOS 6581 datasheet | Continue internal partial SID voice work; keep GPL SID projects reference-only until Chipper chooses a GPL-compatible path or a permissive SID core is selected |
 | YM2149 / AY | emu2149 or ayumi; ymfm if useful | Game_Music_Emu, Furnace, MAME | Evaluate emu2149/ayumi first; keep Chipper's current clean-room PSG as baseline |
-| SN76489 / Sega PSG | emu76489 | FigBug/SN76489, Game_Music_Emu, Furnace | Evaluate emu76489 first; use FigBug as LGPL comparison target |
+| SN76489 / Sega PSG | emu76489 vendored | FigBug/SN76489, Game_Music_Emu, Furnace | MIT emu76489 now backs the partial PSG core; use FigBug as LGPL comparison target and add golden comparisons/hardware validation before upgrading accuracy claims |
 | YM2612 / Genesis FM | ymfm | Nuked-OPN2, Game_Music_Emu, Furnace | Use ymfm first for compatibility; consider Nuked-OPN2 only with an LGPL plan |
 | OPL2 / OPL3 / DOS FM | ymfm | Nuked-OPL3, Furnace | Use ymfm first; reserve Nuked-OPL3 for optional stricter mode if licensing is settled |
 | SNES SPC700-style | Current clean-room partial sample-voice model; emu-rs/snes-apu and snes-echo are permissive-looking audit candidates | C700, blargg snes_spc, Game_Music_Emu, Furnace, MAME | Continue clean-room sample-voice work; audit snes-apu provenance and snes-echo DSP before reuse; keep C700, blargg snes_spc, GME, Furnace, and MAME as comparison/reference material until licensing is deliberately chosen |

@@ -10,7 +10,7 @@ The plugin must not use generic retro oscillators with famous chip labels. Each 
 - **Game Boy/DMG:** two pulse channels, wave RAM channel, noise, envelopes, length, sweep.
 - **SID/C64:** 6581/8580 variants, three oscillator voices, pulse/saw/triangle/noise, PWM, sync/ring mod, ADSR quirks, filter, resonance, drive.
 - **YM2149/AY:** three square tone channels, shared noise, mixer bits, hardware envelope shapes, buzzy arcade/computer character.
-- **SN76489:** three tone channels, noise modes, attenuation, Sega PSG behavior.
+- **SN76489:** three tone channels, noise modes, attenuation, Sega PSG behavior. The current partial core is backed by vendored MIT emu76489.
 - **YM2612/OPN2:** six-channel FM, operators, algorithms, feedback, LFO, DAC behavior, stereo.
 - **OPL2/OPL3:** two-operator FM, rhythm mode, waveform variants, envelopes, stereo for OPL3.
 - **Expansion:** SPC700-style sample playback, Paula, HuC6280 wavetable, Namco WSG, YM2151, YM2413/OPLL, Konami SCC. SPC700-style, POKEY, Paula, HuC6280, Namco WSG, YM2413/OPLL, and SCC have started as audible partial expansion cores; YM2413/OPLL is backed by vendored MIT emu2413.
