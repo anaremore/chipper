@@ -47,7 +47,7 @@ These should be evaluated first because their upstream license posture appears m
 | [digital-sound-antiques/emu2149](https://github.com/digital-sound-antiques/emu2149) | YM2149 / AY PSG | MIT; vendored at `02fc5f0b411c35e3d69cc7f161595b56b4fda4f2`; source header cites psg.vhd, NEZplug, MAME `ay8910.c`, MSX-Datapack, and AY datasheet as references, so provenance is explicitly noted |
 | [digital-sound-antiques/emu76489](https://github.com/digital-sound-antiques/emu76489) | SN76489 / Sega PSG | MIT; vendored at `2da50f887bf998e796c700e1a03f76c62a3809ff` |
 | [digital-sound-antiques/emu2413](https://github.com/digital-sound-antiques/emu2413) | YM2413 / OPLL | MIT; vendored at `813cff619f5f01c47bd5c0588c1fd8435530b125` |
-| [digital-sound-antiques/emu2212](https://github.com/digital-sound-antiques/emu2212) | Konami SCC | GitHub reports MIT |
+| [digital-sound-antiques/emu2212](https://github.com/digital-sound-antiques/emu2212) | Konami SCC | MIT; vendored at `ce7ade109942d9ba1b8067a27af47ddf37795fd7` |
 | [ayumi](https://github.com/true-grue/ayumi) | AY-3-8910 / YM2149 | GitHub reports MIT |
 | [SameBoy](https://github.com/LIJI32/SameBoy) | Game Boy / DMG reference or possible extraction | Upstream reports an Expat-style license, with folder-specific exceptions to audit |
 | [web-pokey](https://github.com/mrk-its/web-pokey) | Atari POKEY behavior reference or port candidate | GitHub reports MIT |
@@ -99,7 +99,7 @@ These are musically and technically valuable, but direct embedding should wait u
 | Namco arcade WSG | Current clean-room partial wavetable model | MAME Namco WSG, Furnace | Continue clean-room work; keep MAME/Furnace as comparison and audit targets only unless exact source/file licenses are recorded |
 | YM2151 / arcade FM | ymfm | Furnace, MAME | Use ymfm as first implementation candidate |
 | YM2413 / OPLL | emu2413 vendored; ymfm remains broader FM candidate | Nuked-OPLL, Furnace | emu2413 MIT core is used for the first partial OPLL melodic-channel adapter; keep Nuked-OPLL reference-only unless licensing changes |
-| Konami SCC | Current clean-room partial wavetable model; emu2212 remains a future audit candidate | vgsound_emu, Furnace, MAME | Continue clean-room work; evaluate emu2212 before any future reuse and keep Furnace/vgsound/MAME as comparison or audit targets only |
+| Konami SCC | emu2212 vendored | vgsound_emu, Furnace, MAME | MIT emu2212 now backs the partial SCC/SCC+ core; preserve Chipper's register/macro adapter and add golden comparisons before increasing accuracy claims |
 
 ## Furnace Review Notes
 

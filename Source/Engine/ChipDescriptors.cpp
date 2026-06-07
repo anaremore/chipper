@@ -1859,7 +1859,7 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::scc,
             "Konami SCC",
-            "Partial clean-room Konami SCC wavetable model with five internal channels.",
+            "Partial emu2212-backed Konami SCC/SCC+ wavetable model with five internal channels.",
             {
                 { "wave", "Wave RAM", "Wave", "32-byte SCC wave memory templates." },
                 { "vol", "Volume", "Mixer", "4-bit channel volume registers." },
@@ -1867,7 +1867,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "stack", "Wave Stack", "Motion", "Five-channel wavetable stack templates." },
             },
             {
-                makeModule("profile", "Profile", "Konami SCC clean-room groundwork.", { "Konami wavetable family", "3.58 MHz default", "Hybrid default", "Authentic still partial" }),
+                makeModule("profile", "Profile", "Konami SCC/SCC+ emu2212 groundwork.", { "Konami wavetable family", "3.58 MHz default", "MIT emu2212 core", "Authentic still partial" }),
                 makeModule("sources", "Wavetable Voices", "Five internal SCC channels.", { "Channels 1-4 exposed", "Channel 5 internal", "32-byte wave RAM", "Key-on mask" }),
                 makeModule("wave", "Wave / Mixer", "Wave RAM plus frequency and volume behavior.", { "Wave shape", "Wave skew", "4-bit volume", "Pitch periods" }),
                 makeModule("motion", "Motion", "Arcade SFX gestures mapped to frequency registers.", { "Coin ping", "Sweep zap", "Five-voice arp", "Wave tick" }),
@@ -1879,13 +1879,13 @@ const std::vector<ChipDescriptor>& descriptors()
             sccParameterSpecs(),
             verifiedPartial(
                 {
-                    "Five frequency, volume, key-on, and waveform-RAM register paths are modeled.",
+                    "Five frequency, volume, key-on, and waveform-RAM register paths are driven through vendored MIT emu2212.",
                     "The existing UI exposes the first four generic source controls; channel 5 can participate internally in stack templates until a five-lane SCC layout lands.",
-                    "No third-party SCC source code is vendored in this clean-room partial model."
+                    "Descriptor metadata, MIDI CC mappings, renderer debug JSON, chip-poly allocation, presets, and smoke output are covered by automated tests."
                 },
                 {
-                    "SCC+ bank behavior, channel 4/5 shared-wave quirks, exact DAC/output curve, timing edge cases, and hardware validation are not complete.",
-                    "Evaluate `emu2212` as a permissive candidate/reference before any future source reuse."
+                    "Exact SCC cartridge mapper/bank behavior, SCC vs SCC+ mode differences, channel D/E shared-wave quirks, exact DAC/output curve, timing edge cases, and hardware validation are not complete.",
+                    "Golden emulator and hardware spectral/timing comparisons are not complete, so this mode is not labeled cycle-accurate."
                 })
         }
     };

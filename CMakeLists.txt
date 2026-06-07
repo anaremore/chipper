@@ -12,6 +12,8 @@ find_package(Python3 COMPONENTS Interpreter)
 add_library(chipper_engine STATIC
     ThirdParty/emu2149/emu2149.c
     ThirdParty/emu2149/emu2149.h
+    ThirdParty/emu2212/emu2212.c
+    ThirdParty/emu2212/emu2212.h
     ThirdParty/emu2413/emu2413.c
     ThirdParty/emu2413/emu2413.h
     ThirdParty/emu76489/emu76489.c
@@ -26,7 +28,7 @@ add_library(chipper_engine STATIC
     Source/Presets.h
 )
 
-target_include_directories(chipper_engine PUBLIC Source ThirdParty/emu2149 ThirdParty/emu2413 ThirdParty/emu76489)
+target_include_directories(chipper_engine PUBLIC Source ThirdParty/emu2149 ThirdParty/emu2212 ThirdParty/emu2413 ThirdParty/emu76489)
 target_compile_features(chipper_engine PUBLIC cxx_std_20)
 
 add_executable(chipper_render tools/chipper_render.cpp)
@@ -1134,17 +1136,17 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_huc6280_chip_poly_assert PROPERTIES DEPENDS chipper_render_huc6280_chip_poly_smoke)
 
     add_test(NAME chipper_render_scc_json_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/scc-smoke.json --implemented-contains partial --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.05 --min-rms 0.02 --register-writes 0 --note-events 0 --core-min internalChannelCount=5 --core-max internalChannelCount=5 --core-min uiExposesFirstFourChannels=1 --core-max uiExposesFirstFourChannels=1 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min period0=338 --core-max period0=340 --core-min keyOnMask=0 --core-max keyOnMask=0 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Wave Shape" --descriptor-param-choices waveShape=5
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/scc-smoke.json --implemented-contains emu2212 --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.05 --min-rms 0.02 --register-writes 0 --note-events 0 --core-min internalChannelCount=5 --core-max internalChannelCount=5 --core-min uiExposesFirstFourChannels=1 --core-max uiExposesFirstFourChannels=1 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min period0=338 --core-max period0=340 --core-min keyOnMask=0 --core-max keyOnMask=0 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Wave Shape" --descriptor-param-choices waveShape=5
     )
     set_tests_properties(chipper_render_scc_json_assert PROPERTIES DEPENDS chipper_render_scc_smoke)
 
     add_test(NAME chipper_render_scc_steps_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/scc-steps-smoke.json --implemented-contains partial --macro Drum --min-peak 0.05 --register-writes 0 --note-events 0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min waveShapeChoice=4 --core-max waveShapeChoice=4 --core-min internalChannelCount=5 --core-max internalChannelCount=5 --core-min keyOnMask=0 --core-max keyOnMask=0
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/scc-steps-smoke.json --implemented-contains emu2212 --macro Drum --min-peak 0.05 --register-writes 0 --note-events 0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min waveShapeChoice=4 --core-max waveShapeChoice=4 --core-min internalChannelCount=5 --core-max internalChannelCount=5 --core-min keyOnMask=0 --core-max keyOnMask=0
     )
     set_tests_properties(chipper_render_scc_steps_assert PROPERTIES DEPENDS chipper_render_scc_steps_smoke)
 
     add_test(NAME chipper_render_scc_chip_poly_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/scc-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 4 --min-peak 0.05 --core-min activeChannels=4 --core-max activeChannels=4 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min internalChannelCount=5 --core-max internalChannelCount=5 --core-min keyOnMask=15 --core-max keyOnMask=15
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/scc-chip-poly-smoke.json --implemented-contains emu2212 --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 4 --min-peak 0.05 --core-min activeChannels=4 --core-max activeChannels=4 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min internalChannelCount=5 --core-max internalChannelCount=5 --core-min keyOnMask=15 --core-max keyOnMask=15
     )
     set_tests_properties(chipper_render_scc_chip_poly_assert PROPERTIES DEPENDS chipper_render_scc_chip_poly_smoke)
 

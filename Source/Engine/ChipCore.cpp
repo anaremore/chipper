@@ -14,6 +14,7 @@
 extern "C"
 {
 #include "emu2149.h"
+#include "emu2212.h"
 #include "emu2413.h"
 #include "emu76489.h"
 }
@@ -4834,6 +4835,12 @@ public:
         reset(sampleRate, clock);
     }
 
+    ~SccCore() override
+    {
+        if (emu != nullptr)
+            SCC_delete(emu);
+    }
+
     void reset(double outputSampleRate, double chipClockHz) override
     {
         sampleRate = outputSampleRate > 0.0 ? outputSampleRate : 48000.0;
@@ -4841,15 +4848,16 @@ public:
         period.fill(0);
         volume.fill(0);
         keyOnMask = 0;
-        phase.fill(0.0);
         channelNotes.fill(-1);
         channelVelocity.fill(0.0f);
         channelStamp.fill(0);
         noteStamp = 0;
         heldNote = -1;
         noteVelocity = 0.0f;
+        recreateEmu();
         for (size_t channel = 0; channel < waveRam.size(); ++channel)
             seedWave(channel);
+        syncAllRegistersToEmu();
     }
 
     void setPatch(const PatchConfig& nextPatch) override
@@ -4866,6 +4874,7 @@ public:
         {
             const auto channel = std::min<size_t>(reg / 32u, waveRam.size() - 1u);
             waveRam[channel][reg & 31u] = value;
+            writeEmuRegister(reg, value);
             return;
         }
 
@@ -4879,6 +4888,7 @@ public:
                 period[channel] = static_cast<uint16_t>((period[channel] & 0x0f00u) | value);
             else
                 period[channel] = static_cast<uint16_t>((period[channel] & 0x00ffu) | ((value & 0x0fu) << 8u));
+            writeEmuRegister(static_cast<uint8_t>(0xc0u + (reg - 0xa0u)), value);
             return;
         }
 
@@ -4886,12 +4896,18 @@ public:
         {
             const auto channel = static_cast<size_t>(reg - 0xaau);
             if (channel < volume.size())
+            {
                 volume[channel] = value & 0x0fu;
+                writeEmuRegister(static_cast<uint8_t>(0xd0u + channel), value);
+            }
             return;
         }
 
         if (reg == 0xafu)
+        {
             keyOnMask = value & 0x1fu;
+            writeEmuRegister(0xe1u, keyOnMask);
+        }
     }
 
     void noteOn(int midiNote, float velocity) override
@@ -4956,6 +4972,7 @@ public:
             if (channelActiveForPatch(channel))
                 keyOnMask |= static_cast<uint8_t>(1u << channel);
         }
+        syncAllRegistersToEmu();
     }
 
     void noteOff(int midiNote) override
@@ -4971,6 +4988,7 @@ public:
             heldNote = -1;
             noteVelocity = 0.0f;
             keyOnMask = 0;
+            writeEmuRegister(0xe1u, keyOnMask);
         }
     }
 
@@ -4981,9 +4999,12 @@ public:
         double right = 0.0;
         auto audibleCount = 0;
 
+        if (emu != nullptr)
+            SCC_calc(emu);
+
         for (size_t channel = 0; channel < period.size(); ++channel)
         {
-            const auto sample = renderChannel(channel);
+            const auto sample = renderChannelFromEmu(channel);
             if (std::abs(sample) <= 1.0e-9)
                 continue;
 
@@ -5026,10 +5047,10 @@ public:
     ChipMode mode() const override { return ChipMode::scc; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
     std::string modeName() const override { return "Konami SCC"; }
-    std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
+    std::string implementedAccuracy() const override { return "partial emu2212-backed register-level"; }
     std::string limitations() const override
     {
-        return "Five frequency, volume, key-on, and waveform-RAM register paths are modeled with 32-byte wavetable playback; SCC+ bank behavior, channel 4/5 wave-memory quirks, exact DAC/output curve, timing edge cases, and hardware validation are not complete.";
+        return "Five frequency, volume, key-on, and waveform-RAM register paths are driven through the MIT emu2212 SCC/SCC+ core; exact mapper/bank behavior, output curve, timing edge cases, golden emulator comparison, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -5037,8 +5058,9 @@ public:
         std::ostringstream json;
         json << "{"
              << "\"mode\":\"Konami SCC\","
-             << "\"implementedAccuracy\":\"partial clean-room register-level\","
+             << "\"implementedAccuracy\":\"partial emu2212-backed register-level\","
              << "\"clockHz\":" << clock << ","
+             << "\"core\":\"emu2212\","
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"waveShapeChoice\":" << std::clamp(patch.waveShape, 0, 4) << ","
@@ -5114,10 +5136,14 @@ private:
             }
             waveRam[channel][i] = static_cast<uint8_t>(std::clamp(sample, 0, 255));
         }
+        syncWaveToEmu(channel);
     }
 
-    double renderChannel(size_t channel)
+    double renderChannelFromEmu(size_t channel) const
     {
+        if (emu == nullptr)
+            return 0.0;
+
         if ((keyOnMask & (1u << channel)) == 0)
             return 0.0;
 
@@ -5125,10 +5151,55 @@ private:
         if (vol <= 0.0)
             return 0.0;
 
-        const auto hz = clock / (32.0 * static_cast<double>(std::max<uint16_t>(1, period[channel])));
-        phase[channel] = wrapPhase(phase[channel] + hz / sampleRate);
-        const auto index = static_cast<size_t>(std::floor(phase[channel] * 32.0)) & 31u;
-        return ((static_cast<double>(waveRam[channel][index]) - 128.0) / 128.0) * vol;
+        return std::clamp(static_cast<double>(emu->ch_out[channel]) / 4096.0, -1.0, 1.0);
+    }
+
+    void recreateEmu()
+    {
+        if (emu != nullptr)
+            SCC_delete(emu);
+
+        emu = SCC_new(static_cast<uint32_t>(std::max(1.0, std::round(clock))),
+                      static_cast<uint32_t>(std::max(1.0, std::round(sampleRate))));
+        if (emu == nullptr)
+            return;
+
+        SCC_set_type(emu, SCC_ENHANCED);
+        SCC_set_quality(emu, 0);
+        SCC_reset(emu);
+        writeEmuRegister(0xe0u, 0x01u);
+    }
+
+    void writeEmuRegister(uint8_t address, uint8_t value) const
+    {
+        if (emu != nullptr)
+            SCC_writeReg(emu, address, value);
+    }
+
+    void syncWaveToEmu(size_t channel) const
+    {
+        if (emu == nullptr || channel >= waveRam.size())
+            return;
+
+        const auto base = static_cast<uint8_t>(channel * 32u);
+        for (uint8_t index = 0; index < 32u; ++index)
+            writeEmuRegister(static_cast<uint8_t>(base + index), waveRam[channel][index]);
+    }
+
+    void syncAllRegistersToEmu() const
+    {
+        if (emu == nullptr)
+            return;
+
+        writeEmuRegister(0xe0u, 0x01u);
+        for (size_t channel = 0; channel < period.size(); ++channel)
+        {
+            syncWaveToEmu(channel);
+            writeEmuRegister(static_cast<uint8_t>(0xc0u + channel * 2u), static_cast<uint8_t>(period[channel] & 0xffu));
+            writeEmuRegister(static_cast<uint8_t>(0xc1u + channel * 2u), static_cast<uint8_t>((period[channel] >> 8u) & 0x0fu));
+            writeEmuRegister(static_cast<uint8_t>(0xd0u + channel), volume[channel]);
+        }
+        writeEmuRegister(0xe1u, keyOnMask);
     }
 
     int selectChipPolyChannel(int midiNote) const
@@ -5176,6 +5247,7 @@ private:
         noteStamp = 0;
         noteVelocity = 0.0f;
         keyOnMask = 0;
+        writeEmuRegister(0xe1u, keyOnMask);
     }
 
     void noteOnChipPoly(int midiNote, float velocity)
@@ -5192,6 +5264,7 @@ private:
         volume[index] = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 1, 15));
         keyOnMask |= static_cast<uint8_t>(1u << index);
         seedWave(index);
+        syncAllRegistersToEmu();
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
     }
 
@@ -5207,6 +5280,7 @@ private:
             channelStamp[channel] = 0;
             keyOnMask &= static_cast<uint8_t>(~(1u << channel));
         }
+        writeEmuRegister(0xe1u, keyOnMask);
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
     }
 
@@ -5217,7 +5291,7 @@ private:
     std::array<uint8_t, 5> volume {};
     uint8_t keyOnMask = 0;
     std::array<std::array<uint8_t, 32>, 5> waveRam {};
-    std::array<double, 5> phase {};
+    SCC* emu = nullptr;
     int heldNote = -1;
     float noteVelocity = 0.0f;
     std::array<int, 4> channelNotes {};
