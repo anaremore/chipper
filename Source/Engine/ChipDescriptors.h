@@ -81,6 +81,7 @@ enum class ChipParameterRole
     ymChannelBMix,
     ymChannelCMix,
     snNoiseMode,
+    nesDmcDirectLevel,
     clockHz,
     outputDb
 };
@@ -205,9 +206,11 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int sidVoice3Release = 0,
                             int sidFilterRouting = 0,
                             float sidVoice2PulseWidth = 0.5f,
-                            float sidVoice3PulseWidth = 0.5f);
+                            float sidVoice3PulseWidth = 0.5f,
+                            float nesDmcDirectLevel = 0.0f);
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t nesNoisePeriodForControl(float noisePeriodControl);
+uint8_t nesDmcDirectLevelForControl(float levelControl);
 uint8_t dmgSweepShiftForControl(float sweepControl);
 uint8_t dmgSweepRegisterForControl(float sweepControl);
 uint8_t dmgInitialEnvelopeLevelForControl(float envelopeLevelControl);

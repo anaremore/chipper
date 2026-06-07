@@ -2497,7 +2497,8 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidVoice3Release))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::sidFilterRouting))),
         parameterValue(chipper::parameters::id::sidVoice2PulseWidth),
-        parameterValue(chipper::parameters::id::sidVoice3PulseWidth));
+        parameterValue(chipper::parameters::id::sidVoice3PulseWidth),
+        parameterValue(chipper::parameters::id::nesDmcDirectLevel));
 }
 
 bool ChipperAudioProcessorEditor::usesPulseDutySegment(chipper::ChipMode mode) const

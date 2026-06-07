@@ -77,6 +77,7 @@ struct Options
     int sidFilterRouting = 0;
     float sidVoice2PulseWidth = 0.5f;
     float sidVoice3PulseWidth = 0.5f;
+    float nesDmcDirectLevel = 0.0f;
     bool envelopeDecayProvided = false;
     bool sidAttackProvided = false;
     bool sidDecayProvided = false;
@@ -104,6 +105,7 @@ struct Options
     bool sidFilterRoutingProvided = false;
     bool sidVoice2PulseWidthProvided = false;
     bool sidVoice3PulseWidthProvided = false;
+    bool nesDmcDirectLevelProvided = false;
     float outputDb = 0.0f;
     double clock = 1789773.0;
     double sampleRate = 48000.0;
@@ -520,7 +522,7 @@ void printUsage()
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
         << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --ym-envelope-shape fixed|fall|rise|saw|triangle --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --ym-envelope-shape fixed|fall|rise|saw|triangle --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -574,6 +576,7 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.sidFilterRouting = preset.sidFilterRouting;
     options.sidVoice2PulseWidth = preset.controls[0];
     options.sidVoice3PulseWidth = preset.controls[0];
+    options.nesDmcDirectLevel = 0.0f;
     options.envelopeDecayProvided = true;
     options.sidAttackProvided = true;
     options.sidDecayProvided = true;
@@ -601,6 +604,7 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.sidFilterRoutingProvided = true;
     options.sidVoice2PulseWidthProvided = true;
     options.sidVoice3PulseWidthProvided = true;
+    options.nesDmcDirectLevelProvided = true;
     options.outputDb = preset.outputDb;
     options.clock = preset.clockHz;
 }
@@ -938,6 +942,14 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.pulse2DutyProvided = true;
         }
+        else if (arg == "--nes-dmc-direct-level")
+        {
+            const auto* value = requireValue("--nes-dmc-direct-level");
+            if (value == nullptr || ! parseNumber(std::string(value), options.nesDmcDirectLevel))
+                return false;
+            options.nesDmcDirectLevel = std::clamp(options.nesDmcDirectLevel, 0.0f, 1.0f);
+            options.nesDmcDirectLevelProvided = true;
+        }
         else if (arg == "--dmg-wave-level")
         {
             const auto* value = requireValue("--dmg-wave-level");
@@ -1151,6 +1163,8 @@ void applyMacroTemplateDefaults(Options& options)
         options.snNoiseMode = templ.snNoiseMode;
     if (! options.sidFilterRoutingProvided)
         options.sidFilterRouting = 0;
+    if (! options.nesDmcDirectLevelProvided)
+        options.nesDmcDirectLevel = 0.0f;
 }
 
 std::vector<ScheduledEvent> loadEvents(const std::filesystem::path& path)
@@ -1455,6 +1469,7 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::ymChannelBMix: return "ymChannelBMix";
         case chipper::ChipParameterRole::ymChannelCMix: return "ymChannelCMix";
         case chipper::ChipParameterRole::snNoiseMode: return "snNoiseMode";
+        case chipper::ChipParameterRole::nesDmcDirectLevel: return "nesDmcDirectLevel";
         case chipper::ChipParameterRole::clockHz: return "clockHz";
         case chipper::ChipParameterRole::outputDb: return "outputDb";
     }
@@ -1808,6 +1823,7 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"sidVoice2PulseWidth\": " << patch.sidVoice2PulseWidth << ",\n"
         << "  \"sidVoice3PulseWidth\": " << patch.sidVoice3PulseWidth << ",\n"
         << "  \"pulse2Duty\": " << patch.pulse2Duty << ",\n"
+        << "  \"nesDmcDirectLevel\": " << patch.nesDmcDirectLevel << ",\n"
         << "  \"dmgStereoRoute\": " << patch.dmgStereoRoute << ",\n"
         << "  \"ymChannelAMix\": " << patch.ymChannelAMix << ",\n"
         << "  \"ymChannelBMix\": " << patch.ymChannelBMix << ",\n"
@@ -1905,7 +1921,8 @@ int main(int argc, char** argv)
                                                     options.sidVoice3Release,
                                                     options.sidFilterRouting,
                                                     options.sidVoice2PulseWidth,
-                                                    options.sidVoice3PulseWidth);
+                                                    options.sidVoice3PulseWidth,
+                                                    options.nesDmcDirectLevel);
         core->setPatch(patch);
         const auto events = loadEvents(options.eventFile);
         const auto registerWriteCount = static_cast<size_t>(std::count_if(events.begin(), events.end(), [](const auto& event) { return event.type == EventType::write; }));

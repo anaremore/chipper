@@ -249,6 +249,9 @@ int main()
     sendController(processor, 115, 96);
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::sidVoice3PulseWidth), 96.0f / 127.0f, 0.0001f,
                      "CC115 should control SID Voice 3 pulse width");
+    sendController(processor, 116, 100);
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcDirectLevel), 100.0f / 127.0f, 0.0001f,
+                     "CC116 should control NES DMC Direct Level");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 3));
     sendController(processor, 101, controllerValueForChoice(processor, chipper::parameters::id::ymChannelAMix, 1));

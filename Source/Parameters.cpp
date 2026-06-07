@@ -408,6 +408,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         snNoiseModeChoices(),
         0));
 
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::nesDmcDirectLevel, 1 },
+        "NES DMC Direct Level",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        0.0f));
+
     return { params.begin(), params.end() };
 }
 

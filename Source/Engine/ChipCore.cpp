@@ -1951,6 +1951,7 @@ public:
             clearChipPolyState();
 
         patch = newPatch;
+        regs[0x11] = nesDmcDirectLevelForControl(patch.nesDmcDirectLevel);
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -2184,6 +2185,7 @@ public:
              << "\"sourceLevel2\":" << sourceLevel(patch, 1) << ","
              << "\"sourceLevel3\":" << sourceLevel(patch, 2) << ","
              << "\"sourceLevel4\":" << sourceLevel(patch, 3) << ","
+             << "\"dmcDirectControl\":" << patch.nesDmcDirectLevel << ","
              << "\"enabled0\":" << (enabled[0] ? 1 : 0) << ","
              << "\"enabled1\":" << (enabled[1] ? 1 : 0) << ","
              << "\"enabled2\":" << (enabled[2] ? 1 : 0) << ","

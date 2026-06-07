@@ -62,7 +62,8 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && a.sidVoice2WaveShape == b.sidVoice2WaveShape
         && a.sidVoice3WaveShape == b.sidVoice3WaveShape
         && std::abs(a.sidVoice2PulseWidth - b.sidVoice2PulseWidth) < tolerance
-        && std::abs(a.sidVoice3PulseWidth - b.sidVoice3PulseWidth) < tolerance;
+        && std::abs(a.sidVoice3PulseWidth - b.sidVoice3PulseWidth) < tolerance
+        && std::abs(a.nesDmcDirectLevel - b.nesDmcDirectLevel) < tolerance;
 }
 
 bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
@@ -102,7 +103,8 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && a.sidVoice2WaveShape == b.sidVoice2WaveShape
         && a.sidVoice3WaveShape == b.sidVoice3WaveShape
         && std::abs(a.sidVoice2PulseWidth - b.sidVoice2PulseWidth) < tolerance
-        && std::abs(a.sidVoice3PulseWidth - b.sidVoice3PulseWidth) < tolerance;
+        && std::abs(a.sidVoice3PulseWidth - b.sidVoice3PulseWidth) < tolerance
+        && std::abs(a.nesDmcDirectLevel - b.nesDmcDirectLevel) < tolerance;
 }
 }
 
@@ -431,7 +433,8 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidVoice3Release)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::sidFilterRouting)->load())),
         apvts.getRawParameterValue(chipper::parameters::id::sidVoice2PulseWidth)->load(),
-        apvts.getRawParameterValue(chipper::parameters::id::sidVoice3PulseWidth)->load());
+        apvts.getRawParameterValue(chipper::parameters::id::sidVoice3PulseWidth)->load(),
+        apvts.getRawParameterValue(chipper::parameters::id::nesDmcDirectLevel)->load());
 }
 
 void ChipperAudioProcessor::replayPendingRegisterState()

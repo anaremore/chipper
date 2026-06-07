@@ -291,6 +291,12 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source2Level, "nes.pulse2.level", "Pulse 2 Level", "Modern trim for the second pulse source."),
         sourceLevelSpec(ChipParameterRole::source3Level, "nes.triangle.level", "Triangle Level", "Modern trim for the triangle source."),
         sourceLevelSpec(ChipParameterRole::source4Level, "nes.noise.level", "Noise Level", "Modern trim for the noise source."),
+        sliderSpec(ChipParameterRole::nesDmcDirectLevel,
+                   "nes.dmcDirectLevel",
+                   "DMC Direct Level",
+                   "DMC",
+                   "Maps to the RP2A03 $4011 7-bit DMC direct DAC load. This is direct-level grit, not full DPCM sample playback.",
+                   ParameterKind::chipRegister),
         envelopeSpec("nes.envelopeDecay", "Envelope Decay", "Maps musical decay to APU envelope period values."),
         segmentedSpec(ChipParameterRole::snNoiseMode,
                       "nes.noiseMode",
@@ -701,7 +707,7 @@ std::array<ModuleDescriptor, 6> nesModules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "RP2A03-inspired clean-room APU model.", { "2A03 family", "NTSC/PAL clock override", "Hybrid default", "Authentic still partial" }),
-        makeModule("sources", "Channels", "Native channel layout exposed musically.", { "Pulse 1", "Pulse 2", "Triangle / Chip Poly", "Noise / DMC planned" }),
+        makeModule("sources", "Channels", "Native channel layout exposed musically.", { "Pulse 1", "Pulse 2", "Triangle / Chip Poly", "Noise + DMC direct" }),
         makeModule("tone", "Shape / Mixer", "Pulse, triangle, noise, and nonlinear mixer behavior.", { "Pulse duty", "Pitch sweep macro", "Noise mode", "Nonlinear mixer" }),
         makeModule("envelope", "Envelope", "APU envelope and duration behavior.", { "Simple envelope", "Length counters", "Triangle linear planned", "Drum decay" }),
         makeModule("motion", "Motion", "Musical gestures write chip-like register templates.", { "Coin blip", "Jump rise", "Laser sweep", "Fast arps" }),
@@ -821,7 +827,7 @@ const std::vector<ChipDescriptor>& descriptors()
             nesParameterSpecs(),
             verifiedPartial(
                 {
-                    "Pulse duty choices, pulse-2 duty override, sweep add/negate/mute paths, triangle linear counter behavior, noise mode/period controls, DMC direct level, frame-counter register paths, source gating, Chip Poly, presets, and MIDI CC metadata are covered by renderer tests."
+                    "Pulse duty choices, pulse-2 duty override, sweep add/negate/mute paths, triangle linear counter behavior, noise mode/period controls, DMC direct level via event traces and APVTS/CC parameter mapping, frame-counter register paths, source gating, Chip Poly, presets, and MIDI CC metadata are covered by renderer tests."
                 },
                 {
                     "DMC sample playback is not complete.",
@@ -1191,7 +1197,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             int sidVoice3Release,
                             int sidFilterRouting,
                             float sidVoice2PulseWidth,
-                            float sidVoice3PulseWidth)
+                            float sidVoice3PulseWidth,
+                            float nesDmcDirectLevel)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : 4;
@@ -1237,13 +1244,19 @@ PatchConfig makePatchConfig(ChipMode mode,
         std::clamp(sidVoice2WaveShape, 0, 4),
         std::clamp(sidVoice3WaveShape, 0, 4),
         clampControl(sidVoice2PulseWidth),
-        clampControl(sidVoice3PulseWidth)
+        clampControl(sidVoice3PulseWidth),
+        clampControl(nesDmcDirectLevel)
     };
 }
 
 uint8_t nesNoisePeriodForControl(float noisePeriodControl)
 {
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - clampControl(noisePeriodControl)) * 15.0f)), 0, 15));
+}
+
+uint8_t nesDmcDirectLevelForControl(float levelControl)
+{
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(levelControl) * 127.0f)), 0, 127));
 }
 
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch)
