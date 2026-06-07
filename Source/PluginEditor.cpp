@@ -763,6 +763,12 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     clockSlider.setTooltip(withMidiCc("Optional chip clock override. Zero uses the documented default for the selected mode.", chipper::parameters::id::clockHz));
     clockAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::clockHz, clockSlider);
 
+    addLabeledSlider(dmcDirectSlider, dmcDirectLabel, "DMC Direct");
+    dmcDirectSlider.setNumDecimalPlacesToDisplay(2);
+    dmcDirectSlider.setTooltip(withMidiCcForRole("RP2A03 $4011 direct DAC load. Adds DMC grit without claiming full DPCM sample playback.", chipper::ChipParameterRole::nesDmcDirectLevel));
+    dmcDirectLabel.setTooltip(dmcDirectSlider.getTooltip());
+    dmcDirectAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::nesDmcDirectLevel, dmcDirectSlider);
+
     addLabeledSlider(outputSlider, outputLabel, "Output");
     outputSlider.setTextValueSuffix(" dB");
     outputSlider.setTooltip(withMidiCc("Final plugin output level.", chipper::parameters::id::outputDb));
@@ -1762,10 +1768,19 @@ void ChipperAudioProcessorEditor::resized()
     placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], sustainCell);
     placeToneNoiseMixSegment(sustainCell);
 
-    placeLabeledSliderWithReadout(clockSlider,
-                                  clockLabel,
-                                  controlValueLabels[4],
-                                  displayedMode == chipper::ChipMode::sid ? controlCells[3] : controlCells[4]);
+    const auto utilityCell = displayedMode == chipper::ChipMode::sid ? controlCells[3] : controlCells[4];
+    if (displayedMode == chipper::ChipMode::nes)
+    {
+        clockSlider.setBounds({});
+        clockLabel.setBounds({});
+        placeLabeledSliderWithReadout(dmcDirectSlider, dmcDirectLabel, controlValueLabels[4], utilityCell);
+    }
+    else
+    {
+        dmcDirectSlider.setBounds({});
+        dmcDirectLabel.setBounds({});
+        placeLabeledSliderWithReadout(clockSlider, clockLabel, controlValueLabels[4], utilityCell);
+    }
 
     auto outputCell = displayedMode == chipper::ChipMode::sid ? controlCells[4].getUnion(controlCells[5]) : controlCells[5];
     auto outputHeader = outputCell.removeFromTop(18);
@@ -3010,6 +3025,15 @@ juce::String ChipperAudioProcessorEditor::snLevelReadout(float value) const
     return attenuationText + juce::String(", -") + juce::String(static_cast<int>(attenuation) * 2) + " dB";
 }
 
+juce::String ChipperAudioProcessorEditor::nesDmcDirectReadout(float value) const
+{
+    const auto level = chipper::nesDmcDirectLevelForControl(value);
+    if (level == 0u)
+        return "$4011 0/127, silent";
+
+    return juce::String("$4011 ") + juce::String(static_cast<int>(level)) + "/127, direct grit";
+}
+
 juce::String ChipperAudioProcessorEditor::sidPulseWidthReadout(float value) const
 {
     const auto pulseWidth = chipper::sidPulseWidthForControl(value);
@@ -4121,6 +4145,14 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     clockSlider.setEnabled(hasLiveCore);
     clockLabel.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     clockSlider.setAlpha(hasLiveCore ? 1.0f : 0.55f);
+    dmcDirectLabel.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);
+    dmcDirectSlider.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);
+    dmcDirectLabel.setEnabled(hasLiveCore);
+    dmcDirectSlider.setEnabled(hasLiveCore);
+    dmcDirectLabel.setAlpha(hasLiveCore ? 1.0f : 0.55f);
+    dmcDirectSlider.setAlpha(hasLiveCore ? 1.0f : 0.55f);
+    clockLabel.setVisible(mode != chipper::ChipMode::nes);
+    clockSlider.setVisible(mode != chipper::ChipMode::nes);
 
     for (size_t i = 0; i < moduleTitleLabels.size(); ++i)
     {
@@ -4337,12 +4369,21 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[3].setText(juce::String(patch.control4, 2), juce::dontSendNotification);
     }
 
-    const auto clock = parameterValue(chipper::parameters::id::clockHz);
-    const auto defaultClock = chipper::parameters::defaultClockForMode(mode);
-    const auto clockText = clock <= 0.0f
-        ? juce::String("Default ") + juce::String(defaultClock / 1000000.0, 2) + " MHz"
-        : juce::String("Override ") + juce::String(static_cast<double>(clock) / 1000000.0, 2) + " MHz";
-    controlValueLabels[4].setText(clockText, juce::dontSendNotification);
+    if (mode == chipper::ChipMode::nes)
+    {
+        controlValueLabels[4].setText(nesDmcDirectReadout(parameterValue(chipper::parameters::id::nesDmcDirectLevel)), juce::dontSendNotification);
+        controlValueLabels[4].setTooltip(withMidiCcForRole("RP2A03 $4011 DMC direct DAC load. Direct-level grit only; DPCM sample playback is not implemented.", chipper::ChipParameterRole::nesDmcDirectLevel));
+    }
+    else
+    {
+        const auto clock = parameterValue(chipper::parameters::id::clockHz);
+        const auto defaultClock = chipper::parameters::defaultClockForMode(mode);
+        const auto clockText = clock <= 0.0f
+            ? juce::String("Default ") + juce::String(defaultClock / 1000000.0, 2) + " MHz"
+            : juce::String("Override ") + juce::String(static_cast<double>(clock) / 1000000.0, 2) + " MHz";
+        controlValueLabels[4].setText(clockText, juce::dontSendNotification);
+        controlValueLabels[4].setTooltip(withMidiCc("Optional chip clock override. Zero uses the documented default for the selected mode.", chipper::parameters::id::clockHz));
+    }
 
     const auto outputDb = parameterValue(chipper::parameters::id::outputDb);
     controlValueLabels[5].setText(juce::String("Output ") + juce::String(outputDb, 1) + " dB", juce::dontSendNotification);

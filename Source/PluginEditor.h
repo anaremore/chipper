@@ -191,6 +191,7 @@ private:
     juce::String snStackReadout(float value) const;
     juce::String snMotionReadout(float value) const;
     juce::String snLevelReadout(float value) const;
+    juce::String nesDmcDirectReadout(float value) const;
     juce::String sidPulseWidthReadout(float value) const;
     juce::String sidDetuneReadout(float value) const;
     juce::String sidCutoffReadout(float value) const;
@@ -243,6 +244,7 @@ private:
     juce::Label coreReadinessLabel;
     juce::Label globalStripLabel;
     juce::Label clockLabel;
+    juce::Label dmcDirectLabel;
     juce::Label outputLabel;
     OutputScopePreview outputScopePreview;
     juce::Label stereoSpreadLabel;
@@ -307,6 +309,7 @@ private:
     juce::ComboBox playModeBox;
 
     juce::Slider clockSlider;
+    juce::Slider dmcDirectSlider;
     juce::Slider outputSlider;
     juce::Slider stereoSpreadSlider;
     juce::Slider envelopeDecaySlider;
@@ -323,6 +326,7 @@ private:
     std::unique_ptr<ComboBoxAttachment> macroAttachment;
     std::unique_ptr<ComboBoxAttachment> playModeAttachment;
     std::unique_ptr<SliderAttachment> clockAttachment;
+    std::unique_ptr<SliderAttachment> dmcDirectAttachment;
     std::unique_ptr<SliderAttachment> outputAttachment;
     std::unique_ptr<SliderAttachment> stereoSpreadAttachment;
     std::unique_ptr<ComboBoxAttachment> sidFilterRoutingAttachment;
