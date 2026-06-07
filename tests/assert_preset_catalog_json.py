@@ -13,6 +13,7 @@ REQUIRED_CATEGORIES = {
     "NES Bass",
     "NES Drums",
     "NES Leads",
+    "PC Engine HuC6280",
     "SID Bass",
     "SID FX",
     "SID PWM Leads",
@@ -23,7 +24,7 @@ REQUIRED_CATEGORIES = {
     "YM Noise Percussion",
 }
 
-IMPLEMENTED_CHIPS = {"nes", "dmg", "sid", "ym2149", "sn76489", "pokey"}
+IMPLEMENTED_CHIPS = {"nes", "dmg", "sid", "ym2149", "sn76489", "pokey", "huc6280"}
 
 EXPECTED_CATEGORY_PREFIXES = {
     "nes": ("NES", "Arcade", "Classic"),
@@ -32,6 +33,7 @@ EXPECTED_CATEGORY_PREFIXES = {
     "ym2149": ("YM", "Arcade", "Classic"),
     "sn76489": ("SN76489", "Arcade", "Classic"),
     "pokey": ("Atari", "Arcade", "Classic"),
+    "huc6280": ("PC Engine", "Arcade", "Classic"),
 }
 
 

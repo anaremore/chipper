@@ -87,7 +87,7 @@ These are musically and technically valuable, but direct embedding should wait u
 | SNES SPC700-style | Sample-engine design; Game_Music_Emu as reference | Furnace, MAME | Treat as sample playback/tracker mode, not an oscillator mode |
 | Atari POKEY | Current clean-room partial model; web-pokey remains a future audit candidate | Game_Music_Emu, MAME, Furnace | Continue clean-room POKEY work for now; audit web-pokey and MAME file headers before any reuse |
 | Amiga Paula | Clean-room tracker sampler; pt2-clone reference | Paula Tracker / PaulaLib, libxmp, Furnace | Start with clean-room sampler behavior and compare against tracker references |
-| PC Engine HuC6280 | Clean-room wavetable model | MAME c6280, Game_Music_Emu, Furnace, HuSIC | Use public docs/MAME references carefully; audit before copying |
+| PC Engine HuC6280 | Current clean-room partial wavetable/noise model | MAME c6280, Game_Music_Emu, Furnace, HuSIC | Continue clean-room work; use MAME/GME/Furnace/HuSIC as comparison and audit targets only unless an exact source/license review is recorded |
 | Namco arcade WSG | Clean-room wavetable model | MAME Namco WSG, Furnace | Use register docs and audited MAME files only |
 | YM2151 / arcade FM | ymfm | Furnace, MAME | Use ymfm as first implementation candidate |
 | YM2413 / OPLL | emu2413 or ymfm | Nuked-OPLL, Furnace | Prefer emu2413/ymfm; keep Nuked-OPLL reference-only unless licensing changes |

@@ -4302,6 +4302,447 @@ private:
     PatchConfig patch;
 };
 
+class Huc6280Core final : public ChipCore
+{
+public:
+    explicit Huc6280Core(AccuracyMode selectedAccuracy) : accuracy(selectedAccuracy) {}
+
+    void reset(double outputSampleRate, double chipClockHz) override
+    {
+        sampleRate = outputSampleRate;
+        clock = chipClockHz > 0.0 ? chipClockHz : 3579545.0;
+        selectedChannel = 0;
+        frequency.fill(0x0fff);
+        control.fill(0x00);
+        balance.fill(0xff);
+        noiseControl.fill(0x00);
+        phase.fill(0.0);
+        noisePhase.fill(0.0);
+        noiseLfsr.fill(0x1ffffu);
+        waveWriteIndex.fill(0);
+        channelNotes.fill(-1);
+        channelVelocity.fill(0.0f);
+        channelStamp.fill(0);
+        noteStamp = 0;
+        heldNote = -1;
+        noteVelocity = 0.0f;
+
+        for (size_t channel = 0; channel < waveRam.size(); ++channel)
+            seedWave(channel);
+    }
+
+    void setPatch(const PatchConfig& newPatch) override
+    {
+        if (newPatch.playMode != patch.playMode || newPatch.sourceEnabled != patch.sourceEnabled)
+            clearChipPolyState();
+
+        patch = newPatch;
+    }
+
+    void writeRegister(uint16_t address, uint8_t value) override
+    {
+        switch (address & 0x0fu)
+        {
+            case 0x00:
+                selectedChannel = static_cast<uint8_t>(value % 6u);
+                break;
+            case 0x02:
+                frequency[selectedChannel] = static_cast<uint16_t>((frequency[selectedChannel] & 0x0f00u) | value);
+                break;
+            case 0x03:
+                frequency[selectedChannel] = static_cast<uint16_t>(((value & 0x0fu) << 8u) | (frequency[selectedChannel] & 0x00ffu));
+                break;
+            case 0x04:
+                control[selectedChannel] = value;
+                break;
+            case 0x05:
+                balance[selectedChannel] = value;
+                break;
+            case 0x06:
+                writeWaveSample(selectedChannel, value);
+                break;
+            case 0x07:
+                noiseControl[selectedChannel] = value;
+                noiseLfsr[selectedChannel] = 0x1ffffu;
+                break;
+            default:
+                break;
+        }
+    }
+
+    void noteOn(int midiNote, float velocity) override
+    {
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            noteOnChipPoly(midiNote, velocity);
+            return;
+        }
+
+        heldNote = std::clamp(midiNote, 0, 127);
+        noteVelocity = static_cast<float>(clamp01(velocity));
+        const auto spread = static_cast<int>(std::round(patch.control1 * 19.0f));
+        std::array<int, 6> notes {
+            heldNote,
+            heldNote + std::max(1, spread / 3),
+            heldNote + std::max(2, (spread * 2) / 3),
+            heldNote + std::max(3, spread),
+            heldNote - 12,
+            heldNote + 12
+        };
+
+        switch (patch.macro)
+        {
+            case MacroKind::coin:
+                notes = { heldNote + 24, heldNote + 31, heldNote + 36, heldNote + 43, heldNote + 12, heldNote + 19 };
+                break;
+            case MacroKind::bass:
+                notes = { heldNote - 24, heldNote - 12, heldNote - 5, heldNote, heldNote - 17, heldNote + 7 };
+                break;
+            case MacroKind::arp:
+                notes = { heldNote, heldNote + 4, heldNote + 7, heldNote + 12, heldNote + 16, heldNote + 19 };
+                break;
+            case MacroKind::drum:
+            case MacroKind::hit:
+                notes = { heldNote - 24, heldNote - 12, heldNote, heldNote + 7, heldNote + 12, heldNote + 19 };
+                break;
+            case MacroKind::laser:
+                notes[0] = heldNote + 12 + static_cast<int>(std::round(patch.control2 * 12.0f));
+                notes[1] = heldNote;
+                notes[2] = heldNote - 12;
+                notes[3] = heldNote - 19;
+                break;
+            case MacroKind::jump:
+                notes[0] = heldNote + static_cast<int>(std::round(patch.control2 * 12.0f));
+                notes[1] = heldNote + 7;
+                notes[2] = heldNote + 12;
+                break;
+            case MacroKind::powerUp:
+                notes = { heldNote, heldNote + 5, heldNote + 12, heldNote + 17, heldNote + 24, heldNote + 29 };
+                break;
+            case MacroKind::lead:
+            case MacroKind::manual:
+            default:
+                break;
+        }
+
+        for (size_t channel = 0; channel < frequency.size(); ++channel)
+        {
+            frequency[channel] = hucPeriodForNote(notes[channel]);
+            control[channel] = channelActiveForPatch(channel) ? channelControlForPatch(channel) : 0x00u;
+            balance[channel] = 0xffu;
+            seedWave(channel);
+        }
+    }
+
+    void noteOff(int midiNote) override
+    {
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            noteOffChipPoly(midiNote);
+            return;
+        }
+
+        if (midiNote == heldNote)
+        {
+            heldNote = -1;
+            noteVelocity = 0.0f;
+        }
+    }
+
+    StereoFrame renderSample() override
+    {
+        static constexpr std::array<double, 6> panPositions { -1.0, -0.6, -0.2, 0.2, 0.6, 1.0 };
+        double left = 0.0;
+        double right = 0.0;
+        auto audibleCount = 0;
+
+        for (size_t channel = 0; channel < frequency.size(); ++channel)
+        {
+            const auto sample = renderChannel(channel);
+            if (sample == 0.0)
+                continue;
+
+            ++audibleCount;
+            const auto gains = modernStereoGains(patch, panPositions[channel]);
+            left += sample * gains.left;
+            right += sample * gains.right;
+        }
+
+        const auto scale = static_cast<double>(noteVelocity) * 0.9 / static_cast<double>(std::max(1, audibleCount));
+        return { static_cast<float>(left * scale), static_cast<float>(right * scale) };
+    }
+
+    std::vector<RegisterWrite> exportRegisterState() const override
+    {
+        std::vector<RegisterWrite> writes;
+        writes.reserve(6 * 5);
+        for (uint8_t channel = 0; channel < 6; ++channel)
+        {
+            writes.push_back({ 0, 0x00, channel });
+            writes.push_back({ 0, 0x02, static_cast<uint8_t>(frequency[channel] & 0xffu) });
+            writes.push_back({ 0, 0x03, static_cast<uint8_t>((frequency[channel] >> 8u) & 0x0fu) });
+            writes.push_back({ 0, 0x04, control[channel] });
+            writes.push_back({ 0, 0x05, balance[channel] });
+        }
+        return writes;
+    }
+
+    ChipMode mode() const override { return ChipMode::huc6280; }
+    AccuracyMode requestedAccuracy() const override { return accuracy; }
+    std::string modeName() const override { return "PC Engine HuC6280"; }
+    std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
+    std::string limitations() const override
+    {
+        return "Six channel-select, frequency, control, balance, waveform-RAM, and noise-control register paths are modeled with wavetable playback and simplified LFSR noise; LFO behavior, exact noise taps, DDA details, stereo register behavior, timer edge timing, and hardware validation are not complete.";
+    }
+
+    std::string debugStateJson() const override
+    {
+        std::ostringstream json;
+        json << "{"
+             << "\"mode\":\"PC Engine HuC6280\","
+             << "\"implementedAccuracy\":\"partial clean-room register-level\","
+             << "\"clockHz\":" << clock << ","
+             << "\"macro\":\"" << toString(patch.macro) << "\","
+             << "\"playMode\":\"" << toString(patch.playMode) << "\","
+             << "\"selectedChannel\":" << static_cast<int>(selectedChannel) << ","
+             << "\"waveShapeChoice\":" << std::clamp(patch.waveShape, 0, 4) << ","
+             << "\"frequency0\":" << frequency[0] << ","
+             << "\"frequency1\":" << frequency[1] << ","
+             << "\"frequency2\":" << frequency[2] << ","
+             << "\"frequency3\":" << frequency[3] << ","
+             << "\"frequency4\":" << frequency[4] << ","
+             << "\"frequency5\":" << frequency[5] << ","
+             << "\"control0\":" << static_cast<int>(control[0]) << ","
+             << "\"control1\":" << static_cast<int>(control[1]) << ","
+             << "\"control2\":" << static_cast<int>(control[2]) << ","
+             << "\"control3\":" << static_cast<int>(control[3]) << ","
+             << "\"control4\":" << static_cast<int>(control[4]) << ","
+             << "\"control5\":" << static_cast<int>(control[5]) << ","
+             << "\"noiseControl0\":" << static_cast<int>(noiseControl[0]) << ","
+             << "\"noiseControl5\":" << static_cast<int>(noiseControl[5]) << ","
+             << "\"waveRam0\":" << static_cast<int>(waveRam[0][0]) << ","
+             << "\"waveRam31\":" << static_cast<int>(waveRam[0][31]) << ","
+             << "\"sourceEnabled0\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
+             << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
+             << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
+             << "\"sourceEnabled3\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+             << "\"uiExposesFirstFourChannels\":1,"
+             << "\"internalChannelCount\":6,"
+             << "\"activeChannels\":" << activeChipPolyChannels() << ","
+             << "\"assignedNote0\":" << channelNotes[0] << ","
+             << "\"assignedNote1\":" << channelNotes[1] << ","
+             << "\"assignedNote2\":" << channelNotes[2] << ","
+             << "\"assignedNote3\":" << channelNotes[3] << ","
+             << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
+             << "}";
+        return json.str();
+    }
+
+private:
+    uint16_t hucPeriodForNote(int midiNote) const
+    {
+        const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
+        return static_cast<uint16_t>(std::clamp(std::round(clock / (32.0 * hz)), 1.0, 4095.0));
+    }
+
+    uint8_t channelControlForPatch(size_t channel) const
+    {
+        const auto volume = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control4 * 31.0f)), 1, 31));
+        const auto useNoise = patch.macro == MacroKind::drum || patch.macro == MacroKind::hit || patch.waveShape == 4;
+        if (useNoise && channel >= 4)
+            return static_cast<uint8_t>(0x80u | volume);
+        return static_cast<uint8_t>(0x80u | volume);
+    }
+
+    bool channelAudible(size_t channel) const
+    {
+        if (channel < 4)
+            return sourceEnabled(patch, channel);
+        return (control[channel] & 0x80u) != 0;
+    }
+
+    bool channelActiveForPatch(size_t channel) const
+    {
+        if (channel < 4)
+            return sourceEnabled(patch, channel);
+
+        return patch.macro == MacroKind::arp
+            || patch.macro == MacroKind::drum
+            || patch.macro == MacroKind::hit
+            || patch.macro == MacroKind::powerUp;
+    }
+
+    void seedWave(size_t channel)
+    {
+        const auto choice = std::clamp(patch.waveShape, 0, 4);
+        for (size_t i = 0; i < 32; ++i)
+        {
+            const auto phaseValue = static_cast<double>(i) / 32.0;
+            auto sample = 0;
+            switch (choice)
+            {
+                case 1: sample = static_cast<int>(std::round(31.0 * phaseValue)); break;
+                case 2: sample = i < 16 ? static_cast<int>(std::round(31.0 * (static_cast<double>(i) / 15.0))) : static_cast<int>(std::round(31.0 * (1.0 - static_cast<double>(i - 16) / 15.0))); break;
+                case 3: sample = (i < 16) ? 31 : 0; break;
+                case 4: sample = ((i * 13 + static_cast<int>(channel) * 7) & 31); break;
+                case 0:
+                default: sample = static_cast<int>(std::round(15.5 + 15.5 * std::sin(twoPi * phaseValue))); break;
+            }
+            waveRam[channel][i] = static_cast<uint8_t>(std::clamp(sample, 0, 31));
+        }
+    }
+
+    void writeWaveSample(size_t channel, uint8_t value)
+    {
+        waveRam[channel][waveWriteIndex[channel]] = value & 0x1fu;
+        waveWriteIndex[channel] = static_cast<uint8_t>((waveWriteIndex[channel] + 1u) & 31u);
+    }
+
+    double channelVolume(size_t channel) const
+    {
+        if ((control[channel] & 0x80u) == 0)
+            return 0.0;
+        return static_cast<double>(control[channel] & 0x1fu) / 31.0;
+    }
+
+    double renderChannel(size_t channel)
+    {
+        if (! channelAudible(channel))
+            return 0.0;
+
+        const auto volume = channelVolume(channel) * (channel < 4 ? sourceLevel(patch, channel) : 1.0);
+        if (volume <= 0.0)
+            return 0.0;
+
+        const auto period = std::max<uint16_t>(1, frequency[channel]);
+        const auto hz = clock / (32.0 * static_cast<double>(period));
+        const auto useNoise = (noiseControl[channel] & 0x80u) != 0 || ((patch.waveShape == 4 || patch.macro == MacroKind::drum || patch.macro == MacroKind::hit) && channel >= 4);
+        if (useNoise)
+            return renderNoise(channel, hz) * volume;
+
+        phase[channel] = wrapPhase(phase[channel] + hz / sampleRate);
+        const auto index = static_cast<size_t>(std::floor(phase[channel] * 32.0)) & 31u;
+        return ((static_cast<double>(waveRam[channel][index]) / 31.0) * 2.0 - 1.0) * volume;
+    }
+
+    double renderNoise(size_t channel, double baseHz)
+    {
+        const auto rateShift = std::clamp(static_cast<int>(noiseControl[channel] & 0x1fu), 0, 31);
+        const auto hz = std::max(20.0, baseHz * (1.0 + static_cast<double>(31 - rateShift) / 8.0));
+        noisePhase[channel] += hz / sampleRate;
+        while (noisePhase[channel] >= 1.0)
+        {
+            noisePhase[channel] -= 1.0;
+            const auto feedback = ((noiseLfsr[channel] & 1u) ^ ((noiseLfsr[channel] >> 5u) & 1u)) & 1u;
+            noiseLfsr[channel] = ((noiseLfsr[channel] >> 1u) | (feedback << 16u)) & 0x1ffffu;
+            if (noiseLfsr[channel] == 0)
+                noiseLfsr[channel] = 0x1ffffu;
+        }
+        return (noiseLfsr[channel] & 1u) != 0 ? 1.0 : -1.0;
+    }
+
+    int selectChipPolyChannel(int midiNote) const
+    {
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (sourceEnabled(patch, channel) && channelNotes[channel] == midiNote)
+                return static_cast<int>(channel);
+        }
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (sourceEnabled(patch, channel) && channelNotes[channel] < 0)
+                return static_cast<int>(channel);
+        }
+
+        auto oldestChannel = -1;
+        auto oldestStamp = std::numeric_limits<uint64_t>::max();
+        for (size_t channel = 0; channel < channelStamp.size(); ++channel)
+        {
+            if (sourceEnabled(patch, channel) && channelStamp[channel] < oldestStamp)
+            {
+                oldestStamp = channelStamp[channel];
+                oldestChannel = static_cast<int>(channel);
+            }
+        }
+        return oldestChannel;
+    }
+
+    int activeChipPolyChannels() const
+    {
+        int active = 0;
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (sourceEnabled(patch, channel) && channelNotes[channel] >= 0)
+                ++active;
+        }
+        return active;
+    }
+
+    void clearChipPolyState()
+    {
+        channelNotes.fill(-1);
+        channelVelocity.fill(0.0f);
+        channelStamp.fill(0);
+        noteStamp = 0;
+        noteVelocity = 0.0f;
+        control.fill(0x00);
+    }
+
+    void noteOnChipPoly(int midiNote, float velocity)
+    {
+        const auto channel = selectChipPolyChannel(midiNote);
+        if (channel < 0)
+            return;
+
+        const auto index = static_cast<size_t>(channel);
+        channelNotes[index] = std::clamp(midiNote, 0, 127);
+        channelVelocity[index] = static_cast<float>(clamp01(velocity));
+        channelStamp[index] = ++noteStamp;
+        frequency[index] = hucPeriodForNote(channelNotes[index]);
+        const auto volume = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 31.0f)), 1, 31));
+        control[index] = static_cast<uint8_t>(0x80u | volume);
+        seedWave(index);
+        noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
+    }
+
+    void noteOffChipPoly(int midiNote)
+    {
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (channelNotes[channel] != midiNote)
+                continue;
+
+            channelNotes[channel] = -1;
+            channelVelocity[channel] = 0.0f;
+            channelStamp[channel] = 0;
+            control[channel] = 0x00;
+        }
+        noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
+    }
+
+    AccuracyMode accuracy;
+    double sampleRate = 48000.0;
+    double clock = 3579545.0;
+    uint8_t selectedChannel = 0;
+    std::array<uint16_t, 6> frequency {};
+    std::array<uint8_t, 6> control {};
+    std::array<uint8_t, 6> balance {};
+    std::array<uint8_t, 6> noiseControl {};
+    std::array<std::array<uint8_t, 32>, 6> waveRam {};
+    std::array<uint8_t, 6> waveWriteIndex {};
+    std::array<double, 6> phase {};
+    std::array<double, 6> noisePhase {};
+    std::array<uint32_t, 6> noiseLfsr {};
+    int heldNote = -1;
+    float noteVelocity = 0.0f;
+    std::array<int, 4> channelNotes {};
+    std::array<float, 4> channelVelocity {};
+    std::array<uint64_t, 4> channelStamp {};
+    uint64_t noteStamp = 0;
+    PatchConfig patch;
+};
+
 } // namespace
 
 std::unique_ptr<ChipCore> createChipCore(ChipMode mode, AccuracyMode accuracy)
@@ -4314,6 +4755,7 @@ std::unique_ptr<ChipCore> createChipCore(ChipMode mode, AccuracyMode accuracy)
         case ChipMode::ym2149: return std::make_unique<Ym2149Core>(accuracy);
         case ChipMode::sn76489: return std::make_unique<Sn76489Core>(accuracy);
         case ChipMode::pokey: return std::make_unique<PokeyCore>(accuracy);
+        case ChipMode::huc6280: return std::make_unique<Huc6280Core>(accuracy);
         default: return std::make_unique<UnsupportedCore>(mode, accuracy);
     }
 }

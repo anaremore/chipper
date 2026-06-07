@@ -74,6 +74,22 @@ std::vector<MacroTemplate> pokeyMacros()
     };
 }
 
+std::vector<MacroTemplate> huc6280Macros()
+{
+    return {
+        { MacroKind::manual, "HuC6280 Manual", "Neutral six-channel PC Engine wavetable mapping.", { 0.50f, 0.50f, 0.20f, 0.70f }, { true, true, true, true }, 0.0f, 0 },
+        { MacroKind::coin, "HuC6280 Coin Ping", "Bright short wavetable UI ping.", { 0.20f, 0.72f, 0.10f, 0.78f }, { true, false, false, false }, 0.22f, 1 },
+        { MacroKind::bass, "HuC6280 Wave Bass", "Low rounded PC Engine wavetable bass.", { 0.30f, 0.20f, 0.12f, 0.82f }, { true, true, false, false }, 0.08f, 2 },
+        { MacroKind::lead, "HuC6280 Glass Lead", "Forward wavetable lead with a shaped 32-sample wave.", { 0.64f, 0.42f, 0.18f, 0.76f }, { true, true, true, false }, 0.10f, 1 },
+        { MacroKind::arp, "HuC6280 Six-Wave Arp", "Stacked wavetable channels for fake chords and fast arps.", { 0.88f, 0.70f, 0.14f, 0.70f }, { true, true, true, true }, 0.08f, 0 },
+        { MacroKind::drum, "HuC6280 Noise Tap", "Noise-enabled upper channels for PC Engine percussion flavor.", { 0.32f, 0.18f, 0.88f, 0.80f }, { false, false, true, true }, 0.72f, 4 },
+        { MacroKind::hit, "HuC6280 Hit", "Short wavetable/noise impact.", { 0.42f, 0.25f, 0.76f, 0.84f }, { true, false, true, true }, 0.65f, 4 },
+        { MacroKind::laser, "HuC6280 Sweep Zap", "Pitch sweep SFX across wavetable channels.", { 0.24f, 0.96f, 0.58f, 0.78f }, { true, true, false, true }, 0.35f, 3 },
+        { MacroKind::jump, "HuC6280 Jump", "Quick rising PC Engine blip.", { 0.22f, 0.70f, 0.12f, 0.72f }, { true, false, false, false }, 0.18f, 1 },
+        { MacroKind::powerUp, "HuC6280 Power Wave", "Longer optimistic wavetable rise.", { 0.72f, 0.90f, 0.22f, 0.80f }, { true, true, true, true }, 0.14f, 2 }
+    };
+}
+
 std::vector<MacroTemplate> plannedArcadeMacros()
 {
     return {
@@ -753,6 +769,58 @@ std::vector<ChipParameterSpec> pokeyParameterSpecs()
     };
 }
 
+std::vector<ChipParameterSpec> huc6280ParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "huc6280.channelSpread",
+                   "Channel Spread",
+                   "Channels",
+                   "Sets interval spread across the PC Engine wavetable channels."),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "huc6280.pitchMotion",
+                   "Pitch",
+                   "Pitch",
+                   "Offsets musical pitch gestures and channel intervals."),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "huc6280.noiseBias",
+                   "Noise Bias",
+                   "Noise",
+                   "Biases the simplified HuC6280 noise-control behavior for percussion templates.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "huc6280.channelVolume",
+                   "Channel Volume",
+                   "Mixer",
+                   "Maps to the 5-bit channel volume portion of the HuC6280 channel control register.",
+                   ParameterKind::chipRegister,
+                   0.70f),
+        sourceSpec(ChipParameterRole::source1Enabled, "huc6280.channel1.enabled", "Channel 1", "Enable HuC6280 wavetable channel 1."),
+        sourceSpec(ChipParameterRole::source2Enabled, "huc6280.channel2.enabled", "Channel 2", "Enable HuC6280 wavetable channel 2."),
+        sourceSpec(ChipParameterRole::source3Enabled, "huc6280.channel3.enabled", "Channel 3", "Enable HuC6280 wavetable channel 3."),
+        sourceSpec(ChipParameterRole::source4Enabled, "huc6280.channel4.enabled", "Channel 4", "Enable HuC6280 wavetable channel 4. Channels 5-6 need a dedicated six-lane UI pass."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "huc6280.channel1.level", "Channel 1 Level", "Modern trim after HuC6280 channel 1 volume."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "huc6280.channel2.level", "Channel 2 Level", "Modern trim after HuC6280 channel 2 volume."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "huc6280.channel3.level", "Channel 3 Level", "Modern trim after HuC6280 channel 3 volume."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "huc6280.channel4.level", "Channel 4 Level", "Modern trim after HuC6280 channel 4 volume."),
+        stereoSpreadSpec("huc6280.stereoSpread", "Modern stereo convenience that spreads audible HuC6280 channels; zero preserves centered output."),
+        envelopeSpec("huc6280.decay", "Decay", "Applies a musical decay helper while native channel volume remains visible in debug state."),
+        segmentedSpec(ChipParameterRole::waveShape,
+                      "huc6280.waveShape",
+                      "Wave Shape",
+                      "Wave",
+                      "Selects the generated 32-sample waveform RAM template. Follow resolves from the selected template.",
+                      {
+                          choice("Follow", "Use the selected HuC6280 template waveform.", 0.0f, 0),
+                          choice("Ramp", "Rising 5-bit ramp wave RAM.", 0.25f, 1),
+                          choice("Tri", "Triangle-style 32-sample wave RAM.", 0.5f, 2),
+                          choice("Square", "Hard two-level wave RAM.", 0.75f, 3),
+                          choice("Noise", "Noise-shaped wave/noise template.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister)
+    };
+}
+
 std::vector<ChipParameterSpec> sidParameterSpecs()
 {
     return {
@@ -1318,24 +1386,35 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::huc6280,
             "PC Engine HuC6280",
-            "Planned wavetable/noise mode. No HuC6280 core is integrated yet.",
+            "Partial clean-room PC Engine HuC6280 wavetable/noise model with six internal channels.",
             {
-                { "wave", "Wave Blend", "Sources", "Planned wavetable channel blend." },
-                { "noise", "Noise", "Tone", "Planned native noise helper." },
-                { "lfo", "LFO", "Motion", "Planned channel LFO helper." },
-                { "stereo", "Stereo", "Output", "Planned modern stereo spread." },
+                { "wave", "Wave RAM", "Sources", "Six 32-sample 5-bit wavetable channels." },
+                { "noise", "Noise", "Tone", "Simplified noise-control path for upper channels." },
+                { "volume", "Channel Volume", "Mixer", "5-bit channel control volume plus source trims." },
+                { "stereo", "Stereo", "Output", "Modern stereo spread helper." },
             },
-            sampleModules("HuC6280 wavetable strategy planned.", "Wavetable Voices", "Wave / Noise"),
-            plannedSampleMacros("HuC6280", "wavetable"),
-            false,
-            false,
-            {},
-            plannedDisclosure(
-                "build a clean-room wavetable/noise model from public register behavior, with audited emulator comparison later.",
-                "HuC6280 UI should expose wavetable voice strips, waveform RAM, noise, LFO, channel levels, and stereo conveniences.",
+            {
+                makeModule("profile", "Profile", "HuC6280 clean-room groundwork.", { "PC Engine family", "3.58 MHz default", "Hybrid default", "Authentic still partial" }),
+                makeModule("sources", "Wavetable Voices", "Six internal HuC6280 channels.", { "Channels 1-4 exposed", "Channels 5-6 internal", "Wave RAM", "Channel select register" }),
+                makeModule("tone", "Wave / Noise", "32-sample wave RAM plus simplified noise.", { "Sine-like", "Ramp", "Triangle", "Square / noise" }),
+                makeModule("envelope", "Volume", "Channel control volume plus musical decay helper.", { "5-bit volume", "Per-channel trims", "Decay helper", "Register readout" }),
+                makeModule("motion", "Motion", "PC Engine SFX gestures mapped to frequency registers.", { "Coin ping", "Sweep zap", "Six-wave arp", "Noise tap" }),
+                makeModule("output", "Output", "Compact console wavetable output groundwork.", { "Output gain", "Stereo spread convenience", "LFO planned", "Known differences" })
+            },
+            huc6280Macros(),
+            true,
+            true,
+            huc6280ParameterSpecs(),
+            verifiedPartial(
                 {
-                    "No HuC6280 core is integrated.",
-                    "Wave RAM playback, noise, LFO, channel control, and stereo behavior are not implemented."
+                    "Channel select, 12-bit frequency, channel control, balance, waveform-RAM write, and noise-control register paths are modeled.",
+                    "Six internal channels render wavetable audio; the existing UI exposes the first four generic source controls until a six-lane HuC6280 layout lands.",
+                    "No third-party HuC6280 source code is vendored in this clean-room partial model."
+                },
+                {
+                    "Native LFO behavior, exact DDA behavior, stereo register routing, timer edge timing, and exact noise taps are not implemented.",
+                    "Channels 5-6 need dedicated UI controls rather than the current first-four generic source surface.",
+                    "Output DAC, analog path, and hardware or trusted-emulator comparison are not complete."
                 })
         },
         {

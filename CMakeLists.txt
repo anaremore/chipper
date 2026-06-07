@@ -566,6 +566,15 @@ add_test(NAME chipper_render_pokey_poly17_smoke
 add_test(NAME chipper_render_pokey_chip_poly_smoke
     COMMAND chipper_render --chip pokey --accuracy authentic --macro manual --play-mode chip-poly --wave-shape pure --clock 1789790 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/pokey-chip-poly-events.txt --out pokey-chip-poly-smoke.wav --debug pokey-chip-poly-smoke.json
 )
+add_test(NAME chipper_render_huc6280_smoke
+    COMMAND chipper_render --chip huc6280 --accuracy authentic --macro lead --wave-shape 1 --clock 3579545 --rate 48000 --seconds 0.05 --note 64 --out huc6280-smoke.wav --debug huc6280-smoke.json
+)
+add_test(NAME chipper_render_huc6280_noise_smoke
+    COMMAND chipper_render --chip huc6280 --accuracy authentic --macro drum --wave-shape noise --source1 0 --source2 0 --source3 1 --source4 1 --clock 3579545 --rate 48000 --seconds 0.05 --note 48 --out huc6280-noise-smoke.wav --debug huc6280-noise-smoke.json
+)
+add_test(NAME chipper_render_huc6280_chip_poly_smoke
+    COMMAND chipper_render --chip huc6280 --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 2 --clock 3579545 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/huc6280-chip-poly-events.txt --out huc6280-chip-poly-smoke.wav --debug huc6280-chip-poly-smoke.json
+)
 add_test(NAME chipper_render_list_descriptors_smoke
     COMMAND chipper_render --list-descriptors --debug chipper-descriptors.json
 )
@@ -607,6 +616,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip pokey --implemented pokey=1 --verification-badge "pokey=Verified partial" --verification-cycle pokey=0 --verification-hardware pokey=0 --param-kind pokey:waveShape=chipRegister --param-surface pokey:waveShape=segmentedChoice --param-choices pokey:waveShape=5 --param-midi-cc pokey:waveShape=89 --param-kind pokey:macroControl3=chipRegister --param-surface pokey:macroControl3=slider --param-midi-cc pokey:macroControl3=78 --param-kind pokey:macroControl4=chipRegister --param-surface pokey:macroControl4=slider --param-midi-cc pokey:macroControl4=79 --param-surface pokey:stereoSpread=slider --param-midi-cc pokey:stereoSpread=93 --macro-label "pokey:Lead=POKEY Buzzy Lead" --macro-source pokey:Drum=0011 --preset pokey-buzzy-lead --preset pokey-poly-perc
     )
     set_tests_properties(chipper_render_list_pokey_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
+
+    add_test(NAME chipper_render_list_huc6280_descriptor_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip huc6280 --implemented huc6280=1 --verification-badge "huc6280=Verified partial" --verification-cycle huc6280=0 --verification-hardware huc6280=0 --param-kind huc6280:waveShape=chipRegister --param-surface huc6280:waveShape=segmentedChoice --param-choices huc6280:waveShape=5 --param-midi-cc huc6280:waveShape=89 --param-kind huc6280:macroControl3=chipRegister --param-surface huc6280:macroControl3=slider --param-midi-cc huc6280:macroControl3=78 --param-kind huc6280:macroControl4=chipRegister --param-surface huc6280:macroControl4=slider --param-midi-cc huc6280:macroControl4=79 --param-surface huc6280:stereoSpread=slider --param-midi-cc huc6280:stereoSpread=93 --macro-label "huc6280:Lead=HuC6280 Glass Lead" --macro-source huc6280:Drum=0011 --preset huc-glass-lead --preset huc-noise-tap
+    )
+    set_tests_properties(chipper_render_list_huc6280_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_ym_channel_mix_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 17 --chip ym2149 --param-kind ym2149:ymChannelAMix=chipRegister --param-surface ym2149:ymChannelAMix=menu --param-choices ym2149:ymChannelAMix=5 --param-midi-cc ym2149:ymChannelAMix=101 --param-kind ym2149:ymChannelBMix=chipRegister --param-surface ym2149:ymChannelBMix=menu --param-choices ym2149:ymChannelBMix=5 --param-midi-cc ym2149:ymChannelBMix=102 --param-kind ym2149:ymChannelCMix=chipRegister --param-surface ym2149:ymChannelCMix=menu --param-choices ym2149:ymChannelCMix=5 --param-midi-cc ym2149:ymChannelCMix=103
@@ -997,6 +1011,21 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/pokey-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 4 --min-peak 0.05 --core-min activeChannels=4 --core-max activeChannels=4 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min audf0=121 --core-max audf0=123 --core-min audf3=60 --core-max audf3=61
     )
     set_tests_properties(chipper_render_pokey_chip_poly_assert PROPERTIES DEPENDS chipper_render_pokey_chip_poly_smoke)
+
+    add_test(NAME chipper_render_huc6280_json_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/huc6280-smoke.json --implemented-contains partial --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.05 --min-rms 0.02 --register-writes 0 --note-events 0 --core-min internalChannelCount=6 --core-max internalChannelCount=6 --core-min uiExposesFirstFourChannels=1 --core-max uiExposesFirstFourChannels=1 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min frequency0=338 --core-max frequency0=340 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Wave Shape" --descriptor-param-choices waveShape=5
+    )
+    set_tests_properties(chipper_render_huc6280_json_assert PROPERTIES DEPENDS chipper_render_huc6280_smoke)
+
+    add_test(NAME chipper_render_huc6280_noise_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/huc6280-noise-smoke.json --implemented-contains partial --macro Drum --min-peak 0.05 --register-writes 0 --note-events 0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min waveShapeChoice=4 --core-max waveShapeChoice=4 --core-min internalChannelCount=6 --core-max internalChannelCount=6
+    )
+    set_tests_properties(chipper_render_huc6280_noise_assert PROPERTIES DEPENDS chipper_render_huc6280_noise_smoke)
+
+    add_test(NAME chipper_render_huc6280_chip_poly_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/huc6280-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 4 --min-peak 0.05 --core-min activeChannels=4 --core-max activeChannels=4 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min internalChannelCount=6 --core-max internalChannelCount=6
+    )
+    set_tests_properties(chipper_render_huc6280_chip_poly_assert PROPERTIES DEPENDS chipper_render_huc6280_chip_poly_smoke)
 
     add_test(NAME chipper_render_preset_nes_hero_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-hero-smoke.json --implemented-contains partial --preset nes-hero-pulse --macro Lead --play-mode "Big Mono" --output-db -9 --register-writes 0 --note-events 0 --min-peak 0.1 --core-min pulseDuty1=2 --core-max pulseDuty1=2 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0

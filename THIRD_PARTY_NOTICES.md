@@ -13,6 +13,8 @@ The current partial chip cores are clean-room/internal implementations in `Sourc
 - SID / C64 partial voice/register model
 - YM2149 / AY partial PSG model
 - SN76489 partial PSG model
+- Atari POKEY partial polynomial/timer model
+- PC Engine HuC6280 partial wavetable/noise model
 
 These implementations are not claimed to be cycle-accurate. See `docs/emulation-accuracy.md` for current accuracy status and known limitations.
 
