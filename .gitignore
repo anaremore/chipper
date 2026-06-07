@@ -22,3 +22,5 @@ JUCE/
 *.component
 *.aaxplugin
 *.jucer
+__pycache__/
+*.py[cod]
