@@ -59,7 +59,7 @@ For rapid development without a UAC prompt, install to the per-user VST3 folder:
 .\scripts\install-vst3.ps1 -Scope User
 ```
 
-This copies to `%LOCALAPPDATA%\Programs\Common\VST3`, which is the user-level VST3 location. You can still pass `-Destination` for a custom host scan folder.
+This copies to `%LOCALAPPDATA%\Programs\Common\VST3`, which is the user-level VST3 location. User-scope installs also retry replacement after repairing the current user's access to a stale `Chipper.vst3` bundle, which keeps rapid build/install loops out of UAC when the host has been closed. You can still pass `-Destination` for a custom host scan folder.
 
 If you build in a non-default CMake folder, pass it with `-BuildRoot`, for example:
 

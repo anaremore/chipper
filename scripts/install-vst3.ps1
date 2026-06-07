@@ -54,6 +54,84 @@ function Copy-ChipperBundleToFallback {
     Write-Warning "Add this folder to your host's VST3 scan paths, or fix permissions on the requested VST3 folder and rerun the installer."
 }
 
+function Grant-ChipperCurrentUserAccess {
+    param(
+        [string] $PathToRepair
+    )
+
+    if ($Scope -ne "User" -or -not (Test-Path -LiteralPath $PathToRepair)) {
+        return $false
+    }
+
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+    Write-Host "Repairing user permissions for $PathToRepair"
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $icaclsOutput = & icacls $PathToRepair /grant "$($identity):(OI)(CI)F" /T /C 2>&1
+        $icaclsExitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    if ($icaclsExitCode -ne 0) {
+        Write-Warning ($icaclsOutput -join [Environment]::NewLine)
+        return $false
+    }
+
+    return $true
+}
+
+function Remove-ChipperBundleWithRetry {
+    param(
+        [string] $BundlePath
+    )
+
+    try {
+        Remove-Item -Recurse -Force -LiteralPath $BundlePath
+        return $true
+    } catch {
+        $firstError = $_.Exception.Message
+        if (Grant-ChipperCurrentUserAccess -PathToRepair $BundlePath) {
+            try {
+                Remove-Item -Recurse -Force -LiteralPath $BundlePath
+                return $true
+            } catch {
+                Write-Warning "Permission repair completed, but removal still failed: $($_.Exception.Message)"
+            }
+        }
+
+        Write-Warning "Could not remove existing Chipper.vst3 at '$BundlePath': $firstError"
+        return $false
+    }
+}
+
+function Copy-ChipperBundleWithRetry {
+    param(
+        [string] $SourceBundle,
+        [string] $DestinationRoot
+    )
+
+    try {
+        Copy-ChipperBundle -SourceBundle $SourceBundle -DestinationRoot $DestinationRoot
+        return $true
+    } catch {
+        $firstError = $_.Exception.Message
+        $destinationBundle = Join-Path $DestinationRoot "Chipper.vst3"
+        if (Grant-ChipperCurrentUserAccess -PathToRepair $destinationBundle) {
+            try {
+                Copy-ChipperBundle -SourceBundle $SourceBundle -DestinationRoot $DestinationRoot
+                return $true
+            } catch {
+                Write-Warning "Permission repair completed, but copy still failed: $($_.Exception.Message)"
+            }
+        }
+
+        Write-Warning "Could not copy Chipper.vst3 to '$DestinationRoot': $firstError"
+        return $false
+    }
+}
+
 if (-not $PSBoundParameters.ContainsKey("Destination") -or [string]::IsNullOrWhiteSpace($Destination)) {
     if ($Scope -eq "User") {
         $Destination = Join-Path $env:LOCALAPPDATA "Programs\Common\VST3"
@@ -134,17 +212,13 @@ if (Test-Path -LiteralPath $targetFullPath) {
     }
 
     Write-Host "Removing existing Chipper.vst3 from $destinationRoot"
-    try {
-        Remove-Item -Recurse -Force -LiteralPath $targetFullPath
-    } catch {
-        Copy-ChipperBundleToFallback -Reason "Could not remove existing Chipper.vst3 at '$targetFullPath': $($_.Exception.Message)"
+    if (-not (Remove-ChipperBundleWithRetry -BundlePath $targetFullPath)) {
+        Copy-ChipperBundleToFallback -Reason "Could not remove existing Chipper.vst3 at '$targetFullPath'."
         return
     }
 }
 
-try {
-    Copy-ChipperBundle -SourceBundle $source -DestinationRoot $destinationRoot
-} catch {
-    Copy-ChipperBundleToFallback -Reason "Could not copy Chipper.vst3 to '$destinationRoot': $($_.Exception.Message)"
+if (-not (Copy-ChipperBundleWithRetry -SourceBundle $source -DestinationRoot $destinationRoot)) {
+    Copy-ChipperBundleToFallback -Reason "Could not copy Chipper.vst3 to '$destinationRoot'."
     return
 }
