@@ -111,6 +111,12 @@ Furnace should be treated as a discovery index, not a license shortcut. Its READ
 
 Licensing posture: Furnace's top-level `LICENSE` says most of Furnace is GPLv2-or-later, ASIO-enabled builds become GPLv3, and certain components have their own source/tree licenses. Keep Furnace reference-only unless Chipper intentionally adopts a compatible GPL distribution model and performs file-level audits for the exact source being reused.
 
+## SNES / SPC700 Review Notes
+
+The SNES path is tracked in more detail in `docs/snes-spc700-plan.md`. Chipper should treat SNES as an eight-voice BRR sample instrument with S-DSP envelopes, Gaussian interpolation, voice pitch modulation/noise options, and shared echo/FIR behavior. The mode should not be designed like the raw PSG/APU chips.
+
+The current source posture is: C700 and Blargg `snes_spc` are valuable but LGPL-sensitive; Furnace is reference-only unless Chipper goes GPL-compatible; `emu-rs/snes-apu` is a promising BSD-2-Clause candidate that needs provenance audit because it credits higan and Blargg-derived behavior; `snes-echo` is BSD-3-Clause and useful for echo research, but it explicitly targets audible similarity rather than bit accuracy. No SNES third-party code is currently vendored.
+
 ## Preset Reference Notes
 
 Open-source trackers and chip instruments may be used to improve Chipper's preset vocabulary, but not as unreviewed preset banks or code sources. Acceptable use includes comparing which chip-native controls matter to musicians, studying public chip workflow conventions, confirming useful instrument roles such as bass, lead, fake chord, noise percussion, UI blip, sweep, and riser, and building Chipper presets from its own clean-room/register-backed parameters.

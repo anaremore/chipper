@@ -173,3 +173,5 @@ Single-screen layout:
 - **Visuals:** source cards may show register-resolved waveform/envelope state, while the Output performance cell may show actual post-trim audio from processor telemetry.
 
 Controls use plain names and tooltips. Mode-specific controls remain musically labeled and avoid register names, hex values, and chip-documentation jargon in the main workflow.
+
+Mode-specific layouts should adapt structurally, not just change labels. NES and SN76489 can stay generator/register-strip oriented; SID should use three deep voice panels plus a global filter; SNES should become an eight-voice sample-bank workstation with BRR/sample selection, ADSR/GAIN, memory budget, and echo/FIR controls; FM chips should use operator and algorithm views. Reuse Chipper components where possible, but let each chip's native instrument shape determine the layout.
