@@ -182,7 +182,7 @@ const char* sidAdsrParameterId(size_t index)
 
 const char* sidAdsrFieldLabel(size_t field)
 {
-    static constexpr std::array<const char*, 4> labels { "A", "D", "S", "R" };
+    static constexpr std::array<const char*, 4> labels { "Atk", "Dec", "Sus", "Rel" };
     return labels[std::min(field, labels.size() - 1u)];
 }
 
@@ -806,7 +806,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     for (size_t voice = 0; voice < sidEnvelopeVoiceLabels.size(); ++voice)
     {
         auto& label = sidEnvelopeVoiceLabels[voice];
-        label.setText(juce::String("V") + juce::String(static_cast<int>(voice + 1u)), juce::dontSendNotification);
+        label.setText(juce::String("Voice ") + juce::String(static_cast<int>(voice + 1u)), juce::dontSendNotification);
         label.setJustificationType(juce::Justification::centredLeft);
         label.setColour(juce::Label::textColourId, juce::Colour(0xff56c7d8));
         label.setFont(juce::FontOptions(11.0f, juce::Font::bold));
@@ -1530,7 +1530,7 @@ void ChipperAudioProcessorEditor::resized()
     area.removeFromTop(10);
 
     constexpr auto footerReserve = 52;
-    constexpr auto performanceStripHeight = 280;
+    constexpr auto performanceStripHeight = 300;
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, 492);
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
@@ -1667,7 +1667,7 @@ void ChipperAudioProcessorEditor::resized()
                                           juce::Label& valueLabel,
                                           juce::Rectangle<int> bounds)
         {
-            auto header = bounds.removeFromTop(std::min(16, bounds.getHeight()));
+            auto header = bounds.removeFromTop(std::min(18, bounds.getHeight()));
             label.setBounds(header.removeFromLeft(std::min(92, header.getWidth())));
             valueLabel.setJustificationType(juce::Justification::centredRight);
             valueLabel.setBounds(header);
@@ -1676,8 +1676,8 @@ void ChipperAudioProcessorEditor::resized()
         };
 
         const auto columnGap = 12;
-        const auto rowGap = 6;
-        auto topRow = tonePanel.removeFromTop(std::min(36, tonePanel.getHeight()));
+        const auto rowGap = 8;
+        auto topRow = tonePanel.removeFromTop(std::min(42, tonePanel.getHeight()));
         tonePanel.removeFromTop(rowGap);
         auto bottomRow = tonePanel;
 
@@ -1796,8 +1796,8 @@ void ChipperAudioProcessorEditor::resized()
     controlValueLabels[5].setJustificationType(juce::Justification::centredRight);
     controlValueLabels[5].setBounds(outputHeader);
     outputCell.removeFromTop(3);
-    outputSlider.setBounds(outputCell.removeFromTop(18).reduced(0, 1));
-    outputCell.removeFromTop(2);
+    outputSlider.setBounds(outputCell.removeFromTop(20).reduced(0, 1));
+    outputCell.removeFromTop(4);
     outputScopePreview.setBounds(outputCell.reduced(0, 1));
 
     auto footer = getLocalBounds().reduced(16).removeFromBottom(44);
@@ -1864,11 +1864,11 @@ void ChipperAudioProcessorEditor::placeLabeledSliderWithReadout(juce::Slider& sl
 
 void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> bounds)
 {
-    auto speedRow = bounds.removeFromTop(std::min(20, bounds.getHeight()));
-    envelopeDecayLabel.setBounds(speedRow.removeFromLeft(82));
-    envelopeDecayValueLabel.setBounds(speedRow.removeFromRight(116));
+    auto speedRow = bounds.removeFromTop(std::min(22, bounds.getHeight()));
+    envelopeDecayLabel.setBounds(speedRow.removeFromLeft(86));
+    envelopeDecayValueLabel.setBounds(speedRow.removeFromRight(132));
     envelopeDecaySlider.setBounds(speedRow.reduced(0, 1));
-    bounds.removeFromTop(6);
+    bounds.removeFromTop(8);
 
     for (auto& label : sidAdsrHeaderLabels)
         label.setBounds({});
@@ -1882,13 +1882,13 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
         if (voice + 1u < sidAdsrVoiceCount)
             bounds.removeFromLeft(voiceGap);
 
-        sidEnvelopeVoiceLabels[voice].setBounds(voiceColumn.removeFromTop(std::min(16, voiceColumn.getHeight())));
+        sidEnvelopeVoiceLabels[voice].setBounds(voiceColumn.removeFromTop(std::min(18, voiceColumn.getHeight())));
         voiceColumn.removeFromTop(2);
-        const auto envelopePreviewHeight = std::clamp(voiceColumn.getHeight() / 4, 32, 42);
+        const auto envelopePreviewHeight = std::clamp(voiceColumn.getHeight() / 3, 34, 46);
         sidEnvelopePreviews[voice].setBounds(voiceColumn.removeFromTop(std::min(envelopePreviewHeight, voiceColumn.getHeight())).reduced(0, 1));
-        voiceColumn.removeFromTop(3);
+        voiceColumn.removeFromTop(4);
 
-        auto sliderRow = voiceColumn.withHeight(std::min(voiceColumn.getHeight(), std::max(52, voiceHeight - 51)));
+        auto sliderRow = voiceColumn.withHeight(std::min(voiceColumn.getHeight(), std::max(54, voiceHeight - 58)));
         constexpr auto fieldGap = 4;
         const auto fieldWidth = (sliderRow.getWidth() - (fieldGap * static_cast<int>(sidAdsrFieldCount - 1u))) / static_cast<int>(sidAdsrFieldCount);
         for (size_t field = 0; field < sidAdsrFieldCount; ++field)
@@ -1898,8 +1898,8 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
             if (field + 1u < sidAdsrFieldCount)
                 sliderRow.removeFromLeft(fieldGap);
 
-            sidAdsrLabels[index].setBounds(cell.removeFromTop(13));
-            sidAdsrValueLabels[index].setBounds(cell.removeFromBottom(15));
+            sidAdsrLabels[index].setBounds(cell.removeFromTop(14));
+            sidAdsrValueLabels[index].setBounds(cell.removeFromBottom(16));
             sidAdsrSliders[index].setBounds(cell.reduced(0, 1));
             sidAdsrBoxes[index].setBounds({});
         }
@@ -2025,12 +2025,12 @@ void ChipperAudioProcessorEditor::placeYmEnvelopeShapeSegment(juce::Rectangle<in
 
 void ChipperAudioProcessorEditor::placeSidFilterRoutingControl(juce::Rectangle<int> bounds)
 {
-    auto row = bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1);
-    sidFilterRoutingLabel.setBounds(row.removeFromLeft(96));
-    row.removeFromLeft(6);
-    sidFilterRoutingBox.setBounds(row.removeFromLeft(std::min(128, row.getWidth())));
-    row.removeFromLeft(8);
-    sidFilterRoutingValueLabel.setBounds(row);
+    auto header = bounds.removeFromTop(std::min(17, bounds.getHeight()));
+    sidFilterRoutingLabel.setBounds(header.removeFromLeft(std::min(112, header.getWidth())));
+    sidFilterRoutingValueLabel.setJustificationType(juce::Justification::centredRight);
+    sidFilterRoutingValueLabel.setBounds(header);
+    bounds.removeFromTop(3);
+    sidFilterRoutingBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
 }
 
 void ChipperAudioProcessorEditor::placeYmChannelMixControls(juce::Rectangle<int> bounds)
@@ -3765,7 +3765,7 @@ void ChipperAudioProcessorEditor::updateSidAdsrControls(bool shouldBeVisible)
                                                           + " override: " + nibbleText,
                                                       sidAdsrRole(i)));
         sidAdsrValueLabels[i].setVisible(shouldBeVisible);
-        sidAdsrValueLabels[i].setText(clamped == 0 ? juce::String("F->") + juce::String(resolvedNibble)
+        sidAdsrValueLabels[i].setText(clamped == 0 ? juce::String("F") + juce::String(resolvedNibble)
                                                    : juce::String(clamped - 1),
                                       juce::dontSendNotification);
         sidAdsrValueLabels[i].setTooltip(withMidiCcForRole(juce::String("SID ") + sidAdsrFieldLabel(i % sidAdsrFieldCount)
