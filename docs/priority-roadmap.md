@@ -36,7 +36,7 @@ After SID, prioritize the other implemented chips before adding planned chips:
 | 9 | PC Engine HuC6280 | 7 | Current code is internal clean-room partial; MAME/GME/Furnace/HuSIC remain reference or audit targets only. | Replace the generic four-source view with six wavetable lanes, wave RAM visuals, noise/LFO controls, and PC Engine preset vocabulary. |
 | 10 | Namco arcade WSG | 7 | Current code is internal clean-room partial; MAME/Furnace remain reference or audit targets only. | Replace the generic four-source view with WSG lane banks, 4-bit wave RAM visuals, enable/volume controls, and arcade preset vocabulary. |
 | 11 | Konami SCC | 7 | Current audio path is backed by vendored MIT emu2212; exact SCC/SCC+ quirks still need golden/reference validation. | Replace the generic four-source view with five wavetable lanes, wave RAM visuals/editing, key/volume controls, and Konami preset vocabulary. |
-| 12 | YM2612 / OPN2 and OPL2/OPL3 | 8 | ymfm is now vendored for a first YM2612 melodic adapter; use the same audited path for future OPL/OPM work. | Use a real operator/algorithm UI with envelope visuals instead of generic oscillator controls. |
+| 12 | YM2612 / OPN2 and OPL2/OPL3 | 8 | ymfm is now vendored for first YM2612 and OPL2 melodic adapters; use the same audited path for future OPL3/OPM work. | Use a real operator/algorithm UI with envelope visuals instead of generic oscillator controls. |
 
 ## Wide Chip Implementation Queue
 
@@ -45,7 +45,7 @@ Going wide is useful now, but only if planned modes stay honest. Planned chip de
 | Order | Chip Family | First Value To Deliver | Likely Source Path | UI Shape | Confidence |
 | --- | --- | --- | --- | --- | ---: |
 | 1 | YM2612 / OPN2 | Real Genesis-style FM bass/lead core with operator automation. | First BSD-3-Clause `ymfm` adapter is in place; keep Nuked-OPN2 as LGPL-sensitive comparison. | Six FM voice strips with algorithm, feedback, operator envelope/level, DAC, and stereo. | 8 |
-| 2 | OPL2/OPL3 | DOS FM instruments and rhythm-mode kits. | Spike audited BSD-3-Clause `ymfm` first; keep Nuked-OPL3 as LGPL-sensitive comparison. | Operator-pair editor with waveform selector, rhythm mode, feedback, tremolo/vibrato, and per-operator envelopes. | 7 |
+| 2 | OPL2/OPL3 | DOS FM instruments and rhythm-mode kits. | First BSD-3-Clause `ymfm` OPL2/YM3812 adapter is in place; keep Nuked-OPL3 as LGPL-sensitive comparison. | Operator-pair editor with waveform selector, rhythm mode, feedback, tremolo/vibrato, and per-operator envelopes. | 8 |
 | 3 | YM2149 / AY polish | Stronger early-computer beeps, arps, and noise percussion from a vendored PSG core. | Continue the `emu2149` adapter and compare against references before stronger claims. | Three channel strips plus shared noise/envelope shape visualization. | 8 |
 | 4 | SN76489 polish | Better Sega PSG/arcade immediacy from an emu-backed core. | `emu76489` is now vendored under MIT; FigBug/SN76489 remains LGPL-sensitive reference. | Three tone strips plus noise strip with attenuation and noise-control choices. | 8 |
 | 5 | Game Boy / DMG polish | Game Boy pulse/wave/noise patches with clearer Wave RAM and stereo routing. | Continue clean-room; SameBoy only after file-level audit; FigBug/PAPU remains GPL reference. | Four APU lanes with pulse sweep, Wave RAM view, NR32 level, NR51 routing, and noise width. | 7 |

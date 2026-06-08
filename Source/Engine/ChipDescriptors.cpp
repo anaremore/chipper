@@ -58,6 +58,22 @@ std::vector<MacroTemplate> ym2612Macros()
     };
 }
 
+std::vector<MacroTemplate> oplMacros()
+{
+    return {
+        { MacroKind::manual, "OPL2 Manual", "Neutral two-operator OPL2 melodic-channel mapping using the ymfm YM3812 core.", { 0.50f, 0.30f, 0.45f, 0.72f }, { true, true, true, true }, 0.0f, 0 },
+        { MacroKind::coin, "OPL2 UI Bell", "Short DOS FM bell for menu and pickup sounds.", { 0.85f, 0.20f, 0.55f, 0.78f }, { true, false, false, false }, 0.16f, 3 },
+        { MacroKind::bass, "OPL2 Bass", "Rounded two-operator FM bass with moderate feedback.", { 0.20f, 0.62f, 0.25f, 0.88f }, { true, true, false, false }, 0.08f, 1 },
+        { MacroKind::lead, "OPL2 Bright Lead", "Bright DOS FM lead using selectable OPL2 waveform registers.", { 0.70f, 0.42f, 0.72f, 0.82f }, { true, true, true, false }, 0.10f, 4 },
+        { MacroKind::arp, "OPL2 Organ Arp", "Four exposed OPL melodic lanes arranged for fake chords and arps.", { 0.78f, 0.28f, 0.48f, 0.78f }, { true, true, true, true }, 0.08f, 2 },
+        { MacroKind::drum, "OPL2 FM Perc", "Melodic-channel percussion placeholder until native rhythm mode lands.", { 0.25f, 0.85f, 0.82f, 0.76f }, { false, false, true, true }, 0.58f, 4 },
+        { MacroKind::hit, "OPL2 Impact", "Short two-operator impact with high feedback.", { 0.28f, 0.92f, 0.78f, 0.78f }, { true, false, true, true }, 0.55f, 4 },
+        { MacroKind::laser, "OPL2 Laser", "Pitch-swept DOS FM SFX.", { 0.32f, 0.72f, 0.90f, 0.80f }, { true, true, false, true }, 0.28f, 4 },
+        { MacroKind::jump, "OPL2 Jump Bell", "Quick upward FM game gesture.", { 0.84f, 0.22f, 0.58f, 0.76f }, { true, false, false, false }, 0.18f, 3 },
+        { MacroKind::powerUp, "OPL2 Power Rise", "Longer optimistic DOS FM rise.", { 0.82f, 0.34f, 0.55f, 0.84f }, { true, true, true, true }, 0.14f, 2 }
+    };
+}
+
 std::vector<MacroTemplate> ym2413Macros()
 {
     return {
@@ -526,6 +542,55 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
                    "Output",
                    "Reserved modern convenience metadata; the current OPN2 adapter writes centered pan to both YM2612 outputs.",
                    ParameterKind::continuous)
+    };
+}
+
+std::vector<ParameterChoiceSpec> oplWaveformChoices()
+{
+    return {
+        choice("Follow", "Resolve the OPL2 waveform from the selected template.", 0.0f, 0),
+        choice("Sine", "Write OPL2 waveform 0, the standard sine operator shape.", 0.25f, 1),
+        choice("Half-Sine", "Write OPL2 waveform 1, the positive half-sine shape.", 0.5f, 2),
+        choice("Abs-Sine", "Write OPL2 waveform 2, the absolute-sine shape.", 0.75f, 3),
+        choice("Pseudo-Saw", "Write OPL2 waveform 3, the quarter-sine/pseudo-saw shape.", 1.0f, 4)
+    };
+}
+
+std::vector<ChipParameterSpec> oplParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "opl.operatorBalance",
+                   "Operator Balance",
+                   "FM",
+                   "Maps to the OPL connection bit, balancing modulator/carrier behavior for two-operator voices.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "opl.feedback",
+                   "Feedback",
+                   "FM",
+                   "Maps to OPL feedback bits in the channel connection register.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "opl.operatorTone",
+                   "Operator Tone",
+                   "Operators",
+                   "Scales OPL operator multiple, modulator total-level, and Follow waveform selection.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "opl.fmLevel",
+                   "FM Level",
+                   "Mixer",
+                   "Controls carrier level and final OPL output trim.",
+                   ParameterKind::chipRegister,
+                   0.72f),
+        segmentedSpec(ChipParameterRole::waveShape,
+                      "opl.waveform",
+                      "Waveform",
+                      "Operators",
+                      "Chooses the OPL2 operator waveform. Follow lets the selected template choose.",
+                      oplWaveformChoices(),
+                      ParameterKind::chipRegister)
     };
 }
 
@@ -1520,6 +1585,18 @@ std::array<ModuleDescriptor, 6> ym2612Modules()
     };
 }
 
+std::array<ModuleDescriptor, 6> oplModules()
+{
+    return std::array<ModuleDescriptor, 6> {
+        makeModule("profile", "Profile", "OPL2 path is backed by audited BSD-licensed ymfm inside the broader OPL2/OPL3 mode.", { "YM3812 core", "DOS clock", "Hybrid default", "Verified partial" }),
+        makeModule("sources", "FM Voices", "Nine OPL2 melodic channels with four lanes exposed in the current UI.", { "Voice 1", "Voice 2", "Voice 3", "Voice 4 shown" }),
+        makeModule("tone", "Operators", "Musical controls write native OPL operator and channel registers.", { "Waveform", "Feedback", "Connection", "Operator tone" }),
+        makeModule("envelope", "Envelope", "Useful fixed OPL operator envelopes are written per voice for this first pass.", { "Attack/decay", "Sustain/release", "KSR/multiple", "Full ADSR planned" }),
+        makeModule("motion", "Motion", "DOS FM templates map to register-backed melodic patches.", { "UI bell", "FM bass", "Organ arp", "Laser" }),
+        makeModule("output", "Output", "ymfm mono OPL2 output is mirrored to the plugin stereo output.", { "Mono core", "Rhythm planned", "Output gain", "Reference tests needed" })
+    };
+}
+
 std::array<ModuleDescriptor, 6> sampleModules(std::string profile, std::string sourceTitle, std::string toneTitle)
 {
     return std::array<ModuleDescriptor, 6> {
@@ -1702,24 +1779,28 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::opl3,
             "OPL2/OPL3 / DOS FM",
-            "Planned two-operator FM mode using the audited ymfm path. No OPL adapter is integrated yet.",
+            "Four exposed melodic lanes write OPL2/YM3812 registers into the audited ymfm core for DOS FM tones.",
             {
-                { "algorithm", "Operator Pair", "FM", "Planned modulator/carrier balance." },
-                { "feedback", "Feedback", "FM", "Planned feedback amount." },
-                { "rhythm", "Rhythm Mode", "Drums", "Planned OPL rhythm-mode helper." },
-                { "tremolo", "Tremolo", "Motion", "Planned tremolo/vibrato helper." },
+                { "balance", "Operator Balance", "FM", "Writes the OPL connection bit for two-operator voices." },
+                { "feedback", "Feedback", "FM", "Writes OPL feedback bits." },
+                { "waveform", "Waveform", "Operators", "Writes OPL2 operator waveform registers." },
+                { "level", "FM Level", "Output", "Controls carrier level and final OPL output trim." },
             },
-            fmModules("OPL2/OPL3 ymfm strategy audited.", "FM Voices", "Operator Pairs"),
-            plannedFmMacros("OPL", true),
-            false,
-            false,
-            {},
-            plannedDisclosure(
-                "`ymfm` is audited as the permissive-first OPL2/OPL3 core before considering LGPL alternatives.",
-                "OPL UI should use operator-pair cards, algorithm/feedback controls, rhythm mode, waveforms, and per-operator envelopes.",
+            oplModules(),
+            oplMacros(),
+            true,
+            true,
+            oplParameterSpecs(),
+            verifiedPartial(
                 {
-                    "No OPL2/OPL3 adapter is integrated.",
-                    "Operator-pair routing, rhythm mode, and OPL waveform controls are not implemented."
+                    "BSD-3-Clause ymfm is vendored and linked as the YM3812/OPL2 synthesis core.",
+                    "Renderer notes and musical templates write OPL2 operator waveform, multiple, total-level, envelope, channel feedback/connection, f-number/block, and key-on registers.",
+                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the first melodic adapter."
+                },
+                {
+                    "The OPL2/OPL3 mode currently uses the OPL2/YM3812 core only; OPL3 stereo, 18-channel mode, four-operator pairs, and rhythm mode are not implemented.",
+                    "Deep per-operator ADSR UI, LFO/tremolo/vibrato controls, golden emulator comparison, and hardware capture comparison are not complete.",
+                    "Cycle accuracy is not claimed."
                 })
         },
         {

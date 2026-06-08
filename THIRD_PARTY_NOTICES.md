@@ -158,8 +158,8 @@ SOFTWARE.
 - Vendored revision: `17decfae857b92ab55fbb30ade2287ace095a381`
 - Vendored files: `ThirdParty/ymfm/LICENSE`, `ThirdParty/ymfm/README.md`, `ThirdParty/ymfm/GeneralInfo.md`, and `ThirdParty/ymfm/src/ymfm*.h`, `ThirdParty/ymfm/src/ymfm*.ipp`, `ThirdParty/ymfm/src/ymfm*.cpp`
 - License: BSD-3-Clause
-- Use in Chipper: linked into `chipper_engine` as the Yamaha FM family source. The current adapter uses `ymfm::ym2612` for a verified-partial YM2612/OPN2 melodic FM mode that maps Chipper musical controls and renderer note events to native operator, algorithm/feedback, frequency, pan, and key-on register writes.
-- Accuracy claim: verified partial only. DAC playback, full six-lane UI, OPN2 LFO/AMS/PMS controls, exact timer behavior, SSG-EG edge cases, golden emulator comparison, and hardware validation are not complete. Chipper does not claim cycle accuracy for ymfm-backed modes.
+- Use in Chipper: linked into `chipper_engine` as the Yamaha FM family source. The current adapters use `ymfm::ym2612` for a verified-partial YM2612/OPN2 melodic FM mode and `ymfm::ym3812` for a verified-partial OPL2 melodic FM path inside the OPL2/OPL3 mode.
+- Accuracy claim: verified partial only. YM2612 DAC playback, full six-lane OPN2 UI, OPN2 LFO/AMS/PMS controls, OPL3 stereo/18-channel/four-operator behavior, OPL rhythm mode, exact timer behavior, SSG-EG edge cases, golden emulator comparison, and hardware validation are not complete. Chipper does not claim cycle accuracy for ymfm-backed modes.
 - Provenance note: upstream README/GeneralInfo describe BSD-licensed Yamaha FM cores begun as part of MAME, with MAME-style design, cross-checking against Nemesis/Exodus and Nuked research, and a high-audible-accuracy goal rather than cycle-accuracy claims.
 
 BSD 3-Clause license text from upstream:

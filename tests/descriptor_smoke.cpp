@@ -185,6 +185,7 @@ bool expectVerificationDisclosure()
         chipper::ChipMode::huc6280,
         chipper::ChipMode::namcoWsg,
         chipper::ChipMode::ym2612,
+        chipper::ChipMode::opl3,
         chipper::ChipMode::ym2413,
         chipper::ChipMode::scc
     };
@@ -202,7 +203,6 @@ bool expectVerificationDisclosure()
     }
 
     constexpr std::array plannedModes {
-        chipper::ChipMode::opl3,
         chipper::ChipMode::ym2151
     };
 
@@ -371,7 +371,7 @@ int main()
     ok &= expectMacroLabel(chipper::ChipMode::ym2149, chipper::MacroKind::drum, "YM Noise Perc");
     ok &= expectMacroLabel(chipper::ChipMode::sn76489, chipper::MacroKind::drum, "PSG Drum");
     ok &= expectMacroLabel(chipper::ChipMode::ym2612, chipper::MacroKind::bass, "OPN2 Feedback Bass");
-    ok &= expectMacroLabel(chipper::ChipMode::opl3, chipper::MacroKind::drum, "OPL Rhythm Kit Plan");
+    ok &= expectMacroLabel(chipper::ChipMode::opl3, chipper::MacroKind::drum, "OPL2 FM Perc");
     ok &= expectMacroLabel(chipper::ChipMode::spc700, chipper::MacroKind::drum, "SPC700 Drum Map");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Sample Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, 5, "Follow");
