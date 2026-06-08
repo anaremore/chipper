@@ -1114,6 +1114,103 @@ void FmAlgorithmPreview::paint(juce::Graphics& g)
                juce::Justification::centredLeft);
 }
 
+void OplWaveformPreview::setWaveform(int newWaveform, bool shouldFollow)
+{
+    const auto clampedWaveform = std::clamp(newWaveform, 0, 3);
+    if (waveform == clampedWaveform && follow == shouldFollow)
+        return;
+
+    waveform = clampedWaveform;
+    follow = shouldFollow;
+    repaint();
+}
+
+void OplWaveformPreview::paint(juce::Graphics& g)
+{
+    const auto bounds = getLocalBounds().toFloat().reduced(1.0f);
+    if (bounds.isEmpty())
+        return;
+
+    g.setColour(juce::Colour(0xff10181c));
+    g.fillRoundedRectangle(bounds, 4.0f);
+    g.setColour(juce::Colour(0xff2a3a40));
+    g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+    auto graph = bounds.reduced(7.0f, 5.0f);
+    if (graph.getWidth() < 60.0f || graph.getHeight() < 30.0f)
+        return;
+
+    auto labelArea = graph.removeFromTop(13.0f);
+    graph.removeFromTop(2.0f);
+
+    const auto left = graph.getX();
+    const auto right = graph.getRight();
+    const auto top = graph.getY();
+    const auto bottom = graph.getBottom();
+    const auto mid = graph.getCentreY();
+    const auto width = std::max(1.0f, graph.getWidth());
+    const auto halfHeight = std::max(1.0f, graph.getHeight() * 0.44f);
+
+    g.setColour(juce::Colour(0xff243139).withAlpha(0.72f));
+    g.drawHorizontalLine(static_cast<int>(std::round(mid)), left, right);
+    for (int i = 1; i < 4; ++i)
+    {
+        const auto x = left + width * static_cast<float>(i) / 4.0f;
+        g.drawVerticalLine(static_cast<int>(std::round(x)), top, bottom);
+    }
+
+    juce::Path path;
+    constexpr auto pointCount = 96;
+    for (int i = 0; i < pointCount; ++i)
+    {
+        const auto phase = static_cast<float>(i) / static_cast<float>(pointCount - 1);
+        const auto radians = phase * juce::MathConstants<float>::twoPi * 2.0f;
+        float sample = std::sin(radians);
+
+        switch (waveform)
+        {
+            case 1:
+                sample = sample > 0.0f ? sample : 0.0f;
+                break;
+            case 2:
+                sample = std::abs(sample);
+                break;
+            case 3:
+                sample = sample > 0.0f ? sample : 0.0f;
+                sample *= 1.0f - std::fmod(phase * 2.0f, 1.0f) * 0.55f;
+                break;
+            case 0:
+            default:
+                break;
+        }
+
+        const auto x = left + width * phase;
+        const auto y = mid - (sample * halfHeight);
+        if (i == 0)
+            path.startNewSubPath(x, y);
+        else
+            path.lineTo(x, y);
+    }
+
+    const auto activeColour = waveform == 3 ? juce::Colour(0xfff0c94d) : juce::Colour(0xff56c7d8);
+    g.setColour(activeColour.withAlpha(follow ? 0.16f : 0.22f));
+    juce::Path fill;
+    fill.startNewSubPath(left, mid);
+    fill.addPath(path);
+    fill.lineTo(right, mid);
+    fill.closeSubPath();
+    g.fillPath(fill);
+
+    g.setColour(activeColour.withAlpha(follow ? 0.72f : 1.0f));
+    g.strokePath(path, juce::PathStrokeType(1.5f));
+
+    g.setColour(follow ? juce::Colour(0xffaebbc4) : juce::Colour(0xffdbe8e5));
+    g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
+    g.drawText(juce::String(follow ? "Follow -> " : "") + "OPL W" + juce::String(waveform),
+               labelArea,
+               juce::Justification::centredLeft);
+}
+
 void OutputScopePreview::setSamples(const ChipperAudioProcessor::OutputScopeSnapshot& newSamples)
 {
     samples = newSamples;
@@ -1636,6 +1733,26 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     fmAlgorithmPreview.setVisible(false);
     fmAlgorithmPreview.setTooltip("YM2612 four-operator algorithm signal flow. Cyan operators modulate, yellow operators reach output.");
     addAndMakeVisible(fmAlgorithmPreview);
+
+    oplWaveformBox.setVisible(false);
+    oplWaveformBox.setTooltip(withMidiCcForRole("OPL2 operator waveform register choice.", chipper::ChipParameterRole::waveShape));
+    oplWaveformBox.onChange = [this]()
+    {
+        if (suppressManualChoiceCallbacks)
+            return;
+
+        const auto selected = oplWaveformBox.getSelectedId() - 1;
+        if (selected >= 0)
+        {
+            setChoiceParameterFromUi(chipper::parameters::id::waveShape, selected);
+            updateLiveControlReadouts();
+        }
+    };
+    addAndMakeVisible(oplWaveformBox);
+
+    oplWaveformPreview.setVisible(false);
+    oplWaveformPreview.setTooltip("OPL2/YM3812 operator waveform preview. It follows the waveform register written to both operators.");
+    addAndMakeVisible(oplWaveformPreview);
 
     const std::array<const char*, sidVoiceWaveCount> voiceWaveLabels { "V1", "V2", "V3" };
     for (size_t i = 0; i < sidVoiceWaveBoxes.size(); ++i)
@@ -2324,6 +2441,8 @@ void ChipperAudioProcessorEditor::resized()
         placeYmChannelMixControls(primaryTonePanel);
     else if (displayedMode == chipper::ChipMode::ym2612)
         placeFmAlgorithmControl(primaryTonePanel);
+    else if (displayedMode == chipper::ChipMode::opl3)
+        placeOplWaveformControl(primaryTonePanel);
     else
         placeWaveShapeSegment(primaryTonePanel);
     if (displayedMode != chipper::ChipMode::sid)
@@ -2681,6 +2800,23 @@ void ChipperAudioProcessorEditor::placeFmAlgorithmControl(juce::Rectangle<int> b
         button.setBounds({});
 }
 
+void ChipperAudioProcessorEditor::placeOplWaveformControl(juce::Rectangle<int> bounds)
+{
+    auto header = bounds.removeFromTop(std::min(18, bounds.getHeight()));
+    waveShapeLabel.setBounds(header.removeFromLeft(std::min(92, header.getWidth())));
+    waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
+    waveShapeValueLabel.setBounds(header);
+    bounds.removeFromTop(3);
+
+    auto controlRow = bounds.removeFromTop(std::min(28, bounds.getHeight()));
+    oplWaveformBox.setBounds(controlRow.removeFromLeft(std::max(132, controlRow.getWidth() / 3)).reduced(0, 1));
+    bounds.removeFromTop(5);
+    oplWaveformPreview.setBounds(bounds.reduced(0, 1));
+    waveShapeSegmentBounds = {};
+    for (auto& button : waveShapeButtons)
+        button.setBounds({});
+}
+
 void ChipperAudioProcessorEditor::placeSidVoiceWaveControls(juce::Rectangle<int> bounds)
 {
     waveShapeLabel.setBounds(bounds.removeFromTop(16));
@@ -2943,6 +3079,12 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
             fmAlgorithmBox.clear(juce::dontSendNotification);
             for (size_t i = 0; i < spec->choices.size(); ++i)
                 fmAlgorithmBox.addItem(juce::String(spec->choices[i].label), static_cast<int>(i) + 1);
+        }
+        if (mode == chipper::ChipMode::opl3)
+        {
+            oplWaveformBox.clear(juce::dontSendNotification);
+            for (size_t i = 0; i < spec->choices.size(); ++i)
+                oplWaveformBox.addItem(juce::String(spec->choices[i].label), static_cast<int>(i) + 1);
         }
         sidVoiceWaveLabels[0].setText(mode == chipper::ChipMode::sid ? "Wave" : "V1", juce::dontSendNotification);
         sidVoiceWaveLabels[0].setTooltip(withMidiCcForRole(spec->help, spec->role));
@@ -3331,9 +3473,14 @@ bool ChipperAudioProcessorEditor::usesPulse2DutySegment(chipper::ChipMode mode) 
 
 bool ChipperAudioProcessorEditor::usesWaveShapeSegment(chipper::ChipMode mode) const
 {
+    if (chipper::chipHasParameterSurface(mode,
+                                         chipper::ChipParameterRole::waveShape,
+                                         chipper::ControlSurface::segmentedChoice))
+        return true;
+
     return chipper::chipHasParameterSurface(mode,
                                             chipper::ChipParameterRole::waveShape,
-                                            chipper::ControlSurface::segmentedChoice);
+                                            chipper::ControlSurface::menu);
 }
 
 bool ChipperAudioProcessorEditor::usesDmgWaveLevelSegment(chipper::ChipMode mode) const
@@ -4508,23 +4655,30 @@ void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode m
             button.setVisible(false);
         fmAlgorithmBox.setVisible(false);
         fmAlgorithmPreview.setVisible(false);
+        oplWaveformBox.setVisible(false);
+        oplWaveformPreview.setVisible(false);
         return;
     }
 
     const auto active = shouldBeVisible && usesWaveShapeSegment(mode);
     const auto fmAlgorithmActive = active && mode == chipper::ChipMode::ym2612;
+    const auto oplWaveformActive = active && mode == chipper::ChipMode::opl3;
     waveShapeLabel.setVisible(active);
     waveShapeValueLabel.setVisible(active);
     for (auto& button : waveShapeButtons)
-        button.setVisible(active && ! fmAlgorithmActive);
+        button.setVisible(active && ! fmAlgorithmActive && ! oplWaveformActive);
     fmAlgorithmBox.setVisible(fmAlgorithmActive);
     fmAlgorithmPreview.setVisible(fmAlgorithmActive);
+    oplWaveformBox.setVisible(oplWaveformActive);
+    oplWaveformPreview.setVisible(oplWaveformActive);
 
     if (active)
     {
         const auto choice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::waveShape)));
         if (fmAlgorithmActive)
             updateFmAlgorithmControl(mode, choice, true);
+        else if (oplWaveformActive)
+            updateOplWaveformControl(mode, choice, true);
         else
             updateWaveShapeButtons(choice, true);
     }
@@ -5349,6 +5503,10 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
     {
         for (auto& button : waveShapeButtons)
             button.setVisible(false);
+        fmAlgorithmBox.setVisible(false);
+        fmAlgorithmPreview.setVisible(false);
+        oplWaveformBox.setVisible(false);
+        oplWaveformPreview.setVisible(false);
         updateSidVoiceWaveControls(shouldBeVisible);
         return;
     }
@@ -5359,6 +5517,18 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
         updateFmAlgorithmControl(mode, choice, shouldBeVisible);
         return;
     }
+    if (mode == chipper::ChipMode::opl3)
+    {
+        for (auto& button : waveShapeButtons)
+            button.setVisible(false);
+        updateOplWaveformControl(mode, choice, shouldBeVisible);
+        return;
+    }
+
+    fmAlgorithmBox.setVisible(false);
+    fmAlgorithmPreview.setVisible(false);
+    oplWaveformBox.setVisible(false);
+    oplWaveformPreview.setVisible(false);
 
     const auto selected = static_cast<size_t>(std::clamp(choice, 0, static_cast<int>(waveShapeButtons.size() - 1u)));
     for (size_t i = 0; i < waveShapeButtons.size(); ++i)
@@ -5419,6 +5589,57 @@ void ChipperAudioProcessorEditor::updateFmAlgorithmControl(chipper::ChipMode mod
     fmAlgorithmPreview.setTooltip("YM2612 four-operator algorithm signal flow.\n"
                                   + registerText
                                   + "\nCyan operators modulate; yellow operators reach output.");
+}
+
+void ChipperAudioProcessorEditor::updateOplWaveformControl(chipper::ChipMode mode, int choice, bool shouldBeVisible)
+{
+    const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::waveShape);
+    const auto visible = shouldBeVisible && mode == chipper::ChipMode::opl3 && spec != nullptr;
+    waveShapeLabel.setVisible(visible);
+    waveShapeValueLabel.setVisible(visible);
+    oplWaveformBox.setVisible(visible);
+    oplWaveformPreview.setVisible(visible);
+    for (auto& button : waveShapeButtons)
+        button.setVisible(false);
+
+    if (! visible)
+        return;
+
+    const auto safeChoice = std::clamp(choice, 0, static_cast<int>(spec->choices.size() - 1u));
+    const juce::ScopedValueSetter<bool> suppressChoices(suppressManualChoiceCallbacks, true);
+    oplWaveformBox.setSelectedId(safeChoice + 1, juce::dontSendNotification);
+
+    const auto patch = currentUiPatch(
+        mode,
+        parameterValue(chipper::parameters::id::macroControl1),
+        parameterValue(chipper::parameters::id::macroControl2),
+        parameterValue(chipper::parameters::id::macroControl3),
+        parameterValue(chipper::parameters::id::macroControl4),
+        safeChoice,
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgWaveLevel))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgStereoRoute))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
+        parameterValue(chipper::parameters::id::stereoSpread));
+
+    const auto resolvedWaveform = static_cast<int>(chipper::oplWaveformForPatch(patch));
+    const auto followsTemplate = safeChoice == 0;
+    oplWaveformPreview.setWaveform(resolvedWaveform, followsTemplate);
+
+    const auto valueText = followsTemplate
+        ? juce::String("Follow -> W") + juce::String(resolvedWaveform)
+        : juce::String("W") + juce::String(resolvedWaveform);
+    const auto registerText = juce::String("$E0 operator waveform=") + juce::String(resolvedWaveform)
+        + ", FB=" + juce::String(static_cast<int>(chipper::fmFeedbackForPatch(patch)))
+        + ", CNT=" + juce::String(static_cast<int>(chipper::oplConnectionForPatch(patch)));
+
+    waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
+    waveShapeValueLabel.setText(valueText, juce::dontSendNotification);
+    waveShapeValueLabel.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + registerText, spec->role));
+    oplWaveformBox.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + registerText, spec->role));
+    oplWaveformPreview.setTooltip("OPL2/YM3812 operator waveform preview.\n"
+                                  + registerText
+                                  + "\nCurrent pass writes the selected waveform to both operators of each two-operator voice.");
 }
 
 void ChipperAudioProcessorEditor::updateSidVoiceWaveControls(bool shouldBeVisible)

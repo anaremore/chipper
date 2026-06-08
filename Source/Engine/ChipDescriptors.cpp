@@ -699,13 +699,17 @@ std::vector<ChipParameterSpec> oplParameterSpecs()
                    "Controls carrier level and final OPL output trim.",
                    ParameterKind::chipRegister,
                    0.72f),
-        segmentedSpec(ChipParameterRole::waveShape,
-                      "opl.waveform",
-                      "Waveform",
-                      "Operators",
-                      "Chooses the OPL2 operator waveform. Follow lets the selected template choose.",
-                      oplWaveformChoices(),
-                      ParameterKind::chipRegister)
+        { ChipParameterRole::waveShape,
+          "opl.waveform",
+          "Waveform",
+          "Operators",
+          "Chooses the OPL2 operator waveform. Follow lets the selected template choose.",
+          ParameterKind::chipRegister,
+          ControlSurface::menu,
+          oplWaveformChoices(),
+          0.0f,
+          1.0f,
+          0.0f }
     };
 }
 
