@@ -658,6 +658,12 @@ add_test(NAME chipper_render_ym2612_chip_poly_smoke
 add_test(NAME chipper_render_ym2612_sources_off_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 0 --clock 7670454 --rate 48000 --seconds 0.04 --note 69 --out ym2612-sources-off-smoke.wav --debug ym2612-sources-off-smoke.json
 )
+add_test(NAME chipper_render_ym2612_pan_left_smoke
+    COMMAND chipper_render --chip ym2612 --accuracy authentic --macro lead --opn2-pan left --clock 7670454 --rate 48000 --seconds 0.08 --note 69 --out ym2612-pan-left-smoke.wav --debug ym2612-pan-left-smoke.json
+)
+add_test(NAME chipper_render_ym2612_pan_right_smoke
+    COMMAND chipper_render --chip ym2612 --accuracy authentic --macro lead --opn2-pan right --clock 7670454 --rate 48000 --seconds 0.08 --note 69 --out ym2612-pan-right-smoke.wav --debug ym2612-pan-right-smoke.json
+)
 add_test(NAME chipper_render_opl3_smoke
     COMMAND chipper_render --chip opl3 --accuracy authentic --macro lead --wave-shape 4 --clock 3579545 --rate 48000 --seconds 0.08 --note 69 --out opl3-smoke.wav --debug opl3-smoke.json
 )
@@ -778,6 +784,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip spc700 --implemented spc700=1 --verification-badge "spc700=Verified partial" --verification-cycle spc700=0 --verification-hardware spc700=0 --param-kind spc700:waveShape=chipRegister --param-surface spc700:waveShape=segmentedChoice --param-choices spc700:waveShape=5 --param-midi-cc spc700:waveShape=89 --param-kind spc700:dmgStereoRoute=chipRegister --param-surface spc700:dmgStereoRoute=segmentedChoice --param-choices spc700:dmgStereoRoute=3 --param-midi-cc spc700:dmgStereoRoute=94 --param-kind spc700:macroControl3=chipRegister --param-surface spc700:macroControl3=slider --param-midi-cc spc700:macroControl3=78 --param-kind spc700:macroControl4=chipRegister --param-surface spc700:macroControl4=slider --param-midi-cc spc700:macroControl4=79 --param-surface spc700:stereoSpread=slider --param-midi-cc spc700:stereoSpread=93 --macro-label "spc700:Drum=SPC700 Drum Map" --macro-source spc700:Drum=0011 --preset spc700-soft-bass --preset spc700-drum-map
     )
     set_tests_properties(chipper_render_list_spc700_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
+
+    add_test(NAME chipper_render_list_ym2612_descriptor_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip ym2612 --implemented ym2612=1 --verification-badge "ym2612=Verified partial" --verification-cycle ym2612=0 --verification-hardware ym2612=0 --param-kind ym2612:waveShape=chipRegister --param-surface ym2612:waveShape=segmentedChoice --param-choices ym2612:waveShape=9 --param-midi-cc ym2612:waveShape=89 --param-kind ym2612:dmgStereoRoute=chipRegister --param-surface ym2612:dmgStereoRoute=segmentedChoice --param-choices ym2612:dmgStereoRoute=5 --param-midi-cc ym2612:dmgStereoRoute=94 --param-kind ym2612:macroControl2=chipRegister --param-surface ym2612:macroControl2=slider --param-midi-cc ym2612:macroControl2=77 --macro-label "ym2612:Bass=OPN2 Feedback Bass" --preset opn2-feedback-bass
+    )
+    set_tests_properties(chipper_render_list_ym2612_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_paula_descriptor_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip paula --implemented paula=1 --verification-badge "paula=Verified partial" --verification-cycle paula=0 --verification-hardware paula=0 --param-kind paula:waveShape=chipRegister --param-surface paula:waveShape=segmentedChoice --param-choices paula:waveShape=5 --param-midi-cc paula:waveShape=89 --param-kind paula:macroControl3=chipRegister --param-surface paula:macroControl3=slider --param-midi-cc paula:macroControl3=78 --param-kind paula:macroControl4=chipRegister --param-surface paula:macroControl4=slider --param-midi-cc paula:macroControl4=79 --param-surface paula:stereoSpread=slider --param-midi-cc paula:stereoSpread=93 --macro-label "paula:Arp=Paula Tracker Arp" --macro-source paula:Drum=0011 --preset paula-tracker-bass --preset paula-noise-tick
@@ -1301,6 +1312,14 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-sources-off-smoke.json --implemented-contains ymfm --macro Manual --register-writes 0 --note-events 0 --max-peak 0.001 --max-rms 0.001 --core-min keyOnMask=0 --core-max keyOnMask=0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0
     )
     set_tests_properties(chipper_render_ym2612_sources_off_assert PROPERTIES DEPENDS chipper_render_ym2612_sources_off_smoke)
+    add_test(NAME chipper_render_ym2612_pan_left_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-pan-left-smoke.json --implemented-contains ymfm --macro Lead --register-writes 0 --note-events 0 --min-left-rms 0.08 --max-right-rms 0.02 --core-min panBits0=128 --core-max panBits0=128 --core-min panBits1=128 --core-max panBits1=128 --descriptor-param-kind dmgStereoRoute=chipRegister --descriptor-param-surface dmgStereoRoute=segmentedChoice --descriptor-param-label "dmgStereoRoute=Pan" --descriptor-param-choices dmgStereoRoute=5
+    )
+    set_tests_properties(chipper_render_ym2612_pan_left_assert PROPERTIES DEPENDS chipper_render_ym2612_pan_left_smoke)
+    add_test(NAME chipper_render_ym2612_pan_right_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-pan-right-smoke.json --implemented-contains ymfm --macro Lead --register-writes 0 --note-events 0 --max-left-rms 0.02 --min-right-rms 0.08 --core-min panBits0=64 --core-max panBits0=64 --core-min panBits1=64 --core-max panBits1=64
+    )
+    set_tests_properties(chipper_render_ym2612_pan_right_assert PROPERTIES DEPENDS chipper_render_ym2612_pan_right_smoke)
 
     add_test(NAME chipper_render_opl3_json_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-smoke.json --implemented-contains ymfm --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.01 --min-rms 0.002 --register-writes 0 --note-events 0 --core-min internalChannelCount=9 --core-max internalChannelCount=9 --core-min uiExposesFirstFourVoices=1 --core-max uiExposesFirstFourVoices=1 --core-min waveform0=3 --core-max waveform0=3 --core-min feedback0=3 --core-max feedback0=3 --core-min fnum0=1 --core-max fnum0=1023 --core-min block0=0 --core-max block0=7 --core-min keyOnMask=0 --core-max keyOnMask=0 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Waveform" --descriptor-param-choices waveShape=5

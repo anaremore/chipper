@@ -517,6 +517,17 @@ std::vector<ParameterChoiceSpec> ym2612AlgorithmChoices()
     };
 }
 
+std::vector<ParameterChoiceSpec> ym2612PanChoices()
+{
+    return {
+        choice("Follow", "Resolve pan from the selected OPN2 template; arps and power-up stacks alternate left/right.", 0.0f, 0),
+        choice("Both", "Enable both YM2612 output bits for centered channel output.", 0.25f, 1),
+        choice("Left", "Set the YM2612 left-output bit only.", 0.5f, 2),
+        choice("Right", "Set the YM2612 right-output bit only.", 0.75f, 3),
+        choice("Alt", "Alternate exposed YM2612 channels left and right.", 1.0f, 4)
+    };
+}
+
 std::vector<ChipParameterSpec> ym2612ParameterSpecs()
 {
     return {
@@ -552,11 +563,18 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
                       "Chooses the YM2612 four-operator algorithm. Follow lets the selected template choose.",
                       ym2612AlgorithmChoices(),
                       ParameterKind::chipRegister),
+        segmentedSpec(ChipParameterRole::dmgStereoRoute,
+                      "ym2612.pan",
+                      "Pan",
+                      "Output",
+                      "Writes the YM2612 channel output enable bits in register $B4: left, right, both, or alternating exposed channels.",
+                      ym2612PanChoices(),
+                      ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::stereoSpread,
                    "ym2612.stereoSpread",
                    "Stereo Spread",
                    "Output",
-                   "Reserved modern convenience metadata; the current OPN2 adapter writes centered pan to both YM2612 outputs.",
+                   "Modern output width trim after native OPN2 pan bits; set Pan for register-accurate left/right routing.",
                    ParameterKind::continuous)
     };
 }
@@ -1667,7 +1685,7 @@ std::array<ModuleDescriptor, 6> ym2612Modules()
         makeModule("tone", "Operators", "Musical controls write native OPN2 algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Envelope", "Useful fixed operator envelopes are written per voice for this first FM instrument pass.", { "Operator attack", "Decay", "Sustain/release", "Full ADSR planned" }),
         makeModule("motion", "Motion", "Genesis-style musical templates map to register-backed FM patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
-        makeModule("output", "Output", "ymfm stereo OPN2 output is rendered with centered pan for now.", { "Stereo core", "DAC planned", "Output gain", "Reference tests needed" })
+                makeModule("output", "Output", "ymfm stereo OPN2 output follows native channel pan bits plus output trim.", { "Stereo core", "Pan bits", "DAC planned", "Reference tests needed" })
     };
 }
 
@@ -1865,7 +1883,7 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2612/OPN2 synthesis core.",
-                    "Renderer notes and musical templates write OPN2 algorithm, feedback, operator multiplier/total-level, f-number/block, pan, and key-on registers.",
+                    "Renderer notes and musical templates write OPN2 algorithm, feedback, operator multiplier/total-level, f-number/block, left/right pan bits, and key-on registers.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the first melodic adapter."
                 },
                 {
@@ -3052,6 +3070,42 @@ uint8_t ym2612AlgorithmForPatch(const PatchConfig& patch)
     }
 
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control1) * 7.0f)), 0, 7));
+}
+
+uint8_t ym2612PanBitsForPatch(const PatchConfig& patch, size_t channel)
+{
+    auto choiceValue = std::clamp(patch.dmgStereoRoute, 0, 4);
+    if (choiceValue == 0)
+    {
+        switch (patch.macro)
+        {
+            case MacroKind::arp:
+            case MacroKind::powerUp:
+                choiceValue = 4;
+                break;
+            case MacroKind::manual:
+            case MacroKind::coin:
+            case MacroKind::bass:
+            case MacroKind::lead:
+            case MacroKind::drum:
+            case MacroKind::hit:
+            case MacroKind::laser:
+            case MacroKind::jump:
+            default:
+                choiceValue = 1;
+                break;
+        }
+    }
+
+    switch (choiceValue)
+    {
+        case 2: return 0x80u;
+        case 3: return 0x40u;
+        case 4: return (channel % 2u) == 0u ? 0x80u : 0x40u;
+        case 1:
+        default:
+            return 0xc0u;
+    }
 }
 
 uint8_t ym2151AlgorithmForPatch(const PatchConfig& patch)

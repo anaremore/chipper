@@ -309,6 +309,7 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2612, opn2Lead, 3) == 12u, "YM2612 helper should resolve operator 4 multiple");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 0) == 38u, "YM2612 helper should resolve modulator total level");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 3) == 6u, "YM2612 helper should resolve carrier total level");
+    ok &= expect(chipper::ym2612PanBitsForPatch(opn2Lead, 0) == 0xc0u, "YM2612 lead macro should resolve to centered pan bits");
 
     const auto opmArp = chipper::makePatchConfig(chipper::ChipMode::ym2151,
                                                  chipper::MacroKind::arp,
@@ -335,6 +336,23 @@ bool expectFmRegisterHelpers()
                                                             0.0f,
                                                             8);
     ok &= expect(chipper::ym2612AlgorithmForPatch(explicitAlgorithm) == 7u, "YM2612 explicit algorithm choice should override macro controls");
+    const auto explicitPan = chipper::makePatchConfig(chipper::ChipMode::ym2612,
+                                                      chipper::MacroKind::lead,
+                                                      0.5f,
+                                                      0.5f,
+                                                      0.5f,
+                                                      0.5f,
+                                                      chipper::PlayMode::stack,
+                                                      { true, true, true, true },
+                                                      { 1.0f, 1.0f, 1.0f, 1.0f },
+                                                      0.0f,
+                                                      0.0f,
+                                                      0,
+                                                      0,
+                                                      0,
+                                                      4);
+    ok &= expect(chipper::ym2612PanBitsForPatch(explicitPan, 0) == 0x80u, "YM2612 alternating pan should send channel 1 left");
+    ok &= expect(chipper::ym2612PanBitsForPatch(explicitPan, 1) == 0x40u, "YM2612 alternating pan should send channel 2 right");
 
     const auto oplLead = chipper::makePatchConfig(chipper::ChipMode::opl3,
                                                   chipper::MacroKind::lead,
@@ -687,6 +705,9 @@ int main()
     ok &= expectMacroLabel(chipper::ChipMode::ym2149, chipper::MacroKind::drum, "YM Noise Perc");
     ok &= expectMacroLabel(chipper::ChipMode::sn76489, chipper::MacroKind::drum, "PSG Drum");
     ok &= expectMacroLabel(chipper::ChipMode::ym2612, chipper::MacroKind::bass, "OPN2 Feedback Bass");
+    ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Pan");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2612, chipper::ChipParameterRole::dmgStereoRoute, "Output");
+    ok &= expectSegmentedRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::dmgStereoRoute, 5, "Follow");
     ok &= expectMacroLabel(chipper::ChipMode::opl3, chipper::MacroKind::drum, "OPL2 FM Perc");
     ok &= expectMacroLabel(chipper::ChipMode::spc700, chipper::MacroKind::drum, "SPC700 Drum Map");
     ok &= expectPreset(chipper::ChipMode::spc700, "spc700-stage-clear");

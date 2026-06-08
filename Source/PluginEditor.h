@@ -191,6 +191,7 @@ private:
     juce::String dmgWaveLevelReadout(const chipper::PatchConfig& patch) const;
     juce::String dmgStereoRouteReadout(const chipper::PatchConfig& patch) const;
     juce::String spc700SamplePlaybackReadout(const chipper::PatchConfig& patch) const;
+    juce::String ym2612PanReadout(const chipper::PatchConfig& patch) const;
     juce::String sidModelReadout(const chipper::PatchConfig& patch) const;
     juce::String ymEnvelopeShapeReadout(int choice) const;
     juce::String sidFilterModeReadout(const chipper::PatchConfig& patch) const;

@@ -6638,6 +6638,7 @@ public:
         currentBlock.fill(0);
         currentAlgorithm.fill(0);
         currentFeedback.fill(0);
+        currentPanBits.fill(0xc0u);
         noteStamp = 0;
         heldNote = -1;
         keyOnMask = 0;
@@ -6761,7 +6762,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPN2 register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator, algorithm, feedback, f-number/block, pan, and key-on registers for four exposed melodic lanes. DAC playback, full six-lane UI, LFO/AMS/PMS controls, SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator, algorithm, feedback, f-number/block, $B4 left/right pan bits, and key-on registers for four exposed melodic lanes. DAC playback, full six-lane UI, LFO/AMS/PMS controls, SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -6782,6 +6783,8 @@ public:
              << "\"uiExposesFirstFourVoices\":1,"
              << "\"algorithm0\":" << static_cast<int>(currentAlgorithm[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
+             << "\"panBits0\":" << static_cast<int>(currentPanBits[0]) << ","
+             << "\"panBits1\":" << static_cast<int>(currentPanBits[1]) << ","
              << "\"fnum0\":" << currentFnum[0] << ","
              << "\"block0\":" << static_cast<int>(currentBlock[0]) << ","
              << "\"keyOnMask\":" << static_cast<int>(keyOnMask) << ","
@@ -6921,6 +6924,7 @@ private:
         const auto feedback = feedbackForPatch();
         currentAlgorithm[channel] = algorithm;
         currentFeedback[channel] = feedback;
+        currentPanBits[channel] = ym2612PanBitsForPatch(patch, channel);
 
         for (size_t op = 0; op < 4; ++op)
         {
@@ -6934,7 +6938,7 @@ private:
         }
 
         writeYmRegister(regForChannel(0xb0, channel), static_cast<uint8_t>((feedback << 3u) | algorithm));
-        writeYmRegister(regForChannel(0xb4, channel), 0xc0u);
+        writeYmRegister(regForChannel(0xb4, channel), currentPanBits[channel]);
     }
 
     void applyPatchToAllChannels(bool preserveKeys)
@@ -7083,6 +7087,7 @@ private:
     std::array<uint8_t, 6> currentBlock {};
     std::array<uint8_t, 6> currentAlgorithm {};
     std::array<uint8_t, 6> currentFeedback {};
+    std::array<uint8_t, 6> currentPanBits {};
     std::array<int, 4> channelNotes {};
     std::array<float, 4> channelVelocity {};
     std::array<uint64_t, 4> channelStamp {};

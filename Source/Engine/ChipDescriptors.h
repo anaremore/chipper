@@ -267,6 +267,7 @@ uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch);
 uint8_t pokeyAudcForPatch(const PatchConfig& patch);
 uint8_t pokeyAudfForNote(double clockHz, int midiNote);
 uint8_t ym2612AlgorithmForPatch(const PatchConfig& patch);
+uint8_t ym2612PanBitsForPatch(const PatchConfig& patch, size_t channel);
 uint8_t ym2151AlgorithmForPatch(const PatchConfig& patch);
 uint8_t fmFeedbackForPatch(const PatchConfig& patch);
 uint8_t fmOperatorMultipleForPatch(ChipMode mode, const PatchConfig& patch, size_t op);

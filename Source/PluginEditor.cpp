@@ -3624,9 +3624,12 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
         const auto algorithm = static_cast<int>(mode == chipper::ChipMode::ym2151
                                                     ? chipper::ym2151AlgorithmForPatch(patch)
                                                     : chipper::ym2612AlgorithmForPatch(patch));
-        return (mode == chipper::ChipMode::ym2151 ? "OPM " : "OPN2 ") + number
+        auto label = (mode == chipper::ChipMode::ym2151 ? "OPM " : "OPN2 ") + number
             + " | A" + juce::String(algorithm)
             + " TL" + juce::String(static_cast<int>(chipper::fmOperatorTotalLevelForPatch(mode, patch, 3)));
+        if (mode == chipper::ChipMode::ym2612)
+            label += " Pan $" + byteHex(chipper::ym2612PanBitsForPatch(patch, index));
+        return label;
     }
 
     return fallback;
@@ -3677,6 +3680,23 @@ juce::String ChipperAudioProcessorEditor::spc700SamplePlaybackReadout(const chip
     const auto resolvedText = mode == 1u
                                   ? juce::String("Loop, sample RAM wraps while held")
                                   : juce::String("One-shot, voice stops at sample end");
+    return patch.dmgStereoRoute == 0 ? juce::String("Follow -> ") + resolvedText : resolvedText;
+}
+
+juce::String ChipperAudioProcessorEditor::ym2612PanReadout(const chipper::PatchConfig& patch) const
+{
+    const auto pan0 = chipper::ym2612PanBitsForPatch(patch, 0);
+    const auto pan1 = chipper::ym2612PanBitsForPatch(patch, 1);
+    juce::String resolvedText;
+    if (pan0 == 0xc0u && pan1 == 0xc0u)
+        resolvedText = "Both outputs, $B4 L+R";
+    else if (pan0 == 0x80u && pan1 == 0x80u)
+        resolvedText = "Left output, $B4 L";
+    else if (pan0 == 0x40u && pan1 == 0x40u)
+        resolvedText = "Right output, $B4 R";
+    else
+        resolvedText = "Alternating channels, $B4 L/R";
+
     return patch.dmgStereoRoute == 0 ? juce::String("Follow -> ") + resolvedText : resolvedText;
 }
 
@@ -5194,8 +5214,10 @@ void ChipperAudioProcessorEditor::updateDmgStereoRouteButtons(chipper::ChipMode 
     dmgStereoRouteValueLabel.setText(mode == chipper::ChipMode::sid
                                          ? sidModelReadout(patch)
                                          : (mode == chipper::ChipMode::spc700
-                                                ? spc700SamplePlaybackReadout(patch)
-                                                : dmgStereoRouteReadout(patch)),
+                                               ? spc700SamplePlaybackReadout(patch)
+                                               : (mode == chipper::ChipMode::ym2612
+                                                      ? ym2612PanReadout(patch)
+                                                      : dmgStereoRouteReadout(patch))),
                                      juce::dontSendNotification);
 }
 
