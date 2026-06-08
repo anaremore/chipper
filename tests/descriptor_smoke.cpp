@@ -82,6 +82,26 @@ bool expectSpecHelpContains(chipper::ChipMode mode,
     return ok;
 }
 
+bool expectChoiceLabels(chipper::ChipMode mode,
+                        chipper::ChipParameterRole role,
+                        const std::vector<std::string>& expected,
+                        const std::string& message)
+{
+    const auto* spec = chipper::parameterSpecFor(mode, role);
+    bool ok = true;
+    ok &= expect(spec != nullptr, "missing parameter spec");
+    if (spec == nullptr)
+        return false;
+
+    ok &= expect(spec->choices.size() == expected.size(), message + " has unexpected choice count");
+    const auto count = std::min(spec->choices.size(), expected.size());
+    for (size_t i = 0; i < count; ++i)
+        ok &= expect(spec->choices[i].label == expected[i],
+                     message + " choice " + std::to_string(i) + " expected " + expected[i] + ", got " + spec->choices[i].label);
+
+    return ok;
+}
+
 bool expectMacroSourceMask(chipper::ChipMode mode, chipper::MacroKind macro, std::array<bool, 4> expected)
 {
     const auto& templ = chipper::macroTemplateFor(mode, macro);
@@ -294,6 +314,29 @@ int main()
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::sidVoice3Release, chipper::ParameterKind::chipRegister, chipper::ControlSurface::steppedSlider, "V3 Release");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::sidVoice2WaveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Voice 2 Wave");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::sidVoice3WaveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Voice 3 Wave");
+    const std::vector<std::string> expectedSidWaveChoices {
+        "Follow",
+        "Tri",
+        "Saw",
+        "Pulse",
+        "Noise",
+        "Tri+Saw",
+        "Tri+Pulse",
+        "Saw+Pulse",
+        "Tri+Saw+Pulse"
+    };
+    ok &= expectChoiceLabels(chipper::ChipMode::sid,
+                             chipper::ChipParameterRole::waveShape,
+                             expectedSidWaveChoices,
+                             "SID voice 1 waveform choices");
+    ok &= expectChoiceLabels(chipper::ChipMode::sid,
+                             chipper::ChipParameterRole::sidVoice2WaveShape,
+                             expectedSidWaveChoices,
+                             "SID voice 2 waveform choices");
+    ok &= expectChoiceLabels(chipper::ChipMode::sid,
+                             chipper::ChipParameterRole::sidVoice3WaveShape,
+                             expectedSidWaveChoices,
+                             "SID voice 3 waveform choices");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::sidVoice2PulseWidth, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Voice 2 PW");
     ok &= expectSpecGroup(chipper::ChipMode::sid, chipper::ChipParameterRole::sidVoice2PulseWidth, "Voices");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::sidVoice3PulseWidth, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Voice 3 PW");
