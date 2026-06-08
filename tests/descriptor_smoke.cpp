@@ -691,8 +691,20 @@ int main()
     ok &= expectPreset(chipper::ChipMode::scc, "scc-power-wave");
     ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, 5, "Follow");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::nes, "nes-hero-pulse");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::dmg, "dmg-wave-bass");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::sid, "sid-dirty-bass");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2149, "ym-three-voice-arp");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::sn76489, "sn-psg-lead");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2612, "opn2-feedback-bass");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::opl3, "opl2-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::spc700, "spc700-soft-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::pokey, "pokey-buzzy-lead");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::paula, "paula-tracker-bass");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::huc6280, "huc-glass-lead");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::namcoWsg, "namco-arcade-lead");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2151, "opm-arcade-bass");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2413, "opll-ui-chime");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::scc, "scc-arcade-lead");
 
     ok &= expect(chipper::chipHasParameterSurface(chipper::ChipMode::ym2149,
