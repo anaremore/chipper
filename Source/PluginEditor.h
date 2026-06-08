@@ -190,6 +190,7 @@ private:
     juce::String sourceCardNativeLabel(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index, juce::String fallback) const;
     juce::String dmgWaveLevelReadout(const chipper::PatchConfig& patch) const;
     juce::String dmgStereoRouteReadout(const chipper::PatchConfig& patch) const;
+    juce::String spc700SamplePlaybackReadout(const chipper::PatchConfig& patch) const;
     juce::String sidModelReadout(const chipper::PatchConfig& patch) const;
     juce::String ymEnvelopeShapeReadout(int choice) const;
     juce::String sidFilterModeReadout(const chipper::PatchConfig& patch) const;

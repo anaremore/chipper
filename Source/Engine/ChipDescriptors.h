@@ -287,6 +287,8 @@ bool namcoWsgChannelEnabledForPatch(const PatchConfig& patch, size_t channel);
 uint8_t wavetableRamSampleForPatch(ChipMode mode, const PatchConfig& patch, size_t channel, size_t sampleIndex);
 uint8_t sampleTemplateForPatch(ChipMode mode, const PatchConfig& patch);
 int8_t generatedSampleValueForPatch(ChipMode mode, const PatchConfig& patch, size_t channel, size_t sampleIndex);
+uint8_t spc700SamplePlaybackModeForPatch(const PatchConfig& patch);
+bool spc700SampleLoopsForPatch(const PatchConfig& patch);
 uint8_t spc700VoiceVolumeForPatch(const PatchConfig& patch, size_t voice, float velocity = 1.0f);
 uint8_t spc700AdsrForPatch(const PatchConfig& patch);
 uint8_t spc700GainForPatch(const PatchConfig& patch);

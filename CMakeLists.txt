@@ -293,6 +293,12 @@ add_test(NAME chipper_render_spc700_noise_smoke
 add_test(NAME chipper_render_spc700_chip_poly_smoke
     COMMAND chipper_render --chip spc700 --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 2 --clock 32000 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/spc700-chip-poly-events.txt --out spc700-chip-poly-smoke.wav --debug spc700-chip-poly-smoke.json
 )
+add_test(NAME chipper_render_spc700_loop_smoke
+    COMMAND chipper_render --chip spc700 --accuracy authentic --macro lead --wave-shape pulse --spc700-playback loop --clock 32000 --rate 48000 --seconds 0.08 --note 64 --out spc700-loop-smoke.wav --debug spc700-loop-smoke.json
+)
+add_test(NAME chipper_render_spc700_one_shot_smoke
+    COMMAND chipper_render --chip spc700 --accuracy authentic --macro lead --wave-shape pulse --spc700-playback one-shot --clock 32000 --rate 48000 --seconds 0.08 --note 64 --out spc700-one-shot-smoke.wav --debug spc700-one-shot-smoke.json
+)
 add_test(NAME chipper_render_preset_nes_hero_smoke
     COMMAND chipper_render --preset nes-hero-pulse --rate 48000 --seconds 0.04 --note 69 --out preset-nes-hero-smoke.wav --debug preset-nes-hero-smoke.json
 )
@@ -769,7 +775,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_pokey_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_spc700_descriptor_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip spc700 --implemented spc700=1 --verification-badge "spc700=Verified partial" --verification-cycle spc700=0 --verification-hardware spc700=0 --param-kind spc700:waveShape=chipRegister --param-surface spc700:waveShape=segmentedChoice --param-choices spc700:waveShape=5 --param-midi-cc spc700:waveShape=89 --param-kind spc700:macroControl3=chipRegister --param-surface spc700:macroControl3=slider --param-midi-cc spc700:macroControl3=78 --param-kind spc700:macroControl4=chipRegister --param-surface spc700:macroControl4=slider --param-midi-cc spc700:macroControl4=79 --param-surface spc700:stereoSpread=slider --param-midi-cc spc700:stereoSpread=93 --macro-label "spc700:Drum=SPC700 Drum Map" --macro-source spc700:Drum=0011 --preset spc700-soft-bass --preset spc700-drum-map
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip spc700 --implemented spc700=1 --verification-badge "spc700=Verified partial" --verification-cycle spc700=0 --verification-hardware spc700=0 --param-kind spc700:waveShape=chipRegister --param-surface spc700:waveShape=segmentedChoice --param-choices spc700:waveShape=5 --param-midi-cc spc700:waveShape=89 --param-kind spc700:dmgStereoRoute=chipRegister --param-surface spc700:dmgStereoRoute=segmentedChoice --param-choices spc700:dmgStereoRoute=3 --param-midi-cc spc700:dmgStereoRoute=94 --param-kind spc700:macroControl3=chipRegister --param-surface spc700:macroControl3=slider --param-midi-cc spc700:macroControl3=78 --param-kind spc700:macroControl4=chipRegister --param-surface spc700:macroControl4=slider --param-midi-cc spc700:macroControl4=79 --param-surface spc700:stereoSpread=slider --param-midi-cc spc700:stereoSpread=93 --macro-label "spc700:Drum=SPC700 Drum Map" --macro-source spc700:Drum=0011 --preset spc700-soft-bass --preset spc700-drum-map
     )
     set_tests_properties(chipper_render_list_spc700_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1207,6 +1213,14 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 4 --min-peak 0.05 --core-min activeChannels=4 --core-max activeChannels=4 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min internalChannelCount=8 --core-max internalChannelCount=8 --core-min enabledMask=15 --core-max enabledMask=15 --core-min pitch0=535 --core-max pitch0=537 --core-min pitch3=1071 --core-max pitch3=1073
     )
     set_tests_properties(chipper_render_spc700_chip_poly_assert PROPERTIES DEPENDS chipper_render_spc700_chip_poly_smoke)
+    add_test(NAME chipper_render_spc700_loop_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-loop-smoke.json --implemented-contains partial --macro Lead --min-peak 0.05 --min-rms 0.2 --min-zero-crossings 50 --register-writes 0 --note-events 0 --core-min samplePlaybackMode=1 --core-max samplePlaybackMode=1 --core-min sampleLoopEnabled=1 --core-max sampleLoopEnabled=1 --descriptor-param-kind dmgStereoRoute=chipRegister --descriptor-param-surface dmgStereoRoute=segmentedChoice --descriptor-param-label "dmgStereoRoute=Playback" --descriptor-param-choices dmgStereoRoute=3
+    )
+    set_tests_properties(chipper_render_spc700_loop_assert PROPERTIES DEPENDS chipper_render_spc700_loop_smoke)
+    add_test(NAME chipper_render_spc700_one_shot_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-one-shot-smoke.json --implemented-contains partial --macro Lead --min-peak 0.05 --max-rms 0.2 --max-zero-crossings 30 --register-writes 0 --note-events 0 --core-min samplePlaybackMode=2 --core-max samplePlaybackMode=2 --core-min sampleLoopEnabled=0 --core-max sampleLoopEnabled=0 --core-min enabledMask=0 --core-max enabledMask=0 --core-min keyOnMask=0 --core-max keyOnMask=0
+    )
+    set_tests_properties(chipper_render_spc700_one_shot_assert PROPERTIES DEPENDS chipper_render_spc700_one_shot_smoke)
 
     add_test(NAME chipper_render_paula_json_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/paula-smoke.json --implemented-contains partial --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.05 --min-rms 0.02 --register-writes 0 --note-events 0 --core-min internalChannelCount=4 --core-max internalChannelCount=4 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min period0=5378 --core-max period0=5381 --core-min volume0=50 --core-max volume0=52 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Sample Shape" --descriptor-param-choices waveShape=5

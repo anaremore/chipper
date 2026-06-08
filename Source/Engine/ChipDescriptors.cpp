@@ -1140,6 +1140,17 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source4Level, "spc700.voice4.level", "Voice 4 Level", "Modern trim after SPC700-style voice 4 volume."),
         stereoSpreadSpec("spc700.stereoSpread", "Modern stereo convenience that spreads exposed sample voices; zero preserves centered output."),
         envelopeSpec("spc700.adsrSpeed", "ADSR / Gain Speed", "Applies a simplified envelope decay helper while ADSR/gain state remains visible in debug JSON."),
+        segmentedSpec(ChipParameterRole::dmgStereoRoute,
+                      "spc700.samplePlayback",
+                      "Playback",
+                      "Sample",
+                      "Chooses whether generated SPC700-style samples loop like instruments or stop at the sample end like one-shot drums. Follow resolves from the selected template.",
+                      {
+                          choice("Follow", "Loop melodic templates and one-shot percussion/SFX templates.", 0.0f, 0),
+                          choice("Loop", "Loop the sample RAM continuously while the note is held.", 0.5f, 1),
+                          choice("One-shot", "Stop the voice when the generated sample reaches its end.", 1.0f, 2)
+                      },
+                      ParameterKind::chipRegister),
         segmentedSpec(ChipParameterRole::waveShape,
                       "spc700.sampleShape",
                       "Sample Shape",
@@ -1896,14 +1907,14 @@ const std::vector<ChipDescriptor>& descriptors()
             "Partial clean-room SNES-style lo-fi sample-voice model with eight internal voices.",
             {
                 { "voices", "Sample Voices", "Sources", "Eight internal lo-fi sample voices; first four exposed in the current UI." },
-                { "sample", "Sample Color", "Tone", "Generated lo-fi sample templates until BRR decoding is implemented." },
+                { "sample", "Sample Color", "Tone", "Generated lo-fi sample templates and loop/one-shot playback until BRR decoding is implemented." },
                 { "echo", "Echo Color", "Output", "Musical echo-color helper, not verified S-DSP FIR echo." },
                 { "adsr", "ADSR/Gain", "Envelope", "Simplified ADSR/gain-style state and decay helper." },
             },
             {
                 makeModule("profile", "Profile", "SPC700-style clean-room sample groundwork.", { "SNES family", "32 kHz DSP-rate default", "Hybrid default", "Authentic still partial" }),
                 makeModule("sources", "Sample Voices", "Eight internal voices with first four exposed.", { "Voice 1", "Voice 2", "Voice 3", "Voice 4" }),
-                makeModule("sample", "Sample / Pitch", "Generated lo-fi templates with simplified pitch registers.", { "Bell", "Triangle", "Pulse", "Noise burst" }),
+                makeModule("sample", "Sample / Pitch", "Generated lo-fi templates with simplified pitch and playback registers.", { "Bell", "Triangle", "Pulse", "Noise burst", "Loop / one-shot" }),
                 makeModule("envelope", "ADSR / Gain", "Simplified gain and envelope decay helper.", { "ADSR state", "Gain state", "Decay helper", "Register readout" }),
                 makeModule("motion", "Motion", "SNES-style SFX gestures mapped to sample pitch.", { "Voice arp", "Pitch sweep", "Jump blip", "Damage hit" }),
                 makeModule("output", "Output", "Soft sample output with echo-color helper.", { "Voice volume", "Stereo spread convenience", "Echo color", "Known differences" })
@@ -1914,12 +1925,12 @@ const std::vector<ChipDescriptor>& descriptors()
             spc700ParameterSpecs(),
             verifiedPartial(
                 {
-                    "Eight generated lo-fi sample voices render with pitch, volume, simplified ADSR/gain state, key-on/enabled masks, clean-room Gaussian-style 4-tap interpolation, and a musical echo-color helper.",
+                    "Eight generated lo-fi sample voices render with pitch, volume, loop/one-shot playback mode, simplified ADSR/gain state, key-on/enabled masks, clean-room Gaussian-style 4-tap interpolation, and a musical echo-color helper.",
                     "Source enables, source levels, sample-shape choices, interpolation metadata, chip-poly allocation across the first four exposed voices, presets, and debug JSON are covered by automated renderer tests.",
                     "No third-party SPC700, S-DSP, BRR, SNES, or tracker-player source code is vendored in this clean-room partial model."
                 },
                 {
-                    "BRR decoding, source directory/sample memory addressing, S-DSP noise, pitch modulation, exact S-DSP Gaussian interpolation table behavior, FIR echo, exact ADSR/gain envelope timing, and SPC700 CPU timing are not implemented.",
+                    "BRR decoding, source directory/sample memory addressing, BRR block loop/end flags, S-DSP noise, pitch modulation, exact S-DSP Gaussian interpolation table behavior, FIR echo, exact ADSR/gain envelope timing, and SPC700 CPU timing are not implemented.",
                     "Voice scheduling, loop points, echo buffer behavior, output filtering, and hardware validation still require trusted emulator and capture comparison.",
                     "This mode is labeled SPC700-style because the implementation is a musical sample-voice approximation, not a verified SNES audio subsystem emulator."
                 })
@@ -3352,6 +3363,36 @@ int8_t generatedSampleValueForPatch(ChipMode mode, const PatchConfig& patch, siz
     }
 
     return static_cast<int8_t>(std::clamp(static_cast<int>(std::round(std::clamp(sample, -1.0, 1.0) * 127.0)), -127, 127));
+}
+
+uint8_t spc700SamplePlaybackModeForPatch(const PatchConfig& patch)
+{
+    const auto explicitChoice = std::clamp(patch.dmgStereoRoute, 0, 2);
+    if (explicitChoice > 0)
+        return static_cast<uint8_t>(explicitChoice);
+
+    switch (patch.macro)
+    {
+        case MacroKind::coin:
+        case MacroKind::drum:
+        case MacroKind::hit:
+        case MacroKind::jump:
+            return 2;
+
+        case MacroKind::bass:
+        case MacroKind::lead:
+        case MacroKind::arp:
+        case MacroKind::laser:
+        case MacroKind::powerUp:
+        case MacroKind::manual:
+        default:
+            return 1;
+    }
+}
+
+bool spc700SampleLoopsForPatch(const PatchConfig& patch)
+{
+    return spc700SamplePlaybackModeForPatch(patch) == 1u;
 }
 
 uint8_t spc700VoiceVolumeForPatch(const PatchConfig& patch, size_t voice, float velocity)

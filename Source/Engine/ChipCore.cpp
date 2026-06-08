@@ -5742,6 +5742,7 @@ public:
         heldNote = -1;
         noteVelocity = 0.0f;
         sampleTemplate = 0;
+        playbackMode = 1;
         echoMemory.fill(0.0);
         echoIndex = 0;
         for (size_t voice = 0; voice < sampleRam.size(); ++voice)
@@ -5761,6 +5762,7 @@ public:
             for (size_t voice = 0; voice < sampleRam.size(); ++voice)
                 seedSample(voice);
         }
+        playbackMode = spc700SamplePlaybackModeForPatch(patch);
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -5785,6 +5787,9 @@ public:
                     enabledMask |= static_cast<uint8_t>(1u << voice);
                 else
                     enabledMask &= static_cast<uint8_t>(~(1u << voice));
+                break;
+            case 7:
+                playbackMode = static_cast<uint8_t>(std::clamp(static_cast<int>(value), 1, 2));
                 break;
             default:
                 break;
@@ -5917,6 +5922,7 @@ public:
             writes.push_back({ 0, static_cast<uint16_t>(base + 4u), gain[voice] });
             writes.push_back({ 0, static_cast<uint16_t>(base + 5u), sampleTemplate });
             writes.push_back({ 0, static_cast<uint16_t>(base + 6u), static_cast<uint8_t>((enabledMask >> voice) & 1u) });
+            writes.push_back({ 0, static_cast<uint16_t>(base + 7u), playbackMode });
         }
         return writes;
     }
@@ -5927,7 +5933,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room sample-voice model"; }
     std::string limitations() const override
     {
-        return "Eight lo-fi sample voices, pitch, volume, simplified ADSR/gain state, generated sample templates, Gaussian-style 4-tap sample interpolation, and a musical echo-color helper are modeled; BRR decoding, exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, noise, FIR echo, sample directory addressing, and hardware validation are not complete.";
+        return "Eight lo-fi sample voices, pitch, volume, loop/one-shot playback state, simplified ADSR/gain state, generated sample templates, Gaussian-style 4-tap sample interpolation, and a musical echo-color helper are modeled; BRR decoding, exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, BRR end/loop flag parsing, noise, FIR echo, sample directory addressing, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -5940,6 +5946,8 @@ public:
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"waveShapeChoice\":" << static_cast<int>(sampleTemplate) << ","
+             << "\"samplePlaybackMode\":" << static_cast<int>(playbackMode) << ","
+             << "\"sampleLoopEnabled\":" << (playbackMode == 1u ? 1 : 0) << ","
              << "\"pitch0\":" << pitch[0] << ","
              << "\"pitch1\":" << pitch[1] << ","
              << "\"pitch2\":" << pitch[2] << ","
@@ -6042,6 +6050,7 @@ private:
 
     void triggerVoice(size_t voice, int midiNote, float velocity, bool shouldEnable)
     {
+        playbackMode = spc700SamplePlaybackModeForPatch(patch);
         pitch[voice] = spcPitchForNote(midiNote + static_cast<int>(std::round((patch.control2 - 0.5f) * 12.0f)));
         volume[voice] = voiceVolumeForPatch(voice, velocity);
         adsr[voice] = static_cast<uint8_t>(0x80u | std::clamp(static_cast<int>(std::round(patch.envelopeDecay * 15.0f)), 0, 15));
@@ -6066,7 +6075,18 @@ private:
         position[voice] += (playbackHz * static_cast<double>(sampleRam[voice].size())) / sampleRate;
 
         if (position[voice] >= static_cast<double>(sampleRam[voice].size()))
-            position[voice] = std::fmod(position[voice], static_cast<double>(sampleRam[voice].size()));
+        {
+            if (playbackMode == 1u)
+                position[voice] = std::fmod(position[voice], static_cast<double>(sampleRam[voice].size()));
+            else
+            {
+                position[voice] = 0.0;
+                envelope[voice] = 0.0;
+                enabledMask &= static_cast<uint8_t>(~(1u << voice));
+                keyOnMask &= static_cast<uint8_t>(~(1u << voice));
+                return 0.0;
+            }
+        }
 
         if (patch.envelopeDecay > 0.001f)
             envelope[voice] = std::max(0.0, envelope[voice] * (1.0 - static_cast<double>(patch.envelopeDecay) * 0.00045));
@@ -6186,6 +6206,7 @@ private:
     uint8_t enabledMask = 0;
     uint8_t keyOnMask = 0;
     uint8_t sampleTemplate = 0;
+    uint8_t playbackMode = 1;
     std::array<std::vector<double>, 8> sampleRam {};
     std::array<double, 8> position {};
     std::array<double, 8> envelope {};

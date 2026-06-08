@@ -454,6 +454,7 @@ bool expectSampleRegisterHelpers()
     ok &= expect(chipper::spc700GainForPatch(spcLead) == 102u, "SPC700 helper should resolve GAIN from output control");
     ok &= expect(! chipper::spc700VoiceEnabledForPatch(spcLead, 1), "SPC700 helper should honor exposed source mute");
     ok &= expect(chipper::generatedSampleValueForPatch(chipper::ChipMode::spc700, spcLead, 0, 0) == -15, "SPC700 generated sample head should match core template");
+    ok &= expect(chipper::spc700SamplePlaybackModeForPatch(spcLead) == 1u, "SPC700 lead macro should resolve to looped playback");
 
     const auto spcExplicitNoise = chipper::makePatchConfig(chipper::ChipMode::spc700,
                                                            chipper::MacroKind::manual,
@@ -468,6 +469,29 @@ bool expectSampleRegisterHelpers()
                                                            0.0f,
                                                            4);
     ok &= expect(chipper::sampleTemplateForPatch(chipper::ChipMode::spc700, spcExplicitNoise) == 4u, "SPC700 explicit sample shape should override macro");
+    const auto spcDrum = chipper::makePatchConfig(chipper::ChipMode::spc700,
+                                                  chipper::MacroKind::drum,
+                                                  0.5f,
+                                                  0.5f,
+                                                  0.5f,
+                                                  0.5f);
+    ok &= expect(chipper::spc700SamplePlaybackModeForPatch(spcDrum) == 2u, "SPC700 drum macro should resolve to one-shot playback");
+    const auto spcForcedOneShot = chipper::makePatchConfig(chipper::ChipMode::spc700,
+                                                           chipper::MacroKind::lead,
+                                                           0.5f,
+                                                           0.5f,
+                                                           0.5f,
+                                                           0.5f,
+                                                           chipper::PlayMode::stack,
+                                                           { true, true, true, true },
+                                                           { 1.0f, 1.0f, 1.0f, 1.0f },
+                                                           0.0f,
+                                                           0.0f,
+                                                           0,
+                                                           0,
+                                                           0,
+                                                           2);
+    ok &= expect(! chipper::spc700SampleLoopsForPatch(spcForcedOneShot), "SPC700 explicit one-shot playback should override the template");
 
     const auto paulaBass = chipper::makePatchConfig(chipper::ChipMode::paula,
                                                     chipper::MacroKind::bass,
@@ -668,6 +692,9 @@ int main()
     ok &= expectPreset(chipper::ChipMode::spc700, "spc700-stage-clear");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Sample Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, 5, "Follow");
+    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Playback");
+    ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, "Sample");
+    ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, 3, "Follow");
     ok &= expectMacroLabel(chipper::ChipMode::pokey, chipper::MacroKind::lead, "POKEY Buzzy Lead");
     ok &= expectPreset(chipper::ChipMode::pokey, "pokey-alien-laser");
     ok &= expectSpec(chipper::ChipMode::pokey, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Distortion Code");

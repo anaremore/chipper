@@ -3671,6 +3671,15 @@ juce::String ChipperAudioProcessorEditor::dmgStereoRouteReadout(const chipper::P
     return patch.dmgStereoRoute == 0 ? juce::String("Follow -> ") + resolvedText : resolvedText;
 }
 
+juce::String ChipperAudioProcessorEditor::spc700SamplePlaybackReadout(const chipper::PatchConfig& patch) const
+{
+    const auto mode = chipper::spc700SamplePlaybackModeForPatch(patch);
+    const auto resolvedText = mode == 1u
+                                  ? juce::String("Loop, sample RAM wraps while held")
+                                  : juce::String("One-shot, voice stops at sample end");
+    return patch.dmgStereoRoute == 0 ? juce::String("Follow -> ") + resolvedText : resolvedText;
+}
+
 juce::String ChipperAudioProcessorEditor::sidModelReadout(const chipper::PatchConfig& patch) const
 {
     const auto model = chipper::sidModelNumberForPatch(patch);
@@ -5184,7 +5193,9 @@ void ChipperAudioProcessorEditor::updateDmgStereoRouteButtons(chipper::ChipMode 
     dmgStereoRouteValueLabel.setVisible(shouldBeVisible);
     dmgStereoRouteValueLabel.setText(mode == chipper::ChipMode::sid
                                          ? sidModelReadout(patch)
-                                         : dmgStereoRouteReadout(patch),
+                                         : (mode == chipper::ChipMode::spc700
+                                                ? spc700SamplePlaybackReadout(patch)
+                                                : dmgStereoRouteReadout(patch)),
                                      juce::dontSendNotification);
 }
 
