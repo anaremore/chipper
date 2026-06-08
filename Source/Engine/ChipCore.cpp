@@ -4616,6 +4616,7 @@ public:
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
              << "\"uiExposesFirstFourChannels\":1,"
              << "\"internalChannelCount\":6,"
+             << "\"chipPolyPlayableChannels\":6,"
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNote0\":" << channelNotes[0] << ","
              << "\"assignedNote1\":" << channelNotes[1] << ","

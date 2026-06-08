@@ -3672,6 +3672,9 @@ juce::String ChipperAudioProcessorEditor::sourceLaneExposureReadout(chipper::Chi
 
     const auto visible = static_cast<int>(chipper::visibleSourceCountForMode(mode));
     const auto native = static_cast<int>(chipper::nativeSourceCountForMode(mode));
+    if (mode == chipper::ChipMode::huc6280)
+        return " | 6/6 Chip Poly voices playable; " + juce::String(visible) + " direct trims shown";
+
     return " | lanes " + juce::String(visible) + "/" + juce::String(native) + " shown; extras in stack presets";
 }
 

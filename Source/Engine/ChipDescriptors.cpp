@@ -1308,7 +1308,7 @@ std::vector<ChipParameterSpec> huc6280ParameterSpecs()
         sourceSpec(ChipParameterRole::source1Enabled, "huc6280.channel1.enabled", "Channel 1", "Enable HuC6280 wavetable channel 1."),
         sourceSpec(ChipParameterRole::source2Enabled, "huc6280.channel2.enabled", "Channel 2", "Enable HuC6280 wavetable channel 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "huc6280.channel3.enabled", "Channel 3", "Enable HuC6280 wavetable channel 3."),
-        sourceSpec(ChipParameterRole::source4Enabled, "huc6280.channel4.enabled", "Channel 4", "Enable HuC6280 wavetable channel 4. Channels 5-6 need a dedicated six-lane UI pass."),
+        sourceSpec(ChipParameterRole::source4Enabled, "huc6280.channel4.enabled", "Channel 4", "Enable HuC6280 wavetable channel 4. Channels 5-6 play in Chip Poly as internal follower voices until dedicated controls land."),
         sourceLevelSpec(ChipParameterRole::source1Level, "huc6280.channel1.level", "Channel 1 Level", "Modern trim after HuC6280 channel 1 volume."),
         sourceLevelSpec(ChipParameterRole::source2Level, "huc6280.channel2.level", "Channel 2 Level", "Modern trim after HuC6280 channel 2 volume."),
         sourceLevelSpec(ChipParameterRole::source3Level, "huc6280.channel3.level", "Channel 3 Level", "Modern trim after HuC6280 channel 3 volume."),
@@ -2075,7 +2075,7 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             {
                 makeModule("profile", "Profile", "HuC6280 clean-room groundwork.", { "PC Engine family", "3.58 MHz default", "Hybrid default", "Authentic still partial" }),
-                makeModule("sources", "Wavetable Voices", "Six internal HuC6280 channels.", { "Channels 1-4 exposed", "Channels 5-6 internal", "Wave RAM", "Channel select register" }),
+                makeModule("sources", "Wavetable Voices", "Six internal HuC6280 channels.", { "Ch 1-4 direct", "Ch 5-6 follow", "6-note Chip Poly", "Wave RAM" }),
                 makeModule("tone", "Wave / Noise", "32-sample wave RAM plus simplified noise.", { "Sine-like", "Ramp", "Triangle", "Square / noise" }),
                 makeModule("envelope", "Volume", "Channel control volume plus musical decay helper.", { "5-bit volume", "Per-channel trims", "Decay helper", "Register readout" }),
                 makeModule("motion", "Motion", "PC Engine SFX gestures mapped to frequency registers.", { "Coin ping", "Sweep zap", "Six-wave arp", "Noise tap" }),
@@ -2088,12 +2088,12 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "Channel select, 12-bit frequency, channel control, balance, waveform-RAM write, and noise-control register paths are modeled.",
-                    "Six internal channels render wavetable audio; the existing UI exposes the first four generic source controls until a six-lane HuC6280 layout lands.",
+                    "Six internal channels render wavetable audio, and Chip Poly allocates all six; the existing UI exposes the first four direct source controls while channels 5-6 follow the active source mask until a six-lane HuC6280 layout lands.",
                     "No third-party HuC6280 source code is vendored in this clean-room partial model."
                 },
                 {
                     "Native LFO behavior, exact DDA behavior, stereo register routing, timer edge timing, and exact noise taps are not implemented.",
-                    "Channels 5-6 need dedicated UI controls rather than the current first-four generic source surface.",
+                    "Channels 5-6 need dedicated host/UI controls rather than the current follower behavior.",
                     "Output DAC, analog path, and hardware or trusted-emulator comparison are not complete."
                 })
         },
