@@ -3280,11 +3280,30 @@ juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mod
     }
 }
 
+int ChipperAudioProcessorEditor::pokeyCardMidiNote(const chipper::PatchConfig& patch, size_t index) const
+{
+    static constexpr std::array<int, sourceChannelCount> chipPolyNotes { 60, 64, 67, 72 };
+    const auto baseNote = patch.playMode == chipper::PlayMode::chipPoly
+                              ? chipPolyNotes[std::min(index, chipPolyNotes.size() - 1u)]
+                              : 60 + static_cast<int>(std::min(index, sourceChannelCount - 1u)) * 5;
+    return std::clamp(baseNote, 0, 127);
+}
+
+juce::String ChipperAudioProcessorEditor::pokeySourceRegisterReadout(const chipper::PatchConfig& patch, size_t index) const
+{
+    const auto audc = chipper::pokeyAudcForPatch(patch);
+    const auto audf = chipper::pokeyAudfForNote(chipper::parameters::defaultClockForMode(chipper::ChipMode::pokey),
+                                                pokeyCardMidiNote(patch, index));
+    const auto audv = static_cast<int>(audc & 0x0fu);
+    return "AUDC $" + byteHex(audc) + " | AUDF $" + byteHex(audf) + " | AUDV " + juce::String(audv) + "/15";
+}
+
 juce::String ChipperAudioProcessorEditor::pokeyRegisterReadout(const chipper::PatchConfig& patch) const
 {
     const auto audc = chipper::pokeyAudcForPatch(patch);
-    const auto audfC4 = chipper::pokeyAudfForNote(chipper::parameters::defaultClockForMode(chipper::ChipMode::pokey), 60);
-    return "AUDC $" + byteHex(audc) + " | AUDV " + juce::String(static_cast<int>(audc & 0x0fu)) + "/15 | C4 AUDF $" + byteHex(audfC4);
+    const auto audfC4 = chipper::pokeyAudfForNote(chipper::parameters::defaultClockForMode(chipper::ChipMode::pokey),
+                                                  pokeyCardMidiNote(patch, 0));
+    return "AUDC $" + byteHex(audc) + " | AUDV " + juce::String(static_cast<int>(audc & 0x0fu)) + "/15 | Ch1 AUDF $" + byteHex(audfC4);
 }
 
 juce::String ChipperAudioProcessorEditor::sampleChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
@@ -3335,7 +3354,7 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
 {
     const auto number = juce::String(static_cast<int>(index + 1u));
     if (mode == chipper::ChipMode::pokey)
-        return "Ch " + number + " | " + byteHex(chipper::pokeyAudcForPatch(patch));
+        return "Ch " + number + " | AUDC $" + byteHex(chipper::pokeyAudcForPatch(patch));
 
     if (mode == chipper::ChipMode::spc700)
         return "Voice " + number + " | sample";
@@ -4380,10 +4399,13 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         else if (mode == chipper::ChipMode::sn76489 && spec != nullptr)
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(snSourceCardTooltip(patch, i, spec), sourceRole(i)));
         else if (spec != nullptr && labels != &nesBigMonoLabels)
-            sourceChannelButtons[i].setTooltip(withMidiCcForRole(buttonLabel
-                                                                     + ": " + juce::String(spec->help)
-                                                                     + "\n" + macroTemplateReadout(mode, patch),
-                                                                 sourceRole(i)));
+        {
+            auto tooltip = buttonLabel + ": " + juce::String(spec->help);
+            if (mode == chipper::ChipMode::pokey)
+                tooltip += "\n" + pokeySourceRegisterReadout(patch, i);
+            tooltip += "\n" + macroTemplateReadout(mode, patch);
+            sourceChannelButtons[i].setTooltip(withMidiCcForRole(tooltip, sourceRole(i)));
+        }
         else if (spec != nullptr)
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(juce::String(spec->label) + ": " + juce::String(spec->help), sourceRole(i)));
         else
@@ -5165,6 +5187,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     if (descriptorTextInitialized && mode == displayedMode)
         return;
 
+    const auto chipChangedAfterInitialLoad = descriptorTextInitialized && mode != displayedMode;
     descriptorTextInitialized = true;
     displayedMode = mode;
     const auto& descriptor = chipper::descriptorFor(mode);
@@ -5374,6 +5397,10 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     resized();
     updatePulseDutyButtons(parameterValue(chipper::parameters::id::macroControl1), usesPulseDutySegment(mode) && hasLiveCore);
     updateLiveControlReadouts();
+
+    if (chipChangedAfterInitialLoad && hasLiveCore && ! displayedPresets.empty())
+        applyFactoryPreset(*displayedPresets.front());
+
     repaint();
 }
 

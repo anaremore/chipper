@@ -175,6 +175,8 @@ private:
     juce::String pulseDutyReadout(chipper::ChipMode mode, float value) const;
     juce::String pulse2DutyReadout(const chipper::PatchConfig& patch) const;
     juce::String waveShapeReadout(chipper::ChipMode mode, int choice) const;
+    int pokeyCardMidiNote(const chipper::PatchConfig& patch, size_t index) const;
+    juce::String pokeySourceRegisterReadout(const chipper::PatchConfig& patch, size_t index) const;
     juce::String pokeyRegisterReadout(const chipper::PatchConfig& patch) const;
     juce::String sampleChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String wavetableChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
