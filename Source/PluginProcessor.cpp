@@ -15,6 +15,7 @@ constexpr auto coreStateTag = "CHIPPER_CORE_REGISTERS";
 constexpr auto registerTag = "REG";
 constexpr auto dmcBankStateTag = "CHIPPER_DMC_BANK";
 constexpr auto dmcSampleStateTag = "DMC_SAMPLE";
+constexpr auto unmappedDmcSampleSlot = -2;
 
 juce::String midiNoteName(int note)
 {
@@ -269,11 +270,18 @@ ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSample
         return info;
     }
 
+    info.activeSlotCount = static_cast<int>(activeSlots.size());
+    info.mapHighNote = std::clamp(info.mapRootNote + info.activeSlotCount - 1, 0, 127);
+    if (info.playbackMode != 0 && activeDmcSampleSlot == unmappedDmcSampleSlot)
+    {
+        info.activeSlot = -1;
+        info.statusLine = "No mapped DMC sample | Map " + midiNoteName(info.mapRootNote) + "-" + midiNoteName(info.mapHighNote);
+        return info;
+    }
+
     const auto safeSlot = static_cast<size_t>(std::clamp(selectedSlot, 0, static_cast<int>(activeSlots.size() - 1u)));
     const auto& slot = *activeSlots[safeSlot];
     info.activeSlot = static_cast<int>(safeSlot);
-    info.activeSlotCount = static_cast<int>(activeSlots.size());
-    info.mapHighNote = std::clamp(info.mapRootNote + info.activeSlotCount - 1, 0, 127);
     info.sampleName = slot.name;
     info.byteCount = static_cast<int>(slot.bytes.size());
     info.bitCount = info.byteCount * 8;
@@ -713,7 +721,11 @@ void ChipperAudioProcessor::applyDmcSampleSlotToCore(int requestedSlot)
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
         revision = dmcSampleBankRevision;
-        if (! dmcSampleBank.empty())
+        if (requestedSlot == unmappedDmcSampleSlot)
+        {
+            resolvedSlot = unmappedDmcSampleSlot;
+        }
+        else if (! dmcSampleBank.empty())
         {
             std::vector<const DmcSampleSlot*> activeSlots;
             activeSlots.reserve(32u);
@@ -767,7 +779,13 @@ void ChipperAudioProcessor::applyMappedDmcSampleForMidiNote(int midiNote)
         return;
 
     const auto mapRootNote = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcMapRoot)->load())), 0, 127);
-    const auto mappedSlot = std::clamp(midiNote - mapRootNote, 0, activeSlotCount - 1);
+    const auto mappedSlot = midiNote - mapRootNote;
+    if (mappedSlot < 0 || mappedSlot >= activeSlotCount)
+    {
+        applyDmcSampleSlotToCore(unmappedDmcSampleSlot);
+        return;
+    }
+
     applyDmcSampleSlotToCore(mappedSlot);
 }
 

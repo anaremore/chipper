@@ -365,10 +365,17 @@ int main()
     dmcMapMidi.addEvent(juce::MidiMessage::noteOn(1, 96, static_cast<juce::uint8>(100)), 0);
     processor.processBlock(dmcMapBuffer, dmcMapMidi);
     playbackInfo = processor.nesDmcSamplePlaybackInfo();
-    ok &= expect(playbackInfo.activeSlot == 31 && playbackInfo.sampleName == "sample-31.dmc",
-                 "DMC Note Map should clamp high notes to the final active slot");
+    ok &= expect(playbackInfo.activeSlot == -1 && playbackInfo.statusLine.contains("No mapped DMC sample"),
+                 "DMC Note Map should leave notes above the mapped bank silent");
     ok &= expect(playbackInfo.statusLine.contains("Map C1-G3"),
                  "DMC Note Map status should show the selected key span");
+
+    dmcMapMidi.clear();
+    dmcMapMidi.addEvent(juce::MidiMessage::noteOn(1, 35, static_cast<juce::uint8>(100)), 0);
+    processor.processBlock(dmcMapBuffer, dmcMapMidi);
+    playbackInfo = processor.nesDmcSamplePlaybackInfo();
+    ok &= expect(playbackInfo.activeSlot == -1 && playbackInfo.statusLine.contains("No mapped DMC sample"),
+                 "DMC Note Map should leave notes below the map root silent");
 
     sendController(processor, 69, controllerValueForChoice(processor, chipper::parameters::id::nesDmcMapRoot, 40));
     dmcMapMidi.clear();

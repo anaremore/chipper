@@ -1042,7 +1042,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     playModeBox.addItemList(chipper::parameters::playModeChoices(), 1);
     chipModeBox.setTooltip(withMidiCc("Selects the chip model or planned chip family.", chipper::parameters::id::chipMode));
     accuracyBox.setTooltip(withMidiCc("Selects the requested accuracy tier for the active core.", chipper::parameters::id::accuracy));
-    presetBox.setTooltip("Applies a factory preset for the selected chip mode.");
+    presetBox.setTooltip("Applies a factory preset and switches to that preset's chip mode.");
     macroBox.setTooltip(withMidiCc("Applies a chip-specific musical register template.", chipper::parameters::id::macro));
     playModeBox.setTooltip(withMidiCc("Chooses how incoming notes use the chip channels inside one patch.", chipper::parameters::id::playMode));
 
@@ -2627,14 +2627,20 @@ void ChipperAudioProcessorEditor::updateMacroChoices(chipper::ChipMode mode)
 
 void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
 {
+    juce::ignoreUnused(mode);
+
     const juce::ScopedValueSetter<bool> suppress(suppressPresetApply, true);
-    displayedPresets = chipper::presetsForChip(mode);
+    displayedPresets.clear();
+    for (const auto& preset : chipper::presetCatalog())
+        displayedPresets.push_back(&preset);
+
     presetBox.clear(juce::dontSendNotification);
 
     for (size_t i = 0; i < displayedPresets.size(); ++i)
     {
         const auto& preset = *displayedPresets[i];
-        presetBox.addItem(juce::String(preset.category) + " / " + juce::String(preset.name), static_cast<int>(i + 1u));
+        presetBox.addItem(juce::String(chipper::toString(preset.chip)) + " / " + juce::String(preset.category) + " / " + juce::String(preset.name),
+                          static_cast<int>(i + 1u));
     }
 
     if (displayedPresets.empty())
@@ -2646,7 +2652,7 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
     {
         presetBox.setSelectedId(0, juce::dontSendNotification);
         presetBox.setTextWhenNothingSelected("Factory Preset");
-        presetBox.setTooltip("Applies a factory preset for the selected chip mode.");
+        presetBox.setTooltip("Applies a factory preset and switches to that preset's chip mode.");
     }
 }
 
