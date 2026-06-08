@@ -101,10 +101,10 @@ bool expectPreset(chipper::ChipMode mode, const std::string& presetId)
 bool expectPresetBrowserCatalog(chipper::ChipMode preferredChip, const std::string& firstPresetId)
 {
     const auto browserPresets = chipper::presetBrowserCatalog(preferredChip);
-    const auto& allPresets = chipper::presetCatalog();
+    const auto chipPresets = chipper::presetsForChip(preferredChip);
     bool ok = true;
 
-    ok &= expect(browserPresets.size() == allPresets.size(), "preset browser should expose the full factory catalog");
+    ok &= expect(browserPresets.size() == chipPresets.size(), "preset browser should expose the selected chip catalog");
     ok &= expect(! browserPresets.empty(), "preset browser should not be empty");
     if (browserPresets.empty())
         return false;
@@ -120,15 +120,20 @@ bool expectPresetBrowserCatalog(chipper::ChipMode preferredChip, const std::stri
         if (preset == nullptr)
             continue;
 
+        ok &= expect(preset->chip == preferredChip, "preset browser should only include the selected chip");
         ok &= expect(std::find(ids.begin(), ids.end(), preset->id) == ids.end(),
                      "preset browser should not duplicate " + preset->id);
         ids.push_back(preset->id);
     }
 
-    for (const auto& preset : allPresets)
+    for (const auto* preset : chipPresets)
     {
-        ok &= expect(std::find(ids.begin(), ids.end(), preset.id) != ids.end(),
-                     "preset browser should include " + preset.id);
+        ok &= expect(preset != nullptr, "selected chip preset list should not contain null entries");
+        if (preset == nullptr)
+            continue;
+
+        ok &= expect(std::find(ids.begin(), ids.end(), preset->id) != ids.end(),
+                     "preset browser should include " + preset->id);
     }
 
     return ok;

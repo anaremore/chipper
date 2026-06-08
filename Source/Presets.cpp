@@ -3103,44 +3103,7 @@ std::vector<const PresetInfo*> presetsForChip(ChipMode chip)
 
 std::vector<const PresetInfo*> presetBrowserCatalog(ChipMode preferredChip)
 {
-    const std::array<ChipMode, 15> chipOrder {
-        ChipMode::nes,
-        ChipMode::dmg,
-        ChipMode::sid,
-        ChipMode::ym2149,
-        ChipMode::sn76489,
-        ChipMode::ym2612,
-        ChipMode::opl3,
-        ChipMode::spc700,
-        ChipMode::pokey,
-        ChipMode::paula,
-        ChipMode::huc6280,
-        ChipMode::namcoWsg,
-        ChipMode::ym2151,
-        ChipMode::ym2413,
-        ChipMode::scc
-    };
-
-    std::vector<const PresetInfo*> ordered;
-    ordered.reserve(presetCatalog().size());
-
-    const auto appendChip = [&ordered](ChipMode chip)
-    {
-        for (const auto& preset : presetCatalog())
-        {
-            if (preset.chip == chip)
-                ordered.push_back(&preset);
-        }
-    };
-
-    appendChip(preferredChip);
-    for (const auto chip : chipOrder)
-    {
-        if (chip != preferredChip)
-            appendChip(chip);
-    }
-
-    return ordered;
+    return presetsForChip(preferredChip);
 }
 
 const PresetInfo* presetById(std::string_view idOrName)
