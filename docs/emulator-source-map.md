@@ -1,8 +1,8 @@
 # Emulator Source Candidate Map
 
-This document captures emulator projects shared as possible Chipper source material. These entries are candidates, references, or validation targets only. No code from these projects is currently vendored into Chipper.
+This document captures emulator projects shared as possible Chipper source material. Some permissive cores are now vendored, and the remaining entries are candidates, references, or validation targets only. Check `THIRD_PARTY_NOTICES.md` before assuming any source is included.
 
-Every project listed here still needs a file-level license audit before any code is imported, linked, translated, or bundled. "Reference" means behavior comparison, UX comparison, rendered-output comparison, or documentation research. It does not mean copying source code.
+Every non-vendored project listed here still needs a file-level license audit before any code is imported, linked, translated, or bundled. "Reference" means behavior comparison, UX comparison, rendered-output comparison, or documentation research. It does not mean copying source code.
 
 ## Licensing Posture
 
@@ -29,7 +29,7 @@ Checked 2026-06-07 from upstream GitHub pages/license files:
 - FigBug/PAPU is a Game Boy PAPU VST/AU reference and GitHub reports GPL-2.0. Keep reference-only unless Chipper adopts a compatible distribution model.
 - FigBug/SN76489 is an SN76489 VST/AU reference and GitHub reports LGPL-2.1. Treat as license-sensitive comparison material until an LGPL compliance path is chosen.
 - Furnace's top-level license file says most Furnace is GPLv2-or-later, ASIO-enabled builds become GPLv3, and included components may carry their own licenses. Use Furnace as a tracker/product/reference index, not as a source shortcut.
-- ymfm's repository describes BSD-licensed Yamaha FM cores and its top-level `LICENSE` is BSD-3-Clause, making it the first FM-family candidate for YM2612, OPL2/OPL3, YM2151, and YM2413. A local file/header audit on 2026-06-07 at commit `17decfae857b92ab55fbb30ade2287ace095a381` found BSD-3-Clause headers on the core source files inspected (`src/ymfm*.h`, `src/ymfm*.cpp`, `src/ymfm_fm.ipp`) and README/GeneralInfo provenance notes that the cores began in MAME, use MAME-style design, and are cross-checked against Nemesis/Exodus and Nuked research while explicitly aiming for high audible accuracy rather than cycle accuracy.
+- ymfm's repository describes BSD-licensed Yamaha FM cores and its top-level `LICENSE` is BSD-3-Clause. A local file/header audit on 2026-06-07 at commit `17decfae857b92ab55fbb30ade2287ace095a381` found BSD-3-Clause headers on the core source files inspected (`src/ymfm*.h`, `src/ymfm*.cpp`, `src/ymfm_fm.ipp`) and README/GeneralInfo provenance notes that the cores began in MAME, use MAME-style design, and are cross-checked against Nemesis/Exodus and Nuked research while explicitly aiming for high audible accuracy rather than cycle accuracy. Chipper now vendors ymfm for the first verified-partial YM2612/OPN2 melodic adapter; OPL2/OPL3 and YM2151 adapters remain future work.
 - osoumen/C700 is a dedicated SNES sampler/emulation VST reference and GitHub reports LGPL-2.1. Treat as license-sensitive comparison material, especially for BRR/sample-bank UI and SPC file workflow.
 - blarggs-audio-libraries/snes_spc is a foundational SPC700/S-DSP emulator library and its README/license metadata report LGPL-2.1. Treat as license-sensitive unless an LGPL compliance path is chosen.
 - emu-rs/snes-apu reports BSD-2-Clause, but its README attributes core SMP work to higan and DSP envelope work to Blargg's snes_spc. Treat as a promising candidate only after file-level and provenance audit.
@@ -43,7 +43,7 @@ These should be evaluated first because their upstream license posture appears m
 
 | Project | Candidate Use | Upstream License Posture |
 | --- | --- | --- |
-| [ymfm](https://github.com/aaronsgiles/ymfm) | YM2149, YM2151/OPM, YM2612/OPN2, OPL2/OPL3, YM2413/OPLL | BSD-3-Clause; audited at `17decfae857b92ab55fbb30ade2287ace095a381`; core source headers inspected carry BSD-3-Clause, README notes MAME origins/design and high-audible-accuracy rather than cycle-accuracy goals |
+| [ymfm](https://github.com/aaronsgiles/ymfm) | YM2612/OPN2 now; YM2151/OPM and OPL2/OPL3 future candidates | BSD-3-Clause; vendored at `17decfae857b92ab55fbb30ade2287ace095a381`; core source headers inspected carry BSD-3-Clause, README notes MAME origins/design and high-audible-accuracy rather than cycle-accuracy goals |
 | [digital-sound-antiques/emu2149](https://github.com/digital-sound-antiques/emu2149) | YM2149 / AY PSG | MIT; vendored at `02fc5f0b411c35e3d69cc7f161595b56b4fda4f2`; source header cites psg.vhd, NEZplug, MAME `ay8910.c`, MSX-Datapack, and AY datasheet as references, so provenance is explicitly noted |
 | [digital-sound-antiques/emu76489](https://github.com/digital-sound-antiques/emu76489) | SN76489 / Sega PSG | MIT; vendored at `2da50f887bf998e796c700e1a03f76c62a3809ff` |
 | [digital-sound-antiques/emu2413](https://github.com/digital-sound-antiques/emu2413) | YM2413 / OPLL | MIT; vendored at `813cff619f5f01c47bd5c0588c1fd8435530b125` |
@@ -90,7 +90,7 @@ These are musically and technically valuable, but direct embedding should wait u
 | SID / C64 | Clean-room voice/register model first | libsidplayfp/reSIDfp, FigBug/SID, Furnace, MOS 6581 datasheet | Continue internal partial SID voice work; keep GPL SID projects reference-only until Chipper chooses a GPL-compatible path or a permissive SID core is selected |
 | YM2149 / AY | emu2149 vendored; ayumi and ymfm remain alternates | Game_Music_Emu, Furnace, MAME | MIT emu2149 now backs the partial PSG core; preserve Chipper's register/macro adapter and add golden comparisons before increasing accuracy claims |
 | SN76489 / Sega PSG | emu76489 vendored | FigBug/SN76489, Game_Music_Emu, Furnace | MIT emu76489 now backs the partial PSG core; use FigBug as LGPL comparison target and add golden comparisons/hardware validation before upgrading accuracy claims |
-| YM2612 / Genesis FM | ymfm audited at `17decfae857b92ab55fbb30ade2287ace095a381` | Nuked-OPN2, Game_Music_Emu, Furnace | Use ymfm first for compatibility and permissive licensing; keep accuracy language to verified partial/authentic only after adapter tests, and consider Nuked-OPN2 only with an LGPL plan |
+| YM2612 / Genesis FM | ymfm vendored at `17decfae857b92ab55fbb30ade2287ace095a381` | Nuked-OPN2, Game_Music_Emu, Furnace | ymfm now backs the first verified-partial melodic adapter; expand from four exposed lanes to full six-lane UI, DAC, LFO, and golden comparisons before increasing accuracy claims |
 | OPL2 / OPL3 / DOS FM | ymfm audited at `17decfae857b92ab55fbb30ade2287ace095a381` | Nuked-OPL3, Furnace | Use ymfm first for compatibility and permissive licensing; reserve Nuked-OPL3 for optional stricter mode if licensing is settled |
 | SNES SPC700-style | Current clean-room partial sample-voice model; emu-rs/snes-apu and snes-echo are permissive-looking audit candidates | C700, blargg snes_spc, Game_Music_Emu, Furnace, MAME | Continue clean-room sample-voice work; audit snes-apu provenance and snes-echo DSP before reuse; keep C700, blargg snes_spc, GME, Furnace, and MAME as comparison/reference material until licensing is deliberately chosen |
 | Atari POKEY | Current clean-room partial model; web-pokey remains a future audit candidate | Game_Music_Emu, MAME, Furnace | Continue clean-room POKEY work for now; audit web-pokey and MAME file headers before any reuse |

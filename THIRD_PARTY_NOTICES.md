@@ -151,6 +151,51 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+### ymfm
+
+- Project: `aaronsgiles/ymfm`
+- Upstream URL: https://github.com/aaronsgiles/ymfm
+- Vendored revision: `17decfae857b92ab55fbb30ade2287ace095a381`
+- Vendored files: `ThirdParty/ymfm/LICENSE`, `ThirdParty/ymfm/README.md`, `ThirdParty/ymfm/GeneralInfo.md`, and `ThirdParty/ymfm/src/ymfm*.h`, `ThirdParty/ymfm/src/ymfm*.ipp`, `ThirdParty/ymfm/src/ymfm*.cpp`
+- License: BSD-3-Clause
+- Use in Chipper: linked into `chipper_engine` as the Yamaha FM family source. The current adapter uses `ymfm::ym2612` for a verified-partial YM2612/OPN2 melodic FM mode that maps Chipper musical controls and renderer note events to native operator, algorithm/feedback, frequency, pan, and key-on register writes.
+- Accuracy claim: verified partial only. DAC playback, full six-lane UI, OPN2 LFO/AMS/PMS controls, exact timer behavior, SSG-EG edge cases, golden emulator comparison, and hardware validation are not complete. Chipper does not claim cycle accuracy for ymfm-backed modes.
+- Provenance note: upstream README/GeneralInfo describe BSD-licensed Yamaha FM cores begun as part of MAME, with MAME-style design, cross-checking against Nemesis/Exodus and Nuked research, and a high-audible-accuracy goal rather than cycle-accuracy claims.
+
+BSD 3-Clause license text from upstream:
+
+```text
+BSD 3-Clause License
+
+Copyright (c) 2021, Aaron Giles
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
 The other current partial chip cores are clean-room/internal implementations in `Source/Engine/ChipCore.cpp`:
 
 - NES / RP2A03 partial APU model
@@ -174,13 +219,13 @@ The full candidate map is maintained in `docs/emulator-source-map.md`.
 
 Current priority candidates:
 
-- Permissive-first candidates: [ymfm](https://github.com/aaronsgiles/ymfm), [ayumi](https://github.com/true-grue/ayumi), [SameBoy](https://github.com/LIJI32/SameBoy), [web-pokey](https://github.com/mrk-its/web-pokey), and Paula/ProTracker references. Audit required before vendoring. `ymfm` has passed an initial BSD-3-Clause file/header audit at `17decfae857b92ab55fbb30ade2287ace095a381` for future FM-family adapter work but is not vendored; `emu2149` has passed the initial file-level MIT audit and is now vendored for YM2149 / AY; `emu2212` has passed the initial file-level MIT audit and is now vendored for Konami SCC/SCC+; `emu2413` has passed the initial file-level MIT audit and is now vendored for YM2413/OPLL; `emu76489` has passed the initial file-level MIT audit and is now vendored for SN76489 / Sega PSG.
+- Permissive-first candidates: [ayumi](https://github.com/true-grue/ayumi), [SameBoy](https://github.com/LIJI32/SameBoy), [web-pokey](https://github.com/mrk-its/web-pokey), and Paula/ProTracker references. Audit required before vendoring. `ymfm` has passed the BSD-3-Clause file/header audit at `17decfae857b92ab55fbb30ade2287ace095a381` and is now vendored for the first YM2612/OPN2 adapter; `emu2149` has passed the initial file-level MIT audit and is now vendored for YM2149 / AY; `emu2212` has passed the initial file-level MIT audit and is now vendored for Konami SCC/SCC+; `emu2413` has passed the initial file-level MIT audit and is now vendored for YM2413/OPLL; `emu76489` has passed the initial file-level MIT audit and is now vendored for SN76489 / Sega PSG.
 - SNES/SPC700 candidates: [emu-rs/snes-apu](https://github.com/emu-rs/snes-apu) reports BSD-2-Clause but must be audited for file-level provenance and its attributed higan/Blargg-derived behavior before reuse; [nyanpasu64-backup/snes-echo](https://github.com/nyanpasu64-backup/snes-echo) reports BSD-3-Clause and may be useful for echo/FIR research, but its README says it targets audible similarity rather than bit accuracy. No code from either project is vendored.
 - LGPL-sensitive candidates: [FigBug/RP2A03](https://github.com/FigBug/RP2A03), [FigBug/SN76489](https://github.com/FigBug/SN76489), [osoumen/C700](https://github.com/osoumen/C700), [blarggs-audio-libraries/snes_spc](https://github.com/blarggs-audio-libraries/snes_spc), [Nuked-OPN2](https://github.com/nukeykt/Nuked-OPN2), [Nuked-OPL3](https://github.com/nukeykt/Nuked-OPL3), and [Game_Music_Emu](https://github.com/libgme/game-music-emu). Do not import without an LGPL compliance plan.
 - GPL/reference candidates: [FigBug/SID](https://github.com/FigBug/SID), [FigBug/PAPU](https://github.com/FigBug/PAPU), [libsidplayfp/reSIDfp](https://github.com/libsidplayfp/libsidplayfp), [Furnace](https://github.com/tildearrow/furnace), [MAME](https://www.mamedev.org/about.html), and GPL-family alternatives. Use as references or validation targets only unless Chipper adopts a compatible distribution model. Furnace was reviewed on 2026-06-06 as a broad chip-coverage, tracker UX, and emulator-core discovery reference; no Furnace code is vendored. Upstream states most Furnace is GPLv2-or-later, ASIO-enabled builds become GPLv3, and individual components may carry their own licenses.
 - MAME-specific note: MAME is valuable for hardware behavior and edge cases, but project-level and per-file licensing must be checked before any reuse.
 
-Latest source/license check on 2026-06-07 confirmed this posture for the user-suggested sources: `emu2149`, `emu2212`, `emu2413`, and `emu76489` are MIT and vendored as listed above; FigBug/SID is GPL-3.0, FigBug/PAPU is GPL-2.0, FigBug/RP2A03 and FigBug/SN76489 are LGPL-2.1, Furnace is GPL-family at the aggregate project level with component-level licenses, ymfm is BSD-3-Clause and audited at `17decfae857b92ab55fbb30ade2287ace095a381` but not vendored, C700 and blargg snes_spc are LGPL-2.1, emu-rs/snes-apu reports BSD-2-Clause with important upstream attribution/provenance to audit, and snes-echo reports BSD-3-Clause. Non-vendored entries are still candidates or references only; no license text from those projects is bundled because no source from them is currently included.
+Latest source/license check on 2026-06-07 confirmed this posture for the user-suggested sources: `emu2149`, `emu2212`, `emu2413`, and `emu76489` are MIT and vendored as listed above; `ymfm` is BSD-3-Clause and vendored at `17decfae857b92ab55fbb30ade2287ace095a381` for the first YM2612/OPN2 adapter; FigBug/SID is GPL-3.0, FigBug/PAPU is GPL-2.0, FigBug/RP2A03 and FigBug/SN76489 are LGPL-2.1, Furnace is GPL-family at the aggregate project level with component-level licenses, C700 and blargg snes_spc are LGPL-2.1, emu-rs/snes-apu reports BSD-2-Clause with important upstream attribution/provenance to audit, and snes-echo reports BSD-3-Clause. Non-vendored entries remain candidates or references only; no license text from those projects is bundled because no source from them is currently included.
 
 Preset and macro design may be informed by public chip documentation, open-source tracker workflows, and reference instruments listed above, but Chipper's factory presets are authored as Chipper parameter snapshots. Do not import third-party preset banks, songs, modules, patch dumps, samples, lookup tables, or code-derived assets without adding a specific license and rights review here.
 

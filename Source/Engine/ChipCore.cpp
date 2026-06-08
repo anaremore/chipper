@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <iterator>
 #include <limits>
+#include <memory>
 #include <numeric>
 #include <sstream>
 #include <utility>
@@ -18,6 +19,8 @@ extern "C"
 #include "emu2413.h"
 #include "emu76489.h"
 }
+
+#include "ymfm_opn.h"
 
 namespace chipper
 {
@@ -6587,6 +6590,488 @@ private:
     StereoFrame currentOutput {};
 };
 
+class Ym2612Core final : public ChipCore
+{
+public:
+    explicit Ym2612Core(AccuracyMode requested)
+        : accuracy(requested)
+    {
+        channelNotes.fill(-1);
+    }
+
+    void reset(double outputSampleRate, double chipClockHz) override
+    {
+        sampleRate = outputSampleRate > 0.0 ? outputSampleRate : 48000.0;
+        clock = chipClockHz > 0.0 ? chipClockHz : 7670454.0;
+        chip = std::make_unique<ymfm::ym2612>(host);
+        chip->reset();
+        chipSampleRate = static_cast<double>(chip->sample_rate(static_cast<uint32_t>(std::round(clock))));
+        sampleAccumulator = 0.0;
+        regs.fill(0);
+        channelNotes.fill(-1);
+        channelVelocity.fill(0.0f);
+        channelStamp.fill(0);
+        currentFnum.fill(0);
+        currentBlock.fill(0);
+        currentAlgorithm.fill(0);
+        currentFeedback.fill(0);
+        noteStamp = 0;
+        heldNote = -1;
+        keyOnMask = 0;
+        currentOutput = {};
+        applyPatchToAllChannels(false);
+    }
+
+    void setPatch(const PatchConfig& nextPatch) override
+    {
+        if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled)
+            clearChipPolyState();
+        patch = nextPatch;
+        applyPatchToAllChannels(true);
+    }
+
+    void writeRegister(uint16_t address, uint8_t value) override
+    {
+        writeYmRegister(address & 0x1ffu, value);
+    }
+
+    void noteOn(int midiNote, float velocity) override
+    {
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            noteOnChipPoly(midiNote, velocity);
+            return;
+        }
+
+        heldNote = std::clamp(midiNote, 0, 127);
+        const auto baseVelocity = static_cast<float>(clamp01(velocity));
+        auto notes = std::array<int, 4> { heldNote, heldNote + 7, heldNote + 12, heldNote + 19 };
+        switch (patch.macro)
+        {
+            case MacroKind::bass: notes = { heldNote - 24, heldNote - 12, heldNote, heldNote + 7 }; break;
+            case MacroKind::lead: notes = { heldNote, heldNote + 7, heldNote + 12, heldNote + 16 }; break;
+            case MacroKind::arp: notes = { heldNote, heldNote + 4, heldNote + 7, heldNote + 12 }; break;
+            case MacroKind::coin:
+            case MacroKind::jump: notes = { heldNote + 24, heldNote + 31, heldNote + 36, heldNote + 43 }; break;
+            case MacroKind::laser: notes = { heldNote + 24, heldNote + 12, heldNote, heldNote - 12 }; break;
+            case MacroKind::powerUp: notes = { heldNote, heldNote + 5, heldNote + 12, heldNote + 17 }; break;
+            case MacroKind::drum:
+            case MacroKind::hit: notes = { heldNote - 12, heldNote - 5, heldNote, heldNote + 7 }; break;
+            case MacroKind::manual:
+            default: break;
+        }
+
+        for (size_t channel = 0; channel < notes.size(); ++channel)
+            triggerChannel(channel, notes[channel], baseVelocity, sourceEnabled(patch, channel));
+    }
+
+    void noteOff(int midiNote) override
+    {
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            noteOffChipPoly(midiNote);
+            return;
+        }
+
+        if (midiNote == heldNote)
+        {
+            heldNote = -1;
+            for (size_t channel = 0; channel < 4; ++channel)
+                keyOffChannel(channel);
+        }
+    }
+
+    StereoFrame renderSample() override
+    {
+        if (! chip)
+            return {};
+
+        if (keyOnMask == 0)
+        {
+            currentOutput = {};
+            return currentOutput;
+        }
+
+        if (heldNote >= 0 && patch.macro == MacroKind::laser)
+            applyLaserDrift();
+
+        const auto ratio = chipSampleRate > 0.0 ? chipSampleRate / sampleRate : 1.0;
+        sampleAccumulator += ratio;
+        ymfm::ym2612::output_data output;
+        auto generated = false;
+        while (sampleAccumulator >= 1.0)
+        {
+            chip->generate(&output);
+            lastNativeLeft = output.data[0];
+            lastNativeRight = output.data[1];
+            sampleAccumulator -= 1.0;
+            generated = true;
+        }
+        if (! generated && ratio >= 0.999)
+        {
+            chip->generate(&output);
+            lastNativeLeft = output.data[0];
+            lastNativeRight = output.data[1];
+        }
+
+        const auto scale = clamp01(patch.control4) / 32768.0;
+        const auto left = std::clamp(static_cast<double>(lastNativeLeft) * scale, -1.0, 1.0);
+        const auto right = std::clamp(static_cast<double>(lastNativeRight) * scale, -1.0, 1.0);
+        currentOutput = { static_cast<float>(left), static_cast<float>(right) };
+        return currentOutput;
+    }
+
+    std::vector<RegisterWrite> exportRegisterState() const override
+    {
+        std::vector<RegisterWrite> writes;
+        for (uint16_t reg = 0; reg < regs.size(); ++reg)
+        {
+            if (regs[reg] != 0)
+                writes.push_back({ 0, reg, regs[reg] });
+        }
+        return writes;
+    }
+
+    ChipMode mode() const override { return ChipMode::ym2612; }
+    AccuracyMode requestedAccuracy() const override { return accuracy; }
+    std::string modeName() const override { return "YM2612 / Genesis FM"; }
+    std::string implementedAccuracy() const override { return "partial ymfm-backed OPN2 register-level"; }
+    std::string limitations() const override
+    {
+        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator, algorithm, feedback, f-number/block, pan, and key-on registers for four exposed melodic lanes. DAC playback, full six-lane UI, LFO/AMS/PMS controls, SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
+    }
+
+    std::string debugStateJson() const override
+    {
+        std::ostringstream json;
+        json << "{"
+             << "\"mode\":\"YM2612 / Genesis FM\","
+             << "\"implementedAccuracy\":\"partial ymfm-backed OPN2 register-level\","
+             << "\"vendoredCore\":\"ymfm\","
+             << "\"vendoredCoreLicense\":\"BSD-3-Clause\","
+             << "\"vendoredCoreCommit\":\"17decfae857b92ab55fbb30ade2287ace095a381\","
+             << "\"clockHz\":" << clock << ","
+             << "\"sampleRate\":" << sampleRate << ","
+             << "\"chipSampleRate\":" << chipSampleRate << ","
+             << "\"macro\":\"" << toString(patch.macro) << "\","
+             << "\"playMode\":\"" << toString(patch.playMode) << "\","
+             << "\"internalChannelCount\":6,"
+             << "\"uiExposesFirstFourVoices\":1,"
+             << "\"algorithm0\":" << static_cast<int>(currentAlgorithm[0]) << ","
+             << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
+             << "\"fnum0\":" << currentFnum[0] << ","
+             << "\"block0\":" << static_cast<int>(currentBlock[0]) << ","
+             << "\"keyOnMask\":" << static_cast<int>(keyOnMask) << ","
+             << "\"sourceEnabled0\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
+             << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
+             << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
+             << "\"sourceEnabled3\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+             << "\"activeChannels\":" << activeChipPolyChannels() << ","
+             << "\"assignedNote0\":" << channelNotes[0] << ","
+             << "\"assignedNote1\":" << channelNotes[1] << ","
+             << "\"assignedNote2\":" << channelNotes[2] << ","
+             << "\"assignedNote3\":" << channelNotes[3] << ","
+             << "\"nativeLeft\":" << lastNativeLeft << ","
+             << "\"nativeRight\":" << lastNativeRight << ","
+             << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
+             << "}";
+        return json.str();
+    }
+
+private:
+    class Host final : public ymfm::ymfm_interface
+    {
+    };
+
+    struct OPN2Pitch
+    {
+        uint16_t fnum = 0;
+        uint8_t block = 0;
+    };
+
+    static uint8_t keyCodeForChannel(size_t channel)
+    {
+        return static_cast<uint8_t>(channel < 3 ? channel : channel + 1);
+    }
+
+    static uint16_t regForChannel(uint8_t base, size_t channel)
+    {
+        const auto port = channel >= 3 ? 0x100u : 0x000u;
+        const auto local = static_cast<uint16_t>(channel % 3u);
+        return static_cast<uint16_t>(port | base | local);
+    }
+
+    static uint16_t opRegForChannel(uint8_t base, size_t channel, size_t op)
+    {
+        static constexpr std::array<uint8_t, 4> opOffsets { 0x00, 0x04, 0x08, 0x0c };
+        return static_cast<uint16_t>(regForChannel(static_cast<uint8_t>(base + opOffsets[op]), channel));
+    }
+
+    void writeYmRegister(uint16_t reg, uint8_t value)
+    {
+        regs[reg & 0x1ffu] = value;
+        if (! chip)
+            return;
+
+        if ((reg & 0x100u) != 0)
+        {
+            chip->write(2, static_cast<uint8_t>(reg & 0xffu));
+            chip->write(3, value);
+        }
+        else
+        {
+            chip->write(0, static_cast<uint8_t>(reg & 0xffu));
+            chip->write(1, value);
+        }
+    }
+
+    OPN2Pitch pitchForNote(int midiNote) const
+    {
+        const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
+        const auto base = (hz * 144.0 * 1048576.0) / clock;
+        auto block = 0;
+        auto fnum = base;
+        while (fnum > 2047.0 && block < 7)
+        {
+            fnum *= 0.5;
+            ++block;
+        }
+        while (fnum < 512.0 && block > 0)
+        {
+            fnum *= 2.0;
+            --block;
+        }
+        return {
+            static_cast<uint16_t>(std::clamp(static_cast<int>(std::round(fnum)), 1, 2047)),
+            static_cast<uint8_t>(std::clamp(block, 0, 7))
+        };
+    }
+
+    uint8_t algorithmForPatch() const
+    {
+        if (patch.waveShape > 0)
+            return static_cast<uint8_t>(std::clamp(patch.waveShape - 1, 0, 7));
+
+        switch (patch.macro)
+        {
+            case MacroKind::bass: return 0;
+            case MacroKind::lead: return 4;
+            case MacroKind::arp: return 5;
+            case MacroKind::coin:
+            case MacroKind::jump: return 7;
+            case MacroKind::drum:
+            case MacroKind::hit: return 1;
+            case MacroKind::laser: return 2;
+            case MacroKind::powerUp: return 6;
+            case MacroKind::manual:
+            default: break;
+        }
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control1 * 7.0f)), 0, 7));
+    }
+
+    uint8_t feedbackForPatch() const
+    {
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control2 * 7.0f)), 0, 7));
+    }
+
+    uint8_t multiplierForPatch(size_t op) const
+    {
+        const auto tone = std::clamp(static_cast<int>(std::round(patch.control3 * 14.0f)) + 1, 1, 15);
+        static constexpr std::array<int, 4> offsets { 0, 1, 2, 4 };
+        return static_cast<uint8_t>(std::clamp(tone + offsets[op], 1, 15));
+    }
+
+    uint8_t totalLevelForOperator(size_t op, float velocity) const
+    {
+        const auto level = clamp01(velocity) * clamp01(patch.control4);
+        const auto carrierLevel = static_cast<int>(std::round((1.0 - level) * 28.0));
+        const auto modulatorLevel = static_cast<int>(std::round(18.0 + (1.0 - clamp01(patch.control3)) * 40.0));
+        return static_cast<uint8_t>(std::clamp(op == 3 ? carrierLevel : modulatorLevel, 0, 127));
+    }
+
+    void applyChannelPatch(size_t channel, float velocity)
+    {
+        if (channel >= 6)
+            return;
+
+        const auto algorithm = algorithmForPatch();
+        const auto feedback = feedbackForPatch();
+        currentAlgorithm[channel] = algorithm;
+        currentFeedback[channel] = feedback;
+
+        for (size_t op = 0; op < 4; ++op)
+        {
+            writeYmRegister(opRegForChannel(0x30, channel, op), multiplierForPatch(op));
+            writeYmRegister(opRegForChannel(0x40, channel, op), totalLevelForOperator(op, velocity));
+            writeYmRegister(opRegForChannel(0x50, channel, op), 0x1fu);
+            writeYmRegister(opRegForChannel(0x60, channel, op), 0x08u);
+            writeYmRegister(opRegForChannel(0x70, channel, op), 0x04u);
+            writeYmRegister(opRegForChannel(0x80, channel, op), 0xa6u);
+            writeYmRegister(opRegForChannel(0x90, channel, op), 0x00u);
+        }
+
+        writeYmRegister(regForChannel(0xb0, channel), static_cast<uint8_t>((feedback << 3u) | algorithm));
+        writeYmRegister(regForChannel(0xb4, channel), 0xc0u);
+    }
+
+    void applyPatchToAllChannels(bool preserveKeys)
+    {
+        for (size_t channel = 0; channel < 6; ++channel)
+            applyChannelPatch(channel, channel < channelVelocity.size() && channelVelocity[channel] > 0.0f ? channelVelocity[channel] : 1.0f);
+
+        if (! preserveKeys)
+            return;
+
+        for (size_t channel = 0; channel < 4; ++channel)
+        {
+            if ((keyOnMask & (1u << channel)) != 0 && channelNotes[channel] >= 0)
+                triggerChannel(channel, channelNotes[channel], channelVelocity[channel], sourceEnabled(patch, channel));
+        }
+    }
+
+    void triggerChannel(size_t channel, int midiNote, float velocity, bool shouldEnable)
+    {
+        if (channel >= 4 || ! chip)
+            return;
+
+        const auto detune = static_cast<int>(std::round((patch.control2 - 0.5f) * 8.0f));
+        const auto pitch = pitchForNote(midiNote + detune);
+        channelVelocity[channel] = static_cast<float>(clamp01(velocity));
+        currentFnum[channel] = pitch.fnum;
+        currentBlock[channel] = pitch.block;
+        applyChannelPatch(channel, channelVelocity[channel]);
+
+        writeYmRegister(regForChannel(0xa4, channel), static_cast<uint8_t>(((pitch.block & 0x07u) << 3u) | ((pitch.fnum >> 8u) & 0x07u)));
+        writeYmRegister(regForChannel(0xa0, channel), static_cast<uint8_t>(pitch.fnum & 0xffu));
+
+        const auto code = keyCodeForChannel(channel);
+        writeYmRegister(0x28, static_cast<uint8_t>(shouldEnable ? (0xf0u | code) : code));
+        if (shouldEnable)
+            keyOnMask |= static_cast<uint16_t>(1u << channel);
+        else
+            keyOnMask &= static_cast<uint16_t>(~(1u << channel));
+    }
+
+    void keyOffChannel(size_t channel)
+    {
+        if (channel >= 4)
+            return;
+        writeYmRegister(0x28, keyCodeForChannel(channel));
+        keyOnMask &= static_cast<uint16_t>(~(1u << channel));
+    }
+
+    void clearChipPolyState()
+    {
+        for (size_t channel = 0; channel < 4; ++channel)
+            keyOffChannel(channel);
+        channelNotes.fill(-1);
+        channelVelocity.fill(0.0f);
+        channelStamp.fill(0);
+        noteStamp = 0;
+    }
+
+    int selectChipPolyChannel(int midiNote) const
+    {
+        for (size_t channel = 0; channel < 4; ++channel)
+        {
+            if (sourceEnabled(patch, channel) && channelNotes[channel] == midiNote)
+                return static_cast<int>(channel);
+        }
+        for (size_t channel = 0; channel < 4; ++channel)
+        {
+            if (sourceEnabled(patch, channel) && channelNotes[channel] < 0)
+                return static_cast<int>(channel);
+        }
+
+        auto oldestChannel = -1;
+        auto oldestStamp = std::numeric_limits<uint64_t>::max();
+        for (size_t channel = 0; channel < 4; ++channel)
+        {
+            if (sourceEnabled(patch, channel) && channelStamp[channel] < oldestStamp)
+            {
+                oldestStamp = channelStamp[channel];
+                oldestChannel = static_cast<int>(channel);
+            }
+        }
+        return oldestChannel;
+    }
+
+    int activeChipPolyChannels() const
+    {
+        auto active = 0;
+        for (size_t channel = 0; channel < 4; ++channel)
+        {
+            if (sourceEnabled(patch, channel) && channelNotes[channel] >= 0)
+                ++active;
+        }
+        return active;
+    }
+
+    void noteOnChipPoly(int midiNote, float velocity)
+    {
+        const auto channel = selectChipPolyChannel(midiNote);
+        if (channel < 0)
+            return;
+
+        const auto index = static_cast<size_t>(channel);
+        channelNotes[index] = std::clamp(midiNote, 0, 127);
+        channelVelocity[index] = static_cast<float>(clamp01(velocity));
+        channelStamp[index] = ++noteStamp;
+        triggerChannel(index, midiNote, velocity, true);
+    }
+
+    void noteOffChipPoly(int midiNote)
+    {
+        for (size_t channel = 0; channel < 4; ++channel)
+        {
+            if (channelNotes[channel] != midiNote)
+                continue;
+
+            channelNotes[channel] = -1;
+            channelVelocity[channel] = 0.0f;
+            channelStamp[channel] = 0;
+            keyOffChannel(channel);
+        }
+    }
+
+    void applyLaserDrift()
+    {
+        laserPhase += 1.0 / sampleRate;
+        const auto bend = static_cast<int>(std::round(std::sin(twoPi * laserPhase * 8.0) * patch.control3 * 10.0));
+        for (size_t channel = 0; channel < 4; ++channel)
+        {
+            if ((keyOnMask & (1u << channel)) == 0)
+                continue;
+            const auto note = (patch.playMode == PlayMode::chipPoly && channelNotes[channel] >= 0) ? channelNotes[channel] : heldNote;
+            triggerChannel(channel, note + bend, channelVelocity[channel] > 0.0f ? channelVelocity[channel] : 1.0f, sourceEnabled(patch, channel));
+        }
+    }
+
+    AccuracyMode accuracy;
+    double sampleRate = 48000.0;
+    double clock = 7670454.0;
+    double chipSampleRate = 53267.0;
+    double sampleAccumulator = 0.0;
+    Host host;
+    std::unique_ptr<ymfm::ym2612> chip;
+    PatchConfig patch;
+    std::array<uint8_t, 0x200> regs {};
+    std::array<uint16_t, 6> currentFnum {};
+    std::array<uint8_t, 6> currentBlock {};
+    std::array<uint8_t, 6> currentAlgorithm {};
+    std::array<uint8_t, 6> currentFeedback {};
+    std::array<int, 4> channelNotes {};
+    std::array<float, 4> channelVelocity {};
+    std::array<uint64_t, 4> channelStamp {};
+    uint64_t noteStamp = 0;
+    int heldNote = -1;
+    uint16_t keyOnMask = 0;
+    double laserPhase = 0.0;
+    int32_t lastNativeLeft = 0;
+    int32_t lastNativeRight = 0;
+    StereoFrame currentOutput {};
+};
+
 class PaulaCore final : public ChipCore
 {
 public:
@@ -7023,6 +7508,7 @@ std::unique_ptr<ChipCore> createChipCore(ChipMode mode, AccuracyMode accuracy)
         case ChipMode::sid: return std::make_unique<SidCore>(accuracy);
         case ChipMode::ym2149: return std::make_unique<Ym2149Core>(accuracy);
         case ChipMode::sn76489: return std::make_unique<Sn76489Core>(accuracy);
+        case ChipMode::ym2612: return std::make_unique<Ym2612Core>(accuracy);
         case ChipMode::spc700: return std::make_unique<Spc700Core>(accuracy);
         case ChipMode::pokey: return std::make_unique<PokeyCore>(accuracy);
         case ChipMode::paula: return std::make_unique<PaulaCore>(accuracy);

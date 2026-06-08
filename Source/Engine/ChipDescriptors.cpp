@@ -42,6 +42,22 @@ std::vector<MacroTemplate> plannedFmMacros(std::string familyName, bool rhythmFo
     };
 }
 
+std::vector<MacroTemplate> ym2612Macros()
+{
+    return {
+        { MacroKind::manual, "OPN2 Manual", "Neutral YM2612 melodic-channel mapping using the ymfm OPN2 core.", { 0.50f, 0.35f, 0.45f, 0.70f }, { true, true, true, true }, 0.0f, 0 },
+        { MacroKind::coin, "OPN2 Chime", "Short bright Genesis-style UI chime using additive FM.", { 1.00f, 0.18f, 0.70f, 0.76f }, { true, false, false, false }, 0.16f, 8 },
+        { MacroKind::bass, "OPN2 Feedback Bass", "Dark feedback-heavy FM bass using a serial operator algorithm.", { 0.00f, 0.82f, 0.28f, 0.88f }, { true, true, false, false }, 0.08f, 1 },
+        { MacroKind::lead, "OPN2 Metallic Lead", "Forward Genesis lead with parallel carrier bite.", { 0.58f, 0.44f, 0.62f, 0.82f }, { true, true, true, false }, 0.10f, 5 },
+        { MacroKind::arp, "OPN2 Fake Chord Arp", "Four exposed YM2612 lanes arranged for fake chords and arpeggios.", { 0.72f, 0.32f, 0.50f, 0.78f }, { true, true, true, true }, 0.08f, 6 },
+        { MacroKind::drum, "OPN2 FM Hit", "Short FM impact placeholder until DAC percussion lands.", { 0.18f, 0.95f, 0.80f, 0.72f }, { false, false, true, true }, 0.58f, 2 },
+        { MacroKind::hit, "OPN2 Damage Hit", "Aggressive stacked operator impact.", { 0.22f, 0.90f, 0.75f, 0.78f }, { true, false, true, true }, 0.55f, 2 },
+        { MacroKind::laser, "OPN2 Pitch Laser", "Genesis FM pitch sweep SFX.", { 0.30f, 0.72f, 0.88f, 0.80f }, { true, true, false, true }, 0.28f, 3 },
+        { MacroKind::jump, "OPN2 Jump Blip", "Quick upward FM game gesture.", { 1.00f, 0.22f, 0.66f, 0.76f }, { true, false, false, false }, 0.18f, 8 },
+        { MacroKind::powerUp, "OPN2 Power Rise", "Longer bright FM rise over stacked channels.", { 0.86f, 0.36f, 0.58f, 0.84f }, { true, true, true, true }, 0.14f, 7 }
+    };
+}
+
 std::vector<MacroTemplate> ym2413Macros()
 {
     return {
@@ -451,6 +467,65 @@ std::vector<ParameterChoiceSpec> ym2413InstrumentChoices()
         choice("Bass", "Use a bass-oriented OPLL preset instrument.", 0.5f, 2),
         choice("Lead", "Use a trumpet/lead OPLL preset instrument.", 0.75f, 3),
         choice("Organ", "Use an organ-style OPLL preset instrument for chords and arps.", 1.0f, 4)
+    };
+}
+
+std::vector<ParameterChoiceSpec> ym2612AlgorithmChoices()
+{
+    return {
+        choice("Follow", "Resolve the YM2612 algorithm from the selected OPN2 template.", 0.0f, 0),
+        choice("Alg 0", "Use YM2612 algorithm 0: serial modulation for strong classic FM bass.", 1.0f / 8.0f, 1),
+        choice("Alg 1", "Use YM2612 algorithm 1: serial pair with parallel modulation.", 2.0f / 8.0f, 2),
+        choice("Alg 2", "Use YM2612 algorithm 2: feedback-oriented branching texture.", 3.0f / 8.0f, 3),
+        choice("Alg 3", "Use YM2612 algorithm 3: mixed serial and parallel operators.", 4.0f / 8.0f, 4),
+        choice("Alg 4", "Use YM2612 algorithm 4: two carrier stacks for bright leads.", 5.0f / 8.0f, 5),
+        choice("Alg 5", "Use YM2612 algorithm 5: one modulator feeding three carriers.", 6.0f / 8.0f, 6),
+        choice("Alg 6", "Use YM2612 algorithm 6: two modulators with two carriers.", 7.0f / 8.0f, 7),
+        choice("Alg 7", "Use YM2612 algorithm 7: four parallel carriers for organ/chime tones.", 1.0f, 8)
+    };
+}
+
+std::vector<ChipParameterSpec> ym2612ParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "ym2612.algorithmBias",
+                   "Algorithm Bias",
+                   "FM",
+                   "In Follow mode this chooses among the YM2612 algorithm register values; explicit Algorithm choices override it.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "ym2612.feedback",
+                   "Feedback",
+                   "FM",
+                   "Maps to YM2612 feedback bits in the channel algorithm/feedback register.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "ym2612.operatorTone",
+                   "Operator Tone",
+                   "Operators",
+                   "Scales operator multiplier and modulator total-level choices before writing OPN2 operator registers.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "ym2612.fmLevel",
+                   "FM Level",
+                   "Mixer",
+                   "Controls audible carrier level and final OPN2 output trim.",
+                   ParameterKind::chipRegister,
+                   0.70f),
+        segmentedSpec(ChipParameterRole::waveShape,
+                      "ym2612.algorithm",
+                      "Algorithm",
+                      "FM",
+                      "Chooses the YM2612 four-operator algorithm. Follow lets the selected template choose.",
+                      ym2612AlgorithmChoices(),
+                      ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::stereoSpread,
+                   "ym2612.stereoSpread",
+                   "Stereo Spread",
+                   "Output",
+                   "Reserved modern convenience metadata; the current OPN2 adapter writes centered pan to both YM2612 outputs.",
+                   ParameterKind::continuous)
     };
 }
 
@@ -1433,6 +1508,18 @@ std::array<ModuleDescriptor, 6> fmModules(std::string profile, std::string sourc
     };
 }
 
+std::array<ModuleDescriptor, 6> ym2612Modules()
+{
+    return std::array<ModuleDescriptor, 6> {
+        makeModule("profile", "Profile", "YM2612/OPN2 core is backed by audited BSD-licensed ymfm.", { "YM2612 model", "NTSC Genesis clock", "Hybrid default", "Verified partial" }),
+        makeModule("sources", "FM Voices", "Six-chip voice architecture with four lanes exposed in the current UI.", { "Voice 1", "Voice 2", "Voice 3", "Voice 4 shown" }),
+        makeModule("tone", "Operators", "Musical controls write native OPN2 algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
+        makeModule("envelope", "Envelope", "Useful fixed operator envelopes are written per voice for this first FM instrument pass.", { "Operator attack", "Decay", "Sustain/release", "Full ADSR planned" }),
+        makeModule("motion", "Motion", "Genesis-style musical templates map to register-backed FM patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
+        makeModule("output", "Output", "ymfm stereo OPN2 output is rendered with centered pan for now.", { "Stereo core", "DAC planned", "Output gain", "Reference tests needed" })
+    };
+}
+
 std::array<ModuleDescriptor, 6> sampleModules(std::string profile, std::string sourceTitle, std::string toneTitle)
 {
     return std::array<ModuleDescriptor, 6> {
@@ -1588,24 +1675,28 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2612,
             "YM2612 / Genesis FM",
-            "Planned six-voice FM mode using the audited ymfm path. No OPN2 adapter is integrated yet.",
+            "Four exposed melodic lanes write YM2612/OPN2 registers into the audited ymfm core for Genesis-style FM tones.",
             {
-                { "algorithm", "Algorithm", "FM", "Planned OPN2 algorithm selection." },
-                { "feedback", "Feedback", "FM", "Planned feedback amount." },
-                { "operator", "Operator Tone", "Operators", "Planned operator ratio/level macro." },
-                { "dac", "DAC Grit", "Output", "Planned DAC and stereo output character." },
+                { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2612 algorithm register." },
+                { "feedback", "Feedback", "FM", "Writes YM2612 feedback bits for the active FM voices." },
+                { "operator", "Operator Tone", "Operators", "Scales operator multipliers and modulator levels." },
+                { "level", "FM Level", "Output", "Controls carrier level and final OPN2 output trim." },
             },
-            fmModules("YM2612/OPN2 ymfm strategy audited.", "FM Voices", "Operators"),
-            plannedFmMacros("OPN2"),
-            false,
-            false,
-            {},
-            plannedDisclosure(
-                "`ymfm` is audited as the permissive-first OPN2 core before considering LGPL alternatives.",
-                "FM UI should use six voices with operator algorithm, feedback, envelope, DAC, and stereo controls.",
+            ym2612Modules(),
+            ym2612Macros(),
+            true,
+            true,
+            ym2612ParameterSpecs(),
+            verifiedPartial(
                 {
-                    "No YM2612/OPN2 adapter is integrated.",
-                    "OPN2 register adapter, operator UI, and DAC/stereo behavior are not implemented."
+                    "BSD-3-Clause ymfm is vendored and linked as the YM2612/OPN2 synthesis core.",
+                    "Renderer notes and musical templates write OPN2 algorithm, feedback, operator multiplier/total-level, f-number/block, pan, and key-on registers.",
+                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the first melodic adapter."
+                },
+                {
+                    "Only four melodic lanes are exposed in the current UI even though the underlying YM2612 core has six channels.",
+                    "DAC playback, LFO/AMS/PMS, full per-operator ADSR UI, SSG-EG quirks, timers, and hardware capture comparison are not complete.",
+                    "Cycle accuracy is not claimed."
                 })
         },
         {

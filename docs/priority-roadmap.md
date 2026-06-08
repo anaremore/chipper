@@ -13,8 +13,8 @@ This list ranks near-term work by user value, implementation effort, and confide
 | 7 | Improve DMG authenticity around wave RAM writes, length/envelope timing, sweep overflow behavior, NR52 power behavior, and stereo routing. | 8 | 7 | 7 | Pan Docs-style public references, focused register traces, and stronger edge-case renderer tests. |
 | 8 | Improve YM2149/AY and SN76489 usability with chip-specific mixer/noise panels, preset categories, and clearer channel source cards. | 8 | 5 | 8 | Shared source-card component improvements and current renderer JSON for mixer/noise state. |
 | 9 | Add an explicit UI/renderer accuracy badge per chip mode that distinguishes Inspired, Hybrid, Authentic, and unverified roadmap modes without overclaiming. | 8 | 4 | 9 | A single descriptor field for verified behaviors and docs reviewed against current test coverage. |
-| 10 | Audit compatible emulator cores and license paths for planned FM/sample/wavetable chips before any vendoring. | 8 | 6 | 7 | License matrix, provenance notes, and source-map updates for each candidate core; ymfm is now audited as the first permissive FM path. |
-| 11 | Implement the next chip core only after a scoped accuracy plan exists; likely OPL2/OPL3 or YM2612 using audited ymfm. | 8 | 9 | 6 | A thin ymfm adapter spike, register-write renderer traces, and golden tests before VST UI exposure. |
+| 10 | Audit compatible emulator cores and license paths for planned FM/sample/wavetable chips before any vendoring. | 8 | 6 | 7 | License matrix, provenance notes, and source-map updates for each candidate core; ymfm is now vendored as the first permissive FM path for YM2612. |
+| 11 | Expand the first ymfm-backed YM2612 pass from useful melodic adapter to deeper Genesis FM instrument. | 8 | 8 | 7 | Full six-lane UI, per-operator ADSR, DAC/sample behavior, LFO/AMS/PMS, register traces, and golden tests. |
 | 12 | Add hardware/reference comparison documentation and tolerance thresholds for each implemented chip. | 7 | 8 | 5 | Real hardware recordings, reproducible capture settings, and agreed spectral/timing tolerances. |
 
 ## Chip UI And License Pass Order
@@ -36,7 +36,7 @@ After SID, prioritize the other implemented chips before adding planned chips:
 | 9 | PC Engine HuC6280 | 7 | Current code is internal clean-room partial; MAME/GME/Furnace/HuSIC remain reference or audit targets only. | Replace the generic four-source view with six wavetable lanes, wave RAM visuals, noise/LFO controls, and PC Engine preset vocabulary. |
 | 10 | Namco arcade WSG | 7 | Current code is internal clean-room partial; MAME/Furnace remain reference or audit targets only. | Replace the generic four-source view with WSG lane banks, 4-bit wave RAM visuals, enable/volume controls, and arcade preset vocabulary. |
 | 11 | Konami SCC | 7 | Current audio path is backed by vendored MIT emu2212; exact SCC/SCC+ quirks still need golden/reference validation. | Replace the generic four-source view with five wavetable lanes, wave RAM visuals/editing, key/volume controls, and Konami preset vocabulary. |
-| 12 | YM2612 / OPN2 and OPL2/OPL3 | 8 | ymfm is audited as the first permissive BSD-3-Clause path; do not expose full VST UI until a thin adapter and renderer traces exist. | Use a real operator/algorithm UI with envelope visuals instead of generic oscillator controls. |
+| 12 | YM2612 / OPN2 and OPL2/OPL3 | 8 | ymfm is now vendored for a first YM2612 melodic adapter; use the same audited path for future OPL/OPM work. | Use a real operator/algorithm UI with envelope visuals instead of generic oscillator controls. |
 
 ## Wide Chip Implementation Queue
 
@@ -44,7 +44,7 @@ Going wide is useful now, but only if planned modes stay honest. Planned chip de
 
 | Order | Chip Family | First Value To Deliver | Likely Source Path | UI Shape | Confidence |
 | --- | --- | --- | --- | --- | ---: |
-| 1 | YM2612 / OPN2 | Real Genesis-style FM bass/lead core with operator automation. | Spike audited BSD-3-Clause `ymfm` first; keep Nuked-OPN2 as LGPL-sensitive comparison. | Six FM voice strips with algorithm, feedback, operator envelope/level, DAC, and stereo. | 7 |
+| 1 | YM2612 / OPN2 | Real Genesis-style FM bass/lead core with operator automation. | First BSD-3-Clause `ymfm` adapter is in place; keep Nuked-OPN2 as LGPL-sensitive comparison. | Six FM voice strips with algorithm, feedback, operator envelope/level, DAC, and stereo. | 8 |
 | 2 | OPL2/OPL3 | DOS FM instruments and rhythm-mode kits. | Spike audited BSD-3-Clause `ymfm` first; keep Nuked-OPL3 as LGPL-sensitive comparison. | Operator-pair editor with waveform selector, rhythm mode, feedback, tremolo/vibrato, and per-operator envelopes. | 7 |
 | 3 | YM2149 / AY polish | Stronger early-computer beeps, arps, and noise percussion from a vendored PSG core. | Continue the `emu2149` adapter and compare against references before stronger claims. | Three channel strips plus shared noise/envelope shape visualization. | 8 |
 | 4 | SN76489 polish | Better Sega PSG/arcade immediacy from an emu-backed core. | `emu76489` is now vendored under MIT; FigBug/SN76489 remains LGPL-sensitive reference. | Three tone strips plus noise strip with attenuation and noise-control choices. | 8 |
