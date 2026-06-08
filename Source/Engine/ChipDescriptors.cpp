@@ -49,7 +49,7 @@ std::vector<MacroTemplate> ym2612Macros()
         { MacroKind::coin, "OPN2 Chime", "Short bright Genesis-style UI chime using additive FM.", { 1.00f, 0.18f, 0.70f, 0.76f }, { true, false, false, false }, 0.16f, 8 },
         { MacroKind::bass, "OPN2 Feedback Bass", "Dark feedback-heavy FM bass using a serial operator algorithm.", { 0.00f, 0.82f, 0.28f, 0.88f }, { true, true, false, false }, 0.08f, 1 },
         { MacroKind::lead, "OPN2 Metallic Lead", "Forward Genesis lead with parallel carrier bite.", { 0.58f, 0.44f, 0.62f, 0.82f }, { true, true, true, false }, 0.10f, 5 },
-        { MacroKind::arp, "OPN2 Fake Chord Arp", "Four exposed YM2612 lanes arranged for fake chords and arpeggios.", { 0.72f, 0.32f, 0.50f, 0.78f }, { true, true, true, true }, 0.08f, 6 },
+        { MacroKind::arp, "OPN2 Fake Chord Arp", "Six YM2612 melodic channels arranged for fake chords and arpeggios.", { 0.72f, 0.32f, 0.50f, 0.78f }, { true, true, true, true }, 0.08f, 6 },
         { MacroKind::drum, "OPN2 FM Hit", "Short FM impact placeholder until DAC percussion lands.", { 0.18f, 0.95f, 0.80f, 0.72f }, { false, false, true, true }, 0.58f, 2 },
         { MacroKind::hit, "OPN2 Damage Hit", "Aggressive stacked operator impact.", { 0.22f, 0.90f, 0.75f, 0.78f }, { true, false, true, true }, 0.55f, 2 },
         { MacroKind::laser, "OPN2 Pitch Laser", "Genesis FM pitch sweep SFX.", { 0.30f, 0.72f, 0.88f, 0.80f }, { true, true, false, true }, 0.28f, 3 },
@@ -1699,7 +1699,7 @@ std::array<ModuleDescriptor, 6> ym2612Modules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "YM2612/OPN2 core is backed by audited BSD-licensed ymfm.", { "YM2612 model", "NTSC Genesis clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM Voices", "Six-chip voice architecture with four lanes exposed in the current UI.", { "Voice 1", "Voice 2", "Voice 3", "Voice 4 shown" }),
+        makeModule("sources", "FM Voices", "Six-chip voice architecture with four direct lanes in the shared UI.", { "Voices 1-4 shown", "Voices 5-6 stacked", "Chip Poly uses six", "Six-lane UI planned" }),
         makeModule("tone", "Operators", "Musical controls write native OPN2 algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Envelope", "Useful fixed operator envelopes are written per voice for this first FM instrument pass.", { "Operator attack", "Decay", "Sustain/release", "Full ADSR planned" }),
         makeModule("motion", "Motion", "Genesis-style musical templates map to register-backed FM patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
@@ -1886,7 +1886,7 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2612,
             "YM2612 / Genesis FM",
-            "Four exposed melodic lanes write YM2612/OPN2 registers into the audited ymfm core for Genesis-style FM tones.",
+            "Six melodic lanes write YM2612/OPN2 registers into the audited ymfm core for Genesis-style FM tones; the shared UI directly exposes the first four.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2612 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2612 feedback bits for the active FM voices." },
@@ -1901,11 +1901,11 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2612/OPN2 synthesis core.",
-                    "Renderer notes and musical templates write OPN2 algorithm, feedback, operator multiplier/total-level, f-number/block, left/right pan bits, and key-on registers.",
-                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the first melodic adapter."
+                    "Renderer notes and musical templates write OPN2 algorithm, feedback, operator multiplier/total-level, f-number/block, left/right pan bits, and key-on registers across all six melodic channels.",
+                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the first melodic adapter, including six-channel note allocation."
                 },
                 {
-                    "Only four melodic lanes are exposed in the current UI even though the underlying YM2612 core has six channels.",
+                    "Only four melodic lanes have direct source controls in the current shared UI; channels 5-6 participate as internal stacked/poly lanes until the full six-lane FM UI lands.",
                     "DAC playback, LFO/AMS/PMS, full per-operator ADSR UI, SSG-EG quirks, timers, and hardware capture comparison are not complete.",
                     "Cycle accuracy is not claimed."
                 })

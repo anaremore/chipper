@@ -658,6 +658,9 @@ add_test(NAME chipper_render_ym2612_smoke
 add_test(NAME chipper_render_ym2612_chip_poly_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 8 --clock 7670454 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/scc-chip-poly-events.txt --out ym2612-chip-poly-smoke.wav --debug ym2612-chip-poly-smoke.json
 )
+add_test(NAME chipper_render_ym2612_six_channel_chip_poly_smoke
+    COMMAND chipper_render --chip ym2612 --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 8 --clock 7670454 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2612-six-channel-events.txt --out ym2612-six-channel-chip-poly-smoke.wav --debug ym2612-six-channel-chip-poly-smoke.json
+)
 add_test(NAME chipper_render_ym2612_sources_off_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 0 --clock 7670454 --rate 48000 --seconds 0.04 --note 69 --out ym2612-sources-off-smoke.wav --debug ym2612-sources-off-smoke.json
 )
@@ -1318,8 +1321,13 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_ym2612_chip_poly_assert PROPERTIES DEPENDS chipper_render_ym2612_chip_poly_smoke)
 
+    add_test(NAME chipper_render_ym2612_six_channel_chip_poly_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-six-channel-chip-poly-smoke.json --implemented-contains ymfm --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 6 --min-peak 0.01 --core-min internalChannelCount=6 --core-max internalChannelCount=6 --core-min hiddenChannelsFollowAnySource=1 --core-max hiddenChannelsFollowAnySource=1 --core-min activeChannels=6 --core-max activeChannels=6 --core-min assignedNote0=48 --core-max assignedNote0=48 --core-min assignedNote1=52 --core-max assignedNote1=52 --core-min assignedNote2=55 --core-max assignedNote2=55 --core-min assignedNote3=60 --core-max assignedNote3=60 --core-min assignedNote4=64 --core-max assignedNote4=64 --core-min assignedNote5=67 --core-max assignedNote5=67 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1 --core-min sourceEnabled5=1 --core-max sourceEnabled5=1 --core-min keyOnMask=63 --core-max keyOnMask=63
+    )
+    set_tests_properties(chipper_render_ym2612_six_channel_chip_poly_assert PROPERTIES DEPENDS chipper_render_ym2612_six_channel_chip_poly_smoke)
+
     add_test(NAME chipper_render_ym2612_sources_off_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-sources-off-smoke.json --implemented-contains ymfm --macro Manual --register-writes 0 --note-events 0 --max-peak 0.001 --max-rms 0.001 --core-min keyOnMask=0 --core-max keyOnMask=0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-sources-off-smoke.json --implemented-contains ymfm --macro Manual --register-writes 0 --note-events 0 --max-peak 0.001 --max-rms 0.001 --core-min keyOnMask=0 --core-max keyOnMask=0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min sourceEnabled5=0 --core-max sourceEnabled5=0
     )
     set_tests_properties(chipper_render_ym2612_sources_off_assert PROPERTIES DEPENDS chipper_render_ym2612_sources_off_smoke)
     add_test(NAME chipper_render_ym2612_pan_left_assert

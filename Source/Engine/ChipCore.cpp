@@ -6768,24 +6768,24 @@ public:
 
         heldNote = std::clamp(midiNote, 0, 127);
         const auto baseVelocity = static_cast<float>(clamp01(velocity));
-        auto notes = std::array<int, 4> { heldNote, heldNote + 7, heldNote + 12, heldNote + 19 };
+        auto notes = std::array<int, 6> { heldNote, heldNote + 7, heldNote + 12, heldNote + 19, heldNote + 24, heldNote + 31 };
         switch (patch.macro)
         {
-            case MacroKind::bass: notes = { heldNote - 24, heldNote - 12, heldNote, heldNote + 7 }; break;
-            case MacroKind::lead: notes = { heldNote, heldNote + 7, heldNote + 12, heldNote + 16 }; break;
-            case MacroKind::arp: notes = { heldNote, heldNote + 4, heldNote + 7, heldNote + 12 }; break;
+            case MacroKind::bass: notes = { heldNote - 24, heldNote - 12, heldNote, heldNote + 7, heldNote + 12, heldNote + 19 }; break;
+            case MacroKind::lead: notes = { heldNote, heldNote + 7, heldNote + 12, heldNote + 16, heldNote + 19, heldNote + 24 }; break;
+            case MacroKind::arp: notes = { heldNote, heldNote + 4, heldNote + 7, heldNote + 12, heldNote + 16, heldNote + 19 }; break;
             case MacroKind::coin:
-            case MacroKind::jump: notes = { heldNote + 24, heldNote + 31, heldNote + 36, heldNote + 43 }; break;
-            case MacroKind::laser: notes = { heldNote + 24, heldNote + 12, heldNote, heldNote - 12 }; break;
-            case MacroKind::powerUp: notes = { heldNote, heldNote + 5, heldNote + 12, heldNote + 17 }; break;
+            case MacroKind::jump: notes = { heldNote + 24, heldNote + 31, heldNote + 36, heldNote + 43, heldNote + 48, heldNote + 55 }; break;
+            case MacroKind::laser: notes = { heldNote + 24, heldNote + 12, heldNote, heldNote - 12, heldNote - 19, heldNote - 24 }; break;
+            case MacroKind::powerUp: notes = { heldNote, heldNote + 5, heldNote + 12, heldNote + 17, heldNote + 24, heldNote + 29 }; break;
             case MacroKind::drum:
-            case MacroKind::hit: notes = { heldNote - 12, heldNote - 5, heldNote, heldNote + 7 }; break;
+            case MacroKind::hit: notes = { heldNote - 12, heldNote - 5, heldNote, heldNote + 7, heldNote + 12, heldNote + 19 }; break;
             case MacroKind::manual:
             default: break;
         }
 
         for (size_t channel = 0; channel < notes.size(); ++channel)
-            triggerChannel(channel, notes[channel], baseVelocity, sourceEnabled(patch, channel));
+            triggerChannel(channel, notes[channel], baseVelocity, channelEnabled(channel));
     }
 
     void noteOff(int midiNote) override
@@ -6799,7 +6799,7 @@ public:
         if (midiNote == heldNote)
         {
             heldNote = -1;
-            for (size_t channel = 0; channel < 4; ++channel)
+            for (size_t channel = 0; channel < 6; ++channel)
                 keyOffChannel(channel);
         }
     }
@@ -6861,7 +6861,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPN2 register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator, algorithm, feedback, f-number/block, $B4 left/right pan bits, and key-on registers for four exposed melodic lanes. DAC playback, full six-lane UI, LFO/AMS/PMS controls, SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator, algorithm, feedback, f-number/block, $B4 left/right pan bits, and key-on registers for all six melodic channels, while the shared UI exposes direct source controls for the first four lanes. DAC playback, full six-lane UI, LFO/AMS/PMS controls, SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -6880,6 +6880,7 @@ public:
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"internalChannelCount\":6,"
              << "\"uiExposesFirstFourVoices\":1,"
+             << "\"hiddenChannelsFollowAnySource\":1,"
              << "\"algorithm0\":" << static_cast<int>(currentAlgorithm[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
              << "\"panBits0\":" << static_cast<int>(currentPanBits[0]) << ","
@@ -6896,11 +6897,15 @@ public:
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+             << "\"sourceEnabled4\":" << (channelEnabled(4) ? 1 : 0) << ","
+             << "\"sourceEnabled5\":" << (channelEnabled(5) ? 1 : 0) << ","
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNote0\":" << channelNotes[0] << ","
              << "\"assignedNote1\":" << channelNotes[1] << ","
              << "\"assignedNote2\":" << channelNotes[2] << ","
              << "\"assignedNote3\":" << channelNotes[3] << ","
+             << "\"assignedNote4\":" << channelNotes[4] << ","
+             << "\"assignedNote5\":" << channelNotes[5] << ","
              << "\"nativeLeft\":" << lastNativeLeft << ","
              << "\"nativeRight\":" << lastNativeRight << ","
              << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
@@ -7019,6 +7024,14 @@ private:
         return static_cast<uint8_t>(std::clamp(op == 3 ? carrierLevel : modulatorLevel, 0, 127));
     }
 
+    bool channelEnabled(size_t channel) const
+    {
+        if (channel < patch.sourceEnabled.size())
+            return sourceEnabled(patch, channel);
+
+        return std::any_of(patch.sourceEnabled.begin(), patch.sourceEnabled.end(), [](bool enabled) { return enabled; });
+    }
+
     void applyChannelPatch(size_t channel, float velocity)
     {
         if (channel >= 6)
@@ -7061,16 +7074,16 @@ private:
         if (! preserveKeys)
             return;
 
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < 6; ++channel)
         {
             if ((keyOnMask & (1u << channel)) != 0 && channelNotes[channel] >= 0)
-                triggerChannel(channel, channelNotes[channel], channelVelocity[channel], sourceEnabled(patch, channel));
+                triggerChannel(channel, channelNotes[channel], channelVelocity[channel], channelEnabled(channel));
         }
     }
 
     void triggerChannel(size_t channel, int midiNote, float velocity, bool shouldEnable)
     {
-        if (channel >= 4 || ! chip)
+        if (channel >= 6 || ! chip)
             return;
 
         const auto detune = static_cast<int>(std::round((patch.control2 - 0.5f) * 8.0f));
@@ -7093,7 +7106,7 @@ private:
 
     void keyOffChannel(size_t channel)
     {
-        if (channel >= 4)
+        if (channel >= 6)
             return;
         writeYmRegister(0x28, keyCodeForChannel(channel));
         keyOnMask &= static_cast<uint16_t>(~(1u << channel));
@@ -7101,7 +7114,7 @@ private:
 
     void clearChipPolyState()
     {
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < 6; ++channel)
             keyOffChannel(channel);
         channelNotes.fill(-1);
         channelVelocity.fill(0.0f);
@@ -7111,22 +7124,22 @@ private:
 
     int selectChipPolyChannel(int midiNote) const
     {
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < 6; ++channel)
         {
-            if (sourceEnabled(patch, channel) && channelNotes[channel] == midiNote)
+            if (channelEnabled(channel) && channelNotes[channel] == midiNote)
                 return static_cast<int>(channel);
         }
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < 6; ++channel)
         {
-            if (sourceEnabled(patch, channel) && channelNotes[channel] < 0)
+            if (channelEnabled(channel) && channelNotes[channel] < 0)
                 return static_cast<int>(channel);
         }
 
         auto oldestChannel = -1;
         auto oldestStamp = std::numeric_limits<uint64_t>::max();
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < 6; ++channel)
         {
-            if (sourceEnabled(patch, channel) && channelStamp[channel] < oldestStamp)
+            if (channelEnabled(channel) && channelStamp[channel] < oldestStamp)
             {
                 oldestStamp = channelStamp[channel];
                 oldestChannel = static_cast<int>(channel);
@@ -7138,9 +7151,9 @@ private:
     int activeChipPolyChannels() const
     {
         auto active = 0;
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < 6; ++channel)
         {
-            if (sourceEnabled(patch, channel) && channelNotes[channel] >= 0)
+            if (channelEnabled(channel) && channelNotes[channel] >= 0)
                 ++active;
         }
         return active;
@@ -7161,7 +7174,7 @@ private:
 
     void noteOffChipPoly(int midiNote)
     {
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < 6; ++channel)
         {
             if (channelNotes[channel] != midiNote)
                 continue;
@@ -7177,12 +7190,12 @@ private:
     {
         laserPhase += 1.0 / sampleRate;
         const auto bend = static_cast<int>(std::round(std::sin(twoPi * laserPhase * 8.0) * patch.control3 * 10.0));
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < 6; ++channel)
         {
             if ((keyOnMask & (1u << channel)) == 0)
                 continue;
             const auto note = (patch.playMode == PlayMode::chipPoly && channelNotes[channel] >= 0) ? channelNotes[channel] : heldNote;
-            triggerChannel(channel, note + bend, channelVelocity[channel] > 0.0f ? channelVelocity[channel] : 1.0f, sourceEnabled(patch, channel));
+            triggerChannel(channel, note + bend, channelVelocity[channel] > 0.0f ? channelVelocity[channel] : 1.0f, channelEnabled(channel));
         }
     }
 
@@ -7204,9 +7217,9 @@ private:
     std::array<uint8_t, 6> currentDecayRate {};
     std::array<uint8_t, 6> currentSustainRate {};
     std::array<uint8_t, 6> currentSustainRelease {};
-    std::array<int, 4> channelNotes {};
-    std::array<float, 4> channelVelocity {};
-    std::array<uint64_t, 4> channelStamp {};
+    std::array<int, 6> channelNotes {};
+    std::array<float, 6> channelVelocity {};
+    std::array<uint64_t, 6> channelStamp {};
     uint64_t noteStamp = 0;
     int heldNote = -1;
     uint16_t keyOnMask = 0;
