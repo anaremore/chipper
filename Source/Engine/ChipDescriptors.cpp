@@ -58,6 +58,22 @@ std::vector<MacroTemplate> ym2612Macros()
     };
 }
 
+std::vector<MacroTemplate> ym2151Macros()
+{
+    return {
+        { MacroKind::manual, "OPM Manual", "Neutral YM2151 melodic-channel mapping using the ymfm OPM core.", { 0.50f, 0.35f, 0.48f, 0.72f }, { true, true, true, true }, 0.0f, 0 },
+        { MacroKind::coin, "OPM Arcade Chime", "Short bright arcade FM UI chime.", { 0.84f, 0.16f, 0.70f, 0.78f }, { true, false, false, false }, 0.16f, 7 },
+        { MacroKind::bass, "OPM Arcade Bass", "Feedback-heavy four-operator arcade/X68000 bass.", { 0.00f, 0.82f, 0.30f, 0.88f }, { true, true, false, false }, 0.08f, 1 },
+        { MacroKind::lead, "OPM Metallic Lead", "Bright YM2151 lead using parallel-carrier algorithm bias.", { 0.58f, 0.48f, 0.66f, 0.84f }, { true, true, true, false }, 0.10f, 5 },
+        { MacroKind::arp, "OPM Arcade Arp", "Four exposed OPM lanes arranged for fake chords and fast arps.", { 0.78f, 0.30f, 0.54f, 0.78f }, { true, true, true, true }, 0.08f, 8 },
+        { MacroKind::drum, "OPM FM Perc", "Melodic-channel percussion placeholder until native OPM noise support lands.", { 0.25f, 0.88f, 0.86f, 0.74f }, { false, false, true, true }, 0.58f, 3 },
+        { MacroKind::hit, "OPM Damage Hit", "Aggressive arcade FM impact.", { 0.22f, 0.92f, 0.82f, 0.78f }, { true, false, true, true }, 0.55f, 3 },
+        { MacroKind::laser, "OPM Laser Sweep", "Pitch-swept arcade FM SFX.", { 0.34f, 0.74f, 0.92f, 0.80f }, { true, true, false, true }, 0.28f, 4 },
+        { MacroKind::jump, "OPM Jump Blip", "Quick upward arcade FM game gesture.", { 0.82f, 0.20f, 0.68f, 0.76f }, { true, false, false, false }, 0.18f, 7 },
+        { MacroKind::powerUp, "OPM Power Sweep", "Longer arcade FM rise over stacked lanes.", { 0.86f, 0.36f, 0.62f, 0.84f }, { true, true, true, true }, 0.14f, 6 }
+    };
+}
+
 std::vector<MacroTemplate> oplMacros()
 {
     return {
@@ -541,6 +557,65 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
                    "Stereo Spread",
                    "Output",
                    "Reserved modern convenience metadata; the current OPN2 adapter writes centered pan to both YM2612 outputs.",
+                   ParameterKind::continuous)
+    };
+}
+
+std::vector<ParameterChoiceSpec> ym2151AlgorithmChoices()
+{
+    return {
+        choice("Follow", "Resolve the YM2151 algorithm from the selected OPM template.", 0.0f, 0),
+        choice("Alg 0", "Use YM2151 algorithm 0: serial four-operator modulation for classic FM bass.", 1.0f / 8.0f, 1),
+        choice("Alg 1", "Use YM2151 algorithm 1: serial pair with parallel modulation.", 2.0f / 8.0f, 2),
+        choice("Alg 2", "Use YM2151 algorithm 2: branching modulation texture.", 3.0f / 8.0f, 3),
+        choice("Alg 3", "Use YM2151 algorithm 3: mixed serial and parallel operators.", 4.0f / 8.0f, 4),
+        choice("Alg 4", "Use YM2151 algorithm 4: two carrier stacks for bright arcade leads.", 5.0f / 8.0f, 5),
+        choice("Alg 5", "Use YM2151 algorithm 5: one modulator feeding three carriers.", 6.0f / 8.0f, 6),
+        choice("Alg 6", "Use YM2151 algorithm 6: paired modulator/carrier routes.", 7.0f / 8.0f, 7),
+        choice("Alg 7", "Use YM2151 algorithm 7: four parallel carriers for chimes and organ-like tones.", 1.0f, 8)
+    };
+}
+
+std::vector<ChipParameterSpec> ym2151ParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "ym2151.algorithmBias",
+                   "Algorithm Bias",
+                   "FM",
+                   "In Follow mode this chooses among the YM2151 algorithm register values; explicit Algorithm choices override it.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "ym2151.feedback",
+                   "Feedback",
+                   "FM",
+                   "Maps to YM2151 feedback bits in the channel algorithm/feedback register.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "ym2151.operatorTone",
+                   "Operator Tone",
+                   "Operators",
+                   "Scales operator multiplier and modulator total-level choices before writing OPM operator registers.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "ym2151.fmLevel",
+                   "FM Level",
+                   "Mixer",
+                   "Controls audible carrier level and final OPM output trim.",
+                   ParameterKind::chipRegister,
+                   0.72f),
+        segmentedSpec(ChipParameterRole::waveShape,
+                      "ym2151.algorithm",
+                      "Algorithm",
+                      "FM",
+                      "Chooses the YM2151 four-operator algorithm. Follow lets the selected template choose.",
+                      ym2151AlgorithmChoices(),
+                      ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::stereoSpread,
+                   "ym2151.stereoSpread",
+                   "Stereo Spread",
+                   "Output",
+                   "Reserved modern convenience metadata; the current OPM adapter writes left/right pan enabled on every exposed voice.",
                    ParameterKind::continuous)
     };
 }
@@ -1597,6 +1672,18 @@ std::array<ModuleDescriptor, 6> oplModules()
     };
 }
 
+std::array<ModuleDescriptor, 6> ym2151Modules()
+{
+    return std::array<ModuleDescriptor, 6> {
+        makeModule("profile", "Profile", "YM2151/OPM core is backed by audited BSD-licensed ymfm.", { "YM2151 core", "Arcade clock", "Hybrid default", "Verified partial" }),
+        makeModule("sources", "FM Voices", "Eight OPM melodic channels with four lanes exposed in the current UI.", { "Voice 1", "Voice 2", "Voice 3", "Voice 4 shown" }),
+        makeModule("tone", "Operators", "Musical controls write native OPM algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
+        makeModule("envelope", "Envelope", "Useful fixed OPM operator envelopes are written per voice for this first FM instrument pass.", { "Attack", "Decay", "Sustain/release", "Full ADSR planned" }),
+        makeModule("motion", "Motion", "Arcade FM templates map to register-backed OPM patches.", { "Chime", "Arcade bass", "Metal lead", "Laser" }),
+        makeModule("output", "Output", "ymfm stereo OPM output is rendered with left/right pan enabled per active lane.", { "Stereo core", "LFO/noise planned", "Output gain", "Reference tests needed" })
+    };
+}
+
 std::array<ModuleDescriptor, 6> sampleModules(std::string profile, std::string sourceTitle, std::string toneTitle)
 {
     return std::array<ModuleDescriptor, 6> {
@@ -1974,24 +2061,28 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2151,
             "YM2151 arcade FM",
-            "Planned arcade/X68000 four-operator FM mode using the audited ymfm path. No OPM adapter is integrated yet.",
+            "Four exposed melodic lanes write YM2151/OPM registers into the audited ymfm core for arcade/X68000 FM tones.",
             {
-                { "algorithm", "Algorithm", "FM", "Planned OPM algorithm selection." },
-                { "feedback", "Feedback", "FM", "Planned feedback amount." },
-                { "operator", "Operator Tone", "Operators", "Planned four-operator macro." },
-                { "lfo", "LFO", "Motion", "Planned PM/AM LFO helper." },
+                { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2151 algorithm register." },
+                { "feedback", "Feedback", "FM", "Writes YM2151 feedback bits for the active OPM voices." },
+                { "operator", "Operator Tone", "Operators", "Scales operator multipliers and modulator levels." },
+                { "level", "FM Level", "Output", "Controls carrier level and final OPM output trim." },
             },
-            fmModules("YM2151/OPM ymfm strategy audited.", "FM Voices", "Operators"),
-            plannedFmMacros("OPM"),
-            false,
-            false,
-            {},
-            plannedDisclosure(
-                "`ymfm` is audited as the permissive-first OPM core for YM2151/arcade/X68000 behavior.",
-                "YM2151 UI should use eight four-operator voices with algorithm, feedback, LFO PM/AM, and per-operator envelopes.",
+            ym2151Modules(),
+            ym2151Macros(),
+            true,
+            true,
+            ym2151ParameterSpecs(),
+            verifiedPartial(
                 {
-                    "No YM2151/OPM adapter is integrated.",
-                    "Four-operator voice routing, LFO, noise, and register-level FM behavior are not implemented."
+                    "BSD-3-Clause ymfm is vendored and linked as the YM2151/OPM synthesis core.",
+                    "Renderer notes and musical templates write OPM algorithm, feedback, operator multiplier/total-level/envelope seed, key-code/key-fraction, pan, and key-on registers.",
+                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the first melodic adapter."
+                },
+                {
+                    "Only four melodic lanes are exposed in the current UI even though the underlying YM2151 core has eight channels.",
+                    "LFO PM/AM, noise mode, timers, CSM, deep per-operator ADSR UI, golden emulator comparison, and hardware capture comparison are not complete.",
+                    "Cycle accuracy is not claimed."
                 })
         },
         {

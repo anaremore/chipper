@@ -13,7 +13,7 @@ This list ranks near-term work by user value, implementation effort, and confide
 | 7 | Improve DMG authenticity around wave RAM writes, length/envelope timing, sweep overflow behavior, NR52 power behavior, and stereo routing. | 8 | 7 | 7 | Pan Docs-style public references, focused register traces, and stronger edge-case renderer tests. |
 | 8 | Improve YM2149/AY and SN76489 usability with chip-specific mixer/noise panels, preset categories, and clearer channel source cards. | 8 | 5 | 8 | Shared source-card component improvements and current renderer JSON for mixer/noise state. |
 | 9 | Add an explicit UI/renderer accuracy badge per chip mode that distinguishes Inspired, Hybrid, Authentic, and unverified roadmap modes without overclaiming. | 8 | 4 | 9 | A single descriptor field for verified behaviors and docs reviewed against current test coverage. |
-| 10 | Audit compatible emulator cores and license paths for planned FM/sample/wavetable chips before any vendoring. | 8 | 6 | 7 | License matrix, provenance notes, and source-map updates for each candidate core; ymfm is now vendored as the first permissive FM path for YM2612. |
+| 10 | Audit compatible emulator cores and license paths for planned FM/sample/wavetable chips before any vendoring. | 8 | 6 | 7 | License matrix, provenance notes, and source-map updates for each candidate core; ymfm is now vendored as the first permissive FM path for YM2612, OPL2, and YM2151. |
 | 11 | Expand the first ymfm-backed YM2612 pass from useful melodic adapter to deeper Genesis FM instrument. | 8 | 8 | 7 | Full six-lane UI, per-operator ADSR, DAC/sample behavior, LFO/AMS/PMS, register traces, and golden tests. |
 | 12 | Add hardware/reference comparison documentation and tolerance thresholds for each implemented chip. | 7 | 8 | 5 | Real hardware recordings, reproducible capture settings, and agreed spectral/timing tolerances. |
 
@@ -36,7 +36,7 @@ After SID, prioritize the other implemented chips before adding planned chips:
 | 9 | PC Engine HuC6280 | 7 | Current code is internal clean-room partial; MAME/GME/Furnace/HuSIC remain reference or audit targets only. | Replace the generic four-source view with six wavetable lanes, wave RAM visuals, noise/LFO controls, and PC Engine preset vocabulary. |
 | 10 | Namco arcade WSG | 7 | Current code is internal clean-room partial; MAME/Furnace remain reference or audit targets only. | Replace the generic four-source view with WSG lane banks, 4-bit wave RAM visuals, enable/volume controls, and arcade preset vocabulary. |
 | 11 | Konami SCC | 7 | Current audio path is backed by vendored MIT emu2212; exact SCC/SCC+ quirks still need golden/reference validation. | Replace the generic four-source view with five wavetable lanes, wave RAM visuals/editing, key/volume controls, and Konami preset vocabulary. |
-| 12 | YM2612 / OPN2 and OPL2/OPL3 | 8 | ymfm is now vendored for first YM2612 and OPL2 melodic adapters; use the same audited path for future OPL3/OPM work. | Use a real operator/algorithm UI with envelope visuals instead of generic oscillator controls. |
+| 12 | YM2612 / OPN2, OPL2/OPL3, and YM2151 / OPM | 8 | ymfm is now vendored for first YM2612, OPL2, and YM2151 melodic adapters; use the same audited path for future OPL3-specific work. | Use a real operator/algorithm UI with envelope visuals instead of generic oscillator controls. |
 
 ## Wide Chip Implementation Queue
 
@@ -51,7 +51,7 @@ Going wide is useful now, but only if planned modes stay honest. Planned chip de
 | 5 | Game Boy / DMG polish | Game Boy pulse/wave/noise patches with clearer Wave RAM and stereo routing. | Continue clean-room; SameBoy only after file-level audit; FigBug/PAPU remains GPL reference. | Four APU lanes with pulse sweep, Wave RAM view, NR32 level, NR51 routing, and noise width. | 7 |
 | 6 | Amiga Paula deeper pass | Make the new partial tracker-sampler core feel like a first-class Amiga instrument. | Continue clean-room; audit pt2-clone/libxmp/Furnace references before any reuse. | Four sample channels with period, loop, volume, panning, retrigger, and sample browser. | 7 |
 | 7 | SPC700-style deeper pass | Make the new partial lo-fi sample-voice core feel like a first-class SNES-style instrument. | Continue clean-room; audit emu-rs/snes-apu and snes-echo first for permissive paths, and keep C700/blargg snes_spc/GME/Furnace/MAME reference-only unless licensing is settled. | Eight sample voices with BRR/sample slots, ADSR/gain, pitch modulation status, Gaussian/output filtering, echo/FIR controls, and clear "style" labeling. | 6 |
-| 8 | YM2151 / OPM | Arcade/X68000 four-op FM leads and metallic basses. | Spike audited BSD-3-Clause `ymfm`. | Eight four-operator voices with algorithm, feedback, LFO PM/AM, and envelopes. | 7 |
+| 8 | YM2151 / OPM | Arcade/X68000 four-op FM leads and metallic basses. | First BSD-3-Clause `ymfm` OPM melodic adapter is in place. | Eight four-operator voices with algorithm, feedback, LFO PM/AM, noise, and per-operator envelopes. | 8 |
 | 9 | YM2413 / OPLL | Preset-FM quick sounds and UI/game chimes. | Audit `ymfm` and `emu2413`. | Preset instrument selector plus limited editable patch/rhythm controls. | 7 |
 | 10 | SCC deeper pass | Turn the new emu2212-backed partial Konami SCC/SCC+ core into a first-class five-channel wavetable instrument. | Continue the emu2212 adapter; add golden/reference comparisons before stronger accuracy claims. | Five wavetable strips with wave edit/slot, level, tuning, key mask, and stack/spread macros. | 8 |
 | 11 | HuC6280 deeper pass | Turn the new partial PC Engine core into a first-class six-channel wavetable instrument. | Continue clean-room; audit MAME/GME/Furnace/HuSIC before any reuse. | Six wavetable channel strips with wave RAM preview/editing, native noise, LFO, channel balance, and source scopes. | 6 |
@@ -59,7 +59,7 @@ Going wide is useful now, but only if planned modes stay honest. Planned chip de
 | 13 | POKEY deeper pass | Improve the new partial Atari core. | Continue clean-room; web-pokey/MAME/Furnace reference-only unless audited. | Add AUDCTL channel pairing, high-pass filters, stronger polynomial validation, and source-card visuals. | 6 |
 Confidence improves most by doing small adapter spikes, adding renderer traces before UI exposure, and recording exact upstream commit/license details before any third-party source enters the tree.
 
-Arcade-style sounds should come from named chip modes such as YM2149, SN76489, Namco WSG, SCC, and future YM2151 work rather than from an undefined generic arcade mode.
+Arcade-style sounds should come from named chip modes such as YM2149, SN76489, Namco WSG, SCC, and YM2151 rather than from an undefined generic arcade mode.
 
 ## Open-Source Decision Gate
 

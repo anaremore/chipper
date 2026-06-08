@@ -186,6 +186,7 @@ bool expectVerificationDisclosure()
         chipper::ChipMode::namcoWsg,
         chipper::ChipMode::ym2612,
         chipper::ChipMode::opl3,
+        chipper::ChipMode::ym2151,
         chipper::ChipMode::ym2413,
         chipper::ChipMode::scc
     };
@@ -200,22 +201,6 @@ bool expectVerificationDisclosure()
         ok &= expect(! disclosure.knownGaps.empty(), "live chip should list known gaps");
         ok &= expect(! disclosure.hardwareValidated, "live chip should not claim hardware validation yet");
         ok &= expect(! disclosure.cycleAccurate, "live chip should not claim cycle accuracy yet");
-    }
-
-    constexpr std::array plannedModes {
-        chipper::ChipMode::ym2151
-    };
-
-    for (const auto mode : plannedModes)
-    {
-        const auto& planned = chipper::descriptorFor(mode).verification;
-        ok &= expect(planned.badge == "Unverified planned", "planned chip should disclose unverified status");
-        ok &= expect(planned.summary.find("Planned mode only") != std::string::npos, "planned chip should explain planned-only status");
-        ok &= expect(planned.evidence.find("No VST audio core") != std::string::npos, "planned chip should avoid implying implemented audio");
-        ok &= expect(planned.verifiedBehaviors.size() >= 2u, "planned chip should list descriptor/UI roadmap evidence");
-        ok &= expect(planned.knownGaps.size() >= 3u, "planned chip should list implementation blockers");
-        ok &= expect(! planned.hardwareValidated, "planned chip should not claim hardware validation");
-        ok &= expect(! planned.cycleAccurate, "planned chip should not claim cycle accuracy");
     }
 
     return ok;
@@ -241,6 +226,8 @@ int main()
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::namcoWsg).supportsChipPoly, "Namco WSG should support Chip Poly across exposed wavetable lanes");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2413).implemented, "YM2413 descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2413).supportsChipPoly, "YM2413 should support Chip Poly across exposed melodic channels");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2151).implemented, "YM2151 descriptor should be partially implemented");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2151).supportsChipPoly, "YM2151 should support Chip Poly across exposed melodic channels");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).implemented, "SCC descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).supportsChipPoly, "SCC should support Chip Poly across exposed wavetable channels");
     ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl1, 4, "12.5%");
@@ -387,7 +374,14 @@ int main()
     ok &= expectMacroLabel(chipper::ChipMode::namcoWsg, chipper::MacroKind::arp, "Namco Tracker Arp");
     ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::waveShape, 5, "Follow");
-    ok &= expectMacroLabel(chipper::ChipMode::ym2151, chipper::MacroKind::lead, "OPM Metallic Lead Plan");
+    ok &= expectMacroLabel(chipper::ChipMode::ym2151, chipper::MacroKind::lead, "OPM Metallic Lead");
+    ok &= expectMacroSourceMask(chipper::ChipMode::ym2151, chipper::MacroKind::drum, { false, false, true, true });
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Algorithm");
+    ok &= expectSegmentedRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::waveShape, 9, "Follow");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Algorithm Bias");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Feedback");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Operator Tone");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "FM Level");
     ok &= expectMacroLabel(chipper::ChipMode::ym2413, chipper::MacroKind::coin, "OPLL UI Chime");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Instrument");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, 5, "Follow");

@@ -661,6 +661,15 @@ add_test(NAME chipper_render_opl3_chip_poly_smoke
 add_test(NAME chipper_render_opl3_sources_off_smoke
     COMMAND chipper_render --chip opl3 --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 0 --clock 3579545 --rate 48000 --seconds 0.04 --note 69 --out opl3-sources-off-smoke.wav --debug opl3-sources-off-smoke.json
 )
+add_test(NAME chipper_render_ym2151_smoke
+    COMMAND chipper_render --chip ym2151 --accuracy authentic --macro lead --wave-shape 5 --clock 3579545 --rate 48000 --seconds 0.08 --note 69 --out ym2151-smoke.wav --debug ym2151-smoke.json
+)
+add_test(NAME chipper_render_ym2151_chip_poly_smoke
+    COMMAND chipper_render --chip ym2151 --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 8 --clock 3579545 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/scc-chip-poly-events.txt --out ym2151-chip-poly-smoke.wav --debug ym2151-chip-poly-smoke.json
+)
+add_test(NAME chipper_render_ym2151_sources_off_smoke
+    COMMAND chipper_render --chip ym2151 --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 0 --clock 3579545 --rate 48000 --seconds 0.04 --note 69 --out ym2151-sources-off-smoke.wav --debug ym2151-sources-off-smoke.json
+)
 add_test(NAME chipper_render_ym2413_smoke
     COMMAND chipper_render --chip ym2413 --accuracy authentic --macro lead --wave-shape 3 --clock 3579545 --rate 48000 --seconds 0.08 --note 69 --out ym2413-smoke.wav --debug ym2413-smoke.json
 )
@@ -741,6 +750,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip ym2413 --implemented ym2413=1 --verification-badge "ym2413=Verified partial" --verification-cycle ym2413=0 --verification-hardware ym2413=0 --param-kind ym2413:waveShape=chipRegister --param-surface ym2413:waveShape=segmentedChoice --param-choices ym2413:waveShape=5 --param-midi-cc ym2413:waveShape=89 --param-kind ym2413:macroControl1=chipRegister --param-surface ym2413:macroControl1=slider --param-midi-cc ym2413:macroControl1=76 --param-kind ym2413:macroControl4=chipRegister --param-surface ym2413:macroControl4=slider --param-midi-cc ym2413:macroControl4=79 --macro-label "ym2413:Coin=OPLL UI Chime" --macro-source ym2413:Bass=1100 --preset opll-ui-chime --preset opll-preset-bass --preset opll-organ-arp
     )
     set_tests_properties(chipper_render_list_ym2413_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
+
+    add_test(NAME chipper_render_list_ym2151_descriptor_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip ym2151 --implemented ym2151=1 --verification-badge "ym2151=Verified partial" --verification-cycle ym2151=0 --verification-hardware ym2151=0 --param-kind ym2151:waveShape=chipRegister --param-surface ym2151:waveShape=segmentedChoice --param-choices ym2151:waveShape=9 --param-midi-cc ym2151:waveShape=89 --param-kind ym2151:macroControl1=chipRegister --param-surface ym2151:macroControl1=slider --param-midi-cc ym2151:macroControl1=76 --param-kind ym2151:macroControl2=chipRegister --param-surface ym2151:macroControl2=slider --param-midi-cc ym2151:macroControl2=77 --param-kind ym2151:macroControl3=chipRegister --param-surface ym2151:macroControl3=slider --param-midi-cc ym2151:macroControl3=78 --param-kind ym2151:macroControl4=chipRegister --param-surface ym2151:macroControl4=slider --param-midi-cc ym2151:macroControl4=79 --macro-label "ym2151:Lead=OPM Metallic Lead" --macro-source ym2151:Drum=0011 --preset opm-arcade-bass --preset opm-metallic-lead --preset opm-arcade-arp
+    )
+    set_tests_properties(chipper_render_list_ym2151_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_ym_channel_mix_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip ym2149 --param-kind ym2149:ymChannelAMix=chipRegister --param-surface ym2149:ymChannelAMix=menu --param-choices ym2149:ymChannelAMix=5 --param-midi-cc ym2149:ymChannelAMix=101 --param-kind ym2149:ymChannelBMix=chipRegister --param-surface ym2149:ymChannelBMix=menu --param-choices ym2149:ymChannelBMix=5 --param-midi-cc ym2149:ymChannelBMix=102 --param-kind ym2149:ymChannelCMix=chipRegister --param-surface ym2149:ymChannelCMix=menu --param-choices ym2149:ymChannelCMix=5 --param-midi-cc ym2149:ymChannelCMix=103
@@ -1241,6 +1255,21 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-sources-off-smoke.json --implemented-contains ymfm --macro Manual --register-writes 0 --note-events 0 --max-peak 0.001 --max-rms 0.001 --core-min keyOnMask=0 --core-max keyOnMask=0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0
     )
     set_tests_properties(chipper_render_opl3_sources_off_assert PROPERTIES DEPENDS chipper_render_opl3_sources_off_smoke)
+
+    add_test(NAME chipper_render_ym2151_json_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-smoke.json --implemented-contains ymfm --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.01 --min-rms 0.002 --register-writes 0 --note-events 0 --core-min internalChannelCount=8 --core-max internalChannelCount=8 --core-min uiExposesFirstFourVoices=1 --core-max uiExposesFirstFourVoices=1 --core-min algorithm0=3 --core-max algorithm0=3 --core-min feedback0=3 --core-max feedback0=3 --core-min keyCode0=1 --core-max keyCode0=127 --core-min keyFraction0=0 --core-max keyFraction0=0 --core-min keyOnMask=0 --core-max keyOnMask=0 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Algorithm" --descriptor-param-choices waveShape=9
+    )
+    set_tests_properties(chipper_render_ym2151_json_assert PROPERTIES DEPENDS chipper_render_ym2151_smoke)
+
+    add_test(NAME chipper_render_ym2151_chip_poly_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-chip-poly-smoke.json --implemented-contains ymfm --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 4 --min-peak 0.01 --core-min activeChannels=4 --core-max activeChannels=4 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min keyOnMask=15 --core-max keyOnMask=15
+    )
+    set_tests_properties(chipper_render_ym2151_chip_poly_assert PROPERTIES DEPENDS chipper_render_ym2151_chip_poly_smoke)
+
+    add_test(NAME chipper_render_ym2151_sources_off_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-sources-off-smoke.json --implemented-contains ymfm --macro Manual --register-writes 0 --note-events 0 --max-peak 0.001 --max-rms 0.001 --core-min keyOnMask=0 --core-max keyOnMask=0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0
+    )
+    set_tests_properties(chipper_render_ym2151_sources_off_assert PROPERTIES DEPENDS chipper_render_ym2151_sources_off_smoke)
 
     add_test(NAME chipper_render_ym2413_json_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2413-smoke.json --implemented-contains emu2413 --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.02 --min-rms 0.005 --register-writes 0 --note-events 0 --core-min internalChannelCount=9 --core-max internalChannelCount=9 --core-min uiExposesFirstFourVoices=1 --core-max uiExposesFirstFourVoices=1 --core-min instrumentChoice=3 --core-max instrumentChoice=3 --core-min instrument0=7 --core-max instrument0=7 --core-min fnum0=256 --core-max fnum0=511 --core-min block0=0 --core-max block0=7 --core-min keyOnMask=0 --core-max keyOnMask=0 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Instrument" --descriptor-param-choices waveShape=5
