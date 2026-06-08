@@ -716,6 +716,10 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise Pitch");
     ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::envelopeDecay, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Envelope Speed");
     ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Envelope Shape");
+    ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::source1Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel A");
+    ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::source2Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel B");
+    ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::source3Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel C");
+    ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::source4Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Shared Noise");
     if (const auto* spec = chipper::parameterSpecFor(chipper::ChipMode::ym2149, chipper::ChipParameterRole::ymEnvelopeShape))
     {
         ok &= expect(spec->choices.size() == 21u, "YM envelope shape should expose friendly shortcuts plus 16 hardware codes");

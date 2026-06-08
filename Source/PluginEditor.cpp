@@ -3808,6 +3808,25 @@ static juce::String paulaHardwarePanLabel(size_t index)
     return (index == 0u || index == 3u) ? juce::String("L") : juce::String("R");
 }
 
+static juce::String ym2149ResolvedChannelMixLabel(const chipper::PatchConfig& patch, size_t index)
+{
+    if (index >= 3u)
+        return "Noise p" + juce::String(static_cast<int>(chipper::ym2149NoisePeriodForControl(patch.control3))).paddedLeft('0', 2);
+
+    const auto macroMixer = chipper::ym2149MixerRegisterForControl(patch.control4);
+    const auto mixer = chipper::ym2149MixerRegisterWithChannelOverrides(patch, macroMixer);
+    const auto toneEnabled = (mixer & static_cast<uint8_t>(1u << index)) == 0u;
+    const auto noiseEnabled = (mixer & static_cast<uint8_t>(1u << (index + 3u))) == 0u;
+
+    if (toneEnabled && noiseEnabled)
+        return "Both";
+    if (toneEnabled)
+        return "Tone";
+    if (noiseEnabled)
+        return "Noise";
+    return "Off";
+}
+
 juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMode mode,
                                                                 const chipper::PatchConfig& patch,
                                                                 size_t index) const
@@ -4081,6 +4100,15 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
     const auto number = juce::String(static_cast<int>(index + 1u));
     if (mode == chipper::ChipMode::pokey)
         return "Ch " + number + " | AUDC $" + byteHex(chipper::pokeyAudcForPatch(patch));
+
+    if (mode == chipper::ChipMode::ym2149)
+    {
+        if (index < 3u)
+            return juce::String::charToString(static_cast<juce::juce_wchar>('A' + static_cast<int>(index)))
+                + " | " + ym2149ResolvedChannelMixLabel(patch, index);
+
+        return ym2149ResolvedChannelMixLabel(patch, index);
+    }
 
     if (mode == chipper::ChipMode::spc700)
         return sampleSourceCardLabel(mode, patch, index);
