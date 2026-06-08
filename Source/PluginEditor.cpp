@@ -3795,12 +3795,17 @@ juce::String ChipperAudioProcessorEditor::pokeyRegisterReadout(const chipper::Pa
 
 juce::String ChipperAudioProcessorEditor::sampleChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
 {
-    const auto chipLabel = mode == chipper::ChipMode::paula ? juce::String("8-bit period sample") : juce::String("lo-fi sample voice");
+    const auto chipLabel = mode == chipper::ChipMode::paula ? juce::String("8-bit hard-pan period sample") : juce::String("lo-fi sample voice");
     const auto decay = static_cast<int>(std::round(std::clamp(patch.envelopeDecay, 0.0f, 1.0f) * 15.0f));
     const auto volume = static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f));
     return chipLabel
         + " | template " + juce::String(static_cast<int>(chipper::sampleTemplateForPatch(mode, patch)))
         + " | decay " + juce::String(decay) + "/15 | volume " + juce::String(volume) + "/15";
+}
+
+static juce::String paulaHardwarePanLabel(size_t index)
+{
+    return (index == 0u || index == 3u) ? juce::String("L") : juce::String("R");
 }
 
 juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMode mode,
@@ -3819,6 +3824,7 @@ juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMod
 
     if (mode == chipper::ChipMode::paula)
         return "Ch " + number
+            + " " + paulaHardwarePanLabel(index)
             + " | T" + juce::String(templateId)
             + " " + juce::String(sample0) + "/" + juce::String(sample32);
 
@@ -3857,6 +3863,7 @@ juce::String ChipperAudioProcessorEditor::sampleSourceRegisterReadout(chipper::C
         const auto control = chipper::paulaControlForPatch(patch, index);
         const auto base = static_cast<uint8_t>(std::min(index, size_t { 3u }) * 0x10u);
         return "Paula ch " + juce::String(channel)
+            + " " + paulaHardwarePanLabel(index)
             + " | regs $" + byteHex(base) + "-$" + byteHex(static_cast<uint8_t>(base + 4u))
             + " | vol " + juce::String(static_cast<int>(volume)) + "/64"
             + " | ctrl $" + byteHex(control)
