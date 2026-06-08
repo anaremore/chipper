@@ -3316,6 +3316,28 @@ juce::String ChipperAudioProcessorEditor::sampleChipReadout(chipper::ChipMode mo
         + " | decay " + juce::String(decay) + "/15 | volume " + juce::String(volume) + "/15";
 }
 
+juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMode mode,
+                                                                const chipper::PatchConfig& patch,
+                                                                size_t index) const
+{
+    const auto number = juce::String(static_cast<int>(index + 1u));
+    const auto templateId = static_cast<int>(chipper::sampleTemplateForPatch(mode, patch));
+    const auto sample0 = static_cast<int>(chipper::generatedSampleValueForPatch(mode, patch, index, 0));
+    const auto sample32 = static_cast<int>(chipper::generatedSampleValueForPatch(mode, patch, index, 32));
+
+    if (mode == chipper::ChipMode::spc700)
+        return "Voice " + number
+            + " | T" + juce::String(templateId)
+            + " " + juce::String(sample0) + "/" + juce::String(sample32);
+
+    if (mode == chipper::ChipMode::paula)
+        return "Ch " + number
+            + " | T" + juce::String(templateId)
+            + " " + juce::String(sample0) + "/" + juce::String(sample32);
+
+    return {};
+}
+
 juce::String ChipperAudioProcessorEditor::sampleSourceRegisterReadout(chipper::ChipMode mode,
                                                                       const chipper::PatchConfig& patch,
                                                                       size_t index) const
@@ -3372,6 +3394,47 @@ juce::String ChipperAudioProcessorEditor::wavetableChipReadout(chipper::ChipMode
         memory = "32-sample 5-bit RAM";
 
     return memory + " | skew " + juce::String(skew) + "/31 | volume " + juce::String(volume) + "/15";
+}
+
+juce::String ChipperAudioProcessorEditor::wavetableSourceCardLabel(chipper::ChipMode mode,
+                                                                   const chipper::PatchConfig& patch,
+                                                                   size_t index) const
+{
+    const auto number = juce::String(static_cast<int>(index + 1u));
+    const auto wave0 = chipper::wavetableRamSampleForPatch(mode, patch, index, 0);
+    const auto wave31 = chipper::wavetableRamSampleForPatch(mode, patch, index, 31);
+    juce::String shape;
+    switch (std::clamp(patch.waveShape, 0, 4))
+    {
+        case 1: shape = "R"; break;
+        case 2: shape = "Tri"; break;
+        case 3: shape = "P"; break;
+        case 4: shape = "St"; break;
+        case 0:
+        default:
+            shape = "S";
+            break;
+    }
+
+    if (mode == chipper::ChipMode::huc6280)
+        return "Wave " + number
+            + " | " + shape
+            + " " + juce::String(static_cast<int>(wave0))
+            + "/" + juce::String(static_cast<int>(wave31));
+
+    if (mode == chipper::ChipMode::namcoWsg)
+        return "Lane " + number
+            + " | " + shape
+            + " $" + byteHex(wave0)
+            + "/$" + byteHex(wave31);
+
+    if (mode == chipper::ChipMode::scc)
+        return "Ch " + number
+            + " | " + shape
+            + " $" + byteHex(wave0)
+            + "/$" + byteHex(wave31);
+
+    return {};
 }
 
 juce::String ChipperAudioProcessorEditor::wavetableSourceRegisterReadout(chipper::ChipMode mode,
@@ -3526,19 +3589,19 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
         return "Ch " + number + " | AUDC $" + byteHex(chipper::pokeyAudcForPatch(patch));
 
     if (mode == chipper::ChipMode::spc700)
-        return "Voice " + number + " | Vol " + juce::String(static_cast<int>(chipper::spc700VoiceVolumeForPatch(patch, index)));
+        return sampleSourceCardLabel(mode, patch, index);
 
     if (mode == chipper::ChipMode::paula)
-        return "Ch " + number + " | Vol " + juce::String(static_cast<int>(chipper::paulaChannelVolumeForPatch(patch, index)));
+        return sampleSourceCardLabel(mode, patch, index);
 
     if (mode == chipper::ChipMode::huc6280)
-        return "Wave " + number + " | Vol " + juce::String(static_cast<int>(chipper::huc6280ControlForPatch(patch, index) & 0x1fu));
+        return wavetableSourceCardLabel(mode, patch, index);
 
     if (mode == chipper::ChipMode::namcoWsg)
-        return "Lane " + number + " | Vol " + juce::String(static_cast<int>(chipper::namcoWsgVolumeForPatch(patch, index)));
+        return wavetableSourceCardLabel(mode, patch, index);
 
     if (mode == chipper::ChipMode::scc)
-        return "Ch " + number + " | Vol " + juce::String(static_cast<int>(chipper::sccVolumeForPatch(patch, index)));
+        return wavetableSourceCardLabel(mode, patch, index);
 
     if (mode == chipper::ChipMode::ym2413)
         return "OPLL " + number + " | I" + juce::String(static_cast<int>(chipper::ym2413InstrumentForPatch(patch)))

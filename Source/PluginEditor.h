@@ -179,8 +179,10 @@ private:
     juce::String pokeySourceRegisterReadout(const chipper::PatchConfig& patch, size_t index) const;
     juce::String pokeyRegisterReadout(const chipper::PatchConfig& patch) const;
     juce::String sampleChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
+    juce::String sampleSourceCardLabel(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const;
     juce::String sampleSourceRegisterReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const;
     juce::String wavetableChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
+    juce::String wavetableSourceCardLabel(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const;
     juce::String wavetableSourceRegisterReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const;
     juce::String fmChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String fmSourceRegisterReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const;
