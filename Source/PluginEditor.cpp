@@ -3450,27 +3450,33 @@ juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipM
 {
     const auto channel = static_cast<int>(index + 1u);
     const auto feedback = static_cast<int>(chipper::fmFeedbackForPatch(patch));
-    const auto level = static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f));
 
     if (mode == chipper::ChipMode::ym2413)
     {
         const auto instrument = static_cast<int>(chipper::ym2413InstrumentForPatch(patch));
-        const auto volumeNibble = std::clamp(15 - level, 0, 15);
+        const auto volumeNibble = static_cast<int>(chipper::ym2413VolumeNibbleForPatch(patch, index));
         return "OPLL Ch " + juce::String(channel)
             + " | Reg $" + byteHex(static_cast<uint8_t>(0x30u + std::min(index, size_t { 8u })))
             + " inst " + juce::String(instrument)
-            + " volume nibble " + juce::String(volumeNibble) + "/15";
+            + " volume nibble " + juce::String(volumeNibble) + "/15"
+            + " | $20 key/block/fnum-hi, $10 fnum-lo";
     }
 
     if (mode == chipper::ChipMode::opl3)
     {
         const auto waveform = static_cast<int>(chipper::oplWaveformForPatch(patch));
         const auto connection = static_cast<int>(chipper::oplConnectionForPatch(patch));
+        const auto modMultiple = static_cast<int>(chipper::oplModulatorMultipleForPatch(patch));
+        const auto modLevel = static_cast<int>(chipper::oplModulatorTotalLevelForPatch(patch));
+        const auto carrierLevel = static_cast<int>(chipper::oplCarrierTotalLevelForPatch(patch));
         return "OPL Ch " + juce::String(channel)
             + " | Reg $" + byteHex(static_cast<uint8_t>(0xc0u + std::min(index, size_t { 8u })))
             + " FB " + juce::String(feedback)
             + " CON " + juce::String(connection)
-            + " | Op waveform " + juce::String(waveform);
+            + " | Op waveform " + juce::String(waveform)
+            + " | mod mult " + juce::String(modMultiple)
+            + " TL " + juce::String(modLevel)
+            + " | car TL " + juce::String(carrierLevel);
     }
 
     const auto algorithm = static_cast<int>(mode == chipper::ChipMode::ym2151
@@ -3481,21 +3487,33 @@ juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipM
                                                         : ((static_cast<unsigned>(feedback) << 3u) | static_cast<unsigned>(algorithm)));
     if (mode == chipper::ChipMode::ym2151)
     {
+        const auto op1Multiple = static_cast<int>(chipper::fmOperatorMultipleForPatch(mode, patch, 0));
+        const auto op4Multiple = static_cast<int>(chipper::fmOperatorMultipleForPatch(mode, patch, 3));
+        const auto modLevel = static_cast<int>(chipper::fmOperatorTotalLevelForPatch(mode, patch, 0));
+        const auto carrierLevel = static_cast<int>(chipper::fmOperatorTotalLevelForPatch(mode, patch, 3));
         return "OPM Ch " + juce::String(channel)
             + " | Reg $" + byteHex(static_cast<uint8_t>(0x20u + std::min(index, size_t { 7u })))
             + " = $" + byteHex(registerValue)
             + " | Alg " + juce::String(algorithm)
-            + " FB " + juce::String(feedback);
+            + " FB " + juce::String(feedback)
+            + " | M1/M4 " + juce::String(op1Multiple) + "/" + juce::String(op4Multiple)
+            + " TL " + juce::String(modLevel) + "/" + juce::String(carrierLevel);
     }
 
     const auto ymPort = index >= 3u ? 1 : 0;
     const auto ymSlot = static_cast<uint8_t>(std::min(index % 3u, size_t { 2u }));
+    const auto op1Multiple = static_cast<int>(chipper::fmOperatorMultipleForPatch(mode, patch, 0));
+    const auto op4Multiple = static_cast<int>(chipper::fmOperatorMultipleForPatch(mode, patch, 3));
+    const auto modLevel = static_cast<int>(chipper::fmOperatorTotalLevelForPatch(mode, patch, 0));
+    const auto carrierLevel = static_cast<int>(chipper::fmOperatorTotalLevelForPatch(mode, patch, 3));
     return "OPN2 Ch " + juce::String(channel)
         + " | Port " + juce::String(static_cast<int>(ymPort))
         + " Reg $" + byteHex(static_cast<uint8_t>(0xb0u + ymSlot))
         + " = $" + byteHex(registerValue)
         + " | Alg " + juce::String(algorithm)
-        + " FB " + juce::String(feedback);
+        + " FB " + juce::String(feedback)
+        + " | M1/M4 " + juce::String(op1Multiple) + "/" + juce::String(op4Multiple)
+        + " TL " + juce::String(modLevel) + "/" + juce::String(carrierLevel);
 }
 
 juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMode mode,
@@ -3523,17 +3541,21 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
         return "Ch " + number + " | Vol " + juce::String(static_cast<int>(chipper::sccVolumeForPatch(patch, index)));
 
     if (mode == chipper::ChipMode::ym2413)
-        return "OPLL " + number + " | Inst " + juce::String(static_cast<int>(chipper::ym2413InstrumentForPatch(patch)));
+        return "OPLL " + number + " | I" + juce::String(static_cast<int>(chipper::ym2413InstrumentForPatch(patch)))
+            + " V" + juce::String(static_cast<int>(chipper::ym2413VolumeNibbleForPatch(patch, index)));
 
     if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151)
     {
         if (mode == chipper::ChipMode::opl3)
-            return "OPL " + number + " | W" + juce::String(static_cast<int>(chipper::oplWaveformForPatch(patch)));
+            return "OPL " + number + " | W" + juce::String(static_cast<int>(chipper::oplWaveformForPatch(patch)))
+                + " TL" + juce::String(static_cast<int>(chipper::oplCarrierTotalLevelForPatch(patch)));
 
         const auto algorithm = static_cast<int>(mode == chipper::ChipMode::ym2151
                                                     ? chipper::ym2151AlgorithmForPatch(patch)
                                                     : chipper::ym2612AlgorithmForPatch(patch));
-        return "FM " + number + " | Alg " + juce::String(algorithm);
+        return (mode == chipper::ChipMode::ym2151 ? "OPM " : "OPN2 ") + number
+            + " | A" + juce::String(algorithm)
+            + " TL" + juce::String(static_cast<int>(chipper::fmOperatorTotalLevelForPatch(mode, patch, 3)));
     }
 
     return fallback;

@@ -3045,6 +3045,35 @@ uint8_t fmFeedbackForPatch(const PatchConfig& patch)
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control2) * 7.0f)), 0, 7));
 }
 
+uint8_t fmOperatorMultipleForPatch(ChipMode mode, const PatchConfig& patch, size_t op)
+{
+    if (mode == ChipMode::ym2151)
+    {
+        static constexpr std::array<int, 4> offsets { 0, 1, 3, 5 };
+        const auto base = std::clamp(static_cast<int>(std::round(clampControl(patch.control3) * 13.0f)) + 1, 1, 15);
+        return static_cast<uint8_t>(std::clamp(base + offsets[std::min(op, size_t { 3u })], 1, 15));
+    }
+
+    static constexpr std::array<int, 4> offsets { 0, 1, 2, 4 };
+    const auto tone = std::clamp(static_cast<int>(std::round(clampControl(patch.control3) * 14.0f)) + 1, 1, 15);
+    return static_cast<uint8_t>(std::clamp(tone + offsets[std::min(op, size_t { 3u })], 1, 15));
+}
+
+uint8_t fmOperatorTotalLevelForPatch(ChipMode mode, const PatchConfig& patch, size_t op, float velocity)
+{
+    const auto level = clampControl(velocity) * clampControl(patch.control4);
+    if (mode == ChipMode::ym2151)
+    {
+        const auto carrier = static_cast<int>(std::round((1.0f - level) * 24.0f));
+        const auto modulator = static_cast<int>(std::round(16.0f + (1.0f - clampControl(patch.control3)) * 52.0f));
+        return static_cast<uint8_t>(std::clamp(op == 3u ? carrier : modulator, 0, 127));
+    }
+
+    const auto carrier = static_cast<int>(std::round((1.0f - level) * 28.0f));
+    const auto modulator = static_cast<int>(std::round(18.0f + (1.0f - clampControl(patch.control3)) * 40.0f));
+    return static_cast<uint8_t>(std::clamp(op == 3u ? carrier : modulator, 0, 127));
+}
+
 uint8_t oplWaveformForPatch(const PatchConfig& patch)
 {
     if (patch.waveShape > 0)
@@ -3073,6 +3102,22 @@ uint8_t oplConnectionForPatch(const PatchConfig& patch)
     return patch.control1 > 0.55f ? 1u : 0u;
 }
 
+uint8_t oplModulatorMultipleForPatch(const PatchConfig& patch)
+{
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control3) * 14.0f)) + 1, 1, 15));
+}
+
+uint8_t oplModulatorTotalLevelForPatch(const PatchConfig& patch)
+{
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(12.0f + (1.0f - clampControl(patch.control3)) * 46.0f)), 0, 63));
+}
+
+uint8_t oplCarrierTotalLevelForPatch(const PatchConfig& patch, float velocity)
+{
+    const auto level = clampControl(velocity) * clampControl(patch.control4);
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - level) * 24.0f)), 0, 63));
+}
+
 uint8_t ym2413InstrumentForPatch(const PatchConfig& patch)
 {
     const auto explicitChoice = std::clamp(patch.waveShape, 0, 4);
@@ -3098,6 +3143,13 @@ uint8_t ym2413InstrumentForPatch(const PatchConfig& patch)
     }
 
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control1) * 15.0f)), 1, 15));
+}
+
+uint8_t ym2413VolumeNibbleForPatch(const PatchConfig& patch, size_t channel, float velocity)
+{
+    const auto trim = channel < patch.sourceLevels.size() ? clampControl(patch.sourceLevels[channel]) : 1.0f;
+    const auto musicalLevel = clampControl(patch.control4) * clampControl(velocity) * trim;
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - musicalLevel) * 15.0f)), 0, 15));
 }
 
 uint8_t huc6280ControlForPatch(const PatchConfig& patch, size_t)

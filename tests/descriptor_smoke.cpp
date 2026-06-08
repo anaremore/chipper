@@ -290,6 +290,10 @@ bool expectFmRegisterHelpers()
                                                    0.8f);
     ok &= expect(chipper::ym2612AlgorithmForPatch(opn2Lead) == 4u, "YM2612 lead macro should resolve to algorithm 4");
     ok &= expect(chipper::fmFeedbackForPatch(opn2Lead) == 4u, "FM feedback helper should quantize control 2 to 0-7");
+    ok &= expect(chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2612, opn2Lead, 0) == 8u, "YM2612 helper should resolve operator 1 multiple");
+    ok &= expect(chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2612, opn2Lead, 3) == 12u, "YM2612 helper should resolve operator 4 multiple");
+    ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 0) == 38u, "YM2612 helper should resolve modulator total level");
+    ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 3) == 6u, "YM2612 helper should resolve carrier total level");
 
     const auto opmArp = chipper::makePatchConfig(chipper::ChipMode::ym2151,
                                                  chipper::MacroKind::arp,
@@ -298,6 +302,10 @@ bool expectFmRegisterHelpers()
                                                  0.5f,
                                                  0.7f);
     ok &= expect(chipper::ym2151AlgorithmForPatch(opmArp) == 7u, "YM2151 arp macro should resolve to algorithm 7");
+    ok &= expect(chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2151, opmArp, 0) == 8u, "YM2151 helper should resolve operator 1 multiple");
+    ok &= expect(chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2151, opmArp, 3) == 13u, "YM2151 helper should resolve operator 4 multiple");
+    ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2151, opmArp, 0) == 42u, "YM2151 helper should resolve modulator total level");
+    ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2151, opmArp, 3) == 7u, "YM2151 helper should resolve carrier total level");
 
     const auto explicitAlgorithm = chipper::makePatchConfig(chipper::ChipMode::ym2612,
                                                             chipper::MacroKind::manual,
@@ -321,6 +329,9 @@ bool expectFmRegisterHelpers()
                                                   0.75f);
     ok &= expect(chipper::oplWaveformForPatch(oplLead) == 3u, "OPL lead macro should resolve to waveform 3");
     ok &= expect(chipper::oplConnectionForPatch(oplLead) == 1u, "OPL connection helper should expose parallel mode above midpoint");
+    ok &= expect(chipper::oplModulatorMultipleForPatch(oplLead) == 1u, "OPL helper should resolve modulator multiple");
+    ok &= expect(chipper::oplModulatorTotalLevelForPatch(oplLead) == 58u, "OPL helper should resolve modulator total level");
+    ok &= expect(chipper::oplCarrierTotalLevelForPatch(oplLead) == 6u, "OPL helper should resolve carrier total level");
 
     const auto opllBass = chipper::makePatchConfig(chipper::ChipMode::ym2413,
                                                    chipper::MacroKind::bass,
@@ -329,6 +340,7 @@ bool expectFmRegisterHelpers()
                                                    0.0f,
                                                    0.6f);
     ok &= expect(chipper::ym2413InstrumentForPatch(opllBass) == 13u, "YM2413 bass macro should resolve to OPLL instrument 13");
+    ok &= expect(chipper::ym2413VolumeNibbleForPatch(opllBass, 0) == 6u, "YM2413 helper should resolve volume nibble from output level");
 
     const auto opllExplicitBell = chipper::makePatchConfig(chipper::ChipMode::ym2413,
                                                            chipper::MacroKind::manual,
@@ -338,11 +350,12 @@ bool expectFmRegisterHelpers()
                                                            0.6f,
                                                            chipper::PlayMode::stack,
                                                            { true, true, true, true },
-                                                           { 1.0f, 1.0f, 1.0f, 1.0f },
+                                                           { 1.0f, 0.5f, 1.0f, 1.0f },
                                                            0.0f,
                                                            0.0f,
                                                            1);
     ok &= expect(chipper::ym2413InstrumentForPatch(opllExplicitBell) == 12u, "YM2413 explicit Bell choice should resolve to OPLL instrument 12");
+    ok &= expect(chipper::ym2413VolumeNibbleForPatch(opllExplicitBell, 1) == 11u, "YM2413 helper should include source trim in volume nibble");
 
     return ok;
 }
