@@ -120,9 +120,9 @@ int main()
                          "CC" + std::to_string(mapping.controller) + " should set " + mapping.label + " to maximum");
     }
 
-    sendController(processor, 67, 127);
+    sendController(processor, 63, 127);
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl1), 1.0f, 0.0001f,
-                     "Unmapped CC67 should not change mapped parameters");
+                     "Unmapped CC63 should not change mapped parameters");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 0));
     sendController(processor, 76, 127);

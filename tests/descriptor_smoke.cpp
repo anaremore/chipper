@@ -193,7 +193,10 @@ bool expectChoiceLabels(chipper::ChipMode mode,
 bool expectMacroSourceMask(chipper::ChipMode mode, chipper::MacroKind macro, std::array<bool, 4> expected)
 {
     const auto& templ = chipper::macroTemplateFor(mode, macro);
-    return expect(templ.sourceEnabled == expected, templ.label + " has unexpected source mask");
+    bool matches = true;
+    for (size_t index = 0; index < expected.size(); ++index)
+        matches = matches && templ.sourceEnabled[index] == expected[index];
+    return expect(matches, templ.label + " has unexpected source mask");
 }
 
 bool expectMacroLabel(chipper::ChipMode mode, chipper::MacroKind macro, const std::string& expected)
@@ -247,12 +250,14 @@ bool expectLiveSourceLevelSpecs()
         chipper::ChipParameterRole::source1Level,
         chipper::ChipParameterRole::source2Level,
         chipper::ChipParameterRole::source3Level,
-        chipper::ChipParameterRole::source4Level
+        chipper::ChipParameterRole::source4Level,
+        chipper::ChipParameterRole::source5Level,
+        chipper::ChipParameterRole::source6Level
     };
 
     for (const auto mode : liveModes)
     {
-        const auto expectedSourceCount = mode == chipper::ChipMode::sid ? 3u : 4u;
+        const auto expectedSourceCount = mode == chipper::ChipMode::sid ? 3u : (mode == chipper::ChipMode::huc6280 ? 6u : 4u);
         for (size_t index = 0; index < expectedSourceCount; ++index)
         {
             const auto role = sourceLevelRoles[index];
@@ -786,6 +791,8 @@ int main()
     ok &= expectPreset(chipper::ChipMode::huc6280, "huc-boss-alert");
     ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::huc6280, chipper::ChipParameterRole::waveShape, 5, "Follow");
+    ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 5");
+    ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::source6Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 6");
     ok &= expectMacroLabel(chipper::ChipMode::namcoWsg, chipper::MacroKind::arp, "Namco Tracker Arp");
     ok &= expectPreset(chipper::ChipMode::namcoWsg, "namco-start-button");
     ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
@@ -825,7 +832,7 @@ int main()
     ok &= expectSourceLaneCounts(chipper::ChipMode::nes, 4u, 4u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::sid, 3u, 3u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::spc700, 4u, 8u);
-    ok &= expectSourceLaneCounts(chipper::ChipMode::huc6280, 4u, 6u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::huc6280, 6u, 6u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::namcoWsg, 4u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2612, 4u, 6u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2151, 4u, 8u);

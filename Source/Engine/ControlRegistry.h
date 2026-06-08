@@ -24,10 +24,14 @@ inline constexpr auto source1Enabled = "source1Enabled";
 inline constexpr auto source2Enabled = "source2Enabled";
 inline constexpr auto source3Enabled = "source3Enabled";
 inline constexpr auto source4Enabled = "source4Enabled";
+inline constexpr auto source5Enabled = "source5Enabled";
+inline constexpr auto source6Enabled = "source6Enabled";
 inline constexpr auto source1Level = "source1Level";
 inline constexpr auto source2Level = "source2Level";
 inline constexpr auto source3Level = "source3Level";
 inline constexpr auto source4Level = "source4Level";
+inline constexpr auto source5Level = "source5Level";
+inline constexpr auto source6Level = "source6Level";
 inline constexpr auto stereoSpread = "stereoSpread";
 inline constexpr auto sidFilterRouting = "sidFilterRouting";
 inline constexpr auto sidVoice2PulseWidth = "sidVoice2PulseWidth";
@@ -71,7 +75,7 @@ struct MidiCcMapping
     const char* label = nullptr;
 };
 
-inline constexpr auto midiCcMappingCount = 52u;
+inline constexpr auto midiCcMappingCount = 56u;
 using MidiCcMappingList = std::array<MidiCcMapping, midiCcMappingCount>;
 
 const MidiCcMappingList& midiCcMappings();

@@ -4614,7 +4614,15 @@ public:
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
-             << "\"uiExposesFirstFourChannels\":1,"
+             << "\"sourceEnabled4\":" << (sourceEnabled(patch, 4) ? 1 : 0) << ","
+             << "\"sourceEnabled5\":" << (sourceEnabled(patch, 5) ? 1 : 0) << ","
+             << "\"sourceLevel0\":" << sourceLevel(patch, 0) << ","
+             << "\"sourceLevel1\":" << sourceLevel(patch, 1) << ","
+             << "\"sourceLevel2\":" << sourceLevel(patch, 2) << ","
+             << "\"sourceLevel3\":" << sourceLevel(patch, 3) << ","
+             << "\"sourceLevel4\":" << sourceLevel(patch, 4) << ","
+             << "\"sourceLevel5\":" << sourceLevel(patch, 5) << ","
+             << "\"uiExposesSixChannels\":1,"
              << "\"internalChannelCount\":6,"
              << "\"chipPolyPlayableChannels\":6,"
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
@@ -4624,7 +4632,6 @@ public:
              << "\"assignedNote3\":" << channelNotes[3] << ","
              << "\"assignedNote4\":" << channelNotes[4] << ","
              << "\"assignedNote5\":" << channelNotes[5] << ","
-             << "\"hiddenChannelsFollowAnySource\":1,"
              << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
              << "}";
         return json.str();
@@ -4648,27 +4655,25 @@ private:
 
     bool channelAudible(size_t channel) const
     {
-        if (channel < 4)
+        if (channel < patch.sourceEnabled.size())
             return sourceEnabled(patch, channel);
-        return (control[channel] & 0x80u) != 0;
+        return false;
     }
 
     bool chipPolyChannelEnabled(size_t channel) const
     {
-        if (channel < 4)
+        if (channel < patch.sourceEnabled.size())
             return sourceEnabled(patch, channel);
-
-        return sourceEnabled(patch, 0)
-            || sourceEnabled(patch, 1)
-            || sourceEnabled(patch, 2)
-            || sourceEnabled(patch, 3);
+        return false;
     }
 
     bool channelActiveForPatch(size_t channel) const
     {
-        if (channel < 4)
-            return sourceEnabled(patch, channel);
+        if (! chipPolyChannelEnabled(channel))
+            return false;
 
+        if (channel < 4)
+            return true;
         return patch.macro == MacroKind::arp
             || patch.macro == MacroKind::drum
             || patch.macro == MacroKind::hit
@@ -4713,7 +4718,7 @@ private:
         if (! channelAudible(channel))
             return 0.0;
 
-        const auto volume = channelVolume(channel) * (channel < 4 ? sourceLevel(patch, channel) : 1.0);
+        const auto volume = channelVolume(channel) * sourceLevel(patch, channel);
         if (volume <= 0.0)
             return 0.0;
 

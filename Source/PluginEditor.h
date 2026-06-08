@@ -133,7 +133,7 @@ public:
 private:
     static constexpr size_t uiModuleCount = 6;
     static constexpr size_t uiModuleRows = 4;
-    static constexpr size_t sourceChannelCount = 4;
+    static constexpr size_t sourceChannelCount = 6;
     static constexpr size_t liveControlCount = 6;
     static constexpr size_t waveShapeCount = 5;
     static constexpr size_t pulse2DutyCount = 5;

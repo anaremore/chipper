@@ -1308,11 +1308,15 @@ std::vector<ChipParameterSpec> huc6280ParameterSpecs()
         sourceSpec(ChipParameterRole::source1Enabled, "huc6280.channel1.enabled", "Channel 1", "Enable HuC6280 wavetable channel 1."),
         sourceSpec(ChipParameterRole::source2Enabled, "huc6280.channel2.enabled", "Channel 2", "Enable HuC6280 wavetable channel 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "huc6280.channel3.enabled", "Channel 3", "Enable HuC6280 wavetable channel 3."),
-        sourceSpec(ChipParameterRole::source4Enabled, "huc6280.channel4.enabled", "Channel 4", "Enable HuC6280 wavetable channel 4. Channels 5-6 play in Chip Poly as internal follower voices until dedicated controls land."),
+        sourceSpec(ChipParameterRole::source4Enabled, "huc6280.channel4.enabled", "Channel 4", "Enable HuC6280 wavetable channel 4."),
+        sourceSpec(ChipParameterRole::source5Enabled, "huc6280.channel5.enabled", "Channel 5", "Enable HuC6280 wavetable channel 5."),
+        sourceSpec(ChipParameterRole::source6Enabled, "huc6280.channel6.enabled", "Channel 6", "Enable HuC6280 wavetable channel 6."),
         sourceLevelSpec(ChipParameterRole::source1Level, "huc6280.channel1.level", "Channel 1 Level", "Modern trim after HuC6280 channel 1 volume."),
         sourceLevelSpec(ChipParameterRole::source2Level, "huc6280.channel2.level", "Channel 2 Level", "Modern trim after HuC6280 channel 2 volume."),
         sourceLevelSpec(ChipParameterRole::source3Level, "huc6280.channel3.level", "Channel 3 Level", "Modern trim after HuC6280 channel 3 volume."),
         sourceLevelSpec(ChipParameterRole::source4Level, "huc6280.channel4.level", "Channel 4 Level", "Modern trim after HuC6280 channel 4 volume."),
+        sourceLevelSpec(ChipParameterRole::source5Level, "huc6280.channel5.level", "Channel 5 Level", "Modern trim after HuC6280 channel 5 volume."),
+        sourceLevelSpec(ChipParameterRole::source6Level, "huc6280.channel6.level", "Channel 6 Level", "Modern trim after HuC6280 channel 6 volume."),
         stereoSpreadSpec("huc6280.stereoSpread", "Modern stereo convenience that spreads audible HuC6280 channels; zero preserves centered output."),
         envelopeSpec("huc6280.decay", "Decay", "Applies a musical decay helper while native channel volume remains visible in debug state."),
         segmentedSpec(ChipParameterRole::waveShape,
@@ -2075,7 +2079,7 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             {
                 makeModule("profile", "Profile", "HuC6280 clean-room groundwork.", { "PC Engine family", "3.58 MHz default", "Hybrid default", "Authentic still partial" }),
-                makeModule("sources", "Wavetable Voices", "Six internal HuC6280 channels.", { "Ch 1-4 direct", "Ch 5-6 follow", "6-note Chip Poly", "Wave RAM" }),
+                makeModule("sources", "Wavetable Voices", "Six direct HuC6280 channels.", { "Ch 1-3 wave", "Ch 4 wave/noise", "Ch 5-6 wave/noise", "6-note Chip Poly" }),
                 makeModule("tone", "Wave / Noise", "32-sample wave RAM plus simplified noise.", { "Sine-like", "Ramp", "Triangle", "Square / noise" }),
                 makeModule("envelope", "Volume", "Channel control volume plus musical decay helper.", { "5-bit volume", "Per-channel trims", "Decay helper", "Register readout" }),
                 makeModule("motion", "Motion", "PC Engine SFX gestures mapped to frequency registers.", { "Coin ping", "Sweep zap", "Six-wave arp", "Noise tap" }),
@@ -2088,12 +2092,12 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "Channel select, 12-bit frequency, channel control, balance, waveform-RAM write, and noise-control register paths are modeled.",
-                    "Six internal channels render wavetable audio, and Chip Poly allocates all six; the existing UI exposes the first four direct source controls while channels 5-6 follow the active source mask until a six-lane HuC6280 layout lands.",
+                    "Six internal channels render wavetable audio, Chip Poly allocates all six, and the source surface exposes all six channel enable/trim controls.",
                     "No third-party HuC6280 source code is vendored in this clean-room partial model."
                 },
                 {
                     "Native LFO behavior, exact DDA behavior, stereo register routing, timer edge timing, and exact noise taps are not implemented.",
-                    "Channels 5-6 need dedicated host/UI controls rather than the current follower behavior.",
+                    "The six-lane HuC6280 UI is still a compact generic source-card layout rather than a dedicated wave-RAM editor with channel-pair LFO controls.",
                     "Output DAC, analog path, and hardware or trusted-emulator comparison are not complete."
                 })
         },
@@ -2277,7 +2281,11 @@ bool supportsPlayMode(ChipMode mode, PlayMode playMode)
 
 size_t visibleSourceCountForMode(ChipMode mode)
 {
-    return mode == ChipMode::sid ? size_t { 3u } : size_t { 4u };
+    if (mode == ChipMode::sid)
+        return 3u;
+    if (mode == ChipMode::huc6280)
+        return 6u;
+    return 4u;
 }
 
 size_t nativeSourceCountForMode(ChipMode mode)
@@ -2334,8 +2342,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float control3,
                             float control4,
                             PlayMode playMode,
-                            std::array<bool, 4> sourceEnabled,
-                            std::array<float, 4> sourceLevels,
+                            std::array<bool, 6> sourceEnabled,
+                            std::array<float, 6> sourceLevels,
                             float stereoSpread,
                             float envelopeDecay,
                             int waveShape,
@@ -2385,7 +2393,9 @@ PatchConfig makePatchConfig(ChipMode mode,
             clampControl(sourceLevels[0]),
             clampControl(sourceLevels[1]),
             clampControl(sourceLevels[2]),
-            clampControl(sourceLevels[3])
+            clampControl(sourceLevels[3]),
+            clampControl(sourceLevels[4]),
+            clampControl(sourceLevels[5])
         },
         clampControl(stereoSpread),
         std::clamp(sidFilterRouting, 0, 8),

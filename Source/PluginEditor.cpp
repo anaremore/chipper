@@ -77,11 +77,13 @@ chipper::ChipParameterRole macroControlRole(size_t index)
 
 chipper::ChipParameterRole sourceRole(size_t index)
 {
-    static constexpr std::array<chipper::ChipParameterRole, 4> roles {
+    static constexpr std::array<chipper::ChipParameterRole, 6> roles {
         chipper::ChipParameterRole::source1Enabled,
         chipper::ChipParameterRole::source2Enabled,
         chipper::ChipParameterRole::source3Enabled,
-        chipper::ChipParameterRole::source4Enabled
+        chipper::ChipParameterRole::source4Enabled,
+        chipper::ChipParameterRole::source5Enabled,
+        chipper::ChipParameterRole::source6Enabled
     };
 
     return roles[std::min(index, roles.size() - 1u)];
@@ -89,11 +91,13 @@ chipper::ChipParameterRole sourceRole(size_t index)
 
 chipper::ChipParameterRole sourceLevelRole(size_t index)
 {
-    static constexpr std::array<chipper::ChipParameterRole, 4> roles {
+    static constexpr std::array<chipper::ChipParameterRole, 6> roles {
         chipper::ChipParameterRole::source1Level,
         chipper::ChipParameterRole::source2Level,
         chipper::ChipParameterRole::source3Level,
-        chipper::ChipParameterRole::source4Level
+        chipper::ChipParameterRole::source4Level,
+        chipper::ChipParameterRole::source5Level,
+        chipper::ChipParameterRole::source6Level
     };
 
     return roles[std::min(index, roles.size() - 1u)];
@@ -2137,13 +2141,17 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         chipper::parameters::id::source1Enabled,
         chipper::parameters::id::source2Enabled,
         chipper::parameters::id::source3Enabled,
-        chipper::parameters::id::source4Enabled
+        chipper::parameters::id::source4Enabled,
+        chipper::parameters::id::source5Enabled,
+        chipper::parameters::id::source6Enabled
     };
     const std::array<const char*, sourceChannelCount> sourceLevelIds {
         chipper::parameters::id::source1Level,
         chipper::parameters::id::source2Level,
         chipper::parameters::id::source3Level,
-        chipper::parameters::id::source4Level
+        chipper::parameters::id::source4Level,
+        chipper::parameters::id::source5Level,
+        chipper::parameters::id::source6Level
     };
 
     for (size_t i = 0; i < sourceChannelButtons.size(); ++i)
@@ -3309,24 +3317,34 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
         chipper::parameters::id::macroControl3,
         chipper::parameters::id::macroControl4
     };
-    const std::array<const char*, 4> sourceIds {
+    const std::array<const char*, sourceChannelCount> sourceIds {
         chipper::parameters::id::source1Enabled,
         chipper::parameters::id::source2Enabled,
         chipper::parameters::id::source3Enabled,
-        chipper::parameters::id::source4Enabled
+        chipper::parameters::id::source4Enabled,
+        chipper::parameters::id::source5Enabled,
+        chipper::parameters::id::source6Enabled
     };
-    const std::array<const char*, 4> sourceLevelIds {
+    const std::array<const char*, sourceChannelCount> sourceLevelIds {
         chipper::parameters::id::source1Level,
         chipper::parameters::id::source2Level,
         chipper::parameters::id::source3Level,
-        chipper::parameters::id::source4Level
+        chipper::parameters::id::source4Level,
+        chipper::parameters::id::source5Level,
+        chipper::parameters::id::source6Level
     };
 
     const juce::ScopedValueSetter<bool> suppress(suppressMacroTemplateApply, true);
     for (size_t i = 0; i < ids.size(); ++i)
         setParameterValueFromUi(ids[i], templ.controls[i]);
     for (size_t i = 0; i < sourceIds.size(); ++i)
-        setParameterValueFromUi(sourceIds[i], templ.sourceEnabled[i] ? 1.0f : 0.0f);
+    {
+        const auto anyTemplateSourceEnabled = std::any_of(templ.sourceEnabled.begin(), templ.sourceEnabled.end(), [](bool value) { return value; });
+        const auto enabled = i < templ.sourceEnabled.size()
+            ? templ.sourceEnabled[i]
+            : (anyTemplateSourceEnabled && chipper::nativeSourceCountForMode(mode) > i);
+        setParameterValueFromUi(sourceIds[i], enabled ? 1.0f : 0.0f);
+    }
     for (size_t i = 0; i < sourceLevelIds.size(); ++i)
         setParameterValueFromUi(sourceLevelIds[i], 1.0f);
     setParameterValueFromUi(chipper::parameters::id::envelopeDecay, templ.envelopeDecay);
@@ -3393,17 +3411,21 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
         chipper::parameters::id::macroControl3,
         chipper::parameters::id::macroControl4
     };
-    const std::array<const char*, 4> sourceIds {
+    const std::array<const char*, sourceChannelCount> sourceIds {
         chipper::parameters::id::source1Enabled,
         chipper::parameters::id::source2Enabled,
         chipper::parameters::id::source3Enabled,
-        chipper::parameters::id::source4Enabled
+        chipper::parameters::id::source4Enabled,
+        chipper::parameters::id::source5Enabled,
+        chipper::parameters::id::source6Enabled
     };
-    const std::array<const char*, 4> sourceLevelIds {
+    const std::array<const char*, sourceChannelCount> sourceLevelIds {
         chipper::parameters::id::source1Level,
         chipper::parameters::id::source2Level,
         chipper::parameters::id::source3Level,
-        chipper::parameters::id::source4Level
+        chipper::parameters::id::source4Level,
+        chipper::parameters::id::source5Level,
+        chipper::parameters::id::source6Level
     };
 
     const juce::ScopedValueSetter<bool> suppressMacro(suppressMacroTemplateApply, true);
@@ -3417,13 +3439,21 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
         setParameterValueFromUi(controlIds[i], preset.controls[i]);
 
     for (size_t i = 0; i < sourceIds.size(); ++i)
-        setParameterValueFromUi(sourceIds[i], preset.sourceEnabled[i] ? 1.0f : 0.0f);
+    {
+        const auto anyPresetSourceEnabled = std::any_of(preset.sourceEnabled.begin(), preset.sourceEnabled.end(), [](bool value) { return value; });
+        const auto enabled = i < preset.sourceEnabled.size()
+            ? preset.sourceEnabled[i]
+            : (anyPresetSourceEnabled && chipper::nativeSourceCountForMode(preset.chip) > i);
+        setParameterValueFromUi(sourceIds[i], enabled ? 1.0f : 0.0f);
+    }
 
-    const std::array<float, 4> sourceLevels {
+    const std::array<float, sourceChannelCount> sourceLevels {
         preset.source1Level,
         preset.source2Level,
         preset.source3Level,
-        preset.source4Level
+        preset.source4Level,
+        1.0f,
+        1.0f
     };
     for (size_t i = 0; i < sourceLevelIds.size(); ++i)
         setParameterValueFromUi(sourceLevelIds[i], sourceLevels[i]);
@@ -3509,13 +3539,17 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
             parameterValue(chipper::parameters::id::source1Enabled) >= 0.5f,
             parameterValue(chipper::parameters::id::source2Enabled) >= 0.5f,
             parameterValue(chipper::parameters::id::source3Enabled) >= 0.5f,
-            parameterValue(chipper::parameters::id::source4Enabled) >= 0.5f
+            parameterValue(chipper::parameters::id::source4Enabled) >= 0.5f,
+            parameterValue(chipper::parameters::id::source5Enabled) >= 0.5f,
+            parameterValue(chipper::parameters::id::source6Enabled) >= 0.5f
         },
         {
             parameterValue(chipper::parameters::id::source1Level),
             parameterValue(chipper::parameters::id::source2Level),
             parameterValue(chipper::parameters::id::source3Level),
-            parameterValue(chipper::parameters::id::source4Level)
+            parameterValue(chipper::parameters::id::source4Level),
+            parameterValue(chipper::parameters::id::source5Level),
+            parameterValue(chipper::parameters::id::source6Level)
         },
         stereoSpread,
         parameterValue(chipper::parameters::id::envelopeDecay),
@@ -3772,7 +3806,7 @@ juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mod
 
 int ChipperAudioProcessorEditor::pokeyCardMidiNote(const chipper::PatchConfig& patch, size_t index) const
 {
-    static constexpr std::array<int, sourceChannelCount> chipPolyNotes { 60, 64, 67, 72 };
+    static constexpr std::array<int, sourceChannelCount> chipPolyNotes { 60, 64, 67, 72, 76, 79 };
     const auto baseNote = patch.playMode == chipper::PlayMode::chipPoly
                               ? chipPolyNotes[std::min(index, chipPolyNotes.size() - 1u)]
                               : 60 + static_cast<int>(std::min(index, sourceChannelCount - 1u)) * 5;
@@ -4665,13 +4699,17 @@ juce::String ChipperAudioProcessorEditor::sourceLevelReadout(size_t index) const
         chipper::parameters::id::source1Enabled,
         chipper::parameters::id::source2Enabled,
         chipper::parameters::id::source3Enabled,
-        chipper::parameters::id::source4Enabled
+        chipper::parameters::id::source4Enabled,
+        chipper::parameters::id::source5Enabled,
+        chipper::parameters::id::source6Enabled
     };
     static constexpr std::array<const char*, sourceChannelCount> sourceLevelIds {
         chipper::parameters::id::source1Level,
         chipper::parameters::id::source2Level,
         chipper::parameters::id::source3Level,
-        chipper::parameters::id::source4Level
+        chipper::parameters::id::source4Level,
+        chipper::parameters::id::source5Level,
+        chipper::parameters::id::source6Level
     };
 
     const auto safeIndex = std::min(index, sourceLevelIds.size() - 1u);
@@ -5069,109 +5107,145 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Pulse 1  |  duty lead",
         "Pulse 2  |  stack / sweep",
         "Triangle | bass body",
-        "Noise/DMC | snare / sample"
+        "Noise/DMC | snare / sample",
+        "Source 5 | hidden",
+        "Source 6 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> nesChipPolyLabels {
         "Pulse 1  |  note 1",
         "Pulse 2  |  note 2",
         "Triangle | note 3 bass",
-        "Noise/DMC | mono SFX"
+        "Noise/DMC | mono SFX",
+        "Source 5 | hidden",
+        "Source 6 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> dmgBigMonoLabels {
         "Pulse 1  |  sweep voice",
         "Pulse 2  |  support pulse",
         "Wave     |  sample body",
-        "Noise    |  handheld grit"
+        "Noise    |  handheld grit",
+        "Source 5 | hidden",
+        "Source 6 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> dmgChipPolyLabels {
         "Pulse 1  |  note 1",
         "Pulse 2  |  note 2",
         "Wave     |  note 3",
-        "Noise    |  SFX layer"
+        "Noise    |  SFX layer",
+        "Source 5 | hidden",
+        "Source 6 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> ymBigMonoLabels {
         "Channel A | tone lead",
         "Channel B | chord tone",
         "Channel C | bass / stack",
-        "Noise     | shared PSG"
+        "Noise     | shared PSG",
+        "Source 5 | hidden",
+        "Source 6 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> ymChipPolyLabels {
         "Channel A | note 1",
         "Channel B | note 2",
         "Channel C | note 3",
-        "Noise     | shared layer"
+        "Noise     | shared layer",
+        "Source 5 | hidden",
+        "Source 6 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> snBigMonoLabels {
         "Tone 1 | lead tone",
         "Tone 2 | chord tone",
         "Tone 3 | bass / noise clock",
-        "Noise  | PSG noise"
+        "Noise  | PSG noise",
+        "Source 5 | hidden",
+        "Source 6 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> snChipPolyLabels {
         "Tone 1 | note 1",
         "Tone 2 | note 2",
         "Tone 3 | note 3",
-        "Noise  | mono SFX layer"
+        "Noise  | mono SFX layer",
+        "Source 5 | hidden",
+        "Source 6 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> sidBigMonoLabels {
         "Voice 1 | lead",
         "Voice 2 | detune",
         "Voice 3 | stack / noise",
-        "Ext In  | planned"
+        "Ext In  | planned",
+        "Source 5 | hidden",
+        "Source 6 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> sidChipPolyLabels {
         "Voice 1 | note 1",
         "Voice 2 | note 2",
         "Voice 3 | note 3",
-        "Ext In  | planned"
+        "Ext In  | planned",
+        "Source 5 | hidden",
+        "Source 6 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> pokeyBigMonoLabels {
         "Ch 1 | AUDF/AUDC",
         "Ch 2 | detune/noise",
         "Ch 3 | bass timer",
-        "Ch 4 | grit layer"
+        "Ch 4 | grit layer",
+        "Source 5 | hidden",
+        "Source 6 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> pokeyChipPolyLabels {
         "Ch 1 | note 1",
         "Ch 2 | note 2",
         "Ch 3 | note 3",
-        "Ch 4 | note 4"
+        "Ch 4 | note 4",
+        "Source 5 | hidden",
+        "Source 6 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> sampleBigMonoLabels {
         "Voice 1 | sample lead",
         "Voice 2 | support",
         "Voice 3 | texture",
-        "Voice 4 | layer"
+        "Voice 4 | layer",
+        "Voice 5 | hidden",
+        "Voice 6 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> sampleChipPolyLabels {
         "Voice 1 | note 1",
         "Voice 2 | note 2",
         "Voice 3 | note 3",
-        "Voice 4 | note 4"
+        "Voice 4 | note 4",
+        "Voice 5 | hidden",
+        "Voice 6 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> wavetableBigMonoLabels {
         "Wave 1 | lead",
         "Wave 2 | chord tone",
         "Wave 3 | bass",
-        "Wave 4 | layer"
+        "Wave 4 | layer",
+        "Wave 5 | upper/noise",
+        "Wave 6 | upper/noise"
     };
     static const std::array<const char*, sourceChannelCount> wavetableChipPolyLabels {
         "Wave 1 | note 1",
         "Wave 2 | note 2",
         "Wave 3 | note 3",
-        "Wave 4 | note 4"
+        "Wave 4 | note 4",
+        "Wave 5 | note 5",
+        "Wave 6 | note 6"
     };
     static const std::array<const char*, sourceChannelCount> fmBigMonoLabels {
         "FM 1 | carrier",
         "FM 2 | stack",
         "FM 3 | color",
-        "FM 4 | layer"
+        "FM 4 | layer",
+        "FM 5 | hidden",
+        "FM 6 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> fmChipPolyLabels {
         "FM 1 | note 1",
         "FM 2 | note 2",
         "FM 3 | note 3",
-        "FM 4 | note 4"
+        "FM 4 | note 4",
+        "FM 5 | hidden",
+        "FM 6 | hidden"
     };
 
     const auto playModeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::playMode)));

@@ -56,6 +56,10 @@ const MidiCcMappingList& midiCcMappings()
         { 117, parameter_ids::nesDmcSampleSlot, "NES DMC Sample Slot" },
         { 118, parameter_ids::nesDmcRateIndex, "NES DMC Rate Index" },
         { 119, parameter_ids::nesDmcPlaybackMode, "NES DMC Playback Mode" },
+        { 64, parameter_ids::source5Enabled, "Source 5 Enabled" },
+        { 65, parameter_ids::source6Enabled, "Source 6 Enabled" },
+        { 66, parameter_ids::source5Level, "Source 5 Level" },
+        { 67, parameter_ids::source6Level, "Source 6 Level" },
         { 69, parameter_ids::nesDmcMapRoot, "NES DMC Map Root" },
         { 68, parameter_ids::nesDmcLoop, "NES DMC Loop" }
     }};
@@ -97,10 +101,14 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::source2Enabled: return parameter_ids::source2Enabled;
         case ChipParameterRole::source3Enabled: return parameter_ids::source3Enabled;
         case ChipParameterRole::source4Enabled: return parameter_ids::source4Enabled;
+        case ChipParameterRole::source5Enabled: return parameter_ids::source5Enabled;
+        case ChipParameterRole::source6Enabled: return parameter_ids::source6Enabled;
         case ChipParameterRole::source1Level: return parameter_ids::source1Level;
         case ChipParameterRole::source2Level: return parameter_ids::source2Level;
         case ChipParameterRole::source3Level: return parameter_ids::source3Level;
         case ChipParameterRole::source4Level: return parameter_ids::source4Level;
+        case ChipParameterRole::source5Level: return parameter_ids::source5Level;
+        case ChipParameterRole::source6Level: return parameter_ids::source6Level;
         case ChipParameterRole::stereoSpread: return parameter_ids::stereoSpread;
         case ChipParameterRole::sidFilterRouting: return parameter_ids::sidFilterRouting;
         case ChipParameterRole::sidVoice2PulseWidth: return parameter_ids::sidVoice2PulseWidth;

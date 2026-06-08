@@ -47,10 +47,10 @@ struct Options
     float control3 = 0.5f;
     float control4 = 0.5f;
     std::array<bool, 4> controlProvided {};
-    std::array<bool, 4> sourceEnabled { true, true, true, true };
-    std::array<bool, 4> sourceProvided {};
-    std::array<float, 4> sourceLevels { 1.0f, 1.0f, 1.0f, 1.0f };
-    std::array<bool, 4> sourceLevelProvided {};
+    std::array<bool, 6> sourceEnabled { true, true, true, true, true, true };
+    std::array<bool, 6> sourceProvided {};
+    std::array<float, 6> sourceLevels { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+    std::array<bool, 6> sourceLevelProvided {};
     float stereoSpread = 0.0f;
     bool stereoSpreadProvided = false;
     float envelopeDecay = 0.0f;
@@ -729,10 +729,20 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.control3 = preset.controls[2];
     options.control4 = preset.controls[3];
     options.controlProvided = { true, true, true, true };
-    options.sourceEnabled = preset.sourceEnabled;
-    options.sourceProvided = { true, true, true, true };
-    options.sourceLevels = { preset.source1Level, preset.source2Level, preset.source3Level, preset.source4Level };
-    options.sourceLevelProvided = { true, true, true, true };
+    const auto anySourceEnabled = std::any_of(preset.sourceEnabled.begin(), preset.sourceEnabled.end(), [](bool enabled) { return enabled; });
+    const auto useSource5 = anySourceEnabled && chipper::nativeSourceCountForMode(preset.chip) >= 5u;
+    const auto useSource6 = anySourceEnabled && chipper::nativeSourceCountForMode(preset.chip) >= 6u;
+    options.sourceEnabled = {
+        preset.sourceEnabled[0],
+        preset.sourceEnabled[1],
+        preset.sourceEnabled[2],
+        preset.sourceEnabled[3],
+        useSource5,
+        useSource6
+    };
+    options.sourceProvided = { true, true, true, true, true, true };
+    options.sourceLevels = { preset.source1Level, preset.source2Level, preset.source3Level, preset.source4Level, 1.0f, 1.0f };
+    options.sourceLevelProvided = { true, true, true, true, true, true };
     options.stereoSpread = preset.stereoSpread;
     options.stereoSpreadProvided = true;
     options.envelopeDecay = preset.envelopeDecay;
@@ -968,6 +978,18 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.sourceProvided[3] = true;
         }
+        else if (arg == "--source5")
+        {
+            if (! parseToggle("--source5", options.sourceEnabled[4]))
+                return false;
+            options.sourceProvided[4] = true;
+        }
+        else if (arg == "--source6")
+        {
+            if (! parseToggle("--source6", options.sourceEnabled[5]))
+                return false;
+            options.sourceProvided[5] = true;
+        }
         else if (arg == "--level1")
         {
             const auto* value = requireValue("--level1");
@@ -995,6 +1017,20 @@ bool parseArgs(int argc, char** argv, Options& options)
             if (value == nullptr || ! parseNumber(std::string(value), options.sourceLevels[3]))
                 return false;
             options.sourceLevelProvided[3] = true;
+        }
+        else if (arg == "--level5")
+        {
+            const auto* value = requireValue("--level5");
+            if (value == nullptr || ! parseNumber(std::string(value), options.sourceLevels[4]))
+                return false;
+            options.sourceLevelProvided[4] = true;
+        }
+        else if (arg == "--level6")
+        {
+            const auto* value = requireValue("--level6");
+            if (value == nullptr || ! parseNumber(std::string(value), options.sourceLevels[5]))
+                return false;
+            options.sourceLevelProvided[5] = true;
         }
         else if (arg == "--envelope-decay" || arg == "--sid-adsr-speed")
         {
@@ -1361,6 +1397,16 @@ void applyMacroTemplateDefaults(Options& options)
             *controls[i] = templ.controls[i];
         if (! options.sourceProvided[i])
             options.sourceEnabled[i] = templ.sourceEnabled[i];
+        if (! options.sourceLevelProvided[i])
+            options.sourceLevels[i] = 1.0f;
+    }
+    const auto anyResolvedVisibleSourceEnabled = std::any_of(options.sourceEnabled.begin(),
+                                                            options.sourceEnabled.begin() + 4,
+                                                            [](bool enabled) { return enabled; });
+    for (size_t i = 4; i < options.sourceEnabled.size(); ++i)
+    {
+        if (! options.sourceProvided[i])
+            options.sourceEnabled[i] = anyResolvedVisibleSourceEnabled && chipper::nativeSourceCountForMode(options.chip) > i;
         if (! options.sourceLevelProvided[i])
             options.sourceLevels[i] = 1.0f;
     }

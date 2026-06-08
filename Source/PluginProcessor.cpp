@@ -661,6 +661,11 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
         setPlainParameterValue(sourceIds[i], templ.sourceEnabled[i] ? 1.0f : 0.0f);
     for (size_t i = 0; i < sourceLevelIds.size(); ++i)
         setPlainParameterValue(sourceLevelIds[i], 1.0f);
+    const auto anyTemplateSourceEnabled = std::any_of(templ.sourceEnabled.begin(), templ.sourceEnabled.end(), [](bool enabled) { return enabled; });
+    setPlainParameterValue(chipper::parameters::id::source5Enabled, anyTemplateSourceEnabled && chipper::nativeSourceCountForMode(mode) >= 5u ? 1.0f : 0.0f);
+    setPlainParameterValue(chipper::parameters::id::source6Enabled, anyTemplateSourceEnabled && chipper::nativeSourceCountForMode(mode) >= 6u ? 1.0f : 0.0f);
+    setPlainParameterValue(chipper::parameters::id::source5Level, 1.0f);
+    setPlainParameterValue(chipper::parameters::id::source6Level, 1.0f);
 
     setPlainParameterValue(chipper::parameters::id::envelopeDecay, templ.envelopeDecay);
     setPlainParameterValue(chipper::parameters::id::sidAttack, 0.0f);
@@ -896,13 +901,17 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
             apvts.getRawParameterValue(chipper::parameters::id::source1Enabled)->load() >= 0.5f,
             apvts.getRawParameterValue(chipper::parameters::id::source2Enabled)->load() >= 0.5f,
             apvts.getRawParameterValue(chipper::parameters::id::source3Enabled)->load() >= 0.5f,
-            apvts.getRawParameterValue(chipper::parameters::id::source4Enabled)->load() >= 0.5f
+            apvts.getRawParameterValue(chipper::parameters::id::source4Enabled)->load() >= 0.5f,
+            apvts.getRawParameterValue(chipper::parameters::id::source5Enabled)->load() >= 0.5f,
+            apvts.getRawParameterValue(chipper::parameters::id::source6Enabled)->load() >= 0.5f
         },
         {
             apvts.getRawParameterValue(chipper::parameters::id::source1Level)->load(),
             apvts.getRawParameterValue(chipper::parameters::id::source2Level)->load(),
             apvts.getRawParameterValue(chipper::parameters::id::source3Level)->load(),
-            apvts.getRawParameterValue(chipper::parameters::id::source4Level)->load()
+            apvts.getRawParameterValue(chipper::parameters::id::source4Level)->load(),
+            apvts.getRawParameterValue(chipper::parameters::id::source5Level)->load(),
+            apvts.getRawParameterValue(chipper::parameters::id::source6Level)->load()
         },
         apvts.getRawParameterValue(chipper::parameters::id::stereoSpread)->load(),
         apvts.getRawParameterValue(chipper::parameters::id::envelopeDecay)->load(),

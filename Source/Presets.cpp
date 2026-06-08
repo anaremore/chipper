@@ -3120,6 +3120,10 @@ const PresetInfo* presetById(std::string_view idOrName)
 
 PatchConfig patchConfigForPreset(const PresetInfo& preset)
 {
+    const auto anySourceEnabled = std::any_of(preset.sourceEnabled.begin(), preset.sourceEnabled.end(), [](bool enabled) { return enabled; });
+    const auto useSource5 = anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 5u;
+    const auto useSource6 = anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 6u;
+
     return makePatchConfig(preset.chip,
                            preset.macro,
                            preset.controls[0],
@@ -3127,8 +3131,15 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                            preset.controls[2],
                            preset.controls[3],
                            preset.playMode,
-                           preset.sourceEnabled,
-                           { preset.source1Level, preset.source2Level, preset.source3Level, preset.source4Level },
+                           {
+                               preset.sourceEnabled[0],
+                               preset.sourceEnabled[1],
+                               preset.sourceEnabled[2],
+                               preset.sourceEnabled[3],
+                               useSource5,
+                               useSource6
+                           },
+                           { preset.source1Level, preset.source2Level, preset.source3Level, preset.source4Level, 1.0f, 1.0f },
                            preset.stereoSpread,
                            preset.envelopeDecay,
                            preset.waveShape,
