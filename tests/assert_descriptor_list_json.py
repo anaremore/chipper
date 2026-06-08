@@ -9,6 +9,7 @@ def main() -> int:
     parser.add_argument("--schema", default="chipper.descriptors.v1")
     parser.add_argument("--chip-count", type=int)
     parser.add_argument("--chip", action="append", default=[], metavar="KEY")
+    parser.add_argument("--preset-count", action="append", default=[], metavar="KEY=COUNT")
     parser.add_argument("--implemented", action="append", default=[], metavar="KEY=0|1")
     parser.add_argument("--verification-badge", action="append", default=[], metavar="KEY=BADGE")
     parser.add_argument("--verification-cycle", action="append", default=[], metavar="KEY=0|1")
@@ -54,6 +55,32 @@ def main() -> int:
     for chip in args.chip:
         if chip not in descriptors:
             failures.append(f"chip {chip!r} not found")
+
+    for chip, descriptor in descriptors.items():
+        descriptor_presets = descriptor.get("presets", [])
+        if not isinstance(descriptor_presets, list):
+            failures.append(f"{chip}.presets expected a list, got {type(descriptor_presets).__name__}")
+            continue
+        actual = descriptor.get("presetCount")
+        if actual != len(descriptor_presets):
+            failures.append(f"{chip}.presetCount expected {len(descriptor_presets)}, got {actual!r}")
+
+    for assertion in args.preset_count:
+        chip, _, expected_text = assertion.partition("=")
+        if not chip or not expected_text:
+            failures.append(f"bad preset count assertion {assertion!r}")
+            continue
+        if chip not in descriptors:
+            failures.append(f"chip {chip!r} not found for assertion {assertion!r}")
+            continue
+        try:
+            expected = int(expected_text)
+        except ValueError:
+            failures.append(f"bad preset count value {assertion!r}")
+            continue
+        actual = descriptors[chip].get("presetCount")
+        if actual != expected:
+            failures.append(f"{chip}.presetCount expected {expected}, got {actual!r}")
 
     for preset in args.preset:
         if preset not in presets:

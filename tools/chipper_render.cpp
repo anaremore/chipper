@@ -1689,6 +1689,7 @@ void writeDescriptorJson(std::ostream& out, chipper::ChipMode mode)
         << "    \"summary\": ";
     writeJsonString(out, descriptor.summary);
     out << ",\n"
+        << "    \"presetCount\": " << presets.size() << ",\n"
         << "    \"implemented\": " << (descriptor.implemented ? "true" : "false") << ",\n"
         << "    \"supportsChipPoly\": " << (descriptor.supportsChipPoly ? "true" : "false") << ",\n"
         << "    \"verification\": {\n"
