@@ -121,6 +121,8 @@ struct Options
     int note = 69;
     std::filesystem::path eventFile;
     std::filesystem::path nesDmcSamplePath;
+    std::filesystem::path spc700BrrSamplePath;
+    std::string spc700BrrHex;
     int nesDmcRateIndex = 15;
     std::filesystem::path wavPath = "chipper-render.wav";
     std::filesystem::path debugPath = "chipper-render.json";
@@ -706,7 +708,7 @@ void printUsage()
         << "       Metadata: chipper_render --list-presets [--chip sid] --debug presets.json\n"
         << "                 chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opn2-envelope follow|pluck|lead|pad|perc --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --spc700-brr-sample path.brr --spc700-brr-hex 017f... --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opn2-envelope follow|pluck|lead|pad|perc --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -1171,6 +1173,20 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.nesDmcSamplePath = value;
         }
+        else if (arg == "--spc700-brr-sample")
+        {
+            const auto* value = requireValue("--spc700-brr-sample");
+            if (value == nullptr)
+                return false;
+            options.spc700BrrSamplePath = value;
+        }
+        else if (arg == "--spc700-brr-hex")
+        {
+            const auto* value = requireValue("--spc700-brr-hex");
+            if (value == nullptr)
+                return false;
+            options.spc700BrrHex = value;
+        }
         else if (arg == "--dmg-wave-level")
         {
             const auto* value = requireValue("--dmg-wave-level");
@@ -1525,6 +1541,29 @@ std::vector<uint8_t> loadBinaryFile(const std::filesystem::path& path)
         std::istreambuf_iterator<char>(in),
         std::istreambuf_iterator<char>()
     };
+}
+
+std::vector<uint8_t> parseHexBytes(std::string text)
+{
+    text.erase(std::remove_if(text.begin(), text.end(), [](unsigned char c) {
+        return std::isspace(c) != 0 || c == ',' || c == '_' || c == '-';
+    }), text.end());
+
+    if (text.size() % 2u != 0)
+        throw std::runtime_error("Hex byte string must contain an even number of digits");
+
+    std::vector<uint8_t> bytes;
+    bytes.reserve(text.size() / 2u);
+    for (size_t i = 0; i < text.size(); i += 2u)
+    {
+        uint32_t value = 0;
+        const auto chunk = text.substr(i, 2u);
+        if (! parseNumber("0x" + chunk, value) || value > 0xffu)
+            throw std::runtime_error("Bad hex byte near: " + chunk);
+        bytes.push_back(static_cast<uint8_t>(value));
+    }
+
+    return bytes;
 }
 
 void writeU16(std::ofstream& out, uint16_t value)
@@ -2232,6 +2271,10 @@ int main(int argc, char** argv)
         core->reset(options.sampleRate, options.clock);
         if (! options.nesDmcSamplePath.empty())
             core->setExternalSampleData(loadBinaryFile(options.nesDmcSamplePath));
+        if (! options.spc700BrrSamplePath.empty())
+            core->setExternalSampleData(loadBinaryFile(options.spc700BrrSamplePath));
+        if (! options.spc700BrrHex.empty())
+            core->setExternalSampleData(parseHexBytes(options.spc700BrrHex));
         const auto patch = chipper::makePatchConfig(options.chip,
                                                     options.macro,
                                                     options.control1,

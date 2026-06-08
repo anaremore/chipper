@@ -5743,6 +5743,10 @@ public:
         noteVelocity = 0.0f;
         sampleTemplate = 0;
         playbackMode = 1;
+        externalBrrSampleLoaded = false;
+        brrBlockCount = 0;
+        brrEndFlagSeen = false;
+        brrLoopFlagSeen = false;
         echoMemory.fill(0.0);
         echoIndex = 0;
         for (size_t voice = 0; voice < sampleRam.size(); ++voice)
@@ -5756,13 +5760,31 @@ public:
 
         patch = nextPatch;
         const auto nextTemplate = resolvedSampleTemplate();
-        if (nextTemplate != sampleTemplate)
+        if (! externalBrrSampleLoaded && nextTemplate != sampleTemplate)
         {
             sampleTemplate = nextTemplate;
             for (size_t voice = 0; voice < sampleRam.size(); ++voice)
                 seedSample(voice);
         }
         playbackMode = spc700SamplePlaybackModeForPatch(patch);
+    }
+
+    void setExternalSampleData(std::vector<uint8_t> data) override
+    {
+        externalBrrSampleLoaded = false;
+        brrBlockCount = 0;
+        brrEndFlagSeen = false;
+        brrLoopFlagSeen = false;
+
+        const auto decoded = decodeBrrSample(data);
+        if (decoded.empty())
+            return;
+
+        externalBrrSampleLoaded = true;
+        for (size_t voice = 0; voice < sampleRam.size(); ++voice)
+            sampleRam[voice] = decoded;
+        sampleTemplate = 0;
+        position.fill(0.0);
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -5933,7 +5955,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room sample-voice model"; }
     std::string limitations() const override
     {
-        return "Eight lo-fi sample voices, pitch, volume, loop/one-shot playback state, simplified ADSR/gain state, generated sample templates, Gaussian-style 4-tap sample interpolation, and a musical echo-color helper are modeled; BRR decoding, exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, BRR end/loop flag parsing, noise, FIR echo, sample directory addressing, and hardware validation are not complete.";
+        return "Eight lo-fi sample voices, pitch, volume, loop/one-shot playback state, simplified ADSR/gain state, generated sample templates, clean-room BRR block decoding for renderer-loaded samples, Gaussian-style 4-tap sample interpolation, and a musical echo-color helper are modeled; exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, BRR loop-address behavior, noise, FIR echo, sample directory addressing, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -5948,6 +5970,10 @@ public:
              << "\"waveShapeChoice\":" << static_cast<int>(sampleTemplate) << ","
              << "\"samplePlaybackMode\":" << static_cast<int>(playbackMode) << ","
              << "\"sampleLoopEnabled\":" << (playbackMode == 1u ? 1 : 0) << ","
+             << "\"externalBrrSampleLoaded\":" << (externalBrrSampleLoaded ? 1 : 0) << ","
+             << "\"brrBlockCount\":" << brrBlockCount << ","
+             << "\"brrEndFlagSeen\":" << (brrEndFlagSeen ? 1 : 0) << ","
+             << "\"brrLoopFlagSeen\":" << (brrLoopFlagSeen ? 1 : 0) << ","
              << "\"pitch0\":" << pitch[0] << ","
              << "\"pitch1\":" << pitch[1] << ","
              << "\"pitch2\":" << pitch[2] << ","
@@ -6023,6 +6049,9 @@ private:
 
     void seedSample(size_t voice)
     {
+        if (externalBrrSampleLoaded)
+            return;
+
         auto data = std::vector<double>(64, 0.0);
         const auto choice = sampleTemplate == 0 ? resolvedSampleTemplate() : sampleTemplate;
         for (size_t i = 0; i < data.size(); ++i)
@@ -6046,6 +6075,68 @@ private:
             data[i] = std::clamp(std::round(sample * 127.0) / 127.0, -1.0, 1.0);
         }
         sampleRam[voice] = std::move(data);
+    }
+
+    std::vector<double> decodeBrrSample(const std::vector<uint8_t>& data)
+    {
+        std::vector<double> decoded;
+        if (data.size() < 9u)
+            return decoded;
+
+        brrBlockCount = data.size() / 9u;
+        decoded.reserve(brrBlockCount * 16u);
+        auto previous1 = 0;
+        auto previous2 = 0;
+
+        for (size_t block = 0; block < brrBlockCount; ++block)
+        {
+            const auto offset = block * 9u;
+            const auto header = data[offset];
+            const auto range = static_cast<int>((header >> 4u) & 0x0fu);
+            const auto filter = static_cast<int>((header >> 2u) & 0x03u);
+            brrEndFlagSeen = brrEndFlagSeen || ((header & 0x01u) != 0);
+            brrLoopFlagSeen = brrLoopFlagSeen || ((header & 0x02u) != 0);
+
+            for (size_t packedIndex = 0; packedIndex < 8u; ++packedIndex)
+            {
+                const auto packed = data[offset + 1u + packedIndex];
+                for (const auto nibble : { static_cast<uint8_t>(packed >> 4u), static_cast<uint8_t>(packed & 0x0fu) })
+                {
+                    auto sample = (nibble >= 8u ? static_cast<int>(nibble) - 16 : static_cast<int>(nibble));
+                    if (range <= 12)
+                        sample <<= range;
+                    else
+                        sample = sample < 0 ? -2048 : 0;
+
+                    auto predicted = sample;
+                    switch (filter)
+                    {
+                        case 1:
+                            predicted += (previous1 * 15) / 16;
+                            break;
+                        case 2:
+                            predicted += ((previous1 * 61) / 32) - ((previous2 * 15) / 16);
+                            break;
+                        case 3:
+                            predicted += ((previous1 * 115) / 64) - ((previous2 * 13) / 16);
+                            break;
+                        case 0:
+                        default:
+                            break;
+                    }
+
+                    predicted = std::clamp(predicted, -32768, 32767);
+                    previous2 = previous1;
+                    previous1 = predicted;
+                    decoded.push_back(static_cast<double>(predicted) / 32768.0);
+                }
+            }
+
+            if ((header & 0x01u) != 0)
+                break;
+        }
+
+        return decoded;
     }
 
     void triggerVoice(size_t voice, int midiNote, float velocity, bool shouldEnable)
@@ -6207,6 +6298,10 @@ private:
     uint8_t keyOnMask = 0;
     uint8_t sampleTemplate = 0;
     uint8_t playbackMode = 1;
+    bool externalBrrSampleLoaded = false;
+    size_t brrBlockCount = 0;
+    bool brrEndFlagSeen = false;
+    bool brrLoopFlagSeen = false;
     std::array<std::vector<double>, 8> sampleRam {};
     std::array<double, 8> position {};
     std::array<double, 8> envelope {};

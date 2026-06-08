@@ -59,12 +59,12 @@ Checked 2026-06-07:
    - Keep only the first four voices visible in compact mode if needed, with a clear 1-8 voice selector/page.
 
 2. **BRR Playback Path**
-   - Add `.brr` file loading and a renderer fixture.
-   - Implement clean-room BRR decode or integrate an audited compatible core.
-   - Add tests for block decode, loop flag behavior, end flag behavior, and decoded output levels.
+   - Done first pass: renderer can feed `.brr` bytes or inline BRR hex into the clean-room SPC700 sample voice model.
+   - Done first pass: clean-room BRR block decode covers range, filter, end flag, loop flag metadata, and decoded output levels in regression tests.
+   - Remaining: BRR loop-address behavior, sample table/addressing, exact S-DSP interpolation table behavior, and comparison against trusted emulator output.
 
 3. **Directory Sample Bank**
-   - Load a directory of `.brr` files first.
+   - Load a directory of `.brr` files first, using the renderer BRR decode path as the engine foundation.
    - Add optional WAV/AIFF discovery later, with conversion preview and clear "converted to BRR" status.
    - Add MIDI CC/sample-slot mapping with a finite bank selection model, matching the NES DMC sample-bank pattern.
 
