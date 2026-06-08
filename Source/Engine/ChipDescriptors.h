@@ -3,6 +3,7 @@
 #include "Engine/ChipCore.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -175,6 +176,9 @@ const MacroTemplate& macroTemplateFor(ChipMode mode, MacroKind macro);
 const ChipParameterSpec* parameterSpecFor(ChipMode mode, ChipParameterRole role);
 bool chipHasParameterSurface(ChipMode mode, ChipParameterRole role, ControlSurface surface);
 bool supportsPlayMode(ChipMode mode, PlayMode playMode);
+size_t visibleSourceCountForMode(ChipMode mode);
+size_t nativeSourceCountForMode(ChipMode mode);
+bool hasInternalSourceLanes(ChipMode mode);
 std::vector<ChipMode> chipModeOrder();
 std::vector<MacroKind> macroOrder();
 PatchConfig makePatchConfig(ChipMode mode,

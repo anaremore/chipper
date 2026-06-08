@@ -585,27 +585,6 @@ ChipWaveformPreviewShape wavetablePreviewShape(const chipper::PatchConfig& patch
     }
 }
 
-size_t visibleSourceCardCount(chipper::ChipMode mode)
-{
-    return mode == chipper::ChipMode::sid ? size_t { 3u } : size_t { 4u };
-}
-
-size_t nativeSourceCount(chipper::ChipMode mode)
-{
-    switch (mode)
-    {
-        case chipper::ChipMode::sid: return 3u;
-        case chipper::ChipMode::spc700: return 8u;
-        case chipper::ChipMode::huc6280: return 6u;
-        case chipper::ChipMode::namcoWsg: return 8u;
-        case chipper::ChipMode::ym2612: return 6u;
-        case chipper::ChipMode::ym2151: return 8u;
-        case chipper::ChipMode::ym2413: return 9u;
-        case chipper::ChipMode::scc: return 5u;
-        default: return visibleSourceCardCount(mode);
-    }
-}
-
 template <typename ButtonArray>
 void layoutSegmentedButtons(ButtonArray& buttons, juce::Rectangle<int> bounds, size_t visibleCount)
 {
@@ -2048,7 +2027,7 @@ void ChipperAudioProcessorEditor::resized()
         sourcePanel.removeFromTop(4);
 
     const auto sourceGap = 6;
-    const auto visibleSourceCards = visibleSourceCardCount(displayedMode);
+    const auto visibleSourceCards = chipper::visibleSourceCountForMode(displayedMode);
     const auto sourceCardWidth = (sourcePanel.getWidth() - (sourceGap * static_cast<int>(visibleSourceCards - 1u))) / static_cast<int>(visibleSourceCards);
     const auto sourceCardHeight = sourcePanel.getHeight();
     for (size_t i = 0; i < sourceChannelBounds.size(); ++i)
@@ -3158,38 +3137,49 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
 {
     const auto& templ = chipper::macroTemplateFor(mode, patch.macro);
     const auto label = templ.label.empty() ? juce::String(chipper::toString(patch.macro)) : juce::String(templ.label);
+    const auto laneText = sourceLaneExposureReadout(mode);
 
     if (! chipper::descriptorFor(mode).implemented)
         return label + ": " + juce::String(templ.help) + " Audio core not integrated yet.";
 
     if (mode == chipper::ChipMode::nes)
-        return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | " + nesNoiseModeReadout(patch) + " | " + nesFocusReadout(patch.control4);
+        return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | " + nesNoiseModeReadout(patch) + " | " + nesFocusReadout(patch.control4) + laneText;
 
     if (mode == chipper::ChipMode::dmg)
-        return label + " -> " + pulseDutyReadout(mode, patch.control1) + " | " + dmgWaveLevelReadout(patch) + " | " + dmgStereoRouteReadout(patch);
+        return label + " -> " + pulseDutyReadout(mode, patch.control1) + " | " + dmgWaveLevelReadout(patch) + " | " + dmgStereoRouteReadout(patch) + laneText;
 
     if (mode == chipper::ChipMode::ym2149)
-        return label + " -> " + ymSpreadReadout(patch.control1) + " | " + ymNoiseReadout(patch.control3) + " | " + ymChannelMixReadout(patch);
+        return label + " -> " + ymSpreadReadout(patch.control1) + " | " + ymNoiseReadout(patch.control3) + " | " + ymChannelMixReadout(patch) + laneText;
 
     if (mode == chipper::ChipMode::sn76489)
-        return label + " -> " + snStackReadout(patch.control1) + " | " + snNoiseModeReadout(patch) + " | " + snLevelReadout(patch.control4);
+        return label + " -> " + snStackReadout(patch.control1) + " | " + snNoiseModeReadout(patch) + " | " + snLevelReadout(patch.control4) + laneText;
 
     if (mode == chipper::ChipMode::sid)
-        return label + " -> " + sidModelReadout(patch) + " | " + sidVoiceWaveSummary(patch) + " | " + sidFilterModeReadout(patch) + " | " + sidModModeReadout(patch);
+        return label + " -> " + sidModelReadout(patch) + " | " + sidVoiceWaveSummary(patch) + " | " + sidFilterModeReadout(patch) + " | " + sidModModeReadout(patch) + laneText;
 
     if (mode == chipper::ChipMode::pokey)
-        return label + " -> " + pokeyRegisterReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape);
+        return label + " -> " + pokeyRegisterReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
     if (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
-        return label + " -> " + sampleChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape);
+        return label + " -> " + sampleChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
     if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
-        return label + " -> " + wavetableChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape);
+        return label + " -> " + wavetableChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
     if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413)
-        return label + " -> " + fmChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape);
+        return label + " -> " + fmChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
-    return label + ": " + juce::String(templ.help);
+    return label + ": " + juce::String(templ.help) + laneText;
+}
+
+juce::String ChipperAudioProcessorEditor::sourceLaneExposureReadout(chipper::ChipMode mode) const
+{
+    if (! chipper::hasInternalSourceLanes(mode))
+        return {};
+
+    const auto visible = static_cast<int>(chipper::visibleSourceCountForMode(mode));
+    const auto native = static_cast<int>(chipper::nativeSourceCountForMode(mode));
+    return " | lanes " + juce::String(visible) + "/" + juce::String(native) + " shown; extras in stack presets";
 }
 
 juce::String ChipperAudioProcessorEditor::pulseDutyReadout(chipper::ChipMode mode, float value) const
@@ -5550,8 +5540,8 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         auto summary = juce::String(module.summary);
         if (i == 1 && hasLiveCore && usesSourceChannelSurface(mode))
         {
-            const auto visibleCount = visibleSourceCardCount(mode);
-            const auto nativeCount = nativeSourceCount(mode);
+            const auto visibleCount = chipper::visibleSourceCountForMode(mode);
+            const auto nativeCount = chipper::nativeSourceCountForMode(mode);
             if (nativeCount > visibleCount)
             {
                 summary = "Showing first " + juce::String(static_cast<int>(visibleCount))

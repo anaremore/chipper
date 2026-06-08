@@ -139,6 +139,16 @@ bool expectPresetBrowserCatalog(chipper::ChipMode preferredChip, const std::stri
     return ok;
 }
 
+bool expectSourceLaneCounts(chipper::ChipMode mode, size_t visibleCount, size_t nativeCount)
+{
+    bool ok = true;
+    ok &= expect(chipper::visibleSourceCountForMode(mode) == visibleCount, "unexpected visible source count");
+    ok &= expect(chipper::nativeSourceCountForMode(mode) == nativeCount, "unexpected native source count");
+    ok &= expect(chipper::hasInternalSourceLanes(mode) == (nativeCount > visibleCount),
+                 "internal source lane flag should match native/visible counts");
+    return ok;
+}
+
 bool expectChoiceLabels(chipper::ChipMode mode,
                         chipper::ChipParameterRole role,
                         const std::vector<std::string>& expected,
@@ -706,6 +716,16 @@ int main()
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2151, "opm-arcade-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2413, "opll-ui-chime");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::scc, "scc-arcade-lead");
+    ok &= expectSourceLaneCounts(chipper::ChipMode::nes, 4u, 4u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::sid, 3u, 3u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::spc700, 4u, 8u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::huc6280, 4u, 6u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::namcoWsg, 4u, 8u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::ym2612, 4u, 6u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::ym2151, 4u, 8u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::ym2413, 4u, 9u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::scc, 4u, 5u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::paula, 4u, 4u);
 
     ok &= expect(chipper::chipHasParameterSurface(chipper::ChipMode::ym2149,
                                                   chipper::ChipParameterRole::source1Enabled,

@@ -2204,6 +2204,32 @@ bool supportsPlayMode(ChipMode mode, PlayMode playMode)
     return false;
 }
 
+size_t visibleSourceCountForMode(ChipMode mode)
+{
+    return mode == ChipMode::sid ? size_t { 3u } : size_t { 4u };
+}
+
+size_t nativeSourceCountForMode(ChipMode mode)
+{
+    switch (mode)
+    {
+        case ChipMode::sid: return 3u;
+        case ChipMode::spc700: return 8u;
+        case ChipMode::huc6280: return 6u;
+        case ChipMode::namcoWsg: return 8u;
+        case ChipMode::ym2612: return 6u;
+        case ChipMode::ym2151: return 8u;
+        case ChipMode::ym2413: return 9u;
+        case ChipMode::scc: return 5u;
+        default: return visibleSourceCountForMode(mode);
+    }
+}
+
+bool hasInternalSourceLanes(ChipMode mode)
+{
+    return nativeSourceCountForMode(mode) > visibleSourceCountForMode(mode);
+}
+
 std::vector<ChipMode> chipModeOrder()
 {
     std::vector<ChipMode> modes;

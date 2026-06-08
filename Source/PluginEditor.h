@@ -172,6 +172,7 @@ private:
     bool usesSnNoiseModeSegment(chipper::ChipMode mode) const;
     bool usesToneNoiseMixSegment(chipper::ChipMode mode) const;
     juce::String macroTemplateReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
+    juce::String sourceLaneExposureReadout(chipper::ChipMode mode) const;
     juce::String pulseDutyReadout(chipper::ChipMode mode, float value) const;
     juce::String pulse2DutyReadout(const chipper::PatchConfig& patch) const;
     juce::String waveShapeReadout(chipper::ChipMode mode, int choice) const;
