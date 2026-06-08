@@ -685,9 +685,30 @@ add_test(NAME chipper_render_list_descriptors_smoke
 add_test(NAME chipper_render_list_presets_smoke
     COMMAND chipper_render --list-presets --debug chipper-presets.json
 )
-add_test(NAME chipper_render_list_ym2612_presets_smoke
-    COMMAND chipper_render --list-presets --chip ym2612 --debug chipper-ym2612-presets.json
+set(CHIPPER_PRESET_CHIP_MINIMUMS
+    nes:11
+    dmg:9
+    sid:18
+    ym2149:9
+    sn76489:9
+    ym2612:9
+    opl3:9
+    ym2151:9
+    spc700:7
+    pokey:7
+    paula:7
+    huc6280:7
+    namcoWsg:7
+    ym2413:9
+    scc:7
 )
+foreach(chipper_preset_chip_minimum IN LISTS CHIPPER_PRESET_CHIP_MINIMUMS)
+    string(REPLACE ":" ";" chipper_preset_chip_parts "${chipper_preset_chip_minimum}")
+    list(GET chipper_preset_chip_parts 0 chipper_preset_chip)
+    add_test(NAME chipper_render_list_${chipper_preset_chip}_presets_smoke
+        COMMAND chipper_render --list-presets --chip ${chipper_preset_chip} --debug chipper-${chipper_preset_chip}-presets.json
+    )
+endforeach()
 add_test(NAME chipper_render_describe_nes_smoke
     COMMAND chipper_render --describe-chip nes --debug nes-descriptor.json
 )
@@ -713,10 +734,15 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_list_presets_assert PROPERTIES DEPENDS chipper_render_list_presets_smoke)
 
-    add_test(NAME chipper_render_list_ym2612_presets_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_preset_catalog_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-ym2612-presets.json --only-chip ym2612 --min-presets 9 --min-per-chip 9
-    )
-    set_tests_properties(chipper_render_list_ym2612_presets_assert PROPERTIES DEPENDS chipper_render_list_ym2612_presets_smoke)
+    foreach(chipper_preset_chip_minimum IN LISTS CHIPPER_PRESET_CHIP_MINIMUMS)
+        string(REPLACE ":" ";" chipper_preset_chip_parts "${chipper_preset_chip_minimum}")
+        list(GET chipper_preset_chip_parts 0 chipper_preset_chip)
+        list(GET chipper_preset_chip_parts 1 chipper_preset_minimum)
+        add_test(NAME chipper_render_list_${chipper_preset_chip}_presets_assert
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_preset_catalog_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-${chipper_preset_chip}-presets.json --only-chip ${chipper_preset_chip} --min-presets ${chipper_preset_minimum} --min-per-chip ${chipper_preset_minimum}
+        )
+        set_tests_properties(chipper_render_list_${chipper_preset_chip}_presets_assert PROPERTIES DEPENDS chipper_render_list_${chipper_preset_chip}_presets_smoke)
+    endforeach()
 
     add_test(NAME chipper_render_list_macro_catalog_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --macro-label "nes:Coin=NES Coin Blip" --macro-label "dmg:Power-Up=DMG Power-Up" --macro-label "sid:Laser=SID Sync Sweep" --macro-label "ym2149:Arp=YM Three-Voice Arp" --macro-label "sn76489:Manual=PSG Manual" --macro-label "sn76489:Drum=PSG Drum" --preset nes-triangle-bass --preset nes-noise-snare --preset nes-coin-blip --preset dmg-pocket-arp --preset dmg-noise-hat --preset dmg-pulse-lead --preset dmg-wave-glass --preset dmg-noise-kick --preset dmg-split-chord --preset sid-wide-pwm-pad --preset sid-hard-sync-saw --preset sid-gated-noise-tom --preset sn-psg-lead --preset sn-psg-coin
