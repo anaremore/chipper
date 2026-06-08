@@ -2689,9 +2689,10 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
     }
     else
     {
+        const auto presetCount = static_cast<int>(displayedPresets.size());
         presetBox.setSelectedId(0, juce::dontSendNotification);
-        presetBox.setTextWhenNothingSelected("Browse " + juce::String(chipper::toString(mode)) + " Presets");
-        presetBox.setTooltip("Browse factory presets for the selected chip mode. Choosing one applies the sound immediately.");
+        presetBox.setTextWhenNothingSelected(juce::String(presetCount) + " Factory Presets");
+        presetBox.setTooltip("Browse " + juce::String(presetCount) + " " + juce::String(chipper::toString(mode)) + " factory presets. Choosing one applies the sound immediately.");
     }
 }
 
@@ -2901,8 +2902,9 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
 
     const juce::ScopedValueSetter<bool> suppressPreset(suppressPresetApply, true);
     presetBox.setSelectedId(0, juce::dontSendNotification);
-    presetBox.setTextWhenNothingSelected("Browse " + juce::String(chipper::toString(mode)) + " Presets");
-    presetBox.setTooltip("Browse factory presets for the selected chip mode. Choosing one applies the sound immediately.");
+    const auto presetCount = static_cast<int>(displayedPresets.size());
+    presetBox.setTextWhenNothingSelected(juce::String(presetCount) + " Factory Presets");
+    presetBox.setTooltip("Browse " + juce::String(presetCount) + " " + juce::String(chipper::toString(mode)) + " factory presets. Choosing one applies the sound immediately.");
 
     updateLiveControlReadouts();
 }
