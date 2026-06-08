@@ -1690,6 +1690,11 @@ void writeDescriptorJson(std::ostream& out, chipper::ChipMode mode)
     writeJsonString(out, descriptor.summary);
     out << ",\n"
         << "    \"presetCount\": " << presets.size() << ",\n"
+        << "    \"sourceLanes\": {\n"
+        << "      \"visible\": " << chipper::visibleSourceCountForMode(mode) << ",\n"
+        << "      \"native\": " << chipper::nativeSourceCountForMode(mode) << ",\n"
+        << "      \"hasInternal\": " << (chipper::hasInternalSourceLanes(mode) ? "true" : "false") << "\n"
+        << "    },\n"
         << "    \"implemented\": " << (descriptor.implemented ? "true" : "false") << ",\n"
         << "    \"supportsChipPoly\": " << (descriptor.supportsChipPoly ? "true" : "false") << ",\n"
         << "    \"verification\": {\n"

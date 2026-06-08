@@ -18,6 +18,7 @@ def main() -> int:
     parser.add_argument("--param-kind", action="append", default=[], metavar="KEY:ROLE=KIND")
     parser.add_argument("--param-choices", action="append", default=[], metavar="KEY:ROLE=COUNT")
     parser.add_argument("--param-midi-cc", action="append", default=[], metavar="KEY:ROLE=CC")
+    parser.add_argument("--source-lanes", action="append", default=[], metavar="KEY=VISIBLE/NATIVE")
     parser.add_argument("--midi-cc-count", type=int)
     parser.add_argument("--midi-cc", action="append", default=[], metavar="CC=PARAMETER_ID")
     parser.add_argument("--macro-label", action="append", default=[], metavar="KEY:MACRO=LABEL")
@@ -81,6 +82,37 @@ def main() -> int:
         actual = descriptors[chip].get("presetCount")
         if actual != expected:
             failures.append(f"{chip}.presetCount expected {expected}, got {actual!r}")
+
+    for assertion in args.source_lanes:
+        chip, _, expected_text = assertion.partition("=")
+        if not chip or not expected_text:
+            failures.append(f"bad source lanes assertion {assertion!r}")
+            continue
+        if chip not in descriptors:
+            failures.append(f"chip {chip!r} not found for assertion {assertion!r}")
+            continue
+        visible_text, _, native_text = expected_text.partition("/")
+        if not visible_text or not native_text:
+            failures.append(f"bad source lanes value {assertion!r}")
+            continue
+        try:
+            expected_visible = int(visible_text)
+            expected_native = int(native_text)
+        except ValueError:
+            failures.append(f"bad source lanes count {assertion!r}")
+            continue
+        source_lanes = descriptors[chip].get("sourceLanes", {})
+        actual_visible = source_lanes.get("visible")
+        actual_native = source_lanes.get("native")
+        actual_internal = bool(source_lanes.get("hasInternal", False))
+        expected_internal = expected_native > expected_visible
+        if actual_visible != expected_visible or actual_native != expected_native:
+            failures.append(
+                f"{chip}.sourceLanes expected {expected_visible}/{expected_native}, "
+                f"got {actual_visible!r}/{actual_native!r}"
+            )
+        if actual_internal != expected_internal:
+            failures.append(f"{chip}.sourceLanes.hasInternal expected {expected_internal}, got {actual_internal}")
 
     for preset in args.preset:
         if preset not in presets:
