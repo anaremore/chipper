@@ -55,8 +55,8 @@ EXPECTED_CATEGORY_PREFIXES = {
 def main() -> int:
     parser = argparse.ArgumentParser(description="Assert factory preset catalog metadata quality.")
     parser.add_argument("path")
-    parser.add_argument("--min-presets", type=int, default=35)
-    parser.add_argument("--min-per-chip", type=int, default=4)
+    parser.add_argument("--min-presets", type=int, default=80)
+    parser.add_argument("--min-per-chip", type=int, default=6)
     args = parser.parse_args()
 
     with open(args.path, "r", encoding="utf-8") as handle:
