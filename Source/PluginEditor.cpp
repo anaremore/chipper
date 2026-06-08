@@ -1894,6 +1894,22 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(button);
     }
 
+    dmgStereoRouteBox.setVisible(false);
+    dmgStereoRouteBox.setTooltip(withMidiCcForRole("SPC700-style sample playback mode.", chipper::ChipParameterRole::dmgStereoRoute));
+    dmgStereoRouteBox.onChange = [this]()
+    {
+        if (suppressManualChoiceCallbacks)
+            return;
+
+        const auto selected = dmgStereoRouteBox.getSelectedId() - 1;
+        if (selected >= 0)
+        {
+            setChoiceParameterFromUi(chipper::parameters::id::dmgStereoRoute, selected);
+            updateLiveControlReadouts();
+        }
+    };
+    addAndMakeVisible(dmgStereoRouteBox);
+
     ymEnvelopeShapeLabel.setText("Envelope Shape", juce::dontSendNotification);
     ymEnvelopeShapeLabel.setJustificationType(juce::Justification::centredLeft);
     ymEnvelopeShapeLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
@@ -2900,8 +2916,19 @@ void ChipperAudioProcessorEditor::placeDmgWaveLevelSegment(juce::Rectangle<int> 
 void ChipperAudioProcessorEditor::placeDmgStereoRouteSegment(juce::Rectangle<int> bounds)
 {
     dmgStereoRouteLabel.setBounds(bounds.removeFromTop(18));
-    dmgStereoRouteSegmentBounds = bounds.removeFromTop(28).reduced(0, 1);
-    layoutSegmentedButtons(dmgStereoRouteButtons, dmgStereoRouteSegmentBounds, dmgStereoRouteButtons.size());
+    if (displayedMode == chipper::ChipMode::spc700)
+    {
+        dmgStereoRouteBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
+        dmgStereoRouteSegmentBounds = {};
+        for (auto& button : dmgStereoRouteButtons)
+            button.setBounds({});
+    }
+    else
+    {
+        dmgStereoRouteSegmentBounds = bounds.removeFromTop(28).reduced(0, 1);
+        layoutSegmentedButtons(dmgStereoRouteButtons, dmgStereoRouteSegmentBounds, dmgStereoRouteButtons.size());
+        dmgStereoRouteBox.setBounds({});
+    }
 
     dmgStereoRouteValueLabel.setBounds(bounds);
 }
@@ -3191,6 +3218,9 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
         dmgStereoRouteLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         dmgStereoRouteValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         applyChoices(dmgStereoRouteButtons, spec);
+        dmgStereoRouteBox.clear(juce::dontSendNotification);
+        for (size_t i = 0; i < spec->choices.size(); ++i)
+            dmgStereoRouteBox.addItem(juce::String(spec->choices[i].label), static_cast<int>(i) + 1);
     }
 
     if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::ymEnvelopeShape))
@@ -3559,7 +3589,10 @@ bool ChipperAudioProcessorEditor::usesDmgStereoRouteSegment(chipper::ChipMode mo
 {
     return chipper::chipHasParameterSurface(mode,
                                             chipper::ChipParameterRole::dmgStereoRoute,
-                                            chipper::ControlSurface::segmentedChoice);
+                                            chipper::ControlSurface::segmentedChoice)
+        || chipper::chipHasParameterSurface(mode,
+                                            chipper::ChipParameterRole::dmgStereoRoute,
+                                            chipper::ControlSurface::menu);
 }
 
 bool ChipperAudioProcessorEditor::usesYmEnvelopeShapeSegment(chipper::ChipMode mode) const
@@ -4826,10 +4859,13 @@ void ChipperAudioProcessorEditor::setDmgWaveLevelSegmentVisible(chipper::ChipMod
 void ChipperAudioProcessorEditor::setDmgStereoRouteSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
     const auto active = shouldBeVisible && usesDmgStereoRouteSegment(mode);
+    const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::dmgStereoRoute);
+    const auto usesMenu = active && spec != nullptr && spec->surface == chipper::ControlSurface::menu;
     dmgStereoRouteLabel.setVisible(active);
     dmgStereoRouteValueLabel.setVisible(active);
+    dmgStereoRouteBox.setVisible(usesMenu);
     for (auto& button : dmgStereoRouteButtons)
-        button.setVisible(active);
+        button.setVisible(active && ! usesMenu);
 
     if (active)
     {
@@ -5870,17 +5906,28 @@ void ChipperAudioProcessorEditor::updateDmgWaveLevelButtons(const chipper::Patch
 
 void ChipperAudioProcessorEditor::updateDmgStereoRouteButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible)
 {
+    const juce::ScopedValueSetter<bool> suppressChoices(suppressManualChoiceCallbacks, true);
+
     const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::dmgStereoRoute);
     const auto choiceCount = spec == nullptr || spec->choices.empty()
                                  ? dmgStereoRouteButtons.size()
                                  : std::min(dmgStereoRouteButtons.size(), spec->choices.size());
     const auto selected = static_cast<size_t>(std::clamp(patch.dmgStereoRoute, 0, static_cast<int>(choiceCount - 1u)));
+    const auto menuActive = spec != nullptr && spec->surface == chipper::ControlSurface::menu;
     layoutSegmentedButtons(dmgStereoRouteButtons, dmgStereoRouteSegmentBounds, choiceCount);
     for (size_t i = 0; i < dmgStereoRouteButtons.size(); ++i)
     {
-        const auto visible = shouldBeVisible && i < choiceCount;
+        const auto visible = shouldBeVisible && ! menuActive && i < choiceCount;
         dmgStereoRouteButtons[i].setVisible(visible);
         dmgStereoRouteButtons[i].setToggleState(visible && i == selected, juce::dontSendNotification);
+    }
+
+    dmgStereoRouteBox.setVisible(shouldBeVisible && menuActive);
+    if (menuActive)
+    {
+        dmgStereoRouteBox.setSelectedId(static_cast<int>(selected) + 1, juce::dontSendNotification);
+        if (spec != nullptr)
+            dmgStereoRouteBox.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + spc700SamplePlaybackReadout(patch), spec->role));
     }
 
     dmgStereoRouteValueLabel.setVisible(shouldBeVisible);

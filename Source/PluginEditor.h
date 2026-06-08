@@ -378,6 +378,7 @@ private:
     std::array<juce::Slider, sidVoiceWaveCount> sidVoicePulseWidthSliders;
     std::array<juce::TextButton, dmgWaveLevelCount> dmgWaveLevelButtons;
     std::array<juce::TextButton, dmgStereoRouteCount> dmgStereoRouteButtons;
+    juce::ComboBox dmgStereoRouteBox;
     std::array<juce::TextButton, ymEnvelopeShapeCount> ymEnvelopeShapeButtons;
     juce::ComboBox sidFilterModeBox;
     juce::ComboBox sidFilterRoutingBox;
