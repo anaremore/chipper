@@ -275,5 +275,14 @@ bool sccChannelKeyOnForPatch(const PatchConfig& patch, size_t channel);
 uint8_t namcoWsgVolumeForPatch(const PatchConfig& patch, size_t channel);
 bool namcoWsgChannelEnabledForPatch(const PatchConfig& patch, size_t channel);
 uint8_t wavetableRamSampleForPatch(ChipMode mode, const PatchConfig& patch, size_t channel, size_t sampleIndex);
+uint8_t sampleTemplateForPatch(ChipMode mode, const PatchConfig& patch);
+int8_t generatedSampleValueForPatch(ChipMode mode, const PatchConfig& patch, size_t channel, size_t sampleIndex);
+uint8_t spc700VoiceVolumeForPatch(const PatchConfig& patch, size_t voice, float velocity = 1.0f);
+uint8_t spc700AdsrForPatch(const PatchConfig& patch);
+uint8_t spc700GainForPatch(const PatchConfig& patch);
+bool spc700VoiceEnabledForPatch(const PatchConfig& patch, size_t voice);
+uint8_t paulaChannelVolumeForPatch(const PatchConfig& patch, size_t channel, float velocity = 1.0f);
+bool paulaLoopForPatch(const PatchConfig& patch);
+uint8_t paulaControlForPatch(const PatchConfig& patch, size_t channel, float velocity = 1.0f);
 
 } // namespace chipper

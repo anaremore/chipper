@@ -2,6 +2,7 @@
 #include "Engine/ControlRegistry.h"
 #include "Presets.h"
 
+#include <algorithm>
 #include <array>
 #include <iostream>
 #include <string>
@@ -94,6 +95,42 @@ bool expectPreset(chipper::ChipMode mode, const std::string& presetId)
     ok &= expect(preset->chip == mode, presetId + " is assigned to the wrong chip");
     ok &= expect(! preset->name.empty(), presetId + " should have a user-facing name");
     ok &= expect(! preset->note.empty(), presetId + " should explain the sound");
+    return ok;
+}
+
+bool expectPresetBrowserCatalog(chipper::ChipMode preferredChip, const std::string& firstPresetId)
+{
+    const auto browserPresets = chipper::presetBrowserCatalog(preferredChip);
+    const auto& allPresets = chipper::presetCatalog();
+    bool ok = true;
+
+    ok &= expect(browserPresets.size() == allPresets.size(), "preset browser should expose the full factory catalog");
+    ok &= expect(! browserPresets.empty(), "preset browser should not be empty");
+    if (browserPresets.empty())
+        return false;
+
+    ok &= expect(browserPresets.front() != nullptr && browserPresets.front()->id == firstPresetId,
+                 "preset browser should put the active chip group first");
+
+    std::vector<std::string> ids;
+    ids.reserve(browserPresets.size());
+    for (const auto* preset : browserPresets)
+    {
+        ok &= expect(preset != nullptr, "preset browser should not contain null entries");
+        if (preset == nullptr)
+            continue;
+
+        ok &= expect(std::find(ids.begin(), ids.end(), preset->id) == ids.end(),
+                     "preset browser should not duplicate " + preset->id);
+        ids.push_back(preset->id);
+    }
+
+    for (const auto& preset : allPresets)
+    {
+        ok &= expect(std::find(ids.begin(), ids.end(), preset.id) != ids.end(),
+                     "preset browser should include " + preset.id);
+    }
+
     return ok;
 }
 
@@ -368,6 +405,61 @@ bool expectWavetableRegisterHelpers()
     return ok;
 }
 
+bool expectSampleRegisterHelpers()
+{
+    bool ok = true;
+
+    const auto spcLead = chipper::makePatchConfig(chipper::ChipMode::spc700,
+                                                  chipper::MacroKind::lead,
+                                                  0.0f,
+                                                  0.0f,
+                                                  0.0f,
+                                                  0.80f,
+                                                  chipper::PlayMode::stack,
+                                                  { true, false, true, true },
+                                                  { 1.0f, 0.5f, 1.0f, 1.0f },
+                                                  0.0f,
+                                                  0.20f);
+    ok &= expect(chipper::sampleTemplateForPatch(chipper::ChipMode::spc700, spcLead) == 1u, "SPC700 lead macro should resolve to template 1");
+    ok &= expect(chipper::spc700VoiceVolumeForPatch(spcLead, 0) == 102u, "SPC700 helper should resolve 7-bit voice volume");
+    ok &= expect(chipper::spc700AdsrForPatch(spcLead) == 0x83u, "SPC700 helper should resolve simplified ADSR byte");
+    ok &= expect(chipper::spc700GainForPatch(spcLead) == 102u, "SPC700 helper should resolve GAIN from output control");
+    ok &= expect(! chipper::spc700VoiceEnabledForPatch(spcLead, 1), "SPC700 helper should honor exposed source mute");
+    ok &= expect(chipper::generatedSampleValueForPatch(chipper::ChipMode::spc700, spcLead, 0, 0) == -15, "SPC700 generated sample head should match core template");
+
+    const auto spcExplicitNoise = chipper::makePatchConfig(chipper::ChipMode::spc700,
+                                                           chipper::MacroKind::manual,
+                                                           0.0f,
+                                                           0.0f,
+                                                           0.0f,
+                                                           0.80f,
+                                                           chipper::PlayMode::stack,
+                                                           { true, true, true, true },
+                                                           { 1.0f, 1.0f, 1.0f, 1.0f },
+                                                           0.0f,
+                                                           0.0f,
+                                                           4);
+    ok &= expect(chipper::sampleTemplateForPatch(chipper::ChipMode::spc700, spcExplicitNoise) == 4u, "SPC700 explicit sample shape should override macro");
+
+    const auto paulaBass = chipper::makePatchConfig(chipper::ChipMode::paula,
+                                                    chipper::MacroKind::bass,
+                                                    0.0f,
+                                                    0.0f,
+                                                    0.60f,
+                                                    0.84f,
+                                                    chipper::PlayMode::stack,
+                                                    { true, true, false, true },
+                                                    { 1.0f, 0.5f, 1.0f, 1.0f });
+    ok &= expect(chipper::sampleTemplateForPatch(chipper::ChipMode::paula, paulaBass) == 2u, "Paula bass macro should resolve to template 2");
+    ok &= expect(chipper::paulaChannelVolumeForPatch(paulaBass, 0) == 54u, "Paula helper should resolve 6-bit channel volume");
+    ok &= expect(chipper::paulaLoopForPatch(paulaBass), "Paula bass macro should resolve to looped playback");
+    ok &= expect(chipper::paulaControlForPatch(paulaBass, 2) == 0x02u, "Paula muted channel should keep loop bit without enable bit");
+    ok &= expect(chipper::generatedSampleValueForPatch(chipper::ChipMode::paula, paulaBass, 0, 0) == -127, "Paula triangle sample head should match core template");
+    ok &= expect(chipper::generatedSampleValueForPatch(chipper::ChipMode::paula, paulaBass, 0, 32) == 127, "Paula triangle sample midpoint should match core template");
+
+    return ok;
+}
+
 } // namespace
 
 int main()
@@ -581,6 +673,9 @@ int main()
     ok &= expectPreset(chipper::ChipMode::scc, "scc-power-wave");
     ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, 5, "Follow");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::spc700, "spc700-soft-bass");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::pokey, "pokey-buzzy-lead");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::scc, "scc-arcade-lead");
 
     ok &= expect(chipper::chipHasParameterSurface(chipper::ChipMode::ym2149,
                                                   chipper::ChipParameterRole::source1Enabled,
@@ -603,6 +698,7 @@ int main()
     ok &= expectVerificationDisclosure();
     ok &= expectFmRegisterHelpers();
     ok &= expectWavetableRegisterHelpers();
+    ok &= expectSampleRegisterHelpers();
 
     return ok ? 0 : 1;
 }

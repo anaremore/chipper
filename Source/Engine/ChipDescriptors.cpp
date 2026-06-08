@@ -3203,4 +3203,124 @@ uint8_t wavetableRamSampleForPatch(ChipMode mode, const PatchConfig& patch, size
     return 0;
 }
 
+uint8_t sampleTemplateForPatch(ChipMode mode, const PatchConfig& patch)
+{
+    const auto choiceValue = std::clamp(patch.waveShape, 0, 4);
+    if (choiceValue > 0)
+        return static_cast<uint8_t>(choiceValue);
+
+    if (mode == ChipMode::spc700 || mode == ChipMode::paula)
+    {
+        switch (patch.macro)
+        {
+            case MacroKind::bass: return 2;
+            case MacroKind::drum:
+            case MacroKind::hit: return 4;
+            case MacroKind::lead:
+            case MacroKind::arp: return 1;
+            case MacroKind::manual:
+            case MacroKind::coin:
+            case MacroKind::laser:
+            case MacroKind::jump:
+            case MacroKind::powerUp:
+            default: return 3;
+        }
+    }
+
+    return 0;
+}
+
+int8_t generatedSampleValueForPatch(ChipMode mode, const PatchConfig& patch, size_t channel, size_t sampleIndex)
+{
+    constexpr auto twoPiLocal = 6.283185307179586476925286766559;
+    const auto choice = sampleTemplateForPatch(mode, patch);
+    const auto i = sampleIndex & 63u;
+    const auto phaseValue = static_cast<double>(i) / 64.0;
+    auto sample = 0.0;
+
+    if (mode == ChipMode::spc700)
+    {
+        switch (choice)
+        {
+            case 1: sample = std::sin(twoPiLocal * phaseValue) * 0.75 + (((i / 8u) & 1u) ? 0.12 : -0.12); break;
+            case 2: sample = phaseValue < 0.5 ? (phaseValue * 4.0) - 1.0 : 3.0 - (phaseValue * 4.0); break;
+            case 3: sample = phaseValue < 0.5 ? 0.78 : -0.78; break;
+            case 4:
+            {
+                const auto hash = (static_cast<int>(i) * 1664525u + static_cast<int>(channel) * 1013904223u) & 0xffffu;
+                const auto burst = std::exp(-phaseValue * 7.0);
+                sample = ((static_cast<double>(hash) / 32767.5) - 1.0) * burst;
+                break;
+            }
+            default: sample = std::sin(twoPiLocal * phaseValue); break;
+        }
+    }
+    else if (mode == ChipMode::paula)
+    {
+        switch (choice)
+        {
+            case 1: sample = (phaseValue * 2.0) - 1.0; break;
+            case 2: sample = phaseValue < 0.5 ? (phaseValue * 4.0) - 1.0 : 3.0 - (phaseValue * 4.0); break;
+            case 3: sample = std::sin(twoPiLocal * phaseValue); break;
+            case 4:
+            {
+                const auto hash = (static_cast<int>(i) * 1103515245u + static_cast<int>(channel) * 12345u) & 0xffffu;
+                const auto burst = std::exp(-phaseValue * 6.0);
+                sample = ((static_cast<double>(hash) / 32767.5) - 1.0) * burst;
+                break;
+            }
+            default: sample = phaseValue < 0.5 ? 0.85 : -0.85; break;
+        }
+    }
+
+    return static_cast<int8_t>(std::clamp(static_cast<int>(std::round(std::clamp(sample, -1.0, 1.0) * 127.0)), -127, 127));
+}
+
+uint8_t spc700VoiceVolumeForPatch(const PatchConfig& patch, size_t voice, float velocity)
+{
+    const auto base = std::clamp(static_cast<int>(std::round(clampControl(patch.control4) * 127.0f)), 1, 127);
+    const auto trim = voice < 4u ? clampControl(patch.sourceLevels[voice]) : 0.72f;
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<double>(base) * trim * clampControl(velocity))), 0, 127));
+}
+
+uint8_t spc700AdsrForPatch(const PatchConfig& patch)
+{
+    return static_cast<uint8_t>(0x80u | std::clamp(static_cast<int>(std::round(clampControl(patch.envelopeDecay) * 15.0f)), 0, 15));
+}
+
+uint8_t spc700GainForPatch(const PatchConfig& patch)
+{
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control4) * 127.0f)), 0, 127));
+}
+
+bool spc700VoiceEnabledForPatch(const PatchConfig& patch, size_t voice)
+{
+    if (voice < 4u)
+        return patch.sourceEnabled[voice];
+
+    return patch.macro == MacroKind::arp
+        || patch.macro == MacroKind::hit
+        || patch.macro == MacroKind::laser
+        || patch.macro == MacroKind::powerUp;
+}
+
+uint8_t paulaChannelVolumeForPatch(const PatchConfig& patch, size_t channel, float velocity)
+{
+    const auto trim = channel < patch.sourceLevels.size() ? clampControl(patch.sourceLevels[channel]) : 1.0f;
+    const auto base = std::clamp(static_cast<int>(std::round(clampControl(patch.control4) * 64.0f)), 1, 64);
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<double>(base) * trim * clampControl(velocity))), 0, 64));
+}
+
+bool paulaLoopForPatch(const PatchConfig& patch)
+{
+    return patch.macro != MacroKind::drum && patch.macro != MacroKind::hit && patch.control3 >= 0.25f;
+}
+
+uint8_t paulaControlForPatch(const PatchConfig& patch, size_t channel, float velocity)
+{
+    const auto shouldEnable = channel < patch.sourceEnabled.size() ? patch.sourceEnabled[channel] : false;
+    const auto volume = paulaChannelVolumeForPatch(patch, channel, velocity);
+    return static_cast<uint8_t>((shouldEnable && volume > 0 ? 0x01u : 0x00u) | (paulaLoopForPatch(patch) ? 0x02u : 0x00u));
+}
+
 } // namespace chipper

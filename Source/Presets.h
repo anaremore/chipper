@@ -55,6 +55,7 @@ struct PresetInfo
 
 const std::vector<PresetInfo>& presetCatalog();
 std::vector<const PresetInfo*> presetsForChip(ChipMode chip);
+std::vector<const PresetInfo*> presetBrowserCatalog(ChipMode preferredChip);
 const PresetInfo* presetById(std::string_view idOrName);
 PatchConfig patchConfigForPreset(const PresetInfo& preset);
 

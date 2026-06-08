@@ -2659,12 +2659,7 @@ void ChipperAudioProcessorEditor::updateMacroChoices(chipper::ChipMode mode)
 void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
 {
     const juce::ScopedValueSetter<bool> suppress(suppressPresetApply, true);
-    displayedPresets.clear();
-    for (const auto& preset : chipper::presetCatalog())
-    {
-        if (preset.chip == mode)
-            displayedPresets.push_back(&preset);
-    }
+    displayedPresets = chipper::presetBrowserCatalog(mode);
 
     presetBox.clear(juce::dontSendNotification);
 
@@ -2692,7 +2687,9 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
         const auto presetCount = static_cast<int>(displayedPresets.size());
         presetBox.setSelectedId(0, juce::dontSendNotification);
         presetBox.setTextWhenNothingSelected(juce::String(presetCount) + " Factory Presets");
-        presetBox.setTooltip("Browse " + juce::String(presetCount) + " " + juce::String(chipper::toString(mode)) + " factory presets. Choosing one applies the sound immediately.");
+        presetBox.setTooltip("Browse all " + juce::String(presetCount) + " factory presets, grouped by chip with "
+                             + juce::String(chipper::toString(mode))
+                             + " first. Choosing one switches chip mode and applies the sound immediately.");
     }
 }
 
@@ -2904,7 +2901,9 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
     presetBox.setSelectedId(0, juce::dontSendNotification);
     const auto presetCount = static_cast<int>(displayedPresets.size());
     presetBox.setTextWhenNothingSelected(juce::String(presetCount) + " Factory Presets");
-    presetBox.setTooltip("Browse " + juce::String(presetCount) + " " + juce::String(chipper::toString(mode)) + " factory presets. Choosing one applies the sound immediately.");
+    presetBox.setTooltip("Browse all " + juce::String(presetCount) + " factory presets, grouped by chip with "
+                         + juce::String(chipper::toString(mode))
+                         + " first. Choosing one switches chip mode and applies the sound immediately.");
 
     updateLiveControlReadouts();
 }
@@ -2943,6 +2942,7 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
     };
 
     const juce::ScopedValueSetter<bool> suppressMacro(suppressMacroTemplateApply, true);
+    const juce::ScopedValueSetter<bool> applyingPreset(applyingFactoryPreset, true);
     setChoiceParameterFromUi(chipper::parameters::id::chipMode, chipModeChoiceIndex(preset.chip));
     setChoiceParameterFromUi(chipper::parameters::id::accuracy, accuracyChoiceIndex(preset.accuracy));
     setChoiceParameterFromUi(chipper::parameters::id::macro, macroChoiceIndex(preset.macro));
@@ -3311,7 +3311,52 @@ juce::String ChipperAudioProcessorEditor::sampleChipReadout(chipper::ChipMode mo
     const auto chipLabel = mode == chipper::ChipMode::paula ? juce::String("8-bit period sample") : juce::String("lo-fi sample voice");
     const auto decay = static_cast<int>(std::round(std::clamp(patch.envelopeDecay, 0.0f, 1.0f) * 15.0f));
     const auto volume = static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f));
-    return chipLabel + " | decay " + juce::String(decay) + "/15 | volume " + juce::String(volume) + "/15";
+    return chipLabel
+        + " | template " + juce::String(static_cast<int>(chipper::sampleTemplateForPatch(mode, patch)))
+        + " | decay " + juce::String(decay) + "/15 | volume " + juce::String(volume) + "/15";
+}
+
+juce::String ChipperAudioProcessorEditor::sampleSourceRegisterReadout(chipper::ChipMode mode,
+                                                                      const chipper::PatchConfig& patch,
+                                                                      size_t index) const
+{
+    const auto channel = static_cast<int>(index + 1u);
+    const auto templateId = static_cast<int>(chipper::sampleTemplateForPatch(mode, patch));
+    const auto sample0 = static_cast<int>(chipper::generatedSampleValueForPatch(mode, patch, index, 0));
+    const auto sample32 = static_cast<int>(chipper::generatedSampleValueForPatch(mode, patch, index, 32));
+
+    if (mode == chipper::ChipMode::spc700)
+    {
+        const auto volume = chipper::spc700VoiceVolumeForPatch(patch, index);
+        const auto adsr = chipper::spc700AdsrForPatch(patch);
+        const auto gain = chipper::spc700GainForPatch(patch);
+        const auto enabled = chipper::spc700VoiceEnabledForPatch(patch, index);
+        const auto base = static_cast<uint8_t>(std::min(index, size_t { 7u }) * 0x10u);
+        return "SPC700 voice " + juce::String(channel)
+            + " | regs $" + byteHex(base) + "-$" + byteHex(static_cast<uint8_t>(base + 6u))
+            + " | vol " + juce::String(static_cast<int>(volume)) + "/127"
+            + " | ADSR $" + byteHex(adsr)
+            + " | GAIN $" + byteHex(gain)
+            + " | tmpl " + juce::String(templateId)
+            + " | " + (enabled ? juce::String("key on") : juce::String("muted"))
+            + " | sample[0/32] " + juce::String(sample0) + "/" + juce::String(sample32);
+    }
+
+    if (mode == chipper::ChipMode::paula)
+    {
+        const auto volume = chipper::paulaChannelVolumeForPatch(patch, index);
+        const auto control = chipper::paulaControlForPatch(patch, index);
+        const auto base = static_cast<uint8_t>(std::min(index, size_t { 3u }) * 0x10u);
+        return "Paula ch " + juce::String(channel)
+            + " | regs $" + byteHex(base) + "-$" + byteHex(static_cast<uint8_t>(base + 4u))
+            + " | vol " + juce::String(static_cast<int>(volume)) + "/64"
+            + " | ctrl $" + byteHex(control)
+            + " | " + ((control & 0x02u) != 0 ? juce::String("loop") : juce::String("one-shot"))
+            + " | tmpl " + juce::String(templateId)
+            + " | sample[0/32] " + juce::String(sample0) + "/" + juce::String(sample32);
+    }
+
+    return {};
 }
 
 juce::String ChipperAudioProcessorEditor::wavetableChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
@@ -3463,10 +3508,10 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
         return "Ch " + number + " | AUDC $" + byteHex(chipper::pokeyAudcForPatch(patch));
 
     if (mode == chipper::ChipMode::spc700)
-        return "Voice " + number + " | sample";
+        return "Voice " + number + " | Vol " + juce::String(static_cast<int>(chipper::spc700VoiceVolumeForPatch(patch, index)));
 
     if (mode == chipper::ChipMode::paula)
-        return "Ch " + number + " | 8-bit";
+        return "Ch " + number + " | Vol " + juce::String(static_cast<int>(chipper::paulaChannelVolumeForPatch(patch, index)));
 
     if (mode == chipper::ChipMode::huc6280)
         return "Wave " + number + " | Vol " + juce::String(static_cast<int>(chipper::huc6280ControlForPatch(patch, index) & 0x1fu));
@@ -4517,6 +4562,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
             auto tooltip = buttonLabel + ": " + juce::String(spec->help);
             if (mode == chipper::ChipMode::pokey)
                 tooltip += "\n" + pokeySourceRegisterReadout(patch, i);
+            else if (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
+                tooltip += "\n" + sampleSourceRegisterReadout(mode, patch, i);
             else if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
                 tooltip += "\n" + wavetableSourceRegisterReadout(mode, patch, i);
             else if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413)
@@ -4683,14 +4730,16 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
         shape = wavetablePreviewShape(patch);
         tooltip = juce::String("SPC700-style sample voice ") + juce::String(static_cast<int>(index + 1u))
             + ": generated lo-fi sample template preview."
-            + "\nSample Shape: " + waveShapeReadout(mode, patch.waveShape);
+            + "\nSample Shape: " + waveShapeReadout(mode, patch.waveShape)
+            + "\n" + sampleSourceRegisterReadout(mode, patch, index);
     }
     else if (mode == chipper::ChipMode::paula)
     {
         shape = wavetablePreviewShape(patch);
         tooltip = juce::String("Paula sample channel ") + juce::String(static_cast<int>(index + 1u))
             + ": 8-bit tracker sample template with period playback."
-            + "\nSample Shape: " + waveShapeReadout(mode, patch.waveShape);
+            + "\nSample Shape: " + waveShapeReadout(mode, patch.waveShape)
+            + "\n" + sampleSourceRegisterReadout(mode, patch, index);
     }
     else if (mode == chipper::ChipMode::huc6280)
     {
@@ -5520,7 +5569,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     updatePulseDutyButtons(parameterValue(chipper::parameters::id::macroControl1), usesPulseDutySegment(mode) && hasLiveCore);
     updateLiveControlReadouts();
 
-    if (chipChangedAfterInitialLoad && hasLiveCore && ! displayedPresets.empty())
+    if (chipChangedAfterInitialLoad && ! applyingFactoryPreset && hasLiveCore && ! displayedPresets.empty())
         applyFactoryPreset(*displayedPresets.front());
 
     repaint();
@@ -5547,12 +5596,10 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     if (! displayedPresets.empty())
     {
         const auto presetCount = static_cast<int>(displayedPresets.size());
-        performanceText = juce::String(presetCount) + " presets available | " + macroText;
-        performanceTooltip = "Use the Preset menu to audition "
+        performanceText = juce::String(presetCount) + " factory presets | " + macroText;
+        performanceTooltip = "Use the Preset menu to audition all "
             + juce::String(presetCount)
-            + " "
-            + juce::String(chipper::toString(mode))
-            + " factory presets.\n"
+            + " factory presets grouped by chip; choosing one switches chip mode.\n"
             + macroText;
     }
     const auto selectedPreset = presetBox.getSelectedId() - 1;
