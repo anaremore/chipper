@@ -15,7 +15,7 @@ The product rule is strict: UX can be simple, but chip modes must not be generic
 - **Visual feedback:** chip-state source scopes, SID ADSR previews, YM/AY envelope-shape previews, and a post-trim final-output scope
 - **SFX helper:** kick, snare, hat, explosion, laser, jump, coin, power-up, hit, menu blip
 - **Chip-specific templates:** the editor presents macro/template choices with chip-aware names such as NES Coin Blip, SID Dirty Bass, YM Noise Perc, PSG Drum, OPN2 Feedback Bass, SPC700 Drum Map, POKEY Buzzy Lead, Paula Tracker Bass, HuC6280 Glass Lead, Namco Arcade Lead, and SCC Arcade Lead while preserving stable host automation values; planned chips expose roadmap templates without implying audible or verified emulation
-- **Presets:** curated bank covering NES, SID, YM, Sega PSG, SPC700-style, POKEY, Amiga Paula, PC Engine/HuC6280, Namco WSG, Konami SCC, arcade, tracker, FM, and modern hybrid chip categories, including SID patches that pin per-voice waveforms, ADSR nibbles, filter routing, and source levels
+- **Presets:** chip-local curated banks covering NES, SID, YM, Sega PSG, SPC700-style, POKEY, Amiga Paula, PC Engine/HuC6280, Namco WSG, Konami SCC, arcade, tracker, FM, and modern hybrid chip categories; the editor shows the selected chip's preset count and choosing a preset updates visible controls such as SID per-voice waveforms, ADSR nibbles, filter routing, and source levels
 
 ## Build
 
