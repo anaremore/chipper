@@ -27,9 +27,7 @@ enum class ChipMode
     namcoWsg,
     ym2151,
     ym2413,
-    scc,
-    arcade,
-    custom
+    scc
 };
 
 enum class AccuracyMode

@@ -382,6 +382,7 @@ private:
     juce::ComboBox sidFilterModeBox;
     juce::ComboBox sidFilterRoutingBox;
     std::array<juce::TextButton, snNoiseModeCount> snNoiseModeButtons;
+    juce::ComboBox snNoiseModeBox;
     std::array<juce::TextButton, toneNoiseMixCount> toneNoiseMixButtons;
     std::array<juce::Slider, sourceChannelCount> sourceLevelSliders;
     std::array<juce::Label, sourceChannelCount> sourceLevelLabels;

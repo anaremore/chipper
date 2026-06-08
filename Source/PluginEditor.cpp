@@ -34,9 +34,6 @@ int chipModeChoiceIndex(chipper::ChipMode mode)
         case chipper::ChipMode::ym2151: return 12;
         case chipper::ChipMode::ym2413: return 13;
         case chipper::ChipMode::scc: return 14;
-        case chipper::ChipMode::arcade:
-        case chipper::ChipMode::custom:
-            return 0;
     }
 
     return 0;
@@ -2043,6 +2040,22 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(button);
     }
 
+    snNoiseModeBox.setVisible(false);
+    snNoiseModeBox.setTooltip(withMidiCcForRole("SN76489 noise-control register choice.", chipper::ChipParameterRole::snNoiseMode));
+    snNoiseModeBox.onChange = [this]()
+    {
+        if (suppressManualChoiceCallbacks)
+            return;
+
+        const auto selected = snNoiseModeBox.getSelectedId() - 1;
+        if (selected >= 0)
+        {
+            setChoiceParameterFromUi(chipper::parameters::id::snNoiseMode, selected);
+            updateLiveControlReadouts();
+        }
+    };
+    addAndMakeVisible(snNoiseModeBox);
+
     statusLabel.setFont(juce::FontOptions(12.0f));
     statusLabel.setJustificationType(juce::Justification::centredLeft);
     statusLabel.setColour(juce::Label::textColourId, juce::Colours::white);
@@ -2955,8 +2968,19 @@ void ChipperAudioProcessorEditor::placeYmChannelMixControls(juce::Rectangle<int>
 void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> bounds)
 {
     snNoiseModeLabel.setBounds(bounds.removeFromTop(18));
-    snNoiseModeSegmentBounds = bounds.removeFromTop(28).reduced(0, 1);
-    layoutSegmentedButtons(snNoiseModeButtons, snNoiseModeSegmentBounds, snNoiseModeButtons.size());
+    if (displayedMode == chipper::ChipMode::sn76489)
+    {
+        snNoiseModeBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
+        snNoiseModeSegmentBounds = {};
+        for (auto& button : snNoiseModeButtons)
+            button.setBounds({});
+    }
+    else
+    {
+        snNoiseModeSegmentBounds = bounds.removeFromTop(28).reduced(0, 1);
+        layoutSegmentedButtons(snNoiseModeButtons, snNoiseModeSegmentBounds, snNoiseModeButtons.size());
+        snNoiseModeBox.setBounds({});
+    }
 
     snNoiseModeValueLabel.setBounds(bounds);
 }
@@ -3208,6 +3232,9 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
         snNoiseModeLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         snNoiseModeValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         applyChoices(snNoiseModeButtons, spec);
+        snNoiseModeBox.clear(juce::dontSendNotification);
+        for (size_t i = 0; i < spec->choices.size(); ++i)
+            snNoiseModeBox.addItem(juce::String(spec->choices[i].label), static_cast<int>(i) + 1);
     }
 
     if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::envelopeDecay))
@@ -3553,7 +3580,10 @@ bool ChipperAudioProcessorEditor::usesSnNoiseModeSegment(chipper::ChipMode mode)
 {
     return chipper::chipHasParameterSurface(mode,
                                             chipper::ChipParameterRole::snNoiseMode,
-                                            chipper::ControlSurface::segmentedChoice);
+                                            chipper::ControlSurface::segmentedChoice)
+        || chipper::chipHasParameterSurface(mode,
+                                            chipper::ChipParameterRole::snNoiseMode,
+                                            chipper::ControlSurface::menu);
 }
 
 bool ChipperAudioProcessorEditor::usesToneNoiseMixSegment(chipper::ChipMode mode) const
@@ -4874,10 +4904,14 @@ void ChipperAudioProcessorEditor::setYmChannelMixControlsVisible(bool shouldBeVi
 void ChipperAudioProcessorEditor::setSnNoiseModeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
     const auto active = shouldBeVisible && usesSnNoiseModeSegment(mode);
+    const auto menuActive = active && chipper::chipHasParameterSurface(mode,
+                                                                       chipper::ChipParameterRole::snNoiseMode,
+                                                                       chipper::ControlSurface::menu);
     snNoiseModeLabel.setVisible(active);
     snNoiseModeValueLabel.setVisible(active);
     for (auto& button : snNoiseModeButtons)
-        button.setVisible(active);
+        button.setVisible(active && ! menuActive);
+    snNoiseModeBox.setVisible(menuActive);
 
     if (active)
     {
@@ -5995,12 +6029,22 @@ void ChipperAudioProcessorEditor::updateSnNoiseModeButtons(chipper::ChipMode mod
                                  ? snNoiseModeButtons.size()
                                  : std::min(snNoiseModeButtons.size(), spec->choices.size());
     const auto selected = static_cast<size_t>(std::clamp(patch.snNoiseMode, 0, static_cast<int>(choiceCount - 1u)));
+    const auto menuActive = spec != nullptr && spec->surface == chipper::ControlSurface::menu;
     layoutSegmentedButtons(snNoiseModeButtons, snNoiseModeSegmentBounds, choiceCount);
     for (size_t i = 0; i < snNoiseModeButtons.size(); ++i)
     {
-        const auto visible = shouldBeVisible && i < choiceCount;
+        const auto visible = shouldBeVisible && ! menuActive && i < choiceCount;
         snNoiseModeButtons[i].setVisible(visible);
         snNoiseModeButtons[i].setToggleState(visible && i == selected, juce::dontSendNotification);
+    }
+
+    snNoiseModeBox.setVisible(shouldBeVisible && menuActive);
+    if (menuActive)
+    {
+        const juce::ScopedValueSetter<bool> suppressChoices(suppressManualChoiceCallbacks, true);
+        snNoiseModeBox.setSelectedId(static_cast<int>(selected) + 1, juce::dontSendNotification);
+        if (spec != nullptr)
+            snNoiseModeBox.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + noiseModeReadout(mode, patch), spec->role));
     }
 
     snNoiseModeValueLabel.setVisible(shouldBeVisible);

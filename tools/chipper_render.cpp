@@ -1804,9 +1804,6 @@ const char* chipModeKey(chipper::ChipMode mode)
         case chipper::ChipMode::ym2151: return "ym2151";
         case chipper::ChipMode::ym2413: return "ym2413";
         case chipper::ChipMode::scc: return "scc";
-        case chipper::ChipMode::arcade:
-        case chipper::ChipMode::custom:
-            return "nes";
     }
 
     return "nes";

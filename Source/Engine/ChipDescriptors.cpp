@@ -1088,19 +1088,23 @@ std::vector<ChipParameterSpec> sn76489ParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source3Level, "sn76489.tone3.level", "Tone 3 Level", "Trims SN76489 tone channel 3 after attenuation."),
         sourceLevelSpec(ChipParameterRole::source4Level, "sn76489.noise.level", "Noise Level", "Trims the SN76489 noise channel after attenuation."),
         stereoSpreadSpec("sn76489.stereoSpread", "Modern stereo convenience that spreads tone channels across the stereo field; zero preserves mono PSG output."),
-        segmentedSpec(ChipParameterRole::snNoiseMode,
-                      "sn76489.noiseMode",
-                      "Noise Mode",
-                      "Noise",
-                      "Maps to the SN76489 noise-control register. Follow resolves from the current musical template.",
-                      {
-                          choice("Follow", "Use the chip-specific macro to choose the noise register bits.", 0.0f, 0),
-                          choice("P-Lo", "Periodic noise, low rate.", 0.25f, 1),
-                          choice("P-Hi", "Periodic noise, high rate.", 0.5f, 2),
-                          choice("W-Lo", "White noise, low rate.", 0.75f, 3),
-                          choice("W-T3", "White noise clocked from tone 3.", 1.0f, 4)
-                      },
-                      ParameterKind::chipRegister)
+        { ChipParameterRole::snNoiseMode,
+          "sn76489.noiseMode",
+          "Noise Mode",
+          "Noise",
+          "Maps to the SN76489 noise-control register. Follow resolves from the current musical template.",
+          ParameterKind::chipRegister,
+          ControlSurface::menu,
+          {
+              choice("Follow", "Use the chip-specific macro to choose the noise register bits.", 0.0f, 0),
+              choice("Periodic Low", "Periodic noise using divider N/512.", 0.25f, 1),
+              choice("Periodic High", "Periodic noise using divider N/2048.", 0.5f, 2),
+              choice("White Low", "White noise using divider N/512.", 0.75f, 3),
+              choice("White Tone 3", "White noise clocked by tone channel 3.", 1.0f, 4)
+          },
+          0.0f,
+          1.0f,
+          0.0f }
     };
 }
 

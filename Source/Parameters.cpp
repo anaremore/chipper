@@ -586,9 +586,6 @@ double defaultClockForMode(ChipMode mode)
         case ChipMode::ym2151: return 3579545.0;
         case ChipMode::ym2413: return 3579545.0;
         case ChipMode::scc: return 3579545.0;
-        case ChipMode::arcade:
-        case ChipMode::custom:
-            return 1789773.0;
     }
 
     return 3579545.0;

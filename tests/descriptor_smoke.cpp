@@ -616,7 +616,7 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::ymChannelAMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "A Mix");
     ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::ymChannelBMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "B Mix");
     ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::ymChannelCMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "C Mix");
-    ok &= expectSegmentedRegister(chipper::ChipMode::sn76489, chipper::ChipParameterRole::snNoiseMode, 5, "Follow");
+    ok &= expectChoiceRegister(chipper::ChipMode::sn76489, chipper::ChipParameterRole::snNoiseMode, chipper::ControlSurface::menu, 5, "Follow");
 
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Sweep Motion");
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::pulse2Duty, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Pulse 2 Duty");
