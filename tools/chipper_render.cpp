@@ -28,6 +28,7 @@ namespace
 enum class MetadataMode
 {
     render,
+    listPresets,
     listDescriptors,
     describeChip
 };
@@ -39,6 +40,7 @@ struct Options
     chipper::MacroKind macro = chipper::MacroKind::manual;
     chipper::PlayMode playMode = chipper::PlayMode::stack;
     MetadataMode metadataMode = MetadataMode::render;
+    bool chipWasProvided = false;
     std::string presetId;
     float control1 = 0.5f;
     float control2 = 0.5f;
@@ -627,7 +629,8 @@ void printUsage()
 {
     std::cerr
         << "Usage: chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --out out.wav --debug out.json [--events events.txt]\n"
-        << "       Metadata: chipper_render --list-descriptors --debug descriptors.json\n"
+        << "       Metadata: chipper_render --list-presets [--chip sid] --debug presets.json\n"
+        << "                 chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
         << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
@@ -761,6 +764,10 @@ bool parseArgs(int argc, char** argv, Options& options)
         {
             options.metadataMode = MetadataMode::listDescriptors;
         }
+        else if (arg == "--list-presets")
+        {
+            options.metadataMode = MetadataMode::listPresets;
+        }
         else if (arg == "--describe")
         {
             options.metadataMode = MetadataMode::describeChip;
@@ -777,6 +784,7 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             }
             options.chip = *parsed;
+            options.chipWasProvided = true;
             options.metadataMode = MetadataMode::describeChip;
         }
         else if (arg == "--chip")
@@ -791,6 +799,7 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             }
             options.chip = *parsed;
+            options.chipWasProvided = true;
         }
         else if (arg == "--accuracy")
         {
@@ -1955,6 +1964,18 @@ void writeDescriptorListJson(const std::filesystem::path& path, const std::vecto
     out << "}\n";
 }
 
+void writePresetListJson(const std::filesystem::path& path, const std::vector<chipper::ChipMode>& modes)
+{
+    std::ofstream out(path);
+    if (! out)
+        throw std::runtime_error("Could not write preset JSON: " + path.string());
+
+    out << "{\n"
+        << "  \"schema\": \"chipper.presets.v1\",\n";
+    writePresetCatalogJson(out, modes);
+    out << "}\n";
+}
+
 void writeDebugJson(const std::filesystem::path& path,
                     const Options& options,
                     const chipper::PatchConfig& patch,
@@ -2049,9 +2070,19 @@ int main(int argc, char** argv)
         {
             const auto modes = options.metadataMode == MetadataMode::listDescriptors
                 ? chipper::chipModeOrder()
-                : std::vector<chipper::ChipMode> { options.chip };
-            writeDescriptorListJson(options.debugPath, modes);
-            std::cout << "Wrote descriptor metadata to " << options.debugPath.string() << "\n";
+                : options.metadataMode == MetadataMode::listPresets && ! options.chipWasProvided
+                    ? chipper::chipModeOrder()
+                    : std::vector<chipper::ChipMode> { options.chip };
+            if (options.metadataMode == MetadataMode::listPresets)
+            {
+                writePresetListJson(options.debugPath, modes);
+                std::cout << "Wrote preset metadata to " << options.debugPath.string() << "\n";
+            }
+            else
+            {
+                writeDescriptorListJson(options.debugPath, modes);
+                std::cout << "Wrote descriptor metadata to " << options.debugPath.string() << "\n";
+            }
             return 0;
         }
 

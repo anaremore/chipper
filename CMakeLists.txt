@@ -682,6 +682,9 @@ add_test(NAME chipper_render_ym2413_sources_off_smoke
 add_test(NAME chipper_render_list_descriptors_smoke
     COMMAND chipper_render --list-descriptors --debug chipper-descriptors.json
 )
+add_test(NAME chipper_render_list_presets_smoke
+    COMMAND chipper_render --list-presets --debug chipper-presets.json
+)
 add_test(NAME chipper_render_describe_nes_smoke
     COMMAND chipper_render --describe-chip nes --debug nes-descriptor.json
 )
@@ -701,6 +704,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_preset_catalog_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --min-presets 80 --min-per-chip 6
     )
     set_tests_properties(chipper_render_preset_catalog_metadata_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
+
+    add_test(NAME chipper_render_list_presets_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_preset_catalog_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-presets.json --min-presets 80 --min-per-chip 6
+    )
+    set_tests_properties(chipper_render_list_presets_assert PROPERTIES DEPENDS chipper_render_list_presets_smoke)
 
     add_test(NAME chipper_render_list_macro_catalog_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --macro-label "nes:Coin=NES Coin Blip" --macro-label "dmg:Power-Up=DMG Power-Up" --macro-label "sid:Laser=SID Sync Sweep" --macro-label "ym2149:Arp=YM Three-Voice Arp" --macro-label "sn76489:Manual=PSG Manual" --macro-label "sn76489:Drum=PSG Drum" --preset nes-triangle-bass --preset nes-noise-snare --preset nes-coin-blip --preset dmg-pocket-arp --preset dmg-noise-hat --preset dmg-pulse-lead --preset dmg-wave-glass --preset dmg-noise-kick --preset dmg-split-chord --preset sid-wide-pwm-pad --preset sid-hard-sync-saw --preset sid-gated-noise-tom --preset sn-psg-lead --preset sn-psg-coin
