@@ -570,6 +570,20 @@ ChipWaveformPreviewShape dmgWavePreviewShape(const chipper::PatchConfig& patch)
     }
 }
 
+ChipWaveformPreviewShape wavetablePreviewShape(const chipper::PatchConfig& patch)
+{
+    switch (std::clamp(patch.waveShape, 0, 4))
+    {
+        case 1: return ChipWaveformPreviewShape::triangle;
+        case 2: return ChipWaveformPreviewShape::saw;
+        case 3: return ChipWaveformPreviewShape::pulse;
+        case 4: return ChipWaveformPreviewShape::stepped;
+        case 0:
+        default:
+            return ChipWaveformPreviewShape::stepped;
+    }
+}
+
 size_t visibleSourceCardCount(chipper::ChipMode mode)
 {
     return mode == chipper::ChipMode::sid ? size_t { 3u } : size_t { 4u };
@@ -3160,6 +3174,48 @@ juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mod
         }
     }
 
+    if (mode == chipper::ChipMode::pokey)
+    {
+        switch (std::clamp(choice, 0, 4))
+        {
+            case 1: return "AUDC pure tone distortion path";
+            case 2: return "AUDC Poly4 buzzy counter path";
+            case 3: return "AUDC Poly5 noise/tone path";
+            case 4: return "AUDC Poly17 noise path";
+            case 0:
+            default:
+                return "Follow POKEY distortion from template";
+        }
+    }
+
+    if (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
+    {
+        switch (std::clamp(choice, 0, 4))
+        {
+            case 1: return "Triangle sample template";
+            case 2: return "Saw sample template";
+            case 3: return "Pulse sample template";
+            case 4: return "Stepped/noise sample template";
+            case 0:
+            default:
+                return "Follow generated sample template";
+        }
+    }
+
+    if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413)
+    {
+        switch (std::clamp(choice, 0, 4))
+        {
+            case 1: return "Sine/triangle-like FM operator shape";
+            case 2: return "Bright FM operator shape";
+            case 3: return "Complex feedback/operator shape";
+            case 4: return "Stepped FM color";
+            case 0:
+            default:
+                return "Follow FM template/operator registers";
+        }
+    }
+
     switch (std::clamp(choice, 0, 4))
     {
         case 1: return "Writes 32-sample triangle into Wave RAM";
@@ -4077,6 +4133,54 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Voice 3 | note 3",
         "Ext In  | planned"
     };
+    static const std::array<const char*, sourceChannelCount> pokeyBigMonoLabels {
+        "Ch 1 | AUDF/AUDC",
+        "Ch 2 | detune/noise",
+        "Ch 3 | bass timer",
+        "Ch 4 | grit layer"
+    };
+    static const std::array<const char*, sourceChannelCount> pokeyChipPolyLabels {
+        "Ch 1 | note 1",
+        "Ch 2 | note 2",
+        "Ch 3 | note 3",
+        "Ch 4 | note 4"
+    };
+    static const std::array<const char*, sourceChannelCount> sampleBigMonoLabels {
+        "Voice 1 | sample lead",
+        "Voice 2 | support",
+        "Voice 3 | texture",
+        "Voice 4 | layer"
+    };
+    static const std::array<const char*, sourceChannelCount> sampleChipPolyLabels {
+        "Voice 1 | note 1",
+        "Voice 2 | note 2",
+        "Voice 3 | note 3",
+        "Voice 4 | note 4"
+    };
+    static const std::array<const char*, sourceChannelCount> wavetableBigMonoLabels {
+        "Wave 1 | lead",
+        "Wave 2 | chord tone",
+        "Wave 3 | bass",
+        "Wave 4 | layer"
+    };
+    static const std::array<const char*, sourceChannelCount> wavetableChipPolyLabels {
+        "Wave 1 | note 1",
+        "Wave 2 | note 2",
+        "Wave 3 | note 3",
+        "Wave 4 | note 4"
+    };
+    static const std::array<const char*, sourceChannelCount> fmBigMonoLabels {
+        "FM 1 | carrier",
+        "FM 2 | stack",
+        "FM 3 | color",
+        "FM 4 | layer"
+    };
+    static const std::array<const char*, sourceChannelCount> fmChipPolyLabels {
+        "FM 1 | note 1",
+        "FM 2 | note 2",
+        "FM 3 | note 3",
+        "FM 4 | note 4"
+    };
 
     const auto playModeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::playMode)));
     const auto playMode = chipper::parameters::playModeFromChoice(playModeChoice);
@@ -4092,6 +4196,14 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         labels = playMode == chipper::PlayMode::chipPoly ? &snChipPolyLabels : &snBigMonoLabels;
     else if (mode == chipper::ChipMode::sid)
         labels = playMode == chipper::PlayMode::chipPoly ? &sidChipPolyLabels : &sidBigMonoLabels;
+    else if (mode == chipper::ChipMode::pokey)
+        labels = playMode == chipper::PlayMode::chipPoly ? &pokeyChipPolyLabels : &pokeyBigMonoLabels;
+    else if (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
+        labels = playMode == chipper::PlayMode::chipPoly ? &sampleChipPolyLabels : &sampleBigMonoLabels;
+    else if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
+        labels = playMode == chipper::PlayMode::chipPoly ? &wavetableChipPolyLabels : &wavetableBigMonoLabels;
+    else if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413)
+        labels = playMode == chipper::PlayMode::chipPoly ? &fmChipPolyLabels : &fmBigMonoLabels;
 
     const auto patch = currentUiPatch(
         mode,
@@ -4117,6 +4229,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
             buttonLabel = juce::String(spec->label) + " | " + sidWaveNameForControlBits(sidWaveBits);
         else if (mode == chipper::ChipMode::sn76489 && spec != nullptr)
             buttonLabel = snSourceCardLabel(patch, i);
+        else if (spec != nullptr && labels != &nesBigMonoLabels)
+            buttonLabel = juce::String((*labels)[i]);
         else
             buttonLabel = spec != nullptr ? juce::String(spec->label) : juce::String((*labels)[i]);
 
@@ -4271,6 +4385,73 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
             shape = ChipWaveformPreviewShape::noise;
             tooltip = "SN76489 noise channel: " + snNoiseModeReadout(patch);
         }
+    }
+    else if (mode == chipper::ChipMode::pokey)
+    {
+        const auto distortionChoice = std::clamp(patch.waveShape, 0, 4);
+        if (distortionChoice == 0 || distortionChoice == 1)
+            shape = ChipWaveformPreviewShape::pulse;
+        else if (distortionChoice == 2 || distortionChoice == 3)
+            shape = ChipWaveformPreviewShape::toneNoise;
+        else
+            shape = ChipWaveformPreviewShape::noise;
+
+        tooltip = juce::String("POKEY channel ") + juce::String(static_cast<int>(index + 1u))
+            + ": AUDF/AUDC/AUDV-style source preview."
+            + "\nDistortion: " + waveShapeReadout(mode, patch.waveShape);
+    }
+    else if (mode == chipper::ChipMode::spc700)
+    {
+        shape = wavetablePreviewShape(patch);
+        tooltip = juce::String("SPC700-style sample voice ") + juce::String(static_cast<int>(index + 1u))
+            + ": generated lo-fi sample template preview."
+            + "\nSample Shape: " + waveShapeReadout(mode, patch.waveShape);
+    }
+    else if (mode == chipper::ChipMode::paula)
+    {
+        shape = wavetablePreviewShape(patch);
+        tooltip = juce::String("Paula sample channel ") + juce::String(static_cast<int>(index + 1u))
+            + ": 8-bit tracker sample template with period playback."
+            + "\nSample Shape: " + waveShapeReadout(mode, patch.waveShape);
+    }
+    else if (mode == chipper::ChipMode::huc6280)
+    {
+        shape = wavetablePreviewShape(patch);
+        tooltip = juce::String("HuC6280 wavetable channel ") + juce::String(static_cast<int>(index + 1u))
+            + ": 32-sample wave RAM preview."
+            + "\nWave Shape: " + waveShapeReadout(mode, patch.waveShape);
+    }
+    else if (mode == chipper::ChipMode::namcoWsg)
+    {
+        shape = wavetablePreviewShape(patch);
+        tooltip = juce::String("Namco WSG wavetable lane ") + juce::String(static_cast<int>(index + 1u))
+            + ": 4-bit wave RAM preview."
+            + "\nWave Shape: " + waveShapeReadout(mode, patch.waveShape);
+    }
+    else if (mode == chipper::ChipMode::scc)
+    {
+        shape = wavetablePreviewShape(patch);
+        tooltip = juce::String("Konami SCC wavetable channel ") + juce::String(static_cast<int>(index + 1u))
+            + ": 32-byte wave RAM preview."
+            + "\nWave Shape: " + waveShapeReadout(mode, patch.waveShape);
+    }
+    else if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413)
+    {
+        switch (std::clamp(patch.waveShape, 0, 4))
+        {
+            case 1: shape = ChipWaveformPreviewShape::triangle; break;
+            case 2: shape = ChipWaveformPreviewShape::saw; break;
+            case 3: shape = ChipWaveformPreviewShape::combined; break;
+            case 4: shape = ChipWaveformPreviewShape::stepped; break;
+            case 0:
+            default:
+                shape = ChipWaveformPreviewShape::saw;
+                break;
+        }
+
+        tooltip = juce::String(chipper::toString(mode)) + " exposed FM lane "
+            + juce::String(static_cast<int>(index + 1u))
+            + ": symbolic operator-output preview. The engine uses the active FM core/register adapter.";
     }
 
     scope.setShape(shape, duty, sourceIsEnabled && shape != ChipWaveformPreviewShape::off);
