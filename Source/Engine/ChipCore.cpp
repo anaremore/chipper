@@ -4621,6 +4621,9 @@ public:
              << "\"assignedNote1\":" << channelNotes[1] << ","
              << "\"assignedNote2\":" << channelNotes[2] << ","
              << "\"assignedNote3\":" << channelNotes[3] << ","
+             << "\"assignedNote4\":" << channelNotes[4] << ","
+             << "\"assignedNote5\":" << channelNotes[5] << ","
+             << "\"hiddenChannelsFollowAnySource\":1,"
              << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
              << "}";
         return json.str();
@@ -4647,6 +4650,17 @@ private:
         if (channel < 4)
             return sourceEnabled(patch, channel);
         return (control[channel] & 0x80u) != 0;
+    }
+
+    bool chipPolyChannelEnabled(size_t channel) const
+    {
+        if (channel < 4)
+            return sourceEnabled(patch, channel);
+
+        return sourceEnabled(patch, 0)
+            || sourceEnabled(patch, 1)
+            || sourceEnabled(patch, 2)
+            || sourceEnabled(patch, 3);
     }
 
     bool channelActiveForPatch(size_t channel) const
@@ -4733,12 +4747,12 @@ private:
     {
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
-            if (sourceEnabled(patch, channel) && channelNotes[channel] == midiNote)
+            if (chipPolyChannelEnabled(channel) && channelNotes[channel] == midiNote)
                 return static_cast<int>(channel);
         }
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
-            if (sourceEnabled(patch, channel) && channelNotes[channel] < 0)
+            if (chipPolyChannelEnabled(channel) && channelNotes[channel] < 0)
                 return static_cast<int>(channel);
         }
 
@@ -4746,7 +4760,7 @@ private:
         auto oldestStamp = std::numeric_limits<uint64_t>::max();
         for (size_t channel = 0; channel < channelStamp.size(); ++channel)
         {
-            if (sourceEnabled(patch, channel) && channelStamp[channel] < oldestStamp)
+            if (chipPolyChannelEnabled(channel) && channelStamp[channel] < oldestStamp)
             {
                 oldestStamp = channelStamp[channel];
                 oldestChannel = static_cast<int>(channel);
@@ -4760,7 +4774,7 @@ private:
         int active = 0;
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
-            if (sourceEnabled(patch, channel) && channelNotes[channel] >= 0)
+            if (chipPolyChannelEnabled(channel) && channelNotes[channel] >= 0)
                 ++active;
         }
         return active;
@@ -4823,9 +4837,9 @@ private:
     std::array<uint32_t, 6> noiseLfsr {};
     int heldNote = -1;
     float noteVelocity = 0.0f;
-    std::array<int, 4> channelNotes {};
-    std::array<float, 4> channelVelocity {};
-    std::array<uint64_t, 4> channelStamp {};
+    std::array<int, 6> channelNotes {};
+    std::array<float, 6> channelVelocity {};
+    std::array<uint64_t, 6> channelStamp {};
     uint64_t noteStamp = 0;
     PatchConfig patch;
 };

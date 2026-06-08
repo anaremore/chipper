@@ -592,7 +592,7 @@ int main()
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::paula).implemented, "Paula descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::paula).supportsChipPoly, "Paula should support Chip Poly across four sample channels");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::huc6280).implemented, "HuC6280 descriptor should be partially implemented");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::huc6280).supportsChipPoly, "HuC6280 should support Chip Poly across exposed wavetable channels");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::huc6280).supportsChipPoly, "HuC6280 should support Chip Poly across six native wavetable channels");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::namcoWsg).implemented, "Namco WSG descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::namcoWsg).supportsChipPoly, "Namco WSG should support Chip Poly across exposed wavetable lanes");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2413).implemented, "YM2413 descriptor should be partially implemented");

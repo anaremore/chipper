@@ -1,5 +1,7 @@
-# Four overlapping notes should allocate across the exposed HuC6280 wavetable channels.
+# Six overlapping notes should allocate across the native HuC6280 wavetable channels.
 note_on 0 60 1.0
 note_on 10 64 0.8
 note_on 20 67 0.7
 note_on 30 72 0.6
+note_on 40 76 0.7
+note_on 50 79 0.6
