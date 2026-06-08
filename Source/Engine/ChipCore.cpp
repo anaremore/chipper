@@ -6639,6 +6639,10 @@ public:
         currentAlgorithm.fill(0);
         currentFeedback.fill(0);
         currentPanBits.fill(0xc0u);
+        currentAttackRate.fill(0x1fu);
+        currentDecayRate.fill(0x08u);
+        currentSustainRate.fill(0x04u);
+        currentSustainRelease.fill(0xa6u);
         noteStamp = 0;
         heldNote = -1;
         keyOnMask = 0;
@@ -6785,6 +6789,11 @@ public:
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
              << "\"panBits0\":" << static_cast<int>(currentPanBits[0]) << ","
              << "\"panBits1\":" << static_cast<int>(currentPanBits[1]) << ","
+             << "\"envelopeShape\":" << std::clamp(patch.ymEnvelopeShape, 0, 4) << ","
+             << "\"attackRate0\":" << static_cast<int>(currentAttackRate[0]) << ","
+             << "\"decayRate0\":" << static_cast<int>(currentDecayRate[0]) << ","
+             << "\"sustainRate0\":" << static_cast<int>(currentSustainRate[0]) << ","
+             << "\"sustainRelease0\":" << static_cast<int>(currentSustainRelease[0]) << ","
              << "\"fnum0\":" << currentFnum[0] << ","
              << "\"block0\":" << static_cast<int>(currentBlock[0]) << ","
              << "\"keyOnMask\":" << static_cast<int>(keyOnMask) << ","
@@ -6928,13 +6937,21 @@ private:
 
         for (size_t op = 0; op < 4; ++op)
         {
+            const auto envelope = ym2612EnvelopeRegistersForPatch(patch, op);
             writeYmRegister(opRegForChannel(0x30, channel, op), multiplierForPatch(op));
             writeYmRegister(opRegForChannel(0x40, channel, op), totalLevelForOperator(op, velocity));
-            writeYmRegister(opRegForChannel(0x50, channel, op), 0x1fu);
-            writeYmRegister(opRegForChannel(0x60, channel, op), 0x08u);
-            writeYmRegister(opRegForChannel(0x70, channel, op), 0x04u);
-            writeYmRegister(opRegForChannel(0x80, channel, op), 0xa6u);
+            writeYmRegister(opRegForChannel(0x50, channel, op), envelope.attackRate);
+            writeYmRegister(opRegForChannel(0x60, channel, op), envelope.decayRate);
+            writeYmRegister(opRegForChannel(0x70, channel, op), envelope.sustainRate);
+            writeYmRegister(opRegForChannel(0x80, channel, op), envelope.sustainRelease);
             writeYmRegister(opRegForChannel(0x90, channel, op), 0x00u);
+            if (channel == 0 && op == 0)
+            {
+                currentAttackRate[0] = envelope.attackRate;
+                currentDecayRate[0] = envelope.decayRate;
+                currentSustainRate[0] = envelope.sustainRate;
+                currentSustainRelease[0] = envelope.sustainRelease;
+            }
         }
 
         writeYmRegister(regForChannel(0xb0, channel), static_cast<uint8_t>((feedback << 3u) | algorithm));
@@ -7088,6 +7105,10 @@ private:
     std::array<uint8_t, 6> currentAlgorithm {};
     std::array<uint8_t, 6> currentFeedback {};
     std::array<uint8_t, 6> currentPanBits {};
+    std::array<uint8_t, 6> currentAttackRate {};
+    std::array<uint8_t, 6> currentDecayRate {};
+    std::array<uint8_t, 6> currentSustainRate {};
+    std::array<uint8_t, 6> currentSustainRelease {};
     std::array<int, 4> channelNotes {};
     std::array<float, 4> channelVelocity {};
     std::array<uint64_t, 4> channelStamp {};

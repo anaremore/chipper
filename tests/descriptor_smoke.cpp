@@ -310,6 +310,11 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 0) == 38u, "YM2612 helper should resolve modulator total level");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 3) == 6u, "YM2612 helper should resolve carrier total level");
     ok &= expect(chipper::ym2612PanBitsForPatch(opn2Lead, 0) == 0xc0u, "YM2612 lead macro should resolve to centered pan bits");
+    const auto opn2LeadModulatorEnvelope = chipper::ym2612EnvelopeRegistersForPatch(opn2Lead, 0);
+    ok &= expect(opn2LeadModulatorEnvelope.attackRate == 0x1fu, "YM2612 lead envelope should use fast modulator attack");
+    ok &= expect(opn2LeadModulatorEnvelope.decayRate == 0x06u, "YM2612 lead modulator decay should be softened from the carrier envelope");
+    ok &= expect(opn2LeadModulatorEnvelope.sustainRate == 0x04u, "YM2612 lead envelope should use medium sustain rate");
+    ok &= expect(opn2LeadModulatorEnvelope.sustainRelease == 0xb6u, "YM2612 lead modulator release byte should retain a higher sustain level");
 
     const auto opmArp = chipper::makePatchConfig(chipper::ChipMode::ym2151,
                                                  chipper::MacroKind::arp,
@@ -353,6 +358,27 @@ bool expectFmRegisterHelpers()
                                                       4);
     ok &= expect(chipper::ym2612PanBitsForPatch(explicitPan, 0) == 0x80u, "YM2612 alternating pan should send channel 1 left");
     ok &= expect(chipper::ym2612PanBitsForPatch(explicitPan, 1) == 0x40u, "YM2612 alternating pan should send channel 2 right");
+    const auto explicitPadEnvelope = chipper::makePatchConfig(chipper::ChipMode::ym2612,
+                                                              chipper::MacroKind::manual,
+                                                              0.5f,
+                                                              0.5f,
+                                                              0.5f,
+                                                              0.5f,
+                                                              chipper::PlayMode::stack,
+                                                              { true, true, true, true },
+                                                              { 1.0f, 1.0f, 1.0f, 1.0f },
+                                                              0.0f,
+                                                              0.0f,
+                                                              0,
+                                                              0,
+                                                              0,
+                                                              0,
+                                                              3);
+    const auto opn2PadEnvelope = chipper::ym2612EnvelopeRegistersForPatch(explicitPadEnvelope, 0);
+    ok &= expect(opn2PadEnvelope.attackRate == 0x14u, "YM2612 Pad envelope should lower operator attack rate");
+    ok &= expect(opn2PadEnvelope.decayRate == 0x04u, "YM2612 Pad modulator decay should map to register $60");
+    ok &= expect(opn2PadEnvelope.sustainRate == 0x02u, "YM2612 Pad sustain-rate should map to register $70");
+    ok &= expect(opn2PadEnvelope.sustainRelease == 0x85u, "YM2612 Pad modulator sustain/release should map to register $80");
 
     const auto oplLead = chipper::makePatchConfig(chipper::ChipMode::opl3,
                                                   chipper::MacroKind::lead,
@@ -708,6 +734,9 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Pan");
     ok &= expectSpecGroup(chipper::ChipMode::ym2612, chipper::ChipParameterRole::dmgStereoRoute, "Output");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::dmgStereoRoute, 5, "Follow");
+    ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Envelope Shape");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2612, chipper::ChipParameterRole::ymEnvelopeShape, "Envelope");
+    ok &= expectSegmentedRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Follow");
     ok &= expectMacroLabel(chipper::ChipMode::opl3, chipper::MacroKind::drum, "OPL2 FM Perc");
     ok &= expectMacroLabel(chipper::ChipMode::spc700, chipper::MacroKind::drum, "SPC700 Drum Map");
     ok &= expectPreset(chipper::ChipMode::spc700, "spc700-stage-clear");

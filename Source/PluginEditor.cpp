@@ -3710,6 +3710,21 @@ juce::String ChipperAudioProcessorEditor::sidModelReadout(const chipper::PatchCo
 
 juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) const
 {
+    if (displayedMode == chipper::ChipMode::ym2612)
+    {
+        const auto clamped = std::clamp(choice, 0, 4);
+        switch (clamped)
+        {
+            case 1: return "OPN2 AR/DR/SR/SL+RR set for plucked keys";
+            case 2: return "OPN2 AR/DR/SR/SL+RR set for sustained leads";
+            case 3: return "OPN2 AR/DR/SR/SL+RR set for soft pads";
+            case 4: return "OPN2 AR/DR/SR/SL+RR set for percussive hits";
+            case 0:
+            default:
+                return "Follow template, writes OPN2 operator envelope registers";
+        }
+    }
+
     const auto clamped = std::clamp(choice, 0, 20);
     if (clamped >= 5)
     {

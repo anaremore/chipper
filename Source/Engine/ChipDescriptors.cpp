@@ -528,6 +528,17 @@ std::vector<ParameterChoiceSpec> ym2612PanChoices()
     };
 }
 
+std::vector<ParameterChoiceSpec> ym2612EnvelopeShapeChoices()
+{
+    return {
+        choice("Follow", "Resolve the OPN2 envelope registers from the selected template.", 0.0f, 0),
+        choice("Pluck", "Fast attack with a short decay for bright Genesis plucks and keys.", 0.25f, 1),
+        choice("Lead", "Fast attack with medium sustain for melodic FM leads.", 0.5f, 2),
+        choice("Pad", "Slower attack and release for soft stacked FM tones.", 0.75f, 3),
+        choice("Perc", "Fast transient with a short release for hits and percussive FM.", 1.0f, 4)
+    };
+}
+
 std::vector<ChipParameterSpec> ym2612ParameterSpecs()
 {
     return {
@@ -569,6 +580,13 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
                       "Output",
                       "Writes the YM2612 channel output enable bits in register $B4: left, right, both, or alternating exposed channels.",
                       ym2612PanChoices(),
+                      ParameterKind::chipRegister),
+        segmentedSpec(ChipParameterRole::ymEnvelopeShape,
+                      "ym2612.envelopeShape",
+                      "Envelope Shape",
+                      "Envelope",
+                      "Writes OPN2 operator attack, decay, sustain-rate, sustain-level, and release fields for the current musical envelope shape.",
+                      ym2612EnvelopeShapeChoices(),
                       ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::stereoSpread,
                    "ym2612.stereoSpread",
@@ -2328,7 +2346,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             bool nesDmcOnly)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
-    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : 20;
+    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : (mode == ChipMode::ym2612 ? 4 : 20);
     const auto maxWaveShape = (mode == ChipMode::sid || mode == ChipMode::ym2612 || mode == ChipMode::ym2151) ? 8 : 4;
 
     return {
@@ -3106,6 +3124,62 @@ uint8_t ym2612PanBitsForPatch(const PatchConfig& patch, size_t channel)
         default:
             return 0xc0u;
     }
+}
+
+FmEnvelopeRegisters ym2612EnvelopeRegistersForPatch(const PatchConfig& patch, size_t op)
+{
+    auto choiceValue = std::clamp(patch.ymEnvelopeShape, 0, 4);
+    if (choiceValue == 0)
+    {
+        switch (patch.macro)
+        {
+            case MacroKind::coin:
+            case MacroKind::jump:
+                choiceValue = 1;
+                break;
+            case MacroKind::drum:
+            case MacroKind::hit:
+                choiceValue = 4;
+                break;
+            case MacroKind::powerUp:
+                choiceValue = 3;
+                break;
+            case MacroKind::bass:
+            case MacroKind::lead:
+            case MacroKind::arp:
+            case MacroKind::laser:
+            case MacroKind::manual:
+            default:
+                choiceValue = 2;
+                break;
+        }
+    }
+
+    FmEnvelopeRegisters envelope;
+    switch (choiceValue)
+    {
+        case 1: // Pluck
+            envelope = { 0x1fu, 0x12u, 0x06u, 0x84u };
+            break;
+        case 3: // Pad
+            envelope = { 0x14u, 0x06u, 0x02u, 0x75u };
+            break;
+        case 4: // Perc
+            envelope = { 0x1fu, 0x1au, 0x0eu, 0x2fu };
+            break;
+        case 2: // Lead
+        default:
+            envelope = { 0x1fu, 0x08u, 0x04u, 0xa6u };
+            break;
+    }
+
+    if (op < 3u)
+    {
+        envelope.sustainRelease = static_cast<uint8_t>(std::min(0xff, static_cast<int>(envelope.sustainRelease) + 0x10));
+        envelope.decayRate = static_cast<uint8_t>(std::max(0, static_cast<int>(envelope.decayRate) - 2));
+    }
+
+    return envelope;
 }
 
 uint8_t ym2151AlgorithmForPatch(const PatchConfig& patch)
