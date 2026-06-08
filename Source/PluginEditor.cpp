@@ -2980,8 +2980,21 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
     setPlainParameterValueFromUi(chipper::parameters::id::clockHz, 0.0f);
     setPlainParameterValueFromUi(chipper::parameters::id::outputDb, preset.outputDb);
 
-    presetBox.setTooltip(juce::String(preset.name) + ": " + juce::String(preset.note));
     updateDescriptorText();
+
+    {
+        const juce::ScopedValueSetter<bool> suppressPreset(suppressPresetApply, true);
+        for (size_t i = 0; i < displayedPresets.size(); ++i)
+        {
+            if (displayedPresets[i] != nullptr && displayedPresets[i]->id == preset.id)
+            {
+                presetBox.setSelectedId(static_cast<int>(i) + 1, juce::dontSendNotification);
+                break;
+            }
+        }
+    }
+
+    presetBox.setTooltip(juce::String(preset.name) + ": " + juce::String(preset.note));
     updateLiveControlReadouts();
 }
 
@@ -5253,7 +5266,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto macroText = macroTemplateReadout(mode, patch);
     auto performanceText = macroText;
     auto performanceTooltip = macroText;
-    const auto selectedPreset = presetBox.getSelectedItemIndex();
+    const auto selectedPreset = presetBox.getSelectedId() - 1;
     if (selectedPreset >= 0 && static_cast<size_t>(selectedPreset) < displayedPresets.size())
     {
         const auto& preset = *displayedPresets[static_cast<size_t>(selectedPreset)];
