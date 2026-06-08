@@ -2274,7 +2274,7 @@ PatchConfig makePatchConfig(ChipMode mode,
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : 20;
-    const auto maxWaveShape = mode == ChipMode::sid ? 8 : 4;
+    const auto maxWaveShape = (mode == ChipMode::sid || mode == ChipMode::ym2612 || mode == ChipMode::ym2151) ? 8 : 4;
 
     return {
         macro,
@@ -2992,6 +2992,112 @@ uint8_t pokeyAudfForNote(double clockHz, int midiNote)
     const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
     const auto divisor = std::round(safeClock / (56.0 * hz) - 1.0);
     return static_cast<uint8_t>(std::clamp(static_cast<int>(divisor), 0, 255));
+}
+
+uint8_t ym2612AlgorithmForPatch(const PatchConfig& patch)
+{
+    if (patch.waveShape > 0)
+        return static_cast<uint8_t>(std::clamp(patch.waveShape - 1, 0, 7));
+
+    switch (patch.macro)
+    {
+        case MacroKind::bass: return 0;
+        case MacroKind::lead: return 4;
+        case MacroKind::arp: return 5;
+        case MacroKind::coin:
+        case MacroKind::jump: return 7;
+        case MacroKind::drum:
+        case MacroKind::hit: return 1;
+        case MacroKind::laser: return 2;
+        case MacroKind::powerUp: return 6;
+        case MacroKind::manual:
+        default: break;
+    }
+
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control1) * 7.0f)), 0, 7));
+}
+
+uint8_t ym2151AlgorithmForPatch(const PatchConfig& patch)
+{
+    if (patch.waveShape > 0)
+        return static_cast<uint8_t>(std::clamp(patch.waveShape - 1, 0, 7));
+
+    switch (patch.macro)
+    {
+        case MacroKind::bass: return 0;
+        case MacroKind::lead: return 4;
+        case MacroKind::arp: return 7;
+        case MacroKind::coin:
+        case MacroKind::jump: return 6;
+        case MacroKind::drum:
+        case MacroKind::hit: return 2;
+        case MacroKind::laser: return 3;
+        case MacroKind::powerUp: return 5;
+        case MacroKind::manual:
+        default: break;
+    }
+
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control1) * 7.0f)), 0, 7));
+}
+
+uint8_t fmFeedbackForPatch(const PatchConfig& patch)
+{
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control2) * 7.0f)), 0, 7));
+}
+
+uint8_t oplWaveformForPatch(const PatchConfig& patch)
+{
+    if (patch.waveShape > 0)
+        return static_cast<uint8_t>(std::clamp(patch.waveShape - 1, 0, 3));
+
+    switch (patch.macro)
+    {
+        case MacroKind::bass: return 0;
+        case MacroKind::lead: return 3;
+        case MacroKind::arp: return 1;
+        case MacroKind::coin:
+        case MacroKind::jump: return 2;
+        case MacroKind::drum:
+        case MacroKind::hit:
+        case MacroKind::laser: return 3;
+        case MacroKind::powerUp: return 1;
+        case MacroKind::manual:
+        default: break;
+    }
+
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control3) * 3.0f)), 0, 3));
+}
+
+uint8_t oplConnectionForPatch(const PatchConfig& patch)
+{
+    return patch.control1 > 0.55f ? 1u : 0u;
+}
+
+uint8_t ym2413InstrumentForPatch(const PatchConfig& patch)
+{
+    const auto explicitChoice = std::clamp(patch.waveShape, 0, 4);
+    if (explicitChoice > 0)
+    {
+        static constexpr std::array<uint8_t, 5> choiceToInstrument { 0, 12, 13, 7, 8 };
+        return choiceToInstrument[static_cast<size_t>(explicitChoice)];
+    }
+
+    switch (patch.macro)
+    {
+        case MacroKind::coin:
+        case MacroKind::jump: return 12;
+        case MacroKind::bass: return 13;
+        case MacroKind::lead: return 7;
+        case MacroKind::arp:
+        case MacroKind::powerUp: return 8;
+        case MacroKind::drum:
+        case MacroKind::hit: return 15;
+        case MacroKind::laser: return 10;
+        case MacroKind::manual:
+        default: break;
+    }
+
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control1) * 15.0f)), 1, 15));
 }
 
 } // namespace chipper

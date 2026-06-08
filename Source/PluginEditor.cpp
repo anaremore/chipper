@@ -3331,20 +3331,81 @@ juce::String ChipperAudioProcessorEditor::wavetableChipReadout(chipper::ChipMode
 
 juce::String ChipperAudioProcessorEditor::fmChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
 {
-    const auto algorithm = static_cast<int>(std::round(std::clamp(patch.control1, 0.0f, 1.0f) * 7.0f));
-    const auto feedback = static_cast<int>(std::round(std::clamp(patch.control2, 0.0f, 1.0f) * 7.0f));
+    const auto feedback = static_cast<int>(chipper::fmFeedbackForPatch(patch));
     const auto level = static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f));
 
     if (mode == chipper::ChipMode::ym2413)
     {
-        const auto instrument = std::clamp(patch.waveShape, 0, 4);
-        return "OPLL preset instrument " + juce::String(instrument) + " | volume " + juce::String(level) + "/15";
+        const auto instrument = static_cast<int>(chipper::ym2413InstrumentForPatch(patch));
+        return "OPLL instrument " + juce::String(instrument) + " | volume " + juce::String(level) + "/15";
     }
 
     if (mode == chipper::ChipMode::opl3)
-        return "OPL connection/feedback " + juce::String(feedback) + "/7 | level " + juce::String(level) + "/15";
+    {
+        const auto waveform = static_cast<int>(chipper::oplWaveformForPatch(patch));
+        const auto connection = chipper::oplConnectionForPatch(patch) != 0 ? juce::String("parallel") : juce::String("serial");
+        return "OPL wave " + juce::String(waveform)
+            + " | " + connection
+            + " | feedback " + juce::String(feedback) + "/7"
+            + " | level " + juce::String(level) + "/15";
+    }
 
+    const auto algorithm = static_cast<int>(mode == chipper::ChipMode::ym2151
+                                                ? chipper::ym2151AlgorithmForPatch(patch)
+                                                : chipper::ym2612AlgorithmForPatch(patch));
     return "Algorithm " + juce::String(algorithm) + " | feedback " + juce::String(feedback) + "/7 | level " + juce::String(level) + "/15";
+}
+
+juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const
+{
+    const auto channel = static_cast<int>(index + 1u);
+    const auto feedback = static_cast<int>(chipper::fmFeedbackForPatch(patch));
+    const auto level = static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f));
+
+    if (mode == chipper::ChipMode::ym2413)
+    {
+        const auto instrument = static_cast<int>(chipper::ym2413InstrumentForPatch(patch));
+        const auto volumeNibble = std::clamp(15 - level, 0, 15);
+        return "OPLL Ch " + juce::String(channel)
+            + " | Reg $" + byteHex(static_cast<uint8_t>(0x30u + std::min(index, size_t { 8u })))
+            + " inst " + juce::String(instrument)
+            + " volume nibble " + juce::String(volumeNibble) + "/15";
+    }
+
+    if (mode == chipper::ChipMode::opl3)
+    {
+        const auto waveform = static_cast<int>(chipper::oplWaveformForPatch(patch));
+        const auto connection = static_cast<int>(chipper::oplConnectionForPatch(patch));
+        return "OPL Ch " + juce::String(channel)
+            + " | Reg $" + byteHex(static_cast<uint8_t>(0xc0u + std::min(index, size_t { 8u })))
+            + " FB " + juce::String(feedback)
+            + " CON " + juce::String(connection)
+            + " | Op waveform " + juce::String(waveform);
+    }
+
+    const auto algorithm = static_cast<int>(mode == chipper::ChipMode::ym2151
+                                                ? chipper::ym2151AlgorithmForPatch(patch)
+                                                : chipper::ym2612AlgorithmForPatch(patch));
+    const auto registerValue = static_cast<uint8_t>(mode == chipper::ChipMode::ym2151
+                                                        ? (0xc0u | (static_cast<unsigned>(feedback) << 3u) | static_cast<unsigned>(algorithm))
+                                                        : ((static_cast<unsigned>(feedback) << 3u) | static_cast<unsigned>(algorithm)));
+    if (mode == chipper::ChipMode::ym2151)
+    {
+        return "OPM Ch " + juce::String(channel)
+            + " | Reg $" + byteHex(static_cast<uint8_t>(0x20u + std::min(index, size_t { 7u })))
+            + " = $" + byteHex(registerValue)
+            + " | Alg " + juce::String(algorithm)
+            + " FB " + juce::String(feedback);
+    }
+
+    const auto ymPort = index >= 3u ? 1 : 0;
+    const auto ymSlot = static_cast<uint8_t>(std::min(index % 3u, size_t { 2u }));
+    return "OPN2 Ch " + juce::String(channel)
+        + " | Port " + juce::String(static_cast<int>(ymPort))
+        + " Reg $" + byteHex(static_cast<uint8_t>(0xb0u + ymSlot))
+        + " = $" + byteHex(registerValue)
+        + " | Alg " + juce::String(algorithm)
+        + " FB " + juce::String(feedback);
 }
 
 juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMode mode,
@@ -3372,10 +3433,18 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
         return "Ch " + number + " | SCC RAM";
 
     if (mode == chipper::ChipMode::ym2413)
-        return "OPLL " + number + " | inst";
+        return "OPLL " + number + " | Inst " + juce::String(static_cast<int>(chipper::ym2413InstrumentForPatch(patch)));
 
     if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151)
-        return "FM " + number + " | " + (mode == chipper::ChipMode::opl3 ? juce::String("2-op") : juce::String("4-op"));
+    {
+        if (mode == chipper::ChipMode::opl3)
+            return "OPL " + number + " | W" + juce::String(static_cast<int>(chipper::oplWaveformForPatch(patch)));
+
+        const auto algorithm = static_cast<int>(mode == chipper::ChipMode::ym2151
+                                                    ? chipper::ym2151AlgorithmForPatch(patch)
+                                                    : chipper::ym2612AlgorithmForPatch(patch));
+        return "FM " + number + " | Alg " + juce::String(algorithm);
+    }
 
     return fallback;
 }
@@ -4403,6 +4472,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
             auto tooltip = buttonLabel + ": " + juce::String(spec->help);
             if (mode == chipper::ChipMode::pokey)
                 tooltip += "\n" + pokeySourceRegisterReadout(patch, i);
+            else if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413)
+                tooltip += "\n" + fmSourceRegisterReadout(mode, patch, i);
             tooltip += "\n" + macroTemplateReadout(mode, patch);
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(tooltip, sourceRole(i)));
         }
@@ -4611,7 +4682,8 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
 
         tooltip = juce::String(chipper::toString(mode)) + " exposed FM lane "
             + juce::String(static_cast<int>(index + 1u))
-            + ": symbolic operator-output preview. The engine uses the active FM core/register adapter.";
+            + ": symbolic operator-output preview. The engine uses the active FM core/register adapter."
+            + "\n" + fmSourceRegisterReadout(mode, patch, index);
     }
 
     scope.setShape(shape, duty, sourceIsEnabled && shape != ChipWaveformPreviewShape::off);

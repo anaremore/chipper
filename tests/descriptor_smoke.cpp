@@ -241,6 +241,75 @@ bool expectVerificationDisclosure()
     return ok;
 }
 
+bool expectFmRegisterHelpers()
+{
+    bool ok = true;
+
+    const auto opn2Lead = chipper::makePatchConfig(chipper::ChipMode::ym2612,
+                                                   chipper::MacroKind::lead,
+                                                   0.1f,
+                                                   0.6f,
+                                                   0.5f,
+                                                   0.8f);
+    ok &= expect(chipper::ym2612AlgorithmForPatch(opn2Lead) == 4u, "YM2612 lead macro should resolve to algorithm 4");
+    ok &= expect(chipper::fmFeedbackForPatch(opn2Lead) == 4u, "FM feedback helper should quantize control 2 to 0-7");
+
+    const auto opmArp = chipper::makePatchConfig(chipper::ChipMode::ym2151,
+                                                 chipper::MacroKind::arp,
+                                                 0.0f,
+                                                 0.4f,
+                                                 0.5f,
+                                                 0.7f);
+    ok &= expect(chipper::ym2151AlgorithmForPatch(opmArp) == 7u, "YM2151 arp macro should resolve to algorithm 7");
+
+    const auto explicitAlgorithm = chipper::makePatchConfig(chipper::ChipMode::ym2612,
+                                                            chipper::MacroKind::manual,
+                                                            0.0f,
+                                                            0.0f,
+                                                            0.0f,
+                                                            0.0f,
+                                                            chipper::PlayMode::stack,
+                                                            { true, true, true, true },
+                                                            { 1.0f, 1.0f, 1.0f, 1.0f },
+                                                            0.0f,
+                                                            0.0f,
+                                                            8);
+    ok &= expect(chipper::ym2612AlgorithmForPatch(explicitAlgorithm) == 7u, "YM2612 explicit algorithm choice should override macro controls");
+
+    const auto oplLead = chipper::makePatchConfig(chipper::ChipMode::opl3,
+                                                  chipper::MacroKind::lead,
+                                                  0.7f,
+                                                  0.5f,
+                                                  0.0f,
+                                                  0.75f);
+    ok &= expect(chipper::oplWaveformForPatch(oplLead) == 3u, "OPL lead macro should resolve to waveform 3");
+    ok &= expect(chipper::oplConnectionForPatch(oplLead) == 1u, "OPL connection helper should expose parallel mode above midpoint");
+
+    const auto opllBass = chipper::makePatchConfig(chipper::ChipMode::ym2413,
+                                                   chipper::MacroKind::bass,
+                                                   0.0f,
+                                                   0.0f,
+                                                   0.0f,
+                                                   0.6f);
+    ok &= expect(chipper::ym2413InstrumentForPatch(opllBass) == 13u, "YM2413 bass macro should resolve to OPLL instrument 13");
+
+    const auto opllExplicitBell = chipper::makePatchConfig(chipper::ChipMode::ym2413,
+                                                           chipper::MacroKind::manual,
+                                                           0.0f,
+                                                           0.0f,
+                                                           0.0f,
+                                                           0.6f,
+                                                           chipper::PlayMode::stack,
+                                                           { true, true, true, true },
+                                                           { 1.0f, 1.0f, 1.0f, 1.0f },
+                                                           0.0f,
+                                                           0.0f,
+                                                           1);
+    ok &= expect(chipper::ym2413InstrumentForPatch(opllExplicitBell) == 12u, "YM2413 explicit Bell choice should resolve to OPLL instrument 12");
+
+    return ok;
+}
+
 } // namespace
 
 int main()
@@ -474,6 +543,7 @@ int main()
     ok &= expectLiveSourceLevelSpecs();
     ok &= expectAutomatableDescriptorParametersHaveMidiCc();
     ok &= expectVerificationDisclosure();
+    ok &= expectFmRegisterHelpers();
 
     return ok ? 0 : 1;
 }

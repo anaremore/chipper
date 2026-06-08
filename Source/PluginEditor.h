@@ -181,6 +181,7 @@ private:
     juce::String sampleChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String wavetableChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String fmChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
+    juce::String fmSourceRegisterReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const;
     juce::String sourceCardNativeLabel(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index, juce::String fallback) const;
     juce::String dmgWaveLevelReadout(const chipper::PatchConfig& patch) const;
     juce::String dmgStereoRouteReadout(const chipper::PatchConfig& patch) const;
