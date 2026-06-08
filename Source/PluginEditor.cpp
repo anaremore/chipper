@@ -1052,12 +1052,12 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
     chipModeBox.addItemList(chipper::parameters::chipModeChoices(), 1);
     accuracyBox.addItemList(chipper::parameters::accuracyChoices(), 1);
-    presetBox.setTextWhenNothingSelected("Browse Factory Presets");
+    presetBox.setTextWhenNothingSelected("Browse Chip Presets");
     macroBox.addItemList(chipper::parameters::macroChoices(), 1);
     playModeBox.addItemList(chipper::parameters::playModeChoices(), 1);
     chipModeBox.setTooltip(withMidiCc("Selects the chip model or planned chip family.", chipper::parameters::id::chipMode));
     accuracyBox.setTooltip(withMidiCc("Selects the requested accuracy tier for the active core.", chipper::parameters::id::accuracy));
-    presetBox.setTooltip("Browse factory presets grouped by chip. Selecting one switches to that chip mode and applies the sound.");
+    presetBox.setTooltip("Browse factory presets for the selected chip mode. Choosing one applies the sound immediately.");
     macroBox.setTooltip(withMidiCc("Applies a chip-specific musical register template.", chipper::parameters::id::macro));
     playModeBox.setTooltip(withMidiCc("Chooses how incoming notes use the chip channels inside one patch.", chipper::parameters::id::playMode));
 
@@ -2642,12 +2642,13 @@ void ChipperAudioProcessorEditor::updateMacroChoices(chipper::ChipMode mode)
 
 void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
 {
-    juce::ignoreUnused(mode);
-
     const juce::ScopedValueSetter<bool> suppress(suppressPresetApply, true);
     displayedPresets.clear();
     for (const auto& preset : chipper::presetCatalog())
-        displayedPresets.push_back(&preset);
+    {
+        if (preset.chip == mode)
+            displayedPresets.push_back(&preset);
+    }
 
     presetBox.clear(juce::dontSendNotification);
 
@@ -2668,13 +2669,13 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
     if (displayedPresets.empty())
     {
         presetBox.setText("No factory presets", juce::dontSendNotification);
-        presetBox.setTooltip("No factory presets are active for this planned chip mode yet.");
+        presetBox.setTooltip("No factory presets are active for this chip mode yet.");
     }
     else
     {
         presetBox.setSelectedId(0, juce::dontSendNotification);
-        presetBox.setTextWhenNothingSelected("Browse Factory Presets");
-        presetBox.setTooltip("Browse factory presets grouped by chip. Selecting one switches to that chip mode and applies the sound.");
+        presetBox.setTextWhenNothingSelected("Browse " + juce::String(chipper::toString(mode)) + " Presets");
+        presetBox.setTooltip("Browse factory presets for the selected chip mode. Choosing one applies the sound immediately.");
     }
 }
 
@@ -2884,8 +2885,8 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
 
     const juce::ScopedValueSetter<bool> suppressPreset(suppressPresetApply, true);
     presetBox.setSelectedId(0, juce::dontSendNotification);
-    presetBox.setTextWhenNothingSelected("Browse Factory Presets");
-    presetBox.setTooltip("Browse factory presets grouped by chip. Selecting one switches to that chip mode and applies the sound.");
+    presetBox.setTextWhenNothingSelected("Browse " + juce::String(chipper::toString(mode)) + " Presets");
+    presetBox.setTooltip("Browse factory presets for the selected chip mode. Choosing one applies the sound immediately.");
 
     updateLiveControlReadouts();
 }

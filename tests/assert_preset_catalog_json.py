@@ -57,6 +57,7 @@ def main() -> int:
     parser.add_argument("path")
     parser.add_argument("--min-presets", type=int, default=80)
     parser.add_argument("--min-per-chip", type=int, default=6)
+    parser.add_argument("--only-chip", help="Assert that every preset belongs to this chip key.")
     args = parser.parse_args()
 
     with open(args.path, "r", encoding="utf-8") as handle:
@@ -74,10 +75,11 @@ def main() -> int:
         if duplicates:
             failures.append(f"duplicate preset {label}s: {', '.join(duplicates)}")
 
-    categories = {str(preset.get("category", "")) for preset in presets}
-    missing_categories = sorted(REQUIRED_CATEGORIES - categories)
-    if missing_categories:
-        failures.append(f"missing required preset categories: {', '.join(missing_categories)}")
+    if not args.only_chip:
+        categories = {str(preset.get("category", "")) for preset in presets}
+        missing_categories = sorted(REQUIRED_CATEGORIES - categories)
+        if missing_categories:
+            failures.append(f"missing required preset categories: {', '.join(missing_categories)}")
 
     by_chip: dict[str, list[dict]] = defaultdict(list)
     for preset in presets:
@@ -98,6 +100,8 @@ def main() -> int:
 
         if chip:
             by_chip[chip].append(preset)
+        if args.only_chip and chip != args.only_chip:
+            failures.append(f"{preset_id}: expected chip {args.only_chip!r}, got {chip!r}")
 
         allowed_prefixes = EXPECTED_CATEGORY_PREFIXES.get(chip)
         if allowed_prefixes and not category.startswith(allowed_prefixes):
@@ -116,14 +120,16 @@ def main() -> int:
         if source_enabled and not any(bool(value) for value in source_enabled):
             failures.append(f"{preset_id}: all sources are disabled")
 
-    for chip in sorted(IMPLEMENTED_CHIPS):
+    chips_to_check = [args.only_chip] if args.only_chip else sorted(IMPLEMENTED_CHIPS)
+    for chip in chips_to_check:
         count = len(by_chip.get(chip, []))
         if count < args.min_per_chip:
             failures.append(f"{chip}: expected at least {args.min_per_chip} presets, got {count}")
 
-    planned_chips_with_presets = sorted(set(by_chip) - IMPLEMENTED_CHIPS)
-    if planned_chips_with_presets:
-        failures.append(f"planned/unimplemented chips should not have factory presets yet: {', '.join(planned_chips_with_presets)}")
+    if not args.only_chip:
+        planned_chips_with_presets = sorted(set(by_chip) - IMPLEMENTED_CHIPS)
+        if planned_chips_with_presets:
+            failures.append(f"planned/unimplemented chips should not have factory presets yet: {', '.join(planned_chips_with_presets)}")
 
     if failures:
         print("preset catalog metadata failures:", file=sys.stderr)
