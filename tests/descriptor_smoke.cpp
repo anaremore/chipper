@@ -1,5 +1,6 @@
 #include "Engine/ChipDescriptors.h"
 #include "Engine/ControlRegistry.h"
+#include "Presets.h"
 
 #include <array>
 #include <iostream>
@@ -79,6 +80,20 @@ bool expectSpecHelpContains(chipper::ChipMode mode,
         return false;
 
     ok &= expect(spec->help.find(needle) != std::string::npos, message);
+    return ok;
+}
+
+bool expectPreset(chipper::ChipMode mode, const std::string& presetId)
+{
+    const auto* preset = chipper::presetById(presetId);
+    bool ok = true;
+    ok &= expect(preset != nullptr, "missing factory preset " + presetId);
+    if (preset == nullptr)
+        return false;
+
+    ok &= expect(preset->chip == mode, presetId + " is assigned to the wrong chip");
+    ok &= expect(! preset->name.empty(), presetId + " should have a user-facing name");
+    ok &= expect(! preset->note.empty(), presetId + " should explain the sound");
     return ok;
 }
 
@@ -403,21 +418,27 @@ int main()
     ok &= expectMacroLabel(chipper::ChipMode::ym2612, chipper::MacroKind::bass, "OPN2 Feedback Bass");
     ok &= expectMacroLabel(chipper::ChipMode::opl3, chipper::MacroKind::drum, "OPL2 FM Perc");
     ok &= expectMacroLabel(chipper::ChipMode::spc700, chipper::MacroKind::drum, "SPC700 Drum Map");
+    ok &= expectPreset(chipper::ChipMode::spc700, "spc700-stage-clear");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Sample Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, 5, "Follow");
     ok &= expectMacroLabel(chipper::ChipMode::pokey, chipper::MacroKind::lead, "POKEY Buzzy Lead");
+    ok &= expectPreset(chipper::ChipMode::pokey, "pokey-alien-laser");
     ok &= expectSpec(chipper::ChipMode::pokey, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Distortion Code");
     ok &= expectSegmentedRegister(chipper::ChipMode::pokey, chipper::ChipParameterRole::waveShape, 5, "Follow");
     ok &= expectMacroLabel(chipper::ChipMode::paula, chipper::MacroKind::arp, "Paula Tracker Arp");
+    ok &= expectPreset(chipper::ChipMode::paula, "paula-stab-chord");
     ok &= expectSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Sample Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::paula, chipper::ChipParameterRole::waveShape, 5, "Follow");
     ok &= expectMacroLabel(chipper::ChipMode::huc6280, chipper::MacroKind::lead, "HuC6280 Glass Lead");
+    ok &= expectPreset(chipper::ChipMode::huc6280, "huc-boss-alert");
     ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::huc6280, chipper::ChipParameterRole::waveShape, 5, "Follow");
     ok &= expectMacroLabel(chipper::ChipMode::namcoWsg, chipper::MacroKind::arp, "Namco Tracker Arp");
+    ok &= expectPreset(chipper::ChipMode::namcoWsg, "namco-start-button");
     ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::waveShape, 5, "Follow");
     ok &= expectMacroLabel(chipper::ChipMode::ym2151, chipper::MacroKind::lead, "OPM Metallic Lead");
+    ok &= expectPreset(chipper::ChipMode::ym2151, "opm-metallic-lead");
     ok &= expectMacroSourceMask(chipper::ChipMode::ym2151, chipper::MacroKind::drum, { false, false, true, true });
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Algorithm");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::waveShape, 9, "Follow");
@@ -426,9 +447,11 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Operator Tone");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "FM Level");
     ok &= expectMacroLabel(chipper::ChipMode::ym2413, chipper::MacroKind::coin, "OPLL UI Chime");
+    ok &= expectPreset(chipper::ChipMode::ym2413, "opll-soft-keys");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Instrument");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, 5, "Follow");
     ok &= expectMacroLabel(chipper::ChipMode::scc, chipper::MacroKind::powerUp, "SCC Power Wave");
+    ok &= expectPreset(chipper::ChipMode::scc, "scc-power-wave");
     ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, 5, "Follow");
 

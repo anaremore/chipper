@@ -3173,6 +3173,18 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
     if (mode == chipper::ChipMode::sid)
         return label + " -> " + sidModelReadout(patch) + " | " + sidVoiceWaveSummary(patch) + " | " + sidFilterModeReadout(patch) + " | " + sidModModeReadout(patch);
 
+    if (mode == chipper::ChipMode::pokey)
+        return label + " -> " + pokeyRegisterReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape);
+
+    if (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
+        return label + " -> " + sampleChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape);
+
+    if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
+        return label + " -> " + wavetableChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape);
+
+    if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413)
+        return label + " -> " + fmChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape);
+
     return label + ": " + juce::String(templ.help);
 }
 
@@ -3266,6 +3278,87 @@ juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mod
         default:
             return "RAM: preserve current/register-trace Wave RAM";
     }
+}
+
+juce::String ChipperAudioProcessorEditor::pokeyRegisterReadout(const chipper::PatchConfig& patch) const
+{
+    const auto audc = chipper::pokeyAudcForPatch(patch);
+    const auto audfC4 = chipper::pokeyAudfForNote(chipper::parameters::defaultClockForMode(chipper::ChipMode::pokey), 60);
+    return "AUDC $" + byteHex(audc) + " | AUDV " + juce::String(static_cast<int>(audc & 0x0fu)) + "/15 | C4 AUDF $" + byteHex(audfC4);
+}
+
+juce::String ChipperAudioProcessorEditor::sampleChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
+{
+    const auto chipLabel = mode == chipper::ChipMode::paula ? juce::String("8-bit period sample") : juce::String("lo-fi sample voice");
+    const auto decay = static_cast<int>(std::round(std::clamp(patch.envelopeDecay, 0.0f, 1.0f) * 15.0f));
+    const auto volume = static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f));
+    return chipLabel + " | decay " + juce::String(decay) + "/15 | volume " + juce::String(volume) + "/15";
+}
+
+juce::String ChipperAudioProcessorEditor::wavetableChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
+{
+    const auto volume = static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f));
+    const auto skew = static_cast<int>(std::round(std::clamp(patch.control3, 0.0f, 1.0f) * 31.0f));
+    juce::String memory = "Wave RAM";
+    if (mode == chipper::ChipMode::namcoWsg)
+        memory = "4-bit WSG RAM";
+    else if (mode == chipper::ChipMode::scc)
+        memory = "32-byte SCC RAM";
+    else if (mode == chipper::ChipMode::huc6280)
+        memory = "32-sample 5-bit RAM";
+
+    return memory + " | skew " + juce::String(skew) + "/31 | volume " + juce::String(volume) + "/15";
+}
+
+juce::String ChipperAudioProcessorEditor::fmChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
+{
+    const auto algorithm = static_cast<int>(std::round(std::clamp(patch.control1, 0.0f, 1.0f) * 7.0f));
+    const auto feedback = static_cast<int>(std::round(std::clamp(patch.control2, 0.0f, 1.0f) * 7.0f));
+    const auto level = static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f));
+
+    if (mode == chipper::ChipMode::ym2413)
+    {
+        const auto instrument = std::clamp(patch.waveShape, 0, 4);
+        return "OPLL preset instrument " + juce::String(instrument) + " | volume " + juce::String(level) + "/15";
+    }
+
+    if (mode == chipper::ChipMode::opl3)
+        return "OPL connection/feedback " + juce::String(feedback) + "/7 | level " + juce::String(level) + "/15";
+
+    return "Algorithm " + juce::String(algorithm) + " | feedback " + juce::String(feedback) + "/7 | level " + juce::String(level) + "/15";
+}
+
+juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMode mode,
+                                                               const chipper::PatchConfig& patch,
+                                                               size_t index,
+                                                               juce::String fallback) const
+{
+    const auto number = juce::String(static_cast<int>(index + 1u));
+    if (mode == chipper::ChipMode::pokey)
+        return "Ch " + number + " | " + byteHex(chipper::pokeyAudcForPatch(patch));
+
+    if (mode == chipper::ChipMode::spc700)
+        return "Voice " + number + " | sample";
+
+    if (mode == chipper::ChipMode::paula)
+        return "Ch " + number + " | 8-bit";
+
+    if (mode == chipper::ChipMode::huc6280)
+        return "Wave " + number + " | 5-bit RAM";
+
+    if (mode == chipper::ChipMode::namcoWsg)
+        return "Lane " + number + " | 4-bit RAM";
+
+    if (mode == chipper::ChipMode::scc)
+        return "Ch " + number + " | SCC RAM";
+
+    if (mode == chipper::ChipMode::ym2413)
+        return "OPLL " + number + " | inst";
+
+    if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151)
+        return "FM " + number + " | " + (mode == chipper::ChipMode::opl3 ? juce::String("2-op") : juce::String("4-op"));
+
+    return fallback;
 }
 
 juce::String ChipperAudioProcessorEditor::dmgWaveLevelReadout(const chipper::PatchConfig& patch) const
@@ -4270,7 +4363,7 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         else if (mode == chipper::ChipMode::sn76489 && spec != nullptr)
             buttonLabel = snSourceCardLabel(patch, i);
         else if (spec != nullptr && labels != &nesBigMonoLabels)
-            buttonLabel = juce::String((*labels)[i]);
+            buttonLabel = sourceCardNativeLabel(mode, patch, i, juce::String((*labels)[i]));
         else
             buttonLabel = spec != nullptr ? juce::String(spec->label) : juce::String((*labels)[i]);
 
@@ -4286,6 +4379,11 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         }
         else if (mode == chipper::ChipMode::sn76489 && spec != nullptr)
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(snSourceCardTooltip(patch, i, spec), sourceRole(i)));
+        else if (spec != nullptr && labels != &nesBigMonoLabels)
+            sourceChannelButtons[i].setTooltip(withMidiCcForRole(buttonLabel
+                                                                     + ": " + juce::String(spec->help)
+                                                                     + "\n" + macroTemplateReadout(mode, patch),
+                                                                 sourceRole(i)));
         else if (spec != nullptr)
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(juce::String(spec->label) + ": " + juce::String(spec->help), sourceRole(i)));
         else
@@ -5387,6 +5485,38 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[1].setText(sidDetuneReadout(patch.control2), juce::dontSendNotification);
         controlValueLabels[2].setText(sidCutoffReadout(patch.control3), juce::dontSendNotification);
         controlValueLabels[3].setText(sidSustainReadout(patch), juce::dontSendNotification);
+        updateSourceChannelButtons(mode);
+    }
+    else if (mode == chipper::ChipMode::pokey)
+    {
+        controlValueLabels[0].setText(waveShapeReadout(mode, patch.waveShape), juce::dontSendNotification);
+        controlValueLabels[1].setText(pokeyRegisterReadout(patch), juce::dontSendNotification);
+        controlValueLabels[2].setText("Poly/timer bias " + juce::String(patch.control3, 2), juce::dontSendNotification);
+        controlValueLabels[3].setText("AUDV volume " + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15", juce::dontSendNotification);
+        updateSourceChannelButtons(mode);
+    }
+    else if (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
+    {
+        controlValueLabels[0].setText(waveShapeReadout(mode, patch.waveShape), juce::dontSendNotification);
+        controlValueLabels[1].setText("Pitch/rate motion " + juce::String(patch.control2, 2), juce::dontSendNotification);
+        controlValueLabels[2].setText("Sample color " + juce::String(patch.control3, 2), juce::dontSendNotification);
+        controlValueLabels[3].setText(sampleChipReadout(mode, patch), juce::dontSendNotification);
+        updateSourceChannelButtons(mode);
+    }
+    else if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
+    {
+        controlValueLabels[0].setText("Channel spread " + juce::String(static_cast<int>(std::round(patch.control1 * 12.0f))) + " st", juce::dontSendNotification);
+        controlValueLabels[1].setText("Pitch motion " + juce::String(patch.control2, 2), juce::dontSendNotification);
+        controlValueLabels[2].setText(waveShapeReadout(mode, patch.waveShape), juce::dontSendNotification);
+        controlValueLabels[3].setText(wavetableChipReadout(mode, patch), juce::dontSendNotification);
+        updateSourceChannelButtons(mode);
+    }
+    else if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413)
+    {
+        controlValueLabels[0].setText(fmChipReadout(mode, patch), juce::dontSendNotification);
+        controlValueLabels[1].setText("Feedback/motion " + juce::String(patch.control2, 2), juce::dontSendNotification);
+        controlValueLabels[2].setText(waveShapeReadout(mode, patch.waveShape), juce::dontSendNotification);
+        controlValueLabels[3].setText("FM output level " + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15", juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
     else
