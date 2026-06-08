@@ -10,6 +10,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace
 {
@@ -957,6 +958,162 @@ void ChipEnvelopePreview::paint(juce::Graphics& g)
     g.strokePath(path, juce::PathStrokeType(1.5f));
 }
 
+void FmAlgorithmPreview::setAlgorithm(int newAlgorithm, bool shouldFollow)
+{
+    const auto clampedAlgorithm = std::clamp(newAlgorithm, 0, 7);
+    if (algorithm == clampedAlgorithm && follow == shouldFollow)
+        return;
+
+    algorithm = clampedAlgorithm;
+    follow = shouldFollow;
+    repaint();
+}
+
+void FmAlgorithmPreview::paint(juce::Graphics& g)
+{
+    const auto bounds = getLocalBounds().toFloat().reduced(1.0f);
+    if (bounds.isEmpty())
+        return;
+
+    g.setColour(juce::Colour(0xff10181c));
+    g.fillRoundedRectangle(bounds, 4.0f);
+    g.setColour(juce::Colour(0xff2a3a40));
+    g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+    auto graph = bounds.reduced(7.0f, 5.0f);
+    if (graph.getWidth() < 80.0f || graph.getHeight() < 34.0f)
+        return;
+
+    const auto opRadius = std::clamp(std::min(graph.getWidth(), graph.getHeight()) * 0.075f, 4.0f, 8.0f);
+    const auto carrierColour = juce::Colour(0xfff0c94d);
+    const auto modColour = juce::Colour(0xff56c7d8);
+    const auto mutedColour = juce::Colour(0xff72818a);
+    const auto lineColour = juce::Colour(0xff56c7d8).withAlpha(follow ? 0.55f : 0.78f);
+
+    const auto x1 = graph.getX() + graph.getWidth() * 0.15f;
+    const auto x2 = graph.getX() + graph.getWidth() * 0.39f;
+    const auto x3 = graph.getX() + graph.getWidth() * 0.63f;
+    const auto x4 = graph.getX() + graph.getWidth() * 0.84f;
+    const auto yTop = graph.getY() + graph.getHeight() * 0.22f;
+    const auto yMid = graph.getCentreY();
+    const auto yBottom = graph.getBottom() - graph.getHeight() * 0.22f;
+    const auto outX = graph.getRight() - 2.0f;
+
+    std::array<juce::Point<float>, 4> op {
+        juce::Point<float> { x1, yMid },
+        juce::Point<float> { x2, yMid },
+        juce::Point<float> { x3, yMid },
+        juce::Point<float> { x4, yMid }
+    };
+
+    std::array<bool, 4> carrier { false, false, false, true };
+    std::vector<std::pair<int, int>> edges;
+    switch (algorithm)
+    {
+        case 0:
+            edges = { { 0, 1 }, { 1, 2 }, { 2, 3 } };
+            carrier = { false, false, false, true };
+            break;
+        case 1:
+            op[0] = { x1, yTop };
+            op[1] = { x2, yTop };
+            op[2] = { x2, yBottom };
+            op[3] = { x4, yMid };
+            edges = { { 0, 1 }, { 1, 3 }, { 2, 3 } };
+            carrier = { false, false, false, true };
+            break;
+        case 2:
+            op[0] = { x1, yTop };
+            op[1] = { x2, yTop };
+            op[2] = { x2, yBottom };
+            op[3] = { x4, yMid };
+            edges = { { 0, 3 }, { 1, 3 }, { 2, 3 } };
+            carrier = { false, false, false, true };
+            break;
+        case 3:
+            op[0] = { x1, yTop };
+            op[1] = { x2, yTop };
+            op[2] = { x1, yBottom };
+            op[3] = { x4, yMid };
+            edges = { { 0, 1 }, { 1, 3 }, { 2, 3 } };
+            carrier = { false, false, false, true };
+            break;
+        case 4:
+            op[0] = { x1, yTop };
+            op[1] = { x2, yTop };
+            op[2] = { x1, yBottom };
+            op[3] = { x2, yBottom };
+            edges = { { 0, 1 }, { 2, 3 } };
+            carrier = { false, true, false, true };
+            break;
+        case 5:
+            op[0] = { x1, yMid };
+            op[1] = { x3, yTop };
+            op[2] = { x3, yMid };
+            op[3] = { x3, yBottom };
+            edges = { { 0, 1 }, { 0, 2 }, { 0, 3 } };
+            carrier = { false, true, true, true };
+            break;
+        case 6:
+            op[0] = { x1, yTop };
+            op[1] = { x2, yTop };
+            op[2] = { x1, yBottom };
+            op[3] = { x2, yBottom };
+            edges = { { 0, 1 }, { 2, 3 } };
+            carrier = { false, true, true, true };
+            break;
+        case 7:
+        default:
+            op[0] = { x2, yTop };
+            op[1] = { x2, yMid - graph.getHeight() * 0.10f };
+            op[2] = { x2, yMid + graph.getHeight() * 0.10f };
+            op[3] = { x2, yBottom };
+            edges = {};
+            carrier = { true, true, true, true };
+            break;
+    }
+
+    g.setColour(juce::Colour(0xff243139).withAlpha(0.72f));
+    g.drawLine(outX - 10.0f, graph.getY(), outX - 10.0f, graph.getBottom(), 1.0f);
+
+    g.setColour(lineColour);
+    for (const auto& edge : edges)
+        g.drawLine(op[static_cast<size_t>(edge.first)].x + opRadius,
+                   op[static_cast<size_t>(edge.first)].y,
+                   op[static_cast<size_t>(edge.second)].x - opRadius,
+                   op[static_cast<size_t>(edge.second)].y,
+                   1.4f);
+
+    for (size_t i = 0; i < op.size(); ++i)
+    {
+        if (carrier[i])
+        {
+            g.setColour(carrierColour.withAlpha(follow ? 0.70f : 0.95f));
+            g.drawLine(op[i].x + opRadius, op[i].y, outX - 10.0f, op[i].y, 1.3f);
+        }
+
+        g.setColour(carrier[i] ? carrierColour : modColour);
+        g.fillEllipse(op[i].x - opRadius, op[i].y - opRadius, opRadius * 2.0f, opRadius * 2.0f);
+        g.setColour(follow ? mutedColour : juce::Colour(0xff101414));
+        g.setFont(juce::FontOptions(std::clamp(opRadius * 1.15f, 6.5f, 9.0f), juce::Font::bold));
+        g.drawText(juce::String(static_cast<int>(i + 1u)),
+                   juce::Rectangle<float> { op[i].x - opRadius, op[i].y - opRadius, opRadius * 2.0f, opRadius * 2.0f },
+                   juce::Justification::centred);
+    }
+
+    g.setColour(carrierColour.withAlpha(follow ? 0.70f : 0.95f));
+    g.fillRoundedRectangle(outX - 7.0f, yMid - 9.0f, 14.0f, 18.0f, 2.0f);
+    g.setColour(juce::Colour(0xff101414));
+    g.setFont(juce::FontOptions(8.0f, juce::Font::bold));
+    g.drawText("OUT", juce::Rectangle<float> { outX - 15.0f, yMid - 8.0f, 30.0f, 16.0f }, juce::Justification::centred);
+
+    g.setColour(follow ? juce::Colour(0xffaebbc4) : juce::Colour(0xffdbe8e5));
+    g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
+    g.drawText(juce::String(follow ? "Follow -> " : "") + "Algorithm " + juce::String(algorithm),
+               graph.removeFromTop(13.0f),
+               juce::Justification::centredLeft);
+}
+
 void OutputScopePreview::setSamples(const ChipperAudioProcessor::OutputScopeSnapshot& newSamples)
 {
     samples = newSamples;
@@ -1459,6 +1616,26 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         button.setVisible(false);
         addAndMakeVisible(button);
     }
+
+    fmAlgorithmBox.setVisible(false);
+    fmAlgorithmBox.setTooltip(withMidiCcForRole("YM2612 algorithm register choice.", chipper::ChipParameterRole::waveShape));
+    fmAlgorithmBox.onChange = [this]()
+    {
+        if (suppressManualChoiceCallbacks)
+            return;
+
+        const auto selected = fmAlgorithmBox.getSelectedId() - 1;
+        if (selected >= 0)
+        {
+            setChoiceParameterFromUi(chipper::parameters::id::waveShape, selected);
+            updateLiveControlReadouts();
+        }
+    };
+    addAndMakeVisible(fmAlgorithmBox);
+
+    fmAlgorithmPreview.setVisible(false);
+    fmAlgorithmPreview.setTooltip("YM2612 four-operator algorithm signal flow. Cyan operators modulate, yellow operators reach output.");
+    addAndMakeVisible(fmAlgorithmPreview);
 
     const std::array<const char*, sidVoiceWaveCount> voiceWaveLabels { "V1", "V2", "V3" };
     for (size_t i = 0; i < sidVoiceWaveBoxes.size(); ++i)
@@ -2145,6 +2322,8 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (displayedMode == chipper::ChipMode::ym2149)
         placeYmChannelMixControls(primaryTonePanel);
+    else if (displayedMode == chipper::ChipMode::ym2612)
+        placeFmAlgorithmControl(primaryTonePanel);
     else
         placeWaveShapeSegment(primaryTonePanel);
     if (displayedMode != chipper::ChipMode::sid)
@@ -2485,6 +2664,23 @@ void ChipperAudioProcessorEditor::placeWaveShapeSegment(juce::Rectangle<int> bou
     waveShapeValueLabel.setBounds(bounds);
 }
 
+void ChipperAudioProcessorEditor::placeFmAlgorithmControl(juce::Rectangle<int> bounds)
+{
+    auto header = bounds.removeFromTop(std::min(18, bounds.getHeight()));
+    waveShapeLabel.setBounds(header.removeFromLeft(std::min(92, header.getWidth())));
+    waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
+    waveShapeValueLabel.setBounds(header);
+    bounds.removeFromTop(3);
+
+    auto controlRow = bounds.removeFromTop(std::min(28, bounds.getHeight()));
+    fmAlgorithmBox.setBounds(controlRow.removeFromLeft(std::max(132, controlRow.getWidth() / 3)).reduced(0, 1));
+    bounds.removeFromTop(5);
+    fmAlgorithmPreview.setBounds(bounds.reduced(0, 1));
+    waveShapeSegmentBounds = {};
+    for (auto& button : waveShapeButtons)
+        button.setBounds({});
+}
+
 void ChipperAudioProcessorEditor::placeSidVoiceWaveControls(juce::Rectangle<int> bounds)
 {
     waveShapeLabel.setBounds(bounds.removeFromTop(16));
@@ -2742,6 +2938,12 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
         waveShapeLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         waveShapeValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         applyChoices(waveShapeButtons, spec);
+        if (mode == chipper::ChipMode::ym2612)
+        {
+            fmAlgorithmBox.clear(juce::dontSendNotification);
+            for (size_t i = 0; i < spec->choices.size(); ++i)
+                fmAlgorithmBox.addItem(juce::String(spec->choices[i].label), static_cast<int>(i) + 1);
+        }
         sidVoiceWaveLabels[0].setText(mode == chipper::ChipMode::sid ? "Wave" : "V1", juce::dontSendNotification);
         sidVoiceWaveLabels[0].setTooltip(withMidiCcForRole(spec->help, spec->role));
         sidVoiceWaveBoxes[0].setTooltip(withMidiCcForRole(spec->help, spec->role));
@@ -4304,19 +4506,27 @@ void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode m
     {
         for (auto& button : waveShapeButtons)
             button.setVisible(false);
+        fmAlgorithmBox.setVisible(false);
+        fmAlgorithmPreview.setVisible(false);
         return;
     }
 
     const auto active = shouldBeVisible && usesWaveShapeSegment(mode);
+    const auto fmAlgorithmActive = active && mode == chipper::ChipMode::ym2612;
     waveShapeLabel.setVisible(active);
     waveShapeValueLabel.setVisible(active);
     for (auto& button : waveShapeButtons)
-        button.setVisible(active);
+        button.setVisible(active && ! fmAlgorithmActive);
+    fmAlgorithmBox.setVisible(fmAlgorithmActive);
+    fmAlgorithmPreview.setVisible(fmAlgorithmActive);
 
     if (active)
     {
         const auto choice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::waveShape)));
-        updateWaveShapeButtons(choice, true);
+        if (fmAlgorithmActive)
+            updateFmAlgorithmControl(mode, choice, true);
+        else
+            updateWaveShapeButtons(choice, true);
     }
 }
 
@@ -5142,6 +5352,13 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
         updateSidVoiceWaveControls(shouldBeVisible);
         return;
     }
+    if (mode == chipper::ChipMode::ym2612)
+    {
+        for (auto& button : waveShapeButtons)
+            button.setVisible(false);
+        updateFmAlgorithmControl(mode, choice, shouldBeVisible);
+        return;
+    }
 
     const auto selected = static_cast<size_t>(std::clamp(choice, 0, static_cast<int>(waveShapeButtons.size() - 1u)));
     for (size_t i = 0; i < waveShapeButtons.size(); ++i)
@@ -5152,6 +5369,56 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
 
     waveShapeValueLabel.setVisible(shouldBeVisible);
     waveShapeValueLabel.setText(waveShapeReadout(mode, static_cast<int>(selected)), juce::dontSendNotification);
+}
+
+void ChipperAudioProcessorEditor::updateFmAlgorithmControl(chipper::ChipMode mode, int choice, bool shouldBeVisible)
+{
+    const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::waveShape);
+    const auto visible = shouldBeVisible && mode == chipper::ChipMode::ym2612 && spec != nullptr;
+    waveShapeLabel.setVisible(visible);
+    waveShapeValueLabel.setVisible(visible);
+    fmAlgorithmBox.setVisible(visible);
+    fmAlgorithmPreview.setVisible(visible);
+    for (auto& button : waveShapeButtons)
+        button.setVisible(false);
+
+    if (! visible)
+        return;
+
+    const auto safeChoice = std::clamp(choice, 0, static_cast<int>(spec->choices.size() - 1u));
+    const juce::ScopedValueSetter<bool> suppressChoices(suppressManualChoiceCallbacks, true);
+    fmAlgorithmBox.setSelectedId(safeChoice + 1, juce::dontSendNotification);
+
+    const auto patch = currentUiPatch(
+        mode,
+        parameterValue(chipper::parameters::id::macroControl1),
+        parameterValue(chipper::parameters::id::macroControl2),
+        parameterValue(chipper::parameters::id::macroControl3),
+        parameterValue(chipper::parameters::id::macroControl4),
+        safeChoice,
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgWaveLevel))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgStereoRoute))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
+        parameterValue(chipper::parameters::id::stereoSpread));
+
+    const auto resolvedAlgorithm = static_cast<int>(chipper::ym2612AlgorithmForPatch(patch));
+    const auto followsTemplate = safeChoice == 0;
+    fmAlgorithmPreview.setAlgorithm(resolvedAlgorithm, followsTemplate);
+
+    const auto valueText = followsTemplate
+        ? juce::String("Follow -> Alg ") + juce::String(resolvedAlgorithm)
+        : juce::String("Alg ") + juce::String(resolvedAlgorithm);
+    const auto registerText = juce::String("$B0 bits alg=") + juce::String(resolvedAlgorithm)
+        + ", fb=" + juce::String(static_cast<int>(chipper::fmFeedbackForPatch(patch)));
+
+    waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
+    waveShapeValueLabel.setText(valueText, juce::dontSendNotification);
+    waveShapeValueLabel.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + registerText, spec->role));
+    fmAlgorithmBox.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + registerText, spec->role));
+    fmAlgorithmPreview.setTooltip("YM2612 four-operator algorithm signal flow.\n"
+                                  + registerText
+                                  + "\nCyan operators modulate; yellow operators reach output.");
 }
 
 void ChipperAudioProcessorEditor::updateSidVoiceWaveControls(bool shouldBeVisible)

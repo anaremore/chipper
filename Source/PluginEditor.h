@@ -72,6 +72,22 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipEnvelopePreview)
 };
 
+class FmAlgorithmPreview final : public juce::Component,
+                                 public juce::SettableTooltipClient
+{
+public:
+    FmAlgorithmPreview() = default;
+
+    void setAlgorithm(int newAlgorithm, bool shouldFollow);
+    void paint(juce::Graphics& g) override;
+
+private:
+    int algorithm = 0;
+    bool follow = true;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FmAlgorithmPreview)
+};
+
 class OutputScopePreview final : public juce::Component,
                                  public juce::SettableTooltipClient
 {
@@ -133,6 +149,7 @@ private:
     void placePulseDutySegment(juce::Rectangle<int> bounds);
     void placePulse2DutySegment(juce::Rectangle<int> bounds);
     void placeWaveShapeSegment(juce::Rectangle<int> bounds);
+    void placeFmAlgorithmControl(juce::Rectangle<int> bounds);
     void placeSidVoiceWaveControls(juce::Rectangle<int> bounds);
     void placeDmgWaveLevelSegment(juce::Rectangle<int> bounds);
     void placeDmgStereoRouteSegment(juce::Rectangle<int> bounds);
@@ -250,6 +267,7 @@ private:
     void updatePulseDutyButtons(float value, bool shouldBeVisible);
     void updatePulse2DutyButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateWaveShapeButtons(int choice, bool shouldBeVisible);
+    void updateFmAlgorithmControl(chipper::ChipMode mode, int choice, bool shouldBeVisible);
     void updateSidVoiceWaveControls(bool shouldBeVisible);
     void updateSidVoicePulseWidthControls(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateDmgWaveLevelButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
@@ -331,6 +349,8 @@ private:
     std::array<juce::TextButton, 4> pulseDutyButtons;
     std::array<juce::TextButton, pulse2DutyCount> pulse2DutyButtons;
     std::array<juce::TextButton, waveShapeCount> waveShapeButtons;
+    juce::ComboBox fmAlgorithmBox;
+    FmAlgorithmPreview fmAlgorithmPreview;
     std::array<juce::ComboBox, sidVoiceWaveCount> sidVoiceWaveBoxes;
     std::array<juce::Slider, sidVoiceWaveCount> sidVoicePulseWidthSliders;
     std::array<juce::TextButton, dmgWaveLevelCount> dmgWaveLevelButtons;

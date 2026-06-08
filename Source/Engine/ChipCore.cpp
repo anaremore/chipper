@@ -8608,8 +8608,9 @@ std::string toString(ChipMode mode)
         case ChipMode::ym2151: return "YM2151 arcade/X68000 FM";
         case ChipMode::ym2413: return "YM2413 / OPLL";
         case ChipMode::scc: return "Konami SCC";
-        case ChipMode::arcade: return "Retired Undefined Mode";
-        case ChipMode::custom: return "Retired Undefined Mode";
+        case ChipMode::arcade:
+        case ChipMode::custom:
+            return "NES / RP2A03";
     }
     return "Unknown";
 }

@@ -1804,11 +1804,12 @@ const char* chipModeKey(chipper::ChipMode mode)
         case chipper::ChipMode::ym2151: return "ym2151";
         case chipper::ChipMode::ym2413: return "ym2413";
         case chipper::ChipMode::scc: return "scc";
-        case chipper::ChipMode::arcade: return "arcade";
-        case chipper::ChipMode::custom: return "custom";
+        case chipper::ChipMode::arcade:
+        case chipper::ChipMode::custom:
+            return "nes";
     }
 
-    return "custom";
+    return "nes";
 }
 
 void writeDescriptorJson(std::ostream& out, chipper::ChipMode mode)
