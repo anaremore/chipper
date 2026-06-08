@@ -5297,6 +5297,17 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto macroText = macroTemplateReadout(mode, patch);
     auto performanceText = macroText;
     auto performanceTooltip = macroText;
+    if (! displayedPresets.empty())
+    {
+        const auto presetCount = static_cast<int>(displayedPresets.size());
+        performanceText = juce::String(presetCount) + " presets available | " + macroText;
+        performanceTooltip = "Use the Preset menu to audition "
+            + juce::String(presetCount)
+            + " "
+            + juce::String(chipper::toString(mode))
+            + " factory presets.\n"
+            + macroText;
+    }
     const auto selectedPreset = presetBox.getSelectedId() - 1;
     if (selectedPreset >= 0 && static_cast<size_t>(selectedPreset) < displayedPresets.size())
     {
