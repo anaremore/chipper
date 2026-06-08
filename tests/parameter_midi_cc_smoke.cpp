@@ -51,10 +51,17 @@ bool expect(bool condition, const std::string& message)
 int main()
 {
     ParameterSmokeProcessor processor;
+    const auto chipModes = chipper::parameters::chipModeChoices();
     const auto& mappings = chipper::parameters::midiCcMappings();
     const auto parameterCount = static_cast<size_t>(processor.getParameters().size());
 
     auto ok = true;
+    ok &= expect(chipModes.size() == 15, "Chip Mode dropdown should only expose the 15 named chip targets");
+    for (const auto& chipMode : chipModes)
+    {
+        ok &= expect(chipMode != "Arcade Hybrid", "Generic Arcade Hybrid chip mode should not be exposed");
+        ok &= expect(chipMode != "Custom", "Generic Custom chip mode should not be exposed");
+    }
     ok &= expect(parameterCount == mappings.size(),
                  "APVTS parameter count does not match MIDI CC mapping count");
 
