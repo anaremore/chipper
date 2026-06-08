@@ -51,6 +51,16 @@ public:
         double durationMs = 0.0;
     };
 
+    struct Spc700BrrSampleInfo
+    {
+        juce::String statusLine;
+        juce::String sampleName;
+        juce::String path;
+        int byteCount = 0;
+        int blockCount = 0;
+        bool loaded = false;
+    };
+
     ChipperAudioProcessor();
     ~ChipperAudioProcessor() override = default;
 
@@ -86,8 +96,10 @@ public:
     OutputScopeSnapshot outputScopeSnapshot() const;
     juce::Result loadNesDmcSampleFile(const juce::File& file);
     juce::Result loadNesDmcSampleDirectory(const juce::File& directory);
+    juce::Result loadSpc700BrrSampleFile(const juce::File& file);
     juce::String nesDmcSampleBankStatus() const;
     DmcSamplePlaybackInfo nesDmcSamplePlaybackInfo() const;
+    Spc700BrrSampleInfo spc700BrrSampleInfo() const;
     juce::StringArray nesDmcSampleNames() const;
     std::vector<DmcSampleEntryInfo> nesDmcSampleEntryInfo() const;
     void setNesDmcSampleIncluded(int index, bool shouldBeIncluded);
@@ -112,6 +124,7 @@ private:
     void applySelectedDmcSampleToCore();
     void applyDmcSampleSlotToCore(int requestedSlot);
     void applyMappedDmcSampleForMidiNote(int midiNote);
+    void applySpc700BrrSampleToCore();
     void handleMidiMessage(const juce::MidiMessage& message);
     bool handleMidiController(const juce::MidiMessage& message);
     bool setParameterFromMidiCc(const char* parameterId, int controllerValue);
@@ -133,6 +146,10 @@ private:
     uint64_t dmcSampleBankRevision = 0;
     uint64_t activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
     int activeDmcSampleSlot = -1;
+    mutable std::mutex spc700SampleMutex;
+    DmcSampleSlot spc700BrrSample;
+    uint64_t spc700BrrSampleRevision = 0;
+    uint64_t activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
     chipper::PatchConfig activePatch;
     std::vector<chipper::RegisterWrite> pendingRegisterState;
     chipper::PatchConfig lastObservedMacroPatch;

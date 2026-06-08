@@ -61,6 +61,7 @@ Checked 2026-06-07:
 2. **BRR Playback Path**
    - Done first pass: renderer can feed `.brr` bytes or inline BRR hex into the clean-room SPC700 sample voice model.
    - Done first pass: clean-room BRR block decode covers range, filter, end flag, loop flag metadata, and decoded output levels in regression tests.
+   - Done first pass: plugin UI can load one user-provided `.brr` file into the same clean-room sample voice path and stores the file path for host-state recall when the file remains on disk.
    - Remaining: BRR loop-address behavior, sample table/addressing, exact S-DSP interpolation table behavior, and comparison against trusted emulator output.
 
 3. **Directory Sample Bank**
