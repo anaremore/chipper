@@ -694,13 +694,13 @@ set(CHIPPER_PRESET_CHIP_MINIMUMS
     ym2612:9
     opl3:9
     ym2151:9
-    spc700:7
-    pokey:7
-    paula:7
-    huc6280:7
-    namcoWsg:7
+    spc700:9
+    pokey:9
+    paula:9
+    huc6280:9
+    namcoWsg:9
     ym2413:9
-    scc:7
+    scc:9
 )
 foreach(chipper_preset_chip_minimum IN LISTS CHIPPER_PRESET_CHIP_MINIMUMS)
     string(REPLACE ":" ";" chipper_preset_chip_parts "${chipper_preset_chip_minimum}")
@@ -725,17 +725,17 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_ym_preset_catalog_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_preset_catalog_metadata_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_preset_catalog_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --min-presets 120 --min-per-chip 7
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_preset_catalog_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --min-presets 140 --min-per-chip 7
     )
     set_tests_properties(chipper_render_preset_catalog_metadata_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=11 --preset-count dmg=9 --preset-count sid=18 --preset-count ym2149=9 --preset-count sn76489=9 --preset-count ym2612=9 --preset-count opl3=9 --preset-count spc700=7 --preset-count pokey=7 --preset-count paula=7 --preset-count huc6280=7 --preset-count namcoWsg=7 --preset-count ym2151=9 --preset-count ym2413=9 --preset-count scc=7
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=11 --preset-count dmg=9 --preset-count sid=18 --preset-count ym2149=9 --preset-count sn76489=9 --preset-count ym2612=9 --preset-count opl3=9 --preset-count spc700=9 --preset-count pokey=9 --preset-count paula=9 --preset-count huc6280=9 --preset-count namcoWsg=9 --preset-count ym2151=9 --preset-count ym2413=9 --preset-count scc=9
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_presets_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_preset_catalog_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-presets.json --min-presets 120 --min-per-chip 7
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_preset_catalog_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-presets.json --min-presets 140 --min-per-chip 7
     )
     set_tests_properties(chipper_render_list_presets_assert PROPERTIES DEPENDS chipper_render_list_presets_smoke)
 
