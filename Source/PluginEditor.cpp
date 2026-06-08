@@ -1754,6 +1754,22 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     oplWaveformPreview.setTooltip("OPL2/YM3812 operator waveform preview. It follows the waveform register written to both operators.");
     addAndMakeVisible(oplWaveformPreview);
 
+    opllInstrumentBox.setVisible(false);
+    opllInstrumentBox.setTooltip(withMidiCcForRole("YM2413 ROM preset instrument choice.", chipper::ChipParameterRole::waveShape));
+    opllInstrumentBox.onChange = [this]()
+    {
+        if (suppressManualChoiceCallbacks)
+            return;
+
+        const auto selected = opllInstrumentBox.getSelectedId() - 1;
+        if (selected >= 0)
+        {
+            setChoiceParameterFromUi(chipper::parameters::id::waveShape, selected);
+            updateLiveControlReadouts();
+        }
+    };
+    addAndMakeVisible(opllInstrumentBox);
+
     const std::array<const char*, sidVoiceWaveCount> voiceWaveLabels { "V1", "V2", "V3" };
     for (size_t i = 0; i < sidVoiceWaveBoxes.size(); ++i)
     {
@@ -2443,6 +2459,8 @@ void ChipperAudioProcessorEditor::resized()
         placeFmAlgorithmControl(primaryTonePanel);
     else if (displayedMode == chipper::ChipMode::opl3)
         placeOplWaveformControl(primaryTonePanel);
+    else if (displayedMode == chipper::ChipMode::ym2413)
+        placeOpllInstrumentControl(primaryTonePanel);
     else
         placeWaveShapeSegment(primaryTonePanel);
     if (displayedMode != chipper::ChipMode::sid)
@@ -2817,6 +2835,20 @@ void ChipperAudioProcessorEditor::placeOplWaveformControl(juce::Rectangle<int> b
         button.setBounds({});
 }
 
+void ChipperAudioProcessorEditor::placeOpllInstrumentControl(juce::Rectangle<int> bounds)
+{
+    auto header = bounds.removeFromTop(std::min(18, bounds.getHeight()));
+    waveShapeLabel.setBounds(header.removeFromLeft(std::min(96, header.getWidth())));
+    waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
+    waveShapeValueLabel.setBounds(header);
+    bounds.removeFromTop(3);
+
+    opllInstrumentBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
+    waveShapeSegmentBounds = {};
+    for (auto& button : waveShapeButtons)
+        button.setBounds({});
+}
+
 void ChipperAudioProcessorEditor::placeSidVoiceWaveControls(juce::Rectangle<int> bounds)
 {
     waveShapeLabel.setBounds(bounds.removeFromTop(16));
@@ -3085,6 +3117,12 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
             oplWaveformBox.clear(juce::dontSendNotification);
             for (size_t i = 0; i < spec->choices.size(); ++i)
                 oplWaveformBox.addItem(juce::String(spec->choices[i].label), static_cast<int>(i) + 1);
+        }
+        if (mode == chipper::ChipMode::ym2413)
+        {
+            opllInstrumentBox.clear(juce::dontSendNotification);
+            for (size_t i = 0; i < spec->choices.size(); ++i)
+                opllInstrumentBox.addItem(juce::String(spec->choices[i].label), static_cast<int>(i) + 1);
         }
         sidVoiceWaveLabels[0].setText(mode == chipper::ChipMode::sid ? "Wave" : "V1", juce::dontSendNotification);
         sidVoiceWaveLabels[0].setTooltip(withMidiCcForRole(spec->help, spec->role));
@@ -4657,20 +4695,23 @@ void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode m
         fmAlgorithmPreview.setVisible(false);
         oplWaveformBox.setVisible(false);
         oplWaveformPreview.setVisible(false);
+        opllInstrumentBox.setVisible(false);
         return;
     }
 
     const auto active = shouldBeVisible && usesWaveShapeSegment(mode);
     const auto fmAlgorithmActive = active && (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151);
     const auto oplWaveformActive = active && mode == chipper::ChipMode::opl3;
+    const auto opllInstrumentActive = active && mode == chipper::ChipMode::ym2413;
     waveShapeLabel.setVisible(active);
     waveShapeValueLabel.setVisible(active);
     for (auto& button : waveShapeButtons)
-        button.setVisible(active && ! fmAlgorithmActive && ! oplWaveformActive);
+        button.setVisible(active && ! fmAlgorithmActive && ! oplWaveformActive && ! opllInstrumentActive);
     fmAlgorithmBox.setVisible(fmAlgorithmActive);
     fmAlgorithmPreview.setVisible(fmAlgorithmActive);
     oplWaveformBox.setVisible(oplWaveformActive);
     oplWaveformPreview.setVisible(oplWaveformActive);
+    opllInstrumentBox.setVisible(opllInstrumentActive);
 
     if (active)
     {
@@ -4679,6 +4720,8 @@ void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode m
             updateFmAlgorithmControl(mode, choice, true);
         else if (oplWaveformActive)
             updateOplWaveformControl(mode, choice, true);
+        else if (opllInstrumentActive)
+            updateOpllInstrumentControl(mode, choice, true);
         else
             updateWaveShapeButtons(choice, true);
     }
@@ -5507,6 +5550,7 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
         fmAlgorithmPreview.setVisible(false);
         oplWaveformBox.setVisible(false);
         oplWaveformPreview.setVisible(false);
+        opllInstrumentBox.setVisible(false);
         updateSidVoiceWaveControls(shouldBeVisible);
         return;
     }
@@ -5524,11 +5568,19 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
         updateOplWaveformControl(mode, choice, shouldBeVisible);
         return;
     }
+    if (mode == chipper::ChipMode::ym2413)
+    {
+        for (auto& button : waveShapeButtons)
+            button.setVisible(false);
+        updateOpllInstrumentControl(mode, choice, shouldBeVisible);
+        return;
+    }
 
     fmAlgorithmBox.setVisible(false);
     fmAlgorithmPreview.setVisible(false);
     oplWaveformBox.setVisible(false);
     oplWaveformPreview.setVisible(false);
+    opllInstrumentBox.setVisible(false);
 
     const auto selected = static_cast<size_t>(std::clamp(choice, 0, static_cast<int>(waveShapeButtons.size() - 1u)));
     for (size_t i = 0; i < waveShapeButtons.size(); ++i)
@@ -5646,6 +5698,55 @@ void ChipperAudioProcessorEditor::updateOplWaveformControl(chipper::ChipMode mod
     oplWaveformPreview.setTooltip("OPL2/YM3812 operator waveform preview.\n"
                                   + registerText
                                   + "\nCurrent pass writes the selected waveform to both operators of each two-operator voice.");
+}
+
+void ChipperAudioProcessorEditor::updateOpllInstrumentControl(chipper::ChipMode mode, int choice, bool shouldBeVisible)
+{
+    const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::waveShape);
+    const auto visible = shouldBeVisible && mode == chipper::ChipMode::ym2413 && spec != nullptr;
+    waveShapeLabel.setVisible(visible);
+    waveShapeValueLabel.setVisible(visible);
+    opllInstrumentBox.setVisible(visible);
+    for (auto& button : waveShapeButtons)
+        button.setVisible(false);
+    fmAlgorithmBox.setVisible(false);
+    fmAlgorithmPreview.setVisible(false);
+    oplWaveformBox.setVisible(false);
+    oplWaveformPreview.setVisible(false);
+
+    if (! visible)
+        return;
+
+    const auto safeChoice = std::clamp(choice, 0, static_cast<int>(spec->choices.size() - 1u));
+    const juce::ScopedValueSetter<bool> suppressChoices(suppressManualChoiceCallbacks, true);
+    opllInstrumentBox.setSelectedId(safeChoice + 1, juce::dontSendNotification);
+
+    const auto patch = currentUiPatch(
+        mode,
+        parameterValue(chipper::parameters::id::macroControl1),
+        parameterValue(chipper::parameters::id::macroControl2),
+        parameterValue(chipper::parameters::id::macroControl3),
+        parameterValue(chipper::parameters::id::macroControl4),
+        safeChoice,
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgWaveLevel))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgStereoRoute))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
+        parameterValue(chipper::parameters::id::stereoSpread));
+
+    const auto resolvedInstrument = static_cast<int>(chipper::ym2413InstrumentForPatch(patch));
+    const auto volumeNibble = static_cast<int>(chipper::ym2413VolumeNibbleForPatch(patch, 0));
+    const auto followsTemplate = safeChoice == 0;
+    const auto valueText = followsTemplate
+        ? juce::String("Follow -> I") + juce::String(resolvedInstrument)
+        : juce::String("I") + juce::String(resolvedInstrument);
+    const auto registerText = juce::String("$30 instrument=") + juce::String(resolvedInstrument)
+        + ", volume nibble=" + juce::String(volumeNibble) + "/15";
+
+    waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
+    waveShapeValueLabel.setText(valueText, juce::dontSendNotification);
+    waveShapeValueLabel.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + registerText, spec->role));
+    opllInstrumentBox.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + registerText, spec->role));
 }
 
 void ChipperAudioProcessorEditor::updateSidVoiceWaveControls(bool shouldBeVisible)

@@ -167,6 +167,7 @@ private:
     void placeWaveShapeSegment(juce::Rectangle<int> bounds);
     void placeFmAlgorithmControl(juce::Rectangle<int> bounds);
     void placeOplWaveformControl(juce::Rectangle<int> bounds);
+    void placeOpllInstrumentControl(juce::Rectangle<int> bounds);
     void placeSidVoiceWaveControls(juce::Rectangle<int> bounds);
     void placeDmgWaveLevelSegment(juce::Rectangle<int> bounds);
     void placeDmgStereoRouteSegment(juce::Rectangle<int> bounds);
@@ -286,6 +287,7 @@ private:
     void updateWaveShapeButtons(int choice, bool shouldBeVisible);
     void updateFmAlgorithmControl(chipper::ChipMode mode, int choice, bool shouldBeVisible);
     void updateOplWaveformControl(chipper::ChipMode mode, int choice, bool shouldBeVisible);
+    void updateOpllInstrumentControl(chipper::ChipMode mode, int choice, bool shouldBeVisible);
     void updateSidVoiceWaveControls(bool shouldBeVisible);
     void updateSidVoicePulseWidthControls(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateDmgWaveLevelButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
@@ -371,6 +373,7 @@ private:
     FmAlgorithmPreview fmAlgorithmPreview;
     juce::ComboBox oplWaveformBox;
     OplWaveformPreview oplWaveformPreview;
+    juce::ComboBox opllInstrumentBox;
     std::array<juce::ComboBox, sidVoiceWaveCount> sidVoiceWaveBoxes;
     std::array<juce::Slider, sidVoiceWaveCount> sidVoicePulseWidthSliders;
     std::array<juce::TextButton, dmgWaveLevelCount> dmgWaveLevelButtons;

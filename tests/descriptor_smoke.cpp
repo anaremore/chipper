@@ -793,8 +793,8 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "FM Level");
     ok &= expectMacroLabel(chipper::ChipMode::ym2413, chipper::MacroKind::coin, "OPLL UI Chime");
     ok &= expectPreset(chipper::ChipMode::ym2413, "opll-soft-keys");
-    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Instrument");
-    ok &= expectSegmentedRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, 5, "Follow");
+    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Instrument");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 5, "Follow");
     ok &= expectMacroLabel(chipper::ChipMode::scc, chipper::MacroKind::powerUp, "SCC Power Wave");
     ok &= expectPreset(chipper::ChipMode::scc, "scc-power-wave");
     ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
