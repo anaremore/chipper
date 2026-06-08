@@ -73,6 +73,15 @@ Factory preset v1 should prioritize implemented chips and avoid implying that pl
 
 Planned chip modes may expose chip-specific roadmap templates in the Template dropdown, such as OPN2 FM Bass Plan, but those templates are UI/planning metadata only until the chip has an audited or clean-room audio core. They should not be listed as factory presets or described as audible patches.
 
+The authoritative current preset list is the renderer-exported catalog, not this prose list:
+
+```powershell
+chipper_render --list-presets --debug presets.json
+chipper_render --list-presets --chip sid --debug sid-presets.json
+```
+
+Every shipped factory preset must appear in that catalog, include chip/category/note metadata, map to an implemented chip, and pass the automated factory-preset audibility render. New presets should be original Chipper parameter snapshots; do not import third-party preset banks, song patches, module data, DMC samples, or tracker instrument data without a separate license and rights review.
+
 - NES Hero Pulse
 - NES Triangle Bass
 - NES Noise Snare

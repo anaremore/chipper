@@ -171,6 +171,15 @@ build\Release\chipper_render.exe --chip nes --accuracy authentic --clock 1789773
 
 It accepts chip mode, accuracy, musical macro, native macro controls, output trim, clock rate, note input, register-write event files, render length, and writes WAV plus debug JSON. SID scripts may use `--sid-adsr-speed` as a readable alias for the shared `--envelope-decay` control, plus `--sid-attack follow|0..15`, `--sid-decay follow|0..15`, `--sid-sustain follow|0..15`, and `--sid-release follow|0..15` for exact AD/SR nibble overrides; debug JSON reports the resolved SID AD/SR register bytes, A/D/S/R nibbles, and all three 12-bit pulse-width registers. Factory presets apply the same output-trim snapshot in the renderer that the VST applies in the editor, and debug JSON records `outputDb` plus the resolved linear gain. Golden WAV/reference metadata should be added only from trusted emulator or hardware comparisons.
 
+The renderer can also export the playable factory preset catalog directly:
+
+```powershell
+build\Release\chipper_render.exe --list-presets --debug presets.json
+build\Release\chipper_render.exe --list-presets --chip sid --debug sid-presets.json
+```
+
+The exported JSON is the same preset contract used by the editor and by automated tests. CI/CTest validates preset metadata and renders every factory preset to assert that each listed patch produces audible output, so a preset should not be treated as shipped until it appears in this catalog and passes the audibility gate.
+
 Event trace files support:
 
 ```text
