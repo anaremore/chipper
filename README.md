@@ -178,7 +178,7 @@ build\Release\chipper_render.exe --list-presets --debug presets.json
 build\Release\chipper_render.exe --list-presets --chip sid --debug sid-presets.json
 ```
 
-The exported JSON is the same preset contract used by the editor and by automated tests. CI/CTest validates preset metadata and renders every factory preset to assert that each listed patch produces audible output, so a preset should not be treated as shipped until it appears in this catalog and passes the audibility gate.
+The exported JSON is the same preset contract used by the editor and by automated tests. It includes a `summary.totalPresetCount` and per-chip `summary.chipCounts` block so chip-local preset browsers can verify their source catalog before showing users a bank. CI/CTest validates preset metadata and renders every factory preset to assert that each listed patch produces audible output, so a preset should not be treated as shipped until it appears in this catalog and passes the audibility gate.
 
 Event trace files support:
 

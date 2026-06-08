@@ -68,6 +68,13 @@ def main() -> int:
     if len(presets) < args.min_presets:
         failures.append(f"expected at least {args.min_presets} presets, got {len(presets)}")
 
+    summary = data.get("summary")
+    if not isinstance(summary, dict):
+        failures.append("missing summary object")
+        summary = {}
+    if summary.get("totalPresetCount") != len(presets):
+        failures.append(f"summary totalPresetCount expected {len(presets)}, got {summary.get('totalPresetCount')!r}")
+
     ids = [str(preset.get("id", "")) for preset in presets]
     names = [str(preset.get("name", "")) for preset in presets]
     for label, values in (("id", ids), ("name", names)):
@@ -125,6 +132,31 @@ def main() -> int:
         count = len(by_chip.get(chip, []))
         if count < args.min_per_chip:
             failures.append(f"{chip}: expected at least {args.min_per_chip} presets, got {count}")
+
+    summary_chip_counts = summary.get("chipCounts", [])
+    if not isinstance(summary_chip_counts, list):
+        failures.append("summary chipCounts must be a list")
+        summary_chip_counts = []
+    declared_chip_counts: dict[str, int] = {}
+    for item in summary_chip_counts:
+        if not isinstance(item, dict):
+            failures.append(f"summary chipCounts entry must be an object: {item!r}")
+            continue
+        chip = str(item.get("chipKey", ""))
+        count = item.get("presetCount")
+        if not chip:
+            failures.append(f"summary chipCounts entry missing chipKey: {item!r}")
+            continue
+        if not isinstance(count, int):
+            failures.append(f"summary chipCounts {chip}: presetCount must be an integer, got {count!r}")
+            continue
+        if chip in declared_chip_counts:
+            failures.append(f"summary chipCounts duplicates chip {chip}")
+        declared_chip_counts[chip] = count
+
+    actual_chip_counts = {chip: len(values) for chip, values in by_chip.items()}
+    if declared_chip_counts != actual_chip_counts:
+        failures.append(f"summary chipCounts expected {actual_chip_counts!r}, got {declared_chip_counts!r}")
 
     if not args.only_chip:
         planned_chips_with_presets = sorted(set(by_chip) - IMPLEMENTED_CHIPS)

@@ -1826,7 +1826,47 @@ bool includesMode(const std::vector<chipper::ChipMode>& modes, chipper::ChipMode
 void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMode>& modes)
 {
     const auto& presets = chipper::presetCatalog();
-    out << "  \"presets\": [\n";
+    struct ChipPresetCount
+    {
+        chipper::ChipMode mode = chipper::ChipMode::nes;
+        size_t count = 0u;
+    };
+
+    std::vector<ChipPresetCount> chipCounts;
+    chipCounts.reserve(modes.size());
+    size_t totalPresetCount = 0u;
+    for (const auto mode : modes)
+    {
+        size_t count = 0u;
+        for (const auto& preset : presets)
+        {
+            if (preset.chip == mode)
+                ++count;
+        }
+
+        if (count > 0u)
+        {
+            chipCounts.push_back({ mode, count });
+            totalPresetCount += count;
+        }
+    }
+
+    out << "  \"summary\": {\n"
+        << "    \"totalPresetCount\": " << totalPresetCount << ",\n"
+        << "    \"chipCounts\": [\n";
+    for (size_t i = 0; i < chipCounts.size(); ++i)
+    {
+        const auto& entry = chipCounts[i];
+        out << "      { \"chipKey\": ";
+        writeJsonString(out, chipModeKey(entry.mode));
+        out << ", \"chip\": ";
+        writeJsonString(out, chipper::toString(entry.mode));
+        out << ", \"presetCount\": " << entry.count << " }"
+            << (i + 1u == chipCounts.size() ? "\n" : ",\n");
+    }
+    out << "    ]\n"
+        << "  },\n"
+        << "  \"presets\": [\n";
     bool wrotePreset = false;
     for (const auto& preset : presets)
     {
