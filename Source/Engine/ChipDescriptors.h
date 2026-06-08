@@ -268,5 +268,12 @@ uint8_t fmFeedbackForPatch(const PatchConfig& patch);
 uint8_t oplWaveformForPatch(const PatchConfig& patch);
 uint8_t oplConnectionForPatch(const PatchConfig& patch);
 uint8_t ym2413InstrumentForPatch(const PatchConfig& patch);
+uint8_t huc6280ControlForPatch(const PatchConfig& patch, size_t channel);
+bool huc6280ChannelUsesNoiseForPatch(const PatchConfig& patch, size_t channel);
+uint8_t sccVolumeForPatch(const PatchConfig& patch, size_t channel);
+bool sccChannelKeyOnForPatch(const PatchConfig& patch, size_t channel);
+uint8_t namcoWsgVolumeForPatch(const PatchConfig& patch, size_t channel);
+bool namcoWsgChannelEnabledForPatch(const PatchConfig& patch, size_t channel);
+uint8_t wavetableRamSampleForPatch(ChipMode mode, const PatchConfig& patch, size_t channel, size_t sampleIndex);
 
 } // namespace chipper

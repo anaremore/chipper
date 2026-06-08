@@ -3329,6 +3329,51 @@ juce::String ChipperAudioProcessorEditor::wavetableChipReadout(chipper::ChipMode
     return memory + " | skew " + juce::String(skew) + "/31 | volume " + juce::String(volume) + "/15";
 }
 
+juce::String ChipperAudioProcessorEditor::wavetableSourceRegisterReadout(chipper::ChipMode mode,
+                                                                         const chipper::PatchConfig& patch,
+                                                                         size_t index) const
+{
+    const auto channel = static_cast<int>(index + 1u);
+    const auto wave0 = chipper::wavetableRamSampleForPatch(mode, patch, index, 0);
+    const auto wave31 = chipper::wavetableRamSampleForPatch(mode, patch, index, 31);
+
+    if (mode == chipper::ChipMode::huc6280)
+    {
+        const auto control = chipper::huc6280ControlForPatch(patch, index);
+        return "HuC6280 Ch " + juce::String(channel)
+            + " | $00 select " + juce::String(static_cast<int>(index))
+            + " | $04 ctrl $" + byteHex(control)
+            + " vol " + juce::String(static_cast<int>(control & 0x1fu)) + "/31"
+            + " | RAM[0/31] " + juce::String(static_cast<int>(wave0)) + "/" + juce::String(static_cast<int>(wave31));
+    }
+
+    if (mode == chipper::ChipMode::namcoWsg)
+    {
+        const auto base = static_cast<uint8_t>(0x80u + std::min(index, size_t { 7u }) * 4u);
+        const auto volume = chipper::namcoWsgVolumeForPatch(patch, index);
+        const auto enabled = chipper::namcoWsgChannelEnabledForPatch(patch, index);
+        return "Namco lane " + juce::String(channel)
+            + " | regs $" + byteHex(base) + "-$" + byteHex(static_cast<uint8_t>(base + 3u))
+            + " | vol " + juce::String(static_cast<int>(volume)) + "/15"
+            + " | " + (enabled ? juce::String("enabled") : juce::String("muted"))
+            + " | RAM[0/31] $" + byteHex(wave0) + "/$" + byteHex(wave31);
+    }
+
+    if (mode == chipper::ChipMode::scc)
+    {
+        const auto volume = chipper::sccVolumeForPatch(patch, index);
+        const auto keyBit = chipper::sccChannelKeyOnForPatch(patch, index);
+        return "SCC Ch " + juce::String(channel)
+            + " | freq regs $" + byteHex(static_cast<uint8_t>(0xa0u + std::min(index, size_t { 4u }) * 2u))
+            + "/$" + byteHex(static_cast<uint8_t>(0xa1u + std::min(index, size_t { 4u }) * 2u))
+            + " | $" + byteHex(static_cast<uint8_t>(0xaau + std::min(index, size_t { 4u }))) + " vol " + juce::String(static_cast<int>(volume)) + "/15"
+            + " | $AF bit " + juce::String(static_cast<int>(index)) + (keyBit ? " on" : " off")
+            + " | RAM[0/31] $" + byteHex(wave0) + "/$" + byteHex(wave31);
+    }
+
+    return {};
+}
+
 juce::String ChipperAudioProcessorEditor::fmChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
 {
     const auto feedback = static_cast<int>(chipper::fmFeedbackForPatch(patch));
@@ -3424,13 +3469,13 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
         return "Ch " + number + " | 8-bit";
 
     if (mode == chipper::ChipMode::huc6280)
-        return "Wave " + number + " | 5-bit RAM";
+        return "Wave " + number + " | Vol " + juce::String(static_cast<int>(chipper::huc6280ControlForPatch(patch, index) & 0x1fu));
 
     if (mode == chipper::ChipMode::namcoWsg)
-        return "Lane " + number + " | 4-bit RAM";
+        return "Lane " + number + " | Vol " + juce::String(static_cast<int>(chipper::namcoWsgVolumeForPatch(patch, index)));
 
     if (mode == chipper::ChipMode::scc)
-        return "Ch " + number + " | SCC RAM";
+        return "Ch " + number + " | Vol " + juce::String(static_cast<int>(chipper::sccVolumeForPatch(patch, index)));
 
     if (mode == chipper::ChipMode::ym2413)
         return "OPLL " + number + " | Inst " + juce::String(static_cast<int>(chipper::ym2413InstrumentForPatch(patch)));
@@ -4472,6 +4517,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
             auto tooltip = buttonLabel + ": " + juce::String(spec->help);
             if (mode == chipper::ChipMode::pokey)
                 tooltip += "\n" + pokeySourceRegisterReadout(patch, i);
+            else if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
+                tooltip += "\n" + wavetableSourceRegisterReadout(mode, patch, i);
             else if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413)
                 tooltip += "\n" + fmSourceRegisterReadout(mode, patch, i);
             tooltip += "\n" + macroTemplateReadout(mode, patch);
@@ -4650,21 +4697,24 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
         shape = wavetablePreviewShape(patch);
         tooltip = juce::String("HuC6280 wavetable channel ") + juce::String(static_cast<int>(index + 1u))
             + ": 32-sample wave RAM preview."
-            + "\nWave Shape: " + waveShapeReadout(mode, patch.waveShape);
+            + "\nWave Shape: " + waveShapeReadout(mode, patch.waveShape)
+            + "\n" + wavetableSourceRegisterReadout(mode, patch, index);
     }
     else if (mode == chipper::ChipMode::namcoWsg)
     {
         shape = wavetablePreviewShape(patch);
         tooltip = juce::String("Namco WSG wavetable lane ") + juce::String(static_cast<int>(index + 1u))
             + ": 4-bit wave RAM preview."
-            + "\nWave Shape: " + waveShapeReadout(mode, patch.waveShape);
+            + "\nWave Shape: " + waveShapeReadout(mode, patch.waveShape)
+            + "\n" + wavetableSourceRegisterReadout(mode, patch, index);
     }
     else if (mode == chipper::ChipMode::scc)
     {
         shape = wavetablePreviewShape(patch);
         tooltip = juce::String("Konami SCC wavetable channel ") + juce::String(static_cast<int>(index + 1u))
             + ": 32-byte wave RAM preview."
-            + "\nWave Shape: " + waveShapeReadout(mode, patch.waveShape);
+            + "\nWave Shape: " + waveShapeReadout(mode, patch.waveShape)
+            + "\n" + wavetableSourceRegisterReadout(mode, patch, index);
     }
     else if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413)
     {

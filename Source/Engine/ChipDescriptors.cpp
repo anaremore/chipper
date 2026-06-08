@@ -3100,4 +3100,107 @@ uint8_t ym2413InstrumentForPatch(const PatchConfig& patch)
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control1) * 15.0f)), 1, 15));
 }
 
+uint8_t huc6280ControlForPatch(const PatchConfig& patch, size_t)
+{
+    const auto volume = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control4) * 31.0f)), 1, 31));
+    return static_cast<uint8_t>(0x80u | volume);
+}
+
+bool huc6280ChannelUsesNoiseForPatch(const PatchConfig& patch, size_t channel)
+{
+    const auto usesNoiseTemplate = patch.macro == MacroKind::drum || patch.macro == MacroKind::hit || patch.waveShape == 4;
+    return usesNoiseTemplate && channel >= 4u;
+}
+
+uint8_t sccVolumeForPatch(const PatchConfig& patch, size_t channel)
+{
+    const auto base = std::clamp(static_cast<int>(std::round(clampControl(patch.control4) * 15.0f)), 1, 15);
+    const auto trim = channel < 4u ? clampControl(patch.sourceLevels[channel]) : 0.85f;
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<float>(base) * trim)), 0, 15));
+}
+
+bool sccChannelKeyOnForPatch(const PatchConfig& patch, size_t channel)
+{
+    if (channel < 4u)
+        return patch.sourceEnabled[channel];
+
+    return patch.macro == MacroKind::arp
+        || patch.macro == MacroKind::powerUp
+        || patch.macro == MacroKind::hit;
+}
+
+uint8_t namcoWsgVolumeForPatch(const PatchConfig& patch, size_t channel)
+{
+    const auto base = std::clamp(static_cast<int>(std::round(clampControl(patch.control4) * 15.0f)), 1, 15);
+    const auto trim = channel < 4u ? clampControl(patch.sourceLevels[channel]) : 0.80f;
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<float>(base) * trim)), 0, 15));
+}
+
+bool namcoWsgChannelEnabledForPatch(const PatchConfig& patch, size_t channel)
+{
+    if (channel < 4u)
+        return patch.sourceEnabled[channel];
+
+    return patch.macro == MacroKind::arp
+        || patch.macro == MacroKind::hit
+        || patch.macro == MacroKind::laser
+        || patch.macro == MacroKind::powerUp;
+}
+
+uint8_t wavetableRamSampleForPatch(ChipMode mode, const PatchConfig& patch, size_t channel, size_t sampleIndex)
+{
+    constexpr auto twoPiLocal = 6.283185307179586476925286766559;
+    const auto choice = std::clamp(patch.waveShape, 0, 4);
+    const auto i = sampleIndex & 31u;
+    const auto phaseValue = static_cast<double>(i) / 32.0;
+    const auto skew = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
+
+    if (mode == ChipMode::huc6280)
+    {
+        auto sample = 0;
+        switch (choice)
+        {
+            case 1: sample = static_cast<int>(std::round(31.0 * phaseValue)); break;
+            case 2: sample = i < 16u ? static_cast<int>(std::round(31.0 * (static_cast<double>(i) / 15.0))) : static_cast<int>(std::round(31.0 * (1.0 - static_cast<double>(i - 16u) / 15.0))); break;
+            case 3: sample = i < 16u ? 31 : 0; break;
+            case 4: sample = ((static_cast<int>(i) * 13 + static_cast<int>(channel) * 7) & 31); break;
+            case 0:
+            default: sample = static_cast<int>(std::round(15.5 + 15.5 * std::sin(twoPiLocal * phaseValue))); break;
+        }
+        return static_cast<uint8_t>(std::clamp(sample, 0, 31));
+    }
+
+    if (mode == ChipMode::namcoWsg)
+    {
+        auto sample = 8;
+        switch (choice)
+        {
+            case 1: sample = static_cast<int>(std::round(15.0 * phaseValue)); break;
+            case 2: sample = i < 16u ? static_cast<int>(std::round(15.0 * (static_cast<double>(i) / 15.0))) : static_cast<int>(std::round(15.0 * (1.0 - static_cast<double>(i - 16u) / 15.0))); break;
+            case 3: sample = i < static_cast<size_t>(std::round(4.0 + skew * 24.0)) ? 15 : 0; break;
+            case 4: sample = ((static_cast<int>(i) * 5 + static_cast<int>(channel) * 3) & 15); break;
+            case 0:
+            default: sample = static_cast<int>(std::round(7.5 + 7.5 * std::sin(twoPiLocal * phaseValue))); break;
+        }
+        return static_cast<uint8_t>(std::clamp(sample, 0, 15));
+    }
+
+    if (mode == ChipMode::scc)
+    {
+        auto sample = 128;
+        switch (choice)
+        {
+            case 1: sample = static_cast<int>(std::round(255.0 * phaseValue)); break;
+            case 2: sample = i < 16u ? static_cast<int>(std::round(255.0 * (static_cast<double>(i) / 15.0))) : static_cast<int>(std::round(255.0 * (1.0 - static_cast<double>(i - 16u) / 15.0))); break;
+            case 3: sample = i < static_cast<size_t>(std::round(4.0 + skew * 24.0)) ? 255 : 0; break;
+            case 4: sample = ((static_cast<int>(i) * 17 + static_cast<int>(channel) * 29) & 255); break;
+            case 0:
+            default: sample = static_cast<int>(std::round(128.0 + 127.0 * std::sin(twoPiLocal * phaseValue))); break;
+        }
+        return static_cast<uint8_t>(std::clamp(sample, 0, 255));
+    }
+
+    return 0;
+}
+
 } // namespace chipper

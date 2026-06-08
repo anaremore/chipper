@@ -310,6 +310,64 @@ bool expectFmRegisterHelpers()
     return ok;
 }
 
+bool expectWavetableRegisterHelpers()
+{
+    bool ok = true;
+
+    const auto hucLead = chipper::makePatchConfig(chipper::ChipMode::huc6280,
+                                                  chipper::MacroKind::lead,
+                                                  0.0f,
+                                                  0.0f,
+                                                  0.0f,
+                                                  0.76f,
+                                                  chipper::PlayMode::stack,
+                                                  { true, true, true, false },
+                                                  { 1.0f, 0.5f, 1.0f, 1.0f },
+                                                  0.0f,
+                                                  0.0f,
+                                                  1);
+    ok &= expect((chipper::huc6280ControlForPatch(hucLead, 0) & 0x80u) != 0, "HuC6280 helper should set the channel on bit");
+    ok &= expect((chipper::huc6280ControlForPatch(hucLead, 0) & 0x1fu) == 24u, "HuC6280 helper should resolve 5-bit volume");
+    ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::huc6280, hucLead, 0, 31) == 30u, "HuC6280 ramp Wave RAM tail should follow the 32-sample core formula");
+    ok &= expect(! chipper::huc6280ChannelUsesNoiseForPatch(hucLead, 3), "HuC6280 exposed melodic channels should not claim noise for lead macro");
+
+    const auto sccPulse = chipper::makePatchConfig(chipper::ChipMode::scc,
+                                                   chipper::MacroKind::manual,
+                                                   0.0f,
+                                                   0.0f,
+                                                   0.5f,
+                                                   0.80f,
+                                                   chipper::PlayMode::stack,
+                                                   { true, false, true, true },
+                                                   { 1.0f, 0.5f, 1.0f, 1.0f },
+                                                   0.0f,
+                                                   0.0f,
+                                                   3);
+    ok &= expect(chipper::sccVolumeForPatch(sccPulse, 0) == 12u, "SCC helper should resolve 4-bit channel volume");
+    ok &= expect(! chipper::sccChannelKeyOnForPatch(sccPulse, 1), "SCC helper should honor source mute for exposed channels");
+    ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::scc, sccPulse, 0, 0) == 255u, "SCC pulse Wave RAM head should resolve high");
+    ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::scc, sccPulse, 0, 31) == 0u, "SCC pulse Wave RAM tail should resolve low");
+
+    const auto namcoArp = chipper::makePatchConfig(chipper::ChipMode::namcoWsg,
+                                                   chipper::MacroKind::arp,
+                                                   0.0f,
+                                                   0.0f,
+                                                   0.5f,
+                                                   0.76f,
+                                                   chipper::PlayMode::stack,
+                                                   { true, true, true, true },
+                                                   { 1.0f, 0.5f, 1.0f, 1.0f },
+                                                   0.0f,
+                                                   0.0f,
+                                                   4);
+    ok &= expect(chipper::namcoWsgVolumeForPatch(namcoArp, 0) == 11u, "Namco WSG helper should resolve 4-bit lane volume");
+    ok &= expect(chipper::namcoWsgChannelEnabledForPatch(namcoArp, 7), "Namco WSG arp macro should expose internal extra lanes as enabled");
+    ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::namcoWsg, namcoArp, 1, 0) == 3u, "Namco WSG stepped RAM should include channel offset");
+    ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::namcoWsg, namcoArp, 1, 31) == 14u, "Namco WSG stepped RAM tail should match core formula");
+
+    return ok;
+}
+
 } // namespace
 
 int main()
@@ -544,6 +602,7 @@ int main()
     ok &= expectAutomatableDescriptorParametersHaveMidiCc();
     ok &= expectVerificationDisclosure();
     ok &= expectFmRegisterHelpers();
+    ok &= expectWavetableRegisterHelpers();
 
     return ok ? 0 : 1;
 }
