@@ -38,6 +38,27 @@ bool expectSegmentedRegister(chipper::ChipMode mode,
     return ok;
 }
 
+bool expectChoiceRegister(chipper::ChipMode mode,
+                          chipper::ChipParameterRole role,
+                          chipper::ControlSurface surface,
+                          size_t expectedChoices,
+                          const std::string& firstChoice)
+{
+    const auto* spec = chipper::parameterSpecFor(mode, role);
+    bool ok = true;
+    ok &= expect(spec != nullptr, "missing parameter spec");
+    if (spec == nullptr)
+        return false;
+
+    ok &= expect(spec->kind == chipper::ParameterKind::chipRegister, spec->id + " is not a chip register");
+    ok &= expect(spec->surface == surface, spec->id + " has unexpected surface");
+    ok &= expect(spec->choices.size() == expectedChoices, spec->id + " has unexpected choice count");
+    if (! spec->choices.empty())
+        ok &= expect(spec->choices.front().label == firstChoice, spec->id + " has unexpected first choice");
+
+    return ok;
+}
+
 bool expectSpec(chipper::ChipMode mode,
                 chipper::ChipParameterRole role,
                 chipper::ParameterKind kind,
@@ -764,8 +785,8 @@ int main()
     ok &= expectMacroLabel(chipper::ChipMode::ym2151, chipper::MacroKind::lead, "OPM Metallic Lead");
     ok &= expectPreset(chipper::ChipMode::ym2151, "opm-metallic-lead");
     ok &= expectMacroSourceMask(chipper::ChipMode::ym2151, chipper::MacroKind::drum, { false, false, true, true });
-    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Algorithm");
-    ok &= expectSegmentedRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::waveShape, 9, "Follow");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Algorithm");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 9, "Follow");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Algorithm Bias");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Feedback");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Operator Tone");

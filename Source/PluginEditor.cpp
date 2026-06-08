@@ -1715,7 +1715,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     }
 
     fmAlgorithmBox.setVisible(false);
-    fmAlgorithmBox.setTooltip(withMidiCcForRole("YM2612 algorithm register choice.", chipper::ChipParameterRole::waveShape));
+    fmAlgorithmBox.setTooltip(withMidiCcForRole("FM algorithm register choice.", chipper::ChipParameterRole::waveShape));
     fmAlgorithmBox.onChange = [this]()
     {
         if (suppressManualChoiceCallbacks)
@@ -1731,7 +1731,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addAndMakeVisible(fmAlgorithmBox);
 
     fmAlgorithmPreview.setVisible(false);
-    fmAlgorithmPreview.setTooltip("YM2612 four-operator algorithm signal flow. Cyan operators modulate, yellow operators reach output.");
+    fmAlgorithmPreview.setTooltip("Four-operator FM algorithm signal flow. Cyan operators modulate, yellow operators reach output.");
     addAndMakeVisible(fmAlgorithmPreview);
 
     oplWaveformBox.setVisible(false);
@@ -2439,7 +2439,7 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (displayedMode == chipper::ChipMode::ym2149)
         placeYmChannelMixControls(primaryTonePanel);
-    else if (displayedMode == chipper::ChipMode::ym2612)
+    else if (displayedMode == chipper::ChipMode::ym2612 || displayedMode == chipper::ChipMode::ym2151)
         placeFmAlgorithmControl(primaryTonePanel);
     else if (displayedMode == chipper::ChipMode::opl3)
         placeOplWaveformControl(primaryTonePanel);
@@ -3074,7 +3074,7 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
         waveShapeLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         waveShapeValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         applyChoices(waveShapeButtons, spec);
-        if (mode == chipper::ChipMode::ym2612)
+        if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151)
         {
             fmAlgorithmBox.clear(juce::dontSendNotification);
             for (size_t i = 0; i < spec->choices.size(); ++i)
@@ -4661,7 +4661,7 @@ void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode m
     }
 
     const auto active = shouldBeVisible && usesWaveShapeSegment(mode);
-    const auto fmAlgorithmActive = active && mode == chipper::ChipMode::ym2612;
+    const auto fmAlgorithmActive = active && (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151);
     const auto oplWaveformActive = active && mode == chipper::ChipMode::opl3;
     waveShapeLabel.setVisible(active);
     waveShapeValueLabel.setVisible(active);
@@ -5510,7 +5510,7 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
         updateSidVoiceWaveControls(shouldBeVisible);
         return;
     }
-    if (mode == chipper::ChipMode::ym2612)
+    if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151)
     {
         for (auto& button : waveShapeButtons)
             button.setVisible(false);
@@ -5544,7 +5544,8 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
 void ChipperAudioProcessorEditor::updateFmAlgorithmControl(chipper::ChipMode mode, int choice, bool shouldBeVisible)
 {
     const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::waveShape);
-    const auto visible = shouldBeVisible && mode == chipper::ChipMode::ym2612 && spec != nullptr;
+    const auto isFourOperatorFm = mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151;
+    const auto visible = shouldBeVisible && isFourOperatorFm && spec != nullptr;
     waveShapeLabel.setVisible(visible);
     waveShapeValueLabel.setVisible(visible);
     fmAlgorithmBox.setVisible(visible);
@@ -5572,21 +5573,26 @@ void ChipperAudioProcessorEditor::updateFmAlgorithmControl(chipper::ChipMode mod
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
         parameterValue(chipper::parameters::id::stereoSpread));
 
-    const auto resolvedAlgorithm = static_cast<int>(chipper::ym2612AlgorithmForPatch(patch));
+    const auto resolvedAlgorithm = static_cast<int>(mode == chipper::ChipMode::ym2151
+                                                        ? chipper::ym2151AlgorithmForPatch(patch)
+                                                        : chipper::ym2612AlgorithmForPatch(patch));
     const auto followsTemplate = safeChoice == 0;
     fmAlgorithmPreview.setAlgorithm(resolvedAlgorithm, followsTemplate);
 
     const auto valueText = followsTemplate
         ? juce::String("Follow -> Alg ") + juce::String(resolvedAlgorithm)
         : juce::String("Alg ") + juce::String(resolvedAlgorithm);
-    const auto registerText = juce::String("$B0 bits alg=") + juce::String(resolvedAlgorithm)
+    const auto registerText = juce::String(mode == chipper::ChipMode::ym2151 ? "$20 bits alg=" : "$B0 bits alg=")
+        + juce::String(resolvedAlgorithm)
         + ", fb=" + juce::String(static_cast<int>(chipper::fmFeedbackForPatch(patch)));
 
     waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
     waveShapeValueLabel.setText(valueText, juce::dontSendNotification);
     waveShapeValueLabel.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + registerText, spec->role));
     fmAlgorithmBox.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + registerText, spec->role));
-    fmAlgorithmPreview.setTooltip("YM2612 four-operator algorithm signal flow.\n"
+    fmAlgorithmPreview.setTooltip(juce::String(mode == chipper::ChipMode::ym2151
+                                                   ? "YM2151/OPM four-operator algorithm signal flow.\n"
+                                                   : "YM2612/OPN2 four-operator algorithm signal flow.\n")
                                   + registerText
                                   + "\nCyan operators modulate; yellow operators reach output.");
 }
