@@ -590,6 +590,22 @@ size_t visibleSourceCardCount(chipper::ChipMode mode)
     return mode == chipper::ChipMode::sid ? size_t { 3u } : size_t { 4u };
 }
 
+size_t nativeSourceCount(chipper::ChipMode mode)
+{
+    switch (mode)
+    {
+        case chipper::ChipMode::sid: return 3u;
+        case chipper::ChipMode::spc700: return 8u;
+        case chipper::ChipMode::huc6280: return 6u;
+        case chipper::ChipMode::namcoWsg: return 8u;
+        case chipper::ChipMode::ym2612: return 6u;
+        case chipper::ChipMode::ym2151: return 8u;
+        case chipper::ChipMode::ym2413: return 9u;
+        case chipper::ChipMode::scc: return 5u;
+        default: return visibleSourceCardCount(mode);
+    }
+}
+
 template <typename ButtonArray>
 void layoutSegmentedButtons(ButtonArray& buttons, juce::Rectangle<int> bounds, size_t visibleCount)
 {
@@ -2023,13 +2039,13 @@ void ChipperAudioProcessorEditor::resized()
     auto sourcePanel = moduleBounds[1].reduced(12, 9);
     sourcePanel.removeFromTop(20);
     const auto sourceSurfaceActive = chipper::descriptorFor(displayedMode).implemented && usesSourceChannelSurface(displayedMode);
-    if (sourceSurfaceActive)
-        sourcePanel.removeFromTop(4);
-    else
+    if (! sourceSurfaceActive || moduleSummaryLabels[1].isVisible())
     {
         sourcePanel.removeFromTop(30);
         sourcePanel.removeFromTop(4);
     }
+    else
+        sourcePanel.removeFromTop(4);
 
     const auto sourceGap = 6;
     const auto visibleSourceCards = visibleSourceCardCount(displayedMode);
@@ -5148,7 +5164,19 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
 
         const auto& module = descriptor.modules[i];
         moduleTitleLabels[i].setText(module.title, juce::dontSendNotification);
-        moduleSummaryLabels[i].setText(module.summary, juce::dontSendNotification);
+        auto summary = juce::String(module.summary);
+        if (i == 1 && hasLiveCore && usesSourceChannelSurface(mode))
+        {
+            const auto visibleCount = visibleSourceCardCount(mode);
+            const auto nativeCount = nativeSourceCount(mode);
+            if (nativeCount > visibleCount)
+            {
+                summary = "Showing first " + juce::String(static_cast<int>(visibleCount))
+                    + " of " + juce::String(static_cast<int>(nativeCount))
+                    + " native lanes; presets may use internal stack lanes.";
+            }
+        }
+        moduleSummaryLabels[i].setText(summary, juce::dontSendNotification);
         moduleSummaryLabels[i].setVisible(true);
 
         for (size_t item = 0; item < moduleItemLabels[i].size(); ++item)
