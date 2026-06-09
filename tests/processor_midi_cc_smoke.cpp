@@ -129,6 +129,28 @@ bool writeBrrFixture(const juce::File& file, uint8_t seed)
     };
     return file.replaceWithData(bytes.data(), bytes.size());
 }
+
+bool writeWavFixture(const juce::File& file, float frequency)
+{
+    juce::AudioBuffer<float> audio(1, 256);
+    for (int i = 0; i < audio.getNumSamples(); ++i)
+    {
+        const auto phase = static_cast<float>(i) * frequency / 48000.0f;
+        audio.setSample(0, i, std::sin(phase * juce::MathConstants<float>::twoPi) * 0.75f);
+    }
+
+    if (auto stream = std::unique_ptr<juce::FileOutputStream>(file.createOutputStream()))
+    {
+        juce::WavAudioFormat format;
+        if (auto writer = std::unique_ptr<juce::AudioFormatWriter>(format.createWriterFor(stream.get(), 48000.0, 1, 16, {}, 0)))
+        {
+            stream.release();
+            return writer->writeFromAudioSampleBuffer(audio, 0, audio.getNumSamples());
+        }
+    }
+
+    return false;
+}
 }
 
 int main()
@@ -533,6 +555,66 @@ int main()
     ok &= expect(restoredBrrInfo.loaded && restoredBrrInfo.sampleName == "brr-02.brr",
                  "SPC700 BRR state restore should preserve the selected slot after processing resumes");
     brrDir.deleteRecursively();
+
+    sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 9));
+    auto paulaDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-paula-sample-bank-test");
+    paulaDir.deleteRecursively();
+    ok &= expect(paulaDir.createDirectory().wasOk(), "Should create temporary Paula sample bank test directory");
+    for (int i = 0; i < 4; ++i)
+    {
+        const auto name = "paula-" + juce::String(i).paddedLeft('0', 2) + ".wav";
+        ok &= expect(writeWavFixture(paulaDir.getChildFile(name), 220.0f + static_cast<float>(i) * 55.0f),
+                     "Should write temporary Paula WAV fixture " + name.toStdString());
+    }
+
+    ok &= expect(processor.loadPaulaSampleDirectory(paulaDir).wasOk(), "Should load Paula sample directory");
+    auto paulaNames = processor.paulaSampleNames();
+    ok &= expect(paulaNames.size() == 4 && paulaNames[0] == "paula-00.wav" && paulaNames[3] == "paula-03.wav",
+                 "Paula folder should expose sorted WAV samples as playable slots");
+    auto paulaEntries = processor.paulaSampleEntryInfo();
+    ok &= expect(paulaEntries.size() == 4u && paulaEntries[0].activeSlot && paulaEntries[3].activeSlot,
+                 "Paula bank editor should expose checked WAV files as active playable slots");
+    processor.setPaulaSampleIncluded(2, false);
+    paulaNames = processor.paulaSampleNames();
+    paulaEntries = processor.paulaSampleEntryInfo();
+    ok &= expect(paulaNames.size() == 3 && paulaNames[2] == "paula-03.wav",
+                 "Unchecking a Paula sample should remove it from the playable bank and close gaps");
+    ok &= expect(! paulaEntries[2].included && ! paulaEntries[2].activeSlot,
+                 "Unchecked Paula entries should report inactive");
+    processor.setPaulaSampleIncluded(2, true);
+    sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 3));
+    auto paulaInfo = processor.paulaSampleInfo();
+    ok &= expect(paulaInfo.loaded && paulaInfo.sampleName == "paula-03.wav" && paulaInfo.byteCount == 256,
+                 "CC117 should select the active Paula sample bank slot");
+    ok &= expect(paulaInfo.statusLine.contains("8-bit samples"),
+                 "Paula status should report imported 8-bit sample count");
+
+    ChipperAudioProcessor paulaMapAuditionProcessor;
+    paulaMapAuditionProcessor.prepareToPlay(48000.0, 256);
+    sendController(paulaMapAuditionProcessor, 70, controllerValueForChoice(paulaMapAuditionProcessor, chipper::parameters::id::chipMode, 9));
+    sendController(paulaMapAuditionProcessor, 119, controllerValueForChoice(paulaMapAuditionProcessor, chipper::parameters::id::nesDmcPlaybackMode, 1));
+    ok &= expect(paulaMapAuditionProcessor.loadPaulaSampleDirectory(paulaDir).wasOk(),
+                 "Should load Paula sample directory for isolated note-map audio audition");
+    const auto paulaOutOfRangeMappedPeak = renderNoteOnPeak(paulaMapAuditionProcessor, 50);
+    ok &= expect(paulaOutOfRangeMappedPeak <= 0.0001f,
+                 "Paula note map should leave notes above the loaded sample span silent instead of clamping to the last slot");
+    const auto paulaInRangeMappedPeak = renderNoteOnPeak(paulaMapAuditionProcessor, 39);
+    ok &= expect(paulaInRangeMappedPeak > 0.0001f,
+                 "Paula note map should produce audio for notes inside the loaded sample bank span");
+
+    sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 3));
+    juce::MemoryBlock savedPaulaState;
+    processor.getStateInformation(savedPaulaState);
+    ChipperAudioProcessor restoredPaulaProcessor;
+    restoredPaulaProcessor.prepareToPlay(48000.0, 64);
+    restoredPaulaProcessor.setStateInformation(savedPaulaState.getData(), static_cast<int>(savedPaulaState.getSize()));
+    processEmptyBlock(restoredPaulaProcessor);
+    auto restoredPaulaNames = restoredPaulaProcessor.paulaSampleNames();
+    auto restoredPaulaInfo = restoredPaulaProcessor.paulaSampleInfo();
+    ok &= expect(restoredPaulaNames.size() == 4, "Paula state restore should reload staged sample paths");
+    ok &= expect(restoredPaulaInfo.loaded && restoredPaulaInfo.sampleName == "paula-03.wav",
+                 "Paula state restore should preserve the selected slot after processing resumes");
+    paulaDir.deleteRecursively();
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 3));
     sendController(processor, 101, controllerValueForChoice(processor, chipper::parameters::id::ymChannelAMix, 1));

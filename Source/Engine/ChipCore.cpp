@@ -8466,13 +8466,44 @@ public:
 
     void setExternalSampleData(std::vector<uint8_t> data) override
     {
-        externalSample.clear();
-        externalSample.reserve(data.size());
-        for (const auto byte : data)
-            externalSample.push_back((static_cast<double>(byte) - 128.0) / 128.0);
+        std::vector<std::vector<uint8_t>> bank;
+        if (! data.empty())
+            bank.push_back(std::move(data));
+        const auto selectedSlot = bank.empty() ? -1 : 0;
+        setExternalSampleBank(std::move(bank), selectedSlot);
+    }
 
-        if (! externalSample.empty())
-            sampleRam[0] = externalSample;
+    void setExternalSampleBank(std::vector<std::vector<uint8_t>> bank, int selectedSlot) override
+    {
+        externalSampleBank.clear();
+        externalSampleBank.reserve(bank.size());
+        for (const auto& bytes : bank)
+        {
+            std::vector<double> decoded;
+            decoded.reserve(bytes.size());
+            for (const auto byte : bytes)
+                decoded.push_back((static_cast<double>(byte) - 128.0) / 128.0);
+
+            if (! decoded.empty())
+                externalSampleBank.push_back(std::move(decoded));
+        }
+
+        setExternalSampleSlot(selectedSlot);
+    }
+
+    void setExternalSampleSlot(int selectedSlot) override
+    {
+        if (externalSampleBank.empty())
+        {
+            externalSampleSlot = -1;
+            for (size_t channel = 0; channel < sampleRam.size(); ++channel)
+                seedSample(channel);
+            return;
+        }
+
+        externalSampleSlot = selectedSlot >= 0 && selectedSlot < static_cast<int>(externalSampleBank.size()) ? selectedSlot : -1;
+        for (size_t channel = 0; channel < sampleRam.size(); ++channel)
+            seedSample(channel);
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -8604,7 +8635,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Four Paula-inspired 8-bit sample channels, period, volume, enable/loop control, classic hard-panned channel layout, and tracker sample templates are modeled; DMA pointer timing, exact PAL/NTSC video timing, mod playback effects, CIA timing, analog output path, and hardware validation are not complete.";
+        return "Four Paula-inspired 8-bit sample channels, period, volume, enable/loop control, classic hard-panned channel layout, generated tracker sample templates, and plugin-loaded WAV/AIFF sample banks are modeled; DMA pointer timing, exact PAL/NTSC video timing, IFF/8SVX/MOD import, loop-point metadata, mod playback effects, CIA timing, analog output path, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -8634,7 +8665,9 @@ public:
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
              << "\"sampleLength0\":" << sampleRam[0].size() << ","
-             << "\"externalSampleLoaded\":" << (externalSample.empty() ? 0 : 1) << ","
+             << "\"externalSampleLoaded\":" << (externalSampleBank.empty() ? 0 : 1) << ","
+             << "\"externalSampleBankCount\":" << externalSampleBank.size() << ","
+             << "\"externalSampleSlot\":" << externalSampleSlot << ","
              << "\"internalChannelCount\":4,"
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNote0\":" << channelNotes[0] << ","
@@ -8689,9 +8722,12 @@ private:
 
     void seedSample(size_t channel)
     {
-        if (channel == 0 && ! externalSample.empty())
+        if (! externalSampleBank.empty())
         {
-            sampleRam[channel] = externalSample;
+            if (externalSampleSlot >= 0 && externalSampleSlot < static_cast<int>(externalSampleBank.size()))
+                sampleRam[channel] = externalSampleBank[static_cast<size_t>(externalSampleSlot)];
+            else
+                sampleRam[channel].clear();
             return;
         }
 
@@ -8834,7 +8870,8 @@ private:
     std::array<uint8_t, 4> control {};
     uint8_t sampleTemplate = 0;
     std::array<std::vector<double>, 4> sampleRam {};
-    std::vector<double> externalSample;
+    std::vector<std::vector<double>> externalSampleBank;
+    int externalSampleSlot = -1;
     std::array<double, 4> position {};
     int heldNote = -1;
     float noteVelocity = 0.0f;

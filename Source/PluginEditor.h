@@ -302,11 +302,14 @@ private:
     void updateSidAdsrControls(bool shouldBeVisible);
     void updateDmcSampleControls();
     void updateSpc700BrrSampleControls();
+    void updatePaulaSampleControls();
     void updateSamplePlaybackModeChoices(chipper::ChipMode mode);
     void chooseDmcSampleFile();
     void chooseDmcSampleDirectory();
     void chooseSpc700BrrSampleFile();
     void chooseSpc700BrrSampleDirectory();
+    void choosePaulaSampleFile();
+    void choosePaulaSampleDirectory();
     void showDmcSampleBankEditor();
     void handleDmcSampleLoadResult(const juce::Result& result);
     juce::String envelopeDecayReadout(chipper::ChipMode mode, float value) const;

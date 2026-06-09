@@ -103,23 +103,33 @@ public:
     juce::Result loadNesDmcSampleDirectory(const juce::File& directory);
     juce::Result loadSpc700BrrSampleFile(const juce::File& file);
     juce::Result loadSpc700BrrSampleDirectory(const juce::File& directory);
+    juce::Result loadPaulaSampleFile(const juce::File& file);
+    juce::Result loadPaulaSampleDirectory(const juce::File& directory);
     juce::String nesDmcSampleBankStatus() const;
     DmcSamplePlaybackInfo nesDmcSamplePlaybackInfo() const;
     Spc700BrrSampleInfo spc700BrrSampleInfo() const;
+    Spc700BrrSampleInfo paulaSampleInfo() const;
     juce::StringArray nesDmcSampleNames() const;
     juce::StringArray spc700BrrSampleNames() const;
+    juce::StringArray paulaSampleNames() const;
     std::vector<DmcSampleEntryInfo> nesDmcSampleEntryInfo() const;
     std::vector<DmcSampleEntryInfo> spc700BrrSampleEntryInfo() const;
+    std::vector<DmcSampleEntryInfo> paulaSampleEntryInfo() const;
     void setNesDmcSampleIncluded(int index, bool shouldBeIncluded);
     void setSpc700BrrSampleIncluded(int index, bool shouldBeIncluded);
+    void setPaulaSampleIncluded(int index, bool shouldBeIncluded);
     void selectFirstNesDmcSamples(int maxCount);
     void selectFirstSpc700BrrSamples(int maxCount);
+    void selectFirstPaulaSamples(int maxCount);
     void clearNesDmcSampleSelection();
     void clearSpc700BrrSampleSelection();
+    void clearPaulaSampleSelection();
     void invertNesDmcSampleSelection();
     void invertSpc700BrrSampleSelection();
+    void invertPaulaSampleSelection();
     uint64_t nesDmcSampleRevision() const;
     uint64_t spc700BrrSampleRevision() const;
+    uint64_t paulaSampleRevision() const;
 
 private:
     struct HeldMidiNote
@@ -140,6 +150,9 @@ private:
     void applySpc700BrrSampleToCore();
     void applySpc700BrrSampleSlotToCore(int requestedSlot);
     void applyMappedSpc700BrrSampleForMidiNote(int midiNote);
+    void applyPaulaSampleToCore();
+    void applyPaulaSampleSlotToCore(int requestedSlot);
+    void applyMappedPaulaSampleForMidiNote(int midiNote);
     void handleMidiMessage(const juce::MidiMessage& message);
     bool handleMidiController(const juce::MidiMessage& message);
     bool setParameterFromMidiCc(const char* parameterId, int controllerValue);
@@ -168,6 +181,13 @@ private:
     uint64_t activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
     int activeSpc700BrrSampleSlot = -1;
     int activeSpc700BrrManualSlot = -1;
+    mutable std::mutex paulaSampleMutex;
+    DmcSampleSlot paulaSample;
+    std::vector<DmcSampleSlot> paulaSampleBank;
+    uint64_t paulaSampleBankRevision = 0;
+    uint64_t activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
+    int activePaulaSampleSlot = -1;
+    int activePaulaManualSlot = -1;
     chipper::PatchConfig activePatch;
     std::vector<chipper::RegisterWrite> pendingRegisterState;
     chipper::PatchConfig lastObservedMacroPatch;

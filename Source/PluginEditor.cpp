@@ -194,16 +194,18 @@ const char* sidAdsrParameterId(size_t index)
 class DmcSampleBankEditorComponent final : public juce::Component
 {
 public:
-    DmcSampleBankEditorComponent(ChipperAudioProcessor& processor, bool editsSpc700Brr, std::function<void()> refreshCallback)
-        : audioProcessor(processor), spc700Mode(editsSpc700Brr), onRefresh(std::move(refreshCallback))
+    DmcSampleBankEditorComponent(ChipperAudioProcessor& processor, bool editsSpc700Brr, bool editsPaulaSamples, std::function<void()> refreshCallback)
+        : audioProcessor(processor), spc700Mode(editsSpc700Brr), paulaMode(editsPaulaSamples), onRefresh(std::move(refreshCallback))
     {
-        title.setText(spc700Mode ? "BRR Sample Bank" : "DMC Sample Bank", juce::dontSendNotification);
+        title.setText(paulaMode ? "Paula Sample Bank" : (spc700Mode ? "BRR Sample Bank" : "DMC Sample Bank"), juce::dontSendNotification);
         title.setJustificationType(juce::Justification::centredLeft);
         title.setColour(juce::Label::textColourId, juce::Colour(0xffffdb5c));
         title.setFont(juce::FontOptions(15.0f, juce::Font::bold));
         addAndMakeVisible(title);
 
-        helper.setText(spc700Mode
+        helper.setText(paulaMode
+                           ? "Checked WAV/AIFF files feed the 32-slot Paula-style sample bank and note map. Folder contents stay local."
+                           : spc700Mode
                            ? "Checked BRR files feed the 32-slot playable bank and note map. Folder contents stay local."
                            : "Checked files feed the 32-slot CC117 bank. Folder contents stay local and are not copied into the repo.",
                        juce::dontSendNotification);
@@ -214,10 +216,14 @@ public:
         addAndMakeVisible(helper);
 
         selectFirstButton.setButtonText("First 32");
-        selectFirstButton.setTooltip(spc700Mode ? "Check the first 32 loaded BRR files and uncheck the rest." : "Check the first 32 loaded DMC files and uncheck the rest.");
+        selectFirstButton.setTooltip(paulaMode ? "Check the first 32 loaded Paula samples and uncheck the rest."
+                                               : spc700Mode ? "Check the first 32 loaded BRR files and uncheck the rest."
+                                                            : "Check the first 32 loaded DMC files and uncheck the rest.");
         selectFirstButton.onClick = [this]
         {
-            if (spc700Mode)
+            if (paulaMode)
+                audioProcessor.selectFirstPaulaSamples(32);
+            else if (spc700Mode)
                 audioProcessor.selectFirstSpc700BrrSamples(32);
             else
                 audioProcessor.selectFirstNesDmcSamples(32);
@@ -226,10 +232,14 @@ public:
         addAndMakeVisible(selectFirstButton);
 
         invertButton.setButtonText("Invert");
-        invertButton.setTooltip(spc700Mode ? "Invert checked BRR files. Only the first 32 checked files become active playable slots." : "Invert checked DMC files. Only the first 32 checked files become active slots.");
+        invertButton.setTooltip(paulaMode ? "Invert checked Paula samples. Only the first 32 checked files become active playable slots."
+                                          : spc700Mode ? "Invert checked BRR files. Only the first 32 checked files become active playable slots."
+                                                       : "Invert checked DMC files. Only the first 32 checked files become active slots.");
         invertButton.onClick = [this]
         {
-            if (spc700Mode)
+            if (paulaMode)
+                audioProcessor.invertPaulaSampleSelection();
+            else if (spc700Mode)
                 audioProcessor.invertSpc700BrrSampleSelection();
             else
                 audioProcessor.invertNesDmcSampleSelection();
@@ -238,10 +248,14 @@ public:
         addAndMakeVisible(invertButton);
 
         clearButton.setButtonText("Clear");
-        clearButton.setTooltip(spc700Mode ? "Uncheck every BRR file in this bank." : "Uncheck every DMC file in this bank.");
+        clearButton.setTooltip(paulaMode ? "Uncheck every Paula sample in this bank."
+                                         : spc700Mode ? "Uncheck every BRR file in this bank."
+                                                      : "Uncheck every DMC file in this bank.");
         clearButton.onClick = [this]
         {
-            if (spc700Mode)
+            if (paulaMode)
+                audioProcessor.clearPaulaSampleSelection();
+            else if (spc700Mode)
                 audioProcessor.clearSpc700BrrSampleSelection();
             else
                 audioProcessor.clearNesDmcSampleSelection();
@@ -292,17 +306,20 @@ private:
     public:
         Row(ChipperAudioProcessor& processor,
             bool editsSpc700Brr,
+            bool editsPaulaSamples,
             int sampleIndex,
             ChipperAudioProcessor::DmcSampleEntryInfo info,
             std::function<void()> refreshCallback)
-            : audioProcessor(processor), spc700Mode(editsSpc700Brr), index(sampleIndex), onRefresh(std::move(refreshCallback))
+            : audioProcessor(processor), spc700Mode(editsSpc700Brr), paulaMode(editsPaulaSamples), index(sampleIndex), onRefresh(std::move(refreshCallback))
         {
             toggle.setButtonText(info.name);
             toggle.setToggleState(info.included, juce::dontSendNotification);
             toggle.setTooltip(info.path);
             toggle.onClick = [this]
             {
-                if (spc700Mode)
+                if (paulaMode)
+                    audioProcessor.setPaulaSampleIncluded(index, toggle.getToggleState());
+                else if (spc700Mode)
                     audioProcessor.setSpc700BrrSampleIncluded(index, toggle.getToggleState());
                 else
                     audioProcessor.setNesDmcSampleIncluded(index, toggle.getToggleState());
@@ -328,6 +345,7 @@ private:
     private:
         ChipperAudioProcessor& audioProcessor;
         bool spc700Mode = false;
+        bool paulaMode = false;
         int index = 0;
         std::function<void()> onRefresh;
         juce::ToggleButton toggle;
@@ -336,7 +354,9 @@ private:
 
     void rebuildRows()
     {
-        const auto entries = spc700Mode ? audioProcessor.spc700BrrSampleEntryInfo() : audioProcessor.nesDmcSampleEntryInfo();
+        const auto entries = paulaMode ? audioProcessor.paulaSampleEntryInfo()
+                                       : spc700Mode ? audioProcessor.spc700BrrSampleEntryInfo()
+                                                    : audioProcessor.nesDmcSampleEntryInfo();
         rows.clear();
         listContent->removeAllChildren();
 
@@ -344,8 +364,10 @@ private:
         {
             auto empty = std::make_unique<Row>(audioProcessor,
                                                spc700Mode,
+                                               paulaMode,
                                                0,
-                                               ChipperAudioProcessor::DmcSampleEntryInfo { spc700Mode ? "No .brr files loaded" : "No .dmc files loaded", {}, 0, false, false },
+                                               ChipperAudioProcessor::DmcSampleEntryInfo {
+                                                   paulaMode ? "No WAV/AIFF files loaded" : (spc700Mode ? "No .brr files loaded" : "No .dmc files loaded"), {}, 0, false, false },
                                                [this] { refreshAfterEdit(); });
             empty->setEnabled(false);
             listContent->addAndMakeVisible(*empty);
@@ -355,7 +377,7 @@ private:
 
         for (size_t i = 0; i < entries.size(); ++i)
         {
-            auto row = std::make_unique<Row>(audioProcessor, spc700Mode, static_cast<int>(i), entries[i], [this] { refreshAfterEdit(); });
+            auto row = std::make_unique<Row>(audioProcessor, spc700Mode, paulaMode, static_cast<int>(i), entries[i], [this] { refreshAfterEdit(); });
             listContent->addAndMakeVisible(*row);
             rows.push_back(std::move(row));
         }
@@ -379,6 +401,7 @@ private:
 
     ChipperAudioProcessor& audioProcessor;
     bool spc700Mode = false;
+    bool paulaMode = false;
     std::function<void()> onRefresh;
     juce::Label title;
     juce::Label helper;
@@ -1410,7 +1433,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     dmcSampleFileButton.setTooltip("Load one user-provided .dmc file as a one-slot bank.");
     dmcSampleFileButton.onClick = [this]
     {
-        if (displayedMode == chipper::ChipMode::spc700)
+        if (displayedMode == chipper::ChipMode::paula)
+            choosePaulaSampleFile();
+        else if (displayedMode == chipper::ChipMode::spc700)
             chooseSpc700BrrSampleFile();
         else
             chooseDmcSampleFile();
@@ -1421,7 +1446,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     dmcSampleFolderButton.setTooltip("Load a folder of user-provided .dmc files. Checked bank entries form up to 32 CC117 slots.");
     dmcSampleFolderButton.onClick = [this]
     {
-        if (displayedMode == chipper::ChipMode::spc700)
+        if (displayedMode == chipper::ChipMode::paula)
+            choosePaulaSampleDirectory();
+        else if (displayedMode == chipper::ChipMode::spc700)
             chooseSpc700BrrSampleDirectory();
         else
             chooseDmcSampleDirectory();
@@ -1467,7 +1494,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         if (selected >= 0)
         {
             setPlainParameterValueFromUi(chipper::parameters::id::nesDmcSampleSlot, static_cast<float>(selected));
-            if (displayedMode == chipper::ChipMode::spc700)
+            if (displayedMode == chipper::ChipMode::paula)
+                updatePaulaSampleControls();
+            else if (displayedMode == chipper::ChipMode::spc700)
                 updateSpc700BrrSampleControls();
         }
     };
@@ -2667,7 +2696,7 @@ void ChipperAudioProcessorEditor::resized()
         dmcCell.removeFromTop(2);
         dmcSampleStatusLabel.setBounds(dmcCell.reduced(0, 1));
     }
-    else if (displayedMode == chipper::ChipMode::spc700)
+    else if (displayedMode == chipper::ChipMode::spc700 || displayedMode == chipper::ChipMode::paula)
     {
         clockSlider.setBounds({});
         clockLabel.setBounds({});
@@ -2675,19 +2704,20 @@ void ChipperAudioProcessorEditor::resized()
         dmcDirectLabel.setBounds({});
         dmcRateLabel.setBounds({});
         dmcRateBox.setBounds({});
-        dmcSampleBankButton.setBounds({});
         dmcLoopButton.setBounds({});
 
-        auto brrCell = utilityCell;
-        auto sampleHeader = brrCell.removeFromTop(22);
-        dmcSampleLabel.setText("BRR Sample", juce::dontSendNotification);
-        dmcSampleLabel.setBounds(sampleHeader.removeFromLeft(92));
-        const auto brrButtonWidth = std::max(52, (sampleHeader.getWidth() - 4) / 2);
+        auto sampleCell = utilityCell;
+        auto sampleHeader = sampleCell.removeFromTop(22);
+        dmcSampleLabel.setText(displayedMode == chipper::ChipMode::paula ? "Paula Sample" : "BRR Sample", juce::dontSendNotification);
+        dmcSampleLabel.setBounds(sampleHeader.removeFromLeft(displayedMode == chipper::ChipMode::paula ? 104 : 92));
+        const auto brrButtonWidth = std::max(46, (sampleHeader.getWidth() - 8) / 3);
         dmcSampleFileButton.setBounds(sampleHeader.removeFromLeft(brrButtonWidth).reduced(0, 1));
         sampleHeader.removeFromLeft(4);
         dmcSampleFolderButton.setBounds(sampleHeader.removeFromLeft(brrButtonWidth).reduced(0, 1));
-        brrCell.removeFromTop(4);
-        auto sampleRow = brrCell.removeFromTop(22);
+        sampleHeader.removeFromLeft(4);
+        dmcSampleBankButton.setBounds(sampleHeader.removeFromLeft(brrButtonWidth).reduced(0, 1));
+        sampleCell.removeFromTop(4);
+        auto sampleRow = sampleCell.removeFromTop(22);
         auto rootCell = sampleRow.removeFromRight(82);
         sampleRow.removeFromRight(6);
         auto modeCell = sampleRow.removeFromRight(112);
@@ -2695,8 +2725,8 @@ void ChipperAudioProcessorEditor::resized()
         dmcSampleSlotBox.setBounds(sampleRow.reduced(0, 1));
         dmcPlaybackModeBox.setBounds(modeCell.reduced(0, 1));
         dmcMapRootBox.setBounds(rootCell.reduced(0, 1));
-        brrCell.removeFromTop(2);
-        dmcSampleStatusLabel.setBounds(brrCell.reduced(0, 1));
+        sampleCell.removeFromTop(2);
+        dmcSampleStatusLabel.setBounds(sampleCell.reduced(0, 1));
     }
     else
     {
@@ -2969,7 +2999,7 @@ void ChipperAudioProcessorEditor::placeDmgWaveLevelSegment(juce::Rectangle<int> 
 void ChipperAudioProcessorEditor::placeDmgStereoRouteSegment(juce::Rectangle<int> bounds)
 {
     dmgStereoRouteLabel.setBounds(bounds.removeFromTop(18));
-    if (displayedMode == chipper::ChipMode::spc700)
+    if (displayedMode == chipper::ChipMode::spc700 || displayedMode == chipper::ChipMode::paula)
     {
         dmgStereoRouteBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
         dmgStereoRouteSegmentBounds = {};
@@ -6465,9 +6495,78 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     dmcSampleStatusLabel.setTooltip(withMidiCcForRole(tooltip, chipper::ChipParameterRole::nesDmcSampleSlot));
 }
 
+void ChipperAudioProcessorEditor::updatePaulaSampleControls()
+{
+    updateSamplePlaybackModeChoices(chipper::ChipMode::paula);
+    dmcSampleLabel.setText("Paula Sample", juce::dontSendNotification);
+    const auto mapRoot = std::clamp(static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcMapRoot))), 0, 127);
+    const auto playbackMode = static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcPlaybackMode)));
+    dmcSampleLabel.setTooltip(withMidiCcForRole("Load one user-provided WAV/AIFF sample or a folder. CC117 selects the manual Paula sample slot; Sample Playback chooses whether MIDI notes browse the loaded bank.", chipper::ChipParameterRole::nesDmcSampleSlot));
+    dmcSampleFileButton.setButtonText("File");
+    dmcSampleFileButton.setTooltip("Load one user-provided WAV/AIFF into the Paula-style 8-bit sample voice model.");
+    dmcSampleFolderButton.setButtonText("Folder");
+    dmcSampleFolderButton.setTooltip("Load a folder of user-provided WAV/AIFF files. Checked entries become up to 32 playable slots and note-mapped sample choices.");
+    dmcSampleBankButton.setButtonText("Bank");
+    dmcSampleBankButton.setTooltip("Open the Paula sample checklist. Checked files become the playable 32-slot dropdown and note map.");
+
+    const auto names = audioProcessor.paulaSampleNames();
+    const auto sampleCount = names.size();
+    const auto revision = audioProcessor.paulaSampleRevision();
+    const auto selectedSlot = static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcSampleSlot)));
+
+    const juce::ScopedValueSetter<bool> suppress(suppressManualChoiceCallbacks, true);
+    if (sampleCount != displayedDmcSampleCount || revision != displayedDmcSampleRevision)
+    {
+        dmcSampleSlotBox.clear(juce::dontSendNotification);
+        for (int i = 0; i < sampleCount; ++i)
+            dmcSampleSlotBox.addItem(juce::String(i + 1).paddedLeft('0', 2) + "  " + names[i], i + 1);
+
+        displayedDmcSampleCount = sampleCount;
+        displayedDmcSampleRevision = revision;
+    }
+
+    if (sampleCount > 0)
+        dmcSampleSlotBox.setSelectedId(std::clamp(selectedSlot, 0, sampleCount - 1) + 1, juce::dontSendNotification);
+    else
+        dmcSampleSlotBox.setSelectedId(0, juce::dontSendNotification);
+
+    dmcSampleSlotBox.setEnabled(sampleCount > 0);
+    dmcSampleSlotBox.setTextWhenNothingSelected("No Paula samples");
+    dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the manual Paula sample from the loaded bank. MIDI CC117 selects the same slot; Manual Slot uses it for every note.", chipper::ChipParameterRole::nesDmcSampleSlot));
+    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("Paula Sample Playback. Manual Slot plays the selected dropdown slot; Note Map maps loaded folder slots upward from the Sample Map Root. Map Only behaves like Note Map because Paula mode is already sample-based.", chipper::ChipParameterRole::nesDmcPlaybackMode));
+    dmcMapRootBox.setTooltip(withMidiCcForRole("Paula Sample Map Root. Loaded folder slots map upward from this MIDI note when Sample Playback is a map mode.", chipper::ChipParameterRole::nesDmcMapRoot));
+
+    const auto info = audioProcessor.paulaSampleInfo();
+    auto visibleStatus = info.statusLine;
+    if (info.loaded && info.bankCount > 1 && playbackMode != 0)
+        visibleStatus += " | Map " + chipper::parameters::midiNoteChoices()[info.mapRootNote]
+            + "-" + chipper::parameters::midiNoteChoices()[info.mapHighNote];
+    else if (info.loaded && info.bankCount > 1)
+        visibleStatus += " | Manual";
+    dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
+
+    auto tooltip = info.statusLine
+        + "\nWAV/AIFF files are imported into Paula-style 8-bit sample memory. Folder loads keep up to 32 user-provided files addressable by the dropdown and CC117.";
+    if (playbackMode == 0)
+        tooltip += "\nSample Playback is Manual Slot: each MIDI note uses the selected dropdown sample.";
+    else
+        tooltip += "\nSample Playback is a map mode: notes browse the loaded bank from "
+            + chipper::parameters::midiNoteChoices()[mapRoot] + " upward.";
+    if (info.loaded && info.bankCount > 1 && playbackMode != 0)
+        tooltip += "\nCurrent mapped key span: "
+            + chipper::parameters::midiNoteChoices()[info.mapRootNote]
+            + " to "
+            + chipper::parameters::midiNoteChoices()[info.mapHighNote]
+            + "; notes outside this span are silent.";
+    if (info.loaded)
+        tooltip += "\nPath: " + info.path;
+    tooltip += "\nIFF/8SVX/MOD import and exact Paula DMA timing remain planned.";
+    dmcSampleStatusLabel.setTooltip(withMidiCcForRole(tooltip, chipper::ChipParameterRole::nesDmcSampleSlot));
+}
+
 void ChipperAudioProcessorEditor::updateSamplePlaybackModeChoices(chipper::ChipMode mode)
 {
-    const auto choices = mode == chipper::ChipMode::spc700
+    const auto choices = (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
         ? juce::StringArray { "Manual Slot", "Note Map", "Map Only" }
         : chipper::parameters::nesDmcPlaybackModeChoices();
 
@@ -6492,7 +6591,7 @@ void ChipperAudioProcessorEditor::updateSamplePlaybackModeChoices(chipper::ChipM
     dmcPlaybackModeBox.clear(juce::dontSendNotification);
     for (int i = 0; i < choices.size(); ++i)
         dmcPlaybackModeBox.addItem(choices[i], i + 1);
-    dmcPlaybackModeBox.setTextWhenNothingSelected(mode == chipper::ChipMode::spc700 ? "BRR Playback" : "DMC Playback");
+    dmcPlaybackModeBox.setTextWhenNothingSelected(mode == chipper::ChipMode::spc700 ? "BRR Playback" : (mode == chipper::ChipMode::paula ? "Sample Playback" : "DMC Playback"));
     dmcPlaybackModeBox.setSelectedId(selectedChoice + 1, juce::dontSendNotification);
 }
 
@@ -6544,6 +6643,38 @@ void ChipperAudioProcessorEditor::chooseSpc700BrrSampleDirectory()
                                   });
 }
 
+void ChipperAudioProcessorEditor::choosePaulaSampleFile()
+{
+    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose an Amiga Paula sample",
+                                                           juce::File {},
+                                                           "*.wav;*.aif;*.aiff");
+    dmcSampleChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                                  [this](const juce::FileChooser& chooser)
+                                  {
+                                      const auto file = chooser.getResult();
+                                      if (file == juce::File {})
+                                          return;
+
+                                      handleDmcSampleLoadResult(audioProcessor.loadPaulaSampleFile(file));
+                                  });
+}
+
+void ChipperAudioProcessorEditor::choosePaulaSampleDirectory()
+{
+    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose a folder of Amiga Paula samples",
+                                                           juce::File {},
+                                                           "*.wav;*.aif;*.aiff");
+    dmcSampleChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
+                                  [this](const juce::FileChooser& chooser)
+                                  {
+                                      const auto directory = chooser.getResult();
+                                      if (directory == juce::File {})
+                                          return;
+
+                                      handleDmcSampleLoadResult(audioProcessor.loadPaulaSampleDirectory(directory));
+                                  });
+}
+
 void ChipperAudioProcessorEditor::chooseDmcSampleDirectory()
 {
     dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose a folder of NES DMC samples",
@@ -6563,13 +6694,17 @@ void ChipperAudioProcessorEditor::chooseDmcSampleDirectory()
 void ChipperAudioProcessorEditor::showDmcSampleBankEditor()
 {
     const auto editsSpc700Brr = displayedMode == chipper::ChipMode::spc700;
+    const auto editsPaulaSamples = displayedMode == chipper::ChipMode::paula;
     auto popup = std::make_unique<DmcSampleBankEditorComponent>(audioProcessor,
                                                                 editsSpc700Brr,
+                                                                editsPaulaSamples,
                                                                 [this]
                                                                 {
                                                                     displayedDmcSampleCount = -1;
                                                                     displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();
-                                                                    if (displayedMode == chipper::ChipMode::spc700)
+                                                                    if (displayedMode == chipper::ChipMode::paula)
+                                                                        updatePaulaSampleControls();
+                                                                    else if (displayedMode == chipper::ChipMode::spc700)
                                                                         updateSpc700BrrSampleControls();
                                                                     else
                                                                         updateDmcSampleControls();
@@ -6588,7 +6723,9 @@ void ChipperAudioProcessorEditor::handleDmcSampleLoadResult(const juce::Result& 
 
     displayedDmcSampleCount = -1;
     displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();
-    if (displayedMode == chipper::ChipMode::spc700)
+    if (displayedMode == chipper::ChipMode::paula)
+        updatePaulaSampleControls();
+    else if (displayedMode == chipper::ChipMode::spc700)
         updateSpc700BrrSampleControls();
     else
         updateDmcSampleControls();
@@ -6675,35 +6812,37 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcRateBox.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     const auto showNesDmcSampleControls = hasLiveCore && mode == chipper::ChipMode::nes;
     const auto showSpc700BrrControls = hasLiveCore && mode == chipper::ChipMode::spc700;
-    const auto showSampleFileControls = showNesDmcSampleControls || showSpc700BrrControls;
+    const auto showPaulaSampleControls = hasLiveCore && mode == chipper::ChipMode::paula;
+    const auto showSampleBankControls = showNesDmcSampleControls || showSpc700BrrControls || showPaulaSampleControls;
+    const auto showSampleFileControls = showSampleBankControls;
     dmcSampleLabel.setVisible(showSampleFileControls);
     dmcSampleStatusLabel.setVisible(showSampleFileControls);
     dmcSampleFileButton.setVisible(showSampleFileControls);
     dmcSampleFolderButton.setVisible(showSampleFileControls);
-    dmcSampleBankButton.setVisible(showNesDmcSampleControls || showSpc700BrrControls);
-    dmcSampleSlotBox.setVisible(showNesDmcSampleControls || showSpc700BrrControls);
-    dmcPlaybackModeBox.setVisible(showNesDmcSampleControls || showSpc700BrrControls);
-    dmcMapRootBox.setVisible(showNesDmcSampleControls || showSpc700BrrControls);
+    dmcSampleBankButton.setVisible(showSampleBankControls);
+    dmcSampleSlotBox.setVisible(showSampleBankControls);
+    dmcPlaybackModeBox.setVisible(showSampleBankControls);
+    dmcMapRootBox.setVisible(showSampleBankControls);
     dmcLoopButton.setVisible(showNesDmcSampleControls);
     dmcSampleLabel.setEnabled(showSampleFileControls);
     dmcSampleStatusLabel.setEnabled(showSampleFileControls);
     dmcSampleFileButton.setEnabled(showSampleFileControls);
     dmcSampleFolderButton.setEnabled(showSampleFileControls);
-    dmcSampleBankButton.setEnabled(showNesDmcSampleControls || showSpc700BrrControls);
-    dmcSampleSlotBox.setEnabled(showNesDmcSampleControls || showSpc700BrrControls);
-    dmcPlaybackModeBox.setEnabled(showNesDmcSampleControls || showSpc700BrrControls);
-    dmcMapRootBox.setEnabled(showNesDmcSampleControls || showSpc700BrrControls);
+    dmcSampleBankButton.setEnabled(showSampleBankControls);
+    dmcSampleSlotBox.setEnabled(showSampleBankControls);
+    dmcPlaybackModeBox.setEnabled(showSampleBankControls);
+    dmcMapRootBox.setEnabled(showSampleBankControls);
     dmcLoopButton.setEnabled(showNesDmcSampleControls);
     dmcSampleLabel.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
     dmcSampleStatusLabel.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
     dmcSampleFileButton.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
     dmcSampleFolderButton.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
-    dmcSampleBankButton.setAlpha((showNesDmcSampleControls || showSpc700BrrControls) ? 1.0f : 0.55f);
-    dmcPlaybackModeBox.setAlpha((showNesDmcSampleControls || showSpc700BrrControls) ? 1.0f : 0.55f);
-    dmcMapRootBox.setAlpha((showNesDmcSampleControls || showSpc700BrrControls) ? 1.0f : 0.55f);
+    dmcSampleBankButton.setAlpha(showSampleBankControls ? 1.0f : 0.55f);
+    dmcPlaybackModeBox.setAlpha(showSampleBankControls ? 1.0f : 0.55f);
+    dmcMapRootBox.setAlpha(showSampleBankControls ? 1.0f : 0.55f);
     dmcLoopButton.setAlpha(showNesDmcSampleControls ? 1.0f : 0.55f);
-    clockLabel.setVisible(mode != chipper::ChipMode::nes && mode != chipper::ChipMode::spc700);
-    clockSlider.setVisible(mode != chipper::ChipMode::nes && mode != chipper::ChipMode::spc700);
+    clockLabel.setVisible(mode != chipper::ChipMode::nes && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula);
+    clockSlider.setVisible(mode != chipper::ChipMode::nes && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula);
 
     for (size_t i = 0; i < moduleTitleLabels.size(); ++i)
     {
@@ -6992,6 +7131,12 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[4].setText("BRR sample import", juce::dontSendNotification);
         controlValueLabels[4].setTooltip("Loads one SNES BRR sample into the SPC700-style sample voice path.");
         updateSpc700BrrSampleControls();
+    }
+    else if (mode == chipper::ChipMode::paula)
+    {
+        controlValueLabels[4].setText("Paula sample import", juce::dontSendNotification);
+        controlValueLabels[4].setTooltip("Loads WAV/AIFF into the Paula-style 8-bit sample voice path.");
+        updatePaulaSampleControls();
     }
     else
     {
