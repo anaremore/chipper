@@ -548,6 +548,15 @@ std::vector<ParameterChoiceSpec> ym2612EnvelopeShapeChoices()
     };
 }
 
+std::vector<ParameterChoiceSpec> ym2612DacModeChoices()
+{
+    return {
+        choice("Follow", "Use channel-6 DAC for Drum/Hit templates and melodic FM channel 6 otherwise.", 0.0f, 0),
+        choice("FM Ch6", "Keep YM2612 channel 6 in normal four-operator FM mode.", 0.5f, 1),
+        choice("DAC Drum", "Enable the YM2612 channel-6 DAC via $2B and stream an 8-bit drum waveform through $2A.", 1.0f, 2)
+    };
+}
+
 std::vector<ChipParameterSpec> ym2612ParameterSpecs()
 {
     return {
@@ -612,6 +621,13 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
                       "Envelope",
                       "Writes OPN2 operator attack, decay, sustain-rate, sustain-level, and release fields for the current musical envelope shape.",
                       ym2612EnvelopeShapeChoices(),
+                      ParameterKind::chipRegister),
+        segmentedSpec(ChipParameterRole::snNoiseMode,
+                      "ym2612.dacMode",
+                      "DAC Mode",
+                      "Output",
+                      "Controls the native YM2612 channel-6 DAC path. DAC Drum enables $2B and writes 8-bit samples to $2A; FM Ch6 keeps the sixth FM channel active.",
+                      ym2612DacModeChoices(),
                       ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::stereoSpread,
                    "ym2612.stereoSpread",
@@ -2039,12 +2055,12 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2612,
             "YM2612 / Genesis FM",
-            "Six melodic lanes write YM2612/OPN2 registers into the audited ymfm core for Genesis-style FM tones; all six lanes are exposed for play and mix control.",
+            "Six exposed lanes write YM2612/OPN2 registers into the audited ymfm core for Genesis-style FM tones, with optional native channel-6 DAC drum playback.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2612 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2612 feedback bits for the active FM voices." },
                 { "operator", "Operator Tone", "Operators", "Scales operator multipliers and modulator levels." },
-                { "level", "FM Level", "Output", "Controls carrier level and final OPN2 output trim." },
+                { "level", "FM / DAC Level", "Output", "Controls carrier level, channel-6 DAC mode, and final OPN2 output trim." },
             },
             ym2612Modules(),
             ym2612Macros(),
@@ -2055,11 +2071,12 @@ const std::vector<ChipDescriptor>& descriptors()
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2612/OPN2 synthesis core.",
                     "Renderer notes and musical templates write OPN2 algorithm, feedback, operator multiplier/total-level, f-number/block, left/right pan bits, and key-on registers across all six melodic channels.",
-                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the first melodic adapter, including six visible source lanes and six-channel note allocation."
+                    "Channel-6 DAC Drum mode enables $2B and streams generated 8-bit drum bytes through $2A via the ymfm core.",
+                    "Descriptor, MIDI CC, renderer smoke, source gating, DAC Drum, and Chip Poly regression tests cover the first playable adapter, including six visible source lanes and six-channel note allocation."
                 },
                 {
                     "The six-lane UI is still a compact generic source-card layout rather than a dedicated operator grid.",
-                    "DAC playback, LFO/AMS/PMS, full per-operator ADSR UI, SSG-EG quirks, timers, and hardware capture comparison are not complete.",
+                    "User PCM import for OPN2 DAC playback, LFO/AMS/PMS, full per-operator ADSR UI, SSG-EG quirks, timers, and hardware capture comparison are not complete.",
                     "Cycle accuracy is not claimed."
                 })
         },
@@ -3297,6 +3314,15 @@ uint8_t ym2612AlgorithmForPatch(const PatchConfig& patch)
     }
 
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control1) * 7.0f)), 0, 7));
+}
+
+uint8_t ym2612DacModeForPatch(const PatchConfig& patch)
+{
+    const auto explicitChoice = std::clamp(patch.snNoiseMode, 0, 2);
+    if (explicitChoice > 0)
+        return static_cast<uint8_t>(explicitChoice);
+
+    return (patch.macro == MacroKind::drum || patch.macro == MacroKind::hit) ? 2u : 1u;
 }
 
 uint8_t ym2612PanBitsForPatch(const PatchConfig& patch, size_t channel)

@@ -3793,7 +3793,10 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
     if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
         return label + " -> " + wavetableChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
-    if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413)
+    if (mode == chipper::ChipMode::ym2612)
+        return label + " -> " + fmChipReadout(mode, patch) + " | " + ym2612DacModeReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
+
+    if (mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413)
         return label + " -> " + fmChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
     return label + ": " + juce::String(templ.help) + laneText;
@@ -4214,6 +4217,15 @@ juce::String ChipperAudioProcessorEditor::fmChipReadout(chipper::ChipMode mode, 
     return "Algorithm " + juce::String(algorithm) + " | feedback " + juce::String(feedback) + "/7 | level " + juce::String(level) + "/15";
 }
 
+juce::String ChipperAudioProcessorEditor::ym2612DacModeReadout(const chipper::PatchConfig& patch) const
+{
+    const auto mode = chipper::ym2612DacModeForPatch(patch);
+    const auto resolved = mode == 2u
+                              ? juce::String("DAC Drum: $2B=0x80, stream $2A on Ch 6")
+                              : juce::String("FM Ch6: channel 6 remains four-operator FM");
+    return patch.snNoiseMode == 0 ? juce::String("Follow -> ") + resolved : resolved;
+}
+
 juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const
 {
     const auto channel = static_cast<int>(index + 1u);
@@ -4270,6 +4282,12 @@ juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipM
 
     const auto ymPort = index >= 3u ? 1 : 0;
     const auto ymSlot = static_cast<uint8_t>(std::min(index % 3u, size_t { 2u }));
+    if (mode == chipper::ChipMode::ym2612 && index == 5u && chipper::ym2612DacModeForPatch(patch) == 2u)
+    {
+        return "OPN2 Ch 6 DAC | $2B enable bit 7 | $2A 8-bit DAC stream | Pan $"
+            + byteHex(chipper::ym2612PanBitsForPatch(patch, index));
+    }
+
     const auto op1Multiple = static_cast<int>(chipper::fmOperatorMultipleForPatch(mode, patch, 0));
     const auto op4Multiple = static_cast<int>(chipper::fmOperatorMultipleForPatch(mode, patch, 3));
     const auto modLevel = static_cast<int>(chipper::fmOperatorTotalLevelForPatch(mode, patch, 0));
@@ -4579,6 +4597,9 @@ juce::String ChipperAudioProcessorEditor::noiseModeReadout(chipper::ChipMode mod
 
     if (mode == chipper::ChipMode::sid)
         return sidModModeReadout(patch);
+
+    if (mode == chipper::ChipMode::ym2612)
+        return ym2612DacModeReadout(patch);
 
     return snNoiseModeReadout(patch);
 }
@@ -7178,7 +7199,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     {
         controlValueLabels[0].setText(fmChipReadout(mode, patch), juce::dontSendNotification);
         controlValueLabels[1].setText("Feedback/motion " + juce::String(patch.control2, 2), juce::dontSendNotification);
-        controlValueLabels[2].setText(waveShapeReadout(mode, patch.waveShape), juce::dontSendNotification);
+        controlValueLabels[2].setText(mode == chipper::ChipMode::ym2612 ? ym2612DacModeReadout(patch) : waveShapeReadout(mode, patch.waveShape), juce::dontSendNotification);
         controlValueLabels[3].setText("FM output level " + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15", juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }

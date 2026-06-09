@@ -1,0 +1,2 @@
+# Hold a single note so debug JSON captures live YM2612 DAC enable/data state.
+note_on 0 48 1.0

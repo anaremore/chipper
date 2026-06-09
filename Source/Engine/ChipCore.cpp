@@ -7253,6 +7253,12 @@ public:
         currentDecayRate.fill(0x08u);
         currentSustainRate.fill(0x04u);
         currentSustainRelease.fill(0xa6u);
+        dacSample.clear();
+        dacPhase = 0.0;
+        dacStep = 1.0;
+        dacActive = false;
+        dacEnabled = false;
+        dacLastValue = 0x80u;
         noteStamp = 0;
         heldNote = -1;
         keyOnMask = 0;
@@ -7262,9 +7268,12 @@ public:
 
     void setPatch(const PatchConfig& nextPatch) override
     {
-        if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled)
+        if (nextPatch.playMode != patch.playMode
+            || nextPatch.sourceEnabled != patch.sourceEnabled
+            || ym2612DacModeForPatch(nextPatch) != ym2612DacModeForPatch(patch))
             clearChipPolyState();
         patch = nextPatch;
+        updateDacEnable(false);
         applyPatchToAllChannels(true);
     }
 
@@ -7297,6 +7306,12 @@ public:
             case MacroKind::hit: notes = { heldNote - 12, heldNote - 5, heldNote, heldNote + 7, heldNote + 12, heldNote + 19 }; break;
             case MacroKind::manual:
             default: break;
+        }
+
+        if (dacModeActive() && (patch.macro == MacroKind::drum || patch.macro == MacroKind::hit))
+        {
+            triggerChannel(5, notes[5], baseVelocity, channelEnabled(5));
+            return;
         }
 
         for (size_t channel = 0; channel < notes.size(); ++channel)
@@ -7339,6 +7354,7 @@ public:
         auto generated = false;
         while (sampleAccumulator >= 1.0)
         {
+            advanceDacPlayback();
             chip->generate(&output);
             lastNativeLeft = output.data[0];
             lastNativeRight = output.data[1];
@@ -7347,6 +7363,7 @@ public:
         }
         if (! generated && ratio >= 0.999)
         {
+            advanceDacPlayback();
             chip->generate(&output);
             lastNativeLeft = output.data[0];
             lastNativeRight = output.data[1];
@@ -7376,7 +7393,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPN2 register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator, algorithm, feedback, f-number/block, $B4 left/right pan bits, and key-on registers for all six melodic channels, with all six source lanes exposed for play and mix control. DAC playback, a dedicated operator-grid UI, LFO/AMS/PMS controls, SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator, algorithm, feedback, f-number/block, $B4 left/right pan bits, key-on registers for all six melodic channels, and optional channel-6 DAC Drum playback through $2B/$2A, with all six source lanes exposed for play and mix control. User PCM import for the DAC, a dedicated operator-grid UI, LFO/AMS/PMS controls, SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -7400,6 +7417,12 @@ public:
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
              << "\"panBits0\":" << static_cast<int>(currentPanBits[0]) << ","
              << "\"panBits1\":" << static_cast<int>(currentPanBits[1]) << ","
+             << "\"dacMode\":" << static_cast<int>(ym2612DacModeForPatch(patch)) << ","
+             << "\"dacEnabled\":" << (dacEnabled ? 1 : 0) << ","
+             << "\"dacActive\":" << (dacActive ? 1 : 0) << ","
+             << "\"dacRegister2A\":" << static_cast<int>(regs[0x2a]) << ","
+             << "\"dacRegister2B\":" << static_cast<int>(regs[0x2b]) << ","
+             << "\"dacSampleBytes\":" << dacSample.size() << ","
              << "\"envelopeShape\":" << std::clamp(patch.ymEnvelopeShape, 0, 4) << ","
              << "\"attackRate0\":" << static_cast<int>(currentAttackRate[0]) << ","
              << "\"decayRate0\":" << static_cast<int>(currentDecayRate[0]) << ","
@@ -7530,6 +7553,23 @@ private:
         return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control2 * 7.0f)), 0, 7));
     }
 
+    bool dacModeActive() const
+    {
+        return ym2612DacModeForPatch(patch) == 2u;
+    }
+
+    void updateDacEnable(bool shouldEnable)
+    {
+        const auto enable = shouldEnable && dacModeActive();
+        if (enable == dacEnabled && regs[0x2b] == (enable ? 0x80u : 0x00u))
+            return;
+
+        dacEnabled = enable;
+        writeYmRegister(0x2b, enable ? 0x80u : 0x00u);
+        if (! enable)
+            writeYmRegister(0x2a, 0x80u);
+    }
+
     uint8_t multiplierForPatch(size_t op) const
     {
         const auto tone = std::clamp(static_cast<int>(std::round(patch.control3 * 14.0f)) + 1, 1, 15);
@@ -7607,6 +7647,12 @@ private:
         if (channel >= 6 || ! chip)
             return;
 
+        if (channel == 5 && dacModeActive())
+        {
+            triggerDacChannel(midiNote, velocity, shouldEnable);
+            return;
+        }
+
         const auto detune = static_cast<int>(std::round((patch.control2 - 0.5f) * 8.0f));
         const auto pitch = pitchForNote(midiNote + detune);
         channelVelocity[channel] = static_cast<float>(clamp01(velocity) * sourceLevel(patch, channel));
@@ -7629,8 +7675,96 @@ private:
     {
         if (channel >= 6)
             return;
+        if (channel == 5 && dacModeActive())
+        {
+            dacActive = false;
+            dacSample.clear();
+            updateDacEnable(false);
+        }
         writeYmRegister(0x28, keyCodeForChannel(channel));
         keyOnMask &= static_cast<uint16_t>(~(1u << channel));
+    }
+
+    void triggerDacChannel(int midiNote, float velocity, bool shouldEnable)
+    {
+        channelVelocity[5] = static_cast<float>(clamp01(velocity) * sourceLevel(patch, 5));
+        currentPanBits[5] = ym2612PanBitsForPatch(patch, 5);
+        writeYmRegister(regForChannel(0xb4, 5), currentPanBits[5]);
+
+        if (! shouldEnable || channelVelocity[5] <= 0.0f)
+        {
+            dacActive = false;
+            dacSample.clear();
+            updateDacEnable(false);
+            keyOnMask &= static_cast<uint16_t>(~(1u << 5u));
+            return;
+        }
+
+        currentFnum[5] = 0;
+        currentBlock[5] = 0;
+        currentAlgorithm[5] = 0;
+        currentFeedback[5] = 0;
+        dacSample = makeDacDrumSample(midiNote, channelVelocity[5]);
+        dacPhase = 0.0;
+        const auto playbackHz = std::clamp(9000.0 * std::pow(2.0, (std::clamp(midiNote, 24, 96) - 60) / 24.0), 3500.0, 22000.0);
+        dacStep = chipSampleRate > 0.0 ? playbackHz / chipSampleRate : 1.0;
+        dacActive = ! dacSample.empty();
+        dacLastValue = dacActive ? dacSample.front() : 0x80u;
+        updateDacEnable(dacActive);
+        writeYmRegister(0x2a, dacLastValue);
+        if (dacActive)
+            keyOnMask |= static_cast<uint16_t>(1u << 5u);
+    }
+
+    std::vector<uint8_t> makeDacDrumSample(int midiNote, float velocity) const
+    {
+        const auto length = (patch.macro == MacroKind::drum || midiNote < 48) ? 512u : 384u;
+        std::vector<uint8_t> sample(length, 0x80u);
+        uint32_t noise = 0x6d2b79f5u ^ static_cast<uint32_t>(std::clamp(midiNote, 0, 127) * 1103515245u);
+        const auto velocityScale = std::clamp(static_cast<double>(velocity), 0.0, 1.0);
+        const auto baseCycles = midiNote < 48 ? 9.0 : 20.0;
+        for (size_t i = 0; i < sample.size(); ++i)
+        {
+            const auto t = static_cast<double>(i) / static_cast<double>(sample.size());
+            const auto env = std::exp(-7.0 * t) * velocityScale;
+            const auto sweep = baseCycles * (1.0 - 0.72 * t);
+            auto value = std::sin(twoPi * sweep * t);
+
+            noise = noise * 1664525u + 1013904223u;
+            const auto noiseValue = (static_cast<int>((noise >> 24) & 0xffu) - 128) / 128.0;
+            if (patch.macro == MacroKind::hit || midiNote >= 48)
+                value = value * 0.45 + noiseValue * 0.55;
+            else
+                value = value * 0.82 + noiseValue * 0.18;
+
+            const auto byteValue = static_cast<int>(std::round(128.0 + std::clamp(value * env, -1.0, 1.0) * 118.0));
+            sample[i] = static_cast<uint8_t>(std::clamp(byteValue, 0, 255));
+        }
+        return sample;
+    }
+
+    void advanceDacPlayback()
+    {
+        if (! dacActive || ! dacEnabled || dacSample.empty())
+            return;
+
+        const auto index = static_cast<size_t>(dacPhase);
+        if (index >= dacSample.size())
+        {
+            dacActive = false;
+            dacSample.clear();
+            keyOnMask &= static_cast<uint16_t>(~(1u << 5u));
+            writeYmRegister(0x2a, 0x80u);
+            return;
+        }
+
+        const auto value = dacSample[index];
+        if (value != dacLastValue)
+        {
+            dacLastValue = value;
+            writeYmRegister(0x2a, value);
+        }
+        dacPhase += std::max(0.125, dacStep);
     }
 
     void clearChipPolyState()
@@ -7741,10 +7875,16 @@ private:
     std::array<int, 6> channelNotes {};
     std::array<float, 6> channelVelocity {};
     std::array<uint64_t, 6> channelStamp {};
+    std::vector<uint8_t> dacSample;
     uint64_t noteStamp = 0;
     int heldNote = -1;
     uint16_t keyOnMask = 0;
     double laserPhase = 0.0;
+    double dacPhase = 0.0;
+    double dacStep = 1.0;
+    bool dacActive = false;
+    bool dacEnabled = false;
+    uint8_t dacLastValue = 0x80u;
     int32_t lastNativeLeft = 0;
     int32_t lastNativeRight = 0;
     StereoFrame currentOutput {};

@@ -286,6 +286,7 @@ uint8_t pokeyAudcForPatch(const PatchConfig& patch);
 uint8_t pokeyAudctlForPatch(const PatchConfig& patch);
 uint8_t pokeyAudfForNote(double clockHz, int midiNote);
 uint8_t ym2612AlgorithmForPatch(const PatchConfig& patch);
+uint8_t ym2612DacModeForPatch(const PatchConfig& patch);
 uint8_t ym2612PanBitsForPatch(const PatchConfig& patch, size_t channel);
 FmEnvelopeRegisters ym2612EnvelopeRegistersForPatch(const PatchConfig& patch, size_t op);
 uint8_t ym2151AlgorithmForPatch(const PatchConfig& patch);

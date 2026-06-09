@@ -343,6 +343,7 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 0) == 38u, "YM2612 helper should resolve modulator total level");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 3) == 6u, "YM2612 helper should resolve carrier total level");
     ok &= expect(chipper::ym2612PanBitsForPatch(opn2Lead, 0) == 0xc0u, "YM2612 lead macro should resolve to centered pan bits");
+    ok &= expect(chipper::ym2612DacModeForPatch(opn2Lead) == 1u, "YM2612 lead macro should keep channel 6 in FM mode");
     const auto opn2LeadModulatorEnvelope = chipper::ym2612EnvelopeRegistersForPatch(opn2Lead, 0);
     ok &= expect(opn2LeadModulatorEnvelope.attackRate == 0x1fu, "YM2612 lead envelope should use fast modulator attack");
     ok &= expect(opn2LeadModulatorEnvelope.decayRate == 0x06u, "YM2612 lead modulator decay should be softened from the carrier envelope");
@@ -391,6 +392,27 @@ bool expectFmRegisterHelpers()
                                                       4);
     ok &= expect(chipper::ym2612PanBitsForPatch(explicitPan, 0) == 0x80u, "YM2612 alternating pan should send channel 1 left");
     ok &= expect(chipper::ym2612PanBitsForPatch(explicitPan, 1) == 0x40u, "YM2612 alternating pan should send channel 2 right");
+    const auto explicitDac = chipper::makePatchConfig(chipper::ChipMode::ym2612,
+                                                      chipper::MacroKind::lead,
+                                                      0.5f,
+                                                      0.5f,
+                                                      0.5f,
+                                                      0.5f,
+                                                      chipper::PlayMode::stack,
+                                                      { true, true, true, true },
+                                                      { 1.0f, 1.0f, 1.0f, 1.0f },
+                                                      0.0f,
+                                                      0.0f,
+                                                      0,
+                                                      0,
+                                                      0,
+                                                      0,
+                                                      0,
+                                                      0,
+                                                      0,
+                                                      0,
+                                                      2);
+    ok &= expect(chipper::ym2612DacModeForPatch(explicitDac) == 2u, "YM2612 explicit DAC mode should override macro controls");
     const auto explicitPadEnvelope = chipper::makePatchConfig(chipper::ChipMode::ym2612,
                                                               chipper::MacroKind::manual,
                                                               0.5f,
@@ -774,6 +796,9 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Envelope Shape");
     ok &= expectSpecGroup(chipper::ChipMode::ym2612, chipper::ChipParameterRole::ymEnvelopeShape, "Envelope");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Follow");
+    ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::snNoiseMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "DAC Mode");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2612, chipper::ChipParameterRole::snNoiseMode, "Output");
+    ok &= expectSegmentedRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::snNoiseMode, 3, "Follow");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "FM Ch 5");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source6Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "FM Ch 6");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "FM Ch 5 Level");
