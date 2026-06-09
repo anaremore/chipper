@@ -1,0 +1,2 @@
+# A short held note should enter SPC700-style release instead of hard-cutting.
+note 0 64 1.0 1000
