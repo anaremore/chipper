@@ -68,6 +68,7 @@ Checked 2026-06-07:
    - Done first pass: clean-room BRR block decode covers range, filter, end flag, loop flag metadata, and decoded output levels in regression tests.
    - Done first pass: plugin UI can load one user-provided `.brr` file into the same clean-room sample voice path and stores the file path for host-state recall when the file remains on disk.
    - Done first pass: the command-line renderer can exercise multiple inline BRR samples as a small bank and select a slot without committing sample assets.
+   - Done first pass: the command-line renderer can map a MIDI note from a root key to an inline BRR bank slot, matching the plugin's note-map workflow for regression tests.
    - Remaining: BRR loop-address behavior, sample table/addressing, exact S-DSP interpolation table behavior, and comparison against trusted emulator output.
 
 3. **Directory Sample Bank**
@@ -76,6 +77,7 @@ Checked 2026-06-07:
    - Add MIDI CC/sample-slot mapping with a finite bank selection model, matching the NES DMC sample-bank pattern.
    - Done first pass: local BRR/WAV/AIFF folders can be staged as checked 32-slot banks, mapped from a root MIDI note, and shown with a practical 64 KB audio-RAM budget cue.
    - Done first pass: renderer debug JSON exposes selected bank slot length and loop-start metadata so sample-map behavior can be regression tested without bundling third-party samples.
+   - Done first pass: renderer `--spc700-map-root` covers note-to-slot selection with inline BRR banks, keeping factory tests asset-free.
 
 4. **S-DSP Voice Behavior**
    - Add ADSR/GAIN envelope tests.

@@ -314,6 +314,9 @@ add_test(NAME chipper_render_spc700_brr_loop_point_smoke
 add_test(NAME chipper_render_spc700_brr_bank_slot_smoke
     COMMAND chipper_render --chip spc700 --accuracy authentic --macro lead --spc700-brr-bank-hex 817f7f7f7f80808080 --spc700-brr-bank-hex 837f7f7f7f80808080 --spc700-sample-slot 1 --spc700-playback loop --clock 32000 --rate 48000 --seconds 0.08 --note 64 --out spc700-brr-bank-slot-smoke.wav --debug spc700-brr-bank-slot-smoke.json
 )
+add_test(NAME chipper_render_spc700_brr_note_map_smoke
+    COMMAND chipper_render --chip spc700 --accuracy authentic --macro lead --spc700-brr-bank-hex 817f7f7f7f80808080 --spc700-brr-bank-hex 837f7f7f7f80808080 --spc700-map-root 60 --spc700-playback loop --clock 32000 --rate 48000 --seconds 0.08 --note 61 --out spc700-brr-note-map-smoke.wav --debug spc700-brr-note-map-smoke.json
+)
 add_test(NAME chipper_render_spc700_pitch_motion_smoke
     COMMAND chipper_render --chip spc700 --accuracy authentic --macro laser --clock 32000 --rate 48000 --seconds 0.08 --note 64 --out spc700-pitch-motion-smoke.wav --debug spc700-pitch-motion-smoke.json
 )
@@ -1345,6 +1348,10 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-brr-bank-slot-smoke.json --implemented-contains partial --macro Lead --min-peak 0.02 --register-writes 0 --note-events 0 --core-min externalBrrSampleLoaded=1 --core-max externalBrrSampleLoaded=1 --core-min externalBrrBankSize=2 --core-max externalBrrBankSize=2 --core-min selectedExternalBrrSlot=1 --core-max selectedExternalBrrSlot=1 --core-min brrBlockCount=1 --core-max brrBlockCount=1 --core-min brrLoopFlagSeen=1 --core-max brrLoopFlagSeen=1 --core-min sampleLength0=16 --core-max sampleLength0=16 --core-min sampleLoopStart0=0 --core-max sampleLoopStart0=0 --core-min selectedExternalSampleLength=16 --core-max selectedExternalSampleLength=16 --core-min selectedExternalSampleLoopStart=0 --core-max selectedExternalSampleLoopStart=0
     )
     set_tests_properties(chipper_render_spc700_brr_bank_slot_assert PROPERTIES DEPENDS chipper_render_spc700_brr_bank_slot_smoke)
+    add_test(NAME chipper_render_spc700_brr_note_map_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-brr-note-map-smoke.json --implemented-contains partial --macro Lead --min-peak 0.02 --register-writes 0 --note-events 0 --core-min externalBrrSampleLoaded=1 --core-max externalBrrSampleLoaded=1 --core-min externalBrrBankSize=2 --core-max externalBrrBankSize=2 --core-min selectedExternalBrrSlot=1 --core-max selectedExternalBrrSlot=1 --core-min brrBlockCount=1 --core-max brrBlockCount=1 --core-min selectedExternalSampleLength=16 --core-max selectedExternalSampleLength=16
+    )
+    set_tests_properties(chipper_render_spc700_brr_note_map_assert PROPERTIES DEPENDS chipper_render_spc700_brr_note_map_smoke)
     add_test(NAME chipper_render_spc700_pitch_motion_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-pitch-motion-smoke.json --implemented-contains partial --macro Laser --min-peak 0.02 --register-writes 0 --note-events 0 --core-min pitchMotionDepthCents=2000 --core-max pitchMotionDepthCents=2400 --core-min pitchMotionDirection=1 --core-max pitchMotionDirection=1 --core-min pitch0=7600 --core-max pitch0=7700 --core-min pitch0Current=4400 --core-max pitch0Current=4550
     )
