@@ -3918,8 +3918,9 @@ juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMod
         const auto info = audioProcessor.spc700BrrSampleInfo();
         if (info.loaded)
         {
+            const auto modeText = info.playbackMode == 0 ? juce::String("Manual") : juce::String("Map");
             const auto slotText = info.bankCount > 1
-                ? juce::String("BRR ") + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
+                ? juce::String("BRR ") + modeText + " " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
                 : juce::String("BRR");
             return "Voice " + number + " | " + slotText;
         }
@@ -3964,12 +3965,17 @@ juce::String ChipperAudioProcessorEditor::sampleSourceRegisterReadout(chipper::C
             + " | ";
         if (info.loaded)
         {
+            const auto modeText = info.playbackMode == 0 ? juce::String("manual") : juce::String("mapped");
             readout += "BRR slot " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
                 + " " + info.sampleName
-                + " | map "
-                + chipper::parameters::midiNoteChoices()[info.mapRootNote]
-                + "-"
-                + chipper::parameters::midiNoteChoices()[info.mapHighNote];
+                + " | " + modeText;
+            if (info.playbackMode != 0)
+            {
+                readout += " "
+                    + chipper::parameters::midiNoteChoices()[info.mapRootNote]
+                    + "-"
+                    + chipper::parameters::midiNoteChoices()[info.mapHighNote];
+            }
         }
         else
         {

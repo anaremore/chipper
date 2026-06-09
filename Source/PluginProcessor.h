@@ -60,6 +60,7 @@ public:
         int blockCount = 0;
         int bankCount = 0;
         int selectedSlot = -1;
+        int playbackMode = 0;
         int mapRootNote = 36;
         int mapHighNote = 36;
         bool loaded = false;

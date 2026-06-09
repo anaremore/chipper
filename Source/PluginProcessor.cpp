@@ -411,12 +411,14 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
         }
     }
     const auto mapRootNote = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcMapRoot)->load())), 0, 127);
+    const auto playbackMode = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load())), 0, 2);
     info.sampleName = spc700BrrSample.name;
     info.path = spc700BrrSample.path;
     info.byteCount = static_cast<int>(spc700BrrSample.bytes.size());
     info.blockCount = info.byteCount / 9;
     info.bankCount = bankCount;
     info.selectedSlot = safeSlot;
+    info.playbackMode = playbackMode;
     info.mapRootNote = mapRootNote;
     info.mapHighNote = std::clamp(mapRootNote + std::max(0, bankCount - 1), 0, 127);
     info.statusLine = "Slot " + juce::String(safeSlot + 1) + "/" + juce::String(bankCount)

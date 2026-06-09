@@ -160,6 +160,8 @@ SPC700 BRR import supports a user-loaded `.brr` file or folder bank in the plugi
 
 When an SPC700 BRR bank is loaded, the BRR status line and SPC700 voice-card tooltips show the selected bank slot and note-map span so users can see which keys address the loaded sample set without opening hardware-style register details.
 
+SPC700 voice cards also label the loaded BRR source as Manual or Map, matching the BRR Playback mode, so users can tell whether notes are replaying the selected slot or browsing the folder bank.
+
 SPC700 Pitch Motion and note shaping are now audible in the partial core: the SNES Laser, Jump, and Power-Up templates bend rendered sample playback pitch over time, and SPC700-style voices use playable attack/decay/sustain/release behavior instead of hard note-off cuts. Debug JSON reports stored pitch registers, current swept pitch, motion depth/direction, and envelope stage/timing metadata. These are musical clean-room helpers, not verified S-DSP pitch-modulation or exact ADSR/gain timing implementations.
 
 Automated smoke tests assert that every APVTS parameter has exactly one default MIDI CC mapping, that each mapping works through the processor MIDI path, that MIDI and host macro-only changes apply macro templates through the processor path, and that every automatable chip descriptor control resolves to a MIDI-mapped APVTS parameter. The renderer descriptor JSON exports each visible control's APVTS parameter id and default CC plus a top-level `midiCcMappings` list for the full plugin parameter map.
