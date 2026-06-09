@@ -109,10 +109,15 @@ public:
     juce::StringArray nesDmcSampleNames() const;
     juce::StringArray spc700BrrSampleNames() const;
     std::vector<DmcSampleEntryInfo> nesDmcSampleEntryInfo() const;
+    std::vector<DmcSampleEntryInfo> spc700BrrSampleEntryInfo() const;
     void setNesDmcSampleIncluded(int index, bool shouldBeIncluded);
+    void setSpc700BrrSampleIncluded(int index, bool shouldBeIncluded);
     void selectFirstNesDmcSamples(int maxCount);
+    void selectFirstSpc700BrrSamples(int maxCount);
     void clearNesDmcSampleSelection();
+    void clearSpc700BrrSampleSelection();
     void invertNesDmcSampleSelection();
+    void invertSpc700BrrSampleSelection();
     uint64_t nesDmcSampleRevision() const;
     uint64_t spc700BrrSampleRevision() const;
 

@@ -470,6 +470,20 @@ int main()
     ok &= expect(brrNames.size() == 3, "SPC700 BRR folder should expose every readable BRR sample up to the slot limit");
     ok &= expect(brrNames[0] == "brr-00.brr" && brrNames[2] == "brr-02.brr",
                  "SPC700 BRR names should preserve sorted bank order");
+    auto brrEntries = processor.spc700BrrSampleEntryInfo();
+    ok &= expect(brrEntries.size() == 3u && brrEntries[0].activeSlot && brrEntries[2].activeSlot,
+                 "SPC700 BRR bank editor should expose checked files as active playable slots");
+    processor.setSpc700BrrSampleIncluded(1, false);
+    brrNames = processor.spc700BrrSampleNames();
+    brrEntries = processor.spc700BrrSampleEntryInfo();
+    ok &= expect(brrNames.size() == 2 && brrNames[0] == "brr-00.brr" && brrNames[1] == "brr-02.brr",
+                 "Unchecking an SPC700 BRR slot should remove it from the playable bank");
+    ok &= expect(! brrEntries[1].included && ! brrEntries[1].activeSlot,
+                 "Unchecked SPC700 BRR entries should report inactive");
+    processor.setSpc700BrrSampleIncluded(1, true);
+    brrNames = processor.spc700BrrSampleNames();
+    ok &= expect(brrNames.size() == 3 && brrNames[1] == "brr-01.brr",
+                 "Rechecking an SPC700 BRR slot should restore it to the playable bank");
     sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 2));
     auto brrInfo = processor.spc700BrrSampleInfo();
     ok &= expect(brrInfo.loaded && brrInfo.sampleName == "brr-02.brr",
