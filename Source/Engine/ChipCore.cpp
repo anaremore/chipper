@@ -6263,6 +6263,8 @@ public:
              << "\"brrLoopFlagSeen\":" << (brrLoopFlagSeen ? 1 : 0) << ","
              << "\"externalBrrBankSize\":" << externalBrrBank.size() << ","
              << "\"selectedExternalBrrSlot\":" << selectedExternalBrrSlot << ","
+             << "\"selectedExternalSampleLength\":" << selectedExternalSampleLength() << ","
+             << "\"selectedExternalSampleLoopStart\":" << selectedExternalSampleLoopStart() << ","
              << "\"pitch0\":" << pitch[0] << ","
              << "\"pitch1\":" << pitch[1] << ","
              << "\"pitch2\":" << pitch[2] << ","
@@ -6782,6 +6784,22 @@ private:
             return externalBrrLoopStarts[slot];
 
         return 0;
+    }
+
+    size_t selectedExternalSampleLength() const
+    {
+        if (selectedExternalBrrSlot < 0 || static_cast<size_t>(selectedExternalBrrSlot) >= externalBrrBank.size())
+            return 0;
+
+        return externalBrrBank[static_cast<size_t>(selectedExternalBrrSlot)].size();
+    }
+
+    size_t selectedExternalSampleLoopStart() const
+    {
+        if (selectedExternalBrrSlot < 0)
+            return 0;
+
+        return loopStartForExternalSlot(static_cast<size_t>(selectedExternalBrrSlot));
     }
 
     double interpolatedSample(size_t voice, double samplePosition) const
