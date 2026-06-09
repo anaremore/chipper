@@ -42,6 +42,7 @@ Chipper's SNES mode should become a hardware-shaped sampler, not another oscilla
 - The SNES echo is a major part of the instrument identity, not a generic reverb.
 - User controls should map to S-DSP-like behavior: echo enable per voice, delay, feedback, FIR preset/taps, wet level, and memory budget warning.
 - Done first pass: active source lanes now produce an echo-enable mask and explicit echo input level that feed the musical echo helper.
+- Done first pass: echo volume, feedback, and delay register-style metadata are exported for renderer tests and debug traces.
 - Done first pass: echo color now resolves to signed 8-bit FIR-style coefficients exported in renderer debug JSON and register traces.
 - `snes-echo` is useful as a permissive-looking audible reference, but it explicitly does not target bit accuracy, so it should not be the only validation source.
 
@@ -81,6 +82,7 @@ Checked 2026-06-07:
 
 5. **Echo / FIR**
    - Done first pass: add S-DSP-style echo-enable state and renderer debug JSON for echo send, feedback, delay, echo mask, and echo input level.
+   - Done first pass: add EVOL/EFB/EDL-style register metadata to debug JSON and register traces.
    - Done first pass: add signed 8-bit FIR-style taps and FIR coefficient register debug JSON.
    - Expand the current FIR helper into exact S-DSP echo memory/timing behavior.
    - Compare against trusted emulator output before upgrading the accuracy label.

@@ -6214,7 +6214,11 @@ public:
             writes.push_back({ 0, static_cast<uint16_t>(base + 8u), voiceLeftVolumeRegister(voice) });
             writes.push_back({ 0, static_cast<uint16_t>(base + 9u), voiceRightVolumeRegister(voice) });
         }
+        writes.push_back({ 0, 0x0du, static_cast<uint8_t>(static_cast<int>(spc700EchoFeedbackRegister()) & 0xff) });
+        writes.push_back({ 0, 0x2cu, static_cast<uint8_t>(static_cast<int>(spc700EchoLeftVolumeRegister()) & 0xff) });
+        writes.push_back({ 0, 0x3cu, static_cast<uint8_t>(static_cast<int>(spc700EchoRightVolumeRegister()) & 0xff) });
         writes.push_back({ 0, 0x4du, echoEnabledMask() });
+        writes.push_back({ 0, 0x7du, spc700EchoDelayRegister() });
         const auto fir = spc700FirCoefficients();
         for (size_t tap = 0; tap < fir.size(); ++tap)
         {
@@ -6231,7 +6235,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room sample-voice model"; }
     std::string limitations() const override
     {
-        return "Eight lo-fi sample voices, pitch, 7-bit per-voice left/right volume state, loop/one-shot playback state, playable ADSR/gain-style note shaping, generated sample templates, clean-room BRR block decoding for renderer-loaded samples, BRR loop-flag loop starts, Gaussian-style 4-tap sample interpolation, partial S-DSP-style per-voice noise source, musical pitch motion, an echo-enable mask, signed 8-bit FIR coefficient state, and a musical stereo echo helper are modeled; exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, source-directory loop address behavior, exact noise timing, pitch modulation, exact FIR echo memory behavior, sample directory addressing, exact envelope timing, and hardware validation are not complete.";
+        return "Eight lo-fi sample voices, pitch, 7-bit per-voice left/right volume state, loop/one-shot playback state, playable ADSR/gain-style note shaping, generated sample templates, clean-room BRR block decoding for renderer-loaded samples, BRR loop-flag loop starts, Gaussian-style 4-tap sample interpolation, partial S-DSP-style per-voice noise source, musical pitch motion, an echo-enable mask, echo volume/feedback/delay register state, signed 8-bit FIR coefficient state, and a musical stereo echo helper are modeled; exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, source-directory loop address behavior, exact noise timing, pitch modulation, exact FIR echo memory behavior, sample directory addressing, exact envelope timing, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -6275,6 +6279,10 @@ public:
              << "\"echoFeedback\":" << spc700EchoFeedback() << ","
              << "\"echoDelayMs\":" << spc700EchoDelayMs() << ","
              << "\"echoDelaySamples\":" << spc700EchoDelaySamples() << ","
+             << "\"echoLeftVolumeRegister\":" << static_cast<int>(spc700EchoLeftVolumeRegister()) << ","
+             << "\"echoRightVolumeRegister\":" << static_cast<int>(spc700EchoRightVolumeRegister()) << ","
+             << "\"echoFeedbackRegister\":" << static_cast<int>(spc700EchoFeedbackRegister()) << ","
+             << "\"echoDelayRegister\":" << static_cast<int>(spc700EchoDelayRegister()) << ","
              << "\"firTap0\":" << static_cast<int>(spc700FirCoefficients()[0]) << ","
              << "\"firTap1\":" << static_cast<int>(spc700FirCoefficients()[1]) << ","
              << "\"firTap2\":" << static_cast<int>(spc700FirCoefficients()[2]) << ","
@@ -6957,16 +6965,37 @@ private:
         return std::clamp(0.08 + (color * 0.42), 0.0, 0.50);
     }
 
+    int8_t spc700EchoLeftVolumeRegister() const
+    {
+        return static_cast<int8_t>(std::clamp(static_cast<int>(std::round(spc700EchoSend() * 127.0)), -128, 127));
+    }
+
+    int8_t spc700EchoRightVolumeRegister() const
+    {
+        return spc700EchoLeftVolumeRegister();
+    }
+
     double spc700EchoFeedback() const
     {
         const auto color = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
         return std::clamp(0.16 + (color * 0.42), 0.0, 0.58);
     }
 
+    int8_t spc700EchoFeedbackRegister() const
+    {
+        return static_cast<int8_t>(std::clamp(static_cast<int>(std::round(spc700EchoFeedback() * 127.0)), -128, 127));
+    }
+
     double spc700EchoDelayMs() const
     {
         const auto color = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
         return 32.0 + std::round(color * 13.0) * 16.0;
+    }
+
+    uint8_t spc700EchoDelayRegister() const
+    {
+        const auto edl = static_cast<int>(std::round((spc700EchoDelayMs() - 32.0) / 16.0));
+        return static_cast<uint8_t>(std::clamp(edl, 0, 15));
     }
 
     size_t spc700EchoDelaySamples() const
