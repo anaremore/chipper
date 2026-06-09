@@ -3919,15 +3919,38 @@ juce::String ChipperAudioProcessorEditor::pokeySourceRegisterReadout(const chipp
     const auto audf = chipper::pokeyAudfForNote(chipper::parameters::defaultClockForMode(chipper::ChipMode::pokey),
                                                 pokeyCardMidiNote(patch, index));
     const auto audv = static_cast<int>(audc & 0x0fu);
-    return "AUDC $" + byteHex(audc) + " | AUDF $" + byteHex(audf) + " | AUDV " + juce::String(audv) + "/15";
+    const auto audctl = chipper::pokeyAudctlForPatch(patch);
+    const auto pairedHigh = (index == 1u && (audctl & 0x10u) != 0) || (index == 3u && (audctl & 0x08u) != 0);
+    const auto pairText = pairedHigh ? juce::String(" | high byte") : juce::String();
+    return "AUDC $" + byteHex(audc) + " | AUDF $" + byteHex(audf) + " | AUDV " + juce::String(audv) + "/15" + pairText;
 }
 
 juce::String ChipperAudioProcessorEditor::pokeyRegisterReadout(const chipper::PatchConfig& patch) const
 {
     const auto audc = chipper::pokeyAudcForPatch(patch);
+    const auto audctl = chipper::pokeyAudctlForPatch(patch);
     const auto audfC4 = chipper::pokeyAudfForNote(chipper::parameters::defaultClockForMode(chipper::ChipMode::pokey),
                                                   pokeyCardMidiNote(patch, 0));
-    return "AUDC $" + byteHex(audc) + " | AUDV " + juce::String(static_cast<int>(audc & 0x0fu)) + "/15 | Ch1 AUDF $" + byteHex(audfC4);
+    return "AUDC $" + byteHex(audc) + " | AUDV " + juce::String(static_cast<int>(audc & 0x0fu)) + "/15 | Ch1 AUDF $" + byteHex(audfC4) + " | AUDCTL $" + byteHex(audctl);
+}
+
+juce::String ChipperAudioProcessorEditor::pokeyAudctlReadout(const chipper::PatchConfig& patch) const
+{
+    const auto audctl = chipper::pokeyAudctlForPatch(patch);
+    juce::String mode;
+    switch (audctl & 0x18u)
+    {
+        case 0x10u: mode = "Ch 1+2 linked, 16-bit pitch"; break;
+        case 0x08u: mode = "Ch 3+4 linked, 16-bit pitch"; break;
+        case 0x18u: mode = "Both pairs linked, two 16-bit lanes"; break;
+        case 0x00u:
+        default:
+            mode = "Four independent 8-bit channels";
+            break;
+    }
+
+    const auto resolved = "AUDCTL $" + byteHex(audctl) + ", " + mode;
+    return patch.dmgStereoRoute == 0 ? juce::String("Follow -> ") + resolved : resolved;
 }
 
 juce::String ChipperAudioProcessorEditor::sampleChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
@@ -4339,6 +4362,9 @@ juce::String ChipperAudioProcessorEditor::dmgWaveLevelReadout(const chipper::Pat
 
 juce::String ChipperAudioProcessorEditor::dmgStereoRouteReadout(const chipper::PatchConfig& patch) const
 {
+    if (displayedMode == chipper::ChipMode::pokey)
+        return pokeyAudctlReadout(patch);
+
     const auto routeRegister = chipper::dmgStereoRouteRegisterForPatch(patch);
     const auto registerText = juce::String("NR51=0x") + juce::String::toHexString(static_cast<int>(routeRegister)).paddedLeft('0', 2).toUpperCase();
     juce::String routeText;

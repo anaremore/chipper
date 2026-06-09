@@ -1176,7 +1176,7 @@ std::vector<ChipParameterSpec> pokeyParameterSpecs()
                    "pokey.pitchMotion",
                    "Pitch",
                    "Pitch",
-                   "Offsets template pitch gestures and channel intervals."),
+                   "Offsets template pitch gestures and channel intervals; paired AUDCTL lanes keep higher pitch resolution."),
         sliderSpec(ChipParameterRole::macroControl3,
                    "pokey.distortionBias",
                    "Distortion Bias",
@@ -1199,6 +1199,19 @@ std::vector<ChipParameterSpec> pokeyParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source3Level, "pokey.channel3.level", "Channel 3 Level", "Modern trim after POKEY channel 3 AUDV volume."),
         sourceLevelSpec(ChipParameterRole::source4Level, "pokey.channel4.level", "Channel 4 Level", "Modern trim after POKEY channel 4 AUDV volume."),
         stereoSpreadSpec("pokey.stereoSpread", "Modern stereo convenience that spreads POKEY channels 1-4; zero preserves mono output."),
+        segmentedSpec(ChipParameterRole::dmgStereoRoute,
+                      "pokey.audctlPairing",
+                      "AUDCTL Pairing",
+                      "Channels",
+                      "Writes the POKEY AUDCTL 16-bit channel-link bits: channel 1+2, channel 3+4, or both.",
+                      {
+                          choice("Follow", "Let the selected POKEY template choose whether channels are linked.", 0.0f, 0),
+                          choice("Off", "Clear the modeled 16-bit channel-link bits.", 0.25f, 1),
+                          choice("1+2", "Link channel 1 and 2 into one higher-resolution 16-bit pitch lane.", 0.5f, 2),
+                          choice("3+4", "Link channel 3 and 4 into one higher-resolution 16-bit pitch lane.", 0.75f, 3),
+                          choice("Both", "Link both POKEY channel pairs into two 16-bit pitch lanes.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister),
         envelopeSpec("pokey.decay", "Decay", "Applies a musical post-register decay helper while the AUDV nibble remains visible in debug state."),
         segmentedSpec(ChipParameterRole::waveShape,
                       "pokey.distortionCode",
@@ -2111,7 +2124,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("tone", "Distortion / Noise", "AUDC-style tone and polynomial texture controls.", { "Pure tone", "Poly4", "Poly5", "Poly17" }),
                 makeModule("envelope", "Volume", "AUDV volume nibble plus musical decay helper.", { "4-bit volume", "Per-channel trims", "Decay helper", "Register readout" }),
                 makeModule("motion", "Motion", "Atari SFX gestures mapped to channel timers.", { "Console blip", "Pitch drop", "Four-channel arp", "Poly perc" }),
-                makeModule("output", "Output", "Bright mono Atari-style output groundwork.", { "Output gain", "Stereo spread convenience", "AUDCTL planned", "Known differences" })
+                makeModule("output", "Output", "Bright mono Atari-style output groundwork.", { "Output gain", "Stereo spread convenience", "AUDCTL pairing", "Known differences" })
             },
             pokeyMacros(),
             true,
@@ -2124,7 +2137,7 @@ const std::vector<ChipDescriptor>& descriptors()
                     "No third-party POKEY source code is vendored in this clean-room partial model."
                 },
                 {
-                    "AUDCTL channel pairing, 1.79 MHz direct clocks, high-pass filters, serial/I/O behavior, and SKCTL side effects are not implemented.",
+                    "1.79 MHz direct clocks, high-pass filters, serial/I/O behavior, SKCTL side effects, exact AUDCTL edge cases, and exact paired-channel carry timing are not implemented.",
                     "Polynomial taps and timer edge behavior are musical approximations pending comparison against trusted emulators and hardware captures.",
                     "Output DAC, exact volume curve, and Atari model differences are not hardware validated."
                 })
@@ -3203,6 +3216,39 @@ uint8_t pokeyAudcForPatch(const PatchConfig& patch)
     }
 
     return static_cast<uint8_t>(distortion | volume);
+}
+
+uint8_t pokeyAudctlForPatch(const PatchConfig& patch)
+{
+    auto choiceValue = std::clamp(patch.dmgStereoRoute, 0, 4);
+    if (choiceValue == 0)
+    {
+        switch (patch.macro)
+        {
+            case MacroKind::bass:
+                choiceValue = 2;
+                break;
+            case MacroKind::powerUp:
+                choiceValue = 4;
+                break;
+            case MacroKind::hit:
+                choiceValue = patch.control2 > 0.65f ? 3 : 1;
+                break;
+            default:
+                choiceValue = 1;
+                break;
+        }
+    }
+
+    switch (choiceValue)
+    {
+        case 2: return 0x10u; // CH1+CH2 form one 16-bit divider.
+        case 3: return 0x08u; // CH3+CH4 form one 16-bit divider.
+        case 4: return 0x18u; // Both 16-bit channel pairs enabled.
+        case 1:
+        default:
+            return 0x00u;
+    }
 }
 
 uint8_t pokeyAudfForNote(double clockHz, int midiNote)

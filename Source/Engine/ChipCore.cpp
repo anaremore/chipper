@@ -3564,10 +3564,12 @@ public:
 
     void setPatch(const PatchConfig& newPatch) override
     {
-        if (newPatch.playMode != patch.playMode || newPatch.sourceEnabled != patch.sourceEnabled)
+        if (newPatch.playMode != patch.playMode || newPatch.sourceEnabled != patch.sourceEnabled
+            || pokeyAudctlForPatch(newPatch) != pokeyAudctlForPatch(patch))
             clearChipPolyState();
 
         patch = newPatch;
+        audctl = pokeyAudctlForPatch(patch);
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -3637,9 +3639,14 @@ public:
         }
 
         const auto control = pokeyAudcForPatch(patch);
+        audctl = pokeyAudctlForPatch(patch);
+        audc.fill(0x00u);
         for (size_t channel = 0; channel < 4; ++channel)
         {
-            audf[channel] = pokeyAudfForNote(clock, notes[channel]);
+            if (channelIsPairedHighByte(channel))
+                continue;
+
+            writePitchToChannel(channel, notes[channel]);
             audc[channel] = sourceEnabled(patch, channel) ? control : 0x00u;
         }
     }
@@ -3696,7 +3703,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Four AUDF/AUDC/AUDV-style channels, note-to-timer writes, source gating, chip-poly allocation, and simplified pure/poly4/poly5/poly17 texture paths are modeled; AUDCTL channel pairing, high-pass filters, exact polynomial taps, serial behavior, DAC curve, and hardware validation are not complete.";
+        return "Four AUDF/AUDC/AUDV-style channels, note-to-timer writes, source gating, chip-poly allocation, AUDCTL 16-bit channel-pair bits, and simplified pure/poly4/poly5/poly17 texture paths are modeled; 1.79 MHz direct clocks, high-pass filters, exact polynomial taps, serial behavior, DAC curve, exact paired-channel carry timing, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -3717,6 +3724,10 @@ public:
              << "\"audc2\":" << static_cast<int>(audc[2]) << ","
              << "\"audc3\":" << static_cast<int>(audc[3]) << ","
              << "\"audctl\":" << static_cast<int>(audctl) << ","
+             << "\"pair12\":" << (pair12Enabled() ? 1 : 0) << ","
+             << "\"pair34\":" << (pair34Enabled() ? 1 : 0) << ","
+             << "\"audfPair12\":" << pairedAudf(0) << ","
+             << "\"audfPair34\":" << pairedAudf(2) << ","
              << "\"distortionChoice\":" << std::clamp(patch.waveShape, 0, 4) << ","
              << "\"distortionCode\":" << static_cast<int>(pokeyAudcForPatch(patch) & 0xf0u) << ","
              << "\"volumeNibble\":" << static_cast<int>(pokeyAudcForPatch(patch) & 0x0fu) << ","
@@ -3747,12 +3758,15 @@ private:
 
     double channelClockHz(size_t channel) const
     {
-        const auto period = static_cast<double>(audf[channel]) + 1.0;
+        const auto period = static_cast<double>(channelIsPairedLowByte(channel) ? pairedAudf(channel) : audf[channel]) + 1.0;
         return clock / (56.0 * period);
     }
 
     double renderChannel(size_t channel)
     {
+        if (channelIsPairedHighByte(channel))
+            return 0.0;
+
         if (! sourceEnabled(patch, channel))
             return 0.0;
 
@@ -3777,6 +3791,47 @@ private:
             lastOutput[channel] = -lastOutput[channel];
 
         return lastOutput[channel] * volume;
+    }
+
+    bool pair12Enabled() const { return (audctl & 0x10u) != 0; }
+    bool pair34Enabled() const { return (audctl & 0x08u) != 0; }
+
+    bool channelIsPairedHighByte(size_t channel) const
+    {
+        return (channel == 1u && pair12Enabled()) || (channel == 3u && pair34Enabled());
+    }
+
+    bool channelIsPairedLowByte(size_t channel) const
+    {
+        return (channel == 0u && pair12Enabled()) || (channel == 2u && pair34Enabled());
+    }
+
+    uint16_t pairedAudf(size_t lowChannel) const
+    {
+        if (lowChannel + 1u >= audf.size())
+            return audf[lowChannel];
+
+        return static_cast<uint16_t>(audf[lowChannel] | (static_cast<uint16_t>(audf[lowChannel + 1u]) << 8u));
+    }
+
+    uint16_t audf16ForNote(int midiNote) const
+    {
+        const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
+        const auto divisor = std::round(clock / (56.0 * hz) - 1.0);
+        return static_cast<uint16_t>(std::clamp(static_cast<int>(divisor), 0, 65535));
+    }
+
+    void writePitchToChannel(size_t channel, int midiNote)
+    {
+        if (channelIsPairedLowByte(channel))
+        {
+            const auto divisor = audf16ForNote(midiNote);
+            audf[channel] = static_cast<uint8_t>(divisor & 0xffu);
+            audf[channel + 1u] = static_cast<uint8_t>((divisor >> 8u) & 0xffu);
+            return;
+        }
+
+        audf[channel] = pokeyAudfForNote(clock, midiNote);
     }
 
     void clockPoly4(size_t channel)
@@ -3810,12 +3865,18 @@ private:
     {
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
+            if (channelIsPairedHighByte(channel))
+                continue;
+
             if (sourceEnabled(patch, channel) && channelNotes[channel] == midiNote)
                 return static_cast<int>(channel);
         }
 
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
+            if (channelIsPairedHighByte(channel))
+                continue;
+
             if (sourceEnabled(patch, channel) && channelNotes[channel] < 0)
                 return static_cast<int>(channel);
         }
@@ -3824,6 +3885,9 @@ private:
         auto oldestStamp = std::numeric_limits<uint64_t>::max();
         for (size_t channel = 0; channel < channelStamp.size(); ++channel)
         {
+            if (channelIsPairedHighByte(channel))
+                continue;
+
             if (sourceEnabled(patch, channel) && channelStamp[channel] < oldestStamp)
             {
                 oldestStamp = channelStamp[channel];
@@ -3839,6 +3903,9 @@ private:
         int active = 0;
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
+            if (channelIsPairedHighByte(channel))
+                continue;
+
             if (sourceEnabled(patch, channel) && channelNotes[channel] >= 0)
                 ++active;
         }
@@ -3862,13 +3929,16 @@ private:
             return;
 
         const auto index = static_cast<size_t>(channel);
+        audctl = pokeyAudctlForPatch(patch);
         channelNotes[index] = std::clamp(midiNote, 0, 127);
         channelVelocity[index] = static_cast<float>(clamp01(velocity));
         channelStamp[index] = ++noteStamp;
-        audf[index] = pokeyAudfForNote(clock, channelNotes[index]);
+        writePitchToChannel(index, channelNotes[index]);
         const auto baseControl = pokeyAudcForPatch(patch) & 0xf0u;
         const auto volume = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 0, 15));
         audc[index] = static_cast<uint8_t>(baseControl | volume);
+        if (channelIsPairedLowByte(index))
+            audc[index + 1u] = 0x00u;
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
     }
 
