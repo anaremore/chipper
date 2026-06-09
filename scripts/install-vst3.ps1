@@ -1,11 +1,11 @@
 param(
     [string] $Configuration = "Release",
-    [string] $BuildRoot = "build",
+    [string] $BuildRoot = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_BUILD_ROOT)) { "build" } else { $env:CHIPPER_BUILD_ROOT }),
     [ValidateSet("Global", "User", "Both")]
-    [string] $Scope = "Global",
-    [string] $Destination,
-    [string] $FallbackDestination,
-    [switch] $FailOnFallback
+    [string] $Scope = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_INSTALL_SCOPE)) { "User" } else { $env:CHIPPER_INSTALL_SCOPE }),
+    [string] $Destination = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_VST3_DESTINATION)) { "" } else { $env:CHIPPER_VST3_DESTINATION }),
+    [string] $FallbackDestination = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_VST3_FALLBACK_DIR)) { "" } else { $env:CHIPPER_VST3_FALLBACK_DIR }),
+    [switch] $FailOnFallback = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_ALLOW_FALLBACK_INSTALL)) { $true } else { -not ($env:CHIPPER_ALLOW_FALLBACK_INSTALL -match '^(1|true|yes)$') })
 )
 
 $ErrorActionPreference = "Stop"
@@ -125,10 +125,11 @@ function Show-ChipperOtherScopeInstallWarning {
     Write-ChipperBundleReport -Label "$otherScope install" -BundlePath $otherBundle
     Write-Warning "Some hosts scan the global VST3 folder before the user VST3 folder, so this can look like an old build is still installed."
 
+    $buildRootSuggestion = if ([string]::IsNullOrWhiteSpace($BuildRoot)) { "build" } else { $BuildRoot }
     if ($otherScope -eq "Global") {
-        Write-Warning "To keep both copies in sync, open PowerShell as Administrator and run: .\install-vst3.ps1 -Scope Both"
+        Write-Warning "To keep both copies in sync, open PowerShell as Administrator and run: .\install-vst3.ps1 -Scope Both -BuildRoot $buildRootSuggestion"
     } else {
-        Write-Warning "To keep both copies in sync, open PowerShell as Administrator and run: .\install-vst3.ps1 -Scope Both"
+        Write-Warning "To keep both copies in sync, open PowerShell as Administrator and run: .\install-vst3.ps1 -Scope Both -BuildRoot $buildRootSuggestion"
     }
 }
 
@@ -508,7 +509,7 @@ if (-not $PSBoundParameters.ContainsKey("Destination") -or [string]::IsNullOrWhi
 }
 
 if ($Scope -eq "Global" -and -not (Test-ProcessElevated)) {
-    throw "Global VST3 install requires an elevated PowerShell. Use -Scope User for a no-UAC install to %LOCALAPPDATA%\Programs\Common\VST3."
+    throw "Global VST3 install requires an elevated PowerShell. Use -Scope User, or set CHIPPER_INSTALL_SCOPE=User, for a no-UAC install to %LOCALAPPDATA%\Programs\Common\VST3."
 }
 
 Install-ChipperBundleToDestination -InstallScope $Scope -InstallDestination $Destination -WarnAboutOtherScope $true

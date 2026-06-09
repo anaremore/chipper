@@ -82,14 +82,17 @@ To install to the global VST3 folder, use an elevated PowerShell:
 .\install-vst3.ps1 -Scope Global
 ```
 
-Installer defaults can be steered with environment variables:
+Installer defaults can be steered with environment variables instead of editing the script:
 
 | Variable | Purpose |
 | --- | --- |
 | `CHIPPER_BUILD_ROOT` | Build folder used by the root installer, default `build` |
+| `CHIPPER_INSTALL_SCOPE` | `User`, `Global`, or `Both`; default `User` |
+| `CHIPPER_VST3_DESTINATION` | Explicit destination folder for one-scope installs |
 | `CHIPPER_VST3_USER_DIR` | User-scope VST3 install folder |
 | `CHIPPER_VST3_GLOBAL_DIR` | Global VST3 install folder |
 | `CHIPPER_VST3_FALLBACK_DIR` | Optional fallback folder when fallback installs are enabled |
+| `CHIPPER_ALLOW_FALLBACK_INSTALL` | Set to `1`, `true`, or `yes` to allow fallback copies when the requested destination cannot be replaced |
 
 Examples:
 
@@ -102,7 +105,13 @@ $env:CHIPPER_BUILD_ROOT = "build-debug"
 .\install-vst3.ps1 -BuildRoot build -Destination "D:\Audio\VST3"
 ```
 
-The installer removes the previous `Chipper.vst3` bundle before copying the new one, writes a build marker into the installed bundle, and copies third-party legal notices into `Contents\Resources\Legal`. If a DAW has the plugin loaded, close the host and rerun the installer.
+For Codex/local development builds, install the explicit build folder so a stale default build is not copied:
+
+```powershell
+.\install-vst3.ps1 -Scope User -BuildRoot build-codex
+```
+
+The installer removes the previous `Chipper.vst3` bundle before copying the new one, writes a build marker into the installed bundle, and copies third-party legal notices into `Contents\Resources\Legal`. If a DAW has the plugin loaded, close the host and rerun the installer. If both user and global VST3 copies exist, keep them in sync with an elevated `.\install-vst3.ps1 -Scope Both -BuildRoot <your-build-folder>` so hosts do not load an older copy.
 
 ## Command-Line Renderer
 
