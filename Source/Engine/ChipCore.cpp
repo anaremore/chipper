@@ -5571,13 +5571,21 @@ public:
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
-             << "\"uiExposesFirstFourChannels\":1,"
+             << "\"sourceEnabled4\":" << (sourceEnabled(patch, 4) ? 1 : 0) << ","
+             << "\"sourceEnabled5\":" << (sourceEnabled(patch, 5) ? 1 : 0) << ","
+             << "\"sourceEnabled6\":" << (sourceEnabled(patch, 6) ? 1 : 0) << ","
+             << "\"sourceEnabled7\":" << (sourceEnabled(patch, 7) ? 1 : 0) << ","
+             << "\"exposedChannelCount\":8,"
              << "\"internalChannelCount\":8,"
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNote0\":" << channelNotes[0] << ","
              << "\"assignedNote1\":" << channelNotes[1] << ","
              << "\"assignedNote2\":" << channelNotes[2] << ","
              << "\"assignedNote3\":" << channelNotes[3] << ","
+             << "\"assignedNote4\":" << channelNotes[4] << ","
+             << "\"assignedNote5\":" << channelNotes[5] << ","
+             << "\"assignedNote6\":" << channelNotes[6] << ","
+             << "\"assignedNote7\":" << channelNotes[7] << ","
              << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
              << "}";
         return json.str();
@@ -5593,19 +5601,13 @@ private:
     uint8_t channelVolumeForPatch(size_t channel) const
     {
         const auto base = std::clamp(static_cast<int>(std::round(patch.control4 * 15.0f)), 1, 15);
-        const auto trim = channel < 4 ? sourceLevel(patch, channel) : 0.80f;
+        const auto trim = sourceLevel(patch, channel);
         return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<float>(base) * trim)), 0, 15));
     }
 
     bool channelActiveForPatch(size_t channel) const
     {
-        if (channel < 4)
-            return sourceEnabled(patch, channel);
-
-        return patch.macro == MacroKind::arp
-            || patch.macro == MacroKind::hit
-            || patch.macro == MacroKind::laser
-            || patch.macro == MacroKind::powerUp;
+        return sourceEnabled(patch, channel);
     }
 
     void seedWave(size_t channel)
@@ -5733,9 +5735,9 @@ private:
     std::array<double, 8> phase {};
     int heldNote = -1;
     float noteVelocity = 0.0f;
-    std::array<int, 4> channelNotes {};
-    std::array<float, 4> channelVelocity {};
-    std::array<uint64_t, 4> channelStamp {};
+    std::array<int, 8> channelNotes {};
+    std::array<float, 8> channelVelocity {};
+    std::array<uint64_t, 8> channelStamp {};
     uint64_t noteStamp = 0;
     PatchConfig patch;
 };

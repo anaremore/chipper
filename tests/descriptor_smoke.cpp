@@ -814,6 +814,8 @@ int main()
     ok &= expectPreset(chipper::ChipMode::namcoWsg, "namco-start-button");
     ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::waveShape, 5, "Follow");
+    ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::source8Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Lane 8");
+    ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::source8Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Lane 8 Level");
     ok &= expectMacroLabel(chipper::ChipMode::ym2151, chipper::MacroKind::lead, "OPM Metallic Lead");
     ok &= expectPreset(chipper::ChipMode::ym2151, "opm-metallic-lead");
     ok &= expectMacroSourceMask(chipper::ChipMode::ym2151, chipper::MacroKind::drum, { false, false, true, true });
@@ -858,7 +860,7 @@ int main()
     ok &= expectSourceLaneCounts(chipper::ChipMode::sid, 3u, 3u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::spc700, 8u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::huc6280, 6u, 6u);
-    ok &= expectSourceLaneCounts(chipper::ChipMode::namcoWsg, 4u, 8u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::namcoWsg, 8u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2612, 6u, 6u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2151, 8u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2413, 9u, 9u);

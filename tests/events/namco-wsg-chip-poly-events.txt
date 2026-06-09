@@ -1,5 +1,9 @@
-# Four overlapping notes should allocate across the exposed Namco WSG wavetable lanes.
+# Eight overlapping notes should allocate across the exposed Namco WSG wavetable lanes.
 note_on 0 60 1.0
 note_on 10 64 0.8
 note_on 20 67 0.7
 note_on 30 72 0.6
+note_on 40 76 0.55
+note_on 50 79 0.5
+note_on 60 83 0.45
+note_on 70 86 0.4

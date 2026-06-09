@@ -1486,11 +1486,19 @@ std::vector<ChipParameterSpec> namcoWsgParameterSpecs()
         sourceSpec(ChipParameterRole::source1Enabled, "namcoWsg.channel1.enabled", "Lane 1", "Enable Namco WSG wavetable lane 1."),
         sourceSpec(ChipParameterRole::source2Enabled, "namcoWsg.channel2.enabled", "Lane 2", "Enable Namco WSG wavetable lane 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "namcoWsg.channel3.enabled", "Lane 3", "Enable Namco WSG wavetable lane 3."),
-        sourceSpec(ChipParameterRole::source4Enabled, "namcoWsg.channel4.enabled", "Lane 4", "Enable Namco WSG wavetable lane 4. Lanes 5-8 need a dedicated WSG UI pass."),
+        sourceSpec(ChipParameterRole::source4Enabled, "namcoWsg.channel4.enabled", "Lane 4", "Enable Namco WSG wavetable lane 4."),
+        sourceSpec(ChipParameterRole::source5Enabled, "namcoWsg.channel5.enabled", "Lane 5", "Enable Namco WSG wavetable lane 5."),
+        sourceSpec(ChipParameterRole::source6Enabled, "namcoWsg.channel6.enabled", "Lane 6", "Enable Namco WSG wavetable lane 6."),
+        sourceSpec(ChipParameterRole::source7Enabled, "namcoWsg.channel7.enabled", "Lane 7", "Enable Namco WSG wavetable lane 7."),
+        sourceSpec(ChipParameterRole::source8Enabled, "namcoWsg.channel8.enabled", "Lane 8", "Enable Namco WSG wavetable lane 8."),
         sourceLevelSpec(ChipParameterRole::source1Level, "namcoWsg.channel1.level", "Lane 1 Level", "Modern trim after Namco WSG lane 1 volume."),
         sourceLevelSpec(ChipParameterRole::source2Level, "namcoWsg.channel2.level", "Lane 2 Level", "Modern trim after Namco WSG lane 2 volume."),
         sourceLevelSpec(ChipParameterRole::source3Level, "namcoWsg.channel3.level", "Lane 3 Level", "Modern trim after Namco WSG lane 3 volume."),
         sourceLevelSpec(ChipParameterRole::source4Level, "namcoWsg.channel4.level", "Lane 4 Level", "Modern trim after Namco WSG lane 4 volume."),
+        sourceLevelSpec(ChipParameterRole::source5Level, "namcoWsg.channel5.level", "Lane 5 Level", "Modern trim after Namco WSG lane 5 volume."),
+        sourceLevelSpec(ChipParameterRole::source6Level, "namcoWsg.channel6.level", "Lane 6 Level", "Modern trim after Namco WSG lane 6 volume."),
+        sourceLevelSpec(ChipParameterRole::source7Level, "namcoWsg.channel7.level", "Lane 7 Level", "Modern trim after Namco WSG lane 7 volume."),
+        sourceLevelSpec(ChipParameterRole::source8Level, "namcoWsg.channel8.level", "Lane 8 Level", "Modern trim after Namco WSG lane 8 volume."),
         stereoSpreadSpec("namcoWsg.stereoSpread", "Modern stereo convenience that spreads audible WSG lanes; zero preserves centered output."),
         envelopeSpec("namcoWsg.decay", "Decay", "Applies a musical decay helper while native volume/enables remain visible in debug state."),
         segmentedSpec(ChipParameterRole::waveShape,
@@ -2183,7 +2191,7 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             {
                 makeModule("profile", "Profile", "Namco WSG clean-room groundwork.", { "Arcade wavetable family", "96 kHz default", "Hybrid default", "Authentic still partial" }),
-                makeModule("sources", "WSG Lanes", "Eight internal wavetable lanes.", { "Lanes 1-4 exposed", "Lanes 5-8 internal", "4-bit wave RAM", "Enable mask" }),
+                makeModule("sources", "WSG Lanes", "All eight wavetable lanes are exposed as playable source lanes.", { "Lanes 1-4", "Lanes 5-8", "4-bit wave RAM", "Enable mask" }),
                 makeModule("wave", "Wave / Mixer", "Wave RAM plus frequency and volume behavior.", { "Wave shape", "Wave skew", "4-bit volume", "Pitch periods" }),
                 makeModule("motion", "Motion", "Arcade SFX gestures mapped to lane frequency registers.", { "Coin ping", "Sweep zap", "Tracker arp", "Wave tick" }),
                 makeModule("output", "Output", "Centered arcade wavetable output with optional modern spread.", { "Output gain", "Stereo spread", "Verified partial", "Known gaps" })
@@ -2195,7 +2203,7 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "Eight simplified wavetable lanes, 32-sample 4-bit wave RAM templates, frequency, volume, and enable register paths are modeled.",
-                    "The existing UI exposes the first four generic source controls; lanes 5-8 can participate internally in stack templates until a dedicated WSG layout lands.",
+                    "All eight WSG lanes are exposed through source enable/level controls and Chip Poly allocation.",
                     "No third-party Namco WSG source code is vendored in this clean-room partial model."
                 },
                 {
@@ -2361,6 +2369,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
         return 9u;
     if (mode == ChipMode::huc6280)
         return 6u;
+    if (mode == ChipMode::namcoWsg)
+        return 8u;
     if (mode == ChipMode::scc)
         return 5u;
     return 4u;
