@@ -97,16 +97,19 @@ public:
     juce::Result loadNesDmcSampleFile(const juce::File& file);
     juce::Result loadNesDmcSampleDirectory(const juce::File& directory);
     juce::Result loadSpc700BrrSampleFile(const juce::File& file);
+    juce::Result loadSpc700BrrSampleDirectory(const juce::File& directory);
     juce::String nesDmcSampleBankStatus() const;
     DmcSamplePlaybackInfo nesDmcSamplePlaybackInfo() const;
     Spc700BrrSampleInfo spc700BrrSampleInfo() const;
     juce::StringArray nesDmcSampleNames() const;
+    juce::StringArray spc700BrrSampleNames() const;
     std::vector<DmcSampleEntryInfo> nesDmcSampleEntryInfo() const;
     void setNesDmcSampleIncluded(int index, bool shouldBeIncluded);
     void selectFirstNesDmcSamples(int maxCount);
     void clearNesDmcSampleSelection();
     void invertNesDmcSampleSelection();
     uint64_t nesDmcSampleRevision() const;
+    uint64_t spc700BrrSampleRevision() const;
 
 private:
     struct HeldMidiNote
@@ -148,8 +151,10 @@ private:
     int activeDmcSampleSlot = -1;
     mutable std::mutex spc700SampleMutex;
     DmcSampleSlot spc700BrrSample;
-    uint64_t spc700BrrSampleRevision = 0;
+    std::vector<DmcSampleSlot> spc700BrrSampleBank;
+    uint64_t spc700BrrSampleBankRevision = 0;
     uint64_t activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
+    int activeSpc700BrrSampleSlot = -1;
     chipper::PatchConfig activePatch;
     std::vector<chipper::RegisterWrite> pendingRegisterState;
     chipper::PatchConfig lastObservedMacroPatch;

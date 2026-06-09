@@ -1400,7 +1400,13 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
     dmcSampleFolderButton.setButtonText("Folder");
     dmcSampleFolderButton.setTooltip("Load a folder of user-provided .dmc files. Checked bank entries form up to 32 CC117 slots.");
-    dmcSampleFolderButton.onClick = [this] { chooseDmcSampleDirectory(); };
+    dmcSampleFolderButton.onClick = [this]
+    {
+        if (displayedMode == chipper::ChipMode::spc700)
+            chooseSpc700BrrSampleDirectory();
+        else
+            chooseDmcSampleDirectory();
+    };
     addAndMakeVisible(dmcSampleFolderButton);
 
     dmcSampleBankButton.setButtonText("Bank");
@@ -1440,7 +1446,11 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
         const auto selected = dmcSampleSlotBox.getSelectedId() - 1;
         if (selected >= 0)
+        {
             setPlainParameterValueFromUi(chipper::parameters::id::nesDmcSampleSlot, static_cast<float>(selected));
+            if (displayedMode == chipper::ChipMode::spc700)
+                updateSpc700BrrSampleControls();
+        }
     };
     addAndMakeVisible(dmcSampleSlotBox);
 
@@ -2646,9 +2656,7 @@ void ChipperAudioProcessorEditor::resized()
         dmcDirectLabel.setBounds({});
         dmcRateLabel.setBounds({});
         dmcRateBox.setBounds({});
-        dmcSampleFolderButton.setBounds({});
         dmcSampleBankButton.setBounds({});
-        dmcSampleSlotBox.setBounds({});
         dmcPlaybackModeBox.setBounds({});
         dmcMapRootBox.setBounds({});
         dmcLoopButton.setBounds({});
@@ -2657,8 +2665,13 @@ void ChipperAudioProcessorEditor::resized()
         auto sampleHeader = brrCell.removeFromTop(22);
         dmcSampleLabel.setText("BRR Sample", juce::dontSendNotification);
         dmcSampleLabel.setBounds(sampleHeader.removeFromLeft(92));
-        dmcSampleFileButton.setBounds(sampleHeader.removeFromLeft(64).reduced(0, 1));
+        const auto brrButtonWidth = std::max(52, (sampleHeader.getWidth() - 4) / 2);
+        dmcSampleFileButton.setBounds(sampleHeader.removeFromLeft(brrButtonWidth).reduced(0, 1));
+        sampleHeader.removeFromLeft(4);
+        dmcSampleFolderButton.setBounds(sampleHeader.removeFromLeft(brrButtonWidth).reduced(0, 1));
         brrCell.removeFromTop(4);
+        dmcSampleSlotBox.setBounds(brrCell.removeFromTop(22).reduced(0, 1));
+        brrCell.removeFromTop(2);
         dmcSampleStatusLabel.setBounds(brrCell.reduced(0, 1));
     }
     else
@@ -6329,17 +6342,44 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
 void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
 {
     dmcSampleLabel.setText("BRR Sample", juce::dontSendNotification);
-    dmcSampleLabel.setTooltip("Load one user-provided SNES BRR sample. Directory banks and WAV-to-BRR conversion are planned.");
+    dmcSampleLabel.setTooltip(withMidiCcForRole("Load one user-provided SNES BRR sample or a folder of .brr files. CC117 selects the active preloaded BRR slot in SPC700 mode.", chipper::ChipParameterRole::nesDmcSampleSlot));
     dmcSampleFileButton.setButtonText("File");
     dmcSampleFileButton.setTooltip("Load one user-provided .brr file into the SPC700-style sample voice model.");
+    dmcSampleFolderButton.setButtonText("Folder");
+    dmcSampleFolderButton.setTooltip("Load a folder of user-provided .brr files. The first 32 readable BRR files become CC117-addressable sample slots.");
+
+    const auto names = audioProcessor.spc700BrrSampleNames();
+    const auto sampleCount = names.size();
+    const auto revision = audioProcessor.spc700BrrSampleRevision();
+    const auto selectedSlot = static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcSampleSlot)));
+
+    const juce::ScopedValueSetter<bool> suppress(suppressManualChoiceCallbacks, true);
+    if (sampleCount != displayedDmcSampleCount || revision != displayedDmcSampleRevision)
+    {
+        dmcSampleSlotBox.clear(juce::dontSendNotification);
+        for (int i = 0; i < sampleCount; ++i)
+            dmcSampleSlotBox.addItem(juce::String(i + 1).paddedLeft('0', 2) + "  " + names[i], i + 1);
+
+        displayedDmcSampleCount = sampleCount;
+        displayedDmcSampleRevision = revision;
+    }
+
+    if (sampleCount > 0)
+        dmcSampleSlotBox.setSelectedId(std::clamp(selectedSlot, 0, sampleCount - 1) + 1, juce::dontSendNotification);
+    else
+        dmcSampleSlotBox.setSelectedId(0, juce::dontSendNotification);
+
+    dmcSampleSlotBox.setEnabled(sampleCount > 0);
+    dmcSampleSlotBox.setTextWhenNothingSelected("No BRR samples");
+    dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the active BRR sample from the loaded SPC700 bank. MIDI CC117 selects the same slot in SNES mode.", chipper::ChipParameterRole::nesDmcSampleSlot));
 
     const auto info = audioProcessor.spc700BrrSampleInfo();
     dmcSampleStatusLabel.setText(info.statusLine, juce::dontSendNotification);
     auto tooltip = info.statusLine
-        + "\nBRR files are decoded into the clean-room SPC700 sample voice path. The current plugin UI supports one loaded BRR sample; renderer tests cover BRR block decode metadata.";
+        + "\nBRR files are decoded into the clean-room SPC700 sample voice path. Folder loads keep up to 32 user-provided BRR files addressable by the dropdown and CC117.";
     if (info.loaded)
         tooltip += "\nPath: " + info.path;
-    dmcSampleStatusLabel.setTooltip(tooltip);
+    dmcSampleStatusLabel.setTooltip(withMidiCcForRole(tooltip, chipper::ChipParameterRole::nesDmcSampleSlot));
 }
 
 void ChipperAudioProcessorEditor::chooseDmcSampleFile()
@@ -6371,6 +6411,22 @@ void ChipperAudioProcessorEditor::chooseSpc700BrrSampleFile()
                                           return;
 
                                       handleDmcSampleLoadResult(audioProcessor.loadSpc700BrrSampleFile(file));
+                                  });
+}
+
+void ChipperAudioProcessorEditor::chooseSpc700BrrSampleDirectory()
+{
+    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose a folder of SPC700 BRR samples",
+                                                           juce::File {},
+                                                           "*.brr");
+    dmcSampleChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
+                                  [this](const juce::FileChooser& chooser)
+                                  {
+                                      const auto directory = chooser.getResult();
+                                      if (directory == juce::File {})
+                                          return;
+
+                                      handleDmcSampleLoadResult(audioProcessor.loadSpc700BrrSampleDirectory(directory));
                                   });
 }
 
@@ -6431,6 +6487,11 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto chipChangedAfterInitialLoad = descriptorTextInitialized && mode != displayedMode;
     descriptorTextInitialized = true;
     displayedMode = mode;
+    if (chipChangedAfterInitialLoad)
+    {
+        displayedDmcSampleCount = -1;
+        displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();
+    }
     const auto& descriptor = chipper::descriptorFor(mode);
     const auto hasLiveCore = descriptor.implemented;
     const auto supportsChipPoly = chipper::supportsPlayMode(mode, chipper::PlayMode::chipPoly);
@@ -6499,24 +6560,25 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcSampleLabel.setVisible(showSampleFileControls);
     dmcSampleStatusLabel.setVisible(showSampleFileControls);
     dmcSampleFileButton.setVisible(showSampleFileControls);
-    dmcSampleFolderButton.setVisible(showNesDmcSampleControls);
+    dmcSampleFolderButton.setVisible(showSampleFileControls);
     dmcSampleBankButton.setVisible(showNesDmcSampleControls);
-    dmcSampleSlotBox.setVisible(showNesDmcSampleControls);
+    dmcSampleSlotBox.setVisible(showNesDmcSampleControls || showSpc700BrrControls);
     dmcPlaybackModeBox.setVisible(showNesDmcSampleControls);
     dmcMapRootBox.setVisible(showNesDmcSampleControls);
     dmcLoopButton.setVisible(showNesDmcSampleControls);
     dmcSampleLabel.setEnabled(showSampleFileControls);
     dmcSampleStatusLabel.setEnabled(showSampleFileControls);
     dmcSampleFileButton.setEnabled(showSampleFileControls);
-    dmcSampleFolderButton.setEnabled(showNesDmcSampleControls);
+    dmcSampleFolderButton.setEnabled(showSampleFileControls);
     dmcSampleBankButton.setEnabled(showNesDmcSampleControls);
-    dmcSampleSlotBox.setEnabled(showNesDmcSampleControls);
+    dmcSampleSlotBox.setEnabled(showNesDmcSampleControls || showSpc700BrrControls);
     dmcPlaybackModeBox.setEnabled(showNesDmcSampleControls);
     dmcMapRootBox.setEnabled(showNesDmcSampleControls);
     dmcLoopButton.setEnabled(showNesDmcSampleControls);
     dmcSampleLabel.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
     dmcSampleStatusLabel.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
     dmcSampleFileButton.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
+    dmcSampleFolderButton.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
     dmcSampleBankButton.setAlpha(showNesDmcSampleControls ? 1.0f : 0.55f);
     dmcPlaybackModeBox.setAlpha(showNesDmcSampleControls ? 1.0f : 0.55f);
     dmcMapRootBox.setAlpha(showNesDmcSampleControls ? 1.0f : 0.55f);

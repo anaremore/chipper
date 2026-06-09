@@ -88,6 +88,22 @@ bool writeDmcFixture(const juce::File& file, uint8_t seed)
     const std::array<uint8_t, 4> bytes { seed, static_cast<uint8_t>(seed ^ 0x55u), 0xf0u, 0x0fu };
     return file.replaceWithData(bytes.data(), bytes.size());
 }
+
+bool writeBrrFixture(const juce::File& file, uint8_t seed)
+{
+    const std::array<uint8_t, 9> bytes {
+        0x81u,
+        seed,
+        static_cast<uint8_t>(seed ^ 0x11u),
+        static_cast<uint8_t>(seed ^ 0x22u),
+        static_cast<uint8_t>(seed ^ 0x33u),
+        static_cast<uint8_t>(seed ^ 0x44u),
+        static_cast<uint8_t>(seed ^ 0x55u),
+        static_cast<uint8_t>(seed ^ 0x66u),
+        static_cast<uint8_t>(seed ^ 0x77u)
+    };
+    return file.replaceWithData(bytes.data(), bytes.size());
+}
 }
 
 int main()
@@ -412,6 +428,42 @@ int main()
     ok &= expect(restoredEntries[32].included && restoredEntries[32].activeSlot, "DMC state restore should preserve checked staged entries");
     ok &= expect(restoredActiveNames[31] == "sample-32.dmc", "DMC state restore should preserve active bank ordering");
     dmcDir.deleteRecursively();
+
+    sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 7));
+    auto brrDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-spc700-brr-bank-test");
+    brrDir.deleteRecursively();
+    ok &= expect(brrDir.createDirectory().wasOk(), "Should create temporary SPC700 BRR bank test directory");
+    for (int i = 0; i < 3; ++i)
+    {
+        const auto name = "brr-" + juce::String(i).paddedLeft('0', 2) + ".brr";
+        ok &= expect(writeBrrFixture(brrDir.getChildFile(name), static_cast<uint8_t>(0x20 + i)),
+                     "Should write temporary BRR fixture " + name.toStdString());
+    }
+
+    ok &= expect(processor.loadSpc700BrrSampleDirectory(brrDir).wasOk(), "Should load SPC700 BRR sample directory");
+    auto brrNames = processor.spc700BrrSampleNames();
+    ok &= expect(brrNames.size() == 3, "SPC700 BRR folder should expose every readable BRR sample up to the slot limit");
+    ok &= expect(brrNames[0] == "brr-00.brr" && brrNames[2] == "brr-02.brr",
+                 "SPC700 BRR names should preserve sorted bank order");
+    sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 2));
+    auto brrInfo = processor.spc700BrrSampleInfo();
+    ok &= expect(brrInfo.loaded && brrInfo.sampleName == "brr-02.brr",
+                 "CC117 should select the active SPC700 BRR bank slot while in SNES mode");
+    ok &= expect(brrInfo.blockCount == 1 && brrInfo.statusLine.contains("Slot 3/3"),
+                 "SPC700 BRR status should report the selected slot and block count");
+
+    juce::MemoryBlock savedSpcState;
+    processor.getStateInformation(savedSpcState);
+    ChipperAudioProcessor restoredSpcProcessor;
+    restoredSpcProcessor.prepareToPlay(48000.0, 64);
+    restoredSpcProcessor.setStateInformation(savedSpcState.getData(), static_cast<int>(savedSpcState.getSize()));
+    processEmptyBlock(restoredSpcProcessor);
+    auto restoredBrrNames = restoredSpcProcessor.spc700BrrSampleNames();
+    auto restoredBrrInfo = restoredSpcProcessor.spc700BrrSampleInfo();
+    ok &= expect(restoredBrrNames.size() == 3, "SPC700 BRR state restore should reload staged sample paths");
+    ok &= expect(restoredBrrInfo.loaded && restoredBrrInfo.sampleName == "brr-02.brr",
+                 "SPC700 BRR state restore should preserve the selected slot after processing resumes");
+    brrDir.deleteRecursively();
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 3));
     sendController(processor, 101, controllerValueForChoice(processor, chipper::parameters::id::ymChannelAMix, 1));

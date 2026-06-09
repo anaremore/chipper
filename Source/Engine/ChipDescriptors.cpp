@@ -2000,7 +2000,7 @@ const std::vector<ChipDescriptor>& descriptors()
             {
                 makeModule("profile", "Profile", "SPC700-style clean-room sample groundwork.", { "SNES family", "32 kHz DSP-rate default", "Hybrid default", "Authentic still partial" }),
                 makeModule("sources", "Sample Voices", "All eight SPC700-style sample voices are exposed as playable lanes.", { "Voices 1-4", "Voices 5-8", "BRR sample lane", "Chip Poly" }),
-                makeModule("sample", "Sample / Pitch", "Generated lo-fi templates with simplified pitch and playback registers.", { "Bell", "Triangle", "Pulse", "Noise burst", "Loop / one-shot" }),
+                makeModule("sample", "Sample / Pitch", "Generated lo-fi templates plus user BRR file/folder loading.", { "BRR file", "BRR folder bank", "Loop / one-shot", "Slot CC117" }),
                 makeModule("envelope", "ADSR / Gain", "Simplified gain and envelope decay helper.", { "ADSR state", "Gain state", "Decay helper", "Register readout" }),
                 makeModule("motion", "Motion", "SNES-style SFX gestures mapped to sample pitch.", { "Voice arp", "Pitch sweep", "Jump blip", "Damage hit" }),
                 makeModule("output", "Output", "Soft sample output with echo-color helper.", { "Voice volume", "Stereo spread convenience", "Echo color", "Known differences" })
@@ -2011,8 +2011,8 @@ const std::vector<ChipDescriptor>& descriptors()
             spc700ParameterSpecs(),
             verifiedPartial(
                 {
-                    "Eight generated lo-fi sample voices render with pitch, volume, loop/one-shot playback mode, simplified ADSR/gain state, key-on/enabled masks, clean-room BRR block decoding for renderer-loaded samples, clean-room Gaussian-style 4-tap interpolation, and a musical echo-color helper.",
-                    "Source enables, source levels, sample-shape choices, BRR block/end/loop debug metadata, interpolation metadata, chip-poly allocation across all eight exposed voices, presets, and debug JSON are covered by automated renderer tests.",
+                    "Eight generated lo-fi sample voices render with pitch, volume, loop/one-shot playback mode, simplified ADSR/gain state, key-on/enabled masks, clean-room BRR block decoding for renderer-loaded samples and plugin-loaded user BRR file/folder banks, clean-room Gaussian-style 4-tap interpolation, and a musical echo-color helper.",
+                    "Source enables, source levels, sample-shape choices, BRR block/end/loop debug metadata, plugin BRR slot selection/state recall, interpolation metadata, chip-poly allocation across all eight exposed voices, presets, and debug JSON are covered by automated tests.",
                     "No third-party SPC700, S-DSP, BRR, SNES, or tracker-player source code is vendored in this clean-room partial model."
                 },
                 {

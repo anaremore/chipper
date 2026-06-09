@@ -16,6 +16,8 @@ constexpr auto registerTag = "REG";
 constexpr auto dmcBankStateTag = "CHIPPER_DMC_BANK";
 constexpr auto dmcSampleStateTag = "DMC_SAMPLE";
 constexpr auto spc700BrrStateTag = "CHIPPER_SPC700_BRR";
+constexpr auto spc700BrrBankStateTag = "CHIPPER_SPC700_BRR_BANK";
+constexpr auto spc700BrrSampleStateTag = "BRR_SAMPLE";
 constexpr auto unmappedDmcSampleSlot = -2;
 
 juce::String midiNoteName(int note)
@@ -259,11 +261,53 @@ juce::Result ChipperAudioProcessor::loadSpc700BrrSampleFile(const juce::File& fi
 
     {
         const std::lock_guard<std::mutex> lock(spc700SampleMutex);
-        spc700BrrSample = std::move(slot);
-        ++spc700BrrSampleRevision;
+        spc700BrrSampleBank.clear();
+        spc700BrrSampleBank.push_back(std::move(slot));
+        spc700BrrSample = spc700BrrSampleBank.front();
+        ++spc700BrrSampleBankRevision;
     }
 
+    setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
     activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
+    activeSpc700BrrSampleSlot = -1;
+    applySpc700BrrSampleToCore();
+    return juce::Result::ok();
+}
+
+juce::Result ChipperAudioProcessor::loadSpc700BrrSampleDirectory(const juce::File& directory)
+{
+    if (! directory.isDirectory())
+        return juce::Result::fail("BRR sample directory does not exist: " + directory.getFullPathName());
+
+    juce::Array<juce::File> files;
+    directory.findChildFiles(files, juce::File::findFiles, false, "*.brr");
+    files.sort();
+
+    std::vector<DmcSampleSlot> loaded;
+    loaded.reserve(static_cast<size_t>(std::min(32, files.size())));
+    for (const auto& file : files)
+    {
+        if (loaded.size() >= 32u)
+            break;
+
+        DmcSampleSlot slot;
+        if (readSpc700BrrSampleFile(file, slot).wasOk())
+            loaded.push_back(std::move(slot));
+    }
+
+    if (loaded.empty())
+        return juce::Result::fail("No readable .brr files found in: " + directory.getFullPathName());
+
+    {
+        const std::lock_guard<std::mutex> lock(spc700SampleMutex);
+        spc700BrrSampleBank = std::move(loaded);
+        spc700BrrSample = spc700BrrSampleBank.front();
+        ++spc700BrrSampleBankRevision;
+    }
+
+    setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
+    activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
+    activeSpc700BrrSampleSlot = -1;
     applySpc700BrrSampleToCore();
     return juce::Result::ok();
 }
@@ -354,11 +398,15 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
     }
 
     info.loaded = true;
+    const auto selectedSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
+    const auto bankCount = static_cast<int>(spc700BrrSampleBank.empty() ? 1u : spc700BrrSampleBank.size());
+    const auto safeSlot = std::clamp(selectedSlot, 0, std::max(0, bankCount - 1));
     info.sampleName = spc700BrrSample.name;
     info.path = spc700BrrSample.path;
     info.byteCount = static_cast<int>(spc700BrrSample.bytes.size());
     info.blockCount = info.byteCount / 9;
-    info.statusLine = info.sampleName + " (" + juce::String(info.byteCount) + " bytes, "
+    info.statusLine = "Slot " + juce::String(safeSlot + 1) + "/" + juce::String(bankCount)
+        + ": " + info.sampleName + " (" + juce::String(info.byteCount) + " bytes, "
         + juce::String(info.blockCount) + " BRR blocks)";
     return info;
 }
@@ -376,6 +424,22 @@ juce::StringArray ChipperAudioProcessor::nesDmcSampleNames() const
         if (names.size() >= 32)
             break;
     }
+
+    return names;
+}
+
+juce::StringArray ChipperAudioProcessor::spc700BrrSampleNames() const
+{
+    juce::StringArray names;
+    const std::lock_guard<std::mutex> lock(spc700SampleMutex);
+    if (spc700BrrSampleBank.empty() && ! spc700BrrSample.bytes.empty())
+    {
+        names.add(spc700BrrSample.name);
+        return names;
+    }
+
+    for (const auto& slot : spc700BrrSampleBank)
+        names.add(slot.name);
 
     return names;
 }
@@ -500,6 +564,12 @@ uint64_t ChipperAudioProcessor::nesDmcSampleRevision() const
 {
     const std::lock_guard<std::mutex> lock(dmcSampleMutex);
     return dmcSampleBankRevision;
+}
+
+uint64_t ChipperAudioProcessor::spc700BrrSampleRevision() const
+{
+    const std::lock_guard<std::mutex> lock(spc700SampleMutex);
+    return spc700BrrSampleBankRevision;
 }
 
 bool ChipperAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -769,6 +839,7 @@ void ChipperAudioProcessor::ensureCore()
     activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
     activeDmcSampleSlot = -1;
     activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
+    activeSpc700BrrSampleSlot = -1;
     applySelectedDmcSampleToCore();
     applySpc700BrrSampleToCore();
     replayPendingRegisterState();
@@ -871,16 +942,29 @@ void ChipperAudioProcessor::applySpc700BrrSampleToCore()
 
     std::vector<uint8_t> selectedBytes;
     uint64_t revision = 0;
+    auto resolvedSlot = -1;
     {
         const std::lock_guard<std::mutex> lock(spc700SampleMutex);
-        revision = spc700BrrSampleRevision;
+        revision = spc700BrrSampleBankRevision;
+        if (! spc700BrrSampleBank.empty())
+        {
+            const auto selectedSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
+            resolvedSlot = std::clamp(selectedSlot, 0, static_cast<int>(spc700BrrSampleBank.size() - 1u));
+            spc700BrrSample = spc700BrrSampleBank[static_cast<size_t>(resolvedSlot)];
+        }
+        else if (! spc700BrrSample.bytes.empty())
+        {
+            resolvedSlot = 0;
+        }
+
         selectedBytes = spc700BrrSample.bytes;
     }
 
-    if (revision == activeSpc700BrrSampleRevision)
+    if (revision == activeSpc700BrrSampleRevision && resolvedSlot == activeSpc700BrrSampleSlot)
         return;
 
     activeSpc700BrrSampleRevision = revision;
+    activeSpc700BrrSampleSlot = resolvedSlot;
     core->setExternalSampleData(std::move(selectedBytes));
 }
 
@@ -1008,6 +1092,8 @@ void ChipperAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
         xml->removeChildElement(existingDmcBankState, true);
     while (auto* existingSpcBrrState = xml->getChildByName(spc700BrrStateTag))
         xml->removeChildElement(existingSpcBrrState, true);
+    while (auto* existingSpcBrrBankState = xml->getChildByName(spc700BrrBankStateTag))
+        xml->removeChildElement(existingSpcBrrBankState, true);
 
     if (core != nullptr)
     {
@@ -1048,7 +1134,20 @@ void ChipperAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 
     {
         const std::lock_guard<std::mutex> lock(spc700SampleMutex);
-        if (! spc700BrrSample.bytes.empty())
+        if (! spc700BrrSampleBank.empty())
+        {
+            auto* spcBrrBankState = new juce::XmlElement(spc700BrrBankStateTag);
+            spcBrrBankState->setAttribute("count", static_cast<int>(spc700BrrSampleBank.size()));
+            for (const auto& slot : spc700BrrSampleBank)
+            {
+                auto* sample = new juce::XmlElement(spc700BrrSampleStateTag);
+                sample->setAttribute("path", slot.path);
+                spcBrrBankState->addChildElement(sample);
+            }
+
+            xml->addChildElement(spcBrrBankState);
+        }
+        else if (! spc700BrrSample.bytes.empty())
         {
             auto* spcBrrState = new juce::XmlElement(spc700BrrStateTag);
             spcBrrState->setAttribute("path", spc700BrrSample.path);
@@ -1067,6 +1166,7 @@ void ChipperAudioProcessor::setStateInformation(const void* data, int sizeInByte
         pendingRegisterState.clear();
         std::vector<DmcSampleSlot> restoredDmcBank;
         DmcSampleSlot restoredSpcBrrSample;
+        std::vector<DmcSampleSlot> restoredSpcBrrBank;
         if (auto* coreState = xml->getChildByName(coreStateTag))
         {
             for (const auto* child : coreState->getChildIterator())
@@ -1101,10 +1201,32 @@ void ChipperAudioProcessor::setStateInformation(const void* data, int sizeInByte
             xml->removeChildElement(dmcBankState, true);
         }
 
-        if (auto* spcBrrState = xml->getChildByName(spc700BrrStateTag))
+        if (auto* spcBrrBankState = xml->getChildByName(spc700BrrBankStateTag))
         {
-            readSpc700BrrSampleFile(juce::File(spcBrrState->getStringAttribute("path")), restoredSpcBrrSample);
-            xml->removeChildElement(spcBrrState, true);
+            restoredSpcBrrBank.reserve(static_cast<size_t>(std::max(0, spcBrrBankState->getIntAttribute("count"))));
+            for (const auto* child : spcBrrBankState->getChildIterator())
+            {
+                if (child == nullptr || ! child->hasTagName(spc700BrrSampleStateTag))
+                    continue;
+
+                DmcSampleSlot slot;
+                if (readSpc700BrrSampleFile(juce::File(child->getStringAttribute("path")), slot).wasOk())
+                    restoredSpcBrrBank.push_back(std::move(slot));
+            }
+            if (! restoredSpcBrrBank.empty())
+                restoredSpcBrrSample = restoredSpcBrrBank.front();
+            xml->removeChildElement(spcBrrBankState, true);
+        }
+
+        if (restoredSpcBrrBank.empty())
+        {
+            if (auto* spcBrrState = xml->getChildByName(spc700BrrStateTag))
+            {
+                readSpc700BrrSampleFile(juce::File(spcBrrState->getStringAttribute("path")), restoredSpcBrrSample);
+                if (! restoredSpcBrrSample.bytes.empty())
+                    restoredSpcBrrBank.push_back(restoredSpcBrrSample);
+                xml->removeChildElement(spcBrrState, true);
+            }
         }
 
         apvts.replaceState(juce::ValueTree::fromXml(*xml));
@@ -1115,12 +1237,14 @@ void ChipperAudioProcessor::setStateInformation(const void* data, int sizeInByte
         }
         {
             const std::lock_guard<std::mutex> lock(spc700SampleMutex);
+            spc700BrrSampleBank = std::move(restoredSpcBrrBank);
             spc700BrrSample = std::move(restoredSpcBrrSample);
-            ++spc700BrrSampleRevision;
+            ++spc700BrrSampleBankRevision;
         }
         activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
         activeDmcSampleSlot = -1;
         activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
+        activeSpc700BrrSampleSlot = -1;
         core.reset();
         hasObservedMacroSnapshot = false;
     }
