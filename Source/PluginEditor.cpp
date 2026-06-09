@@ -2364,8 +2364,9 @@ void ChipperAudioProcessorEditor::resized()
 
     constexpr auto footerReserve = 52;
     const auto sidLayout = displayedMode == chipper::ChipMode::sid;
-    const auto performanceStripHeight = sidLayout ? 260 : 300;
-    const auto maxModulesHeight = sidLayout ? 620 : 492;
+    const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
+    const auto performanceStripHeight = sidLayout ? 260 : (spc700Layout ? 280 : 300);
+    const auto maxModulesHeight = sidLayout ? 620 : (spc700Layout ? 540 : 492);
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
@@ -2389,6 +2390,25 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[3] = { modules.getX(), envelopeY, modules.getWidth(), envelopeHeight };
         moduleBounds[4] = { rightX, middleY, columnWidth, middleRowHeight };
         moduleBounds[5] = {};
+    }
+    else if (spc700Layout)
+    {
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.24)), 108, 136);
+        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.38)), 172, 220);
+        const auto bottomRowHeight = std::max(128, modules.getHeight() - topRowHeight - sourceRowHeight - (gap * 2));
+        const auto leftX = modules.getX();
+        const auto rightX = modules.getX() + columnWidth + gap;
+        const auto bottomColumnWidth = (modules.getWidth() - (gap * 2)) / 3;
+        const auto topY = modules.getY();
+        const auto sourceY = topY + topRowHeight + gap;
+        const auto bottomY = sourceY + sourceRowHeight + gap;
+
+        moduleBounds[0] = { leftX, topY, columnWidth, topRowHeight };
+        moduleBounds[1] = { modules.getX(), sourceY, modules.getWidth(), sourceRowHeight };
+        moduleBounds[2] = { rightX, topY, columnWidth, topRowHeight };
+        moduleBounds[3] = { modules.getX(), bottomY, bottomColumnWidth, bottomRowHeight };
+        moduleBounds[4] = { modules.getX() + bottomColumnWidth + gap, bottomY, bottomColumnWidth, bottomRowHeight };
+        moduleBounds[5] = { modules.getX() + ((bottomColumnWidth + gap) * 2), bottomY, bottomColumnWidth, bottomRowHeight };
     }
     else
     {
@@ -2451,8 +2471,15 @@ void ChipperAudioProcessorEditor::resized()
 
     const auto sourceGap = 6;
     const auto visibleSourceCards = chipper::visibleSourceCountForMode(displayedMode);
-    const auto sourceCardWidth = (sourcePanel.getWidth() - (sourceGap * static_cast<int>(visibleSourceCards - 1u))) / static_cast<int>(visibleSourceCards);
-    const auto sourceCardHeight = sourcePanel.getHeight();
+    const auto useSpc700VoiceGrid = displayedMode == chipper::ChipMode::spc700 && visibleSourceCards > 4u;
+    const auto sourceColumns = useSpc700VoiceGrid ? 4 : static_cast<int>(visibleSourceCards);
+    const auto sourceRows = useSpc700VoiceGrid ? static_cast<int>((visibleSourceCards + 3u) / 4u) : 1;
+    const auto sourceCardWidth = sourceColumns > 0
+        ? (sourcePanel.getWidth() - (sourceGap * (sourceColumns - 1))) / sourceColumns
+        : sourcePanel.getWidth();
+    const auto sourceCardHeight = sourceRows > 0
+        ? (sourcePanel.getHeight() - (sourceGap * (sourceRows - 1))) / sourceRows
+        : sourcePanel.getHeight();
     for (size_t i = 0; i < sourceChannelBounds.size(); ++i)
     {
         if (i >= visibleSourceCards)
@@ -2474,17 +2501,22 @@ void ChipperAudioProcessorEditor::resized()
             continue;
         }
 
+        const auto sourceColumn = useSpc700VoiceGrid ? static_cast<int>(i % 4u) : static_cast<int>(i);
+        const auto sourceRow = useSpc700VoiceGrid ? static_cast<int>(i / 4u) : 0;
         sourceChannelBounds[i] = {
-            sourcePanel.getX() + (static_cast<int>(i) * (sourceCardWidth + sourceGap)),
-            sourcePanel.getY(),
+            sourcePanel.getX() + (sourceColumn * (sourceCardWidth + sourceGap)),
+            sourcePanel.getY() + (sourceRow * (sourceCardHeight + sourceGap)),
             sourceCardWidth,
             sourceCardHeight
         };
         const auto isSidSourceCard = displayedMode == chipper::ChipMode::sid;
-        auto sourceCard = sourceChannelBounds[i].reduced(8, isSidSourceCard ? 2 : 4);
-        sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(isSidSourceCard ? 17 : 18, sourceCard.getHeight())));
+        auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : 8, isSidSourceCard ? 2 : 4);
+        const auto buttonHeight = useSpc700VoiceGrid ? 15 : (isSidSourceCard ? 17 : 18);
+        sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(2);
-        const auto previewHeight = std::clamp(sourceCard.getHeight() / 4, isSidSourceCard ? 22 : 20, isSidSourceCard ? 32 : 28);
+        const auto previewHeight = std::clamp(sourceCard.getHeight() / (useSpc700VoiceGrid ? 3 : 4),
+                                              useSpc700VoiceGrid ? 13 : (isSidSourceCard ? 22 : 20),
+                                              useSpc700VoiceGrid ? 20 : (isSidSourceCard ? 32 : 28));
         sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(previewHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(1);
 
@@ -2502,11 +2534,11 @@ void ChipperAudioProcessorEditor::resized()
             sourceCard.removeFromTop(1);
         }
 
-        auto levelRow = sourceCard.removeFromTop(std::min(12, sourceCard.getHeight()));
-        sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(48, levelRow.getWidth())));
+        auto levelRow = sourceCard.removeFromTop(std::min(useSpc700VoiceGrid ? 10 : 12, sourceCard.getHeight()));
+        sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(useSpc700VoiceGrid ? 34 : 48, levelRow.getWidth())));
         sourceLevelValueLabels[i].setBounds(levelRow);
         sourceCard.removeFromTop(1);
-        sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(isSidSourceCard ? 11 : 14, sourceCard.getHeight())).reduced(0, 1));
+        sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(useSpc700VoiceGrid ? 10 : (isSidSourceCard ? 11 : 14), sourceCard.getHeight())).reduced(0, 1));
     }
 
     auto tonePanel = moduleBounds[2].reduced(12, 9);
@@ -4105,20 +4137,20 @@ juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMod
     {
         const auto noiseMode = chipper::spc700NoiseModeForPatch(patch);
         if (noiseMode > 1u)
-            return "Voice " + number
-                + " | Noise clk " + juce::String(static_cast<int>(chipper::spc700NoiseClockForPatch(patch)));
+            return "V" + number
+                + " | Noise " + juce::String(static_cast<int>(chipper::spc700NoiseClockForPatch(patch)));
 
         const auto info = audioProcessor.spc700BrrSampleInfo();
         if (info.loaded)
         {
             const auto modeText = info.playbackMode == 0 ? juce::String("Manual") : juce::String("Map");
             const auto slotText = info.bankCount > 1
-                ? juce::String("Sample ") + modeText + " " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
+                ? juce::String("S ") + modeText + " " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
                 : juce::String("Sample");
-            return "Voice " + number + " | " + slotText;
+            return "V" + number + " | " + slotText;
         }
 
-        return "Voice " + number
+        return "V" + number
             + " | T" + juce::String(templateId)
             + " " + juce::String(sample0) + "/" + juce::String(sample32);
     }
