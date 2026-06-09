@@ -6747,9 +6747,32 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
             + "-" + chipper::parameters::midiNoteChoices()[info.mapHighNote];
     else if (info.loaded && info.bankCount > 1)
         visibleStatus += " | Manual";
+    if (info.loaded)
+    {
+        visibleStatus += " | ARAM "
+            + juce::String(static_cast<double>(info.bankByteCount) / 1024.0, info.bankByteCount < 10240 ? 1 : 0)
+            + "/64 KB";
+        if (info.exceedsAramBudget)
+            visibleStatus += " over";
+        else if (info.nearAramBudget)
+            visibleStatus += " near";
+    }
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
     auto tooltip = info.statusLine
         + "\nBRR files are decoded into the clean-room SPC700 sample voice path. WAV/AIFF files import as 8-bit sample memory; true WAV-to-BRR conversion remains planned. Folder loads keep up to 32 user-provided files addressable by the dropdown and CC117.";
+    if (info.loaded)
+    {
+        tooltip += "\nActive bank payload: " + juce::String(info.bankByteCount) + " bytes / "
+            + juce::String(static_cast<double>(info.bankByteCount) / 1024.0, 1)
+            + " KB of the SNES 64 KB audio RAM world.";
+        if (info.bankBrrBlockCount > 0)
+            tooltip += " BRR blocks: " + juce::String(info.bankBrrBlockCount) + ".";
+        tooltip += "\nThe real SPC700/S-DSP shares this memory with driver code, echo buffers, sequence data, and sample directory metadata, so this is a practical warning rather than an exact cartridge budget.";
+        if (info.exceedsAramBudget)
+            tooltip += "\nWarning: checked samples exceed 64 KB before driver/echo overhead.";
+        else if (info.nearAramBudget)
+            tooltip += "\nWarning: checked samples are near the 64 KB ceiling before driver/echo overhead.";
+    }
     if (playbackMode == 0)
         tooltip += "\nSample Playback is Manual Slot: each MIDI note uses the selected dropdown sample.";
     else

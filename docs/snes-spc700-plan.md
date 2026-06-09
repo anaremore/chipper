@@ -22,6 +22,7 @@ Chipper's SNES mode should become a hardware-shaped sampler, not another oscilla
 - Primary target: BRR sample import/playback.
 - Modern convenience: WAV/AIFF directory import with background conversion preview, but do not imply hardware authenticity until converted to BRR or rendered through a verified BRR decoder.
 - UI should show memory budget and loop state. A directory browser with checkboxes fits the current NES DMC direction and should scale to SNES sample banks.
+- Done first pass: plugin sample-bank status reports checked-slot payload against a practical 64 KB SNES audio-RAM budget and warns when the bank is near or over that ceiling before driver/echo overhead.
 
 ### Interpolation And Output
 
@@ -68,6 +69,7 @@ Checked 2026-06-07:
    - Load a directory of `.brr` files first, using the renderer BRR decode path as the engine foundation.
    - Add optional WAV/AIFF discovery later, with conversion preview and clear "converted to BRR" status.
    - Add MIDI CC/sample-slot mapping with a finite bank selection model, matching the NES DMC sample-bank pattern.
+   - Done first pass: local BRR/WAV/AIFF folders can be staged as checked 32-slot banks, mapped from a root MIDI note, and shown with a practical 64 KB audio-RAM budget cue.
 
 4. **S-DSP Voice Behavior**
    - Add ADSR/GAIN envelope tests.

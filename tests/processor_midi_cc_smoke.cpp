@@ -512,6 +512,8 @@ int main()
                  "CC117 should select the active SPC700 BRR bank slot while in SNES mode");
     ok &= expect(brrInfo.blockCount == 1 && brrInfo.statusLine.contains("Slot 3/3"),
                  "SPC700 BRR status should report the selected slot and block count");
+    ok &= expect(brrInfo.bankByteCount == 27 && brrInfo.bankBrrBlockCount == 3 && ! brrInfo.nearAramBudget && ! brrInfo.exceedsAramBudget,
+                 "SPC700 BRR sample info should report active bank payload against the SNES audio-RAM budget");
     sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 0));
     sendNoteOn(processor, 37);
     brrInfo = processor.spc700BrrSampleInfo();
@@ -578,6 +580,8 @@ int main()
                  "CC117 should select the active SPC700 WAV-imported sample slot");
     ok &= expect(spcWavInfo.blockCount == 0 && spcWavInfo.statusLine.contains("imported 8-bit samples"),
                  "SPC700 WAV-imported sample status should report 8-bit sample memory instead of BRR blocks");
+    ok &= expect(spcWavInfo.bankByteCount == 768 && spcWavInfo.bankBrrBlockCount == 0,
+                 "SPC700 WAV-imported sample bank should report its active imported sample-memory payload");
 
     ChipperAudioProcessor spcWavMapAuditionProcessor;
     spcWavMapAuditionProcessor.prepareToPlay(48000.0, 256);

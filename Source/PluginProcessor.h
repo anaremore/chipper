@@ -59,12 +59,17 @@ public:
         juce::String path;
         int byteCount = 0;
         int blockCount = 0;
+        int bankByteCount = 0;
+        int bankBrrBlockCount = 0;
+        int aramBudgetBytes = 65536;
         int bankCount = 0;
         int selectedSlot = -1;
         int playbackMode = 0;
         int mapRootNote = 36;
         int mapHighNote = 36;
         bool loaded = false;
+        bool nearAramBudget = false;
+        bool exceedsAramBudget = false;
     };
 
     ChipperAudioProcessor();

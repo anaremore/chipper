@@ -555,6 +555,15 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
 
     const auto bankCount = static_cast<int>(activeSlots.size());
     auto safeSlot = std::clamp(selectedSlot, 0, std::max(0, bankCount - 1));
+    auto bankByteCount = 0;
+    auto bankBrrBlockCount = 0;
+    for (const auto* slot : activeSlots)
+    {
+        bankByteCount += static_cast<int>(slot->bytes.size());
+        if (slot->encoding == chipper::ExternalSampleEncoding::spc700Brr)
+            bankBrrBlockCount += static_cast<int>(slot->bytes.size() / 9u);
+    }
+
     for (int i = 0; i < static_cast<int>(activeSlots.size()); ++i)
     {
         if (activeSlots[static_cast<size_t>(i)]->path == spc700BrrSample.path)
@@ -570,11 +579,15 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
     info.path = selected.path;
     info.byteCount = static_cast<int>(selected.bytes.size());
     info.blockCount = selected.encoding == chipper::ExternalSampleEncoding::spc700Brr ? info.byteCount / 9 : 0;
+    info.bankByteCount = bankByteCount;
+    info.bankBrrBlockCount = bankBrrBlockCount;
     info.bankCount = bankCount;
     info.selectedSlot = safeSlot;
     info.playbackMode = playbackMode;
     info.mapRootNote = mapRootNote;
     info.mapHighNote = std::clamp(mapRootNote + std::max(0, bankCount - 1), 0, 127);
+    info.nearAramBudget = info.bankByteCount >= static_cast<int>(static_cast<double>(info.aramBudgetBytes) * 0.75);
+    info.exceedsAramBudget = info.bankByteCount > info.aramBudgetBytes;
     info.statusLine = "Slot " + juce::String(safeSlot + 1) + "/" + juce::String(bankCount)
         + ": " + info.sampleName + (selected.encoding == chipper::ExternalSampleEncoding::spc700Brr
             ? " (" + juce::String(info.byteCount) + " bytes, " + juce::String(info.blockCount) + " BRR blocks)"
