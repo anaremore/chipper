@@ -60,6 +60,23 @@ void sendNoteOn(ChipperAudioProcessor& processor, int note, float velocity = 1.0
     processor.processBlock(buffer, midi);
 }
 
+float renderNoteOnPeak(ChipperAudioProcessor& processor, int note, float velocity = 1.0f)
+{
+    juce::AudioBuffer<float> buffer(2, 256);
+    juce::MidiBuffer midi;
+    midi.addEvent(juce::MidiMessage::noteOn(1, note, velocity), 0);
+    processor.processBlock(buffer, midi);
+
+    auto peak = 0.0f;
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+    {
+        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+            peak = std::max(peak, std::abs(buffer.getSample(channel, sample)));
+    }
+
+    return peak;
+}
+
 void setPlainFromHost(ChipperAudioProcessor& processor, const char* parameterId, float plainValue)
 {
     if (auto* parameter = processor.getValueTreeState().getParameter(parameterId))
@@ -466,11 +483,18 @@ int main()
                  "SPC700 note map should select BRR slot 2 for C#1 when root is C1");
     ok &= expect(brrInfo.bankCount == 3 && brrInfo.selectedSlot == 1 && brrInfo.mapRootNote == 36 && brrInfo.mapHighNote == 38,
                  "SPC700 BRR sample info should expose selected slot and visible note-map span");
-    processEmptyBlock(processor);
-    sendNoteOn(processor, 50);
-    brrInfo = processor.spc700BrrSampleInfo();
-    ok &= expect(brrInfo.loaded && brrInfo.sampleName == "brr-02.brr",
-                 "SPC700 note map should clamp high notes to the last loaded BRR slot");
+
+    ChipperAudioProcessor spcMapAuditionProcessor;
+    spcMapAuditionProcessor.prepareToPlay(48000.0, 256);
+    sendController(spcMapAuditionProcessor, 70, controllerValueForChoice(spcMapAuditionProcessor, chipper::parameters::id::chipMode, 7));
+    ok &= expect(spcMapAuditionProcessor.loadSpc700BrrSampleDirectory(brrDir).wasOk(),
+                 "Should load SPC700 BRR sample directory for isolated note-map audio audition");
+    const auto outOfRangeMappedPeak = renderNoteOnPeak(spcMapAuditionProcessor, 50);
+    ok &= expect(outOfRangeMappedPeak <= 0.0001f,
+                 "SPC700 note map should leave notes above the loaded BRR bank span silent instead of clamping to the last slot");
+    const auto inRangeMappedPeak = renderNoteOnPeak(spcMapAuditionProcessor, 38);
+    ok &= expect(inRangeMappedPeak > 0.0001f,
+                 "SPC700 note map should produce audio for notes inside the loaded BRR bank span");
     sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 2));
 
     juce::MemoryBlock savedSpcState;

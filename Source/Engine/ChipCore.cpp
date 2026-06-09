@@ -5832,7 +5832,12 @@ public:
         externalBrrSampleLoaded = true;
         setExternalSampleSlot(selectedSlot);
         for (size_t voice = 0; voice < sampleRam.size(); ++voice)
-            sampleRam[voice] = externalBrrBank[static_cast<size_t>(selectedExternalBrrSlot)];
+        {
+            if (selectedExternalBrrSlot >= 0)
+                sampleRam[voice] = externalBrrBank[static_cast<size_t>(selectedExternalBrrSlot)];
+            else
+                sampleRam[voice].clear();
+        }
         sampleTemplate = 0;
         position.fill(0.0);
     }
@@ -5843,6 +5848,13 @@ public:
         {
             selectedExternalBrrSlot = -1;
             externalBrrSampleLoaded = false;
+            return;
+        }
+
+        if (selectedSlot < 0)
+        {
+            selectedExternalBrrSlot = -1;
+            externalBrrSampleLoaded = true;
             return;
         }
 
@@ -6424,11 +6436,12 @@ private:
 
     void applyCurrentSampleToVoice(size_t voice)
     {
-        if (externalBrrSampleLoaded
-            && selectedExternalBrrSlot >= 0
-            && static_cast<size_t>(selectedExternalBrrSlot) < externalBrrBank.size())
+        if (externalBrrSampleLoaded)
         {
-            sampleRam[voice] = externalBrrBank[static_cast<size_t>(selectedExternalBrrSlot)];
+            if (selectedExternalBrrSlot >= 0 && static_cast<size_t>(selectedExternalBrrSlot) < externalBrrBank.size())
+                sampleRam[voice] = externalBrrBank[static_cast<size_t>(selectedExternalBrrSlot)];
+            else
+                sampleRam[voice].clear();
             return;
         }
 
