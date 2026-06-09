@@ -4017,6 +4017,20 @@ juce::String ChipperAudioProcessorEditor::spc700EnvelopeReadout(const chipper::P
     return prefix + shapeText + " envelope, ADSR $" + byteHex(chipper::spc700AdsrForPatch(patch));
 }
 
+juce::String ChipperAudioProcessorEditor::spc700EchoReadout(const chipper::PatchConfig& patch) const
+{
+    const auto color = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
+    if (color <= 0.01)
+        return "Echo off";
+
+    const auto send = std::clamp(0.08 + (color * 0.42), 0.0, 0.50);
+    const auto feedback = std::clamp(0.16 + (color * 0.42), 0.0, 0.58);
+    const auto delayMs = 32.0 + std::round(color * 13.0) * 16.0;
+    return juce::String("Echo send ") + juce::String(static_cast<int>(std::round(send * 100.0))) + "%"
+        + ", fb " + juce::String(static_cast<int>(std::round(feedback * 100.0))) + "%"
+        + ", " + juce::String(static_cast<int>(std::round(delayMs))) + " ms";
+}
+
 juce::String ChipperAudioProcessorEditor::spc700NoiseReadout(const chipper::PatchConfig& patch) const
 {
     const auto mode = chipper::spc700NoiseModeForPatch(patch);
@@ -5896,7 +5910,10 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
         tooltip = juce::String("SPC700-style sample voice ") + juce::String(static_cast<int>(index + 1u))
             + ": generated lo-fi sample template preview."
             + "\nSample Shape: " + waveShapeReadout(mode, patch.waveShape)
+            + "\nPlayback: " + spc700SamplePlaybackReadout(patch)
+            + "\nEnvelope: " + spc700EnvelopeReadout(patch)
             + "\nNoise Source: " + spc700NoiseReadout(patch)
+            + "\nEcho: " + spc700EchoReadout(patch)
             + "\n" + sampleSourceRegisterReadout(mode, patch, index);
     }
     else if (mode == chipper::ChipMode::paula)
@@ -7343,7 +7360,15 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[3].setText("AUDV volume " + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15", juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
-    else if (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
+    else if (mode == chipper::ChipMode::spc700)
+    {
+        controlValueLabels[0].setText(waveShapeReadout(mode, patch.waveShape), juce::dontSendNotification);
+        controlValueLabels[1].setText("Pitch motion " + juce::String(patch.control2, 2), juce::dontSendNotification);
+        controlValueLabels[2].setText(spc700EchoReadout(patch), juce::dontSendNotification);
+        controlValueLabels[3].setText(sampleChipReadout(mode, patch), juce::dontSendNotification);
+        updateSourceChannelButtons(mode);
+    }
+    else if (mode == chipper::ChipMode::paula)
     {
         controlValueLabels[0].setText(waveShapeReadout(mode, patch.waveShape), juce::dontSendNotification);
         controlValueLabels[1].setText("Pitch/rate motion " + juce::String(patch.control2, 2), juce::dontSendNotification);
