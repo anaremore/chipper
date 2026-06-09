@@ -253,7 +253,9 @@ bool expectLiveSourceLevelSpecs()
         chipper::ChipParameterRole::source3Level,
         chipper::ChipParameterRole::source4Level,
         chipper::ChipParameterRole::source5Level,
-        chipper::ChipParameterRole::source6Level
+        chipper::ChipParameterRole::source6Level,
+        chipper::ChipParameterRole::source7Level,
+        chipper::ChipParameterRole::source8Level
     };
 
     for (const auto mode : liveModes)
@@ -780,6 +782,10 @@ int main()
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Playback");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, "Sample");
     ok &= expectChoiceRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ControlSurface::menu, 3, "Follow Template");
+    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::source7Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Voice 7");
+    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::source8Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Voice 8");
+    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::source7Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Voice 7 Level");
+    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::source8Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Voice 8 Level");
     ok &= expectMacroLabel(chipper::ChipMode::pokey, chipper::MacroKind::lead, "POKEY Buzzy Lead");
     ok &= expectPreset(chipper::ChipMode::pokey, "pokey-alien-laser");
     ok &= expectSpec(chipper::ChipMode::pokey, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Distortion Code");
@@ -838,7 +844,7 @@ int main()
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::scc, "scc-arcade-lead");
     ok &= expectSourceLaneCounts(chipper::ChipMode::nes, 4u, 4u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::sid, 3u, 3u);
-    ok &= expectSourceLaneCounts(chipper::ChipMode::spc700, 4u, 8u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::spc700, 8u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::huc6280, 6u, 6u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::namcoWsg, 4u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2612, 6u, 6u);

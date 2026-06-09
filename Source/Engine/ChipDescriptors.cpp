@@ -1201,11 +1201,19 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
         sourceSpec(ChipParameterRole::source1Enabled, "spc700.voice1.enabled", "Voice 1", "Enable SPC700-style sample voice 1."),
         sourceSpec(ChipParameterRole::source2Enabled, "spc700.voice2.enabled", "Voice 2", "Enable SPC700-style sample voice 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "spc700.voice3.enabled", "Voice 3", "Enable SPC700-style sample voice 3."),
-        sourceSpec(ChipParameterRole::source4Enabled, "spc700.voice4.enabled", "Voice 4", "Enable SPC700-style sample voice 4. Voices 5-8 need a dedicated sample-voice UI pass."),
+        sourceSpec(ChipParameterRole::source4Enabled, "spc700.voice4.enabled", "Voice 4", "Enable SPC700-style sample voice 4."),
+        sourceSpec(ChipParameterRole::source5Enabled, "spc700.voice5.enabled", "Voice 5", "Enable SPC700-style sample voice 5."),
+        sourceSpec(ChipParameterRole::source6Enabled, "spc700.voice6.enabled", "Voice 6", "Enable SPC700-style sample voice 6."),
+        sourceSpec(ChipParameterRole::source7Enabled, "spc700.voice7.enabled", "Voice 7", "Enable SPC700-style sample voice 7."),
+        sourceSpec(ChipParameterRole::source8Enabled, "spc700.voice8.enabled", "Voice 8", "Enable SPC700-style sample voice 8."),
         sourceLevelSpec(ChipParameterRole::source1Level, "spc700.voice1.level", "Voice 1 Level", "Modern trim after SPC700-style voice 1 volume."),
         sourceLevelSpec(ChipParameterRole::source2Level, "spc700.voice2.level", "Voice 2 Level", "Modern trim after SPC700-style voice 2 volume."),
         sourceLevelSpec(ChipParameterRole::source3Level, "spc700.voice3.level", "Voice 3 Level", "Modern trim after SPC700-style voice 3 volume."),
         sourceLevelSpec(ChipParameterRole::source4Level, "spc700.voice4.level", "Voice 4 Level", "Modern trim after SPC700-style voice 4 volume."),
+        sourceLevelSpec(ChipParameterRole::source5Level, "spc700.voice5.level", "Voice 5 Level", "Modern trim after SPC700-style voice 5 volume."),
+        sourceLevelSpec(ChipParameterRole::source6Level, "spc700.voice6.level", "Voice 6 Level", "Modern trim after SPC700-style voice 6 volume."),
+        sourceLevelSpec(ChipParameterRole::source7Level, "spc700.voice7.level", "Voice 7 Level", "Modern trim after SPC700-style voice 7 volume."),
+        sourceLevelSpec(ChipParameterRole::source8Level, "spc700.voice8.level", "Voice 8 Level", "Modern trim after SPC700-style voice 8 volume."),
         stereoSpreadSpec("spc700.stereoSpread", "Modern stereo convenience that spreads exposed sample voices; zero preserves centered output."),
         envelopeSpec("spc700.adsrSpeed", "ADSR / Gain Speed", "Applies a simplified envelope decay helper while ADSR/gain state remains visible in debug JSON."),
         { ChipParameterRole::dmgStereoRoute,
@@ -1984,14 +1992,14 @@ const std::vector<ChipDescriptor>& descriptors()
             "SNES SPC700-style",
             "Partial clean-room SNES-style lo-fi sample-voice model with eight internal voices.",
             {
-                { "voices", "Sample Voices", "Sources", "Eight internal lo-fi sample voices; first four exposed in the current UI." },
+                { "voices", "Sample Voices", "Sources", "All eight lo-fi sample voices are exposed in the current UI." },
                 { "sample", "Sample Color", "Tone", "Generated lo-fi sample templates plus renderer-loaded BRR sample playback." },
                 { "echo", "Echo Color", "Output", "Musical echo-color helper, not verified S-DSP FIR echo." },
                 { "adsr", "ADSR/Gain", "Envelope", "Simplified ADSR/gain-style state and decay helper." },
             },
             {
                 makeModule("profile", "Profile", "SPC700-style clean-room sample groundwork.", { "SNES family", "32 kHz DSP-rate default", "Hybrid default", "Authentic still partial" }),
-                makeModule("sources", "Sample Voices", "Eight internal voices with first four exposed.", { "Voice 1", "Voice 2", "Voice 3", "Voice 4" }),
+                makeModule("sources", "Sample Voices", "All eight SPC700-style sample voices are exposed as playable lanes.", { "Voices 1-4", "Voices 5-8", "BRR sample lane", "Chip Poly" }),
                 makeModule("sample", "Sample / Pitch", "Generated lo-fi templates with simplified pitch and playback registers.", { "Bell", "Triangle", "Pulse", "Noise burst", "Loop / one-shot" }),
                 makeModule("envelope", "ADSR / Gain", "Simplified gain and envelope decay helper.", { "ADSR state", "Gain state", "Decay helper", "Register readout" }),
                 makeModule("motion", "Motion", "SNES-style SFX gestures mapped to sample pitch.", { "Voice arp", "Pitch sweep", "Jump blip", "Damage hit" }),
@@ -2004,7 +2012,7 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "Eight generated lo-fi sample voices render with pitch, volume, loop/one-shot playback mode, simplified ADSR/gain state, key-on/enabled masks, clean-room BRR block decoding for renderer-loaded samples, clean-room Gaussian-style 4-tap interpolation, and a musical echo-color helper.",
-                    "Source enables, source levels, sample-shape choices, BRR block/end/loop debug metadata, interpolation metadata, chip-poly allocation across the first four exposed voices, presets, and debug JSON are covered by automated renderer tests.",
+                    "Source enables, source levels, sample-shape choices, BRR block/end/loop debug metadata, interpolation metadata, chip-poly allocation across all eight exposed voices, presets, and debug JSON are covered by automated renderer tests.",
                     "No third-party SPC700, S-DSP, BRR, SNES, or tracker-player source code is vendored in this clean-room partial model."
                 },
                 {
@@ -2297,6 +2305,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
 {
     if (mode == ChipMode::sid)
         return 3u;
+    if (mode == ChipMode::spc700)
+        return 8u;
     if (mode == ChipMode::ym2612)
         return 6u;
     if (mode == ChipMode::huc6280)
@@ -2360,8 +2370,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float control3,
                             float control4,
                             PlayMode playMode,
-                            std::array<bool, 6> sourceEnabled,
-                            std::array<float, 6> sourceLevels,
+                            std::array<bool, 8> sourceEnabled,
+                            std::array<float, 8> sourceLevels,
                             float stereoSpread,
                             float envelopeDecay,
                             int waveShape,
@@ -2413,7 +2423,9 @@ PatchConfig makePatchConfig(ChipMode mode,
             clampControl(sourceLevels[2]),
             clampControl(sourceLevels[3]),
             clampControl(sourceLevels[4]),
-            clampControl(sourceLevels[5])
+            clampControl(sourceLevels[5]),
+            clampControl(sourceLevels[6]),
+            clampControl(sourceLevels[7])
         },
         clampControl(stereoSpread),
         std::clamp(sidFilterRouting, 0, 8),
@@ -3578,7 +3590,7 @@ bool spc700SampleLoopsForPatch(const PatchConfig& patch)
 uint8_t spc700VoiceVolumeForPatch(const PatchConfig& patch, size_t voice, float velocity)
 {
     const auto base = std::clamp(static_cast<int>(std::round(clampControl(patch.control4) * 127.0f)), 1, 127);
-    const auto trim = voice < 4u ? clampControl(patch.sourceLevels[voice]) : 0.72f;
+    const auto trim = voice < patch.sourceLevels.size() ? clampControl(patch.sourceLevels[voice]) : 1.0f;
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<double>(base) * trim * clampControl(velocity))), 0, 127));
 }
 
@@ -3594,7 +3606,7 @@ uint8_t spc700GainForPatch(const PatchConfig& patch)
 
 bool spc700VoiceEnabledForPatch(const PatchConfig& patch, size_t voice)
 {
-    if (voice < 4u)
+    if (voice < patch.sourceEnabled.size())
         return patch.sourceEnabled[voice];
 
     return patch.macro == MacroKind::arp

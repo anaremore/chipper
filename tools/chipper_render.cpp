@@ -47,10 +47,10 @@ struct Options
     float control3 = 0.5f;
     float control4 = 0.5f;
     std::array<bool, 4> controlProvided {};
-    std::array<bool, 6> sourceEnabled { true, true, true, true, true, true };
-    std::array<bool, 6> sourceProvided {};
-    std::array<float, 6> sourceLevels { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
-    std::array<bool, 6> sourceLevelProvided {};
+    std::array<bool, 8> sourceEnabled { true, true, true, true, true, true, true, true };
+    std::array<bool, 8> sourceProvided {};
+    std::array<float, 8> sourceLevels { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+    std::array<bool, 8> sourceLevelProvided {};
     float stereoSpread = 0.0f;
     bool stereoSpreadProvided = false;
     float envelopeDecay = 0.0f;
@@ -990,6 +990,18 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.sourceProvided[5] = true;
         }
+        else if (arg == "--source7")
+        {
+            if (! parseToggle("--source7", options.sourceEnabled[6]))
+                return false;
+            options.sourceProvided[6] = true;
+        }
+        else if (arg == "--source8")
+        {
+            if (! parseToggle("--source8", options.sourceEnabled[7]))
+                return false;
+            options.sourceProvided[7] = true;
+        }
         else if (arg == "--level1")
         {
             const auto* value = requireValue("--level1");
@@ -1031,6 +1043,20 @@ bool parseArgs(int argc, char** argv, Options& options)
             if (value == nullptr || ! parseNumber(std::string(value), options.sourceLevels[5]))
                 return false;
             options.sourceLevelProvided[5] = true;
+        }
+        else if (arg == "--level7")
+        {
+            const auto* value = requireValue("--level7");
+            if (value == nullptr || ! parseNumber(std::string(value), options.sourceLevels[6]))
+                return false;
+            options.sourceLevelProvided[6] = true;
+        }
+        else if (arg == "--level8")
+        {
+            const auto* value = requireValue("--level8");
+            if (value == nullptr || ! parseNumber(std::string(value), options.sourceLevels[7]))
+                return false;
+            options.sourceLevelProvided[7] = true;
         }
         else if (arg == "--envelope-decay" || arg == "--sid-adsr-speed")
         {
@@ -1788,12 +1814,16 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::source4Enabled: return "source4Enabled";
         case chipper::ChipParameterRole::source5Enabled: return "source5Enabled";
         case chipper::ChipParameterRole::source6Enabled: return "source6Enabled";
+        case chipper::ChipParameterRole::source7Enabled: return "source7Enabled";
+        case chipper::ChipParameterRole::source8Enabled: return "source8Enabled";
         case chipper::ChipParameterRole::source1Level: return "source1Level";
         case chipper::ChipParameterRole::source2Level: return "source2Level";
         case chipper::ChipParameterRole::source3Level: return "source3Level";
         case chipper::ChipParameterRole::source4Level: return "source4Level";
         case chipper::ChipParameterRole::source5Level: return "source5Level";
         case chipper::ChipParameterRole::source6Level: return "source6Level";
+        case chipper::ChipParameterRole::source7Level: return "source7Level";
+        case chipper::ChipParameterRole::source8Level: return "source8Level";
         case chipper::ChipParameterRole::stereoSpread: return "stereoSpread";
         case chipper::ChipParameterRole::sidFilterRouting: return "sidFilterRouting";
         case chipper::ChipParameterRole::sidVoice2PulseWidth: return "sidVoice2PulseWidth";

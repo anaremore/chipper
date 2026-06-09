@@ -6005,10 +6005,18 @@ public:
              << "\"pitch1\":" << pitch[1] << ","
              << "\"pitch2\":" << pitch[2] << ","
              << "\"pitch3\":" << pitch[3] << ","
+             << "\"pitch4\":" << pitch[4] << ","
+             << "\"pitch5\":" << pitch[5] << ","
+             << "\"pitch6\":" << pitch[6] << ","
+             << "\"pitch7\":" << pitch[7] << ","
              << "\"volume0\":" << static_cast<int>(volume[0]) << ","
              << "\"volume1\":" << static_cast<int>(volume[1]) << ","
              << "\"volume2\":" << static_cast<int>(volume[2]) << ","
              << "\"volume3\":" << static_cast<int>(volume[3]) << ","
+             << "\"volume4\":" << static_cast<int>(volume[4]) << ","
+             << "\"volume5\":" << static_cast<int>(volume[5]) << ","
+             << "\"volume6\":" << static_cast<int>(volume[6]) << ","
+             << "\"volume7\":" << static_cast<int>(volume[7]) << ","
              << "\"adsr0\":" << static_cast<int>(adsr[0]) << ","
              << "\"gain0\":" << static_cast<int>(gain[0]) << ","
              << "\"enabledMask\":" << static_cast<int>(enabledMask) << ","
@@ -6017,16 +6025,32 @@ public:
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+             << "\"sourceEnabled4\":" << (sourceEnabled(patch, 4) ? 1 : 0) << ","
+             << "\"sourceEnabled5\":" << (sourceEnabled(patch, 5) ? 1 : 0) << ","
+             << "\"sourceEnabled6\":" << (sourceEnabled(patch, 6) ? 1 : 0) << ","
+             << "\"sourceEnabled7\":" << (sourceEnabled(patch, 7) ? 1 : 0) << ","
+             << "\"sourceLevel0\":" << sourceLevel(patch, 0) << ","
+             << "\"sourceLevel1\":" << sourceLevel(patch, 1) << ","
+             << "\"sourceLevel2\":" << sourceLevel(patch, 2) << ","
+             << "\"sourceLevel3\":" << sourceLevel(patch, 3) << ","
+             << "\"sourceLevel4\":" << sourceLevel(patch, 4) << ","
+             << "\"sourceLevel5\":" << sourceLevel(patch, 5) << ","
+             << "\"sourceLevel6\":" << sourceLevel(patch, 6) << ","
+             << "\"sourceLevel7\":" << sourceLevel(patch, 7) << ","
              << "\"sampleLength0\":" << sampleRam[0].size() << ","
              << "\"gaussianStyleInterpolation\":1,"
              << "\"interpolationTaps\":4,"
-             << "\"uiExposesFirstFourVoices\":1,"
+             << "\"uiExposesAllEightVoices\":1,"
              << "\"internalChannelCount\":8,"
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNote0\":" << channelNotes[0] << ","
              << "\"assignedNote1\":" << channelNotes[1] << ","
              << "\"assignedNote2\":" << channelNotes[2] << ","
              << "\"assignedNote3\":" << channelNotes[3] << ","
+             << "\"assignedNote4\":" << channelNotes[4] << ","
+             << "\"assignedNote5\":" << channelNotes[5] << ","
+             << "\"assignedNote6\":" << channelNotes[6] << ","
+             << "\"assignedNote7\":" << channelNotes[7] << ","
              << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
              << "}";
         return json.str();
@@ -6042,13 +6066,13 @@ private:
     uint8_t voiceVolumeForPatch(size_t voice, float velocity) const
     {
         const auto base = std::clamp(static_cast<int>(std::round(patch.control4 * 127.0f)), 1, 127);
-        const auto trim = voice < 4 ? sourceLevel(patch, voice) : 0.72f;
+        const auto trim = voice < patch.sourceLevels.size() ? sourceLevel(patch, voice) : 0.72f;
         return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<double>(base) * trim * clamp01(velocity))), 0, 127));
     }
 
     bool voiceActiveForPatch(size_t voice) const
     {
-        if (voice < 4)
+        if (voice < patch.sourceEnabled.size())
             return sourceEnabled(patch, voice);
 
         return patch.macro == MacroKind::arp
@@ -6336,9 +6360,9 @@ private:
     size_t echoIndex = 0;
     int heldNote = -1;
     float noteVelocity = 0.0f;
-    std::array<int, 4> channelNotes {};
-    std::array<float, 4> channelVelocity {};
-    std::array<uint64_t, 4> channelStamp {};
+    std::array<int, 8> channelNotes {};
+    std::array<float, 8> channelVelocity {};
+    std::array<uint64_t, 8> channelStamp {};
     uint64_t noteStamp = 0;
     PatchConfig patch;
 };

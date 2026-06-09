@@ -67,8 +67,8 @@ struct PatchConfig
     float control3 = 0.5f;
     float control4 = 0.5f;
     PlayMode playMode = PlayMode::stack;
-    std::array<bool, 6> sourceEnabled { true, true, true, true, true, true };
-    std::array<float, 6> sourceLevels { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+    std::array<bool, 8> sourceEnabled { true, true, true, true, true, true, true, true };
+    std::array<float, 8> sourceLevels { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
     float stereoSpread = 0.0f;
     int sidFilterRouting = 0;
     float envelopeDecay = 0.0f;

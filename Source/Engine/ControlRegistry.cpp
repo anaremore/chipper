@@ -60,6 +60,10 @@ const MidiCcMappingList& midiCcMappings()
         { 65, parameter_ids::source6Enabled, "Source 6 Enabled" },
         { 66, parameter_ids::source5Level, "Source 5 Level" },
         { 67, parameter_ids::source6Level, "Source 6 Level" },
+        { 60, parameter_ids::source7Enabled, "Source 7 Enabled" },
+        { 61, parameter_ids::source8Enabled, "Source 8 Enabled" },
+        { 62, parameter_ids::source7Level, "Source 7 Level" },
+        { 63, parameter_ids::source8Level, "Source 8 Level" },
         { 69, parameter_ids::nesDmcMapRoot, "NES DMC Map Root" },
         { 68, parameter_ids::nesDmcLoop, "NES DMC Loop" }
     }};
@@ -103,12 +107,16 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::source4Enabled: return parameter_ids::source4Enabled;
         case ChipParameterRole::source5Enabled: return parameter_ids::source5Enabled;
         case ChipParameterRole::source6Enabled: return parameter_ids::source6Enabled;
+        case ChipParameterRole::source7Enabled: return parameter_ids::source7Enabled;
+        case ChipParameterRole::source8Enabled: return parameter_ids::source8Enabled;
         case ChipParameterRole::source1Level: return parameter_ids::source1Level;
         case ChipParameterRole::source2Level: return parameter_ids::source2Level;
         case ChipParameterRole::source3Level: return parameter_ids::source3Level;
         case ChipParameterRole::source4Level: return parameter_ids::source4Level;
         case ChipParameterRole::source5Level: return parameter_ids::source5Level;
         case ChipParameterRole::source6Level: return parameter_ids::source6Level;
+        case ChipParameterRole::source7Level: return parameter_ids::source7Level;
+        case ChipParameterRole::source8Level: return parameter_ids::source8Level;
         case ChipParameterRole::stereoSpread: return parameter_ids::stereoSpread;
         case ChipParameterRole::sidFilterRouting: return parameter_ids::sidFilterRouting;
         case ChipParameterRole::sidVoice2PulseWidth: return parameter_ids::sidVoice2PulseWidth;

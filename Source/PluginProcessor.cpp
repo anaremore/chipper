@@ -664,8 +664,12 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
     const auto anyTemplateSourceEnabled = std::any_of(templ.sourceEnabled.begin(), templ.sourceEnabled.end(), [](bool enabled) { return enabled; });
     setPlainParameterValue(chipper::parameters::id::source5Enabled, anyTemplateSourceEnabled && chipper::nativeSourceCountForMode(mode) >= 5u ? 1.0f : 0.0f);
     setPlainParameterValue(chipper::parameters::id::source6Enabled, anyTemplateSourceEnabled && chipper::nativeSourceCountForMode(mode) >= 6u ? 1.0f : 0.0f);
+    setPlainParameterValue(chipper::parameters::id::source7Enabled, anyTemplateSourceEnabled && chipper::nativeSourceCountForMode(mode) >= 7u ? 1.0f : 0.0f);
+    setPlainParameterValue(chipper::parameters::id::source8Enabled, anyTemplateSourceEnabled && chipper::nativeSourceCountForMode(mode) >= 8u ? 1.0f : 0.0f);
     setPlainParameterValue(chipper::parameters::id::source5Level, 1.0f);
     setPlainParameterValue(chipper::parameters::id::source6Level, 1.0f);
+    setPlainParameterValue(chipper::parameters::id::source7Level, 1.0f);
+    setPlainParameterValue(chipper::parameters::id::source8Level, 1.0f);
 
     setPlainParameterValue(chipper::parameters::id::envelopeDecay, templ.envelopeDecay);
     setPlainParameterValue(chipper::parameters::id::sidAttack, 0.0f);
@@ -903,7 +907,9 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
             apvts.getRawParameterValue(chipper::parameters::id::source3Enabled)->load() >= 0.5f,
             apvts.getRawParameterValue(chipper::parameters::id::source4Enabled)->load() >= 0.5f,
             apvts.getRawParameterValue(chipper::parameters::id::source5Enabled)->load() >= 0.5f,
-            apvts.getRawParameterValue(chipper::parameters::id::source6Enabled)->load() >= 0.5f
+            apvts.getRawParameterValue(chipper::parameters::id::source6Enabled)->load() >= 0.5f,
+            apvts.getRawParameterValue(chipper::parameters::id::source7Enabled)->load() >= 0.5f,
+            apvts.getRawParameterValue(chipper::parameters::id::source8Enabled)->load() >= 0.5f
         },
         {
             apvts.getRawParameterValue(chipper::parameters::id::source1Level)->load(),
@@ -911,7 +917,9 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
             apvts.getRawParameterValue(chipper::parameters::id::source3Level)->load(),
             apvts.getRawParameterValue(chipper::parameters::id::source4Level)->load(),
             apvts.getRawParameterValue(chipper::parameters::id::source5Level)->load(),
-            apvts.getRawParameterValue(chipper::parameters::id::source6Level)->load()
+            apvts.getRawParameterValue(chipper::parameters::id::source6Level)->load(),
+            apvts.getRawParameterValue(chipper::parameters::id::source7Level)->load(),
+            apvts.getRawParameterValue(chipper::parameters::id::source8Level)->load()
         },
         apvts.getRawParameterValue(chipper::parameters::id::stereoSpread)->load(),
         apvts.getRawParameterValue(chipper::parameters::id::envelopeDecay)->load(),

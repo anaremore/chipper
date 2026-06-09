@@ -1,0 +1,9 @@
+# Eight overlapping notes should allocate across all exposed SPC700-style sample voices.
+note_on 0 60 1.0
+note_on 10 64 0.95
+note_on 20 67 0.9
+note_on 30 72 0.85
+note_on 40 76 0.8
+note_on 50 79 0.75
+note_on 60 83 0.7
+note_on 70 86 0.65

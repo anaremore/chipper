@@ -284,6 +284,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         "Source 6 Enabled",
         true));
 
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID { id::source7Enabled, 1 },
+        "Source 7 Enabled",
+        true));
+
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID { id::source8Enabled, 1 },
+        "Source 8 Enabled",
+        true));
+
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID { id::source1Level, 1 },
         "Source 1 Level",
@@ -317,6 +327,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID { id::source6Level, 1 },
         "Source 6 Level",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        1.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::source7Level, 1 },
+        "Source 7 Level",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        1.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::source8Level, 1 },
+        "Source 8 Level",
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
         1.0f));
 
