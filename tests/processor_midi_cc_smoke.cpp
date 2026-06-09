@@ -266,6 +266,15 @@ int main()
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::stereoSpread), 0.58f, 0.001f,
                      "CC74 SID Bass macro should apply SID resonance template");
 
+    sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 7));
+    sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 5));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 2.0f, 0.0001f,
+                     "CC74 SPC700 Drum macro should show sample playback as Map Only");
+    sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 3));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 1.0f, 0.0001f,
+                     "CC74 SPC700 Lead macro should show sample playback as Note Map");
+
+    sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 2));
     sendController(processor, 90, controllerValueForChoice(processor, chipper::parameters::id::ymEnvelopeShape, 2));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymEnvelopeShape), 2.0f, 0.0001f,
                      "CC90 should control the SID Filter Mode/YM Envelope Shape choice parameter");
@@ -477,6 +486,7 @@ int main()
     dmcDir.deleteRecursively();
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 7));
+    sendController(processor, 119, controllerValueForChoice(processor, chipper::parameters::id::nesDmcPlaybackMode, 0));
     auto brrDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-spc700-brr-bank-test");
     brrDir.deleteRecursively();
     ok &= expect(brrDir.createDirectory().wasOk(), "Should create temporary SPC700 BRR bank test directory");

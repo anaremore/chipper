@@ -130,6 +130,34 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && a.nesDmcOnly == b.nesDmcOnly;
 }
 
+int samplePlaybackModeForMacroTemplate(chipper::ChipMode mode, const chipper::MacroTemplate& templ)
+{
+    if (mode != chipper::ChipMode::spc700)
+        return 0;
+
+    const auto patch = chipper::makePatchConfig(mode,
+                                                templ.macro,
+                                                templ.controls[0],
+                                                templ.controls[1],
+                                                templ.controls[2],
+                                                templ.controls[3],
+                                                chipper::PlayMode::stack,
+                                                { true, true, true, true, true, true, true, true, true },
+                                                { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f },
+                                                templ.stereoSpread,
+                                                templ.envelopeDecay,
+                                                templ.waveShape,
+                                                0,
+                                                0,
+                                                templ.dmgStereoRoute,
+                                                templ.ymEnvelopeShape,
+                                                0,
+                                                0,
+                                                0,
+                                                templ.snNoiseMode);
+    return static_cast<int>(chipper::spc700SamplePlaybackModeForPatch(patch));
+}
+
 juce::Result readDmcSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
 {
     if (! file.existsAsFile())
@@ -1333,7 +1361,7 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
     setPlainParameterValue(chipper::parameters::id::snNoiseMode, static_cast<float>(templ.snNoiseMode));
     setPlainParameterValue(chipper::parameters::id::nesDmcDirectLevel, templ.nesDmcDirectLevel);
     setPlainParameterValue(chipper::parameters::id::nesDmcRateIndex, 15.0f);
-    setPlainParameterValue(chipper::parameters::id::nesDmcPlaybackMode, 0.0f);
+    setPlainParameterValue(chipper::parameters::id::nesDmcPlaybackMode, static_cast<float>(samplePlaybackModeForMacroTemplate(mode, templ)));
     setPlainParameterValue(chipper::parameters::id::nesDmcMapRoot, 36.0f);
     setPlainParameterValue(chipper::parameters::id::nesDmcLoop, 0.0f);
 }
