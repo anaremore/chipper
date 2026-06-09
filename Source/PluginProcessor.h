@@ -58,6 +58,10 @@ public:
         juce::String path;
         int byteCount = 0;
         int blockCount = 0;
+        int bankCount = 0;
+        int selectedSlot = -1;
+        int mapRootNote = 36;
+        int mapHighNote = 36;
         bool loaded = false;
     };
 

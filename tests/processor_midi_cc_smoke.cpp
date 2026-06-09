@@ -464,6 +464,8 @@ int main()
     brrInfo = processor.spc700BrrSampleInfo();
     ok &= expect(brrInfo.loaded && brrInfo.sampleName == "brr-01.brr",
                  "SPC700 note map should select BRR slot 2 for C#1 when root is C1");
+    ok &= expect(brrInfo.bankCount == 3 && brrInfo.selectedSlot == 1 && brrInfo.mapRootNote == 36 && brrInfo.mapHighNote == 38,
+                 "SPC700 BRR sample info should expose selected slot and visible note-map span");
     processEmptyBlock(processor);
     sendNoteOn(processor, 50);
     brrInfo = processor.spc700BrrSampleInfo();

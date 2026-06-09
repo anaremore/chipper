@@ -3912,9 +3912,20 @@ juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMod
     const auto sample32 = static_cast<int>(chipper::generatedSampleValueForPatch(mode, patch, index, 32));
 
     if (mode == chipper::ChipMode::spc700)
+    {
+        const auto info = audioProcessor.spc700BrrSampleInfo();
+        if (info.loaded)
+        {
+            const auto slotText = info.bankCount > 1
+                ? juce::String("BRR ") + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
+                : juce::String("BRR");
+            return "Voice " + number + " | " + slotText;
+        }
+
         return "Voice " + number
             + " | T" + juce::String(templateId)
             + " " + juce::String(sample0) + "/" + juce::String(sample32);
+    }
 
     if (mode == chipper::ChipMode::paula)
         return "Ch " + number
@@ -3940,15 +3951,30 @@ juce::String ChipperAudioProcessorEditor::sampleSourceRegisterReadout(chipper::C
         const auto adsr = chipper::spc700AdsrForPatch(patch);
         const auto gain = chipper::spc700GainForPatch(patch);
         const auto enabled = chipper::spc700VoiceEnabledForPatch(patch, index);
+        const auto info = audioProcessor.spc700BrrSampleInfo();
         const auto base = static_cast<uint8_t>(std::min(index, size_t { 7u }) * 0x10u);
-        return "SPC700 voice " + juce::String(channel)
+        auto readout = "SPC700 voice " + juce::String(channel)
             + " | regs $" + byteHex(base) + "-$" + byteHex(static_cast<uint8_t>(base + 6u))
             + " | vol " + juce::String(static_cast<int>(volume)) + "/127"
             + " | ADSR $" + byteHex(adsr)
             + " | GAIN $" + byteHex(gain)
-            + " | tmpl " + juce::String(templateId)
             + " | " + (enabled ? juce::String("key on") : juce::String("muted"))
-            + " | sample[0/32] " + juce::String(sample0) + "/" + juce::String(sample32);
+            + " | ";
+        if (info.loaded)
+        {
+            readout += "BRR slot " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
+                + " " + info.sampleName
+                + " | map "
+                + chipper::parameters::midiNoteChoices()[info.mapRootNote]
+                + "-"
+                + chipper::parameters::midiNoteChoices()[info.mapHighNote];
+        }
+        else
+        {
+            readout += "tmpl " + juce::String(templateId)
+                + " | sample[0/32] " + juce::String(sample0) + "/" + juce::String(sample32);
+        }
+        return readout;
     }
 
     if (mode == chipper::ChipMode::paula)
@@ -6379,10 +6405,20 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     dmcMapRootBox.setTooltip(withMidiCcForRole("SPC700 BRR Map Root. Loaded folder slots map upward from this MIDI note for triggered sample voices.", chipper::ChipParameterRole::nesDmcMapRoot));
 
     const auto info = audioProcessor.spc700BrrSampleInfo();
-    dmcSampleStatusLabel.setText(info.statusLine, juce::dontSendNotification);
+    auto visibleStatus = info.statusLine;
+    if (info.loaded && info.bankCount > 1)
+        visibleStatus += " | Map " + chipper::parameters::midiNoteChoices()[info.mapRootNote]
+            + "-" + chipper::parameters::midiNoteChoices()[info.mapHighNote];
+    dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
     auto tooltip = info.statusLine
         + "\nBRR files are decoded into the clean-room SPC700 sample voice path. Folder loads keep up to 32 user-provided BRR files addressable by the dropdown, CC117, and note mapping from "
         + chipper::parameters::midiNoteChoices()[mapRoot] + " upward.";
+    if (info.loaded && info.bankCount > 1)
+        tooltip += "\nCurrent map span: "
+            + chipper::parameters::midiNoteChoices()[info.mapRootNote]
+            + " to "
+            + chipper::parameters::midiNoteChoices()[info.mapHighNote]
+            + ".";
     if (info.loaded)
         tooltip += "\nPath: " + info.path;
     dmcSampleStatusLabel.setTooltip(withMidiCcForRole(tooltip, chipper::ChipParameterRole::nesDmcSampleSlot));

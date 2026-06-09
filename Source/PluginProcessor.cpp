@@ -401,11 +401,24 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
     info.loaded = true;
     const auto selectedSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
     const auto bankCount = static_cast<int>(spc700BrrSampleBank.empty() ? 1u : spc700BrrSampleBank.size());
-    const auto safeSlot = std::clamp(selectedSlot, 0, std::max(0, bankCount - 1));
+    auto safeSlot = std::clamp(selectedSlot, 0, std::max(0, bankCount - 1));
+    for (int i = 0; i < static_cast<int>(spc700BrrSampleBank.size()); ++i)
+    {
+        if (spc700BrrSampleBank[static_cast<size_t>(i)].path == spc700BrrSample.path)
+        {
+            safeSlot = i;
+            break;
+        }
+    }
+    const auto mapRootNote = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcMapRoot)->load())), 0, 127);
     info.sampleName = spc700BrrSample.name;
     info.path = spc700BrrSample.path;
     info.byteCount = static_cast<int>(spc700BrrSample.bytes.size());
     info.blockCount = info.byteCount / 9;
+    info.bankCount = bankCount;
+    info.selectedSlot = safeSlot;
+    info.mapRootNote = mapRootNote;
+    info.mapHighNote = std::clamp(mapRootNote + std::max(0, bankCount - 1), 0, 127);
     info.statusLine = "Slot " + juce::String(safeSlot + 1) + "/" + juce::String(bankCount)
         + ": " + info.sampleName + " (" + juce::String(info.byteCount) + " bytes, "
         + juce::String(info.blockCount) + " BRR blocks)";
