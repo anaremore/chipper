@@ -77,7 +77,7 @@ chipper::ChipParameterRole macroControlRole(size_t index)
 
 chipper::ChipParameterRole sourceRole(size_t index)
 {
-    static constexpr std::array<chipper::ChipParameterRole, 8> roles {
+    static constexpr std::array<chipper::ChipParameterRole, 9> roles {
         chipper::ChipParameterRole::source1Enabled,
         chipper::ChipParameterRole::source2Enabled,
         chipper::ChipParameterRole::source3Enabled,
@@ -85,7 +85,8 @@ chipper::ChipParameterRole sourceRole(size_t index)
         chipper::ChipParameterRole::source5Enabled,
         chipper::ChipParameterRole::source6Enabled,
         chipper::ChipParameterRole::source7Enabled,
-        chipper::ChipParameterRole::source8Enabled
+        chipper::ChipParameterRole::source8Enabled,
+        chipper::ChipParameterRole::source9Enabled
     };
 
     return roles[std::min(index, roles.size() - 1u)];
@@ -93,7 +94,7 @@ chipper::ChipParameterRole sourceRole(size_t index)
 
 chipper::ChipParameterRole sourceLevelRole(size_t index)
 {
-    static constexpr std::array<chipper::ChipParameterRole, 8> roles {
+    static constexpr std::array<chipper::ChipParameterRole, 9> roles {
         chipper::ChipParameterRole::source1Level,
         chipper::ChipParameterRole::source2Level,
         chipper::ChipParameterRole::source3Level,
@@ -101,7 +102,8 @@ chipper::ChipParameterRole sourceLevelRole(size_t index)
         chipper::ChipParameterRole::source5Level,
         chipper::ChipParameterRole::source6Level,
         chipper::ChipParameterRole::source7Level,
-        chipper::ChipParameterRole::source8Level
+        chipper::ChipParameterRole::source8Level,
+        chipper::ChipParameterRole::source9Level
     };
 
     return roles[std::min(index, roles.size() - 1u)];
@@ -2207,7 +2209,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         chipper::parameters::id::source5Enabled,
         chipper::parameters::id::source6Enabled,
         chipper::parameters::id::source7Enabled,
-        chipper::parameters::id::source8Enabled
+        chipper::parameters::id::source8Enabled,
+        chipper::parameters::id::source9Enabled
     };
     const std::array<const char*, sourceChannelCount> sourceLevelIds {
         chipper::parameters::id::source1Level,
@@ -2217,7 +2220,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         chipper::parameters::id::source5Level,
         chipper::parameters::id::source6Level,
         chipper::parameters::id::source7Level,
-        chipper::parameters::id::source8Level
+        chipper::parameters::id::source8Level,
+        chipper::parameters::id::source9Level
     };
 
     for (size_t i = 0; i < sourceChannelButtons.size(); ++i)
@@ -3400,7 +3404,8 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
         chipper::parameters::id::source5Enabled,
         chipper::parameters::id::source6Enabled,
         chipper::parameters::id::source7Enabled,
-        chipper::parameters::id::source8Enabled
+        chipper::parameters::id::source8Enabled,
+        chipper::parameters::id::source9Enabled
     };
     const std::array<const char*, sourceChannelCount> sourceLevelIds {
         chipper::parameters::id::source1Level,
@@ -3410,7 +3415,8 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
         chipper::parameters::id::source5Level,
         chipper::parameters::id::source6Level,
         chipper::parameters::id::source7Level,
-        chipper::parameters::id::source8Level
+        chipper::parameters::id::source8Level,
+        chipper::parameters::id::source9Level
     };
 
     const juce::ScopedValueSetter<bool> suppress(suppressMacroTemplateApply, true);
@@ -3498,7 +3504,8 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
         chipper::parameters::id::source5Enabled,
         chipper::parameters::id::source6Enabled,
         chipper::parameters::id::source7Enabled,
-        chipper::parameters::id::source8Enabled
+        chipper::parameters::id::source8Enabled,
+        chipper::parameters::id::source9Enabled
     };
     const std::array<const char*, sourceChannelCount> sourceLevelIds {
         chipper::parameters::id::source1Level,
@@ -3508,7 +3515,8 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
         chipper::parameters::id::source5Level,
         chipper::parameters::id::source6Level,
         chipper::parameters::id::source7Level,
-        chipper::parameters::id::source8Level
+        chipper::parameters::id::source8Level,
+        chipper::parameters::id::source9Level
     };
 
     const juce::ScopedValueSetter<bool> suppressMacro(suppressMacroTemplateApply, true);
@@ -3535,6 +3543,7 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
         preset.source2Level,
         preset.source3Level,
         preset.source4Level,
+        1.0f,
         1.0f,
         1.0f,
         1.0f,
@@ -3628,7 +3637,8 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
             parameterValue(chipper::parameters::id::source5Enabled) >= 0.5f,
             parameterValue(chipper::parameters::id::source6Enabled) >= 0.5f,
             parameterValue(chipper::parameters::id::source7Enabled) >= 0.5f,
-            parameterValue(chipper::parameters::id::source8Enabled) >= 0.5f
+            parameterValue(chipper::parameters::id::source8Enabled) >= 0.5f,
+            parameterValue(chipper::parameters::id::source9Enabled) >= 0.5f
         },
         {
             parameterValue(chipper::parameters::id::source1Level),
@@ -3638,7 +3648,8 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
             parameterValue(chipper::parameters::id::source5Level),
             parameterValue(chipper::parameters::id::source6Level),
             parameterValue(chipper::parameters::id::source7Level),
-            parameterValue(chipper::parameters::id::source8Level)
+            parameterValue(chipper::parameters::id::source8Level),
+            parameterValue(chipper::parameters::id::source9Level)
         },
         stereoSpread,
         parameterValue(chipper::parameters::id::envelopeDecay),
@@ -3895,7 +3906,7 @@ juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mod
 
 int ChipperAudioProcessorEditor::pokeyCardMidiNote(const chipper::PatchConfig& patch, size_t index) const
 {
-    static constexpr std::array<int, sourceChannelCount> chipPolyNotes { 60, 64, 67, 72, 76, 79, 83, 86 };
+    static constexpr std::array<int, sourceChannelCount> chipPolyNotes { 60, 64, 67, 72, 76, 79, 83, 86, 88 };
     const auto baseNote = patch.playMode == chipper::PlayMode::chipPoly
                               ? chipPolyNotes[std::min(index, chipPolyNotes.size() - 1u)]
                               : 60 + static_cast<int>(std::min(index, sourceChannelCount - 1u)) * 5;
@@ -4824,7 +4835,8 @@ juce::String ChipperAudioProcessorEditor::sourceLevelReadout(size_t index) const
         chipper::parameters::id::source5Enabled,
         chipper::parameters::id::source6Enabled,
         chipper::parameters::id::source7Enabled,
-        chipper::parameters::id::source8Enabled
+        chipper::parameters::id::source8Enabled,
+        chipper::parameters::id::source9Enabled
     };
     static constexpr std::array<const char*, sourceChannelCount> sourceLevelIds {
         chipper::parameters::id::source1Level,
@@ -4834,7 +4846,8 @@ juce::String ChipperAudioProcessorEditor::sourceLevelReadout(size_t index) const
         chipper::parameters::id::source5Level,
         chipper::parameters::id::source6Level,
         chipper::parameters::id::source7Level,
-        chipper::parameters::id::source8Level
+        chipper::parameters::id::source8Level,
+        chipper::parameters::id::source9Level
     };
 
     const auto safeIndex = std::min(index, sourceLevelIds.size() - 1u);
@@ -5236,7 +5249,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 5 | hidden",
         "Source 6 | hidden",
         "Source 7 | hidden",
-        "Source 8 | hidden"
+        "Source 8 | hidden",
+        "Source 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> nesChipPolyLabels {
         "Pulse 1  |  note 1",
@@ -5246,7 +5260,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 5 | hidden",
         "Source 6 | hidden",
         "Source 7 | hidden",
-        "Source 8 | hidden"
+        "Source 8 | hidden",
+        "Source 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> dmgBigMonoLabels {
         "Pulse 1  |  sweep voice",
@@ -5256,7 +5271,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 5 | hidden",
         "Source 6 | hidden",
         "Source 7 | hidden",
-        "Source 8 | hidden"
+        "Source 8 | hidden",
+        "Source 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> dmgChipPolyLabels {
         "Pulse 1  |  note 1",
@@ -5266,7 +5282,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 5 | hidden",
         "Source 6 | hidden",
         "Source 7 | hidden",
-        "Source 8 | hidden"
+        "Source 8 | hidden",
+        "Source 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> ymBigMonoLabels {
         "Channel A | tone lead",
@@ -5276,7 +5293,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 5 | hidden",
         "Source 6 | hidden",
         "Source 7 | hidden",
-        "Source 8 | hidden"
+        "Source 8 | hidden",
+        "Source 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> ymChipPolyLabels {
         "Channel A | note 1",
@@ -5286,7 +5304,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 5 | hidden",
         "Source 6 | hidden",
         "Source 7 | hidden",
-        "Source 8 | hidden"
+        "Source 8 | hidden",
+        "Source 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> snBigMonoLabels {
         "Tone 1 | lead tone",
@@ -5296,7 +5315,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 5 | hidden",
         "Source 6 | hidden",
         "Source 7 | hidden",
-        "Source 8 | hidden"
+        "Source 8 | hidden",
+        "Source 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> snChipPolyLabels {
         "Tone 1 | note 1",
@@ -5306,7 +5326,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 5 | hidden",
         "Source 6 | hidden",
         "Source 7 | hidden",
-        "Source 8 | hidden"
+        "Source 8 | hidden",
+        "Source 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> sidBigMonoLabels {
         "Voice 1 | lead",
@@ -5316,7 +5337,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 5 | hidden",
         "Source 6 | hidden",
         "Source 7 | hidden",
-        "Source 8 | hidden"
+        "Source 8 | hidden",
+        "Source 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> sidChipPolyLabels {
         "Voice 1 | note 1",
@@ -5326,7 +5348,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 5 | hidden",
         "Source 6 | hidden",
         "Source 7 | hidden",
-        "Source 8 | hidden"
+        "Source 8 | hidden",
+        "Source 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> pokeyBigMonoLabels {
         "Ch 1 | AUDF/AUDC",
@@ -5336,7 +5359,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 5 | hidden",
         "Source 6 | hidden",
         "Source 7 | hidden",
-        "Source 8 | hidden"
+        "Source 8 | hidden",
+        "Source 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> pokeyChipPolyLabels {
         "Ch 1 | note 1",
@@ -5346,7 +5370,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 5 | hidden",
         "Source 6 | hidden",
         "Source 7 | hidden",
-        "Source 8 | hidden"
+        "Source 8 | hidden",
+        "Source 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> sampleBigMonoLabels {
         "Voice 1 | sample lead",
@@ -5356,7 +5381,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Voice 5 | rear layer",
         "Voice 6 | pitch pair",
         "Voice 7 | echo stack",
-        "Voice 8 | noise / hit"
+        "Voice 8 | noise / hit",
+        "Voice 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> sampleChipPolyLabels {
         "Voice 1 | note 1",
@@ -5366,7 +5392,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Voice 5 | note 5",
         "Voice 6 | note 6",
         "Voice 7 | note 7",
-        "Voice 8 | note 8"
+        "Voice 8 | note 8",
+        "Voice 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> wavetableBigMonoLabels {
         "Wave 1 | lead",
@@ -5376,7 +5403,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Wave 5 | upper/noise",
         "Wave 6 | upper/noise",
         "Wave 7 | extra lane",
-        "Wave 8 | extra lane"
+        "Wave 8 | extra lane",
+        "Wave 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> wavetableChipPolyLabels {
         "Wave 1 | note 1",
@@ -5386,7 +5414,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Wave 5 | note 5",
         "Wave 6 | note 6",
         "Wave 7 | note 7",
-        "Wave 8 | note 8"
+        "Wave 8 | note 8",
+        "Wave 9 | hidden"
     };
     static const std::array<const char*, sourceChannelCount> fmBigMonoLabels {
         "FM 1 | carrier",
@@ -5396,7 +5425,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "FM 5 | octave",
         "FM 6 | shimmer",
         "FM 7 | extra",
-        "FM 8 | extra"
+        "FM 8 | extra",
+        "FM 9 | OPLL lane"
     };
     static const std::array<const char*, sourceChannelCount> fmChipPolyLabels {
         "FM 1 | note 1",
@@ -5406,7 +5436,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "FM 5 | note 5",
         "FM 6 | note 6",
         "FM 7 | note 7",
-        "FM 8 | note 8"
+        "FM 8 | note 8",
+        "FM 9 | note 9"
     };
 
     const auto playModeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::playMode)));

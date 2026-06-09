@@ -47,10 +47,10 @@ struct Options
     float control3 = 0.5f;
     float control4 = 0.5f;
     std::array<bool, 4> controlProvided {};
-    std::array<bool, 8> sourceEnabled { true, true, true, true, true, true, true, true };
-    std::array<bool, 8> sourceProvided {};
-    std::array<float, 8> sourceLevels { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
-    std::array<bool, 8> sourceLevelProvided {};
+    std::array<bool, 9> sourceEnabled { true, true, true, true, true, true, true, true, true };
+    std::array<bool, 9> sourceProvided {};
+    std::array<float, 9> sourceLevels { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+    std::array<bool, 9> sourceLevelProvided {};
     float stereoSpread = 0.0f;
     bool stereoSpreadProvided = false;
     float envelopeDecay = 0.0f;
@@ -730,19 +730,26 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.control4 = preset.controls[3];
     options.controlProvided = { true, true, true, true };
     const auto anySourceEnabled = std::any_of(preset.sourceEnabled.begin(), preset.sourceEnabled.end(), [](bool enabled) { return enabled; });
-    const auto useSource5 = anySourceEnabled && chipper::nativeSourceCountForMode(preset.chip) >= 5u;
-    const auto useSource6 = anySourceEnabled && chipper::nativeSourceCountForMode(preset.chip) >= 6u;
+    const auto nativeSourceCount = chipper::nativeSourceCountForMode(preset.chip);
+    const auto useSource5 = anySourceEnabled && nativeSourceCount >= 5u;
+    const auto useSource6 = anySourceEnabled && nativeSourceCount >= 6u;
+    const auto useSource7 = anySourceEnabled && nativeSourceCount >= 7u;
+    const auto useSource8 = anySourceEnabled && nativeSourceCount >= 8u;
+    const auto useSource9 = anySourceEnabled && nativeSourceCount >= 9u;
     options.sourceEnabled = {
         preset.sourceEnabled[0],
         preset.sourceEnabled[1],
         preset.sourceEnabled[2],
         preset.sourceEnabled[3],
         useSource5,
-        useSource6
+        useSource6,
+        useSource7,
+        useSource8,
+        useSource9
     };
-    options.sourceProvided = { true, true, true, true, true, true };
-    options.sourceLevels = { preset.source1Level, preset.source2Level, preset.source3Level, preset.source4Level, 1.0f, 1.0f };
-    options.sourceLevelProvided = { true, true, true, true, true, true };
+    options.sourceProvided = { true, true, true, true, true, true, true, true, true };
+    options.sourceLevels = { preset.source1Level, preset.source2Level, preset.source3Level, preset.source4Level, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+    options.sourceLevelProvided = { true, true, true, true, true, true, true, true, true };
     options.stereoSpread = preset.stereoSpread;
     options.stereoSpreadProvided = true;
     options.envelopeDecay = preset.envelopeDecay;
@@ -1002,6 +1009,12 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.sourceProvided[7] = true;
         }
+        else if (arg == "--source9")
+        {
+            if (! parseToggle("--source9", options.sourceEnabled[8]))
+                return false;
+            options.sourceProvided[8] = true;
+        }
         else if (arg == "--level1")
         {
             const auto* value = requireValue("--level1");
@@ -1057,6 +1070,13 @@ bool parseArgs(int argc, char** argv, Options& options)
             if (value == nullptr || ! parseNumber(std::string(value), options.sourceLevels[7]))
                 return false;
             options.sourceLevelProvided[7] = true;
+        }
+        else if (arg == "--level9")
+        {
+            const auto* value = requireValue("--level9");
+            if (value == nullptr || ! parseNumber(std::string(value), options.sourceLevels[8]))
+                return false;
+            options.sourceLevelProvided[8] = true;
         }
         else if (arg == "--envelope-decay" || arg == "--sid-adsr-speed")
         {
@@ -1816,6 +1836,7 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::source6Enabled: return "source6Enabled";
         case chipper::ChipParameterRole::source7Enabled: return "source7Enabled";
         case chipper::ChipParameterRole::source8Enabled: return "source8Enabled";
+        case chipper::ChipParameterRole::source9Enabled: return "source9Enabled";
         case chipper::ChipParameterRole::source1Level: return "source1Level";
         case chipper::ChipParameterRole::source2Level: return "source2Level";
         case chipper::ChipParameterRole::source3Level: return "source3Level";
@@ -1824,6 +1845,7 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::source6Level: return "source6Level";
         case chipper::ChipParameterRole::source7Level: return "source7Level";
         case chipper::ChipParameterRole::source8Level: return "source8Level";
+        case chipper::ChipParameterRole::source9Level: return "source9Level";
         case chipper::ChipParameterRole::stereoSpread: return "stereoSpread";
         case chipper::ChipParameterRole::sidFilterRouting: return "sidFilterRouting";
         case chipper::ChipParameterRole::sidVoice2PulseWidth: return "sidVoice2PulseWidth";

@@ -831,6 +831,8 @@ int main()
     ok &= expectPreset(chipper::ChipMode::ym2413, "opll-soft-keys");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Instrument");
     ok &= expectChoiceRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 5, "Follow");
+    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPLL Ch 9");
+    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 9 Level");
     ok &= expectMacroLabel(chipper::ChipMode::scc, chipper::MacroKind::powerUp, "SCC Power Wave");
     ok &= expectPreset(chipper::ChipMode::scc, "scc-power-wave");
     ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
@@ -859,7 +861,7 @@ int main()
     ok &= expectSourceLaneCounts(chipper::ChipMode::namcoWsg, 4u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2612, 6u, 6u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2151, 8u, 8u);
-    ok &= expectSourceLaneCounts(chipper::ChipMode::ym2413, 4u, 9u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::ym2413, 9u, 9u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::scc, 5u, 5u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::paula, 4u, 4u);
 

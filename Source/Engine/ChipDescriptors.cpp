@@ -786,11 +786,21 @@ std::vector<ChipParameterSpec> ym2413ParameterSpecs()
         sourceSpec(ChipParameterRole::source1Enabled, "ym2413.ch1.enabled", "OPLL Ch 1", "Enable exposed YM2413 melodic channel 1."),
         sourceSpec(ChipParameterRole::source2Enabled, "ym2413.ch2.enabled", "OPLL Ch 2", "Enable exposed YM2413 melodic channel 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "ym2413.ch3.enabled", "OPLL Ch 3", "Enable exposed YM2413 melodic channel 3."),
-        sourceSpec(ChipParameterRole::source4Enabled, "ym2413.ch4.enabled", "OPLL Ch 4", "Enable exposed YM2413 melodic channel 4. Internal channels 5-9 remain reserved for a dedicated OPLL UI pass."),
+        sourceSpec(ChipParameterRole::source4Enabled, "ym2413.ch4.enabled", "OPLL Ch 4", "Enable YM2413 melodic channel 4."),
+        sourceSpec(ChipParameterRole::source5Enabled, "ym2413.ch5.enabled", "OPLL Ch 5", "Enable YM2413 melodic channel 5."),
+        sourceSpec(ChipParameterRole::source6Enabled, "ym2413.ch6.enabled", "OPLL Ch 6", "Enable YM2413 melodic channel 6."),
+        sourceSpec(ChipParameterRole::source7Enabled, "ym2413.ch7.enabled", "OPLL Ch 7", "Enable YM2413 melodic channel 7."),
+        sourceSpec(ChipParameterRole::source8Enabled, "ym2413.ch8.enabled", "OPLL Ch 8", "Enable YM2413 melodic channel 8."),
+        sourceSpec(ChipParameterRole::source9Enabled, "ym2413.ch9.enabled", "OPLL Ch 9", "Enable YM2413 melodic channel 9."),
         sourceLevelSpec(ChipParameterRole::source1Level, "ym2413.ch1.level", "Ch 1 Level", "Modern trim before writing the YM2413 channel volume nibble."),
         sourceLevelSpec(ChipParameterRole::source2Level, "ym2413.ch2.level", "Ch 2 Level", "Modern trim before writing the YM2413 channel volume nibble."),
         sourceLevelSpec(ChipParameterRole::source3Level, "ym2413.ch3.level", "Ch 3 Level", "Modern trim before writing the YM2413 channel volume nibble."),
-        sourceLevelSpec(ChipParameterRole::source4Level, "ym2413.ch4.level", "Ch 4 Level", "Modern trim before writing the YM2413 channel volume nibble.")
+        sourceLevelSpec(ChipParameterRole::source4Level, "ym2413.ch4.level", "Ch 4 Level", "Modern trim before writing the YM2413 channel volume nibble."),
+        sourceLevelSpec(ChipParameterRole::source5Level, "ym2413.ch5.level", "Ch 5 Level", "Modern trim before writing the YM2413 channel volume nibble."),
+        sourceLevelSpec(ChipParameterRole::source6Level, "ym2413.ch6.level", "Ch 6 Level", "Modern trim before writing the YM2413 channel volume nibble."),
+        sourceLevelSpec(ChipParameterRole::source7Level, "ym2413.ch7.level", "Ch 7 Level", "Modern trim before writing the YM2413 channel volume nibble."),
+        sourceLevelSpec(ChipParameterRole::source8Level, "ym2413.ch8.level", "Ch 8 Level", "Modern trim before writing the YM2413 channel volume nibble."),
+        sourceLevelSpec(ChipParameterRole::source9Level, "ym2413.ch9.level", "Ch 9 Level", "Modern trim before writing the YM2413 channel volume nibble.")
     };
 }
 
@@ -2231,7 +2241,7 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             {
                 makeModule("profile", "Profile", "YM2413/OPLL preset-FM groundwork backed by emu2413.", { "YM2413 family", "3.58 MHz default", "MIT emu2413 core", "Authentic still partial" }),
-                makeModule("sources", "Preset FM Voices", "Nine internal melodic channels; first four exposed.", { "Channel 1", "Channel 2", "Channel 3", "Channel 4" }),
+                makeModule("sources", "Preset FM Voices", "All nine OPLL melodic channels are exposed as playable lanes.", { "Ch 1-4", "Ch 5-8", "Ch 9", "Chip Poly" }),
                 makeModule("instrument", "Instrument / Pitch", "Preset instrument, f-number, block, and key-on register writes.", { "ROM preset instruments", "F-number", "Block", "Key-on" }),
                 makeModule("envelope", "OPLL Envelopes", "Native preset patch envelopes come from the OPLL core.", { "ROM patch ADSR", "Volume nibbles", "Custom patch planned", "Rhythm mode planned" }),
                 makeModule("motion", "Motion", "Musical OPLL templates mapped to melodic-channel registers.", { "UI chime", "Organ arp", "Sweep zap", "Power organ" }),
@@ -2249,7 +2259,6 @@ const std::vector<ChipDescriptor>& descriptors()
                 },
                 {
                     "Native rhythm mode, custom user patch editing, VRC7/YMF281 patch-set selection, stereo/pan extensions, and golden reference comparison are not complete.",
-                    "The current UI exposes the first four melodic channels through Chipper's generic source surface; channels 5-9 need a dedicated OPLL layout pass.",
                     "Hardware validation and trusted-emulator spectral/timing comparisons are not complete, so this mode is not labeled cycle-accurate."
                 })
         },
@@ -2348,6 +2357,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
         return 6u;
     if (mode == ChipMode::ym2151)
         return 8u;
+    if (mode == ChipMode::ym2413)
+        return 9u;
     if (mode == ChipMode::huc6280)
         return 6u;
     if (mode == ChipMode::scc)
@@ -2409,8 +2420,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float control3,
                             float control4,
                             PlayMode playMode,
-                            std::array<bool, 8> sourceEnabled,
-                            std::array<float, 8> sourceLevels,
+                            std::array<bool, 9> sourceEnabled,
+                            std::array<float, 9> sourceLevels,
                             float stereoSpread,
                             float envelopeDecay,
                             int waveShape,
@@ -2464,7 +2475,8 @@ PatchConfig makePatchConfig(ChipMode mode,
             clampControl(sourceLevels[4]),
             clampControl(sourceLevels[5]),
             clampControl(sourceLevels[6]),
-            clampControl(sourceLevels[7])
+            clampControl(sourceLevels[7]),
+            clampControl(sourceLevels[8])
         },
         clampControl(stereoSpread),
         std::clamp(sidFilterRouting, 0, 8),

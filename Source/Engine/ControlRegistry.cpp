@@ -64,6 +64,8 @@ const MidiCcMappingList& midiCcMappings()
         { 61, parameter_ids::source8Enabled, "Source 8 Enabled" },
         { 62, parameter_ids::source7Level, "Source 7 Level" },
         { 63, parameter_ids::source8Level, "Source 8 Level" },
+        { 58, parameter_ids::source9Enabled, "Source 9 Enabled" },
+        { 59, parameter_ids::source9Level, "Source 9 Level" },
         { 69, parameter_ids::nesDmcMapRoot, "NES DMC Map Root" },
         { 68, parameter_ids::nesDmcLoop, "NES DMC Loop" }
     }};
@@ -109,6 +111,7 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::source6Enabled: return parameter_ids::source6Enabled;
         case ChipParameterRole::source7Enabled: return parameter_ids::source7Enabled;
         case ChipParameterRole::source8Enabled: return parameter_ids::source8Enabled;
+        case ChipParameterRole::source9Enabled: return parameter_ids::source9Enabled;
         case ChipParameterRole::source1Level: return parameter_ids::source1Level;
         case ChipParameterRole::source2Level: return parameter_ids::source2Level;
         case ChipParameterRole::source3Level: return parameter_ids::source3Level;
@@ -117,6 +120,7 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::source6Level: return parameter_ids::source6Level;
         case ChipParameterRole::source7Level: return parameter_ids::source7Level;
         case ChipParameterRole::source8Level: return parameter_ids::source8Level;
+        case ChipParameterRole::source9Level: return parameter_ids::source9Level;
         case ChipParameterRole::stereoSpread: return parameter_ids::stereoSpread;
         case ChipParameterRole::sidFilterRouting: return parameter_ids::sidFilterRouting;
         case ChipParameterRole::sidVoice2PulseWidth: return parameter_ids::sidVoice2PulseWidth;
