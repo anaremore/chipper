@@ -308,6 +308,9 @@ add_test(NAME chipper_render_spc700_one_shot_smoke
 add_test(NAME chipper_render_spc700_brr_smoke
     COMMAND chipper_render --chip spc700 --accuracy authentic --macro lead --spc700-brr-hex 817f7f7f7f80808080 --spc700-playback loop --clock 32000 --rate 48000 --seconds 0.05 --note 64 --out spc700-brr-smoke.wav --debug spc700-brr-smoke.json
 )
+add_test(NAME chipper_render_spc700_brr_loop_point_smoke
+    COMMAND chipper_render --chip spc700 --accuracy authentic --macro lead --spc700-brr-hex 000000000000000000037f7f7f7f80808080 --spc700-playback loop --clock 32000 --rate 48000 --seconds 0.08 --note 64 --out spc700-brr-loop-point-smoke.wav --debug spc700-brr-loop-point-smoke.json
+)
 add_test(NAME chipper_render_spc700_pitch_motion_smoke
     COMMAND chipper_render --chip spc700 --accuracy authentic --macro laser --clock 32000 --rate 48000 --seconds 0.08 --note 64 --out spc700-pitch-motion-smoke.wav --debug spc700-pitch-motion-smoke.json
 )
@@ -1328,6 +1331,10 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-brr-smoke.json --implemented-contains partial --macro Lead --min-peak 0.02 --register-writes 0 --note-events 0 --core-min externalBrrSampleLoaded=1 --core-max externalBrrSampleLoaded=1 --core-min brrBlockCount=1 --core-max brrBlockCount=1 --core-min brrEndFlagSeen=1 --core-max brrEndFlagSeen=1 --core-min brrLoopFlagSeen=0 --core-max brrLoopFlagSeen=0 --core-min sampleLength0=16 --core-max sampleLength0=16
     )
     set_tests_properties(chipper_render_spc700_brr_assert PROPERTIES DEPENDS chipper_render_spc700_brr_smoke)
+    add_test(NAME chipper_render_spc700_brr_loop_point_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-brr-loop-point-smoke.json --implemented-contains partial --macro Lead --register-writes 0 --note-events 0 --core-min externalBrrSampleLoaded=1 --core-max externalBrrSampleLoaded=1 --core-min brrBlockCount=2 --core-max brrBlockCount=2 --core-min brrEndFlagSeen=1 --core-max brrEndFlagSeen=1 --core-min brrLoopFlagSeen=1 --core-max brrLoopFlagSeen=1 --core-min sampleLength0=32 --core-max sampleLength0=32 --core-min sampleLoopStart0=16 --core-max sampleLoopStart0=16 --core-min externalBrrLoopStartSelected=16 --core-max externalBrrLoopStartSelected=16
+    )
+    set_tests_properties(chipper_render_spc700_brr_loop_point_assert PROPERTIES DEPENDS chipper_render_spc700_brr_loop_point_smoke)
     add_test(NAME chipper_render_spc700_pitch_motion_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-pitch-motion-smoke.json --implemented-contains partial --macro Laser --min-peak 0.02 --register-writes 0 --note-events 0 --core-min pitchMotionDepthCents=2000 --core-max pitchMotionDepthCents=2400 --core-min pitchMotionDirection=1 --core-max pitchMotionDirection=1 --core-min pitch0=7600 --core-max pitch0=7700 --core-min pitch0Current=4400 --core-max pitch0Current=4550
     )

@@ -2762,15 +2762,15 @@ void ChipperAudioProcessorEditor::resized()
         sampleHeader.removeFromLeft(4);
         dmcSampleBankButton.setBounds(sampleHeader.removeFromLeft(brrButtonWidth).reduced(0, 1));
         sampleCell.removeFromTop(4);
+        auto playbackRow = sampleCell.removeFromTop(24);
+        dmcPlaybackModeBox.setBounds(playbackRow.reduced(0, 1));
+        sampleCell.removeFromTop(4);
         auto sampleRow = sampleCell.removeFromTop(22);
-        auto rootCell = sampleRow.removeFromRight(82);
-        sampleRow.removeFromRight(6);
-        auto modeCell = sampleRow.removeFromRight(112);
+        auto rootCell = sampleRow.removeFromRight(86);
         sampleRow.removeFromRight(6);
         dmcSampleSlotBox.setBounds(sampleRow.reduced(0, 1));
-        dmcPlaybackModeBox.setBounds(modeCell.reduced(0, 1));
         dmcMapRootBox.setBounds(rootCell.reduced(0, 1));
-        sampleCell.removeFromTop(2);
+        sampleCell.removeFromTop(3);
         dmcSampleStatusLabel.setBounds(sampleCell.reduced(0, 1));
     }
     else

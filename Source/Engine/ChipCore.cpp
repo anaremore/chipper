@@ -5899,9 +5899,15 @@ public:
         sampleTemplate = 0;
         playbackMode = 1;
         externalBrrSampleLoaded = false;
+        externalPcmSampleLoaded = false;
+        externalBrrBank.clear();
+        externalBrrLoopStarts.clear();
+        selectedExternalBrrSlot = -1;
         brrBlockCount = 0;
         brrEndFlagSeen = false;
         brrLoopFlagSeen = false;
+        lastDecodedBrrLoopStart = 0;
+        sampleLoopStarts.fill(0);
         echoMemoryLeft.fill(0.0);
         echoMemoryRight.fill(0.0);
         echoFilterLeft = 0.0;
@@ -5949,15 +5955,18 @@ public:
         externalBrrSampleLoaded = false;
         externalPcmSampleLoaded = false;
         externalBrrBank.clear();
+        externalBrrLoopStarts.clear();
         selectedExternalBrrSlot = -1;
         brrBlockCount = 0;
         brrEndFlagSeen = false;
         brrLoopFlagSeen = false;
 
         externalBrrBank.reserve(bank.size());
+        externalBrrLoopStarts.reserve(bank.size());
         for (const auto& sample : bank)
         {
             std::vector<double> decoded;
+            auto decodedLoopStart = size_t { 0 };
             if (sample.encoding == ExternalSampleEncoding::signedPcm8)
             {
                 decoded = decodePcm8Sample(sample.bytes);
@@ -5966,15 +5975,21 @@ public:
             else
             {
                 decoded = decodeBrrSample(sample.bytes);
+                decodedLoopStart = lastDecodedBrrLoopStart;
                 if (decoded.empty() && sample.encoding == ExternalSampleEncoding::rawBytes)
                 {
                     decoded = decodePcm8Sample(sample.bytes);
+                    decodedLoopStart = 0;
                     externalPcmSampleLoaded = externalPcmSampleLoaded || ! decoded.empty();
                 }
             }
 
             if (! decoded.empty())
+            {
+                decodedLoopStart = decodedLoopStart < decoded.size() ? decodedLoopStart : 0;
                 externalBrrBank.push_back(decoded);
+                externalBrrLoopStarts.push_back(decodedLoopStart);
+            }
         }
 
         if (externalBrrBank.empty())
@@ -5985,9 +6000,15 @@ public:
         for (size_t voice = 0; voice < sampleRam.size(); ++voice)
         {
             if (selectedExternalBrrSlot >= 0)
+            {
                 sampleRam[voice] = externalBrrBank[static_cast<size_t>(selectedExternalBrrSlot)];
+                sampleLoopStarts[voice] = loopStartForExternalSlot(static_cast<size_t>(selectedExternalBrrSlot));
+            }
             else
+            {
                 sampleRam[voice].clear();
+                sampleLoopStarts[voice] = 0;
+            }
         }
         sampleTemplate = 0;
         position.fill(0.0);
@@ -6189,7 +6210,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room sample-voice model"; }
     std::string limitations() const override
     {
-        return "Eight lo-fi sample voices, pitch, volume, loop/one-shot playback state, playable ADSR/gain-style note shaping, generated sample templates, clean-room BRR block decoding for renderer-loaded samples, Gaussian-style 4-tap sample interpolation, partial S-DSP-style per-voice noise source, musical pitch motion, and a musical stereo echo helper are modeled; exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, BRR loop-address behavior, exact noise timing, FIR echo, sample directory addressing, exact envelope timing, and hardware validation are not complete.";
+        return "Eight lo-fi sample voices, pitch, volume, loop/one-shot playback state, playable ADSR/gain-style note shaping, generated sample templates, clean-room BRR block decoding for renderer-loaded samples, BRR loop-flag loop starts, Gaussian-style 4-tap sample interpolation, partial S-DSP-style per-voice noise source, musical pitch motion, and a musical stereo echo helper are modeled; exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, source-directory loop address behavior, exact noise timing, FIR echo, sample directory addressing, exact envelope timing, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -6268,6 +6289,8 @@ public:
              << "\"sourceLevel6\":" << sourceLevel(patch, 6) << ","
              << "\"sourceLevel7\":" << sourceLevel(patch, 7) << ","
              << "\"sampleLength0\":" << sampleRam[0].size() << ","
+             << "\"sampleLoopStart0\":" << sampleLoopStarts[0] << ","
+             << "\"externalBrrLoopStartSelected\":" << (selectedExternalBrrSlot >= 0 ? loopStartForExternalSlot(static_cast<size_t>(selectedExternalBrrSlot)) : 0) << ","
              << "\"gaussianStyleInterpolation\":1,"
              << "\"interpolationTaps\":4,"
              << "\"uiExposesAllEightVoices\":1,"
@@ -6356,11 +6379,13 @@ private:
             data[i] = std::clamp(std::round(sample * 127.0) / 127.0, -1.0, 1.0);
         }
         sampleRam[voice] = std::move(data);
+        sampleLoopStarts[voice] = 0;
     }
 
     std::vector<double> decodeBrrSample(const std::vector<uint8_t>& data)
     {
         std::vector<double> decoded;
+        lastDecodedBrrLoopStart = 0;
         if (data.size() < 9u || (data.size() % 9u) != 0u)
             return decoded;
 
@@ -6368,6 +6393,7 @@ private:
         decoded.reserve(brrBlockCount * 16u);
         auto previous1 = 0;
         auto previous2 = 0;
+        auto decodedLoopFlagSeen = false;
 
         for (size_t block = 0; block < brrBlockCount; ++block)
         {
@@ -6376,7 +6402,15 @@ private:
             const auto range = static_cast<int>((header >> 4u) & 0x0fu);
             const auto filter = static_cast<int>((header >> 2u) & 0x03u);
             brrEndFlagSeen = brrEndFlagSeen || ((header & 0x01u) != 0);
-            brrLoopFlagSeen = brrLoopFlagSeen || ((header & 0x02u) != 0);
+            if ((header & 0x02u) != 0)
+            {
+                if (! decodedLoopFlagSeen)
+                {
+                    lastDecodedBrrLoopStart = decoded.size();
+                    decodedLoopFlagSeen = true;
+                }
+                brrLoopFlagSeen = true;
+            }
 
             for (size_t packedIndex = 0; packedIndex < 8u; ++packedIndex)
             {
@@ -6476,7 +6510,12 @@ private:
         else if (position[voice] >= static_cast<double>(sampleRam[voice].size()))
         {
             if (playbackMode == 1u)
-                position[voice] = std::fmod(position[voice], static_cast<double>(sampleRam[voice].size()));
+            {
+                const auto length = static_cast<double>(sampleRam[voice].size());
+                const auto loopStart = static_cast<double>(std::min(sampleLoopStarts[voice], sampleRam[voice].size() - 1u));
+                const auto loopLength = std::max(1.0, length - loopStart);
+                position[voice] = loopStart + std::fmod(std::max(0.0, position[voice] - loopStart), loopLength);
+            }
             else
             {
                 position[voice] = 0.0;
@@ -6678,13 +6717,27 @@ private:
         if (externalBrrSampleLoaded)
         {
             if (selectedExternalBrrSlot >= 0 && static_cast<size_t>(selectedExternalBrrSlot) < externalBrrBank.size())
+            {
                 sampleRam[voice] = externalBrrBank[static_cast<size_t>(selectedExternalBrrSlot)];
+                sampleLoopStarts[voice] = loopStartForExternalSlot(static_cast<size_t>(selectedExternalBrrSlot));
+            }
             else
+            {
                 sampleRam[voice].clear();
+                sampleLoopStarts[voice] = 0;
+            }
             return;
         }
 
         seedSample(voice);
+    }
+
+    size_t loopStartForExternalSlot(size_t slot) const
+    {
+        if (slot < externalBrrLoopStarts.size())
+            return externalBrrLoopStarts[slot];
+
+        return 0;
     }
 
     double interpolatedSample(size_t voice, double samplePosition) const
@@ -6867,8 +6920,11 @@ private:
     size_t brrBlockCount = 0;
     bool brrEndFlagSeen = false;
     bool brrLoopFlagSeen = false;
+    size_t lastDecodedBrrLoopStart = 0;
     std::vector<std::vector<double>> externalBrrBank {};
+    std::vector<size_t> externalBrrLoopStarts {};
     std::array<std::vector<double>, 8> sampleRam {};
+    std::array<size_t, 8> sampleLoopStarts {};
     std::array<double, 8> position {};
     std::array<uint64_t, 8> voiceAgeSamples {};
     std::array<double, 8> envelope {};
