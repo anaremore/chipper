@@ -1334,6 +1334,19 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source8Level, "spc700.voice8.level", "Voice 8 Level", "Modern trim after SPC700-style voice 8 volume."),
         stereoSpreadSpec("spc700.stereoSpread", "Modern stereo convenience that spreads exposed sample voices; zero preserves centered output."),
         envelopeSpec("spc700.adsrSpeed", "ADSR / Gain Speed", "Scales the playable clean-room ADSR/gain-style envelope while exact S-DSP envelope timing remains unverified."),
+        segmentedSpec(ChipParameterRole::ymEnvelopeShape,
+                      "spc700.envelopeShape",
+                      "Envelope Shape",
+                      "Envelope",
+                      "Selects a musical clean-room S-DSP-style ADSR/gain contour. Follow resolves from the selected SPC700 template; exact hardware envelope timing remains unverified.",
+                      {
+                          choice("Follow", "Resolve the envelope contour from the selected SPC700 template.", 0.0f, 0),
+                          choice("Pluck", "Fast attack, short decay, and low sustain for chimes and keys.", 0.25f, 1),
+                          choice("Lead", "Quick attack with playable sustain for melodic sample voices.", 0.5f, 2),
+                          choice("Pad", "Slower attack, higher sustain, and longer release for soft SNES beds.", 0.75f, 3),
+                          choice("Perc", "Immediate transient with near-zero sustain for drums and hits.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister),
         segmentedSpec(ChipParameterRole::nesDmcPlaybackMode,
                       "spc700.brrPlayback",
                       "Sample Playback",
@@ -2186,8 +2199,8 @@ const std::vector<ChipDescriptor>& descriptors()
             spc700ParameterSpecs(),
             verifiedPartial(
                 {
-                    "Eight generated lo-fi sample voices render with pitch, volume, loop/one-shot playback mode, playable ADSR/gain-style state, key-on/enabled masks, clean-room BRR block decoding for renderer-loaded samples, plugin-loaded user BRR sample banks, WAV/AIFF imported as 8-bit sample memory, note-to-sample-bank performance mapping, partial S-DSP-style per-voice noise source selection, clean-room Gaussian-style 4-tap interpolation, musical pitch-motion, and a musical stereo echo helper.",
-                    "Source enables, source levels, sample-shape choices, BRR block/end/loop debug metadata, plugin sample slot selection/state recall, note-mapped sample bank selection, noise source mode/clock/mask metadata, pitch-motion, musical echo-helper debug metadata, envelope-release debug metadata, interpolation metadata, chip-poly allocation across all eight exposed voices, presets, and debug JSON are covered by automated tests.",
+                    "Eight generated lo-fi sample voices render with pitch, volume, loop/one-shot playback mode, explicit playable envelope-shape choices, ADSR/gain-style state, key-on/enabled masks, clean-room BRR block decoding for renderer-loaded samples, plugin-loaded user BRR sample banks, WAV/AIFF imported as 8-bit sample memory, note-to-sample-bank performance mapping, partial S-DSP-style per-voice noise source selection, clean-room Gaussian-style 4-tap interpolation, musical pitch-motion, and a musical stereo echo helper.",
+                    "Source enables, source levels, sample-shape choices, envelope-shape choices, BRR block/end/loop debug metadata, plugin sample slot selection/state recall, note-mapped sample bank selection, noise source mode/clock/mask metadata, pitch-motion, musical echo-helper debug metadata, envelope-release debug metadata, interpolation metadata, chip-poly allocation across all eight exposed voices, presets, and debug JSON are covered by automated tests.",
                     "No third-party SPC700, S-DSP, BRR, SNES, or tracker-player source code is vendored in this clean-room partial model."
                 },
                 {
@@ -3903,9 +3916,60 @@ uint8_t spc700VoiceVolumeForPatch(const PatchConfig& patch, size_t voice, float 
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<double>(base) * trim * clampControl(velocity))), 0, 127));
 }
 
+uint8_t spc700EnvelopeShapeForPatch(const PatchConfig& patch)
+{
+    const auto explicitChoice = std::clamp(patch.ymEnvelopeShape, 0, 4);
+    if (explicitChoice > 0)
+        return static_cast<uint8_t>(explicitChoice);
+
+    switch (patch.macro)
+    {
+        case MacroKind::coin:
+        case MacroKind::jump:
+            return 1u;
+        case MacroKind::powerUp:
+            return 3u;
+        case MacroKind::drum:
+        case MacroKind::hit:
+            return 4u;
+        case MacroKind::bass:
+        case MacroKind::lead:
+        case MacroKind::arp:
+        case MacroKind::laser:
+        case MacroKind::manual:
+        default:
+            return 2u;
+    }
+}
+
 uint8_t spc700AdsrForPatch(const PatchConfig& patch)
 {
-    return static_cast<uint8_t>(0x80u | std::clamp(static_cast<int>(std::round(clampControl(patch.envelopeDecay) * 15.0f)), 0, 15));
+    const auto speed = std::clamp(static_cast<int>(std::round(clampControl(patch.envelopeDecay) * 15.0f)), 0, 15);
+    auto attack = 12;
+    auto decay = 3;
+
+    switch (spc700EnvelopeShapeForPatch(patch))
+    {
+        case 1: // Pluck.
+            attack = 15;
+            decay = 6;
+            break;
+        case 3: // Pad.
+            attack = std::clamp(5 + speed / 3, 5, 10);
+            decay = 2;
+            break;
+        case 4: // Perc.
+            attack = 15;
+            decay = 7;
+            break;
+        case 2: // Lead.
+        default:
+            attack = std::clamp(11 + speed / 4, 11, 15);
+            decay = 3;
+            break;
+    }
+
+    return static_cast<uint8_t>(0x80u | ((decay & 0x07) << 4u) | (attack & 0x0f));
 }
 
 uint8_t spc700GainForPatch(const PatchConfig& patch)

@@ -549,7 +549,8 @@ bool expectSampleRegisterHelpers()
                                                   0.20f);
     ok &= expect(chipper::sampleTemplateForPatch(chipper::ChipMode::spc700, spcLead) == 1u, "SPC700 lead macro should resolve to template 1");
     ok &= expect(chipper::spc700VoiceVolumeForPatch(spcLead, 0) == 102u, "SPC700 helper should resolve 7-bit voice volume");
-    ok &= expect(chipper::spc700AdsrForPatch(spcLead) == 0x83u, "SPC700 helper should resolve simplified ADSR byte");
+    ok &= expect(chipper::spc700EnvelopeShapeForPatch(spcLead) == 2u, "SPC700 lead macro should resolve to lead envelope shape");
+    ok &= expect(chipper::spc700AdsrForPatch(spcLead) == 0xbbu, "SPC700 helper should resolve simplified ADSR byte");
     ok &= expect(chipper::spc700GainForPatch(spcLead) == 102u, "SPC700 helper should resolve GAIN from output control");
     ok &= expect(! chipper::spc700VoiceEnabledForPatch(spcLead, 1), "SPC700 helper should honor exposed source mute");
     ok &= expect(chipper::generatedSampleValueForPatch(chipper::ChipMode::spc700, spcLead, 0, 0) == -15, "SPC700 generated sample head should match core template");
@@ -575,6 +576,7 @@ bool expectSampleRegisterHelpers()
                                                   0.5f,
                                                   0.5f);
     ok &= expect(chipper::spc700SamplePlaybackModeForPatch(spcDrum) == 2u, "SPC700 drum macro should resolve to one-shot playback");
+    ok &= expect(chipper::spc700EnvelopeShapeForPatch(spcDrum) == 4u, "SPC700 drum macro should resolve to percussion envelope shape");
     const auto spcForcedOneShot = chipper::makePatchConfig(chipper::ChipMode::spc700,
                                                            chipper::MacroKind::lead,
                                                            0.5f,
@@ -812,6 +814,9 @@ int main()
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Playback");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, "Sample");
     ok &= expectChoiceRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ControlSurface::menu, 3, "Follow Template");
+    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Envelope Shape");
+    ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::ymEnvelopeShape, "Envelope");
+    ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Follow");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcPlaybackMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Sample Playback");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcPlaybackMode, "Sample");
     ok &= expectSpecHelpContains(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcPlaybackMode, "manual slot", "SPC700 sample playback help should explain manual-slot behavior");

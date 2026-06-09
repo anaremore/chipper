@@ -2573,7 +2573,8 @@ void ChipperAudioProcessorEditor::resized()
     if (displayedMode != chipper::ChipMode::sid)
     {
         placeDmgWaveLevelSegment(secondaryTonePanel);
-        placeYmEnvelopeShapeSegment(displayedMode == chipper::ChipMode::ym2149 ? secondaryTonePanel : primaryTonePanel);
+        if (displayedMode != chipper::ChipMode::spc700)
+            placeYmEnvelopeShapeSegment(displayedMode == chipper::ChipMode::ym2149 ? secondaryTonePanel : primaryTonePanel);
     }
 
     auto motionPanel = moduleBounds[4].reduced(12, 9);
@@ -2607,6 +2608,14 @@ void ChipperAudioProcessorEditor::resized()
         placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, speedArea);
         envelopeDecayPanel.removeFromTop(6);
         ymEnvelopePreview.setBounds(envelopeDecayPanel.reduced(0, 1));
+    }
+    else if (displayedMode == chipper::ChipMode::spc700)
+    {
+        auto shapeArea = envelopeDecayPanel.removeFromTop(std::min(58, envelopeDecayPanel.getHeight()));
+        placeYmEnvelopeShapeSegment(shapeArea);
+        envelopeDecayPanel.removeFromTop(6);
+        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
+        ymEnvelopePreview.setBounds({});
     }
     else
     {
@@ -3983,9 +3992,29 @@ juce::String ChipperAudioProcessorEditor::sampleChipReadout(chipper::ChipMode mo
     const auto chipLabel = mode == chipper::ChipMode::paula ? juce::String("8-bit hard-pan period sample") : juce::String("lo-fi sample voice");
     const auto decay = static_cast<int>(std::round(std::clamp(patch.envelopeDecay, 0.0f, 1.0f) * 15.0f));
     const auto volume = static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f));
-    return chipLabel
+    auto text = chipLabel
         + " | template " + juce::String(static_cast<int>(chipper::sampleTemplateForPatch(mode, patch)))
         + " | decay " + juce::String(decay) + "/15 | volume " + juce::String(volume) + "/15";
+    if (mode == chipper::ChipMode::spc700)
+        text += " | " + spc700EnvelopeReadout(patch);
+    return text;
+}
+
+juce::String ChipperAudioProcessorEditor::spc700EnvelopeReadout(const chipper::PatchConfig& patch) const
+{
+    const auto shape = chipper::spc700EnvelopeShapeForPatch(patch);
+    juce::String shapeText;
+    switch (shape)
+    {
+        case 1: shapeText = "Pluck"; break;
+        case 3: shapeText = "Pad"; break;
+        case 4: shapeText = "Perc"; break;
+        case 2:
+        default: shapeText = "Lead"; break;
+    }
+
+    const auto prefix = patch.ymEnvelopeShape == 0 ? juce::String("Follow -> ") : juce::String();
+    return prefix + shapeText + " envelope, ADSR $" + byteHex(chipper::spc700AdsrForPatch(patch));
 }
 
 juce::String ChipperAudioProcessorEditor::spc700NoiseReadout(const chipper::PatchConfig& patch) const
@@ -4570,6 +4599,20 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
             case 0:
             default:
                 return "Follow template, writes POKEY AUDCTL filter bits";
+        }
+    }
+
+    if (displayedMode == chipper::ChipMode::spc700)
+    {
+        switch (std::clamp(choice, 0, 4))
+        {
+            case 1: return "Pluck: fast attack, short decay, low sustain";
+            case 2: return "Lead: quick attack with playable sustain";
+            case 3: return "Pad: slower attack, high sustain, long release";
+            case 4: return "Perc: immediate transient with near-zero sustain";
+            case 0:
+            default:
+                return "Follow template, writes clean-room SPC700 ADSR/gain contour";
         }
     }
 
@@ -7153,12 +7196,13 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         || usesDmgWaveLevelSegment(mode)
         || usesYmChannelMixControls(mode)
         || (mode != chipper::ChipMode::sid && usesSnNoiseModeSegment(mode))
-        || usesYmEnvelopeShapeSegment(mode)
+        || (mode != chipper::ChipMode::spc700 && usesYmEnvelopeShapeSegment(mode))
         || hasSidFilterRoutingControl);
     moduleSummaryLabels[2].setVisible(! hasCustomToneSurface);
     for (auto& itemLabel : moduleItemLabels[2])
         itemLabel.setVisible(! hasCustomToneSurface && ! itemLabel.getText().isEmpty());
-    const auto hasCustomEnvelopeSurface = hasLiveCore && usesEnvelopeDecayControl(mode);
+    const auto hasCustomEnvelopeSurface = hasLiveCore
+        && (usesEnvelopeDecayControl(mode) || (mode == chipper::ChipMode::spc700 && usesYmEnvelopeShapeSegment(mode)));
     for (auto& itemLabel : moduleItemLabels[3])
         itemLabel.setVisible(! hasCustomEnvelopeSurface && ! itemLabel.getText().isEmpty());
     const auto hasCustomMotionSurface = hasLiveCore && mode == chipper::ChipMode::sid && usesSnNoiseModeSegment(mode);

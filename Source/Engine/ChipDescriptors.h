@@ -318,6 +318,7 @@ int8_t generatedSampleValueForPatch(ChipMode mode, const PatchConfig& patch, siz
 uint8_t spc700SamplePlaybackModeForPatch(const PatchConfig& patch);
 bool spc700SampleLoopsForPatch(const PatchConfig& patch);
 uint8_t spc700VoiceVolumeForPatch(const PatchConfig& patch, size_t voice, float velocity = 1.0f);
+uint8_t spc700EnvelopeShapeForPatch(const PatchConfig& patch);
 uint8_t spc700AdsrForPatch(const PatchConfig& patch);
 uint8_t spc700GainForPatch(const PatchConfig& patch);
 bool spc700VoiceEnabledForPatch(const PatchConfig& patch, size_t voice);

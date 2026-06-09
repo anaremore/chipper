@@ -6204,6 +6204,8 @@ public:
              << "\"waveShapeChoice\":" << static_cast<int>(sampleTemplate) << ","
              << "\"samplePlaybackMode\":" << static_cast<int>(playbackMode) << ","
              << "\"sampleLoopEnabled\":" << (playbackMode == 1u ? 1 : 0) << ","
+             << "\"envelopeShapeChoice\":" << std::clamp(patch.ymEnvelopeShape, 0, 4) << ","
+             << "\"envelopeShapeResolved\":" << static_cast<int>(spc700EnvelopeShapeForPatch(patch)) << ","
              << "\"noiseModeChoice\":" << std::clamp(patch.snNoiseMode, 0, 4) << ","
              << "\"noiseModeResolved\":" << static_cast<int>(spc700NoiseModeForPatch(patch)) << ","
              << "\"noiseClock\":" << static_cast<int>(spc700NoiseClockForPatch(patch)) << ","
@@ -6432,7 +6434,7 @@ private:
         playbackMode = spc700SamplePlaybackModeForPatch(patch);
         pitch[voice] = spcPitchForNote(midiNote + static_cast<int>(std::round((patch.control2 - 0.5f) * 12.0f)));
         volume[voice] = voiceVolumeForPatch(voice, velocity);
-        adsr[voice] = static_cast<uint8_t>(0x80u | std::clamp(static_cast<int>(std::round(patch.envelopeDecay * 15.0f)), 0, 15));
+        adsr[voice] = spc700AdsrForPatch(patch);
         gain[voice] = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control4 * 127.0f)), 0, 127));
         position[voice] = 0.0;
         voiceAgeSamples[voice] = 0;
@@ -6544,55 +6546,63 @@ private:
 
     double spc700SustainLevel() const
     {
-        switch (patch.macro)
+        switch (spc700EnvelopeShapeForPatch(patch))
         {
-            case MacroKind::coin: return 0.22;
-            case MacroKind::bass: return 0.72;
-            case MacroKind::lead: return 0.64;
-            case MacroKind::arp: return 0.56;
-            case MacroKind::drum:
-            case MacroKind::hit: return 0.04;
-            case MacroKind::laser: return 0.24;
-            case MacroKind::jump: return 0.28;
-            case MacroKind::powerUp: return 0.52;
-            case MacroKind::manual:
-            default: return 0.66;
+            case 1: return 0.20;
+            case 3: return 0.78;
+            case 4: return 0.03;
+            case 2:
+            default:
+                switch (patch.macro)
+                {
+                    case MacroKind::bass: return 0.72;
+                    case MacroKind::arp: return 0.56;
+                    case MacroKind::laser: return 0.34;
+                    case MacroKind::powerUp: return 0.58;
+                    case MacroKind::lead:
+                    case MacroKind::manual:
+                    default: return 0.64;
+                }
         }
     }
 
     double spc700AttackSeconds() const
     {
         const auto speed = std::clamp(static_cast<double>(patch.envelopeDecay), 0.0, 1.0);
-        const auto transient = patch.macro == MacroKind::coin
-            || patch.macro == MacroKind::drum
-            || patch.macro == MacroKind::hit
-            || patch.macro == MacroKind::jump
-            || patch.macro == MacroKind::laser;
-        const auto base = transient ? 0.0025 : 0.010;
-        return std::max(0.0008, base * (1.0 - speed * 0.55));
+        switch (spc700EnvelopeShapeForPatch(patch))
+        {
+            case 1: return 0.0015 + (1.0 - speed) * 0.006;
+            case 3: return 0.025 + (1.0 - speed) * 0.155;
+            case 4: return 0.0008 + (1.0 - speed) * 0.002;
+            case 2:
+            default: return 0.004 + (1.0 - speed) * 0.026;
+        }
     }
 
     double spc700DecaySeconds() const
     {
         const auto speed = std::clamp(static_cast<double>(patch.envelopeDecay), 0.0, 1.0);
-        const auto transient = patch.macro == MacroKind::coin
-            || patch.macro == MacroKind::drum
-            || patch.macro == MacroKind::hit
-            || patch.macro == MacroKind::laser;
-        const auto minDecay = transient ? 0.018 : 0.090;
-        const auto maxDecay = transient ? 0.180 : 0.850;
-        return minDecay + (1.0 - speed) * (maxDecay - minDecay);
+        switch (spc700EnvelopeShapeForPatch(patch))
+        {
+            case 1: return 0.030 + (1.0 - speed) * 0.180;
+            case 3: return 0.450 + (1.0 - speed) * 1.550;
+            case 4: return 0.018 + (1.0 - speed) * 0.130;
+            case 2:
+            default: return 0.110 + (1.0 - speed) * 0.780;
+        }
     }
 
     double spc700ReleaseSeconds() const
     {
         const auto speed = std::clamp(static_cast<double>(patch.envelopeDecay), 0.0, 1.0);
-        const auto transient = patch.macro == MacroKind::coin
-            || patch.macro == MacroKind::drum
-            || patch.macro == MacroKind::hit;
-        const auto minRelease = transient ? 0.012 : 0.045;
-        const auto maxRelease = transient ? 0.100 : 0.520;
-        return minRelease + (1.0 - speed) * (maxRelease - minRelease);
+        switch (spc700EnvelopeShapeForPatch(patch))
+        {
+            case 1: return 0.018 + (1.0 - speed) * 0.130;
+            case 3: return 0.260 + (1.0 - speed) * 1.120;
+            case 4: return 0.010 + (1.0 - speed) * 0.075;
+            case 2:
+            default: return 0.060 + (1.0 - speed) * 0.520;
+        }
     }
 
     void updateEnvelope(size_t voice)
