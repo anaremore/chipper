@@ -14,11 +14,11 @@ Every non-vendored project listed here still needs a file-level license audit be
 
 ## Open-Source Path
 
-The owner is willing to make Chipper open source if that is the right product and licensing move. That improves the set of viable emulator-core options, but it does not remove the need for deliberate source hygiene.
+Chipper's first-party source is now marked as `AGPL-3.0-or-later`. That aligns with JUCE's open-source licensing path and improves the set of viable copyleft emulator-core options, but it does not remove the need for deliberate source hygiene.
 
-Before importing GPL-family or LGPL code, choose Chipper's project license and distribution model, then record the exact obligations in `THIRD_PARTY_NOTICES.md`. Open-source compatibility must be checked at the file level, not only at the repository level, because emulator projects often combine cores, tools, lookup tables, optional backends, generated data, and third-party dependencies under different terms.
+Before importing GPL-family or LGPL code, record the exact compatibility analysis and distribution obligations in `THIRD_PARTY_NOTICES.md`. Open-source compatibility must be checked at the file level, not only at the repository level, because emulator projects often combine cores, tools, lookup tables, optional backends, generated data, and third-party dependencies under different terms.
 
-Until that decision is made, use GPL-family projects such as Furnace, reSIDfp, FigBug/SID, FigBug/PAPU, MAME aggregate sources, and similar trackers/emulators as references and validation targets only. Preset design may learn from public chip workflows, but Chipper presets must remain original Chipper parameter snapshots unless a separate rights review says otherwise.
+Even with an AGPL-compatible project license, use GPL-family projects such as Furnace, reSIDfp, FigBug/SID, FigBug/PAPU, MAME aggregate sources, and similar trackers/emulators as references and validation targets only until the exact files, license versions, linking approach, and redistribution obligations are documented. GPL-2.0-only code in particular may not be compatible with an AGPLv3-based distribution. Preset design may learn from public chip workflows, but Chipper presets must remain original Chipper parameter snapshots unless a separate rights review says otherwise.
 
 ## Latest Source Check
 

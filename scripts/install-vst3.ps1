@@ -77,7 +77,19 @@ function Get-ChipperDefaultVst3Root {
     param([string] $InstallScope)
 
     if ($InstallScope -eq "User") {
+        if (-not [string]::IsNullOrWhiteSpace($env:CHIPPER_VST3_USER_DIR)) {
+            return $env:CHIPPER_VST3_USER_DIR
+        }
+
         return Join-Path $env:LOCALAPPDATA "Programs\Common\VST3"
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($env:CHIPPER_VST3_GLOBAL_DIR)) {
+        return $env:CHIPPER_VST3_GLOBAL_DIR
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($env:ProgramFiles)) {
+        return Join-Path $env:ProgramFiles "Common Files\VST3"
     }
 
     return "C:\Program Files\Common Files\VST3"
@@ -157,6 +169,10 @@ function New-ChipperFallbackDestination {
         return $FallbackDestination
     }
 
+    if (-not [string]::IsNullOrWhiteSpace($env:CHIPPER_VST3_FALLBACK_DIR)) {
+        return $env:CHIPPER_VST3_FALLBACK_DIR
+    }
+
     $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
     return Join-Path $env:TEMP "Chipper-VST3-install-$stamp"
 }
@@ -173,6 +189,11 @@ function Copy-ChipperLegalNotices {
     $noticesSource = Join-Path $repoRoot "THIRD_PARTY_NOTICES.md"
     if (Test-Path -LiteralPath $noticesSource) {
         Copy-Item -Force -LiteralPath $noticesSource -Destination (Join-Path $legalPath "THIRD_PARTY_NOTICES.md")
+    }
+
+    $projectLicenseSource = Join-Path $repoRoot "LICENSE"
+    if (Test-Path -LiteralPath $projectLicenseSource) {
+        Copy-Item -Force -LiteralPath $projectLicenseSource -Destination (Join-Path $legalPath "LICENSE")
     }
 
     $emu2413License = Join-Path $repoRoot "ThirdParty\emu2413\LICENSE"

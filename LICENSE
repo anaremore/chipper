@@ -1,0 +1,25 @@
+Chipper First-Party Source License
+==================================
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+
+Copyright (c) 2026 Anaremore
+
+The first-party Chipper source code in this repository is licensed under the
+GNU Affero General Public License version 3.0 or, at your option, any later
+version published by the Free Software Foundation, except where a file or
+directory states a different license.
+
+Third-party code remains under its own license. See THIRD_PARTY_NOTICES.md and
+the license files under ThirdParty/ for vendored emulator-core notices.
+
+The GNU Affero General Public License v3.0 text is published by the Free
+Software Foundation at:
+
+https://www.gnu.org/licenses/agpl-3.0.txt
+
+Important project note: this repository uses JUCE. If Chipper is distributed
+using JUCE's open-source licensing path, AGPL obligations apply. A commercial
+JUCE license may allow different binary distribution choices for the JUCE-based
+plugin wrapper, but it does not change the licenses of third-party emulator
+cores or contributions already accepted under this project license.

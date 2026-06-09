@@ -1,6 +1,6 @@
 param(
     [string] $Configuration = "Release",
-    [string] $BuildRoot = "build-codex",
+    [string] $BuildRoot = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_BUILD_ROOT)) { "build" } else { $env:CHIPPER_BUILD_ROOT }),
     [ValidateSet("Global", "User", "Both")]
     [string] $Scope = "User",
     [string] $Destination,

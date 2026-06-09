@@ -2,6 +2,12 @@
 
 Chipper is being developed with an explicit licensing rule: every chip mode must be backed by either clean-room/internal code or a third-party emulation core whose license has been audited before vendoring.
 
+## Chipper Project License
+
+First-party Chipper source code is licensed under `AGPL-3.0-or-later` unless a file or directory states otherwise. This project license does not relicense vendored emulator cores; those remain under the MIT or BSD-3-Clause notices listed below and in their `ThirdParty/*/LICENSE` files.
+
+Chipper currently uses JUCE. If Chipper is distributed using JUCE's open-source licensing path, AGPL obligations apply. A commercial JUCE license may allow different binary distribution choices for the JUCE-based plugin wrapper, but it does not change third-party emulator-core licenses or source code accepted under Chipper's project license.
+
 ## Current Vendored Emulation Cores
 
 ### emu2413
