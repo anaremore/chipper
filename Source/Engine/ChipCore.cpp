@@ -7629,18 +7629,18 @@ public:
 
         heldNote = std::clamp(midiNote, 0, 127);
         const auto baseVelocity = static_cast<float>(clamp01(velocity));
-        auto notes = std::array<int, 4> { heldNote, heldNote + 7, heldNote + 12, heldNote + 19 };
+        auto notes = std::array<int, 9> { heldNote, heldNote + 7, heldNote + 12, heldNote + 19, heldNote + 24, heldNote + 28, heldNote + 31, heldNote + 36, heldNote + 43 };
         switch (patch.macro)
         {
-            case MacroKind::bass: notes = { heldNote - 24, heldNote - 12, heldNote, heldNote + 7 }; break;
-            case MacroKind::lead: notes = { heldNote, heldNote + 7, heldNote + 12, heldNote + 16 }; break;
-            case MacroKind::arp: notes = { heldNote, heldNote + 4, heldNote + 7, heldNote + 12 }; break;
+            case MacroKind::bass: notes = { heldNote - 24, heldNote - 12, heldNote - 5, heldNote, heldNote + 7, heldNote + 12, heldNote + 19, heldNote + 24, heldNote + 31 }; break;
+            case MacroKind::lead: notes = { heldNote, heldNote + 7, heldNote + 12, heldNote + 16, heldNote + 19, heldNote + 24, heldNote + 28, heldNote + 31, heldNote + 36 }; break;
+            case MacroKind::arp: notes = { heldNote, heldNote + 4, heldNote + 7, heldNote + 12, heldNote + 16, heldNote + 19, heldNote + 24, heldNote + 28, heldNote + 31 }; break;
             case MacroKind::coin:
-            case MacroKind::jump: notes = { heldNote + 24, heldNote + 31, heldNote + 36, heldNote + 43 }; break;
-            case MacroKind::laser: notes = { heldNote + 24, heldNote + 12, heldNote, heldNote - 12 }; break;
-            case MacroKind::powerUp: notes = { heldNote, heldNote + 5, heldNote + 12, heldNote + 17 }; break;
+            case MacroKind::jump: notes = { heldNote + 24, heldNote + 31, heldNote + 36, heldNote + 43, heldNote + 48, heldNote + 55, heldNote + 60, heldNote + 67, heldNote + 72 }; break;
+            case MacroKind::laser: notes = { heldNote + 24, heldNote + 12, heldNote, heldNote - 12, heldNote - 24, heldNote + 19, heldNote + 7, heldNote - 5, heldNote - 17 }; break;
+            case MacroKind::powerUp: notes = { heldNote, heldNote + 5, heldNote + 12, heldNote + 17, heldNote + 24, heldNote + 29, heldNote + 36, heldNote + 41, heldNote + 48 }; break;
             case MacroKind::drum:
-            case MacroKind::hit: notes = { heldNote - 12, heldNote - 5, heldNote, heldNote + 7 }; break;
+            case MacroKind::hit: notes = { heldNote - 24, heldNote - 17, heldNote - 12, heldNote - 5, heldNote, heldNote + 7, heldNote + 12, heldNote + 19, heldNote + 24 }; break;
             case MacroKind::manual:
             default: break;
         }
@@ -7660,7 +7660,7 @@ public:
         if (midiNote == heldNote)
         {
             heldNote = -1;
-            for (size_t channel = 0; channel < 4; ++channel)
+            for (size_t channel = 0; channel < channelNotes.size(); ++channel)
                 keyOffChannel(channel);
         }
     }
@@ -7733,7 +7733,7 @@ public:
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"internalChannelCount\":9,"
-             << "\"uiExposesFirstFourVoices\":1,"
+             << "\"exposedChannelCount\":9,"
              << "\"waveform0\":" << static_cast<int>(currentWaveform[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
              << "\"fnum0\":" << currentFnum[0] << ","
@@ -7743,11 +7743,21 @@ public:
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+             << "\"sourceEnabled4\":" << (sourceEnabled(patch, 4) ? 1 : 0) << ","
+             << "\"sourceEnabled5\":" << (sourceEnabled(patch, 5) ? 1 : 0) << ","
+             << "\"sourceEnabled6\":" << (sourceEnabled(patch, 6) ? 1 : 0) << ","
+             << "\"sourceEnabled7\":" << (sourceEnabled(patch, 7) ? 1 : 0) << ","
+             << "\"sourceEnabled8\":" << (sourceEnabled(patch, 8) ? 1 : 0) << ","
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNote0\":" << channelNotes[0] << ","
              << "\"assignedNote1\":" << channelNotes[1] << ","
              << "\"assignedNote2\":" << channelNotes[2] << ","
              << "\"assignedNote3\":" << channelNotes[3] << ","
+             << "\"assignedNote4\":" << channelNotes[4] << ","
+             << "\"assignedNote5\":" << channelNotes[5] << ","
+             << "\"assignedNote6\":" << channelNotes[6] << ","
+             << "\"assignedNote7\":" << channelNotes[7] << ","
+             << "\"assignedNote8\":" << channelNotes[8] << ","
              << "\"nativeMono\":" << lastNative << ","
              << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
              << "}";
@@ -7855,13 +7865,13 @@ private:
 
     void applyPatchToAllChannels(bool preserveKeys)
     {
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
             applyChannelPatch(channel, channelVelocity[channel] > 0.0f ? channelVelocity[channel] : 1.0f);
 
         if (! preserveKeys)
             return;
 
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
             if ((keyOnMask & (1u << channel)) != 0 && channelNotes[channel] >= 0)
                 triggerChannel(channel, channelNotes[channel], channelVelocity[channel], sourceEnabled(patch, channel));
@@ -7870,7 +7880,7 @@ private:
 
     void triggerChannel(size_t channel, int midiNote, float velocity, bool shouldEnable)
     {
-        if (channel >= 4 || ! chip)
+        if (channel >= channelNotes.size() || ! chip)
             return;
         const auto detune = static_cast<int>(std::round((patch.control2 - 0.5f) * 6.0f));
         const auto pitch = pitchForNote(midiNote + detune);
@@ -7888,7 +7898,7 @@ private:
 
     void keyOffChannel(size_t channel)
     {
-        if (channel >= 4)
+        if (channel >= channelNotes.size())
             return;
         writeOplRegister(static_cast<uint8_t>(0xb0 + channel), static_cast<uint8_t>(regs[0xb0 + channel] & static_cast<uint8_t>(~0x20u)));
         keyOnMask &= static_cast<uint16_t>(~(1u << channel));
@@ -7896,7 +7906,7 @@ private:
 
     void clearChipPolyState()
     {
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
             keyOffChannel(channel);
         channelNotes.fill(-1);
         channelVelocity.fill(0.0f);
@@ -7906,19 +7916,19 @@ private:
 
     int selectChipPolyChannel(int midiNote) const
     {
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
             if (sourceEnabled(patch, channel) && channelNotes[channel] == midiNote)
                 return static_cast<int>(channel);
         }
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
             if (sourceEnabled(patch, channel) && channelNotes[channel] < 0)
                 return static_cast<int>(channel);
         }
         auto oldestChannel = -1;
         auto oldestStamp = std::numeric_limits<uint64_t>::max();
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
             if (sourceEnabled(patch, channel) && channelStamp[channel] < oldestStamp)
             {
@@ -7932,7 +7942,7 @@ private:
     int activeChipPolyChannels() const
     {
         auto active = 0;
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
             if (sourceEnabled(patch, channel) && channelNotes[channel] >= 0)
                 ++active;
@@ -7954,7 +7964,7 @@ private:
 
     void noteOffChipPoly(int midiNote)
     {
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
             if (channelNotes[channel] != midiNote)
                 continue;
@@ -7969,7 +7979,7 @@ private:
     {
         laserPhase += 1.0 / sampleRate;
         const auto bend = static_cast<int>(std::round(std::sin(twoPi * laserPhase * 9.0) * patch.control3 * 8.0));
-        for (size_t channel = 0; channel < 4; ++channel)
+        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
             if ((keyOnMask & (1u << channel)) == 0)
                 continue;
@@ -7987,13 +7997,13 @@ private:
     std::unique_ptr<ymfm::ym3812> chip;
     PatchConfig patch;
     std::array<uint8_t, 0x100> regs {};
-    std::array<uint16_t, 4> currentFnum {};
-    std::array<uint8_t, 4> currentBlock {};
-    std::array<uint8_t, 4> currentWaveform {};
-    std::array<uint8_t, 4> currentFeedback {};
-    std::array<int, 4> channelNotes {};
-    std::array<float, 4> channelVelocity {};
-    std::array<uint64_t, 4> channelStamp {};
+    std::array<uint16_t, 9> currentFnum {};
+    std::array<uint8_t, 9> currentBlock {};
+    std::array<uint8_t, 9> currentWaveform {};
+    std::array<uint8_t, 9> currentFeedback {};
+    std::array<int, 9> channelNotes {};
+    std::array<float, 9> channelVelocity {};
+    std::array<uint64_t, 9> channelStamp {};
     uint64_t noteStamp = 0;
     int heldNote = -1;
     uint16_t keyOnMask = 0;

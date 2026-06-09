@@ -1153,7 +1153,7 @@ const std::vector<PresetInfo>& presetCatalog()
             "opl2-organ-arp",
             "OPL2/OPL3 / DOS FM",
             "OPL2 Organ Arp",
-            "Four exposed OPL melodic lanes arranged for fake chords.",
+            "Nine OPL melodic lanes arranged for fake chords.",
             ChipMode::opl3,
             AccuracyMode::hybrid,
             MacroKind::arp,

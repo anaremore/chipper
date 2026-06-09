@@ -81,7 +81,7 @@ std::vector<MacroTemplate> oplMacros()
         { MacroKind::coin, "OPL2 UI Bell", "Short DOS FM bell for menu and pickup sounds.", { 0.85f, 0.20f, 0.55f, 0.78f }, { true, false, false, false }, 0.16f, 3 },
         { MacroKind::bass, "OPL2 Bass", "Rounded two-operator FM bass with moderate feedback.", { 0.20f, 0.62f, 0.25f, 0.88f }, { true, true, false, false }, 0.08f, 1 },
         { MacroKind::lead, "OPL2 Bright Lead", "Bright DOS FM lead using selectable OPL2 waveform registers.", { 0.70f, 0.42f, 0.72f, 0.82f }, { true, true, true, false }, 0.10f, 4 },
-        { MacroKind::arp, "OPL2 Organ Arp", "Four exposed OPL melodic lanes arranged for fake chords and arps.", { 0.78f, 0.28f, 0.48f, 0.78f }, { true, true, true, true }, 0.08f, 2 },
+        { MacroKind::arp, "OPL2 Organ Arp", "Nine OPL melodic lanes arranged for fake chords and arps.", { 0.78f, 0.28f, 0.48f, 0.78f }, { true, true, true, true }, 0.08f, 2 },
         { MacroKind::drum, "OPL2 FM Perc", "Melodic-channel percussion placeholder until native rhythm mode lands.", { 0.25f, 0.85f, 0.82f, 0.76f }, { false, false, true, true }, 0.58f, 4 },
         { MacroKind::hit, "OPL2 Impact", "Short two-operator impact with high feedback.", { 0.28f, 0.92f, 0.78f, 0.78f }, { true, false, true, true }, 0.55f, 4 },
         { MacroKind::laser, "OPL2 Laser", "Pitch-swept DOS FM SFX.", { 0.32f, 0.72f, 0.90f, 0.80f }, { true, true, false, true }, 0.28f, 4 },
@@ -741,7 +741,25 @@ std::vector<ChipParameterSpec> oplParameterSpecs()
           oplWaveformChoices(),
           0.0f,
           1.0f,
-          0.0f }
+          0.0f },
+        sourceSpec(ChipParameterRole::source1Enabled, "opl.ch1.enabled", "OPL Ch 1", "Enable OPL2 melodic channel 1."),
+        sourceSpec(ChipParameterRole::source2Enabled, "opl.ch2.enabled", "OPL Ch 2", "Enable OPL2 melodic channel 2."),
+        sourceSpec(ChipParameterRole::source3Enabled, "opl.ch3.enabled", "OPL Ch 3", "Enable OPL2 melodic channel 3."),
+        sourceSpec(ChipParameterRole::source4Enabled, "opl.ch4.enabled", "OPL Ch 4", "Enable OPL2 melodic channel 4."),
+        sourceSpec(ChipParameterRole::source5Enabled, "opl.ch5.enabled", "OPL Ch 5", "Enable OPL2 melodic channel 5."),
+        sourceSpec(ChipParameterRole::source6Enabled, "opl.ch6.enabled", "OPL Ch 6", "Enable OPL2 melodic channel 6."),
+        sourceSpec(ChipParameterRole::source7Enabled, "opl.ch7.enabled", "OPL Ch 7", "Enable OPL2 melodic channel 7."),
+        sourceSpec(ChipParameterRole::source8Enabled, "opl.ch8.enabled", "OPL Ch 8", "Enable OPL2 melodic channel 8."),
+        sourceSpec(ChipParameterRole::source9Enabled, "opl.ch9.enabled", "OPL Ch 9", "Enable OPL2 melodic channel 9."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "opl.ch1.level", "Ch 1 Level", "Modern trim before writing OPL2 channel 1 carrier level."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "opl.ch2.level", "Ch 2 Level", "Modern trim before writing OPL2 channel 2 carrier level."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "opl.ch3.level", "Ch 3 Level", "Modern trim before writing OPL2 channel 3 carrier level."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "opl.ch4.level", "Ch 4 Level", "Modern trim before writing OPL2 channel 4 carrier level."),
+        sourceLevelSpec(ChipParameterRole::source5Level, "opl.ch5.level", "Ch 5 Level", "Modern trim before writing OPL2 channel 5 carrier level."),
+        sourceLevelSpec(ChipParameterRole::source6Level, "opl.ch6.level", "Ch 6 Level", "Modern trim before writing OPL2 channel 6 carrier level."),
+        sourceLevelSpec(ChipParameterRole::source7Level, "opl.ch7.level", "Ch 7 Level", "Modern trim before writing OPL2 channel 7 carrier level."),
+        sourceLevelSpec(ChipParameterRole::source8Level, "opl.ch8.level", "Ch 8 Level", "Modern trim before writing OPL2 channel 8 carrier level."),
+        sourceLevelSpec(ChipParameterRole::source9Level, "opl.ch9.level", "Ch 9 Level", "Modern trim before writing OPL2 channel 9 carrier level.")
     };
 }
 
@@ -1817,7 +1835,7 @@ std::array<ModuleDescriptor, 6> oplModules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "OPL2 path is backed by audited BSD-licensed ymfm inside the broader OPL2/OPL3 mode.", { "YM3812 core", "DOS clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM Voices", "Nine OPL2 melodic channels with four lanes exposed in the current UI.", { "Voice 1", "Voice 2", "Voice 3", "Voice 4 shown" }),
+        makeModule("sources", "FM Voices", "All nine OPL2 melodic channels are exposed as playable lanes.", { "Ch 1-4", "Ch 5-8", "Ch 9", "Chip Poly" }),
         makeModule("tone", "Operators", "Musical controls write native OPL operator and channel registers.", { "Waveform", "Feedback", "Connection", "Operator tone" }),
         makeModule("envelope", "Envelope", "Useful fixed OPL operator envelopes are written per voice for this first pass.", { "Attack/decay", "Sustain/release", "KSR/multiple", "Full ADSR planned" }),
         makeModule("motion", "Motion", "DOS FM templates map to register-backed melodic patches.", { "UI bell", "FM bass", "Organ arp", "Laser" }),
@@ -2019,7 +2037,7 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::opl3,
             "OPL2/OPL3 / DOS FM",
-            "Four exposed melodic lanes write OPL2/YM3812 registers into the audited ymfm core for DOS FM tones.",
+            "Nine exposed melodic lanes write OPL2/YM3812 registers into the audited ymfm core for DOS FM tones.",
             {
                 { "balance", "Operator Balance", "FM", "Writes the OPL connection bit for two-operator voices." },
                 { "feedback", "Feedback", "FM", "Writes OPL feedback bits." },
@@ -2034,8 +2052,8 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM3812/OPL2 synthesis core.",
-                    "Renderer notes and musical templates write OPL2 operator waveform, multiple, total-level, envelope, channel feedback/connection, f-number/block, and key-on registers.",
-                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the first melodic adapter."
+                    "Renderer notes and musical templates write OPL2 operator waveform, multiple, total-level, envelope, channel feedback/connection, f-number/block, and key-on registers across all nine melodic channels.",
+                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the nine-lane melodic adapter."
                 },
                 {
                     "The OPL2/OPL3 mode currently uses the OPL2/YM3812 core only; OPL3 stereo, 18-channel mode, four-operator pairs, and rhythm mode are not implemented.",
@@ -2367,6 +2385,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
         return 8u;
     if (mode == ChipMode::ym2413)
         return 9u;
+    if (mode == ChipMode::opl3)
+        return 9u;
     if (mode == ChipMode::huc6280)
         return 6u;
     if (mode == ChipMode::namcoWsg)
@@ -2387,6 +2407,7 @@ size_t nativeSourceCountForMode(ChipMode mode)
         case ChipMode::ym2612: return 6u;
         case ChipMode::ym2151: return 8u;
         case ChipMode::ym2413: return 9u;
+        case ChipMode::opl3: return 9u;
         case ChipMode::scc: return 5u;
         default: return visibleSourceCountForMode(mode);
     }

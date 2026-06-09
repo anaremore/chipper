@@ -240,6 +240,9 @@ bool expectLiveSourceLevelSpecs()
         chipper::ChipMode::ym2149,
         chipper::ChipMode::sn76489,
         chipper::ChipMode::ym2612,
+        chipper::ChipMode::opl3,
+        chipper::ChipMode::ym2151,
+        chipper::ChipMode::ym2413,
         chipper::ChipMode::spc700,
         chipper::ChipMode::pokey,
         chipper::ChipMode::paula,
@@ -255,7 +258,8 @@ bool expectLiveSourceLevelSpecs()
         chipper::ChipParameterRole::source5Level,
         chipper::ChipParameterRole::source6Level,
         chipper::ChipParameterRole::source7Level,
-        chipper::ChipParameterRole::source8Level
+        chipper::ChipParameterRole::source8Level,
+        chipper::ChipParameterRole::source9Level
     };
 
     for (const auto mode : liveModes)
@@ -835,6 +839,8 @@ int main()
     ok &= expectChoiceRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 5, "Follow");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPLL Ch 9");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 9 Level");
+    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::source9Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPL Ch 9");
+    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::source9Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 9 Level");
     ok &= expectMacroLabel(chipper::ChipMode::scc, chipper::MacroKind::powerUp, "SCC Power Wave");
     ok &= expectPreset(chipper::ChipMode::scc, "scc-power-wave");
     ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
@@ -862,6 +868,7 @@ int main()
     ok &= expectSourceLaneCounts(chipper::ChipMode::huc6280, 6u, 6u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::namcoWsg, 8u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2612, 6u, 6u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::opl3, 9u, 9u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2151, 8u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2413, 9u, 9u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::scc, 5u, 5u);
