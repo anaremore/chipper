@@ -28,6 +28,7 @@ Chipper's SNES mode should become a hardware-shaped sampler, not another oscilla
 
 - Implement S-DSP Gaussian interpolation before claiming an authentic playback path.
 - Keep the current clean-room Gaussian-style helper labeled as partial until the exact table/overflow behavior is implemented and tested.
+- Done first pass: per-voice left/right volume register state is exported and debugged from Chipper's voice spread model.
 - Add per-voice and final-output oscilloscopes once the sample path is more stable; SNES benefits from seeing both raw BRR decode and post-echo output.
 
 ### Envelope / Gain
@@ -40,6 +41,7 @@ Chipper's SNES mode should become a hardware-shaped sampler, not another oscilla
 
 - The SNES echo is a major part of the instrument identity, not a generic reverb.
 - User controls should map to S-DSP-like behavior: echo enable per voice, delay, feedback, FIR preset/taps, wet level, and memory budget warning.
+- Done first pass: active source lanes now produce an echo-enable mask and explicit echo input level that feed the musical echo helper.
 - `snes-echo` is useful as a permissive-looking audible reference, but it explicitly does not target bit accuracy, so it should not be the only validation source.
 
 ## Source Candidate Posture
@@ -77,8 +79,8 @@ Checked 2026-06-07:
    - Add noise and pitch-mod behavior tests.
 
 5. **Echo / FIR**
-   - Add S-DSP-style echo state and FIR taps.
-   - Add renderer debug JSON for echo registers and FIR coefficients.
+   - Done first pass: add S-DSP-style echo-enable state and renderer debug JSON for echo send, feedback, delay, echo mask, and echo input level.
+   - Add FIR taps and FIR coefficient register debug JSON.
    - Compare against trusted emulator output before upgrading the accuracy label.
 
 6. **Validation**

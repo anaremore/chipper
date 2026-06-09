@@ -6143,10 +6143,12 @@ public:
 
     StereoFrame renderSample() override
     {
-        static constexpr std::array<double, 8> panPositions { -1.0, -0.72, -0.44, -0.16, 0.16, 0.44, 0.72, 1.0 };
         double left = 0.0;
         double right = 0.0;
+        double echoInputLeft = 0.0;
+        double echoInputRight = 0.0;
         auto audibleCount = 0;
+        auto echoCount = 0;
 
         for (size_t voice = 0; voice < pitch.size(); ++voice)
         {
@@ -6155,16 +6157,29 @@ public:
                 continue;
 
             ++audibleCount;
-            const auto spread = std::clamp(static_cast<double>(patch.stereoSpread), 0.0, 1.0);
-            const auto pan = panPositions[voice] * spread;
-            left += sample * (pan <= 0.0 ? 1.0 : 1.0 - pan);
-            right += sample * (pan >= 0.0 ? 1.0 : 1.0 + pan);
+            const auto leftGain = voiceLeftGain(voice);
+            const auto rightGain = voiceRightGain(voice);
+            left += sample * leftGain;
+            right += sample * rightGain;
+
+            const auto voiceEcho = voiceEchoSendLevel(voice);
+            if (voiceEcho > 0.0)
+            {
+                ++echoCount;
+                echoInputLeft += sample * leftGain * voiceEcho;
+                echoInputRight += sample * rightGain * voiceEcho;
+            }
         }
 
         if (audibleCount > 0)
         {
             left /= static_cast<double>(audibleCount);
             right /= static_cast<double>(audibleCount);
+        }
+        if (echoCount > 0)
+        {
+            echoInputLeft /= static_cast<double>(echoCount);
+            echoInputRight /= static_cast<double>(echoCount);
         }
 
         const auto echoSend = spc700EchoSend();
@@ -6176,8 +6191,8 @@ public:
 
         echoFilterLeft = (delayedLeft * 0.68) + (echoFilterLeft * 0.32);
         echoFilterRight = (delayedRight * 0.68) + (echoFilterRight * 0.32);
-        echoMemoryLeft[echoIndex] = std::clamp(left + (echoFilterLeft * echoFeedback), -1.0, 1.0);
-        echoMemoryRight[echoIndex] = std::clamp(right + (echoFilterRight * echoFeedback), -1.0, 1.0);
+        echoMemoryLeft[echoIndex] = std::clamp(echoInputLeft + (echoFilterLeft * echoFeedback), -1.0, 1.0);
+        echoMemoryRight[echoIndex] = std::clamp(echoInputRight + (echoFilterRight * echoFeedback), -1.0, 1.0);
         echoIndex = (echoIndex + 1) % echoMemoryLeft.size();
         left += echoFilterLeft * echoSend;
         right += echoFilterRight * echoSend;
@@ -6200,7 +6215,10 @@ public:
             writes.push_back({ 0, static_cast<uint16_t>(base + 5u), sampleTemplate });
             writes.push_back({ 0, static_cast<uint16_t>(base + 6u), static_cast<uint8_t>((enabledMask >> voice) & 1u) });
             writes.push_back({ 0, static_cast<uint16_t>(base + 7u), playbackMode });
+            writes.push_back({ 0, static_cast<uint16_t>(base + 8u), voiceLeftVolumeRegister(voice) });
+            writes.push_back({ 0, static_cast<uint16_t>(base + 9u), voiceRightVolumeRegister(voice) });
         }
+        writes.push_back({ 0, 0x4du, echoEnabledMask() });
         return writes;
     }
 
@@ -6210,7 +6228,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room sample-voice model"; }
     std::string limitations() const override
     {
-        return "Eight lo-fi sample voices, pitch, volume, loop/one-shot playback state, playable ADSR/gain-style note shaping, generated sample templates, clean-room BRR block decoding for renderer-loaded samples, BRR loop-flag loop starts, Gaussian-style 4-tap sample interpolation, partial S-DSP-style per-voice noise source, musical pitch motion, and a musical stereo echo helper are modeled; exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, source-directory loop address behavior, exact noise timing, FIR echo, sample directory addressing, exact envelope timing, and hardware validation are not complete.";
+        return "Eight lo-fi sample voices, pitch, 7-bit per-voice left/right volume state, loop/one-shot playback state, playable ADSR/gain-style note shaping, generated sample templates, clean-room BRR block decoding for renderer-loaded samples, BRR loop-flag loop starts, Gaussian-style 4-tap sample interpolation, partial S-DSP-style per-voice noise source, musical pitch motion, an echo-enable mask, and a musical stereo echo helper are modeled; exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, source-directory loop address behavior, exact noise timing, pitch modulation, FIR echo, sample directory addressing, exact envelope timing, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -6249,6 +6267,8 @@ public:
              << "\"pitchMotionDepthCents\":" << spc700PitchMotionDepthCents() << ","
              << "\"pitchMotionDirection\":" << spc700PitchMotionDirection() << ","
              << "\"echoSend\":" << spc700EchoSend() << ","
+             << "\"echoEnabledMask\":" << static_cast<int>(echoEnabledMask()) << ","
+             << "\"echoInputLevel\":" << echoInputLevel() << ","
              << "\"echoFeedback\":" << spc700EchoFeedback() << ","
              << "\"echoDelayMs\":" << spc700EchoDelayMs() << ","
              << "\"echoDelaySamples\":" << spc700EchoDelaySamples() << ","
@@ -6262,6 +6282,10 @@ public:
              << "\"volume5\":" << static_cast<int>(volume[5]) << ","
              << "\"volume6\":" << static_cast<int>(volume[6]) << ","
              << "\"volume7\":" << static_cast<int>(volume[7]) << ","
+             << "\"volumeLeft0\":" << static_cast<int>(voiceLeftVolumeRegister(0)) << ","
+             << "\"volumeRight0\":" << static_cast<int>(voiceRightVolumeRegister(0)) << ","
+             << "\"volumeLeft7\":" << static_cast<int>(voiceLeftVolumeRegister(7)) << ","
+             << "\"volumeRight7\":" << static_cast<int>(voiceRightVolumeRegister(7)) << ","
              << "\"adsr0\":" << static_cast<int>(adsr[0]) << ","
              << "\"envelope0\":" << envelope[0] << ","
              << "\"envelopeStage0\":" << static_cast<int>(envelopeStage[0]) << ","
@@ -6796,6 +6820,82 @@ private:
         const auto sfxTilt = (patch.macro == MacroKind::laser || patch.macro == MacroKind::hit) ? -1.0 : 1.0;
         const auto signedCents = depthCents * static_cast<double>(direction) * sfxTilt * attack;
         return std::clamp(basePitch * std::pow(2.0, signedCents / 1200.0), 1.0, 16383.0);
+    }
+
+    double voicePan(size_t voice) const
+    {
+        static constexpr std::array<double, 8> panPositions { -1.0, -0.72, -0.44, -0.16, 0.16, 0.44, 0.72, 1.0 };
+        if (voice >= panPositions.size())
+            return 0.0;
+
+        return panPositions[voice] * std::clamp(static_cast<double>(patch.stereoSpread), 0.0, 1.0);
+    }
+
+    double voiceLeftGain(size_t voice) const
+    {
+        const auto pan = voicePan(voice);
+        return pan <= 0.0 ? 1.0 : 1.0 - pan;
+    }
+
+    double voiceRightGain(size_t voice) const
+    {
+        const auto pan = voicePan(voice);
+        return pan >= 0.0 ? 1.0 : 1.0 + pan;
+    }
+
+    uint8_t voiceLeftVolumeRegister(size_t voice) const
+    {
+        if (voice >= volume.size())
+            return 0;
+
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<double>(volume[voice]) * voiceLeftGain(voice))), 0, 127));
+    }
+
+    uint8_t voiceRightVolumeRegister(size_t voice) const
+    {
+        if (voice >= volume.size())
+            return 0;
+
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<double>(volume[voice]) * voiceRightGain(voice))), 0, 127));
+    }
+
+    double voiceEchoSendLevel(size_t voice) const
+    {
+        if (voice >= patch.sourceLevels.size() || ! sourceEnabled(patch, voice))
+            return 0.0;
+
+        return std::clamp(static_cast<double>(patch.sourceLevels[voice]), 0.0, 1.0);
+    }
+
+    uint8_t echoEnabledMask() const
+    {
+        if (spc700EchoSend() <= 0.0)
+            return 0;
+
+        uint8_t mask = 0;
+        for (size_t voice = 0; voice < volume.size(); ++voice)
+        {
+            if (voiceEchoSendLevel(voice) > 0.001)
+                mask |= static_cast<uint8_t>(1u << voice);
+        }
+        return mask;
+    }
+
+    double echoInputLevel() const
+    {
+        auto sum = 0.0;
+        auto count = 0;
+        for (size_t voice = 0; voice < volume.size(); ++voice)
+        {
+            const auto level = voiceEchoSendLevel(voice);
+            if (level > 0.001)
+            {
+                sum += level;
+                ++count;
+            }
+        }
+
+        return count > 0 ? sum / static_cast<double>(count) : 0.0;
     }
 
     double spc700EchoSend() const
