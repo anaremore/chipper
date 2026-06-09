@@ -631,6 +631,22 @@ std::vector<ParameterChoiceSpec> ym2151AlgorithmChoices()
 std::vector<ChipParameterSpec> ym2151ParameterSpecs()
 {
     return {
+        sourceSpec(ChipParameterRole::source1Enabled, "ym2151.ch1.enabled", "OPM Ch 1", "Enable YM2151 melodic channel 1."),
+        sourceSpec(ChipParameterRole::source2Enabled, "ym2151.ch2.enabled", "OPM Ch 2", "Enable YM2151 melodic channel 2."),
+        sourceSpec(ChipParameterRole::source3Enabled, "ym2151.ch3.enabled", "OPM Ch 3", "Enable YM2151 melodic channel 3."),
+        sourceSpec(ChipParameterRole::source4Enabled, "ym2151.ch4.enabled", "OPM Ch 4", "Enable YM2151 melodic channel 4."),
+        sourceSpec(ChipParameterRole::source5Enabled, "ym2151.ch5.enabled", "OPM Ch 5", "Enable YM2151 melodic channel 5."),
+        sourceSpec(ChipParameterRole::source6Enabled, "ym2151.ch6.enabled", "OPM Ch 6", "Enable YM2151 melodic channel 6."),
+        sourceSpec(ChipParameterRole::source7Enabled, "ym2151.ch7.enabled", "OPM Ch 7", "Enable YM2151 melodic channel 7."),
+        sourceSpec(ChipParameterRole::source8Enabled, "ym2151.ch8.enabled", "OPM Ch 8", "Enable YM2151 melodic channel 8."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "ym2151.ch1.level", "OPM Ch 1 Level", "Modern trim before writing YM2151 channel 1 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "ym2151.ch2.level", "OPM Ch 2 Level", "Modern trim before writing YM2151 channel 2 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "ym2151.ch3.level", "OPM Ch 3 Level", "Modern trim before writing YM2151 channel 3 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "ym2151.ch4.level", "OPM Ch 4 Level", "Modern trim before writing YM2151 channel 4 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source5Level, "ym2151.ch5.level", "OPM Ch 5 Level", "Modern trim before writing YM2151 channel 5 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source6Level, "ym2151.ch6.level", "OPM Ch 6 Level", "Modern trim before writing YM2151 channel 6 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source7Level, "ym2151.ch7.level", "OPM Ch 7 Level", "Modern trim before writing YM2151 channel 7 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source8Level, "ym2151.ch8.level", "OPM Ch 8 Level", "Modern trim before writing YM2151 channel 8 carrier levels."),
         sliderSpec(ChipParameterRole::macroControl1,
                    "ym2151.algorithmBias",
                    "Algorithm Bias",
@@ -1795,7 +1811,7 @@ std::array<ModuleDescriptor, 6> ym2151Modules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "YM2151/OPM core is backed by audited BSD-licensed ymfm.", { "YM2151 core", "Arcade clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM Voices", "Eight OPM melodic channels with four lanes exposed in the current UI.", { "Voice 1", "Voice 2", "Voice 3", "Voice 4 shown" }),
+        makeModule("sources", "FM Voices", "All eight OPM melodic channels are exposed as playable lanes.", { "Ch 1-4", "Ch 5-8", "Chip Poly", "Per-lane trims" }),
         makeModule("tone", "Operators", "Musical controls write native OPM algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Envelope", "Useful fixed OPM operator envelopes are written per voice for this first FM instrument pass.", { "Attack", "Decay", "Sustain/release", "Full ADSR planned" }),
         makeModule("motion", "Motion", "Arcade FM templates map to register-backed OPM patches.", { "Chime", "Arcade bass", "Metal lead", "Laser" }),
@@ -2180,7 +2196,7 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2151,
             "YM2151 arcade FM",
-            "Four exposed melodic lanes write YM2151/OPM registers into the audited ymfm core for arcade/X68000 FM tones.",
+            "Eight melodic lanes write YM2151/OPM registers into the audited ymfm core for arcade/X68000 FM tones.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2151 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2151 feedback bits for the active OPM voices." },
@@ -2196,10 +2212,9 @@ const std::vector<ChipDescriptor>& descriptors()
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2151/OPM synthesis core.",
                     "Renderer notes and musical templates write OPM algorithm, feedback, operator multiplier/total-level/envelope seed, key-code/key-fraction, pan, and key-on registers.",
-                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the first melodic adapter."
+                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover all eight exposed melodic lanes."
                 },
                 {
-                    "Only four melodic lanes are exposed in the current UI even though the underlying YM2151 core has eight channels.",
                     "LFO PM/AM, noise mode, timers, CSM, deep per-operator ADSR UI, golden emulator comparison, and hardware capture comparison are not complete.",
                     "Cycle accuracy is not claimed."
                 })
@@ -2331,6 +2346,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
         return 8u;
     if (mode == ChipMode::ym2612)
         return 6u;
+    if (mode == ChipMode::ym2151)
+        return 8u;
     if (mode == ChipMode::huc6280)
         return 6u;
     if (mode == ChipMode::scc)

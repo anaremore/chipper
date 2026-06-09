@@ -823,6 +823,10 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Feedback");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Operator Tone");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "FM Level");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::source7Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPM Ch 7");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::source8Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPM Ch 8");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::source7Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "OPM Ch 7 Level");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::source8Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "OPM Ch 8 Level");
     ok &= expectMacroLabel(chipper::ChipMode::ym2413, chipper::MacroKind::coin, "OPLL UI Chime");
     ok &= expectPreset(chipper::ChipMode::ym2413, "opll-soft-keys");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Instrument");
@@ -854,7 +858,7 @@ int main()
     ok &= expectSourceLaneCounts(chipper::ChipMode::huc6280, 6u, 6u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::namcoWsg, 4u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2612, 6u, 6u);
-    ok &= expectSourceLaneCounts(chipper::ChipMode::ym2151, 4u, 8u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::ym2151, 8u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2413, 4u, 9u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::scc, 5u, 5u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::paula, 4u, 4u);
