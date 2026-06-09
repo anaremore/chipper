@@ -305,6 +305,9 @@ add_test(NAME chipper_render_spc700_brr_smoke
 add_test(NAME chipper_render_spc700_pitch_motion_smoke
     COMMAND chipper_render --chip spc700 --accuracy authentic --macro laser --clock 32000 --rate 48000 --seconds 0.08 --note 64 --out spc700-pitch-motion-smoke.wav --debug spc700-pitch-motion-smoke.json
 )
+add_test(NAME chipper_render_spc700_echo_smoke
+    COMMAND chipper_render --chip spc700 --accuracy authentic --macro lead --control3 1.0 --clock 32000 --rate 48000 --seconds 0.30 --note 64 --out spc700-echo-smoke.wav --debug spc700-echo-smoke.json
+)
 add_test(NAME chipper_render_spc700_release_smoke
     COMMAND chipper_render --chip spc700 --accuracy authentic --macro lead --clock 32000 --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/spc700-release-events.txt --out spc700-release-smoke.wav --debug spc700-release-smoke.json
 )
@@ -1255,6 +1258,10 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-pitch-motion-smoke.json --implemented-contains partial --macro Laser --min-peak 0.02 --register-writes 0 --note-events 0 --core-min pitchMotionDepthCents=2000 --core-max pitchMotionDepthCents=2400 --core-min pitchMotionDirection=1 --core-max pitchMotionDirection=1 --core-min pitch0=7600 --core-max pitch0=7700 --core-min pitch0Current=4400 --core-max pitch0Current=4550
     )
     set_tests_properties(chipper_render_spc700_pitch_motion_assert PROPERTIES DEPENDS chipper_render_spc700_pitch_motion_smoke)
+    add_test(NAME chipper_render_spc700_echo_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-echo-smoke.json --implemented-contains partial --macro Lead --min-peak 0.05 --register-writes 0 --note-events 0 --core-min echoSend=0.49 --core-max echoSend=0.51 --core-min echoFeedback=0.57 --core-max echoFeedback=0.59 --core-min echoDelayMs=239 --core-max echoDelayMs=241 --core-min echoDelaySamples=11519 --core-max echoDelaySamples=11521
+    )
+    set_tests_properties(chipper_render_spc700_echo_assert PROPERTIES DEPENDS chipper_render_spc700_echo_smoke)
     add_test(NAME chipper_render_spc700_release_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-release-smoke.json --implemented-contains partial --macro Lead --min-peak 0.02 --register-writes 0 --note-events 2 --core-min envelopeStage0=4 --core-max envelopeStage0=4 --core-min envelope0=0.70 --core-max envelope0=1.00
     )

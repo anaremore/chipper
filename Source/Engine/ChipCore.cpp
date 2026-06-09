@@ -5776,7 +5776,10 @@ public:
         brrBlockCount = 0;
         brrEndFlagSeen = false;
         brrLoopFlagSeen = false;
-        echoMemory.fill(0.0);
+        echoMemoryLeft.fill(0.0);
+        echoMemoryRight.fill(0.0);
+        echoFilterLeft = 0.0;
+        echoFilterRight = 0.0;
         echoIndex = 0;
         for (size_t voice = 0; voice < sampleRam.size(); ++voice)
             seedSample(voice);
@@ -5980,12 +5983,20 @@ public:
             right /= static_cast<double>(audibleCount);
         }
 
-        const auto echoAmount = std::clamp(static_cast<double>(patch.control3) * 0.45, 0.0, 0.45);
-        const auto echo = echoMemory[echoIndex];
-        echoMemory[echoIndex] = ((left + right) * 0.5) + (echo * 0.35);
-        echoIndex = (echoIndex + 1) % echoMemory.size();
-        left += echo * echoAmount;
-        right += echo * echoAmount;
+        const auto echoSend = spc700EchoSend();
+        const auto echoFeedback = spc700EchoFeedback();
+        const auto delaySamples = spc700EchoDelaySamples();
+        const auto readIndex = (echoIndex + echoMemoryLeft.size() - delaySamples) % echoMemoryLeft.size();
+        const auto delayedLeft = echoMemoryLeft[readIndex];
+        const auto delayedRight = echoMemoryRight[readIndex];
+
+        echoFilterLeft = (delayedLeft * 0.68) + (echoFilterLeft * 0.32);
+        echoFilterRight = (delayedRight * 0.68) + (echoFilterRight * 0.32);
+        echoMemoryLeft[echoIndex] = std::clamp(left + (echoFilterLeft * echoFeedback), -1.0, 1.0);
+        echoMemoryRight[echoIndex] = std::clamp(right + (echoFilterRight * echoFeedback), -1.0, 1.0);
+        echoIndex = (echoIndex + 1) % echoMemoryLeft.size();
+        left += echoFilterLeft * echoSend;
+        right += echoFilterRight * echoSend;
 
         return { static_cast<float>(std::clamp(left, -1.0, 1.0)),
                  static_cast<float>(std::clamp(right, -1.0, 1.0)) };
@@ -6015,7 +6026,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room sample-voice model"; }
     std::string limitations() const override
     {
-        return "Eight lo-fi sample voices, pitch, volume, loop/one-shot playback state, playable ADSR/gain-style note shaping, generated sample templates, clean-room BRR block decoding for renderer-loaded samples, Gaussian-style 4-tap sample interpolation, musical pitch motion, and a musical echo-color helper are modeled; exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, BRR loop-address behavior, noise, FIR echo, sample directory addressing, exact envelope timing, and hardware validation are not complete.";
+        return "Eight lo-fi sample voices, pitch, volume, loop/one-shot playback state, playable ADSR/gain-style note shaping, generated sample templates, clean-room BRR block decoding for renderer-loaded samples, Gaussian-style 4-tap sample interpolation, musical pitch motion, and a musical stereo echo helper are modeled; exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, BRR loop-address behavior, noise, FIR echo, sample directory addressing, exact envelope timing, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -6046,6 +6057,10 @@ public:
              << "\"pitch7\":" << pitch[7] << ","
              << "\"pitchMotionDepthCents\":" << spc700PitchMotionDepthCents() << ","
              << "\"pitchMotionDirection\":" << spc700PitchMotionDirection() << ","
+             << "\"echoSend\":" << spc700EchoSend() << ","
+             << "\"echoFeedback\":" << spc700EchoFeedback() << ","
+             << "\"echoDelayMs\":" << spc700EchoDelayMs() << ","
+             << "\"echoDelaySamples\":" << spc700EchoDelaySamples() << ","
              << "\"pitch0Current\":" << currentPitchForVoice(0) << ","
              << "\"pitch7Current\":" << currentPitchForVoice(7) << ","
              << "\"volume0\":" << static_cast<int>(volume[0]) << ","
@@ -6478,6 +6493,32 @@ private:
         return std::clamp(basePitch * std::pow(2.0, signedCents / 1200.0), 1.0, 16383.0);
     }
 
+    double spc700EchoSend() const
+    {
+        const auto color = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
+        if (color <= 0.01)
+            return 0.0;
+        return std::clamp(0.08 + (color * 0.42), 0.0, 0.50);
+    }
+
+    double spc700EchoFeedback() const
+    {
+        const auto color = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
+        return std::clamp(0.16 + (color * 0.42), 0.0, 0.58);
+    }
+
+    double spc700EchoDelayMs() const
+    {
+        const auto color = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
+        return 32.0 + std::round(color * 13.0) * 16.0;
+    }
+
+    size_t spc700EchoDelaySamples() const
+    {
+        const auto requested = static_cast<size_t>(std::max(1.0, std::round(spc700EchoDelayMs() * sampleRate / 1000.0)));
+        return std::clamp<size_t>(requested, 1u, echoMemoryLeft.size() - 1u);
+    }
+
     int selectChipPolyChannel(int midiNote) const
     {
         for (size_t voice = 0; voice < channelNotes.size(); ++voice)
@@ -6579,7 +6620,10 @@ private:
     std::array<uint64_t, 8> voiceAgeSamples {};
     std::array<double, 8> envelope {};
     std::array<uint8_t, 8> envelopeStage {};
-    std::array<double, 512> echoMemory {};
+    std::array<double, 48000> echoMemoryLeft {};
+    std::array<double, 48000> echoMemoryRight {};
+    double echoFilterLeft = 0.0;
+    double echoFilterRight = 0.0;
     size_t echoIndex = 0;
     int heldNote = -1;
     float noteVelocity = 0.0f;

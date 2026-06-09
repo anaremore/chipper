@@ -1189,7 +1189,7 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
                    "spc700.echoColor",
                    "Echo Color",
                    "Echo",
-                   "Controls a musical echo-color helper. This is not a verified S-DSP FIR echo model.",
+                   "Controls a musical stereo echo helper with delay, feedback, and soft filtering. This is not a verified S-DSP FIR echo model.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "spc700.voiceVolume",
@@ -2022,8 +2022,8 @@ const std::vector<ChipDescriptor>& descriptors()
             spc700ParameterSpecs(),
             verifiedPartial(
                 {
-                    "Eight generated lo-fi sample voices render with pitch, volume, loop/one-shot playback mode, playable ADSR/gain-style state, key-on/enabled masks, clean-room BRR block decoding for renderer-loaded samples and plugin-loaded user BRR file/folder banks, note-to-BRR-bank performance mapping, clean-room Gaussian-style 4-tap interpolation, musical pitch-motion, and a musical echo-color helper.",
-                    "Source enables, source levels, sample-shape choices, BRR block/end/loop debug metadata, plugin BRR slot selection/state recall, note-mapped BRR bank selection, pitch-motion and envelope-release debug metadata, interpolation metadata, chip-poly allocation across all eight exposed voices, presets, and debug JSON are covered by automated tests.",
+                    "Eight generated lo-fi sample voices render with pitch, volume, loop/one-shot playback mode, playable ADSR/gain-style state, key-on/enabled masks, clean-room BRR block decoding for renderer-loaded samples and plugin-loaded user BRR file/folder banks, note-to-BRR-bank performance mapping, clean-room Gaussian-style 4-tap interpolation, musical pitch-motion, and a musical stereo echo helper.",
+                    "Source enables, source levels, sample-shape choices, BRR block/end/loop debug metadata, plugin BRR slot selection/state recall, note-mapped BRR bank selection, pitch-motion, musical echo-helper debug metadata, envelope-release debug metadata, interpolation metadata, chip-poly allocation across all eight exposed voices, presets, and debug JSON are covered by automated tests.",
                     "No third-party SPC700, S-DSP, BRR, SNES, or tracker-player source code is vendored in this clean-room partial model."
                 },
                 {
