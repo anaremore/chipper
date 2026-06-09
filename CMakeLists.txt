@@ -320,6 +320,12 @@ add_test(NAME chipper_render_spc700_release_smoke
 add_test(NAME chipper_render_preset_spc700_noise_snare_smoke
     COMMAND chipper_render --preset spc700-noise-snare --rate 48000 --seconds 0.05 --note 48 --out preset-spc700-noise-snare.wav --debug preset-spc700-noise-snare.json
 )
+add_test(NAME chipper_render_preset_spc700_echo_pad_smoke
+    COMMAND chipper_render --preset spc700-echo-pad --rate 48000 --seconds 0.12 --note 60 --out preset-spc700-echo-pad.wav --debug preset-spc700-echo-pad.json
+)
+add_test(NAME chipper_render_preset_spc700_muted_pluck_smoke
+    COMMAND chipper_render --preset spc700-muted-pluck --rate 48000 --seconds 0.06 --note 72 --out preset-spc700-muted-pluck.wav --debug preset-spc700-muted-pluck.json
+)
 add_test(NAME chipper_render_preset_nes_hero_smoke
     COMMAND chipper_render --preset nes-hero-pulse --rate 48000 --seconds 0.04 --note 69 --out preset-nes-hero-smoke.wav --debug preset-nes-hero-smoke.json
 )
@@ -1339,6 +1345,14 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-spc700-noise-snare.json --implemented-contains partial --preset spc700-noise-snare --macro Hit --play-mode "Big Mono" --output-db -12 --min-peak 0.02 --register-writes 0 --note-events 0 --core-min noiseModeChoice=3 --core-max noiseModeChoice=3 --core-min noiseModeResolved=3 --core-max noiseModeResolved=3 --core-min noiseClock=18 --core-max noiseClock=18 --core-min noiseEnabledMask=254 --core-max noiseEnabledMask=254
     )
     set_tests_properties(chipper_render_preset_spc700_noise_snare_assert PROPERTIES DEPENDS chipper_render_preset_spc700_noise_snare_smoke)
+    add_test(NAME chipper_render_preset_spc700_echo_pad_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-spc700-echo-pad.json --implemented-contains partial --preset spc700-echo-pad --macro Lead --min-peak 0.005 --register-writes 0 --note-events 0 --core-min envelopeShapeChoice=3 --core-max envelopeShapeChoice=3 --core-min envelopeShapeResolved=3 --core-max envelopeShapeResolved=3 --core-min samplePlaybackMode=1 --core-max samplePlaybackMode=1 --core-min echoSend=0.38 --core-max echoSend=0.40
+    )
+    set_tests_properties(chipper_render_preset_spc700_echo_pad_assert PROPERTIES DEPENDS chipper_render_preset_spc700_echo_pad_smoke)
+    add_test(NAME chipper_render_preset_spc700_muted_pluck_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-spc700-muted-pluck.json --implemented-contains partial --preset spc700-muted-pluck --macro Lead --min-peak 0.02 --register-writes 0 --note-events 0 --core-min envelopeShapeChoice=1 --core-max envelopeShapeChoice=1 --core-min envelopeShapeResolved=1 --core-max envelopeShapeResolved=1 --core-min adsr0=239 --core-max adsr0=239
+    )
+    set_tests_properties(chipper_render_preset_spc700_muted_pluck_assert PROPERTIES DEPENDS chipper_render_preset_spc700_muted_pluck_smoke)
 
     add_test(NAME chipper_render_paula_json_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/paula-smoke.json --implemented-contains partial --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.05 --min-rms 0.02 --register-writes 0 --note-events 0 --core-min internalChannelCount=4 --core-max internalChannelCount=4 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min period0=5378 --core-max period0=5381 --core-min volume0=50 --core-max volume0=52 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Sample Shape" --descriptor-param-choices waveShape=5
