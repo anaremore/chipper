@@ -239,6 +239,7 @@ bool expectLiveSourceLevelSpecs()
         chipper::ChipMode::sid,
         chipper::ChipMode::ym2149,
         chipper::ChipMode::sn76489,
+        chipper::ChipMode::ym2612,
         chipper::ChipMode::spc700,
         chipper::ChipMode::pokey,
         chipper::ChipMode::paula,
@@ -257,7 +258,7 @@ bool expectLiveSourceLevelSpecs()
 
     for (const auto mode : liveModes)
     {
-        const auto expectedSourceCount = mode == chipper::ChipMode::sid ? 3u : (mode == chipper::ChipMode::huc6280 ? 6u : 4u);
+        const auto expectedSourceCount = mode == chipper::ChipMode::sid ? 3u : (chipper::visibleSourceCountForMode(mode));
         for (size_t index = 0; index < expectedSourceCount; ++index)
         {
             const auto role = sourceLevelRoles[index];
@@ -767,6 +768,10 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Envelope Shape");
     ok &= expectSpecGroup(chipper::ChipMode::ym2612, chipper::ChipParameterRole::ymEnvelopeShape, "Envelope");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Follow");
+    ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "FM Ch 5");
+    ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source6Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "FM Ch 6");
+    ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "FM Ch 5 Level");
+    ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source6Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "FM Ch 6 Level");
     ok &= expectMacroLabel(chipper::ChipMode::opl3, chipper::MacroKind::drum, "OPL2 FM Perc");
     ok &= expectMacroLabel(chipper::ChipMode::spc700, chipper::MacroKind::drum, "SPC700 Drum Map");
     ok &= expectPreset(chipper::ChipMode::spc700, "spc700-stage-clear");
@@ -834,7 +839,7 @@ int main()
     ok &= expectSourceLaneCounts(chipper::ChipMode::spc700, 4u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::huc6280, 6u, 6u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::namcoWsg, 4u, 8u);
-    ok &= expectSourceLaneCounts(chipper::ChipMode::ym2612, 4u, 6u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::ym2612, 6u, 6u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2151, 4u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2413, 4u, 9u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::scc, 4u, 5u);

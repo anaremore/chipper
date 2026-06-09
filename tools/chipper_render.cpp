@@ -1786,10 +1786,14 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::source2Enabled: return "source2Enabled";
         case chipper::ChipParameterRole::source3Enabled: return "source3Enabled";
         case chipper::ChipParameterRole::source4Enabled: return "source4Enabled";
+        case chipper::ChipParameterRole::source5Enabled: return "source5Enabled";
+        case chipper::ChipParameterRole::source6Enabled: return "source6Enabled";
         case chipper::ChipParameterRole::source1Level: return "source1Level";
         case chipper::ChipParameterRole::source2Level: return "source2Level";
         case chipper::ChipParameterRole::source3Level: return "source3Level";
         case chipper::ChipParameterRole::source4Level: return "source4Level";
+        case chipper::ChipParameterRole::source5Level: return "source5Level";
+        case chipper::ChipParameterRole::source6Level: return "source6Level";
         case chipper::ChipParameterRole::stereoSpread: return "stereoSpread";
         case chipper::ChipParameterRole::sidFilterRouting: return "sidFilterRouting";
         case chipper::ChipParameterRole::sidVoice2PulseWidth: return "sidVoice2PulseWidth";

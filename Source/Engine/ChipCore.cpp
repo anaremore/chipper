@@ -6881,7 +6881,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPN2 register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator, algorithm, feedback, f-number/block, $B4 left/right pan bits, and key-on registers for all six melodic channels, while the shared UI exposes direct source controls for the first four lanes. DAC playback, full six-lane UI, LFO/AMS/PMS controls, SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator, algorithm, feedback, f-number/block, $B4 left/right pan bits, and key-on registers for all six melodic channels, with all six source lanes exposed for play and mix control. DAC playback, a dedicated operator-grid UI, LFO/AMS/PMS controls, SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -6899,8 +6899,8 @@ public:
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"internalChannelCount\":6,"
-             << "\"uiExposesFirstFourVoices\":1,"
-             << "\"hiddenChannelsFollowAnySource\":1,"
+             << "\"uiExposesAllSixVoices\":1,"
+             << "\"hiddenChannelsFollowAnySource\":0,"
              << "\"algorithm0\":" << static_cast<int>(currentAlgorithm[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
              << "\"panBits0\":" << static_cast<int>(currentPanBits[0]) << ","
@@ -6919,6 +6919,12 @@ public:
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
              << "\"sourceEnabled4\":" << (channelEnabled(4) ? 1 : 0) << ","
              << "\"sourceEnabled5\":" << (channelEnabled(5) ? 1 : 0) << ","
+             << "\"sourceLevel0\":" << sourceLevel(patch, 0) << ","
+             << "\"sourceLevel1\":" << sourceLevel(patch, 1) << ","
+             << "\"sourceLevel2\":" << sourceLevel(patch, 2) << ","
+             << "\"sourceLevel3\":" << sourceLevel(patch, 3) << ","
+             << "\"sourceLevel4\":" << sourceLevel(patch, 4) << ","
+             << "\"sourceLevel5\":" << sourceLevel(patch, 5) << ","
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNote0\":" << channelNotes[0] << ","
              << "\"assignedNote1\":" << channelNotes[1] << ","
@@ -7036,9 +7042,9 @@ private:
         return static_cast<uint8_t>(std::clamp(tone + offsets[op], 1, 15));
     }
 
-    uint8_t totalLevelForOperator(size_t op, float velocity) const
+    uint8_t totalLevelForOperator(size_t channel, size_t op, float velocity) const
     {
-        const auto level = clamp01(velocity) * clamp01(patch.control4);
+        const auto level = clamp01(velocity) * clamp01(patch.control4) * sourceLevel(patch, channel);
         const auto carrierLevel = static_cast<int>(std::round((1.0 - level) * 28.0));
         const auto modulatorLevel = static_cast<int>(std::round(18.0 + (1.0 - clamp01(patch.control3)) * 40.0));
         return static_cast<uint8_t>(std::clamp(op == 3 ? carrierLevel : modulatorLevel, 0, 127));
@@ -7067,7 +7073,7 @@ private:
         {
             const auto envelope = ym2612EnvelopeRegistersForPatch(patch, op);
             writeYmRegister(opRegForChannel(0x30, channel, op), multiplierForPatch(op));
-            writeYmRegister(opRegForChannel(0x40, channel, op), totalLevelForOperator(op, velocity));
+            writeYmRegister(opRegForChannel(0x40, channel, op), totalLevelForOperator(channel, op, velocity));
             writeYmRegister(opRegForChannel(0x50, channel, op), envelope.attackRate);
             writeYmRegister(opRegForChannel(0x60, channel, op), envelope.decayRate);
             writeYmRegister(opRegForChannel(0x70, channel, op), envelope.sustainRate);

@@ -5236,16 +5236,16 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "FM 2 | stack",
         "FM 3 | color",
         "FM 4 | layer",
-        "FM 5 | hidden",
-        "FM 6 | hidden"
+        "FM 5 | octave",
+        "FM 6 | shimmer"
     };
     static const std::array<const char*, sourceChannelCount> fmChipPolyLabels {
         "FM 1 | note 1",
         "FM 2 | note 2",
         "FM 3 | note 3",
         "FM 4 | note 4",
-        "FM 5 | hidden",
-        "FM 6 | hidden"
+        "FM 5 | note 5",
+        "FM 6 | note 6"
     };
 
     const auto playModeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::playMode)));

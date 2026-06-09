@@ -542,6 +542,18 @@ std::vector<ParameterChoiceSpec> ym2612EnvelopeShapeChoices()
 std::vector<ChipParameterSpec> ym2612ParameterSpecs()
 {
     return {
+        sourceSpec(ChipParameterRole::source1Enabled, "ym2612.ch1.enabled", "FM Ch 1", "Enable YM2612 FM channel 1."),
+        sourceSpec(ChipParameterRole::source2Enabled, "ym2612.ch2.enabled", "FM Ch 2", "Enable YM2612 FM channel 2."),
+        sourceSpec(ChipParameterRole::source3Enabled, "ym2612.ch3.enabled", "FM Ch 3", "Enable YM2612 FM channel 3."),
+        sourceSpec(ChipParameterRole::source4Enabled, "ym2612.ch4.enabled", "FM Ch 4", "Enable YM2612 FM channel 4."),
+        sourceSpec(ChipParameterRole::source5Enabled, "ym2612.ch5.enabled", "FM Ch 5", "Enable YM2612 FM channel 5."),
+        sourceSpec(ChipParameterRole::source6Enabled, "ym2612.ch6.enabled", "FM Ch 6", "Enable YM2612 FM channel 6."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "ym2612.ch1.level", "FM Ch 1 Level", "Modern trim after YM2612 channel 1 output."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "ym2612.ch2.level", "FM Ch 2 Level", "Modern trim after YM2612 channel 2 output."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "ym2612.ch3.level", "FM Ch 3 Level", "Modern trim after YM2612 channel 3 output."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "ym2612.ch4.level", "FM Ch 4 Level", "Modern trim after YM2612 channel 4 output."),
+        sourceLevelSpec(ChipParameterRole::source5Level, "ym2612.ch5.level", "FM Ch 5 Level", "Modern trim after YM2612 channel 5 output."),
+        sourceLevelSpec(ChipParameterRole::source6Level, "ym2612.ch6.level", "FM Ch 6 Level", "Modern trim after YM2612 channel 6 output."),
         sliderSpec(ChipParameterRole::macroControl1,
                    "ym2612.algorithmBias",
                    "Algorithm Bias",
@@ -1727,7 +1739,7 @@ std::array<ModuleDescriptor, 6> ym2612Modules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "YM2612/OPN2 core is backed by audited BSD-licensed ymfm.", { "YM2612 model", "NTSC Genesis clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM Voices", "Six-chip voice architecture with four direct lanes in the shared UI.", { "Voices 1-4 shown", "Voices 5-6 stacked", "Chip Poly uses six", "Six-lane UI planned" }),
+        makeModule("sources", "FM Voices", "All six YM2612 melodic channels are exposed as playable source lanes.", { "FM Ch 1", "FM Ch 2", "FM Ch 3", "FM Ch 4-6" }),
         makeModule("tone", "Operators", "Musical controls write native OPN2 algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Envelope", "Useful fixed operator envelopes are written per voice for this first FM instrument pass.", { "Operator attack", "Decay", "Sustain/release", "Full ADSR planned" }),
         makeModule("motion", "Motion", "Genesis-style musical templates map to register-backed FM patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
@@ -1914,7 +1926,7 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2612,
             "YM2612 / Genesis FM",
-            "Six melodic lanes write YM2612/OPN2 registers into the audited ymfm core for Genesis-style FM tones; the shared UI directly exposes the first four.",
+            "Six melodic lanes write YM2612/OPN2 registers into the audited ymfm core for Genesis-style FM tones; all six lanes are exposed for play and mix control.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2612 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2612 feedback bits for the active FM voices." },
@@ -1930,10 +1942,10 @@ const std::vector<ChipDescriptor>& descriptors()
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2612/OPN2 synthesis core.",
                     "Renderer notes and musical templates write OPN2 algorithm, feedback, operator multiplier/total-level, f-number/block, left/right pan bits, and key-on registers across all six melodic channels.",
-                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the first melodic adapter, including six-channel note allocation."
+                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the first melodic adapter, including six visible source lanes and six-channel note allocation."
                 },
                 {
-                    "Only four melodic lanes have direct source controls in the current shared UI; channels 5-6 participate as internal stacked/poly lanes until the full six-lane FM UI lands.",
+                    "The six-lane UI is still a compact generic source-card layout rather than a dedicated operator grid.",
                     "DAC playback, LFO/AMS/PMS, full per-operator ADSR UI, SSG-EG quirks, timers, and hardware capture comparison are not complete.",
                     "Cycle accuracy is not claimed."
                 })
@@ -2283,6 +2295,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
 {
     if (mode == ChipMode::sid)
         return 3u;
+    if (mode == ChipMode::ym2612)
+        return 6u;
     if (mode == ChipMode::huc6280)
         return 6u;
     return 4u;

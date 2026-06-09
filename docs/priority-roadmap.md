@@ -14,7 +14,7 @@ This list ranks near-term work by user value, implementation effort, and confide
 | 8 | Improve YM2149/AY and SN76489 usability with chip-specific mixer/noise panels, preset categories, and clearer channel source cards. | 8 | 5 | 8 | Shared source-card component improvements and current renderer JSON for mixer/noise state. |
 | 9 | Add an explicit UI/renderer accuracy badge per chip mode that distinguishes Inspired, Hybrid, Authentic, and unverified roadmap modes without overclaiming. | 8 | 4 | 9 | A single descriptor field for verified behaviors and docs reviewed against current test coverage. |
 | 10 | Audit compatible emulator cores and license paths for planned FM/sample/wavetable chips before any vendoring. | 8 | 6 | 7 | License matrix, provenance notes, and source-map updates for each candidate core; ymfm is now vendored as the first permissive FM path for YM2612, OPL2, and YM2151. |
-| 11 | Expand the first ymfm-backed YM2612 pass from useful melodic adapter to deeper Genesis FM instrument. | 8 | 8 | 7 | Full six-lane UI, per-operator ADSR, DAC/sample behavior, LFO/AMS/PMS, register traces, and golden tests. |
+| 11 | Expand the ymfm-backed YM2612 pass from useful six-lane melodic adapter to deeper Genesis FM instrument. | 8 | 8 | 7 | Dedicated operator grid, per-operator ADSR, DAC/sample behavior, LFO/AMS/PMS, register traces, and golden tests. |
 | 12 | Add hardware/reference comparison documentation and tolerance thresholds for each implemented chip. | 7 | 8 | 5 | Real hardware recordings, reproducible capture settings, and agreed spectral/timing tolerances. |
 
 ## Chip UI And License Pass Order
