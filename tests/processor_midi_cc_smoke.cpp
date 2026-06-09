@@ -479,6 +479,13 @@ int main()
     sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 0));
     sendNoteOn(processor, 37);
     brrInfo = processor.spc700BrrSampleInfo();
+    ok &= expect(brrInfo.loaded && brrInfo.sampleName == "brr-00.brr",
+                 "SPC700 Manual Slot playback should keep using the selected BRR slot instead of note mapping");
+    sendController(processor, 119, controllerValueForChoice(processor, chipper::parameters::id::nesDmcPlaybackMode, 1));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 1.0f, 0.0001f,
+                     "CC119 should control SPC700 BRR Playback mode");
+    sendNoteOn(processor, 37);
+    brrInfo = processor.spc700BrrSampleInfo();
     ok &= expect(brrInfo.loaded && brrInfo.sampleName == "brr-01.brr",
                  "SPC700 note map should select BRR slot 2 for C#1 when root is C1");
     ok &= expect(brrInfo.bankCount == 3 && brrInfo.selectedSlot == 1 && brrInfo.mapRootNote == 36 && brrInfo.mapHighNote == 38,
@@ -487,6 +494,7 @@ int main()
     ChipperAudioProcessor spcMapAuditionProcessor;
     spcMapAuditionProcessor.prepareToPlay(48000.0, 256);
     sendController(spcMapAuditionProcessor, 70, controllerValueForChoice(spcMapAuditionProcessor, chipper::parameters::id::chipMode, 7));
+    sendController(spcMapAuditionProcessor, 119, controllerValueForChoice(spcMapAuditionProcessor, chipper::parameters::id::nesDmcPlaybackMode, 1));
     ok &= expect(spcMapAuditionProcessor.loadSpc700BrrSampleDirectory(brrDir).wasOk(),
                  "Should load SPC700 BRR sample directory for isolated note-map audio audition");
     const auto outOfRangeMappedPeak = renderNoteOnPeak(spcMapAuditionProcessor, 50);

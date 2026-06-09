@@ -958,6 +958,7 @@ void ChipperAudioProcessor::applySpc700BrrSampleToCore()
     std::vector<std::vector<uint8_t>> sampleBank;
     uint64_t revision = 0;
     auto resolvedSlot = -1;
+    const auto playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
     {
         const std::lock_guard<std::mutex> lock(spc700SampleMutex);
         revision = spc700BrrSampleBankRevision;
@@ -979,10 +980,13 @@ void ChipperAudioProcessor::applySpc700BrrSampleToCore()
 
     if (revision == activeSpc700BrrSampleRevision)
     {
-        if (resolvedSlot < 0 || resolvedSlot == activeSpc700BrrManualSlot)
+        if (resolvedSlot < 0)
             return;
 
         activeSpc700BrrManualSlot = resolvedSlot;
+        if (playbackMode != 0 || resolvedSlot == activeSpc700BrrSampleSlot)
+            return;
+
         activeSpc700BrrSampleSlot = resolvedSlot;
         core->setExternalSampleSlot(resolvedSlot);
         return;
@@ -1055,6 +1059,10 @@ void ChipperAudioProcessor::applyMappedSpc700BrrSampleForMidiNote(int midiNote)
     }
 
     if (activeSlotCount <= 1)
+        return;
+
+    const auto playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
+    if (playbackMode == 0)
         return;
 
     const auto mapRootNote = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcMapRoot)->load())), 0, 127);

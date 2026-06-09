@@ -1216,6 +1216,17 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source8Level, "spc700.voice8.level", "Voice 8 Level", "Modern trim after SPC700-style voice 8 volume."),
         stereoSpreadSpec("spc700.stereoSpread", "Modern stereo convenience that spreads exposed sample voices; zero preserves centered output."),
         envelopeSpec("spc700.adsrSpeed", "ADSR / Gain Speed", "Scales the playable clean-room ADSR/gain-style envelope while exact S-DSP envelope timing remains unverified."),
+        segmentedSpec(ChipParameterRole::nesDmcPlaybackMode,
+                      "spc700.brrPlayback",
+                      "BRR Playback",
+                      "Sample",
+                      "Chooses whether a loaded SPC700 BRR folder bank plays the selected manual slot or maps bank slots across MIDI notes from the BRR Map Root. Sample Map Only behaves like Note Map because SPC700 mode is already sample-based.",
+                      {
+                          choice("Manual", "Use the selected BRR sample slot for every note.", 0.0f, 0),
+                          choice("Note Map", "Map loaded BRR folder slots across MIDI notes from the BRR Map Root.", 0.5f, 1),
+                          choice("Map Only", "Equivalent to Note Map for SPC700 because the chip mode is entirely sample-voice based.", 1.0f, 2)
+                      },
+                      ParameterKind::chipRegister),
         { ChipParameterRole::dmgStereoRoute,
           "spc700.samplePlayback",
           "Playback",
