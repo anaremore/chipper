@@ -1468,6 +1468,26 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         for (int i = 0; i < choices.size(); ++i)
             dmcPlaybackModeBox.addItem(choices[i], i + 1);
     }
+    dmcPlaybackModeBox.onChange = [this]()
+    {
+        if (suppressManualChoiceCallbacks)
+            return;
+
+        const auto selected = dmcPlaybackModeBox.getSelectedId() - 1;
+        if (selected < 0)
+            return;
+
+        const auto current = static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcPlaybackMode)));
+        if (selected != current)
+            setChoiceParameterFromUi(chipper::parameters::id::nesDmcPlaybackMode, selected);
+
+        if (displayedMode == chipper::ChipMode::paula)
+            updatePaulaSampleControls();
+        else if (displayedMode == chipper::ChipMode::spc700)
+            updateSpc700BrrSampleControls();
+        else
+            updateDmcSampleControls();
+    };
     addAndMakeVisible(dmcPlaybackModeBox);
     dmcPlaybackModeAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::nesDmcPlaybackMode, dmcPlaybackModeBox);
 
