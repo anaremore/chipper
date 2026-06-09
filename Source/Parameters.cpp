@@ -537,7 +537,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::nesDmcMapRoot, 1 },
-        "NES DMC Map Root",
+        "Sample Map Root",
         midiNoteChoices(),
         36));
 

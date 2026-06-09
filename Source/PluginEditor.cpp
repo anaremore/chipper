@@ -1423,7 +1423,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addAndMakeVisible(dmcPlaybackModeBox);
     dmcPlaybackModeAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::nesDmcPlaybackMode, dmcPlaybackModeBox);
 
-    dmcMapRootBox.setTooltip(withMidiCcForRole("NES-only DMC Note Map root. Checked sample slots map upward from this MIDI note.", chipper::ChipParameterRole::nesDmcMapRoot));
+    dmcMapRootBox.setTooltip(withMidiCcForRole("Sample-bank map root. NES DMC and SPC700 BRR folder slots map upward from this MIDI note when note mapping is active.", chipper::ChipParameterRole::nesDmcMapRoot));
     {
         const auto choices = chipper::parameters::midiNoteChoices();
         for (int i = 0; i < choices.size(); ++i)
@@ -2658,7 +2658,6 @@ void ChipperAudioProcessorEditor::resized()
         dmcRateBox.setBounds({});
         dmcSampleBankButton.setBounds({});
         dmcPlaybackModeBox.setBounds({});
-        dmcMapRootBox.setBounds({});
         dmcLoopButton.setBounds({});
 
         auto brrCell = utilityCell;
@@ -2670,7 +2669,11 @@ void ChipperAudioProcessorEditor::resized()
         sampleHeader.removeFromLeft(4);
         dmcSampleFolderButton.setBounds(sampleHeader.removeFromLeft(brrButtonWidth).reduced(0, 1));
         brrCell.removeFromTop(4);
-        dmcSampleSlotBox.setBounds(brrCell.removeFromTop(22).reduced(0, 1));
+        auto sampleRow = brrCell.removeFromTop(22);
+        auto rootCell = sampleRow.removeFromRight(92);
+        sampleRow.removeFromRight(6);
+        dmcSampleSlotBox.setBounds(sampleRow.reduced(0, 1));
+        dmcMapRootBox.setBounds(rootCell.reduced(0, 1));
         brrCell.removeFromTop(2);
         dmcSampleStatusLabel.setBounds(brrCell.reduced(0, 1));
     }
@@ -6342,7 +6345,8 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
 void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
 {
     dmcSampleLabel.setText("BRR Sample", juce::dontSendNotification);
-    dmcSampleLabel.setTooltip(withMidiCcForRole("Load one user-provided SNES BRR sample or a folder of .brr files. CC117 selects the manual BRR slot; MIDI notes from C1 upward can browse the loaded bank in SPC700 mode.", chipper::ChipParameterRole::nesDmcSampleSlot));
+    const auto mapRoot = std::clamp(static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcMapRoot))), 0, 127);
+    dmcSampleLabel.setTooltip(withMidiCcForRole("Load one user-provided SNES BRR sample or a folder of .brr files. CC117 selects the manual BRR slot; MIDI notes from the BRR Map Root can browse the loaded bank in SPC700 mode.", chipper::ChipParameterRole::nesDmcSampleSlot));
     dmcSampleFileButton.setButtonText("File");
     dmcSampleFileButton.setTooltip("Load one user-provided .brr file into the SPC700-style sample voice model.");
     dmcSampleFolderButton.setButtonText("Folder");
@@ -6371,12 +6375,14 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
 
     dmcSampleSlotBox.setEnabled(sampleCount > 0);
     dmcSampleSlotBox.setTextWhenNothingSelected("No BRR samples");
-    dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the manual BRR sample from the loaded SPC700 bank. MIDI CC117 selects the same slot; MIDI notes from C1 upward can temporarily choose bank slots for triggered voices.", chipper::ChipParameterRole::nesDmcSampleSlot));
+    dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the manual BRR sample from the loaded SPC700 bank. MIDI CC117 selects the same slot; MIDI notes from the BRR Map Root can temporarily choose bank slots for triggered voices.", chipper::ChipParameterRole::nesDmcSampleSlot));
+    dmcMapRootBox.setTooltip(withMidiCcForRole("SPC700 BRR Map Root. Loaded folder slots map upward from this MIDI note for triggered sample voices.", chipper::ChipParameterRole::nesDmcMapRoot));
 
     const auto info = audioProcessor.spc700BrrSampleInfo();
     dmcSampleStatusLabel.setText(info.statusLine, juce::dontSendNotification);
     auto tooltip = info.statusLine
-        + "\nBRR files are decoded into the clean-room SPC700 sample voice path. Folder loads keep up to 32 user-provided BRR files addressable by the dropdown, CC117, and note mapping from C1 upward.";
+        + "\nBRR files are decoded into the clean-room SPC700 sample voice path. Folder loads keep up to 32 user-provided BRR files addressable by the dropdown, CC117, and note mapping from "
+        + chipper::parameters::midiNoteChoices()[mapRoot] + " upward.";
     if (info.loaded)
         tooltip += "\nPath: " + info.path;
     dmcSampleStatusLabel.setTooltip(withMidiCcForRole(tooltip, chipper::ChipParameterRole::nesDmcSampleSlot));
@@ -6564,7 +6570,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcSampleBankButton.setVisible(showNesDmcSampleControls);
     dmcSampleSlotBox.setVisible(showNesDmcSampleControls || showSpc700BrrControls);
     dmcPlaybackModeBox.setVisible(showNesDmcSampleControls);
-    dmcMapRootBox.setVisible(showNesDmcSampleControls);
+    dmcMapRootBox.setVisible(showNesDmcSampleControls || showSpc700BrrControls);
     dmcLoopButton.setVisible(showNesDmcSampleControls);
     dmcSampleLabel.setEnabled(showSampleFileControls);
     dmcSampleStatusLabel.setEnabled(showSampleFileControls);
@@ -6573,7 +6579,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcSampleBankButton.setEnabled(showNesDmcSampleControls);
     dmcSampleSlotBox.setEnabled(showNesDmcSampleControls || showSpc700BrrControls);
     dmcPlaybackModeBox.setEnabled(showNesDmcSampleControls);
-    dmcMapRootBox.setEnabled(showNesDmcSampleControls);
+    dmcMapRootBox.setEnabled(showNesDmcSampleControls || showSpc700BrrControls);
     dmcLoopButton.setEnabled(showNesDmcSampleControls);
     dmcSampleLabel.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
     dmcSampleStatusLabel.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
@@ -6581,7 +6587,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcSampleFolderButton.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
     dmcSampleBankButton.setAlpha(showNesDmcSampleControls ? 1.0f : 0.55f);
     dmcPlaybackModeBox.setAlpha(showNesDmcSampleControls ? 1.0f : 0.55f);
-    dmcMapRootBox.setAlpha(showNesDmcSampleControls ? 1.0f : 0.55f);
+    dmcMapRootBox.setAlpha((showNesDmcSampleControls || showSpc700BrrControls) ? 1.0f : 0.55f);
     dmcLoopButton.setAlpha(showNesDmcSampleControls ? 1.0f : 0.55f);
     clockLabel.setVisible(mode != chipper::ChipMode::nes && mode != chipper::ChipMode::spc700);
     clockSlider.setVisible(mode != chipper::ChipMode::nes && mode != chipper::ChipMode::spc700);

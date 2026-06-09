@@ -782,6 +782,9 @@ int main()
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Playback");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, "Sample");
     ok &= expectChoiceRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ControlSurface::menu, 3, "Follow Template");
+    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcMapRoot, chipper::ParameterKind::steppedNumeric, chipper::ControlSurface::menu, "BRR Map Root");
+    ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcMapRoot, "Sample");
+    ok &= expectSpecHelpContains(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcMapRoot, "folder bank starts", "SPC700 BRR map root help should explain folder-bank note mapping");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::source7Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Voice 7");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::source8Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Voice 8");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::source7Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Voice 7 Level");
