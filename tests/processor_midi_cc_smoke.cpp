@@ -77,6 +77,32 @@ float renderNoteOnPeak(ChipperAudioProcessor& processor, int note, float velocit
     return peak;
 }
 
+float renderHeldNoteTailPeak(ChipperAudioProcessor& processor, int note, int blockCount = 80, float velocity = 1.0f)
+{
+    juce::AudioBuffer<float> buffer(2, 256);
+    juce::MidiBuffer midi;
+    midi.addEvent(juce::MidiMessage::noteOn(1, note, velocity), 0);
+    processor.processBlock(buffer, midi);
+
+    auto tailPeak = 0.0f;
+    for (int block = 0; block < blockCount; ++block)
+    {
+        buffer.clear();
+        juce::MidiBuffer emptyMidi;
+        processor.processBlock(buffer, emptyMidi);
+        if (block == blockCount - 1)
+        {
+            for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+            {
+                for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+                    tailPeak = std::max(tailPeak, std::abs(buffer.getSample(channel, sample)));
+            }
+        }
+    }
+
+    return tailPeak;
+}
+
 void setPlainFromHost(ChipperAudioProcessor& processor, const char* parameterId, float plainValue)
 {
     if (auto* parameter = processor.getValueTreeState().getParameter(parameterId))
@@ -605,6 +631,30 @@ int main()
     const auto spcWavInRangePeak = renderNoteOnPeak(spcWavMapAuditionProcessor, 38);
     ok &= expect(spcWavInRangePeak > 0.0001f,
                  "SPC700 WAV note map should produce audio for notes inside the loaded sample bank span");
+
+    ChipperAudioProcessor spcWavKeyMapLoopProcessor;
+    spcWavKeyMapLoopProcessor.prepareToPlay(48000.0, 256);
+    sendController(spcWavKeyMapLoopProcessor, 70, controllerValueForChoice(spcWavKeyMapLoopProcessor, chipper::parameters::id::chipMode, 7));
+    sendController(spcWavKeyMapLoopProcessor, 74, controllerValueForChoice(spcWavKeyMapLoopProcessor, chipper::parameters::id::macro, 3));
+    sendController(spcWavKeyMapLoopProcessor, 119, controllerValueForChoice(spcWavKeyMapLoopProcessor, chipper::parameters::id::nesDmcPlaybackMode, 1));
+    setPlainFromHost(spcWavKeyMapLoopProcessor, chipper::parameters::id::dmgStereoRoute, 0.0f);
+    ok &= expect(spcWavKeyMapLoopProcessor.loadSpc700BrrSampleDirectory(spcWavDir).wasOk(),
+                 "Should load SPC700 WAV sample directory for Key Map loop audition");
+    const auto spcWavKeyMapTailPeak = renderHeldNoteTailPeak(spcWavKeyMapLoopProcessor, 38);
+    ok &= expect(spcWavKeyMapTailPeak > 0.0001f,
+                 "SPC700 Key Map should keep melodic Follow Template playback looping while a note is held");
+
+    ChipperAudioProcessor spcWavDrumMapOneShotProcessor;
+    spcWavDrumMapOneShotProcessor.prepareToPlay(48000.0, 256);
+    sendController(spcWavDrumMapOneShotProcessor, 70, controllerValueForChoice(spcWavDrumMapOneShotProcessor, chipper::parameters::id::chipMode, 7));
+    sendController(spcWavDrumMapOneShotProcessor, 74, controllerValueForChoice(spcWavDrumMapOneShotProcessor, chipper::parameters::id::macro, 3));
+    sendController(spcWavDrumMapOneShotProcessor, 119, controllerValueForChoice(spcWavDrumMapOneShotProcessor, chipper::parameters::id::nesDmcPlaybackMode, 2));
+    setPlainFromHost(spcWavDrumMapOneShotProcessor, chipper::parameters::id::dmgStereoRoute, 0.0f);
+    ok &= expect(spcWavDrumMapOneShotProcessor.loadSpc700BrrSampleDirectory(spcWavDir).wasOk(),
+                 "Should load SPC700 WAV sample directory for Drum Map one-shot audition");
+    const auto spcWavDrumMapTailPeak = renderHeldNoteTailPeak(spcWavDrumMapOneShotProcessor, 38);
+    ok &= expect(spcWavDrumMapTailPeak <= 0.0001f,
+                 "SPC700 Drum Map should resolve Follow Template playback to one-shot behavior while still using the mapped sample bank");
 
     juce::MemoryBlock savedSpcWavState;
     processor.getStateInformation(savedSpcWavState);

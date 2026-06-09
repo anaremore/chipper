@@ -1881,6 +1881,11 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
 
     const auto selectedMode = chipper::parameters::chipModeFromChoice(modeChoice);
     const auto dmcPlaybackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
+    const auto dmgStereoRoute = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::dmgStereoRoute)->load()));
+    const auto resolvedDmgStereoRoute =
+        selectedMode == chipper::ChipMode::spc700 && dmcPlaybackMode == 2 && dmgStereoRoute == 0
+            ? 2
+            : dmgStereoRoute;
 
     return chipper::makePatchConfig(
         selectedMode,
@@ -1917,7 +1922,7 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::waveShape)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::pulse2Duty)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::dmgWaveLevel)->load())),
-        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::dmgStereoRoute)->load())),
+        resolvedDmgStereoRoute,
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::ymEnvelopeShape)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::ymChannelAMix)->load())),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::ymChannelBMix)->load())),
