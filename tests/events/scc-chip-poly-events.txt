@@ -1,4 +1,4 @@
-# Four overlapping notes should allocate across the exposed SCC wavetable channels.
+# Four overlapping notes should allocate across exposed chip-poly channels.
 note_on 0 60 1.0
 note_on 10 64 0.8
 note_on 20 67 0.7

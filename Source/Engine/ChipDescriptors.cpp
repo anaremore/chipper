@@ -1376,11 +1376,13 @@ std::vector<ChipParameterSpec> sccParameterSpecs()
         sourceSpec(ChipParameterRole::source1Enabled, "scc.channel1.enabled", "Channel 1", "Enable SCC wavetable channel 1."),
         sourceSpec(ChipParameterRole::source2Enabled, "scc.channel2.enabled", "Channel 2", "Enable SCC wavetable channel 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "scc.channel3.enabled", "Channel 3", "Enable SCC wavetable channel 3."),
-        sourceSpec(ChipParameterRole::source4Enabled, "scc.channel4.enabled", "Channel 4", "Enable SCC wavetable channel 4. Channel 5 needs a dedicated five-lane UI pass."),
+        sourceSpec(ChipParameterRole::source4Enabled, "scc.channel4.enabled", "Channel 4", "Enable SCC wavetable channel 4."),
+        sourceSpec(ChipParameterRole::source5Enabled, "scc.channel5.enabled", "Channel 5", "Enable SCC wavetable channel 5."),
         sourceLevelSpec(ChipParameterRole::source1Level, "scc.channel1.level", "Channel 1 Level", "Modern trim after SCC channel 1 volume."),
         sourceLevelSpec(ChipParameterRole::source2Level, "scc.channel2.level", "Channel 2 Level", "Modern trim after SCC channel 2 volume."),
         sourceLevelSpec(ChipParameterRole::source3Level, "scc.channel3.level", "Channel 3 Level", "Modern trim after SCC channel 3 volume."),
         sourceLevelSpec(ChipParameterRole::source4Level, "scc.channel4.level", "Channel 4 Level", "Modern trim after SCC channel 4 volume."),
+        sourceLevelSpec(ChipParameterRole::source5Level, "scc.channel5.level", "Channel 5 Level", "Modern trim after SCC channel 5 volume."),
         stereoSpreadSpec("scc.stereoSpread", "Modern stereo convenience that spreads audible SCC channels; zero preserves centered output."),
         envelopeSpec("scc.decay", "Decay", "Applies a musical decay helper while native key/volume registers remain visible in debug state."),
         segmentedSpec(ChipParameterRole::waveShape,
@@ -2218,7 +2220,7 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             {
                 makeModule("profile", "Profile", "Konami SCC/SCC+ emu2212 groundwork.", { "Konami wavetable family", "3.58 MHz default", "MIT emu2212 core", "Authentic still partial" }),
-                makeModule("sources", "Wavetable Voices", "Five internal SCC channels.", { "Channels 1-4 exposed", "Channel 5 internal", "32-byte wave RAM", "Key-on mask" }),
+                makeModule("sources", "Wavetable Voices", "All five SCC channels are exposed as playable wavetable lanes.", { "Channel 1", "Channel 2", "Channel 3", "Channel 4-5" }),
                 makeModule("wave", "Wave / Mixer", "Wave RAM plus frequency and volume behavior.", { "Wave shape", "Wave skew", "4-bit volume", "Pitch periods" }),
                 makeModule("motion", "Motion", "Arcade SFX gestures mapped to frequency registers.", { "Coin ping", "Sweep zap", "Five-voice arp", "Wave tick" }),
                 makeModule("output", "Output", "Centered SCC output with optional modern spread.", { "Output gain", "Stereo spread", "Verified partial", "Known gaps" })
@@ -2230,8 +2232,8 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "Five frequency, volume, key-on, and waveform-RAM register paths are driven through vendored MIT emu2212.",
-                    "The existing UI exposes the first four generic source controls; channel 5 can participate internally in stack templates until a five-lane SCC layout lands.",
-                    "Descriptor metadata, MIDI CC mappings, renderer debug JSON, chip-poly allocation, presets, and smoke output are covered by automated tests."
+                    "The shared UI exposes all five generic source controls with host/MIDI-controllable enable and level trims, including channel 5 on CC64/66.",
+                    "Descriptor metadata, MIDI CC mappings, renderer debug JSON, five-channel chip-poly allocation, presets, and smoke output are covered by automated tests."
                 },
                 {
                     "Exact SCC cartridge mapper/bank behavior, SCC vs SCC+ mode differences, channel D/E shared-wave quirks, exact DAC/output curve, timing edge cases, and hardware validation are not complete.",
@@ -2299,6 +2301,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
         return 6u;
     if (mode == ChipMode::huc6280)
         return 6u;
+    if (mode == ChipMode::scc)
+        return 5u;
     return 4u;
 }
 

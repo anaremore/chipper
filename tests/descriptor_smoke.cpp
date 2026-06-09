@@ -819,6 +819,8 @@ int main()
     ok &= expectPreset(chipper::ChipMode::scc, "scc-power-wave");
     ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, 5, "Follow");
+    ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 5");
+    ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Channel 5 Level");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::nes, "nes-hero-pulse");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::dmg, "dmg-wave-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::sid, "sid-dirty-bass");
@@ -842,7 +844,7 @@ int main()
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2612, 6u, 6u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2151, 4u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2413, 4u, 9u);
-    ok &= expectSourceLaneCounts(chipper::ChipMode::scc, 4u, 5u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::scc, 5u, 5u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::paula, 4u, 4u);
 
     ok &= expect(chipper::chipHasParameterSurface(chipper::ChipMode::ym2149,

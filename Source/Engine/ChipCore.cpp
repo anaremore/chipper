@@ -5106,13 +5106,20 @@ public:
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
-             << "\"uiExposesFirstFourChannels\":1,"
+             << "\"sourceEnabled4\":" << (sourceEnabled(patch, 4) ? 1 : 0) << ","
+             << "\"sourceLevel0\":" << sourceLevel(patch, 0) << ","
+             << "\"sourceLevel1\":" << sourceLevel(patch, 1) << ","
+             << "\"sourceLevel2\":" << sourceLevel(patch, 2) << ","
+             << "\"sourceLevel3\":" << sourceLevel(patch, 3) << ","
+             << "\"sourceLevel4\":" << sourceLevel(patch, 4) << ","
+             << "\"uiExposesFiveChannels\":1,"
              << "\"internalChannelCount\":5,"
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNote0\":" << channelNotes[0] << ","
              << "\"assignedNote1\":" << channelNotes[1] << ","
              << "\"assignedNote2\":" << channelNotes[2] << ","
              << "\"assignedNote3\":" << channelNotes[3] << ","
+             << "\"assignedNote4\":" << channelNotes[4] << ","
              << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
              << "}";
         return json.str();
@@ -5128,13 +5135,13 @@ private:
     uint8_t channelVolumeForPatch(size_t channel) const
     {
         const auto base = std::clamp(static_cast<int>(std::round(patch.control4 * 15.0f)), 1, 15);
-        const auto trim = channel < 4 ? sourceLevel(patch, channel) : 0.85f;
+        const auto trim = sourceLevel(patch, channel);
         return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<float>(base) * trim)), 0, 15));
     }
 
     bool channelActiveForPatch(size_t channel) const
     {
-        if (channel < 4)
+        if (channel < patch.sourceEnabled.size())
             return sourceEnabled(patch, channel);
 
         return patch.macro == MacroKind::arp
@@ -5319,9 +5326,9 @@ private:
     SCC* emu = nullptr;
     int heldNote = -1;
     float noteVelocity = 0.0f;
-    std::array<int, 4> channelNotes {};
-    std::array<float, 4> channelVelocity {};
-    std::array<uint64_t, 4> channelStamp {};
+    std::array<int, 5> channelNotes {};
+    std::array<float, 5> channelVelocity {};
+    std::array<uint64_t, 5> channelStamp {};
     uint64_t noteStamp = 0;
     PatchConfig patch;
 };
