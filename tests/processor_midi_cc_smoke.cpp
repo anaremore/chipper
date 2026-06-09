@@ -269,10 +269,10 @@ int main()
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 7));
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 5));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 2.0f, 0.0001f,
-                     "CC74 SPC700 Drum macro should show sample playback as Map Only");
+                     "CC74 SPC700 Drum macro should show sample playback as Drum Map");
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 3));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 1.0f, 0.0001f,
-                     "CC74 SPC700 Lead macro should show sample playback as Note Map");
+                     "CC74 SPC700 Lead macro should show sample playback as Key Map");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 2));
     sendController(processor, 90, controllerValueForChoice(processor, chipper::parameters::id::ymEnvelopeShape, 2));

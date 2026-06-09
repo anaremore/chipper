@@ -55,7 +55,7 @@ const MidiCcMappingList& midiCcMappings()
         { 116, parameter_ids::nesDmcDirectLevel, "NES DMC Direct Level" },
         { 117, parameter_ids::nesDmcSampleSlot, "NES DMC Sample Slot" },
         { 118, parameter_ids::nesDmcRateIndex, "NES DMC Rate Index" },
-        { 119, parameter_ids::nesDmcPlaybackMode, "NES DMC Playback Mode" },
+        { 119, parameter_ids::nesDmcPlaybackMode, "Sample Playback Mode" },
         { 64, parameter_ids::source5Enabled, "Source 5 Enabled" },
         { 65, parameter_ids::source6Enabled, "Source 6 Enabled" },
         { 66, parameter_ids::source5Level, "Source 5 Level" },

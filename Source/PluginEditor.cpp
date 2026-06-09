@@ -6823,7 +6823,7 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     dmcSampleSlotBox.setEnabled(sampleCount > 0);
     dmcSampleSlotBox.setTextWhenNothingSelected("No SPC700 samples");
     dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the manual SPC700 sample from the loaded bank. MIDI CC117 selects the same slot; Manual playback uses it for every note.", chipper::ChipParameterRole::nesDmcSampleSlot));
-    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("SPC700 Sample Playback. Manual Slot plays the selected dropdown slot; Note Map maps loaded folder slots upward from the Sample Map Root. Sample Map Only is treated as Note Map because SPC700 mode is already sample-based.", chipper::ChipParameterRole::nesDmcPlaybackMode));
+    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("SPC700 Sample Playback. Manual Slot plays the selected dropdown slot; Key Map maps loaded folder slots upward from the Sample Map Root. Drum Map uses the same bank mapping path for one-shot/percussion templates.", chipper::ChipParameterRole::nesDmcPlaybackMode));
     dmcMapRootBox.setTooltip(withMidiCcForRole("SPC700 Sample Map Root. Loaded folder slots map upward from this MIDI note when playback is a map mode.", chipper::ChipParameterRole::nesDmcMapRoot));
 
     const auto info = audioProcessor.spc700BrrSampleInfo();
@@ -6913,7 +6913,7 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
     dmcSampleSlotBox.setEnabled(sampleCount > 0);
     dmcSampleSlotBox.setTextWhenNothingSelected("No Paula samples");
     dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the manual Paula sample from the loaded bank. MIDI CC117 selects the same slot; Manual Slot uses it for every note.", chipper::ChipParameterRole::nesDmcSampleSlot));
-    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("Paula Sample Playback. Manual Slot plays the selected dropdown slot; Note Map maps loaded folder slots upward from the Sample Map Root. Map Only behaves like Note Map because Paula mode is already sample-based.", chipper::ChipParameterRole::nesDmcPlaybackMode));
+    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("Paula Sample Playback. Manual Slot plays the selected dropdown slot; Key Map maps loaded folder slots upward from the Sample Map Root. Tracker Map uses the same bank mapping path for one-shot/tracker-style sample kits.", chipper::ChipParameterRole::nesDmcPlaybackMode));
     dmcMapRootBox.setTooltip(withMidiCcForRole("Paula Sample Map Root. Loaded folder slots map upward from this MIDI note when Sample Playback is a map mode.", chipper::ChipParameterRole::nesDmcMapRoot));
 
     const auto info = audioProcessor.paulaSampleInfo();
@@ -6946,8 +6946,10 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
 
 void ChipperAudioProcessorEditor::updateSamplePlaybackModeChoices(chipper::ChipMode mode)
 {
-    const auto choices = (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
-        ? juce::StringArray { "Manual Slot", "Note Map", "Map Only" }
+    const auto choices = mode == chipper::ChipMode::spc700
+        ? juce::StringArray { "Manual Slot", "Key Map", "Drum Map" }
+        : mode == chipper::ChipMode::paula
+        ? juce::StringArray { "Manual Slot", "Key Map", "Tracker Map" }
         : chipper::parameters::nesDmcPlaybackModeChoices();
 
     auto choicesAlreadyMatch = dmcPlaybackModeBox.getNumItems() == choices.size();

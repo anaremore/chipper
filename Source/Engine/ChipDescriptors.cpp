@@ -1351,11 +1351,11 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
                       "spc700.brrPlayback",
                       "Sample Playback",
                       "Sample",
-                      "Chooses whether a loaded SPC700 sample bank plays the selected manual slot or maps bank slots across MIDI notes from the Sample Map Root. Sample Map Only behaves like Note Map because SPC700 mode is already sample-based.",
+                      "Chooses whether a loaded SPC700 sample bank plays the selected manual slot or maps bank slots across MIDI notes from the Sample Map Root. Drum Map uses the same bank mapping path but is intended for one-shot/percussion templates.",
                       {
                           choice("Manual", "Use the selected SPC700 sample slot for every note.", 0.0f, 0),
-                          choice("Note Map", "Map loaded SPC700 folder slots across MIDI notes from the Sample Map Root.", 0.5f, 1),
-                          choice("Map Only", "Equivalent to Note Map for SPC700 because the chip mode is entirely sample-voice based.", 1.0f, 2)
+                          choice("Key Map", "Map loaded SPC700 folder slots across MIDI notes from the Sample Map Root.", 0.5f, 1),
+                          choice("Drum Map", "Map loaded SPC700 folder slots for one-shot/percussion templates.", 1.0f, 2)
                       },
                       ParameterKind::chipRegister),
         { ChipParameterRole::dmgStereoRoute,
