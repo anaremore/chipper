@@ -3715,6 +3715,11 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
 {
     const auto macroChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::macro)));
     const auto playModeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::playMode)));
+    const auto samplePlaybackMode = static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcPlaybackMode)));
+    const auto resolvedDmgStereoRoute =
+        mode == chipper::ChipMode::spc700 && samplePlaybackMode == 2 && dmgStereoRoute == 0
+            ? 2
+            : dmgStereoRoute;
 
     return chipper::makePatchConfig(
         mode,
@@ -3751,7 +3756,7 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
         waveShape,
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::pulse2Duty))),
         dmgWaveLevel,
-        dmgStereoRoute,
+        resolvedDmgStereoRoute,
         ymEnvelopeShape,
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymChannelAMix))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymChannelBMix))),
@@ -3778,7 +3783,7 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcRateIndex))),
         parameterValue(chipper::parameters::id::nesDmcLoop) >= 0.5f,
         mode == chipper::ChipMode::nes
-            && static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcPlaybackMode))) == 2);
+            && samplePlaybackMode == 2);
 }
 
 bool ChipperAudioProcessorEditor::usesPulseDutySegment(chipper::ChipMode mode) const
@@ -6791,6 +6796,21 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     dmcSampleLabel.setText("SPC700 Sample", juce::dontSendNotification);
     const auto mapRoot = std::clamp(static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcMapRoot))), 0, 127);
     const auto playbackMode = static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcPlaybackMode)));
+    const auto playbackPatch = currentUiPatch(
+        chipper::ChipMode::spc700,
+        parameterValue(chipper::parameters::id::macroControl1),
+        parameterValue(chipper::parameters::id::macroControl2),
+        parameterValue(chipper::parameters::id::macroControl3),
+        parameterValue(chipper::parameters::id::macroControl4),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::waveShape))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgWaveLevel))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgStereoRoute))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
+        parameterValue(chipper::parameters::id::stereoSpread));
+    const auto resolvedPlaybackMode = chipper::spc700SamplePlaybackModeForPatch(playbackPatch);
+    const auto mapLabel = playbackMode == 2 ? juce::String("Drum Map") : (playbackMode == 1 ? juce::String("Key Map") : juce::String("Manual Slot"));
+    const auto lifetimeLabel = resolvedPlaybackMode == 1u ? juce::String("loop") : juce::String("one-shot");
     dmcSampleLabel.setTooltip(withMidiCcForRole("Load one user-provided SNES BRR, WAV, or AIFF sample, or a folder bank. CC117 selects the manual slot; Sample Playback chooses whether MIDI notes browse the loaded bank.", chipper::ChipParameterRole::nesDmcSampleSlot));
     dmcSampleFileButton.setButtonText("File");
     dmcSampleFileButton.setTooltip("Load one user-provided .brr, WAV, or AIFF file into the SPC700-style sample voice model.");
@@ -6835,6 +6855,7 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
         visibleStatus += " | Manual";
     if (info.loaded)
     {
+        visibleStatus += " | " + mapLabel + ", " + lifetimeLabel;
         visibleStatus += " | ARAM "
             + juce::String(static_cast<double>(info.bankByteCount) / 1024.0, info.bankByteCount < 10240 ? 1 : 0)
             + "/64 KB";
@@ -6861,9 +6882,14 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     }
     if (playbackMode == 0)
         tooltip += "\nSample Playback is Manual Slot: each MIDI note uses the selected dropdown sample.";
+    else if (playbackMode == 2)
+        tooltip += "\nSample Playback is Drum Map: notes browse the loaded bank from "
+            + chipper::parameters::midiNoteChoices()[mapRoot]
+            + " upward and Follow Template resolves to one-shot sample playback.";
     else
         tooltip += "\nSample Playback is a map mode: notes browse the loaded bank from "
             + chipper::parameters::midiNoteChoices()[mapRoot] + " upward.";
+    tooltip += "\nResolved playback lifetime: " + lifetimeLabel + ".";
     if (info.loaded && info.bankCount > 1 && playbackMode != 0)
         tooltip += "\nCurrent mapped key span: "
             + chipper::parameters::midiNoteChoices()[info.mapRootNote]
