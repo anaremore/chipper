@@ -215,6 +215,7 @@ private:
     juce::String pokeySourceRegisterReadout(const chipper::PatchConfig& patch, size_t index) const;
     juce::String pokeyRegisterReadout(const chipper::PatchConfig& patch) const;
     juce::String pokeyAudctlReadout(const chipper::PatchConfig& patch) const;
+    juce::String pokeyAudctlFilterReadout(const chipper::PatchConfig& patch) const;
     juce::String sampleChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String paulaOutputFilterReadout(const chipper::PatchConfig& patch) const;
     juce::String sampleSourceCardLabel(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const;

@@ -3785,7 +3785,7 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
         return label + " -> " + sidModelReadout(patch) + " | " + sidVoiceWaveSummary(patch) + " | " + sidFilterModeReadout(patch) + " | " + sidModModeReadout(patch) + laneText;
 
     if (mode == chipper::ChipMode::pokey)
-        return label + " -> " + pokeyRegisterReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
+        return label + " -> " + pokeyRegisterReadout(patch) + " | " + pokeyAudctlFilterReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
     if (mode == chipper::ChipMode::spc700)
         return label + " -> " + sampleChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
@@ -3957,6 +3957,25 @@ juce::String ChipperAudioProcessorEditor::pokeyAudctlReadout(const chipper::Patc
 
     const auto resolved = "AUDCTL $" + byteHex(audctl) + ", " + mode;
     return patch.dmgStereoRoute == 0 ? juce::String("Follow -> ") + resolved : resolved;
+}
+
+juce::String ChipperAudioProcessorEditor::pokeyAudctlFilterReadout(const chipper::PatchConfig& patch) const
+{
+    const auto audctl = chipper::pokeyAudctlForPatch(patch);
+    juce::String mode;
+    switch (audctl & 0x06u)
+    {
+        case 0x04u: mode = "Ch1 filtered by Ch3"; break;
+        case 0x02u: mode = "Ch2 filtered by Ch4"; break;
+        case 0x06u: mode = "Ch1<-Ch3 + Ch2<-Ch4"; break;
+        case 0x00u:
+        default:
+            mode = "filter off";
+            break;
+    }
+
+    const auto resolved = "AUDCTL $" + byteHex(audctl) + ", " + mode;
+    return patch.ymEnvelopeShape == 0 ? juce::String("Follow -> ") + resolved : resolved;
 }
 
 juce::String ChipperAudioProcessorEditor::sampleChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
@@ -4484,6 +4503,20 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
             case 0:
             default:
                 return "Follow template, writes OPN2 operator envelope registers";
+        }
+    }
+
+    if (displayedMode == chipper::ChipMode::pokey)
+    {
+        switch (std::clamp(choice, 0, 4))
+        {
+            case 1: return "AUDCTL high-pass filter off";
+            case 2: return "AUDCTL bit 2: channel 3 filters channel 1";
+            case 3: return "AUDCTL bit 1: channel 4 filters channel 2";
+            case 4: return "AUDCTL bits 1+2: both high-pass paths";
+            case 0:
+            default:
+                return "Follow template, writes POKEY AUDCTL filter bits";
         }
     }
 
@@ -6351,7 +6384,9 @@ void ChipperAudioProcessorEditor::updateYmEnvelopeShapeButtons(chipper::ChipMode
         ymEnvelopeShapeValueLabel.setVisible(shouldBeVisible);
         ymEnvelopeShapeValueLabel.setText(mode == chipper::ChipMode::sid
                                               ? sidFilterModeReadout(patch)
-                                              : ymEnvelopeShapeReadout(static_cast<int>(selected)),
+                                              : (mode == chipper::ChipMode::pokey
+                                                     ? pokeyAudctlFilterReadout(patch)
+                                                     : ymEnvelopeShapeReadout(static_cast<int>(selected))),
                                           juce::dontSendNotification);
         updateYmEnvelopePreview(mode, patch, shouldBeVisible);
         return;
@@ -6371,7 +6406,9 @@ void ChipperAudioProcessorEditor::updateYmEnvelopeShapeButtons(chipper::ChipMode
     ymEnvelopeShapeValueLabel.setVisible(shouldBeVisible);
     ymEnvelopeShapeValueLabel.setText(mode == chipper::ChipMode::sid
                                           ? sidFilterModeReadout(patch)
-                                          : ymEnvelopeShapeReadout(static_cast<int>(selected)),
+                                          : (mode == chipper::ChipMode::pokey
+                                                 ? pokeyAudctlFilterReadout(patch)
+                                                 : ymEnvelopeShapeReadout(static_cast<int>(selected))),
                                       juce::dontSendNotification);
 
     updateYmEnvelopePreview(mode, patch, shouldBeVisible);

@@ -623,7 +623,13 @@ add_test(NAME chipper_render_pokey_chip_poly_smoke
     COMMAND chipper_render --chip pokey --accuracy authentic --macro manual --play-mode chip-poly --wave-shape pure --clock 1789790 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/pokey-chip-poly-events.txt --out pokey-chip-poly-smoke.wav --debug pokey-chip-poly-smoke.json
 )
 add_test(NAME chipper_render_pokey_audctl_pair_smoke
-    COMMAND chipper_render --chip pokey --accuracy authentic --macro bass --pokey-audctl 1+2 --wave-shape pure --clock 1789790 --rate 48000 --seconds 0.05 --note 60 --out pokey-audctl-pair-smoke.wav --debug pokey-audctl-pair-smoke.json
+    COMMAND chipper_render --chip pokey --accuracy authentic --macro bass --pokey-audctl 1+2 --pokey-filter off --wave-shape pure --clock 1789790 --rate 48000 --seconds 0.05 --note 60 --out pokey-audctl-pair-smoke.wav --debug pokey-audctl-pair-smoke.json
+)
+add_test(NAME chipper_render_pokey_filter_smoke
+    COMMAND chipper_render --chip pokey --accuracy authentic --macro bass --pokey-filter 1by3 --wave-shape pure --clock 1789790 --rate 48000 --seconds 0.08 --note 48 --out pokey-filter-smoke.wav --debug pokey-filter-smoke.json
+)
+add_test(NAME chipper_render_pokey_filter_both_smoke
+    COMMAND chipper_render --chip pokey --accuracy authentic --macro laser --pokey-filter both --wave-shape poly5 --clock 1789790 --rate 48000 --seconds 0.08 --note 60 --out pokey-filter-both-smoke.wav --debug pokey-filter-both-smoke.json
 )
 add_test(NAME chipper_render_pokey_paired_chip_poly_smoke
     COMMAND chipper_render --chip pokey --accuracy authentic --macro manual --play-mode chip-poly --pokey-audctl both --wave-shape pure --clock 1789790 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/pokey-paired-chip-poly-events.txt --out pokey-paired-chip-poly-smoke.wav --debug pokey-paired-chip-poly-smoke.json
@@ -743,7 +749,7 @@ set(CHIPPER_PRESET_CHIP_MINIMUMS
     opl3:9
     ym2151:9
     spc700:9
-    pokey:9
+    pokey:11
     paula:11
     huc6280:9
     namcoWsg:9
@@ -778,7 +784,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_preset_catalog_metadata_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=11 --preset-count dmg=9 --preset-count sid=18 --preset-count ym2149=9 --preset-count sn76489=9 --preset-count ym2612=9 --preset-count opl3=9 --preset-count spc700=9 --preset-count pokey=9 --preset-count paula=11 --preset-count huc6280=9 --preset-count namcoWsg=9 --preset-count ym2151=9 --preset-count ym2413=9 --preset-count scc=9
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=11 --preset-count dmg=9 --preset-count sid=18 --preset-count ym2149=9 --preset-count sn76489=9 --preset-count ym2612=9 --preset-count opl3=9 --preset-count spc700=9 --preset-count pokey=11 --preset-count paula=11 --preset-count huc6280=9 --preset-count namcoWsg=9 --preset-count ym2151=9 --preset-count ym2413=9 --preset-count scc=9
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -812,7 +818,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_sid_voice_waves_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_pokey_descriptor_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip pokey --implemented pokey=1 --verification-badge "pokey=Verified partial" --verification-cycle pokey=0 --verification-hardware pokey=0 --param-kind pokey:waveShape=chipRegister --param-surface pokey:waveShape=segmentedChoice --param-choices pokey:waveShape=5 --param-midi-cc pokey:waveShape=89 --param-kind pokey:dmgStereoRoute=chipRegister --param-surface pokey:dmgStereoRoute=segmentedChoice --param-choices pokey:dmgStereoRoute=5 --param-midi-cc pokey:dmgStereoRoute=94 --param-kind pokey:macroControl3=chipRegister --param-surface pokey:macroControl3=slider --param-midi-cc pokey:macroControl3=78 --param-kind pokey:macroControl4=chipRegister --param-surface pokey:macroControl4=slider --param-midi-cc pokey:macroControl4=79 --param-surface pokey:stereoSpread=slider --param-midi-cc pokey:stereoSpread=93 --macro-label "pokey:Lead=POKEY Buzzy Lead" --macro-source pokey:Drum=0011 --preset pokey-buzzy-lead --preset pokey-poly-perc
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip pokey --implemented pokey=1 --verification-badge "pokey=Verified partial" --verification-cycle pokey=0 --verification-hardware pokey=0 --param-kind pokey:waveShape=chipRegister --param-surface pokey:waveShape=segmentedChoice --param-choices pokey:waveShape=5 --param-midi-cc pokey:waveShape=89 --param-kind pokey:ymEnvelopeShape=chipRegister --param-surface pokey:ymEnvelopeShape=segmentedChoice --param-choices pokey:ymEnvelopeShape=5 --param-midi-cc pokey:ymEnvelopeShape=90 --param-kind pokey:dmgStereoRoute=chipRegister --param-surface pokey:dmgStereoRoute=segmentedChoice --param-choices pokey:dmgStereoRoute=5 --param-midi-cc pokey:dmgStereoRoute=94 --param-kind pokey:macroControl3=chipRegister --param-surface pokey:macroControl3=slider --param-midi-cc pokey:macroControl3=78 --param-kind pokey:macroControl4=chipRegister --param-surface pokey:macroControl4=slider --param-midi-cc pokey:macroControl4=79 --param-surface pokey:stereoSpread=slider --param-midi-cc pokey:stereoSpread=93 --macro-label "pokey:Lead=POKEY Buzzy Lead" --macro-source pokey:Drum=0011 --preset pokey-buzzy-lead --preset pokey-poly-perc --preset pokey-filter-bass --preset pokey-filter-scream
     )
     set_tests_properties(chipper_render_list_pokey_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1253,6 +1259,14 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/pokey-audctl-pair-smoke.json --implemented-contains partial --macro Bass --min-peak 0.02 --register-writes 0 --note-events 0 --core-min audctl=16 --core-max audctl=16 --core-min pair12=1 --core-max pair12=1 --core-min pair34=0 --core-max pair34=0 --core-min audc0=169 --core-max audc0=169 --core-min audc1=0 --core-max audc1=0 --core-min audfPair12=480 --core-max audfPair12=490 --descriptor-param-kind dmgStereoRoute=chipRegister --descriptor-param-surface dmgStereoRoute=segmentedChoice --descriptor-param-label "dmgStereoRoute=AUDCTL Pairing" --descriptor-param-choices dmgStereoRoute=5
     )
     set_tests_properties(chipper_render_pokey_audctl_pair_assert PROPERTIES DEPENDS chipper_render_pokey_audctl_pair_smoke)
+    add_test(NAME chipper_render_pokey_filter_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/pokey-filter-smoke.json --implemented-contains partial --macro Bass --min-peak 0.005 --register-writes 0 --note-events 0 --core-min filterChoice=2 --core-max filterChoice=2 --core-min filterBits=4 --core-max filterBits=4 --core-min filterCh1ByCh3=1 --core-max filterCh1ByCh3=1 --core-min filterCh2ByCh4=0 --core-max filterCh2ByCh4=0 --core-min audctl=20 --core-max audctl=20 --descriptor-param-kind ymEnvelopeShape=chipRegister --descriptor-param-surface ymEnvelopeShape=segmentedChoice --descriptor-param-label "ymEnvelopeShape=AUDCTL Filter" --descriptor-param-choices ymEnvelopeShape=5
+    )
+    set_tests_properties(chipper_render_pokey_filter_assert PROPERTIES DEPENDS chipper_render_pokey_filter_smoke)
+    add_test(NAME chipper_render_pokey_filter_both_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/pokey-filter-both-smoke.json --implemented-contains partial --macro Laser --min-peak 0.005 --register-writes 0 --note-events 0 --core-min filterChoice=4 --core-max filterChoice=4 --core-min filterBits=6 --core-max filterBits=6 --core-min filterCh1ByCh3=1 --core-max filterCh1ByCh3=1 --core-min filterCh2ByCh4=1 --core-max filterCh2ByCh4=1 --core-min audctl=6 --core-max audctl=6
+    )
+    set_tests_properties(chipper_render_pokey_filter_both_assert PROPERTIES DEPENDS chipper_render_pokey_filter_both_smoke)
     add_test(NAME chipper_render_pokey_paired_chip_poly_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/pokey-paired-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 2 --min-peak 0.02 --core-min activeChannels=2 --core-max activeChannels=2 --core-min audctl=24 --core-max audctl=24 --core-min pair12=1 --core-max pair12=1 --core-min pair34=1 --core-max pair34=1 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=-1 --core-max assignedNote1=-1 --core-min assignedNote2=64 --core-max assignedNote2=64 --core-min assignedNote3=-1 --core-max assignedNote3=-1 --core-min audc1=0 --core-max audc1=0 --core-min audc3=0 --core-max audc3=0
     )

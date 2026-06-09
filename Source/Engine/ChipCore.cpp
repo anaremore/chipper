@@ -3550,6 +3550,8 @@ public:
         audf.fill(0xff);
         audc.fill(0x00);
         phase.fill(0.0);
+        highPassHold.fill(0.0);
+        highPassClockLast.fill(1.0);
         audctl = 0x00;
         poly4 = 0x0fu;
         poly5 = 0x1fu;
@@ -3669,15 +3671,20 @@ public:
     StereoFrame renderSample() override
     {
         static constexpr std::array<double, 4> panPositions { -1.0, -0.35, 0.35, 1.0 };
+        std::array<double, 4> channelSamples {};
         double left = 0.0;
         double right = 0.0;
 
         for (size_t channel = 0; channel < 4; ++channel)
+            channelSamples[channel] = renderChannel(channel) * sourceLevel(patch, channel);
+
+        applyHighPassFilters(channelSamples);
+
+        for (size_t channel = 0; channel < 4; ++channel)
         {
-            const auto sample = renderChannel(channel) * sourceLevel(patch, channel);
             const auto gains = modernStereoGains(patch, panPositions[channel]);
-            left += sample * gains.left;
-            right += sample * gains.right;
+            left += channelSamples[channel] * gains.left;
+            right += channelSamples[channel] * gains.right;
         }
 
         const auto scale = static_cast<double>(noteVelocity) * 0.85 / 4.0;
@@ -3703,7 +3710,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Four AUDF/AUDC/AUDV-style channels, note-to-timer writes, source gating, chip-poly allocation, AUDCTL 16-bit channel-pair bits, and simplified pure/poly4/poly5/poly17 texture paths are modeled; 1.79 MHz direct clocks, high-pass filters, exact polynomial taps, serial behavior, DAC curve, exact paired-channel carry timing, and hardware validation are not complete.";
+        return "Four AUDF/AUDC/AUDV-style channels, note-to-timer writes, source gating, chip-poly allocation, AUDCTL 16-bit channel-pair bits, simplified high-pass filter switches, and simplified pure/poly4/poly5/poly17 texture paths are modeled; 1.79 MHz direct clocks, exact polynomial taps, serial behavior, DAC curve, exact paired-channel carry timing, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -3726,6 +3733,10 @@ public:
              << "\"audctl\":" << static_cast<int>(audctl) << ","
              << "\"pair12\":" << (pair12Enabled() ? 1 : 0) << ","
              << "\"pair34\":" << (pair34Enabled() ? 1 : 0) << ","
+             << "\"filterChoice\":" << static_cast<int>(pokeyFilterChoiceForPatch(patch)) << ","
+             << "\"filterBits\":" << static_cast<int>(pokeyFilterBitsForPatch(patch)) << ","
+             << "\"filterCh1ByCh3\":" << (highPass13Enabled() ? 1 : 0) << ","
+             << "\"filterCh2ByCh4\":" << (highPass24Enabled() ? 1 : 0) << ","
              << "\"audfPair12\":" << pairedAudf(0) << ","
              << "\"audfPair34\":" << pairedAudf(2) << ","
              << "\"distortionChoice\":" << std::clamp(patch.waveShape, 0, 4) << ","
@@ -3767,6 +3778,12 @@ private:
         if (channelIsPairedHighByte(channel))
             return 0.0;
 
+        const auto drivesHighPass = (channel == 2u && highPass13Enabled()) || (channel == 3u && highPass24Enabled());
+        if (! sourceEnabled(patch, channel) && ! drivesHighPass)
+            return 0.0;
+
+        const auto raw = advanceChannel(channel);
+
         if (! sourceEnabled(patch, channel))
             return 0.0;
 
@@ -3774,10 +3791,15 @@ private:
         if (volume <= 0.0)
             return 0.0;
 
+        return raw * volume;
+    }
+
+    double advanceChannel(size_t channel)
+    {
         const auto hz = channelClockHz(channel);
         phase[channel] = wrapPhase(phase[channel] + hz / sampleRate);
         if (phase[channel] < 0.5)
-            return lastOutput[channel] * volume;
+            return lastOutput[channel];
 
         phase[channel] -= 0.5;
         const auto distortion = audc[channel] & 0xf0u;
@@ -3790,11 +3812,38 @@ private:
         else
             lastOutput[channel] = -lastOutput[channel];
 
-        return lastOutput[channel] * volume;
+        return lastOutput[channel];
     }
 
     bool pair12Enabled() const { return (audctl & 0x10u) != 0; }
     bool pair34Enabled() const { return (audctl & 0x08u) != 0; }
+    bool highPass13Enabled() const { return (audctl & 0x04u) != 0; }
+    bool highPass24Enabled() const { return (audctl & 0x02u) != 0; }
+
+    void applyHighPassFilters(std::array<double, 4>& samples)
+    {
+        if (highPass13Enabled())
+            samples[0] = applyHighPassPath(samples[0], 0, 2);
+        else
+            highPassHold[0] = 0.0;
+
+        if (highPass24Enabled())
+            samples[1] = applyHighPassPath(samples[1], 1, 3);
+        else
+            highPassHold[1] = 0.0;
+
+        highPassClockLast[0] = lastOutput[2];
+        highPassClockLast[1] = lastOutput[3];
+    }
+
+    double applyHighPassPath(double input, size_t outputIndex, size_t clockChannel)
+    {
+        const auto slot = outputIndex == 0u ? 0u : 1u;
+        const auto output = input - highPassHold[slot];
+        if (lastOutput[clockChannel] != highPassClockLast[slot])
+            highPassHold[slot] = input;
+        return output;
+    }
 
     bool channelIsPairedHighByte(size_t channel) const
     {
@@ -3966,6 +4015,8 @@ private:
     uint8_t audctl = 0x00;
     std::array<double, 4> phase {};
     std::array<double, 4> lastOutput { 1.0, 1.0, 1.0, 1.0 };
+    std::array<double, 2> highPassHold {};
+    std::array<double, 2> highPassClockLast { 1.0, 1.0 };
     uint8_t poly4 = 0x0f;
     uint8_t poly5 = 0x1f;
     uint32_t poly17 = 0x1ffff;

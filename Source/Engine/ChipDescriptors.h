@@ -283,6 +283,8 @@ uint16_t ym2149EnvelopePeriodForControl(float envelopeControl);
 uint8_t sn76489NoiseAttenuationForControl(float noiseLevelControl);
 uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch);
 uint8_t pokeyAudcForPatch(const PatchConfig& patch);
+uint8_t pokeyFilterChoiceForPatch(const PatchConfig& patch);
+uint8_t pokeyFilterBitsForPatch(const PatchConfig& patch);
 uint8_t pokeyAudctlForPatch(const PatchConfig& patch);
 uint8_t pokeyAudfForNote(double clockHz, int midiNote);
 uint8_t ym2612AlgorithmForPatch(const PatchConfig& patch);

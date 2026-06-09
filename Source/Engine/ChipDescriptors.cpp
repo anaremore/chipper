@@ -125,16 +125,16 @@ std::vector<MacroTemplate> plannedSampleMacros(std::string familyName, std::stri
 std::vector<MacroTemplate> pokeyMacros()
 {
     return {
-        { MacroKind::manual, "POKEY Manual", "Neutral four-channel Atari POKEY mapping.", { 0.50f, 0.50f, 0.50f, 0.50f }, { true, true, true, true }, 0.0f, 0 },
-        { MacroKind::coin, "POKEY Console Blip", "Sharp Atari UI blip with one bright channel.", { 0.18f, 0.72f, 0.18f, 0.70f }, { true, false, false, false }, 0.25f, 0 },
-        { MacroKind::bass, "POKEY Distortion Bass", "Low two-channel tone with restrained polynomial edge.", { 0.32f, 0.22f, 0.28f, 0.62f }, { true, true, false, false }, 0.08f, 0 },
-        { MacroKind::lead, "POKEY Buzzy Lead", "Forward Atari lead using audible distortion-code color.", { 0.68f, 0.42f, 0.40f, 0.72f }, { true, true, true, false }, 0.10f, 2 },
-        { MacroKind::arp, "POKEY Four-Channel Arp", "Four POKEY channels arranged for fake chords and fast patterns.", { 0.82f, 0.70f, 0.25f, 0.62f }, { true, true, true, true }, 0.08f, 0 },
-        { MacroKind::drum, "POKEY Poly Perc", "Polynomial-noise percussion using the channel control nibbles.", { 0.28f, 0.18f, 0.88f, 0.78f }, { false, false, true, true }, 0.80f, 3 },
-        { MacroKind::hit, "POKEY Impact", "Harsh short noise impact.", { 0.40f, 0.25f, 0.78f, 0.82f }, { true, false, true, true }, 0.70f, 3 },
-        { MacroKind::laser, "POKEY Pitch Drop", "Atari pitch-drop SFX gesture.", { 0.22f, 0.95f, 0.55f, 0.76f }, { true, true, false, true }, 0.35f, 2 },
-        { MacroKind::jump, "POKEY Jump", "Quick upward console-game tone.", { 0.22f, 0.70f, 0.16f, 0.62f }, { true, false, false, false }, 0.20f, 0 },
-        { MacroKind::powerUp, "POKEY Power Rise", "Longer multi-channel Atari rise.", { 0.72f, 0.90f, 0.30f, 0.78f }, { true, true, true, true }, 0.15f, 1 }
+        { MacroKind::manual, "POKEY Manual", "Neutral four-channel Atari POKEY mapping.", { 0.50f, 0.50f, 0.50f, 0.50f }, { true, true, true, true }, 0.0f, 0, 0 },
+        { MacroKind::coin, "POKEY Console Blip", "Sharp Atari UI blip with one bright channel.", { 0.18f, 0.72f, 0.18f, 0.70f }, { true, false, false, false }, 0.25f, 0, 1 },
+        { MacroKind::bass, "POKEY Distortion Bass", "Low two-channel tone with restrained polynomial edge.", { 0.32f, 0.22f, 0.28f, 0.62f }, { true, true, false, false }, 0.08f, 0, 2 },
+        { MacroKind::lead, "POKEY Buzzy Lead", "Forward Atari lead using audible distortion-code color.", { 0.68f, 0.42f, 0.40f, 0.72f }, { true, true, true, false }, 0.10f, 2, 0 },
+        { MacroKind::arp, "POKEY Four-Channel Arp", "Four POKEY channels arranged for fake chords and fast patterns.", { 0.82f, 0.70f, 0.25f, 0.62f }, { true, true, true, true }, 0.08f, 0, 1 },
+        { MacroKind::drum, "POKEY Poly Perc", "Polynomial-noise percussion using the channel control nibbles.", { 0.28f, 0.18f, 0.88f, 0.78f }, { false, false, true, true }, 0.80f, 3, 1 },
+        { MacroKind::hit, "POKEY Impact", "Harsh short noise impact.", { 0.40f, 0.25f, 0.78f, 0.82f }, { true, false, true, true }, 0.70f, 3, 3 },
+        { MacroKind::laser, "POKEY Pitch Drop", "Atari pitch-drop SFX gesture.", { 0.22f, 0.95f, 0.55f, 0.76f }, { true, true, false, true }, 0.35f, 2, 4 },
+        { MacroKind::jump, "POKEY Jump", "Quick upward console-game tone.", { 0.22f, 0.70f, 0.16f, 0.62f }, { true, false, false, false }, 0.20f, 0, 1 },
+        { MacroKind::powerUp, "POKEY Power Rise", "Longer multi-channel Atari rise.", { 0.72f, 0.90f, 0.30f, 0.78f }, { true, true, true, true }, 0.15f, 1, 4 }
     };
 }
 
@@ -1244,6 +1244,19 @@ std::vector<ChipParameterSpec> pokeyParameterSpecs()
                           choice("Both", "Link both POKEY channel pairs into two 16-bit pitch lanes.", 1.0f, 4)
                       },
                       ParameterKind::chipRegister),
+        segmentedSpec(ChipParameterRole::ymEnvelopeShape,
+                      "pokey.audctlFilter",
+                      "AUDCTL Filter",
+                      "Filter",
+                      "Writes the modeled POKEY AUDCTL high-pass filter bits. Channel 3 can filter channel 1, and channel 4 can filter channel 2.",
+                      {
+                          choice("Follow", "Let the selected POKEY template choose the high-pass filter bits.", 0.0f, 0),
+                          choice("Off", "Clear the modeled high-pass filter bits.", 0.25f, 1),
+                          choice("1<-3", "Channel 3 clocks the high-pass latch for channel 1.", 0.5f, 2),
+                          choice("2<-4", "Channel 4 clocks the high-pass latch for channel 2.", 0.75f, 3),
+                          choice("Both", "Enable both modeled POKEY high-pass filter paths.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister),
         envelopeSpec("pokey.decay", "Decay", "Applies a musical post-register decay helper while the AUDV nibble remains visible in debug state."),
         segmentedSpec(ChipParameterRole::waveShape,
                       "pokey.distortionCode",
@@ -2163,6 +2176,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "distortion", "Distortion", "Tone", "AUDC-style pure tone and polynomial noise choices." },
                 { "poly", "Poly Noise", "Noise", "Poly4, Poly5, and Poly17-inspired texture paths." },
                 { "volume", "AUDV Volume", "Output", "4-bit channel volume nibble plus modern output trim." },
+                { "audctl", "AUDCTL", "Routing", "16-bit channel pairing and modeled high-pass filter bits." },
             },
             {
                 makeModule("profile", "Profile", "POKEY clean-room groundwork.", { "Atari 8-bit family", "1.79 MHz default", "Hybrid default", "Authentic still partial" }),
@@ -2170,7 +2184,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("tone", "Distortion / Noise", "AUDC-style tone and polynomial texture controls.", { "Pure tone", "Poly4", "Poly5", "Poly17" }),
                 makeModule("envelope", "Volume", "AUDV volume nibble plus musical decay helper.", { "4-bit volume", "Per-channel trims", "Decay helper", "Register readout" }),
                 makeModule("motion", "Motion", "Atari SFX gestures mapped to channel timers.", { "Console blip", "Pitch drop", "Four-channel arp", "Poly perc" }),
-                makeModule("output", "Output", "Bright mono Atari-style output groundwork.", { "Output gain", "Stereo spread convenience", "AUDCTL pairing", "Known differences" })
+                makeModule("output", "Output", "Bright mono Atari-style output groundwork.", { "Output gain", "Stereo spread convenience", "AUDCTL pairing", "AUDCTL filter" })
             },
             pokeyMacros(),
             true,
@@ -2179,11 +2193,11 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "Four AUDF/AUDC/AUDV-style channels render audible tone or polynomial-noise textures.",
-                    "Source enables, source levels, chip-poly allocation, distortion choices, volume nibble mapping, and debug JSON are covered by automated renderer tests.",
+                    "Source enables, source levels, chip-poly allocation, distortion choices, volume nibble mapping, AUDCTL pairing/filter choices, and debug JSON are covered by automated renderer tests.",
                     "No third-party POKEY source code is vendored in this clean-room partial model."
                 },
                 {
-                    "1.79 MHz direct clocks, high-pass filters, serial/I/O behavior, SKCTL side effects, exact AUDCTL edge cases, and exact paired-channel carry timing are not implemented.",
+                    "1.79 MHz direct clocks, serial/I/O behavior, SKCTL side effects, exact AUDCTL edge cases, exact high-pass latch timing/coupling, and exact paired-channel carry timing are not implemented.",
                     "Polynomial taps and timer edge behavior are musical approximations pending comparison against trusted emulators and hardware captures.",
                     "Output DAC, exact volume curve, and Atari model differences are not hardware validated."
                 })
@@ -3289,9 +3303,48 @@ uint8_t pokeyAudctlForPatch(const PatchConfig& patch)
 
     switch (choiceValue)
     {
-        case 2: return 0x10u; // CH1+CH2 form one 16-bit divider.
-        case 3: return 0x08u; // CH3+CH4 form one 16-bit divider.
-        case 4: return 0x18u; // Both 16-bit channel pairs enabled.
+        case 2: return static_cast<uint8_t>(0x10u | pokeyFilterBitsForPatch(patch)); // CH1+CH2 form one 16-bit divider.
+        case 3: return static_cast<uint8_t>(0x08u | pokeyFilterBitsForPatch(patch)); // CH3+CH4 form one 16-bit divider.
+        case 4: return static_cast<uint8_t>(0x18u | pokeyFilterBitsForPatch(patch)); // Both 16-bit channel pairs enabled.
+        case 1:
+        default:
+            return pokeyFilterBitsForPatch(patch);
+    }
+}
+
+uint8_t pokeyFilterChoiceForPatch(const PatchConfig& patch)
+{
+    const auto explicitChoice = std::clamp(patch.ymEnvelopeShape, 0, 4);
+    if (explicitChoice > 0)
+        return static_cast<uint8_t>(explicitChoice);
+
+    switch (patch.macro)
+    {
+        case MacroKind::bass:
+            return 2;
+        case MacroKind::hit:
+            return 3;
+        case MacroKind::laser:
+        case MacroKind::powerUp:
+            return 4;
+        case MacroKind::manual:
+        case MacroKind::coin:
+        case MacroKind::lead:
+        case MacroKind::arp:
+        case MacroKind::drum:
+        case MacroKind::jump:
+        default:
+            return 1;
+    }
+}
+
+uint8_t pokeyFilterBitsForPatch(const PatchConfig& patch)
+{
+    switch (pokeyFilterChoiceForPatch(patch))
+    {
+        case 2: return 0x04u; // CH3 clocks high-pass filtering on CH1.
+        case 3: return 0x02u; // CH4 clocks high-pass filtering on CH2.
+        case 4: return 0x06u; // Both high-pass paths enabled.
         case 1:
         default:
             return 0x00u;
