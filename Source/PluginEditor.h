@@ -302,6 +302,7 @@ private:
     void updateSidAdsrControls(bool shouldBeVisible);
     void updateDmcSampleControls();
     void updateSpc700BrrSampleControls();
+    void updateSamplePlaybackModeChoices(chipper::ChipMode mode);
     void chooseDmcSampleFile();
     void chooseDmcSampleDirectory();
     void chooseSpc700BrrSampleFile();

@@ -6318,6 +6318,7 @@ void ChipperAudioProcessorEditor::updateSnNoiseModeButtons(chipper::ChipMode mod
 
 void ChipperAudioProcessorEditor::updateDmcSampleControls()
 {
+    updateSamplePlaybackModeChoices(chipper::ChipMode::nes);
     dmcSampleLabel.setText("DMC", juce::dontSendNotification);
     dmcSampleLabel.setTooltip(withMidiCcForRole("Load one .dmc file or a folder of .dmc files. CC selects the active preloaded sample slot.", chipper::ChipParameterRole::nesDmcSampleSlot));
     dmcSampleFileButton.setButtonText("File");
@@ -6372,6 +6373,7 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
 
 void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
 {
+    updateSamplePlaybackModeChoices(chipper::ChipMode::spc700);
     dmcSampleLabel.setText("BRR Sample", juce::dontSendNotification);
     const auto mapRoot = std::clamp(static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcMapRoot))), 0, 127);
     const auto playbackMode = static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcPlaybackMode)));
@@ -6432,6 +6434,37 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     if (info.loaded)
         tooltip += "\nPath: " + info.path;
     dmcSampleStatusLabel.setTooltip(withMidiCcForRole(tooltip, chipper::ChipParameterRole::nesDmcSampleSlot));
+}
+
+void ChipperAudioProcessorEditor::updateSamplePlaybackModeChoices(chipper::ChipMode mode)
+{
+    const auto choices = mode == chipper::ChipMode::spc700
+        ? juce::StringArray { "Manual Slot", "Note Map", "Map Only" }
+        : chipper::parameters::nesDmcPlaybackModeChoices();
+
+    auto choicesAlreadyMatch = dmcPlaybackModeBox.getNumItems() == choices.size();
+    if (choicesAlreadyMatch)
+    {
+        for (int i = 0; i < choices.size(); ++i)
+        {
+            if (dmcPlaybackModeBox.getItemText(i) != choices[i])
+            {
+                choicesAlreadyMatch = false;
+                break;
+            }
+        }
+    }
+
+    if (choicesAlreadyMatch)
+        return;
+
+    const auto selectedChoice = std::clamp(static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcPlaybackMode))), 0, choices.size() - 1);
+    const juce::ScopedValueSetter<bool> suppress(suppressManualChoiceCallbacks, true);
+    dmcPlaybackModeBox.clear(juce::dontSendNotification);
+    for (int i = 0; i < choices.size(); ++i)
+        dmcPlaybackModeBox.addItem(choices[i], i + 1);
+    dmcPlaybackModeBox.setTextWhenNothingSelected(mode == chipper::ChipMode::spc700 ? "BRR Playback" : "DMC Playback");
+    dmcPlaybackModeBox.setSelectedId(selectedChoice + 1, juce::dontSendNotification);
 }
 
 void ChipperAudioProcessorEditor::chooseDmcSampleFile()
