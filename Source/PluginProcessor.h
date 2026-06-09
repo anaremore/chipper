@@ -22,6 +22,7 @@ public:
         juce::String name;
         juce::String path;
         std::vector<uint8_t> bytes;
+        chipper::ExternalSampleEncoding encoding = chipper::ExternalSampleEncoding::rawBytes;
         bool included = true;
     };
 

@@ -556,6 +556,55 @@ int main()
                  "SPC700 BRR state restore should preserve the selected slot after processing resumes");
     brrDir.deleteRecursively();
 
+    auto spcWavDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-spc700-wav-bank-test");
+    spcWavDir.deleteRecursively();
+    ok &= expect(spcWavDir.createDirectory().wasOk(), "Should create temporary SPC700 WAV bank test directory");
+    for (int i = 0; i < 3; ++i)
+    {
+        const auto name = "spc-wav-" + juce::String(i).paddedLeft('0', 2) + ".wav";
+        ok &= expect(writeWavFixture(spcWavDir.getChildFile(name), 330.0f + static_cast<float>(i) * 110.0f),
+                     "Should write temporary SPC700 WAV fixture " + name.toStdString());
+    }
+
+    sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 7));
+    sendController(processor, 119, controllerValueForChoice(processor, chipper::parameters::id::nesDmcPlaybackMode, 0));
+    ok &= expect(processor.loadSpc700BrrSampleDirectory(spcWavDir).wasOk(), "Should load SPC700 WAV sample directory");
+    auto spcWavNames = processor.spc700BrrSampleNames();
+    ok &= expect(spcWavNames.size() == 3 && spcWavNames[0] == "spc-wav-00.wav" && spcWavNames[2] == "spc-wav-02.wav",
+                 "SPC700 folder import should expose sorted WAV samples as playable slots");
+    sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 2));
+    auto spcWavInfo = processor.spc700BrrSampleInfo();
+    ok &= expect(spcWavInfo.loaded && spcWavInfo.sampleName == "spc-wav-02.wav" && spcWavInfo.byteCount == 256,
+                 "CC117 should select the active SPC700 WAV-imported sample slot");
+    ok &= expect(spcWavInfo.blockCount == 0 && spcWavInfo.statusLine.contains("imported 8-bit samples"),
+                 "SPC700 WAV-imported sample status should report 8-bit sample memory instead of BRR blocks");
+
+    ChipperAudioProcessor spcWavMapAuditionProcessor;
+    spcWavMapAuditionProcessor.prepareToPlay(48000.0, 256);
+    sendController(spcWavMapAuditionProcessor, 70, controllerValueForChoice(spcWavMapAuditionProcessor, chipper::parameters::id::chipMode, 7));
+    sendController(spcWavMapAuditionProcessor, 119, controllerValueForChoice(spcWavMapAuditionProcessor, chipper::parameters::id::nesDmcPlaybackMode, 1));
+    ok &= expect(spcWavMapAuditionProcessor.loadSpc700BrrSampleDirectory(spcWavDir).wasOk(),
+                 "Should load SPC700 WAV sample directory for isolated note-map audio audition");
+    const auto spcWavOutOfRangePeak = renderNoteOnPeak(spcWavMapAuditionProcessor, 50);
+    ok &= expect(spcWavOutOfRangePeak <= 0.0001f,
+                 "SPC700 WAV note map should leave notes above the loaded sample bank span silent instead of clamping to the last slot");
+    const auto spcWavInRangePeak = renderNoteOnPeak(spcWavMapAuditionProcessor, 38);
+    ok &= expect(spcWavInRangePeak > 0.0001f,
+                 "SPC700 WAV note map should produce audio for notes inside the loaded sample bank span");
+
+    juce::MemoryBlock savedSpcWavState;
+    processor.getStateInformation(savedSpcWavState);
+    ChipperAudioProcessor restoredSpcWavProcessor;
+    restoredSpcWavProcessor.prepareToPlay(48000.0, 64);
+    restoredSpcWavProcessor.setStateInformation(savedSpcWavState.getData(), static_cast<int>(savedSpcWavState.getSize()));
+    processEmptyBlock(restoredSpcWavProcessor);
+    auto restoredSpcWavNames = restoredSpcWavProcessor.spc700BrrSampleNames();
+    auto restoredSpcWavInfo = restoredSpcWavProcessor.spc700BrrSampleInfo();
+    ok &= expect(restoredSpcWavNames.size() == 3, "SPC700 WAV state restore should reload staged sample paths");
+    ok &= expect(restoredSpcWavInfo.loaded && restoredSpcWavInfo.sampleName == "spc-wav-02.wav",
+                 "SPC700 WAV state restore should preserve the selected slot after processing resumes");
+    spcWavDir.deleteRecursively();
+
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 9));
     auto paulaDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-paula-sample-bank-test");
     paulaDir.deleteRecursively();

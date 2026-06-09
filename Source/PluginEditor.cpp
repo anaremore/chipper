@@ -199,7 +199,7 @@ public:
     DmcSampleBankEditorComponent(ChipperAudioProcessor& processor, bool editsSpc700Brr, bool editsPaulaSamples, std::function<void()> refreshCallback)
         : audioProcessor(processor), spc700Mode(editsSpc700Brr), paulaMode(editsPaulaSamples), onRefresh(std::move(refreshCallback))
     {
-        title.setText(paulaMode ? "Paula Sample Bank" : (spc700Mode ? "BRR Sample Bank" : "DMC Sample Bank"), juce::dontSendNotification);
+        title.setText(paulaMode ? "Paula Sample Bank" : (spc700Mode ? "SPC700 Sample Bank" : "DMC Sample Bank"), juce::dontSendNotification);
         title.setJustificationType(juce::Justification::centredLeft);
         title.setColour(juce::Label::textColourId, juce::Colour(0xffffdb5c));
         title.setFont(juce::FontOptions(15.0f, juce::Font::bold));
@@ -208,7 +208,7 @@ public:
         helper.setText(paulaMode
                            ? "Checked WAV/AIFF files feed the 32-slot Paula-style sample bank and note map. Folder contents stay local."
                            : spc700Mode
-                           ? "Checked BRR files feed the 32-slot playable bank and note map. Folder contents stay local."
+                           ? "Checked BRR/WAV/AIFF files feed the 32-slot playable bank and note map. Folder contents stay local."
                            : "Checked files feed the 32-slot CC117 bank. Folder contents stay local and are not copied into the repo.",
                        juce::dontSendNotification);
         helper.setJustificationType(juce::Justification::centredLeft);
@@ -219,7 +219,7 @@ public:
 
         selectFirstButton.setButtonText("First 32");
         selectFirstButton.setTooltip(paulaMode ? "Check the first 32 loaded Paula samples and uncheck the rest."
-                                               : spc700Mode ? "Check the first 32 loaded BRR files and uncheck the rest."
+                                               : spc700Mode ? "Check the first 32 loaded SPC700 samples and uncheck the rest."
                                                             : "Check the first 32 loaded DMC files and uncheck the rest.");
         selectFirstButton.onClick = [this]
         {
@@ -235,7 +235,7 @@ public:
 
         invertButton.setButtonText("Invert");
         invertButton.setTooltip(paulaMode ? "Invert checked Paula samples. Only the first 32 checked files become active playable slots."
-                                          : spc700Mode ? "Invert checked BRR files. Only the first 32 checked files become active playable slots."
+                                          : spc700Mode ? "Invert checked SPC700 samples. Only the first 32 checked files become active playable slots."
                                                        : "Invert checked DMC files. Only the first 32 checked files become active slots.");
         invertButton.onClick = [this]
         {
@@ -251,7 +251,7 @@ public:
 
         clearButton.setButtonText("Clear");
         clearButton.setTooltip(paulaMode ? "Uncheck every Paula sample in this bank."
-                                         : spc700Mode ? "Uncheck every BRR file in this bank."
+                                         : spc700Mode ? "Uncheck every SPC700 sample in this bank."
                                                       : "Uncheck every DMC file in this bank.");
         clearButton.onClick = [this]
         {
@@ -369,7 +369,7 @@ private:
                                                paulaMode,
                                                0,
                                                ChipperAudioProcessor::DmcSampleEntryInfo {
-                                                   paulaMode ? "No WAV/AIFF files loaded" : (spc700Mode ? "No .brr files loaded" : "No .dmc files loaded"), {}, 0, false, false },
+                                                   paulaMode ? "No WAV/AIFF files loaded" : (spc700Mode ? "No SPC700 samples loaded" : "No .dmc files loaded"), {}, 0, false, false },
                                                [this] { refreshAfterEdit(); });
             empty->setEnabled(false);
             listContent->addAndMakeVisible(*empty);
@@ -1471,7 +1471,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addAndMakeVisible(dmcPlaybackModeBox);
     dmcPlaybackModeAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::nesDmcPlaybackMode, dmcPlaybackModeBox);
 
-    dmcMapRootBox.setTooltip(withMidiCcForRole("Sample-bank map root. NES DMC and SPC700 BRR folder slots map upward from this MIDI note when note mapping is active.", chipper::ChipParameterRole::nesDmcMapRoot));
+    dmcMapRootBox.setTooltip(withMidiCcForRole("Sample-bank map root. NES DMC and SPC700/Paula sample folder slots map upward from this MIDI note when note mapping is active.", chipper::ChipParameterRole::nesDmcMapRoot));
     {
         const auto choices = chipper::parameters::midiNoteChoices();
         for (int i = 0; i < choices.size(); ++i)
@@ -2712,7 +2712,7 @@ void ChipperAudioProcessorEditor::resized()
 
         auto sampleCell = utilityCell;
         auto sampleHeader = sampleCell.removeFromTop(22);
-        dmcSampleLabel.setText(displayedMode == chipper::ChipMode::paula ? "Paula Sample" : "BRR Sample", juce::dontSendNotification);
+        dmcSampleLabel.setText(displayedMode == chipper::ChipMode::paula ? "Paula Sample" : "SPC700 Sample", juce::dontSendNotification);
         dmcSampleLabel.setBounds(sampleHeader.removeFromLeft(displayedMode == chipper::ChipMode::paula ? 104 : 92));
         const auto brrButtonWidth = std::max(46, (sampleHeader.getWidth() - 8) / 3);
         dmcSampleFileButton.setBounds(sampleHeader.removeFromLeft(brrButtonWidth).reduced(0, 1));
@@ -4070,8 +4070,8 @@ juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMod
         {
             const auto modeText = info.playbackMode == 0 ? juce::String("Manual") : juce::String("Map");
             const auto slotText = info.bankCount > 1
-                ? juce::String("BRR ") + modeText + " " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
-                : juce::String("BRR");
+                ? juce::String("Sample ") + modeText + " " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
+                : juce::String("Sample");
             return "Voice " + number + " | " + slotText;
         }
 
@@ -4122,7 +4122,7 @@ juce::String ChipperAudioProcessorEditor::sampleSourceRegisterReadout(chipper::C
         else if (info.loaded)
         {
             const auto modeText = info.playbackMode == 0 ? juce::String("manual") : juce::String("mapped");
-            readout += "BRR slot " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
+            readout += "sample slot " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
                 + " " + info.sampleName
                 + " | " + modeText;
             if (info.playbackMode != 0)
@@ -6642,16 +6642,16 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
 void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
 {
     updateSamplePlaybackModeChoices(chipper::ChipMode::spc700);
-    dmcSampleLabel.setText("BRR Sample", juce::dontSendNotification);
+    dmcSampleLabel.setText("SPC700 Sample", juce::dontSendNotification);
     const auto mapRoot = std::clamp(static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcMapRoot))), 0, 127);
     const auto playbackMode = static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcPlaybackMode)));
-    dmcSampleLabel.setTooltip(withMidiCcForRole("Load one user-provided SNES BRR sample or a folder of .brr files. CC117 selects the manual BRR slot; BRR Playback chooses whether MIDI notes browse the loaded bank.", chipper::ChipParameterRole::nesDmcSampleSlot));
+    dmcSampleLabel.setTooltip(withMidiCcForRole("Load one user-provided SNES BRR, WAV, or AIFF sample, or a folder bank. CC117 selects the manual slot; Sample Playback chooses whether MIDI notes browse the loaded bank.", chipper::ChipParameterRole::nesDmcSampleSlot));
     dmcSampleFileButton.setButtonText("File");
-    dmcSampleFileButton.setTooltip("Load one user-provided .brr file into the SPC700-style sample voice model.");
+    dmcSampleFileButton.setTooltip("Load one user-provided .brr, WAV, or AIFF file into the SPC700-style sample voice model.");
     dmcSampleFolderButton.setButtonText("Folder");
-    dmcSampleFolderButton.setTooltip("Load a folder of user-provided .brr files. The first 32 readable BRR files become CC117-addressable slots and note-mapped sample choices from C1 upward.");
+    dmcSampleFolderButton.setTooltip("Load a folder of user-provided .brr, WAV, or AIFF files. The first 32 readable samples become CC117-addressable slots and note-mapped sample choices from C1 upward.");
     dmcSampleBankButton.setButtonText("Bank");
-    dmcSampleBankButton.setTooltip("Open the BRR bank checklist. Checked files become the playable 32-slot BRR dropdown and note map.");
+    dmcSampleBankButton.setTooltip("Open the SPC700 sample checklist. Checked files become the playable 32-slot dropdown and note map.");
 
     const auto names = audioProcessor.spc700BrrSampleNames();
     const auto sampleCount = names.size();
@@ -6675,10 +6675,10 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
         dmcSampleSlotBox.setSelectedId(0, juce::dontSendNotification);
 
     dmcSampleSlotBox.setEnabled(sampleCount > 0);
-    dmcSampleSlotBox.setTextWhenNothingSelected("No BRR samples");
-    dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the manual BRR sample from the loaded SPC700 bank. MIDI CC117 selects the same slot; BRR Playback Manual uses it for every note.", chipper::ChipParameterRole::nesDmcSampleSlot));
-    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("SPC700 BRR Playback. Manual Slot plays the selected dropdown slot; Note Map maps loaded folder slots upward from the BRR Map Root. Sample Map Only is treated as Note Map because SPC700 mode is already sample-based.", chipper::ChipParameterRole::nesDmcPlaybackMode));
-    dmcMapRootBox.setTooltip(withMidiCcForRole("SPC700 BRR Map Root. Loaded folder slots map upward from this MIDI note when BRR Playback is a map mode.", chipper::ChipParameterRole::nesDmcMapRoot));
+    dmcSampleSlotBox.setTextWhenNothingSelected("No SPC700 samples");
+    dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the manual SPC700 sample from the loaded bank. MIDI CC117 selects the same slot; Manual playback uses it for every note.", chipper::ChipParameterRole::nesDmcSampleSlot));
+    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("SPC700 Sample Playback. Manual Slot plays the selected dropdown slot; Note Map maps loaded folder slots upward from the Sample Map Root. Sample Map Only is treated as Note Map because SPC700 mode is already sample-based.", chipper::ChipParameterRole::nesDmcPlaybackMode));
+    dmcMapRootBox.setTooltip(withMidiCcForRole("SPC700 Sample Map Root. Loaded folder slots map upward from this MIDI note when playback is a map mode.", chipper::ChipParameterRole::nesDmcMapRoot));
 
     const auto info = audioProcessor.spc700BrrSampleInfo();
     auto visibleStatus = info.statusLine;
@@ -6689,11 +6689,11 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
         visibleStatus += " | Manual";
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
     auto tooltip = info.statusLine
-        + "\nBRR files are decoded into the clean-room SPC700 sample voice path. Folder loads keep up to 32 user-provided BRR files addressable by the dropdown and CC117.";
+        + "\nBRR files are decoded into the clean-room SPC700 sample voice path. WAV/AIFF files import as 8-bit sample memory; true WAV-to-BRR conversion remains planned. Folder loads keep up to 32 user-provided files addressable by the dropdown and CC117.";
     if (playbackMode == 0)
-        tooltip += "\nBRR Playback is Manual Slot: each MIDI note uses the selected dropdown sample.";
+        tooltip += "\nSample Playback is Manual Slot: each MIDI note uses the selected dropdown sample.";
     else
-        tooltip += "\nBRR Playback is a map mode: notes browse the loaded bank from "
+        tooltip += "\nSample Playback is a map mode: notes browse the loaded bank from "
             + chipper::parameters::midiNoteChoices()[mapRoot] + " upward.";
     if (info.loaded && info.bankCount > 1 && playbackMode != 0)
         tooltip += "\nCurrent mapped key span: "
@@ -6802,7 +6802,7 @@ void ChipperAudioProcessorEditor::updateSamplePlaybackModeChoices(chipper::ChipM
     dmcPlaybackModeBox.clear(juce::dontSendNotification);
     for (int i = 0; i < choices.size(); ++i)
         dmcPlaybackModeBox.addItem(choices[i], i + 1);
-    dmcPlaybackModeBox.setTextWhenNothingSelected(mode == chipper::ChipMode::spc700 ? "BRR Playback" : (mode == chipper::ChipMode::paula ? "Sample Playback" : "DMC Playback"));
+    dmcPlaybackModeBox.setTextWhenNothingSelected(mode == chipper::ChipMode::spc700 ? "Sample Playback" : (mode == chipper::ChipMode::paula ? "Sample Playback" : "DMC Playback"));
     dmcPlaybackModeBox.setSelectedId(selectedChoice + 1, juce::dontSendNotification);
 }
 
@@ -6824,9 +6824,9 @@ void ChipperAudioProcessorEditor::chooseDmcSampleFile()
 
 void ChipperAudioProcessorEditor::chooseSpc700BrrSampleFile()
 {
-    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose an SPC700 BRR sample",
+    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose an SPC700 sample",
                                                            juce::File {},
-                                                           "*.brr");
+                                                           "*.brr;*.wav;*.aif;*.aiff");
     dmcSampleChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
                                   [this](const juce::FileChooser& chooser)
                                   {
@@ -6840,9 +6840,9 @@ void ChipperAudioProcessorEditor::chooseSpc700BrrSampleFile()
 
 void ChipperAudioProcessorEditor::chooseSpc700BrrSampleDirectory()
 {
-    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose a folder of SPC700 BRR samples",
+    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose a folder of SPC700 samples",
                                                            juce::File {},
-                                                           "*.brr");
+                                                           "*.brr;*.wav;*.aif;*.aiff");
     dmcSampleChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
                                   [this](const juce::FileChooser& chooser)
                                   {
@@ -7339,8 +7339,8 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     }
     else if (mode == chipper::ChipMode::spc700)
     {
-        controlValueLabels[4].setText("BRR sample import", juce::dontSendNotification);
-        controlValueLabels[4].setTooltip("Loads one SNES BRR sample into the SPC700-style sample voice path.");
+        controlValueLabels[4].setText("SPC700 sample import", juce::dontSendNotification);
+        controlValueLabels[4].setTooltip("Loads BRR, WAV, or AIFF samples into the SPC700-style sample voice path.");
         updateSpc700BrrSampleControls();
     }
     else if (mode == chipper::ChipMode::paula)

@@ -147,57 +147,36 @@ juce::Result readDmcSampleFile(const juce::File& file, ChipperAudioProcessor::Dm
 
     slot.name = file.getFileName();
     slot.path = file.getFullPathName();
+    slot.encoding = chipper::ExternalSampleEncoding::rawBytes;
     slot.bytes.resize(block.getSize());
     std::memcpy(slot.bytes.data(), block.getData(), block.getSize());
     return juce::Result::ok();
 }
 
-juce::Result readSpc700BrrSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
-{
-    if (! file.existsAsFile())
-        return juce::Result::fail("BRR sample file does not exist: " + file.getFullPathName());
-
-    if (! file.hasFileExtension(".brr"))
-        return juce::Result::fail("Only .brr files are supported for SPC700 sample import in this build.");
-
-    juce::MemoryBlock block;
-    if (! file.loadFileAsData(block))
-        return juce::Result::fail("Could not read BRR sample file: " + file.getFullPathName());
-
-    if (block.getSize() == 0u)
-        return juce::Result::fail("BRR sample file is empty: " + file.getFullPathName());
-
-    if ((block.getSize() % 9u) != 0u)
-        return juce::Result::fail("BRR sample size must be a whole number of 9-byte BRR blocks: " + file.getFileName());
-
-    slot.name = file.getFileName();
-    slot.path = file.getFullPathName();
-    slot.bytes.resize(block.getSize());
-    std::memcpy(slot.bytes.data(), block.getData(), block.getSize());
-    return juce::Result::ok();
-}
-
-bool fileLooksLikePaulaImport(const juce::File& file)
+bool fileLooksLikePcmImport(const juce::File& file)
 {
     return file.hasFileExtension(".wav;.aif;.aiff");
 }
 
-juce::Result readPaulaSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
+juce::Result readPcm8SampleFile(const juce::File& file,
+                                ChipperAudioProcessor::DmcSampleSlot& slot,
+                                const juce::String& label,
+                                const juce::String& plannedFormats)
 {
     if (! file.existsAsFile())
-        return juce::Result::fail("Paula sample file does not exist: " + file.getFullPathName());
+        return juce::Result::fail(label + " sample file does not exist: " + file.getFullPathName());
 
-    if (! fileLooksLikePaulaImport(file))
-        return juce::Result::fail("Paula sample import supports WAV/AIFF files in this build. IFF/8SVX/MOD import is planned.");
+    if (! fileLooksLikePcmImport(file))
+        return juce::Result::fail(label + " sample import supports WAV/AIFF files in this build. " + plannedFormats + " import is planned.");
 
     juce::AudioFormatManager formats;
     formats.registerBasicFormats();
     std::unique_ptr<juce::AudioFormatReader> reader(formats.createReaderFor(file));
     if (reader == nullptr)
-        return juce::Result::fail("Could not decode Paula sample file: " + file.getFullPathName());
+        return juce::Result::fail("Could not decode " + label + " sample file: " + file.getFullPathName());
 
     if (reader->lengthInSamples <= 0)
-        return juce::Result::fail("Paula sample file is empty: " + file.getFullPathName());
+        return juce::Result::fail(label + " sample file is empty: " + file.getFullPathName());
 
     constexpr int maxImportedSamples = 262144;
     const auto sampleCount = static_cast<int>(std::min<int64_t>(reader->lengthInSamples, maxImportedSamples));
@@ -207,6 +186,7 @@ juce::Result readPaulaSampleFile(const juce::File& file, ChipperAudioProcessor::
 
     slot.name = file.getFileName();
     slot.path = file.getFullPathName();
+    slot.encoding = chipper::ExternalSampleEncoding::signedPcm8;
     slot.bytes.resize(static_cast<size_t>(sampleCount));
     const auto channelCount = std::max(1, decoded.getNumChannels());
     for (int i = 0; i < sampleCount; ++i)
@@ -221,9 +201,43 @@ juce::Result readPaulaSampleFile(const juce::File& file, ChipperAudioProcessor::
     }
 
     if (slot.bytes.empty())
-        return juce::Result::fail("Paula sample import produced no usable sample bytes: " + file.getFileName());
+        return juce::Result::fail(label + " sample import produced no usable sample bytes: " + file.getFileName());
 
     return juce::Result::ok();
+}
+
+juce::Result readSpc700BrrSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    if (! file.existsAsFile())
+        return juce::Result::fail("SPC700 sample file does not exist: " + file.getFullPathName());
+
+    if (fileLooksLikePcmImport(file))
+        return readPcm8SampleFile(file, slot, "SPC700", "true WAV-to-BRR");
+
+    if (! file.hasFileExtension(".brr"))
+        return juce::Result::fail("SPC700 sample import supports .brr, WAV, and AIFF files in this build.");
+
+    juce::MemoryBlock block;
+    if (! file.loadFileAsData(block))
+        return juce::Result::fail("Could not read BRR sample file: " + file.getFullPathName());
+
+    if (block.getSize() == 0u)
+        return juce::Result::fail("BRR sample file is empty: " + file.getFullPathName());
+
+    if ((block.getSize() % 9u) != 0u)
+        return juce::Result::fail("BRR sample size must be a whole number of 9-byte BRR blocks: " + file.getFileName());
+
+    slot.name = file.getFileName();
+    slot.path = file.getFullPathName();
+    slot.encoding = chipper::ExternalSampleEncoding::spc700Brr;
+    slot.bytes.resize(block.getSize());
+    std::memcpy(slot.bytes.data(), block.getData(), block.getSize());
+    return juce::Result::ok();
+}
+
+juce::Result readPaulaSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    return readPcm8SampleFile(file, slot, "Paula", "IFF/8SVX/MOD");
 }
 }
 
@@ -329,10 +343,10 @@ juce::Result ChipperAudioProcessor::loadSpc700BrrSampleFile(const juce::File& fi
 juce::Result ChipperAudioProcessor::loadSpc700BrrSampleDirectory(const juce::File& directory)
 {
     if (! directory.isDirectory())
-        return juce::Result::fail("BRR sample directory does not exist: " + directory.getFullPathName());
+        return juce::Result::fail("SPC700 sample directory does not exist: " + directory.getFullPathName());
 
     juce::Array<juce::File> files;
-    directory.findChildFiles(files, juce::File::findFiles, false, "*.brr");
+    directory.findChildFiles(files, juce::File::findFiles, false, "*.brr;*.wav;*.aif;*.aiff");
     files.sort();
 
     std::vector<DmcSampleSlot> loaded;
@@ -348,7 +362,7 @@ juce::Result ChipperAudioProcessor::loadSpc700BrrSampleDirectory(const juce::Fil
     }
 
     if (loaded.empty())
-        return juce::Result::fail("No readable .brr files found in: " + directory.getFullPathName());
+        return juce::Result::fail("No readable .brr, WAV, or AIFF files found in: " + directory.getFullPathName());
 
     {
         const std::lock_guard<std::mutex> lock(spc700SampleMutex);
@@ -509,7 +523,7 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
     const std::lock_guard<std::mutex> lock(spc700SampleMutex);
     if (spc700BrrSample.bytes.empty())
     {
-        info.statusLine = "No BRR sample loaded";
+        info.statusLine = "No SPC700 samples loaded";
         return info;
     }
 
@@ -535,7 +549,7 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
     if (activeSlots.empty())
     {
         info.loaded = false;
-        info.statusLine = "No BRR samples checked";
+        info.statusLine = "No SPC700 samples checked";
         return info;
     }
 
@@ -555,15 +569,16 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
     info.sampleName = selected.name;
     info.path = selected.path;
     info.byteCount = static_cast<int>(selected.bytes.size());
-    info.blockCount = info.byteCount / 9;
+    info.blockCount = selected.encoding == chipper::ExternalSampleEncoding::spc700Brr ? info.byteCount / 9 : 0;
     info.bankCount = bankCount;
     info.selectedSlot = safeSlot;
     info.playbackMode = playbackMode;
     info.mapRootNote = mapRootNote;
     info.mapHighNote = std::clamp(mapRootNote + std::max(0, bankCount - 1), 0, 127);
     info.statusLine = "Slot " + juce::String(safeSlot + 1) + "/" + juce::String(bankCount)
-        + ": " + info.sampleName + " (" + juce::String(info.byteCount) + " bytes, "
-        + juce::String(info.blockCount) + " BRR blocks)";
+        + ": " + info.sampleName + (selected.encoding == chipper::ExternalSampleEncoding::spc700Brr
+            ? " (" + juce::String(info.byteCount) + " bytes, " + juce::String(info.blockCount) + " BRR blocks)"
+            : " (" + juce::String(info.byteCount) + " imported 8-bit samples)");
     return info;
 }
 
@@ -1478,7 +1493,7 @@ void ChipperAudioProcessor::applySpc700BrrSampleToCore()
     if (core == nullptr || activeMode != chipper::ChipMode::spc700)
         return;
 
-    std::vector<std::vector<uint8_t>> sampleBank;
+    std::vector<chipper::ExternalSampleData> sampleBank;
     uint64_t revision = 0;
     auto resolvedSlot = -1;
     const auto playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
@@ -1509,13 +1524,13 @@ void ChipperAudioProcessor::applySpc700BrrSampleToCore()
                 spc700BrrSample = *activeSlots[static_cast<size_t>(resolvedSlot)];
                 sampleBank.reserve(activeSlots.size());
                 for (const auto* slot : activeSlots)
-                    sampleBank.push_back(slot->bytes);
+                    sampleBank.push_back({ slot->bytes, slot->encoding });
             }
         }
         else if (! spc700BrrSample.bytes.empty())
         {
             resolvedSlot = 0;
-            sampleBank.push_back(spc700BrrSample.bytes);
+            sampleBank.push_back({ spc700BrrSample.bytes, spc700BrrSample.encoding });
         }
     }
 

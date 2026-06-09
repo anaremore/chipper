@@ -812,9 +812,9 @@ int main()
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Playback");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, "Sample");
     ok &= expectChoiceRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ControlSurface::menu, 3, "Follow Template");
-    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcPlaybackMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "BRR Playback");
+    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcPlaybackMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Sample Playback");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcPlaybackMode, "Sample");
-    ok &= expectSpecHelpContains(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcPlaybackMode, "manual slot", "SPC700 BRR playback help should explain manual-slot behavior");
+    ok &= expectSpecHelpContains(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcPlaybackMode, "manual slot", "SPC700 sample playback help should explain manual-slot behavior");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::snNoiseMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Noise Source");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::snNoiseMode, "Noise");
     ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::snNoiseMode, 5, "Follow");
@@ -826,9 +826,9 @@ int main()
                                                             0.5f);
     ok &= expect(chipper::spc700NoiseModeForPatch(spcDescriptorDrum) == 4u, "SPC700 drum macro should resolve to high noise mode");
     ok &= expect(chipper::spc700NoiseClockForPatch(spcDescriptorDrum) == 26u, "SPC700 high noise mode should resolve to noise clock 26");
-    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcMapRoot, chipper::ParameterKind::steppedNumeric, chipper::ControlSurface::menu, "BRR Map Root");
+    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcMapRoot, chipper::ParameterKind::steppedNumeric, chipper::ControlSurface::menu, "Sample Map Root");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcMapRoot, "Sample");
-    ok &= expectSpecHelpContains(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcMapRoot, "folder bank starts", "SPC700 BRR map root help should explain folder-bank note mapping");
+    ok &= expectSpecHelpContains(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcMapRoot, "folder bank starts", "SPC700 sample map root help should explain folder-bank note mapping");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::source7Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Voice 7");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::source8Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Voice 8");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::source7Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Voice 7 Level");

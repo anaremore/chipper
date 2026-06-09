@@ -5937,7 +5937,17 @@ public:
 
     void setExternalSampleBank(std::vector<std::vector<uint8_t>> bank, int selectedSlot) override
     {
+        std::vector<ExternalSampleData> typedBank;
+        typedBank.reserve(bank.size());
+        for (auto& sampleBytes : bank)
+            typedBank.push_back({ std::move(sampleBytes), ExternalSampleEncoding::spc700Brr });
+        setExternalSampleBank(std::move(typedBank), selectedSlot);
+    }
+
+    void setExternalSampleBank(std::vector<ExternalSampleData> bank, int selectedSlot) override
+    {
         externalBrrSampleLoaded = false;
+        externalPcmSampleLoaded = false;
         externalBrrBank.clear();
         selectedExternalBrrSlot = -1;
         brrBlockCount = 0;
@@ -5945,9 +5955,24 @@ public:
         brrLoopFlagSeen = false;
 
         externalBrrBank.reserve(bank.size());
-        for (const auto& sampleBytes : bank)
+        for (const auto& sample : bank)
         {
-            const auto decoded = decodeBrrSample(sampleBytes);
+            std::vector<double> decoded;
+            if (sample.encoding == ExternalSampleEncoding::signedPcm8)
+            {
+                decoded = decodePcm8Sample(sample.bytes);
+                externalPcmSampleLoaded = externalPcmSampleLoaded || ! decoded.empty();
+            }
+            else
+            {
+                decoded = decodeBrrSample(sample.bytes);
+                if (decoded.empty() && sample.encoding == ExternalSampleEncoding::rawBytes)
+                {
+                    decoded = decodePcm8Sample(sample.bytes);
+                    externalPcmSampleLoaded = externalPcmSampleLoaded || ! decoded.empty();
+                }
+            }
+
             if (! decoded.empty())
                 externalBrrBank.push_back(decoded);
         }
@@ -6184,6 +6209,7 @@ public:
              << "\"noiseClock\":" << static_cast<int>(spc700NoiseClockForPatch(patch)) << ","
              << "\"noiseEnabledMask\":" << static_cast<int>(noiseEnabledMask()) << ","
              << "\"externalBrrSampleLoaded\":" << (externalBrrSampleLoaded ? 1 : 0) << ","
+             << "\"externalPcmSampleLoaded\":" << (externalPcmSampleLoaded ? 1 : 0) << ","
              << "\"brrBlockCount\":" << brrBlockCount << ","
              << "\"brrEndFlagSeen\":" << (brrEndFlagSeen ? 1 : 0) << ","
              << "\"brrLoopFlagSeen\":" << (brrLoopFlagSeen ? 1 : 0) << ","
@@ -6333,7 +6359,7 @@ private:
     std::vector<double> decodeBrrSample(const std::vector<uint8_t>& data)
     {
         std::vector<double> decoded;
-        if (data.size() < 9u)
+        if (data.size() < 9u || (data.size() % 9u) != 0u)
             return decoded;
 
         brrBlockCount = data.size() / 9u;
@@ -6389,6 +6415,15 @@ private:
                 break;
         }
 
+        return decoded;
+    }
+
+    std::vector<double> decodePcm8Sample(const std::vector<uint8_t>& data) const
+    {
+        std::vector<double> decoded;
+        decoded.reserve(data.size());
+        for (const auto byte : data)
+            decoded.push_back(std::clamp((static_cast<double>(byte) - 128.0) / 128.0, -1.0, 1.0));
         return decoded;
     }
 
@@ -6817,6 +6852,7 @@ private:
     uint8_t sampleTemplate = 0;
     uint8_t playbackMode = 1;
     bool externalBrrSampleLoaded = false;
+    bool externalPcmSampleLoaded = false;
     int selectedExternalBrrSlot = -1;
     size_t brrBlockCount = 0;
     bool brrEndFlagSeen = false;

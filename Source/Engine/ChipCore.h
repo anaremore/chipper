@@ -126,6 +126,19 @@ struct NoteEvent
     uint64_t lengthSamples = 0;
 };
 
+enum class ExternalSampleEncoding
+{
+    rawBytes,
+    spc700Brr,
+    signedPcm8
+};
+
+struct ExternalSampleData
+{
+    std::vector<uint8_t> bytes;
+    ExternalSampleEncoding encoding = ExternalSampleEncoding::rawBytes;
+};
+
 struct RenderStats
 {
     double peak = 0.0;
@@ -150,6 +163,14 @@ public:
     {
         (void) bank;
         (void) selectedSlot;
+    }
+    virtual void setExternalSampleBank(std::vector<ExternalSampleData> bank, int selectedSlot)
+    {
+        std::vector<std::vector<uint8_t>> rawBank;
+        rawBank.reserve(bank.size());
+        for (auto& sample : bank)
+            rawBank.push_back(std::move(sample.bytes));
+        setExternalSampleBank(std::move(rawBank), selectedSlot);
     }
     virtual void setExternalSampleSlot(int selectedSlot) { (void) selectedSlot; }
     virtual void writeRegister(uint16_t address, uint8_t value) = 0;

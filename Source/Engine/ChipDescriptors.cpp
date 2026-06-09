@@ -1336,12 +1336,12 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
         envelopeSpec("spc700.adsrSpeed", "ADSR / Gain Speed", "Scales the playable clean-room ADSR/gain-style envelope while exact S-DSP envelope timing remains unverified."),
         segmentedSpec(ChipParameterRole::nesDmcPlaybackMode,
                       "spc700.brrPlayback",
-                      "BRR Playback",
+                      "Sample Playback",
                       "Sample",
-                      "Chooses whether a loaded SPC700 BRR folder bank plays the selected manual slot or maps bank slots across MIDI notes from the BRR Map Root. Sample Map Only behaves like Note Map because SPC700 mode is already sample-based.",
+                      "Chooses whether a loaded SPC700 sample bank plays the selected manual slot or maps bank slots across MIDI notes from the Sample Map Root. Sample Map Only behaves like Note Map because SPC700 mode is already sample-based.",
                       {
-                          choice("Manual", "Use the selected BRR sample slot for every note.", 0.0f, 0),
-                          choice("Note Map", "Map loaded BRR folder slots across MIDI notes from the BRR Map Root.", 0.5f, 1),
+                          choice("Manual", "Use the selected SPC700 sample slot for every note.", 0.0f, 0),
+                          choice("Note Map", "Map loaded SPC700 folder slots across MIDI notes from the Sample Map Root.", 0.5f, 1),
                           choice("Map Only", "Equivalent to Note Map for SPC700 because the chip mode is entirely sample-voice based.", 1.0f, 2)
                       },
                       ParameterKind::chipRegister),
@@ -1375,9 +1375,9 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
                       ParameterKind::chipRegister),
         { ChipParameterRole::nesDmcMapRoot,
           "spc700.brrMapRoot",
-          "BRR Map Root",
+          "Sample Map Root",
           "Sample",
-          "Selects the MIDI note where the loaded BRR folder bank starts mapping sample slots. C1 preserves the default one-sample-per-key layout.",
+          "Selects the MIDI note where the loaded SPC700 folder bank starts mapping sample slots. C1 preserves the default one-sample-per-key layout.",
           ParameterKind::steppedNumeric,
           ControlSurface::menu,
           {},
@@ -2174,8 +2174,8 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             {
                 makeModule("profile", "Profile", "SPC700-style clean-room sample groundwork.", { "SNES family", "32 kHz DSP-rate default", "Hybrid default", "Authentic still partial" }),
-                makeModule("sources", "Sample Voices", "All eight SPC700-style sample voices are exposed as playable lanes.", { "Voices 1-4", "Voices 5-8", "BRR sample lane", "Chip Poly" }),
-                makeModule("sample", "Sample / Pitch", "Generated lo-fi templates plus user BRR file/folder loading.", { "BRR file", "BRR folder bank", "Note map", "Noise source" }),
+                makeModule("sources", "Sample Voices", "All eight SPC700-style sample voices are exposed as playable lanes.", { "Voices 1-4", "Voices 5-8", "Sample lane", "Chip Poly" }),
+                makeModule("sample", "Sample / Pitch", "Generated lo-fi templates plus user BRR/WAV/AIFF file and folder loading.", { "Sample file", "Sample folder bank", "Note map", "Noise source" }),
                 makeModule("envelope", "ADSR / Gain", "Playable gain and envelope shaping derived from the selected template.", { "Attack", "Decay", "Sustain", "Release" }),
                 makeModule("motion", "Motion", "SNES-style SFX gestures mapped to sample pitch.", { "Voice arp", "Pitch sweep", "Jump blip", "Damage hit" }),
                 makeModule("output", "Output", "Soft sample output with echo-color helper.", { "Voice volume", "Stereo spread convenience", "Echo color", "Known differences" })
@@ -2186,8 +2186,8 @@ const std::vector<ChipDescriptor>& descriptors()
             spc700ParameterSpecs(),
             verifiedPartial(
                 {
-                    "Eight generated lo-fi sample voices render with pitch, volume, loop/one-shot playback mode, playable ADSR/gain-style state, key-on/enabled masks, clean-room BRR block decoding for renderer-loaded samples and plugin-loaded user BRR file/folder banks, note-to-BRR-bank performance mapping, partial S-DSP-style per-voice noise source selection, clean-room Gaussian-style 4-tap interpolation, musical pitch-motion, and a musical stereo echo helper.",
-                    "Source enables, source levels, sample-shape choices, BRR block/end/loop debug metadata, plugin BRR slot selection/state recall, note-mapped BRR bank selection, noise source mode/clock/mask metadata, pitch-motion, musical echo-helper debug metadata, envelope-release debug metadata, interpolation metadata, chip-poly allocation across all eight exposed voices, presets, and debug JSON are covered by automated tests.",
+                    "Eight generated lo-fi sample voices render with pitch, volume, loop/one-shot playback mode, playable ADSR/gain-style state, key-on/enabled masks, clean-room BRR block decoding for renderer-loaded samples, plugin-loaded user BRR sample banks, WAV/AIFF imported as 8-bit sample memory, note-to-sample-bank performance mapping, partial S-DSP-style per-voice noise source selection, clean-room Gaussian-style 4-tap interpolation, musical pitch-motion, and a musical stereo echo helper.",
+                    "Source enables, source levels, sample-shape choices, BRR block/end/loop debug metadata, plugin sample slot selection/state recall, note-mapped sample bank selection, noise source mode/clock/mask metadata, pitch-motion, musical echo-helper debug metadata, envelope-release debug metadata, interpolation metadata, chip-poly allocation across all eight exposed voices, presets, and debug JSON are covered by automated tests.",
                     "No third-party SPC700, S-DSP, BRR, SNES, or tracker-player source code is vendored in this clean-room partial model."
                 },
                 {
