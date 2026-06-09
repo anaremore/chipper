@@ -8790,6 +8790,10 @@ public:
         heldNote = -1;
         noteVelocity = 0.0f;
         sampleTemplate = 0;
+        leftA500State = 0.0;
+        rightA500State = 0.0;
+        leftLedState = 0.0;
+        rightLedState = 0.0;
         for (size_t channel = 0; channel < sampleRam.size(); ++channel)
             seedSample(channel);
     }
@@ -8955,6 +8959,8 @@ public:
             noteVelocity = static_cast<float>(std::max(0.0, static_cast<double>(noteVelocity) * decay));
         }
 
+        applyOutputFilter(left, right);
+
         return { static_cast<float>(std::clamp(left, -1.0, 1.0)),
                  static_cast<float>(std::clamp(right, -1.0, 1.0)) };
     }
@@ -9005,6 +9011,8 @@ public:
              << "\"control1\":" << static_cast<int>(control[1]) << ","
              << "\"control2\":" << static_cast<int>(control[2]) << ","
              << "\"control3\":" << static_cast<int>(control[3]) << ","
+             << "\"outputFilterMode\":" << static_cast<int>(paulaOutputFilterModeForPatch(patch)) << ","
+             << "\"nativeInterpolation\":\"nearest\"," 
              << "\"sourceEnabled0\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
@@ -9131,6 +9139,34 @@ private:
         return sample;
     }
 
+    void applyOutputFilter(double& left, double& right)
+    {
+        const auto mode = paulaOutputFilterModeForPatch(patch);
+        if (mode == 1u)
+            return;
+
+        if (mode == 2u || mode == 4u)
+        {
+            left = onePoleLowPass(left, leftA500State, 26000.0);
+            right = onePoleLowPass(right, rightA500State, 26000.0);
+        }
+
+        if (mode == 3u || mode == 4u)
+        {
+            left = onePoleLowPass(left, leftLedState, 7000.0);
+            right = onePoleLowPass(right, rightLedState, 7000.0);
+        }
+    }
+
+    double onePoleLowPass(double input, double& state, double cutoffHz) const
+    {
+        const auto safeRate = std::max(1000.0, sampleRate);
+        const auto safeCutoff = std::clamp(cutoffHz, 20.0, safeRate * 0.45);
+        const auto alpha = 1.0 - std::exp((-twoPi * safeCutoff) / safeRate);
+        state += alpha * (input - state);
+        return state;
+    }
+
     int selectChipPolyChannel(int midiNote) const
     {
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
@@ -9224,6 +9260,10 @@ private:
     std::array<float, 4> channelVelocity {};
     std::array<uint64_t, 4> channelStamp {};
     uint64_t noteStamp = 0;
+    double leftA500State = 0.0;
+    double rightA500State = 0.0;
+    double leftLedState = 0.0;
+    double rightLedState = 0.0;
     PatchConfig patch;
 };
 

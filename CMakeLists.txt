@@ -637,6 +637,12 @@ add_test(NAME chipper_render_paula_noise_smoke
 add_test(NAME chipper_render_paula_chip_poly_smoke
     COMMAND chipper_render --chip paula --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 2 --clock 3546895 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/paula-chip-poly-events.txt --out paula-chip-poly-smoke.wav --debug paula-chip-poly-smoke.json
 )
+add_test(NAME chipper_render_paula_led_filter_smoke
+    COMMAND chipper_render --chip paula --accuracy authentic --macro bass --paula-output-filter led --wave-shape tri --clock 3546895 --rate 48000 --seconds 0.08 --note 48 --out paula-led-filter-smoke.wav --debug paula-led-filter-smoke.json
+)
+add_test(NAME chipper_render_paula_raw_left_smoke
+    COMMAND chipper_render --chip paula --accuracy authentic --macro lead --paula-output-filter raw --wave-shape ramp --source1 1 --source2 0 --source3 0 --source4 0 --stereo-spread 1.0 --clock 3546895 --rate 48000 --seconds 0.08 --note 60 --out paula-raw-left-smoke.wav --debug paula-raw-left-smoke.json
+)
 add_test(NAME chipper_render_huc6280_smoke
     COMMAND chipper_render --chip huc6280 --accuracy authentic --macro lead --wave-shape 1 --clock 3579545 --rate 48000 --seconds 0.05 --note 64 --out huc6280-smoke.wav --debug huc6280-smoke.json
 )
@@ -738,7 +744,7 @@ set(CHIPPER_PRESET_CHIP_MINIMUMS
     ym2151:9
     spc700:9
     pokey:9
-    paula:9
+    paula:11
     huc6280:9
     namcoWsg:9
     ym2413:9
@@ -772,7 +778,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_preset_catalog_metadata_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=11 --preset-count dmg=9 --preset-count sid=18 --preset-count ym2149=9 --preset-count sn76489=9 --preset-count ym2612=9 --preset-count opl3=9 --preset-count spc700=9 --preset-count pokey=9 --preset-count paula=9 --preset-count huc6280=9 --preset-count namcoWsg=9 --preset-count ym2151=9 --preset-count ym2413=9 --preset-count scc=9
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=11 --preset-count dmg=9 --preset-count sid=18 --preset-count ym2149=9 --preset-count sn76489=9 --preset-count ym2612=9 --preset-count opl3=9 --preset-count spc700=9 --preset-count pokey=9 --preset-count paula=11 --preset-count huc6280=9 --preset-count namcoWsg=9 --preset-count ym2151=9 --preset-count ym2413=9 --preset-count scc=9
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -824,6 +830,10 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip paula --implemented paula=1 --verification-badge "paula=Verified partial" --verification-cycle paula=0 --verification-hardware paula=0 --param-kind paula:waveShape=chipRegister --param-surface paula:waveShape=segmentedChoice --param-choices paula:waveShape=5 --param-midi-cc paula:waveShape=89 --param-kind paula:macroControl3=chipRegister --param-surface paula:macroControl3=slider --param-midi-cc paula:macroControl3=78 --param-kind paula:macroControl4=chipRegister --param-surface paula:macroControl4=slider --param-midi-cc paula:macroControl4=79 --param-surface paula:stereoSpread=slider --param-midi-cc paula:stereoSpread=93 --macro-label "paula:Arp=Paula Tracker Arp" --macro-source paula:Drum=0011 --preset paula-tracker-bass --preset paula-noise-tick
     )
     set_tests_properties(chipper_render_list_paula_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
+    add_test(NAME chipper_render_list_paula_output_filter_descriptor_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip paula --param-kind paula:snNoiseMode=chipRegister --param-surface paula:snNoiseMode=segmentedChoice --param-choices paula:snNoiseMode=5 --param-midi-cc paula:snNoiseMode=91 --preset paula-led-bass --preset paula-raw-ripper-lead
+    )
+    set_tests_properties(chipper_render_list_paula_output_filter_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_huc6280_descriptor_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip huc6280 --implemented huc6280=1 --verification-badge "huc6280=Verified partial" --verification-cycle huc6280=0 --verification-hardware huc6280=0 --param-kind huc6280:waveShape=chipRegister --param-surface huc6280:waveShape=segmentedChoice --param-choices huc6280:waveShape=5 --param-midi-cc huc6280:waveShape=89 --param-kind huc6280:macroControl3=chipRegister --param-surface huc6280:macroControl3=slider --param-midi-cc huc6280:macroControl3=78 --param-kind huc6280:macroControl4=chipRegister --param-surface huc6280:macroControl4=slider --param-midi-cc huc6280:macroControl4=79 --param-surface huc6280:stereoSpread=slider --param-midi-cc huc6280:stereoSpread=93 --macro-label "huc6280:Lead=HuC6280 Glass Lead" --macro-source huc6280:Drum=0011 --preset huc-glass-lead --preset huc-noise-tap
@@ -1301,6 +1311,16 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/paula-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 4 --min-peak 0.05 --core-min activeChannels=4 --core-max activeChannels=4 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min internalChannelCount=4 --core-max internalChannelCount=4 --core-min period0=6776 --core-max period0=6779 --core-min period3=3388 --core-max period3=3391
     )
     set_tests_properties(chipper_render_paula_chip_poly_assert PROPERTIES DEPENDS chipper_render_paula_chip_poly_smoke)
+
+    add_test(NAME chipper_render_paula_led_filter_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/paula-led-filter-smoke.json --implemented-contains partial --macro Bass --min-peak 0.01 --register-writes 0 --note-events 0 --core-min outputFilterMode=3 --core-max outputFilterMode=3 --core-min sampleLength0=64 --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=Output Filter" --descriptor-param-choices snNoiseMode=5
+    )
+    set_tests_properties(chipper_render_paula_led_filter_assert PROPERTIES DEPENDS chipper_render_paula_led_filter_smoke)
+
+    add_test(NAME chipper_render_paula_raw_left_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/paula-raw-left-smoke.json --implemented-contains partial --macro Lead --min-left-rms 0.01 --max-right-rms 0.001 --register-writes 0 --note-events 0 --core-min outputFilterMode=1 --core-max outputFilterMode=1 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0
+    )
+    set_tests_properties(chipper_render_paula_raw_left_assert PROPERTIES DEPENDS chipper_render_paula_raw_left_smoke)
 
     add_test(NAME chipper_render_huc6280_json_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/huc6280-smoke.json --implemented-contains partial --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.05 --min-rms 0.02 --register-writes 0 --note-events 0 --core-min internalChannelCount=6 --core-max internalChannelCount=6 --core-min chipPolyPlayableChannels=6 --core-max chipPolyPlayableChannels=6 --core-min uiExposesSixChannels=1 --core-max uiExposesSixChannels=1 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1 --core-min sourceEnabled5=1 --core-max sourceEnabled5=1 --core-min sourceLevel4=1 --core-max sourceLevel4=1 --core-min sourceLevel5=1 --core-max sourceLevel5=1 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min frequency0=338 --core-max frequency0=340 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Wave Shape" --descriptor-param-choices waveShape=5

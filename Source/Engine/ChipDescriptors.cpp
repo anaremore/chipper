@@ -157,16 +157,16 @@ std::vector<MacroTemplate> spc700Macros()
 std::vector<MacroTemplate> paulaMacros()
 {
     return {
-        { MacroKind::manual, "Paula Manual", "Neutral four-channel Amiga tracker-sampler mapping.", { 0.50f, 0.50f, 0.45f, 0.72f }, { true, true, true, true }, 0.0f, 3 },
-        { MacroKind::coin, "Paula Chip Blip", "Short pitched sample chirp for UI sounds.", { 0.18f, 0.74f, 0.22f, 0.78f }, { true, false, false, false }, 0.20f, 1 },
-        { MacroKind::bass, "Paula Tracker Bass", "Low looping 8-bit sample bass with a second channel body.", { 0.30f, 0.26f, 0.60f, 0.84f }, { true, true, false, false }, 0.08f, 2 },
-        { MacroKind::lead, "Paula Chip Lead", "Bright tracker lead from a compact ramp sample.", { 0.58f, 0.46f, 0.55f, 0.80f }, { true, true, true, false }, 0.10f, 1 },
-        { MacroKind::arp, "Paula Tracker Arp", "Four Paula sample channels arranged for fake chords and arps.", { 0.86f, 0.70f, 0.58f, 0.76f }, { true, true, true, true }, 0.08f, 1 },
-        { MacroKind::drum, "Paula Noise Tick", "Short one-shot noise burst for tracker percussion.", { 0.30f, 0.20f, 0.12f, 0.82f }, { false, false, true, true }, 0.66f, 4 },
-        { MacroKind::hit, "Paula Damage Hit", "Crunchy four-channel one-shot impact.", { 0.44f, 0.30f, 0.14f, 0.86f }, { true, false, true, true }, 0.62f, 4 },
-        { MacroKind::laser, "Paula Rate Sweep", "Sample-period sweep SFX gesture.", { 0.24f, 0.96f, 0.32f, 0.78f }, { true, true, false, true }, 0.34f, 1 },
-        { MacroKind::jump, "Paula Jump", "Quick upward tracker-sample blip.", { 0.22f, 0.72f, 0.30f, 0.74f }, { true, false, false, false }, 0.16f, 1 },
-        { MacroKind::powerUp, "Paula Power Rise", "Longer multi-channel sample rise.", { 0.74f, 0.92f, 0.62f, 0.82f }, { true, true, true, true }, 0.14f, 3 }
+        { MacroKind::manual, "Paula Manual", "Neutral four-channel Amiga tracker-sampler mapping.", { 0.50f, 0.50f, 0.45f, 0.72f }, { true, true, true, true }, 0.0f, 3, 0, 1 },
+        { MacroKind::coin, "Paula Chip Blip", "Short pitched sample chirp for UI sounds.", { 0.18f, 0.74f, 0.22f, 0.78f }, { true, false, false, false }, 0.20f, 1, 0, 1 },
+        { MacroKind::bass, "Paula Tracker Bass", "Low looping 8-bit sample bass with a second channel body.", { 0.30f, 0.26f, 0.60f, 0.84f }, { true, true, false, false }, 0.08f, 2, 0, 3 },
+        { MacroKind::lead, "Paula Chip Lead", "Bright tracker lead from a compact ramp sample.", { 0.58f, 0.46f, 0.55f, 0.80f }, { true, true, true, false }, 0.10f, 1, 0, 1 },
+        { MacroKind::arp, "Paula Tracker Arp", "Four Paula sample channels arranged for fake chords and arps.", { 0.86f, 0.70f, 0.58f, 0.76f }, { true, true, true, true }, 0.08f, 1, 0, 2 },
+        { MacroKind::drum, "Paula Noise Tick", "Short one-shot noise burst for tracker percussion.", { 0.30f, 0.20f, 0.12f, 0.82f }, { false, false, true, true }, 0.66f, 4, 0, 1 },
+        { MacroKind::hit, "Paula Damage Hit", "Crunchy four-channel one-shot impact.", { 0.44f, 0.30f, 0.14f, 0.86f }, { true, false, true, true }, 0.62f, 4, 0, 1 },
+        { MacroKind::laser, "Paula Rate Sweep", "Sample-period sweep SFX gesture.", { 0.24f, 0.96f, 0.32f, 0.78f }, { true, true, false, true }, 0.34f, 1, 0, 1 },
+        { MacroKind::jump, "Paula Jump", "Quick upward tracker-sample blip.", { 0.22f, 0.72f, 0.30f, 0.74f }, { true, false, false, false }, 0.16f, 1, 0, 1 },
+        { MacroKind::powerUp, "Paula Power Rise", "Longer multi-channel sample rise.", { 0.74f, 0.92f, 0.62f, 0.82f }, { true, true, true, true }, 0.14f, 3, 0, 2 }
     };
 }
 
@@ -1394,6 +1394,19 @@ std::vector<ChipParameterSpec> paulaParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source4Level, "paula.channel4.level", "Channel 4 L Level", "Modern trim after Paula channel 4 volume on the fixed left output."),
         stereoSpreadSpec("paula.stereoSpread", "Modern stereo spread around the classic Paula L/R/R/L channel layout; zero preserves centered output."),
         envelopeSpec("paula.decay", "Decay", "Applies a musical decay helper while native channel volume remains visible in debug state."),
+        segmentedSpec(ChipParameterRole::snNoiseMode,
+                      "paula.outputFilter",
+                      "Output Filter",
+                      "Output",
+                      "Selects Paula-style output coloration. Raw preserves the bright no-interpolation DAC path; A500 and LED apply modeled low-pass stages.",
+                      {
+                          choice("Follow", "Use the selected Paula template's output filter choice.", 0.0f, 0),
+                          choice("Raw", "Bright 8-bit Paula DAC path with no extra low-pass stage.", 0.25f, 1),
+                          choice("A500", "Gentle fixed Amiga 500-style output softening.", 0.5f, 2),
+                          choice("LED", "Iconic LED low-pass filter color for darker tracker playback.", 0.75f, 3),
+                          choice("LED+A500", "Both output stages for the warmest Paula-style color.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister),
         segmentedSpec(ChipParameterRole::waveShape,
                       "paula.sampleShape",
                       "Sample Shape",
@@ -3812,6 +3825,31 @@ uint8_t paulaControlForPatch(const PatchConfig& patch, size_t channel, float vel
     const auto shouldEnable = channel < patch.sourceEnabled.size() ? patch.sourceEnabled[channel] : false;
     const auto volume = paulaChannelVolumeForPatch(patch, channel, velocity);
     return static_cast<uint8_t>((shouldEnable && volume > 0 ? 0x01u : 0x00u) | (paulaLoopForPatch(patch) ? 0x02u : 0x00u));
+}
+
+uint8_t paulaOutputFilterModeForPatch(const PatchConfig& patch)
+{
+    const auto explicitChoice = std::clamp(patch.snNoiseMode, 0, 4);
+    if (explicitChoice > 0)
+        return static_cast<uint8_t>(explicitChoice);
+
+    switch (patch.macro)
+    {
+        case MacroKind::bass:
+            return 3;
+        case MacroKind::arp:
+        case MacroKind::powerUp:
+            return 2;
+        case MacroKind::manual:
+        case MacroKind::coin:
+        case MacroKind::lead:
+        case MacroKind::drum:
+        case MacroKind::hit:
+        case MacroKind::laser:
+        case MacroKind::jump:
+        default:
+            return 1;
+    }
 }
 
 } // namespace chipper

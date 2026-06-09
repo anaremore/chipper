@@ -319,5 +319,6 @@ bool spc700VoiceEnabledForPatch(const PatchConfig& patch, size_t voice);
 uint8_t paulaChannelVolumeForPatch(const PatchConfig& patch, size_t channel, float velocity = 1.0f);
 bool paulaLoopForPatch(const PatchConfig& patch);
 uint8_t paulaControlForPatch(const PatchConfig& patch, size_t channel, float velocity = 1.0f);
+uint8_t paulaOutputFilterModeForPatch(const PatchConfig& patch);
 
 } // namespace chipper

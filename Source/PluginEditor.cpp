@@ -3787,8 +3787,11 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
     if (mode == chipper::ChipMode::pokey)
         return label + " -> " + pokeyRegisterReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
-    if (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
+    if (mode == chipper::ChipMode::spc700)
         return label + " -> " + sampleChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
+
+    if (mode == chipper::ChipMode::paula)
+        return label + " -> " + sampleChipReadout(mode, patch) + " | " + paulaOutputFilterReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
     if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
         return label + " -> " + wavetableChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
@@ -3964,6 +3967,25 @@ juce::String ChipperAudioProcessorEditor::sampleChipReadout(chipper::ChipMode mo
     return chipLabel
         + " | template " + juce::String(static_cast<int>(chipper::sampleTemplateForPatch(mode, patch)))
         + " | decay " + juce::String(decay) + "/15 | volume " + juce::String(volume) + "/15";
+}
+
+juce::String ChipperAudioProcessorEditor::paulaOutputFilterReadout(const chipper::PatchConfig& patch) const
+{
+    const auto mode = chipper::paulaOutputFilterModeForPatch(patch);
+    juce::String resolved;
+    switch (mode)
+    {
+        case 1: resolved = "Raw DAC, nearest playback"; break;
+        case 2: resolved = "A500 output softening"; break;
+        case 3: resolved = "LED low-pass color"; break;
+        case 4: resolved = "LED + A500 low-pass"; break;
+        case 0:
+        default:
+            resolved = "Raw DAC";
+            break;
+    }
+
+    return patch.snNoiseMode == 0 ? juce::String("Follow -> ") + resolved : resolved;
 }
 
 static juce::String paulaHardwarePanLabel(size_t index)
@@ -4600,6 +4622,9 @@ juce::String ChipperAudioProcessorEditor::noiseModeReadout(chipper::ChipMode mod
 
     if (mode == chipper::ChipMode::ym2612)
         return ym2612DacModeReadout(patch);
+
+    if (mode == chipper::ChipMode::paula)
+        return paulaOutputFilterReadout(patch);
 
     return snNoiseModeReadout(patch);
 }
