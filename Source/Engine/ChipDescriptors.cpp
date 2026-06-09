@@ -502,6 +502,15 @@ std::vector<ParameterChoiceSpec> ym2413InstrumentChoices()
     };
 }
 
+std::vector<ParameterChoiceSpec> ym2413RhythmModeChoices()
+{
+    return {
+        choice("Follow", "Use native OPLL rhythm mode for Drum/Hit templates and melodic mode otherwise.", 0.0f, 0),
+        choice("Melodic", "Keep all nine YM2413 channels in melodic preset-instrument mode.", 0.5f, 1),
+        choice("Rhythm", "Enable YM2413 rhythm mode: channels 7-9 become BD, HH, SD, TOM, and CYM.", 1.0f, 2)
+    };
+}
+
 std::vector<ParameterChoiceSpec> ym2612AlgorithmChoices()
 {
     return {
@@ -801,6 +810,13 @@ std::vector<ChipParameterSpec> ym2413ParameterSpecs()
           0.0f,
           1.0f,
           0.0f },
+        segmentedSpec(ChipParameterRole::ymEnvelopeShape,
+                      "ym2413.rhythmMode",
+                      "Rhythm Mode",
+                      "OPLL",
+                      "Controls native YM2413 register $0E rhythm mode. Follow uses Rhythm for Drum/Hit templates and Melodic otherwise.",
+                      ym2413RhythmModeChoices(),
+                      ParameterKind::chipRegister),
         sourceSpec(ChipParameterRole::source1Enabled, "ym2413.ch1.enabled", "OPLL Ch 1", "Enable exposed YM2413 melodic channel 1."),
         sourceSpec(ChipParameterRole::source2Enabled, "ym2413.ch2.enabled", "OPLL Ch 2", "Enable exposed YM2413 melodic channel 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "ym2413.ch3.enabled", "OPLL Ch 3", "Enable exposed YM2413 melodic channel 3."),
@@ -2271,18 +2287,19 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2413,
             "YM2413 / OPLL",
-            "MIT emu2413-backed partial YM2413/OPLL preset-FM melodic-channel mode.",
+            "MIT emu2413-backed partial YM2413/OPLL preset-FM mode with melodic channels and native rhythm slots.",
             {
                 { "instrument", "Instrument", "Preset FM", "YM2413 ROM preset instrument selection for melodic channels." },
                 { "pitch", "F-Number / Block", "Pitch", "MIDI notes map to native f-number and block register writes." },
+                { "rhythm", "Rhythm Mode", "OPLL", "Register $0E switches channels 7-9 into BD/HH/SD/TOM/CYM rhythm slots." },
                 { "volume", "Channel Volume", "Mixer", "Source trims map to channel volume nibbles." },
                 { "core", "emu2413 Core", "Accuracy", "MIT-licensed OPLL synthesis core by Mitsutaka Okazaki." },
             },
             {
                 makeModule("profile", "Profile", "YM2413/OPLL preset-FM groundwork backed by emu2413.", { "YM2413 family", "3.58 MHz default", "MIT emu2413 core", "Authentic still partial" }),
-                makeModule("sources", "Preset FM Voices", "All nine OPLL melodic channels are exposed as playable lanes.", { "Ch 1-4", "Ch 5-8", "Ch 9", "Chip Poly" }),
+                makeModule("sources", "Preset FM Voices", "All nine OPLL melodic channels are exposed as playable lanes; rhythm mode repurposes 7-9.", { "Ch 1-6 melodic", "Ch 7-9 melodic/rhythm", "BD HH SD TOM CYM", "Chip Poly" }),
                 makeModule("instrument", "Instrument / Pitch", "Preset instrument, f-number, block, and key-on register writes.", { "ROM preset instruments", "F-number", "Block", "Key-on" }),
-                makeModule("envelope", "OPLL Envelopes", "Native preset patch envelopes come from the OPLL core.", { "ROM patch ADSR", "Volume nibbles", "Custom patch planned", "Rhythm mode planned" }),
+                makeModule("envelope", "OPLL Envelopes", "Native preset and rhythm patch envelopes come from the OPLL core.", { "ROM patch ADSR", "Volume nibbles", "$0E rhythm bits", "Custom patch planned" }),
                 makeModule("motion", "Motion", "Musical OPLL templates mapped to melodic-channel registers.", { "UI chime", "Organ arp", "Sweep zap", "Power organ" }),
                 makeModule("output", "Output", "Mono/stereo render through emu2413 with modern output trim.", { "Channel volume", "Output gain", "Known differences", "No cycle claim" })
             },
@@ -2293,11 +2310,11 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "MIT-licensed emu2413 is vendored as the OPLL synthesis core and driven through YM2413 register writes.",
-                    "Preset instrument, channel volume, f-number, block, and key-on registers render audible melodic-channel output.",
+                    "Preset instrument, channel volume, f-number, block, key-on, and $0E rhythm-mode registers render audible melodic and rhythm output.",
                     "Descriptor metadata, MIDI CC mappings, renderer debug JSON, chip-poly allocation, presets, and smoke output are covered by automated tests."
                 },
                 {
-                    "Native rhythm mode, custom user patch editing, VRC7/YMF281 patch-set selection, stereo/pan extensions, and golden reference comparison are not complete.",
+                    "Deep rhythm-kit editing, custom user patch editing, VRC7/YMF281 patch-set selection, stereo/pan extensions, and golden reference comparison are not complete.",
                     "Hardware validation and trusted-emulator spectral/timing comparisons are not complete, so this mode is not labeled cycle-accurate."
                 })
         },
@@ -2500,7 +2517,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             bool nesDmcOnly)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
-    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : (mode == ChipMode::ym2612 ? 4 : 20);
+    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : (mode == ChipMode::ym2612 ? 4 : (mode == ChipMode::ym2413 ? 2 : 20));
     const auto maxWaveShape = (mode == ChipMode::sid || mode == ChipMode::ym2612 || mode == ChipMode::ym2151) ? 8 : 4;
 
     return {
@@ -3500,6 +3517,15 @@ uint8_t ym2413InstrumentForPatch(const PatchConfig& patch)
     }
 
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control1) * 15.0f)), 1, 15));
+}
+
+uint8_t ym2413RhythmModeForPatch(const PatchConfig& patch)
+{
+    const auto explicitChoice = std::clamp(patch.ymEnvelopeShape, 0, 2);
+    if (explicitChoice > 0)
+        return static_cast<uint8_t>(explicitChoice);
+
+    return (patch.macro == MacroKind::drum || patch.macro == MacroKind::hit) ? 2u : 1u;
 }
 
 uint8_t ym2413VolumeNibbleForPatch(const PatchConfig& patch, size_t channel, float velocity)

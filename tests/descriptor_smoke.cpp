@@ -839,6 +839,8 @@ int main()
     ok &= expectPreset(chipper::ChipMode::ym2413, "opll-soft-keys");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Instrument");
     ok &= expectChoiceRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 5, "Follow");
+    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Rhythm Mode");
+    ok &= expectSegmentedRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::ymEnvelopeShape, 3, "Follow");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPLL Ch 9");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 9 Level");
     ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::source9Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPL Ch 9");

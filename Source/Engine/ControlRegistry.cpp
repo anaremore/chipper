@@ -26,7 +26,7 @@ const MidiCcMappingList& midiCcMappings()
         { 87, parameter_ids::source4Level, "Source 4 Level" },
         { 88, parameter_ids::envelopeDecay, "Envelope Decay" },
         { 89, parameter_ids::waveShape, "Wave Shape" },
-        { 90, parameter_ids::ymEnvelopeShape, "YM Envelope / SID Filter Mode" },
+        { 90, parameter_ids::ymEnvelopeShape, "YM Envelope / SID Filter Mode / OPLL Rhythm" },
         { 91, parameter_ids::snNoiseMode, "Noise Mode / SID Osc Interaction" },
         { 92, parameter_ids::dmgWaveLevel, "DMG Wave Level" },
         { 93, parameter_ids::stereoSpread, "Stereo Spread / SID Resonance" },

@@ -6758,6 +6758,7 @@ public:
         currentPatchNumber.fill(0);
         currentFnum.fill(0);
         currentBlock.fill(0);
+        rhythmKeyBits = 0;
 
         for (size_t channel = 0; channel < 9; ++channel)
             writeOpllRegister(static_cast<uint8_t>(0x30u + channel), 0x0fu);
@@ -6765,9 +6766,12 @@ public:
 
     void setPatch(const PatchConfig& nextPatch) override
     {
-        if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled)
+        if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled
+            || ym2413RhythmModeForPatch(nextPatch) != ym2413RhythmModeForPatch(patch))
             clearChipPolyState();
         patch = nextPatch;
+        if (! rhythmModeActive())
+            writeRhythmRegister(0);
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -6801,8 +6805,16 @@ public:
             default: break;
         }
 
+        const auto rhythmOnlyTemplate = rhythmModeActive() && (patch.macro == MacroKind::drum || patch.macro == MacroKind::hit);
         for (size_t channel = 0; channel < notes.size(); ++channel)
+        {
+            if (rhythmOnlyTemplate || (rhythmModeActive() && channel >= 6u))
+                continue;
             triggerChannel(channel, notes[channel], baseVelocity, sourceEnabled(patch, channel));
+        }
+
+        if (rhythmModeActive())
+            triggerRhythm(heldNote, baseVelocity);
     }
 
     void noteOff(int midiNote) override
@@ -6818,6 +6830,7 @@ public:
             heldNote = -1;
             for (size_t channel = 0; channel < channelNotes.size(); ++channel)
                 keyOffChannel(channel);
+            writeRhythmRegister(0);
         }
     }
 
@@ -6855,7 +6868,7 @@ public:
     std::string implementedAccuracy() const override { return "verified partial emu2413 register-level"; }
     std::string limitations() const override
     {
-        return "MIT-licensed emu2413 provides the OPLL synthesis core for melodic channels; Chipper currently maps musical controls to preset-instrument, f-number/block, key-on, and volume registers. Rhythm mode, custom user patches, VRC7/YMF281 variants, and hardware comparison are not complete.";
+        return "MIT-licensed emu2413 provides the OPLL synthesis core for melodic and rhythm output; Chipper currently maps musical controls to preset-instrument, f-number/block, key-on, volume, and $0E rhythm registers. Deep rhythm-kit editing, custom user patches, VRC7/YMF281 variants, and hardware comparison are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -6874,6 +6887,15 @@ public:
              << "\"internalChannelCount\":9,"
              << "\"exposedChannelCount\":9,"
              << "\"instrumentChoice\":" << std::clamp(patch.waveShape, 0, 4) << ","
+             << "\"rhythmModeChoice\":" << std::clamp(patch.ymEnvelopeShape, 0, 2) << ","
+             << "\"rhythmMode\":" << (rhythmModeActive() ? 1 : 0) << ","
+             << "\"rhythmRegister\":" << static_cast<int>(regs[0x0e]) << ","
+             << "\"rhythmKeyBits\":" << static_cast<int>(rhythmKeyBits) << ","
+             << "\"rhythmBdVolume\":" << static_cast<int>(regs[0x36] & 0x0fu) << ","
+             << "\"rhythmHatVolume\":" << static_cast<int>((regs[0x37] >> 4u) & 0x0fu) << ","
+             << "\"rhythmSnareVolume\":" << static_cast<int>(regs[0x37] & 0x0fu) << ","
+             << "\"rhythmTomVolume\":" << static_cast<int>((regs[0x38] >> 4u) & 0x0fu) << ","
+             << "\"rhythmCymVolume\":" << static_cast<int>(regs[0x38] & 0x0fu) << ","
              << "\"instrument0\":" << static_cast<int>(currentPatchNumber[0]) << ","
              << "\"instrument1\":" << static_cast<int>(currentPatchNumber[1]) << ","
              << "\"instrument2\":" << static_cast<int>(currentPatchNumber[2]) << ","
@@ -6939,6 +6961,11 @@ private:
         }
 
         return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control1 * 15.0f)), 1, 15));
+    }
+
+    bool rhythmModeActive() const
+    {
+        return ym2413RhythmModeForPatch(patch) == 2u;
     }
 
     OpllPitch pitchForNote(int midiNote) const
@@ -7007,6 +7034,69 @@ private:
             keyOnMask &= static_cast<uint16_t>(~(1u << channel));
     }
 
+    void writeRhythmRegister(uint8_t keyBits)
+    {
+        rhythmKeyBits = static_cast<uint8_t>(keyBits & 0x1fu);
+        writeOpllRegister(0x0eu, rhythmModeActive() ? static_cast<uint8_t>(0x20u | rhythmKeyBits) : 0x00u);
+    }
+
+    void writeRhythmPitch(size_t channel, int midiNote)
+    {
+        if (channel < 6u || channel >= 9u)
+            return;
+
+        const auto pitch = pitchForNote(midiNote);
+        currentFnum[channel] = pitch.fnum;
+        currentBlock[channel] = pitch.block;
+        writeOpllRegister(static_cast<uint8_t>(0x10u + channel), static_cast<uint8_t>(pitch.fnum & 0xffu));
+        writeOpllRegister(static_cast<uint8_t>(0x20u + channel),
+                          static_cast<uint8_t>(((pitch.block & 0x07u) << 1u) | ((pitch.fnum >> 8u) & 0x01u)));
+    }
+
+    void triggerRhythm(int midiNote, float velocity)
+    {
+        if (! rhythmModeActive())
+            return;
+
+        writeRhythmRegister(0);
+
+        writeRhythmPitch(6, midiNote - 24);
+        writeRhythmPitch(7, midiNote + 7);
+        writeRhythmPitch(8, midiNote);
+
+        currentPatchNumber[6] = 16;
+        currentPatchNumber[7] = 17;
+        currentPatchNumber[8] = 18;
+
+        const auto bdVolume = volumeForChannel(6, velocity);
+        const auto hhVolume = volumeForChannel(7, velocity);
+        const auto sdVolume = volumeForChannel(7, velocity);
+        const auto tomVolume = volumeForChannel(8, velocity);
+        const auto cymVolume = volumeForChannel(8, velocity);
+        writeOpllRegister(0x36u, bdVolume);
+        writeOpllRegister(0x37u, static_cast<uint8_t>((hhVolume << 4u) | sdVolume));
+        writeOpllRegister(0x38u, static_cast<uint8_t>((tomVolume << 4u) | cymVolume));
+
+        uint8_t keyBits = 0;
+        if (sourceEnabled(patch, 6))
+            keyBits = static_cast<uint8_t>(keyBits | 0x10u); // BD
+        if (sourceEnabled(patch, 7))
+            keyBits = static_cast<uint8_t>(keyBits | 0x09u); // HH + SD
+        if (sourceEnabled(patch, 8))
+            keyBits = static_cast<uint8_t>(keyBits | 0x06u); // TOM + CYM
+
+        writeRhythmRegister(keyBits);
+        if ((keyBits & 0x10u) != 0)
+            keyOnMask |= static_cast<uint16_t>(1u << 6u);
+        if ((keyBits & 0x09u) != 0)
+            keyOnMask |= static_cast<uint16_t>(1u << 7u);
+        if ((keyBits & 0x06u) != 0)
+            keyOnMask |= static_cast<uint16_t>(1u << 8u);
+        channelNotes[6] = (keyBits & 0x10u) != 0 ? midiNote : -1;
+        channelNotes[7] = (keyBits & 0x09u) != 0 ? midiNote : -1;
+        channelNotes[8] = (keyBits & 0x06u) != 0 ? midiNote : -1;
+    }
+
     void keyOffChannel(size_t channel)
     {
         if (channel >= 9)
@@ -7021,6 +7111,7 @@ private:
     {
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
             keyOffChannel(channel);
+        writeRhythmRegister(0);
         channelNotes.fill(-1);
         channelVelocity.fill(0.0f);
         channelStamp.fill(0);
@@ -7066,6 +7157,12 @@ private:
 
     void noteOnChipPoly(int midiNote, float velocity)
     {
+        if (rhythmModeActive())
+        {
+            triggerRhythm(std::clamp(midiNote, 0, 127), static_cast<float>(clamp01(velocity)));
+            return;
+        }
+
         const auto channel = selectChipPolyChannel(midiNote);
         if (channel < 0)
             return;
@@ -7088,6 +7185,9 @@ private:
             channelStamp[channel] = 0;
             keyOffChannel(channel);
         }
+
+        if (rhythmModeActive())
+            writeRhythmRegister(0);
     }
 
     void applyLaserDrift()
@@ -7118,6 +7218,7 @@ private:
     uint64_t noteStamp = 0;
     int heldNote = -1;
     uint16_t keyOnMask = 0;
+    uint8_t rhythmKeyBits = 0;
     double laserPhase = 0.0;
     StereoFrame currentOutput {};
 };

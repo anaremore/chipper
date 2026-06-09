@@ -4419,6 +4419,19 @@ juce::String ChipperAudioProcessorEditor::sidModelReadout(const chipper::PatchCo
 
 juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) const
 {
+    if (displayedMode == chipper::ChipMode::ym2413)
+    {
+        const auto clamped = std::clamp(choice, 0, 2);
+        switch (clamped)
+        {
+            case 1: return "Melodic, all nine OPLL channels use preset instruments";
+            case 2: return "Rhythm, $0E enables BD/HH/SD/TOM/CYM on channels 7-9";
+            case 0:
+            default:
+                return "Follow template, Drum/Hit use native OPLL rhythm";
+        }
+    }
+
     if (displayedMode == chipper::ChipMode::ym2612)
     {
         const auto clamped = std::clamp(choice, 0, 4);
