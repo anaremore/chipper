@@ -300,6 +300,7 @@ uint8_t oplConnectionForPatch(const PatchConfig& patch);
 uint8_t oplModulatorMultipleForPatch(const PatchConfig& patch);
 uint8_t oplModulatorTotalLevelForPatch(const PatchConfig& patch);
 uint8_t oplCarrierTotalLevelForPatch(const PatchConfig& patch, float velocity = 1.0f);
+uint8_t oplRhythmModeForPatch(const PatchConfig& patch);
 uint8_t ym2413InstrumentForPatch(const PatchConfig& patch);
 uint8_t ym2413RhythmModeForPatch(const PatchConfig& patch);
 uint8_t ym2413VolumeNibbleForPatch(const PatchConfig& patch, size_t channel, float velocity = 1.0f);

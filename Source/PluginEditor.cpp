@@ -4246,10 +4246,12 @@ juce::String ChipperAudioProcessorEditor::fmChipReadout(chipper::ChipMode mode, 
     {
         const auto waveform = static_cast<int>(chipper::oplWaveformForPatch(patch));
         const auto connection = chipper::oplConnectionForPatch(patch) != 0 ? juce::String("parallel") : juce::String("serial");
+        const auto rhythm = chipper::oplRhythmModeForPatch(patch) == 2u ? juce::String(" | $BD rhythm") : juce::String(" | melodic");
         return "OPL wave " + juce::String(waveform)
             + " | " + connection
             + " | feedback " + juce::String(feedback) + "/7"
-            + " | level " + juce::String(level) + "/15";
+            + " | level " + juce::String(level) + "/15"
+            + rhythm;
     }
 
     const auto algorithm = static_cast<int>(mode == chipper::ChipMode::ym2151
@@ -4285,6 +4287,15 @@ juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipM
 
     if (mode == chipper::ChipMode::opl3)
     {
+        if (chipper::oplRhythmModeForPatch(patch) == 2u && index >= 6u)
+        {
+            static constexpr std::array<const char*, 3> rhythmLabels { "BD", "HH+SD", "TOM+CYM" };
+            return "OPL Rhythm " + juce::String(rhythmLabels[std::min(index - 6u, size_t { 2u })])
+                + " | $BD key bits"
+                + " | level via rhythm operator TL"
+                + " | ch " + juce::String(channel) + " pitch regs";
+        }
+
         const auto waveform = static_cast<int>(chipper::oplWaveformForPatch(patch));
         const auto connection = static_cast<int>(chipper::oplConnectionForPatch(patch));
         const auto modMultiple = static_cast<int>(chipper::oplModulatorMultipleForPatch(patch));
@@ -4478,6 +4489,19 @@ juce::String ChipperAudioProcessorEditor::sidModelReadout(const chipper::PatchCo
 
 juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) const
 {
+    if (displayedMode == chipper::ChipMode::opl3)
+    {
+        const auto clamped = std::clamp(choice, 0, 2);
+        switch (clamped)
+        {
+            case 1: return "Melodic, all nine OPL2 channels use two-operator voices";
+            case 2: return "Rhythm, $BD enables BD/HH/SD/TOM/CYM on channels 7-9";
+            case 0:
+            default:
+                return "Follow template, Drum/Hit use native OPL2 rhythm";
+        }
+    }
+
     if (displayedMode == chipper::ChipMode::ym2413)
     {
         const auto clamped = std::clamp(choice, 0, 2);

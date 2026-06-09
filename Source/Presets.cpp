@@ -1307,6 +1307,52 @@ const std::vector<PresetInfo>& presetCatalog()
         },
         withSourceLevels(
             {
+                "opl2-rhythm-kit",
+                "OPL2/OPL3 / DOS FM",
+                "OPL2 Rhythm Kit",
+                "Native OPL2 rhythm-mode drum stack using $BD BD/HH/SD/TOM/CYM bits.",
+                ChipMode::opl3,
+                AccuracyMode::hybrid,
+                MacroKind::drum,
+                PlayMode::chipPoly,
+                { 0.22f, 0.84f, 0.78f, 0.86f },
+                { false, false, false, true },
+                0.50f,
+                4,
+                2,
+                0,
+                -10.5f,
+                3579545.0
+            },
+            0.0f,
+            0.0f,
+            0.0f,
+            0.72f),
+        withSourceLevels(
+            {
+                "opl2-rhythm-impact",
+                "Classic Game SFX",
+                "OPL2 Rhythm Impact",
+                "Short native OPL2 rhythm hit with bass drum plus metallic cymbal/snare edge.",
+                ChipMode::opl3,
+                AccuracyMode::hybrid,
+                MacroKind::hit,
+                PlayMode::stack,
+                { 0.30f, 0.92f, 0.86f, 0.84f },
+                { true, false, true, true },
+                0.58f,
+                4,
+                2,
+                0,
+                -11.0f,
+                3579545.0
+            },
+            0.65f,
+            0.0f,
+            0.82f,
+            0.78f),
+        withSourceLevels(
+            {
                 "opm-arcade-bass",
                 "YM2151 / OPM",
                 "OPM Arcade Bass",
@@ -3214,6 +3260,9 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
     const auto anySourceEnabled = std::any_of(preset.sourceEnabled.begin(), preset.sourceEnabled.end(), [](bool enabled) { return enabled; });
     const auto useSource5 = anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 5u;
     const auto useSource6 = anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 6u;
+    const auto useSource7 = anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 7u;
+    const auto useSource8 = anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 8u;
+    const auto useSource9 = anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 9u;
 
     return makePatchConfig(preset.chip,
                            preset.macro,
@@ -3228,9 +3277,12 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                                preset.sourceEnabled[2],
                                preset.sourceEnabled[3],
                                useSource5,
-                               useSource6
+                               useSource6,
+                               useSource7,
+                               useSource8,
+                               useSource9
                            },
-                           { preset.source1Level, preset.source2Level, preset.source3Level, preset.source4Level, 1.0f, 1.0f },
+                           { preset.source1Level, preset.source2Level, preset.source3Level, preset.source4Level, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f },
                            preset.stereoSpread,
                            preset.envelopeDecay,
                            preset.waveShape,

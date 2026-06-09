@@ -77,16 +77,16 @@ std::vector<MacroTemplate> ym2151Macros()
 std::vector<MacroTemplate> oplMacros()
 {
     return {
-        { MacroKind::manual, "OPL2 Manual", "Neutral two-operator OPL2 melodic-channel mapping using the ymfm YM3812 core.", { 0.50f, 0.30f, 0.45f, 0.72f }, { true, true, true, true }, 0.0f, 0 },
-        { MacroKind::coin, "OPL2 UI Bell", "Short DOS FM bell for menu and pickup sounds.", { 0.85f, 0.20f, 0.55f, 0.78f }, { true, false, false, false }, 0.16f, 3 },
-        { MacroKind::bass, "OPL2 Bass", "Rounded two-operator FM bass with moderate feedback.", { 0.20f, 0.62f, 0.25f, 0.88f }, { true, true, false, false }, 0.08f, 1 },
-        { MacroKind::lead, "OPL2 Bright Lead", "Bright DOS FM lead using selectable OPL2 waveform registers.", { 0.70f, 0.42f, 0.72f, 0.82f }, { true, true, true, false }, 0.10f, 4 },
-        { MacroKind::arp, "OPL2 Organ Arp", "Nine OPL melodic lanes arranged for fake chords and arps.", { 0.78f, 0.28f, 0.48f, 0.78f }, { true, true, true, true }, 0.08f, 2 },
-        { MacroKind::drum, "OPL2 FM Perc", "Melodic-channel percussion placeholder until native rhythm mode lands.", { 0.25f, 0.85f, 0.82f, 0.76f }, { false, false, true, true }, 0.58f, 4 },
-        { MacroKind::hit, "OPL2 Impact", "Short two-operator impact with high feedback.", { 0.28f, 0.92f, 0.78f, 0.78f }, { true, false, true, true }, 0.55f, 4 },
-        { MacroKind::laser, "OPL2 Laser", "Pitch-swept DOS FM SFX.", { 0.32f, 0.72f, 0.90f, 0.80f }, { true, true, false, true }, 0.28f, 4 },
-        { MacroKind::jump, "OPL2 Jump Bell", "Quick upward FM game gesture.", { 0.84f, 0.22f, 0.58f, 0.76f }, { true, false, false, false }, 0.18f, 3 },
-        { MacroKind::powerUp, "OPL2 Power Rise", "Longer optimistic DOS FM rise.", { 0.82f, 0.34f, 0.55f, 0.84f }, { true, true, true, true }, 0.14f, 2 }
+        { MacroKind::manual, "OPL2 Manual", "Neutral two-operator OPL2 melodic-channel mapping using the ymfm YM3812 core.", { 0.50f, 0.30f, 0.45f, 0.72f }, { true, true, true, true }, 0.0f, 0, 0 },
+        { MacroKind::coin, "OPL2 UI Bell", "Short DOS FM bell for menu and pickup sounds.", { 0.85f, 0.20f, 0.55f, 0.78f }, { true, false, false, false }, 0.16f, 3, 1 },
+        { MacroKind::bass, "OPL2 Bass", "Rounded two-operator FM bass with moderate feedback.", { 0.20f, 0.62f, 0.25f, 0.88f }, { true, true, false, false }, 0.08f, 1, 1 },
+        { MacroKind::lead, "OPL2 Bright Lead", "Bright DOS FM lead using selectable OPL2 waveform registers.", { 0.70f, 0.42f, 0.72f, 0.82f }, { true, true, true, false }, 0.10f, 4, 1 },
+        { MacroKind::arp, "OPL2 Organ Arp", "Nine OPL melodic lanes arranged for fake chords and arps.", { 0.78f, 0.28f, 0.48f, 0.78f }, { true, true, true, true }, 0.08f, 2, 1 },
+        { MacroKind::drum, "OPL2 Rhythm Kit", "Native OPL2 rhythm-mode percussion using $BD key bits.", { 0.25f, 0.85f, 0.82f, 0.76f }, { false, false, true, true }, 0.58f, 4, 2 },
+        { MacroKind::hit, "OPL2 Rhythm Impact", "Short native OPL2 rhythm impact with high feedback.", { 0.28f, 0.92f, 0.78f, 0.78f }, { true, false, true, true }, 0.55f, 4, 2 },
+        { MacroKind::laser, "OPL2 Laser", "Pitch-swept DOS FM SFX.", { 0.32f, 0.72f, 0.90f, 0.80f }, { true, true, false, true }, 0.28f, 4, 1 },
+        { MacroKind::jump, "OPL2 Jump Bell", "Quick upward FM game gesture.", { 0.84f, 0.22f, 0.58f, 0.76f }, { true, false, false, false }, 0.18f, 3, 1 },
+        { MacroKind::powerUp, "OPL2 Power Rise", "Longer optimistic DOS FM rise.", { 0.82f, 0.34f, 0.55f, 0.84f }, { true, true, true, true }, 0.14f, 2, 1 }
     };
 }
 
@@ -511,6 +511,15 @@ std::vector<ParameterChoiceSpec> ym2413RhythmModeChoices()
     };
 }
 
+std::vector<ParameterChoiceSpec> oplRhythmModeChoices()
+{
+    return {
+        choice("Follow", "Use native OPL rhythm mode for Drum/Hit templates and melodic mode otherwise.", 0.0f, 0),
+        choice("Melodic", "Keep all nine OPL2 channels in melodic two-operator mode.", 0.5f, 1),
+        choice("Rhythm", "Enable OPL2 rhythm mode: channels 7-9 become BD, HH, SD, TOM, and CYM.", 1.0f, 2)
+    };
+}
+
 std::vector<ParameterChoiceSpec> ym2612AlgorithmChoices()
 {
     return {
@@ -767,24 +776,31 @@ std::vector<ChipParameterSpec> oplParameterSpecs()
           0.0f,
           1.0f,
           0.0f },
+        segmentedSpec(ChipParameterRole::ymEnvelopeShape,
+                      "opl.rhythmMode",
+                      "Rhythm Mode",
+                      "Rhythm",
+                      "Controls OPL2 register $BD rhythm mode. Follow uses Rhythm for Drum/Hit templates and Melodic otherwise.",
+                      oplRhythmModeChoices(),
+                      ParameterKind::chipRegister),
         sourceSpec(ChipParameterRole::source1Enabled, "opl.ch1.enabled", "OPL Ch 1", "Enable OPL2 melodic channel 1."),
         sourceSpec(ChipParameterRole::source2Enabled, "opl.ch2.enabled", "OPL Ch 2", "Enable OPL2 melodic channel 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "opl.ch3.enabled", "OPL Ch 3", "Enable OPL2 melodic channel 3."),
         sourceSpec(ChipParameterRole::source4Enabled, "opl.ch4.enabled", "OPL Ch 4", "Enable OPL2 melodic channel 4."),
         sourceSpec(ChipParameterRole::source5Enabled, "opl.ch5.enabled", "OPL Ch 5", "Enable OPL2 melodic channel 5."),
         sourceSpec(ChipParameterRole::source6Enabled, "opl.ch6.enabled", "OPL Ch 6", "Enable OPL2 melodic channel 6."),
-        sourceSpec(ChipParameterRole::source7Enabled, "opl.ch7.enabled", "OPL Ch 7", "Enable OPL2 melodic channel 7."),
-        sourceSpec(ChipParameterRole::source8Enabled, "opl.ch8.enabled", "OPL Ch 8", "Enable OPL2 melodic channel 8."),
-        sourceSpec(ChipParameterRole::source9Enabled, "opl.ch9.enabled", "OPL Ch 9", "Enable OPL2 melodic channel 9."),
+        sourceSpec(ChipParameterRole::source7Enabled, "opl.ch7.enabled", "OPL Ch 7 / BD", "Enable OPL2 melodic channel 7, or Bass Drum in Rhythm Mode."),
+        sourceSpec(ChipParameterRole::source8Enabled, "opl.ch8.enabled", "OPL Ch 8 / HH+SD", "Enable OPL2 melodic channel 8, or Hi-Hat plus Snare in Rhythm Mode."),
+        sourceSpec(ChipParameterRole::source9Enabled, "opl.ch9.enabled", "OPL Ch 9 / TOM+CYM", "Enable OPL2 melodic channel 9, or Tom plus Cymbal in Rhythm Mode."),
         sourceLevelSpec(ChipParameterRole::source1Level, "opl.ch1.level", "Ch 1 Level", "Modern trim before writing OPL2 channel 1 carrier level."),
         sourceLevelSpec(ChipParameterRole::source2Level, "opl.ch2.level", "Ch 2 Level", "Modern trim before writing OPL2 channel 2 carrier level."),
         sourceLevelSpec(ChipParameterRole::source3Level, "opl.ch3.level", "Ch 3 Level", "Modern trim before writing OPL2 channel 3 carrier level."),
         sourceLevelSpec(ChipParameterRole::source4Level, "opl.ch4.level", "Ch 4 Level", "Modern trim before writing OPL2 channel 4 carrier level."),
         sourceLevelSpec(ChipParameterRole::source5Level, "opl.ch5.level", "Ch 5 Level", "Modern trim before writing OPL2 channel 5 carrier level."),
         sourceLevelSpec(ChipParameterRole::source6Level, "opl.ch6.level", "Ch 6 Level", "Modern trim before writing OPL2 channel 6 carrier level."),
-        sourceLevelSpec(ChipParameterRole::source7Level, "opl.ch7.level", "Ch 7 Level", "Modern trim before writing OPL2 channel 7 carrier level."),
-        sourceLevelSpec(ChipParameterRole::source8Level, "opl.ch8.level", "Ch 8 Level", "Modern trim before writing OPL2 channel 8 carrier level."),
-        sourceLevelSpec(ChipParameterRole::source9Level, "opl.ch9.level", "Ch 9 Level", "Modern trim before writing OPL2 channel 9 carrier level.")
+        sourceLevelSpec(ChipParameterRole::source7Level, "opl.ch7.level", "Ch 7 / BD Level", "Modern trim before writing OPL2 channel 7 carrier level, or Bass Drum level in Rhythm Mode."),
+        sourceLevelSpec(ChipParameterRole::source8Level, "opl.ch8.level", "Ch 8 / HH+SD Level", "Modern trim before writing OPL2 channel 8 carrier level, or Hi-Hat/Snare level in Rhythm Mode."),
+        sourceLevelSpec(ChipParameterRole::source9Level, "opl.ch9.level", "Ch 9 / TOM+CYM Level", "Modern trim before writing OPL2 channel 9 carrier level, or Tom/Cymbal level in Rhythm Mode.")
     };
 }
 
@@ -1906,11 +1922,11 @@ std::array<ModuleDescriptor, 6> oplModules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "OPL2 path is backed by audited BSD-licensed ymfm inside the broader OPL2/OPL3 mode.", { "YM3812 core", "DOS clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM Voices", "All nine OPL2 melodic channels are exposed as playable lanes.", { "Ch 1-4", "Ch 5-8", "Ch 9", "Chip Poly" }),
+        makeModule("sources", "FM Voices", "All nine OPL2 melodic channels are exposed as playable lanes; rhythm mode repurposes 7-9.", { "Ch 1-6 melodic", "Ch 7-9 melodic/rhythm", "BD HH SD TOM CYM", "Chip Poly" }),
         makeModule("tone", "Operators", "Musical controls write native OPL operator and channel registers.", { "Waveform", "Feedback", "Connection", "Operator tone" }),
         makeModule("envelope", "Envelope", "Useful fixed OPL operator envelopes are written per voice for this first pass.", { "Attack/decay", "Sustain/release", "KSR/multiple", "Full ADSR planned" }),
-        makeModule("motion", "Motion", "DOS FM templates map to register-backed melodic patches.", { "UI bell", "FM bass", "Organ arp", "Laser" }),
-        makeModule("output", "Output", "ymfm mono OPL2 output is mirrored to the plugin stereo output.", { "Mono core", "Rhythm planned", "Output gain", "Reference tests needed" })
+        makeModule("motion", "Motion", "DOS FM templates map to register-backed melodic and rhythm patches.", { "UI bell", "FM bass", "Rhythm hits", "Laser" }),
+        makeModule("output", "Output", "ymfm mono OPL2 output is mirrored to the plugin stereo output.", { "Mono core", "$BD rhythm bits", "Output gain", "Reference tests needed" })
     };
 }
 
@@ -2109,7 +2125,7 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::opl3,
             "OPL2/OPL3 / DOS FM",
-            "Nine exposed melodic lanes write OPL2/YM3812 registers into the audited ymfm core for DOS FM tones.",
+            "Nine exposed lanes write OPL2/YM3812 registers into the audited ymfm core for DOS FM tones and native rhythm mode.",
             {
                 { "balance", "Operator Balance", "FM", "Writes the OPL connection bit for two-operator voices." },
                 { "feedback", "Feedback", "FM", "Writes OPL feedback bits." },
@@ -2124,12 +2140,12 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM3812/OPL2 synthesis core.",
-                    "Renderer notes and musical templates write OPL2 operator waveform, multiple, total-level, envelope, channel feedback/connection, f-number/block, and key-on registers across all nine melodic channels.",
-                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the nine-lane melodic adapter."
+                    "Renderer notes and musical templates write OPL2 operator waveform, multiple, total-level, envelope, channel feedback/connection, f-number/block, key-on, and $BD rhythm registers.",
+                    "Descriptor, MIDI CC, renderer smoke, source gating, Rhythm Mode, and Chip Poly regression tests cover the nine-lane adapter."
                 },
                 {
-                    "The OPL2/OPL3 mode currently uses the OPL2/YM3812 core only; OPL3 stereo, 18-channel mode, four-operator pairs, and rhythm mode are not implemented.",
-                    "Deep per-operator ADSR UI, LFO/tremolo/vibrato controls, golden emulator comparison, and hardware capture comparison are not complete.",
+                    "The OPL2/OPL3 mode currently uses the OPL2/YM3812 core only; OPL3 stereo, 18-channel mode, four-operator pairs, and deep rhythm-kit editing are not implemented.",
+                    "Deep per-operator ADSR UI, LFO/tremolo/vibrato controls, rhythm-instrument fine tuning, golden emulator comparison, and hardware capture comparison are not complete.",
                     "Cycle accuracy is not claimed."
                 })
         },
@@ -2561,7 +2577,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             bool nesDmcOnly)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
-    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : (mode == ChipMode::ym2612 ? 4 : (mode == ChipMode::ym2413 ? 2 : 20));
+    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : (mode == ChipMode::ym2612 ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
     const auto maxWaveShape = (mode == ChipMode::sid || mode == ChipMode::ym2612 || mode == ChipMode::ym2151) ? 8 : 4;
 
     return {
@@ -3582,6 +3598,15 @@ uint8_t oplCarrierTotalLevelForPatch(const PatchConfig& patch, float velocity)
 {
     const auto level = clampControl(velocity) * clampControl(patch.control4);
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - level) * 24.0f)), 0, 63));
+}
+
+uint8_t oplRhythmModeForPatch(const PatchConfig& patch)
+{
+    const auto explicitChoice = std::clamp(patch.ymEnvelopeShape, 0, 2);
+    if (explicitChoice > 0)
+        return static_cast<uint8_t>(explicitChoice);
+
+    return (patch.macro == MacroKind::drum || patch.macro == MacroKind::hit) ? 2u : 1u;
 }
 
 uint8_t ym2413InstrumentForPatch(const PatchConfig& patch)

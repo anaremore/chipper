@@ -1,0 +1,2 @@
+# Hold a single note so debug JSON captures live OPL2 rhythm key bits.
+note_on 0 48 1.0

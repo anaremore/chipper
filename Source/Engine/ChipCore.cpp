@@ -7962,6 +7962,7 @@ public:
         currentBlock.fill(0);
         currentWaveform.fill(0);
         currentFeedback.fill(0);
+        rhythmKeyBits = 0;
         noteStamp = 0;
         heldNote = -1;
         keyOnMask = 0;
@@ -7973,9 +7974,12 @@ public:
 
     void setPatch(const PatchConfig& nextPatch) override
     {
-        if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled)
+        if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled
+            || oplRhythmModeForPatch(nextPatch) != oplRhythmModeForPatch(patch))
             clearChipPolyState();
         patch = nextPatch;
+        if (! rhythmModeActive())
+            writeRhythmRegister(0);
         applyPatchToAllChannels(true);
     }
 
@@ -8007,8 +8011,16 @@ public:
             default: break;
         }
 
+        const auto rhythmOnlyTemplate = rhythmModeActive() && (patch.macro == MacroKind::drum || patch.macro == MacroKind::hit);
         for (size_t channel = 0; channel < notes.size(); ++channel)
+        {
+            if (rhythmOnlyTemplate || (rhythmModeActive() && channel >= 6u))
+                continue;
             triggerChannel(channel, notes[channel], baseVelocity, sourceEnabled(patch, channel));
+        }
+
+        if (rhythmModeActive())
+            triggerRhythm(heldNote, baseVelocity);
     }
 
     void noteOff(int midiNote) override
@@ -8024,6 +8036,7 @@ public:
             heldNote = -1;
             for (size_t channel = 0; channel < channelNotes.size(); ++channel)
                 keyOffChannel(channel);
+            writeRhythmRegister(0);
         }
     }
 
@@ -8077,7 +8090,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPL2 register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM3812/OPL2 synthesis core for this first OPL2/OPL3 mode pass. Chipper currently maps musical controls and notes to OPL2 two-operator melodic-channel registers. OPL3 stereo/18-channel mode, four-operator pairs, rhythm mode, deep per-operator ADSR UI, golden comparisons, and hardware validation are not complete.";
+        return "BSD-3-Clause ymfm provides the YM3812/OPL2 synthesis core for this OPL2/OPL3 mode pass. Chipper currently maps musical controls and notes to OPL2 two-operator melodic-channel registers and native $BD rhythm-mode key bits. OPL3 stereo/18-channel mode, four-operator pairs, deep per-operator ADSR UI, rhythm-instrument fine tuning, golden comparisons, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -8098,6 +8111,15 @@ public:
              << "\"exposedChannelCount\":9,"
              << "\"waveform0\":" << static_cast<int>(currentWaveform[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
+             << "\"rhythmModeChoice\":" << std::clamp(patch.ymEnvelopeShape, 0, 2) << ","
+             << "\"rhythmMode\":" << (rhythmModeActive() ? 1 : 0) << ","
+             << "\"rhythmRegister\":" << static_cast<int>(regs[0xbd]) << ","
+             << "\"rhythmKeyBits\":" << static_cast<int>(rhythmKeyBits) << ","
+             << "\"rhythmBdLevel\":" << static_cast<int>(regs[0x53] & 0x3fu) << ","
+             << "\"rhythmHatLevel\":" << static_cast<int>(regs[0x51] & 0x3fu) << ","
+             << "\"rhythmSnareLevel\":" << static_cast<int>(regs[0x54] & 0x3fu) << ","
+             << "\"rhythmTomLevel\":" << static_cast<int>(regs[0x52] & 0x3fu) << ","
+             << "\"rhythmCymLevel\":" << static_cast<int>(regs[0x55] & 0x3fu) << ","
              << "\"fnum0\":" << currentFnum[0] << ","
              << "\"block0\":" << static_cast<int>(currentBlock[0]) << ","
              << "\"keyOnMask\":" << static_cast<int>(keyOnMask) << ","
@@ -8199,6 +8221,11 @@ private:
         return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control2 * 7.0f)), 0, 7));
     }
 
+    bool rhythmModeActive() const
+    {
+        return oplRhythmModeForPatch(patch) == 2u;
+    }
+
     void applyChannelPatch(size_t channel, float velocity)
     {
         const auto mod = opOffset(channel, false);
@@ -8228,7 +8255,11 @@ private:
     void applyPatchToAllChannels(bool preserveKeys)
     {
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        {
+            if (rhythmModeActive() && channel >= 6u)
+                continue;
             applyChannelPatch(channel, channelVelocity[channel] > 0.0f ? channelVelocity[channel] : 1.0f);
+        }
 
         if (! preserveKeys)
             return;
@@ -8236,7 +8267,11 @@ private:
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
             if ((keyOnMask & (1u << channel)) != 0 && channelNotes[channel] >= 0)
+            {
+                if (rhythmModeActive() && channel >= 6u)
+                    continue;
                 triggerChannel(channel, channelNotes[channel], channelVelocity[channel], sourceEnabled(patch, channel));
+            }
         }
     }
 
@@ -8262,14 +8297,90 @@ private:
     {
         if (channel >= channelNotes.size())
             return;
+        if (rhythmModeActive() && channel >= 6u)
+        {
+            writeRhythmRegister(0);
+            keyOnMask &= static_cast<uint16_t>(~(1u << channel));
+            return;
+        }
         writeOplRegister(static_cast<uint8_t>(0xb0 + channel), static_cast<uint8_t>(regs[0xb0 + channel] & static_cast<uint8_t>(~0x20u)));
         keyOnMask &= static_cast<uint16_t>(~(1u << channel));
+    }
+
+    uint8_t rhythmTotalLevel(size_t sourceChannel, float velocity) const
+    {
+        const auto level = clamp01(patch.control4) * clamp01(velocity) * sourceLevel(patch, sourceChannel);
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0 - level) * 42.0)), 0, 63));
+    }
+
+    void writeRhythmRegister(uint8_t keyBits)
+    {
+        rhythmKeyBits = static_cast<uint8_t>(keyBits & 0x1fu);
+        writeOplRegister(0xbdu, rhythmModeActive() ? static_cast<uint8_t>(0x20u | rhythmKeyBits) : 0x00u);
+    }
+
+    void writeRhythmPitch(size_t channel, int midiNote)
+    {
+        if (channel < 6u || channel >= channelNotes.size())
+            return;
+        const auto detune = static_cast<int>(std::round((patch.control2 - 0.5f) * 6.0f));
+        const auto pitch = pitchForNote(midiNote + detune);
+        currentFnum[channel] = pitch.fnum;
+        currentBlock[channel] = pitch.block;
+        writeOplRegister(static_cast<uint8_t>(0xa0 + channel), static_cast<uint8_t>(pitch.fnum & 0xffu));
+        writeOplRegister(static_cast<uint8_t>(0xb0 + channel),
+                         static_cast<uint8_t>(((pitch.block & 0x07u) << 2u) | ((pitch.fnum >> 8u) & 0x03u)));
+    }
+
+    void triggerRhythm(int midiNote, float velocity)
+    {
+        if (! rhythmModeActive() || ! chip)
+            return;
+
+        writeRhythmRegister(0);
+        for (size_t channel = 6; channel < channelNotes.size(); ++channel)
+            applyChannelPatch(channel, velocity);
+
+        writeRhythmPitch(6, midiNote - 24);
+        writeRhythmPitch(7, midiNote + 7);
+        writeRhythmPitch(8, midiNote);
+
+        const auto bdLevel = rhythmTotalLevel(6, velocity);
+        const auto hatSnareLevel = rhythmTotalLevel(7, velocity);
+        const auto tomCymLevel = rhythmTotalLevel(8, velocity);
+        writeOplRegister(0x53u, bdLevel);
+        writeOplRegister(0x51u, hatSnareLevel);
+        writeOplRegister(0x54u, hatSnareLevel);
+        writeOplRegister(0x52u, tomCymLevel);
+        writeOplRegister(0x55u, tomCymLevel);
+
+        uint8_t keyBits = 0;
+        if (sourceEnabled(patch, 6))
+            keyBits = static_cast<uint8_t>(keyBits | 0x10u); // Bass drum.
+        if (sourceEnabled(patch, 7))
+            keyBits = static_cast<uint8_t>(keyBits | 0x09u); // Hi-hat + snare.
+        if (sourceEnabled(patch, 8))
+            keyBits = static_cast<uint8_t>(keyBits | 0x06u); // Tom + cymbal.
+
+        writeRhythmRegister(keyBits);
+
+        if ((keyBits & 0x10u) != 0)
+            keyOnMask |= static_cast<uint16_t>(1u << 6u);
+        if ((keyBits & 0x09u) != 0)
+            keyOnMask |= static_cast<uint16_t>(1u << 7u);
+        if ((keyBits & 0x06u) != 0)
+            keyOnMask |= static_cast<uint16_t>(1u << 8u);
+
+        channelNotes[6] = (keyBits & 0x10u) != 0 ? midiNote : -1;
+        channelNotes[7] = (keyBits & 0x09u) != 0 ? midiNote : -1;
+        channelNotes[8] = (keyBits & 0x06u) != 0 ? midiNote : -1;
     }
 
     void clearChipPolyState()
     {
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
             keyOffChannel(channel);
+        writeRhythmRegister(0);
         channelNotes.fill(-1);
         channelVelocity.fill(0.0f);
         channelStamp.fill(0);
@@ -8314,6 +8425,12 @@ private:
 
     void noteOnChipPoly(int midiNote, float velocity)
     {
+        if (rhythmModeActive())
+        {
+            triggerRhythm(std::clamp(midiNote, 0, 127), static_cast<float>(clamp01(velocity)));
+            return;
+        }
+
         const auto channel = selectChipPolyChannel(midiNote);
         if (channel < 0)
             return;
@@ -8335,6 +8452,9 @@ private:
             channelStamp[channel] = 0;
             keyOffChannel(channel);
         }
+
+        if (rhythmModeActive())
+            writeRhythmRegister(0);
     }
 
     void applyLaserDrift()
@@ -8343,6 +8463,8 @@ private:
         const auto bend = static_cast<int>(std::round(std::sin(twoPi * laserPhase * 9.0) * patch.control3 * 8.0));
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
+            if (rhythmModeActive() && channel >= 6u)
+                continue;
             if ((keyOnMask & (1u << channel)) == 0)
                 continue;
             const auto note = (patch.playMode == PlayMode::chipPoly && channelNotes[channel] >= 0) ? channelNotes[channel] : heldNote;
@@ -8369,6 +8491,7 @@ private:
     uint64_t noteStamp = 0;
     int heldNote = -1;
     uint16_t keyOnMask = 0;
+    uint8_t rhythmKeyBits = 0;
     double laserPhase = 0.0;
     int32_t lastNative = 0;
     StereoFrame currentOutput {};
