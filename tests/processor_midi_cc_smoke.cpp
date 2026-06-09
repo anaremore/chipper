@@ -52,6 +52,14 @@ void processEmptyBlock(ChipperAudioProcessor& processor)
     processor.processBlock(buffer, midi);
 }
 
+void sendNoteOn(ChipperAudioProcessor& processor, int note, float velocity = 1.0f)
+{
+    juce::AudioBuffer<float> buffer(2, 64);
+    juce::MidiBuffer midi;
+    midi.addEvent(juce::MidiMessage::noteOn(1, note, velocity), 0);
+    processor.processBlock(buffer, midi);
+}
+
 void setPlainFromHost(ChipperAudioProcessor& processor, const char* parameterId, float plainValue)
 {
     if (auto* parameter = processor.getValueTreeState().getParameter(parameterId))
@@ -451,6 +459,17 @@ int main()
                  "CC117 should select the active SPC700 BRR bank slot while in SNES mode");
     ok &= expect(brrInfo.blockCount == 1 && brrInfo.statusLine.contains("Slot 3/3"),
                  "SPC700 BRR status should report the selected slot and block count");
+    sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 0));
+    sendNoteOn(processor, 37);
+    brrInfo = processor.spc700BrrSampleInfo();
+    ok &= expect(brrInfo.loaded && brrInfo.sampleName == "brr-01.brr",
+                 "SPC700 note map should select BRR slot 2 for C#1 when root is C1");
+    processEmptyBlock(processor);
+    sendNoteOn(processor, 50);
+    brrInfo = processor.spc700BrrSampleInfo();
+    ok &= expect(brrInfo.loaded && brrInfo.sampleName == "brr-02.brr",
+                 "SPC700 note map should clamp high notes to the last loaded BRR slot");
+    sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 2));
 
     juce::MemoryBlock savedSpcState;
     processor.getStateInformation(savedSpcState);

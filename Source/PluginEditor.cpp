@@ -6342,11 +6342,11 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
 void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
 {
     dmcSampleLabel.setText("BRR Sample", juce::dontSendNotification);
-    dmcSampleLabel.setTooltip(withMidiCcForRole("Load one user-provided SNES BRR sample or a folder of .brr files. CC117 selects the active preloaded BRR slot in SPC700 mode.", chipper::ChipParameterRole::nesDmcSampleSlot));
+    dmcSampleLabel.setTooltip(withMidiCcForRole("Load one user-provided SNES BRR sample or a folder of .brr files. CC117 selects the manual BRR slot; MIDI notes from C1 upward can browse the loaded bank in SPC700 mode.", chipper::ChipParameterRole::nesDmcSampleSlot));
     dmcSampleFileButton.setButtonText("File");
     dmcSampleFileButton.setTooltip("Load one user-provided .brr file into the SPC700-style sample voice model.");
     dmcSampleFolderButton.setButtonText("Folder");
-    dmcSampleFolderButton.setTooltip("Load a folder of user-provided .brr files. The first 32 readable BRR files become CC117-addressable sample slots.");
+    dmcSampleFolderButton.setTooltip("Load a folder of user-provided .brr files. The first 32 readable BRR files become CC117-addressable slots and note-mapped sample choices from C1 upward.");
 
     const auto names = audioProcessor.spc700BrrSampleNames();
     const auto sampleCount = names.size();
@@ -6371,12 +6371,12 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
 
     dmcSampleSlotBox.setEnabled(sampleCount > 0);
     dmcSampleSlotBox.setTextWhenNothingSelected("No BRR samples");
-    dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the active BRR sample from the loaded SPC700 bank. MIDI CC117 selects the same slot in SNES mode.", chipper::ChipParameterRole::nesDmcSampleSlot));
+    dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the manual BRR sample from the loaded SPC700 bank. MIDI CC117 selects the same slot; MIDI notes from C1 upward can temporarily choose bank slots for triggered voices.", chipper::ChipParameterRole::nesDmcSampleSlot));
 
     const auto info = audioProcessor.spc700BrrSampleInfo();
     dmcSampleStatusLabel.setText(info.statusLine, juce::dontSendNotification);
     auto tooltip = info.statusLine
-        + "\nBRR files are decoded into the clean-room SPC700 sample voice path. Folder loads keep up to 32 user-provided BRR files addressable by the dropdown and CC117.";
+        + "\nBRR files are decoded into the clean-room SPC700 sample voice path. Folder loads keep up to 32 user-provided BRR files addressable by the dropdown, CC117, and note mapping from C1 upward.";
     if (info.loaded)
         tooltip += "\nPath: " + info.path;
     dmcSampleStatusLabel.setTooltip(withMidiCcForRole(tooltip, chipper::ChipParameterRole::nesDmcSampleSlot));

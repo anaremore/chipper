@@ -146,6 +146,12 @@ public:
     virtual void reset(double outputSampleRate, double chipClockHz) = 0;
     virtual void setPatch(const PatchConfig& patch) = 0;
     virtual void setExternalSampleData(std::vector<uint8_t> data) { (void) data; }
+    virtual void setExternalSampleBank(std::vector<std::vector<uint8_t>> bank, int selectedSlot)
+    {
+        (void) bank;
+        (void) selectedSlot;
+    }
+    virtual void setExternalSampleSlot(int selectedSlot) { (void) selectedSlot; }
     virtual void writeRegister(uint16_t address, uint8_t value) = 0;
     virtual void noteOn(int midiNote, float velocity) = 0;
     virtual void noteOff(int midiNote) = 0;

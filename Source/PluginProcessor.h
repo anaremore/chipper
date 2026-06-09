@@ -128,6 +128,8 @@ private:
     void applyDmcSampleSlotToCore(int requestedSlot);
     void applyMappedDmcSampleForMidiNote(int midiNote);
     void applySpc700BrrSampleToCore();
+    void applySpc700BrrSampleSlotToCore(int requestedSlot);
+    void applyMappedSpc700BrrSampleForMidiNote(int midiNote);
     void handleMidiMessage(const juce::MidiMessage& message);
     bool handleMidiController(const juce::MidiMessage& message);
     bool setParameterFromMidiCc(const char* parameterId, int controllerValue);
@@ -155,6 +157,7 @@ private:
     uint64_t spc700BrrSampleBankRevision = 0;
     uint64_t activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
     int activeSpc700BrrSampleSlot = -1;
+    int activeSpc700BrrManualSlot = -1;
     chipper::PatchConfig activePatch;
     std::vector<chipper::RegisterWrite> pendingRegisterState;
     chipper::PatchConfig lastObservedMacroPatch;

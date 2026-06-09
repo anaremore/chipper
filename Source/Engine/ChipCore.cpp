@@ -5800,20 +5800,51 @@ public:
 
     void setExternalSampleData(std::vector<uint8_t> data) override
     {
+        std::vector<std::vector<uint8_t>> bank;
+        if (! data.empty())
+            bank.push_back(std::move(data));
+        setExternalSampleBank(std::move(bank), 0);
+    }
+
+    void setExternalSampleBank(std::vector<std::vector<uint8_t>> bank, int selectedSlot) override
+    {
         externalBrrSampleLoaded = false;
+        externalBrrBank.clear();
+        selectedExternalBrrSlot = -1;
         brrBlockCount = 0;
         brrEndFlagSeen = false;
         brrLoopFlagSeen = false;
 
-        const auto decoded = decodeBrrSample(data);
-        if (decoded.empty())
+        externalBrrBank.reserve(bank.size());
+        for (const auto& sampleBytes : bank)
+        {
+            const auto decoded = decodeBrrSample(sampleBytes);
+            if (! decoded.empty())
+                externalBrrBank.push_back(decoded);
+        }
+
+        if (externalBrrBank.empty())
             return;
 
         externalBrrSampleLoaded = true;
+        setExternalSampleSlot(selectedSlot);
         for (size_t voice = 0; voice < sampleRam.size(); ++voice)
-            sampleRam[voice] = decoded;
+            sampleRam[voice] = externalBrrBank[static_cast<size_t>(selectedExternalBrrSlot)];
         sampleTemplate = 0;
         position.fill(0.0);
+    }
+
+    void setExternalSampleSlot(int selectedSlot) override
+    {
+        if (externalBrrBank.empty())
+        {
+            selectedExternalBrrSlot = -1;
+            externalBrrSampleLoaded = false;
+            return;
+        }
+
+        selectedExternalBrrSlot = std::clamp(selectedSlot, 0, static_cast<int>(externalBrrBank.size() - 1u));
+        externalBrrSampleLoaded = true;
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -6003,6 +6034,8 @@ public:
              << "\"brrBlockCount\":" << brrBlockCount << ","
              << "\"brrEndFlagSeen\":" << (brrEndFlagSeen ? 1 : 0) << ","
              << "\"brrLoopFlagSeen\":" << (brrLoopFlagSeen ? 1 : 0) << ","
+             << "\"externalBrrBankSize\":" << externalBrrBank.size() << ","
+             << "\"selectedExternalBrrSlot\":" << selectedExternalBrrSlot << ","
              << "\"pitch0\":" << pitch[0] << ","
              << "\"pitch1\":" << pitch[1] << ","
              << "\"pitch2\":" << pitch[2] << ","
@@ -6213,7 +6246,7 @@ private:
         voiceAgeSamples[voice] = 0;
         envelope[voice] = 0.0;
         envelopeStage[voice] = shouldEnable ? 1u : 0u;
-        seedSample(voice);
+        applyCurrentSampleToVoice(voice);
         if (shouldEnable && volume[voice] > 0)
         {
             enabledMask |= static_cast<uint8_t>(1u << voice);
@@ -6374,6 +6407,19 @@ private:
         }
     }
 
+    void applyCurrentSampleToVoice(size_t voice)
+    {
+        if (externalBrrSampleLoaded
+            && selectedExternalBrrSlot >= 0
+            && static_cast<size_t>(selectedExternalBrrSlot) < externalBrrBank.size())
+        {
+            sampleRam[voice] = externalBrrBank[static_cast<size_t>(selectedExternalBrrSlot)];
+            return;
+        }
+
+        seedSample(voice);
+    }
+
     double interpolatedSample(size_t voice, double samplePosition) const
     {
         const auto& data = sampleRam[voice];
@@ -6523,9 +6569,11 @@ private:
     uint8_t sampleTemplate = 0;
     uint8_t playbackMode = 1;
     bool externalBrrSampleLoaded = false;
+    int selectedExternalBrrSlot = -1;
     size_t brrBlockCount = 0;
     bool brrEndFlagSeen = false;
     bool brrLoopFlagSeen = false;
+    std::vector<std::vector<double>> externalBrrBank {};
     std::array<std::vector<double>, 8> sampleRam {};
     std::array<double, 8> position {};
     std::array<uint64_t, 8> voiceAgeSamples {};
