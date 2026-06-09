@@ -5887,6 +5887,9 @@ public:
         voiceAgeSamples.fill(0);
         envelope.fill(0.0);
         envelopeStage.fill(0);
+        noiseAccumulator.fill(0.0);
+        for (size_t voice = 0; voice < noiseLfsr.size(); ++voice)
+            noiseLfsr[voice] = static_cast<uint16_t>(0x4000u | ((voice + 1u) * 0x0231u));
         channelNotes.fill(-1);
         channelVelocity.fill(0.0f);
         channelStamp.fill(0);
@@ -6161,7 +6164,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room sample-voice model"; }
     std::string limitations() const override
     {
-        return "Eight lo-fi sample voices, pitch, volume, loop/one-shot playback state, playable ADSR/gain-style note shaping, generated sample templates, clean-room BRR block decoding for renderer-loaded samples, Gaussian-style 4-tap sample interpolation, musical pitch motion, and a musical stereo echo helper are modeled; exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, BRR loop-address behavior, noise, FIR echo, sample directory addressing, exact envelope timing, and hardware validation are not complete.";
+        return "Eight lo-fi sample voices, pitch, volume, loop/one-shot playback state, playable ADSR/gain-style note shaping, generated sample templates, clean-room BRR block decoding for renderer-loaded samples, Gaussian-style 4-tap sample interpolation, partial S-DSP-style per-voice noise source, musical pitch motion, and a musical stereo echo helper are modeled; exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, BRR loop-address behavior, exact noise timing, FIR echo, sample directory addressing, exact envelope timing, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -6176,6 +6179,10 @@ public:
              << "\"waveShapeChoice\":" << static_cast<int>(sampleTemplate) << ","
              << "\"samplePlaybackMode\":" << static_cast<int>(playbackMode) << ","
              << "\"sampleLoopEnabled\":" << (playbackMode == 1u ? 1 : 0) << ","
+             << "\"noiseModeChoice\":" << std::clamp(patch.snNoiseMode, 0, 4) << ","
+             << "\"noiseModeResolved\":" << static_cast<int>(spc700NoiseModeForPatch(patch)) << ","
+             << "\"noiseClock\":" << static_cast<int>(spc700NoiseClockForPatch(patch)) << ","
+             << "\"noiseEnabledMask\":" << static_cast<int>(noiseEnabledMask()) << ","
              << "\"externalBrrSampleLoaded\":" << (externalBrrSampleLoaded ? 1 : 0) << ","
              << "\"brrBlockCount\":" << brrBlockCount << ","
              << "\"brrEndFlagSeen\":" << (brrEndFlagSeen ? 1 : 0) << ","
@@ -6394,6 +6401,8 @@ private:
         gain[voice] = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control4 * 127.0f)), 0, 127));
         position[voice] = 0.0;
         voiceAgeSamples[voice] = 0;
+        noiseAccumulator[voice] = 0.0;
+        noiseLfsr[voice] = static_cast<uint16_t>(0x4000u | ((voice + 1u) * 0x0231u) | (static_cast<unsigned>(midiNote & 0x7f) << 3u));
         envelope[voice] = 0.0;
         envelopeStage[voice] = shouldEnable ? 1u : 0u;
         applyCurrentSampleToVoice(voice);
@@ -6406,19 +6415,28 @@ private:
 
     double renderVoice(size_t voice)
     {
-        if ((enabledMask & (1u << voice)) == 0 || sampleRam[voice].empty() || volume[voice] == 0)
+        const auto useNoise = voiceUsesNoise(voice);
+        if ((enabledMask & (1u << voice)) == 0 || (! useNoise && sampleRam[voice].empty()) || volume[voice] == 0)
             return 0.0;
 
         updateEnvelope(voice);
         if (envelope[voice] <= 0.0001 && envelopeStage[voice] == 0u)
             return 0.0;
 
-        const auto sample = interpolatedSample(voice, position[voice]) * (static_cast<double>(volume[voice]) / 127.0) * envelope[voice];
+        const auto rawSample = useNoise ? renderNoiseVoice(voice) : interpolatedSample(voice, position[voice]);
+        const auto sample = rawSample * (static_cast<double>(volume[voice]) / 127.0) * envelope[voice];
         const auto playbackHz = (currentPitchForVoice(voice) / (4096.0 * 16.0)) * 32000.0;
-        position[voice] += (playbackHz * static_cast<double>(sampleRam[voice].size())) / sampleRate;
+        if (! useNoise)
+            position[voice] += (playbackHz * static_cast<double>(sampleRam[voice].size())) / sampleRate;
         ++voiceAgeSamples[voice];
 
-        if (position[voice] >= static_cast<double>(sampleRam[voice].size()))
+        if (useNoise)
+        {
+            const auto transientSeconds = std::max(0.035, spc700DecaySeconds() * 2.5);
+            if (playbackMode == 2u && static_cast<double>(voiceAgeSamples[voice]) > transientSeconds * sampleRate)
+                releaseVoice(voice);
+        }
+        else if (position[voice] >= static_cast<double>(sampleRam[voice].size()))
         {
             if (playbackMode == 1u)
                 position[voice] = std::fmod(position[voice], static_cast<double>(sampleRam[voice].size()));
@@ -6434,6 +6452,59 @@ private:
         }
 
         return sample;
+    }
+
+    bool voiceUsesNoise(size_t voice) const
+    {
+        const auto mode = spc700NoiseModeForPatch(patch);
+        if (mode <= 1u)
+            return false;
+
+        const auto explicitNoise = std::clamp(patch.snNoiseMode, 0, 4) > 1;
+        if (explicitNoise)
+            return true;
+
+        return patch.macro == MacroKind::drum
+            || patch.macro == MacroKind::hit
+            || patch.waveShape == 4
+            || voice >= 6u;
+    }
+
+    uint8_t noiseEnabledMask() const
+    {
+        uint8_t mask = 0;
+        for (size_t voice = 0; voice < noiseLfsr.size(); ++voice)
+        {
+            if (voiceUsesNoise(voice) && sourceEnabled(patch, voice))
+                mask |= static_cast<uint8_t>(1u << voice);
+        }
+        return mask;
+    }
+
+    double spc700NoiseRateHz() const
+    {
+        const auto clockIndex = static_cast<double>(spc700NoiseClockForPatch(patch));
+        if (clockIndex <= 0.0)
+            return 0.0;
+
+        return std::clamp(32000.0 / std::pow(2.0, (31.0 - clockIndex) / 4.0), 60.0, 32000.0);
+    }
+
+    double renderNoiseVoice(size_t voice)
+    {
+        const auto rate = spc700NoiseRateHz();
+        if (rate <= 0.0 || sampleRate <= 0.0)
+            return 0.0;
+
+        noiseAccumulator[voice] += rate / sampleRate;
+        while (noiseAccumulator[voice] >= 1.0)
+        {
+            const auto bit = static_cast<uint16_t>(((noiseLfsr[voice] >> 0u) ^ (noiseLfsr[voice] >> 1u)) & 1u);
+            noiseLfsr[voice] = static_cast<uint16_t>((noiseLfsr[voice] >> 1u) | (bit << 14u));
+            noiseAccumulator[voice] -= 1.0;
+        }
+
+        return (noiseLfsr[voice] & 1u) != 0 ? 0.72 : -0.72;
     }
 
     double spc700SustainLevel() const
@@ -6756,6 +6827,8 @@ private:
     std::array<uint64_t, 8> voiceAgeSamples {};
     std::array<double, 8> envelope {};
     std::array<uint8_t, 8> envelopeStage {};
+    std::array<uint16_t, 8> noiseLfsr {};
+    std::array<double, 8> noiseAccumulator {};
     std::array<double, 48000> echoMemoryLeft {};
     std::array<double, 48000> echoMemoryRight {};
     double echoFilterLeft = 0.0;

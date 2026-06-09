@@ -1360,6 +1360,19 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
           0.0f,
           1.0f,
           0.0f },
+        segmentedSpec(ChipParameterRole::snNoiseMode,
+                      "spc700.noiseSource",
+                      "Noise Source",
+                      "Noise",
+                      "Controls the partial S-DSP-style NON/noise-clock path. Follow enables noise for drum, hit, and Noise sample templates; exact S-DSP noise timing remains unverified.",
+                      {
+                          choice("Follow", "Resolve the noise source from the selected SPC700 template.", 0.0f, 0),
+                          choice("Off", "Keep voices on BRR/generated sample playback.", 0.25f, 1),
+                          choice("Low", "Use a slower lo-fi noise clock for soft hats and breath.", 0.5f, 2),
+                          choice("Mid", "Use a mid noise clock for snares and grit.", 0.75f, 3),
+                          choice("High", "Use a fast noise clock for bright SNES-style hiss.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister),
         { ChipParameterRole::nesDmcMapRoot,
           "spc700.brrMapRoot",
           "BRR Map Root",
@@ -2155,14 +2168,14 @@ const std::vector<ChipDescriptor>& descriptors()
             "Partial clean-room SNES-style lo-fi sample-voice model with eight internal voices.",
             {
                 { "voices", "Sample Voices", "Sources", "All eight lo-fi sample voices are exposed in the current UI." },
-                { "sample", "Sample Color", "Tone", "Generated lo-fi sample templates plus renderer-loaded BRR sample playback." },
+                { "sample", "Sample Color", "Tone", "Generated lo-fi sample templates, BRR loading, and partial S-DSP-style noise." },
                 { "echo", "Echo Color", "Output", "Musical echo-color helper, not verified S-DSP FIR echo." },
                 { "adsr", "ADSR/Gain", "Envelope", "Playable ADSR/gain-style note shaping with template-aware sustain and release." },
             },
             {
                 makeModule("profile", "Profile", "SPC700-style clean-room sample groundwork.", { "SNES family", "32 kHz DSP-rate default", "Hybrid default", "Authentic still partial" }),
                 makeModule("sources", "Sample Voices", "All eight SPC700-style sample voices are exposed as playable lanes.", { "Voices 1-4", "Voices 5-8", "BRR sample lane", "Chip Poly" }),
-                makeModule("sample", "Sample / Pitch", "Generated lo-fi templates plus user BRR file/folder loading.", { "BRR file", "BRR folder bank", "Note map", "Slot CC117" }),
+                makeModule("sample", "Sample / Pitch", "Generated lo-fi templates plus user BRR file/folder loading.", { "BRR file", "BRR folder bank", "Note map", "Noise source" }),
                 makeModule("envelope", "ADSR / Gain", "Playable gain and envelope shaping derived from the selected template.", { "Attack", "Decay", "Sustain", "Release" }),
                 makeModule("motion", "Motion", "SNES-style SFX gestures mapped to sample pitch.", { "Voice arp", "Pitch sweep", "Jump blip", "Damage hit" }),
                 makeModule("output", "Output", "Soft sample output with echo-color helper.", { "Voice volume", "Stereo spread convenience", "Echo color", "Known differences" })
@@ -2173,12 +2186,12 @@ const std::vector<ChipDescriptor>& descriptors()
             spc700ParameterSpecs(),
             verifiedPartial(
                 {
-                    "Eight generated lo-fi sample voices render with pitch, volume, loop/one-shot playback mode, playable ADSR/gain-style state, key-on/enabled masks, clean-room BRR block decoding for renderer-loaded samples and plugin-loaded user BRR file/folder banks, note-to-BRR-bank performance mapping, clean-room Gaussian-style 4-tap interpolation, musical pitch-motion, and a musical stereo echo helper.",
-                    "Source enables, source levels, sample-shape choices, BRR block/end/loop debug metadata, plugin BRR slot selection/state recall, note-mapped BRR bank selection, pitch-motion, musical echo-helper debug metadata, envelope-release debug metadata, interpolation metadata, chip-poly allocation across all eight exposed voices, presets, and debug JSON are covered by automated tests.",
+                    "Eight generated lo-fi sample voices render with pitch, volume, loop/one-shot playback mode, playable ADSR/gain-style state, key-on/enabled masks, clean-room BRR block decoding for renderer-loaded samples and plugin-loaded user BRR file/folder banks, note-to-BRR-bank performance mapping, partial S-DSP-style per-voice noise source selection, clean-room Gaussian-style 4-tap interpolation, musical pitch-motion, and a musical stereo echo helper.",
+                    "Source enables, source levels, sample-shape choices, BRR block/end/loop debug metadata, plugin BRR slot selection/state recall, note-mapped BRR bank selection, noise source mode/clock/mask metadata, pitch-motion, musical echo-helper debug metadata, envelope-release debug metadata, interpolation metadata, chip-poly allocation across all eight exposed voices, presets, and debug JSON are covered by automated tests.",
                     "No third-party SPC700, S-DSP, BRR, SNES, or tracker-player source code is vendored in this clean-room partial model."
                 },
                 {
-                    "Source directory/sample memory addressing, BRR loop-address behavior, S-DSP noise, hardware pitch modulation, exact S-DSP Gaussian interpolation table behavior, FIR echo, exact ADSR/gain envelope timing, and SPC700 CPU timing are not implemented.",
+                    "Source directory/sample memory addressing, BRR loop-address behavior, exact S-DSP noise clocking/NON edge behavior, hardware pitch modulation, exact S-DSP Gaussian interpolation table behavior, FIR echo, exact ADSR/gain envelope timing, and SPC700 CPU timing are not implemented.",
                     "Voice scheduling, loop points, echo buffer behavior, output filtering, and hardware validation still require trusted emulator and capture comparison.",
                     "This mode is labeled SPC700-style because the implementation is a musical sample-voice approximation, not a verified SNES audio subsystem emulator."
                 })
@@ -3263,6 +3276,31 @@ uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch)
         case MacroKind::manual:
         default:
             return patch.control3 > 0.66f ? 0x04u : 0x03u;
+    }
+}
+
+uint8_t spc700NoiseModeForPatch(const PatchConfig& patch)
+{
+    const auto explicitChoice = std::clamp(patch.snNoiseMode, 0, 4);
+    if (explicitChoice > 0)
+        return static_cast<uint8_t>(explicitChoice);
+
+    if (patch.macro == MacroKind::drum || patch.macro == MacroKind::hit || patch.waveShape == 4)
+        return 4u;
+
+    return 1u;
+}
+
+uint8_t spc700NoiseClockForPatch(const PatchConfig& patch)
+{
+    switch (spc700NoiseModeForPatch(patch))
+    {
+        case 2: return 10u;
+        case 3: return 18u;
+        case 4: return 26u;
+        case 1:
+        default:
+            return 0u;
     }
 }
 

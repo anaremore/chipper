@@ -3788,7 +3788,7 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
         return label + " -> " + pokeyRegisterReadout(patch) + " | " + pokeyAudctlFilterReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
     if (mode == chipper::ChipMode::spc700)
-        return label + " -> " + sampleChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
+        return label + " -> " + sampleChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape) + " | " + spc700NoiseReadout(patch) + laneText;
 
     if (mode == chipper::ChipMode::paula)
         return label + " -> " + sampleChipReadout(mode, patch) + " | " + paulaOutputFilterReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
@@ -3988,6 +3988,24 @@ juce::String ChipperAudioProcessorEditor::sampleChipReadout(chipper::ChipMode mo
         + " | decay " + juce::String(decay) + "/15 | volume " + juce::String(volume) + "/15";
 }
 
+juce::String ChipperAudioProcessorEditor::spc700NoiseReadout(const chipper::PatchConfig& patch) const
+{
+    const auto mode = chipper::spc700NoiseModeForPatch(patch);
+    juce::String resolved;
+    switch (mode)
+    {
+        case 2: resolved = "NON noise low, clock " + juce::String(static_cast<int>(chipper::spc700NoiseClockForPatch(patch))); break;
+        case 3: resolved = "NON noise mid, clock " + juce::String(static_cast<int>(chipper::spc700NoiseClockForPatch(patch))); break;
+        case 4: resolved = "NON noise high, clock " + juce::String(static_cast<int>(chipper::spc700NoiseClockForPatch(patch))); break;
+        case 1:
+        default:
+            resolved = "NON off, sample playback";
+            break;
+    }
+
+    return patch.snNoiseMode == 0 ? juce::String("Follow -> ") + resolved : resolved;
+}
+
 juce::String ChipperAudioProcessorEditor::paulaOutputFilterReadout(const chipper::PatchConfig& patch) const
 {
     const auto mode = chipper::paulaOutputFilterModeForPatch(patch);
@@ -4042,6 +4060,11 @@ juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMod
 
     if (mode == chipper::ChipMode::spc700)
     {
+        const auto noiseMode = chipper::spc700NoiseModeForPatch(patch);
+        if (noiseMode > 1u)
+            return "Voice " + number
+                + " | Noise clk " + juce::String(static_cast<int>(chipper::spc700NoiseClockForPatch(patch)));
+
         const auto info = audioProcessor.spc700BrrSampleInfo();
         if (info.loaded)
         {
@@ -4083,6 +4106,7 @@ juce::String ChipperAudioProcessorEditor::sampleSourceRegisterReadout(chipper::C
         const auto enabled = chipper::spc700VoiceEnabledForPatch(patch, index);
         const auto info = audioProcessor.spc700BrrSampleInfo();
         const auto base = static_cast<uint8_t>(std::min(index, size_t { 7u }) * 0x10u);
+        const auto noiseMode = chipper::spc700NoiseModeForPatch(patch);
         auto readout = "SPC700 voice " + juce::String(channel)
             + " | regs $" + byteHex(base) + "-$" + byteHex(static_cast<uint8_t>(base + 6u))
             + " | vol " + juce::String(static_cast<int>(volume)) + "/127"
@@ -4090,7 +4114,12 @@ juce::String ChipperAudioProcessorEditor::sampleSourceRegisterReadout(chipper::C
             + " | GAIN $" + byteHex(gain)
             + " | " + (enabled ? juce::String("key on") : juce::String("muted"))
             + " | ";
-        if (info.loaded)
+        if (noiseMode > 1u)
+        {
+            readout += "NON bit voice " + juce::String(channel)
+                + " | noise clock " + juce::String(static_cast<int>(chipper::spc700NoiseClockForPatch(patch)));
+        }
+        else if (info.loaded)
         {
             const auto modeText = info.playbackMode == 0 ? juce::String("manual") : juce::String("mapped");
             readout += "BRR slot " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
@@ -4682,6 +4711,9 @@ juce::String ChipperAudioProcessorEditor::noiseModeReadout(chipper::ChipMode mod
 
     if (mode == chipper::ChipMode::paula)
         return paulaOutputFilterReadout(patch);
+
+    if (mode == chipper::ChipMode::spc700)
+        return spc700NoiseReadout(patch);
 
     return snNoiseModeReadout(patch);
 }
@@ -5816,10 +5848,12 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
     }
     else if (mode == chipper::ChipMode::spc700)
     {
-        shape = wavetablePreviewShape(patch);
+        const auto noiseActive = chipper::spc700NoiseModeForPatch(patch) > 1u;
+        shape = noiseActive ? ChipWaveformPreviewShape::noise : wavetablePreviewShape(patch);
         tooltip = juce::String("SPC700-style sample voice ") + juce::String(static_cast<int>(index + 1u))
             + ": generated lo-fi sample template preview."
             + "\nSample Shape: " + waveShapeReadout(mode, patch.waveShape)
+            + "\nNoise Source: " + spc700NoiseReadout(patch)
             + "\n" + sampleSourceRegisterReadout(mode, patch, index);
     }
     else if (mode == chipper::ChipMode::paula)

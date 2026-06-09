@@ -282,6 +282,8 @@ uint8_t ym2149EnvelopeShapeCodeForChoice(int shapeChoice);
 uint16_t ym2149EnvelopePeriodForControl(float envelopeControl);
 uint8_t sn76489NoiseAttenuationForControl(float noiseLevelControl);
 uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch);
+uint8_t spc700NoiseModeForPatch(const PatchConfig& patch);
+uint8_t spc700NoiseClockForPatch(const PatchConfig& patch);
 uint8_t pokeyAudcForPatch(const PatchConfig& patch);
 uint8_t pokeyFilterChoiceForPatch(const PatchConfig& patch);
 uint8_t pokeyFilterBitsForPatch(const PatchConfig& patch);

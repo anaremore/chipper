@@ -2312,7 +2312,7 @@ const std::vector<PresetInfo>& presetCatalog()
             "spc700-soft-noise-hat",
             "SNES SPC700-style",
             "SPC700 Soft Noise Hat",
-            "Compressed sample-noise hat with short SNES-style decay.",
+            "Partial S-DSP-style noise hat with short SNES-style decay.",
             ChipMode::spc700,
             AccuracyMode::hybrid,
             MacroKind::drum,
@@ -2326,6 +2326,25 @@ const std::vector<PresetInfo>& presetCatalog()
             -12.0f,
             32000.0,
             0.44f
+        },
+        {
+            "spc700-noise-snare",
+            "SNES SPC700-style",
+            "SPC700 Noise Snare",
+            "Mid-clock partial S-DSP-style noise burst for soft SNES percussion.",
+            ChipMode::spc700,
+            AccuracyMode::hybrid,
+            MacroKind::hit,
+            PlayMode::stack,
+            { 0.24f, 0.20f, 0.42f, 0.82f },
+            { false, true, true, true },
+            0.70f,
+            4,
+            0,
+            3,
+            -12.0f,
+            32000.0,
+            0.34f
         },
         withSourceLevels(
             {
