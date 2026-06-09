@@ -5910,8 +5910,6 @@ public:
         sampleLoopStarts.fill(0);
         echoMemoryLeft.fill(0.0);
         echoMemoryRight.fill(0.0);
-        echoFilterLeft = 0.0;
-        echoFilterRight = 0.0;
         echoIndex = 0;
         for (size_t voice = 0; voice < sampleRam.size(); ++voice)
             seedSample(voice);
@@ -6186,16 +6184,14 @@ public:
         const auto echoFeedback = spc700EchoFeedback();
         const auto delaySamples = spc700EchoDelaySamples();
         const auto readIndex = (echoIndex + echoMemoryLeft.size() - delaySamples) % echoMemoryLeft.size();
-        const auto delayedLeft = echoMemoryLeft[readIndex];
-        const auto delayedRight = echoMemoryRight[readIndex];
+        const auto filteredLeft = spc700FirFiltered(echoMemoryLeft, readIndex);
+        const auto filteredRight = spc700FirFiltered(echoMemoryRight, readIndex);
 
-        echoFilterLeft = (delayedLeft * 0.68) + (echoFilterLeft * 0.32);
-        echoFilterRight = (delayedRight * 0.68) + (echoFilterRight * 0.32);
-        echoMemoryLeft[echoIndex] = std::clamp(echoInputLeft + (echoFilterLeft * echoFeedback), -1.0, 1.0);
-        echoMemoryRight[echoIndex] = std::clamp(echoInputRight + (echoFilterRight * echoFeedback), -1.0, 1.0);
+        echoMemoryLeft[echoIndex] = std::clamp(echoInputLeft + (filteredLeft * echoFeedback), -1.0, 1.0);
+        echoMemoryRight[echoIndex] = std::clamp(echoInputRight + (filteredRight * echoFeedback), -1.0, 1.0);
         echoIndex = (echoIndex + 1) % echoMemoryLeft.size();
-        left += echoFilterLeft * echoSend;
-        right += echoFilterRight * echoSend;
+        left += filteredLeft * echoSend;
+        right += filteredRight * echoSend;
 
         return { static_cast<float>(std::clamp(left, -1.0, 1.0)),
                  static_cast<float>(std::clamp(right, -1.0, 1.0)) };
@@ -6219,6 +6215,13 @@ public:
             writes.push_back({ 0, static_cast<uint16_t>(base + 9u), voiceRightVolumeRegister(voice) });
         }
         writes.push_back({ 0, 0x4du, echoEnabledMask() });
+        const auto fir = spc700FirCoefficients();
+        for (size_t tap = 0; tap < fir.size(); ++tap)
+        {
+            const auto reg = static_cast<uint16_t>(0x0fu + (tap * 0x10u));
+            const auto value = static_cast<uint8_t>(static_cast<int>(fir[tap]) & 0xff);
+            writes.push_back({ 0, reg, value });
+        }
         return writes;
     }
 
@@ -6228,7 +6231,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room sample-voice model"; }
     std::string limitations() const override
     {
-        return "Eight lo-fi sample voices, pitch, 7-bit per-voice left/right volume state, loop/one-shot playback state, playable ADSR/gain-style note shaping, generated sample templates, clean-room BRR block decoding for renderer-loaded samples, BRR loop-flag loop starts, Gaussian-style 4-tap sample interpolation, partial S-DSP-style per-voice noise source, musical pitch motion, an echo-enable mask, and a musical stereo echo helper are modeled; exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, source-directory loop address behavior, exact noise timing, pitch modulation, FIR echo, sample directory addressing, exact envelope timing, and hardware validation are not complete.";
+        return "Eight lo-fi sample voices, pitch, 7-bit per-voice left/right volume state, loop/one-shot playback state, playable ADSR/gain-style note shaping, generated sample templates, clean-room BRR block decoding for renderer-loaded samples, BRR loop-flag loop starts, Gaussian-style 4-tap sample interpolation, partial S-DSP-style per-voice noise source, musical pitch motion, an echo-enable mask, signed 8-bit FIR coefficient state, and a musical stereo echo helper are modeled; exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, source-directory loop address behavior, exact noise timing, pitch modulation, exact FIR echo memory behavior, sample directory addressing, exact envelope timing, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -6272,6 +6275,15 @@ public:
              << "\"echoFeedback\":" << spc700EchoFeedback() << ","
              << "\"echoDelayMs\":" << spc700EchoDelayMs() << ","
              << "\"echoDelaySamples\":" << spc700EchoDelaySamples() << ","
+             << "\"firTap0\":" << static_cast<int>(spc700FirCoefficients()[0]) << ","
+             << "\"firTap1\":" << static_cast<int>(spc700FirCoefficients()[1]) << ","
+             << "\"firTap2\":" << static_cast<int>(spc700FirCoefficients()[2]) << ","
+             << "\"firTap3\":" << static_cast<int>(spc700FirCoefficients()[3]) << ","
+             << "\"firTap4\":" << static_cast<int>(spc700FirCoefficients()[4]) << ","
+             << "\"firTap5\":" << static_cast<int>(spc700FirCoefficients()[5]) << ","
+             << "\"firTap6\":" << static_cast<int>(spc700FirCoefficients()[6]) << ","
+             << "\"firTap7\":" << static_cast<int>(spc700FirCoefficients()[7]) << ","
+             << "\"firCoefficientSum\":" << spc700FirCoefficientSum() << ","
              << "\"pitch0Current\":" << currentPitchForVoice(0) << ","
              << "\"pitch7Current\":" << currentPitchForVoice(7) << ","
              << "\"volume0\":" << static_cast<int>(volume[0]) << ","
@@ -6898,6 +6910,45 @@ private:
         return count > 0 ? sum / static_cast<double>(count) : 0.0;
     }
 
+    std::array<int8_t, 8> spc700FirCoefficients() const
+    {
+        const auto color = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
+        if (color <= 0.01)
+            return { 127, 0, 0, 0, 0, 0, 0, 0 };
+
+        return {
+            static_cast<int8_t>(std::clamp(static_cast<int>(std::round(112.0 - (48.0 * color))), -128, 127)),
+            static_cast<int8_t>(std::clamp(static_cast<int>(std::round(8.0 + (20.0 * color))), -128, 127)),
+            static_cast<int8_t>(std::clamp(static_cast<int>(std::round(4.0 + (12.0 * color))), -128, 127)),
+            static_cast<int8_t>(std::clamp(static_cast<int>(std::round(8.0 * color)), -128, 127)),
+            static_cast<int8_t>(std::clamp(static_cast<int>(std::round(4.0 * color)), -128, 127)),
+            static_cast<int8_t>(std::clamp(static_cast<int>(std::round(-2.0 * color)), -128, 127)),
+            0,
+            0,
+        };
+    }
+
+    int spc700FirCoefficientSum() const
+    {
+        const auto fir = spc700FirCoefficients();
+        return std::accumulate(fir.begin(), fir.end(), 0, [] (int sum, int8_t coefficient)
+        {
+            return sum + static_cast<int>(coefficient);
+        });
+    }
+
+    double spc700FirFiltered(const std::array<double, 48000>& memory, size_t readIndex) const
+    {
+        const auto fir = spc700FirCoefficients();
+        auto filtered = 0.0;
+        for (size_t tap = 0; tap < fir.size(); ++tap)
+        {
+            const auto index = (readIndex + memory.size() - tap) % memory.size();
+            filtered += memory[index] * (static_cast<double>(fir[tap]) / 128.0);
+        }
+        return std::clamp(filtered, -1.0, 1.0);
+    }
+
     double spc700EchoSend() const
     {
         const auto color = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
@@ -7033,8 +7084,6 @@ private:
     std::array<double, 8> noiseAccumulator {};
     std::array<double, 48000> echoMemoryLeft {};
     std::array<double, 48000> echoMemoryRight {};
-    double echoFilterLeft = 0.0;
-    double echoFilterRight = 0.0;
     size_t echoIndex = 0;
     int heldNote = -1;
     float noteVelocity = 0.0f;

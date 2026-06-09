@@ -1307,7 +1307,7 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
                    "spc700.echoColor",
                    "Echo Color",
                    "Echo",
-                   "Controls a musical stereo echo helper with delay, feedback, and soft filtering. This is not a verified S-DSP FIR echo model.",
+                   "Controls a musical stereo echo helper with delay, feedback, and signed 8-bit FIR-style taps. This is not a verified S-DSP echo model.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "spc700.voiceVolume",
@@ -2182,7 +2182,7 @@ const std::vector<ChipDescriptor>& descriptors()
             {
                 { "voices", "Sample Voices", "Sources", "All eight lo-fi sample voices are exposed in the current UI." },
                 { "sample", "Sample Color", "Tone", "Generated lo-fi sample templates, BRR loading, and partial S-DSP-style noise." },
-                { "echo", "Echo Color", "Output", "Musical echo-color helper, not verified S-DSP FIR echo." },
+                { "echo", "Echo Color", "Output", "Musical echo-color helper with signed FIR-style taps." },
                 { "adsr", "ADSR/Gain", "Envelope", "Playable ADSR/gain-style note shaping with template-aware sustain and release." },
             },
             {
@@ -2199,12 +2199,12 @@ const std::vector<ChipDescriptor>& descriptors()
             spc700ParameterSpecs(),
             verifiedPartial(
                 {
-                    "Eight generated lo-fi sample voices render with pitch, 7-bit per-voice left/right volume state, loop/one-shot playback mode, explicit playable envelope-shape choices, ADSR/gain-style state, key-on/enabled masks, clean-room BRR block decoding for renderer-loaded samples, BRR loop-flag loop-start handling, plugin-loaded user BRR sample banks, WAV/AIFF imported as 8-bit sample memory, note-to-sample-bank performance mapping, partial S-DSP-style per-voice noise source selection, clean-room Gaussian-style 4-tap interpolation, musical pitch-motion, echo-enable mask state, and a musical stereo echo helper.",
-                    "Source enables, source levels, sample-shape choices, envelope-shape choices, BRR block/end/loop debug metadata, BRR loop-start debug metadata, plugin sample slot selection/state recall, note-mapped sample bank selection, noise source mode/clock/mask metadata, pitch-motion, per-voice left/right volume metadata, musical echo-helper and echo-enable debug metadata, envelope-release debug metadata, interpolation metadata, chip-poly allocation across all eight exposed voices, presets, and debug JSON are covered by automated tests.",
+                    "Eight generated lo-fi sample voices render with pitch, 7-bit per-voice left/right volume state, loop/one-shot playback mode, explicit playable envelope-shape choices, ADSR/gain-style state, key-on/enabled masks, clean-room BRR block decoding for renderer-loaded samples, BRR loop-flag loop-start handling, plugin-loaded user BRR sample banks, WAV/AIFF imported as 8-bit sample memory, note-to-sample-bank performance mapping, partial S-DSP-style per-voice noise source selection, clean-room Gaussian-style 4-tap interpolation, musical pitch-motion, echo-enable mask state, signed 8-bit FIR-style echo coefficient state, and a musical stereo echo helper.",
+                    "Source enables, source levels, sample-shape choices, envelope-shape choices, BRR block/end/loop debug metadata, BRR loop-start debug metadata, plugin sample slot selection/state recall, note-mapped sample bank selection, noise source mode/clock/mask metadata, pitch-motion, per-voice left/right volume metadata, musical echo-helper, echo-enable, and FIR-tap debug metadata, envelope-release debug metadata, interpolation metadata, chip-poly allocation across all eight exposed voices, presets, and debug JSON are covered by automated tests.",
                     "No third-party SPC700, S-DSP, BRR, SNES, or tracker-player source code is vendored in this clean-room partial model."
                 },
                 {
-                    "Source directory/sample memory addressing, exact S-DSP source-directory loop address behavior, exact S-DSP noise clocking/NON edge behavior, hardware pitch modulation, exact S-DSP Gaussian interpolation table behavior, FIR echo and FIR coefficient registers, exact ADSR/gain envelope timing, and SPC700 CPU timing are not implemented.",
+                    "Source directory/sample memory addressing, exact S-DSP source-directory loop address behavior, exact S-DSP noise clocking/NON edge behavior, hardware pitch modulation, exact S-DSP Gaussian interpolation table behavior, exact FIR echo memory/timing behavior, exact ADSR/gain envelope timing, and SPC700 CPU timing are not implemented.",
                     "Voice scheduling, loop points, echo buffer behavior, output filtering, and hardware validation still require trusted emulator and capture comparison.",
                     "This mode is labeled SPC700-style because the implementation is a musical sample-voice approximation, not a verified SNES audio subsystem emulator."
                 })
