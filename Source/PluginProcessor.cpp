@@ -1882,10 +1882,10 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
     const auto selectedMode = chipper::parameters::chipModeFromChoice(modeChoice);
     const auto dmcPlaybackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
     const auto dmgStereoRoute = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::dmgStereoRoute)->load()));
-    const auto resolvedDmgStereoRoute =
-        selectedMode == chipper::ChipMode::spc700 && dmcPlaybackMode == 2 && dmgStereoRoute == 0
-            ? 2
-            : dmgStereoRoute;
+    const auto sampleMapRequestsOneShot =
+        (selectedMode == chipper::ChipMode::spc700 || selectedMode == chipper::ChipMode::paula)
+        && dmcPlaybackMode == 2;
+    const auto resolvedDmgStereoRoute = sampleMapRequestsOneShot && dmgStereoRoute == 0 ? 2 : dmgStereoRoute;
 
     return chipper::makePatchConfig(
         selectedMode,

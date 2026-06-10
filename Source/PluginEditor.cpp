@@ -6965,7 +6965,7 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
     dmcSampleSlotBox.setEnabled(sampleCount > 0);
     dmcSampleSlotBox.setTextWhenNothingSelected("No Paula samples");
     dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the manual Paula sample from the loaded bank. MIDI CC117 selects the same slot; Manual Slot uses it for every note.", chipper::ChipParameterRole::nesDmcSampleSlot));
-    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("Paula Sample Playback. Manual Slot plays the selected dropdown slot; Key Map maps loaded folder slots upward from the Sample Map Root. Tracker Map uses the same bank mapping path for one-shot/tracker-style sample kits.", chipper::ChipParameterRole::nesDmcPlaybackMode));
+    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("Paula Sample Playback. Manual Slot plays the selected dropdown slot; Key Map maps loaded folder slots upward from the Sample Map Root for held/melodic samples. Tracker Map uses the same bank mapping path and resolves Follow Template playback to one-shot tracker kits.", chipper::ChipParameterRole::nesDmcPlaybackMode));
     dmcMapRootBox.setTooltip(withMidiCcForRole("Paula Sample Map Root. Loaded folder slots map upward from this MIDI note when Sample Playback is a map mode.", chipper::ChipParameterRole::nesDmcMapRoot));
 
     const auto info = audioProcessor.paulaSampleInfo();
@@ -6981,6 +6981,10 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
         + "\nWAV/AIFF files are imported into Paula-style 8-bit sample memory. Folder loads keep up to 32 user-provided files addressable by the dropdown and CC117.";
     if (playbackMode == 0)
         tooltip += "\nSample Playback is Manual Slot: each MIDI note uses the selected dropdown sample.";
+    else if (playbackMode == 2)
+        tooltip += "\nSample Playback is Tracker Map: notes browse the loaded bank from "
+            + chipper::parameters::midiNoteChoices()[mapRoot]
+            + " upward and Follow Template resolves to one-shot tracker playback.";
     else
         tooltip += "\nSample Playback is a map mode: notes browse the loaded bank from "
             + chipper::parameters::midiNoteChoices()[mapRoot] + " upward.";

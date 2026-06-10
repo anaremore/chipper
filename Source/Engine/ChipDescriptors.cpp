@@ -3997,6 +3997,10 @@ uint8_t paulaChannelVolumeForPatch(const PatchConfig& patch, size_t channel, flo
 
 bool paulaLoopForPatch(const PatchConfig& patch)
 {
+    const auto explicitChoice = std::clamp(patch.dmgStereoRoute, 0, 2);
+    if (explicitChoice > 0)
+        return explicitChoice == 1;
+
     return patch.macro != MacroKind::drum && patch.macro != MacroKind::hit && patch.control3 >= 0.25f;
 }
 

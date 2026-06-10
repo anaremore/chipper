@@ -9647,7 +9647,7 @@ private:
 
     bool loopForPatch() const
     {
-        return patch.macro != MacroKind::drum && patch.macro != MacroKind::hit && patch.control3 >= 0.25f;
+        return paulaLoopForPatch(patch);
     }
 
     uint8_t resolvedSampleTemplate() const

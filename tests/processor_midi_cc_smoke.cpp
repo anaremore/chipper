@@ -715,6 +715,30 @@ int main()
     ok &= expect(paulaInRangeMappedPeak > 0.0001f,
                  "Paula note map should produce audio for notes inside the loaded sample bank span");
 
+    ChipperAudioProcessor paulaKeyMapLoopProcessor;
+    paulaKeyMapLoopProcessor.prepareToPlay(48000.0, 256);
+    sendController(paulaKeyMapLoopProcessor, 70, controllerValueForChoice(paulaKeyMapLoopProcessor, chipper::parameters::id::chipMode, 9));
+    sendController(paulaKeyMapLoopProcessor, 74, controllerValueForChoice(paulaKeyMapLoopProcessor, chipper::parameters::id::macro, 3));
+    sendController(paulaKeyMapLoopProcessor, 119, controllerValueForChoice(paulaKeyMapLoopProcessor, chipper::parameters::id::nesDmcPlaybackMode, 1));
+    setPlainFromHost(paulaKeyMapLoopProcessor, chipper::parameters::id::dmgStereoRoute, 0.0f);
+    ok &= expect(paulaKeyMapLoopProcessor.loadPaulaSampleDirectory(paulaDir).wasOk(),
+                 "Should load Paula sample directory for Key Map loop audition");
+    const auto paulaKeyMapTailPeak = renderHeldNoteTailPeak(paulaKeyMapLoopProcessor, 39);
+    ok &= expect(paulaKeyMapTailPeak > 0.0001f,
+                 "Paula Key Map should keep melodic Follow Template playback looping while a note is held");
+
+    ChipperAudioProcessor paulaTrackerMapOneShotProcessor;
+    paulaTrackerMapOneShotProcessor.prepareToPlay(48000.0, 256);
+    sendController(paulaTrackerMapOneShotProcessor, 70, controllerValueForChoice(paulaTrackerMapOneShotProcessor, chipper::parameters::id::chipMode, 9));
+    sendController(paulaTrackerMapOneShotProcessor, 74, controllerValueForChoice(paulaTrackerMapOneShotProcessor, chipper::parameters::id::macro, 3));
+    sendController(paulaTrackerMapOneShotProcessor, 119, controllerValueForChoice(paulaTrackerMapOneShotProcessor, chipper::parameters::id::nesDmcPlaybackMode, 2));
+    setPlainFromHost(paulaTrackerMapOneShotProcessor, chipper::parameters::id::dmgStereoRoute, 0.0f);
+    ok &= expect(paulaTrackerMapOneShotProcessor.loadPaulaSampleDirectory(paulaDir).wasOk(),
+                 "Should load Paula sample directory for Tracker Map one-shot audition");
+    const auto paulaTrackerMapTailPeak = renderHeldNoteTailPeak(paulaTrackerMapOneShotProcessor, 39);
+    ok &= expect(paulaTrackerMapTailPeak <= 0.0001f,
+                 "Paula Tracker Map should resolve Follow Template playback to one-shot behavior while still using the mapped sample bank");
+
     sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 3));
     juce::MemoryBlock savedPaulaState;
     processor.getStateInformation(savedPaulaState);
