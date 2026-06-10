@@ -53,7 +53,7 @@ int main()
     ParameterSmokeProcessor processor;
     const auto chipModes = chipper::parameters::chipModeChoices();
     const auto& mappings = chipper::parameters::midiCcMappings();
-    const auto parameterCount = static_cast<size_t>(processor.getParameters().size());
+    std::set<std::string> hostParameterIds;
 
     auto ok = true;
     ok &= expect(chipModes.size() == 15, "Chip Mode dropdown should only expose the 15 named chip targets");
@@ -62,8 +62,6 @@ int main()
         ok &= expect(chipMode != "Arcade Hybrid", "Generic Arcade Hybrid chip mode should not be exposed");
         ok &= expect(chipMode != "Custom", "Generic Custom chip mode should not be exposed");
     }
-    ok &= expect(parameterCount == mappings.size(),
-                 "APVTS parameter count does not match MIDI CC mapping count");
     ok &= expect(processor.state.getParameter(chipper::parameters::id::nesDmcSampleSlot)->getName(64).toStdString()
                      == "Sample Slot",
                  "Shared sample slot host parameter should not be NES-only named");
@@ -86,6 +84,16 @@ int main()
     std::set<int> controllers;
     std::set<std::string> parameterIds;
 
+    for (auto* parameter : processor.getParameters())
+    {
+        const auto* parameterWithId = dynamic_cast<juce::AudioProcessorParameterWithID*>(parameter);
+        ok &= expect(parameterWithId != nullptr, "Host parameter is missing a stable parameter id");
+
+        if (parameterWithId != nullptr)
+            ok &= expect(hostParameterIds.insert(parameterWithId->paramID.toStdString()).second,
+                         "Duplicate host parameter id");
+    }
+
     for (const auto& mapping : mappings)
     {
         ok &= expect(mapping.controller >= 0 && mapping.controller <= 119,
@@ -103,6 +111,17 @@ int main()
         ok &= expect(chipper::parameters::midiControllerForParameterId(mapping.parameterId) == mapping.controller,
                      "MIDI CC reverse lookup does not return the mapped controller");
     }
+
+    for (const auto& parameterId : hostParameterIds)
+        ok &= expect(parameterIds.count(parameterId) == 1,
+                     "Host parameter has no MIDI CC mapping: " + parameterId);
+
+    for (const auto& parameterId : parameterIds)
+        ok &= expect(hostParameterIds.count(parameterId) == 1,
+                     "MIDI CC mapping targets a non-host parameter: " + parameterId);
+
+    ok &= expect(hostParameterIds.size() == mappings.size(),
+                 "Host parameter count does not match MIDI CC mapping count");
 
     ok &= expect(chipper::parameters::parameterIdForMidiController(57) == nullptr,
                  "Unexpected MIDI CC mapping below the Chipper control block");
