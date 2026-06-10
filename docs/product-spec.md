@@ -149,6 +149,17 @@ Every shipped factory preset must appear in that catalog, include chip/category/
 - SCC Wave Bass
 - SCC Five-Voice Arp
 - SCC Wave Tick
+- OPLL UI Chime
+- OPLL Preset Bass
+- OPLL Brass Lead
+- OPLL Organ Arp
+- OPLL Impact Bell
+- OPLL Power Organ
+- OPLL Soft Marimba
+- OPLL Robot Alert
+- OPLL Slow Choir
+- OPLL Rhythm Starter
+- OPLL Soft Keys
 
 Roadmap preset targets, kept as product direction until their chip cores exist:
 
