@@ -188,6 +188,7 @@ private:
     void updateSegmentedControlSpecs(chipper::ChipMode mode);
     void chooseUserPresetToLoad();
     void chooseUserPresetToSave();
+    void chooseUserPresetToSaveAs();
     void loadUserPresetFile(const juce::File& file);
     void saveUserPresetFile(const juce::File& file);
     void applySelectedMacroTemplate();
@@ -425,6 +426,7 @@ private:
     juce::ComboBox presetBox;
     juce::TextButton userPresetLoadButton;
     juce::TextButton userPresetSaveButton;
+    juce::TextButton userPresetSaveAsButton;
     juce::ComboBox macroBox;
     juce::ComboBox playModeBox;
 

@@ -1516,6 +1516,10 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
             chooseUserPresetToSave();
     };
     addAndMakeVisible(userPresetSaveButton);
+    userPresetSaveAsButton.setButtonText("Save As");
+    userPresetSaveAsButton.setTooltip("Save a copy of the current sound as a new shareable .chipperpreset file.");
+    userPresetSaveAsButton.onClick = [this] { chooseUserPresetToSaveAs(); };
+    addAndMakeVisible(userPresetSaveAsButton);
     addAndMakeVisible(chipModeBox);
     addAndMakeVisible(accuracyBox);
     addAndMakeVisible(macroBox);
@@ -2546,13 +2550,15 @@ void ChipperAudioProcessorEditor::resized()
 
     titleLabel.setBounds(top.removeFromLeft(122));
     top.removeFromLeft(8);
-    placeHeaderCombo(0, presetBox, top.removeFromLeft(174));
+    placeHeaderCombo(0, presetBox, top.removeFromLeft(160));
     top.removeFromLeft(4);
-    userPresetLoadButton.setBounds(top.removeFromLeft(44).withTrimmedTop(20).reduced(0, 4));
+    userPresetLoadButton.setBounds(top.removeFromLeft(42).withTrimmedTop(20).reduced(0, 4));
     top.removeFromLeft(4);
-    userPresetSaveButton.setBounds(top.removeFromLeft(44).withTrimmedTop(20).reduced(0, 4));
+    userPresetSaveButton.setBounds(top.removeFromLeft(42).withTrimmedTop(20).reduced(0, 4));
+    top.removeFromLeft(4);
+    userPresetSaveAsButton.setBounds(top.removeFromLeft(62).withTrimmedTop(20).reduced(0, 4));
     top.removeFromLeft(8);
-    placeHeaderCombo(1, chipModeBox, top.removeFromLeft(202));
+    placeHeaderCombo(1, chipModeBox, top.removeFromLeft(190));
     top.removeFromLeft(8);
     placeHeaderCombo(2, accuracyBox, top.removeFromLeft(112));
     top.removeFromLeft(8);
@@ -3818,6 +3824,11 @@ void ChipperAudioProcessorEditor::chooseUserPresetToSave()
 
                                        saveUserPresetFile(file);
                                    });
+}
+
+void ChipperAudioProcessorEditor::chooseUserPresetToSaveAs()
+{
+    chooseUserPresetToSave();
 }
 
 void ChipperAudioProcessorEditor::loadUserPresetFile(const juce::File& file)
