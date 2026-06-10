@@ -341,6 +341,7 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2612, opn2Lead, 0) == 8u, "YM2612 helper should resolve operator 1 multiple");
     ok &= expect(chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2612, opn2Lead, 3) == 12u, "YM2612 helper should resolve operator 4 multiple");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 0) == 38u, "YM2612 helper should resolve modulator total level");
+    ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 1) == 6u, "YM2612 algorithm 4 should treat operator 2 as a carrier");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 3) == 6u, "YM2612 helper should resolve carrier total level");
     ok &= expect(chipper::ym2612PanBitsForPatch(opn2Lead, 0) == 0xc0u, "YM2612 lead macro should resolve to centered pan bits");
     ok &= expect(chipper::ym2612DacModeForPatch(opn2Lead) == 1u, "YM2612 lead macro should keep channel 6 in FM mode");
@@ -359,7 +360,7 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::ym2151AlgorithmForPatch(opmArp) == 7u, "YM2151 arp macro should resolve to algorithm 7");
     ok &= expect(chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2151, opmArp, 0) == 8u, "YM2151 helper should resolve operator 1 multiple");
     ok &= expect(chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2151, opmArp, 3) == 13u, "YM2151 helper should resolve operator 4 multiple");
-    ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2151, opmArp, 0) == 42u, "YM2151 helper should resolve modulator total level");
+    ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2151, opmArp, 0) == 7u, "YM2151 algorithm 7 should treat operator 1 as a carrier");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2151, opmArp, 3) == 7u, "YM2151 helper should resolve carrier total level");
     const auto opmArpEnvelope = chipper::ym2612EnvelopeRegistersForPatch(opmArp, 0);
     ok &= expect(opmArpEnvelope.sustainRate == 0x00u, "YM2151 shared FM envelope helper should hold sustained arp notes");

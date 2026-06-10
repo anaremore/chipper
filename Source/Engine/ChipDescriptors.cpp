@@ -625,7 +625,7 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
                    "ym2612.fmLevel",
                    "FM Level",
                    "Mixer",
-                   "Controls audible carrier level and final OPN2 output trim.",
+                   "Controls audible carrier level through native OPN2 total-level registers.",
                    ParameterKind::chipRegister,
                    0.70f),
         { ChipParameterRole::waveShape,
@@ -725,7 +725,7 @@ std::vector<ChipParameterSpec> ym2151ParameterSpecs()
                    "ym2151.fmLevel",
                    "FM Level",
                    "Mixer",
-                   "Controls audible carrier level and final OPM output trim.",
+                   "Controls audible carrier level through native OPM total-level registers.",
                    ParameterKind::chipRegister,
                    0.72f),
         { ChipParameterRole::waveShape,
@@ -805,7 +805,7 @@ std::vector<ChipParameterSpec> oplParameterSpecs()
                    "opl.fmLevel",
                    "FM Level",
                    "Mixer",
-                   "Controls carrier level and final OPL output trim.",
+                   "Controls carrier level through native OPL attenuation registers.",
                    ParameterKind::chipRegister,
                    0.72f),
         { ChipParameterRole::waveShape,
@@ -2184,7 +2184,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2612 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2612 feedback bits for the active FM voices." },
                 { "operator", "Operator Tone", "Operators", "Scales operator multipliers and modulator levels." },
-                { "level", "FM / DAC Level", "Output", "Controls carrier level, channel-6 DAC mode, and final OPN2 output trim." },
+                { "level", "FM / DAC Level", "Output", "Controls carrier level and channel-6 DAC mode through native registers." },
             },
             ym2612Modules(),
             ym2612Macros(),
@@ -2212,7 +2212,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "balance", "Operator Balance", "FM", "Writes the OPL connection bit for two-operator voices." },
                 { "feedback", "Feedback", "FM", "Writes OPL feedback bits." },
                 { "waveform", "Waveform", "Operators", "Writes OPL2 operator waveform registers." },
-                { "level", "FM Level", "Output", "Controls carrier level and final OPL output trim." },
+                { "level", "FM Level", "Output", "Controls carrier level through native OPL attenuation registers." },
             },
             oplModules(),
             oplMacros(),
@@ -2408,7 +2408,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2151 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2151 feedback bits for the active OPM voices." },
                 { "operator", "Operator Tone", "Operators", "Scales operator multipliers and modulator levels." },
-                { "level", "FM Level", "Output", "Controls carrier level and final OPM output trim." },
+                { "level", "FM Level", "Output", "Controls carrier level through native OPM total-level registers." },
             },
             ym2151Modules(),
             ym2151Macros(),
@@ -3691,6 +3691,22 @@ uint8_t fmOperatorMultipleForPatch(ChipMode mode, const PatchConfig& patch, size
     return static_cast<uint8_t>(std::clamp(tone + offsets[std::min(op, size_t { 3u })], 1, 15));
 }
 
+bool fmOperatorIsCarrierForAlgorithm(uint8_t algorithm, size_t op)
+{
+    static constexpr std::array<std::array<bool, 4>, 8> carriers {{
+        {{ false, false, false, true  }},
+        {{ false, false, false, true  }},
+        {{ false, false, false, true  }},
+        {{ false, false, false, true  }},
+        {{ false, true,  false, true  }},
+        {{ false, true,  true,  true  }},
+        {{ false, true,  true,  true  }},
+        {{ true,  true,  true,  true  }}
+    }};
+
+    return carriers[algorithm & 0x07u][std::min(op, size_t { 3u })];
+}
+
 uint8_t fmOperatorTotalLevelForPatch(ChipMode mode, const PatchConfig& patch, size_t op, float velocity)
 {
     const auto level = clampControl(velocity) * clampControl(patch.control4);
@@ -3698,12 +3714,12 @@ uint8_t fmOperatorTotalLevelForPatch(ChipMode mode, const PatchConfig& patch, si
     {
         const auto carrier = static_cast<int>(std::round((1.0f - level) * 24.0f));
         const auto modulator = static_cast<int>(std::round(16.0f + (1.0f - clampControl(patch.control3)) * 52.0f));
-        return static_cast<uint8_t>(std::clamp(op == 3u ? carrier : modulator, 0, 127));
+        return static_cast<uint8_t>(std::clamp(fmOperatorIsCarrierForAlgorithm(ym2151AlgorithmForPatch(patch), op) ? carrier : modulator, 0, 127));
     }
 
     const auto carrier = static_cast<int>(std::round((1.0f - level) * 28.0f));
     const auto modulator = static_cast<int>(std::round(18.0f + (1.0f - clampControl(patch.control3)) * 40.0f));
-    return static_cast<uint8_t>(std::clamp(op == 3u ? carrier : modulator, 0, 127));
+    return static_cast<uint8_t>(std::clamp(fmOperatorIsCarrierForAlgorithm(ym2612AlgorithmForPatch(patch), op) ? carrier : modulator, 0, 127));
 }
 
 uint8_t oplWaveformForPatch(const PatchConfig& patch)

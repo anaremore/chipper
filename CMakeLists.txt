@@ -778,17 +778,26 @@ add_test(NAME chipper_render_ym2151_noise_high_smoke
 add_test(NAME chipper_render_ym2612_held_tail_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro bass --wave-shape 1 --clock 7670454 --rate 48000 --seconds 0.50 --note 48 --out ym2612-held-tail-smoke.wav --debug ym2612-held-tail-smoke.json
 )
+add_test(NAME chipper_render_ym2612_low_level_held_tail_smoke
+    COMMAND chipper_render --chip ym2612 --accuracy authentic --macro lead --wave-shape 5 --control4 0.35 --clock 7670454 --rate 48000 --seconds 0.50 --note 60 --out ym2612-low-level-held-tail-smoke.wav --debug ym2612-low-level-held-tail-smoke.json
+)
 add_test(NAME chipper_render_ym2612_release_tail_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro bass --wave-shape 1 --clock 7670454 --rate 48000 --seconds 0.30 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2612-release-events.txt --out ym2612-release-tail-smoke.wav --debug ym2612-release-tail-smoke.json
 )
 add_test(NAME chipper_render_opl3_held_tail_smoke
     COMMAND chipper_render --chip opl3 --accuracy authentic --macro bass --wave-shape 1 --clock 14318180 --rate 48000 --seconds 0.50 --note 48 --out opl3-held-tail-smoke.wav --debug opl3-held-tail-smoke.json
 )
+add_test(NAME chipper_render_opl3_low_level_held_tail_smoke
+    COMMAND chipper_render --chip opl3 --accuracy authentic --macro lead --wave-shape 2 --control4 0.30 --clock 14318180 --rate 48000 --seconds 0.50 --note 60 --out opl3-low-level-held-tail-smoke.wav --debug opl3-low-level-held-tail-smoke.json
+)
 add_test(NAME chipper_render_opl3_release_tail_smoke
     COMMAND chipper_render --chip opl3 --accuracy authentic --macro bass --wave-shape 1 --clock 14318180 --rate 48000 --seconds 0.30 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/opl3-release-events.txt --out opl3-release-tail-smoke.wav --debug opl3-release-tail-smoke.json
 )
 add_test(NAME chipper_render_ym2151_held_tail_smoke
     COMMAND chipper_render --chip ym2151 --accuracy authentic --macro bass --wave-shape 1 --clock 3579545 --rate 48000 --seconds 0.50 --note 48 --out ym2151-held-tail-smoke.wav --debug ym2151-held-tail-smoke.json
+)
+add_test(NAME chipper_render_ym2151_low_level_held_tail_smoke
+    COMMAND chipper_render --chip ym2151 --accuracy authentic --macro lead --wave-shape 5 --control4 0.35 --clock 3579545 --rate 48000 --seconds 0.50 --note 60 --out ym2151-low-level-held-tail-smoke.wav --debug ym2151-low-level-held-tail-smoke.json
 )
 add_test(NAME chipper_render_ym2151_release_tail_smoke
     COMMAND chipper_render --chip ym2151 --accuracy authentic --macro bass --wave-shape 1 --clock 3579545 --rate 48000 --seconds 0.30 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2151-release-events.txt --out ym2151-release-tail-smoke.wav --debug ym2151-release-tail-smoke.json
@@ -1610,6 +1619,11 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_ym2612_held_tail_assert PROPERTIES DEPENDS chipper_render_ym2612_held_tail_smoke)
 
+    add_test(NAME chipper_render_ym2612_low_level_held_tail_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-low-level-held-tail-smoke.json --implemented-contains ymfm --macro Lead --min-peak 0.005 --min-tail-rms 0.005
+    )
+    set_tests_properties(chipper_render_ym2612_low_level_held_tail_assert PROPERTIES DEPENDS chipper_render_ym2612_low_level_held_tail_smoke)
+
     add_test(NAME chipper_render_ym2612_release_tail_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-release-tail-smoke.json --implemented-contains ymfm --macro Bass --note-events 2 --min-peak 0.01 --min-tail-rms 0.0001 --core-min keyOnMask=0 --core-max keyOnMask=0
     )
@@ -1620,6 +1634,11 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_opl3_held_tail_assert PROPERTIES DEPENDS chipper_render_opl3_held_tail_smoke)
 
+    add_test(NAME chipper_render_opl3_low_level_held_tail_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-low-level-held-tail-smoke.json --implemented-contains ymfm --macro Lead --min-peak 0.005 --min-tail-rms 0.005
+    )
+    set_tests_properties(chipper_render_opl3_low_level_held_tail_assert PROPERTIES DEPENDS chipper_render_opl3_low_level_held_tail_smoke)
+
     add_test(NAME chipper_render_opl3_release_tail_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-release-tail-smoke.json --implemented-contains ymfm --macro Bass --note-events 2 --min-peak 0.01 --min-tail-rms 0.0001 --core-min keyOnMask=0 --core-max keyOnMask=0
     )
@@ -1629,6 +1648,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-held-tail-smoke.json --implemented-contains ymfm --macro Bass --min-peak 0.01 --min-tail-rms 0.03 --core-min decayRate0=4 --core-max decayRate0=4 --core-min sustainRate0=0 --core-max sustainRate0=0 --core-min sustainRelease0=48 --core-max sustainRelease0=64 --core-min keyOnMask=0 --core-max keyOnMask=0
     )
     set_tests_properties(chipper_render_ym2151_held_tail_assert PROPERTIES DEPENDS chipper_render_ym2151_held_tail_smoke)
+
+    add_test(NAME chipper_render_ym2151_low_level_held_tail_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-low-level-held-tail-smoke.json --implemented-contains ymfm --macro Lead --min-peak 0.005 --min-tail-rms 0.005
+    )
+    set_tests_properties(chipper_render_ym2151_low_level_held_tail_assert PROPERTIES DEPENDS chipper_render_ym2151_low_level_held_tail_smoke)
 
     add_test(NAME chipper_render_ym2151_release_tail_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-release-tail-smoke.json --implemented-contains ymfm --macro Bass --note-events 2 --min-peak 0.01 --min-tail-rms 0.0001 --core-min keyOnMask=0 --core-max keyOnMask=0

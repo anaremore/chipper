@@ -298,6 +298,7 @@ uint8_t ym2151PanBitsForPatch(const PatchConfig& patch, size_t channel);
 uint8_t ym2151NoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t fmFeedbackForPatch(const PatchConfig& patch);
 uint8_t fmOperatorMultipleForPatch(ChipMode mode, const PatchConfig& patch, size_t op);
+bool fmOperatorIsCarrierForAlgorithm(uint8_t algorithm, size_t op);
 uint8_t fmOperatorTotalLevelForPatch(ChipMode mode, const PatchConfig& patch, size_t op, float velocity = 1.0f);
 uint8_t oplWaveformForPatch(const PatchConfig& patch);
 uint8_t oplConnectionForPatch(const PatchConfig& patch);

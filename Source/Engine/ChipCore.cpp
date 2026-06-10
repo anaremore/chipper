@@ -7905,7 +7905,7 @@ public:
             lastNativeRight = output.data[1];
         }
 
-        const auto scale = clamp01(patch.control4) / 32768.0;
+        constexpr auto scale = 1.0 / 32768.0;
         const auto left = std::clamp(static_cast<double>(lastNativeLeft) * scale, -1.0, 1.0);
         const auto right = std::clamp(static_cast<double>(lastNativeRight) * scale, -1.0, 1.0);
         currentOutput = { static_cast<float>(left), static_cast<float>(right) };
@@ -8114,12 +8114,12 @@ private:
         return static_cast<uint8_t>(std::clamp(tone + offsets[op], 1, 15));
     }
 
-    uint8_t totalLevelForOperator(size_t channel, size_t op, float velocity) const
+    uint8_t totalLevelForOperator(size_t op, float velocity, uint8_t algorithm) const
     {
-        const auto level = clamp01(velocity) * clamp01(patch.control4) * sourceLevel(patch, channel);
+        const auto level = clamp01(velocity) * clamp01(patch.control4);
         const auto carrierLevel = static_cast<int>(std::round((1.0 - level) * 28.0));
         const auto modulatorLevel = static_cast<int>(std::round(18.0 + (1.0 - clamp01(patch.control3)) * 40.0));
-        return static_cast<uint8_t>(std::clamp(op == 3 ? carrierLevel : modulatorLevel, 0, 127));
+        return static_cast<uint8_t>(std::clamp(fmOperatorIsCarrierForAlgorithm(algorithm, op) ? carrierLevel : modulatorLevel, 0, 127));
     }
 
     bool channelEnabled(size_t channel) const
@@ -8155,7 +8155,7 @@ private:
         {
             const auto envelope = ym2612EnvelopeRegistersForPatch(patch, op);
             writeYmRegister(opRegForChannel(0x30, channel, op), multiplierForPatch(op));
-            writeYmRegister(opRegForChannel(0x40, channel, op), totalLevelForOperator(channel, op, velocity));
+            writeYmRegister(opRegForChannel(0x40, channel, op), totalLevelForOperator(op, velocity, algorithm));
             writeYmRegister(opRegForChannel(0x50, channel, op), envelope.attackRate);
             writeYmRegister(opRegForChannel(0x60, channel, op), envelope.decayRate);
             writeYmRegister(opRegForChannel(0x70, channel, op), envelope.sustainRate);
@@ -8571,8 +8571,9 @@ public:
             lastNativeRight = output.data[1] + output.data[3];
         }
 
-        const auto left = std::clamp(static_cast<double>(lastNativeLeft) * clamp01(patch.control4) / 65536.0, -1.0, 1.0);
-        const auto right = std::clamp(static_cast<double>(lastNativeRight) * clamp01(patch.control4) / 65536.0, -1.0, 1.0);
+        constexpr auto scale = 1.0 / 65536.0;
+        const auto left = std::clamp(static_cast<double>(lastNativeLeft) * scale, -1.0, 1.0);
+        const auto right = std::clamp(static_cast<double>(lastNativeRight) * scale, -1.0, 1.0);
         currentOutput = { static_cast<float>(left), static_cast<float>(right) };
         return currentOutput;
     }
@@ -9158,7 +9159,7 @@ public:
             lastNativeRight = output.data[1];
         }
 
-        const auto scale = clamp01(patch.control4) / 32768.0;
+        constexpr auto scale = 1.0 / 32768.0;
         const auto left = std::clamp(static_cast<double>(lastNativeLeft) * scale, -1.0, 1.0);
         const auto right = std::clamp(static_cast<double>(lastNativeRight) * scale, -1.0, 1.0);
         currentOutput = { static_cast<float>(left), static_cast<float>(right) };
@@ -9308,12 +9309,12 @@ private:
         return static_cast<uint8_t>(std::clamp(base + offsets[op], 1, 15));
     }
 
-    uint8_t totalLevelForOperator(size_t op, float velocity) const
+    uint8_t totalLevelForOperator(size_t op, float velocity, uint8_t algorithm) const
     {
         const auto level = clamp01(velocity) * clamp01(patch.control4);
         const auto carrier = static_cast<int>(std::round((1.0 - level) * 24.0));
         const auto modulator = static_cast<int>(std::round(16.0 + (1.0 - clamp01(patch.control3)) * 52.0));
-        return static_cast<uint8_t>(std::clamp(op == 3 ? carrier : modulator, 0, 127));
+        return static_cast<uint8_t>(std::clamp(fmOperatorIsCarrierForAlgorithm(algorithm, op) ? carrier : modulator, 0, 127));
     }
 
     void applyChannelPatch(size_t channel, float velocity)
@@ -9339,7 +9340,7 @@ private:
                 currentSustainRelease[channel] = envelope.sustainRelease;
             }
             writeOpmRegister(static_cast<uint8_t>(0x40 + offs), multipleForOperator(op));
-            writeOpmRegister(static_cast<uint8_t>(0x60 + offs), totalLevelForOperator(op, velocity));
+            writeOpmRegister(static_cast<uint8_t>(0x60 + offs), totalLevelForOperator(op, velocity, algorithm));
             writeOpmRegister(static_cast<uint8_t>(0x80 + offs), envelope.attackRate);
             writeOpmRegister(static_cast<uint8_t>(0xa0 + offs), envelope.decayRate);
             writeOpmRegister(static_cast<uint8_t>(0xc0 + offs), envelope.sustainRate);
