@@ -817,6 +817,11 @@ int main()
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Envelope Shape");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::ymEnvelopeShape, "Envelope");
     ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Follow");
+    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Pitch / PMON");
+    ok &= expectSpecHelpContains(chipper::ChipMode::spc700,
+                                 chipper::ChipParameterRole::macroControl2,
+                                 "partial PMON-style",
+                                 "SPC700 pitch control help should disclose PMON mapping");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Echo Color");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::macroControl3, "Echo");
     ok &= expectSpecHelpContains(chipper::ChipMode::spc700,

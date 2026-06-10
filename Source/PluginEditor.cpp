@@ -3888,7 +3888,7 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
         return label + " -> " + pokeyRegisterReadout(patch) + " | " + pokeyAudctlFilterReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
     if (mode == chipper::ChipMode::spc700)
-        return label + " -> " + sampleChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape) + " | " + spc700NoiseReadout(patch) + laneText;
+        return label + " -> " + sampleChipReadout(mode, patch) + " | " + spc700PitchMotionReadout(patch) + " | " + spc700NoiseReadout(patch) + laneText;
 
     if (mode == chipper::ChipMode::paula)
         return label + " -> " + sampleChipReadout(mode, patch) + " | " + paulaOutputFilterReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
@@ -4089,6 +4089,25 @@ juce::String ChipperAudioProcessorEditor::sampleChipReadout(chipper::ChipMode mo
     if (mode == chipper::ChipMode::spc700)
         text += " | " + spc700EnvelopeReadout(patch);
     return text;
+}
+
+juce::String ChipperAudioProcessorEditor::spc700PitchMotionReadout(const chipper::PatchConfig& patch) const
+{
+    const auto centered = static_cast<double>(patch.control2) - 0.5;
+    const auto direction = std::abs(centered) <= 0.08 ? 0 : (centered > 0.0 ? 1 : -1);
+    if (direction == 0)
+        return "Pitch centered, PMON off";
+
+    const auto magnitude = std::max(0.0, std::abs(centered) - 0.08) / 0.42;
+    const auto macroScale = patch.macro == chipper::MacroKind::laser || patch.macro == chipper::MacroKind::powerUp || patch.macro == chipper::MacroKind::jump
+        ? 2400.0
+        : 900.0;
+    const auto motionCents = std::clamp(magnitude, 0.0, 1.0) * macroScale;
+    const auto pmonCents = std::clamp(motionCents * 0.35, 0.0, 480.0);
+    const auto directionText = direction > 0 ? juce::String("rise") : juce::String("fall");
+    return "Pitch " + directionText + " "
+        + juce::String(static_cast<int>(std::round(motionCents))) + "c, PMON "
+        + juce::String(static_cast<int>(std::round(pmonCents))) + "c";
 }
 
 juce::String ChipperAudioProcessorEditor::spc700EnvelopeReadout(const chipper::PatchConfig& patch) const
@@ -6001,6 +6020,7 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
         tooltip = juce::String("SPC700-style sample voice ") + juce::String(static_cast<int>(index + 1u))
             + ": generated lo-fi sample template preview."
             + "\nSample Shape: " + waveShapeReadout(mode, patch.waveShape)
+            + "\nPitch / PMON: " + spc700PitchMotionReadout(patch)
             + "\nPlayback: " + spc700SamplePlaybackReadout(patch)
             + "\nEnvelope: " + spc700EnvelopeReadout(patch)
             + "\nNoise Source: " + spc700NoiseReadout(patch)
@@ -7506,7 +7526,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     else if (mode == chipper::ChipMode::spc700)
     {
         controlValueLabels[0].setText(waveShapeReadout(mode, patch.waveShape), juce::dontSendNotification);
-        controlValueLabels[1].setText("Pitch motion " + juce::String(patch.control2, 2), juce::dontSendNotification);
+        controlValueLabels[1].setText(spc700PitchMotionReadout(patch), juce::dontSendNotification);
         controlValueLabels[2].setText(spc700EchoReadout(patch), juce::dontSendNotification);
         controlValueLabels[3].setText(sampleChipReadout(mode, patch), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
