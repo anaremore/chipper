@@ -7808,11 +7808,7 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
 
 void ChipperAudioProcessorEditor::updateSamplePlaybackModeChoices(chipper::ChipMode mode)
 {
-    const auto choices = mode == chipper::ChipMode::spc700
-        ? juce::StringArray { "Manual Slot", "Note Map", "Drum Map" }
-        : mode == chipper::ChipMode::paula
-        ? juce::StringArray { "Manual Slot", "Key Map", "Tracker Map" }
-        : chipper::parameters::nesDmcPlaybackModeChoices();
+    const auto choices = chipper::parameters::samplePlaybackModeChoices(mode);
 
     auto choicesAlreadyMatch = dmcPlaybackModeBox.getNumItems() == choices.size();
     if (choicesAlreadyMatch)

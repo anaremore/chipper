@@ -64,6 +64,15 @@ int main()
     }
     ok &= expect(parameterCount == mappings.size(),
                  "APVTS parameter count does not match MIDI CC mapping count");
+    ok &= expect(chipper::parameters::samplePlaybackModeChoices(chipper::ChipMode::nes).joinIntoString("|").toStdString()
+                     == "Manual Slot|Note Map|Sample Map Only",
+                 "NES sample playback labels should expose DMC Sample Map Only");
+    ok &= expect(chipper::parameters::samplePlaybackModeChoices(chipper::ChipMode::spc700).joinIntoString("|").toStdString()
+                     == "Manual Slot|Note Map|Drum Map",
+                 "SPC700 sample playback labels should expose Note Map and Drum Map");
+    ok &= expect(chipper::parameters::samplePlaybackModeChoices(chipper::ChipMode::paula).joinIntoString("|").toStdString()
+                     == "Manual Slot|Key Map|Tracker Map",
+                 "Paula sample playback labels should expose Key Map and Tracker Map");
 
     std::set<int> controllers;
     std::set<std::string> parameterIds;

@@ -154,6 +154,17 @@ juce::StringArray nesDmcPlaybackModeChoices()
     return { "Manual Slot", "Note Map", "Sample Map Only" };
 }
 
+juce::StringArray samplePlaybackModeChoices(ChipMode mode)
+{
+    if (mode == ChipMode::spc700)
+        return { "Manual Slot", "Note Map", "Drum Map" };
+
+    if (mode == ChipMode::paula)
+        return { "Manual Slot", "Key Map", "Tracker Map" };
+
+    return nesDmcPlaybackModeChoices();
+}
+
 juce::StringArray midiNoteChoices()
 {
     static constexpr std::array<const char*, 12> names { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
