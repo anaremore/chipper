@@ -4442,6 +4442,38 @@ juce::String ChipperAudioProcessorEditor::fmChipReadout(chipper::ChipMode mode, 
     return "Algorithm " + juce::String(algorithm) + " | feedback " + juce::String(feedback) + "/7 | level " + juce::String(level) + "/15";
 }
 
+juce::String ChipperAudioProcessorEditor::fmFeedbackReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
+{
+    const auto feedback = static_cast<int>(chipper::fmFeedbackForPatch(patch));
+
+    if (mode == chipper::ChipMode::opl3)
+    {
+        const auto connection = static_cast<int>(chipper::oplConnectionForPatch(patch));
+        const auto registerValue = static_cast<uint8_t>((static_cast<unsigned>(feedback) << 1u) | static_cast<unsigned>(connection));
+        return "FB " + juce::String(feedback) + "/7 | $C0=$" + byteHex(registerValue)
+            + " | " + (connection != 0 ? juce::String("parallel") : juce::String("serial"));
+    }
+
+    if (mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2612)
+    {
+        const auto algorithm = static_cast<int>(mode == chipper::ChipMode::ym2151
+                                                    ? chipper::ym2151AlgorithmForPatch(patch)
+                                                    : chipper::ym2612AlgorithmForPatch(patch));
+        const auto registerValue = static_cast<uint8_t>(mode == chipper::ChipMode::ym2151
+                                                            ? (0xc0u | (static_cast<unsigned>(feedback) << 3u) | static_cast<unsigned>(algorithm))
+                                                            : ((static_cast<unsigned>(feedback) << 3u) | static_cast<unsigned>(algorithm)));
+        return "FB " + juce::String(feedback) + "/7 | "
+            + (mode == chipper::ChipMode::ym2151 ? juce::String("$20=$") : juce::String("$B0=$"))
+            + byteHex(registerValue)
+            + " | Alg " + juce::String(algorithm);
+    }
+
+    if (mode == chipper::ChipMode::ym2413)
+        return "Pitch spread " + juce::String(static_cast<int>(std::round(std::clamp(patch.control2, 0.0f, 1.0f) * 12.0f))) + " st";
+
+    return "Feedback " + juce::String(feedback) + "/7";
+}
+
 juce::String ChipperAudioProcessorEditor::ym2612DacModeReadout(const chipper::PatchConfig& patch) const
 {
     const auto mode = chipper::ym2612DacModeForPatch(patch);
@@ -7604,7 +7636,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     else if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413)
     {
         controlValueLabels[0].setText(fmChipReadout(mode, patch), juce::dontSendNotification);
-        controlValueLabels[1].setText("Feedback/motion " + juce::String(patch.control2, 2), juce::dontSendNotification);
+        controlValueLabels[1].setText(fmFeedbackReadout(mode, patch), juce::dontSendNotification);
         controlValueLabels[2].setText(mode == chipper::ChipMode::ym2612 ? ym2612DacModeReadout(patch) : waveShapeReadout(mode, patch.waveShape), juce::dontSendNotification);
         controlValueLabels[3].setText("FM output level " + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15", juce::dontSendNotification);
         updateSourceChannelButtons(mode);
