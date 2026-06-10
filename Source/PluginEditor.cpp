@@ -3301,11 +3301,22 @@ void ChipperAudioProcessorEditor::placeWaveShapeSegment(juce::Rectangle<int> bou
 
 void ChipperAudioProcessorEditor::placeFmAlgorithmControl(juce::Rectangle<int> bounds)
 {
-    auto header = bounds.removeFromTop(std::min(18, bounds.getHeight()));
+    const auto compact = bounds.getHeight() < 56;
+    auto header = bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight()));
     waveShapeLabel.setBounds(header.removeFromLeft(std::min(92, header.getWidth())));
     waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
     waveShapeValueLabel.setBounds(header);
-    bounds.removeFromTop(3);
+    bounds.removeFromTop(std::min(compact ? 2 : 3, bounds.getHeight()));
+
+    if (compact)
+    {
+        fmAlgorithmBox.setBounds(bounds.removeFromTop(std::min(24, bounds.getHeight())).reduced(0, 1));
+        fmAlgorithmPreview.setBounds({});
+        waveShapeSegmentBounds = {};
+        for (auto& button : waveShapeButtons)
+            button.setBounds({});
+        return;
+    }
 
     const auto selectorWidth = std::clamp(bounds.getWidth() / 3, 142, 190);
     auto selectorArea = bounds.removeFromLeft(std::min(selectorWidth, bounds.getWidth()));
@@ -3320,11 +3331,22 @@ void ChipperAudioProcessorEditor::placeFmAlgorithmControl(juce::Rectangle<int> b
 
 void ChipperAudioProcessorEditor::placeOplWaveformControl(juce::Rectangle<int> bounds)
 {
-    auto header = bounds.removeFromTop(std::min(18, bounds.getHeight()));
+    const auto compact = bounds.getHeight() < 56;
+    auto header = bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight()));
     waveShapeLabel.setBounds(header.removeFromLeft(std::min(92, header.getWidth())));
     waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
     waveShapeValueLabel.setBounds(header);
-    bounds.removeFromTop(3);
+    bounds.removeFromTop(std::min(compact ? 2 : 3, bounds.getHeight()));
+
+    if (compact)
+    {
+        oplWaveformBox.setBounds(bounds.removeFromTop(std::min(24, bounds.getHeight())).reduced(0, 1));
+        oplWaveformPreview.setBounds({});
+        waveShapeSegmentBounds = {};
+        for (auto& button : waveShapeButtons)
+            button.setBounds({});
+        return;
+    }
 
     const auto selectorWidth = std::clamp(bounds.getWidth() / 3, 142, 190);
     auto selectorArea = bounds.removeFromLeft(std::min(selectorWidth, bounds.getWidth()));
@@ -3339,13 +3361,14 @@ void ChipperAudioProcessorEditor::placeOplWaveformControl(juce::Rectangle<int> b
 
 void ChipperAudioProcessorEditor::placeOpllInstrumentControl(juce::Rectangle<int> bounds)
 {
-    auto header = bounds.removeFromTop(std::min(18, bounds.getHeight()));
+    const auto compact = bounds.getHeight() < 56;
+    auto header = bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight()));
     waveShapeLabel.setBounds(header.removeFromLeft(std::min(96, header.getWidth())));
     waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
     waveShapeValueLabel.setBounds(header);
-    bounds.removeFromTop(3);
+    bounds.removeFromTop(std::min(compact ? 2 : 3, bounds.getHeight()));
 
-    opllInstrumentBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
+    opllInstrumentBox.setBounds(bounds.removeFromTop(std::min(compact ? 24 : 28, bounds.getHeight())).reduced(0, 1));
     waveShapeSegmentBounds = {};
     for (auto& button : waveShapeButtons)
         button.setBounds({});
@@ -3388,7 +3411,8 @@ void ChipperAudioProcessorEditor::placeDmgWaveLevelSegment(juce::Rectangle<int> 
 
 void ChipperAudioProcessorEditor::placeDmgStereoRouteSegment(juce::Rectangle<int> bounds)
 {
-    dmgStereoRouteLabel.setBounds(bounds.removeFromTop(18));
+    const auto compact = displayedMode == chipper::ChipMode::ym2612 || displayedMode == chipper::ChipMode::ym2151;
+    dmgStereoRouteLabel.setBounds(bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight())));
     if (displayedMode == chipper::ChipMode::spc700 || displayedMode == chipper::ChipMode::paula)
     {
         dmgStereoRouteBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
@@ -3398,12 +3422,13 @@ void ChipperAudioProcessorEditor::placeDmgStereoRouteSegment(juce::Rectangle<int
     }
     else
     {
-        dmgStereoRouteSegmentBounds = bounds.removeFromTop(28).reduced(0, 1);
+        bounds.removeFromTop(std::min(compact ? 2 : 0, bounds.getHeight()));
+        dmgStereoRouteSegmentBounds = bounds.removeFromTop(std::min(compact ? 24 : 28, bounds.getHeight())).reduced(0, 1);
         layoutSegmentedButtons(dmgStereoRouteButtons, dmgStereoRouteSegmentBounds, dmgStereoRouteButtons.size());
         dmgStereoRouteBox.setBounds({});
     }
 
-    dmgStereoRouteValueLabel.setBounds(bounds);
+    dmgStereoRouteValueLabel.setBounds(compact ? juce::Rectangle<int> {} : bounds);
 }
 
 void ChipperAudioProcessorEditor::placeYmEnvelopeShapeSegment(juce::Rectangle<int> bounds)
@@ -3467,7 +3492,8 @@ void ChipperAudioProcessorEditor::placeYmChannelMixControls(juce::Rectangle<int>
 
 void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> bounds)
 {
-    snNoiseModeLabel.setBounds(bounds.removeFromTop(18));
+    const auto compact = displayedMode == chipper::ChipMode::ym2612 || displayedMode == chipper::ChipMode::ym2151;
+    snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight())));
     if (displayedMode == chipper::ChipMode::sn76489)
     {
         snNoiseModeBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
@@ -3477,12 +3503,13 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
     }
     else
     {
-        snNoiseModeSegmentBounds = bounds.removeFromTop(28).reduced(0, 1);
+        bounds.removeFromTop(std::min(compact ? 2 : 0, bounds.getHeight()));
+        snNoiseModeSegmentBounds = bounds.removeFromTop(std::min(compact ? 24 : 28, bounds.getHeight())).reduced(0, 1);
         layoutSegmentedButtons(snNoiseModeButtons, snNoiseModeSegmentBounds, snNoiseModeButtons.size());
         snNoiseModeBox.setBounds({});
     }
 
-    snNoiseModeValueLabel.setBounds(bounds);
+    snNoiseModeValueLabel.setBounds(compact ? juce::Rectangle<int> {} : bounds);
 }
 
 void ChipperAudioProcessorEditor::placeToneNoiseMixSegment(juce::Rectangle<int> bounds)
@@ -7351,7 +7378,6 @@ void ChipperAudioProcessorEditor::updateDmgStereoRouteButtons(chipper::ChipMode 
             dmgStereoRouteBox.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + spc700SamplePlaybackReadout(patch), spec->role));
     }
 
-    dmgStereoRouteValueLabel.setVisible(shouldBeVisible);
     juce::String routeReadout;
     if (mode == chipper::ChipMode::sid)
         routeReadout = sidModelReadout(patch);
@@ -7363,7 +7389,12 @@ void ChipperAudioProcessorEditor::updateDmgStereoRouteButtons(chipper::ChipMode 
         routeReadout = ym2151PanReadout(patch);
     else
         routeReadout = dmgStereoRouteReadout(patch);
+    const auto compactFmPan = mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151;
+    dmgStereoRouteValueLabel.setVisible(shouldBeVisible && ! compactFmPan);
     dmgStereoRouteValueLabel.setText(routeReadout, juce::dontSendNotification);
+    dmgStereoRouteLabel.setTooltip(withMidiCcForRole((spec != nullptr ? juce::String(spec->help) : juce::String("Chip stereo route."))
+                                                       + "\n" + routeReadout,
+                                                   chipper::ChipParameterRole::dmgStereoRoute));
 }
 
 void ChipperAudioProcessorEditor::updateYmEnvelopeShapeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible)
@@ -7523,8 +7554,13 @@ void ChipperAudioProcessorEditor::updateSnNoiseModeButtons(chipper::ChipMode mod
             snNoiseModeBox.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + noiseModeReadout(mode, patch), spec->role));
     }
 
-    snNoiseModeValueLabel.setVisible(shouldBeVisible);
-    snNoiseModeValueLabel.setText(noiseModeReadout(mode, patch), juce::dontSendNotification);
+    const auto modeReadout = noiseModeReadout(mode, patch);
+    const auto compactFmMode = mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151;
+    snNoiseModeValueLabel.setVisible(shouldBeVisible && ! compactFmMode);
+    snNoiseModeValueLabel.setText(modeReadout, juce::dontSendNotification);
+    snNoiseModeLabel.setTooltip(withMidiCcForRole((spec != nullptr ? juce::String(spec->help) : juce::String("Chip noise/DAC mode."))
+                                                   + "\n" + modeReadout,
+                                               chipper::ChipParameterRole::snNoiseMode));
 }
 
 void ChipperAudioProcessorEditor::updateDmcSampleControls()
