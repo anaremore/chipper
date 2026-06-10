@@ -1033,11 +1033,24 @@ void FmAlgorithmPreview::paint(juce::Graphics& g)
     if (graph.getWidth() < 80.0f || graph.getHeight() < 34.0f)
         return;
 
-    const auto opRadius = std::clamp(std::min(graph.getWidth(), graph.getHeight()) * 0.075f, 4.0f, 8.0f);
+    auto labelArea = graph.removeFromTop(std::min(15.0f, graph.getHeight()));
+    graph.removeFromTop(std::min(3.0f, graph.getHeight()));
+
+    const auto opRadius = std::clamp(std::min(graph.getWidth(), graph.getHeight()) * 0.095f, 5.0f, 10.0f);
     const auto carrierColour = juce::Colour(0xfff0c94d);
     const auto modColour = juce::Colour(0xff56c7d8);
     const auto mutedColour = juce::Colour(0xff72818a);
     const auto lineColour = juce::Colour(0xff56c7d8).withAlpha(follow ? 0.55f : 0.78f);
+    static constexpr std::array<const char*, 8> algorithmNames {
+        "serial 1>2>3>4",
+        "stack + branch",
+        "triple mod",
+        "dual branch",
+        "two FM pairs",
+        "1 drives 2/3/4",
+        "pair + additive",
+        "all carriers"
+    };
 
     const auto x1 = graph.getX() + graph.getWidth() * 0.15f;
     const auto x2 = graph.getX() + graph.getWidth() * 0.39f;
@@ -1148,6 +1161,15 @@ void FmAlgorithmPreview::paint(juce::Graphics& g)
         g.drawText(juce::String(static_cast<int>(i + 1u)),
                    juce::Rectangle<float> { op[i].x - opRadius, op[i].y - opRadius, opRadius * 2.0f, opRadius * 2.0f },
                    juce::Justification::centred);
+
+        if (graph.getHeight() > 50.0f)
+        {
+            g.setColour(carrier[i] ? carrierColour.withAlpha(0.84f) : modColour.withAlpha(0.84f));
+            g.setFont(juce::FontOptions(7.0f, juce::Font::bold));
+            g.drawText(carrier[i] ? "CAR" : "MOD",
+                       juce::Rectangle<float> { op[i].x - 15.0f, op[i].y + opRadius + 1.0f, 30.0f, 9.0f },
+                       juce::Justification::centred);
+        }
     }
 
     g.setColour(carrierColour.withAlpha(follow ? 0.70f : 0.95f));
@@ -1158,8 +1180,9 @@ void FmAlgorithmPreview::paint(juce::Graphics& g)
 
     g.setColour(follow ? juce::Colour(0xffaebbc4) : juce::Colour(0xffdbe8e5));
     g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
-    g.drawText(juce::String(follow ? "Follow -> " : "") + "Algorithm " + juce::String(algorithm),
-               graph.removeFromTop(13.0f),
+    g.drawText(juce::String(follow ? "Follow -> " : "") + "Alg " + juce::String(algorithm)
+                   + " | " + algorithmNames[static_cast<size_t>(std::clamp(algorithm, 0, 7))],
+               labelArea,
                juce::Justification::centredLeft);
 }
 
@@ -2563,13 +2586,9 @@ void ChipperAudioProcessorEditor::resized()
 
     auto tonePanel = moduleBounds[2].reduced(12, 9);
     tonePanel.removeFromTop(20);
-    if (displayedMode == chipper::ChipMode::sid)
-        tonePanel.removeFromTop(4);
-    else
-    {
+    if (moduleSummaryLabels[2].isVisible())
         tonePanel.removeFromTop(30);
-        tonePanel.removeFromTop(4);
-    }
+    tonePanel.removeFromTop(4);
     auto primaryTonePanel = tonePanel;
     auto secondaryTonePanel = tonePanel;
     auto tertiaryTonePanel = tonePanel;
@@ -2581,10 +2600,17 @@ void ChipperAudioProcessorEditor::resized()
         && usesSnNoiseModeSegment(displayedMode);
     if (usesFmToneStack)
     {
-        const auto fmRowHeight = std::max(34, (tonePanel.getHeight() - 12) / 3);
-        primaryTonePanel = tonePanel.removeFromTop(std::min(fmRowHeight, tonePanel.getHeight()));
+        const auto isFourOperatorFm = displayedMode == chipper::ChipMode::ym2612
+            || displayedMode == chipper::ChipMode::ym2151;
+        const auto primaryHeight = isFourOperatorFm
+            ? std::clamp(tonePanel.getHeight() - 78, 62, 104)
+            : std::max(34, (tonePanel.getHeight() - 12) / 3);
+        primaryTonePanel = tonePanel.removeFromTop(std::min(primaryHeight, tonePanel.getHeight()));
         tonePanel.removeFromTop(std::min(6, tonePanel.getHeight()));
-        secondaryTonePanel = tonePanel.removeFromTop(std::min(fmRowHeight, tonePanel.getHeight()));
+        const auto secondaryHeight = isFourOperatorFm
+            ? std::min(34, tonePanel.getHeight())
+            : std::min(primaryHeight, tonePanel.getHeight());
+        secondaryTonePanel = tonePanel.removeFromTop(secondaryHeight);
         tonePanel.removeFromTop(std::min(6, tonePanel.getHeight()));
         tertiaryTonePanel = tonePanel;
     }
