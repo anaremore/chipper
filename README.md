@@ -142,7 +142,7 @@ The default save location is:
 Documents\Chipper Presets
 ```
 
-Files saved there are scanned into the preset browser as a chip-filtered **User Presets** bank. Selecting a user preset from the browser loads the flat file directly; `Save` updates the loaded user preset file, `Save As` writes a new shareable copy, and a new sound asks for a `.chipperpreset` file name.
+Files saved there are scanned into the preset browser as a chip-filtered **User Presets** bank. Selecting a user preset from the browser loads the flat file directly; `Save` updates the loaded user preset file, `Save As` writes a new shareable copy, and a new sound asks for a `.chipperpreset` file name. A preset loaded from another folder also appears in the User Presets list for the current session, so downloaded/shared sounds stay reachable while you audition them.
 
 ## MIDI CC
 

@@ -91,7 +91,7 @@ All current APVTS parameters also have fixed MIDI CC mappings. Hardware control 
 
 ## Data Model
 
-User presets remain portable flat files rather than a plugin-private database. The editor scans `Documents\Chipper Presets` for `.chipperpreset` files, filters them by saved chip metadata, and adds them to the same Preset browser under a User Presets section. Loading one restores the APVTS state, register snapshot, and portable sample references from the file; Save writes back to the loaded file, Save As writes a new shareable copy, and saving a new sound asks for a `.chipperpreset` path.
+User presets remain portable flat files rather than a plugin-private database. The editor scans `Documents\Chipper Presets` for `.chipperpreset` files, filters them by saved chip metadata, and adds them to the same Preset browser under a User Presets section. Loading one restores the APVTS state, register snapshot, and portable sample references from the file; Save writes back to the loaded file, Save As writes a new shareable copy, and saving a new sound asks for a `.chipperpreset` path. A loaded external preset is also listed for the current editor session when it matches the active chip, keeping shared/downloaded sounds visible before the user decides whether to Save As into their bank.
 
 The UI should be built from chip definitions instead of per-chip hardcoded editor branches.
 

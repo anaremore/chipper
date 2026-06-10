@@ -3585,26 +3585,41 @@ void ChipperAudioProcessorEditor::reloadUserPresetFiles(chipper::ChipMode mode)
 {
     displayedUserPresets.clear();
 
-    const auto directory = defaultUserPresetDirectory();
-    if (! directory.isDirectory())
-        return;
-
-    juce::Array<juce::File> files;
-    directory.findChildFiles(files, juce::File::findFiles, false, "*.chipperpreset;*.xml");
-    files.sort();
-
-    for (const auto& file : files)
+    const auto addPresetFileIfMatchesMode = [this, mode](const juce::File& file)
     {
+        if (file == juce::File {} || ! file.existsAsFile())
+            return;
+
         const std::unique_ptr<juce::XmlElement> root(juce::XmlDocument::parse(file));
         if (root == nullptr || ! root->hasTagName("ChipperPreset"))
-            continue;
+            return;
 
         const auto presetMode = chipModeFromUserPresetXml(*root);
         if (! presetMode.has_value() || *presetMode != mode)
-            continue;
+            return;
 
-        displayedUserPresets.push_back({ file, userPresetNameFromXml(*root, file) });
+        const auto alreadyListed = std::any_of(displayedUserPresets.begin(),
+                                               displayedUserPresets.end(),
+                                               [&file](const UserPresetFile& preset)
+                                               {
+                                                   return preset.file == file;
+                                               });
+        if (! alreadyListed)
+            displayedUserPresets.push_back({ file, userPresetNameFromXml(*root, file) });
+    };
+
+    const auto directory = defaultUserPresetDirectory();
+    if (directory.isDirectory())
+    {
+        juce::Array<juce::File> files;
+        directory.findChildFiles(files, juce::File::findFiles, false, "*.chipperpreset;*.xml");
+        files.sort();
+
+        for (const auto& file : files)
+            addPresetFileIfMatchesMode(file);
     }
+
+    addPresetFileIfMatchesMode(currentUserPresetFile);
 
     std::sort(displayedUserPresets.begin(),
               displayedUserPresets.end(),
