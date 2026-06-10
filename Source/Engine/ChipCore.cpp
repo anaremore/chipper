@@ -7873,12 +7873,6 @@ public:
         if (! chip)
             return {};
 
-        if (keyOnMask == 0)
-        {
-            currentOutput = {};
-            return currentOutput;
-        }
-
         if (heldNote >= 0 && patch.macro == MacroKind::laser)
             applyLaserDrift();
 
@@ -8529,7 +8523,7 @@ public:
 
     StereoFrame renderSample() override
     {
-        if (! chip || keyOnMask == 0)
+        if (! chip)
         {
             currentOutput = {};
             return currentOutput;
@@ -9097,7 +9091,7 @@ public:
 
     StereoFrame renderSample() override
     {
-        if (! chip || keyOnMask == 0)
+        if (! chip)
         {
             currentOutput = {};
             return currentOutput;

@@ -1,0 +1,2 @@
+# Short OPL note: release tail should continue after the key-off event.
+note 0 48 1.0 4800
