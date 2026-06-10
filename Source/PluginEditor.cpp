@@ -15,6 +15,8 @@
 namespace
 {
 
+constexpr int userPresetItemIdBase = 10000;
+
 constexpr const char* chipperPluginVersionString =
 #ifdef JucePlugin_VersionString
     JucePlugin_VersionString;
@@ -520,6 +522,26 @@ juce::String safePresetFileStem(juce::String text)
         safe = safe.replace("--", "-");
 
     return safe.isNotEmpty() ? safe : juce::String("Chipper-Preset");
+}
+
+std::optional<chipper::ChipMode> chipModeFromUserPresetXml(const juce::XmlElement& root)
+{
+    if (root.hasAttribute("chip"))
+        return chipper::parseChipMode(root.getStringAttribute("chip").toStdString());
+
+    if (const auto* child = root.getChildByName("ChipperPreset"))
+        return chipModeFromUserPresetXml(*child);
+
+    return std::nullopt;
+}
+
+juce::String userPresetNameFromXml(const juce::XmlElement& root, const juce::File& file)
+{
+    auto name = root.getStringAttribute("name").trim();
+    if (name.isEmpty())
+        name = file.getFileNameWithoutExtension();
+
+    return name.isNotEmpty() ? name : juce::String("User Preset");
 }
 
 bool isPresetSampleReferenceTag(const juce::String& tagName)
@@ -1465,7 +1487,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     playModeBox.addItemList(chipper::parameters::playModeChoices(), 1);
     chipModeBox.setTooltip(withMidiCc("Selects the chip model or planned chip family.", chipper::parameters::id::chipMode));
     accuracyBox.setTooltip(withMidiCc("Selects the requested accuracy tier for the active core.", chipper::parameters::id::accuracy));
-    presetBox.setTooltip("Browse factory presets for the selected chip mode. Choosing one applies the sound immediately.");
+    presetBox.setTooltip("Browse factory and user presets for the selected chip mode. Choosing one applies the sound immediately.");
     macroBox.setTooltip(withMidiCc("Applies a chip-specific musical register template.", chipper::parameters::id::macro));
     playModeBox.setTooltip(withMidiCc("Chooses how incoming notes use the chip channels inside one patch.", chipper::parameters::id::playMode));
 
@@ -1481,12 +1503,18 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
     addAndMakeVisible(presetBox);
     userPresetLoadButton.setButtonText("Load");
-    userPresetLoadButton.setTooltip("Load a shareable .chipperpreset file.");
+    userPresetLoadButton.setTooltip("Import a shareable .chipperpreset file from any folder.");
     userPresetLoadButton.onClick = [this] { chooseUserPresetToLoad(); };
     addAndMakeVisible(userPresetLoadButton);
     userPresetSaveButton.setButtonText("Save");
-    userPresetSaveButton.setTooltip("Save the current sound as a shareable .chipperpreset file.");
-    userPresetSaveButton.onClick = [this] { chooseUserPresetToSave(); };
+    userPresetSaveButton.setTooltip("Save the current sound as a shareable .chipperpreset file. Loaded user presets overwrite their source file; new sounds ask for a file name.");
+    userPresetSaveButton.onClick = [this]
+    {
+        if (currentUserPresetFile != juce::File {})
+            saveUserPresetFile(currentUserPresetFile);
+        else
+            chooseUserPresetToSave();
+    };
     addAndMakeVisible(userPresetSaveButton);
     addAndMakeVisible(chipModeBox);
     addAndMakeVisible(accuracyBox);
@@ -3504,42 +3532,80 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
 {
     const juce::ScopedValueSetter<bool> suppress(suppressPresetApply, true);
     displayedPresets = chipper::presetBrowserCatalog(mode);
+    reloadUserPresetFiles(mode);
 
     presetBox.clear(juce::dontSendNotification);
 
-    std::optional<chipper::ChipMode> currentSection;
+    if (! displayedPresets.empty())
+        presetBox.addSectionHeading("Factory Presets");
+
     for (size_t i = 0; i < displayedPresets.size(); ++i)
     {
         const auto& preset = *displayedPresets[i];
-        if (! currentSection.has_value() || *currentSection != preset.chip)
-        {
-            currentSection = preset.chip;
-            presetBox.addSectionHeading(chipper::toString(preset.chip));
-        }
-
         presetBox.addItem(juce::String(preset.category) + " / " + juce::String(preset.name),
                           static_cast<int>(i + 1u));
     }
 
-    if (displayedPresets.empty())
+    if (! displayedUserPresets.empty())
+    {
+        presetBox.addSectionHeading("User Presets");
+        for (size_t i = 0; i < displayedUserPresets.size(); ++i)
+            presetBox.addItem(displayedUserPresets[i].name, userPresetItemIdBase + static_cast<int>(i));
+    }
+
+    const auto presetCount = static_cast<int>(displayedPresets.size() + displayedUserPresets.size());
+    if (presetCount == 0)
     {
         headerControlLabels[0].setText("Preset", juce::dontSendNotification);
-        presetBox.setText("No factory presets", juce::dontSendNotification);
-        presetBox.setTooltip("No factory presets are active for this chip mode yet.");
+        presetBox.setText("No presets", juce::dontSendNotification);
+        presetBox.setTooltip("No factory or user presets are active for this chip mode yet.");
     }
     else
     {
-        const auto presetCount = static_cast<int>(displayedPresets.size());
-        const auto& firstPreset = *displayedPresets.front();
         headerControlLabels[0].setText(juce::String("Preset (") + juce::String(presetCount) + ")",
                                        juce::dontSendNotification);
         presetBox.setSelectedId(0, juce::dontSendNotification);
-        presetBox.setTextWhenNothingSelected(juce::String(presetCount) + " presets - "
-                                             + juce::String(firstPreset.name));
-        presetBox.setTooltip("Browse " + juce::String(presetCount) + " factory presets for "
+        const auto firstName = ! displayedPresets.empty()
+            ? juce::String(displayedPresets.front()->name)
+            : displayedUserPresets.front().name;
+        presetBox.setTextWhenNothingSelected(juce::String(presetCount) + " presets - " + firstName);
+        presetBox.setTooltip("Browse " + juce::String(presetCount) + " factory/user presets for "
                              + juce::String(chipper::toString(mode))
                              + ". Choosing one applies an audible chip-specific sound immediately.");
     }
+}
+
+void ChipperAudioProcessorEditor::reloadUserPresetFiles(chipper::ChipMode mode)
+{
+    displayedUserPresets.clear();
+
+    const auto directory = defaultUserPresetDirectory();
+    if (! directory.isDirectory())
+        return;
+
+    juce::Array<juce::File> files;
+    directory.findChildFiles(files, juce::File::findFiles, false, "*.chipperpreset;*.xml");
+    files.sort();
+
+    for (const auto& file : files)
+    {
+        const std::unique_ptr<juce::XmlElement> root(juce::XmlDocument::parse(file));
+        if (root == nullptr || ! root->hasTagName("ChipperPreset"))
+            continue;
+
+        const auto presetMode = chipModeFromUserPresetXml(*root);
+        if (! presetMode.has_value() || *presetMode != mode)
+            continue;
+
+        displayedUserPresets.push_back({ file, userPresetNameFromXml(*root, file) });
+    }
+
+    std::sort(displayedUserPresets.begin(),
+              displayedUserPresets.end(),
+              [](const UserPresetFile& left, const UserPresetFile& right)
+              {
+                  return left.name.compareIgnoreCase(right.name) < 0;
+              });
 }
 
 void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode mode)
@@ -3788,6 +3854,22 @@ void ChipperAudioProcessorEditor::loadUserPresetFile(const juce::File& file)
     displayedDmcSampleCount = -1;
     displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();
     updateDescriptorText();
+    currentUserPresetFile = file;
+    userPresetSaveButton.setTooltip("Save changes back to " + file.getFileName()
+                                    + "\nUse Load to import another .chipperpreset file.");
+    const auto modeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::chipMode)));
+    updatePresetChoices(chipper::parameters::chipModeFromChoice(modeChoice));
+    {
+        const juce::ScopedValueSetter<bool> suppress(suppressPresetApply, true);
+        for (size_t i = 0; i < displayedUserPresets.size(); ++i)
+        {
+            if (displayedUserPresets[i].file == file)
+            {
+                presetBox.setSelectedId(userPresetItemIdBase + static_cast<int>(i), juce::dontSendNotification);
+                break;
+            }
+        }
+    }
     updateLiveControlReadouts();
     macroSummaryLabel.setText("Loaded user preset: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
     macroSummaryLabel.setTooltip("Loaded from " + file.getFullPathName());
@@ -3836,6 +3918,22 @@ void ChipperAudioProcessorEditor::saveUserPresetFile(const juce::File& file)
         return;
     }
 
+    currentUserPresetFile = file;
+    userPresetSaveButton.setTooltip("Save changes back to " + file.getFileName()
+                                    + "\nUser presets are portable .chipperpreset files.");
+    reloadUserPresetFiles(displayedMode);
+    updatePresetChoices(displayedMode);
+    {
+        const juce::ScopedValueSetter<bool> suppress(suppressPresetApply, true);
+        for (size_t i = 0; i < displayedUserPresets.size(); ++i)
+        {
+            if (displayedUserPresets[i].file == file)
+            {
+                presetBox.setSelectedId(userPresetItemIdBase + static_cast<int>(i), juce::dontSendNotification);
+                break;
+            }
+        }
+    }
     macroSummaryLabel.setText("Saved user preset: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
     macroSummaryLabel.setTooltip("Saved to " + file.getFullPathName()
                                  + "\nExternal samples are referenced, not embedded. Put shared samples beside the preset or in a Samples folder.");
@@ -3951,21 +4049,22 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
 
     const juce::ScopedValueSetter<bool> suppressPreset(suppressPresetApply, true);
     presetBox.setSelectedId(0, juce::dontSendNotification);
-    const auto presetCount = static_cast<int>(displayedPresets.size());
-    if (displayedPresets.empty())
+    const auto presetCount = static_cast<int>(displayedPresets.size() + displayedUserPresets.size());
+    if (presetCount == 0)
     {
         headerControlLabels[0].setText("Preset", juce::dontSendNotification);
-        presetBox.setTextWhenNothingSelected("No factory presets");
-        presetBox.setTooltip("No factory presets are active for this chip mode yet.");
+        presetBox.setTextWhenNothingSelected("No presets");
+        presetBox.setTooltip("No factory or user presets are active for this chip mode yet.");
     }
     else
     {
-        const auto& firstPreset = *displayedPresets.front();
+        const auto firstName = ! displayedPresets.empty()
+            ? juce::String(displayedPresets.front()->name)
+            : displayedUserPresets.front().name;
         headerControlLabels[0].setText(juce::String("Preset (") + juce::String(presetCount) + ")",
                                        juce::dontSendNotification);
-        presetBox.setTextWhenNothingSelected(juce::String(presetCount) + " presets - "
-                                             + juce::String(firstPreset.name));
-        presetBox.setTooltip("Browse " + juce::String(presetCount) + " factory presets for "
+        presetBox.setTextWhenNothingSelected(juce::String(presetCount) + " presets - " + firstName);
+        presetBox.setTooltip("Browse " + juce::String(presetCount) + " factory/user presets for "
                              + juce::String(chipper::toString(mode))
                              + ". Choosing one applies an audible chip-specific sound immediately.");
     }
@@ -3978,7 +4077,16 @@ void ChipperAudioProcessorEditor::applySelectedPreset()
     if (suppressPresetApply)
         return;
 
-    const auto selected = presetBox.getSelectedId() - 1;
+    const auto selectedId = presetBox.getSelectedId();
+    if (selectedId >= userPresetItemIdBase)
+    {
+        const auto userIndex = selectedId - userPresetItemIdBase;
+        if (userIndex >= 0 && static_cast<size_t>(userIndex) < displayedUserPresets.size())
+            loadUserPresetFile(displayedUserPresets[static_cast<size_t>(userIndex)].file);
+        return;
+    }
+
+    const auto selected = selectedId - 1;
     if (selected < 0 || static_cast<size_t>(selected) >= displayedPresets.size())
         return;
 
@@ -4018,6 +4126,8 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
 
     const juce::ScopedValueSetter<bool> suppressMacro(suppressMacroTemplateApply, true);
     const juce::ScopedValueSetter<bool> applyingPreset(applyingFactoryPreset, true);
+    currentUserPresetFile = {};
+    userPresetSaveButton.setTooltip("Save the current sound as a shareable .chipperpreset file. Loaded user presets overwrite their source file; new sounds ask for a file name.");
     setChoiceParameterFromUi(chipper::parameters::id::chipMode, chipModeChoiceIndex(preset.chip));
     setChoiceParameterFromUi(chipper::parameters::id::accuracy, accuracyChoiceIndex(preset.accuracy));
     setChoiceParameterFromUi(chipper::parameters::id::macro, macroChoiceIndex(preset.macro));
@@ -7887,7 +7997,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     macroSummaryLabel.setEnabled(true);
     macroSummaryLabel.setAlpha(hasLiveCore ? 1.0f : 0.85f);
     accuracyBox.setEnabled(hasLiveCore);
-    presetBox.setEnabled(hasLiveCore && ! displayedPresets.empty());
+    presetBox.setEnabled(hasLiveCore && (! displayedPresets.empty() || ! displayedUserPresets.empty()));
     macroBox.setEnabled(true);
     macroBox.setTooltip(hasLiveCore
                             ? "Applies a chip-specific musical template to native controls."
@@ -8105,21 +8215,32 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto macroText = macroTemplateReadout(mode, patch);
     auto performanceText = macroText;
     auto performanceTooltip = macroText;
-    if (! displayedPresets.empty())
+    if (! displayedPresets.empty() || ! displayedUserPresets.empty())
     {
-        const auto presetCount = static_cast<int>(displayedPresets.size());
+        const auto presetCount = static_cast<int>(displayedPresets.size() + displayedUserPresets.size());
         performanceText = juce::String(presetCount) + " "
             + juce::String(chipper::toString(mode))
             + " presets | " + macroText;
         performanceTooltip = "Use the Preset menu to audition "
             + juce::String(presetCount)
-            + " factory presets for "
+            + " factory/user presets for "
             + juce::String(chipper::toString(mode))
             + ".\n"
             + macroText;
     }
-    const auto selectedPreset = presetBox.getSelectedId() - 1;
-    if (selectedPreset >= 0 && static_cast<size_t>(selectedPreset) < displayedPresets.size())
+    const auto selectedId = presetBox.getSelectedId();
+    const auto selectedPreset = selectedId - 1;
+    if (selectedId >= userPresetItemIdBase)
+    {
+        const auto userIndex = selectedId - userPresetItemIdBase;
+        if (userIndex >= 0 && static_cast<size_t>(userIndex) < displayedUserPresets.size())
+        {
+            const auto& preset = displayedUserPresets[static_cast<size_t>(userIndex)];
+            performanceText = "User Preset: " + preset.name + " | " + macroText;
+            performanceTooltip = "Loaded from " + preset.file.getFullPathName() + "\n" + macroText;
+        }
+    }
+    else if (selectedPreset >= 0 && static_cast<size_t>(selectedPreset) < displayedPresets.size())
     {
         const auto& preset = *displayedPresets[static_cast<size_t>(selectedPreset)];
         performanceText = juce::String("Preset: ") + juce::String(preset.name) + " | " + macroText;

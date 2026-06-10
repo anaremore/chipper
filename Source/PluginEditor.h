@@ -184,6 +184,7 @@ private:
     void setChoiceParameterFromUi(const char* parameterId, int choiceIndex);
     void updateMacroChoices(chipper::ChipMode mode);
     void updatePresetChoices(chipper::ChipMode mode);
+    void reloadUserPresetFiles(chipper::ChipMode mode);
     void updateSegmentedControlSpecs(chipper::ChipMode mode);
     void chooseUserPresetToLoad();
     void chooseUserPresetToSave();
@@ -427,6 +428,12 @@ private:
     juce::ComboBox macroBox;
     juce::ComboBox playModeBox;
 
+    struct UserPresetFile
+    {
+        juce::File file;
+        juce::String name;
+    };
+
     juce::Slider clockSlider;
     juce::Slider dmcDirectSlider;
     juce::ComboBox dmcRateBox;
@@ -468,9 +475,11 @@ private:
     std::array<std::unique_ptr<ButtonAttachment>, sourceChannelCount> sourceEnableAttachments;
     std::unique_ptr<juce::FileChooser> dmcSampleChooser;
     std::unique_ptr<juce::FileChooser> userPresetChooser;
+    juce::File currentUserPresetFile;
 
     chipper::ChipMode displayedMode = chipper::ChipMode::nes;
     std::vector<const chipper::PresetInfo*> displayedPresets;
+    std::vector<UserPresetFile> displayedUserPresets;
     bool descriptorTextInitialized = false;
     int displayedDmcSampleCount = -1;
     uint64_t displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();
