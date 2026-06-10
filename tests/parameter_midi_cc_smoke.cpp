@@ -64,6 +64,15 @@ int main()
     }
     ok &= expect(parameterCount == mappings.size(),
                  "APVTS parameter count does not match MIDI CC mapping count");
+    ok &= expect(processor.state.getParameter(chipper::parameters::id::nesDmcSampleSlot)->getName(64).toStdString()
+                     == "Sample Slot",
+                 "Shared sample slot host parameter should not be NES-only named");
+    ok &= expect(processor.state.getParameter(chipper::parameters::id::nesDmcPlaybackMode)->getName(64).toStdString()
+                     == "Sample Playback Mode",
+                 "Shared sample playback host parameter should not be NES-only named");
+    ok &= expect(processor.state.getParameter(chipper::parameters::id::nesDmcMapRoot)->getName(64).toStdString()
+                     == "Sample Bank Root",
+                 "Shared sample map root host parameter should not be NES-only named");
     ok &= expect(chipper::parameters::samplePlaybackModeChoices(chipper::ChipMode::nes).joinIntoString("|").toStdString()
                      == "Manual Slot|Note Map|Sample Map Only",
                  "NES sample playback labels should expose DMC Sample Map Only");

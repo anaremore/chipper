@@ -540,7 +540,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 
     params.push_back(std::make_unique<juce::AudioParameterInt>(
         juce::ParameterID { id::nesDmcSampleSlot, 1 },
-        "NES DMC Sample Slot",
+        "Sample Slot",
         0,
         31,
         0));
@@ -553,13 +553,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::nesDmcPlaybackMode, 1 },
-        "NES DMC Playback Mode",
+        "Sample Playback Mode",
         nesDmcPlaybackModeChoices(),
         0));
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::nesDmcMapRoot, 1 },
-        "Sample Map Root",
+        "Sample Bank Root",
         midiNoteChoices(),
         36));
 
