@@ -295,6 +295,7 @@ uint8_t ym2612PanBitsForPatch(const PatchConfig& patch, size_t channel);
 FmEnvelopeRegisters ym2612EnvelopeRegistersForPatch(const PatchConfig& patch, size_t op);
 uint8_t ym2151AlgorithmForPatch(const PatchConfig& patch);
 uint8_t ym2151PanBitsForPatch(const PatchConfig& patch, size_t channel);
+uint8_t ym2151NoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t fmFeedbackForPatch(const PatchConfig& patch);
 uint8_t fmOperatorMultipleForPatch(ChipMode mode, const PatchConfig& patch, size_t op);
 uint8_t fmOperatorTotalLevelForPatch(ChipMode mode, const PatchConfig& patch, size_t op, float velocity = 1.0f);

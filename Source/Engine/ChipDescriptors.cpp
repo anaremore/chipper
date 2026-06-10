@@ -66,7 +66,7 @@ std::vector<MacroTemplate> ym2151Macros()
         { MacroKind::bass, "OPM Arcade Bass", "Feedback-heavy four-operator arcade/X68000 bass.", { 0.00f, 0.82f, 0.30f, 0.88f }, { true, true, false, false }, 0.08f, 1 },
         { MacroKind::lead, "OPM Metallic Lead", "Bright YM2151 lead using parallel-carrier algorithm bias.", { 0.58f, 0.48f, 0.66f, 0.84f }, { true, true, true, false }, 0.10f, 5 },
         { MacroKind::arp, "OPM Arcade Arp", "Four exposed OPM lanes arranged for fake chords and fast arps.", { 0.78f, 0.30f, 0.54f, 0.78f }, { true, true, true, true }, 0.08f, 8 },
-        { MacroKind::drum, "OPM FM Perc", "Melodic-channel percussion placeholder until native OPM noise support lands.", { 0.25f, 0.88f, 0.86f, 0.74f }, { false, false, true, true }, 0.58f, 3 },
+        { MacroKind::drum, "OPM Noise Perc", "Arcade FM percussion using the native YM2151 channel-8 noise path.", { 0.25f, 0.88f, 0.86f, 0.74f }, { false, false, true, true }, 0.58f, 3, 4, 4 },
         { MacroKind::hit, "OPM Damage Hit", "Aggressive arcade FM impact.", { 0.22f, 0.92f, 0.82f, 0.78f }, { true, false, true, true }, 0.55f, 3 },
         { MacroKind::laser, "OPM Laser Sweep", "Pitch-swept arcade FM SFX.", { 0.34f, 0.74f, 0.92f, 0.80f }, { true, true, false, true }, 0.28f, 4 },
         { MacroKind::jump, "OPM Jump Blip", "Quick upward arcade FM game gesture.", { 0.82f, 0.20f, 0.68f, 0.76f }, { true, false, false, false }, 0.18f, 7 },
@@ -557,6 +557,17 @@ std::vector<ParameterChoiceSpec> ym2151PanChoices()
     };
 }
 
+std::vector<ParameterChoiceSpec> ym2151NoiseChoices()
+{
+    return {
+        choice("Follow", "Enable OPM noise for Drum/Hit templates and keep melodic templates in normal FM.", 0.0f, 0),
+        choice("Off", "Clear YM2151 register $0F bit 7 so channel 8 remains normal four-operator FM.", 0.25f, 1),
+        choice("Low", "Enable YM2151 channel-8 operator-4 noise with a slower $0F noise clock.", 0.5f, 2),
+        choice("Mid", "Enable YM2151 channel-8 operator-4 noise with a mid $0F noise clock.", 0.75f, 3),
+        choice("High", "Enable YM2151 channel-8 operator-4 noise with a fast $0F noise clock.", 1.0f, 4)
+    };
+}
+
 std::vector<ParameterChoiceSpec> ym2612EnvelopeShapeChoices()
 {
     return {
@@ -742,11 +753,18 @@ std::vector<ChipParameterSpec> ym2151ParameterSpecs()
                       "Writes OPM operator attack, decay, sustain-rate, sustain-level, and release fields for the current musical envelope shape.",
                       ym2612EnvelopeShapeChoices(),
                       ParameterKind::chipRegister),
+        segmentedSpec(ChipParameterRole::snNoiseMode,
+                      "ym2151.noise",
+                      "OPM Noise",
+                      "Motion",
+                      "Writes YM2151 register $0F. Noise is the native channel-8 operator-4 noise source, useful for arcade percussion and SFX.",
+                      ym2151NoiseChoices(),
+                      ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::stereoSpread,
                    "ym2151.stereoSpread",
                    "Stereo Spread",
                    "Output",
-                   "Reserved modern convenience metadata; the current OPM adapter writes left/right pan enabled on every exposed voice.",
+                   "Modern output width trim after native OPM pan bits; set Pan for register-accurate left/right routing.",
                    ParameterKind::continuous)
     };
 }
@@ -2002,7 +2020,7 @@ std::array<ModuleDescriptor, 6> ym2151Modules()
         makeModule("tone", "Operators", "Musical controls write native OPM algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Envelope", "Template and user-selected shapes write native OPM attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Per-operator ADSR planned" }),
         makeModule("motion", "Motion", "Arcade FM templates map to register-backed OPM patches.", { "Chime", "Arcade bass", "Metal lead", "Laser" }),
-        makeModule("output", "Output", "ymfm stereo OPM output is rendered with left/right pan enabled per active lane.", { "Stereo core", "LFO/noise planned", "Output gain", "Reference tests needed" })
+        makeModule("output", "Output", "ymfm stereo OPM output is rendered with left/right pan enabled per active lane.", { "Stereo core", "$0F noise", "Output gain", "Reference tests needed" })
     };
 }
 
@@ -2400,11 +2418,11 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2151/OPM synthesis core.",
-                    "Renderer notes and musical templates write OPM algorithm, feedback, operator multiplier/total-level/envelope seed, key-code/key-fraction, pan, and key-on registers.",
+                    "Renderer notes and musical templates write OPM algorithm, feedback, operator multiplier/total-level/envelope seed, key-code/key-fraction, pan, $0F channel-8 noise, and key-on registers.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover all eight exposed melodic lanes."
                 },
                 {
-                    "LFO PM/AM, noise mode, timers, CSM, deep per-operator ADSR UI, golden emulator comparison, and hardware capture comparison are not complete.",
+                    "LFO PM/AM, exact OPM noise timing/hardware comparison, timers, CSM, deep per-operator ADSR UI, golden emulator comparison, and hardware capture comparison are not complete.",
                     "Cycle accuracy is not claimed."
                 })
         },
@@ -3535,6 +3553,44 @@ uint8_t ym2612PanBitsForPatch(const PatchConfig& patch, size_t channel)
 uint8_t ym2151PanBitsForPatch(const PatchConfig& patch, size_t channel)
 {
     return ym2612PanBitsForPatch(patch, channel);
+}
+
+uint8_t ym2151NoiseRegisterForPatch(const PatchConfig& patch)
+{
+    auto choice = std::clamp(patch.snNoiseMode, 0, 4);
+    if (choice == 0)
+    {
+        switch (patch.macro)
+        {
+            case MacroKind::drum:
+            case MacroKind::hit:
+                return static_cast<uint8_t>(0x80u | std::clamp(static_cast<int>(std::round(clampControl(patch.control3) * 31.0f)), 0, 31));
+            case MacroKind::laser:
+                choice = 3;
+                break;
+            case MacroKind::manual:
+            case MacroKind::coin:
+            case MacroKind::bass:
+            case MacroKind::lead:
+            case MacroKind::arp:
+            case MacroKind::jump:
+            case MacroKind::powerUp:
+            default:
+                choice = 1;
+                break;
+        }
+    }
+
+    switch (choice)
+    {
+        case 2: return 0x84u;
+        case 3: return 0x90u;
+        case 4: return 0x9fu;
+        case 1:
+        case 0:
+        default:
+            return 0x00u;
+    }
 }
 
 FmEnvelopeRegisters ym2612EnvelopeRegistersForPatch(const PatchConfig& patch, size_t op)

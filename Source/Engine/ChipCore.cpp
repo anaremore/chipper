@@ -9025,6 +9025,7 @@ public:
         currentAlgorithm.fill(0);
         currentFeedback.fill(0);
         currentPanBits.fill(0xc0u);
+        currentNoiseRegister = 0;
         currentAttackRate.fill(0);
         currentDecayRate.fill(0);
         currentSustainRate.fill(0);
@@ -9148,7 +9149,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPM register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2151/OPM synthesis core. Chipper currently maps musical controls and notes to OPM operator, algorithm, feedback, key-code/key-fraction, pan, and key-on registers for all eight melodic lanes. LFO PM/AM controls, noise mode, timers, CSM behavior, deep per-operator ADSR UI, golden comparisons, and hardware validation are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2151/OPM synthesis core. Chipper currently maps musical controls and notes to OPM operator, algorithm, feedback, key-code/key-fraction, pan, $0F channel-8 noise, and key-on registers for all eight melodic lanes. LFO PM/AM controls, exact OPM noise timing/hardware comparison, timers, CSM behavior, deep per-operator ADSR UI, golden comparisons, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -9171,6 +9172,9 @@ public:
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
              << "\"panBits0\":" << static_cast<int>(currentPanBits[0]) << ","
              << "\"panBits1\":" << static_cast<int>(currentPanBits[1]) << ","
+             << "\"noiseRegister\":" << static_cast<int>(currentNoiseRegister) << ","
+             << "\"noiseEnabled\":" << (((currentNoiseRegister & 0x80u) != 0u) ? 1 : 0) << ","
+             << "\"noiseFrequency\":" << static_cast<int>(currentNoiseRegister & 0x1fu) << ","
              << "\"envelopeShape\":" << patch.ymEnvelopeShape << ","
              << "\"attackRate0\":" << static_cast<int>(currentAttackRate[0]) << ","
              << "\"decayRate0\":" << static_cast<int>(currentDecayRate[0]) << ","
@@ -9315,6 +9319,9 @@ private:
 
     void applyPatchToAllChannels(bool preserveKeys)
     {
+        currentNoiseRegister = ym2151NoiseRegisterForPatch(patch);
+        writeOpmRegister(0x0f, currentNoiseRegister);
+
         for (size_t channel = 0; channel < 8; ++channel)
         {
             const auto velocity = channel < channelVelocity.size() && channelVelocity[channel] > 0.0f ? channelVelocity[channel] : 1.0f;
@@ -9456,6 +9463,7 @@ private:
     std::array<uint8_t, 8> currentAlgorithm {};
     std::array<uint8_t, 8> currentFeedback {};
     std::array<uint8_t, 8> currentPanBits {};
+    uint8_t currentNoiseRegister = 0;
     std::array<uint8_t, 8> currentAttackRate {};
     std::array<uint8_t, 8> currentDecayRate {};
     std::array<uint8_t, 8> currentSustainRate {};
