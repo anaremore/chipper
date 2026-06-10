@@ -1410,8 +1410,11 @@ void ChipperAudioProcessor::handleMidiMessage(const juce::MidiMessage& message)
             && ! heldNotes.empty()
             && heldNotes.back().note == note;
 
+        const auto remainingHolds = releaseHeldNote(note);
+        if (remainingHolds != 0)
+            return;
+
         core->noteOff(note);
-        forgetHeldNote(note);
 
         if (shouldRestorePreviousMonoNote && ! heldNotes.empty())
         {
@@ -2159,15 +2162,34 @@ void ChipperAudioProcessor::replayHeldNotes()
 
 void ChipperAudioProcessor::rememberHeldNote(int note, float velocity)
 {
-    heldNotes.erase(std::remove_if(heldNotes.begin(), heldNotes.end(), [note](const auto held) { return held.note == note; }),
-                    heldNotes.end());
-    heldNotes.push_back({ note, velocity });
+    const auto existing = std::find_if(heldNotes.begin(), heldNotes.end(), [note](const auto held) { return held.note == note; });
+    if (existing != heldNotes.end())
+    {
+        auto held = *existing;
+        held.velocity = velocity;
+        held.holdCount = std::max(1, held.holdCount) + 1;
+        heldNotes.erase(existing);
+        heldNotes.push_back(held);
+        return;
+    }
+
+    heldNotes.push_back({ note, velocity, 1 });
 }
 
-void ChipperAudioProcessor::forgetHeldNote(int note)
+int ChipperAudioProcessor::releaseHeldNote(int note)
 {
-    heldNotes.erase(std::remove_if(heldNotes.begin(), heldNotes.end(), [note](const auto held) { return held.note == note; }),
-                    heldNotes.end());
+    const auto existing = std::find_if(heldNotes.begin(), heldNotes.end(), [note](const auto held) { return held.note == note; });
+    if (existing == heldNotes.end())
+        return -1;
+
+    if (existing->holdCount > 1)
+    {
+        --existing->holdCount;
+        return existing->holdCount;
+    }
+
+    heldNotes.erase(existing);
+    return 0;
 }
 
 juce::AudioProcessorEditor* ChipperAudioProcessor::createEditor()

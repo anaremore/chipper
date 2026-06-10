@@ -145,6 +145,7 @@ private:
     {
         int note = -1;
         float velocity = 0.0f;
+        int holdCount = 1;
     };
 
     void ensureCore();
@@ -169,7 +170,7 @@ private:
     void synchronizeMacroTemplateFromParameters();
     void applyCurrentMacroTemplateToParameters();
     void rememberHeldNote(int note, float velocity);
-    void forgetHeldNote(int note);
+    int releaseHeldNote(int note);
 
     juce::AudioProcessorValueTreeState apvts;
     std::unique_ptr<chipper::ChipCore> core;

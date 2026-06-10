@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace
@@ -401,6 +402,27 @@ int main()
     const auto fmMonoFallbackPeak = renderEmptyBlocksPeak(fmMonoPriorityProcessor, 100);
     ok &= expect(fmMonoFallbackPeak > 0.002f,
                  "Big Mono should restore the previous held OPN2 note after releasing the newest note");
+
+    const std::array<std::pair<int, const char*>, 4> fmChipChoices {
+        std::pair<int, const char*> { 5, "OPN2" },
+        std::pair<int, const char*> { 6, "OPL" },
+        std::pair<int, const char*> { 12, "OPM" },
+        std::pair<int, const char*> { 13, "OPLL" }
+    };
+    for (const auto [chipChoice, label] : fmChipChoices)
+    {
+        ChipperAudioProcessor duplicateNoteProcessor;
+        duplicateNoteProcessor.prepareToPlay(48000.0, 256);
+        sendController(duplicateNoteProcessor, 70, controllerValueForChoice(duplicateNoteProcessor, chipper::parameters::id::chipMode, chipChoice));
+        sendController(duplicateNoteProcessor, 74, controllerValueForChoice(duplicateNoteProcessor, chipper::parameters::id::macro, 2));
+        setPlainFromHost(duplicateNoteProcessor, chipper::parameters::id::playMode, 0.0f);
+        sendNoteOn(duplicateNoteProcessor, 48);
+        sendNoteOn(duplicateNoteProcessor, 48);
+        sendNoteOff(duplicateNoteProcessor, 48);
+        const auto duplicateNotePeak = renderEmptyBlocksPeak(duplicateNoteProcessor, 160);
+        ok &= expect(duplicateNotePeak > 0.002f,
+                     std::string(label) + " should keep a retriggered duplicate note audible after the first matching note-off");
+    }
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 7));
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 5));
