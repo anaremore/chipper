@@ -605,6 +605,13 @@ int main()
     portablePresetDir.deleteRecursively();
     dmcDir.deleteRecursively();
 
+    ChipperAudioProcessor emptySpcSampleProcessor;
+    emptySpcSampleProcessor.prepareToPlay(48000.0, 64);
+    sendController(emptySpcSampleProcessor, 70, controllerValueForChoice(emptySpcSampleProcessor, chipper::parameters::id::chipMode, 7));
+    auto emptySpcInfo = emptySpcSampleProcessor.spc700BrrSampleInfo();
+    ok &= expect(! emptySpcInfo.loaded && emptySpcInfo.statusLine.contains("No external SPC700 sample bank"),
+                 "SPC700 empty sample status should clarify only the external bank is missing because generated templates remain playable");
+
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 7));
     sendController(processor, 119, controllerValueForChoice(processor, chipper::parameters::id::nesDmcPlaybackMode, 0));
     auto brrDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-spc700-brr-bank-test");
@@ -793,6 +800,13 @@ int main()
     ok &= expect(restoredSpcWavInfo.loaded && restoredSpcWavInfo.sampleName == "spc-wav-02.wav",
                  "SPC700 WAV state restore should preserve the selected slot after processing resumes");
     spcWavDir.deleteRecursively();
+
+    ChipperAudioProcessor emptyPaulaSampleProcessor;
+    emptyPaulaSampleProcessor.prepareToPlay(48000.0, 64);
+    sendController(emptyPaulaSampleProcessor, 70, controllerValueForChoice(emptyPaulaSampleProcessor, chipper::parameters::id::chipMode, 9));
+    auto emptyPaulaInfo = emptyPaulaSampleProcessor.paulaSampleInfo();
+    ok &= expect(! emptyPaulaInfo.loaded && emptyPaulaInfo.statusLine.contains("No external Paula sample bank"),
+                 "Paula empty sample status should clarify only the external bank is missing because generated templates remain playable");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 9));
     auto paulaDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-paula-sample-bank-test");

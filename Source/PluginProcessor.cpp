@@ -681,7 +681,7 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
     const std::lock_guard<std::mutex> lock(spc700SampleMutex);
     if (spc700BrrSample.bytes.empty())
     {
-        info.statusLine = "No SPC700 samples loaded";
+        info.statusLine = "No external SPC700 sample bank loaded";
         return info;
     }
 
@@ -769,7 +769,7 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::paulaSampleInf
     const std::lock_guard<std::mutex> lock(paulaSampleMutex);
     if (paulaSample.bytes.empty())
     {
-        info.statusLine = "No Paula samples loaded";
+        info.statusLine = "No external Paula sample bank loaded";
         return info;
     }
 

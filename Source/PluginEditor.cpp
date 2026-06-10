@@ -378,7 +378,7 @@ private:
                                                paulaMode,
                                                0,
                                                ChipperAudioProcessor::DmcSampleEntryInfo {
-                                                   paulaMode ? "No WAV/AIFF/8SVX files loaded" : (spc700Mode ? "No SPC700 samples loaded" : "No .dmc files loaded"), {}, 0, false, false },
+                                                   paulaMode ? "No external Paula sample bank loaded" : (spc700Mode ? "No external SPC700 sample bank loaded" : "No .dmc files loaded"), {}, 0, false, false },
                                                [this] { refreshAfterEdit(); });
             empty->setEnabled(false);
             listContent->addAndMakeVisible(*empty);
@@ -7669,8 +7669,12 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
         dmcSampleSlotBox.setSelectedId(0, juce::dontSendNotification);
 
     dmcSampleSlotBox.setEnabled(sampleCount > 0);
-    dmcSampleSlotBox.setTextWhenNothingSelected("No SPC700 samples");
-    dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the manual SPC700 sample from the loaded bank. MIDI CC117 selects the same slot; Manual playback uses it for every note.", chipper::ChipParameterRole::nesDmcSampleSlot));
+    dmcSampleSlotBox.setTextWhenNothingSelected(sampleCount > 0 ? "Select SPC700 sample" : "Generated template");
+    dmcSampleSlotBox.setTooltip(withMidiCcForRole(
+        sampleCount > 0
+            ? "Selects the manual SPC700 sample from the loaded bank. MIDI CC117 selects the same slot; Manual playback uses it for every note."
+            : "No external SPC700 bank is loaded. Chipper is playing the generated SPC700 sample template selected by Sample Shape/Template.",
+        chipper::ChipParameterRole::nesDmcSampleSlot));
     dmcPlaybackModeBox.setTooltip(withMidiCcForRole("SPC700 Sample Playback. Manual Slot plays the selected dropdown slot; Note Map maps loaded folder slots upward from the Sample Map Root. Drum Map uses the same bank mapping path for one-shot/percussion templates.", chipper::ChipParameterRole::nesDmcPlaybackMode));
     dmcMapRootBox.setTooltip(withMidiCcForRole("SPC700 Sample Map Root. Loaded folder slots map upward from this MIDI note when playback is a map mode.", chipper::ChipParameterRole::nesDmcMapRoot));
 
@@ -7787,8 +7791,12 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
         dmcSampleSlotBox.setSelectedId(0, juce::dontSendNotification);
 
     dmcSampleSlotBox.setEnabled(sampleCount > 0);
-    dmcSampleSlotBox.setTextWhenNothingSelected("No Paula samples");
-    dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the manual Paula sample from the loaded bank. MIDI CC117 selects the same slot; Manual Slot uses it for every note.", chipper::ChipParameterRole::nesDmcSampleSlot));
+    dmcSampleSlotBox.setTextWhenNothingSelected(sampleCount > 0 ? "Select Paula sample" : "Generated template");
+    dmcSampleSlotBox.setTooltip(withMidiCcForRole(
+        sampleCount > 0
+            ? "Selects the manual Paula sample from the loaded bank. MIDI CC117 selects the same slot; Manual Slot uses it for every note."
+            : "No external Paula bank is loaded. Chipper is playing the generated Paula sample template selected by Sample Shape/Template.",
+        chipper::ChipParameterRole::nesDmcSampleSlot));
     dmcPlaybackModeBox.setTooltip(withMidiCcForRole("Paula Sample Playback. Manual Slot plays the selected dropdown slot; Key Map maps loaded folder slots upward from the Sample Map Root for held/melodic samples. Tracker Map uses the same bank mapping path and resolves Follow Template playback to one-shot tracker kits.", chipper::ChipParameterRole::nesDmcPlaybackMode));
     dmcMapRootBox.setTooltip(withMidiCcForRole("Paula Sample Map Root. Loaded folder slots map upward from this MIDI note when Sample Playback is a map mode.", chipper::ChipParameterRole::nesDmcMapRoot));
 
