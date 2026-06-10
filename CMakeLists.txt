@@ -1355,7 +1355,7 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_spc700_chip_poly_assert PROPERTIES DEPENDS chipper_render_spc700_chip_poly_smoke)
     add_test(NAME chipper_render_spc700_loop_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-loop-smoke.json --implemented-contains partial --macro Lead --min-peak 0.05 --min-rms 0.2 --min-zero-crossings 50 --register-writes 0 --note-events 0 --core-min samplePlaybackMode=1 --core-max samplePlaybackMode=1 --core-min sampleLoopEnabled=1 --core-max sampleLoopEnabled=1 --descriptor-param-kind dmgStereoRoute=chipRegister --descriptor-param-surface dmgStereoRoute=menu --descriptor-param-label "dmgStereoRoute=Playback" --descriptor-param-choices dmgStereoRoute=3
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-loop-smoke.json --implemented-contains partial --macro Lead --min-peak 0.05 --min-rms 0.2 --min-zero-crossings 50 --register-writes 0 --note-events 0 --core-min samplePlaybackMode=1 --core-max samplePlaybackMode=1 --core-min sampleLoopEnabled=1 --core-max sampleLoopEnabled=1 --descriptor-param-kind dmgStereoRoute=chipRegister --descriptor-param-surface dmgStereoRoute=menu --descriptor-param-label "dmgStereoRoute=Loop Mode" --descriptor-param-choices dmgStereoRoute=3
     )
     set_tests_properties(chipper_render_spc700_loop_assert PROPERTIES DEPENDS chipper_render_spc700_loop_smoke)
     add_test(NAME chipper_render_spc700_envelope_pad_assert

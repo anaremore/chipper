@@ -1403,9 +1403,9 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
                       ParameterKind::chipRegister),
         { ChipParameterRole::dmgStereoRoute,
           "spc700.samplePlayback",
-          "Playback",
+          "Loop Mode",
           "Sample",
-          "Chooses whether generated or loaded SPC700-style samples loop like instruments or stop at the sample end like one-shot drums. Follow resolves from the selected template.",
+          "Chooses whether generated or loaded SPC700-style samples loop like instruments or stop at the sample end like one-shot drums. Follow resolves from the selected template. This is separate from Sample Playback, which chooses Manual Slot versus note-mapped bank browsing.",
           ParameterKind::chipRegister,
           ControlSurface::menu,
           {

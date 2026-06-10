@@ -1447,6 +1447,20 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     dmcSampleLabel.setTooltip(withMidiCcForRole("Load one .dmc file or a folder of .dmc files. CC selects the active preloaded sample slot.", chipper::ChipParameterRole::nesDmcSampleSlot));
     addAndMakeVisible(dmcSampleLabel);
 
+    for (auto* label : { &dmcPlaybackModeLabel, &dmcMapRootLabel })
+    {
+        label->setJustificationType(juce::Justification::centredLeft);
+        label->setColour(juce::Label::textColourId, juce::Colour(0xff56c7d8));
+        label->setFont(juce::FontOptions(10.5f, juce::Font::bold));
+        label->setMinimumHorizontalScale(0.7f);
+        label->setVisible(false);
+        addAndMakeVisible(*label);
+    }
+    dmcPlaybackModeLabel.setText("Bank Mode", juce::dontSendNotification);
+    dmcPlaybackModeLabel.setTooltip(withMidiCcForRole("Chooses whether the loaded sample bank uses one manual slot or maps slots across MIDI notes.", chipper::ChipParameterRole::nesDmcPlaybackMode));
+    dmcMapRootLabel.setText("Root", juce::dontSendNotification);
+    dmcMapRootLabel.setTooltip(withMidiCcForRole("First MIDI note used by sample bank note-map modes.", chipper::ChipParameterRole::nesDmcMapRoot));
+
     dmcSampleStatusLabel.setJustificationType(juce::Justification::centredLeft);
     dmcSampleStatusLabel.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
     dmcSampleStatusLabel.setFont(juce::FontOptions(10.0f));
@@ -2817,6 +2831,8 @@ void ChipperAudioProcessorEditor::resized()
         auto sampleHeader = dmcCell.removeFromTop(20);
         dmcSampleLabel.setText("DMC", juce::dontSendNotification);
         dmcSampleLabel.setBounds(sampleHeader.removeFromLeft(42));
+        dmcPlaybackModeLabel.setBounds({});
+        dmcMapRootLabel.setBounds({});
         dmcPlaybackModeBox.setBounds(sampleHeader.removeFromLeft(104).reduced(0, 1));
         sampleHeader.removeFromLeft(4);
         const auto buttonWidth = std::max(42, (sampleHeader.getWidth() - 12) / 3);
@@ -2859,11 +2875,16 @@ void ChipperAudioProcessorEditor::resized()
         dmcSampleBankButton.setBounds(sampleHeader.removeFromLeft(brrButtonWidth).reduced(0, 1));
         sampleCell.removeFromTop(4);
         auto playbackRow = sampleCell.removeFromTop(24);
+        dmcPlaybackModeLabel.setText("Bank Mode", juce::dontSendNotification);
+        dmcPlaybackModeLabel.setBounds(playbackRow.removeFromLeft(78));
+        playbackRow.removeFromLeft(6);
         dmcPlaybackModeBox.setBounds(playbackRow.reduced(0, 1));
         sampleCell.removeFromTop(4);
         auto sampleRow = sampleCell.removeFromTop(22);
         auto rootCell = sampleRow.removeFromRight(86);
         sampleRow.removeFromRight(6);
+        dmcMapRootLabel.setBounds(rootCell.removeFromLeft(34));
+        rootCell.removeFromLeft(3);
         dmcSampleSlotBox.setBounds(sampleRow.reduced(0, 1));
         dmcMapRootBox.setBounds(rootCell.reduced(0, 1));
         sampleCell.removeFromTop(3);
@@ -2877,6 +2898,8 @@ void ChipperAudioProcessorEditor::resized()
         dmcRateBox.setBounds({});
         dmcSampleLabel.setBounds({});
         dmcSampleStatusLabel.setBounds({});
+        dmcPlaybackModeLabel.setBounds({});
+        dmcMapRootLabel.setBounds({});
         dmcSampleFileButton.setBounds({});
         dmcSampleFolderButton.setBounds({});
         dmcSampleBankButton.setBounds({});
@@ -7461,8 +7484,11 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto showPaulaSampleControls = hasLiveCore && mode == chipper::ChipMode::paula;
     const auto showSampleBankControls = showNesDmcSampleControls || showSpc700BrrControls || showPaulaSampleControls;
     const auto showSampleFileControls = showSampleBankControls;
+    const auto showSampleBankLabels = showSpc700BrrControls || showPaulaSampleControls;
     dmcSampleLabel.setVisible(showSampleFileControls);
     dmcSampleStatusLabel.setVisible(showSampleFileControls);
+    dmcPlaybackModeLabel.setVisible(showSampleBankLabels);
+    dmcMapRootLabel.setVisible(showSampleBankLabels);
     dmcSampleFileButton.setVisible(showSampleFileControls);
     dmcSampleFolderButton.setVisible(showSampleFileControls);
     dmcSampleBankButton.setVisible(showSampleBankControls);
@@ -7472,6 +7498,8 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcLoopButton.setVisible(showNesDmcSampleControls);
     dmcSampleLabel.setEnabled(showSampleFileControls);
     dmcSampleStatusLabel.setEnabled(showSampleFileControls);
+    dmcPlaybackModeLabel.setEnabled(showSampleBankLabels);
+    dmcMapRootLabel.setEnabled(showSampleBankLabels);
     dmcSampleFileButton.setEnabled(showSampleFileControls);
     dmcSampleFolderButton.setEnabled(showSampleFileControls);
     dmcSampleBankButton.setEnabled(showSampleBankControls);
@@ -7481,6 +7509,8 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcLoopButton.setEnabled(showNesDmcSampleControls);
     dmcSampleLabel.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
     dmcSampleStatusLabel.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
+    dmcPlaybackModeLabel.setAlpha(showSampleBankLabels ? 1.0f : 0.55f);
+    dmcMapRootLabel.setAlpha(showSampleBankLabels ? 1.0f : 0.55f);
     dmcSampleFileButton.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
     dmcSampleFolderButton.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
     dmcSampleBankButton.setAlpha(showSampleBankControls ? 1.0f : 0.55f);

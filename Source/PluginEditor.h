@@ -339,6 +339,8 @@ private:
     juce::Label dmcRateLabel;
     juce::Label dmcSampleLabel;
     juce::Label dmcSampleStatusLabel;
+    juce::Label dmcPlaybackModeLabel;
+    juce::Label dmcMapRootLabel;
     juce::Label outputLabel;
     OutputScopePreview outputScopePreview;
     juce::Label stereoSpreadLabel;

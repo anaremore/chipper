@@ -815,7 +815,7 @@ int main()
     ok &= expectPreset(chipper::ChipMode::spc700, "spc700-pmon-shimmer");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Sample Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, 5, "Follow");
-    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Playback");
+    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Loop Mode");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, "Sample");
     ok &= expectChoiceRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ControlSurface::menu, 3, "Follow Template");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Envelope Shape");
@@ -835,6 +835,7 @@ int main()
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcPlaybackMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Sample Playback");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcPlaybackMode, "Sample");
     ok &= expectSpecHelpContains(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcPlaybackMode, "manual slot", "SPC700 sample playback help should explain manual-slot behavior");
+    ok &= expectSpecHelpContains(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, "separate from Sample Playback", "SPC700 loop mode help should distinguish voice lifetime from bank mapping");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::snNoiseMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Noise Source");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::snNoiseMode, "Noise");
     ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::snNoiseMode, 5, "Follow");
