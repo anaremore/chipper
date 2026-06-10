@@ -298,7 +298,7 @@ int main()
                      "CC74 SPC700 Drum macro should show sample playback as Drum Map");
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 3));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 1.0f, 0.0001f,
-                     "CC74 SPC700 Lead macro should show sample playback as Key Map");
+                     "CC74 SPC700 Lead macro should show sample playback as Note Map");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 2));
     sendController(processor, 90, controllerValueForChoice(processor, chipper::parameters::id::ymEnvelopeShape, 2));
@@ -639,10 +639,10 @@ int main()
     sendController(spcWavKeyMapLoopProcessor, 119, controllerValueForChoice(spcWavKeyMapLoopProcessor, chipper::parameters::id::nesDmcPlaybackMode, 1));
     setPlainFromHost(spcWavKeyMapLoopProcessor, chipper::parameters::id::dmgStereoRoute, 0.0f);
     ok &= expect(spcWavKeyMapLoopProcessor.loadSpc700BrrSampleDirectory(spcWavDir).wasOk(),
-                 "Should load SPC700 WAV sample directory for Key Map loop audition");
+                 "Should load SPC700 WAV sample directory for Note Map loop audition");
     const auto spcWavKeyMapTailPeak = renderHeldNoteTailPeak(spcWavKeyMapLoopProcessor, 38);
     ok &= expect(spcWavKeyMapTailPeak > 0.0001f,
-                 "SPC700 Key Map should keep melodic Follow Template playback looping while a note is held");
+                 "SPC700 Note Map should keep melodic Follow Template playback looping while a note is held");
 
     ChipperAudioProcessor spcWavDrumMapOneShotProcessor;
     spcWavDrumMapOneShotProcessor.prepareToPlay(48000.0, 256);
