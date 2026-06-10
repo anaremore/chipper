@@ -871,6 +871,8 @@ int main()
     ok &= expectPreset(chipper::ChipMode::huc6280, "huc-boss-alert");
     ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::huc6280, chipper::ChipParameterRole::waveShape, 5, "Follow");
+    ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Ch 1/2 LFO");
+    ok &= expectSegmentedRegister(chipper::ChipMode::huc6280, chipper::ChipParameterRole::dmgStereoRoute, 5, "Follow");
     ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 5");
     ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::source6Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 6");
     ok &= expectMacroLabel(chipper::ChipMode::namcoWsg, chipper::MacroKind::arp, "Namco Tracker Arp");

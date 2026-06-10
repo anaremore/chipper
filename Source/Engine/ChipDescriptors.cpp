@@ -1518,6 +1518,19 @@ std::vector<ChipParameterSpec> huc6280ParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source6Level, "huc6280.channel6.level", "Channel 6 Level", "Modern trim after HuC6280 channel 6 volume."),
         stereoSpreadSpec("huc6280.stereoSpread", "Modern stereo convenience that spreads audible HuC6280 channels; zero preserves centered output."),
         envelopeSpec("huc6280.decay", "Decay", "Applies a musical decay helper while native channel volume remains visible in debug state."),
+        segmentedSpec(ChipParameterRole::dmgStereoRoute,
+                      "huc6280.lfoPair",
+                      "Ch 1/2 LFO",
+                      "Motion",
+                      "Selects Chipper's partial HuC6280 channel-pair pitch modulation path. The source concept follows the PC Engine PSG channel 1/2 FM-LFO pairing, but exact native LFO timing is not yet verified.",
+                      {
+                          choice("Follow", "Use the selected HuC6280 template to decide whether the channel-pair LFO is active.", 0.0f, 0),
+                          choice("Off", "Keep channels 1 and 2 as independent audible wavetable voices.", 0.25f, 1),
+                          choice("Light", "Use channel 2 as a muted wavetable LFO for gentle channel 1 pitch movement.", 0.5f, 2),
+                          choice("Deep", "Use channel 2 as a muted wavetable LFO for stronger PC Engine-style pitch movement.", 0.75f, 3),
+                          choice("Fast", "Use channel 2 as a muted faster wavetable LFO for sharp arcade chirps.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister),
         segmentedSpec(ChipParameterRole::waveShape,
                       "huc6280.waveShape",
                       "Wave Shape",
@@ -3713,6 +3726,34 @@ bool huc6280ChannelUsesNoiseForPatch(const PatchConfig& patch, size_t channel)
 {
     const auto usesNoiseTemplate = patch.macro == MacroKind::drum || patch.macro == MacroKind::hit || patch.waveShape == 4;
     return usesNoiseTemplate && channel >= 4u;
+}
+
+uint8_t huc6280LfoModeForPatch(const PatchConfig& patch)
+{
+    const auto explicitChoice = std::clamp(patch.dmgStereoRoute, 0, 4);
+    if (explicitChoice > 0)
+        return static_cast<uint8_t>(explicitChoice);
+
+    switch (patch.macro)
+    {
+        case MacroKind::lead:
+        case MacroKind::arp:
+            return 2;
+        case MacroKind::laser:
+        case MacroKind::powerUp:
+            return 3;
+        case MacroKind::coin:
+        case MacroKind::jump:
+            return 4;
+        case MacroKind::manual:
+        case MacroKind::bass:
+        case MacroKind::drum:
+        case MacroKind::hit:
+        default:
+            break;
+    }
+
+    return 1;
 }
 
 uint8_t sccVolumeForPatch(const PatchConfig& patch, size_t channel)

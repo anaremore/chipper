@@ -4534,6 +4534,7 @@ public:
         noteStamp = 0;
         heldNote = -1;
         noteVelocity = 0.0f;
+        lfoPhase = 0.0;
 
         for (size_t channel = 0; channel < waveRam.size(); ++channel)
             seedWave(channel);
@@ -4701,7 +4702,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Six channel-select, frequency, control, balance, waveform-RAM, and noise-control register paths are modeled with wavetable playback and simplified LFSR noise; LFO behavior, exact noise taps, DDA details, stereo register behavior, timer edge timing, and hardware validation are not complete.";
+        return "Six channel-select, frequency, control, balance, waveform-RAM, and noise-control register paths are modeled with wavetable playback, simplified LFSR noise, and a partial channel 2 to channel 1 FM-LFO pairing; exact LFO register timing/scaling, exact noise taps, DDA details, stereo register behavior, timer edge timing, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -4729,6 +4730,13 @@ public:
              << "\"control5\":" << static_cast<int>(control[5]) << ","
              << "\"noiseControl0\":" << static_cast<int>(noiseControl[0]) << ","
              << "\"noiseControl5\":" << static_cast<int>(noiseControl[5]) << ","
+             << "\"lfoChoice\":" << std::clamp(patch.dmgStereoRoute, 0, 4) << ","
+             << "\"lfoMode\":" << static_cast<int>(huc6280LfoModeForPatch(patch)) << ","
+             << "\"lfoEnabled\":" << (lfoEnabled() ? 1 : 0) << ","
+             << "\"lfoSourceChannel\":1,"
+             << "\"lfoTargetChannel\":0,"
+             << "\"lfoDepthCents\":" << static_cast<int>(std::round(lfoDepthSemitones() * 100.0)) << ","
+             << "\"lfoRateHz\":" << lfoRateHz() << ","
              << "\"waveRam0\":" << static_cast<int>(waveRam[0][0]) << ","
              << "\"waveRam31\":" << static_cast<int>(waveRam[0][31]) << ","
              << "\"sourceEnabled0\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
@@ -4776,6 +4784,8 @@ private:
 
     bool channelAudible(size_t channel) const
     {
+        if (channel == 1u && lfoEnabled())
+            return false;
         if (channel < patch.sourceEnabled.size())
             return sourceEnabled(patch, channel);
         return false;
@@ -4836,6 +4846,12 @@ private:
 
     double renderChannel(size_t channel)
     {
+        if (channel == 1u && lfoEnabled())
+        {
+            advanceLfoSource();
+            return 0.0;
+        }
+
         if (! channelAudible(channel))
             return 0.0;
 
@@ -4844,7 +4860,12 @@ private:
             return 0.0;
 
         const auto period = std::max<uint16_t>(1, frequency[channel]);
-        const auto hz = clock / (32.0 * static_cast<double>(period));
+        auto hz = clock / (32.0 * static_cast<double>(period));
+        if (channel == 0u && lfoEnabled())
+        {
+            const auto shape = currentLfoSample();
+            hz *= std::pow(2.0, (shape * lfoDepthSemitones()) / 12.0);
+        }
         const auto useNoise = (noiseControl[channel] & 0x80u) != 0 || ((patch.waveShape == 4 || patch.macro == MacroKind::drum || patch.macro == MacroKind::hit) && channel >= 4);
         if (useNoise)
             return renderNoise(channel, hz) * volume;
@@ -4868,6 +4889,47 @@ private:
                 noiseLfsr[channel] = 0x1ffffu;
         }
         return (noiseLfsr[channel] & 1u) != 0 ? 1.0 : -1.0;
+    }
+
+    bool lfoEnabled() const
+    {
+        return huc6280LfoModeForPatch(patch) > 1u
+            && sourceEnabled(patch, 0)
+            && sourceEnabled(patch, 1);
+    }
+
+    double lfoDepthSemitones() const
+    {
+        switch (huc6280LfoModeForPatch(patch))
+        {
+            case 2: return 0.25 + static_cast<double>(clamp01(patch.control3)) * 0.75;
+            case 3: return 1.25 + static_cast<double>(clamp01(patch.control3)) * 2.75;
+            case 4: return 0.75 + static_cast<double>(clamp01(patch.control3)) * 1.50;
+            default: return 0.0;
+        }
+    }
+
+    double lfoRateHz() const
+    {
+        const auto motion = static_cast<double>(clamp01(patch.control2));
+        switch (huc6280LfoModeForPatch(patch))
+        {
+            case 2: return 2.0 + motion * 5.0;
+            case 3: return 4.0 + motion * 9.0;
+            case 4: return 9.0 + motion * 18.0;
+            default: return 0.0;
+        }
+    }
+
+    double currentLfoSample() const
+    {
+        const auto index = static_cast<size_t>(std::floor(lfoPhase * 32.0)) & 31u;
+        return (static_cast<double>(waveRam[1][index]) / 31.0) * 2.0 - 1.0;
+    }
+
+    void advanceLfoSource()
+    {
+        lfoPhase = wrapPhase(lfoPhase + lfoRateHz() / sampleRate);
     }
 
     int selectChipPolyChannel(int midiNote) const
@@ -4962,6 +5024,7 @@ private:
     std::array<double, 6> phase {};
     std::array<double, 6> noisePhase {};
     std::array<uint32_t, 6> noiseLfsr {};
+    double lfoPhase = 0.0;
     int heldNote = -1;
     float noteVelocity = 0.0f;
     std::array<int, 6> channelNotes {};

@@ -29,7 +29,7 @@ Implemented depth varies by chip. See [docs/emulation-accuracy.md](docs/emulatio
 | SNES SPC700-style | Partial clean-room eight-voice BRR/WAV/AIFF sample-player model with note maps, loop handling, Gaussian-style interpolation, PMON-style pitch modulation, noise, and musical echo helper |
 | Atari POKEY | Partial clean-room polynomial/timer model |
 | Amiga Paula | Partial clean-room tracker-sampler model with file/folder sample banks |
-| PC Engine HuC6280 | Partial clean-room wavetable/noise model |
+| PC Engine HuC6280 | Partial clean-room wavetable/noise model with six lanes and partial Ch 1/2 FM-LFO pairing |
 | Namco arcade WSG | Partial clean-room wavetable model |
 | YM2151 / OPM | Verified-partial BSD-3-Clause `ymfm` OPM adapter |
 | YM2413 / OPLL | Verified-partial MIT `emu2413` preset-FM adapter |
