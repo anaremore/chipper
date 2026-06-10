@@ -378,7 +378,7 @@ private:
                                                paulaMode,
                                                0,
                                                ChipperAudioProcessor::DmcSampleEntryInfo {
-                                                   paulaMode ? "No external Paula sample bank loaded" : (spc700Mode ? "No external SPC700 sample bank loaded" : "No .dmc files loaded"), {}, 0, false, false },
+                                                   paulaMode ? "No external Paula sample bank loaded" : (spc700Mode ? "Generated SPC700 template active; load samples to replace it" : "No .dmc files loaded"), {}, 0, false, false },
                                                [this] { refreshAfterEdit(); });
             empty->setEnabled(false);
             listContent->addAndMakeVisible(*empty);

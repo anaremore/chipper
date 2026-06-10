@@ -609,8 +609,8 @@ int main()
     emptySpcSampleProcessor.prepareToPlay(48000.0, 64);
     sendController(emptySpcSampleProcessor, 70, controllerValueForChoice(emptySpcSampleProcessor, chipper::parameters::id::chipMode, 7));
     auto emptySpcInfo = emptySpcSampleProcessor.spc700BrrSampleInfo();
-    ok &= expect(! emptySpcInfo.loaded && emptySpcInfo.statusLine.contains("No external SPC700 sample bank"),
-                 "SPC700 empty sample status should clarify only the external bank is missing because generated templates remain playable");
+    ok &= expect(! emptySpcInfo.loaded && emptySpcInfo.statusLine.contains("Generated SPC700 template active"),
+                 "SPC700 empty sample status should clarify that generated templates remain playable without an external bank");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 7));
     sendController(processor, 119, controllerValueForChoice(processor, chipper::parameters::id::nesDmcPlaybackMode, 0));

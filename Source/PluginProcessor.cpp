@@ -681,7 +681,7 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
     const std::lock_guard<std::mutex> lock(spc700SampleMutex);
     if (spc700BrrSample.bytes.empty())
     {
-        info.statusLine = "No external SPC700 sample bank loaded";
+        info.statusLine = "Generated SPC700 template active; load File/Folder for external samples";
         return info;
     }
 
