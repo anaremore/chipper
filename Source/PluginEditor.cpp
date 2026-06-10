@@ -2654,17 +2654,26 @@ void ChipperAudioProcessorEditor::resized()
     {
         const auto isFourOperatorFm = displayedMode == chipper::ChipMode::ym2612
             || displayedMode == chipper::ChipMode::ym2151;
-        const auto primaryHeight = isFourOperatorFm
-            ? std::clamp(tonePanel.getHeight() - 78, 62, 104)
-            : std::max(34, (tonePanel.getHeight() - 12) / 3);
-        primaryTonePanel = tonePanel.removeFromTop(std::min(primaryHeight, tonePanel.getHeight()));
-        tonePanel.removeFromTop(std::min(6, tonePanel.getHeight()));
-        const auto secondaryHeight = isFourOperatorFm
-            ? std::min(34, tonePanel.getHeight())
-            : std::min(primaryHeight, tonePanel.getHeight());
-        secondaryTonePanel = tonePanel.removeFromTop(secondaryHeight);
-        tonePanel.removeFromTop(std::min(6, tonePanel.getHeight()));
-        tertiaryTonePanel = tonePanel;
+        if (isFourOperatorFm)
+        {
+            const auto availableHeight = tonePanel.getHeight();
+            const auto routeHeight = std::clamp(availableHeight / 3, 38, 50);
+            const auto gapHeight = std::min(6, std::max(0, availableHeight - routeHeight));
+            const auto primaryHeight = std::max(54, availableHeight - routeHeight - gapHeight);
+            primaryTonePanel = tonePanel.removeFromTop(std::min(primaryHeight, tonePanel.getHeight()));
+            tonePanel.removeFromTop(std::min(gapHeight, tonePanel.getHeight()));
+            secondaryTonePanel = {};
+            tertiaryTonePanel = tonePanel;
+        }
+        else
+        {
+            const auto primaryHeight = std::max(34, (tonePanel.getHeight() - 12) / 3);
+            primaryTonePanel = tonePanel.removeFromTop(std::min(primaryHeight, tonePanel.getHeight()));
+            tonePanel.removeFromTop(std::min(6, tonePanel.getHeight()));
+            secondaryTonePanel = tonePanel.removeFromTop(std::min(primaryHeight, tonePanel.getHeight()));
+            tonePanel.removeFromTop(std::min(6, tonePanel.getHeight()));
+            tertiaryTonePanel = tonePanel;
+        }
     }
     else if (usesSampleToneStack)
     {
@@ -2799,7 +2808,8 @@ void ChipperAudioProcessorEditor::resized()
 
     auto outputPanel = moduleBounds[5].reduced(12, 9);
     outputPanel.removeFromTop(20);
-    outputPanel.removeFromTop(30);
+    if (moduleSummaryLabels[5].isVisible())
+        outputPanel.removeFromTop(30);
     outputPanel.removeFromTop(4);
     outputPanel.removeFromBottom(6);
     auto outputTonePanel = outputPanel;
@@ -2809,8 +2819,12 @@ void ChipperAudioProcessorEditor::resized()
         && usesDmgStereoRouteSegment(displayedMode);
     if (splitOutputCard)
     {
-        outputTonePanel = outputPanel.removeFromTop(std::min(48, outputPanel.getHeight()));
-        outputPanel.removeFromTop(std::min(8, outputPanel.getHeight()));
+        const auto availableHeight = outputPanel.getHeight();
+        const auto routeHeight = std::clamp(availableHeight / 2, 42, 52);
+        const auto gapHeight = std::min(6, std::max(0, availableHeight - routeHeight));
+        const auto toneHeight = std::max(38, availableHeight - routeHeight - gapHeight);
+        outputTonePanel = outputPanel.removeFromTop(std::min(toneHeight, outputPanel.getHeight()));
+        outputPanel.removeFromTop(std::min(gapHeight, outputPanel.getHeight()));
         outputRoutePanel = outputPanel;
     }
     if (displayedMode != chipper::ChipMode::sid)
@@ -7840,6 +7854,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto hasCustomOutputSurface = hasLiveCore
         && mode != chipper::ChipMode::sid
         && (usesStereoSpreadControl(mode) || usesDmgStereoRouteSegment(mode));
+    moduleSummaryLabels[5].setVisible(! hasCustomOutputSurface);
     for (auto& itemLabel : moduleItemLabels[5])
         itemLabel.setVisible(! hasCustomOutputSurface && ! itemLabel.getText().isEmpty());
     resized();
