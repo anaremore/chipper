@@ -7873,6 +7873,14 @@ public:
         if (! chip)
             return {};
 
+        if (! anyAudibleSourceEnabled() && ! dacActive)
+        {
+            lastNativeLeft = 0;
+            lastNativeRight = 0;
+            currentOutput = {};
+            return currentOutput;
+        }
+
         if (heldNote >= 0 && patch.macro == MacroKind::laser)
             applyLaserDrift();
 
@@ -8120,6 +8128,16 @@ private:
             return sourceEnabled(patch, channel);
 
         return std::any_of(patch.sourceEnabled.begin(), patch.sourceEnabled.end(), [](bool enabled) { return enabled; });
+    }
+
+    bool anyAudibleSourceEnabled() const
+    {
+        for (size_t channel = 0; channel < 6u; ++channel)
+        {
+            if (channelEnabled(channel))
+                return true;
+        }
+        return false;
     }
 
     void applyChannelPatch(size_t channel, float velocity)

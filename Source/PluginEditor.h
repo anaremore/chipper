@@ -148,6 +148,7 @@ private:
     static constexpr size_t sidAdsrFieldCount = 4;
     static constexpr size_t sidAdsrVoiceCount = 3;
     static constexpr size_t sidAdsrOverrideCount = sidAdsrFieldCount * sidAdsrVoiceCount;
+    static constexpr size_t fmOperatorReadoutRows = 4;
     static constexpr size_t sidFilterRoutingChoiceCount = 9;
 
     void timerCallback() override;
@@ -162,6 +163,7 @@ private:
                             juce::Rectangle<int> bounds);
     void placeLabeledSliderWithReadout(juce::Slider& slider, juce::Label& label, juce::Label& valueLabel, juce::Rectangle<int> bounds);
     void placeSidAdsrControls(juce::Rectangle<int> bounds);
+    void placeFmOperatorRegisterSurface(chipper::ChipMode mode, juce::Rectangle<int> bounds);
     void placePulseDutySegment(juce::Rectangle<int> bounds);
     void placePulse2DutySegment(juce::Rectangle<int> bounds);
     void placeWaveShapeSegment(juce::Rectangle<int> bounds);
@@ -228,6 +230,8 @@ private:
     juce::String wavetableSourceRegisterReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const;
     juce::String fmChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String fmFeedbackReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
+    juce::String fmOperatorRegisterReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t op) const;
+    juce::String fmOperatorRegisterTooltip(chipper::ChipMode mode, size_t op) const;
     juce::String ym2612DacModeReadout(const chipper::PatchConfig& patch) const;
     juce::String fmSourceRegisterReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const;
     juce::String sourceCardNativeLabel(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index, juce::String fallback) const;
@@ -290,6 +294,7 @@ private:
     void setSnNoiseModeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setEnvelopeDecayControlVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setSidAdsrControlsVisible(bool shouldBeVisible);
+    void setFmOperatorRegisterSurfaceVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void updateSourceChannelButtons(chipper::ChipMode mode);
     void updateSourcePreviewScope(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index, bool shouldBeVisible);
     void updateStereoSpreadReadout(chipper::ChipMode mode);
@@ -311,6 +316,7 @@ private:
     void updateToneNoiseMixButtons(float value, bool shouldBeVisible);
     void updateEnvelopeDecayReadout(chipper::ChipMode mode);
     void updateSidAdsrControls(bool shouldBeVisible);
+    void updateFmOperatorRegisterSurface(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateDmcSampleControls();
     void updateSpc700BrrSampleControls();
     void updatePaulaSampleControls();
@@ -355,6 +361,8 @@ private:
     std::array<juce::Label, sidAdsrOverrideCount> sidAdsrValueLabels;
     std::array<juce::ComboBox, sidAdsrOverrideCount> sidAdsrBoxes;
     std::array<juce::Slider, sidAdsrOverrideCount> sidAdsrSliders;
+    std::array<juce::Label, fmOperatorReadoutRows> fmOperatorNameLabels;
+    std::array<juce::Label, fmOperatorReadoutRows> fmOperatorValueLabels;
     juce::Label waveShapeLabel;
     juce::Label waveShapeValueLabel;
     juce::Label pulse2DutyLabel;
