@@ -1383,8 +1383,21 @@ void ChipperAudioProcessor::handleMidiMessage(const juce::MidiMessage& message)
     else if (message.isNoteOff())
     {
         const auto note = message.getNoteNumber();
+        const auto shouldRestorePreviousMonoNote = activePatch.playMode != chipper::PlayMode::chipPoly
+            && ! heldNotes.empty()
+            && heldNotes.back().note == note;
+
         core->noteOff(note);
         forgetHeldNote(note);
+
+        if (shouldRestorePreviousMonoNote && ! heldNotes.empty())
+        {
+            const auto held = heldNotes.back();
+            applyMappedDmcSampleForMidiNote(held.note);
+            applyMappedSpc700BrrSampleForMidiNote(held.note);
+            applyMappedPaulaSampleForMidiNote(held.note);
+            core->noteOn(held.note, held.velocity);
+        }
     }
     else if (message.isAllNotesOff() || message.isAllSoundOff())
     {
@@ -2123,13 +2136,8 @@ void ChipperAudioProcessor::replayHeldNotes()
 
 void ChipperAudioProcessor::rememberHeldNote(int note, float velocity)
 {
-    const auto existing = std::find_if(heldNotes.begin(), heldNotes.end(), [note](const auto held) { return held.note == note; });
-    if (existing != heldNotes.end())
-    {
-        existing->velocity = velocity;
-        return;
-    }
-
+    heldNotes.erase(std::remove_if(heldNotes.begin(), heldNotes.end(), [note](const auto held) { return held.note == note; }),
+                    heldNotes.end());
     heldNotes.push_back({ note, velocity });
 }
 

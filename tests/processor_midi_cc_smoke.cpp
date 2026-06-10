@@ -60,6 +60,34 @@ void sendNoteOn(ChipperAudioProcessor& processor, int note, float velocity = 1.0
     processor.processBlock(buffer, midi);
 }
 
+void sendNoteOff(ChipperAudioProcessor& processor, int note)
+{
+    juce::AudioBuffer<float> buffer(2, 64);
+    juce::MidiBuffer midi;
+    midi.addEvent(juce::MidiMessage::noteOff(1, note), 0);
+    processor.processBlock(buffer, midi);
+}
+
+float renderEmptyBlocksPeak(ChipperAudioProcessor& processor, int blockCount = 80)
+{
+    juce::AudioBuffer<float> buffer(2, 256);
+    auto peak = 0.0f;
+
+    for (int block = 0; block < blockCount; ++block)
+    {
+        buffer.clear();
+        juce::MidiBuffer emptyMidi;
+        processor.processBlock(buffer, emptyMidi);
+        for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+        {
+            for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+                peak = std::max(peak, std::abs(buffer.getSample(channel, sample)));
+        }
+    }
+
+    return peak;
+}
+
 float renderNoteOnPeak(ChipperAudioProcessor& processor, int note, float velocity = 1.0f)
 {
     juce::AudioBuffer<float> buffer(2, 256);
@@ -361,6 +389,18 @@ int main()
                      "CC74 SID Bass macro should keep SID Model on Auto");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::stereoSpread), 0.58f, 0.001f,
                      "CC74 SID Bass macro should apply SID resonance template");
+
+    ChipperAudioProcessor fmMonoPriorityProcessor;
+    fmMonoPriorityProcessor.prepareToPlay(48000.0, 256);
+    sendController(fmMonoPriorityProcessor, 70, controllerValueForChoice(fmMonoPriorityProcessor, chipper::parameters::id::chipMode, 5));
+    sendController(fmMonoPriorityProcessor, 74, controllerValueForChoice(fmMonoPriorityProcessor, chipper::parameters::id::macro, 2));
+    setPlainFromHost(fmMonoPriorityProcessor, chipper::parameters::id::playMode, 0.0f);
+    sendNoteOn(fmMonoPriorityProcessor, 48);
+    sendNoteOn(fmMonoPriorityProcessor, 52);
+    sendNoteOff(fmMonoPriorityProcessor, 52);
+    const auto fmMonoFallbackPeak = renderEmptyBlocksPeak(fmMonoPriorityProcessor, 100);
+    ok &= expect(fmMonoFallbackPeak > 0.002f,
+                 "Big Mono should restore the previous held OPN2 note after releasing the newest note");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 7));
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 5));
