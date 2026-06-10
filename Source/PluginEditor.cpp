@@ -3085,9 +3085,11 @@ void ChipperAudioProcessorEditor::placeFmAlgorithmControl(juce::Rectangle<int> b
     waveShapeValueLabel.setBounds(header);
     bounds.removeFromTop(3);
 
-    auto controlRow = bounds.removeFromTop(std::min(28, bounds.getHeight()));
-    fmAlgorithmBox.setBounds(controlRow.removeFromLeft(std::max(132, controlRow.getWidth() / 3)).reduced(0, 1));
-    bounds.removeFromTop(5);
+    const auto selectorWidth = std::clamp(bounds.getWidth() / 3, 142, 190);
+    auto selectorArea = bounds.removeFromLeft(std::min(selectorWidth, bounds.getWidth()));
+    fmAlgorithmBox.setBounds(selectorArea.removeFromTop(std::min(28, selectorArea.getHeight())).reduced(0, 1));
+    if (bounds.getWidth() > 12)
+        bounds.removeFromLeft(8);
     fmAlgorithmPreview.setBounds(bounds.reduced(0, 1));
     waveShapeSegmentBounds = {};
     for (auto& button : waveShapeButtons)
@@ -3102,9 +3104,11 @@ void ChipperAudioProcessorEditor::placeOplWaveformControl(juce::Rectangle<int> b
     waveShapeValueLabel.setBounds(header);
     bounds.removeFromTop(3);
 
-    auto controlRow = bounds.removeFromTop(std::min(28, bounds.getHeight()));
-    oplWaveformBox.setBounds(controlRow.removeFromLeft(std::max(132, controlRow.getWidth() / 3)).reduced(0, 1));
-    bounds.removeFromTop(5);
+    const auto selectorWidth = std::clamp(bounds.getWidth() / 3, 142, 190);
+    auto selectorArea = bounds.removeFromLeft(std::min(selectorWidth, bounds.getWidth()));
+    oplWaveformBox.setBounds(selectorArea.removeFromTop(std::min(28, selectorArea.getHeight())).reduced(0, 1));
+    if (bounds.getWidth() > 12)
+        bounds.removeFromLeft(8);
     oplWaveformPreview.setBounds(bounds.reduced(0, 1));
     waveShapeSegmentBounds = {};
     for (auto& button : waveShapeButtons)
