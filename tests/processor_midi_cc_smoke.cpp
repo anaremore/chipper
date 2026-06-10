@@ -178,6 +178,56 @@ bool writeWavFixture(const juce::File& file, float frequency)
     return false;
 }
 
+void appendBigEndian16(std::vector<uint8_t>& bytes, uint16_t value)
+{
+    bytes.push_back(static_cast<uint8_t>((value >> 8u) & 0xffu));
+    bytes.push_back(static_cast<uint8_t>(value & 0xffu));
+}
+
+void appendBigEndian32(std::vector<uint8_t>& bytes, uint32_t value)
+{
+    bytes.push_back(static_cast<uint8_t>((value >> 24u) & 0xffu));
+    bytes.push_back(static_cast<uint8_t>((value >> 16u) & 0xffu));
+    bytes.push_back(static_cast<uint8_t>((value >> 8u) & 0xffu));
+    bytes.push_back(static_cast<uint8_t>(value & 0xffu));
+}
+
+void appendAscii(std::vector<uint8_t>& bytes, const char* text)
+{
+    while (*text != '\0')
+        bytes.push_back(static_cast<uint8_t>(*text++));
+}
+
+bool write8svxFixture(const juce::File& file, uint8_t seed)
+{
+    std::vector<uint8_t> body;
+    body.reserve(256u);
+    for (int i = 0; i < 256; ++i)
+        body.push_back(static_cast<uint8_t>(static_cast<int8_t>(static_cast<int>(seed) + ((i % 32) - 16))));
+
+    std::vector<uint8_t> data;
+    data.reserve(12u + 8u + 20u + 8u + body.size());
+    appendAscii(data, "FORM");
+    appendBigEndian32(data, static_cast<uint32_t>(4u + 8u + 20u + 8u + body.size()));
+    appendAscii(data, "8SVX");
+    appendAscii(data, "VHDR");
+    appendBigEndian32(data, 20u);
+    appendBigEndian32(data, static_cast<uint32_t>(body.size()));
+    appendBigEndian32(data, 0u);
+    appendBigEndian32(data, 0u);
+    appendBigEndian16(data, 8363u);
+    data.push_back(1u);
+    data.push_back(0u);
+    appendBigEndian32(data, 0x00010000u);
+    appendAscii(data, "BODY");
+    appendBigEndian32(data, static_cast<uint32_t>(body.size()));
+    data.insert(data.end(), body.begin(), body.end());
+    if ((body.size() & 1u) != 0u)
+        data.push_back(0u);
+
+    return file.replaceWithData(data.data(), data.size());
+}
+
 void rewriteDmcPresetSamplePaths(juce::XmlElement& xml, const juce::String& fileName)
 {
     if (xml.hasTagName("DMC_SAMPLE"))
@@ -718,18 +768,20 @@ int main()
         ok &= expect(writeWavFixture(paulaDir.getChildFile(name), 220.0f + static_cast<float>(i) * 55.0f),
                      "Should write temporary Paula WAV fixture " + name.toStdString());
     }
+    ok &= expect(write8svxFixture(paulaDir.getChildFile("zz-paula-native.8svx"), 0x20u),
+                 "Should write temporary Paula 8SVX fixture");
 
     ok &= expect(processor.loadPaulaSampleDirectory(paulaDir).wasOk(), "Should load Paula sample directory");
     auto paulaNames = processor.paulaSampleNames();
-    ok &= expect(paulaNames.size() == 4 && paulaNames[0] == "paula-00.wav" && paulaNames[3] == "paula-03.wav",
-                 "Paula folder should expose sorted WAV samples as playable slots");
+    ok &= expect(paulaNames.size() == 5 && paulaNames[0] == "paula-00.wav" && paulaNames[3] == "paula-03.wav" && paulaNames[4] == "zz-paula-native.8svx",
+                 "Paula folder should expose sorted WAV and 8SVX samples as playable slots");
     auto paulaEntries = processor.paulaSampleEntryInfo();
-    ok &= expect(paulaEntries.size() == 4u && paulaEntries[0].activeSlot && paulaEntries[3].activeSlot,
-                 "Paula bank editor should expose checked WAV files as active playable slots");
+    ok &= expect(paulaEntries.size() == 5u && paulaEntries[0].activeSlot && paulaEntries[4].activeSlot,
+                 "Paula bank editor should expose checked WAV and 8SVX files as active playable slots");
     processor.setPaulaSampleIncluded(2, false);
     paulaNames = processor.paulaSampleNames();
     paulaEntries = processor.paulaSampleEntryInfo();
-    ok &= expect(paulaNames.size() == 3 && paulaNames[2] == "paula-03.wav",
+    ok &= expect(paulaNames.size() == 4 && paulaNames[2] == "paula-03.wav" && paulaNames[3] == "zz-paula-native.8svx",
                  "Unchecking a Paula sample should remove it from the playable bank and close gaps");
     ok &= expect(! paulaEntries[2].included && ! paulaEntries[2].activeSlot,
                  "Unchecked Paula entries should report inactive");
@@ -740,6 +792,10 @@ int main()
                  "CC117 should select the active Paula sample bank slot");
     ok &= expect(paulaInfo.statusLine.contains("8-bit samples"),
                  "Paula status should report imported 8-bit sample count");
+    sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 4));
+    paulaInfo = processor.paulaSampleInfo();
+    ok &= expect(paulaInfo.loaded && paulaInfo.sampleName == "zz-paula-native.8svx" && paulaInfo.byteCount == 256,
+                 "CC117 should select an imported Paula 8SVX sample bank slot");
 
     ChipperAudioProcessor paulaMapAuditionProcessor;
     paulaMapAuditionProcessor.prepareToPlay(48000.0, 256);
@@ -787,7 +843,7 @@ int main()
     processEmptyBlock(restoredPaulaProcessor);
     auto restoredPaulaNames = restoredPaulaProcessor.paulaSampleNames();
     auto restoredPaulaInfo = restoredPaulaProcessor.paulaSampleInfo();
-    ok &= expect(restoredPaulaNames.size() == 4, "Paula state restore should reload staged sample paths");
+    ok &= expect(restoredPaulaNames.size() == 5, "Paula state restore should reload staged WAV and 8SVX sample paths");
     ok &= expect(restoredPaulaInfo.loaded && restoredPaulaInfo.sampleName == "paula-03.wav",
                  "Paula state restore should preserve the selected slot after processing resumes");
     paulaDir.deleteRecursively();

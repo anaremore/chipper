@@ -186,6 +186,24 @@ bool fileLooksLikePcmImport(const juce::File& file)
     return file.hasFileExtension(".wav;.aif;.aiff");
 }
 
+bool fileLooksLikeIff8svxImport(const juce::File& file)
+{
+    return file.hasFileExtension(".8svx;.iff");
+}
+
+uint16_t readBigEndian16(const uint8_t* data)
+{
+    return static_cast<uint16_t>((static_cast<uint16_t>(data[0]) << 8u) | static_cast<uint16_t>(data[1]));
+}
+
+uint32_t readBigEndian32(const uint8_t* data)
+{
+    return (static_cast<uint32_t>(data[0]) << 24u)
+        | (static_cast<uint32_t>(data[1]) << 16u)
+        | (static_cast<uint32_t>(data[2]) << 8u)
+        | static_cast<uint32_t>(data[3]);
+}
+
 juce::File resolvePresetSamplePath(const juce::XmlElement& sampleState, const juce::File& presetDirectory)
 {
     const auto relativePath = sampleState.getStringAttribute("relativePath").trim();
@@ -270,6 +288,79 @@ juce::Result readPcm8SampleFile(const juce::File& file,
     return juce::Result::ok();
 }
 
+juce::Result readIff8svxSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    if (! file.existsAsFile())
+        return juce::Result::fail("Paula sample file does not exist: " + file.getFullPathName());
+
+    juce::MemoryBlock block;
+    if (! file.loadFileAsData(block))
+        return juce::Result::fail("Could not read Paula 8SVX sample file: " + file.getFullPathName());
+
+    const auto* bytes = static_cast<const uint8_t*>(block.getData());
+    const auto size = block.getSize();
+    if (size < 12u || std::memcmp(bytes, "FORM", 4u) != 0 || std::memcmp(bytes + 8u, "8SVX", 4u) != 0)
+        return juce::Result::fail("Paula IFF import only supports FORM 8SVX files: " + file.getFileName());
+
+    const auto formSize = static_cast<size_t>(readBigEndian32(bytes + 4u));
+    const auto formEnd = std::min(size, static_cast<size_t>(8u + formSize));
+    auto offset = static_cast<size_t>(12u);
+    bool sawVhdr = false;
+    bool isCompressed = false;
+    const uint8_t* body = nullptr;
+    size_t bodySize = 0u;
+
+    while (offset + 8u <= formEnd)
+    {
+        const auto* chunkId = bytes + offset;
+        const auto chunkSize = static_cast<size_t>(readBigEndian32(bytes + offset + 4u));
+        const auto chunkDataOffset = offset + 8u;
+        if (chunkDataOffset + chunkSize > size)
+            return juce::Result::fail("Paula 8SVX chunk extends past end of file: " + file.getFileName());
+
+        if (std::memcmp(chunkId, "VHDR", 4u) == 0)
+        {
+            if (chunkSize < 16u)
+                return juce::Result::fail("Paula 8SVX VHDR chunk is too short: " + file.getFileName());
+
+            sawVhdr = true;
+            const auto sampleRate = readBigEndian16(bytes + chunkDataOffset + 12u);
+            const auto compression = bytes[chunkDataOffset + 15u];
+            if (sampleRate == 0u)
+                return juce::Result::fail("Paula 8SVX sample rate is invalid: " + file.getFileName());
+
+            isCompressed = compression != 0u;
+        }
+        else if (std::memcmp(chunkId, "BODY", 4u) == 0)
+        {
+            body = bytes + chunkDataOffset;
+            bodySize = chunkSize;
+        }
+
+        offset = chunkDataOffset + chunkSize + (chunkSize & 1u);
+    }
+
+    if (! sawVhdr)
+        return juce::Result::fail("Paula 8SVX file is missing VHDR metadata: " + file.getFileName());
+
+    if (isCompressed)
+        return juce::Result::fail("Paula 8SVX import supports uncompressed BODY data only in this build: " + file.getFileName());
+
+    if (body == nullptr || bodySize == 0u)
+        return juce::Result::fail("Paula 8SVX file has no BODY sample data: " + file.getFileName());
+
+    constexpr size_t maxImportedSamples = 262144u;
+    const auto sampleCount = std::min(bodySize, maxImportedSamples);
+    slot.name = file.getFileName();
+    slot.path = file.getFullPathName();
+    slot.encoding = chipper::ExternalSampleEncoding::signedPcm8;
+    slot.bytes.resize(sampleCount);
+    for (size_t i = 0; i < sampleCount; ++i)
+        slot.bytes[i] = static_cast<uint8_t>(static_cast<int>(static_cast<int8_t>(body[i])) + 128);
+
+    return juce::Result::ok();
+}
+
 juce::Result readSpc700BrrSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
 {
     if (! file.existsAsFile())
@@ -301,7 +392,10 @@ juce::Result readSpc700BrrSampleFile(const juce::File& file, ChipperAudioProcess
 
 juce::Result readPaulaSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
 {
-    return readPcm8SampleFile(file, slot, "Paula", "IFF/8SVX/MOD");
+    if (fileLooksLikeIff8svxImport(file))
+        return readIff8svxSampleFile(file, slot);
+
+    return readPcm8SampleFile(file, slot, "Paula", "MOD");
 }
 }
 
@@ -470,7 +564,7 @@ juce::Result ChipperAudioProcessor::loadPaulaSampleDirectory(const juce::File& d
         return juce::Result::fail("Paula sample directory does not exist: " + directory.getFullPathName());
 
     juce::Array<juce::File> files;
-    directory.findChildFiles(files, juce::File::findFiles, false, "*.wav;*.aif;*.aiff");
+    directory.findChildFiles(files, juce::File::findFiles, false, "*.wav;*.aif;*.aiff;*.8svx;*.iff");
     files.sort();
 
     std::vector<DmcSampleSlot> loaded;
@@ -489,7 +583,7 @@ juce::Result ChipperAudioProcessor::loadPaulaSampleDirectory(const juce::File& d
     }
 
     if (loaded.empty())
-        return juce::Result::fail("No readable WAV/AIFF files found in: " + directory.getFullPathName());
+        return juce::Result::fail("No readable WAV/AIFF/8SVX files found in: " + directory.getFullPathName());
 
     {
         const std::lock_guard<std::mutex> lock(paulaSampleMutex);

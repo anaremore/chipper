@@ -2313,7 +2313,7 @@ const std::vector<ChipDescriptor>& descriptors()
             {
                 makeModule("profile", "Profile", "Paula clean-room tracker sampler groundwork.", { "Amiga family", "3.55 MHz PAL default", "Hybrid default", "Authentic still partial" }),
                 makeModule("sources", "Channels", "Four native Paula sample channels in the fixed Amiga L/R/R/L hardware layout.", { "Ch 1 left", "Ch 2 right", "Ch 3 right", "Ch 4 left" }),
-                makeModule("sample", "Sample / Period", "8-bit templates plus user WAV/AIFF folder-bank import.", { "WAV/AIFF file", "Folder bank", "Note map", "Slot CC117" }),
+                makeModule("sample", "Sample / Period", "8-bit templates plus user WAV/AIFF/8SVX folder-bank import.", { "WAV/AIFF/8SVX file", "Folder bank", "Note map", "Slot CC117" }),
                 makeModule("envelope", "Loop / Decay", "Looped instrument and one-shot tracker behavior.", { "Loop bias", "One-shot drums", "Decay helper", "Register readout" }),
                 makeModule("motion", "Motion", "Tracker SFX gestures mapped to sample periods.", { "Tracker arp", "Rate sweep", "Jump blip", "Damage hit" }),
                 makeModule("output", "Output", "Classic hard-panned Amiga channel layout groundwork.", { "0-64 volume", "Stereo spread convenience", "User samples", "Known differences" })
@@ -2324,14 +2324,14 @@ const std::vector<ChipDescriptor>& descriptors()
             paulaParameterSpecs(),
             verifiedPartial(
                 {
-                    "Four sample channels render 8-bit generated templates and plugin-loaded user WAV/AIFF sample banks with period, volume, enable, loop, and sample-template register paths.",
+                    "Four sample channels render 8-bit generated templates and plugin-loaded user WAV/AIFF/uncompressed IFF-8SVX sample banks with period, volume, enable, loop, and sample-template register paths.",
                     "Source enables, source levels, chip-poly allocation, sample-shape choices, hard-panned output, plugin sample slot selection/state recall, note-mapped sample-bank selection, and debug JSON are covered by automated tests.",
                     "No third-party Paula, ProTracker, or module-player source code is vendored in this clean-room partial model."
                 },
                 {
                     "DMA pointer reload timing, exact sample memory addressing, interrupt behavior, CIA/video timing, and ProTracker effect commands are not implemented.",
                     "PAL/NTSC period tables, anti-aliasing/output filtering, and analog output behavior need comparison against trusted emulators and hardware captures.",
-                    "IFF/8SVX/MOD sample import, loop-point import, and exact tracker sample metadata are planned but not part of this partial core yet."
+                    "Compressed 8SVX, MOD sample import, loop-point import, and exact tracker sample metadata are planned but not part of this partial core yet."
                 })
         },
         {
