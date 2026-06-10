@@ -130,6 +130,18 @@ build\Release\chipper_render.exe --list-presets --debug presets.json
 build\Release\chipper_render.exe --list-presets --chip sid --debug sid-presets.json
 ```
 
+## User Presets
+
+The plugin header includes `Load` and `Save` buttons beside the factory preset browser. User presets are saved as plain `.chipperpreset` XML files so they can be shared, versioned, and inspected without a DAW-specific preset container.
+
+User preset files store the same Chipper state used by host project recall, including chip mode, accuracy, template, play mode, public parameters, register snapshots, and external sample-bank paths. Audio sample data is not embedded; if a preset references NES DMC, SPC700, or Paula sample files, share those files alongside the preset or keep the same local paths.
+
+The default save location is:
+
+```text
+Documents\Chipper Presets
+```
+
 ## MIDI CC
 
 Chipper keeps a stable MIDI CC map so hardware controllers and DAW automation can reach all current parameters. The compact map is shown in the plugin footer, exported in descriptor JSON, and documented in [docs/ui-architecture.md](docs/ui-architecture.md).

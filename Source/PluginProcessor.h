@@ -98,6 +98,8 @@ public:
 
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
+    std::unique_ptr<juce::XmlElement> createStateXml();
+    juce::Result restoreStateXml(const juce::XmlElement& sourceXml);
 
     juce::AudioProcessorValueTreeState& getValueTreeState() { return apvts; }
     const juce::AudioProcessorValueTreeState& getValueTreeState() const { return apvts; }

@@ -1994,10 +1994,13 @@ juce::AudioProcessorEditor* ChipperAudioProcessor::createEditor()
     return new ChipperAudioProcessorEditor(*this);
 }
 
-void ChipperAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
+std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
 {
     const auto state = apvts.copyState();
-    const std::unique_ptr<juce::XmlElement> xml(state.createXml());
+    auto xml = state.createXml();
+    if (xml == nullptr)
+        return {};
+
     while (auto* existingCoreState = xml->getChildByName(coreStateTag))
         xml->removeChildElement(existingCoreState, true);
     while (auto* existingDmcBankState = xml->getChildByName(dmcBankStateTag))
@@ -2088,134 +2091,149 @@ void ChipperAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
         }
     }
 
-    copyXmlToBinary(*xml, destData);
+    return xml;
+}
+
+juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sourceXml)
+{
+    auto xml = std::make_unique<juce::XmlElement>(sourceXml);
+    if (xml == nullptr || ! xml->hasTagName(apvts.state.getType()))
+        return juce::Result::fail("This file does not contain Chipper plugin state.");
+
+    pendingRegisterState.clear();
+    std::vector<DmcSampleSlot> restoredDmcBank;
+    DmcSampleSlot restoredSpcBrrSample;
+    std::vector<DmcSampleSlot> restoredSpcBrrBank;
+    DmcSampleSlot restoredPaulaSample;
+    std::vector<DmcSampleSlot> restoredPaulaBank;
+    if (auto* coreState = xml->getChildByName(coreStateTag))
+    {
+        for (const auto* child : coreState->getChildIterator())
+        {
+            if (child != nullptr && child->hasTagName(registerTag))
+            {
+                pendingRegisterState.push_back({
+                    0,
+                    static_cast<uint16_t>(child->getIntAttribute("address") & 0xffff),
+                    static_cast<uint8_t>(child->getIntAttribute("value") & 0xff)
+                });
+            }
+        }
+        xml->removeChildElement(coreState, true);
+    }
+
+    if (auto* dmcBankState = xml->getChildByName(dmcBankStateTag))
+    {
+        restoredDmcBank.reserve(static_cast<size_t>(std::max(0, dmcBankState->getIntAttribute("count"))));
+        for (const auto* child : dmcBankState->getChildIterator())
+        {
+            if (child == nullptr || ! child->hasTagName(dmcSampleStateTag))
+                continue;
+
+            DmcSampleSlot slot;
+            if (readDmcSampleFile(juce::File(child->getStringAttribute("path")), slot).wasOk())
+            {
+                slot.included = child->getBoolAttribute("included", true);
+                restoredDmcBank.push_back(std::move(slot));
+            }
+        }
+        xml->removeChildElement(dmcBankState, true);
+    }
+
+    if (auto* spcBrrBankState = xml->getChildByName(spc700BrrBankStateTag))
+    {
+        restoredSpcBrrBank.reserve(static_cast<size_t>(std::max(0, spcBrrBankState->getIntAttribute("count"))));
+        for (const auto* child : spcBrrBankState->getChildIterator())
+        {
+            if (child == nullptr || ! child->hasTagName(spc700BrrSampleStateTag))
+                continue;
+
+            DmcSampleSlot slot;
+            if (readSpc700BrrSampleFile(juce::File(child->getStringAttribute("path")), slot).wasOk())
+            {
+                slot.included = child->getBoolAttribute("included", true);
+                restoredSpcBrrBank.push_back(std::move(slot));
+            }
+        }
+        if (! restoredSpcBrrBank.empty())
+            restoredSpcBrrSample = restoredSpcBrrBank.front();
+        xml->removeChildElement(spcBrrBankState, true);
+    }
+
+    if (restoredSpcBrrBank.empty())
+    {
+        if (auto* spcBrrState = xml->getChildByName(spc700BrrStateTag))
+        {
+            readSpc700BrrSampleFile(juce::File(spcBrrState->getStringAttribute("path")), restoredSpcBrrSample);
+            if (! restoredSpcBrrSample.bytes.empty())
+                restoredSpcBrrBank.push_back(restoredSpcBrrSample);
+            xml->removeChildElement(spcBrrState, true);
+        }
+    }
+
+    if (auto* paulaBankState = xml->getChildByName(paulaSampleBankStateTag))
+    {
+        restoredPaulaBank.reserve(static_cast<size_t>(std::max(0, paulaBankState->getIntAttribute("count"))));
+        for (const auto* child : paulaBankState->getChildIterator())
+        {
+            if (child == nullptr || ! child->hasTagName(paulaSampleStateTag))
+                continue;
+
+            DmcSampleSlot slot;
+            if (readPaulaSampleFile(juce::File(child->getStringAttribute("path")), slot).wasOk())
+            {
+                slot.included = child->getBoolAttribute("included", true);
+                restoredPaulaBank.push_back(std::move(slot));
+            }
+        }
+        if (! restoredPaulaBank.empty())
+            restoredPaulaSample = restoredPaulaBank.front();
+        xml->removeChildElement(paulaBankState, true);
+    }
+
+    apvts.replaceState(juce::ValueTree::fromXml(*xml));
+    {
+        const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+        dmcSampleBank = std::move(restoredDmcBank);
+        ++dmcSampleBankRevision;
+    }
+    {
+        const std::lock_guard<std::mutex> lock(spc700SampleMutex);
+        spc700BrrSampleBank = std::move(restoredSpcBrrBank);
+        spc700BrrSample = std::move(restoredSpcBrrSample);
+        ++spc700BrrSampleBankRevision;
+    }
+    {
+        const std::lock_guard<std::mutex> lock(paulaSampleMutex);
+        paulaSampleBank = std::move(restoredPaulaBank);
+        paulaSample = std::move(restoredPaulaSample);
+        ++paulaSampleBankRevision;
+    }
+    activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+    activeDmcSampleSlot = -1;
+    activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
+    activeSpc700BrrSampleSlot = -1;
+    activeSpc700BrrManualSlot = -1;
+    activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
+    activePaulaSampleSlot = -1;
+    activePaulaManualSlot = -1;
+    core.reset();
+    hasObservedMacroSnapshot = false;
+
+    return juce::Result::ok();
+}
+
+void ChipperAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
+{
+    if (const auto xml = createStateXml())
+        copyXmlToBinary(*xml, destData);
 }
 
 void ChipperAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     const std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
-    if (xml != nullptr && xml->hasTagName(apvts.state.getType()))
-    {
-        pendingRegisterState.clear();
-        std::vector<DmcSampleSlot> restoredDmcBank;
-        DmcSampleSlot restoredSpcBrrSample;
-        std::vector<DmcSampleSlot> restoredSpcBrrBank;
-        DmcSampleSlot restoredPaulaSample;
-        std::vector<DmcSampleSlot> restoredPaulaBank;
-        if (auto* coreState = xml->getChildByName(coreStateTag))
-        {
-            for (const auto* child : coreState->getChildIterator())
-            {
-                if (child != nullptr && child->hasTagName(registerTag))
-                {
-                    pendingRegisterState.push_back({
-                        0,
-                        static_cast<uint16_t>(child->getIntAttribute("address") & 0xffff),
-                        static_cast<uint8_t>(child->getIntAttribute("value") & 0xff)
-                    });
-                }
-            }
-            xml->removeChildElement(coreState, true);
-        }
-
-        if (auto* dmcBankState = xml->getChildByName(dmcBankStateTag))
-        {
-            restoredDmcBank.reserve(static_cast<size_t>(std::max(0, dmcBankState->getIntAttribute("count"))));
-            for (const auto* child : dmcBankState->getChildIterator())
-            {
-                if (child == nullptr || ! child->hasTagName(dmcSampleStateTag))
-                    continue;
-
-                DmcSampleSlot slot;
-                if (readDmcSampleFile(juce::File(child->getStringAttribute("path")), slot).wasOk())
-                {
-                    slot.included = child->getBoolAttribute("included", true);
-                    restoredDmcBank.push_back(std::move(slot));
-                }
-            }
-            xml->removeChildElement(dmcBankState, true);
-        }
-
-        if (auto* spcBrrBankState = xml->getChildByName(spc700BrrBankStateTag))
-        {
-            restoredSpcBrrBank.reserve(static_cast<size_t>(std::max(0, spcBrrBankState->getIntAttribute("count"))));
-            for (const auto* child : spcBrrBankState->getChildIterator())
-            {
-                if (child == nullptr || ! child->hasTagName(spc700BrrSampleStateTag))
-                    continue;
-
-                DmcSampleSlot slot;
-                if (readSpc700BrrSampleFile(juce::File(child->getStringAttribute("path")), slot).wasOk())
-                {
-                    slot.included = child->getBoolAttribute("included", true);
-                    restoredSpcBrrBank.push_back(std::move(slot));
-                }
-            }
-            if (! restoredSpcBrrBank.empty())
-                restoredSpcBrrSample = restoredSpcBrrBank.front();
-            xml->removeChildElement(spcBrrBankState, true);
-        }
-
-        if (restoredSpcBrrBank.empty())
-        {
-            if (auto* spcBrrState = xml->getChildByName(spc700BrrStateTag))
-            {
-                readSpc700BrrSampleFile(juce::File(spcBrrState->getStringAttribute("path")), restoredSpcBrrSample);
-                if (! restoredSpcBrrSample.bytes.empty())
-                    restoredSpcBrrBank.push_back(restoredSpcBrrSample);
-                xml->removeChildElement(spcBrrState, true);
-            }
-        }
-
-        if (auto* paulaBankState = xml->getChildByName(paulaSampleBankStateTag))
-        {
-            restoredPaulaBank.reserve(static_cast<size_t>(std::max(0, paulaBankState->getIntAttribute("count"))));
-            for (const auto* child : paulaBankState->getChildIterator())
-            {
-                if (child == nullptr || ! child->hasTagName(paulaSampleStateTag))
-                    continue;
-
-                DmcSampleSlot slot;
-                if (readPaulaSampleFile(juce::File(child->getStringAttribute("path")), slot).wasOk())
-                {
-                    slot.included = child->getBoolAttribute("included", true);
-                    restoredPaulaBank.push_back(std::move(slot));
-                }
-            }
-            if (! restoredPaulaBank.empty())
-                restoredPaulaSample = restoredPaulaBank.front();
-            xml->removeChildElement(paulaBankState, true);
-        }
-
-        apvts.replaceState(juce::ValueTree::fromXml(*xml));
-        {
-            const std::lock_guard<std::mutex> lock(dmcSampleMutex);
-            dmcSampleBank = std::move(restoredDmcBank);
-            ++dmcSampleBankRevision;
-        }
-        {
-            const std::lock_guard<std::mutex> lock(spc700SampleMutex);
-            spc700BrrSampleBank = std::move(restoredSpcBrrBank);
-            spc700BrrSample = std::move(restoredSpcBrrSample);
-            ++spc700BrrSampleBankRevision;
-        }
-        {
-            const std::lock_guard<std::mutex> lock(paulaSampleMutex);
-            paulaSampleBank = std::move(restoredPaulaBank);
-            paulaSample = std::move(restoredPaulaSample);
-            ++paulaSampleBankRevision;
-        }
-        activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
-        activeDmcSampleSlot = -1;
-        activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
-        activeSpc700BrrSampleSlot = -1;
-        activeSpc700BrrManualSlot = -1;
-        activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
-        activePaulaSampleSlot = -1;
-        activePaulaManualSlot = -1;
-        core.reset();
-        hasObservedMacroSnapshot = false;
-    }
+    if (xml != nullptr)
+        restoreStateXml(*xml);
 }
 
 std::string ChipperAudioProcessor::currentCoreStatus() const

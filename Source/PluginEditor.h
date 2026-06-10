@@ -185,6 +185,10 @@ private:
     void updateMacroChoices(chipper::ChipMode mode);
     void updatePresetChoices(chipper::ChipMode mode);
     void updateSegmentedControlSpecs(chipper::ChipMode mode);
+    void chooseUserPresetToLoad();
+    void chooseUserPresetToSave();
+    void loadUserPresetFile(const juce::File& file);
+    void saveUserPresetFile(const juce::File& file);
     void applySelectedMacroTemplate();
     void applySelectedPreset();
     void applyFactoryPreset(const chipper::PresetInfo& preset);
@@ -418,6 +422,8 @@ private:
     juce::ComboBox chipModeBox;
     juce::ComboBox accuracyBox;
     juce::ComboBox presetBox;
+    juce::TextButton userPresetLoadButton;
+    juce::TextButton userPresetSaveButton;
     juce::ComboBox macroBox;
     juce::ComboBox playModeBox;
 
@@ -461,6 +467,7 @@ private:
     std::array<std::unique_ptr<SliderAttachment>, sourceChannelCount> sourceLevelAttachments;
     std::array<std::unique_ptr<ButtonAttachment>, sourceChannelCount> sourceEnableAttachments;
     std::unique_ptr<juce::FileChooser> dmcSampleChooser;
+    std::unique_ptr<juce::FileChooser> userPresetChooser;
 
     chipper::ChipMode displayedMode = chipper::ChipMode::nes;
     std::vector<const chipper::PresetInfo*> displayedPresets;

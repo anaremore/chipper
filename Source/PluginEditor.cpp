@@ -499,6 +499,22 @@ juce::String midiCcMapTooltip()
     return text;
 }
 
+juce::File defaultUserPresetDirectory()
+{
+    return juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
+        .getChildFile("Chipper Presets");
+}
+
+juce::String safePresetFileStem(juce::String text)
+{
+    auto safe = text.retainCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_").trim();
+    safe = safe.replace(" ", "-");
+    while (safe.contains("--"))
+        safe = safe.replace("--", "-");
+
+    return safe.isNotEmpty() ? safe : juce::String("Chipper-Preset");
+}
+
 juce::String byteHex(uint8_t value)
 {
     return juce::String::toHexString(static_cast<int>(value)).paddedLeft('0', 2).toUpperCase();
@@ -1406,6 +1422,14 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     }
 
     addAndMakeVisible(presetBox);
+    userPresetLoadButton.setButtonText("Load");
+    userPresetLoadButton.setTooltip("Load a shareable .chipperpreset file.");
+    userPresetLoadButton.onClick = [this] { chooseUserPresetToLoad(); };
+    addAndMakeVisible(userPresetLoadButton);
+    userPresetSaveButton.setButtonText("Save");
+    userPresetSaveButton.setTooltip("Save the current sound as a shareable .chipperpreset file.");
+    userPresetSaveButton.onClick = [this] { chooseUserPresetToSave(); };
+    addAndMakeVisible(userPresetSaveButton);
     addAndMakeVisible(chipModeBox);
     addAndMakeVisible(accuracyBox);
     addAndMakeVisible(macroBox);
@@ -2436,15 +2460,19 @@ void ChipperAudioProcessorEditor::resized()
 
     titleLabel.setBounds(top.removeFromLeft(122));
     top.removeFromLeft(8);
-    placeHeaderCombo(0, presetBox, top.removeFromLeft(210));
+    placeHeaderCombo(0, presetBox, top.removeFromLeft(174));
+    top.removeFromLeft(4);
+    userPresetLoadButton.setBounds(top.removeFromLeft(44).withTrimmedTop(20).reduced(0, 4));
+    top.removeFromLeft(4);
+    userPresetSaveButton.setBounds(top.removeFromLeft(44).withTrimmedTop(20).reduced(0, 4));
     top.removeFromLeft(8);
-    placeHeaderCombo(1, chipModeBox, top.removeFromLeft(210));
+    placeHeaderCombo(1, chipModeBox, top.removeFromLeft(202));
     top.removeFromLeft(8);
     placeHeaderCombo(2, accuracyBox, top.removeFromLeft(112));
     top.removeFromLeft(8);
-    placeHeaderCombo(3, macroBox, top.removeFromLeft(136));
+    placeHeaderCombo(3, macroBox, top.removeFromLeft(128));
     top.removeFromLeft(8);
-    placeHeaderCombo(4, playModeBox, top.removeFromLeft(136));
+    placeHeaderCombo(4, playModeBox, top.removeFromLeft(128));
     top.removeFromLeft(8);
     coreReadinessLabel.setBounds(top.removeFromTop(44).reduced(0, 12));
 
@@ -3619,6 +3647,136 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
             sidAdsrBoxes[i].setTooltip(withMidiCcForRole(spec->help, spec->role));
         }
     }
+}
+
+void ChipperAudioProcessorEditor::chooseUserPresetToLoad()
+{
+    userPresetChooser = std::make_unique<juce::FileChooser>("Load Chipper preset",
+                                                            defaultUserPresetDirectory(),
+                                                            "*.chipperpreset;*.xml");
+    userPresetChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                                   [this](const juce::FileChooser& chooser)
+                                   {
+                                       const auto file = chooser.getResult();
+                                       if (file == juce::File {})
+                                           return;
+
+                                       loadUserPresetFile(file);
+                                   });
+}
+
+void ChipperAudioProcessorEditor::chooseUserPresetToSave()
+{
+    juce::String presetName;
+    const auto selectedPreset = presetBox.getSelectedId() - 1;
+    if (selectedPreset >= 0 && static_cast<size_t>(selectedPreset) < displayedPresets.size())
+        presetName = displayedPresets[static_cast<size_t>(selectedPreset)]->name;
+    else
+        presetName = juce::String(chipper::toString(displayedMode)) + " User Preset";
+
+    const auto suggestedFile = defaultUserPresetDirectory()
+                                   .getChildFile(safePresetFileStem(presetName))
+                                   .withFileExtension(".chipperpreset");
+    userPresetChooser = std::make_unique<juce::FileChooser>("Save Chipper preset",
+                                                            suggestedFile,
+                                                            "*.chipperpreset");
+    userPresetChooser->launchAsync(juce::FileBrowserComponent::saveMode
+                                       | juce::FileBrowserComponent::canSelectFiles
+                                       | juce::FileBrowserComponent::warnAboutOverwriting,
+                                   [this](const juce::FileChooser& chooser)
+                                   {
+                                       auto file = chooser.getResult();
+                                       if (file == juce::File {})
+                                           return;
+
+                                       if (! file.hasFileExtension(".chipperpreset"))
+                                           file = file.withFileExtension(".chipperpreset");
+
+                                       saveUserPresetFile(file);
+                                   });
+}
+
+void ChipperAudioProcessorEditor::loadUserPresetFile(const juce::File& file)
+{
+    const std::unique_ptr<juce::XmlElement> root(juce::XmlDocument::parse(file));
+    if (root == nullptr)
+    {
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                                               "Preset not loaded",
+                                               "That file is not a readable Chipper preset.");
+        return;
+    }
+
+    const auto stateTag = audioProcessor.getValueTreeState().state.getType().toString();
+    const auto* stateXml = root->hasTagName(stateTag) ? root.get() : root->getChildByName(stateTag);
+    if (stateXml == nullptr)
+    {
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                                               "Preset not loaded",
+                                               "That file does not contain Chipper plugin state.");
+        return;
+    }
+
+    const auto result = audioProcessor.restoreStateXml(*stateXml);
+    if (result.failed())
+    {
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                                               "Preset not loaded",
+                                               result.getErrorMessage());
+        return;
+    }
+
+    descriptorTextInitialized = false;
+    displayedDmcSampleCount = -1;
+    displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();
+    updateDescriptorText();
+    updateLiveControlReadouts();
+    macroSummaryLabel.setText("Loaded user preset: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
+    macroSummaryLabel.setTooltip("Loaded from " + file.getFullPathName());
+}
+
+void ChipperAudioProcessorEditor::saveUserPresetFile(const juce::File& file)
+{
+    auto stateXml = audioProcessor.createStateXml();
+    if (stateXml == nullptr)
+    {
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                                               "Preset not saved",
+                                               "Chipper could not create plugin state for this preset.");
+        return;
+    }
+
+    auto presetName = file.getFileNameWithoutExtension();
+    if (presetName.isEmpty())
+        presetName = "Chipper Preset";
+
+    juce::XmlElement presetXml("ChipperPreset");
+    presetXml.setAttribute("formatVersion", 1);
+    presetXml.setAttribute("plugin", "Chipper");
+    presetXml.setAttribute("pluginVersion", JucePlugin_VersionString);
+    presetXml.setAttribute("name", presetName);
+    presetXml.setAttribute("chip", chipper::toString(displayedMode));
+    presetXml.addChildElement(stateXml.release());
+
+    const auto directoryResult = file.getParentDirectory().createDirectory();
+    if (directoryResult.failed())
+    {
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                                               "Preset not saved",
+                                               directoryResult.getErrorMessage());
+        return;
+    }
+
+    if (! file.replaceWithText(presetXml.toString(), true, false))
+    {
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                                               "Preset not saved",
+                                               "Chipper could not write the preset file.");
+        return;
+    }
+
+    macroSummaryLabel.setText("Saved user preset: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
+    macroSummaryLabel.setTooltip("Saved to " + file.getFullPathName());
 }
 
 void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
