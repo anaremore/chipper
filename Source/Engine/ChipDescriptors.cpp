@@ -3636,7 +3636,7 @@ FmEnvelopeRegisters ym2612EnvelopeRegistersForPatch(const PatchConfig& patch, si
             break;
         case 2: // Lead
         default:
-            envelope = { 0x1fu, 0x08u, 0x00u, 0x46u };
+            envelope = { 0x1fu, 0x06u, 0x00u, 0x24u };
             break;
     }
 

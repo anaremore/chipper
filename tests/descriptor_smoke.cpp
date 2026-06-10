@@ -346,9 +346,9 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::ym2612DacModeForPatch(opn2Lead) == 1u, "YM2612 lead macro should keep channel 6 in FM mode");
     const auto opn2LeadModulatorEnvelope = chipper::ym2612EnvelopeRegistersForPatch(opn2Lead, 0);
     ok &= expect(opn2LeadModulatorEnvelope.attackRate == 0x1fu, "YM2612 lead envelope should use fast modulator attack");
-    ok &= expect(opn2LeadModulatorEnvelope.decayRate == 0x06u, "YM2612 lead modulator decay should be softened from the carrier envelope");
+    ok &= expect(opn2LeadModulatorEnvelope.decayRate == 0x04u, "YM2612 lead modulator decay should keep sustained FM notes playable");
     ok &= expect(opn2LeadModulatorEnvelope.sustainRate == 0x00u, "YM2612 lead envelope should hold sustain while a note is gated");
-    ok &= expect(opn2LeadModulatorEnvelope.sustainRelease == 0x56u, "YM2612 lead modulator release byte should retain a playable sustain level");
+    ok &= expect(opn2LeadModulatorEnvelope.sustainRelease == 0x34u, "YM2612 lead modulator release byte should retain a stronger playable sustain level");
 
     const auto opmArp = chipper::makePatchConfig(chipper::ChipMode::ym2151,
                                                  chipper::MacroKind::arp,

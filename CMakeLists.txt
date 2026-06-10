@@ -1597,7 +1597,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_ym2151_env_pad_assert PROPERTIES DEPENDS chipper_render_ym2151_env_pad_smoke)
 
     add_test(NAME chipper_render_ym2612_held_tail_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-held-tail-smoke.json --implemented-contains ymfm --macro Bass --min-peak 0.01 --min-tail-rms 0.001 --core-min sustainRate0=0 --core-max sustainRate0=0 --core-min sustainRelease0=80 --core-max sustainRelease0=96
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-held-tail-smoke.json --implemented-contains ymfm --macro Bass --min-peak 0.01 --min-tail-rms 0.02 --core-min decayRate0=4 --core-max decayRate0=4 --core-min sustainRate0=0 --core-max sustainRate0=0 --core-min sustainRelease0=48 --core-max sustainRelease0=64
     )
     set_tests_properties(chipper_render_ym2612_held_tail_assert PROPERTIES DEPENDS chipper_render_ym2612_held_tail_smoke)
 
@@ -1607,7 +1607,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_opl3_held_tail_assert PROPERTIES DEPENDS chipper_render_opl3_held_tail_smoke)
 
     add_test(NAME chipper_render_ym2151_held_tail_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-held-tail-smoke.json --implemented-contains ymfm --macro Bass --min-peak 0.01 --min-tail-rms 0.001 --core-min keyOnMask=0 --core-max keyOnMask=0
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-held-tail-smoke.json --implemented-contains ymfm --macro Bass --min-peak 0.01 --min-tail-rms 0.03 --core-min decayRate0=4 --core-max decayRate0=4 --core-min sustainRate0=0 --core-max sustainRate0=0 --core-min sustainRelease0=48 --core-max sustainRelease0=64 --core-min keyOnMask=0 --core-max keyOnMask=0
     )
     set_tests_properties(chipper_render_ym2151_held_tail_assert PROPERTIES DEPENDS chipper_render_ym2151_held_tail_smoke)
 
