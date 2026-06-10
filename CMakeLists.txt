@@ -815,7 +815,7 @@ add_test(NAME chipper_render_ym2413_smoke
     COMMAND chipper_render --chip ym2413 --accuracy authentic --macro lead --wave-shape 3 --clock 3579545 --rate 48000 --seconds 0.08 --note 69 --out ym2413-smoke.wav --debug ym2413-smoke.json
 )
 add_test(NAME chipper_render_ym2413_held_tail_smoke
-    COMMAND chipper_render --chip ym2413 --accuracy authentic --macro bass --wave-shape 2 --clock 3579545 --rate 48000 --seconds 0.50 --note 48 --out ym2413-held-tail-smoke.wav --debug ym2413-held-tail-smoke.json
+    COMMAND chipper_render --chip ym2413 --accuracy authentic --macro bass --wave-shape 2 --clock 3579545 --rate 48000 --seconds 2.00 --note 48 --out ym2413-held-tail-smoke.wav --debug ym2413-held-tail-smoke.json
 )
 add_test(NAME chipper_render_ym2413_low_level_held_tail_smoke
     COMMAND chipper_render --chip ym2413 --accuracy authentic --macro lead --wave-shape 3 --control4 0.35 --clock 3579545 --rate 48000 --seconds 0.50 --note 60 --out ym2413-low-level-held-tail-smoke.wav --debug ym2413-low-level-held-tail-smoke.json
@@ -1688,7 +1688,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_ym2413_json_assert PROPERTIES DEPENDS chipper_render_ym2413_smoke)
 
     add_test(NAME chipper_render_ym2413_held_tail_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2413-held-tail-smoke.json --implemented-contains emu2413 --macro Bass --min-peak 0.01 --min-tail-rms 0.01 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535 --core-min keyOnMask=0 --core-max keyOnMask=0
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2413-held-tail-smoke.json --implemented-contains emu2413 --macro Bass --min-peak 0.01 --min-tail-rms 0.02 --render-core-min instrument0=12 --render-core-max instrument0=12 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535 --core-min keyOnMask=0 --core-max keyOnMask=0
     )
     set_tests_properties(chipper_render_ym2413_held_tail_assert PROPERTIES DEPENDS chipper_render_ym2413_held_tail_smoke)
 

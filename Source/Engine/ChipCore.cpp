@@ -7472,29 +7472,7 @@ private:
 
     uint8_t instrumentForPatch() const
     {
-        const auto explicitChoice = std::clamp(patch.waveShape, 0, 4);
-        if (explicitChoice > 0)
-        {
-            static constexpr std::array<uint8_t, 5> choiceToInstrument { 0, 12, 13, 7, 8 };
-            return choiceToInstrument[static_cast<size_t>(explicitChoice)];
-        }
-
-        switch (patch.macro)
-        {
-            case MacroKind::coin:
-            case MacroKind::jump: return 12;
-            case MacroKind::bass: return 13;
-            case MacroKind::lead: return 7;
-            case MacroKind::arp:
-            case MacroKind::powerUp: return 8;
-            case MacroKind::drum:
-            case MacroKind::hit: return 15;
-            case MacroKind::laser: return 10;
-            case MacroKind::manual:
-            default: break;
-        }
-
-        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control1 * 15.0f)), 1, 15));
+        return ym2413InstrumentForPatch(patch);
     }
 
     bool rhythmModeActive() const

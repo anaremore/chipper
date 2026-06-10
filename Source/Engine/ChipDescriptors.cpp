@@ -95,7 +95,7 @@ std::vector<MacroTemplate> ym2413Macros()
     return {
         { MacroKind::manual, "OPLL Manual", "Neutral YM2413 melodic-channel preset instrument mapping.", { 0.50f, 0.50f, 0.25f, 0.72f }, { true, true, true, true }, 0.0f, 0 },
         { MacroKind::coin, "OPLL UI Chime", "Short bright OPLL vibraphone-style game UI chime.", { 0.80f, 0.72f, 0.22f, 0.78f }, { true, false, false, false }, 0.18f, 1 },
-        { MacroKind::bass, "OPLL Preset Bass", "Low preset-FM bass using the YM2413 instrument table.", { 0.85f, 0.22f, 0.16f, 0.86f }, { true, true, false, false }, 0.08f, 2 },
+        { MacroKind::bass, "OPLL Preset Bass", "Sustaining preset-FM bass using the YM2413 instrument table.", { 0.85f, 0.22f, 0.16f, 0.86f }, { true, true, false, false }, 0.08f, 2 },
         { MacroKind::lead, "OPLL Brass Lead", "Forward OPLL trumpet/lead tone with a supporting octave lane.", { 0.45f, 0.48f, 0.24f, 0.80f }, { true, true, true, false }, 0.10f, 3 },
         { MacroKind::arp, "OPLL Organ Arp", "Preset organ stack for fast fake-chord arps.", { 0.55f, 0.70f, 0.18f, 0.78f }, { true, true, true, true }, 0.08f, 4 },
         { MacroKind::drum, "OPLL Perc Hit", "Melodic-channel percussion placeholder until native rhythm mode lands.", { 0.95f, 0.18f, 0.32f, 0.72f }, { false, false, true, true }, 0.55f, 0 },
@@ -496,7 +496,7 @@ std::vector<ParameterChoiceSpec> ym2413InstrumentChoices()
     return {
         choice("Follow", "Resolve the YM2413 preset instrument from the selected OPLL template.", 0.0f, 0),
         choice("Bell", "Use a vibraphone/chime-style OPLL preset instrument.", 0.25f, 1),
-        choice("Bass", "Use a bass-oriented OPLL preset instrument.", 0.5f, 2),
+        choice("Bass", "Use a sustaining bass-oriented OPLL preset instrument.", 0.5f, 2),
         choice("Lead", "Use a trumpet/lead OPLL preset instrument.", 0.75f, 3),
         choice("Organ", "Use an organ-style OPLL preset instrument for chords and arps.", 1.0f, 4)
     };
@@ -3780,7 +3780,7 @@ uint8_t ym2413InstrumentForPatch(const PatchConfig& patch)
     const auto explicitChoice = std::clamp(patch.waveShape, 0, 4);
     if (explicitChoice > 0)
     {
-        static constexpr std::array<uint8_t, 5> choiceToInstrument { 0, 12, 13, 7, 8 };
+        static constexpr std::array<uint8_t, 5> choiceToInstrument { 0, 12, 12, 7, 8 };
         return choiceToInstrument[static_cast<size_t>(explicitChoice)];
     }
 
@@ -3788,7 +3788,7 @@ uint8_t ym2413InstrumentForPatch(const PatchConfig& patch)
     {
         case MacroKind::coin:
         case MacroKind::jump: return 12;
-        case MacroKind::bass: return 13;
+        case MacroKind::bass: return 12;
         case MacroKind::lead: return 7;
         case MacroKind::arp:
         case MacroKind::powerUp: return 8;

@@ -1607,7 +1607,7 @@ const std::vector<PresetInfo>& presetCatalog()
                 "opll-preset-bass",
                 "YM2413 / OPLL",
                 "OPLL Preset Bass",
-                "Rounded YM2413 preset-FM bass with a quiet octave layer.",
+                "Sustaining YM2413 preset-FM bass with a quiet octave layer.",
                 ChipMode::ym2413,
                 AccuracyMode::hybrid,
                 MacroKind::bass,

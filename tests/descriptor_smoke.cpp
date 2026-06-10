@@ -456,7 +456,7 @@ bool expectFmRegisterHelpers()
                                                    0.0f,
                                                    0.0f,
                                                    0.6f);
-    ok &= expect(chipper::ym2413InstrumentForPatch(opllBass) == 13u, "YM2413 bass macro should resolve to OPLL instrument 13");
+    ok &= expect(chipper::ym2413InstrumentForPatch(opllBass) == 12u, "YM2413 bass macro should resolve to sustaining OPLL instrument 12");
     ok &= expect(chipper::ym2413VolumeNibbleForPatch(opllBass, 0) == 6u, "YM2413 helper should resolve volume nibble from output level");
 
     const auto opllExplicitBell = chipper::makePatchConfig(chipper::ChipMode::ym2413,
