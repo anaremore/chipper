@@ -9009,6 +9009,10 @@ public:
         currentKeyFraction.fill(0);
         currentAlgorithm.fill(0);
         currentFeedback.fill(0);
+        currentAttackRate.fill(0);
+        currentDecayRate.fill(0);
+        currentSustainRate.fill(0);
+        currentSustainRelease.fill(0);
         noteStamp = 0;
         heldNote = -1;
         keyOnMask = 0;
@@ -9149,6 +9153,11 @@ public:
              << "\"exposedChannelCount\":8,"
              << "\"algorithm0\":" << static_cast<int>(currentAlgorithm[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
+             << "\"envelopeShape\":" << patch.ymEnvelopeShape << ","
+             << "\"attackRate0\":" << static_cast<int>(currentAttackRate[0]) << ","
+             << "\"decayRate0\":" << static_cast<int>(currentDecayRate[0]) << ","
+             << "\"sustainRate0\":" << static_cast<int>(currentSustainRate[0]) << ","
+             << "\"sustainRelease0\":" << static_cast<int>(currentSustainRelease[0]) << ","
              << "\"algorithmFeedbackRegister0\":" << static_cast<int>(regs[0x20]) << ","
              << "\"keyCode0\":" << static_cast<int>(currentKeyCode[0]) << ","
              << "\"keyFraction0\":" << static_cast<int>(currentKeyFraction[0]) << ","
@@ -9266,6 +9275,13 @@ private:
         {
             const auto offs = opOffset(channel, op);
             const auto envelope = ym2612EnvelopeRegistersForPatch(patch, op);
+            if (op == 0)
+            {
+                currentAttackRate[channel] = envelope.attackRate;
+                currentDecayRate[channel] = envelope.decayRate;
+                currentSustainRate[channel] = envelope.sustainRate;
+                currentSustainRelease[channel] = envelope.sustainRelease;
+            }
             writeOpmRegister(static_cast<uint8_t>(0x40 + offs), multipleForOperator(op));
             writeOpmRegister(static_cast<uint8_t>(0x60 + offs), totalLevelForOperator(op, velocity));
             writeOpmRegister(static_cast<uint8_t>(0x80 + offs), envelope.attackRate);
@@ -9420,6 +9436,10 @@ private:
     std::array<uint8_t, 8> currentKeyFraction {};
     std::array<uint8_t, 8> currentAlgorithm {};
     std::array<uint8_t, 8> currentFeedback {};
+    std::array<uint8_t, 8> currentAttackRate {};
+    std::array<uint8_t, 8> currentDecayRate {};
+    std::array<uint8_t, 8> currentSustainRate {};
+    std::array<uint8_t, 8> currentSustainRelease {};
     std::array<int, 8> channelNotes {};
     std::array<float, 8> channelVelocity {};
     std::array<uint64_t, 8> channelStamp {};

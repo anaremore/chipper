@@ -549,7 +549,7 @@ std::vector<ParameterChoiceSpec> ym2612PanChoices()
 std::vector<ParameterChoiceSpec> ym2612EnvelopeShapeChoices()
 {
     return {
-        choice("Follow", "Resolve the OPN2 envelope registers from the selected template.", 0.0f, 0),
+        choice("Follow", "Resolve the FM operator envelope registers from the selected template.", 0.0f, 0),
         choice("Pluck", "Fast attack with a short decay for bright Genesis plucks and keys.", 0.25f, 1),
         choice("Lead", "Fast attack with medium sustain for melodic FM leads.", 0.5f, 2),
         choice("Pad", "Slower attack and release for soft stacked FM tones.", 0.75f, 3),
@@ -717,6 +717,13 @@ std::vector<ChipParameterSpec> ym2151ParameterSpecs()
           0.0f,
           1.0f,
           0.0f },
+        segmentedSpec(ChipParameterRole::ymEnvelopeShape,
+                      "ym2151.envelopeShape",
+                      "Envelope Shape",
+                      "Envelope",
+                      "Writes OPM operator attack, decay, sustain-rate, sustain-level, and release fields for the current musical envelope shape.",
+                      ym2612EnvelopeShapeChoices(),
+                      ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::stereoSpread,
                    "ym2151.stereoSpread",
                    "Stereo Spread",
@@ -1951,7 +1958,7 @@ std::array<ModuleDescriptor, 6> ym2612Modules()
         makeModule("profile", "Profile", "YM2612/OPN2 core is backed by audited BSD-licensed ymfm.", { "YM2612 model", "NTSC Genesis clock", "Hybrid default", "Verified partial" }),
         makeModule("sources", "FM Voices", "All six YM2612 melodic channels are exposed as playable source lanes.", { "FM Ch 1", "FM Ch 2", "FM Ch 3", "FM Ch 4-6" }),
         makeModule("tone", "Operators", "Musical controls write native OPN2 algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
-        makeModule("envelope", "Envelope", "Useful fixed operator envelopes are written per voice for this first FM instrument pass.", { "Operator attack", "Decay", "Sustain/release", "Full ADSR planned" }),
+        makeModule("envelope", "Envelope", "Template and user-selected shapes write native OPN2 attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Per-operator ADSR planned" }),
         makeModule("motion", "Motion", "Genesis-style musical templates map to register-backed FM patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
                 makeModule("output", "Output", "ymfm stereo OPN2 output follows native channel pan bits plus output trim.", { "Stereo core", "Pan bits", "DAC drum", "Reference tests needed" })
     };
@@ -1975,7 +1982,7 @@ std::array<ModuleDescriptor, 6> ym2151Modules()
         makeModule("profile", "Profile", "YM2151/OPM core is backed by audited BSD-licensed ymfm.", { "YM2151 core", "Arcade clock", "Hybrid default", "Verified partial" }),
         makeModule("sources", "FM Voices", "All eight OPM melodic channels are exposed as playable lanes.", { "Ch 1-4", "Ch 5-8", "Chip Poly", "Per-lane trims" }),
         makeModule("tone", "Operators", "Musical controls write native OPM algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
-        makeModule("envelope", "Envelope", "Useful fixed OPM operator envelopes are written per voice for this first FM instrument pass.", { "Attack", "Decay", "Sustain/release", "Full ADSR planned" }),
+        makeModule("envelope", "Envelope", "Template and user-selected shapes write native OPM attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Per-operator ADSR planned" }),
         makeModule("motion", "Motion", "Arcade FM templates map to register-backed OPM patches.", { "Chime", "Arcade bass", "Metal lead", "Laser" }),
         makeModule("output", "Output", "ymfm stereo OPM output is rendered with left/right pan enabled per active lane.", { "Stereo core", "LFO/noise planned", "Output gain", "Reference tests needed" })
     };
@@ -2616,7 +2623,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             bool nesDmcOnly)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
-    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : (mode == ChipMode::ym2612 ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
+    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
     const auto maxWaveShape = (mode == ChipMode::sid || mode == ChipMode::ym2612 || mode == ChipMode::ym2151) ? 8 : 4;
 
     return {

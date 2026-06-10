@@ -766,6 +766,9 @@ add_test(NAME chipper_render_ym2151_chip_poly_smoke
 add_test(NAME chipper_render_ym2151_sources_off_smoke
     COMMAND chipper_render --chip ym2151 --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 0 --source5 0 --source6 0 --source7 0 --source8 0 --clock 3579545 --rate 48000 --seconds 0.04 --note 69 --out ym2151-sources-off-smoke.wav --debug ym2151-sources-off-smoke.json
 )
+add_test(NAME chipper_render_ym2151_env_pad_smoke
+    COMMAND chipper_render --chip ym2151 --accuracy authentic --macro lead --opm-envelope pad --clock 3579545 --rate 48000 --seconds 0.08 --note 69 --out ym2151-env-pad-smoke.wav --debug ym2151-env-pad-smoke.json
+)
 add_test(NAME chipper_render_ym2612_held_tail_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro bass --wave-shape 1 --clock 7670454 --rate 48000 --seconds 0.50 --note 48 --out ym2612-held-tail-smoke.wav --debug ym2612-held-tail-smoke.json
 )
@@ -1571,6 +1574,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-sources-off-smoke.json --implemented-contains ymfm --macro Manual --register-writes 0 --note-events 0 --max-peak 0.001 --max-rms 0.001 --core-min keyOnMask=0 --core-max keyOnMask=0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min sourceEnabled5=0 --core-max sourceEnabled5=0 --core-min sourceEnabled6=0 --core-max sourceEnabled6=0 --core-min sourceEnabled7=0 --core-max sourceEnabled7=0
     )
     set_tests_properties(chipper_render_ym2151_sources_off_assert PROPERTIES DEPENDS chipper_render_ym2151_sources_off_smoke)
+
+    add_test(NAME chipper_render_ym2151_env_pad_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-env-pad-smoke.json --implemented-contains ymfm --macro Lead --register-writes 0 --note-events 0 --min-peak 0.01 --core-min envelopeShape=3 --core-max envelopeShape=3 --core-min attackRate0=20 --core-max attackRate0=20 --core-min decayRate0=4 --core-max decayRate0=4 --core-min sustainRate0=0 --core-max sustainRate0=0 --core-min sustainRelease0=85 --core-max sustainRelease0=85 --descriptor-param-kind ymEnvelopeShape=chipRegister --descriptor-param-surface ymEnvelopeShape=segmentedChoice --descriptor-param-label "ymEnvelopeShape=Envelope Shape" --descriptor-param-choices ymEnvelopeShape=5
+    )
+    set_tests_properties(chipper_render_ym2151_env_pad_assert PROPERTIES DEPENDS chipper_render_ym2151_env_pad_smoke)
 
     add_test(NAME chipper_render_ym2612_held_tail_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-held-tail-smoke.json --implemented-contains ymfm --macro Bass --min-peak 0.01 --min-tail-rms 0.001 --core-min sustainRate0=0 --core-max sustainRate0=0 --core-min sustainRelease0=80 --core-max sustainRelease0=96

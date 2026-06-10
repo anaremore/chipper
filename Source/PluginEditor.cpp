@@ -2596,6 +2596,8 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::opl3
         || displayedMode == chipper::ChipMode::ym2151
         || displayedMode == chipper::ChipMode::ym2413;
+    const auto usesFmEnvelopeShapePanel = displayedMode == chipper::ChipMode::ym2612
+        || displayedMode == chipper::ChipMode::ym2151;
     const auto usesSampleToneStack = displayedMode == chipper::ChipMode::spc700
         && usesSnNoiseModeSegment(displayedMode);
     if (usesFmToneStack)
@@ -2674,7 +2676,7 @@ void ChipperAudioProcessorEditor::resized()
     {
         if (usesDmgWaveLevelSegment(displayedMode))
             placeDmgWaveLevelSegment(secondaryTonePanel);
-        if (displayedMode != chipper::ChipMode::spc700 && usesYmEnvelopeShapeSegment(displayedMode))
+        if (displayedMode != chipper::ChipMode::spc700 && ! usesFmEnvelopeShapePanel && usesYmEnvelopeShapeSegment(displayedMode))
             placeYmEnvelopeShapeSegment(displayedMode == chipper::ChipMode::ym2149 || usesFmToneStack
                                             ? secondaryTonePanel
                                             : primaryTonePanel);
@@ -2699,7 +2701,8 @@ void ChipperAudioProcessorEditor::resized()
         envelopePanel.removeFromTop(4);
     else
     {
-        envelopePanel.removeFromTop(30);
+        if (moduleSummaryLabels[3].isVisible())
+            envelopePanel.removeFromTop(30);
         envelopePanel.removeFromTop(4);
     }
 
@@ -2723,6 +2726,12 @@ void ChipperAudioProcessorEditor::resized()
         placeYmEnvelopeShapeSegment(shapeArea);
         envelopeDecayPanel.removeFromTop(6);
         placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
+        ymEnvelopePreview.setBounds({});
+    }
+    else if (usesFmEnvelopeShapePanel)
+    {
+        auto shapeArea = envelopeDecayPanel.removeFromTop(std::min(64, envelopeDecayPanel.getHeight()));
+        placeYmEnvelopeShapeSegment(shapeArea);
         ymEnvelopePreview.setBounds({});
     }
     else
@@ -4796,18 +4805,19 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
         }
     }
 
-    if (displayedMode == chipper::ChipMode::ym2612)
+    if (displayedMode == chipper::ChipMode::ym2612 || displayedMode == chipper::ChipMode::ym2151)
     {
         const auto clamped = std::clamp(choice, 0, 4);
+        const auto chip = displayedMode == chipper::ChipMode::ym2151 ? juce::String("OPM") : juce::String("OPN2");
         switch (clamped)
         {
-            case 1: return "OPN2 AR/DR/SR/SL+RR set for plucked keys";
-            case 2: return "OPN2 AR/DR/SR/SL+RR set for sustained leads";
-            case 3: return "OPN2 AR/DR/SR/SL+RR set for soft pads";
-            case 4: return "OPN2 AR/DR/SR/SL+RR set for percussive hits";
+            case 1: return chip + " AR/DR/SR/SL+RR set for plucked keys";
+            case 2: return chip + " AR/DR/SR/SL+RR set for sustained leads";
+            case 3: return chip + " AR/DR/SR/SL+RR set for soft pads";
+            case 4: return chip + " AR/DR/SR/SL+RR set for percussive hits";
             case 0:
             default:
-                return "Follow template, writes OPN2 operator envelope registers";
+                return "Follow template, writes " + chip + " operator envelope registers";
         }
     }
 
@@ -7519,8 +7529,11 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         && mode == chipper::ChipMode::sid
         && chipper::parameterSpecFor(mode, chipper::ChipParameterRole::sidFilterRouting) != nullptr;
     setSidFilterRoutingControlVisible(hasSidFilterRoutingControl);
+    const auto hasFmEnvelopeShapeSurface = mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151;
     moduleSummaryLabels[1].setVisible(!(hasLiveCore && mode == chipper::ChipMode::sid && usesSourceChannelSurface(mode)));
-    moduleSummaryLabels[3].setVisible(!(hasLiveCore && mode == chipper::ChipMode::sid && usesEnvelopeDecayControl(mode)));
+    moduleSummaryLabels[3].setVisible(!(hasLiveCore
+        && ((mode == chipper::ChipMode::sid && usesEnvelopeDecayControl(mode))
+            || (hasFmEnvelopeShapeSurface && usesYmEnvelopeShapeSegment(mode)))));
     const auto hasCustomProfileSurface = hasLiveCore && mode == chipper::ChipMode::sid && usesDmgStereoRouteSegment(mode);
     for (auto& itemLabel : moduleItemLabels[0])
         itemLabel.setVisible(! hasCustomProfileSurface && ! itemLabel.getText().isEmpty());
@@ -7529,13 +7542,13 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         || usesDmgWaveLevelSegment(mode)
         || usesYmChannelMixControls(mode)
         || (mode != chipper::ChipMode::sid && usesSnNoiseModeSegment(mode))
-        || (mode != chipper::ChipMode::spc700 && usesYmEnvelopeShapeSegment(mode))
+        || (mode != chipper::ChipMode::spc700 && ! hasFmEnvelopeShapeSurface && usesYmEnvelopeShapeSegment(mode))
         || hasSidFilterRoutingControl);
     moduleSummaryLabels[2].setVisible(! hasCustomToneSurface);
     for (auto& itemLabel : moduleItemLabels[2])
         itemLabel.setVisible(! hasCustomToneSurface && ! itemLabel.getText().isEmpty());
     const auto hasCustomEnvelopeSurface = hasLiveCore
-        && (usesEnvelopeDecayControl(mode) || (mode == chipper::ChipMode::spc700 && usesYmEnvelopeShapeSegment(mode)));
+        && (usesEnvelopeDecayControl(mode) || ((mode == chipper::ChipMode::spc700 || hasFmEnvelopeShapeSurface) && usesYmEnvelopeShapeSegment(mode)));
     for (auto& itemLabel : moduleItemLabels[3])
         itemLabel.setVisible(! hasCustomEnvelopeSurface && ! itemLabel.getText().isEmpty());
     const auto hasCustomMotionSurface = hasLiveCore && mode == chipper::ChipMode::sid && usesSnNoiseModeSegment(mode);
