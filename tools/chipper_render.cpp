@@ -10,6 +10,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -122,6 +123,7 @@ struct Options
     std::filesystem::path eventFile;
     std::filesystem::path nesDmcSamplePath;
     std::filesystem::path spc700BrrSamplePath;
+    std::filesystem::path paulaSamplePath;
     std::string spc700BrrHex;
     std::vector<std::string> spc700BrrBankHex;
     int spc700SampleSlot = 0;
@@ -937,7 +939,7 @@ void printUsage()
         << "       Metadata: chipper_render --list-presets [--chip sid] --debug presets.json\n"
         << "                 chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --spc700-brr-sample path.brr --spc700-brr-hex 017f... --spc700-brr-bank-hex 017f... --spc700-sample-slot 0..31 --spc700-map-root 60 --spc700-envelope follow|pluck|lead|pad|perc --spc700-noise follow|off|low|mid|high --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --huc-lfo follow|off|light|deep|fast --pokey-audctl follow|off|1+2|3+4|both --pokey-filter follow|off|1<-3|2<-4|both --paula-output-filter follow|raw|a500|led|both --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opm-pan follow|both|left|right|alt --opm-noise follow|off|low|mid|high --opn2-envelope follow|pluck|lead|pad|perc --opm-envelope follow|pluck|lead|pad|perc --fm-envelope follow|pluck|lead|pad|perc --opn2-dac follow|fm|dac --opl-rhythm follow|melodic|rhythm --opll-rhythm follow|melodic|rhythm --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --spc700-brr-sample path.brr --spc700-brr-hex 017f... --spc700-brr-bank-hex 017f... --spc700-sample-slot 0..31 --spc700-map-root 60 --paula-sample path.8svx|raw --spc700-envelope follow|pluck|lead|pad|perc --spc700-noise follow|off|low|mid|high --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --huc-lfo follow|off|light|deep|fast --pokey-audctl follow|off|1+2|3+4|both --pokey-filter follow|off|1<-3|2<-4|both --paula-output-filter follow|raw|a500|led|both --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opm-pan follow|both|left|right|alt --opm-noise follow|off|low|mid|high --opn2-envelope follow|pluck|lead|pad|perc --opm-envelope follow|pluck|lead|pad|perc --fm-envelope follow|pluck|lead|pad|perc --opn2-dac follow|fm|dac --opl-rhythm follow|melodic|rhythm --opll-rhythm follow|melodic|rhythm --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -1491,6 +1493,13 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.spc700BrrSamplePath = value;
         }
+        else if (arg == "--paula-sample")
+        {
+            const auto* value = requireValue("--paula-sample");
+            if (value == nullptr)
+                return false;
+            options.paulaSamplePath = value;
+        }
         else if (arg == "--spc700-brr-hex")
         {
             const auto* value = requireValue("--spc700-brr-hex");
@@ -1953,6 +1962,89 @@ std::vector<uint8_t> loadBinaryFile(const std::filesystem::path& path)
         std::istreambuf_iterator<char>(in),
         std::istreambuf_iterator<char>()
     };
+}
+
+uint16_t readBigEndian16(const uint8_t* data)
+{
+    return static_cast<uint16_t>((static_cast<uint16_t>(data[0]) << 8u) | static_cast<uint16_t>(data[1]));
+}
+
+uint32_t readBigEndian32(const uint8_t* data)
+{
+    return (static_cast<uint32_t>(data[0]) << 24u)
+        | (static_cast<uint32_t>(data[1]) << 16u)
+        | (static_cast<uint32_t>(data[2]) << 8u)
+        | static_cast<uint32_t>(data[3]);
+}
+
+std::vector<uint8_t> signedPcm8ToPaulaBytes(const uint8_t* data, size_t size)
+{
+    std::vector<uint8_t> converted;
+    converted.reserve(size);
+    for (size_t i = 0; i < size; ++i)
+        converted.push_back(static_cast<uint8_t>(static_cast<int>(static_cast<int8_t>(data[i])) + 128));
+    return converted;
+}
+
+std::vector<uint8_t> loadPaulaSampleFile(const std::filesystem::path& path)
+{
+    auto data = loadBinaryFile(path);
+    if (data.empty())
+        return {};
+
+    if (data.size() >= 12u && std::memcmp(data.data(), "FORM", 4u) == 0 && std::memcmp(data.data() + 8u, "8SVX", 4u) == 0)
+    {
+        const auto formSize = static_cast<size_t>(readBigEndian32(data.data() + 4u));
+        const auto formEnd = std::min(data.size(), static_cast<size_t>(8u + formSize));
+        auto offset = static_cast<size_t>(12u);
+        bool sawVhdr = false;
+        bool isCompressed = false;
+        const uint8_t* body = nullptr;
+        size_t bodySize = 0u;
+
+        while (offset + 8u <= formEnd)
+        {
+            const auto* chunkId = data.data() + offset;
+            const auto chunkSize = static_cast<size_t>(readBigEndian32(data.data() + offset + 4u));
+            const auto chunkDataOffset = offset + 8u;
+            if (chunkDataOffset + chunkSize > data.size())
+                throw std::runtime_error("Paula 8SVX chunk extends past end of file: " + path.string());
+
+            if (std::memcmp(chunkId, "VHDR", 4u) == 0)
+            {
+                if (chunkSize < 16u)
+                    throw std::runtime_error("Paula 8SVX VHDR chunk is too short: " + path.string());
+
+                sawVhdr = true;
+                const auto sampleRate = readBigEndian16(data.data() + chunkDataOffset + 12u);
+                const auto compression = data[chunkDataOffset + 15u];
+                if (sampleRate == 0u)
+                    throw std::runtime_error("Paula 8SVX sample rate is invalid: " + path.string());
+
+                isCompressed = compression != 0u;
+            }
+            else if (std::memcmp(chunkId, "BODY", 4u) == 0)
+            {
+                body = data.data() + chunkDataOffset;
+                bodySize = chunkSize;
+            }
+
+            offset = chunkDataOffset + chunkSize + (chunkSize & 1u);
+        }
+
+        if (! sawVhdr)
+            throw std::runtime_error("Paula 8SVX file is missing VHDR metadata: " + path.string());
+
+        if (isCompressed)
+            throw std::runtime_error("Paula 8SVX renderer import supports uncompressed BODY data only: " + path.string());
+
+        if (body == nullptr || bodySize == 0u)
+            throw std::runtime_error("Paula 8SVX file has no BODY sample data: " + path.string());
+
+        return signedPcm8ToPaulaBytes(body, bodySize);
+    }
+
+    return signedPcm8ToPaulaBytes(data.data(), data.size());
 }
 
 std::vector<uint8_t> parseHexBytes(std::string text)
@@ -2701,6 +2793,8 @@ int main(int argc, char** argv)
         core->reset(options.sampleRate, options.clock);
         if (! options.nesDmcSamplePath.empty())
             core->setExternalSampleData(loadBinaryFile(options.nesDmcSamplePath));
+        if (! options.paulaSamplePath.empty())
+            core->setExternalSampleData(loadPaulaSampleFile(options.paulaSamplePath));
         if (! options.spc700BrrBankHex.empty())
         {
             std::vector<std::vector<uint8_t>> bank;
