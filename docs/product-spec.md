@@ -149,6 +149,17 @@ Every shipped factory preset must appear in that catalog, include chip/category/
 - SCC Wave Bass
 - SCC Five-Voice Arp
 - SCC Wave Tick
+- OPM Arcade Bass
+- OPM Metallic Lead
+- OPM Arcade Arp
+- OPM UI Chime
+- OPM Damage Hit
+- OPM Laser Sweep
+- OPM Power Sweep
+- OPM Glass Keys
+- OPM Warning Stab
+- OPM Hollow Pad
+- OPM Noise Zap
 - OPLL UI Chime
 - OPLL Preset Bass
 - OPLL Brass Lead
