@@ -454,6 +454,9 @@ private:
     bool descriptorTextInitialized = false;
     int displayedDmcSampleCount = -1;
     uint64_t displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();
+    chipper::ChipMode displayedSampleListMode = chipper::ChipMode::nes;
+    int displayedSamplePlaybackMode = -1;
+    int displayedSampleMapRoot = -1;
     bool suppressMacroTemplateApply = false;
     bool suppressPresetApply = false;
     bool suppressManualChoiceCallbacks = false;

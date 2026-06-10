@@ -6767,16 +6767,34 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
     const auto sampleCount = names.size();
     const auto revision = audioProcessor.nesDmcSampleRevision();
     const auto selectedSlot = static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcSampleSlot)));
+    const auto playbackMode = static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcPlaybackMode)));
+    const auto mapRoot = std::clamp(static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcMapRoot))), 0, 127);
 
     const juce::ScopedValueSetter<bool> suppress(suppressManualChoiceCallbacks, true);
-    if (sampleCount != displayedDmcSampleCount || revision != displayedDmcSampleRevision)
+    if (displayedSampleListMode != chipper::ChipMode::nes
+        || sampleCount != displayedDmcSampleCount
+        || revision != displayedDmcSampleRevision
+        || playbackMode != displayedSamplePlaybackMode
+        || mapRoot != displayedSampleMapRoot)
     {
         dmcSampleSlotBox.clear(juce::dontSendNotification);
         for (int i = 0; i < sampleCount; ++i)
-            dmcSampleSlotBox.addItem(juce::String(i + 1).paddedLeft('0', 2) + "  " + names[i], i + 1);
+        {
+            auto itemLabel = juce::String(i + 1).paddedLeft('0', 2) + "  " + names[i];
+            if (playbackMode != 0)
+            {
+                const auto note = mapRoot + i;
+                const auto noteLabel = note <= 127 ? chipper::parameters::midiNoteChoices()[note] : juce::String("--");
+                itemLabel = noteLabel + "  " + itemLabel;
+            }
+            dmcSampleSlotBox.addItem(itemLabel, i + 1);
+        }
 
+        displayedSampleListMode = chipper::ChipMode::nes;
         displayedDmcSampleCount = sampleCount;
         displayedDmcSampleRevision = revision;
+        displayedSamplePlaybackMode = playbackMode;
+        displayedSampleMapRoot = mapRoot;
     }
 
     if (sampleCount > 0)
@@ -6845,14 +6863,30 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     const auto selectedSlot = static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcSampleSlot)));
 
     const juce::ScopedValueSetter<bool> suppress(suppressManualChoiceCallbacks, true);
-    if (sampleCount != displayedDmcSampleCount || revision != displayedDmcSampleRevision)
+    if (displayedSampleListMode != chipper::ChipMode::spc700
+        || sampleCount != displayedDmcSampleCount
+        || revision != displayedDmcSampleRevision
+        || playbackMode != displayedSamplePlaybackMode
+        || mapRoot != displayedSampleMapRoot)
     {
         dmcSampleSlotBox.clear(juce::dontSendNotification);
         for (int i = 0; i < sampleCount; ++i)
-            dmcSampleSlotBox.addItem(juce::String(i + 1).paddedLeft('0', 2) + "  " + names[i], i + 1);
+        {
+            auto itemLabel = juce::String(i + 1).paddedLeft('0', 2) + "  " + names[i];
+            if (playbackMode != 0)
+            {
+                const auto note = mapRoot + i;
+                const auto noteLabel = note <= 127 ? chipper::parameters::midiNoteChoices()[note] : juce::String("--");
+                itemLabel = noteLabel + "  " + itemLabel;
+            }
+            dmcSampleSlotBox.addItem(itemLabel, i + 1);
+        }
 
+        displayedSampleListMode = chipper::ChipMode::spc700;
         displayedDmcSampleCount = sampleCount;
         displayedDmcSampleRevision = revision;
+        displayedSamplePlaybackMode = playbackMode;
+        displayedSampleMapRoot = mapRoot;
     }
 
     if (sampleCount > 0)
@@ -6947,14 +6981,30 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
     const auto selectedSlot = static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcSampleSlot)));
 
     const juce::ScopedValueSetter<bool> suppress(suppressManualChoiceCallbacks, true);
-    if (sampleCount != displayedDmcSampleCount || revision != displayedDmcSampleRevision)
+    if (displayedSampleListMode != chipper::ChipMode::paula
+        || sampleCount != displayedDmcSampleCount
+        || revision != displayedDmcSampleRevision
+        || playbackMode != displayedSamplePlaybackMode
+        || mapRoot != displayedSampleMapRoot)
     {
         dmcSampleSlotBox.clear(juce::dontSendNotification);
         for (int i = 0; i < sampleCount; ++i)
-            dmcSampleSlotBox.addItem(juce::String(i + 1).paddedLeft('0', 2) + "  " + names[i], i + 1);
+        {
+            auto itemLabel = juce::String(i + 1).paddedLeft('0', 2) + "  " + names[i];
+            if (playbackMode != 0)
+            {
+                const auto note = mapRoot + i;
+                const auto noteLabel = note <= 127 ? chipper::parameters::midiNoteChoices()[note] : juce::String("--");
+                itemLabel = noteLabel + "  " + itemLabel;
+            }
+            dmcSampleSlotBox.addItem(itemLabel, i + 1);
+        }
 
+        displayedSampleListMode = chipper::ChipMode::paula;
         displayedDmcSampleCount = sampleCount;
         displayedDmcSampleRevision = revision;
+        displayedSamplePlaybackMode = playbackMode;
+        displayedSampleMapRoot = mapRoot;
     }
 
     if (sampleCount > 0)
