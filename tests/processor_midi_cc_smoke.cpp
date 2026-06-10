@@ -668,8 +668,11 @@ int main()
     ok &= expect(spcMapAuditionProcessor.loadSpc700BrrSampleDirectory(brrDir).wasOk(),
                  "Should load SPC700 BRR sample directory for isolated note-map audio audition");
     const auto outOfRangeMappedPeak = renderNoteOnPeak(spcMapAuditionProcessor, 50);
+    const auto outOfRangeMappedInfo = spcMapAuditionProcessor.spc700BrrSampleInfo();
     ok &= expect(outOfRangeMappedPeak <= 0.0001f,
                  "SPC700 note map should leave notes above the loaded BRR bank span silent instead of clamping to the last slot");
+    ok &= expect(outOfRangeMappedInfo.selectedSlot == -1 && outOfRangeMappedInfo.statusLine.contains("No mapped SPC700 sample"),
+                 "SPC700 note map status should report no mapped sample after an out-of-range note");
     const auto inRangeMappedPeak = renderNoteOnPeak(spcMapAuditionProcessor, 38);
     ok &= expect(inRangeMappedPeak > 0.0001f,
                  "SPC700 note map should produce audio for notes inside the loaded BRR bank span");
@@ -745,8 +748,11 @@ int main()
     ok &= expect(spcWavMapAuditionProcessor.loadSpc700BrrSampleDirectory(spcWavDir).wasOk(),
                  "Should load SPC700 WAV sample directory for isolated note-map audio audition");
     const auto spcWavOutOfRangePeak = renderNoteOnPeak(spcWavMapAuditionProcessor, 50);
+    const auto spcWavOutOfRangeInfo = spcWavMapAuditionProcessor.spc700BrrSampleInfo();
     ok &= expect(spcWavOutOfRangePeak <= 0.0001f,
                  "SPC700 WAV note map should leave notes above the loaded sample bank span silent instead of clamping to the last slot");
+    ok &= expect(spcWavOutOfRangeInfo.selectedSlot == -1 && spcWavOutOfRangeInfo.statusLine.contains("No mapped SPC700 sample"),
+                 "SPC700 WAV note map status should report no mapped sample after an out-of-range note");
     const auto spcWavInRangePeak = renderNoteOnPeak(spcWavMapAuditionProcessor, 38);
     ok &= expect(spcWavInRangePeak > 0.0001f,
                  "SPC700 WAV note map should produce audio for notes inside the loaded sample bank span");
@@ -834,8 +840,11 @@ int main()
     ok &= expect(paulaMapAuditionProcessor.loadPaulaSampleDirectory(paulaDir).wasOk(),
                  "Should load Paula sample directory for isolated note-map audio audition");
     const auto paulaOutOfRangeMappedPeak = renderNoteOnPeak(paulaMapAuditionProcessor, 50);
+    const auto paulaOutOfRangeMappedInfo = paulaMapAuditionProcessor.paulaSampleInfo();
     ok &= expect(paulaOutOfRangeMappedPeak <= 0.0001f,
                  "Paula note map should leave notes above the loaded sample span silent instead of clamping to the last slot");
+    ok &= expect(paulaOutOfRangeMappedInfo.selectedSlot == -1 && paulaOutOfRangeMappedInfo.statusLine.contains("No mapped Paula sample"),
+                 "Paula note map status should report no mapped sample after an out-of-range note");
     const auto paulaInRangeMappedPeak = renderNoteOnPeak(paulaMapAuditionProcessor, 39);
     ok &= expect(paulaInRangeMappedPeak > 0.0001f,
                  "Paula note map should produce audio for notes inside the loaded sample bank span");

@@ -732,6 +732,16 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
     }
     const auto mapRootNote = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcMapRoot)->load())), 0, 127);
     const auto playbackMode = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load())), 0, 2);
+    if (playbackMode != 0 && activeSpc700BrrSampleSlot < 0)
+    {
+        info.selectedSlot = -1;
+        info.playbackMode = playbackMode;
+        info.mapRootNote = mapRootNote;
+        info.mapHighNote = std::clamp(mapRootNote + std::max(0, bankCount - 1), 0, 127);
+        info.statusLine = "No mapped SPC700 sample | Map " + midiNoteName(info.mapRootNote) + "-" + midiNoteName(info.mapHighNote);
+        return info;
+    }
+
     const auto& selected = *activeSlots[static_cast<size_t>(safeSlot)];
     info.sampleName = selected.name;
     info.path = selected.path;
@@ -802,6 +812,16 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::paulaSampleInf
 
     const auto mapRootNote = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcMapRoot)->load())), 0, 127);
     const auto playbackMode = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load())), 0, 2);
+    if (playbackMode != 0 && activePaulaSampleSlot < 0)
+    {
+        info.selectedSlot = -1;
+        info.playbackMode = playbackMode;
+        info.mapRootNote = mapRootNote;
+        info.mapHighNote = std::clamp(mapRootNote + std::max(0, bankCount - 1), 0, 127);
+        info.statusLine = "No mapped Paula sample | Map " + midiNoteName(info.mapRootNote) + "-" + midiNoteName(info.mapHighNote);
+        return info;
+    }
+
     const auto& selected = *activeSlots[static_cast<size_t>(safeSlot)];
     info.sampleName = selected.name;
     info.path = selected.path;
