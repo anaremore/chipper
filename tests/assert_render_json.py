@@ -36,6 +36,8 @@ def main() -> int:
     parser.add_argument("--max-zero-crossings", type=int)
     parser.add_argument("--core-max", action="append", default=[], metavar="FIELD=VALUE")
     parser.add_argument("--core-min", action="append", default=[], metavar="FIELD=VALUE")
+    parser.add_argument("--render-core-max", action="append", default=[], metavar="FIELD=VALUE")
+    parser.add_argument("--render-core-min", action="append", default=[], metavar="FIELD=VALUE")
     parser.add_argument("--descriptor-param-kind", action="append", default=[], metavar="ROLE=KIND")
     parser.add_argument("--descriptor-param-surface", action="append", default=[], metavar="ROLE=SURFACE")
     parser.add_argument("--descriptor-param-label", action="append", default=[], metavar="ROLE=LABEL")
@@ -126,26 +128,32 @@ def main() -> int:
     if args.max_zero_crossings is not None and zero_crossings > args.max_zero_crossings:
         failures.append(f"zeroCrossings expected <= {args.max_zero_crossings}, got {zero_crossings}")
 
-    core_state = data.get("coreState", {})
-    for assertion in args.core_max:
-        field, _, value = assertion.partition("=")
-        if not field or not value:
-            failures.append(f"bad --core-max assertion {assertion!r}")
-            continue
-        actual = float(core_state.get(field, 0.0))
-        expected = float(value)
-        if actual > expected:
-            failures.append(f"coreState.{field} expected <= {expected}, got {actual}")
+    def assert_state_fields(state: dict, label: str, minimums: list[str], maximums: list[str]) -> None:
+        for assertion in maximums:
+            field, _, value = assertion.partition("=")
+            if not field or not value:
+                failures.append(f"bad --{label}-max assertion {assertion!r}")
+                continue
+            actual = float(state.get(field, 0.0))
+            expected = float(value)
+            if actual > expected:
+                failures.append(f"{label}.{field} expected <= {expected}, got {actual}")
 
-    for assertion in args.core_min:
-        field, _, value = assertion.partition("=")
-        if not field or not value:
-            failures.append(f"bad --core-min assertion {assertion!r}")
-            continue
-        actual = float(core_state.get(field, 0.0))
-        expected = float(value)
-        if actual < expected:
-            failures.append(f"coreState.{field} expected >= {expected}, got {actual}")
+        for assertion in minimums:
+            field, _, value = assertion.partition("=")
+            if not field or not value:
+                failures.append(f"bad --{label}-min assertion {assertion!r}")
+                continue
+            actual = float(state.get(field, 0.0))
+            expected = float(value)
+            if actual < expected:
+                failures.append(f"{label}.{field} expected >= {expected}, got {actual}")
+
+    core_state = data.get("coreState", {})
+    assert_state_fields(core_state, "coreState", args.core_min, args.core_max)
+
+    render_core_state = data.get("renderEndCoreState", {})
+    assert_state_fields(render_core_state, "renderEndCoreState", args.render_core_min, args.render_core_max)
 
     descriptor = data.get("descriptor", {})
     parameters = {

@@ -2680,6 +2680,7 @@ void writeDebugJson(const std::filesystem::path& path,
                     const chipper::PatchConfig& patch,
                     const chipper::ChipCore& core,
                     const chipper::RenderStats& stats,
+                    std::string_view renderEndCoreStateJson,
                     size_t registerWriteCount,
                     size_t noteEventCount)
 {
@@ -2751,6 +2752,7 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"descriptor\": ";
     writeDescriptorJson(out, options.chip);
     out << ",\n"
+        << "  \"renderEndCoreState\": " << renderEndCoreStateJson << ",\n"
         << "  \"coreState\": " << core.debugStateJson() << "\n"
         << "}\n";
 }
@@ -2885,11 +2887,12 @@ int main(int argc, char** argv)
             frames.push_back(core->renderSample());
         }
 
+        const auto renderEndCoreStateJson = core->debugStateJson();
         core->noteOff(options.note);
         applyOutputGain(frames, options.outputDb);
         const auto stats = calculateStats(frames);
         writeWav(options.wavPath, frames, options.sampleRate);
-        writeDebugJson(options.debugPath, options, patch, *core, stats, registerWriteCount, noteEventCount);
+        writeDebugJson(options.debugPath, options, patch, *core, stats, renderEndCoreStateJson, registerWriteCount, noteEventCount);
 
         std::cout << "Rendered " << frames.size() << " samples to " << options.wavPath.string()
                   << " and " << options.debugPath.string() << "\n";
