@@ -410,6 +410,17 @@ int main()
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 1.0f, 0.0001f,
                      "CC74 SPC700 Lead macro should show sample playback as Note Map");
 
+    sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 9));
+    sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 2));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 1.0f, 0.0001f,
+                     "CC74 Paula Bass macro should show sample playback as Key Map");
+    sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 5));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 2.0f, 0.0001f,
+                     "CC74 Paula Drum macro should show sample playback as Tracker Map");
+    sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 0));
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 0.0f, 0.0001f,
+                     "CC74 Paula Manual macro should return sample playback to Manual Slot");
+
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 2));
     sendController(processor, 90, controllerValueForChoice(processor, chipper::parameters::id::ymEnvelopeShape, 2));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::ymEnvelopeShape), 2.0f, 0.0001f,

@@ -132,6 +132,29 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
 
 int samplePlaybackModeForMacroTemplate(chipper::ChipMode mode, const chipper::MacroTemplate& templ)
 {
+    if (mode == chipper::ChipMode::paula)
+    {
+        switch (templ.macro)
+        {
+            case chipper::MacroKind::coin:
+            case chipper::MacroKind::drum:
+            case chipper::MacroKind::hit:
+            case chipper::MacroKind::jump:
+            case chipper::MacroKind::laser:
+            case chipper::MacroKind::powerUp:
+                return 2;
+
+            case chipper::MacroKind::bass:
+            case chipper::MacroKind::lead:
+            case chipper::MacroKind::arp:
+                return 1;
+
+            case chipper::MacroKind::manual:
+            default:
+                return 0;
+        }
+    }
+
     if (mode != chipper::ChipMode::spc700)
         return 0;
 
