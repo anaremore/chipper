@@ -1029,14 +1029,24 @@ void FmAlgorithmPreview::paint(juce::Graphics& g)
     g.setColour(juce::Colour(0xff2a3a40));
     g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
 
-    auto graph = bounds.reduced(7.0f, 5.0f);
-    if (graph.getWidth() < 80.0f || graph.getHeight() < 34.0f)
+    auto graph = bounds.reduced(7.0f, 4.0f);
+    if (graph.getWidth() < 80.0f || graph.getHeight() < 20.0f)
         return;
 
-    auto labelArea = graph.removeFromTop(std::min(15.0f, graph.getHeight()));
-    graph.removeFromTop(std::min(3.0f, graph.getHeight()));
+    const auto compact = graph.getHeight() < 38.0f;
+    auto labelArea = graph.removeFromTop(std::min(compact ? 11.0f : 15.0f, graph.getHeight()));
+    graph.removeFromTop(std::min(compact ? 1.0f : 3.0f, graph.getHeight()));
+    if (graph.getHeight() < 8.0f)
+    {
+        g.setColour(follow ? juce::Colour(0xffaebbc4) : juce::Colour(0xffdbe8e5));
+        g.setFont(juce::FontOptions(compact ? 8.0f : 10.0f, juce::Font::bold));
+        g.drawText(juce::String(follow ? "Follow -> " : "") + "Alg " + juce::String(algorithm),
+                   labelArea,
+                   juce::Justification::centredLeft);
+        return;
+    }
 
-    const auto opRadius = std::clamp(std::min(graph.getWidth(), graph.getHeight()) * 0.095f, 5.0f, 10.0f);
+    const auto opRadius = std::clamp(std::min(graph.getWidth(), graph.getHeight()) * (compact ? 0.13f : 0.095f), 4.0f, 10.0f);
     const auto carrierColour = juce::Colour(0xfff0c94d);
     const auto modColour = juce::Colour(0xff56c7d8);
     const auto mutedColour = juce::Colour(0xff72818a);
@@ -1175,13 +1185,16 @@ void FmAlgorithmPreview::paint(juce::Graphics& g)
     g.setColour(carrierColour.withAlpha(follow ? 0.70f : 0.95f));
     g.fillRoundedRectangle(outX - 7.0f, yMid - 9.0f, 14.0f, 18.0f, 2.0f);
     g.setColour(juce::Colour(0xff101414));
-    g.setFont(juce::FontOptions(8.0f, juce::Font::bold));
+    g.setFont(juce::FontOptions(compact ? 6.5f : 8.0f, juce::Font::bold));
     g.drawText("OUT", juce::Rectangle<float> { outX - 15.0f, yMid - 8.0f, 30.0f, 16.0f }, juce::Justification::centred);
 
     g.setColour(follow ? juce::Colour(0xffaebbc4) : juce::Colour(0xffdbe8e5));
-    g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
-    g.drawText(juce::String(follow ? "Follow -> " : "") + "Alg " + juce::String(algorithm)
-                   + " | " + algorithmNames[static_cast<size_t>(std::clamp(algorithm, 0, 7))],
+    g.setFont(juce::FontOptions(compact ? 8.0f : 10.0f, juce::Font::bold));
+    const auto label = compact
+        ? juce::String(follow ? "Follow -> " : "") + "Alg " + juce::String(algorithm)
+        : juce::String(follow ? "Follow -> " : "") + "Alg " + juce::String(algorithm)
+            + " | " + algorithmNames[static_cast<size_t>(std::clamp(algorithm, 0, 7))];
+    g.drawText(label,
                labelArea,
                juce::Justification::centredLeft);
 }
