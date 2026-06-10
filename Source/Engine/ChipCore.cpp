@@ -7420,7 +7420,7 @@ public:
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"internalChannelCount\":9,"
              << "\"exposedChannelCount\":9,"
-             << "\"instrumentChoice\":" << std::clamp(patch.waveShape, 0, 4) << ","
+             << "\"instrumentChoice\":" << std::clamp(patch.waveShape, 0, 15) << ","
              << "\"rhythmModeChoice\":" << std::clamp(patch.ymEnvelopeShape, 0, 2) << ","
              << "\"rhythmMode\":" << (rhythmModeActive() ? 1 : 0) << ","
              << "\"rhythmRegister\":" << static_cast<int>(regs[0x0e]) << ","

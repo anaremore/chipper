@@ -41,7 +41,24 @@ juce::StringArray playModeChoices()
 
 juce::StringArray waveShapeChoices()
 {
-    return { "Follow/RAM", "Tri", "Saw", "Pulse", "Noise/Steps", "Tri+Saw", "Tri+Pulse", "Saw+Pulse", "Tri+Saw+Pulse" };
+    return {
+        "Follow/RAM",
+        "Tri",
+        "Saw",
+        "Pulse",
+        "Noise/Steps",
+        "Tri+Saw",
+        "Tri+Pulse",
+        "Saw+Pulse",
+        "Tri+Saw+Pulse",
+        "OPLL Horn",
+        "OPLL Synth",
+        "OPLL Harpsi",
+        "OPLL Vibes",
+        "OPLL Synth Bass",
+        "OPLL Ac Bass",
+        "OPLL E.Guitar"
+    };
 }
 
 juce::StringArray sidVoiceWaveShapeChoices()

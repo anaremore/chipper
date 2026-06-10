@@ -2891,14 +2891,22 @@ void ChipperAudioProcessorEditor::resized()
     else if (displayedMode == chipper::ChipMode::opl3)
         placeOplWaveformControl(primaryTonePanel);
     else if (displayedMode == chipper::ChipMode::ym2413)
-        placeOpllInstrumentControl(primaryTonePanel);
+    {
+        auto instrumentArea = primaryTonePanel.removeFromTop(std::min(58, primaryTonePanel.getHeight()));
+        primaryTonePanel.removeFromTop(std::min(8, primaryTonePanel.getHeight()));
+        placeOpllInstrumentControl(instrumentArea);
+        placeYmEnvelopeShapeSegment(primaryTonePanel);
+    }
     else
         placeWaveShapeSegment(primaryTonePanel);
     if (displayedMode != chipper::ChipMode::sid)
     {
         if (usesDmgWaveLevelSegment(displayedMode))
             placeDmgWaveLevelSegment(secondaryTonePanel);
-        if (displayedMode != chipper::ChipMode::spc700 && ! usesFmEnvelopeShapePanel && usesYmEnvelopeShapeSegment(displayedMode))
+        if (displayedMode != chipper::ChipMode::spc700
+            && displayedMode != chipper::ChipMode::ym2413
+            && ! usesFmEnvelopeShapePanel
+            && usesYmEnvelopeShapeSegment(displayedMode))
             placeYmEnvelopeShapeSegment(displayedMode == chipper::ChipMode::ym2149 || usesFmToneStack
                                             ? secondaryTonePanel
                                             : primaryTonePanel);
@@ -3388,14 +3396,14 @@ void ChipperAudioProcessorEditor::placeOplWaveformControl(juce::Rectangle<int> b
 
 void ChipperAudioProcessorEditor::placeOpllInstrumentControl(juce::Rectangle<int> bounds)
 {
-    const auto compact = bounds.getHeight() < 56;
-    auto header = bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight()));
+    const auto compact = bounds.getHeight() < 54;
+    auto header = bounds.removeFromTop(std::min(compact ? 16 : 18, bounds.getHeight()));
     waveShapeLabel.setBounds(header.removeFromLeft(std::min(96, header.getWidth())));
     waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
     waveShapeValueLabel.setBounds(header);
-    bounds.removeFromTop(std::min(compact ? 2 : 3, bounds.getHeight()));
+    bounds.removeFromTop(std::min(compact ? 3 : 4, bounds.getHeight()));
 
-    opllInstrumentBox.setBounds(bounds.removeFromTop(std::min(compact ? 24 : 28, bounds.getHeight())).reduced(0, 1));
+    opllInstrumentBox.setBounds(bounds.removeFromTop(std::min(compact ? 28 : 32, bounds.getHeight())).reduced(0, 1));
     waveShapeSegmentBounds = {};
     for (auto& button : waveShapeButtons)
         button.setBounds({});

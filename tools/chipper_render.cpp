@@ -195,7 +195,7 @@ bool parseWaveShape(const std::string& text, int& out)
     uint32_t numeric = 0;
     if (parseNumber(text, numeric))
     {
-        out = std::clamp(static_cast<int>(numeric), 0, 8);
+        out = std::clamp(static_cast<int>(numeric), 0, 15);
         return true;
     }
 
@@ -226,6 +226,36 @@ bool parseWaveShape(const std::string& text, int& out)
         out = 7;
     else if (key == "tri+saw+pulse" || key == "triangle+saw+pulse" || key == "trisawpulse" || key == "trianglesawpulse")
         out = 8;
+    else if (key == "violin" || key == "opllviolin")
+        out = 1;
+    else if (key == "guitar" || key == "opllguitar")
+        out = 2;
+    else if (key == "piano" || key == "opllpiano")
+        out = 3;
+    else if (key == "flute" || key == "opllflute")
+        out = 4;
+    else if (key == "clarinet" || key == "opllclarinet")
+        out = 5;
+    else if (key == "oboe" || key == "oplloboe")
+        out = 6;
+    else if (key == "trumpet" || key == "oplltrumpet")
+        out = 7;
+    else if (key == "organ" || key == "opllorgan")
+        out = 8;
+    else if (key == "horn" || key == "opllhorn")
+        out = 9;
+    else if (key == "synth" || key == "synthesizer" || key == "opllsynth")
+        out = 10;
+    else if (key == "harpsi" || key == "harpsichord" || key == "opllharpsi")
+        out = 11;
+    else if (key == "vibes" || key == "vibraphone" || key == "bell" || key == "opllvibes")
+        out = 12;
+    else if (key == "synthbass" || key == "opllsynthbass")
+        out = 13;
+    else if (key == "acbass" || key == "acousticbass" || key == "bass" || key == "opllacbass")
+        out = 14;
+    else if (key == "eguitar" || key == "electricguitar" || key == "oplleguitar")
+        out = 15;
     else
         return false;
 
