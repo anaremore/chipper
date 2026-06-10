@@ -7871,6 +7871,8 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
 void ChipperAudioProcessorEditor::updateSamplePlaybackModeChoices(chipper::ChipMode mode)
 {
     const auto choices = chipper::parameters::samplePlaybackModeChoices(mode);
+    const auto selectedChoice = std::clamp(static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcPlaybackMode))), 0, choices.size() - 1);
+    const auto emptyText = mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula ? juce::String("Sample Playback") : juce::String("DMC Playback");
 
     auto choicesAlreadyMatch = dmcPlaybackModeBox.getNumItems() == choices.size();
     if (choicesAlreadyMatch)
@@ -7885,15 +7887,18 @@ void ChipperAudioProcessorEditor::updateSamplePlaybackModeChoices(chipper::ChipM
         }
     }
 
-    if (choicesAlreadyMatch)
-        return;
-
-    const auto selectedChoice = std::clamp(static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcPlaybackMode))), 0, choices.size() - 1);
     const juce::ScopedValueSetter<bool> suppress(suppressManualChoiceCallbacks, true);
+    if (choicesAlreadyMatch)
+    {
+        dmcPlaybackModeBox.setTextWhenNothingSelected(emptyText);
+        dmcPlaybackModeBox.setSelectedId(selectedChoice + 1, juce::dontSendNotification);
+        return;
+    }
+
     dmcPlaybackModeBox.clear(juce::dontSendNotification);
     for (int i = 0; i < choices.size(); ++i)
         dmcPlaybackModeBox.addItem(choices[i], i + 1);
-    dmcPlaybackModeBox.setTextWhenNothingSelected(mode == chipper::ChipMode::spc700 ? "Sample Playback" : (mode == chipper::ChipMode::paula ? "Sample Playback" : "DMC Playback"));
+    dmcPlaybackModeBox.setTextWhenNothingSelected(emptyText);
     dmcPlaybackModeBox.setSelectedId(selectedChoice + 1, juce::dontSendNotification);
 }
 
