@@ -1970,7 +1970,7 @@ std::array<ModuleDescriptor, 6> oplModules()
         makeModule("profile", "Profile", "OPL2 path is backed by audited BSD-licensed ymfm inside the broader OPL2/OPL3 mode.", { "YM3812 core", "DOS clock", "Hybrid default", "Verified partial" }),
         makeModule("sources", "FM Voices", "All nine OPL2 melodic channels are exposed as playable lanes; rhythm mode repurposes 7-9.", { "Ch 1-6 melodic", "Ch 7-9 melodic/rhythm", "BD HH SD TOM CYM", "Chip Poly" }),
         makeModule("tone", "Operators", "Musical controls write native OPL operator and channel registers.", { "Waveform", "Feedback", "Connection", "Operator tone" }),
-        makeModule("envelope", "Envelope", "Useful fixed OPL operator envelopes are written per voice for this first pass.", { "Attack/decay", "Sustain/release", "KSR/multiple", "Full ADSR planned" }),
+        makeModule("envelope", "Envelope", "Melodic and rhythm templates write native OPL attack/decay and sustain/release bytes.", { "EG type sustain", "Attack/decay bytes", "Sustain/release bytes", "Per-operator ADSR planned" }),
         makeModule("motion", "Motion", "DOS FM templates map to register-backed melodic and rhythm patches.", { "UI bell", "FM bass", "Rhythm hits", "Laser" }),
         makeModule("output", "Output", "ymfm mono OPL2 output is mirrored to the plugin stereo output.", { "Mono core", "$BD rhythm bits", "Output gain", "Reference tests needed" })
     };

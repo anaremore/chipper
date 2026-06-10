@@ -8446,6 +8446,9 @@ public:
         currentBlock.fill(0);
         currentWaveform.fill(0);
         currentFeedback.fill(0);
+        currentCarrierControl.fill(0);
+        currentCarrierAttackDecay.fill(0);
+        currentCarrierSustainRelease.fill(0);
         rhythmKeyBits = 0;
         noteStamp = 0;
         heldNote = -1;
@@ -8595,6 +8598,10 @@ public:
              << "\"exposedChannelCount\":9,"
              << "\"waveform0\":" << static_cast<int>(currentWaveform[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
+             << "\"carrierControl0\":" << static_cast<int>(currentCarrierControl[0]) << ","
+             << "\"carrierEgt0\":" << (((currentCarrierControl[0] & 0x20u) != 0u) ? 1 : 0) << ","
+             << "\"carrierAttackDecay0\":" << static_cast<int>(currentCarrierAttackDecay[0]) << ","
+             << "\"carrierSustainRelease0\":" << static_cast<int>(currentCarrierSustainRelease[0]) << ","
              << "\"connectionRegister0\":" << static_cast<int>(regs[0xc0]) << ","
              << "\"rhythmModeChoice\":" << std::clamp(patch.ymEnvelopeShape, 0, 2) << ","
              << "\"rhythmMode\":" << (rhythmModeActive() ? 1 : 0) << ","
@@ -8728,14 +8735,19 @@ private:
             && patch.macro != MacroKind::hit
             && patch.macro != MacroKind::coin
             && patch.macro != MacroKind::jump;
-        const auto sustainRelease = melodicSustain ? 0x46u : 0xa6u;
+        const auto carrierControl = static_cast<uint8_t>(melodicSustain ? 0x21u : 0x01u);
+        const auto attackDecay = static_cast<uint8_t>(0xf4u);
+        const auto sustainRelease = static_cast<uint8_t>(melodicSustain ? 0x26u : 0xa6u);
+        currentCarrierControl[channel] = carrierControl;
+        currentCarrierAttackDecay[channel] = attackDecay;
+        currentCarrierSustainRelease[channel] = sustainRelease;
 
         writeOplRegister(static_cast<uint8_t>(0x20 + mod), static_cast<uint8_t>(0x20 | std::clamp(static_cast<int>(std::round(patch.control3 * 14.0f)) + 1, 1, 15)));
-        writeOplRegister(static_cast<uint8_t>(0x20 + car), melodicSustain ? 0x21u : 0x01u);
+        writeOplRegister(static_cast<uint8_t>(0x20 + car), carrierControl);
         writeOplRegister(static_cast<uint8_t>(0x40 + mod), modLevel);
         writeOplRegister(static_cast<uint8_t>(0x40 + car), carLevel);
-        writeOplRegister(static_cast<uint8_t>(0x60 + mod), 0xf4);
-        writeOplRegister(static_cast<uint8_t>(0x60 + car), 0xf4);
+        writeOplRegister(static_cast<uint8_t>(0x60 + mod), attackDecay);
+        writeOplRegister(static_cast<uint8_t>(0x60 + car), attackDecay);
         writeOplRegister(static_cast<uint8_t>(0x80 + mod), sustainRelease);
         writeOplRegister(static_cast<uint8_t>(0x80 + car), sustainRelease);
         writeOplRegister(static_cast<uint8_t>(0xe0 + mod), wave);
@@ -8976,6 +8988,9 @@ private:
     std::array<uint8_t, 9> currentBlock {};
     std::array<uint8_t, 9> currentWaveform {};
     std::array<uint8_t, 9> currentFeedback {};
+    std::array<uint8_t, 9> currentCarrierControl {};
+    std::array<uint8_t, 9> currentCarrierAttackDecay {};
+    std::array<uint8_t, 9> currentCarrierSustainRelease {};
     std::array<int, 9> channelNotes {};
     std::array<float, 9> channelVelocity {};
     std::array<uint64_t, 9> channelStamp {};
