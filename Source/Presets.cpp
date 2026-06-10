@@ -1747,6 +1747,25 @@ const std::vector<PresetInfo>& presetCatalog()
             0.70f
         },
         {
+            "spc700-pmon-shimmer",
+            "SNES SPC700-style",
+            "SPC700 PMON Shimmer",
+            "Layered chip-poly sample stack that exposes Chipper's partial previous-voice pitch modulation.",
+            ChipMode::spc700,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.72f, 1.00f, 0.34f, 0.78f },
+            { true, true, true, true },
+            0.12f,
+            1,
+            2,
+            0,
+            -10.0f,
+            32000.0,
+            0.72f
+        },
+        {
             "spc700-drum-map",
             "SNES SPC700-style",
             "SPC700 Drum Map",

@@ -809,6 +809,7 @@ int main()
     ok &= expectMacroLabel(chipper::ChipMode::spc700, chipper::MacroKind::drum, "SPC700 Drum Map");
     ok &= expectPreset(chipper::ChipMode::spc700, "spc700-stage-clear");
     ok &= expectPreset(chipper::ChipMode::spc700, "spc700-noise-snare");
+    ok &= expectPreset(chipper::ChipMode::spc700, "spc700-pmon-shimmer");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Sample Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, 5, "Follow");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Playback");
