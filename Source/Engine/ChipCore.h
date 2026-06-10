@@ -147,6 +147,7 @@ struct RenderStats
     double rightPeak = 0.0;
     double leftRms = 0.0;
     double rightRms = 0.0;
+    double tailRms = 0.0;
     uint64_t zeroCrossings = 0;
     uint64_t renderedSamples = 0;
 };

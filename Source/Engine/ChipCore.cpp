@@ -7785,8 +7785,8 @@ public:
         currentPanBits.fill(0xc0u);
         currentAttackRate.fill(0x1fu);
         currentDecayRate.fill(0x08u);
-        currentSustainRate.fill(0x04u);
-        currentSustainRelease.fill(0xa6u);
+        currentSustainRate.fill(0x00u);
+        currentSustainRelease.fill(0x46u);
         dacSample.clear();
         dacPhase = 0.0;
         dacStep = 1.0;
@@ -8724,14 +8724,20 @@ private:
         currentWaveform[channel] = wave;
         currentFeedback[channel] = feedback;
 
+        const auto melodicSustain = patch.macro != MacroKind::drum
+            && patch.macro != MacroKind::hit
+            && patch.macro != MacroKind::coin
+            && patch.macro != MacroKind::jump;
+        const auto sustainRelease = melodicSustain ? 0x46u : 0xa6u;
+
         writeOplRegister(static_cast<uint8_t>(0x20 + mod), static_cast<uint8_t>(0x20 | std::clamp(static_cast<int>(std::round(patch.control3 * 14.0f)) + 1, 1, 15)));
-        writeOplRegister(static_cast<uint8_t>(0x20 + car), 0x01);
+        writeOplRegister(static_cast<uint8_t>(0x20 + car), melodicSustain ? 0x21u : 0x01u);
         writeOplRegister(static_cast<uint8_t>(0x40 + mod), modLevel);
         writeOplRegister(static_cast<uint8_t>(0x40 + car), carLevel);
         writeOplRegister(static_cast<uint8_t>(0x60 + mod), 0xf4);
         writeOplRegister(static_cast<uint8_t>(0x60 + car), 0xf4);
-        writeOplRegister(static_cast<uint8_t>(0x80 + mod), 0xa6);
-        writeOplRegister(static_cast<uint8_t>(0x80 + car), 0xa6);
+        writeOplRegister(static_cast<uint8_t>(0x80 + mod), sustainRelease);
+        writeOplRegister(static_cast<uint8_t>(0x80 + car), sustainRelease);
         writeOplRegister(static_cast<uint8_t>(0xe0 + mod), wave);
         writeOplRegister(static_cast<uint8_t>(0xe0 + car), wave);
         writeOplRegister(static_cast<uint8_t>(0xc0 + channel), static_cast<uint8_t>((feedback << 1u) | (patch.control1 > 0.55f ? 1u : 0u)));
@@ -9259,12 +9265,13 @@ private:
         for (size_t op = 0; op < 4; ++op)
         {
             const auto offs = opOffset(channel, op);
+            const auto envelope = ym2612EnvelopeRegistersForPatch(patch, op);
             writeOpmRegister(static_cast<uint8_t>(0x40 + offs), multipleForOperator(op));
             writeOpmRegister(static_cast<uint8_t>(0x60 + offs), totalLevelForOperator(op, velocity));
-            writeOpmRegister(static_cast<uint8_t>(0x80 + offs), 0x1fu);
-            writeOpmRegister(static_cast<uint8_t>(0xa0 + offs), 0x0au);
-            writeOpmRegister(static_cast<uint8_t>(0xc0 + offs), 0x06u);
-            writeOpmRegister(static_cast<uint8_t>(0xe0 + offs), 0xa6u);
+            writeOpmRegister(static_cast<uint8_t>(0x80 + offs), envelope.attackRate);
+            writeOpmRegister(static_cast<uint8_t>(0xa0 + offs), envelope.decayRate);
+            writeOpmRegister(static_cast<uint8_t>(0xc0 + offs), envelope.sustainRate);
+            writeOpmRegister(static_cast<uint8_t>(0xe0 + offs), envelope.sustainRelease);
         }
 
         writeOpmRegister(static_cast<uint8_t>(0x20 + channel), static_cast<uint8_t>(0xc0u | (feedback << 3u) | algorithm));

@@ -27,6 +27,8 @@ def main() -> int:
     parser.add_argument("--max-left-rms", type=float)
     parser.add_argument("--min-right-rms", type=float)
     parser.add_argument("--max-right-rms", type=float)
+    parser.add_argument("--min-tail-rms", type=float)
+    parser.add_argument("--max-tail-rms", type=float)
     parser.add_argument("--min-stereo-rms-delta", type=float)
     parser.add_argument("--register-writes", type=int)
     parser.add_argument("--note-events", type=int)
@@ -98,6 +100,7 @@ def main() -> int:
         ("rightPeak", args.min_right_peak, args.max_right_peak),
         ("leftRms", args.min_left_rms, args.max_left_rms),
         ("rightRms", args.min_right_rms, args.max_right_rms),
+        ("tailRms", args.min_tail_rms, args.max_tail_rms),
     ):
         actual = float(data.get(field, 0.0))
         if lower is not None and actual < lower:

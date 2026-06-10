@@ -347,8 +347,8 @@ bool expectFmRegisterHelpers()
     const auto opn2LeadModulatorEnvelope = chipper::ym2612EnvelopeRegistersForPatch(opn2Lead, 0);
     ok &= expect(opn2LeadModulatorEnvelope.attackRate == 0x1fu, "YM2612 lead envelope should use fast modulator attack");
     ok &= expect(opn2LeadModulatorEnvelope.decayRate == 0x06u, "YM2612 lead modulator decay should be softened from the carrier envelope");
-    ok &= expect(opn2LeadModulatorEnvelope.sustainRate == 0x04u, "YM2612 lead envelope should use medium sustain rate");
-    ok &= expect(opn2LeadModulatorEnvelope.sustainRelease == 0xb6u, "YM2612 lead modulator release byte should retain a higher sustain level");
+    ok &= expect(opn2LeadModulatorEnvelope.sustainRate == 0x00u, "YM2612 lead envelope should hold sustain while a note is gated");
+    ok &= expect(opn2LeadModulatorEnvelope.sustainRelease == 0x56u, "YM2612 lead modulator release byte should retain a playable sustain level");
 
     const auto opmArp = chipper::makePatchConfig(chipper::ChipMode::ym2151,
                                                  chipper::MacroKind::arp,
@@ -432,8 +432,8 @@ bool expectFmRegisterHelpers()
     const auto opn2PadEnvelope = chipper::ym2612EnvelopeRegistersForPatch(explicitPadEnvelope, 0);
     ok &= expect(opn2PadEnvelope.attackRate == 0x14u, "YM2612 Pad envelope should lower operator attack rate");
     ok &= expect(opn2PadEnvelope.decayRate == 0x04u, "YM2612 Pad modulator decay should map to register $60");
-    ok &= expect(opn2PadEnvelope.sustainRate == 0x02u, "YM2612 Pad sustain-rate should map to register $70");
-    ok &= expect(opn2PadEnvelope.sustainRelease == 0x85u, "YM2612 Pad modulator sustain/release should map to register $80");
+    ok &= expect(opn2PadEnvelope.sustainRate == 0x00u, "YM2612 Pad sustain-rate should hold instead of fading held notes away");
+    ok &= expect(opn2PadEnvelope.sustainRelease == 0x55u, "YM2612 Pad modulator sustain/release should map to register $80");
 
     const auto oplLead = chipper::makePatchConfig(chipper::ChipMode::opl3,
                                                   chipper::MacroKind::lead,

@@ -1993,11 +1993,14 @@ chipper::RenderStats calculateStats(const std::vector<chipper::StereoFrame>& fra
     double energy = 0.0;
     double leftEnergy = 0.0;
     double rightEnergy = 0.0;
+    double tailEnergy = 0.0;
+    const auto tailStart = frames.empty() ? 0u : (frames.size() * 3u) / 4u;
     float previous = 0.0f;
     bool hasPrevious = false;
 
-    for (const auto& frame : frames)
+    for (size_t index = 0; index < frames.size(); ++index)
     {
+        const auto& frame = frames[index];
         const auto mono = (frame.left + frame.right) * 0.5f;
         stats.peak = std::max(stats.peak, static_cast<double>(std::abs(mono)));
         stats.leftPeak = std::max(stats.leftPeak, static_cast<double>(std::abs(frame.left)));
@@ -2005,6 +2008,8 @@ chipper::RenderStats calculateStats(const std::vector<chipper::StereoFrame>& fra
         energy += static_cast<double>(mono) * static_cast<double>(mono);
         leftEnergy += static_cast<double>(frame.left) * static_cast<double>(frame.left);
         rightEnergy += static_cast<double>(frame.right) * static_cast<double>(frame.right);
+        if (index >= tailStart)
+            tailEnergy += static_cast<double>(mono) * static_cast<double>(mono);
 
         if (hasPrevious && ((previous <= 0.0f && mono > 0.0f) || (previous >= 0.0f && mono < 0.0f)))
             ++stats.zeroCrossings;
@@ -2017,6 +2022,8 @@ chipper::RenderStats calculateStats(const std::vector<chipper::StereoFrame>& fra
     stats.rms = frames.empty() ? 0.0 : std::sqrt(energy / static_cast<double>(frames.size()));
     stats.leftRms = frames.empty() ? 0.0 : std::sqrt(leftEnergy / static_cast<double>(frames.size()));
     stats.rightRms = frames.empty() ? 0.0 : std::sqrt(rightEnergy / static_cast<double>(frames.size()));
+    const auto tailSamples = frames.size() > tailStart ? frames.size() - tailStart : 0u;
+    stats.tailRms = tailSamples == 0u ? 0.0 : std::sqrt(tailEnergy / static_cast<double>(tailSamples));
     return stats;
 }
 
@@ -2614,6 +2621,7 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"rightPeak\": " << stats.rightPeak << ",\n"
         << "  \"leftRms\": " << stats.leftRms << ",\n"
         << "  \"rightRms\": " << stats.rightRms << ",\n"
+        << "  \"tailRms\": " << stats.tailRms << ",\n"
         << "  \"zeroCrossings\": " << stats.zeroCrossings << ",\n"
         << "  \"descriptor\": ";
     writeDescriptorJson(out, options.chip);

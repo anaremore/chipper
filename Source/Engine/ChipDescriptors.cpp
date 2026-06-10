@@ -3543,14 +3543,14 @@ FmEnvelopeRegisters ym2612EnvelopeRegistersForPatch(const PatchConfig& patch, si
             envelope = { 0x1fu, 0x12u, 0x06u, 0x84u };
             break;
         case 3: // Pad
-            envelope = { 0x14u, 0x06u, 0x02u, 0x75u };
+            envelope = { 0x14u, 0x06u, 0x00u, 0x45u };
             break;
         case 4: // Perc
             envelope = { 0x1fu, 0x1au, 0x0eu, 0x2fu };
             break;
         case 2: // Lead
         default:
-            envelope = { 0x1fu, 0x08u, 0x04u, 0xa6u };
+            envelope = { 0x1fu, 0x08u, 0x00u, 0x46u };
             break;
     }
 

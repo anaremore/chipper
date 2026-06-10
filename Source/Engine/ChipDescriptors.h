@@ -115,8 +115,8 @@ struct FmEnvelopeRegisters
 {
     uint8_t attackRate = 0x1f;
     uint8_t decayRate = 0x08;
-    uint8_t sustainRate = 0x04;
-    uint8_t sustainRelease = 0xa6;
+    uint8_t sustainRate = 0x00;
+    uint8_t sustainRelease = 0x46;
 };
 
 struct ChipParameterSpec

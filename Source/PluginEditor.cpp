@@ -2572,7 +2572,29 @@ void ChipperAudioProcessorEditor::resized()
     }
     auto primaryTonePanel = tonePanel;
     auto secondaryTonePanel = tonePanel;
-    if (displayedMode == chipper::ChipMode::nes
+    auto tertiaryTonePanel = tonePanel;
+    const auto usesFmToneStack = displayedMode == chipper::ChipMode::ym2612
+        || displayedMode == chipper::ChipMode::opl3
+        || displayedMode == chipper::ChipMode::ym2151
+        || displayedMode == chipper::ChipMode::ym2413;
+    const auto usesSampleToneStack = displayedMode == chipper::ChipMode::spc700
+        && usesSnNoiseModeSegment(displayedMode);
+    if (usesFmToneStack)
+    {
+        const auto fmRowHeight = std::max(34, (tonePanel.getHeight() - 12) / 3);
+        primaryTonePanel = tonePanel.removeFromTop(std::min(fmRowHeight, tonePanel.getHeight()));
+        tonePanel.removeFromTop(std::min(6, tonePanel.getHeight()));
+        secondaryTonePanel = tonePanel.removeFromTop(std::min(fmRowHeight, tonePanel.getHeight()));
+        tonePanel.removeFromTop(std::min(6, tonePanel.getHeight()));
+        tertiaryTonePanel = tonePanel;
+    }
+    else if (usesSampleToneStack)
+    {
+        primaryTonePanel = tonePanel.removeFromTop(std::min(58, tonePanel.getHeight()));
+        tonePanel.removeFromTop(std::min(6, tonePanel.getHeight()));
+        secondaryTonePanel = tonePanel;
+    }
+    else if (displayedMode == chipper::ChipMode::nes
         || displayedMode == chipper::ChipMode::dmg
         || displayedMode == chipper::ChipMode::ym2149)
     {
@@ -2624,18 +2646,26 @@ void ChipperAudioProcessorEditor::resized()
         placeWaveShapeSegment(primaryTonePanel);
     if (displayedMode != chipper::ChipMode::sid)
     {
-        placeDmgWaveLevelSegment(secondaryTonePanel);
-        if (displayedMode != chipper::ChipMode::spc700)
-            placeYmEnvelopeShapeSegment(displayedMode == chipper::ChipMode::ym2149 ? secondaryTonePanel : primaryTonePanel);
+        if (usesDmgWaveLevelSegment(displayedMode))
+            placeDmgWaveLevelSegment(secondaryTonePanel);
+        if (displayedMode != chipper::ChipMode::spc700 && usesYmEnvelopeShapeSegment(displayedMode))
+            placeYmEnvelopeShapeSegment(displayedMode == chipper::ChipMode::ym2149 || usesFmToneStack
+                                            ? secondaryTonePanel
+                                            : primaryTonePanel);
     }
 
     auto motionPanel = moduleBounds[4].reduced(12, 9);
     motionPanel.removeFromTop(20);
     motionPanel.removeFromTop(30);
     motionPanel.removeFromTop(4);
-    placeSnNoiseModeSegment(displayedMode == chipper::ChipMode::sid
-                                ? motionPanel
-                                : (displayedMode == chipper::ChipMode::nes ? secondaryTonePanel : primaryTonePanel));
+    if (usesSnNoiseModeSegment(displayedMode))
+        placeSnNoiseModeSegment(displayedMode == chipper::ChipMode::sid
+                                    ? motionPanel
+                                    : (displayedMode == chipper::ChipMode::nes
+                                           ? secondaryTonePanel
+                                           : ((usesFmToneStack ? tertiaryTonePanel
+                                                               : (usesSampleToneStack ? secondaryTonePanel
+                                                                                     : primaryTonePanel)))));
 
     auto envelopePanel = moduleBounds[3].reduced(12, 9);
     envelopePanel.removeFromTop(20);
@@ -2680,14 +2710,25 @@ void ChipperAudioProcessorEditor::resized()
     outputPanel.removeFromTop(30);
     outputPanel.removeFromTop(4);
     outputPanel.removeFromBottom(6);
+    auto outputTonePanel = outputPanel;
+    auto outputRoutePanel = outputPanel;
+    const auto splitOutputCard = displayedMode != chipper::ChipMode::sid
+        && usesStereoSpreadControl(displayedMode)
+        && usesDmgStereoRouteSegment(displayedMode);
+    if (splitOutputCard)
+    {
+        outputTonePanel = outputPanel.removeFromTop(std::min(48, outputPanel.getHeight()));
+        outputPanel.removeFromTop(std::min(8, outputPanel.getHeight()));
+        outputRoutePanel = outputPanel;
+    }
     if (displayedMode != chipper::ChipMode::sid)
-        placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, outputPanel);
+        placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, outputTonePanel);
 
     auto profilePanel = moduleBounds[0].reduced(12, 9);
     profilePanel.removeFromTop(20);
     profilePanel.removeFromTop(30);
     profilePanel.removeFromTop(4);
-    placeDmgStereoRouteSegment(displayedMode == chipper::ChipMode::sid ? profilePanel : outputPanel);
+    placeDmgStereoRouteSegment(displayedMode == chipper::ChipMode::sid ? profilePanel : outputRoutePanel);
 
     area.removeFromTop(12);
     globalStripBounds = area.removeFromTop(performanceStripHeight);
