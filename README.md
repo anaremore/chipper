@@ -70,6 +70,8 @@ The root installer defaults to a user-scope install, so it does not need UAC:
 .\install-vst3.ps1
 ```
 
+If `-BuildRoot` and `CHIPPER_BUILD_ROOT` are not set, the installer auto-selects the newest local VST3 bundle from `build-codex` or `build`. Pass `-BuildRoot` when you want a specific build folder.
+
 By default it installs to:
 
 ```text
@@ -86,7 +88,7 @@ Installer defaults can be steered with environment variables instead of editing 
 
 | Variable | Purpose |
 | --- | --- |
-| `CHIPPER_BUILD_ROOT` | Build folder used by the root installer, default `build` |
+| `CHIPPER_BUILD_ROOT` | Build folder used by the installer; when unset, the newest local `build-codex` or `build` VST3 bundle is selected |
 | `CHIPPER_INSTALL_SCOPE` | `User`, `Global`, or `Both`; default `User` |
 | `CHIPPER_VST3_DESTINATION` | Explicit destination folder for one-scope installs |
 | `CHIPPER_VST3_USER_DIR` | User-scope VST3 install folder |
@@ -105,7 +107,7 @@ $env:CHIPPER_BUILD_ROOT = "build-debug"
 .\install-vst3.ps1 -BuildRoot build -Destination "D:\Audio\VST3"
 ```
 
-For Codex/local development builds, install the explicit build folder so a stale default build is not copied:
+For Codex/local development builds, you can still install the explicit build folder:
 
 ```powershell
 .\install-vst3.ps1 -Scope User -BuildRoot build-codex

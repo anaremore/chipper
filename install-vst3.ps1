@@ -1,6 +1,6 @@
 param(
     [string] $Configuration = "Release",
-    [string] $BuildRoot = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_BUILD_ROOT)) { "build" } else { $env:CHIPPER_BUILD_ROOT }),
+    [string] $BuildRoot = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_BUILD_ROOT)) { "" } else { $env:CHIPPER_BUILD_ROOT }),
     [ValidateSet("Global", "User", "Both")]
     [string] $Scope = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_INSTALL_SCOPE)) { "User" } else { $env:CHIPPER_INSTALL_SCOPE }),
     [string] $Destination = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_VST3_DESTINATION)) { "" } else { $env:CHIPPER_VST3_DESTINATION }),

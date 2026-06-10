@@ -1,6 +1,6 @@
 param(
     [string] $Configuration = "Release",
-    [string] $BuildRoot = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_BUILD_ROOT)) { "build" } else { $env:CHIPPER_BUILD_ROOT }),
+    [string] $BuildRoot = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_BUILD_ROOT)) { "" } else { $env:CHIPPER_BUILD_ROOT }),
     [ValidateSet("Global", "User", "Both")]
     [string] $Scope = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_INSTALL_SCOPE)) { "User" } else { $env:CHIPPER_INSTALL_SCOPE }),
     [string] $Destination = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_VST3_DESTINATION)) { "" } else { $env:CHIPPER_VST3_DESTINATION }),
@@ -11,6 +11,49 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+
+function Get-ChipperBundleBinaryPath {
+    param([string] $CandidateBuildRoot)
+
+    $candidateRootPath = if ([System.IO.Path]::IsPathRooted($CandidateBuildRoot)) {
+        $CandidateBuildRoot
+    } else {
+        Join-Path $repoRoot $CandidateBuildRoot
+    }
+
+    return Join-Path $candidateRootPath "Chipper_artefacts\$Configuration\VST3\Chipper.vst3\Contents\x86_64-win\Chipper.vst3"
+}
+
+function Resolve-ChipperBuildRoot {
+    param([string] $RequestedBuildRoot)
+
+    if (-not [string]::IsNullOrWhiteSpace($RequestedBuildRoot)) {
+        return $RequestedBuildRoot
+    }
+
+    $candidates = @("build-codex", "build")
+    $available = @()
+    foreach ($candidate in $candidates) {
+        $binaryPath = Get-ChipperBundleBinaryPath -CandidateBuildRoot $candidate
+        if (Test-Path -LiteralPath $binaryPath) {
+            $binary = Get-Item -LiteralPath $binaryPath
+            $available += [pscustomobject]@{
+                BuildRoot = $candidate
+                LastWriteTimeUtc = $binary.LastWriteTimeUtc
+            }
+        }
+    }
+
+    if ($available.Count -eq 0) {
+        return "build"
+    }
+
+    $selected = $available | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+    Write-Host "Auto-selected build root: $($selected.BuildRoot)"
+    return $selected.BuildRoot
+}
+
+$BuildRoot = Resolve-ChipperBuildRoot -RequestedBuildRoot $BuildRoot
 $buildRootPath = if ([System.IO.Path]::IsPathRooted($BuildRoot)) {
     $BuildRoot
 } else {
