@@ -144,6 +144,8 @@ Documents\Chipper Presets
 
 Files saved there are scanned into the preset browser as a chip-filtered **User Presets** bank. Selecting a user preset from the browser loads the flat file directly; `Save` updates the loaded user preset file, `Save As` writes a new shareable copy, and a new sound asks for a `.chipperpreset` file name. A preset loaded from another folder also appears in the User Presets list for the current session, so downloaded/shared sounds stay reachable while you audition them.
 
+`Save As` suggests the currently selected preset name when possible, which keeps variant files easy to recognize when building banks like `SID Dirty Bass 02.chipperpreset` or `SPC700 Echo Pad Soft.chipperpreset`.
+
 ## MIDI CC
 
 Chipper keeps a stable MIDI CC map so hardware controllers and DAW automation can reach all current parameters. The compact map is shown in the plugin footer, exported in descriptor JSON, and documented in [docs/ui-architecture.md](docs/ui-architecture.md).

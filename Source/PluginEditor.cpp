@@ -3813,9 +3813,16 @@ void ChipperAudioProcessorEditor::chooseUserPresetToLoad()
 void ChipperAudioProcessorEditor::chooseUserPresetToSave()
 {
     juce::String presetName;
-    const auto selectedPreset = presetBox.getSelectedId() - 1;
-    if (selectedPreset >= 0 && static_cast<size_t>(selectedPreset) < displayedPresets.size())
-        presetName = displayedPresets[static_cast<size_t>(selectedPreset)]->name;
+    const auto selectedId = presetBox.getSelectedId();
+    const auto selectedFactoryPreset = selectedId - 1;
+    const auto selectedUserPreset = selectedId - userPresetItemIdBase;
+
+    if (selectedFactoryPreset >= 0 && static_cast<size_t>(selectedFactoryPreset) < displayedPresets.size())
+        presetName = displayedPresets[static_cast<size_t>(selectedFactoryPreset)]->name;
+    else if (selectedUserPreset >= 0 && static_cast<size_t>(selectedUserPreset) < displayedUserPresets.size())
+        presetName = displayedUserPresets[static_cast<size_t>(selectedUserPreset)].name;
+    else if (currentUserPresetFile != juce::File {})
+        presetName = currentUserPresetFile.getFileNameWithoutExtension();
     else
         presetName = juce::String(chipper::toString(displayedMode)) + " User Preset";
 
