@@ -228,9 +228,9 @@ bool write8svxFixture(const juce::File& file, uint8_t seed)
     return file.replaceWithData(data.data(), data.size());
 }
 
-void rewriteDmcPresetSamplePaths(juce::XmlElement& xml, const juce::String& fileName)
+void rewritePresetSamplePaths(juce::XmlElement& xml, const juce::String& sampleTagName, const juce::String& fileName)
 {
-    if (xml.hasTagName("DMC_SAMPLE"))
+    if (xml.hasTagName(sampleTagName))
     {
         xml.setAttribute("path", "Z:/missing/chipper/" + fileName);
         xml.setAttribute("relativePath", "Samples/" + fileName);
@@ -239,8 +239,13 @@ void rewriteDmcPresetSamplePaths(juce::XmlElement& xml, const juce::String& file
     for (auto* child : xml.getChildIterator())
     {
         if (child != nullptr)
-            rewriteDmcPresetSamplePaths(*child, fileName);
+            rewritePresetSamplePaths(*child, sampleTagName, fileName);
     }
+}
+
+void rewriteDmcPresetSamplePaths(juce::XmlElement& xml, const juce::String& fileName)
+{
+    rewritePresetSamplePaths(xml, "DMC_SAMPLE", fileName);
 }
 }
 
@@ -681,6 +686,31 @@ int main()
     ok &= expect(restoredBrrNames.size() == 3, "SPC700 BRR state restore should reload staged sample paths");
     ok &= expect(restoredBrrInfo.loaded && restoredBrrInfo.sampleName == "brr-02.brr",
                  "SPC700 BRR state restore should preserve the selected slot after processing resumes");
+
+    auto portableSpcPresetDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-portable-spc700-preset-test");
+    portableSpcPresetDir.deleteRecursively();
+    ok &= expect(portableSpcPresetDir.getChildFile("Samples").createDirectory().wasOk(), "Should create portable SPC700 preset sample folder");
+    ok &= expect(writeBrrFixture(portableSpcPresetDir.getChildFile("Samples").getChildFile("portable.brr"), 0x44u),
+                 "Should write portable SPC700 BRR fixture beside preset");
+    ChipperAudioProcessor portableSpcPresetProcessor;
+    portableSpcPresetProcessor.prepareToPlay(48000.0, 64);
+    sendController(portableSpcPresetProcessor, 70, controllerValueForChoice(portableSpcPresetProcessor, chipper::parameters::id::chipMode, 7));
+    ok &= expect(portableSpcPresetProcessor.loadSpc700BrrSampleFile(brrDir.getChildFile("brr-00.brr")).wasOk(),
+                 "Should load SPC700 BRR source before creating portable preset XML");
+    auto portableSpcPresetXml = portableSpcPresetProcessor.createStateXml();
+    ok &= expect(portableSpcPresetXml != nullptr, "Should create portable SPC700 preset XML");
+    if (portableSpcPresetXml != nullptr)
+    {
+        rewritePresetSamplePaths(*portableSpcPresetXml, "BRR_SAMPLE", "portable.brr");
+        ChipperAudioProcessor restoredPortableSpcPresetProcessor;
+        restoredPortableSpcPresetProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(restoredPortableSpcPresetProcessor.restoreStateXml(*portableSpcPresetXml, portableSpcPresetDir).wasOk(),
+                     "Portable preset restore should accept relative SPC700 sample references");
+        const auto portableSpcNames = restoredPortableSpcPresetProcessor.spc700BrrSampleNames();
+        ok &= expect(portableSpcNames.size() == 1 && portableSpcNames[0] == "portable.brr",
+                     "Portable preset restore should load SPC700 samples from preset-relative Samples folder");
+    }
+    portableSpcPresetDir.deleteRecursively();
     brrDir.deleteRecursively();
 
     auto spcWavDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-spc700-wav-bank-test");
@@ -846,6 +876,31 @@ int main()
     ok &= expect(restoredPaulaNames.size() == 5, "Paula state restore should reload staged WAV and 8SVX sample paths");
     ok &= expect(restoredPaulaInfo.loaded && restoredPaulaInfo.sampleName == "paula-03.wav",
                  "Paula state restore should preserve the selected slot after processing resumes");
+
+    auto portablePaulaPresetDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-portable-paula-preset-test");
+    portablePaulaPresetDir.deleteRecursively();
+    ok &= expect(portablePaulaPresetDir.getChildFile("Samples").createDirectory().wasOk(), "Should create portable Paula preset sample folder");
+    ok &= expect(writeWavFixture(portablePaulaPresetDir.getChildFile("Samples").getChildFile("portable-paula.wav"), 330.0f),
+                 "Should write portable Paula WAV fixture beside preset");
+    ChipperAudioProcessor portablePaulaPresetProcessor;
+    portablePaulaPresetProcessor.prepareToPlay(48000.0, 64);
+    sendController(portablePaulaPresetProcessor, 70, controllerValueForChoice(portablePaulaPresetProcessor, chipper::parameters::id::chipMode, 9));
+    ok &= expect(portablePaulaPresetProcessor.loadPaulaSampleFile(paulaDir.getChildFile("paula-00.wav")).wasOk(),
+                 "Should load Paula source before creating portable preset XML");
+    auto portablePaulaPresetXml = portablePaulaPresetProcessor.createStateXml();
+    ok &= expect(portablePaulaPresetXml != nullptr, "Should create portable Paula preset XML");
+    if (portablePaulaPresetXml != nullptr)
+    {
+        rewritePresetSamplePaths(*portablePaulaPresetXml, "PAULA_SAMPLE", "portable-paula.wav");
+        ChipperAudioProcessor restoredPortablePaulaPresetProcessor;
+        restoredPortablePaulaPresetProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(restoredPortablePaulaPresetProcessor.restoreStateXml(*portablePaulaPresetXml, portablePaulaPresetDir).wasOk(),
+                     "Portable preset restore should accept relative Paula sample references");
+        const auto portablePaulaNames = restoredPortablePaulaPresetProcessor.paulaSampleNames();
+        ok &= expect(portablePaulaNames.size() == 1 && portablePaulaNames[0] == "portable-paula.wav",
+                     "Portable preset restore should load Paula samples from preset-relative Samples folder");
+    }
+    portablePaulaPresetDir.deleteRecursively();
     paulaDir.deleteRecursively();
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 3));
