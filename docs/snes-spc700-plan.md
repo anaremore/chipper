@@ -15,7 +15,7 @@ Chipper's SNES mode should become a hardware-shaped sampler, not another oscilla
 
 - Eight monophonic sample voices.
 - Per voice: sample source, pitch, volume, pan, ADSR or GAIN mode, echo send, key on/off, loop status.
-- Voice linking features to plan: pitch modulation from previous voice, noise substitution, and finite voice allocation.
+- Voice linking features: partial PMON-style pitch modulation from the previous voice is implemented in the clean-room renderer/plugin model; exact S-DSP timing/scaling remains unverified. Noise substitution and finite voice allocation have first-pass coverage.
 
 ### Samples
 
@@ -81,8 +81,8 @@ Checked 2026-06-07:
 
 4. **S-DSP Voice Behavior**
    - Add ADSR/GAIN envelope tests.
-   - Add pitch register tests and interpolation tests.
-   - Add noise and pitch-mod behavior tests.
+   - Done first pass: add pitch register tests and interpolation tests.
+   - Done first pass: add noise and PMON-style previous-voice pitch-mod behavior tests.
 
 5. **Echo / FIR**
    - Done first pass: add S-DSP-style echo-enable state and renderer debug JSON for echo send, feedback, delay, echo mask, and echo input level.

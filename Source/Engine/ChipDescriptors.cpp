@@ -2181,7 +2181,7 @@ const std::vector<ChipDescriptor>& descriptors()
             "Partial clean-room SNES-style lo-fi sample-voice model with eight internal voices.",
             {
                 { "voices", "Sample Voices", "Sources", "All eight lo-fi sample voices are exposed in the current UI." },
-                { "sample", "Sample Color", "Tone", "Generated lo-fi sample templates, BRR loading, and partial S-DSP-style noise." },
+                { "sample", "Sample Color", "Tone", "Generated lo-fi sample templates, BRR loading, partial S-DSP-style noise, and PMON-style pitch modulation." },
                 { "echo", "Echo Color", "Output", "Musical echo-color helper with signed FIR-style taps." },
                 { "adsr", "ADSR/Gain", "Envelope", "Playable ADSR/gain-style note shaping with template-aware sustain and release." },
             },
@@ -2190,7 +2190,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("sources", "Sample Voices", "All eight SPC700-style sample voices are exposed as playable lanes.", { "Voices 1-4", "Voices 5-8", "Sample lane", "Chip Poly" }),
                 makeModule("sample", "Sample / Pitch", "Generated lo-fi templates plus user BRR/WAV/AIFF file and folder loading.", { "Sample file", "Sample folder bank", "Note map", "Noise source" }),
                 makeModule("envelope", "ADSR / Gain", "Playable gain and envelope shaping derived from the selected template.", { "Attack", "Decay", "Sustain", "Release" }),
-                makeModule("motion", "Motion", "SNES-style SFX gestures mapped to sample pitch.", { "Voice arp", "Pitch sweep", "Jump blip", "Damage hit" }),
+                makeModule("motion", "Motion", "SNES-style SFX gestures mapped to sample pitch and previous-voice modulation.", { "Voice arp", "Pitch sweep", "PMON-style link", "Damage hit" }),
                 makeModule("output", "Output", "Soft sample output with echo-color helper.", { "Voice volume", "Stereo spread convenience", "Echo color", "Known differences" })
             },
             spc700Macros(),
@@ -2199,12 +2199,12 @@ const std::vector<ChipDescriptor>& descriptors()
             spc700ParameterSpecs(),
             verifiedPartial(
                 {
-                    "Eight generated lo-fi sample voices render with pitch, 7-bit per-voice left/right volume state, loop/one-shot playback mode, explicit playable envelope-shape choices, ADSR/gain-style state, key-on/enabled masks, clean-room BRR block decoding for renderer-loaded samples, BRR loop-flag loop-start handling, plugin-loaded user BRR sample banks, WAV/AIFF imported as 8-bit sample memory, note-to-sample-bank performance mapping, partial S-DSP-style per-voice noise source selection, clean-room Gaussian-style 4-tap interpolation, musical pitch-motion, echo-enable mask state, echo volume/feedback/delay register state, signed 8-bit FIR-style echo coefficient state, and a musical stereo echo helper.",
-                    "Source enables, source levels, sample-shape choices, envelope-shape choices, BRR block/end/loop debug metadata, BRR loop-start debug metadata, plugin sample slot selection/state recall, note-mapped sample bank selection, noise source mode/clock/mask metadata, pitch-motion, per-voice left/right volume metadata, musical echo-helper, echo-enable, EVOL/EFB/EDL-style, and FIR-tap debug metadata, envelope-release debug metadata, interpolation metadata, chip-poly allocation across all eight exposed voices, presets, and debug JSON are covered by automated tests.",
+                    "Eight generated lo-fi sample voices render with pitch, 7-bit per-voice left/right volume state, loop/one-shot playback mode, explicit playable envelope-shape choices, ADSR/gain-style state, key-on/enabled masks, clean-room BRR block decoding for renderer-loaded samples, BRR loop-flag loop-start handling, plugin-loaded user BRR sample banks, WAV/AIFF imported as 8-bit sample memory, note-to-sample-bank performance mapping, partial S-DSP-style per-voice noise source selection, clean-room Gaussian-style 4-tap interpolation, musical pitch-motion, partial PMON-style previous-voice pitch modulation, echo-enable mask state, echo volume/feedback/delay register state, signed 8-bit FIR-style echo coefficient state, and a musical stereo echo helper.",
+                    "Source enables, source levels, sample-shape choices, envelope-shape choices, BRR block/end/loop debug metadata, BRR loop-start debug metadata, plugin sample slot selection/state recall, note-mapped sample bank selection, noise source mode/clock/mask metadata, pitch-motion and PMON-style pitch-mod metadata, per-voice left/right volume metadata, musical echo-helper, echo-enable, EVOL/EFB/EDL-style, and FIR-tap debug metadata, envelope-release debug metadata, interpolation metadata, chip-poly allocation across all eight exposed voices, presets, and debug JSON are covered by automated tests.",
                     "No third-party SPC700, S-DSP, BRR, SNES, or tracker-player source code is vendored in this clean-room partial model."
                 },
                 {
-                    "Source directory/sample memory addressing, exact S-DSP source-directory loop address behavior, exact S-DSP noise clocking/NON edge behavior, hardware pitch modulation, exact S-DSP Gaussian interpolation table behavior, exact FIR echo memory/timing behavior, exact ADSR/gain envelope timing, and SPC700 CPU timing are not implemented.",
+                    "Source directory/sample memory addressing, exact S-DSP source-directory loop address behavior, exact S-DSP noise clocking/NON edge behavior, exact PMON timing/scaling, exact S-DSP Gaussian interpolation table behavior, exact FIR echo memory/timing behavior, exact ADSR/gain envelope timing, and SPC700 CPU timing are not implemented.",
                     "Voice scheduling, loop points, echo buffer behavior, output filtering, and hardware validation still require trusted emulator and capture comparison.",
                     "This mode is labeled SPC700-style because the implementation is a musical sample-voice approximation, not a verified SNES audio subsystem emulator."
                 })

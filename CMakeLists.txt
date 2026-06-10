@@ -320,6 +320,9 @@ add_test(NAME chipper_render_spc700_brr_note_map_smoke
 add_test(NAME chipper_render_spc700_pitch_motion_smoke
     COMMAND chipper_render --chip spc700 --accuracy authentic --macro laser --clock 32000 --rate 48000 --seconds 0.08 --note 64 --out spc700-pitch-motion-smoke.wav --debug spc700-pitch-motion-smoke.json
 )
+add_test(NAME chipper_render_spc700_pitch_mod_smoke
+    COMMAND chipper_render --chip spc700 --accuracy authentic --macro arp --play-mode chip-poly --control2 1.0 --wave-shape pulse --clock 32000 --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/spc700-chip-poly-events.txt --out spc700-pitch-mod-smoke.wav --debug spc700-pitch-mod-smoke.json
+)
 add_test(NAME chipper_render_spc700_echo_smoke
     COMMAND chipper_render --chip spc700 --accuracy authentic --macro lead --control3 1.0 --clock 32000 --rate 48000 --seconds 0.30 --note 64 --out spc700-echo-smoke.wav --debug spc700-echo-smoke.json
 )
@@ -1356,6 +1359,10 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-pitch-motion-smoke.json --implemented-contains partial --macro Laser --min-peak 0.02 --register-writes 0 --note-events 0 --core-min pitchMotionDepthCents=2000 --core-max pitchMotionDepthCents=2400 --core-min pitchMotionDirection=1 --core-max pitchMotionDirection=1 --core-min pitch0=7600 --core-max pitch0=7700 --core-min pitch0Current=4400 --core-max pitch0Current=4550
     )
     set_tests_properties(chipper_render_spc700_pitch_motion_assert PROPERTIES DEPENDS chipper_render_spc700_pitch_motion_smoke)
+    add_test(NAME chipper_render_spc700_pitch_mod_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-pitch-mod-smoke.json --implemented-contains partial --macro Arp --play-mode "Chip Poly" --min-peak 0.02 --register-writes 0 --note-events 4 --core-min pitchMotionDepthCents=850 --core-max pitchMotionDepthCents=910 --core-min pitchModDepthCents=310 --core-max pitchModDepthCents=320 --core-min pitchModEnabledMask=14 --core-max pitchModEnabledMask=14 --core-min enabledMask=15 --core-max enabledMask=15 --core-min activeChannels=4 --core-max activeChannels=4 --core-min pitch0Current=900 --core-max pitch0Current=1000 --core-min pitch1Current=1000 --core-max pitch1Current=1120 --core-min pitchModSource0=-1.0 --core-max pitchModSource0=1.0
+    )
+    set_tests_properties(chipper_render_spc700_pitch_mod_assert PROPERTIES DEPENDS chipper_render_spc700_pitch_mod_smoke)
     add_test(NAME chipper_render_spc700_echo_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-echo-smoke.json --implemented-contains partial --macro Lead --min-peak 0.05 --register-writes 0 --note-events 0 --core-min echoSend=0.49 --core-max echoSend=0.51 --core-min echoEnabledMask=247 --core-max echoEnabledMask=247 --core-min echoInputLevel=0.99 --core-max echoInputLevel=1.01 --core-min echoFeedback=0.57 --core-max echoFeedback=0.59 --core-min echoDelayMs=239 --core-max echoDelayMs=241 --core-min echoDelaySamples=11519 --core-max echoDelaySamples=11521 --core-min echoLeftVolumeRegister=64 --core-max echoLeftVolumeRegister=64 --core-min echoRightVolumeRegister=64 --core-max echoRightVolumeRegister=64 --core-min echoFeedbackRegister=74 --core-max echoFeedbackRegister=74 --core-min echoDelayRegister=13 --core-max echoDelayRegister=13 --core-min firTap0=64 --core-max firTap0=64 --core-min firTap1=28 --core-max firTap1=28 --core-min firTap2=16 --core-max firTap2=16 --core-min firTap3=8 --core-max firTap3=8 --core-min firTap4=4 --core-max firTap4=4 --core-min firTap5=-2 --core-max firTap5=-2 --core-min firTap6=0 --core-max firTap6=0 --core-min firTap7=0 --core-max firTap7=0 --core-min firCoefficientSum=118 --core-max firCoefficientSum=118
     )

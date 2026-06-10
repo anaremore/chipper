@@ -26,7 +26,7 @@ Implemented depth varies by chip. See [docs/emulation-accuracy.md](docs/emulatio
 | SN76489 / Sega PSG | Verified-partial MIT `emu76489` PSG adapter |
 | YM2612 / Genesis FM | Verified-partial BSD-3-Clause `ymfm` OPN2 adapter |
 | OPL2 / OPL3 | Verified-partial BSD-3-Clause `ymfm` YM3812/OPL2 adapter; deeper OPL3 work planned |
-| SNES SPC700-style | Partial clean-room eight-voice BRR/WAV/AIFF sample-player model with note maps, loop handling, Gaussian-style interpolation, and musical echo helper |
+| SNES SPC700-style | Partial clean-room eight-voice BRR/WAV/AIFF sample-player model with note maps, loop handling, Gaussian-style interpolation, PMON-style pitch modulation, noise, and musical echo helper |
 | Atari POKEY | Partial clean-room polynomial/timer model |
 | Amiga Paula | Partial clean-room tracker-sampler model with file/folder sample banks |
 | PC Engine HuC6280 | Partial clean-room wavetable/noise model |

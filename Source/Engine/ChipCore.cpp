@@ -5885,6 +5885,7 @@ public:
         keyOnMask = 0;
         position.fill(0.0);
         voiceAgeSamples.fill(0);
+        lastVoiceSample.fill(0.0);
         envelope.fill(0.0);
         envelopeStage.fill(0);
         noiseAccumulator.fill(0.0);
@@ -6235,7 +6236,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room sample-voice model"; }
     std::string limitations() const override
     {
-        return "Eight lo-fi sample voices, pitch, 7-bit per-voice left/right volume state, loop/one-shot playback state, playable ADSR/gain-style note shaping, generated sample templates, clean-room BRR block decoding for renderer-loaded samples, BRR loop-flag loop starts, Gaussian-style 4-tap sample interpolation, partial S-DSP-style per-voice noise source, musical pitch motion, an echo-enable mask, echo volume/feedback/delay register state, signed 8-bit FIR coefficient state, and a musical stereo echo helper are modeled; exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, source-directory loop address behavior, exact noise timing, pitch modulation, exact FIR echo memory behavior, sample directory addressing, exact envelope timing, and hardware validation are not complete.";
+        return "Eight lo-fi sample voices, pitch, 7-bit per-voice left/right volume state, loop/one-shot playback state, playable ADSR/gain-style note shaping, generated sample templates, clean-room BRR block decoding for renderer-loaded samples, BRR loop-flag loop starts, Gaussian-style 4-tap sample interpolation, partial S-DSP-style per-voice noise source, musical pitch motion, partial PMON-style previous-voice pitch modulation, an echo-enable mask, echo volume/feedback/delay register state, signed 8-bit FIR coefficient state, and a musical stereo echo helper are modeled; exact S-DSP Gaussian table behavior, SPC700 CPU timing, S-DSP register edge cases, source-directory loop address behavior, exact noise timing, exact PMON timing/scaling, exact FIR echo memory behavior, sample directory addressing, exact envelope timing, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -6275,6 +6276,9 @@ public:
              << "\"pitch7\":" << pitch[7] << ","
              << "\"pitchMotionDepthCents\":" << spc700PitchMotionDepthCents() << ","
              << "\"pitchMotionDirection\":" << spc700PitchMotionDirection() << ","
+             << "\"pitchModDepthCents\":" << spc700PitchModDepthCents() << ","
+             << "\"pitchModEnabledMask\":" << static_cast<int>(spc700PitchModEnabledMask()) << ","
+             << "\"pitchModSource0\":" << lastVoiceSample[0] << ","
              << "\"echoSend\":" << spc700EchoSend() << ","
              << "\"echoEnabledMask\":" << static_cast<int>(echoEnabledMask()) << ","
              << "\"echoInputLevel\":" << echoInputLevel() << ","
@@ -6295,6 +6299,7 @@ public:
              << "\"firTap7\":" << static_cast<int>(spc700FirCoefficients()[7]) << ","
              << "\"firCoefficientSum\":" << spc700FirCoefficientSum() << ","
              << "\"pitch0Current\":" << currentPitchForVoice(0) << ","
+             << "\"pitch1Current\":" << currentPitchForVoice(1) << ","
              << "\"pitch7Current\":" << currentPitchForVoice(7) << ","
              << "\"volume0\":" << static_cast<int>(volume[0]) << ","
              << "\"volume1\":" << static_cast<int>(volume[1]) << ","
@@ -6518,6 +6523,7 @@ private:
         gain[voice] = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control4 * 127.0f)), 0, 127));
         position[voice] = 0.0;
         voiceAgeSamples[voice] = 0;
+        lastVoiceSample[voice] = 0.0;
         noiseAccumulator[voice] = 0.0;
         noiseLfsr[voice] = static_cast<uint16_t>(0x4000u | ((voice + 1u) * 0x0231u) | (static_cast<unsigned>(midiNote & 0x7f) << 3u));
         envelope[voice] = 0.0;
@@ -6534,13 +6540,20 @@ private:
     {
         const auto useNoise = voiceUsesNoise(voice);
         if ((enabledMask & (1u << voice)) == 0 || (! useNoise && sampleRam[voice].empty()) || volume[voice] == 0)
+        {
+            lastVoiceSample[voice] = 0.0;
             return 0.0;
+        }
 
         updateEnvelope(voice);
         if (envelope[voice] <= 0.0001 && envelopeStage[voice] == 0u)
+        {
+            lastVoiceSample[voice] = 0.0;
             return 0.0;
+        }
 
         const auto rawSample = useNoise ? renderNoiseVoice(voice) : interpolatedSample(voice, position[voice]);
+        lastVoiceSample[voice] = rawSample * envelope[voice];
         const auto sample = rawSample * (static_cast<double>(volume[voice]) / 127.0) * envelope[voice];
         const auto playbackHz = (currentPitchForVoice(voice) / (4096.0 * 16.0)) * 32000.0;
         if (! useNoise)
@@ -6567,6 +6580,7 @@ private:
                 position[voice] = 0.0;
                 envelope[voice] = 0.0;
                 envelopeStage[voice] = 0u;
+                lastVoiceSample[voice] = 0.0;
                 enabledMask &= static_cast<uint8_t>(~(1u << voice));
                 keyOnMask &= static_cast<uint8_t>(~(1u << voice));
                 return 0.0;
@@ -6837,6 +6851,30 @@ private:
         return std::clamp(magnitude, 0.0, 1.0) * macroScale;
     }
 
+    double spc700PitchModDepthCents() const
+    {
+        if (spc700PitchMotionDirection() == 0)
+            return 0.0;
+
+        return std::clamp(spc700PitchMotionDepthCents() * 0.35, 0.0, 480.0);
+    }
+
+    uint8_t spc700PitchModEnabledMask() const
+    {
+        if (spc700PitchModDepthCents() <= 0.001)
+            return 0;
+
+        uint8_t mask = 0;
+        for (size_t voice = 1; voice < pitch.size(); ++voice)
+        {
+            const auto voiceBit = static_cast<uint8_t>(1u << voice);
+            const auto previousVoiceBit = static_cast<uint8_t>(1u << (voice - 1u));
+            if ((enabledMask & voiceBit) != 0 && (enabledMask & previousVoiceBit) != 0)
+                mask |= voiceBit;
+        }
+        return mask;
+    }
+
     int spc700PitchMotionDirection() const
     {
         const auto centered = static_cast<double>(patch.control2) - 0.5;
@@ -6848,16 +6886,25 @@ private:
     double currentPitchForVoice(size_t voice) const
     {
         const auto basePitch = static_cast<double>(pitch[voice]);
+        auto currentPitch = basePitch;
         const auto direction = spc700PitchMotionDirection();
         const auto depthCents = spc700PitchMotionDepthCents();
-        if (direction == 0 || depthCents <= 0.001)
-            return basePitch;
+        if (direction != 0 && depthCents > 0.001)
+        {
+            const auto seconds = sampleRate > 0.0 ? static_cast<double>(voiceAgeSamples[voice]) / sampleRate : 0.0;
+            const auto attack = 1.0 - std::exp(-seconds * 7.0);
+            const auto sfxTilt = (patch.macro == MacroKind::laser || patch.macro == MacroKind::hit) ? -1.0 : 1.0;
+            const auto signedCents = depthCents * static_cast<double>(direction) * sfxTilt * attack;
+            currentPitch = currentPitch * std::pow(2.0, signedCents / 1200.0);
+        }
 
-        const auto seconds = sampleRate > 0.0 ? static_cast<double>(voiceAgeSamples[voice]) / sampleRate : 0.0;
-        const auto attack = 1.0 - std::exp(-seconds * 7.0);
-        const auto sfxTilt = (patch.macro == MacroKind::laser || patch.macro == MacroKind::hit) ? -1.0 : 1.0;
-        const auto signedCents = depthCents * static_cast<double>(direction) * sfxTilt * attack;
-        return std::clamp(basePitch * std::pow(2.0, signedCents / 1200.0), 1.0, 16383.0);
+        if (voice > 0 && (spc700PitchModEnabledMask() & static_cast<uint8_t>(1u << voice)) != 0)
+        {
+            const auto modCents = std::clamp(lastVoiceSample[voice - 1u], -1.0, 1.0) * spc700PitchModDepthCents();
+            currentPitch = currentPitch * std::pow(2.0, modCents / 1200.0);
+        }
+
+        return std::clamp(currentPitch, 1.0, 16383.0);
     }
 
     double voicePan(size_t voice) const
@@ -7068,6 +7115,7 @@ private:
         noteVelocity = 0.0f;
         enabledMask = 0;
         keyOnMask = 0;
+        lastVoiceSample.fill(0.0);
         envelope.fill(0.0);
         envelopeStage.fill(0);
     }
@@ -7125,6 +7173,7 @@ private:
     std::array<size_t, 8> sampleLoopStarts {};
     std::array<double, 8> position {};
     std::array<uint64_t, 8> voiceAgeSamples {};
+    std::array<double, 8> lastVoiceSample {};
     std::array<double, 8> envelope {};
     std::array<uint8_t, 8> envelopeStage {};
     std::array<uint16_t, 8> noiseLfsr {};
