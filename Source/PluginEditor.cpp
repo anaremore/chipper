@@ -2568,21 +2568,45 @@ void ChipperAudioProcessorEditor::resized()
 
     titleLabel.setBounds(top.removeFromLeft(122));
     top.removeFromLeft(8);
-    placeHeaderCombo(0, presetBox, top.removeFromLeft(148));
+
+    constexpr auto headerGap = 8;
+    constexpr auto compactGap = 4;
+    constexpr auto loadButtonWidth = 46;
+    constexpr auto saveButtonWidth = 60;
+    constexpr auto saveAsButtonWidth = 76;
+    constexpr auto chipModeWidth = 190;
+    constexpr auto accuracyWidth = 112;
+    constexpr auto macroWidth = 128;
+    constexpr auto playModeWidth = 128;
+    constexpr auto readinessMinWidth = 140;
+    constexpr auto presetMinWidth = 148;
+    constexpr auto presetMaxWidth = 260;
+
+    const auto fixedHeaderWidth = compactGap + loadButtonWidth
+        + compactGap + saveButtonWidth
+        + compactGap + saveAsButtonWidth
+        + headerGap + chipModeWidth
+        + headerGap + accuracyWidth
+        + headerGap + macroWidth
+        + headerGap + playModeWidth
+        + headerGap + readinessMinWidth;
+    const auto presetWidth = std::clamp(top.getWidth() - fixedHeaderWidth, presetMinWidth, presetMaxWidth);
+
+    placeHeaderCombo(0, presetBox, top.removeFromLeft(presetWidth));
     top.removeFromLeft(4);
-    userPresetLoadButton.setBounds(top.removeFromLeft(42).withTrimmedTop(20).reduced(0, 4));
+    userPresetLoadButton.setBounds(top.removeFromLeft(loadButtonWidth).withTrimmedTop(20).reduced(0, 4));
     top.removeFromLeft(4);
-    userPresetSaveButton.setBounds(top.removeFromLeft(52).withTrimmedTop(20).reduced(0, 4));
+    userPresetSaveButton.setBounds(top.removeFromLeft(saveButtonWidth).withTrimmedTop(20).reduced(0, 4));
     top.removeFromLeft(4);
-    userPresetSaveAsButton.setBounds(top.removeFromLeft(64).withTrimmedTop(20).reduced(0, 4));
+    userPresetSaveAsButton.setBounds(top.removeFromLeft(saveAsButtonWidth).withTrimmedTop(20).reduced(0, 4));
     top.removeFromLeft(8);
-    placeHeaderCombo(1, chipModeBox, top.removeFromLeft(190));
+    placeHeaderCombo(1, chipModeBox, top.removeFromLeft(chipModeWidth));
     top.removeFromLeft(8);
-    placeHeaderCombo(2, accuracyBox, top.removeFromLeft(112));
+    placeHeaderCombo(2, accuracyBox, top.removeFromLeft(accuracyWidth));
     top.removeFromLeft(8);
-    placeHeaderCombo(3, macroBox, top.removeFromLeft(128));
+    placeHeaderCombo(3, macroBox, top.removeFromLeft(macroWidth));
     top.removeFromLeft(8);
-    placeHeaderCombo(4, playModeBox, top.removeFromLeft(128));
+    placeHeaderCombo(4, playModeBox, top.removeFromLeft(playModeWidth));
     top.removeFromLeft(8);
     coreReadinessLabel.setBounds(top.removeFromTop(44).reduced(0, 12));
 
