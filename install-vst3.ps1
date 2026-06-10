@@ -5,6 +5,7 @@ param(
     [string] $Scope = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_INSTALL_SCOPE)) { "User" } else { $env:CHIPPER_INSTALL_SCOPE }),
     [string] $Destination = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_VST3_DESTINATION)) { "" } else { $env:CHIPPER_VST3_DESTINATION }),
     [string] $FallbackDestination = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_VST3_FALLBACK_DIR)) { "" } else { $env:CHIPPER_VST3_FALLBACK_DIR }),
+    [switch] $VerifyOnly = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_VERIFY_INSTALL)) { $false } else { $env:CHIPPER_VERIFY_INSTALL -match '^(1|true|yes)$' }),
     [switch] $AllowFallback = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_ALLOW_FALLBACK_INSTALL)) { $false } else { $env:CHIPPER_ALLOW_FALLBACK_INSTALL -match '^(1|true|yes)$' })
 )
 
@@ -19,6 +20,10 @@ $arguments = @{
     Configuration = $Configuration
     BuildRoot = $BuildRoot
     Scope = $Scope
+}
+
+if ($VerifyOnly) {
+    $arguments.VerifyOnly = $true
 }
 
 if (-not [string]::IsNullOrWhiteSpace($Destination)) {

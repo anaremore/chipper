@@ -5,6 +5,7 @@ param(
     [string] $Scope = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_INSTALL_SCOPE)) { "User" } else { $env:CHIPPER_INSTALL_SCOPE }),
     [string] $Destination = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_VST3_DESTINATION)) { "" } else { $env:CHIPPER_VST3_DESTINATION }),
     [string] $FallbackDestination = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_VST3_FALLBACK_DIR)) { "" } else { $env:CHIPPER_VST3_FALLBACK_DIR }),
+    [switch] $VerifyOnly = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_VERIFY_INSTALL)) { $false } else { $env:CHIPPER_VERIFY_INSTALL -match '^(1|true|yes)$' }),
     [switch] $FailOnFallback = $(if ([string]::IsNullOrWhiteSpace($env:CHIPPER_ALLOW_FALLBACK_INSTALL)) { $true } else { -not ($env:CHIPPER_ALLOW_FALLBACK_INSTALL -match '^(1|true|yes)$') })
 )
 
@@ -116,6 +117,51 @@ function Write-ChipperBundleReport {
     Write-Host ("{0} binary: {1} bytes, modified {2}" -f $Label, $binary.Length, $binary.LastWriteTime)
 }
 
+function Get-ChipperInstalledMarkerValue {
+    param(
+        [string] $BundlePath,
+        [string] $Key
+    )
+
+    $markerPath = Join-Path $BundlePath "ChipperBuildInfo.txt"
+    if (-not (Test-Path -LiteralPath $markerPath)) {
+        return ""
+    }
+
+    foreach ($line in Get-Content -LiteralPath $markerPath) {
+        if ($line -match "^$([regex]::Escape($Key)):\s*(.*)$") {
+            return $matches[1]
+        }
+    }
+
+    return ""
+}
+
+function Write-ChipperInstalledScopeReport {
+    param([string] $InstallScope)
+
+    $root = Get-ChipperDefaultVst3Root -InstallScope $InstallScope
+    $bundle = Join-Path $root "Chipper.vst3"
+    Write-Host "$InstallScope VST3 folder: $root"
+
+    if (-not (Test-Path -LiteralPath $bundle)) {
+        Write-Host "$InstallScope install: not found"
+        return ""
+    }
+
+    Write-ChipperBundleReport -Label "$InstallScope install" -BundlePath $bundle
+    $markerBuild = Get-ChipperInstalledMarkerValue -BundlePath $bundle -Key "Build"
+    $markerSha = Get-ChipperInstalledMarkerValue -BundlePath $bundle -Key "Git SHA"
+    $markerState = Get-ChipperInstalledMarkerValue -BundlePath $bundle -Key "Git State"
+    if ([string]::IsNullOrWhiteSpace($markerBuild) -and [string]::IsNullOrWhiteSpace($markerSha)) {
+        Write-Host "$InstallScope marker: not found"
+        return ""
+    }
+
+    Write-Host "$InstallScope marker: $markerBuild | $markerSha | $markerState"
+    return $markerBuild
+}
+
 function Get-ChipperDefaultVst3Root {
     param([string] $InstallScope)
 
@@ -207,6 +253,27 @@ $buildInfo = Get-ChipperBuildInfo
 $activeInstallScope = $Scope
 Write-Host "Source build: $($buildInfo.Label) ($($buildInfo.GitState), built $($buildInfo.BuiltAtUtc))"
 Write-ChipperBundleReport -Label "Source" -BundlePath $source
+
+if ($VerifyOnly) {
+    Write-Host ""
+    $userBuild = Write-ChipperInstalledScopeReport -InstallScope "User"
+    Write-Host ""
+    $globalBuild = Write-ChipperInstalledScopeReport -InstallScope "Global"
+
+    if (-not [string]::IsNullOrWhiteSpace($userBuild) -and $userBuild -ne $buildInfo.Label) {
+        Write-Warning "User install does not match source build. Run: .\install-vst3.ps1 -Scope User -BuildRoot $BuildRoot"
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($globalBuild) -and $globalBuild -ne $buildInfo.Label) {
+        Write-Warning "Global install does not match source build. Open PowerShell as Administrator and run: .\install-vst3.ps1 -Scope Both -BuildRoot $BuildRoot"
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($userBuild) -and -not [string]::IsNullOrWhiteSpace($globalBuild) -and $userBuild -ne $globalBuild) {
+        Write-Warning "User and Global installs differ. Some hosts may load the older copy."
+    }
+
+    return
+}
 
 function New-ChipperFallbackDestination {
     if ($PSBoundParameters.ContainsKey("FallbackDestination") -and -not [string]::IsNullOrWhiteSpace($FallbackDestination)) {

@@ -94,6 +94,7 @@ Installer defaults can be steered with environment variables instead of editing 
 | `CHIPPER_VST3_USER_DIR` | User-scope VST3 install folder |
 | `CHIPPER_VST3_GLOBAL_DIR` | Global VST3 install folder |
 | `CHIPPER_VST3_FALLBACK_DIR` | Optional fallback folder when fallback installs are enabled |
+| `CHIPPER_VERIFY_INSTALL` | Set to `1`, `true`, or `yes` to report source/user/global build markers without copying files |
 | `CHIPPER_ALLOW_FALLBACK_INSTALL` | Set to `1`, `true`, or `yes` to allow fallback copies when the requested destination cannot be replaced |
 
 Examples:
@@ -111,6 +112,18 @@ For Codex/local development builds, you can still install the explicit build fol
 
 ```powershell
 .\install-vst3.ps1 -Scope User -BuildRoot build-codex
+```
+
+To verify which build a host may be loading without copying files:
+
+```powershell
+.\install-vst3.ps1 -VerifyOnly -BuildRoot build-codex
+```
+
+This prints the source build plus the user and global VST3 install markers. If those markers differ, update both scopes from an elevated PowerShell:
+
+```powershell
+.\install-vst3.ps1 -Scope Both -BuildRoot build-codex
 ```
 
 The installer removes the previous `Chipper.vst3` bundle before copying the new one, writes a build marker into the installed bundle, and copies third-party legal notices into `Contents\Resources\Legal`. If a DAW has the plugin loaded, close the host and rerun the installer. If both user and global VST3 copies exist, keep them in sync with an elevated `.\install-vst3.ps1 -Scope Both -BuildRoot <your-build-folder>` so hosts do not load an older copy.

@@ -2568,13 +2568,13 @@ void ChipperAudioProcessorEditor::resized()
 
     titleLabel.setBounds(top.removeFromLeft(122));
     top.removeFromLeft(8);
-    placeHeaderCombo(0, presetBox, top.removeFromLeft(160));
+    placeHeaderCombo(0, presetBox, top.removeFromLeft(148));
     top.removeFromLeft(4);
     userPresetLoadButton.setBounds(top.removeFromLeft(42).withTrimmedTop(20).reduced(0, 4));
     top.removeFromLeft(4);
-    userPresetSaveButton.setBounds(top.removeFromLeft(42).withTrimmedTop(20).reduced(0, 4));
+    userPresetSaveButton.setBounds(top.removeFromLeft(52).withTrimmedTop(20).reduced(0, 4));
     top.removeFromLeft(4);
-    userPresetSaveAsButton.setBounds(top.removeFromLeft(62).withTrimmedTop(20).reduced(0, 4));
+    userPresetSaveAsButton.setBounds(top.removeFromLeft(64).withTrimmedTop(20).reduced(0, 4));
     top.removeFromLeft(8);
     placeHeaderCombo(1, chipModeBox, top.removeFromLeft(190));
     top.removeFromLeft(8);
