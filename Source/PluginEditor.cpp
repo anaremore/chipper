@@ -532,6 +532,24 @@ std::optional<chipper::ChipMode> chipModeFromUserPresetXml(const juce::XmlElemen
     if (const auto* child = root.getChildByName("ChipperPreset"))
         return chipModeFromUserPresetXml(*child);
 
+    if (root.hasTagName("PARAM")
+        && root.getStringAttribute("id") == chipper::parameters::id::chipMode
+        && root.hasAttribute("value"))
+    {
+        const auto chipChoice = static_cast<int>(std::round(root.getDoubleAttribute("value", 0.0)));
+        if (chipChoice >= 0 && chipChoice < chipper::parameters::chipModeChoices().size())
+            return chipper::parameters::chipModeFromChoice(chipChoice);
+    }
+
+    for (const auto* child : root.getChildIterator())
+    {
+        if (child != nullptr)
+        {
+            if (const auto childMode = chipModeFromUserPresetXml(*child))
+                return childMode;
+        }
+    }
+
     return std::nullopt;
 }
 
@@ -3591,7 +3609,7 @@ void ChipperAudioProcessorEditor::reloadUserPresetFiles(chipper::ChipMode mode)
             return;
 
         const std::unique_ptr<juce::XmlElement> root(juce::XmlDocument::parse(file));
-        if (root == nullptr || ! root->hasTagName("ChipperPreset"))
+        if (root == nullptr)
             return;
 
         const auto presetMode = chipModeFromUserPresetXml(*root);
