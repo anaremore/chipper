@@ -814,6 +814,15 @@ add_test(NAME chipper_render_ym2151_release_tail_smoke
 add_test(NAME chipper_render_ym2413_smoke
     COMMAND chipper_render --chip ym2413 --accuracy authentic --macro lead --wave-shape 3 --clock 3579545 --rate 48000 --seconds 0.08 --note 69 --out ym2413-smoke.wav --debug ym2413-smoke.json
 )
+add_test(NAME chipper_render_ym2413_held_tail_smoke
+    COMMAND chipper_render --chip ym2413 --accuracy authentic --macro bass --wave-shape 2 --clock 3579545 --rate 48000 --seconds 0.50 --note 48 --out ym2413-held-tail-smoke.wav --debug ym2413-held-tail-smoke.json
+)
+add_test(NAME chipper_render_ym2413_low_level_held_tail_smoke
+    COMMAND chipper_render --chip ym2413 --accuracy authentic --macro lead --wave-shape 3 --control4 0.35 --clock 3579545 --rate 48000 --seconds 0.50 --note 60 --out ym2413-low-level-held-tail-smoke.wav --debug ym2413-low-level-held-tail-smoke.json
+)
+add_test(NAME chipper_render_ym2413_release_tail_smoke
+    COMMAND chipper_render --chip ym2413 --accuracy authentic --macro bass --wave-shape 2 --clock 3579545 --rate 48000 --seconds 0.30 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2413-release-events.txt --out ym2413-release-tail-smoke.wav --debug ym2413-release-tail-smoke.json
+)
 add_test(NAME chipper_render_ym2413_chip_poly_smoke
     COMMAND chipper_render --chip ym2413 --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 4 --clock 3579545 --rate 48000 --seconds 0.10 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2413-nine-channel-chip-poly-events.txt --out ym2413-chip-poly-smoke.wav --debug ym2413-chip-poly-smoke.json
 )
@@ -1677,6 +1686,21 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2413-smoke.json --implemented-contains emu2413 --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.02 --min-rms 0.005 --register-writes 0 --note-events 0 --core-min internalChannelCount=9 --core-max internalChannelCount=9 --core-min exposedChannelCount=9 --core-max exposedChannelCount=9 --core-min instrumentChoice=3 --core-max instrumentChoice=3 --core-min instrument0=7 --core-max instrument0=7 --core-min fnum0=256 --core-max fnum0=511 --core-min block0=0 --core-max block0=7 --core-min keyOnMask=0 --core-max keyOnMask=0 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=menu --descriptor-param-label "waveShape=Instrument" --descriptor-param-choices waveShape=5
     )
     set_tests_properties(chipper_render_ym2413_json_assert PROPERTIES DEPENDS chipper_render_ym2413_smoke)
+
+    add_test(NAME chipper_render_ym2413_held_tail_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2413-held-tail-smoke.json --implemented-contains emu2413 --macro Bass --min-peak 0.01 --min-tail-rms 0.01 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535 --core-min keyOnMask=0 --core-max keyOnMask=0
+    )
+    set_tests_properties(chipper_render_ym2413_held_tail_assert PROPERTIES DEPENDS chipper_render_ym2413_held_tail_smoke)
+
+    add_test(NAME chipper_render_ym2413_low_level_held_tail_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2413-low-level-held-tail-smoke.json --implemented-contains emu2413 --macro Lead --min-peak 0.005 --min-tail-rms 0.005 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535 --core-min keyOnMask=0 --core-max keyOnMask=0
+    )
+    set_tests_properties(chipper_render_ym2413_low_level_held_tail_assert PROPERTIES DEPENDS chipper_render_ym2413_low_level_held_tail_smoke)
+
+    add_test(NAME chipper_render_ym2413_release_tail_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2413-release-tail-smoke.json --implemented-contains emu2413 --macro Bass --note-events 2 --min-peak 0.01 --min-tail-rms 0.0001 --render-core-min keyOnMask=0 --render-core-max keyOnMask=0 --core-min keyOnMask=0 --core-max keyOnMask=0
+    )
+    set_tests_properties(chipper_render_ym2413_release_tail_assert PROPERTIES DEPENDS chipper_render_ym2413_release_tail_smoke)
 
     add_test(NAME chipper_render_ym2413_chip_poly_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2413-chip-poly-smoke.json --implemented-contains emu2413 --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 9 --min-peak 0.02 --core-min activeChannels=9 --core-max activeChannels=9 --core-min assignedNote0=48 --core-max assignedNote0=48 --core-min assignedNote1=52 --core-max assignedNote1=52 --core-min assignedNote2=55 --core-max assignedNote2=55 --core-min assignedNote3=60 --core-max assignedNote3=60 --core-min assignedNote4=64 --core-max assignedNote4=64 --core-min assignedNote5=67 --core-max assignedNote5=67 --core-min assignedNote6=72 --core-max assignedNote6=72 --core-min assignedNote7=76 --core-max assignedNote7=76 --core-min assignedNote8=79 --core-max assignedNote8=79 --core-min keyOnMask=511 --core-max keyOnMask=511
