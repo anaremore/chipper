@@ -15,6 +15,13 @@
 namespace
 {
 
+constexpr const char* chipperPluginVersionString =
+#ifdef JucePlugin_VersionString
+    JucePlugin_VersionString;
+#else
+    "0.1.0";
+#endif
+
 int chipModeChoiceIndex(chipper::ChipMode mode)
 {
     switch (mode)
@@ -513,6 +520,57 @@ juce::String safePresetFileStem(juce::String text)
         safe = safe.replace("--", "-");
 
     return safe.isNotEmpty() ? safe : juce::String("Chipper-Preset");
+}
+
+bool isPresetSampleReferenceTag(const juce::String& tagName)
+{
+    return tagName == "DMC_SAMPLE"
+        || tagName == "BRR_SAMPLE"
+        || tagName == "PAULA_SAMPLE"
+        || tagName == "CHIPPER_SPC700_BRR";
+}
+
+juce::String portableSampleRelativePath(const juce::File& sampleFile, const juce::File& presetDirectory)
+{
+    if (presetDirectory == juce::File {} || sampleFile == juce::File {})
+        return {};
+
+    if (sampleFile.getParentDirectory() == presetDirectory || sampleFile.isAChildOf(presetDirectory))
+        return sampleFile.getRelativePathFrom(presetDirectory);
+
+    if (presetDirectory.getChildFile(sampleFile.getFileName()).existsAsFile())
+        return sampleFile.getFileName();
+
+    const auto samplesFile = presetDirectory.getChildFile("Samples").getChildFile(sampleFile.getFileName());
+    if (samplesFile.existsAsFile())
+        return "Samples/" + sampleFile.getFileName();
+
+    const auto lowercaseSamplesFile = presetDirectory.getChildFile("samples").getChildFile(sampleFile.getFileName());
+    if (lowercaseSamplesFile.existsAsFile())
+        return "samples/" + sampleFile.getFileName();
+
+    return {};
+}
+
+void annotatePortablePresetSampleReferences(juce::XmlElement& xml, const juce::File& presetDirectory)
+{
+    if (isPresetSampleReferenceTag(xml.getTagName()) && xml.hasAttribute("path"))
+    {
+        const juce::File sampleFile(xml.getStringAttribute("path"));
+        if (sampleFile != juce::File {})
+        {
+            xml.setAttribute("fileName", sampleFile.getFileName());
+            const auto relativePath = portableSampleRelativePath(sampleFile, presetDirectory);
+            if (relativePath.isNotEmpty())
+                xml.setAttribute("relativePath", relativePath);
+        }
+    }
+
+    for (auto* child : xml.getChildIterator())
+    {
+        if (child != nullptr)
+            annotatePortablePresetSampleReferences(*child, presetDirectory);
+    }
 }
 
 juce::String byteHex(uint8_t value)
@@ -3717,7 +3775,7 @@ void ChipperAudioProcessorEditor::loadUserPresetFile(const juce::File& file)
         return;
     }
 
-    const auto result = audioProcessor.restoreStateXml(*stateXml);
+    const auto result = audioProcessor.restoreStateXml(*stateXml, file.getParentDirectory());
     if (result.failed())
     {
         juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
@@ -3746,6 +3804,9 @@ void ChipperAudioProcessorEditor::saveUserPresetFile(const juce::File& file)
         return;
     }
 
+    const auto presetDirectory = file.getParentDirectory();
+    annotatePortablePresetSampleReferences(*stateXml, presetDirectory);
+
     auto presetName = file.getFileNameWithoutExtension();
     if (presetName.isEmpty())
         presetName = "Chipper Preset";
@@ -3753,7 +3814,7 @@ void ChipperAudioProcessorEditor::saveUserPresetFile(const juce::File& file)
     juce::XmlElement presetXml("ChipperPreset");
     presetXml.setAttribute("formatVersion", 1);
     presetXml.setAttribute("plugin", "Chipper");
-    presetXml.setAttribute("pluginVersion", JucePlugin_VersionString);
+    presetXml.setAttribute("pluginVersion", chipperPluginVersionString);
     presetXml.setAttribute("name", presetName);
     presetXml.setAttribute("chip", chipper::toString(displayedMode));
     presetXml.addChildElement(stateXml.release());
@@ -3776,7 +3837,8 @@ void ChipperAudioProcessorEditor::saveUserPresetFile(const juce::File& file)
     }
 
     macroSummaryLabel.setText("Saved user preset: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
-    macroSummaryLabel.setTooltip("Saved to " + file.getFullPathName());
+    macroSummaryLabel.setTooltip("Saved to " + file.getFullPathName()
+                                 + "\nExternal samples are referenced, not embedded. Put shared samples beside the preset or in a Samples folder.");
 }
 
 void ChipperAudioProcessorEditor::applySelectedMacroTemplate()

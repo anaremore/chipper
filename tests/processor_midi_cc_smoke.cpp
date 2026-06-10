@@ -177,6 +177,21 @@ bool writeWavFixture(const juce::File& file, float frequency)
 
     return false;
 }
+
+void rewriteDmcPresetSamplePaths(juce::XmlElement& xml, const juce::String& fileName)
+{
+    if (xml.hasTagName("DMC_SAMPLE"))
+    {
+        xml.setAttribute("path", "Z:/missing/chipper/" + fileName);
+        xml.setAttribute("relativePath", "Samples/" + fileName);
+    }
+
+    for (auto* child : xml.getChildIterator())
+    {
+        if (child != nullptr)
+            rewriteDmcPresetSamplePaths(*child, fileName);
+    }
+}
 }
 
 int main()
@@ -509,6 +524,30 @@ int main()
     ok &= expect(restoredEntries[0].included == false, "DMC state restore should preserve unchecked entries");
     ok &= expect(restoredEntries[32].included && restoredEntries[32].activeSlot, "DMC state restore should preserve checked staged entries");
     ok &= expect(restoredActiveNames[31] == "sample-32.dmc", "DMC state restore should preserve active bank ordering");
+
+    auto portablePresetDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-portable-preset-test");
+    portablePresetDir.deleteRecursively();
+    ok &= expect(portablePresetDir.getChildFile("Samples").createDirectory().wasOk(), "Should create portable preset sample folder");
+    ok &= expect(writeDmcFixture(portablePresetDir.getChildFile("Samples").getChildFile("portable.dmc"), 0x7f),
+                 "Should write portable DMC fixture beside preset");
+    ChipperAudioProcessor portablePresetProcessor;
+    portablePresetProcessor.prepareToPlay(48000.0, 64);
+    ok &= expect(portablePresetProcessor.loadNesDmcSampleFile(dmcDir.getChildFile("sample-00.dmc")).wasOk(),
+                 "Should load DMC source before creating portable preset XML");
+    auto portablePresetXml = portablePresetProcessor.createStateXml();
+    ok &= expect(portablePresetXml != nullptr, "Should create portable preset XML");
+    if (portablePresetXml != nullptr)
+    {
+        rewriteDmcPresetSamplePaths(*portablePresetXml, "portable.dmc");
+        ChipperAudioProcessor restoredPortablePresetProcessor;
+        restoredPortablePresetProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(restoredPortablePresetProcessor.restoreStateXml(*portablePresetXml, portablePresetDir).wasOk(),
+                     "Portable preset restore should accept relative sample references");
+        const auto portableNames = restoredPortablePresetProcessor.nesDmcSampleNames();
+        ok &= expect(portableNames.size() == 1 && portableNames[0] == "portable.dmc",
+                     "Portable preset restore should load samples from preset-relative Samples folder");
+    }
+    portablePresetDir.deleteRecursively();
     dmcDir.deleteRecursively();
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 7));

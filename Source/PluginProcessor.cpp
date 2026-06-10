@@ -186,6 +186,42 @@ bool fileLooksLikePcmImport(const juce::File& file)
     return file.hasFileExtension(".wav;.aif;.aiff");
 }
 
+juce::File resolvePresetSamplePath(const juce::XmlElement& sampleState, const juce::File& presetDirectory)
+{
+    const auto relativePath = sampleState.getStringAttribute("relativePath").trim();
+    if (relativePath.isNotEmpty() && presetDirectory.isDirectory())
+    {
+        const auto relativeFile = presetDirectory.getChildFile(relativePath);
+        if (relativeFile.existsAsFile())
+            return relativeFile;
+    }
+
+    const auto originalPath = sampleState.getStringAttribute("path").trim();
+    if (originalPath.isEmpty())
+        return {};
+
+    const juce::File originalFile(originalPath);
+    if (originalFile.existsAsFile())
+        return originalFile;
+
+    if (presetDirectory.isDirectory())
+    {
+        const auto siblingFile = presetDirectory.getChildFile(originalFile.getFileName());
+        if (siblingFile.existsAsFile())
+            return siblingFile;
+
+        const auto samplesFile = presetDirectory.getChildFile("Samples").getChildFile(originalFile.getFileName());
+        if (samplesFile.existsAsFile())
+            return samplesFile;
+
+        const auto lowercaseSamplesFile = presetDirectory.getChildFile("samples").getChildFile(originalFile.getFileName());
+        if (lowercaseSamplesFile.existsAsFile())
+            return lowercaseSamplesFile;
+    }
+
+    return originalFile;
+}
+
 juce::Result readPcm8SampleFile(const juce::File& file,
                                 ChipperAudioProcessor::DmcSampleSlot& slot,
                                 const juce::String& label,
@@ -2096,6 +2132,11 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
 
 juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sourceXml)
 {
+    return restoreStateXml(sourceXml, {});
+}
+
+juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sourceXml, const juce::File& presetDirectory)
+{
     auto xml = std::make_unique<juce::XmlElement>(sourceXml);
     if (xml == nullptr || ! xml->hasTagName(apvts.state.getType()))
         return juce::Result::fail("This file does not contain Chipper plugin state.");
@@ -2131,7 +2172,7 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
                 continue;
 
             DmcSampleSlot slot;
-            if (readDmcSampleFile(juce::File(child->getStringAttribute("path")), slot).wasOk())
+            if (readDmcSampleFile(resolvePresetSamplePath(*child, presetDirectory), slot).wasOk())
             {
                 slot.included = child->getBoolAttribute("included", true);
                 restoredDmcBank.push_back(std::move(slot));
@@ -2149,7 +2190,7 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
                 continue;
 
             DmcSampleSlot slot;
-            if (readSpc700BrrSampleFile(juce::File(child->getStringAttribute("path")), slot).wasOk())
+            if (readSpc700BrrSampleFile(resolvePresetSamplePath(*child, presetDirectory), slot).wasOk())
             {
                 slot.included = child->getBoolAttribute("included", true);
                 restoredSpcBrrBank.push_back(std::move(slot));
@@ -2164,7 +2205,7 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     {
         if (auto* spcBrrState = xml->getChildByName(spc700BrrStateTag))
         {
-            readSpc700BrrSampleFile(juce::File(spcBrrState->getStringAttribute("path")), restoredSpcBrrSample);
+            readSpc700BrrSampleFile(resolvePresetSamplePath(*spcBrrState, presetDirectory), restoredSpcBrrSample);
             if (! restoredSpcBrrSample.bytes.empty())
                 restoredSpcBrrBank.push_back(restoredSpcBrrSample);
             xml->removeChildElement(spcBrrState, true);
@@ -2180,7 +2221,7 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
                 continue;
 
             DmcSampleSlot slot;
-            if (readPaulaSampleFile(juce::File(child->getStringAttribute("path")), slot).wasOk())
+            if (readPaulaSampleFile(resolvePresetSamplePath(*child, presetDirectory), slot).wasOk())
             {
                 slot.included = child->getBoolAttribute("included", true);
                 restoredPaulaBank.push_back(std::move(slot));
