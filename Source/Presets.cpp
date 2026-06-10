@@ -1151,6 +1151,24 @@ const std::vector<PresetInfo>& presetCatalog()
             -9.5f,
             7670454.0
         },
+        {
+            "opn2-dac-kick",
+            "YM2612 / OPN2",
+            "OPN2 DAC Kick",
+            "Channel-6 YM2612 DAC drum hit using Chipper's partial low-rate sample playback path.",
+            ChipMode::ym2612,
+            AccuracyMode::hybrid,
+            MacroKind::drum,
+            PlayMode::stack,
+            { 0.14f, 0.56f, 0.44f, 0.96f },
+            { true, false, false, false },
+            0.24f,
+            1,
+            0,
+            2,
+            -10.5f,
+            7670454.0
+        },
         withSourceLevels(
             {
                 "opl2-bass",

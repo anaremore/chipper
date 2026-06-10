@@ -50,7 +50,7 @@ std::vector<MacroTemplate> ym2612Macros()
         { MacroKind::bass, "OPN2 Feedback Bass", "Dark feedback-heavy FM bass using a serial operator algorithm.", { 0.00f, 0.82f, 0.28f, 0.88f }, { true, true, false, false }, 0.08f, 1 },
         { MacroKind::lead, "OPN2 Metallic Lead", "Forward Genesis lead with parallel carrier bite.", { 0.58f, 0.44f, 0.62f, 0.82f }, { true, true, true, false }, 0.10f, 5 },
         { MacroKind::arp, "OPN2 Fake Chord Arp", "Six YM2612 melodic channels arranged for fake chords and arpeggios.", { 0.72f, 0.32f, 0.50f, 0.78f }, { true, true, true, true }, 0.08f, 6 },
-        { MacroKind::drum, "OPN2 FM Hit", "Short FM impact placeholder until DAC percussion lands.", { 0.18f, 0.95f, 0.80f, 0.72f }, { false, false, true, true }, 0.58f, 2 },
+        { MacroKind::drum, "OPN2 DAC Drum", "Short Genesis channel-6 DAC drum using generated low-rate sample bytes.", { 0.14f, 0.56f, 0.44f, 0.96f }, { false, false, true, true }, 0.24f, 1 },
         { MacroKind::hit, "OPN2 Damage Hit", "Aggressive stacked operator impact.", { 0.22f, 0.90f, 0.75f, 0.78f }, { true, false, true, true }, 0.55f, 2 },
         { MacroKind::laser, "OPN2 Pitch Laser", "Genesis FM pitch sweep SFX.", { 0.30f, 0.72f, 0.88f, 0.80f }, { true, true, false, true }, 0.28f, 3 },
         { MacroKind::jump, "OPN2 Jump Blip", "Quick upward FM game gesture.", { 1.00f, 0.22f, 0.66f, 0.76f }, { true, false, false, false }, 0.18f, 8 },
@@ -1940,7 +1940,7 @@ std::array<ModuleDescriptor, 6> ym2612Modules()
         makeModule("tone", "Operators", "Musical controls write native OPN2 algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Envelope", "Useful fixed operator envelopes are written per voice for this first FM instrument pass.", { "Operator attack", "Decay", "Sustain/release", "Full ADSR planned" }),
         makeModule("motion", "Motion", "Genesis-style musical templates map to register-backed FM patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
-                makeModule("output", "Output", "ymfm stereo OPN2 output follows native channel pan bits plus output trim.", { "Stereo core", "Pan bits", "DAC planned", "Reference tests needed" })
+                makeModule("output", "Output", "ymfm stereo OPN2 output follows native channel pan bits plus output trim.", { "Stereo core", "Pan bits", "DAC drum", "Reference tests needed" })
     };
 }
 

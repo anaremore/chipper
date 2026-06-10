@@ -24,7 +24,7 @@ Implemented depth varies by chip. See [docs/emulation-accuracy.md](docs/emulatio
 | SID / C64 | Partial clean-room SID-style voice model with 3 voices, per-voice waves/PW/ADSR, sync/ring bits, filter modes, routing, and model color |
 | YM2149 / AY | Verified-partial MIT `emu2149` PSG adapter |
 | SN76489 / Sega PSG | Verified-partial MIT `emu76489` PSG adapter |
-| YM2612 / Genesis FM | Verified-partial BSD-3-Clause `ymfm` OPN2 adapter |
+| YM2612 / Genesis FM | Verified-partial BSD-3-Clause `ymfm` OPN2 adapter with partial channel-6 DAC drum playback |
 | OPL2 / OPL3 | Verified-partial BSD-3-Clause `ymfm` YM3812/OPL2 adapter; deeper OPL3 work planned |
 | SNES SPC700-style | Partial clean-room eight-voice BRR/WAV/AIFF sample-player model with note maps, loop handling, Gaussian-style interpolation, PMON-style pitch modulation, noise, and musical echo helper |
 | Atari POKEY | Partial clean-room polynomial/timer model |
