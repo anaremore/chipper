@@ -6809,7 +6809,7 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
         parameterValue(chipper::parameters::id::stereoSpread));
     const auto resolvedPlaybackMode = chipper::spc700SamplePlaybackModeForPatch(playbackPatch);
-    const auto mapLabel = playbackMode == 2 ? juce::String("Drum Map") : (playbackMode == 1 ? juce::String("Key Map") : juce::String("Manual Slot"));
+    const auto bankModeLabel = playbackMode == 2 ? juce::String("Drum Map") : (playbackMode == 1 ? juce::String("Key Map") : juce::String("Manual Slot"));
     const auto lifetimeLabel = resolvedPlaybackMode == 1u ? juce::String("loop") : juce::String("one-shot");
     dmcSampleLabel.setTooltip(withMidiCcForRole("Load one user-provided SNES BRR, WAV, or AIFF sample, or a folder bank. CC117 selects the manual slot; Sample Playback chooses whether MIDI notes browse the loaded bank.", chipper::ChipParameterRole::nesDmcSampleSlot));
     dmcSampleFileButton.setButtonText("File");
@@ -6853,9 +6853,11 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
             + "-" + chipper::parameters::midiNoteChoices()[info.mapHighNote];
     else if (info.loaded && info.bankCount > 1)
         visibleStatus += " | Manual";
+    if (! info.loaded)
+        visibleStatus += " | Generated " + waveShapeReadout(chipper::ChipMode::spc700, playbackPatch.waveShape);
+    visibleStatus += " | Bank " + bankModeLabel + " | Voice " + lifetimeLabel;
     if (info.loaded)
     {
-        visibleStatus += " | " + mapLabel + ", " + lifetimeLabel;
         visibleStatus += " | ARAM "
             + juce::String(static_cast<double>(info.bankByteCount) / 1024.0, info.bankByteCount < 10240 ? 1 : 0)
             + "/64 KB";
@@ -6867,6 +6869,9 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
     auto tooltip = info.statusLine
         + "\nBRR files are decoded into the clean-room SPC700 sample voice path. WAV/AIFF files import as 8-bit sample memory; true WAV-to-BRR conversion remains planned. Folder loads keep up to 32 user-provided files addressable by the dropdown and CC117.";
+    if (! info.loaded)
+        tooltip += juce::String("\nNo user sample is loaded, so the internal generated sample template remains playable.")
+            + "\nGenerated Sample Shape: " + waveShapeReadout(chipper::ChipMode::spc700, playbackPatch.waveShape);
     if (info.loaded)
     {
         tooltip += "\nActive bank payload: " + juce::String(info.bankByteCount) + " bytes / "
@@ -6889,6 +6894,7 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     else
         tooltip += "\nSample Playback is a map mode: notes browse the loaded bank from "
             + chipper::parameters::midiNoteChoices()[mapRoot] + " upward.";
+    tooltip += "\nBank Mode: " + bankModeLabel + ".";
     tooltip += "\nResolved playback lifetime: " + lifetimeLabel + ".";
     if (info.loaded && info.bankCount > 1 && playbackMode != 0)
         tooltip += "\nCurrent mapped key span: "
