@@ -3292,11 +3292,13 @@ void ChipperAudioProcessorEditor::placePulse2DutySegment(juce::Rectangle<int> bo
 
 void ChipperAudioProcessorEditor::placeWaveShapeSegment(juce::Rectangle<int> bounds)
 {
-    waveShapeLabel.setBounds(bounds.removeFromTop(18));
-    waveShapeSegmentBounds = bounds.removeFromTop(28).reduced(0, 1);
+    const auto compact = bounds.getHeight() < 64;
+    waveShapeLabel.setBounds(bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight())));
+    bounds.removeFromTop(std::min(compact ? 1 : 0, bounds.getHeight()));
+    waveShapeSegmentBounds = bounds.removeFromTop(std::min(compact ? 24 : 28, bounds.getHeight())).reduced(0, 1);
     layoutSegmentedButtons(waveShapeButtons, waveShapeSegmentBounds, waveShapeButtons.size());
 
-    waveShapeValueLabel.setBounds(bounds);
+    waveShapeValueLabel.setBounds(compact ? juce::Rectangle<int> {} : bounds);
 }
 
 void ChipperAudioProcessorEditor::placeFmAlgorithmControl(juce::Rectangle<int> bounds)
@@ -3402,11 +3404,13 @@ void ChipperAudioProcessorEditor::placeSidVoiceWaveControls(juce::Rectangle<int>
 
 void ChipperAudioProcessorEditor::placeDmgWaveLevelSegment(juce::Rectangle<int> bounds)
 {
-    dmgWaveLevelLabel.setBounds(bounds.removeFromTop(18));
-    dmgWaveLevelSegmentBounds = bounds.removeFromTop(28).reduced(0, 1);
+    const auto compact = bounds.getHeight() < 64;
+    dmgWaveLevelLabel.setBounds(bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight())));
+    bounds.removeFromTop(std::min(compact ? 1 : 0, bounds.getHeight()));
+    dmgWaveLevelSegmentBounds = bounds.removeFromTop(std::min(compact ? 24 : 28, bounds.getHeight())).reduced(0, 1);
     layoutSegmentedButtons(dmgWaveLevelButtons, dmgWaveLevelSegmentBounds, dmgWaveLevelButtons.size());
 
-    dmgWaveLevelValueLabel.setBounds(bounds);
+    dmgWaveLevelValueLabel.setBounds(compact ? juce::Rectangle<int> {} : bounds);
 }
 
 void ChipperAudioProcessorEditor::placeDmgStereoRouteSegment(juce::Rectangle<int> bounds)
