@@ -1186,7 +1186,7 @@ const std::vector<PresetInfo>& presetCatalog()
                 0,
                 0,
                 -9.0f,
-                3579545.0
+                14318180.0
             },
             1.0f,
             0.45f,
@@ -1208,7 +1208,7 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             0,
             -9.5f,
-            3579545.0
+            14318180.0
         },
         {
             "opl2-organ-arp",
@@ -1226,7 +1226,7 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             0,
             -10.0f,
-            3579545.0
+            14318180.0
         },
         {
             "opl2-ui-bell",
@@ -1244,7 +1244,7 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             0,
             -11.0f,
-            3579545.0
+            14318180.0
         },
         {
             "opl2-laser",
@@ -1262,7 +1262,7 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             0,
             -11.5f,
-            3579545.0
+            14318180.0
         },
         {
             "opl2-power-rise",
@@ -1280,7 +1280,7 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             0,
             -10.0f,
-            3579545.0
+            14318180.0
         },
         withSourceLevels(
             {
@@ -1299,7 +1299,7 @@ const std::vector<PresetInfo>& presetCatalog()
                 0,
                 0,
                 -10.0f,
-                3579545.0
+                14318180.0
             },
             0.86f,
             0.58f,
@@ -1321,7 +1321,7 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             0,
             -11.0f,
-            3579545.0
+            14318180.0
         },
         withSourceLevels(
             {
@@ -1340,7 +1340,7 @@ const std::vector<PresetInfo>& presetCatalog()
                 2,
                 0,
                 -10.5f,
-                3579545.0
+                14318180.0
             },
             0.0f,
             0.0f,
@@ -1363,7 +1363,7 @@ const std::vector<PresetInfo>& presetCatalog()
                 2,
                 0,
                 -11.0f,
-                3579545.0
+                14318180.0
             },
             0.65f,
             0.0f,
@@ -1599,7 +1599,7 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             0,
             -9.0f,
-            3579545.0,
+            14318180.0,
             0.0f
         },
         {
@@ -2118,7 +2118,7 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             0,
             -9.5f,
-            3579545.0,
+            14318180.0,
             0.0f
         },
         {

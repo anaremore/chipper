@@ -743,16 +743,16 @@ add_test(NAME chipper_render_preset_opn2_dac_kick_smoke
     COMMAND chipper_render --preset opn2-dac-kick --rate 48000 --seconds 0.03 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2612-dac-events.txt --out preset-opn2-dac-kick.wav --debug preset-opn2-dac-kick.json
 )
 add_test(NAME chipper_render_opl3_smoke
-    COMMAND chipper_render --chip opl3 --accuracy authentic --macro lead --wave-shape 4 --clock 3579545 --rate 48000 --seconds 0.08 --note 69 --out opl3-smoke.wav --debug opl3-smoke.json
+    COMMAND chipper_render --chip opl3 --accuracy authentic --macro lead --wave-shape 4 --clock 14318180 --rate 48000 --seconds 0.08 --note 69 --out opl3-smoke.wav --debug opl3-smoke.json
 )
 add_test(NAME chipper_render_opl3_chip_poly_smoke
-    COMMAND chipper_render --chip opl3 --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 2 --clock 3579545 --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/opl3-nine-channel-chip-poly-events.txt --out opl3-chip-poly-smoke.wav --debug opl3-chip-poly-smoke.json
+    COMMAND chipper_render --chip opl3 --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 2 --clock 14318180 --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/opl3-nine-channel-chip-poly-events.txt --out opl3-chip-poly-smoke.wav --debug opl3-chip-poly-smoke.json
 )
 add_test(NAME chipper_render_opl3_sources_off_smoke
-    COMMAND chipper_render --chip opl3 --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 0 --source5 0 --source6 0 --source7 0 --source8 0 --source9 0 --clock 3579545 --rate 48000 --seconds 0.04 --note 69 --out opl3-sources-off-smoke.wav --debug opl3-sources-off-smoke.json
+    COMMAND chipper_render --chip opl3 --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 0 --source5 0 --source6 0 --source7 0 --source8 0 --source9 0 --clock 14318180 --rate 48000 --seconds 0.04 --note 69 --out opl3-sources-off-smoke.wav --debug opl3-sources-off-smoke.json
 )
 add_test(NAME chipper_render_opl3_rhythm_smoke
-    COMMAND chipper_render --chip opl3 --accuracy authentic --macro drum --opl-rhythm rhythm --clock 3579545 --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/opl-rhythm-events.txt --out opl3-rhythm-smoke.wav --debug opl3-rhythm-smoke.json
+    COMMAND chipper_render --chip opl3 --accuracy authentic --macro drum --opl-rhythm rhythm --clock 14318180 --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/opl-rhythm-events.txt --out opl3-rhythm-smoke.wav --debug opl3-rhythm-smoke.json
 )
 add_test(NAME chipper_render_preset_opl2_rhythm_kit_smoke
     COMMAND chipper_render --preset opl2-rhythm-kit --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/opl-rhythm-events.txt --out preset-opl2-rhythm-kit.wav --debug preset-opl2-rhythm-kit.json
@@ -782,10 +782,10 @@ add_test(NAME chipper_render_ym2612_release_tail_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro bass --wave-shape 1 --clock 7670454 --rate 48000 --seconds 0.30 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2612-release-events.txt --out ym2612-release-tail-smoke.wav --debug ym2612-release-tail-smoke.json
 )
 add_test(NAME chipper_render_opl3_held_tail_smoke
-    COMMAND chipper_render --chip opl3 --accuracy authentic --macro bass --wave-shape 1 --clock 3579545 --rate 48000 --seconds 0.50 --note 48 --out opl3-held-tail-smoke.wav --debug opl3-held-tail-smoke.json
+    COMMAND chipper_render --chip opl3 --accuracy authentic --macro bass --wave-shape 1 --clock 14318180 --rate 48000 --seconds 0.50 --note 48 --out opl3-held-tail-smoke.wav --debug opl3-held-tail-smoke.json
 )
 add_test(NAME chipper_render_opl3_release_tail_smoke
-    COMMAND chipper_render --chip opl3 --accuracy authentic --macro bass --wave-shape 1 --clock 3579545 --rate 48000 --seconds 0.30 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/opl3-release-events.txt --out opl3-release-tail-smoke.wav --debug opl3-release-tail-smoke.json
+    COMMAND chipper_render --chip opl3 --accuracy authentic --macro bass --wave-shape 1 --clock 14318180 --rate 48000 --seconds 0.30 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/opl3-release-events.txt --out opl3-release-tail-smoke.wav --debug opl3-release-tail-smoke.json
 )
 add_test(NAME chipper_render_ym2151_held_tail_smoke
     COMMAND chipper_render --chip ym2151 --accuracy authentic --macro bass --wave-shape 1 --clock 3579545 --rate 48000 --seconds 0.50 --note 48 --out ym2151-held-tail-smoke.wav --debug ym2151-held-tail-smoke.json
@@ -1551,7 +1551,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_preset_opn2_dac_kick_assert PROPERTIES DEPENDS chipper_render_preset_opn2_dac_kick_smoke)
 
     add_test(NAME chipper_render_opl3_json_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-smoke.json --implemented-contains ymfm --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.01 --min-rms 0.002 --register-writes 0 --note-events 0 --core-min internalChannelCount=9 --core-max internalChannelCount=9 --core-min exposedChannelCount=9 --core-max exposedChannelCount=9 --core-min waveform0=3 --core-max waveform0=3 --core-min feedback0=3 --core-max feedback0=3 --core-min connectionRegister0=7 --core-max connectionRegister0=7 --core-min fnum0=1 --core-max fnum0=1023 --core-min block0=0 --core-max block0=7 --core-min keyOnMask=0 --core-max keyOnMask=0 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=menu --descriptor-param-label "waveShape=Waveform" --descriptor-param-choices waveShape=5
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-smoke.json --implemented-contains ymfm --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.01 --min-rms 0.002 --register-writes 0 --note-events 0 --core-min internalChannelCount=18 --core-max internalChannelCount=18 --core-min exposedChannelCount=9 --core-max exposedChannelCount=9 --core-min opl3Core=1 --core-max opl3Core=1 --core-min opl3NewFlag=1 --core-max opl3NewFlag=1 --core-min opl3NewModeRegister=1 --core-max opl3NewModeRegister=1 --core-min waveform0=3 --core-max waveform0=3 --core-min feedback0=3 --core-max feedback0=3 --core-min connectionRegister0=247 --core-max connectionRegister0=247 --core-min opl3OutputSelect0=240 --core-max opl3OutputSelect0=240 --core-min fnum0=1 --core-max fnum0=1023 --core-min block0=0 --core-max block0=7 --core-min keyOnMask=0 --core-max keyOnMask=0 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=menu --descriptor-param-label "waveShape=Waveform" --descriptor-param-choices waveShape=5
     )
     set_tests_properties(chipper_render_opl3_json_assert PROPERTIES DEPENDS chipper_render_opl3_smoke)
 

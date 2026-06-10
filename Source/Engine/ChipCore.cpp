@@ -8445,8 +8445,8 @@ public:
     void reset(double outputSampleRate, double chipClockHz) override
     {
         sampleRate = outputSampleRate > 0.0 ? outputSampleRate : 48000.0;
-        clock = chipClockHz > 0.0 ? chipClockHz : 3579545.0;
-        chip = std::make_unique<ymfm::ym3812>(host);
+        clock = chipClockHz > 0.0 ? chipClockHz : ymf262NativeClockHz;
+        chip = std::make_unique<ymfm::ymf262>(host);
         chip->reset();
         chipSampleRate = static_cast<double>(chip->sample_rate(static_cast<uint32_t>(std::round(clock))));
         sampleAccumulator = 0.0;
@@ -8465,8 +8465,10 @@ public:
         noteStamp = 0;
         heldNote = -1;
         keyOnMask = 0;
-        lastNative = 0;
+        lastNativeLeft = 0;
+        lastNativeRight = 0;
         currentOutput = {};
+        writeOplRegister(0x105, 0x01);
         writeOplRegister(0x01, 0x20);
         applyPatchToAllChannels(false);
     }
@@ -8482,7 +8484,7 @@ public:
         applyPatchToAllChannels(true);
     }
 
-    void writeRegister(uint16_t address, uint8_t value) override { writeOplRegister(static_cast<uint8_t>(address & 0xffu), value); }
+    void writeRegister(uint16_t address, uint8_t value) override { writeOplRegister(static_cast<uint16_t>(address & 0x1ffu), value); }
 
     void noteOn(int midiNote, float velocity) override
     {
@@ -8552,23 +8554,26 @@ public:
 
         const auto ratio = chipSampleRate > 0.0 ? chipSampleRate / sampleRate : 1.0;
         sampleAccumulator += ratio;
-        ymfm::ym3812::output_data output;
+        ymfm::ymf262::output_data output;
         auto generated = false;
         while (sampleAccumulator >= 1.0)
         {
             chip->generate(&output);
-            lastNative = output.data[0];
+            lastNativeLeft = output.data[0] + output.data[2];
+            lastNativeRight = output.data[1] + output.data[3];
             sampleAccumulator -= 1.0;
             generated = true;
         }
         if (! generated && ratio >= 0.999)
         {
             chip->generate(&output);
-            lastNative = output.data[0];
+            lastNativeLeft = output.data[0] + output.data[2];
+            lastNativeRight = output.data[1] + output.data[3];
         }
 
-        const auto value = std::clamp(static_cast<double>(lastNative) * clamp01(patch.control4) / 32768.0, -1.0, 1.0);
-        currentOutput = { static_cast<float>(value), static_cast<float>(value) };
+        const auto left = std::clamp(static_cast<double>(lastNativeLeft) * clamp01(patch.control4) / 65536.0, -1.0, 1.0);
+        const auto right = std::clamp(static_cast<double>(lastNativeRight) * clamp01(patch.control4) / 65536.0, -1.0, 1.0);
+        currentOutput = { static_cast<float>(left), static_cast<float>(right) };
         return currentOutput;
     }
 
@@ -8586,10 +8591,10 @@ public:
     ChipMode mode() const override { return ChipMode::opl3; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
     std::string modeName() const override { return "OPL2/OPL3 / DOS FM"; }
-    std::string implementedAccuracy() const override { return "partial ymfm-backed OPL2 register-level"; }
+    std::string implementedAccuracy() const override { return "partial ymfm-backed OPL3/YMF262 register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM3812/OPL2 synthesis core for this OPL2/OPL3 mode pass. Chipper currently maps musical controls and notes to OPL2 two-operator melodic-channel registers and native $BD rhythm-mode key bits. OPL3 stereo/18-channel mode, four-operator pairs, deep per-operator ADSR UI, rhythm-instrument fine tuning, golden comparisons, and hardware validation are not complete.";
+        return "BSD-3-Clause ymfm provides the YMF262/OPL3 synthesis core for this OPL2/OPL3 mode pass. Chipper currently exposes nine OPL2-compatible two-operator lanes and native $BD rhythm-mode key bits while the core runs with OPL3 new mode enabled and high-bank register writes preserved. Full 18-channel UI, four-operator pairs, deep per-operator ADSR UI, rhythm-instrument fine tuning, golden comparisons, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -8597,8 +8602,10 @@ public:
         std::ostringstream json;
         json << "{"
              << "\"mode\":\"OPL2/OPL3 / DOS FM\","
-             << "\"implementedAccuracy\":\"partial ymfm-backed OPL2 register-level\","
+             << "\"implementedAccuracy\":\"partial ymfm-backed OPL3/YMF262 register-level\","
              << "\"vendoredCore\":\"ymfm\","
+             << "\"oplCore\":\"YMF262\","
+             << "\"opl3Core\":1,"
              << "\"vendoredCoreLicense\":\"BSD-3-Clause\","
              << "\"vendoredCoreCommit\":\"17decfae857b92ab55fbb30ade2287ace095a381\","
              << "\"clockHz\":" << clock << ","
@@ -8606,8 +8613,10 @@ public:
              << "\"chipSampleRate\":" << chipSampleRate << ","
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
-             << "\"internalChannelCount\":9,"
+             << "\"internalChannelCount\":18,"
              << "\"exposedChannelCount\":9,"
+             << "\"opl3NewFlag\":" << static_cast<int>(regs[0x105] & 0x01u) << ","
+             << "\"opl3NewModeRegister\":" << static_cast<int>(regs[0x105]) << ","
              << "\"waveform0\":" << static_cast<int>(currentWaveform[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
              << "\"carrierControl0\":" << static_cast<int>(currentCarrierControl[0]) << ","
@@ -8615,6 +8624,7 @@ public:
              << "\"carrierAttackDecay0\":" << static_cast<int>(currentCarrierAttackDecay[0]) << ","
              << "\"carrierSustainRelease0\":" << static_cast<int>(currentCarrierSustainRelease[0]) << ","
              << "\"connectionRegister0\":" << static_cast<int>(regs[0xc0]) << ","
+             << "\"opl3OutputSelect0\":" << static_cast<int>(regs[0xc0] & 0xf0u) << ","
              << "\"rhythmModeChoice\":" << std::clamp(patch.ymEnvelopeShape, 0, 2) << ","
              << "\"rhythmMode\":" << (rhythmModeActive() ? 1 : 0) << ","
              << "\"rhythmRegister\":" << static_cast<int>(regs[0xbd]) << ","
@@ -8646,7 +8656,8 @@ public:
              << "\"assignedNote6\":" << channelNotes[6] << ","
              << "\"assignedNote7\":" << channelNotes[7] << ","
              << "\"assignedNote8\":" << channelNotes[8] << ","
-             << "\"nativeMono\":" << lastNative << ","
+             << "\"nativeLeft\":" << lastNativeLeft << ","
+             << "\"nativeRight\":" << lastNativeRight << ","
              << "\"limitations\":\"" << jsonEscape(limitations()) << "\""
              << "}";
         return json.str();
@@ -8667,19 +8678,21 @@ private:
         return static_cast<uint8_t>(base[channel % base.size()] + (carrier ? 0x03 : 0x00));
     }
 
-    void writeOplRegister(uint8_t reg, uint8_t value)
+    void writeOplRegister(uint16_t reg, uint8_t value)
     {
+        reg = static_cast<uint16_t>(reg & 0x1ffu);
         regs[reg] = value;
         if (! chip)
             return;
-        chip->write(0, reg);
-        chip->write(1, value);
+        const auto port = reg >= 0x100u ? 2u : 0u;
+        chip->write(port, static_cast<uint8_t>(reg & 0xffu));
+        chip->write(port + 1u, value);
     }
 
     OplPitch pitchForNote(int midiNote) const
     {
         const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
-        const auto base = (hz * 72.0 * 1048576.0) / clock;
+        const auto base = (hz * 72.0 * 1048576.0) / pitchClock();
         auto block = 0;
         auto fnum = base;
         while (fnum > 1023.0 && block < 7)
@@ -8764,7 +8777,7 @@ private:
         writeOplRegister(static_cast<uint8_t>(0x80 + car), sustainRelease);
         writeOplRegister(static_cast<uint8_t>(0xe0 + mod), wave);
         writeOplRegister(static_cast<uint8_t>(0xe0 + car), wave);
-        writeOplRegister(static_cast<uint8_t>(0xc0 + channel), static_cast<uint8_t>((feedback << 1u) | (patch.control1 > 0.55f ? 1u : 0u)));
+        writeOplRegister(static_cast<uint8_t>(0xc0 + channel), static_cast<uint8_t>(0xf0u | (feedback << 1u) | (patch.control1 > 0.55f ? 1u : 0u)));
     }
 
     void applyPatchToAllChannels(bool preserveKeys)
@@ -8987,15 +9000,22 @@ private:
         }
     }
 
+    double pitchClock() const
+    {
+        return clock > 8000000.0 ? clock * 0.25 : clock;
+    }
+
+    static constexpr double ymf262NativeClockHz = 14318180.0;
+
     AccuracyMode accuracy;
     double sampleRate = 48000.0;
-    double clock = 3579545.0;
+    double clock = ymf262NativeClockHz;
     double chipSampleRate = 49716.0;
     double sampleAccumulator = 0.0;
     Host host;
-    std::unique_ptr<ymfm::ym3812> chip;
+    std::unique_ptr<ymfm::ymf262> chip;
     PatchConfig patch;
-    std::array<uint8_t, 0x100> regs {};
+    std::array<uint8_t, 0x200> regs {};
     std::array<uint16_t, 9> currentFnum {};
     std::array<uint8_t, 9> currentBlock {};
     std::array<uint8_t, 9> currentWaveform {};
@@ -9011,7 +9031,8 @@ private:
     uint16_t keyOnMask = 0;
     uint8_t rhythmKeyBits = 0;
     double laserPhase = 0.0;
-    int32_t lastNative = 0;
+    int32_t lastNativeLeft = 0;
+    int32_t lastNativeRight = 0;
     StereoFrame currentOutput {};
 };
 

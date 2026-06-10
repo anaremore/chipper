@@ -77,7 +77,7 @@ std::vector<MacroTemplate> ym2151Macros()
 std::vector<MacroTemplate> oplMacros()
 {
     return {
-        { MacroKind::manual, "OPL2 Manual", "Neutral two-operator OPL2 melodic-channel mapping using the ymfm YM3812 core.", { 0.50f, 0.30f, 0.45f, 0.72f }, { true, true, true, true }, 0.0f, 0, 0 },
+        { MacroKind::manual, "OPL2 Manual", "Neutral two-operator OPL-compatible melodic-channel mapping using the ymfm YMF262 core.", { 0.50f, 0.30f, 0.45f, 0.72f }, { true, true, true, true }, 0.0f, 0, 0 },
         { MacroKind::coin, "OPL2 UI Bell", "Short DOS FM bell for menu and pickup sounds.", { 0.85f, 0.20f, 0.55f, 0.78f }, { true, false, false, false }, 0.16f, 3, 1 },
         { MacroKind::bass, "OPL2 Bass", "Rounded two-operator FM bass with moderate feedback.", { 0.20f, 0.62f, 0.25f, 0.88f }, { true, true, false, false }, 0.08f, 1, 1 },
         { MacroKind::lead, "OPL2 Bright Lead", "Bright DOS FM lead using selectable OPL2 waveform registers.", { 0.70f, 0.42f, 0.72f, 0.82f }, { true, true, true, false }, 0.10f, 4, 1 },
@@ -2003,12 +2003,12 @@ std::array<ModuleDescriptor, 6> ym2612Modules()
 std::array<ModuleDescriptor, 6> oplModules()
 {
     return std::array<ModuleDescriptor, 6> {
-        makeModule("profile", "Profile", "OPL2 path is backed by audited BSD-licensed ymfm inside the broader OPL2/OPL3 mode.", { "YM3812 core", "DOS clock", "Hybrid default", "Verified partial" }),
+        makeModule("profile", "Profile", "OPL2-compatible surface is backed by audited BSD-licensed ymfm YMF262/OPL3 core.", { "YMF262 core", "14.32 MHz clock", "Hybrid default", "Verified partial" }),
         makeModule("sources", "FM Voices", "All nine OPL2 melodic channels are exposed as playable lanes; rhythm mode repurposes 7-9.", { "Ch 1-6 melodic", "Ch 7-9 melodic/rhythm", "BD HH SD TOM CYM", "Chip Poly" }),
         makeModule("tone", "Operators", "Musical controls write native OPL operator and channel registers.", { "Waveform", "Feedback", "Connection", "Operator tone" }),
         makeModule("envelope", "Envelope", "Melodic and rhythm templates write native OPL attack/decay and sustain/release bytes.", { "EG type sustain", "Attack/decay bytes", "Sustain/release bytes", "Per-operator ADSR planned" }),
         makeModule("motion", "Motion", "DOS FM templates map to register-backed melodic and rhythm patches.", { "UI bell", "FM bass", "Rhythm hits", "Laser" }),
-        makeModule("output", "Output", "ymfm mono OPL2 output is mirrored to the plugin stereo output.", { "Mono core", "$BD rhythm bits", "Output gain", "Reference tests needed" })
+        makeModule("output", "Output", "ymfm OPL3 output is routed from the four native YMF262 output buses into plugin stereo.", { "OPL3 core", "$BD rhythm bits", "Output gain", "Reference tests needed" })
     };
 }
 
@@ -2207,7 +2207,7 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::opl3,
             "OPL2/OPL3 / DOS FM",
-            "Nine exposed lanes write OPL2/YM3812 registers into the audited ymfm core for DOS FM tones and native rhythm mode.",
+            "Nine exposed lanes write OPL-compatible registers into the audited ymfm YMF262/OPL3 core for DOS FM tones and native rhythm mode.",
             {
                 { "balance", "Operator Balance", "FM", "Writes the OPL connection bit for two-operator voices." },
                 { "feedback", "Feedback", "FM", "Writes OPL feedback bits." },
@@ -2221,12 +2221,12 @@ const std::vector<ChipDescriptor>& descriptors()
             oplParameterSpecs(),
             verifiedPartial(
                 {
-                    "BSD-3-Clause ymfm is vendored and linked as the YM3812/OPL2 synthesis core.",
-                    "Renderer notes and musical templates write OPL2 operator waveform, multiple, total-level, envelope, channel feedback/connection, f-number/block, key-on, and $BD rhythm registers.",
-                    "Descriptor, MIDI CC, renderer smoke, source gating, Rhythm Mode, and Chip Poly regression tests cover the nine-lane adapter."
+                    "BSD-3-Clause ymfm is vendored and linked as the YMF262/OPL3 synthesis core.",
+                    "Renderer notes and musical templates write OPL-compatible operator waveform, multiple, total-level, envelope, channel feedback/connection/output-select, f-number/block, key-on, OPL3 new-mode, and $BD rhythm registers.",
+                    "Descriptor, MIDI CC, renderer smoke, YMF262 high-bank/new-mode state, source gating, Rhythm Mode, and Chip Poly regression tests cover the nine-lane adapter."
                 },
                 {
-                    "The OPL2/OPL3 mode currently uses the OPL2/YM3812 core only; OPL3 stereo, 18-channel mode, four-operator pairs, and deep rhythm-kit editing are not implemented.",
+                    "The OPL2/OPL3 mode currently exposes nine OPL2-style lanes even though the internal core is YMF262; full 18-channel editing, four-operator pairs, and deep rhythm-kit editing are not implemented.",
                     "Deep per-operator ADSR UI, LFO/tremolo/vibrato controls, rhythm-instrument fine tuning, golden emulator comparison, and hardware capture comparison are not complete.",
                     "Cycle accuracy is not claimed."
                 })
