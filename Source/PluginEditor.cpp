@@ -3411,7 +3411,9 @@ void ChipperAudioProcessorEditor::placeDmgWaveLevelSegment(juce::Rectangle<int> 
 
 void ChipperAudioProcessorEditor::placeDmgStereoRouteSegment(juce::Rectangle<int> bounds)
 {
-    const auto compact = displayedMode == chipper::ChipMode::ym2612 || displayedMode == chipper::ChipMode::ym2151;
+    const auto compact = bounds.getHeight() < 52
+        || displayedMode == chipper::ChipMode::ym2612
+        || displayedMode == chipper::ChipMode::ym2151;
     dmgStereoRouteLabel.setBounds(bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight())));
     if (displayedMode == chipper::ChipMode::spc700 || displayedMode == chipper::ChipMode::paula)
     {
@@ -3437,6 +3439,11 @@ void ChipperAudioProcessorEditor::placeYmEnvelopeShapeSegment(juce::Rectangle<in
     const auto visibleCount = spec != nullptr
                                   ? std::min(ymEnvelopeShapeButtons.size(), spec->choices.size())
                                   : ymEnvelopeShapeButtons.size();
+    const auto compact = bounds.getHeight() < 52
+        || displayedMode == chipper::ChipMode::ym2612
+        || displayedMode == chipper::ChipMode::opl3
+        || displayedMode == chipper::ChipMode::ym2151
+        || displayedMode == chipper::ChipMode::ym2413;
 
     if (spec != nullptr && spec->surface == chipper::ControlSurface::menu)
     {
@@ -3452,12 +3459,13 @@ void ChipperAudioProcessorEditor::placeYmEnvelopeShapeSegment(juce::Rectangle<in
         return;
     }
 
-    ymEnvelopeShapeLabel.setBounds(bounds.removeFromTop(18));
-    ymEnvelopeShapeSegmentBounds = bounds.removeFromTop(28).reduced(0, 1);
+    ymEnvelopeShapeLabel.setBounds(bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight())));
+    bounds.removeFromTop(std::min(compact ? 2 : 0, bounds.getHeight()));
+    ymEnvelopeShapeSegmentBounds = bounds.removeFromTop(std::min(compact ? 24 : 28, bounds.getHeight())).reduced(0, 1);
     layoutSegmentedButtons(ymEnvelopeShapeButtons, ymEnvelopeShapeSegmentBounds, visibleCount);
 
     ymEnvelopeShapeValueLabel.setJustificationType(juce::Justification::centredLeft);
-    ymEnvelopeShapeValueLabel.setBounds(bounds);
+    ymEnvelopeShapeValueLabel.setBounds(compact ? juce::Rectangle<int> {} : bounds);
 }
 
 void ChipperAudioProcessorEditor::placeSidFilterRoutingControl(juce::Rectangle<int> bounds)
@@ -3492,7 +3500,11 @@ void ChipperAudioProcessorEditor::placeYmChannelMixControls(juce::Rectangle<int>
 
 void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> bounds)
 {
-    const auto compact = displayedMode == chipper::ChipMode::ym2612 || displayedMode == chipper::ChipMode::ym2151;
+    const auto compact = bounds.getHeight() < 52
+        || displayedMode == chipper::ChipMode::ym2612
+        || displayedMode == chipper::ChipMode::opl3
+        || displayedMode == chipper::ChipMode::ym2151
+        || displayedMode == chipper::ChipMode::ym2413;
     snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight())));
     if (displayedMode == chipper::ChipMode::sn76489)
     {
