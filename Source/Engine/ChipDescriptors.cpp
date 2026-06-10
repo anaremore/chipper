@@ -546,6 +546,17 @@ std::vector<ParameterChoiceSpec> ym2612PanChoices()
     };
 }
 
+std::vector<ParameterChoiceSpec> ym2151PanChoices()
+{
+    return {
+        choice("Follow", "Resolve pan from the selected OPM template; arps and power-up stacks alternate left/right.", 0.0f, 0),
+        choice("Both", "Enable both YM2151 output bits in register $20+n for centered channel output.", 0.25f, 1),
+        choice("Left", "Set the YM2151 left-output bit only in register $20+n.", 0.5f, 2),
+        choice("Right", "Set the YM2151 right-output bit only in register $20+n.", 0.75f, 3),
+        choice("Alt", "Alternate exposed YM2151 channels left and right.", 1.0f, 4)
+    };
+}
+
 std::vector<ParameterChoiceSpec> ym2612EnvelopeShapeChoices()
 {
     return {
@@ -717,6 +728,13 @@ std::vector<ChipParameterSpec> ym2151ParameterSpecs()
           0.0f,
           1.0f,
           0.0f },
+        segmentedSpec(ChipParameterRole::dmgStereoRoute,
+                      "ym2151.pan",
+                      "Pan",
+                      "Output",
+                      "Writes the YM2151 channel left/right output bits in register $20+n: both, left, right, or alternating exposed lanes.",
+                      ym2151PanChoices(),
+                      ParameterKind::chipRegister),
         segmentedSpec(ChipParameterRole::ymEnvelopeShape,
                       "ym2151.envelopeShape",
                       "Envelope Shape",
@@ -3512,6 +3530,11 @@ uint8_t ym2612PanBitsForPatch(const PatchConfig& patch, size_t channel)
         default:
             return 0xc0u;
     }
+}
+
+uint8_t ym2151PanBitsForPatch(const PatchConfig& patch, size_t channel)
+{
+    return ym2612PanBitsForPatch(patch, channel);
 }
 
 FmEnvelopeRegisters ym2612EnvelopeRegistersForPatch(const PatchConfig& patch, size_t op)

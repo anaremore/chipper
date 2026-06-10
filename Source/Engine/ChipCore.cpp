@@ -9024,6 +9024,7 @@ public:
         currentKeyFraction.fill(0);
         currentAlgorithm.fill(0);
         currentFeedback.fill(0);
+        currentPanBits.fill(0xc0u);
         currentAttackRate.fill(0);
         currentDecayRate.fill(0);
         currentSustainRate.fill(0);
@@ -9168,6 +9169,8 @@ public:
              << "\"exposedChannelCount\":8,"
              << "\"algorithm0\":" << static_cast<int>(currentAlgorithm[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
+             << "\"panBits0\":" << static_cast<int>(currentPanBits[0]) << ","
+             << "\"panBits1\":" << static_cast<int>(currentPanBits[1]) << ","
              << "\"envelopeShape\":" << patch.ymEnvelopeShape << ","
              << "\"attackRate0\":" << static_cast<int>(currentAttackRate[0]) << ","
              << "\"decayRate0\":" << static_cast<int>(currentDecayRate[0]) << ","
@@ -9285,6 +9288,7 @@ private:
         const auto feedback = feedbackForPatch();
         currentAlgorithm[channel] = algorithm;
         currentFeedback[channel] = feedback;
+        currentPanBits[channel] = ym2151PanBitsForPatch(patch, channel);
 
         for (size_t op = 0; op < 4; ++op)
         {
@@ -9305,7 +9309,7 @@ private:
             writeOpmRegister(static_cast<uint8_t>(0xe0 + offs), envelope.sustainRelease);
         }
 
-        writeOpmRegister(static_cast<uint8_t>(0x20 + channel), static_cast<uint8_t>(0xc0u | (feedback << 3u) | algorithm));
+        writeOpmRegister(static_cast<uint8_t>(0x20 + channel), static_cast<uint8_t>(currentPanBits[channel] | (feedback << 3u) | algorithm));
         writeOpmRegister(static_cast<uint8_t>(0x38 + channel), 0x00u);
     }
 
@@ -9451,6 +9455,7 @@ private:
     std::array<uint8_t, 8> currentKeyFraction {};
     std::array<uint8_t, 8> currentAlgorithm {};
     std::array<uint8_t, 8> currentFeedback {};
+    std::array<uint8_t, 8> currentPanBits {};
     std::array<uint8_t, 8> currentAttackRate {};
     std::array<uint8_t, 8> currentDecayRate {};
     std::array<uint8_t, 8> currentSustainRate {};

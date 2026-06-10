@@ -4769,6 +4769,23 @@ juce::String ChipperAudioProcessorEditor::ym2612PanReadout(const chipper::PatchC
     return patch.dmgStereoRoute == 0 ? juce::String("Follow -> ") + resolvedText : resolvedText;
 }
 
+juce::String ChipperAudioProcessorEditor::ym2151PanReadout(const chipper::PatchConfig& patch) const
+{
+    const auto pan0 = chipper::ym2151PanBitsForPatch(patch, 0);
+    const auto pan1 = chipper::ym2151PanBitsForPatch(patch, 1);
+    juce::String resolvedText;
+    if (pan0 == 0xc0u && pan1 == 0xc0u)
+        resolvedText = "Both outputs, $20 L+R";
+    else if (pan0 == 0x80u && pan1 == 0x80u)
+        resolvedText = "Left output, $20 L";
+    else if (pan0 == 0x40u && pan1 == 0x40u)
+        resolvedText = "Right output, $20 R";
+    else
+        resolvedText = "Alternating lanes, $20 L/R";
+
+    return patch.dmgStereoRoute == 0 ? juce::String("Follow -> ") + resolvedText : resolvedText;
+}
+
 juce::String ChipperAudioProcessorEditor::sidModelReadout(const chipper::PatchConfig& patch) const
 {
     const auto model = chipper::sidModelNumberForPatch(patch);
@@ -6691,14 +6708,18 @@ void ChipperAudioProcessorEditor::updateDmgStereoRouteButtons(chipper::ChipMode 
     }
 
     dmgStereoRouteValueLabel.setVisible(shouldBeVisible);
-    dmgStereoRouteValueLabel.setText(mode == chipper::ChipMode::sid
-                                         ? sidModelReadout(patch)
-                                         : (mode == chipper::ChipMode::spc700
-                                               ? spc700SamplePlaybackReadout(patch)
-                                               : (mode == chipper::ChipMode::ym2612
-                                                      ? ym2612PanReadout(patch)
-                                                      : dmgStereoRouteReadout(patch))),
-                                     juce::dontSendNotification);
+    juce::String routeReadout;
+    if (mode == chipper::ChipMode::sid)
+        routeReadout = sidModelReadout(patch);
+    else if (mode == chipper::ChipMode::spc700)
+        routeReadout = spc700SamplePlaybackReadout(patch);
+    else if (mode == chipper::ChipMode::ym2612)
+        routeReadout = ym2612PanReadout(patch);
+    else if (mode == chipper::ChipMode::ym2151)
+        routeReadout = ym2151PanReadout(patch);
+    else
+        routeReadout = dmgStereoRouteReadout(patch);
+    dmgStereoRouteValueLabel.setText(routeReadout, juce::dontSendNotification);
 }
 
 void ChipperAudioProcessorEditor::updateYmEnvelopeShapeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible)
