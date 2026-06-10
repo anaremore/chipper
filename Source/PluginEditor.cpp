@@ -2829,12 +2829,13 @@ void ChipperAudioProcessorEditor::resized()
         }
         else
         {
-            const auto primaryHeight = std::max(34, (tonePanel.getHeight() - 12) / 3);
+            const auto availableHeight = tonePanel.getHeight();
+            const auto gapHeight = std::min(8, std::max(0, availableHeight - 82));
+            const auto primaryHeight = std::clamp(availableHeight / 2, 52, 64);
             primaryTonePanel = tonePanel.removeFromTop(std::min(primaryHeight, tonePanel.getHeight()));
-            tonePanel.removeFromTop(std::min(6, tonePanel.getHeight()));
-            secondaryTonePanel = tonePanel.removeFromTop(std::min(primaryHeight, tonePanel.getHeight()));
-            tonePanel.removeFromTop(std::min(6, tonePanel.getHeight()));
-            tertiaryTonePanel = tonePanel;
+            tonePanel.removeFromTop(std::min(gapHeight, tonePanel.getHeight()));
+            secondaryTonePanel = tonePanel;
+            tertiaryTonePanel = {};
         }
     }
     else if (usesSampleToneStack)
