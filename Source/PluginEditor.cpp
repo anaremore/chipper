@@ -3145,6 +3145,7 @@ void ChipperAudioProcessorEditor::resized()
     const auto nesLayout = displayedMode == chipper::ChipMode::nes;
     const auto sidLayout = displayedMode == chipper::ChipMode::sid;
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
+    const auto showMotionModule = sidLayout;
     const auto performanceStripHeight = sidLayout ? 260 : (spc700Layout ? 420 : (nesLayout ? 330 : 300));
     const auto maxModulesHeight = sidLayout ? 620 : (spc700Layout ? 520 : (nesLayout ? 520 : 492));
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
@@ -3188,8 +3189,16 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[1] = { modules.getX() + profileWidth + gap, topY, wideWidth, topRowHeight };
         moduleBounds[2] = { modules.getX(), middleY, toneWidth, middleRowHeight };
         moduleBounds[3] = { modules.getX() + toneWidth + gap, middleY, detailWidth, middleRowHeight };
-        moduleBounds[4] = { modules.getX(), bottomY, toneWidth, bottomRowHeight };
-        moduleBounds[5] = { modules.getX() + toneWidth + gap, bottomY, detailWidth, bottomRowHeight };
+        if (showMotionModule)
+        {
+            moduleBounds[4] = { modules.getX(), bottomY, toneWidth, bottomRowHeight };
+            moduleBounds[5] = { modules.getX() + toneWidth + gap, bottomY, detailWidth, bottomRowHeight };
+        }
+        else
+        {
+            moduleBounds[4] = {};
+            moduleBounds[5] = { modules.getX(), bottomY, modules.getWidth(), bottomRowHeight };
+        }
     }
     else if (spc700Layout)
     {
@@ -3198,7 +3207,9 @@ void ChipperAudioProcessorEditor::resized()
         const auto bottomRowHeight = std::max(128, modules.getHeight() - topRowHeight - sourceRowHeight - (gap * 2));
         const auto leftX = modules.getX();
         const auto rightX = modules.getX() + columnWidth + gap;
-        const auto bottomColumnWidth = (modules.getWidth() - (gap * 2)) / 3;
+        const auto bottomColumnWidth = showMotionModule
+            ? (modules.getWidth() - (gap * 2)) / 3
+            : (modules.getWidth() - gap) / 2;
         const auto topY = modules.getY();
         const auto sourceY = topY + topRowHeight + gap;
         const auto bottomY = sourceY + sourceRowHeight + gap;
@@ -3207,8 +3218,16 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[1] = { modules.getX(), sourceY, modules.getWidth(), sourceRowHeight };
         moduleBounds[2] = { rightX, topY, columnWidth, topRowHeight };
         moduleBounds[3] = { modules.getX(), bottomY, bottomColumnWidth, bottomRowHeight };
-        moduleBounds[4] = { modules.getX() + bottomColumnWidth + gap, bottomY, bottomColumnWidth, bottomRowHeight };
-        moduleBounds[5] = { modules.getX() + ((bottomColumnWidth + gap) * 2), bottomY, bottomColumnWidth, bottomRowHeight };
+        if (showMotionModule)
+        {
+            moduleBounds[4] = { modules.getX() + bottomColumnWidth + gap, bottomY, bottomColumnWidth, bottomRowHeight };
+            moduleBounds[5] = { modules.getX() + ((bottomColumnWidth + gap) * 2), bottomY, bottomColumnWidth, bottomRowHeight };
+        }
+        else
+        {
+            moduleBounds[4] = {};
+            moduleBounds[5] = { modules.getX() + bottomColumnWidth + gap, bottomY, bottomColumnWidth, bottomRowHeight };
+        }
     }
     else
     {
@@ -3219,6 +3238,17 @@ void ChipperAudioProcessorEditor::resized()
             const auto x = modules.getX() + (column * (columnWidth + gap));
             const auto y = modules.getY() + (row * (rowHeight + gap));
             moduleBounds[i] = { x, y, columnWidth, rowHeight };
+        }
+
+        if (! showMotionModule)
+        {
+            moduleBounds[4] = {};
+            moduleBounds[5] = {
+                modules.getX(),
+                modules.getY() + (2 * (rowHeight + gap)),
+                modules.getWidth(),
+                rowHeight
+            };
         }
     }
 
@@ -9039,8 +9069,9 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
             || (hasFmEnvelopeShapeSurface && usesYmEnvelopeShapeSegment(mode))
             || hasFmOperatorRegisterSurface)));
     const auto hasCustomProfileSurface = hasLiveCore && mode == chipper::ChipMode::sid && usesDmgStereoRouteSegment(mode);
+    const auto hasReferenceOnlyProfile = hasLiveCore && ! hasCustomProfileSurface;
     for (auto& itemLabel : moduleItemLabels[0])
-        itemLabel.setVisible(! hasCustomProfileSurface && ! itemLabel.getText().isEmpty());
+        itemLabel.setVisible(! hasReferenceOnlyProfile && ! hasCustomProfileSurface && ! itemLabel.getText().isEmpty());
     const auto hasCustomToneSurface = hasLiveCore && (usesWaveShapeSegment(mode)
         || usesPulse2DutySegment(mode)
         || usesDmgWaveLevelSegment(mode)
@@ -9059,7 +9090,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         itemLabel.setVisible(! hasCustomEnvelopeSurface && ! itemLabel.getText().isEmpty());
     const auto hasCustomMotionSurface = hasLiveCore && mode == chipper::ChipMode::sid && usesSnNoiseModeSegment(mode);
     for (auto& itemLabel : moduleItemLabels[4])
-        itemLabel.setVisible(! hasCustomMotionSurface && ! itemLabel.getText().isEmpty());
+        itemLabel.setVisible(! hasCustomMotionSurface && mode == chipper::ChipMode::sid && ! itemLabel.getText().isEmpty());
     const auto hasCustomOutputSurface = hasLiveCore
         && mode != chipper::ChipMode::sid
         && (usesStereoSpreadControl(mode) || usesDmgStereoRouteSegment(mode));
