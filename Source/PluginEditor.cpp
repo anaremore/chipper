@@ -3396,8 +3396,20 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::dmg
         || displayedMode == chipper::ChipMode::ym2149)
     {
-        primaryTonePanel = tonePanel.removeFromTop(displayedMode == chipper::ChipMode::nes ? std::min(96, tonePanel.getHeight()) : 58);
-        tonePanel.removeFromTop(displayedMode == chipper::ChipMode::nes ? std::min(10, tonePanel.getHeight()) : 6);
+        if (displayedMode == chipper::ChipMode::nes)
+        {
+            const auto availableHeight = tonePanel.getHeight();
+            const auto noiseHeight = std::clamp(availableHeight / 3, 54, 64);
+            const auto gapHeight = std::min(8, std::max(0, availableHeight - noiseHeight));
+            const auto pulseHeight = std::max(0, availableHeight - noiseHeight - gapHeight);
+            primaryTonePanel = tonePanel.removeFromTop(std::min(pulseHeight, tonePanel.getHeight()));
+            tonePanel.removeFromTop(std::min(gapHeight, tonePanel.getHeight()));
+        }
+        else
+        {
+            primaryTonePanel = tonePanel.removeFromTop(std::min(58, tonePanel.getHeight()));
+            tonePanel.removeFromTop(std::min(6, tonePanel.getHeight()));
+        }
         secondaryTonePanel = tonePanel;
     }
 
@@ -3902,17 +3914,23 @@ void ChipperAudioProcessorEditor::placePulseDutySegment(juce::Rectangle<int> bou
 {
     if (usesPulse2DutySegment(displayedMode))
     {
-        nativeGroupLabels[0].setBounds(bounds.removeFromTop(13));
+        const auto compact = bounds.getHeight() < 84;
+        const auto groupHeight = compact ? 11 : 13;
+        const auto headerHeight = compact ? 13 : 14;
+        const auto buttonHeight = compact ? 20 : 22;
+        const auto gapHeight = compact ? 2 : 3;
 
-        auto pulse1Header = bounds.removeFromTop(14);
+        nativeGroupLabels[0].setBounds(bounds.removeFromTop(std::min(groupHeight, bounds.getHeight())));
+
+        auto pulse1Header = bounds.removeFromTop(std::min(headerHeight, bounds.getHeight()));
         nativeLabels[0].setBounds(pulse1Header.removeFromLeft(118));
         controlValueLabels[0].setJustificationType(juce::Justification::centredRight);
         controlValueLabels[0].setBounds(pulse1Header);
 
-        pulseDutySegmentBounds = bounds.removeFromTop(22).reduced(0, 1);
+        pulseDutySegmentBounds = bounds.removeFromTop(std::min(buttonHeight, bounds.getHeight())).reduced(0, 1);
         layoutSegmentedButtons(pulseDutyButtons, pulseDutySegmentBounds, pulseDutyButtons.size());
 
-        bounds.removeFromTop(3);
+        bounds.removeFromTop(std::min(gapHeight, bounds.getHeight()));
         placePulse2DutySegment(bounds);
         return;
     }
@@ -3925,11 +3943,12 @@ void ChipperAudioProcessorEditor::placePulseDutySegment(juce::Rectangle<int> bou
 
 void ChipperAudioProcessorEditor::placePulse2DutySegment(juce::Rectangle<int> bounds)
 {
-    auto header = bounds.removeFromTop(14);
+    const auto compact = bounds.getHeight() < 38;
+    auto header = bounds.removeFromTop(std::min(compact ? 13 : 14, bounds.getHeight()));
     pulse2DutyLabel.setBounds(header.removeFromLeft(118));
     pulse2DutyValueLabel.setBounds(header);
 
-    pulse2DutySegmentBounds = bounds.removeFromTop(22).reduced(0, 1);
+    pulse2DutySegmentBounds = bounds.removeFromTop(std::min(compact ? 20 : 22, bounds.getHeight())).reduced(0, 1);
     layoutSegmentedButtons(pulse2DutyButtons, pulse2DutySegmentBounds, pulse2DutyButtons.size());
 }
 
@@ -4152,7 +4171,8 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
         || displayedMode == chipper::ChipMode::opl3
         || displayedMode == chipper::ChipMode::ym2151
         || displayedMode == chipper::ChipMode::ym2413;
-    snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight())));
+    const auto useRoomyNesNoise = displayedMode == chipper::ChipMode::nes && bounds.getHeight() >= 46;
+    snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(useRoomyNesNoise ? 18 : (compact ? 15 : 18), bounds.getHeight())));
     if (displayedMode == chipper::ChipMode::sn76489)
     {
         snNoiseModeBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
@@ -4162,13 +4182,13 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
     }
     else
     {
-        bounds.removeFromTop(std::min(compact ? 2 : 0, bounds.getHeight()));
-        snNoiseModeSegmentBounds = bounds.removeFromTop(std::min(compact ? 24 : 28, bounds.getHeight())).reduced(0, 1);
+        bounds.removeFromTop(std::min(useRoomyNesNoise ? 4 : (compact ? 2 : 0), bounds.getHeight()));
+        snNoiseModeSegmentBounds = bounds.removeFromTop(std::min(useRoomyNesNoise ? 30 : (compact ? 24 : 28), bounds.getHeight())).reduced(0, 1);
         layoutSegmentedButtons(snNoiseModeButtons, snNoiseModeSegmentBounds, snNoiseModeButtons.size());
         snNoiseModeBox.setBounds({});
     }
 
-    snNoiseModeValueLabel.setBounds(compact ? juce::Rectangle<int> {} : bounds);
+    snNoiseModeValueLabel.setBounds((compact && ! useRoomyNesNoise) ? juce::Rectangle<int> {} : bounds);
 }
 
 void ChipperAudioProcessorEditor::placeToneNoiseMixSegment(juce::Rectangle<int> bounds)
