@@ -4264,13 +4264,17 @@ void ChipperAudioProcessorEditor::placeYmChannelMixControls(juce::Rectangle<int>
 
 void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> bounds)
 {
+    const auto* spec = chipper::parameterSpecFor(displayedMode, chipper::ChipParameterRole::snNoiseMode);
+    const auto choiceCount = spec == nullptr || spec->choices.empty()
+                                 ? snNoiseModeButtons.size()
+                                 : std::min(snNoiseModeButtons.size(), spec->choices.size());
     const auto compact = bounds.getHeight() < 52
         || displayedMode == chipper::ChipMode::ym2612
         || displayedMode == chipper::ChipMode::opl3
         || displayedMode == chipper::ChipMode::ym2151
         || displayedMode == chipper::ChipMode::ym2413;
     const auto useRoomyNesNoise = displayedMode == chipper::ChipMode::nes && bounds.getHeight() >= 46;
-    snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(useRoomyNesNoise ? 18 : (compact ? 15 : 18), bounds.getHeight())));
+    snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(useRoomyNesNoise ? 20 : (compact ? 15 : 18), bounds.getHeight())));
     if (displayedMode == chipper::ChipMode::sn76489)
     {
         snNoiseModeBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
@@ -4280,9 +4284,9 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
     }
     else
     {
-        bounds.removeFromTop(std::min(useRoomyNesNoise ? 4 : (compact ? 2 : 0), bounds.getHeight()));
-        snNoiseModeSegmentBounds = bounds.removeFromTop(std::min(useRoomyNesNoise ? 30 : (compact ? 24 : 28), bounds.getHeight())).reduced(0, 1);
-        layoutSegmentedButtons(snNoiseModeButtons, snNoiseModeSegmentBounds, snNoiseModeButtons.size());
+        bounds.removeFromTop(std::min(useRoomyNesNoise ? 6 : (compact ? 2 : 0), bounds.getHeight()));
+        snNoiseModeSegmentBounds = bounds.removeFromTop(std::min(useRoomyNesNoise ? 36 : (compact ? 24 : 28), bounds.getHeight())).reduced(0, 1);
+        layoutSegmentedButtons(snNoiseModeButtons, snNoiseModeSegmentBounds, choiceCount);
         snNoiseModeBox.setBounds({});
     }
 
