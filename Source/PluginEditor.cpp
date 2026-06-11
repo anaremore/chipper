@@ -3294,7 +3294,7 @@ void ChipperAudioProcessorEditor::resized()
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
     const auto sampleLayout = displayedMode == chipper::ChipMode::spc700 || displayedMode == chipper::ChipMode::paula;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (sampleLayout ? 300 : (nesLayout ? 240 : 300));
+    const auto performanceStripHeight = sidLayout ? 260 : (sampleLayout ? 260 : (nesLayout ? 240 : 300));
     const auto maxModulesHeight = sidLayout ? 620 : (sampleLayout ? 520 : (nesLayout ? 570 : 492));
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
@@ -3521,6 +3521,17 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::ym2151;
     const auto usesSampleToneStack = displayedMode == chipper::ChipMode::spc700
         && usesSnNoiseModeSegment(displayedMode);
+    if (displayedMode == chipper::ChipMode::dmg)
+    {
+        const auto availableHeight = tonePanel.getHeight();
+        const auto rowGap = std::min(7, std::max(4, availableHeight / 18));
+        const auto dmgToneRowHeight = std::max(44, (availableHeight - (rowGap * 2)) / 3);
+        primaryTonePanel = tonePanel.removeFromTop(std::min(dmgToneRowHeight, tonePanel.getHeight()));
+        tonePanel.removeFromTop(std::min(rowGap, tonePanel.getHeight()));
+        secondaryTonePanel = tonePanel.removeFromTop(std::min(dmgToneRowHeight, tonePanel.getHeight()));
+        tonePanel.removeFromTop(std::min(rowGap, tonePanel.getHeight()));
+        tertiaryTonePanel = tonePanel;
+    }
     if (usesFmToneStack)
     {
         const auto isFourOperatorFm = displayedMode == chipper::ChipMode::ym2612
@@ -3896,38 +3907,61 @@ void ChipperAudioProcessorEditor::resized()
         dmcLoopButton.setBounds({});
 
         auto sampleCell = utilityCell;
-        auto pitchPanel = sampleCell.removeFromTop(std::min(72, sampleCell.getHeight()));
-        placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], pitchPanel);
-        sampleCell.removeFromTop(std::min(10, sampleCell.getHeight()));
+        const auto twoColumnSampleBank = sampleCell.getWidth() >= 760 && sampleCell.getHeight() >= 150;
+        auto controlColumn = sampleCell;
+        auto waveformColumn = sampleCell;
+        if (twoColumnSampleBank)
+        {
+            const auto columnGap = 12;
+            const auto controlWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(sampleCell.getWidth()) * 0.46)), 410, 520);
+            controlColumn = sampleCell.removeFromLeft(std::min(controlWidth, sampleCell.getWidth()));
+            sampleCell.removeFromLeft(std::min(columnGap, sampleCell.getWidth()));
+            waveformColumn = sampleCell;
+        }
 
-        auto sampleHeader = sampleCell.removeFromTop(std::min(18, sampleCell.getHeight()));
+        auto pitchPanel = controlColumn.removeFromTop(std::min(60, controlColumn.getHeight()));
+        placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], pitchPanel);
+        controlColumn.removeFromTop(std::min(8, controlColumn.getHeight()));
+
+        auto sampleHeader = controlColumn.removeFromTop(std::min(18, controlColumn.getHeight()));
         dmcSampleLabel.setText(displayedMode == chipper::ChipMode::paula ? "Paula Sample" : "SPC700 Sample", juce::dontSendNotification);
         dmcSampleLabel.setBounds(sampleHeader);
-        sampleCell.removeFromTop(3);
+        controlColumn.removeFromTop(3);
 
-        auto sampleActionRow = sampleCell.removeFromTop(std::min(24, sampleCell.getHeight()));
+        auto sampleActionRow = controlColumn.removeFromTop(std::min(25, controlColumn.getHeight()));
         const auto brrButtonWidth = std::max(54, (sampleActionRow.getWidth() - 8) / 3);
         dmcSampleFileButton.setBounds(sampleActionRow.removeFromLeft(brrButtonWidth).reduced(0, 1));
         sampleActionRow.removeFromLeft(4);
         dmcSampleFolderButton.setBounds(sampleActionRow.removeFromLeft(brrButtonWidth).reduced(0, 1));
         sampleActionRow.removeFromLeft(4);
         dmcSampleBankButton.setBounds(sampleActionRow.removeFromLeft(brrButtonWidth).reduced(0, 1));
-        sampleCell.removeFromTop(4);
+        controlColumn.removeFromTop(6);
 
-        auto playbackRow = sampleCell.removeFromTop(std::min(24, sampleCell.getHeight()));
+        auto playbackRow = controlColumn.removeFromTop(std::min(26, controlColumn.getHeight()));
         dmcPlaybackModeLabel.setText("Playback", juce::dontSendNotification);
         dmcPlaybackModeLabel.setBounds(playbackRow.removeFromLeft(72));
         playbackRow.removeFromLeft(6);
         dmcPlaybackModeBox.setBounds(playbackRow.reduced(0, 1));
-        sampleCell.removeFromTop(4);
-        auto sampleRow = sampleCell.removeFromTop(std::min(24, sampleCell.getHeight()));
+        controlColumn.removeFromTop(5);
+        auto sampleRow = controlColumn.removeFromTop(std::min(26, controlColumn.getHeight()));
         auto rootCell = sampleRow.removeFromRight(std::min(96, sampleRow.getWidth()));
         sampleRow.removeFromRight(std::min(8, sampleRow.getWidth()));
         dmcMapRootLabel.setBounds(rootCell.removeFromLeft(34));
         rootCell.removeFromLeft(std::min(3, rootCell.getWidth()));
         dmcSampleSlotBox.setBounds(sampleRow.reduced(0, 1));
         dmcMapRootBox.setBounds(rootCell.reduced(0, 1));
-        sampleCell.removeFromTop(4);
+
+        auto loopColumn = twoColumnSampleBank ? waveformColumn : controlColumn;
+        if (twoColumnSampleBank)
+        {
+            dmcSampleStatusLabel.setBounds(controlColumn.reduced(0, 1));
+            loopColumn.removeFromTop(2);
+        }
+        else
+        {
+            controlColumn.removeFromTop(4);
+        }
+
         if (displayedMode == chipper::ChipMode::spc700)
         {
             auto placeLoopRow = [](juce::Label& label,
@@ -3940,12 +3974,12 @@ void ChipperAudioProcessorEditor::resized()
                 slider.setBounds(row.reduced(0, 7));
             };
 
-            auto startLoop = sampleCell.removeFromTop(std::min(24, sampleCell.getHeight()));
+            auto startLoop = loopColumn.removeFromTop(std::min(24, loopColumn.getHeight()));
             placeLoopRow(sampleLoopStartLabel, sampleLoopStartValueLabel, sampleLoopStartSlider, startLoop);
-            sampleCell.removeFromTop(3);
-            auto endLoop = sampleCell.removeFromTop(std::min(24, sampleCell.getHeight()));
+            loopColumn.removeFromTop(3);
+            auto endLoop = loopColumn.removeFromTop(std::min(24, loopColumn.getHeight()));
             placeLoopRow(sampleLoopEndLabel, sampleLoopEndValueLabel, sampleLoopEndSlider, endLoop);
-            sampleCell.removeFromTop(3);
+            loopColumn.removeFromTop(5);
         }
         else
         {
@@ -3957,9 +3991,12 @@ void ChipperAudioProcessorEditor::resized()
             sampleLoopEndSlider.setBounds({});
         }
 
-        dmcSampleStatusLabel.setBounds(sampleCell.removeFromTop(std::min(16, sampleCell.getHeight())).reduced(0, 1));
-        sampleCell.removeFromTop(2);
-        sampleWaveformPreview.setBounds(sampleCell.reduced(0, 1));
+        if (! twoColumnSampleBank)
+        {
+            dmcSampleStatusLabel.setBounds(controlColumn.removeFromTop(std::min(16, controlColumn.getHeight())).reduced(0, 1));
+            controlColumn.removeFromTop(2);
+        }
+        sampleWaveformPreview.setBounds(loopColumn.reduced(0, 1));
     }
     else
     {
