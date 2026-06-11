@@ -17,6 +17,20 @@ class ChipperAudioProcessor final : public juce::AudioProcessor
 public:
     static constexpr size_t outputScopeSampleCount = 256;
     using OutputScopeSnapshot = std::array<float, outputScopeSampleCount>;
+    static constexpr size_t sampleWaveformPreviewCount = 256;
+    using SampleWaveformPreview = std::array<float, sampleWaveformPreviewCount>;
+    struct SampleWaveformSnapshot
+    {
+        SampleWaveformPreview samples {};
+        juce::String label;
+        int sourceSampleCount = 0;
+        int selectedSlot = -1;
+        bool loaded = false;
+        bool hasLoop = false;
+        float loopStart = 0.0f;
+        float loopEnd = 1.0f;
+    };
+
     struct DmcSampleSlot
     {
         juce::String name;
@@ -108,6 +122,7 @@ public:
     std::string currentCoreStatusDetail() const;
     chipper::ChipMode currentChipMode() const { return activeMode; }
     OutputScopeSnapshot outputScopeSnapshot() const;
+    SampleWaveformSnapshot sampleWaveformSnapshot(chipper::ChipMode mode) const;
     juce::Result loadNesDmcSampleFile(const juce::File& file);
     juce::Result loadNesDmcSampleDirectory(const juce::File& directory);
     juce::Result loadSpc700BrrSampleFile(const juce::File& file);

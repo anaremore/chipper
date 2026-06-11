@@ -67,7 +67,9 @@ const MidiCcMappingList& midiCcMappings()
         { 58, parameter_ids::source9Enabled, "Source 9 Enabled" },
         { 59, parameter_ids::source9Level, "Source 9 Level" },
         { 69, parameter_ids::nesDmcMapRoot, "NES DMC Map Root" },
-        { 68, parameter_ids::nesDmcLoop, "NES DMC Loop" }
+        { 68, parameter_ids::nesDmcLoop, "NES DMC Loop" },
+        { 120, parameter_ids::spc700LoopStart, "SPC700 Loop Start" },
+        { 121, parameter_ids::spc700LoopEnd, "SPC700 Loop End" }
     }};
 
     return mappings;
@@ -155,6 +157,8 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::nesDmcPlaybackMode: return parameter_ids::nesDmcPlaybackMode;
         case ChipParameterRole::nesDmcMapRoot: return parameter_ids::nesDmcMapRoot;
         case ChipParameterRole::nesDmcLoop: return parameter_ids::nesDmcLoop;
+        case ChipParameterRole::spc700LoopStart: return parameter_ids::spc700LoopStart;
+        case ChipParameterRole::spc700LoopEnd: return parameter_ids::spc700LoopEnd;
         case ChipParameterRole::clockHz: return parameter_ids::clockHz;
         case ChipParameterRole::outputDb: return parameter_ids::outputDb;
     }

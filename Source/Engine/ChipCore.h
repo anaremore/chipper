@@ -103,6 +103,8 @@ struct PatchConfig
     int nesDmcRateIndex = 15;
     bool nesDmcLoop = false;
     bool nesDmcOnly = false;
+    float spc700LoopStart = 0.0f;
+    float spc700LoopEnd = 1.0f;
 };
 
 struct StereoFrame

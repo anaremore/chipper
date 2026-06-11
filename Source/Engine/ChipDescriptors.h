@@ -99,6 +99,8 @@ enum class ChipParameterRole
     nesDmcPlaybackMode,
     nesDmcMapRoot,
     nesDmcLoop,
+    spc700LoopStart,
+    spc700LoopEnd,
     clockHz,
     outputDb
 };
@@ -239,7 +241,9 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float nesDmcDirectLevel = 0.0f,
                             int nesDmcRateIndex = 15,
                             bool nesDmcLoop = false,
-                            bool nesDmcOnly = false);
+                            bool nesDmcOnly = false,
+                            float spc700LoopStart = 0.0f,
+                            float spc700LoopEnd = 1.0f);
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t nesNoisePeriodForControl(float noisePeriodControl);
 uint8_t nesDmcDirectLevelForControl(float levelControl);

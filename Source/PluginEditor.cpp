@@ -1475,12 +1475,88 @@ void OutputScopePreview::paint(juce::Graphics& g)
     g.fillRect(juce::Rectangle<float>(left, bottom - 1.0f, peakLineWidth, 1.0f));
 }
 
+void SampleWaveformPreview::setSnapshot(const ChipperAudioProcessor::SampleWaveformSnapshot& newSnapshot)
+{
+    snapshot = newSnapshot;
+    repaint();
+}
+
+void SampleWaveformPreview::paint(juce::Graphics& g)
+{
+    const auto bounds = getLocalBounds().toFloat().reduced(1.0f);
+    if (bounds.isEmpty())
+        return;
+
+    g.setColour(juce::Colour(0xff10181c));
+    g.fillRoundedRectangle(bounds, 4.0f);
+    g.setColour(juce::Colour(0xff2a3a40));
+    g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+    auto graph = bounds.reduced(6.0f, 4.0f);
+    const auto labelHeight = std::min(14.0f, graph.getHeight() * 0.26f);
+    const auto labelArea = graph.removeFromTop(labelHeight);
+    graph.removeFromTop(1.0f);
+
+    const auto left = graph.getX();
+    const auto right = graph.getRight();
+    const auto top = graph.getY();
+    const auto bottom = graph.getBottom();
+    const auto mid = graph.getCentreY();
+    const auto width = std::max(1.0f, graph.getWidth());
+    const auto halfHeight = std::max(1.0f, graph.getHeight() * 0.48f);
+
+    g.setColour(juce::Colour(0xff243139).withAlpha(0.72f));
+    g.drawHorizontalLine(static_cast<int>(std::round(mid)), left, right);
+    for (int i = 1; i < 4; ++i)
+    {
+        const auto x = left + width * static_cast<float>(i) / 4.0f;
+        g.drawVerticalLine(static_cast<int>(std::round(x)), top, bottom);
+    }
+
+    if (snapshot.hasLoop && snapshot.loaded)
+    {
+        const auto startX = left + width * std::clamp(snapshot.loopStart, 0.0f, 1.0f);
+        const auto endX = left + width * std::clamp(snapshot.loopEnd, 0.0f, 1.0f);
+        const auto loopLeft = std::min(startX, endX);
+        const auto loopWidth = std::max(1.0f, std::abs(endX - startX));
+        g.setColour(juce::Colour(0xfff7d85a).withAlpha(0.10f));
+        g.fillRect(juce::Rectangle<float>(loopLeft, top, loopWidth, graph.getHeight()));
+        g.setColour(juce::Colour(0xfff7d85a).withAlpha(0.80f));
+        g.drawVerticalLine(static_cast<int>(std::round(startX)), top, bottom);
+        g.drawVerticalLine(static_cast<int>(std::round(endX)), top, bottom);
+    }
+
+    juce::Path waveform;
+    for (size_t i = 0; i < snapshot.samples.size(); ++i)
+    {
+        const auto x = left + (width * static_cast<float>(i) / static_cast<float>(snapshot.samples.size() - 1u));
+        const auto y = juce::jlimit(top, bottom, mid - (snapshot.samples[i] * halfHeight));
+        if (i == 0)
+            waveform.startNewSubPath(x, y);
+        else
+            waveform.lineTo(x, y);
+    }
+
+    const auto colour = snapshot.loaded ? juce::Colour(0xff56c7d8) : juce::Colour(0xff607078);
+    g.setColour(colour.withAlpha(snapshot.loaded ? 0.24f : 0.14f));
+    g.strokePath(waveform, juce::PathStrokeType(3.0f));
+    g.setColour(colour);
+    g.strokePath(waveform, juce::PathStrokeType(1.25f));
+
+    g.setColour(snapshot.loaded ? juce::Colour(0xffd9e1e8) : juce::Colour(0xff7d8b93));
+    g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
+    g.drawText(snapshot.label.isNotEmpty() ? snapshot.label : juce::String("No sample"),
+               labelArea,
+               juce::Justification::centredLeft,
+               true);
+}
+
 ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& processor)
     : AudioProcessorEditor(processor),
       audioProcessor(processor)
 {
     setResizable(true, true);
-    setResizeLimits(1180, 920, 1600, 1280);
+    setResizeLimits(1180, 980, 1600, 1280);
     setSize(1180, 1040);
 
     auto& state = audioProcessor.getValueTreeState();
@@ -1688,6 +1764,48 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     dmcLoopButton.setTooltip(withMidiCcForRole("RP2A03 $4010 DMC loop bit. Off plays one-shot; Loop repeats the selected DMC sample from the first byte.", chipper::ChipParameterRole::nesDmcLoop));
     addAndMakeVisible(dmcLoopButton);
     dmcLoopAttachment = std::make_unique<ButtonAttachment>(state, chipper::parameters::id::nesDmcLoop, dmcLoopButton);
+
+    for (auto* label : { &sampleLoopStartLabel, &sampleLoopEndLabel })
+    {
+        label->setJustificationType(juce::Justification::centredLeft);
+        label->setColour(juce::Label::textColourId, juce::Colour(0xff56c7d8));
+        label->setFont(juce::FontOptions(10.5f, juce::Font::bold));
+        label->setMinimumHorizontalScale(0.7f);
+        label->setVisible(false);
+        addAndMakeVisible(*label);
+    }
+    sampleLoopStartLabel.setText("Loop Start", juce::dontSendNotification);
+    sampleLoopEndLabel.setText("Loop End", juce::dontSendNotification);
+
+    for (auto* label : { &sampleLoopStartValueLabel, &sampleLoopEndValueLabel })
+    {
+        label->setJustificationType(juce::Justification::centredRight);
+        label->setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+        label->setFont(juce::FontOptions(10.0f));
+        label->setMinimumHorizontalScale(0.65f);
+        label->setVisible(false);
+        addAndMakeVisible(*label);
+    }
+
+    for (auto* slider : { &sampleLoopStartSlider, &sampleLoopEndSlider })
+    {
+        slider->setSliderStyle(juce::Slider::LinearHorizontal);
+        slider->setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        slider->setColour(juce::Slider::trackColourId, juce::Colour(0xfff7d85a));
+        slider->setColour(juce::Slider::thumbColourId, juce::Colour(0xff56c7d8));
+        slider->setVisible(false);
+        addAndMakeVisible(*slider);
+    }
+    sampleLoopStartSlider.setTooltip(withMidiCcForRole("Normalized SPC700 sample loop start. Leave at 0% to keep the BRR loop flag as the default start when present.", chipper::ChipParameterRole::spc700LoopStart));
+    sampleLoopEndSlider.setTooltip(withMidiCcForRole("Normalized SPC700 sample loop end. Leave at 100% to loop to the sample end.", chipper::ChipParameterRole::spc700LoopEnd));
+    sampleLoopStartLabel.setTooltip(sampleLoopStartSlider.getTooltip());
+    sampleLoopEndLabel.setTooltip(sampleLoopEndSlider.getTooltip());
+    sampleLoopStartAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::spc700LoopStart, sampleLoopStartSlider);
+    sampleLoopEndAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::spc700LoopEnd, sampleLoopEndSlider);
+
+    sampleWaveformPreview.setTooltip("Selected sample waveform. SPC700 mode also shades the active loop range.");
+    sampleWaveformPreview.setVisible(false);
+    addAndMakeVisible(sampleWaveformPreview);
 
     dmcSampleSlotBox.setTextWhenNothingSelected("No samples");
     dmcSampleSlotBox.setTooltip(withMidiCcForRole("Selects the active sample from the loaded .dmc bank. MIDI CC117 selects the same slot.", chipper::ChipParameterRole::nesDmcSampleSlot));
@@ -2615,7 +2733,7 @@ void ChipperAudioProcessorEditor::resized()
     constexpr auto footerReserve = 52;
     const auto sidLayout = displayedMode == chipper::ChipMode::sid;
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
-    const auto performanceStripHeight = sidLayout ? 260 : (spc700Layout ? 280 : 300);
+    const auto performanceStripHeight = sidLayout ? 260 : (spc700Layout ? 390 : 300);
     const auto maxModulesHeight = sidLayout ? 620 : (spc700Layout ? 540 : 492);
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
@@ -3077,7 +3195,15 @@ void ChipperAudioProcessorEditor::resized()
         dmcMapRootBox.setBounds(rootCell.reduced(0, 1));
         dmcLoopButton.setBounds(loopCell.reduced(0, 1));
         dmcCell.removeFromTop(2);
-        dmcSampleStatusLabel.setBounds(dmcCell.reduced(0, 1));
+        dmcSampleStatusLabel.setBounds(dmcCell.removeFromTop(std::min(16, dmcCell.getHeight())).reduced(0, 1));
+        dmcCell.removeFromTop(2);
+        sampleWaveformPreview.setBounds(dmcCell.reduced(0, 1));
+        sampleLoopStartLabel.setBounds({});
+        sampleLoopEndLabel.setBounds({});
+        sampleLoopStartValueLabel.setBounds({});
+        sampleLoopEndValueLabel.setBounds({});
+        sampleLoopStartSlider.setBounds({});
+        sampleLoopEndSlider.setBounds({});
     }
     else if (displayedMode == chipper::ChipMode::spc700 || displayedMode == chipper::ChipMode::paula)
     {
@@ -3100,21 +3226,51 @@ void ChipperAudioProcessorEditor::resized()
         sampleHeader.removeFromLeft(4);
         dmcSampleBankButton.setBounds(sampleHeader.removeFromLeft(brrButtonWidth).reduced(0, 1));
         sampleCell.removeFromTop(4);
-        auto playbackRow = sampleCell.removeFromTop(24);
+        auto routingRow = sampleCell.removeFromTop(24);
+        auto playbackRow = routingRow.removeFromLeft(std::min(190, std::max(172, routingRow.getWidth() / 2)));
+        routingRow.removeFromLeft(std::min(8, routingRow.getWidth()));
         dmcPlaybackModeLabel.setText("Bank Mode", juce::dontSendNotification);
         dmcPlaybackModeLabel.setBounds(playbackRow.removeFromLeft(78));
         playbackRow.removeFromLeft(6);
         dmcPlaybackModeBox.setBounds(playbackRow.reduced(0, 1));
-        sampleCell.removeFromTop(4);
-        auto sampleRow = sampleCell.removeFromTop(22);
-        auto rootCell = sampleRow.removeFromRight(86);
-        sampleRow.removeFromRight(6);
+        auto sampleRow = routingRow;
+        auto rootCell = sampleRow.removeFromRight(std::min(86, sampleRow.getWidth()));
+        sampleRow.removeFromRight(std::min(6, sampleRow.getWidth()));
         dmcMapRootLabel.setBounds(rootCell.removeFromLeft(34));
-        rootCell.removeFromLeft(3);
+        rootCell.removeFromLeft(std::min(3, rootCell.getWidth()));
         dmcSampleSlotBox.setBounds(sampleRow.reduced(0, 1));
         dmcMapRootBox.setBounds(rootCell.reduced(0, 1));
-        sampleCell.removeFromTop(3);
-        dmcSampleStatusLabel.setBounds(sampleCell.reduced(0, 1));
+        sampleCell.removeFromTop(4);
+        if (displayedMode == chipper::ChipMode::spc700)
+        {
+            auto loopRow = sampleCell.removeFromTop(std::min(28, sampleCell.getHeight()));
+            const auto halfLoopWidth = (loopRow.getWidth() - 8) / 2;
+            auto startLoop = loopRow.removeFromLeft(halfLoopWidth);
+            loopRow.removeFromLeft(8);
+            auto endLoop = loopRow;
+
+            sampleLoopStartLabel.setBounds(startLoop.removeFromLeft(std::min(54, startLoop.getWidth())));
+            sampleLoopStartValueLabel.setBounds(startLoop.removeFromRight(std::min(42, startLoop.getWidth())));
+            sampleLoopStartSlider.setBounds(startLoop.reduced(0, 7));
+
+            sampleLoopEndLabel.setBounds(endLoop.removeFromLeft(std::min(48, endLoop.getWidth())));
+            sampleLoopEndValueLabel.setBounds(endLoop.removeFromRight(std::min(42, endLoop.getWidth())));
+            sampleLoopEndSlider.setBounds(endLoop.reduced(0, 7));
+            sampleCell.removeFromTop(2);
+        }
+        else
+        {
+            sampleLoopStartLabel.setBounds({});
+            sampleLoopEndLabel.setBounds({});
+            sampleLoopStartValueLabel.setBounds({});
+            sampleLoopEndValueLabel.setBounds({});
+            sampleLoopStartSlider.setBounds({});
+            sampleLoopEndSlider.setBounds({});
+        }
+
+        dmcSampleStatusLabel.setBounds(sampleCell.removeFromTop(std::min(16, sampleCell.getHeight())).reduced(0, 1));
+        sampleCell.removeFromTop(2);
+        sampleWaveformPreview.setBounds(sampleCell.reduced(0, 1));
     }
     else
     {
@@ -3133,6 +3289,13 @@ void ChipperAudioProcessorEditor::resized()
         dmcPlaybackModeBox.setBounds({});
         dmcMapRootBox.setBounds({});
         dmcLoopButton.setBounds({});
+        sampleWaveformPreview.setBounds({});
+        sampleLoopStartLabel.setBounds({});
+        sampleLoopEndLabel.setBounds({});
+        sampleLoopStartValueLabel.setBounds({});
+        sampleLoopEndValueLabel.setBounds({});
+        sampleLoopStartSlider.setBounds({});
+        sampleLoopEndSlider.setBounds({});
         placeLabeledSliderWithReadout(clockSlider, clockLabel, controlValueLabels[4], utilityCell);
     }
 
@@ -3161,6 +3324,7 @@ void ChipperAudioProcessorEditor::timerCallback()
     statusLabel.setText(audioProcessor.currentCoreStatus(), juce::dontSendNotification);
     statusLabel.setTooltip(audioProcessor.currentCoreStatusDetail());
     outputScopePreview.setSamples(audioProcessor.outputScopeSnapshot());
+    updateSampleWaveformPreview(displayedMode);
 }
 
 void ChipperAudioProcessorEditor::addLabeledSlider(juce::Slider& slider, juce::Label& label, const juce::String& fallbackText)
@@ -4322,6 +4486,8 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
                                  static_cast<int>(chipper::spc700SamplePlaybackModeForPatch(chipper::patchConfigForPreset(preset))));
     else
         setChoiceParameterFromUi(chipper::parameters::id::nesDmcPlaybackMode, 0);
+    setParameterValueFromUi(chipper::parameters::id::spc700LoopStart, 0.0f);
+    setParameterValueFromUi(chipper::parameters::id::spc700LoopEnd, 1.0f);
     setPlainParameterValueFromUi(chipper::parameters::id::clockHz, 0.0f);
     setPlainParameterValueFromUi(chipper::parameters::id::outputDb, preset.outputDb);
 
@@ -4425,7 +4591,9 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcRateIndex))),
         parameterValue(chipper::parameters::id::nesDmcLoop) >= 0.5f,
         mode == chipper::ChipMode::nes
-            && samplePlaybackMode == 2);
+            && samplePlaybackMode == 2,
+        parameterValue(chipper::parameters::id::spc700LoopStart),
+        parameterValue(chipper::parameters::id::spc700LoopEnd));
 }
 
 bool ChipperAudioProcessorEditor::usesPulseDutySegment(chipper::ChipMode mode) const
@@ -7683,6 +7851,7 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
             + ".";
     sampleTooltip += "\nFolder loads create a local checklist; checked entries become up to 32 CC117-addressable slots. WAV-to-DMC conversion is planned.";
     dmcSampleStatusLabel.setTooltip(withMidiCcForRole(sampleTooltip, chipper::ChipParameterRole::nesDmcSampleSlot));
+    updateSampleWaveformPreview(chipper::ChipMode::nes);
 }
 
 void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
@@ -7820,6 +7989,7 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     if (info.loaded)
         tooltip += "\nPath: " + info.path;
     dmcSampleStatusLabel.setTooltip(withMidiCcForRole(tooltip, chipper::ChipParameterRole::nesDmcSampleSlot));
+    updateSampleWaveformPreview(chipper::ChipMode::spc700);
 }
 
 void ChipperAudioProcessorEditor::updatePaulaSampleControls()
@@ -7913,6 +8083,35 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
         tooltip += "\nPath: " + info.path;
     tooltip += "\nCompressed 8SVX, MOD import, loop metadata, and exact Paula DMA timing remain planned.";
     dmcSampleStatusLabel.setTooltip(withMidiCcForRole(tooltip, chipper::ChipParameterRole::nesDmcSampleSlot));
+    updateSampleWaveformPreview(chipper::ChipMode::paula);
+}
+
+void ChipperAudioProcessorEditor::updateSampleWaveformPreview(chipper::ChipMode mode)
+{
+    const auto showSamplePreview = mode == chipper::ChipMode::nes
+        || mode == chipper::ChipMode::spc700
+        || mode == chipper::ChipMode::paula;
+
+    if (! showSamplePreview)
+    {
+        sampleWaveformPreview.setSnapshot({});
+        sampleWaveformPreview.setVisible(false);
+        return;
+    }
+
+    const auto snapshot = audioProcessor.sampleWaveformSnapshot(mode);
+    sampleWaveformPreview.setSnapshot(snapshot);
+    sampleWaveformPreview.setTooltip(snapshot.label
+        + (snapshot.loaded ? "\nSamples displayed: " + juce::String(snapshot.sourceSampleCount) : "\nNo loaded sample data.")
+        + (snapshot.hasLoop
+               ? "\nLoop: " + juce::String(snapshot.loopStart * 100.0f, 1) + "% to " + juce::String(snapshot.loopEnd * 100.0f, 1) + "%"
+               : juce::String()));
+
+    if (mode == chipper::ChipMode::spc700)
+    {
+        sampleLoopStartValueLabel.setText(juce::String(snapshot.loopStart * 100.0f, 1) + "%", juce::dontSendNotification);
+        sampleLoopEndValueLabel.setText(juce::String(snapshot.loopEnd * 100.0f, 1) + "%", juce::dontSendNotification);
+    }
 }
 
 void ChipperAudioProcessorEditor::updateSamplePlaybackModeChoices(chipper::ChipMode mode)
@@ -8181,6 +8380,13 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcPlaybackModeBox.setVisible(showSampleBankControls);
     dmcMapRootBox.setVisible(showSampleBankControls);
     dmcLoopButton.setVisible(showNesDmcSampleControls);
+    sampleWaveformPreview.setVisible(showSampleFileControls);
+    sampleLoopStartLabel.setVisible(showSpc700BrrControls);
+    sampleLoopEndLabel.setVisible(showSpc700BrrControls);
+    sampleLoopStartValueLabel.setVisible(showSpc700BrrControls);
+    sampleLoopEndValueLabel.setVisible(showSpc700BrrControls);
+    sampleLoopStartSlider.setVisible(showSpc700BrrControls);
+    sampleLoopEndSlider.setVisible(showSpc700BrrControls);
     dmcSampleLabel.setEnabled(showSampleFileControls);
     dmcSampleStatusLabel.setEnabled(showSampleFileControls);
     dmcPlaybackModeLabel.setEnabled(showSampleBankLabels);
@@ -8192,6 +8398,13 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcPlaybackModeBox.setEnabled(showSampleBankControls);
     dmcMapRootBox.setEnabled(showSampleBankControls);
     dmcLoopButton.setEnabled(showNesDmcSampleControls);
+    sampleWaveformPreview.setEnabled(showSampleFileControls);
+    sampleLoopStartLabel.setEnabled(showSpc700BrrControls);
+    sampleLoopEndLabel.setEnabled(showSpc700BrrControls);
+    sampleLoopStartValueLabel.setEnabled(showSpc700BrrControls);
+    sampleLoopEndValueLabel.setEnabled(showSpc700BrrControls);
+    sampleLoopStartSlider.setEnabled(showSpc700BrrControls);
+    sampleLoopEndSlider.setEnabled(showSpc700BrrControls);
     dmcSampleLabel.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
     dmcSampleStatusLabel.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
     dmcPlaybackModeLabel.setAlpha(showSampleBankLabels ? 1.0f : 0.55f);
@@ -8202,6 +8415,13 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcPlaybackModeBox.setAlpha(showSampleBankControls ? 1.0f : 0.55f);
     dmcMapRootBox.setAlpha(showSampleBankControls ? 1.0f : 0.55f);
     dmcLoopButton.setAlpha(showNesDmcSampleControls ? 1.0f : 0.55f);
+    sampleWaveformPreview.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
+    sampleLoopStartLabel.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
+    sampleLoopEndLabel.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
+    sampleLoopStartValueLabel.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
+    sampleLoopEndValueLabel.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
+    sampleLoopStartSlider.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
+    sampleLoopEndSlider.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
     clockLabel.setVisible(mode != chipper::ChipMode::nes && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula);
     clockSlider.setVisible(mode != chipper::ChipMode::nes && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula);
 

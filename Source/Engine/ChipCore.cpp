@@ -6404,6 +6404,10 @@ public:
              << "\"sourceLevel7\":" << sourceLevel(patch, 7) << ","
              << "\"sampleLength0\":" << sampleRam[0].size() << ","
              << "\"sampleLoopStart0\":" << sampleLoopStarts[0] << ","
+             << "\"sampleLoopStartResolved0\":" << resolvedLoopStartForVoice(0) << ","
+             << "\"sampleLoopEndResolved0\":" << resolvedLoopEndForVoice(0) << ","
+             << "\"sampleLoopControlStart\":" << patch.spc700LoopStart << ","
+             << "\"sampleLoopControlEnd\":" << patch.spc700LoopEnd << ","
              << "\"externalBrrLoopStartSelected\":" << (selectedExternalBrrSlot >= 0 ? loopStartForExternalSlot(static_cast<size_t>(selectedExternalBrrSlot)) : 0) << ","
              << "\"gaussianStyleInterpolation\":1,"
              << "\"interpolationTaps\":4,"
@@ -6633,9 +6637,9 @@ private:
         {
             if (playbackMode == 1u)
             {
-                const auto length = static_cast<double>(sampleRam[voice].size());
-                const auto loopStart = static_cast<double>(std::min(sampleLoopStarts[voice], sampleRam[voice].size() - 1u));
-                const auto loopLength = std::max(1.0, length - loopStart);
+                const auto loopStart = static_cast<double>(resolvedLoopStartForVoice(voice));
+                const auto loopEnd = static_cast<double>(resolvedLoopEndForVoice(voice));
+                const auto loopLength = std::max(1.0, loopEnd - loopStart);
                 position[voice] = loopStart + std::fmod(std::max(0.0, position[voice] - loopStart), loopLength);
             }
             else
@@ -6877,6 +6881,40 @@ private:
             return 0;
 
         return loopStartForExternalSlot(static_cast<size_t>(selectedExternalBrrSlot));
+    }
+
+    bool usesExplicitLoopPointControls() const
+    {
+        return patch.spc700LoopStart > 0.0005f || patch.spc700LoopEnd < 0.9995f;
+    }
+
+    size_t resolvedLoopStartForVoice(size_t voice) const
+    {
+        if (voice >= sampleRam.size() || sampleRam[voice].empty())
+            return 0;
+
+        const auto sampleLength = sampleRam[voice].size();
+        if (! usesExplicitLoopPointControls())
+            return std::min(sampleLoopStarts[voice], sampleLength - 1u);
+
+        const auto start = static_cast<size_t>(std::round(std::clamp(patch.spc700LoopStart, 0.0f, 1.0f) * static_cast<float>(sampleLength - 1u)));
+        return std::min(start, sampleLength - 1u);
+    }
+
+    size_t resolvedLoopEndForVoice(size_t voice) const
+    {
+        if (voice >= sampleRam.size() || sampleRam[voice].empty())
+            return 0;
+
+        const auto sampleLength = sampleRam[voice].size();
+        if (! usesExplicitLoopPointControls())
+            return sampleLength;
+
+        auto end = static_cast<size_t>(std::round(std::clamp(patch.spc700LoopEnd, 0.0f, 1.0f) * static_cast<float>(sampleLength - 1u))) + 1u;
+        const auto start = resolvedLoopStartForVoice(voice);
+        if (end <= start + 1u)
+            end = std::min(sampleLength, start + 2u);
+        return std::clamp(end, size_t { 1u }, sampleLength);
     }
 
     double interpolatedSample(size_t voice, double samplePosition) const

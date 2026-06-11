@@ -585,6 +585,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         "NES DMC Loop",
         false));
 
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::spc700LoopStart, 1 },
+        "SPC700 Loop Start",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        0.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::spc700LoopEnd, 1 },
+        "SPC700 Loop End",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        1.0f));
+
     return { params.begin(), params.end() };
 }
 

@@ -29,6 +29,139 @@ juce::String midiNoteName(int note)
     return juce::String(names[static_cast<size_t>(clampedNote % 12)]) + juce::String((clampedNote / 12) - 2);
 }
 
+std::vector<float> decodeDmcPreview(const std::vector<uint8_t>& bytes)
+{
+    std::vector<float> decoded;
+    decoded.reserve(bytes.size() * 8u);
+    auto level = 64;
+    for (const auto byte : bytes)
+    {
+        for (auto bitIndex = 0u; bitIndex < 8u; ++bitIndex)
+        {
+            const auto bitSet = ((byte >> bitIndex) & 1u) != 0u;
+            level = std::clamp(level + (bitSet ? 2 : -2), 0, 127);
+            decoded.push_back((static_cast<float>(level) - 64.0f) / 64.0f);
+        }
+    }
+    return decoded;
+}
+
+std::vector<float> decodePcm8Preview(const std::vector<uint8_t>& bytes)
+{
+    std::vector<float> decoded;
+    decoded.reserve(bytes.size());
+    for (const auto byte : bytes)
+        decoded.push_back(std::clamp((static_cast<float>(byte) - 128.0f) / 128.0f, -1.0f, 1.0f));
+    return decoded;
+}
+
+std::vector<float> decodeBrrPreview(const std::vector<uint8_t>& bytes, size_t& loopStart)
+{
+    std::vector<float> decoded;
+    loopStart = 0;
+    if (bytes.size() < 9u || (bytes.size() % 9u) != 0u)
+        return decoded;
+
+    decoded.reserve((bytes.size() / 9u) * 16u);
+    auto previous1 = 0;
+    auto previous2 = 0;
+    auto loopSeen = false;
+
+    for (size_t block = 0; block < bytes.size() / 9u; ++block)
+    {
+        const auto offset = block * 9u;
+        const auto header = bytes[offset];
+        const auto range = static_cast<int>((header >> 4u) & 0x0fu);
+        const auto filter = static_cast<int>((header >> 2u) & 0x03u);
+        if ((header & 0x02u) != 0u && ! loopSeen)
+        {
+            loopStart = decoded.size();
+            loopSeen = true;
+        }
+
+        for (size_t packedIndex = 0; packedIndex < 8u; ++packedIndex)
+        {
+            const auto packed = bytes[offset + 1u + packedIndex];
+            for (const auto nibble : { static_cast<uint8_t>(packed >> 4u), static_cast<uint8_t>(packed & 0x0fu) })
+            {
+                auto sample = nibble >= 8u ? static_cast<int>(nibble) - 16 : static_cast<int>(nibble);
+                if (range <= 12)
+                    sample <<= range;
+                else
+                    sample = sample < 0 ? -2048 : 0;
+
+                auto predicted = sample;
+                switch (filter)
+                {
+                    case 1: predicted += (previous1 * 15) / 16; break;
+                    case 2: predicted += ((previous1 * 61) / 32) - ((previous2 * 15) / 16); break;
+                    case 3: predicted += ((previous1 * 115) / 64) - ((previous2 * 13) / 16); break;
+                    case 0:
+                    default: break;
+                }
+
+                predicted = std::clamp(predicted, -32768, 32767);
+                previous2 = previous1;
+                previous1 = predicted;
+                decoded.push_back(static_cast<float>(predicted) / 32768.0f);
+            }
+        }
+
+        if ((header & 0x01u) != 0u)
+            break;
+    }
+
+    return decoded;
+}
+
+template <typename SampleGenerator>
+std::vector<float> generatedSamplePreview(size_t count, SampleGenerator&& generator)
+{
+    std::vector<float> decoded;
+    decoded.reserve(count);
+    for (size_t i = 0; i < count; ++i)
+        decoded.push_back(std::clamp(static_cast<float>(generator(i)) / 127.0f, -1.0f, 1.0f));
+    return decoded;
+}
+
+ChipperAudioProcessor::SampleWaveformPreview waveformPreviewFromSamples(const std::vector<float>& decoded)
+{
+    ChipperAudioProcessor::SampleWaveformPreview preview {};
+    if (decoded.empty())
+        return preview;
+
+    if (decoded.size() <= preview.size())
+    {
+        for (size_t i = 0; i < decoded.size(); ++i)
+            preview[i] = decoded[i];
+        return preview;
+    }
+
+    for (size_t i = 0; i < preview.size(); ++i)
+    {
+        const auto start = (i * decoded.size()) / preview.size();
+        const auto end = std::max(start + 1u, ((i + 1u) * decoded.size()) / preview.size());
+        auto minValue = 1.0f;
+        auto maxValue = -1.0f;
+        for (size_t j = start; j < std::min(end, decoded.size()); ++j)
+        {
+            minValue = std::min(minValue, decoded[j]);
+            maxValue = std::max(maxValue, decoded[j]);
+        }
+        preview[i] = std::abs(maxValue) >= std::abs(minValue) ? maxValue : minValue;
+    }
+
+    return preview;
+}
+
+float normalizedLoopStart(size_t loopStart, size_t sampleCount)
+{
+    if (sampleCount <= 1u)
+        return 0.0f;
+
+    return std::clamp(static_cast<float>(loopStart) / static_cast<float>(sampleCount - 1u), 0.0f, 1.0f);
+}
+
 bool sourceLevelsMatch(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
 {
     constexpr auto tolerance = 0.0001f;
@@ -83,7 +216,9 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && std::abs(a.nesDmcDirectLevel - b.nesDmcDirectLevel) < tolerance
         && a.nesDmcRateIndex == b.nesDmcRateIndex
         && a.nesDmcLoop == b.nesDmcLoop
-        && a.nesDmcOnly == b.nesDmcOnly;
+        && a.nesDmcOnly == b.nesDmcOnly
+        && std::abs(a.spc700LoopStart - b.spc700LoopStart) < tolerance
+        && std::abs(a.spc700LoopEnd - b.spc700LoopEnd) < tolerance;
 }
 
 bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
@@ -127,7 +262,9 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && std::abs(a.nesDmcDirectLevel - b.nesDmcDirectLevel) < tolerance
         && a.nesDmcRateIndex == b.nesDmcRateIndex
         && a.nesDmcLoop == b.nesDmcLoop
-        && a.nesDmcOnly == b.nesDmcOnly;
+        && a.nesDmcOnly == b.nesDmcOnly
+        && std::abs(a.spc700LoopStart - b.spc700LoopStart) < tolerance
+        && std::abs(a.spc700LoopEnd - b.spc700LoopEnd) < tolerance;
 }
 
 int samplePlaybackModeForMacroTemplate(chipper::ChipMode mode, const chipper::MacroTemplate& templ)
@@ -2137,7 +2274,9 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
         apvts.getRawParameterValue(chipper::parameters::id::nesDmcDirectLevel)->load(),
         static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcRateIndex)->load())),
         apvts.getRawParameterValue(chipper::parameters::id::nesDmcLoop)->load() >= 0.5f,
-        selectedMode == chipper::ChipMode::nes && dmcPlaybackMode == 2);
+        selectedMode == chipper::ChipMode::nes && dmcPlaybackMode == 2,
+        apvts.getRawParameterValue(chipper::parameters::id::spc700LoopStart)->load(),
+        apvts.getRawParameterValue(chipper::parameters::id::spc700LoopEnd)->load());
 }
 
 void ChipperAudioProcessor::replayPendingRegisterState()
@@ -2478,6 +2617,176 @@ ChipperAudioProcessor::OutputScopeSnapshot ChipperAudioProcessor::outputScopeSna
         snapshot[padding + i] = outputScopeBuffer[logicalIndex % outputScopeSampleCount].load(std::memory_order_relaxed);
     }
 
+    return snapshot;
+}
+
+ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWaveformSnapshot(chipper::ChipMode mode) const
+{
+    SampleWaveformSnapshot snapshot;
+    std::vector<float> decoded;
+    auto loopStartSample = size_t { 0 };
+
+    if (mode == chipper::ChipMode::nes)
+    {
+        const auto selectedSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
+        const auto playbackMode = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load())), 0, 2);
+        const auto loopEnabled = apvts.getRawParameterValue(chipper::parameters::id::nesDmcLoop)->load() >= 0.5f;
+        const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+
+        std::vector<const DmcSampleSlot*> activeSlots;
+        activeSlots.reserve(32u);
+        for (const auto& slot : dmcSampleBank)
+        {
+            if (slot.included)
+                activeSlots.push_back(&slot);
+            if (activeSlots.size() >= 32u)
+                break;
+        }
+
+        if (activeSlots.empty() || (playbackMode != 0 && activeDmcSampleSlot == unmappedDmcSampleSlot))
+        {
+            snapshot.label = activeSlots.empty() ? "No DMC samples loaded" : "No mapped DMC sample";
+            return snapshot;
+        }
+
+        const auto resolvedSlot = playbackMode != 0 && activeDmcSampleSlot >= 0 ? activeDmcSampleSlot : selectedSlot;
+        const auto safeSlot = static_cast<size_t>(std::clamp(resolvedSlot, 0, static_cast<int>(activeSlots.size() - 1u)));
+        const auto& slot = *activeSlots[safeSlot];
+        decoded = decodeDmcPreview(slot.bytes);
+        snapshot.label = "DMC " + juce::String(static_cast<int>(safeSlot + 1u)) + ": " + slot.name;
+        snapshot.sourceSampleCount = static_cast<int>(decoded.size());
+        snapshot.selectedSlot = static_cast<int>(safeSlot);
+        snapshot.loaded = ! decoded.empty();
+        snapshot.hasLoop = loopEnabled && snapshot.loaded;
+        snapshot.loopStart = 0.0f;
+        snapshot.loopEnd = 1.0f;
+    }
+    else if (mode == chipper::ChipMode::spc700)
+    {
+        const auto selectedSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
+        const auto playbackMode = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load())), 0, 2);
+        const auto loopStartControl = apvts.getRawParameterValue(chipper::parameters::id::spc700LoopStart)->load();
+        const auto loopEndControl = apvts.getRawParameterValue(chipper::parameters::id::spc700LoopEnd)->load();
+        {
+            const std::lock_guard<std::mutex> lock(spc700SampleMutex);
+            std::vector<const DmcSampleSlot*> activeSlots;
+            activeSlots.reserve(32u);
+            if (! spc700BrrSampleBank.empty())
+            {
+                for (const auto& slot : spc700BrrSampleBank)
+                {
+                    if (slot.included)
+                        activeSlots.push_back(&slot);
+                    if (activeSlots.size() >= 32u)
+                        break;
+                }
+            }
+            else if (! spc700BrrSample.bytes.empty())
+            {
+                activeSlots.push_back(&spc700BrrSample);
+            }
+
+            if (! activeSlots.empty() && (playbackMode == 0 || activeSpc700BrrSampleSlot >= 0))
+            {
+                auto resolvedSlot = playbackMode != 0 && activeSpc700BrrSampleSlot >= 0 ? activeSpc700BrrSampleSlot : selectedSlot;
+                for (int i = 0; i < static_cast<int>(activeSlots.size()); ++i)
+                {
+                    if (activeSlots[static_cast<size_t>(i)]->path == spc700BrrSample.path)
+                    {
+                        resolvedSlot = i;
+                        break;
+                    }
+                }
+                const auto safeSlot = static_cast<size_t>(std::clamp(resolvedSlot, 0, static_cast<int>(activeSlots.size() - 1u)));
+                const auto& slot = *activeSlots[safeSlot];
+                if (slot.encoding == chipper::ExternalSampleEncoding::spc700Brr)
+                    decoded = decodeBrrPreview(slot.bytes, loopStartSample);
+                else
+                    decoded = decodePcm8Preview(slot.bytes);
+                snapshot.label = "SPC700 " + juce::String(static_cast<int>(safeSlot + 1u)) + ": " + slot.name;
+                snapshot.selectedSlot = static_cast<int>(safeSlot);
+                snapshot.loaded = ! decoded.empty();
+            }
+        }
+
+        if (decoded.empty())
+        {
+            const auto patch = currentPatchFromParameters();
+            decoded = generatedSamplePreview(64u, [patch](size_t i)
+            {
+                return chipper::generatedSampleValueForPatch(chipper::ChipMode::spc700, patch, 0u, i);
+            });
+            snapshot.label = "Generated SPC700 sample";
+            snapshot.loaded = ! decoded.empty();
+        }
+
+        snapshot.sourceSampleCount = static_cast<int>(decoded.size());
+        snapshot.hasLoop = snapshot.loaded;
+        const auto defaultLoopStart = normalizedLoopStart(loopStartSample, decoded.size());
+        const auto explicitLoop = loopStartControl > 0.0005f || loopEndControl < 0.9995f;
+        snapshot.loopStart = explicitLoop ? std::clamp(loopStartControl, 0.0f, 1.0f) : defaultLoopStart;
+        snapshot.loopEnd = std::clamp(loopEndControl, 0.0f, 1.0f);
+        if (snapshot.loopEnd <= snapshot.loopStart)
+            snapshot.loopEnd = std::min(1.0f, snapshot.loopStart + 0.01f);
+    }
+    else if (mode == chipper::ChipMode::paula)
+    {
+        const auto selectedSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
+        const auto playbackMode = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load())), 0, 2);
+        {
+            const std::lock_guard<std::mutex> lock(paulaSampleMutex);
+            std::vector<const DmcSampleSlot*> activeSlots;
+            activeSlots.reserve(32u);
+            if (! paulaSampleBank.empty())
+            {
+                for (const auto& slot : paulaSampleBank)
+                {
+                    if (slot.included)
+                        activeSlots.push_back(&slot);
+                    if (activeSlots.size() >= 32u)
+                        break;
+                }
+            }
+            else if (! paulaSample.bytes.empty())
+            {
+                activeSlots.push_back(&paulaSample);
+            }
+
+            if (! activeSlots.empty() && (playbackMode == 0 || activePaulaSampleSlot >= 0))
+            {
+                auto resolvedSlot = playbackMode != 0 && activePaulaSampleSlot >= 0 ? activePaulaSampleSlot : selectedSlot;
+                for (int i = 0; i < static_cast<int>(activeSlots.size()); ++i)
+                {
+                    if (activeSlots[static_cast<size_t>(i)]->path == paulaSample.path)
+                    {
+                        resolvedSlot = i;
+                        break;
+                    }
+                }
+                const auto safeSlot = static_cast<size_t>(std::clamp(resolvedSlot, 0, static_cast<int>(activeSlots.size() - 1u)));
+                const auto& slot = *activeSlots[safeSlot];
+                decoded = decodePcm8Preview(slot.bytes);
+                snapshot.label = "Paula " + juce::String(static_cast<int>(safeSlot + 1u)) + ": " + slot.name;
+                snapshot.selectedSlot = static_cast<int>(safeSlot);
+                snapshot.loaded = ! decoded.empty();
+            }
+        }
+
+        if (decoded.empty())
+        {
+            const auto patch = currentPatchFromParameters();
+            decoded = generatedSamplePreview(64u, [patch](size_t i)
+            {
+                return chipper::generatedSampleValueForPatch(chipper::ChipMode::paula, patch, 0u, i);
+            });
+            snapshot.label = "Generated Paula sample";
+            snapshot.loaded = ! decoded.empty();
+        }
+
+        snapshot.sourceSampleCount = static_cast<int>(decoded.size());
+    }
+
+    snapshot.samples = waveformPreviewFromSamples(decoded);
     return snapshot;
 }
 

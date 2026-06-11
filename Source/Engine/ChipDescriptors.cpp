@@ -1465,6 +1465,20 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
           0.0f,
           127.0f,
           36.0f },
+        sliderSpec(ChipParameterRole::spc700LoopStart,
+                   "spc700.loopStart",
+                   "Loop Start",
+                   "Sample",
+                   "Normalized explicit loop start for loaded or generated SPC700-style sample memory. At 0%, BRR loop flags remain the practical default unless Loop End is moved.",
+                   ParameterKind::chipRegister,
+                   0.0f),
+        sliderSpec(ChipParameterRole::spc700LoopEnd,
+                   "spc700.loopEnd",
+                   "Loop End",
+                   "Sample",
+                   "Normalized explicit loop end for loaded or generated SPC700-style sample memory. Keep it at 100% to loop to the sample end.",
+                   ParameterKind::chipRegister,
+                   1.0f),
         segmentedSpec(ChipParameterRole::waveShape,
                       "spc700.sampleShape",
                       "Sample Shape",
@@ -2681,7 +2695,9 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float nesDmcDirectLevel,
                             int nesDmcRateIndex,
                             bool nesDmcLoop,
-                            bool nesDmcOnly)
+                            bool nesDmcOnly,
+                            float spc700LoopStart,
+                            float spc700LoopEnd)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
@@ -2739,7 +2755,9 @@ PatchConfig makePatchConfig(ChipMode mode,
         clampControl(nesDmcDirectLevel),
         std::clamp(nesDmcRateIndex, 0, 15),
         nesDmcLoop,
-        nesDmcOnly
+        nesDmcOnly,
+        clampControl(std::min(spc700LoopStart, spc700LoopEnd)),
+        clampControl(std::max(spc700LoopStart, spc700LoopEnd))
     };
 }
 

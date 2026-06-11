@@ -120,6 +120,21 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OutputScopePreview)
 };
 
+class SampleWaveformPreview final : public juce::Component,
+                                    public juce::SettableTooltipClient
+{
+public:
+    SampleWaveformPreview() = default;
+
+    void setSnapshot(const ChipperAudioProcessor::SampleWaveformSnapshot& newSnapshot);
+    void paint(juce::Graphics& g) override;
+
+private:
+    ChipperAudioProcessor::SampleWaveformSnapshot snapshot {};
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SampleWaveformPreview)
+};
+
 class ChipperAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                           private juce::Timer
 {
@@ -326,6 +341,7 @@ private:
     void updateDmcSampleControls();
     void updateSpc700BrrSampleControls();
     void updatePaulaSampleControls();
+    void updateSampleWaveformPreview(chipper::ChipMode mode);
     void updateSamplePlaybackModeChoices(chipper::ChipMode mode);
     void chooseDmcSampleFile();
     void chooseDmcSampleDirectory();
@@ -351,6 +367,11 @@ private:
     juce::Label dmcRateLabel;
     juce::Label dmcSampleLabel;
     juce::Label dmcSampleStatusLabel;
+    juce::Label sampleLoopStartLabel;
+    juce::Label sampleLoopEndLabel;
+    juce::Label sampleLoopStartValueLabel;
+    juce::Label sampleLoopEndValueLabel;
+    SampleWaveformPreview sampleWaveformPreview;
     juce::Label dmcPlaybackModeLabel;
     juce::Label dmcMapRootLabel;
     juce::Label outputLabel;
@@ -446,6 +467,8 @@ private:
     juce::ComboBox dmcPlaybackModeBox;
     juce::ComboBox dmcMapRootBox;
     juce::ToggleButton dmcLoopButton;
+    juce::Slider sampleLoopStartSlider;
+    juce::Slider sampleLoopEndSlider;
     juce::Slider outputSlider;
     juce::Slider stereoSpreadSlider;
     juce::Slider envelopeDecaySlider;
@@ -467,6 +490,8 @@ private:
     std::unique_ptr<ComboBoxAttachment> dmcPlaybackModeAttachment;
     std::unique_ptr<ComboBoxAttachment> dmcMapRootAttachment;
     std::unique_ptr<ButtonAttachment> dmcLoopAttachment;
+    std::unique_ptr<SliderAttachment> sampleLoopStartAttachment;
+    std::unique_ptr<SliderAttachment> sampleLoopEndAttachment;
     std::unique_ptr<SliderAttachment> outputAttachment;
     std::unique_ptr<SliderAttachment> stereoSpreadAttachment;
     std::unique_ptr<ComboBoxAttachment> sidFilterRoutingAttachment;
