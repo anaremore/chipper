@@ -9499,14 +9499,16 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto stereoSpread = parameterValue(chipper::parameters::id::stereoSpread);
     const auto patch = currentUiPatch(mode, macroControl1, macroControl2, macroControl3, macroControl4, waveShape, dmgWaveLevel, dmgStereoRoute, ymEnvelopeShape, snNoiseMode, stereoSpread);
     const auto macroText = macroTemplateReadout(mode, patch);
-    auto performanceText = macroText;
+    const auto& templ = chipper::macroTemplateFor(mode, patch.macro);
+    const auto templateLabel = templ.label.empty() ? juce::String(chipper::toString(patch.macro)) : juce::String(templ.label);
+    auto performanceText = juce::String("Recipe: ") + templateLabel;
     auto performanceTooltip = macroText;
     if (! displayedPresets.empty() || ! displayedUserPresets.empty())
     {
         const auto presetCount = static_cast<int>(displayedPresets.size() + displayedUserPresets.size());
         performanceText = juce::String(presetCount) + " "
             + juce::String(chipper::toString(mode))
-            + " presets | " + macroText;
+            + " presets | Recipe: " + templateLabel;
         performanceTooltip = "Use the Preset menu to audition "
             + juce::String(presetCount)
             + " factory/user presets for "
@@ -9522,14 +9524,14 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         if (userIndex >= 0 && static_cast<size_t>(userIndex) < displayedUserPresets.size())
         {
             const auto& preset = displayedUserPresets[static_cast<size_t>(userIndex)];
-            performanceText = "User Preset: " + preset.name + " | " + macroText;
+            performanceText = "User Preset: " + preset.name;
             performanceTooltip = "Loaded from " + preset.file.getFullPathName() + "\n" + macroText;
         }
     }
     else if (selectedPreset >= 0 && static_cast<size_t>(selectedPreset) < displayedPresets.size())
     {
         const auto& preset = *displayedPresets[static_cast<size_t>(selectedPreset)];
-        performanceText = juce::String("Preset: ") + juce::String(preset.name) + " | " + macroText;
+        performanceText = juce::String("Preset: ") + juce::String(preset.name);
         performanceTooltip = juce::String(preset.name) + ": " + juce::String(preset.note) + "\n" + macroText;
     }
 
