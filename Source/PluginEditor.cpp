@@ -4105,6 +4105,30 @@ void ChipperAudioProcessorEditor::placeOpllInstrumentControl(juce::Rectangle<int
     const auto labelHeight = compact ? 15 : 17;
     const auto readoutHeight = compact ? 14 : 18;
 
+    if (compact)
+    {
+        const auto labelWidth = std::min(98, std::max(76, bounds.getWidth() / 5));
+        auto instrumentRow = bounds.removeFromTop(std::min(controlHeight, bounds.getHeight()));
+        waveShapeLabel.setBounds(instrumentRow.removeFromLeft(labelWidth));
+        instrumentRow.removeFromLeft(std::min(6, instrumentRow.getWidth()));
+        opllInstrumentBox.setBounds(instrumentRow.reduced(0, 1));
+        waveShapeValueLabel.setBounds({});
+
+        bounds.removeFromTop(std::min(rowGap, bounds.getHeight()));
+        auto rhythmRow = bounds.removeFromTop(std::min(controlHeight, bounds.getHeight()));
+        ymEnvelopeShapeLabel.setBounds(rhythmRow.removeFromLeft(labelWidth));
+        rhythmRow.removeFromLeft(std::min(6, rhythmRow.getWidth()));
+        ymEnvelopeShapeSegmentBounds = rhythmRow.reduced(0, 1);
+        layoutSegmentedButtons(ymEnvelopeShapeButtons, ymEnvelopeShapeSegmentBounds, rhythmCount);
+        ymEnvelopeShapeValueLabel.setBounds(bounds);
+
+        waveShapeSegmentBounds = {};
+        for (auto& button : waveShapeButtons)
+            button.setBounds({});
+        sidFilterModeBox.setBounds({});
+        return;
+    }
+
     auto header = bounds.removeFromTop(std::min(labelHeight, bounds.getHeight()));
     waveShapeLabel.setBounds(header.removeFromLeft(std::min(132, header.getWidth())));
     waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
