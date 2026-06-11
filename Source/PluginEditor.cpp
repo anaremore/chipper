@@ -3208,9 +3208,9 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (nesLayout)
     {
-        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.29)), 128, 158);
-        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.36)), 156, 194);
-        const auto bottomRowHeight = std::max(128, modules.getHeight() - topRowHeight - middleRowHeight - (gap * 2));
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.25)), 112, 146);
+        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.43)), 178, 226);
+        const auto bottomRowHeight = std::max(96, modules.getHeight() - topRowHeight - middleRowHeight - (gap * 2));
         const auto toneWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getWidth()) * 0.54)), 520, 650);
         const auto detailWidth = modules.getWidth() - toneWidth - gap;
         const auto topY = modules.getY();
