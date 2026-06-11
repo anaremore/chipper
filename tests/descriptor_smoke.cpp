@@ -818,7 +818,7 @@ int main()
     ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, 5, "Follow");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Loop Mode");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, "Sample");
-    ok &= expectChoiceRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ControlSurface::menu, 3, "Follow Template");
+    ok &= expectChoiceRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ControlSurface::menu, 3, "Follow Preset");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Envelope Shape");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::ymEnvelopeShape, "Envelope");
     ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Follow");

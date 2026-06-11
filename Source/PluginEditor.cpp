@@ -4787,13 +4787,13 @@ juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mod
     {
         switch (std::clamp(choice, 0, 4))
         {
-            case 1: return "Triangle sample template";
-            case 2: return "Saw sample template";
-            case 3: return "Pulse sample template";
-            case 4: return "Stepped/noise sample template";
+            case 1: return "Triangle sample shape";
+            case 2: return "Saw sample shape";
+            case 3: return "Pulse sample shape";
+            case 4: return "Stepped/noise sample shape";
             case 0:
             default:
-                return "Follow generated sample template";
+                return "Follow generated sample shape";
         }
     }
 
@@ -6989,7 +6989,7 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
         const auto noiseActive = chipper::spc700NoiseModeForPatch(patch) > 1u;
         shape = noiseActive ? ChipWaveformPreviewShape::noise : wavetablePreviewShape(patch);
         tooltip = juce::String("SPC700-style sample voice ") + juce::String(static_cast<int>(index + 1u))
-            + ": generated lo-fi sample template preview."
+            + ": generated lo-fi sample shape preview."
             + "\nSample Shape: " + waveShapeReadout(mode, patch.waveShape)
             + "\nPitch / PMON: " + spc700PitchMotionReadout(patch)
             + "\nPlayback: " + spc700SamplePlaybackReadout(patch)
@@ -7002,7 +7002,7 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
     {
         shape = wavetablePreviewShape(patch);
         tooltip = juce::String("Paula sample channel ") + juce::String(static_cast<int>(index + 1u))
-            + ": 8-bit tracker sample template with period playback."
+            + ": 8-bit tracker sample shape with period playback."
             + "\nSample Shape: " + waveShapeReadout(mode, patch.waveShape)
             + "\n" + sampleSourceRegisterReadout(mode, patch, index);
     }
@@ -7921,11 +7921,11 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
         dmcSampleSlotBox.setSelectedId(0, juce::dontSendNotification);
 
     dmcSampleSlotBox.setEnabled(sampleCount > 0);
-    dmcSampleSlotBox.setTextWhenNothingSelected(sampleCount > 0 ? "Select SPC700 sample" : "Generated template");
+    dmcSampleSlotBox.setTextWhenNothingSelected(sampleCount > 0 ? "Select SPC700 sample" : "Generated shape");
     dmcSampleSlotBox.setTooltip(withMidiCcForRole(
         sampleCount > 0
             ? "Selects the manual SPC700 sample from the loaded bank. MIDI CC117 selects the same slot; Manual playback uses it for every note."
-            : "No external SPC700 bank is loaded. Chipper is playing the generated SPC700 sample template selected by Sample Shape/Template.",
+            : "No external SPC700 bank is loaded. Chipper is playing the generated SPC700 sample shape selected by Sample Shape.",
         chipper::ChipParameterRole::nesDmcSampleSlot));
     dmcPlaybackModeBox.setTooltip(withMidiCcForRole("SPC700 Sample Playback. Manual Slot plays the selected dropdown slot; Note Map maps loaded folder slots upward from the Sample Map Root. Drum Map uses the same bank mapping path for one-shot/percussion templates.", chipper::ChipParameterRole::nesDmcPlaybackMode));
     dmcMapRootBox.setTooltip(withMidiCcForRole("SPC700 Sample Map Root. Loaded folder slots map upward from this MIDI note when playback is a map mode.", chipper::ChipParameterRole::nesDmcMapRoot));
@@ -7954,7 +7954,7 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     auto tooltip = info.statusLine
         + "\nBRR files are decoded into the clean-room SPC700 sample voice path. WAV/AIFF files import as 8-bit sample memory; true WAV-to-BRR conversion remains planned. Folder loads keep up to 32 user-provided files addressable by the dropdown and CC117.";
     if (! info.loaded)
-        tooltip += juce::String("\nNo user sample is loaded, so the internal generated sample template remains playable.")
+        tooltip += juce::String("\nNo user sample is loaded, so the internal generated sample shape remains playable.")
             + "\nGenerated Sample Shape: " + waveShapeReadout(chipper::ChipMode::spc700, playbackPatch.waveShape);
     if (info.loaded)
     {
@@ -7974,7 +7974,7 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     else if (playbackMode == 2)
         tooltip += "\nSample Playback is Drum Map: notes browse the loaded bank from "
             + chipper::parameters::midiNoteChoices()[mapRoot]
-            + " upward and Follow Template resolves to one-shot sample playback.";
+            + " upward and Follow Preset resolves to one-shot sample playback.";
     else
         tooltip += "\nSample Playback is a map mode: notes browse the loaded bank from "
             + chipper::parameters::midiNoteChoices()[mapRoot] + " upward.";
@@ -8044,13 +8044,13 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
         dmcSampleSlotBox.setSelectedId(0, juce::dontSendNotification);
 
     dmcSampleSlotBox.setEnabled(sampleCount > 0);
-    dmcSampleSlotBox.setTextWhenNothingSelected(sampleCount > 0 ? "Select Paula sample" : "Generated template");
+    dmcSampleSlotBox.setTextWhenNothingSelected(sampleCount > 0 ? "Select Paula sample" : "Generated shape");
     dmcSampleSlotBox.setTooltip(withMidiCcForRole(
         sampleCount > 0
             ? "Selects the manual Paula sample from the loaded bank. MIDI CC117 selects the same slot; Manual Slot uses it for every note."
-            : "No external Paula bank is loaded. Chipper is playing the generated Paula sample template selected by Sample Shape/Template.",
+            : "No external Paula bank is loaded. Chipper is playing the generated Paula sample shape selected by Sample Shape.",
         chipper::ChipParameterRole::nesDmcSampleSlot));
-    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("Paula Sample Playback. Manual Slot plays the selected dropdown slot; Key Map maps loaded folder slots upward from the Sample Map Root for held/melodic samples. Tracker Map uses the same bank mapping path and resolves Follow Template playback to one-shot tracker kits.", chipper::ChipParameterRole::nesDmcPlaybackMode));
+    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("Paula Sample Playback. Manual Slot plays the selected dropdown slot; Key Map maps loaded folder slots upward from the Sample Map Root for held/melodic samples. Tracker Map uses the same bank mapping path and resolves Follow Preset playback to one-shot tracker kits.", chipper::ChipParameterRole::nesDmcPlaybackMode));
     dmcMapRootBox.setTooltip(withMidiCcForRole("Paula Sample Map Root. Loaded folder slots map upward from this MIDI note when Sample Playback is a map mode.", chipper::ChipParameterRole::nesDmcMapRoot));
 
     const auto info = audioProcessor.paulaSampleInfo();
@@ -8069,7 +8069,7 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
     else if (playbackMode == 2)
         tooltip += "\nSample Playback is Tracker Map: notes browse the loaded bank from "
             + chipper::parameters::midiNoteChoices()[mapRoot]
-            + " upward and Follow Template resolves to one-shot tracker playback.";
+            + " upward and Follow Preset resolves to one-shot tracker playback.";
     else
         tooltip += "\nSample Playback is a map mode: notes browse the loaded bank from "
             + chipper::parameters::midiNoteChoices()[mapRoot] + " upward.";
