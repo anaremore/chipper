@@ -1245,7 +1245,7 @@ void ChipEnvelopePreview::paint(juce::Graphics& g)
     g.setColour(juce::Colour(0xff2a3a40));
     g.drawRoundedRectangle(bounds, 3.0f, 1.0f);
 
-    const auto graph = bounds.reduced(5.0f, 4.0f);
+    const auto graph = bounds.reduced(6.0f, 5.0f);
     const auto left = graph.getX();
     const auto right = graph.getRight();
     const auto top = graph.getY();
@@ -1345,6 +1345,12 @@ void ChipEnvelopePreview::paint(juce::Graphics& g)
 
     g.setColour(juce::Colour(0xff243139).withAlpha(0.80f));
     g.drawHorizontalLine(static_cast<int>(std::round(sustainY)), left, right);
+    if (height >= 24.0f)
+    {
+        g.setColour(juce::Colour(0xff243139).withAlpha(0.62f));
+        for (const auto stageX : { attackX, decayX, sustainX })
+            g.drawVerticalLine(static_cast<int>(std::round(stageX)), top, bottom);
+    }
 
     juce::Path fill;
     fill.startNewSubPath(left, bottom);
@@ -1366,6 +1372,24 @@ void ChipEnvelopePreview::paint(juce::Graphics& g)
 
     g.setColour(juce::Colour(0xff56c7d8));
     g.strokePath(path, juce::PathStrokeType(1.5f));
+
+    if (height >= 30.0f && width >= 92.0f)
+    {
+        g.setFont(juce::FontOptions(8.5f, juce::Font::bold));
+        g.setColour(juce::Colour(0xffaebbc4).withAlpha(0.88f));
+        const auto labelY = bottom - 10.0f;
+        const auto drawStageLabel = [&](const char* text, float x)
+        {
+            g.drawText(text,
+                       juce::Rectangle<float>(x - 10.0f, labelY, 20.0f, 10.0f),
+                       juce::Justification::centred,
+                       false);
+        };
+        drawStageLabel("A", left + 8.0f);
+        drawStageLabel("D", attackX);
+        drawStageLabel("S", decayX + ((sustainX - decayX) * 0.5f));
+        drawStageLabel("R", std::min(right - 8.0f, sustainX));
+    }
 }
 
 void FmAlgorithmPreview::setAlgorithm(int newAlgorithm, bool shouldFollow)
@@ -3880,8 +3904,12 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
         sidEnvelopeVoiceLabels[voice].setBounds(voiceColumn.removeFromTop(std::min(15, voiceColumn.getHeight())));
         voiceColumn.removeFromTop(1);
 
-        const auto minimumControlHeight = 46;
-        const auto previewReserve = voiceColumn.getHeight() >= 86 ? 42 : (voiceColumn.getHeight() >= 70 ? 32 : 0);
+        const auto availableVoiceHeight = voiceColumn.getHeight();
+        const auto minimumControlHeight = availableVoiceHeight >= 140 ? 72 : 46;
+        const auto previewReserve = availableVoiceHeight >= 140 ? 62
+            : (availableVoiceHeight >= 110 ? 52
+                   : (availableVoiceHeight >= 86 ? 42
+                          : (availableVoiceHeight >= 70 ? 32 : 0)));
         auto sliderRow = voiceColumn.removeFromTop(std::max(minimumControlHeight, voiceColumn.getHeight() - previewReserve - 4));
         sliderRow = sliderRow.withHeight(std::min(sliderRow.getHeight(), voiceHeight));
 
@@ -3902,7 +3930,7 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
 
         voiceColumn.removeFromTop(4);
         if (voiceColumn.getHeight() >= 24)
-            sidEnvelopePreviews[voice].setBounds(voiceColumn.removeFromTop(std::min(40, voiceColumn.getHeight())).reduced(0, 1));
+            sidEnvelopePreviews[voice].setBounds(voiceColumn.removeFromTop(std::min(64, voiceColumn.getHeight())).reduced(0, 1));
         else
             sidEnvelopePreviews[voice].setBounds({});
     }
