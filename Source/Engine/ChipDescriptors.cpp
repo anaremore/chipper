@@ -29,16 +29,16 @@ std::vector<MacroTemplate> plannedFmMacros(std::string familyName, bool rhythmFo
 {
     const auto rhythmLabel = rhythmFocused ? "Rhythm Kit Plan" : "DAC Drum Plan";
     return {
-        { MacroKind::manual, familyName + " Manual Plan", "Roadmap template for direct algorithm/operator editing once an audited FM core is integrated.", { 0.50f, 0.50f, 0.50f, 0.50f } },
-        { MacroKind::coin, familyName + " UI Chime Plan", "Roadmap template for short FM game UI chimes.", { 0.20f, 0.70f, 0.35f, 0.30f } },
-        { MacroKind::bass, familyName + " FM Bass Plan", "Roadmap template for feedback-heavy chip bass.", { 0.35f, 0.75f, 0.25f, 0.55f } },
-        { MacroKind::lead, familyName + " Metallic Lead Plan", "Roadmap template for bright operator-ratio lead sounds.", { 0.65f, 0.60f, 0.45f, 0.70f } },
-        { MacroKind::arp, familyName + " Algorithm Arp Plan", "Roadmap template for algorithm-aware fake chords and arps.", { 0.75f, 0.50f, 0.35f, 0.60f } },
-        { MacroKind::drum, familyName + " " + rhythmLabel, "Roadmap template for native FM percussion behavior where the chip supports it.", { 0.25f, 0.80f, 0.75f, 0.45f } },
-        { MacroKind::hit, familyName + " FM Impact Plan", "Roadmap template for short noisy/operator impact sounds.", { 0.45f, 0.85f, 0.65f, 0.40f } },
-        { MacroKind::laser, familyName + " Pitch Sweep Plan", "Roadmap template for FM pitch-mod SFX.", { 0.30f, 0.95f, 0.50f, 0.75f } },
-        { MacroKind::jump, familyName + " Rise Blip Plan", "Roadmap template for quick game-rise tones.", { 0.20f, 0.60f, 0.25f, 0.35f } },
-        { MacroKind::powerUp, familyName + " Power Sweep Plan", "Roadmap template for longer algorithm and pitch sweeps.", { 0.70f, 0.90f, 0.40f, 0.80f } }
+        { MacroKind::manual, familyName + " Manual Plan", "Planned preset recipe for direct algorithm/operator editing once an audited FM core is integrated.", { 0.50f, 0.50f, 0.50f, 0.50f } },
+        { MacroKind::coin, familyName + " UI Chime Plan", "Planned preset recipe for short FM game UI chimes.", { 0.20f, 0.70f, 0.35f, 0.30f } },
+        { MacroKind::bass, familyName + " FM Bass Plan", "Planned preset recipe for feedback-heavy chip bass.", { 0.35f, 0.75f, 0.25f, 0.55f } },
+        { MacroKind::lead, familyName + " Metallic Lead Plan", "Planned preset recipe for bright operator-ratio lead sounds.", { 0.65f, 0.60f, 0.45f, 0.70f } },
+        { MacroKind::arp, familyName + " Algorithm Arp Plan", "Planned preset recipe for algorithm-aware fake chords and arps.", { 0.75f, 0.50f, 0.35f, 0.60f } },
+        { MacroKind::drum, familyName + " " + rhythmLabel, "Planned preset recipe for native FM percussion behavior where the chip supports it.", { 0.25f, 0.80f, 0.75f, 0.45f } },
+        { MacroKind::hit, familyName + " FM Impact Plan", "Planned preset recipe for short noisy/operator impact sounds.", { 0.45f, 0.85f, 0.65f, 0.40f } },
+        { MacroKind::laser, familyName + " Pitch Sweep Plan", "Planned preset recipe for FM pitch-mod SFX.", { 0.30f, 0.95f, 0.50f, 0.75f } },
+        { MacroKind::jump, familyName + " Rise Blip Plan", "Planned preset recipe for quick game-rise tones.", { 0.20f, 0.60f, 0.25f, 0.35f } },
+        { MacroKind::powerUp, familyName + " Power Sweep Plan", "Planned preset recipe for longer algorithm and pitch sweeps.", { 0.70f, 0.90f, 0.40f, 0.80f } }
     };
 }
 
@@ -109,16 +109,16 @@ std::vector<MacroTemplate> ym2413Macros()
 std::vector<MacroTemplate> plannedSampleMacros(std::string familyName, std::string sampleTerm)
 {
     return {
-        { MacroKind::manual, familyName + " Manual Plan", "Roadmap template for direct " + sampleTerm + " channel editing once a validated core exists.", { 0.50f, 0.50f, 0.50f, 0.50f } },
-        { MacroKind::coin, familyName + " Short Blip Plan", "Roadmap template for tiny pitched " + sampleTerm + " UI sounds.", { 0.25f, 0.60f, 0.25f, 0.40f } },
-        { MacroKind::bass, familyName + " Low Sample Plan", "Roadmap template for low-rate bass playback.", { 0.35f, 0.40f, 0.20f, 0.55f } },
-        { MacroKind::lead, familyName + " Lead Sample Plan", "Roadmap template for melodic " + sampleTerm + " playback.", { 0.65f, 0.50f, 0.30f, 0.65f } },
-        { MacroKind::arp, familyName + " Tracker Arp Plan", "Roadmap template for retriggered sample arps.", { 0.80f, 0.65f, 0.35f, 0.55f } },
-        { MacroKind::drum, familyName + " Drum Map Plan", "Roadmap template for mapped one-shot percussion.", { 0.35f, 0.25f, 0.85f, 0.45f } },
-        { MacroKind::hit, familyName + " Impact Plan", "Roadmap template for gritty one-shot hits.", { 0.45f, 0.30f, 0.75f, 0.50f } },
-        { MacroKind::laser, familyName + " Rate Sweep Plan", "Roadmap template for sample-rate pitch sweep SFX.", { 0.25f, 0.95f, 0.50f, 0.70f } },
-        { MacroKind::jump, familyName + " Jump Sample Plan", "Roadmap template for short upward sample gestures.", { 0.25f, 0.70f, 0.20f, 0.45f } },
-        { MacroKind::powerUp, familyName + " Tracker Rise Plan", "Roadmap template for longer retrigger/rate-rise patterns.", { 0.75f, 0.90f, 0.35f, 0.70f } }
+        { MacroKind::manual, familyName + " Manual Plan", "Planned preset recipe for direct " + sampleTerm + " channel editing once a validated core exists.", { 0.50f, 0.50f, 0.50f, 0.50f } },
+        { MacroKind::coin, familyName + " Short Blip Plan", "Planned preset recipe for tiny pitched " + sampleTerm + " UI sounds.", { 0.25f, 0.60f, 0.25f, 0.40f } },
+        { MacroKind::bass, familyName + " Low Sample Plan", "Planned preset recipe for low-rate bass playback.", { 0.35f, 0.40f, 0.20f, 0.55f } },
+        { MacroKind::lead, familyName + " Lead Sample Plan", "Planned preset recipe for melodic " + sampleTerm + " playback.", { 0.65f, 0.50f, 0.30f, 0.65f } },
+        { MacroKind::arp, familyName + " Tracker Arp Plan", "Planned preset recipe for retriggered sample arps.", { 0.80f, 0.65f, 0.35f, 0.55f } },
+        { MacroKind::drum, familyName + " Drum Map Plan", "Planned preset recipe for mapped one-shot percussion.", { 0.35f, 0.25f, 0.85f, 0.45f } },
+        { MacroKind::hit, familyName + " Impact Plan", "Planned preset recipe for gritty one-shot hits.", { 0.45f, 0.30f, 0.75f, 0.50f } },
+        { MacroKind::laser, familyName + " Rate Sweep Plan", "Planned preset recipe for sample-rate pitch sweep SFX.", { 0.25f, 0.95f, 0.50f, 0.70f } },
+        { MacroKind::jump, familyName + " Jump Sample Plan", "Planned preset recipe for short upward sample gestures.", { 0.25f, 0.70f, 0.20f, 0.45f } },
+        { MacroKind::powerUp, familyName + " Tracker Rise Plan", "Planned preset recipe for longer retrigger/rate-rise patterns.", { 0.75f, 0.90f, 0.35f, 0.70f } }
     };
 }
 
@@ -224,9 +224,9 @@ AccuracyDisclosure plannedDisclosure(std::string sourcePlan,
 {
     AccuracyDisclosure disclosure;
     disclosure.summary = "Planned mode only: " + sourcePlan;
-    disclosure.evidence = "No VST audio core is integrated yet. The editor exposes roadmap templates so users can see the intended instrument shape without an accuracy claim.";
+    disclosure.evidence = "No VST audio core is integrated yet. The editor exposes planned preset recipes so users can see the intended instrument shape without an accuracy claim.";
     disclosure.verifiedBehaviors = {
-        "Descriptor, template, and automation metadata can be listed by the renderer.",
+        "Descriptor, preset recipe, and automation metadata can be listed by the renderer.",
         uiPlan
     };
     disclosure.knownGaps = std::move(blockers);
@@ -514,7 +514,7 @@ std::vector<ParameterChoiceSpec> ym2413InstrumentChoices()
 
     std::vector<ParameterChoiceSpec> choices;
     choices.reserve(labels.size());
-    choices.push_back(choice(labels[0], "Resolve the YM2413 preset instrument from the selected OPLL template.", 0.0f, 0));
+    choices.push_back(choice(labels[0], "Resolve the YM2413 preset instrument from the selected OPLL preset recipe.", 0.0f, 0));
 
     for (size_t instrument = 1; instrument < labels.size(); ++instrument)
     {
@@ -530,7 +530,7 @@ std::vector<ParameterChoiceSpec> ym2413InstrumentChoices()
 std::vector<ParameterChoiceSpec> ym2413RhythmModeChoices()
 {
     return {
-        choice("Follow", "Use native OPLL rhythm mode for Drum/Hit templates and melodic mode otherwise.", 0.0f, 0),
+        choice("Follow", "Use native OPLL rhythm mode for Drum/Hit presets and melodic mode otherwise.", 0.0f, 0),
         choice("Melodic", "Keep all nine YM2413 channels in melodic preset-instrument mode.", 0.5f, 1),
         choice("Rhythm", "Enable YM2413 rhythm mode: channels 7-9 become BD, HH, SD, TOM, and CYM.", 1.0f, 2)
     };
@@ -539,7 +539,7 @@ std::vector<ParameterChoiceSpec> ym2413RhythmModeChoices()
 std::vector<ParameterChoiceSpec> oplRhythmModeChoices()
 {
     return {
-        choice("Follow", "Use native OPL rhythm mode for Drum/Hit templates and melodic mode otherwise.", 0.0f, 0),
+        choice("Follow", "Use native OPL rhythm mode for Drum/Hit presets and melodic mode otherwise.", 0.0f, 0),
         choice("Melodic", "Keep all nine OPL2 channels in melodic two-operator mode.", 0.5f, 1),
         choice("Rhythm", "Enable OPL2 rhythm mode: channels 7-9 become BD, HH, SD, TOM, and CYM.", 1.0f, 2)
     };
@@ -548,7 +548,7 @@ std::vector<ParameterChoiceSpec> oplRhythmModeChoices()
 std::vector<ParameterChoiceSpec> ym2612AlgorithmChoices()
 {
     return {
-        choice("Follow", "Resolve the YM2612 algorithm from the selected OPN2 template.", 0.0f, 0),
+        choice("Follow", "Resolve the YM2612 algorithm from the selected OPN2 preset recipe.", 0.0f, 0),
         choice("Alg 0", "Use YM2612 algorithm 0: serial modulation for strong classic FM bass.", 1.0f / 8.0f, 1),
         choice("Alg 1", "Use YM2612 algorithm 1: serial pair with parallel modulation.", 2.0f / 8.0f, 2),
         choice("Alg 2", "Use YM2612 algorithm 2: feedback-oriented branching texture.", 3.0f / 8.0f, 3),
@@ -563,7 +563,7 @@ std::vector<ParameterChoiceSpec> ym2612AlgorithmChoices()
 std::vector<ParameterChoiceSpec> ym2612PanChoices()
 {
     return {
-        choice("Follow", "Resolve pan from the selected OPN2 template; arps and power-up stacks alternate left/right.", 0.0f, 0),
+        choice("Follow", "Resolve pan from the selected OPN2 preset recipe; arps and power-up stacks alternate left/right.", 0.0f, 0),
         choice("Both", "Enable both YM2612 output bits for centered channel output.", 0.25f, 1),
         choice("Left", "Set the YM2612 left-output bit only.", 0.5f, 2),
         choice("Right", "Set the YM2612 right-output bit only.", 0.75f, 3),
@@ -574,7 +574,7 @@ std::vector<ParameterChoiceSpec> ym2612PanChoices()
 std::vector<ParameterChoiceSpec> ym2151PanChoices()
 {
     return {
-        choice("Follow", "Resolve pan from the selected OPM template; arps and power-up stacks alternate left/right.", 0.0f, 0),
+        choice("Follow", "Resolve pan from the selected OPM preset recipe; arps and power-up stacks alternate left/right.", 0.0f, 0),
         choice("Both", "Enable both YM2151 output bits in register $20+n for centered channel output.", 0.25f, 1),
         choice("Left", "Set the YM2151 left-output bit only in register $20+n.", 0.5f, 2),
         choice("Right", "Set the YM2151 right-output bit only in register $20+n.", 0.75f, 3),
@@ -585,7 +585,7 @@ std::vector<ParameterChoiceSpec> ym2151PanChoices()
 std::vector<ParameterChoiceSpec> ym2151NoiseChoices()
 {
     return {
-        choice("Follow", "Enable OPM noise for Drum/Hit templates and keep melodic templates in normal FM.", 0.0f, 0),
+        choice("Follow", "Enable OPM noise for Drum/Hit presets and keep melodic presets in normal FM.", 0.0f, 0),
         choice("Off", "Clear YM2151 register $0F bit 7 so channel 8 remains normal four-operator FM.", 0.25f, 1),
         choice("Low", "Enable YM2151 channel-8 operator-4 noise with a slower $0F noise clock.", 0.5f, 2),
         choice("Mid", "Enable YM2151 channel-8 operator-4 noise with a mid $0F noise clock.", 0.75f, 3),
@@ -596,7 +596,7 @@ std::vector<ParameterChoiceSpec> ym2151NoiseChoices()
 std::vector<ParameterChoiceSpec> ym2612EnvelopeShapeChoices()
 {
     return {
-        choice("Follow", "Resolve the FM operator envelope registers from the selected template.", 0.0f, 0),
+        choice("Follow", "Resolve the FM operator envelope registers from the selected preset recipe.", 0.0f, 0),
         choice("Pluck", "Fast attack with a short decay for bright Genesis plucks and keys.", 0.25f, 1),
         choice("Lead", "Fast attack with medium sustain for melodic FM leads.", 0.5f, 2),
         choice("Pad", "Slower attack and release for soft stacked FM tones.", 0.75f, 3),
@@ -607,7 +607,7 @@ std::vector<ParameterChoiceSpec> ym2612EnvelopeShapeChoices()
 std::vector<ParameterChoiceSpec> ym2612DacModeChoices()
 {
     return {
-        choice("Follow", "Use channel-6 DAC for Drum/Hit templates and melodic FM channel 6 otherwise.", 0.0f, 0),
+        choice("Follow", "Use channel-6 DAC for Drum/Hit presets and melodic FM channel 6 otherwise.", 0.0f, 0),
         choice("FM Ch6", "Keep YM2612 channel 6 in normal four-operator FM mode.", 0.5f, 1),
         choice("DAC Drum", "Enable the YM2612 channel-6 DAC via $2B and stream an 8-bit drum waveform through $2A.", 1.0f, 2)
     };
@@ -657,7 +657,7 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
           "ym2612.algorithm",
           "Algorithm",
           "FM",
-          "Chooses the YM2612 four-operator algorithm. Follow lets the selected template choose.",
+          "Chooses the YM2612 four-operator algorithm. Follow lets the selected preset recipe choose.",
           ParameterKind::chipRegister,
           ControlSurface::menu,
           ym2612AlgorithmChoices(),
@@ -697,7 +697,7 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
 std::vector<ParameterChoiceSpec> ym2151AlgorithmChoices()
 {
     return {
-        choice("Follow", "Resolve the YM2151 algorithm from the selected OPM template.", 0.0f, 0),
+        choice("Follow", "Resolve the YM2151 algorithm from the selected OPM preset recipe.", 0.0f, 0),
         choice("Alg 0", "Use YM2151 algorithm 0: serial four-operator modulation for classic FM bass.", 1.0f / 8.0f, 1),
         choice("Alg 1", "Use YM2151 algorithm 1: serial pair with parallel modulation.", 2.0f / 8.0f, 2),
         choice("Alg 2", "Use YM2151 algorithm 2: branching modulation texture.", 3.0f / 8.0f, 3),
@@ -757,7 +757,7 @@ std::vector<ChipParameterSpec> ym2151ParameterSpecs()
           "ym2151.algorithm",
           "Algorithm",
           "FM",
-          "Chooses the YM2151 four-operator algorithm. Follow lets the selected template choose.",
+          "Chooses the YM2151 four-operator algorithm. Follow lets the selected preset recipe choose.",
           ParameterKind::chipRegister,
           ControlSurface::menu,
           ym2151AlgorithmChoices(),
@@ -797,7 +797,7 @@ std::vector<ChipParameterSpec> ym2151ParameterSpecs()
 std::vector<ParameterChoiceSpec> oplWaveformChoices()
 {
     return {
-        choice("Follow", "Resolve the OPL2 waveform from the selected template.", 0.0f, 0),
+        choice("Follow", "Resolve the OPL2 waveform from the selected preset recipe.", 0.0f, 0),
         choice("Sine", "Write OPL2 waveform 0, the standard sine operator shape.", 0.25f, 1),
         choice("Half-Sine", "Write OPL2 waveform 1, the positive half-sine shape.", 0.5f, 2),
         choice("Abs-Sine", "Write OPL2 waveform 2, the absolute-sine shape.", 0.75f, 3),
@@ -837,7 +837,7 @@ std::vector<ChipParameterSpec> oplParameterSpecs()
           "opl.waveform",
           "Waveform",
           "Operators",
-          "Chooses the OPL2 operator waveform. Follow lets the selected template choose.",
+          "Chooses the OPL2 operator waveform. Follow lets the selected preset recipe choose.",
           ParameterKind::chipRegister,
           ControlSurface::menu,
           oplWaveformChoices(),
@@ -848,7 +848,7 @@ std::vector<ChipParameterSpec> oplParameterSpecs()
                       "opl.rhythmMode",
                       "Rhythm Mode",
                       "Rhythm",
-                      "Controls OPL2 register $BD rhythm mode. Follow uses Rhythm for Drum/Hit templates and Melodic otherwise.",
+                      "Controls OPL2 register $BD rhythm mode. Follow uses Rhythm for Drum/Hit presets and Melodic otherwise.",
                       oplRhythmModeChoices(),
                       ParameterKind::chipRegister),
         sourceSpec(ChipParameterRole::source1Enabled, "opl.ch1.enabled", "OPL Ch 1", "Enable OPL2 melodic channel 1."),
@@ -890,7 +890,7 @@ std::vector<ChipParameterSpec> ym2413ParameterSpecs()
                    "ym2413.motion",
                    "Motion",
                    "Motion",
-                   "Scales musical pitch-motion templates. Native OPLL LFO/custom patch controls are planned separately.",
+                   "Scales musical pitch-motion presets. Native OPLL LFO/custom patch controls are planned separately.",
                    ParameterKind::macro),
         sliderSpec(ChipParameterRole::macroControl4,
                    "ym2413.channelVolume",
@@ -903,7 +903,7 @@ std::vector<ChipParameterSpec> ym2413ParameterSpecs()
           "ym2413.instrument",
           "Instrument",
           "Preset FM",
-          "Chooses a YM2413 ROM preset instrument. Follow lets the selected template choose the instrument.",
+          "Chooses a YM2413 ROM preset instrument. Follow lets the selected preset recipe choose the instrument.",
           ParameterKind::chipRegister,
           ControlSurface::menu,
           ym2413InstrumentChoices(),
@@ -914,7 +914,7 @@ std::vector<ChipParameterSpec> ym2413ParameterSpecs()
                       "ym2413.rhythmMode",
                       "Rhythm Mode",
                       "OPLL",
-                      "Controls native YM2413 register $0E rhythm mode. Follow uses Rhythm for Drum/Hit templates and Melodic otherwise.",
+                      "Controls native YM2413 register $0E rhythm mode. Follow uses Rhythm for Drum/Hit presets and Melodic otherwise.",
                       ym2413RhythmModeChoices(),
                       ParameterKind::chipRegister),
         sourceSpec(ChipParameterRole::source1Enabled, "ym2413.ch1.enabled", "OPLL Ch 1", "Enable exposed YM2413 melodic channel 1."),
@@ -953,8 +953,8 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
                       "nes.pulse2Duty",
                       "Pulse 2 Duty",
                       "Channels",
-                      "Overrides the RP2A03 pulse 2 duty register field. Follow uses the selected NES template.",
-                      pulse2DutyChoices("Keep the current musical template: stacked Big Mono offsets Pulse 2 by one duty step; Chip Poly follows Pulse 1."),
+                      "Overrides the RP2A03 pulse 2 duty register field. Follow uses the selected NES preset recipe.",
+                      pulse2DutyChoices("Keep the current preset recipe: stacked Big Mono offsets Pulse 2 by one duty step; Chip Poly follows Pulse 1."),
                       ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl2, "nes.sweepMotion", "Sweep Motion", "Pitch", "Scales musical pitch gestures into RP2A03 sweep/timer behavior."),
         sliderSpec(ChipParameterRole::macroControl3,
@@ -1061,7 +1061,7 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
                       "nes.noiseMode",
                       "Noise Mode",
                       "Noise",
-                      "Maps to RP2A03 $400E bit 7: long LFSR noise or short-loop metallic noise. Follow resolves from the selected musical template.",
+                      "Maps to RP2A03 $400E bit 7: long LFSR noise or short-loop metallic noise. Follow resolves from the selected preset recipe.",
                       {
                           choice("Follow", "Use the selected NES macro to choose long or short noise.", 0.0f, 0),
                           choice("Long", "Bit 7 = 0, long 15-bit LFSR noise for softer hats and static.", 0.5f, 1),
@@ -1113,7 +1113,7 @@ std::vector<ChipParameterSpec> dmgParameterSpecs()
                       "dmg.noiseMode",
                       "Noise Mode",
                       "Noise",
-                      "Maps to NR43 bit 3: 15-bit LFSR noise or 7-bit metallic short noise. Follow resolves from the selected DMG template.",
+                      "Maps to NR43 bit 3: 15-bit LFSR noise or 7-bit metallic short noise. Follow resolves from the selected DMG preset recipe.",
                       {
                           choice("Follow", "Use the selected DMG macro to choose the noise width.", 0.0f, 0),
                           choice("15-bit", "NR43 bit 3 = 0, standard wide LFSR noise.", 0.5f, 1),
@@ -1150,7 +1150,7 @@ std::vector<ChipParameterSpec> dmgParameterSpecs()
                       "dmg.stereoRoute",
                       "Stereo Route",
                       "Output",
-                      "Maps to DMG NR51 output-routing bits for each hardware channel. Follow uses the selected DMG template.",
+                      "Maps to DMG NR51 output-routing bits for each hardware channel. Follow uses the selected DMG preset recipe.",
                       {
                           choice("Follow", "Use the selected DMG macro's NR51 routing choice.", 0.0f, 0),
                           choice("Both", "NR51 = 0xFF: route all channels to left and right.", 0.25f, 1),
@@ -1264,7 +1264,7 @@ std::vector<ChipParameterSpec> sn76489ParameterSpecs()
           "sn76489.noiseMode",
           "Noise Mode",
           "Noise",
-          "Maps to the SN76489 noise-control register. Follow resolves from the current musical template.",
+          "Maps to the SN76489 noise-control register. Follow resolves from the current preset recipe.",
           ParameterKind::chipRegister,
           ControlSurface::menu,
           {
@@ -1292,7 +1292,7 @@ std::vector<ChipParameterSpec> pokeyParameterSpecs()
                    "pokey.pitchMotion",
                    "Pitch",
                    "Pitch",
-                   "Offsets template pitch gestures and channel intervals; paired AUDCTL lanes keep higher pitch resolution."),
+                   "Offsets preset pitch gestures and channel intervals; paired AUDCTL lanes keep higher pitch resolution."),
         sliderSpec(ChipParameterRole::macroControl3,
                    "pokey.distortionBias",
                    "Distortion Bias",
@@ -1321,7 +1321,7 @@ std::vector<ChipParameterSpec> pokeyParameterSpecs()
                       "Channels",
                       "Writes the POKEY AUDCTL 16-bit channel-link bits: channel 1+2, channel 3+4, or both.",
                       {
-                          choice("Follow", "Let the selected POKEY template choose whether channels are linked.", 0.0f, 0),
+                          choice("Follow", "Let the selected POKEY preset recipe choose whether channels are linked.", 0.0f, 0),
                           choice("Off", "Clear the modeled 16-bit channel-link bits.", 0.25f, 1),
                           choice("1+2", "Link channel 1 and 2 into one higher-resolution 16-bit pitch lane.", 0.5f, 2),
                           choice("3+4", "Link channel 3 and 4 into one higher-resolution 16-bit pitch lane.", 0.75f, 3),
@@ -1334,7 +1334,7 @@ std::vector<ChipParameterSpec> pokeyParameterSpecs()
                       "Filter",
                       "Writes the modeled POKEY AUDCTL high-pass filter bits. Channel 3 can filter channel 1, and channel 4 can filter channel 2.",
                       {
-                          choice("Follow", "Let the selected POKEY template choose the high-pass filter bits.", 0.0f, 0),
+                          choice("Follow", "Let the selected POKEY preset recipe choose the high-pass filter bits.", 0.0f, 0),
                           choice("Off", "Clear the modeled high-pass filter bits.", 0.25f, 1),
                           choice("1<-3", "Channel 3 clocks the high-pass latch for channel 1.", 0.5f, 2),
                           choice("2<-4", "Channel 4 clocks the high-pass latch for channel 2.", 0.75f, 3),
@@ -1346,9 +1346,9 @@ std::vector<ChipParameterSpec> pokeyParameterSpecs()
                       "pokey.distortionCode",
                       "Distortion Code",
                       "Distortion",
-                      "Selects the modeled POKEY AUDC high-nibble behavior. Follow resolves from the selected template.",
+                      "Selects the modeled POKEY AUDC high-nibble behavior. Follow resolves from the selected preset recipe.",
                       {
-                          choice("Follow", "Use the selected POKEY template and Distortion Bias control.", 0.0f, 0),
+                          choice("Follow", "Use the selected POKEY preset recipe and Distortion Bias control.", 0.0f, 0),
                           choice("Pure", "AUDC-style pure tone path with the 4-bit volume nibble.", 0.25f, 1),
                           choice("Poly4", "Short polynomial texture for buzzy tones.", 0.5f, 2),
                           choice("Poly5", "Medium polynomial texture for metallic Atari noise.", 0.75f, 3),
@@ -1419,11 +1419,11 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
                       "spc700.brrPlayback",
                       "Sample Playback",
                       "Sample",
-                      "Chooses whether a loaded SPC700 sample bank plays the selected manual slot or maps bank slots across MIDI notes from the Sample Map Root. Drum Map uses the same bank mapping path but is intended for one-shot/percussion templates.",
+                      "Chooses whether a loaded SPC700 sample bank plays the selected manual slot or maps bank slots across MIDI notes from the Sample Map Root. Drum Map uses the same bank mapping path but is intended for one-shot/percussion presets.",
                       {
                           choice("Manual", "Use the selected SPC700 sample slot for every note.", 0.0f, 0),
                           choice("Note Map", "Map loaded SPC700 folder slots across MIDI notes from the Sample Map Root.", 0.5f, 1),
-                          choice("Drum Map", "Map loaded SPC700 folder slots for one-shot/percussion templates.", 1.0f, 2)
+                          choice("Drum Map", "Map loaded SPC700 folder slots for one-shot/percussion presets.", 1.0f, 2)
                       },
                       ParameterKind::chipRegister),
         { ChipParameterRole::dmgStereoRoute,
@@ -1445,9 +1445,9 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
                       "spc700.noiseSource",
                       "Noise Source",
                       "Noise",
-                      "Controls the partial S-DSP-style NON/noise-clock path. Follow enables noise for drum, hit, and Noise sample templates; exact S-DSP noise timing remains unverified.",
+                      "Controls the partial S-DSP-style NON/noise-clock path. Follow enables noise for drum, hit, and Noise sample presets; exact S-DSP noise timing remains unverified.",
                       {
-                          choice("Follow", "Resolve the noise source from the selected SPC700 template.", 0.0f, 0),
+                          choice("Follow", "Resolve the noise source from the selected SPC700 preset recipe.", 0.0f, 0),
                           choice("Off", "Keep voices on BRR/generated sample playback.", 0.25f, 1),
                           choice("Low", "Use a slower lo-fi noise clock for soft hats and breath.", 0.5f, 2),
                           choice("Mid", "Use a mid noise clock for snares and grit.", 0.75f, 3),
@@ -1537,7 +1537,7 @@ std::vector<ChipParameterSpec> paulaParameterSpecs()
                       "Output",
                       "Selects Paula-style output coloration. Raw preserves the bright no-interpolation DAC path; A500 and LED apply modeled low-pass stages.",
                       {
-                          choice("Follow", "Use the selected Paula template's output filter choice.", 0.0f, 0),
+                          choice("Follow", "Use the selected Paula preset recipe's output filter choice.", 0.0f, 0),
                           choice("Raw", "Bright 8-bit Paula DAC path with no extra low-pass stage.", 0.25f, 1),
                           choice("A500", "Gentle fixed Amiga 500-style output softening.", 0.5f, 2),
                           choice("LED", "Iconic LED low-pass filter color for darker tracker playback.", 0.75f, 3),
@@ -1577,7 +1577,7 @@ std::vector<ChipParameterSpec> huc6280ParameterSpecs()
                    "huc6280.noiseBias",
                    "Noise Bias",
                    "Noise",
-                   "Biases the simplified HuC6280 noise-control behavior for percussion templates.",
+                   "Biases the simplified HuC6280 noise-control behavior for percussion presets.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "huc6280.channelVolume",
@@ -1606,7 +1606,7 @@ std::vector<ChipParameterSpec> huc6280ParameterSpecs()
                       "Motion",
                       "Selects Chipper's partial HuC6280 channel-pair pitch modulation path. The source concept follows the PC Engine PSG channel 1/2 FM-LFO pairing, but exact native LFO timing is not yet verified.",
                       {
-                          choice("Follow", "Use the selected HuC6280 template to decide whether the channel-pair LFO is active.", 0.0f, 0),
+                          choice("Follow", "Use the selected HuC6280 preset recipe to decide whether the channel-pair LFO is active.", 0.0f, 0),
                           choice("Off", "Keep channels 1 and 2 as independent audible wavetable voices.", 0.25f, 1),
                           choice("Light", "Use channel 2 as a muted wavetable LFO for gentle channel 1 pitch movement.", 0.5f, 2),
                           choice("Deep", "Use channel 2 as a muted wavetable LFO for stronger PC Engine-style pitch movement.", 0.75f, 3),
@@ -1617,13 +1617,13 @@ std::vector<ChipParameterSpec> huc6280ParameterSpecs()
                       "huc6280.waveShape",
                       "Wave Shape",
                       "Wave",
-                      "Selects the generated 32-sample waveform RAM template. Follow resolves from the selected template.",
+                      "Selects the generated 32-sample waveform RAM shape. Follow resolves from the selected preset recipe.",
                       {
-                          choice("Follow", "Use the selected HuC6280 template waveform.", 0.0f, 0),
+                          choice("Follow", "Use the selected HuC6280 preset waveform.", 0.0f, 0),
                           choice("Ramp", "Rising 5-bit ramp wave RAM.", 0.25f, 1),
                           choice("Tri", "Triangle-style 32-sample wave RAM.", 0.5f, 2),
                           choice("Square", "Hard two-level wave RAM.", 0.75f, 3),
-                          choice("Noise", "Noise-shaped wave/noise template.", 1.0f, 4)
+                          choice("Noise", "Noise-shaped wave/noise preset.", 1.0f, 4)
                       },
                       ParameterKind::chipRegister)
     };
@@ -1646,7 +1646,7 @@ std::vector<ChipParameterSpec> sccParameterSpecs()
                    "scc.waveSkew",
                    "Wave Skew",
                    "Wave",
-                   "Shapes generated waveform RAM templates while preserving 32-byte SCC wave memory.",
+                   "Shapes generated waveform RAM while preserving 32-byte SCC wave memory.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "scc.channelVolume",
@@ -1671,9 +1671,9 @@ std::vector<ChipParameterSpec> sccParameterSpecs()
                       "scc.waveShape",
                       "Wave Shape",
                       "Wave",
-                      "Selects the generated 32-byte waveform RAM template. Follow resolves from the selected template.",
+                      "Selects the generated 32-byte waveform RAM shape. Follow resolves from the selected preset recipe.",
                       {
-                          choice("Follow", "Use the selected SCC template waveform.", 0.0f, 0),
+                          choice("Follow", "Use the selected SCC preset waveform.", 0.0f, 0),
                           choice("Ramp", "Rising 8-bit wave RAM.", 0.25f, 1),
                           choice("Tri", "Triangle-style 32-byte wave RAM.", 0.5f, 2),
                           choice("Pulse", "Pulse-style SCC wave RAM using Wave Skew as width.", 0.75f, 3),
@@ -1700,7 +1700,7 @@ std::vector<ChipParameterSpec> namcoWsgParameterSpecs()
                    "namcoWsg.waveSkew",
                    "Wave Skew",
                    "Wave",
-                   "Shapes generated 4-bit waveform RAM templates.",
+                   "Shapes generated 4-bit waveform RAM.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "namcoWsg.channelVolume",
@@ -1731,9 +1731,9 @@ std::vector<ChipParameterSpec> namcoWsgParameterSpecs()
                       "namcoWsg.waveShape",
                       "Wave Shape",
                       "Wave",
-                      "Selects the generated 32-sample 4-bit waveform RAM template. Follow resolves from the selected template.",
+                      "Selects the generated 32-sample 4-bit waveform RAM shape. Follow resolves from the selected preset recipe.",
                       {
-                          choice("Follow", "Use the selected Namco WSG template waveform.", 0.0f, 0),
+                          choice("Follow", "Use the selected Namco WSG preset waveform.", 0.0f, 0),
                           choice("Ramp", "Rising 4-bit wave RAM.", 0.25f, 1),
                           choice("Tri", "Triangle-style 32-sample wave RAM.", 0.5f, 2),
                           choice("Pulse", "Pulse-style wave RAM using Wave Skew as width.", 0.75f, 3),
@@ -1827,9 +1827,9 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
                       "sid.model",
                       "SID Model",
                       "Profile",
-                      "Selects the partial SID chip-variant profile used by Chipper's filter curve and output drive model. Auto resolves from the selected SID template.",
+                      "Selects the partial SID chip-variant profile used by Chipper's filter curve and output drive model. Auto resolves from the selected SID preset recipe.",
                       {
-                          choice("Auto", "Resolve 6581/8580 from the selected SID template.", 0.0f, 0),
+                          choice("Auto", "Resolve 6581/8580 from the selected SID preset recipe.", 0.0f, 0),
                           choice("6581", "Warmer, rougher 6581-style filter/output profile.", 0.25f, 1),
                           choice("8580", "Cleaner, brighter 8580-style filter/output profile.", 0.5f, 2)
                       },
@@ -1887,22 +1887,22 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
                       "sid.waveform",
                       "Voice 1 Wave",
                       "Voices",
-                      "Maps Voice 1 to SID control-register waveform bits. Voice 2 and Voice 3 can follow the template or choose their own waveform.",
+                      "Maps Voice 1 to SID control-register waveform bits. Voice 2 and Voice 3 can follow the preset or choose their own waveform.",
                       sidWaveformChoices(),
                       ParameterKind::chipRegister),
         sidVoiceWaveSpec(ChipParameterRole::sidVoice2WaveShape,
                          "sid.voice2.waveform",
                          "Voice 2 Wave",
-                         "Maps Voice 2 to its own SID control-register waveform bits. Follow uses Voice 1 or the selected SID template."),
+                         "Maps Voice 2 to its own SID control-register waveform bits. Follow uses Voice 1 or the selected SID preset recipe."),
         sidVoiceWaveSpec(ChipParameterRole::sidVoice3WaveShape,
                          "sid.voice3.waveform",
                          "Voice 3 Wave",
-                         "Maps audible Voice 3 to its own SID control-register waveform bits. Follow uses Voice 1 or the selected SID template; OSC3 readback is not modeled yet."),
+                         "Maps audible Voice 3 to its own SID control-register waveform bits. Follow uses Voice 1 or the selected SID preset recipe; OSC3 readback is not modeled yet."),
         { ChipParameterRole::ymEnvelopeShape,
           "sid.filterMode",
           "Filter Mode",
           "Filter",
-          "Maps to SID $D418 filter-mode bits, including combined mode-bit outputs. Follow uses the selected SID musical template.",
+          "Maps to SID $D418 filter-mode bits, including combined mode-bit outputs. Follow uses the selected SID preset recipe.",
           ParameterKind::chipRegister,
           ControlSurface::menu,
           {
@@ -1923,7 +1923,7 @@ std::vector<ChipParameterSpec> sidParameterSpecs()
                       "sid.oscMod",
                       "Osc Interaction",
                       "Motion",
-                      "Maps to SID control-register sync/ring bits on voices 2 and 3. Follow uses the selected SID musical template.",
+                      "Maps to SID control-register sync/ring bits on voices 2 and 3. Follow uses the selected SID preset recipe.",
                       {
                           choice("Follow", "Resolve oscillator modulation from the selected SID macro.", 0.0f, 0),
                           choice("Off", "Clear SID sync and ring bits.", 0.25f, 1),
@@ -1950,7 +1950,7 @@ std::array<ModuleDescriptor, 6> plannedModules(std::string sourceTitle, std::str
         makeModule("sources", sourceTitle, "Chip-specific source layout is planned.", { "Native channels planned", "Register adapter required", "Preset mappings reserved", "Silent until implemented" }),
         makeModule("tone", toneTitle, "Tone controls are placeholders until the core exists.", { "Native shaping planned", "Chip limits preserved", "Hybrid helper planned", "No accuracy claim yet" }),
         makeModule("envelope", "Envelope", "Envelope behavior must come from chip-native timing.", { "Hardware envelope planned", "Length behavior planned", "Hybrid helper planned", "Regression tests required" }),
-        makeModule("motion", "Motion", "Musical gestures will map to native registers.", { "Arp mapping planned", "Pitch motion planned", "Retrigger planned", "SFX templates planned" }),
+        makeModule("motion", "Motion", "Musical gestures will map to native registers.", { "Arp mapping planned", "Pitch motion planned", "Retrigger planned", "SFX presets planned" }),
         makeModule("output", "Output", "Output model waits for source validation.", { "Output level", "Variant coloration planned", "Golden references required", "Known differences documented" })
     };
 }
@@ -1962,8 +1962,8 @@ std::array<ModuleDescriptor, 6> nesModules()
         makeModule("sources", "Channels", "Native channel layout exposed musically.", { "Pulse 1", "Pulse 2", "Triangle / Chip Poly", "Noise / DMC lane" }),
         makeModule("tone", "Shape / Mixer", "Pulse, triangle, noise, and nonlinear mixer behavior.", { "Pulse duty", "Pitch sweep macro", "Noise mode", "Nonlinear mixer" }),
         makeModule("envelope", "Envelope", "APU envelope and duration behavior.", { "Simple envelope", "Length counters", "Triangle linear planned", "Drum decay" }),
-        makeModule("motion", "Motion", "Musical gestures write chip-like register templates.", { "Coin blip", "Jump rise", "Laser sweep", "Fast arps" }),
-        makeModule("output", "Output", "Bright direct mono chip output.", { "Output gain", "Dry mono", "Bit/sample grit", "SFX templates" })
+        makeModule("motion", "Motion", "Musical gestures write chip-like preset recipes.", { "Coin blip", "Jump rise", "Laser sweep", "Fast arps" }),
+        makeModule("output", "Output", "Bright direct mono chip output.", { "Output gain", "Dry mono", "Bit/sample grit", "SFX presets" })
     };
 }
 
@@ -1974,7 +1974,7 @@ std::array<ModuleDescriptor, 6> dmgModules()
         makeModule("sources", "Channels", "Four hardware sound generators.", { "Pulse 1 / sweep", "Pulse 2", "Wave RAM", "Chip Poly ready" }),
         makeModule("tone", "Wave / Noise", "Duty, wave RAM, and polynomial noise behavior.", { "Pulse duty", "Wave shape", "Wave level", "Noise clock" }),
         makeModule("envelope", "Envelope", "Hardware envelope, length, and sweep groundwork.", { "64 Hz envelope", "256 Hz length", "DAC gating", "128 Hz CH1 sweep" }),
-        makeModule("motion", "Motion", "Portable-game gesture templates.", { "Arp stack", "Pitch rise/drop", "Retrigger", "Coin/noise SFX" }),
+        makeModule("motion", "Motion", "Portable-game gesture presets.", { "Arp stack", "Pitch rise/drop", "Retrigger", "Coin/noise SFX" }),
         makeModule("output", "Output", "Compact handheld output character.", { "Output gain", "NR50 volume", "NR51 routing", "Speaker color planned" })
     };
 }
@@ -2010,7 +2010,7 @@ std::array<ModuleDescriptor, 6> sidModules()
         makeModule("sources", "Voices", "Three SID oscillator voices.", { "Voice 1", "Voice 2", "Audible Voice 3", "OSC3/ENV3 utility planned" }),
         makeModule("tone", "Filter", "Register-backed SID filter mode and voice routing.", { "Filter mode", "Voice routing", "Cutoff", "Resonance" }),
         makeModule("envelope", "Envelope", "SID-style ADSR gate behavior.", { "Attack/decay nibbles", "Sustain nibble", "Release nibble", "ADSR quirks planned" }),
-        makeModule("motion", "Motion", "Classic SID modulation gestures.", { "Voice detune", "PWM-ready width", "Osc interaction", "Template motion" }),
+        makeModule("motion", "Motion", "Classic SID modulation gestures.", { "Voice detune", "PWM-ready width", "Osc interaction", "Preset motion" }),
         makeModule("output", "Output", "Warm mono C64-style output groundwork.", { "Output gain", "Voice trims", "Drive planned", "Known differences" })
     };
 }
@@ -2022,7 +2022,7 @@ std::array<ModuleDescriptor, 6> fmModules(std::string profile, std::string sourc
         makeModule("sources", sourceTitle, "FM voice selection and routing.", { "Voice select", "Algorithm", "Feedback", "Voice level" }),
         makeModule("tone", toneTitle, "Operator-level tone shaping.", { "Operator ratios", "Operator levels", "Feedback", "Waveforms where native" }),
         makeModule("envelope", "Envelope", "Native operator envelope controls.", { "Attack", "Decay", "Sustain", "Release" }),
-        makeModule("motion", "Motion", "FM modulation and performance helpers.", { "LFO", "Pitch mod", "Arp/glide", "Template morph" }),
+        makeModule("motion", "Motion", "FM modulation and performance helpers.", { "LFO", "Pitch mod", "Arp/glide", "Preset morph" }),
         makeModule("output", "Output", "Chip output and stereo behavior.", { "Pan / stereo", "DAC grit", "Output gain", "Reference tests needed" })
     };
 }
@@ -2033,8 +2033,8 @@ std::array<ModuleDescriptor, 6> ym2612Modules()
         makeModule("profile", "Profile", "YM2612/OPN2 core is backed by audited BSD-licensed ymfm.", { "YM2612 model", "NTSC Genesis clock", "Hybrid default", "Verified partial" }),
         makeModule("sources", "FM Voices", "All six YM2612 melodic channels are exposed as playable source lanes.", { "FM Ch 1", "FM Ch 2", "FM Ch 3", "FM Ch 4-6" }),
         makeModule("tone", "Operators", "Musical controls write native OPN2 algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
-        makeModule("envelope", "Envelope", "Template and user-selected shapes write native OPN2 attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Per-operator ADSR planned" }),
-        makeModule("motion", "Motion", "Genesis-style musical templates map to register-backed FM patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
+        makeModule("envelope", "Envelope", "Preset and user-selected shapes write native OPN2 attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Per-operator ADSR planned" }),
+        makeModule("motion", "Motion", "Genesis-style preset recipes map to register-backed FM patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
                 makeModule("output", "Output", "ymfm stereo OPN2 output follows native channel pan bits plus output trim.", { "Stereo core", "Pan bits", "DAC drum", "Reference tests needed" })
     };
 }
@@ -2045,8 +2045,8 @@ std::array<ModuleDescriptor, 6> oplModules()
         makeModule("profile", "Profile", "OPL2-compatible surface is backed by audited BSD-licensed ymfm YMF262/OPL3 core.", { "YMF262 core", "14.32 MHz clock", "Hybrid default", "Verified partial" }),
         makeModule("sources", "FM Voices", "All nine OPL2 melodic channels are exposed as playable lanes; rhythm mode repurposes 7-9.", { "Ch 1-6 melodic", "Ch 7-9 melodic/rhythm", "BD HH SD TOM CYM", "Chip Poly" }),
         makeModule("tone", "Operators", "Musical controls write native OPL operator and channel registers.", { "Waveform", "Feedback", "Connection", "Operator tone" }),
-        makeModule("envelope", "Envelope", "Melodic and rhythm templates write native OPL attack/decay and sustain/release bytes.", { "EG type sustain", "Attack/decay bytes", "Sustain/release bytes", "Per-operator ADSR planned" }),
-        makeModule("motion", "Motion", "DOS FM templates map to register-backed melodic and rhythm patches.", { "UI bell", "FM bass", "Rhythm hits", "Laser" }),
+        makeModule("envelope", "Envelope", "Melodic and rhythm presets write native OPL attack/decay and sustain/release bytes.", { "EG type sustain", "Attack/decay bytes", "Sustain/release bytes", "Per-operator ADSR planned" }),
+        makeModule("motion", "Motion", "DOS FM preset recipes map to register-backed melodic and rhythm patches.", { "UI bell", "FM bass", "Rhythm hits", "Laser" }),
         makeModule("output", "Output", "ymfm OPL3 output is routed from the four native YMF262 output buses into plugin stereo.", { "OPL3 core", "$BD rhythm bits", "Output gain", "Reference tests needed" })
     };
 }
@@ -2057,8 +2057,8 @@ std::array<ModuleDescriptor, 6> ym2151Modules()
         makeModule("profile", "Profile", "YM2151/OPM core is backed by audited BSD-licensed ymfm.", { "YM2151 core", "Arcade clock", "Hybrid default", "Verified partial" }),
         makeModule("sources", "FM Voices", "All eight OPM melodic channels are exposed as playable lanes.", { "Ch 1-4", "Ch 5-8", "Chip Poly", "Per-lane trims" }),
         makeModule("tone", "Operators", "Musical controls write native OPM algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
-        makeModule("envelope", "Envelope", "Template and user-selected shapes write native OPM attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Per-operator ADSR planned" }),
-        makeModule("motion", "Motion", "Arcade FM templates map to register-backed OPM patches.", { "Chime", "Arcade bass", "Metal lead", "Laser" }),
+        makeModule("envelope", "Envelope", "Preset and user-selected shapes write native OPM attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Per-operator ADSR planned" }),
+        makeModule("motion", "Motion", "Arcade FM preset recipes map to register-backed OPM patches.", { "Chime", "Arcade bass", "Metal lead", "Laser" }),
         makeModule("output", "Output", "ymfm stereo OPM output is rendered with left/right pan enabled per active lane.", { "Stereo core", "$0F noise", "Output gain", "Reference tests needed" })
     };
 }
@@ -2130,7 +2130,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "duty", "Pulse Duty", "Pulse", "Chooses the pulse duty family for channel 1 and 2." },
                 { "sweep", "Sweep Shift", "Pitch", "Maps pitch gestures to the DMG NR10 sweep shift." },
                 { "noise", "Noise Clock", "Noise", "Moves the noise clock and narrow-noise behavior." },
-                { "level", "Envelope Level", "Mixer", "Sets the initial envelope level used by macro templates." },
+                { "level", "Envelope Level", "Mixer", "Sets the initial envelope level used by preset recipes." },
             },
             dmgModules(),
             dmgMacros(),
@@ -2233,7 +2233,7 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2612/OPN2 synthesis core.",
-                    "Renderer notes and musical templates write OPN2 algorithm, feedback, operator multiplier/total-level, f-number/block, left/right pan bits, and key-on registers across all six melodic channels.",
+                    "Renderer notes and preset recipes write OPN2 algorithm, feedback, operator multiplier/total-level, f-number/block, left/right pan bits, and key-on registers across all six melodic channels.",
                     "Channel-6 DAC Drum mode enables $2B and streams generated 8-bit drum bytes through $2A via the ymfm core.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, DAC Drum, and Chip Poly regression tests cover the first playable adapter, including six visible source lanes and six-channel note allocation."
                 },
@@ -2261,7 +2261,7 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YMF262/OPL3 synthesis core.",
-                    "Renderer notes and musical templates write OPL-compatible operator waveform, multiple, total-level, envelope, channel feedback/connection/output-select, f-number/block, key-on, OPL3 new-mode, and $BD rhythm registers.",
+                    "Renderer notes and preset recipes write OPL-compatible operator waveform, multiple, total-level, envelope, channel feedback/connection/output-select, f-number/block, key-on, OPL3 new-mode, and $BD rhythm registers.",
                     "Descriptor, MIDI CC, renderer smoke, YMF262 high-bank/new-mode state, source gating, Rhythm Mode, and Chip Poly regression tests cover the nine-lane adapter."
                 },
                 {
@@ -2276,15 +2276,15 @@ const std::vector<ChipDescriptor>& descriptors()
             "Partial clean-room SNES-style lo-fi sample-voice model with eight internal voices.",
             {
                 { "voices", "Sample Voices", "Sources", "All eight lo-fi sample voices are exposed in the current UI." },
-                { "sample", "Sample Color", "Tone", "Generated lo-fi sample templates, BRR loading, partial S-DSP-style noise, and PMON-style pitch modulation." },
+                { "sample", "Sample Color", "Tone", "Generated lo-fi sample shapes, BRR loading, partial S-DSP-style noise, and PMON-style pitch modulation." },
                 { "echo", "Echo Color", "Output", "Musical echo-color helper with signed FIR-style taps." },
-                { "adsr", "ADSR/Gain", "Envelope", "Playable ADSR/gain-style note shaping with template-aware sustain and release." },
+                { "adsr", "ADSR/Gain", "Envelope", "Playable ADSR/gain-style note shaping with preset-aware sustain and release." },
             },
             {
                 makeModule("profile", "Profile", "SPC700-style clean-room sample groundwork.", { "SNES family", "32 kHz DSP-rate default", "Hybrid default", "Authentic still partial" }),
                 makeModule("sources", "Sample Voices", "All eight SPC700-style sample voices are exposed as playable lanes.", { "Voices 1-4", "Voices 5-8", "Sample lane", "Chip Poly" }),
-                makeModule("sample", "Sample / Pitch", "Generated lo-fi templates plus user BRR/WAV/AIFF file and folder loading.", { "Sample file", "Sample folder bank", "Note map", "Noise source" }),
-                makeModule("envelope", "ADSR / Gain", "Playable gain and envelope shaping derived from the selected template.", { "Attack", "Decay", "Sustain", "Release" }),
+                makeModule("sample", "Sample / Pitch", "Generated lo-fi sample shapes plus user BRR/WAV/AIFF file and folder loading.", { "Sample file", "Sample folder bank", "Note map", "Noise source" }),
+                makeModule("envelope", "ADSR / Gain", "Playable gain and envelope shaping derived from the selected preset.", { "Attack", "Decay", "Sustain", "Release" }),
                 makeModule("motion", "Motion", "SNES-style SFX gestures mapped to sample pitch and previous-voice modulation.", { "Voice arp", "Pitch sweep", "PMON-style link", "Damage hit" }),
                 makeModule("output", "Output", "Soft sample output with echo-color helper.", { "Voice volume", "Stereo spread convenience", "Echo color", "Known differences" })
             },
@@ -2347,12 +2347,12 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "sample", "Sample Mix", "Sources", "Four 8-bit sample channels with source enables and trims." },
                 { "period", "Period", "Tone", "Paula-style period mapping from notes to sample playback rate." },
                 { "loop", "Loop", "Envelope", "Loop/one-shot control plus musical decay helper." },
-                { "tracker", "Tracker Grit", "Output", "Hard-panned tracker channel layout with 8-bit templates." },
+                { "tracker", "Tracker Grit", "Output", "Hard-panned tracker channel layout with 8-bit sample shapes." },
             },
             {
                 makeModule("profile", "Profile", "Paula clean-room tracker sampler groundwork.", { "Amiga family", "3.55 MHz PAL default", "Hybrid default", "Authentic still partial" }),
                 makeModule("sources", "Channels", "Four native Paula sample channels in the fixed Amiga L/R/R/L hardware layout.", { "Ch 1 left", "Ch 2 right", "Ch 3 right", "Ch 4 left" }),
-                makeModule("sample", "Sample / Period", "8-bit templates plus user WAV/AIFF/8SVX folder-bank import.", { "WAV/AIFF/8SVX file", "Folder bank", "Note map", "Slot CC117" }),
+                makeModule("sample", "Sample / Period", "8-bit sample shapes plus user WAV/AIFF/8SVX folder-bank import.", { "WAV/AIFF/8SVX file", "Folder bank", "Note map", "Slot CC117" }),
                 makeModule("envelope", "Loop / Decay", "Looped instrument and one-shot tracker behavior.", { "Loop bias", "One-shot drums", "Decay helper", "Register readout" }),
                 makeModule("motion", "Motion", "Tracker SFX gestures mapped to sample periods.", { "Tracker arp", "Rate sweep", "Jump blip", "Damage hit" }),
                 makeModule("output", "Output", "Classic hard-panned Amiga channel layout groundwork.", { "0-64 volume", "Stereo spread convenience", "User samples", "Known differences" })
@@ -2363,7 +2363,7 @@ const std::vector<ChipDescriptor>& descriptors()
             paulaParameterSpecs(),
             verifiedPartial(
                 {
-                    "Four sample channels render 8-bit generated templates and plugin-loaded user WAV/AIFF/uncompressed IFF-8SVX sample banks with period, volume, enable, loop, and sample-template register paths.",
+                    "Four sample channels render 8-bit generated sample shapes and plugin-loaded user WAV/AIFF/uncompressed IFF-8SVX sample banks with period, volume, enable, loop, and sample-shape register paths.",
                     "Source enables, source levels, chip-poly allocation, sample-shape choices, hard-panned output, plugin sample slot selection/state recall, note-mapped sample-bank selection, and debug JSON are covered by automated tests.",
                     "No third-party Paula, ProTracker, or module-player source code is vendored in this clean-room partial model."
                 },
@@ -2415,7 +2415,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "wave", "Wave RAM", "Wave", "32-sample 4-bit wavetable lanes." },
                 { "vol", "Volume", "Mixer", "Simplified 4-bit lane volumes." },
                 { "enable", "Lane Enables", "Channels", "Enable-mask register path." },
-                { "arcade", "Arcade Stack", "Motion", "Internal multi-lane WSG templates." },
+                { "arcade", "Arcade Stack", "Motion", "Internal multi-lane WSG preset recipes." },
             },
             {
                 makeModule("profile", "Profile", "Namco WSG clean-room groundwork.", { "Arcade wavetable family", "96 kHz default", "Hybrid default", "Authentic still partial" }),
@@ -2430,7 +2430,7 @@ const std::vector<ChipDescriptor>& descriptors()
             namcoWsgParameterSpecs(),
             verifiedPartial(
                 {
-                    "Eight simplified wavetable lanes, 32-sample 4-bit wave RAM templates, frequency, volume, and enable register paths are modeled.",
+                    "Eight simplified wavetable lanes, 32-sample 4-bit wave RAM shapes, frequency, volume, and enable register paths are modeled.",
                     "All eight WSG lanes are exposed through source enable/level controls and Chip Poly allocation.",
                     "No third-party Namco WSG source code is vendored in this clean-room partial model."
                 },
@@ -2457,7 +2457,7 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2151/OPM synthesis core.",
-                    "Renderer notes and musical templates write OPM algorithm, feedback, operator multiplier/total-level/envelope seed, key-code/key-fraction, pan, $0F channel-8 noise, and key-on registers.",
+                    "Renderer notes and preset recipes write OPM algorithm, feedback, operator multiplier/total-level/envelope seed, key-code/key-fraction, pan, $0F channel-8 noise, and key-on registers.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover all eight exposed melodic lanes."
                 },
                 {
@@ -2481,7 +2481,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("sources", "Preset FM Voices", "All nine OPLL melodic channels are exposed as playable lanes; rhythm mode repurposes 7-9.", { "Ch 1-6 melodic", "Ch 7-9 melodic/rhythm", "BD HH SD TOM CYM", "Chip Poly" }),
                 makeModule("instrument", "Instrument / Pitch", "Preset instrument, f-number, block, and key-on register writes.", { "ROM preset instruments", "F-number", "Block", "Key-on" }),
                 makeModule("envelope", "OPLL Envelopes", "Native preset and rhythm patch envelopes come from the OPLL core.", { "ROM patch ADSR", "Volume nibbles", "$0E rhythm bits", "Custom patch planned" }),
-                makeModule("motion", "Motion", "Musical OPLL templates mapped to melodic-channel registers.", { "UI chime", "Organ arp", "Sweep zap", "Power organ" }),
+                makeModule("motion", "Motion", "Musical OPLL preset recipes mapped to melodic-channel registers.", { "UI chime", "Organ arp", "Sweep zap", "Power organ" }),
                 makeModule("output", "Output", "Mono/stereo render through emu2413 with modern output trim.", { "Channel volume", "Output gain", "Known differences", "No cycle claim" })
             },
             ym2413Macros(),
@@ -2504,10 +2504,10 @@ const std::vector<ChipDescriptor>& descriptors()
             "Konami SCC",
             "Partial emu2212-backed Konami SCC/SCC+ wavetable model with five internal channels.",
             {
-                { "wave", "Wave RAM", "Wave", "32-byte SCC wave memory templates." },
+                { "wave", "Wave RAM", "Wave", "32-byte SCC wave memory shapes." },
                 { "vol", "Volume", "Mixer", "4-bit channel volume registers." },
                 { "key", "Key Mask", "Channels", "Key-on register path." },
-                { "stack", "Wave Stack", "Motion", "Five-channel wavetable stack templates." },
+                { "stack", "Wave Stack", "Motion", "Five-channel wavetable stack presets." },
             },
             {
                 makeModule("profile", "Profile", "Konami SCC/SCC+ emu2212 groundwork.", { "Konami wavetable family", "3.58 MHz default", "MIT emu2212 core", "Authentic still partial" }),

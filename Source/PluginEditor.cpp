@@ -625,7 +625,7 @@ private:
                                                paulaMode,
                                                0,
                                                ChipperAudioProcessor::DmcSampleEntryInfo {
-                                                   paulaMode ? "No external Paula sample bank loaded" : (spc700Mode ? "Generated SPC700 template active; load samples to replace it" : "No .dmc files loaded"), {}, 0, false, false },
+                                                   paulaMode ? "No external Paula sample bank loaded" : (spc700Mode ? "Generated SPC700 shape active; load samples to replace it" : "No .dmc files loaded"), {}, 0, false, false },
                                                [this] { refreshAfterEdit(); });
             empty->setEnabled(false);
             listContent->addAndMakeVisible(*empty);
@@ -5389,7 +5389,7 @@ juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mod
             case 4: return "AUDC Poly17 noise path";
             case 0:
             default:
-                return "Follow POKEY distortion from template";
+                return "Follow POKEY distortion from preset";
         }
     }
 
@@ -5417,7 +5417,7 @@ juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mod
             case 4: return "Stepped FM color";
             case 0:
             default:
-                return "Follow FM template/operator registers";
+                return "Follow FM preset/operator registers";
         }
     }
 
@@ -5507,7 +5507,7 @@ juce::String ChipperAudioProcessorEditor::sampleChipReadout(chipper::ChipMode mo
     const auto decay = static_cast<int>(std::round(std::clamp(patch.envelopeDecay, 0.0f, 1.0f) * 15.0f));
     const auto volume = static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f));
     auto text = chipLabel
-        + " | template " + juce::String(static_cast<int>(chipper::sampleTemplateForPatch(mode, patch)))
+        + " | shape " + juce::String(static_cast<int>(chipper::sampleTemplateForPatch(mode, patch)))
         + " | decay " + juce::String(decay) + "/15 | volume " + juce::String(volume) + "/15";
     if (mode == chipper::ChipMode::spc700)
         text += " | " + spc700EnvelopeReadout(patch);
@@ -5652,14 +5652,14 @@ juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMod
         }
 
         return "V" + number
-            + " | T" + juce::String(templateId)
+            + " | Shape " + juce::String(templateId)
             + " " + juce::String(sample0) + "/" + juce::String(sample32);
     }
 
     if (mode == chipper::ChipMode::paula)
         return "Ch " + number
             + " " + paulaHardwarePanLabel(index)
-            + " | T" + juce::String(templateId)
+            + " | Shape " + juce::String(templateId)
             + " " + juce::String(sample0) + "/" + juce::String(sample32);
 
     return {};
@@ -5711,7 +5711,7 @@ juce::String ChipperAudioProcessorEditor::sampleSourceRegisterReadout(chipper::C
         }
         else
         {
-            readout += "tmpl " + juce::String(templateId)
+            readout += "shape " + juce::String(templateId)
                 + " | sample[0/32] " + juce::String(sample0) + "/" + juce::String(sample32);
         }
         return readout;
@@ -5728,7 +5728,7 @@ juce::String ChipperAudioProcessorEditor::sampleSourceRegisterReadout(chipper::C
             + " | vol " + juce::String(static_cast<int>(volume)) + "/64"
             + " | ctrl $" + byteHex(control)
             + " | " + ((control & 0x02u) != 0 ? juce::String("loop") : juce::String("one-shot"))
-            + " | tmpl " + juce::String(templateId)
+            + " | shape " + juce::String(templateId)
             + " | sample[0/32] " + juce::String(sample0) + "/" + juce::String(sample32);
     }
 
@@ -5946,12 +5946,12 @@ juce::String ChipperAudioProcessorEditor::fmOperatorRegisterTooltip(chipper::Chi
             return "OPL2 pair state written to $C0: connection and feedback, plus the $E0 waveform selector.";
 
         return juce::String(op == 1u ? "OPL2 modulator operator. " : "OPL2 carrier operator. ")
-            + "This readout follows the current template and shows the register-backed two-operator state; full editable OPL ADSR remains planned.";
+            + "This readout follows the current preset and shows the register-backed two-operator state; full editable OPL ADSR remains planned.";
     }
 
     const auto family = mode == chipper::ChipMode::ym2151 ? juce::String("YM2151/OPM") : juce::String("YM2612/OPN2");
     return family + " operator " + juce::String(static_cast<int>(op + 1u))
-        + " template-resolved registers. MULT/TL control the operator ratio and level, while AR/D1/D2/SL-RR are the native envelope registers currently written into the ymfm core.";
+        + " preset-resolved registers. MULT/TL control the operator ratio and level, while AR/D1/D2/SL-RR are the native envelope registers currently written into the ymfm core.";
 }
 
 juce::String ChipperAudioProcessorEditor::ym2612DacModeReadout(const chipper::PatchConfig& patch) const
@@ -6221,7 +6221,7 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
             case 2: return "Rhythm, $BD enables BD/HH/SD/TOM/CYM on channels 7-9";
             case 0:
             default:
-                return "Follow template, Drum/Hit use native OPL2 rhythm";
+                return "Follow preset, Drum/Hit use native OPL2 rhythm";
         }
     }
 
@@ -6234,7 +6234,7 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
             case 2: return "Rhythm, $0E enables BD/HH/SD/TOM/CYM on channels 7-9";
             case 0:
             default:
-                return "Follow template, Drum/Hit use native OPLL rhythm";
+                return "Follow preset, Drum/Hit use native OPLL rhythm";
         }
     }
 
@@ -6250,7 +6250,7 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
             case 4: return chip + " AR/DR/SR/SL+RR set for percussive hits";
             case 0:
             default:
-                return "Follow template, writes " + chip + " operator envelope registers";
+                return "Follow preset, writes " + chip + " operator envelope registers";
         }
     }
 
@@ -6264,7 +6264,7 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
             case 4: return "AUDCTL bits 1+2: both high-pass paths";
             case 0:
             default:
-                return "Follow template, writes POKEY AUDCTL filter bits";
+                return "Follow preset, writes POKEY AUDCTL filter bits";
         }
     }
 
@@ -6278,7 +6278,7 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
             case 4: return "Perc: immediate transient with near-zero sustain";
             case 0:
             default:
-                return "Follow template, writes clean-room SPC700 ADSR/gain contour";
+                return "Follow preset, writes clean-room SPC700 ADSR/gain contour";
         }
     }
 
@@ -8537,7 +8537,7 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
             ? "Selects the manual SPC700 sample from the loaded bank. MIDI CC117 selects the same slot; Manual playback uses it for every note."
             : "No external SPC700 bank is loaded. Chipper is playing the generated SPC700 sample shape selected by Sample Shape.",
         chipper::ChipParameterRole::nesDmcSampleSlot));
-    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("SPC700 Sample Playback. Manual Slot plays the selected dropdown slot; Note Map maps loaded folder slots upward from the Sample Map Root. Drum Map uses the same bank mapping path for one-shot/percussion templates.", chipper::ChipParameterRole::nesDmcPlaybackMode));
+    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("SPC700 Sample Playback. Manual Slot plays the selected dropdown slot; Note Map maps loaded folder slots upward from the Sample Map Root. Drum Map uses the same bank mapping path for one-shot/percussion presets.", chipper::ChipParameterRole::nesDmcPlaybackMode));
     dmcMapRootBox.setTooltip(withMidiCcForRole("SPC700 Sample Map Root. Loaded folder slots map upward from this MIDI note when playback is a map mode.", chipper::ChipParameterRole::nesDmcMapRoot));
 
     const auto info = audioProcessor.spc700BrrSampleInfo();
