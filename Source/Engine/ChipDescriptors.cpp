@@ -3866,21 +3866,29 @@ uint8_t huc6280ControlForPatch(const PatchConfig& patch, size_t)
     return static_cast<uint8_t>(0x80u | volume);
 }
 
-uint8_t huc6280WaveShapeForChannel(const PatchConfig& patch, size_t channel)
+uint8_t wavetableWaveShapeForChannel(ChipMode mode, const PatchConfig& patch, size_t channel)
 {
-    const std::array<int, 6> choices {
+    const std::array<int, 8> choices {
         patch.waveShape,
         patch.sidVoice2WaveShape,
         patch.sidVoice3WaveShape,
         patch.pulse2Duty,
         patch.dmgWaveLevel,
-        patch.snNoiseMode
+        patch.snNoiseMode,
+        patch.ymEnvelopeShape,
+        patch.dmgStereoRoute
     };
 
+    const auto channelCount = mode == ChipMode::namcoWsg ? size_t { 8u } : (mode == ChipMode::huc6280 ? size_t { 6u } : size_t { 1u });
     const auto baseChoice = std::clamp(patch.waveShape, 0, 4);
-    auto choice = choices[std::min(channel, choices.size() - 1u)];
+    auto choice = choices[std::min(channel, channelCount - 1u)];
     choice = std::clamp(choice, 0, 4);
     return static_cast<uint8_t>(choice == 0 ? baseChoice : choice);
+}
+
+uint8_t huc6280WaveShapeForChannel(const PatchConfig& patch, size_t channel)
+{
+    return wavetableWaveShapeForChannel(ChipMode::huc6280, patch, channel);
 }
 
 bool huc6280ChannelUsesNoiseForPatch(const PatchConfig& patch, size_t channel)
@@ -3955,8 +3963,8 @@ bool namcoWsgChannelEnabledForPatch(const PatchConfig& patch, size_t channel)
 uint8_t wavetableRamSampleForPatch(ChipMode mode, const PatchConfig& patch, size_t channel, size_t sampleIndex)
 {
     constexpr auto twoPiLocal = 6.283185307179586476925286766559;
-    const auto choice = mode == ChipMode::huc6280
-                            ? static_cast<int>(huc6280WaveShapeForChannel(patch, channel))
+    const auto choice = mode == ChipMode::huc6280 || mode == ChipMode::namcoWsg
+                            ? static_cast<int>(wavetableWaveShapeForChannel(mode, patch, channel))
                             : std::clamp(patch.waveShape, 0, 4);
     const auto i = sampleIndex & 31u;
     const auto phaseValue = static_cast<double>(i) / 32.0;

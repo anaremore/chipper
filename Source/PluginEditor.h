@@ -153,7 +153,7 @@ private:
     static constexpr size_t waveShapeCount = 5;
     static constexpr size_t pulse2DutyCount = 5;
     static constexpr size_t sidVoiceWaveCount = 3;
-    static constexpr size_t hucVoiceWaveCount = 6;
+    static constexpr size_t hucVoiceWaveCount = 8;
     static constexpr size_t dmgWaveLevelCount = 5;
     static constexpr size_t dmgStereoRouteCount = 5;
     static constexpr size_t ymEnvelopeShapeCount = 21;

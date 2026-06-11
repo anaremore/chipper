@@ -407,13 +407,15 @@ const char* sidVoiceWaveParameterId(size_t index)
 
 chipper::ChipParameterRole hucVoiceWaveRole(size_t index)
 {
-    static constexpr std::array<chipper::ChipParameterRole, 6> roles {
+    static constexpr std::array<chipper::ChipParameterRole, 8> roles {
         chipper::ChipParameterRole::waveShape,
         chipper::ChipParameterRole::sidVoice2WaveShape,
         chipper::ChipParameterRole::sidVoice3WaveShape,
         chipper::ChipParameterRole::pulse2Duty,
         chipper::ChipParameterRole::dmgWaveLevel,
-        chipper::ChipParameterRole::snNoiseMode
+        chipper::ChipParameterRole::snNoiseMode,
+        chipper::ChipParameterRole::ymEnvelopeShape,
+        chipper::ChipParameterRole::dmgStereoRoute
     };
 
     return roles[std::min(index, roles.size() - 1u)];
@@ -421,13 +423,15 @@ chipper::ChipParameterRole hucVoiceWaveRole(size_t index)
 
 const char* hucVoiceWaveParameterId(size_t index)
 {
-    static constexpr std::array<const char*, 6> ids {
+    static constexpr std::array<const char*, 8> ids {
         chipper::parameters::id::waveShape,
         chipper::parameters::id::sidVoice2WaveShape,
         chipper::parameters::id::sidVoice3WaveShape,
         chipper::parameters::id::pulse2Duty,
         chipper::parameters::id::dmgWaveLevel,
-        chipper::parameters::id::snNoiseMode
+        chipper::parameters::id::snNoiseMode,
+        chipper::parameters::id::ymEnvelopeShape,
+        chipper::parameters::id::dmgStereoRoute
     };
 
     return ids[std::min(index, ids.size() - 1u)];
@@ -3588,7 +3592,7 @@ void ChipperAudioProcessorEditor::resized()
         placeOpllInstrumentControl(primaryTonePanel);
     else if (displayedMode == chipper::ChipMode::nes)
         placePulseDutySegment(primaryTonePanel);
-    else if (displayedMode == chipper::ChipMode::huc6280)
+    else if (displayedMode == chipper::ChipMode::huc6280 || displayedMode == chipper::ChipMode::namcoWsg)
         placeHucVoiceWaveControls(primaryTonePanel);
     else
         placeWaveShapeSegment(primaryTonePanel);
@@ -4296,6 +4300,10 @@ void ChipperAudioProcessorEditor::placeHucVoiceWaveControls(juce::Rectangle<int>
     waveShapeLabel.setBounds(bounds.removeFromTop(std::min(18, bounds.getHeight())));
     bounds.removeFromTop(std::min(4, bounds.getHeight()));
 
+    const auto visibleCount = displayedMode == chipper::ChipMode::namcoWsg ? size_t { 8u } : size_t { 6u };
+    const auto columns = visibleCount > 6u ? size_t { 4u } : size_t { 3u };
+    const auto topCount = std::min(columns, visibleCount);
+    const auto bottomCount = visibleCount - topCount;
     const auto rowHeight = std::min(25, std::max(18, (bounds.getHeight() - 5) / 2));
     auto topRow = bounds.removeFromTop(std::min(rowHeight, bounds.getHeight())).reduced(0, 1);
     bounds.removeFromTop(std::min(5, bounds.getHeight()));
@@ -4320,8 +4328,9 @@ void ChipperAudioProcessorEditor::placeHucVoiceWaveControls(juce::Rectangle<int>
         }
     };
 
-    layoutRow(topRow, 0, 3);
-    layoutRow(bottomRow, 3, 3);
+    layoutRow(topRow, 0, topCount);
+    if (bottomCount > 0u)
+        layoutRow(bottomRow, topCount, bottomCount);
     waveShapeValueLabel.setBounds(bounds);
 }
 
@@ -5935,8 +5944,8 @@ juce::String ChipperAudioProcessorEditor::wavetableSourceCardLabel(chipper::Chip
     const auto wave0 = chipper::wavetableRamSampleForPatch(mode, patch, index, 0);
     const auto wave31 = chipper::wavetableRamSampleForPatch(mode, patch, index, 31);
     juce::String shape;
-    const auto shapeChoice = mode == chipper::ChipMode::huc6280
-                                 ? static_cast<int>(chipper::huc6280WaveShapeForChannel(patch, index))
+    const auto shapeChoice = mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg
+                                 ? static_cast<int>(chipper::wavetableWaveShapeForChannel(mode, patch, index))
                                  : std::clamp(patch.waveShape, 0, 4);
     switch (shapeChoice)
     {
@@ -5996,9 +6005,11 @@ juce::String ChipperAudioProcessorEditor::wavetableSourceRegisterReadout(chipper
         const auto base = static_cast<uint8_t>(0x80u + std::min(index, size_t { 7u }) * 4u);
         const auto volume = chipper::namcoWsgVolumeForPatch(patch, index);
         const auto enabled = chipper::namcoWsgChannelEnabledForPatch(patch, index);
+        const auto shapeChoice = static_cast<int>(chipper::wavetableWaveShapeForChannel(mode, patch, index));
         return "Namco lane " + juce::String(channel)
             + " | regs $" + byteHex(base) + "-$" + byteHex(static_cast<uint8_t>(base + 3u))
             + " | vol " + juce::String(static_cast<int>(volume)) + "/15"
+            + " | wave " + juce::String(shapeChoice)
             + " | " + (enabled ? juce::String("enabled") : juce::String("muted"))
             + " | RAM[0/31] $" + byteHex(wave0) + "/$" + byteHex(wave31);
     }
@@ -7031,8 +7042,9 @@ void ChipperAudioProcessorEditor::setPulse2DutySegmentVisible(chipper::ChipMode 
 
 void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
+    const auto usesPerLaneWaves = mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg;
     setSidVoiceWaveControlsVisible(shouldBeVisible && mode == chipper::ChipMode::sid);
-    setHucVoiceWaveControlsVisible(shouldBeVisible && mode == chipper::ChipMode::huc6280);
+    setHucVoiceWaveControlsVisible(shouldBeVisible && usesPerLaneWaves);
     if (mode == chipper::ChipMode::sid)
     {
         for (auto& button : waveShapeButtons)
@@ -7044,7 +7056,7 @@ void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode m
         opllInstrumentBox.setVisible(false);
         return;
     }
-    if (mode == chipper::ChipMode::huc6280)
+    if (usesPerLaneWaves)
     {
         for (auto& button : waveShapeButtons)
             button.setVisible(false);
@@ -7834,10 +7846,11 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
     }
     else if (mode == chipper::ChipMode::namcoWsg)
     {
-        shape = wavetablePreviewShape(patch);
+        const auto laneShape = static_cast<int>(chipper::wavetableWaveShapeForChannel(mode, patch, index));
+        shape = wavetablePreviewShapeForChoice(laneShape);
         tooltip = juce::String("Namco WSG wavetable lane ") + juce::String(static_cast<int>(index + 1u))
             + ": 4-bit wave RAM preview."
-            + "\nWave Shape: " + waveShapeReadout(mode, patch.waveShape)
+            + "\nWave Shape: " + waveShapeReadout(mode, laneShape)
             + "\n" + wavetableSourceRegisterReadout(mode, patch, index);
     }
     else if (mode == chipper::ChipMode::scc)
@@ -8105,7 +8118,7 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
         updateSidVoiceWaveControls(shouldBeVisible);
         return;
     }
-    if (mode == chipper::ChipMode::huc6280)
+    if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg)
     {
         for (auto& button : waveShapeButtons)
             button.setVisible(false);
@@ -8362,13 +8375,18 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
 {
     const juce::ScopedValueSetter<bool> suppressChoices(suppressManualChoiceCallbacks, true);
 
-    waveShapeLabel.setText("Channel Waves", juce::dontSendNotification);
+    const auto modeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::chipMode)));
+    const auto mode = chipper::parameters::chipModeFromChoice(modeChoice);
+    const auto isNamco = mode == chipper::ChipMode::namcoWsg;
+    const auto visibleCount = isNamco ? size_t { 8u } : size_t { 6u };
+    const auto laneName = isNamco ? juce::String("Lane") : juce::String("Ch");
+    waveShapeLabel.setText(isNamco ? "Lane Waves" : "Channel Waves", juce::dontSendNotification);
     waveShapeValueLabel.setJustificationType(juce::Justification::centredLeft);
     waveShapeLabel.setVisible(shouldBeVisible);
     waveShapeValueLabel.setVisible(shouldBeVisible);
 
     const auto patch = currentUiPatch(
-        chipper::ChipMode::huc6280,
+        mode,
         parameterValue(chipper::parameters::id::macroControl1),
         parameterValue(chipper::parameters::id::macroControl2),
         parameterValue(chipper::parameters::id::macroControl3),
@@ -8384,30 +8402,32 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
     for (size_t i = 0; i < hucVoiceWaveBoxes.size(); ++i)
     {
         const auto selected = std::clamp(static_cast<int>(std::round(parameterValue(hucVoiceWaveParameterId(i)))), 0, 4);
-        const auto resolved = static_cast<int>(chipper::huc6280WaveShapeForChannel(patch, i));
+        const auto resolved = static_cast<int>(chipper::wavetableWaveShapeForChannel(mode, patch, i));
         const auto maxChoice = std::max(0, hucVoiceWaveBoxes[i].getNumItems() - 1);
-        hucVoiceWaveLabels[i].setVisible(shouldBeVisible);
-        hucVoiceWaveBoxes[i].setVisible(shouldBeVisible);
+        const auto visible = shouldBeVisible && i < visibleCount;
+        hucVoiceWaveLabels[i].setText(laneName + " " + juce::String(static_cast<int>(i + 1u)), juce::dontSendNotification);
+        hucVoiceWaveLabels[i].setVisible(visible);
+        hucVoiceWaveBoxes[i].setVisible(visible);
         hucVoiceWaveBoxes[i].setSelectedId(std::clamp(selected, 0, maxChoice) + 1, juce::dontSendNotification);
 
-        const auto resolvedText = waveShapeReadout(chipper::ChipMode::huc6280, resolved);
-        const auto tooltip = juce::String("HuC6280 channel ") + juce::String(static_cast<int>(i + 1u))
+        const auto resolvedText = waveShapeReadout(mode, resolved);
+        const auto tooltip = juce::String(isNamco ? "Namco WSG lane " : "HuC6280 channel ") + juce::String(static_cast<int>(i + 1u))
             + " wave RAM shape."
             + "\nResolved: " + resolvedText
-            + "\n" + wavetableSourceRegisterReadout(chipper::ChipMode::huc6280, patch, i);
+            + "\n" + wavetableSourceRegisterReadout(mode, patch, i);
         hucVoiceWaveLabels[i].setTooltip(withMidiCcForRole(tooltip, hucVoiceWaveRole(i)));
         hucVoiceWaveBoxes[i].setTooltip(withMidiCcForRole(tooltip, hucVoiceWaveRole(i)));
 
-        if (i < 3u)
+        if (i < (isNamco ? 4u : 3u))
         {
             if (summary.isNotEmpty())
                 summary += " | ";
-            summary += "Ch" + juce::String(static_cast<int>(i + 1u)) + " "
+            summary += laneName + juce::String(static_cast<int>(i + 1u)) + " "
                 + hucVoiceWaveBoxes[i].getText();
         }
     }
 
-    waveShapeValueLabel.setText(summary.isNotEmpty() ? summary : juce::String("Per-channel HuC wave RAM shapes"), juce::dontSendNotification);
+    waveShapeValueLabel.setText(summary.isNotEmpty() ? summary : (isNamco ? juce::String("Per-lane Namco WSG wave RAM shapes") : juce::String("Per-channel HuC wave RAM shapes")), juce::dontSendNotification);
 }
 
 void ChipperAudioProcessorEditor::updateSidVoicePulseWidthControls(const chipper::PatchConfig& patch, bool shouldBeVisible)
