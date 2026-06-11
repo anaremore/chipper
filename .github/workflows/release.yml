@@ -39,9 +39,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            pkg-config \
             libasound2-dev \
             libcurl4-openssl-dev \
             libfreetype6-dev \
+            libgtk-3-dev \
             libjack-jackd2-dev \
             libglu1-mesa-dev \
             libwebkit2gtk-4.1-dev \
@@ -50,6 +52,7 @@ jobs:
             libxcursor-dev \
             libxext-dev \
             libxinerama-dev \
+            libxkbcommon-x11-dev \
             libxrandr-dev \
             libxrender-dev \
             mesa-common-dev
@@ -79,10 +82,24 @@ jobs:
           $safeTag = $tag -replace '[^A-Za-z0-9._-]', '-'
           $artifactName = "Chipper-$safeTag-$env:ARTIFACT_SUFFIX-vst3"
           $packageRoot = Join-Path $env:RUNNER_TEMP $artifactName
-          $vst3Source = Join-Path (Get-Location) "build-release/Chipper_artefacts/Release/VST3/Chipper.vst3"
+          $candidatePaths = @(
+            "build-release/Chipper_artefacts/Release/VST3/Chipper.vst3",
+            "build-release/Chipper_artefacts/VST3/Chipper.vst3",
+            "build-release/Chipper_artefacts/RelWithDebInfo/VST3/Chipper.vst3"
+          )
+          $vst3Source = $candidatePaths |
+            ForEach-Object { Join-Path (Get-Location) $_ } |
+            Where-Object { Test-Path -LiteralPath $_ -PathType Container } |
+            Select-Object -First 1
 
-          if (!(Test-Path -LiteralPath $vst3Source)) {
-            throw "VST3 bundle was not found at $vst3Source"
+          if ([string]::IsNullOrWhiteSpace($vst3Source)) {
+            $vst3Source = Get-ChildItem -Path (Join-Path (Get-Location) "build-release") -Recurse -Filter Chipper.vst3 -ErrorAction SilentlyContinue |
+              Where-Object { $_.PSIsContainer -and $_.FullName -match [regex]::Escape("VST3") } |
+              Select-Object -ExpandProperty FullName -First 1
+          }
+
+          if ([string]::IsNullOrWhiteSpace($vst3Source) -or !(Test-Path -LiteralPath $vst3Source -PathType Container)) {
+            throw "VST3 bundle was not found under build-release"
           }
 
           New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
