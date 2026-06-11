@@ -420,7 +420,6 @@ private:
     juce::Label snNoiseModeLabel;
     juce::Label snNoiseModeValueLabel;
     std::array<juce::Label, 5> headerControlLabels;
-    std::array<juce::Label, uiModuleCount> moduleNumberLabels;
     std::array<juce::Label, uiModuleCount> moduleTitleLabels;
     std::array<juce::Label, uiModuleCount> moduleSummaryLabels;
     std::array<std::array<juce::Label, uiModuleRows>, uiModuleCount> moduleItemLabels;
