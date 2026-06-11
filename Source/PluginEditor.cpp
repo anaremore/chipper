@@ -3536,7 +3536,8 @@ void ChipperAudioProcessorEditor::resized()
     const auto usesFmOperatorRegisterSurface = displayedMode == chipper::ChipMode::ym2612
         || displayedMode == chipper::ChipMode::opl3
         || displayedMode == chipper::ChipMode::ym2151;
-    const auto usesSampleToneStack = displayedMode == chipper::ChipMode::spc700
+    const auto usesSampleToneStack = (displayedMode == chipper::ChipMode::spc700
+        || displayedMode == chipper::ChipMode::paula)
         && usesSnNoiseModeSegment(displayedMode);
     if (displayedMode == chipper::ChipMode::dmg)
     {
