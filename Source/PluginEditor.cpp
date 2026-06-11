@@ -3450,7 +3450,7 @@ void ChipperAudioProcessorEditor::resized()
             const auto availableHeight = tonePanel.getHeight();
             const auto gapHeight = std::min(8, std::max(0, availableHeight - 1));
             const auto desiredPulseHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.58)), 64, 86);
-            const auto minNoiseHeight = 42;
+            const auto minNoiseHeight = 64;
             const auto pulseHeight = std::clamp(desiredPulseHeight,
                                                 0,
                                                 std::max(0, availableHeight - gapHeight - minNoiseHeight));
@@ -4313,8 +4313,8 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
         || displayedMode == chipper::ChipMode::opl3
         || displayedMode == chipper::ChipMode::ym2151
         || displayedMode == chipper::ChipMode::ym2413;
-    const auto useRoomyNesNoise = displayedMode == chipper::ChipMode::nes && bounds.getHeight() >= 36;
-    snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(useRoomyNesNoise ? 20 : (compact ? 15 : 18), bounds.getHeight())));
+    const auto useRoomyNesNoise = displayedMode == chipper::ChipMode::nes && bounds.getHeight() >= 48;
+    snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(useRoomyNesNoise ? 18 : (compact ? 15 : 18), bounds.getHeight())));
     if (displayedMode == chipper::ChipMode::sn76489)
     {
         snNoiseModeBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
@@ -4324,8 +4324,8 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
     }
     else
     {
-        bounds.removeFromTop(std::min(useRoomyNesNoise ? 4 : (compact ? 2 : 0), bounds.getHeight()));
-        snNoiseModeSegmentBounds = bounds.removeFromTop(std::min(useRoomyNesNoise ? 32 : (compact ? 24 : 28), bounds.getHeight())).reduced(0, 1);
+        bounds.removeFromTop(std::min(useRoomyNesNoise ? 5 : (compact ? 2 : 0), bounds.getHeight()));
+        snNoiseModeSegmentBounds = bounds.removeFromTop(std::min(useRoomyNesNoise ? 34 : (compact ? 24 : 28), bounds.getHeight())).reduced(0, 1);
         layoutSegmentedButtons(snNoiseModeButtons, snNoiseModeSegmentBounds, choiceCount);
         snNoiseModeBox.setBounds({});
     }
