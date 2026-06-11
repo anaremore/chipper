@@ -1944,7 +1944,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         label->setVisible(false);
         addAndMakeVisible(*label);
     }
-    dmcPlaybackModeLabel.setText("Bank Mode", juce::dontSendNotification);
+    dmcPlaybackModeLabel.setText("Playback", juce::dontSendNotification);
     dmcPlaybackModeLabel.setTooltip(withMidiCcForRole("Chooses whether the loaded sample bank uses one manual slot or maps slots across MIDI notes.", chipper::ChipParameterRole::nesDmcPlaybackMode));
     dmcMapRootLabel.setText("Root", juce::dontSendNotification);
     dmcMapRootLabel.setTooltip(withMidiCcForRole("First MIDI note used by sample bank note-map modes.", chipper::ChipParameterRole::nesDmcMapRoot));
@@ -3737,8 +3737,8 @@ void ChipperAudioProcessorEditor::resized()
         sampleCell.removeFromTop(4);
 
         auto playbackRow = sampleCell.removeFromTop(std::min(24, sampleCell.getHeight()));
-        dmcPlaybackModeLabel.setText("Bank Mode", juce::dontSendNotification);
-        dmcPlaybackModeLabel.setBounds(playbackRow.removeFromLeft(78));
+        dmcPlaybackModeLabel.setText("Playback", juce::dontSendNotification);
+        dmcPlaybackModeLabel.setBounds(playbackRow.removeFromLeft(72));
         playbackRow.removeFromLeft(6);
         dmcPlaybackModeBox.setBounds(playbackRow.reduced(0, 1));
         sampleCell.removeFromTop(4);
@@ -8590,7 +8590,7 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     else
         tooltip += "\nSample Playback is a map mode: notes browse the loaded bank from "
             + chipper::parameters::midiNoteChoices()[mapRoot] + " upward.";
-    tooltip += "\nBank Mode: " + bankModeLabel + ".";
+    tooltip += "\nSample Playback: " + bankModeLabel + ".";
     tooltip += "\nResolved playback lifetime: " + lifetimeLabel + ".";
     if (info.loaded && info.bankCount > 1 && playbackMode != 0)
         tooltip += "\nCurrent mapped key span: "
