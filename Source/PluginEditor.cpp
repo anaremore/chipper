@@ -3585,15 +3585,11 @@ void ChipperAudioProcessorEditor::resized()
         else if (displayedMode == chipper::ChipMode::dmg)
         {
             const auto availableHeight = tonePanel.getHeight();
-            const auto gapHeight = std::min(7, std::max(0, availableHeight - 1));
-            const auto roomy = availableHeight >= 126;
-            const auto firstRowHeight = std::clamp(availableHeight / 3, roomy ? 42 : 36, roomy ? 54 : 48);
-            const auto secondRowHeight = std::clamp((availableHeight - firstRowHeight - (gapHeight * 2)) / 2,
-                                                    roomy ? 38 : 34,
-                                                    roomy ? 48 : 44);
-            primaryTonePanel = tonePanel.removeFromTop(std::min(firstRowHeight, tonePanel.getHeight()));
+            const auto gapHeight = std::min(5, std::max(2, availableHeight / 28));
+            const auto dmgToneRowHeight = std::max(0, (availableHeight - (gapHeight * 2)) / 3);
+            primaryTonePanel = tonePanel.removeFromTop(std::min(dmgToneRowHeight, tonePanel.getHeight()));
             tonePanel.removeFromTop(std::min(gapHeight, tonePanel.getHeight()));
-            secondaryTonePanel = tonePanel.removeFromTop(std::min(secondRowHeight, tonePanel.getHeight()));
+            secondaryTonePanel = tonePanel.removeFromTop(std::min(dmgToneRowHeight, tonePanel.getHeight()));
             tonePanel.removeFromTop(std::min(gapHeight, tonePanel.getHeight()));
             tertiaryTonePanel = tonePanel;
         }
@@ -4227,13 +4223,14 @@ void ChipperAudioProcessorEditor::placePulse2DutySegment(juce::Rectangle<int> bo
 
 void ChipperAudioProcessorEditor::placeWaveShapeSegment(juce::Rectangle<int> bounds)
 {
+    const auto tight = bounds.getHeight() < 40;
     const auto compact = bounds.getHeight() < 64;
-    waveShapeLabel.setBounds(bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight())));
-    bounds.removeFromTop(std::min(compact ? 1 : 0, bounds.getHeight()));
-    waveShapeSegmentBounds = bounds.removeFromTop(std::min(compact ? 24 : 28, bounds.getHeight())).reduced(0, 1);
+    waveShapeLabel.setBounds(bounds.removeFromTop(std::min(tight ? 12 : (compact ? 15 : 18), bounds.getHeight())));
+    bounds.removeFromTop(std::min(tight ? 1 : (compact ? 1 : 0), bounds.getHeight()));
+    waveShapeSegmentBounds = bounds.removeFromTop(std::min(tight ? 20 : (compact ? 24 : 28), bounds.getHeight())).reduced(0, 1);
     layoutSegmentedButtons(waveShapeButtons, waveShapeSegmentBounds, waveShapeButtons.size());
 
-    waveShapeValueLabel.setBounds(compact ? juce::Rectangle<int> {} : bounds);
+    waveShapeValueLabel.setBounds((compact || tight) ? juce::Rectangle<int> {} : bounds);
 }
 
 void ChipperAudioProcessorEditor::placeFmAlgorithmControl(juce::Rectangle<int> bounds)
@@ -4452,13 +4449,14 @@ void ChipperAudioProcessorEditor::placeHucVoiceWaveControls(juce::Rectangle<int>
 
 void ChipperAudioProcessorEditor::placeDmgWaveLevelSegment(juce::Rectangle<int> bounds)
 {
+    const auto tight = bounds.getHeight() < 40;
     const auto compact = bounds.getHeight() < 64;
-    dmgWaveLevelLabel.setBounds(bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight())));
-    bounds.removeFromTop(std::min(compact ? 1 : 0, bounds.getHeight()));
-    dmgWaveLevelSegmentBounds = bounds.removeFromTop(std::min(compact ? 24 : 28, bounds.getHeight())).reduced(0, 1);
+    dmgWaveLevelLabel.setBounds(bounds.removeFromTop(std::min(tight ? 12 : (compact ? 15 : 18), bounds.getHeight())));
+    bounds.removeFromTop(std::min(tight ? 1 : (compact ? 1 : 0), bounds.getHeight()));
+    dmgWaveLevelSegmentBounds = bounds.removeFromTop(std::min(tight ? 20 : (compact ? 24 : 28), bounds.getHeight())).reduced(0, 1);
     layoutSegmentedButtons(dmgWaveLevelButtons, dmgWaveLevelSegmentBounds, dmgWaveLevelButtons.size());
 
-    dmgWaveLevelValueLabel.setBounds(compact ? juce::Rectangle<int> {} : bounds);
+    dmgWaveLevelValueLabel.setBounds((compact || tight) ? juce::Rectangle<int> {} : bounds);
 }
 
 void ChipperAudioProcessorEditor::placeDmgStereoRouteSegment(juce::Rectangle<int> bounds)
@@ -4556,6 +4554,7 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
     const auto choiceCount = spec == nullptr || spec->choices.empty()
                                  ? snNoiseModeButtons.size()
                                  : std::min(snNoiseModeButtons.size(), spec->choices.size());
+    const auto tight = bounds.getHeight() < 40;
     const auto compact = bounds.getHeight() < 52
         || displayedMode == chipper::ChipMode::ym2612
         || displayedMode == chipper::ChipMode::opl3
@@ -4564,7 +4563,7 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
     const auto useRegisterSegment = (displayedMode == chipper::ChipMode::nes
                                      || displayedMode == chipper::ChipMode::dmg)
                                     && bounds.getHeight() >= 44;
-    snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(useRegisterSegment ? 15 : (compact ? 15 : 18), bounds.getHeight())));
+    snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(tight ? 12 : (useRegisterSegment ? 15 : (compact ? 15 : 18)), bounds.getHeight())));
     if (displayedMode == chipper::ChipMode::sn76489)
     {
         snNoiseModeBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
@@ -4574,16 +4573,16 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
     }
     else
     {
-        bounds.removeFromTop(std::min(useRegisterSegment ? 2 : (compact ? 2 : 0), bounds.getHeight()));
+        bounds.removeFromTop(std::min(tight ? 1 : (useRegisterSegment ? 2 : (compact ? 2 : 0)), bounds.getHeight()));
         const auto preferredButtonHeight = useRegisterSegment
             ? std::min(38, std::max(30, bounds.getHeight()))
-            : (compact ? 24 : 28);
+            : (tight ? 20 : (compact ? 24 : 28));
         snNoiseModeSegmentBounds = bounds.removeFromTop(std::min(preferredButtonHeight, bounds.getHeight())).reduced(0, 1);
         layoutSegmentedButtons(snNoiseModeButtons, snNoiseModeSegmentBounds, choiceCount);
         snNoiseModeBox.setBounds({});
     }
 
-    snNoiseModeValueLabel.setBounds((compact || useRegisterSegment) ? juce::Rectangle<int> {} : bounds);
+    snNoiseModeValueLabel.setBounds((compact || tight || useRegisterSegment) ? juce::Rectangle<int> {} : bounds);
 }
 
 void ChipperAudioProcessorEditor::placeToneNoiseMixSegment(juce::Rectangle<int> bounds)
