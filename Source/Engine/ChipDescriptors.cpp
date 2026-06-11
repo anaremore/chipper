@@ -3812,7 +3812,7 @@ uint8_t ym2413InstrumentForPatch(const PatchConfig& patch)
     {
         case MacroKind::coin:
         case MacroKind::jump: return 12;
-        case MacroKind::bass: return 12;
+        case MacroKind::bass: return 13;
         case MacroKind::lead: return 7;
         case MacroKind::arp:
         case MacroKind::powerUp: return 8;

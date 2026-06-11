@@ -456,7 +456,7 @@ bool expectFmRegisterHelpers()
                                                    0.0f,
                                                    0.0f,
                                                    0.6f);
-    ok &= expect(chipper::ym2413InstrumentForPatch(opllBass) == 12u, "YM2413 bass macro should resolve to sustaining OPLL instrument 12");
+    ok &= expect(chipper::ym2413InstrumentForPatch(opllBass) == 13u, "YM2413 bass macro should resolve to Synth Bass OPLL instrument 13");
     ok &= expect(chipper::ym2413VolumeNibbleForPatch(opllBass, 0) == 6u, "YM2413 helper should resolve volume nibble from output level");
 
     const auto opllExplicitBell = chipper::makePatchConfig(chipper::ChipMode::ym2413,
@@ -470,8 +470,8 @@ bool expectFmRegisterHelpers()
                                                            { 1.0f, 0.5f, 1.0f, 1.0f },
                                                            0.0f,
                                                            0.0f,
-                                                           1);
-    ok &= expect(chipper::ym2413InstrumentForPatch(opllExplicitBell) == 12u, "YM2413 explicit Bell choice should resolve to OPLL instrument 12");
+                                                           12);
+    ok &= expect(chipper::ym2413InstrumentForPatch(opllExplicitBell) == 12u, "YM2413 explicit Vibes choice should resolve to OPLL instrument 12");
     ok &= expect(chipper::ym2413VolumeNibbleForPatch(opllExplicitBell, 1) == 11u, "YM2413 helper should include source trim in volume nibble");
 
     return ok;
@@ -904,7 +904,7 @@ int main()
     ok &= expectMacroLabel(chipper::ChipMode::ym2413, chipper::MacroKind::coin, "OPLL UI Chime");
     ok &= expectPreset(chipper::ChipMode::ym2413, "opll-soft-keys");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Instrument");
-    ok &= expectChoiceRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 5, "Follow");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 16, "Follow");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Rhythm Mode");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::ymEnvelopeShape, 3, "Follow");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPLL Ch 9");

@@ -28,7 +28,7 @@ Accuracy levels:
 - Accuracy: Inspired, Hybrid, Authentic
 - Play Mode: Big Mono, Chip Poly where the selected chip has tested finite-channel allocation; Manual and Clone are reserved until tracker routing and hybrid engine cloning are implemented.
 - Output Level
-- Musical Macro: Coin, Bass, Lead, Arp, Drum, Hit, Laser, Jump, Power-Up
+- Preset Recipe: internal chip-native defaults used by factory/user presets for Coin, Bass, Lead, Arp, Drum, Hit, Laser, Jump, and Power-Up style sounds
 - Clock Rate override and model variant where applicable
 - Register-backed channel controls for each implemented chip
 - Duty, noise mode, sweep, length/envelope controls for pulse/noise chips
@@ -38,7 +38,7 @@ Accuracy levels:
 - Arp, retrigger, pitch motion, vibrato, glide, output trim
 - Debug/validation export controls in the renderer, not the VST audio thread
 
-All current VST parameters have fixed default MIDI CC mappings. Chip-aware controls use the same stable APVTS parameters for UI, host automation, preset recall, and MIDI CC control; register-style choices quantize to legal chip values instead of exposing fake continuous states. Current examples include NES Pulse 2 Duty override bits, NES `$4011` DMC Direct Level, shared Sample Slot control for selecting a preloaded DMC/SPC700/Paula bank entry, NES `$4010` DMC Rate for matching DPCM sample clocking, NES `$4010` DMC Loop for one-shot versus looped playback, shared Sample Playback Mode for Manual Slot, mapped sample-bank playback, and NES Sample Map Only playback, shared Sample Bank Root for choosing the first MIDI note of the sample-bank map, DMG `NR32` Wave Level, DMG `NR51` Stereo Route, independent SID 12-bit pulse-width controls for voices 1-3, SID `$D418` Filter Mode choices including combined LP/BP/HP bit outputs, per-voice SID AD/SR attack/decay/sustain/release nibble overrides, SID voice control-register sync/ring Osc Interaction, SID 6581/8580 Model profile, SID `$D417` Resonance, SID `$D417` voice filter routing, and YM2149 register 7 per-channel A/B/C tone/noise mixer overrides. Inherited register choices should be shown as `Follow`, not `Macro`, so users understand that the patch is following a macro/preset-resolved chip state rather than selecting zero/off/none. Full ADSR controls should appear where the chip model actually owns ADSR or operator envelopes, such as SID and FM chips; APU/PSG chips should expose their native envelope, length, attenuation, or decay controls.
+All current VST parameters have fixed default MIDI CC mappings. Chip-aware controls use the same stable APVTS parameters for UI, host automation, preset recall, and MIDI CC control; register-style choices quantize to legal chip values instead of exposing fake continuous states. Current examples include NES Pulse 2 Duty override bits, NES `$4011` DMC Direct Level, shared Sample Slot control for selecting a preloaded DMC/SPC700/Paula bank entry, NES `$4010` DMC Rate for matching DPCM sample clocking, NES `$4010` DMC Loop for one-shot versus looped playback, shared Sample Playback Mode for Manual Slot, mapped sample-bank playback, and NES Sample Map Only playback, shared Sample Bank Root for choosing the first MIDI note of the sample-bank map, DMG `NR32` Wave Level, DMG `NR51` Stereo Route, independent SID 12-bit pulse-width controls for voices 1-3, SID `$D418` Filter Mode choices including combined LP/BP/HP bit outputs, per-voice SID AD/SR attack/decay/sustain/release nibble overrides, SID voice control-register sync/ring Osc Interaction, SID 6581/8580 Model profile, SID `$D417` Resonance, SID `$D417` voice filter routing, and YM2149 register 7 per-channel A/B/C tone/noise mixer overrides. Inherited register choices should be shown as `Follow`, not `Macro`, so users understand that the patch is following preset-resolved chip state rather than selecting zero/off/none. Full ADSR controls should appear where the chip model actually owns ADSR or operator envelopes, such as SID and FM chips; APU/PSG chips should expose their native envelope, length, attenuation, or decay controls.
 
 ## Preset Categories
 
@@ -71,7 +71,7 @@ All current VST parameters have fixed default MIDI CC mappings. Chip-aware contr
 
 Factory preset v1 should prioritize implemented chips and avoid implying that planned chips already have audio cores. The first executable factory presets are:
 
-Planned chip modes may expose chip-specific roadmap templates in the Template dropdown, such as OPN2 FM Bass Plan, but those templates are UI/planning metadata only until the chip has an audited or clean-room audio core. They should not be listed as factory presets or described as audible patches.
+Unimplemented chip modes should not expose non-audible presets. If a chip has only roadmap metadata, keep that metadata in docs/descriptors and avoid presenting it as a playable factory preset until the chip has an audited or clean-room audio core.
 
 The authoritative current preset list is the renderer-exported catalog, not this prose list:
 

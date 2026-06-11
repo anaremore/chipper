@@ -1506,10 +1506,10 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     chipModeBox.setTooltip(withMidiCc("Selects the chip model or planned chip family.", chipper::parameters::id::chipMode));
     accuracyBox.setTooltip(withMidiCc("Selects the requested accuracy tier for the active core.", chipper::parameters::id::accuracy));
     presetBox.setTooltip("Browse factory and user presets for the selected chip mode. Choosing one applies the sound immediately.");
-    macroBox.setTooltip(withMidiCc("Applies a chip-specific musical register template.", chipper::parameters::id::macro));
+    macroBox.setTooltip(withMidiCc("Internal preset recipe. Factory/user presets set this automatically for chip-native defaults.", chipper::parameters::id::macro));
     playModeBox.setTooltip(withMidiCc("Chooses how incoming notes use the chip channels inside one patch.", chipper::parameters::id::playMode));
 
-    const std::array<const char*, 5> headerNames { "Preset", "Chip Mode", "Accuracy", "Template", "Play Mode" };
+    const std::array<const char*, 5> headerNames { "Preset", "Chip Mode", "Accuracy", "", "Play Mode" };
     for (size_t i = 0; i < headerControlLabels.size(); ++i)
     {
         headerControlLabels[i].setText(headerNames[i], juce::dontSendNotification);
@@ -1541,6 +1541,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addAndMakeVisible(chipModeBox);
     addAndMakeVisible(accuracyBox);
     addAndMakeVisible(macroBox);
+    headerControlLabels[3].setVisible(false);
+    macroBox.setVisible(false);
     addAndMakeVisible(playModeBox);
 
     chipModeAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::chipMode, chipModeBox);
@@ -2576,18 +2578,16 @@ void ChipperAudioProcessorEditor::resized()
     constexpr auto saveAsButtonWidth = 76;
     constexpr auto chipModeWidth = 190;
     constexpr auto accuracyWidth = 112;
-    constexpr auto macroWidth = 128;
     constexpr auto playModeWidth = 128;
     constexpr auto readinessMinWidth = 140;
     constexpr auto presetMinWidth = 148;
-    constexpr auto presetMaxWidth = 260;
+    constexpr auto presetMaxWidth = 330;
 
     const auto fixedHeaderWidth = compactGap + loadButtonWidth
         + compactGap + saveButtonWidth
         + compactGap + saveAsButtonWidth
         + headerGap + chipModeWidth
         + headerGap + accuracyWidth
-        + headerGap + macroWidth
         + headerGap + playModeWidth
         + headerGap + readinessMinWidth;
     const auto presetWidth = std::clamp(top.getWidth() - fixedHeaderWidth, presetMinWidth, presetMaxWidth);
@@ -2603,8 +2603,6 @@ void ChipperAudioProcessorEditor::resized()
     placeHeaderCombo(1, chipModeBox, top.removeFromLeft(chipModeWidth));
     top.removeFromLeft(8);
     placeHeaderCombo(2, accuracyBox, top.removeFromLeft(accuracyWidth));
-    top.removeFromLeft(8);
-    placeHeaderCombo(3, macroBox, top.removeFromLeft(macroWidth));
     top.removeFromLeft(8);
     placeHeaderCombo(4, playModeBox, top.removeFromLeft(playModeWidth));
     top.removeFromLeft(8);
@@ -8143,10 +8141,10 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     macroSummaryLabel.setAlpha(hasLiveCore ? 1.0f : 0.85f);
     accuracyBox.setEnabled(hasLiveCore);
     presetBox.setEnabled(hasLiveCore && (! displayedPresets.empty() || ! displayedUserPresets.empty()));
-    macroBox.setEnabled(true);
-    macroBox.setTooltip(hasLiveCore
-                            ? "Applies a chip-specific musical template to native controls."
-                            : "Browses chip-specific roadmap templates. Audio remains disabled until this chip has an audited or clean-room core.");
+    headerControlLabels[3].setVisible(false);
+    macroBox.setVisible(false);
+    macroBox.setEnabled(false);
+    macroBox.setTooltip("Internal preset recipe. Factory/user presets set this automatically for chip-native defaults.");
     playModeBox.setEnabled(hasLiveCore && supportsChipPoly);
     playModeBox.setTooltip(supportsChipPoly
                                ? "Chooses how incoming notes use the chip channels inside one patch."
@@ -8394,8 +8392,6 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
 
     macroSummaryLabel.setText(performanceText, juce::dontSendNotification);
     macroSummaryLabel.setTooltip(performanceTooltip);
-    macroBox.setTooltip(withMidiCc(macroText, chipper::parameters::id::macro));
-
     const auto hasPulseDutySegment = usesPulseDutySegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasPulse2DutySegment = usesPulse2DutySegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasWaveShapeSegment = usesWaveShapeSegment(mode) && chipper::descriptorFor(mode).implemented;

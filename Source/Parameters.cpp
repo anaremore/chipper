@@ -248,7 +248,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::macro, 1 },
-        "Musical Macro",
+        "Preset Recipe",
         macroChoices(),
         0));
 

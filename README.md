@@ -147,7 +147,7 @@ build\Release\chipper_render.exe --list-presets --chip sid --debug sid-presets.j
 
 The plugin header includes `Load` and `Save` buttons beside the preset browser. User presets are saved as plain `.chipperpreset` XML files so they can be shared, versioned, and inspected without a DAW-specific preset container.
 
-User preset files store the same Chipper state used by host project recall, including chip mode, accuracy, template, play mode, public parameters, register snapshots, and external sample-bank references. Audio sample data is not embedded. For portable sharing, put referenced NES DMC, SPC700, or Paula samples next to the preset or in a `Samples` folder beside it; Chipper will try those relative locations before falling back to the original local path.
+User preset files store the same Chipper state used by host project recall, including chip mode, accuracy, play mode, the internal preset recipe used for chip-native defaults, public parameters, register snapshots, and external sample-bank references. Audio sample data is not embedded. For portable sharing, put referenced NES DMC, SPC700, or Paula samples next to the preset or in a `Samples` folder beside it; Chipper will try those relative locations before falling back to the original local path.
 
 The default save location is:
 
@@ -170,7 +170,7 @@ Important shared assignments:
 | 70 | Chip Mode |
 | 71 | Accuracy |
 | 73 | Output Level |
-| 74 | Template / macro |
+| 74 | Preset recipe (internal compatibility parameter) |
 | 75 | Play Mode |
 | 76-79 | Chip-native performance controls |
 | 80-87 | Source enable and level controls |

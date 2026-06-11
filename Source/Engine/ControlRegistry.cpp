@@ -10,7 +10,7 @@ const MidiCcMappingList& midiCcMappings()
         { 71, parameter_ids::accuracy, "Accuracy" },
         { 72, parameter_ids::clockHz, "Clock Rate Override" },
         { 73, parameter_ids::outputDb, "Output Level" },
-        { 74, parameter_ids::macro, "Musical Macro" },
+        { 74, parameter_ids::macro, "Preset Recipe" },
         { 75, parameter_ids::playMode, "Play Mode" },
         { 76, parameter_ids::macroControl1, "Native Control 1" },
         { 77, parameter_ids::macroControl2, "Native Control 2" },
