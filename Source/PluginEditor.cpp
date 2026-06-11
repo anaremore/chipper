@@ -3481,12 +3481,7 @@ void ChipperAudioProcessorEditor::resized()
     else if (displayedMode == chipper::ChipMode::opl3)
         placeOplWaveformControl(primaryTonePanel);
     else if (displayedMode == chipper::ChipMode::ym2413)
-    {
-        auto instrumentArea = primaryTonePanel.removeFromTop(std::min(58, primaryTonePanel.getHeight()));
-        primaryTonePanel.removeFromTop(std::min(8, primaryTonePanel.getHeight()));
-        placeOpllInstrumentControl(instrumentArea);
-        placeYmEnvelopeShapeSegment(primaryTonePanel);
-    }
+        placeOpllInstrumentControl(primaryTonePanel);
     else if (displayedMode == chipper::ChipMode::nes)
         placePulseDutySegment(primaryTonePanel);
     else
@@ -4055,17 +4050,62 @@ void ChipperAudioProcessorEditor::placeOplWaveformControl(juce::Rectangle<int> b
 
 void ChipperAudioProcessorEditor::placeOpllInstrumentControl(juce::Rectangle<int> bounds)
 {
-    const auto compact = bounds.getHeight() < 54;
-    auto header = bounds.removeFromTop(std::min(compact ? 16 : 18, bounds.getHeight()));
-    waveShapeLabel.setBounds(header.removeFromLeft(std::min(96, header.getWidth())));
+    const auto* rhythmSpec = chipper::parameterSpecFor(displayedMode, chipper::ChipParameterRole::ymEnvelopeShape);
+    const auto rhythmCount = rhythmSpec != nullptr
+                                 ? std::min(ymEnvelopeShapeButtons.size(), rhythmSpec->choices.size())
+                                 : ymEnvelopeShapeButtons.size();
+    const auto compact = bounds.getHeight() < 88;
+    const auto useColumns = bounds.getWidth() >= 430 && ! compact;
+    const auto rowGap = compact ? 5 : 8;
+    const auto controlHeight = compact ? 28 : 32;
+    const auto labelHeight = compact ? 15 : 17;
+    const auto readoutHeight = compact ? 14 : 18;
+
+    auto header = bounds.removeFromTop(std::min(labelHeight, bounds.getHeight()));
+    waveShapeLabel.setBounds(header.removeFromLeft(std::min(132, header.getWidth())));
     waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
     waveShapeValueLabel.setBounds(header);
-    bounds.removeFromTop(std::min(compact ? 3 : 4, bounds.getHeight()));
+    bounds.removeFromTop(std::min(rowGap, bounds.getHeight()));
 
-    opllInstrumentBox.setBounds(bounds.removeFromTop(std::min(compact ? 28 : 32, bounds.getHeight())).reduced(0, 1));
+    auto instrumentPanel = bounds;
+    auto rhythmPanel = bounds;
+    if (useColumns)
+    {
+        const auto columnGap = 12;
+        instrumentPanel = bounds.removeFromLeft(std::max(180, (bounds.getWidth() - columnGap) / 2));
+        bounds.removeFromLeft(std::min(columnGap, bounds.getWidth()));
+        rhythmPanel = bounds;
+    }
+    else
+    {
+        const auto availableRows = bounds.getHeight();
+        const auto instrumentHeight = std::min(controlHeight + readoutHeight + 2, std::max(controlHeight, availableRows / 2));
+        instrumentPanel = bounds.removeFromTop(std::min(instrumentHeight, bounds.getHeight()));
+        bounds.removeFromTop(std::min(rowGap, bounds.getHeight()));
+        rhythmPanel = bounds;
+    }
+
+    opllInstrumentBox.setBounds(instrumentPanel.removeFromTop(std::min(controlHeight, instrumentPanel.getHeight())).reduced(0, 1));
+    waveShapeValueLabel.setBounds(instrumentPanel.removeFromTop(std::min(readoutHeight, instrumentPanel.getHeight())));
+
+    auto rhythmHeader = rhythmPanel.removeFromTop(std::min(labelHeight, rhythmPanel.getHeight()));
+    ymEnvelopeShapeLabel.setBounds(rhythmHeader.removeFromLeft(std::min(132, rhythmHeader.getWidth())));
+    ymEnvelopeShapeValueLabel.setJustificationType(juce::Justification::centredRight);
+    ymEnvelopeShapeValueLabel.setBounds(rhythmHeader);
+    rhythmPanel.removeFromTop(std::min(compact ? 3 : 5, rhythmPanel.getHeight()));
+    ymEnvelopeShapeSegmentBounds = rhythmPanel.removeFromTop(std::min(controlHeight, rhythmPanel.getHeight())).reduced(0, 1);
+    layoutSegmentedButtons(ymEnvelopeShapeButtons, ymEnvelopeShapeSegmentBounds, rhythmCount);
+
+    if (! useColumns)
+    {
+        ymEnvelopeShapeValueLabel.setJustificationType(juce::Justification::centredLeft);
+        ymEnvelopeShapeValueLabel.setBounds(rhythmPanel);
+    }
+
     waveShapeSegmentBounds = {};
     for (auto& button : waveShapeButtons)
         button.setBounds({});
+    sidFilterModeBox.setBounds({});
 }
 
 void ChipperAudioProcessorEditor::placeSidVoiceWaveControls(juce::Rectangle<int> bounds)
