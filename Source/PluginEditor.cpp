@@ -3361,11 +3361,11 @@ void ChipperAudioProcessorEditor::resized()
         };
         const auto isSidSourceCard = displayedMode == chipper::ChipMode::sid;
         auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : 8, isSidSourceCard ? 2 : 4);
-        const auto buttonHeight = useSpc700VoiceGrid ? 15 : (isSidSourceCard ? 17 : 18);
+        const auto buttonHeight = useSpc700VoiceGrid ? 17 : (isSidSourceCard ? 17 : 18);
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(2);
         const auto previewHeight = std::clamp(sourceCard.getHeight() / (useSpc700VoiceGrid ? 3 : 4),
-                                              useSpc700VoiceGrid ? 13 : (isSidSourceCard ? 22 : 20),
+                                              useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 22 : 20),
                                               useSpc700VoiceGrid ? 20 : (isSidSourceCard ? 32 : 28));
         sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(previewHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(1);
