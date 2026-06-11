@@ -8590,18 +8590,19 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     dmcMapRootBox.setTooltip(withMidiCcForRole("SPC700 Sample Map Root. Loaded folder slots map upward from this MIDI note when playback is a map mode.", chipper::ChipParameterRole::nesDmcMapRoot));
 
     const auto info = audioProcessor.spc700BrrSampleInfo();
-    auto visibleStatus = info.statusLine;
+    auto visibleStatus = info.loaded
+        ? "Slot " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
+            + ": " + info.sampleName
+        : "Generated " + waveShapeReadout(chipper::ChipMode::spc700, playbackPatch.waveShape);
     if (info.loaded && info.bankCount > 1 && playbackMode != 0)
         visibleStatus += " | Map " + chipper::parameters::midiNoteChoices()[info.mapRootNote]
             + "-" + chipper::parameters::midiNoteChoices()[info.mapHighNote];
     else if (info.loaded && info.bankCount > 1)
         visibleStatus += " | Manual";
-    if (! info.loaded)
-        visibleStatus += " | Generated " + waveShapeReadout(chipper::ChipMode::spc700, playbackPatch.waveShape);
-    visibleStatus += " | Bank " + bankModeLabel + " | Voice " + lifetimeLabel;
+    visibleStatus += " | " + bankModeLabel + " | " + lifetimeLabel;
     if (info.loaded)
     {
-        visibleStatus += " | ARAM "
+        visibleStatus += " | "
             + juce::String(static_cast<double>(info.bankByteCount) / 1024.0, info.bankByteCount < 10240 ? 1 : 0)
             + "/64 KB";
         if (info.exceedsAramBudget)
@@ -8713,7 +8714,10 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
     dmcMapRootBox.setTooltip(withMidiCcForRole("Paula Sample Map Root. Loaded folder slots map upward from this MIDI note when Sample Playback is a map mode.", chipper::ChipParameterRole::nesDmcMapRoot));
 
     const auto info = audioProcessor.paulaSampleInfo();
-    auto visibleStatus = info.statusLine;
+    auto visibleStatus = info.loaded
+        ? "Slot " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
+            + ": " + info.sampleName
+        : info.statusLine;
     if (info.loaded && info.bankCount > 1 && playbackMode != 0)
         visibleStatus += " | Map " + chipper::parameters::midiNoteChoices()[info.mapRootNote]
             + "-" + chipper::parameters::midiNoteChoices()[info.mapHighNote];
