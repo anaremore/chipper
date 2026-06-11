@@ -707,7 +707,7 @@ add_test(NAME chipper_render_huc6280_lfo_smoke
     COMMAND chipper_render --chip huc6280 --accuracy authentic --macro lead --huc-lfo deep --control2 0.60 --control3 0.70 --source1 1 --source2 1 --source3 0 --source4 0 --source5 0 --source6 0 --clock 3579545 --rate 48000 --seconds 0.08 --note 64 --out huc6280-lfo-smoke.wav --debug huc6280-lfo-smoke.json
 )
 add_test(NAME chipper_render_huc6280_per_voice_waves_smoke
-    COMMAND chipper_render --chip huc6280 --accuracy authentic --macro manual --play-mode chip-poly --wave-shape tri --sid-voice2-wave saw --sid-voice3-wave pulse --nes-pulse2-duty 75 --dmg-wave-level 50 --sn-noise-mode short --clock 3579545 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/huc6280-chip-poly-events.txt --out huc6280-per-voice-waves-smoke.wav --debug huc6280-per-voice-waves-smoke.json
+    COMMAND chipper_render --chip huc6280 --accuracy authentic --macro manual --play-mode chip-poly --huc-wave1 ramp --huc-wave2 tri --huc-wave3 square --huc-wave4 noise --huc-wave5 square --huc-wave6 tri --clock 3579545 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/huc6280-chip-poly-events.txt --out huc6280-per-voice-waves-smoke.wav --debug huc6280-per-voice-waves-smoke.json
 )
 add_test(NAME chipper_render_scc_smoke
     COMMAND chipper_render --chip scc --accuracy authentic --macro lead --wave-shape 1 --clock 3579545 --rate 48000 --seconds 0.05 --note 64 --out scc-smoke.wav --debug scc-smoke.json
