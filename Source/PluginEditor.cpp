@@ -214,10 +214,10 @@ void drawChipThemeTexture(juce::Graphics& g, juce::Rectangle<int> bounds, const 
 void drawChipIdentityAccent(juce::Graphics& g, juce::Rectangle<int> bounds, chipper::ChipMode mode, const ChipUiTheme& theme)
 {
     auto header = bounds.reduced(16).removeFromTop(62);
-    const auto titleArea = header.removeFromLeft(210).toFloat();
+    const auto titleArea = header.removeFromLeft(230).toFloat();
     const auto stripeY = titleArea.getBottom() - 10.0f;
     const auto stripeX = titleArea.getX() + 4.0f;
-    const auto stripeW = std::min(178.0f, titleArea.getWidth() - 12.0f);
+    const auto stripeW = std::min(198.0f, titleArea.getWidth() - 12.0f);
 
     switch (mode)
     {
@@ -1891,10 +1891,56 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     auto& state = audioProcessor.getValueTreeState();
     chipSettingsSnapshots.resize(static_cast<size_t>(chipper::parameters::chipModeChoices().size()));
 
-    titleLabel.setText("  ____ _   _ ___ ____  ____  _____ ____\n / ___| | | |_ _|  _ \\|  _ \\| ____|  _ \\\n| |   | |_| || || |_) | |_) |  _| | |_) |\n| |___|  _  || ||  __/|  __/| |___|  _ <\n \\____|_| |_|___|_|   |_|   |_____|_| \\_\\\n   .oO chiptune synth core Oo.", juce::dontSendNotification);
+    const auto blockLogo = []()
+    {
+        const auto lower = juce::String::charToString(static_cast<juce::juce_wchar>(0x2584));
+        const auto full = juce::String::charToString(static_cast<juce::juce_wchar>(0x2588));
+        const auto upper = juce::String::charToString(static_cast<juce::juce_wchar>(0x2580));
+        const auto dark = juce::String::charToString(static_cast<juce::juce_wchar>(0x2593));
+
+        juce::String text;
+        text << "   " << lower << full << full << full << full << lower << "   "
+             << full << full << "  " << full << full << "  "
+             << full << full << "  "
+             << full << full << dark << full << full << full << "   "
+             << full << full << dark << full << full << full << "  "
+             << dark << full << full << full << full << full << "  "
+             << full << full << upper << full << full << full << "  \n";
+        text << "   " << full << full << upper << " " << upper << full << "  "
+             << dark << full << full << "  " << full << full << " "
+             << dark << full << full << " "
+             << dark << full << full << "   " << full << full << " "
+             << dark << full << full << "   " << full << full << " "
+             << dark << full << "   " << upper << " "
+             << dark << full << full << "   " << full << full << "\n";
+        text << "   " << dark << full << "    " << lower << "  "
+             << full << full << upper << upper << full << full << "  "
+             << full << full << "  "
+             << full << full << "  " << full << full << "   "
+             << full << full << "  " << full << full << "   "
+             << full << full << full << "    "
+             << full << full << "  " << lower << full << "\n";
+        text << "   " << dark << dark << lower << " " << lower << full << full << "  "
+             << dark << full << "  " << full << full << "  "
+             << full << full << "  "
+             << full << full << lower << full << "     "
+             << full << full << lower << full << "     "
+             << dark << full << "  " << lower << "  "
+             << full << full << upper << upper << full << lower << "  \n";
+        text << "    " << dark << full << full << full << upper << "   "
+             << dark << full << "  " << full << full << "  "
+             << full << full << "  "
+             << full << full << "       "
+             << full << full << "        "
+             << full << full << full << full << "  "
+             << full << full << "   " << full << full << "\n\n";
+        text << "     .oO  c h i p t u n e   s y n t h   c o r e  Oo.";
+        return text;
+    }();
+    titleLabel.setText(blockLogo, juce::dontSendNotification);
     titleLabel.setJustificationType(juce::Justification::centredLeft);
     titleLabel.setColour(juce::Label::textColourId, juce::Colour(0xfff7d85a));
-    titleLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 7.6f, juce::Font::bold));
+    titleLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 5.2f, juce::Font::bold));
     addAndMakeVisible(titleLabel);
 
     chipModeBox.addItemList(chipper::parameters::chipModeChoices(), 1);
@@ -3193,7 +3239,7 @@ void ChipperAudioProcessorEditor::resized()
         comboBox.setBounds(bounds.reduced(0, 4));
     };
 
-    titleLabel.setBounds(top.removeFromLeft(210));
+    titleLabel.setBounds(top.removeFromLeft(230));
     top.removeFromLeft(8);
 
     constexpr auto headerGap = 8;
