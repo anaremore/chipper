@@ -66,7 +66,7 @@ ctest --test-dir build -C Release --output-on-failure
 
 GitHub Actions are intentionally quiet on normal pushes. The release workflow only runs when you publish a GitHub Release or start it manually from the Actions tab.
 
-- Publish a release/tag such as `v0.2.0` when you want GitHub to build, test, package, and attach a Windows VST3 zip.
+- Publish a release/tag such as `v0.2.0` when you want GitHub to build, test, package, and attach Windows and Linux VST3 zips.
 - Use the manual `Release VST3` workflow for candidate builds without creating a public release.
 - The zip includes `Chipper.vst3`, `README.md`, `THIRD_PARTY_NOTICES.md`, and `LICENSE` when present.
 - No build cache is configured yet, keeping the workflow simple and avoiding extra artifact/storage churn.

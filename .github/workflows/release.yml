@@ -1,7 +1,7 @@
 name: Release VST3
 
 # Normal pushes intentionally do not run this workflow. Use a manual dispatch for
-# a candidate build, or publish a GitHub Release to build and attach the VST3 zip.
+# a candidate build, or publish a GitHub Release to build and attach VST3 zips.
 on:
   workflow_dispatch:
   release:
@@ -11,9 +11,19 @@ permissions:
   contents: write
 
 jobs:
-  windows-vst3:
-    name: Windows VST3
-    runs-on: windows-latest
+  vst3:
+    name: ${{ matrix.label }} VST3
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Windows
+            os: windows-latest
+            artifact_suffix: windows
+          - label: Linux
+            os: ubuntu-24.04
+            artifact_suffix: linux
 
     steps:
       - name: Check out repository
@@ -21,8 +31,28 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev \
+            libcurl4-openssl-dev \
+            libfreetype6-dev \
+            libjack-jackd2-dev \
+            libglu1-mesa-dev \
+            libwebkit2gtk-4.1-dev \
+            libx11-dev \
+            libxcomposite-dev \
+            libxcursor-dev \
+            libxext-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            libxrender-dev \
+            mesa-common-dev
+
       - name: Configure
-        run: cmake -S . -B build-release
+        run: cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build-release --config Release --parallel
@@ -34,6 +64,7 @@ jobs:
         id: package
         shell: pwsh
         env:
+          ARTIFACT_SUFFIX: ${{ matrix.artifact_suffix }}
           RELEASE_TAG: ${{ github.event.release.tag_name || github.ref_name }}
           RUN_NUMBER: ${{ github.run_number }}
         run: |
@@ -43,9 +74,9 @@ jobs:
           }
 
           $safeTag = $tag -replace '[^A-Za-z0-9._-]', '-'
-          $artifactName = "Chipper-$safeTag-windows-vst3"
+          $artifactName = "Chipper-$safeTag-$env:ARTIFACT_SUFFIX-vst3"
           $packageRoot = Join-Path $env:RUNNER_TEMP $artifactName
-          $vst3Source = "build-release\Chipper_artefacts\Release\VST3\Chipper.vst3"
+          $vst3Source = Join-Path (Get-Location) "build-release/Chipper_artefacts/Release/VST3/Chipper.vst3"
 
           if (!(Test-Path -LiteralPath $vst3Source)) {
             throw "VST3 bundle was not found at $vst3Source"
