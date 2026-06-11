@@ -72,6 +72,37 @@ The root installer defaults to a user-scope install, so it does not need UAC:
 
 If `-BuildRoot` and `CHIPPER_BUILD_ROOT` are not set, the installer auto-selects the newest local VST3 bundle from `build-codex` or `build`. Pass `-BuildRoot` when you want a specific build folder.
 
+### Make sure you installed the latest build
+
+For day-to-day development, use this sequence from the repo root:
+
+```powershell
+cmake --build build-codex --config Release
+.\install-vst3.ps1 -Scope User -BuildRoot build-codex
+.\install-vst3.ps1 -VerifyOnly -BuildRoot build-codex
+```
+
+The installer prints a source build marker and the installed user/global build markers. The marker shown in Chipper's footer should match the installed marker, for example:
+
+```text
+Source build: v0.1.0 b9bfeeb283 (clean, built ...)
+Installed build marker: ...\ChipperBuildInfo.txt
+```
+
+If Ableton or another host still shows an older footer hash, close the host and check whether both user and global copies exist:
+
+```powershell
+.\install-vst3.ps1 -VerifyOnly -BuildRoot build-codex
+```
+
+When the global copy is older, sync both locations from an elevated PowerShell:
+
+```powershell
+.\install-vst3.ps1 -Scope Both -BuildRoot build-codex
+```
+
+This matters because some hosts scan `C:\Program Files\Common Files\VST3` before `%LOCALAPPDATA%\Programs\Common\VST3`, so an old global bundle can shadow the freshly installed user bundle.
+
 By default it installs to:
 
 ```text
