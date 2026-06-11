@@ -4334,8 +4334,10 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
         || displayedMode == chipper::ChipMode::opl3
         || displayedMode == chipper::ChipMode::ym2151
         || displayedMode == chipper::ChipMode::ym2413;
-    const auto useRoomyNesNoise = displayedMode == chipper::ChipMode::nes && bounds.getHeight() >= 48;
-    snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(useRoomyNesNoise ? 18 : (compact ? 15 : 18), bounds.getHeight())));
+    const auto useRegisterSegment = (displayedMode == chipper::ChipMode::nes
+                                     || displayedMode == chipper::ChipMode::dmg)
+                                    && bounds.getHeight() >= 44;
+    snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(useRegisterSegment ? 15 : (compact ? 15 : 18), bounds.getHeight())));
     if (displayedMode == chipper::ChipMode::sn76489)
     {
         snNoiseModeBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
@@ -4345,13 +4347,16 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
     }
     else
     {
-        bounds.removeFromTop(std::min(useRoomyNesNoise ? 5 : (compact ? 2 : 0), bounds.getHeight()));
-        snNoiseModeSegmentBounds = bounds.removeFromTop(std::min(useRoomyNesNoise ? 34 : (compact ? 24 : 28), bounds.getHeight())).reduced(0, 1);
+        bounds.removeFromTop(std::min(useRegisterSegment ? 2 : (compact ? 2 : 0), bounds.getHeight()));
+        const auto preferredButtonHeight = useRegisterSegment
+            ? std::min(38, std::max(30, bounds.getHeight()))
+            : (compact ? 24 : 28);
+        snNoiseModeSegmentBounds = bounds.removeFromTop(std::min(preferredButtonHeight, bounds.getHeight())).reduced(0, 1);
         layoutSegmentedButtons(snNoiseModeButtons, snNoiseModeSegmentBounds, choiceCount);
         snNoiseModeBox.setBounds({});
     }
 
-    snNoiseModeValueLabel.setBounds((compact && ! useRoomyNesNoise) ? juce::Rectangle<int> {} : bounds);
+    snNoiseModeValueLabel.setBounds((compact || useRegisterSegment) ? juce::Rectangle<int> {} : bounds);
 }
 
 void ChipperAudioProcessorEditor::placeToneNoiseMixSegment(juce::Rectangle<int> bounds)
@@ -8451,7 +8456,8 @@ void ChipperAudioProcessorEditor::updateSnNoiseModeButtons(chipper::ChipMode mod
 
     const auto modeReadout = noiseModeReadout(mode, patch);
     const auto compactFmMode = mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151;
-    snNoiseModeValueLabel.setVisible(shouldBeVisible && ! compactFmMode);
+    const auto registerSegmentMode = mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
+    snNoiseModeValueLabel.setVisible(shouldBeVisible && ! compactFmMode && ! registerSegmentMode);
     snNoiseModeValueLabel.setText(modeReadout, juce::dontSendNotification);
     snNoiseModeLabel.setTooltip(withMidiCcForRole((spec != nullptr ? juce::String(spec->help) : juce::String("Chip noise/DAC mode."))
                                                    + "\n" + modeReadout,
