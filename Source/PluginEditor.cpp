@@ -1055,7 +1055,8 @@ template <typename ButtonArray>
 void layoutSegmentedButtons(ButtonArray& buttons, juce::Rectangle<int> bounds, size_t visibleCount)
 {
     const auto count = std::max<size_t>(1u, std::min(visibleCount, buttons.size()));
-    const auto gap = 4;
+    const auto idealButtonWidth = 92;
+    const auto gap = bounds.getWidth() < static_cast<int>(count) * idealButtonWidth ? 3 : 4;
     auto remainingWidth = std::max(1, bounds.getWidth() - (gap * static_cast<int>(count - 1u)));
     auto x = bounds.getX();
 
@@ -1073,6 +1074,15 @@ void layoutSegmentedButtons(ButtonArray& buttons, juce::Rectangle<int> bounds, s
         x += width + gap;
         remainingWidth -= width;
     }
+}
+
+int labelReservation(juce::Rectangle<int> header, int preferred)
+{
+    if (header.getWidth() <= 0)
+        return 0;
+
+    const auto reserveForReadout = std::min(82, std::max(0, header.getWidth() / 3));
+    return std::clamp(preferred, 0, std::max(0, header.getWidth() - reserveForReadout));
 }
 
 } // namespace
@@ -3565,8 +3575,11 @@ void ChipperAudioProcessorEditor::resized()
         {
             const auto availableHeight = tonePanel.getHeight();
             const auto gapHeight = std::min(7, std::max(0, availableHeight - 1));
-            const auto firstRowHeight = std::clamp(availableHeight / 3, 36, 48);
-            const auto secondRowHeight = std::clamp((availableHeight - firstRowHeight - (gapHeight * 2)) / 2, 34, 44);
+            const auto roomy = availableHeight >= 126;
+            const auto firstRowHeight = std::clamp(availableHeight / 3, roomy ? 42 : 36, roomy ? 54 : 48);
+            const auto secondRowHeight = std::clamp((availableHeight - firstRowHeight - (gapHeight * 2)) / 2,
+                                                    roomy ? 38 : 34,
+                                                    roomy ? 48 : 44);
             primaryTonePanel = tonePanel.removeFromTop(std::min(firstRowHeight, tonePanel.getHeight()));
             tonePanel.removeFromTop(std::min(gapHeight, tonePanel.getHeight()));
             secondaryTonePanel = tonePanel.removeFromTop(std::min(secondRowHeight, tonePanel.getHeight()));
@@ -3589,7 +3602,7 @@ void ChipperAudioProcessorEditor::resized()
                                           juce::Rectangle<int> bounds)
         {
             auto header = bounds.removeFromTop(std::min(18, bounds.getHeight()));
-            label.setBounds(header.removeFromLeft(std::min(92, header.getWidth())));
+            label.setBounds(header.removeFromLeft(labelReservation(header, 118)));
             valueLabel.setJustificationType(juce::Justification::centredRight);
             valueLabel.setBounds(header);
             bounds.removeFromTop(2);
@@ -4189,7 +4202,7 @@ void ChipperAudioProcessorEditor::placeFmAlgorithmControl(juce::Rectangle<int> b
 {
     const auto compact = bounds.getHeight() < 56;
     auto header = bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight()));
-    waveShapeLabel.setBounds(header.removeFromLeft(std::min(92, header.getWidth())));
+    waveShapeLabel.setBounds(header.removeFromLeft(labelReservation(header, 128)));
     waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
     waveShapeValueLabel.setBounds(header);
     bounds.removeFromTop(std::min(compact ? 2 : 3, bounds.getHeight()));
@@ -4219,7 +4232,7 @@ void ChipperAudioProcessorEditor::placeOplWaveformControl(juce::Rectangle<int> b
 {
     const auto compact = bounds.getHeight() < 56;
     auto header = bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight()));
-    waveShapeLabel.setBounds(header.removeFromLeft(std::min(92, header.getWidth())));
+    waveShapeLabel.setBounds(header.removeFromLeft(labelReservation(header, 128)));
     waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
     waveShapeValueLabel.setBounds(header);
     bounds.removeFromTop(std::min(compact ? 2 : 3, bounds.getHeight()));
@@ -4449,7 +4462,7 @@ void ChipperAudioProcessorEditor::placeYmEnvelopeShapeSegment(juce::Rectangle<in
     if (spec != nullptr && spec->surface == chipper::ControlSurface::menu)
     {
         auto header = bounds.removeFromTop(std::min(16, bounds.getHeight()));
-        ymEnvelopeShapeLabel.setBounds(header.removeFromLeft(std::min(96, header.getWidth())));
+        ymEnvelopeShapeLabel.setBounds(header.removeFromLeft(labelReservation(header, 132)));
         ymEnvelopeShapeValueLabel.setJustificationType(juce::Justification::centredRight);
         ymEnvelopeShapeValueLabel.setBounds(header);
         bounds.removeFromTop(3);
@@ -4472,7 +4485,7 @@ void ChipperAudioProcessorEditor::placeYmEnvelopeShapeSegment(juce::Rectangle<in
 void ChipperAudioProcessorEditor::placeSidFilterRoutingControl(juce::Rectangle<int> bounds)
 {
     auto header = bounds.removeFromTop(std::min(17, bounds.getHeight()));
-    sidFilterRoutingLabel.setBounds(header.removeFromLeft(std::min(112, header.getWidth())));
+    sidFilterRoutingLabel.setBounds(header.removeFromLeft(labelReservation(header, 136)));
     sidFilterRoutingValueLabel.setJustificationType(juce::Justification::centredRight);
     sidFilterRoutingValueLabel.setBounds(header);
     bounds.removeFromTop(3);
