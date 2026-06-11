@@ -1844,7 +1844,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     presetBox.setTextWhenNothingSelected("Browse Chip Presets");
     macroBox.addItemList(chipper::parameters::macroChoices(), 1);
     playModeBox.addItemList(chipper::parameters::playModeChoices(), 1);
-    chipModeBox.setTooltip(withMidiCc("Selects the chip model or planned chip family.", chipper::parameters::id::chipMode));
+    chipModeBox.setTooltip(withMidiCc("Selects the named chip engine. Each mode shows its current verification status in the footer.", chipper::parameters::id::chipMode));
     accuracyBox.setTooltip(withMidiCc("Selects the requested accuracy tier for the active core.", chipper::parameters::id::accuracy));
     presetBox.setTooltip("Browse factory and user presets for the selected chip mode. Choosing one applies the sound immediately.");
     macroBox.setTooltip(withMidiCc("Internal preset recipe. Factory/user presets set this automatically for chip-native defaults.", chipper::parameters::id::macro));
