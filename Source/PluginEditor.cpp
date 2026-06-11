@@ -214,10 +214,10 @@ void drawChipThemeTexture(juce::Graphics& g, juce::Rectangle<int> bounds, const 
 void drawChipIdentityAccent(juce::Graphics& g, juce::Rectangle<int> bounds, chipper::ChipMode mode, const ChipUiTheme& theme)
 {
     auto header = bounds.reduced(16).removeFromTop(62);
-    const auto titleArea = header.removeFromLeft(122).toFloat();
+    const auto titleArea = header.removeFromLeft(210).toFloat();
     const auto stripeY = titleArea.getBottom() - 10.0f;
     const auto stripeX = titleArea.getX() + 4.0f;
-    const auto stripeW = std::min(92.0f, titleArea.getWidth() - 12.0f);
+    const auto stripeW = std::min(178.0f, titleArea.getWidth() - 12.0f);
 
     switch (mode)
     {
@@ -1891,10 +1891,10 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     auto& state = audioProcessor.getValueTreeState();
     chipSettingsSnapshots.resize(static_cast<size_t>(chipper::parameters::chipModeChoices().size()));
 
-    titleLabel.setText("Chipper", juce::dontSendNotification);
+    titleLabel.setText("█▀▀ █ █ █ █▀█ █▀█ █▀▀ █▀█\n█▄▄ █▀█ █ █ █▀  █▀  ██▄ █▀▄\n.oO chiptune synth core Oo.", juce::dontSendNotification);
     titleLabel.setJustificationType(juce::Justification::centredLeft);
     titleLabel.setColour(juce::Label::textColourId, juce::Colour(0xfff7d85a));
-    titleLabel.setFont(juce::FontOptions(28.0f, juce::Font::bold));
+    titleLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 10.5f, juce::Font::bold));
     addAndMakeVisible(titleLabel);
 
     chipModeBox.addItemList(chipper::parameters::chipModeChoices(), 1);
@@ -3193,7 +3193,7 @@ void ChipperAudioProcessorEditor::resized()
         comboBox.setBounds(bounds.reduced(0, 4));
     };
 
-    titleLabel.setBounds(top.removeFromLeft(122));
+    titleLabel.setBounds(top.removeFromLeft(210));
     top.removeFromLeft(8);
 
     constexpr auto headerGap = 8;
