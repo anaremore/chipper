@@ -98,7 +98,7 @@ std::vector<MacroTemplate> ym2413Macros()
         { MacroKind::bass, "OPLL Preset Bass", "Sustaining preset-FM bass using the YM2413 instrument table.", { 0.85f, 0.22f, 0.16f, 0.86f }, { true, true, false, false }, 0.08f, 13 },
         { MacroKind::lead, "OPLL Brass Lead", "Forward OPLL trumpet/lead tone with a supporting octave lane.", { 0.45f, 0.48f, 0.24f, 0.80f }, { true, true, true, false }, 0.10f, 7 },
         { MacroKind::arp, "OPLL Organ Arp", "Preset organ stack for fast fake-chord arps.", { 0.55f, 0.70f, 0.18f, 0.78f }, { true, true, true, true }, 0.08f, 8 },
-        { MacroKind::drum, "OPLL Perc Hit", "Melodic-channel percussion placeholder until native rhythm mode lands.", { 0.95f, 0.18f, 0.32f, 0.72f }, { false, false, true, true }, 0.55f, 0 },
+        { MacroKind::drum, "OPLL Perc Hit", "Native YM2413 rhythm-mode percussion using register $0E drum key bits.", { 0.95f, 0.18f, 0.32f, 0.72f }, { false, false, true, true }, 0.55f, 0 },
         { MacroKind::hit, "OPLL Impact", "Short preset-FM impact using stacked melodic channels.", { 0.92f, 0.25f, 0.45f, 0.76f }, { true, false, true, true }, 0.50f, 0 },
         { MacroKind::laser, "OPLL Sweep Zap", "OPLL pitch-mod SFX with vibrato-like retrigger motion.", { 0.70f, 0.95f, 0.78f, 0.76f }, { true, true, false, false }, 0.24f, 0 },
         { MacroKind::jump, "OPLL Jump Bell", "Quick rising FM bell gesture.", { 0.80f, 0.70f, 0.22f, 0.76f }, { true, false, false, false }, 0.18f, 1 },
@@ -2479,7 +2479,7 @@ const std::vector<ChipDescriptor>& descriptors()
             {
                 makeModule("profile", "Profile", "YM2413/OPLL preset-FM groundwork backed by emu2413.", { "YM2413 family", "3.58 MHz default", "MIT emu2413 core", "Authentic still partial" }),
                 makeModule("sources", "Preset FM Voices", "All nine OPLL melodic channels are exposed as playable lanes; rhythm mode repurposes 7-9.", { "Ch 1-6 melodic", "Ch 7-9 melodic/rhythm", "BD HH SD TOM CYM", "Chip Poly" }),
-                makeModule("instrument", "Instrument / Pitch", "Preset instrument, f-number, block, and key-on register writes.", { "ROM preset instruments", "F-number", "Block", "Key-on" }),
+                makeModule("instrument", "ROM Instrument / Rhythm", "Preset instrument, rhythm-mode, f-number, block, and key-on register writes.", { "ROM preset instruments", "$0E rhythm mode", "F-number/block", "Key-on" }),
                 makeModule("envelope", "OPLL Envelopes", "Native preset and rhythm patch envelopes come from the OPLL core.", { "ROM patch ADSR", "Volume nibbles", "$0E rhythm bits", "Custom patch planned" }),
                 makeModule("motion", "Motion", "Musical OPLL preset recipes mapped to melodic-channel registers.", { "UI chime", "Organ arp", "Sweep zap", "Power organ" }),
                 makeModule("output", "Output", "Mono/stereo render through emu2413 with modern output trim.", { "Channel volume", "Output gain", "Known differences", "No cycle claim" })

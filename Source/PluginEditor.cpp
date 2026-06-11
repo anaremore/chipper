@@ -3401,8 +3401,7 @@ void ChipperAudioProcessorEditor::resized()
     auto tertiaryTonePanel = tonePanel;
     const auto usesFmToneStack = displayedMode == chipper::ChipMode::ym2612
         || displayedMode == chipper::ChipMode::opl3
-        || displayedMode == chipper::ChipMode::ym2151
-        || displayedMode == chipper::ChipMode::ym2413;
+        || displayedMode == chipper::ChipMode::ym2151;
     const auto usesFmEnvelopeShapePanel = displayedMode == chipper::ChipMode::ym2612
         || displayedMode == chipper::ChipMode::ym2151;
     const auto usesFmOperatorRegisterSurface = displayedMode == chipper::ChipMode::ym2612
