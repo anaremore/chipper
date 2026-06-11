@@ -1425,7 +1425,7 @@ void FmAlgorithmPreview::paint(juce::Graphics& g)
     {
         g.setColour(follow ? juce::Colour(0xffaebbc4) : juce::Colour(0xffdbe8e5));
         g.setFont(juce::FontOptions(compact ? 8.0f : 10.0f, juce::Font::bold));
-        g.drawText(juce::String(follow ? "Follow -> " : "") + "Alg " + juce::String(algorithm),
+        g.drawText(juce::String(follow ? "Preset -> " : "") + "Alg " + juce::String(algorithm),
                    labelArea,
                    juce::Justification::centredLeft);
         return;
@@ -1576,8 +1576,8 @@ void FmAlgorithmPreview::paint(juce::Graphics& g)
     g.setColour(follow ? juce::Colour(0xffaebbc4) : juce::Colour(0xffdbe8e5));
     g.setFont(juce::FontOptions(compact ? 8.0f : 10.0f, juce::Font::bold));
     const auto label = compact
-        ? juce::String(follow ? "Follow -> " : "") + "Alg " + juce::String(algorithm)
-        : juce::String(follow ? "Follow -> " : "") + "Alg " + juce::String(algorithm)
+        ? juce::String(follow ? "Preset -> " : "") + "Alg " + juce::String(algorithm)
+        : juce::String(follow ? "Preset -> " : "") + "Alg " + juce::String(algorithm)
             + " | " + algorithmNames[static_cast<size_t>(std::clamp(algorithm, 0, 7))];
     g.drawText(label,
                labelArea,
@@ -1676,7 +1676,7 @@ void OplWaveformPreview::paint(juce::Graphics& g)
 
     g.setColour(follow ? juce::Colour(0xffaebbc4) : juce::Colour(0xffdbe8e5));
     g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
-    g.drawText(juce::String(follow ? "Follow -> " : "") + "OPL W" + juce::String(waveform),
+    g.drawText(juce::String(follow ? "Preset -> " : "") + "OPL W" + juce::String(waveform),
                labelArea,
                juce::Justification::centredLeft);
 }
@@ -5409,7 +5409,7 @@ juce::String ChipperAudioProcessorEditor::pulse2DutyReadout(const chipper::Patch
                               : (patch.playMode == chipper::PlayMode::chipPoly ? primary : std::min(primary + 1, 3));
     const auto detail = juce::String("bits ") + dutyBits[static_cast<size_t>(resolved)] + ", " + dutyLabels[static_cast<size_t>(resolved)];
 
-    return choice == 0 ? juce::String("Follow -> ") + detail : detail;
+    return choice == 0 ? juce::String("Preset -> ") + detail : detail;
 }
 
 juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mode, int choice) const
@@ -5528,7 +5528,7 @@ juce::String ChipperAudioProcessorEditor::pokeyAudctlReadout(const chipper::Patc
     }
 
     const auto resolved = "AUDCTL $" + byteHex(audctl) + ", " + mode;
-    return patch.dmgStereoRoute == 0 ? juce::String("Follow -> ") + resolved : resolved;
+    return patch.dmgStereoRoute == 0 ? juce::String("Preset -> ") + resolved : resolved;
 }
 
 juce::String ChipperAudioProcessorEditor::pokeyAudctlFilterReadout(const chipper::PatchConfig& patch) const
@@ -5547,7 +5547,7 @@ juce::String ChipperAudioProcessorEditor::pokeyAudctlFilterReadout(const chipper
     }
 
     const auto resolved = "AUDCTL $" + byteHex(audctl) + ", " + mode;
-    return patch.ymEnvelopeShape == 0 ? juce::String("Follow -> ") + resolved : resolved;
+    return patch.ymEnvelopeShape == 0 ? juce::String("Preset -> ") + resolved : resolved;
 }
 
 juce::String ChipperAudioProcessorEditor::sampleChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
@@ -5595,7 +5595,7 @@ juce::String ChipperAudioProcessorEditor::spc700EnvelopeReadout(const chipper::P
         default: shapeText = "Lead"; break;
     }
 
-    const auto prefix = patch.ymEnvelopeShape == 0 ? juce::String("Follow -> ") : juce::String();
+    const auto prefix = patch.ymEnvelopeShape == 0 ? juce::String("Preset -> ") : juce::String();
     return prefix + shapeText + " envelope, ADSR $" + byteHex(chipper::spc700AdsrForPatch(patch));
 }
 
@@ -5628,7 +5628,7 @@ juce::String ChipperAudioProcessorEditor::spc700NoiseReadout(const chipper::Patc
             break;
     }
 
-    return patch.snNoiseMode == 0 ? juce::String("Follow -> ") + resolved : resolved;
+    return patch.snNoiseMode == 0 ? juce::String("Preset -> ") + resolved : resolved;
 }
 
 juce::String ChipperAudioProcessorEditor::paulaOutputFilterReadout(const chipper::PatchConfig& patch) const
@@ -5647,7 +5647,7 @@ juce::String ChipperAudioProcessorEditor::paulaOutputFilterReadout(const chipper
             break;
     }
 
-    return patch.snNoiseMode == 0 ? juce::String("Follow -> ") + resolved : resolved;
+    return patch.snNoiseMode == 0 ? juce::String("Preset -> ") + resolved : resolved;
 }
 
 static juce::String paulaHardwarePanLabel(size_t index)
@@ -6009,7 +6009,7 @@ juce::String ChipperAudioProcessorEditor::ym2612DacModeReadout(const chipper::Pa
     const auto resolved = mode == 2u
                               ? juce::String("DAC Drum: $2B=0x80, stream $2A on Ch 6")
                               : juce::String("FM Ch6: channel 6 remains four-operator FM");
-    return patch.snNoiseMode == 0 ? juce::String("Follow -> ") + resolved : resolved;
+    return patch.snNoiseMode == 0 ? juce::String("Preset -> ") + resolved : resolved;
 }
 
 juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const
@@ -6170,7 +6170,7 @@ juce::String ChipperAudioProcessorEditor::dmgWaveLevelReadout(const chipper::Pat
             break;
     }
 
-    return patch.dmgWaveLevel == 0 ? juce::String("Follow -> ") + resolvedText : resolvedText;
+    return patch.dmgWaveLevel == 0 ? juce::String("Preset -> ") + resolvedText : resolvedText;
 }
 
 juce::String ChipperAudioProcessorEditor::dmgStereoRouteReadout(const chipper::PatchConfig& patch) const
@@ -6193,7 +6193,7 @@ juce::String ChipperAudioProcessorEditor::dmgStereoRouteReadout(const chipper::P
     }
 
     const auto resolvedText = registerText + ", " + routeText;
-    return patch.dmgStereoRoute == 0 ? juce::String("Follow -> ") + resolvedText : resolvedText;
+    return patch.dmgStereoRoute == 0 ? juce::String("Preset -> ") + resolvedText : resolvedText;
 }
 
 juce::String ChipperAudioProcessorEditor::spc700SamplePlaybackReadout(const chipper::PatchConfig& patch) const
@@ -6202,7 +6202,7 @@ juce::String ChipperAudioProcessorEditor::spc700SamplePlaybackReadout(const chip
     const auto resolvedText = mode == 1u
                                   ? juce::String("Loop, sample RAM wraps while held")
                                   : juce::String("One-shot, voice stops at sample end");
-    return patch.dmgStereoRoute == 0 ? juce::String("Follow -> ") + resolvedText : resolvedText;
+    return patch.dmgStereoRoute == 0 ? juce::String("Preset -> ") + resolvedText : resolvedText;
 }
 
 juce::String ChipperAudioProcessorEditor::ym2151NoiseReadout(const chipper::PatchConfig& patch) const
@@ -6214,7 +6214,7 @@ juce::String ChipperAudioProcessorEditor::ym2151NoiseReadout(const chipper::Patc
     const auto resolvedText = enabled
                                   ? registerText + ", Ch8 op4 noise, freq " + juce::String(frequency) + "/31"
                                   : registerText + ", normal FM Ch8";
-    return patch.snNoiseMode == 0 ? juce::String("Follow -> ") + resolvedText : resolvedText;
+    return patch.snNoiseMode == 0 ? juce::String("Preset -> ") + resolvedText : resolvedText;
 }
 
 juce::String ChipperAudioProcessorEditor::ym2612PanReadout(const chipper::PatchConfig& patch) const
@@ -6231,7 +6231,7 @@ juce::String ChipperAudioProcessorEditor::ym2612PanReadout(const chipper::PatchC
     else
         resolvedText = "Alternating channels, $B4 L/R";
 
-    return patch.dmgStereoRoute == 0 ? juce::String("Follow -> ") + resolvedText : resolvedText;
+    return patch.dmgStereoRoute == 0 ? juce::String("Preset -> ") + resolvedText : resolvedText;
 }
 
 juce::String ChipperAudioProcessorEditor::ym2151PanReadout(const chipper::PatchConfig& patch) const
@@ -6248,7 +6248,7 @@ juce::String ChipperAudioProcessorEditor::ym2151PanReadout(const chipper::PatchC
     else
         resolvedText = "Alternating lanes, $20 L/R";
 
-    return patch.dmgStereoRoute == 0 ? juce::String("Follow -> ") + resolvedText : resolvedText;
+    return patch.dmgStereoRoute == 0 ? juce::String("Preset -> ") + resolvedText : resolvedText;
 }
 
 juce::String ChipperAudioProcessorEditor::sidModelReadout(const chipper::PatchConfig& patch) const
@@ -6374,7 +6374,7 @@ juce::String ChipperAudioProcessorEditor::sidFilterModeReadout(const chipper::Pa
     const auto registerText = juce::String("$D418 bits 0x")
         + juce::String::toHexString(static_cast<int>(modeBits)).paddedLeft('0', 2).toUpperCase();
     const auto text = registerText + ", " + resolved;
-    return patch.ymEnvelopeShape == 0 ? juce::String("Follow -> ") + text : text;
+    return patch.ymEnvelopeShape == 0 ? juce::String("Preset -> ") + text : text;
 }
 
 juce::String ChipperAudioProcessorEditor::sidFilterRoutingReadout(const chipper::PatchConfig& patch) const
@@ -6383,7 +6383,7 @@ juce::String ChipperAudioProcessorEditor::sidFilterRoutingReadout(const chipper:
     const auto registerText = juce::String("$D417 low 0x")
         + juce::String::toHexString(static_cast<int>(bits & 0x07u)).toUpperCase();
     const auto text = registerText + ", " + sidFilterRoutingName(bits);
-    return patch.sidFilterRouting == 0 ? juce::String("Follow -> ") + text : text;
+    return patch.sidFilterRouting == 0 ? juce::String("Preset -> ") + text : text;
 }
 
 juce::String ChipperAudioProcessorEditor::sidVoiceWaveSummary(const chipper::PatchConfig& patch) const
@@ -6431,7 +6431,7 @@ juce::String ChipperAudioProcessorEditor::sidModModeReadout(const chipper::Patch
     const auto registerText = juce::String("CTRL bits 0x")
         + juce::String::toHexString(static_cast<int>(bits)).paddedLeft('0', 2).toUpperCase();
     const auto text = registerText + ", " + resolved;
-    return patch.snNoiseMode == 0 ? juce::String("Follow -> ") + text : text;
+    return patch.snNoiseMode == 0 ? juce::String("Preset -> ") + text : text;
 }
 
 juce::String ChipperAudioProcessorEditor::snNoiseRegisterLabel(uint8_t noiseControl) const
@@ -6486,7 +6486,7 @@ juce::String ChipperAudioProcessorEditor::nesNoiseModeReadout(const chipper::Pat
     const auto modeText = (noiseRegister & 0x80u) != 0 ? "short-loop" : "long LFSR";
     const auto periodText = juce::String("period ") + juce::String(static_cast<int>(noiseRegister & 0x0fu));
     const auto resolvedText = registerText + ", " + modeText + ", " + periodText;
-    return std::clamp(patch.snNoiseMode, 0, 2) == 0 ? juce::String("Follow -> ") + resolvedText : resolvedText;
+    return std::clamp(patch.snNoiseMode, 0, 2) == 0 ? juce::String("Preset -> ") + resolvedText : resolvedText;
 }
 
 juce::String ChipperAudioProcessorEditor::dmgNoiseModeReadout(const chipper::PatchConfig& patch) const
@@ -6497,7 +6497,7 @@ juce::String ChipperAudioProcessorEditor::dmgNoiseModeReadout(const chipper::Pat
     const auto shiftText = juce::String("shift ") + juce::String(static_cast<int>((noiseRegister >> 4u) & 0x0fu));
     const auto divisorText = juce::String("divisor code ") + juce::String(static_cast<int>(noiseRegister & 0x07u));
     const auto resolvedText = registerText + ", " + widthText + ", " + shiftText + ", " + divisorText;
-    return std::clamp(patch.snNoiseMode, 0, 2) == 0 ? juce::String("Follow -> ") + resolvedText : resolvedText;
+    return std::clamp(patch.snNoiseMode, 0, 2) == 0 ? juce::String("Preset -> ") + resolvedText : resolvedText;
 }
 
 juce::String ChipperAudioProcessorEditor::snNoiseModeReadout(const chipper::PatchConfig& patch) const
@@ -6505,7 +6505,7 @@ juce::String ChipperAudioProcessorEditor::snNoiseModeReadout(const chipper::Patc
     const auto noiseControl = chipper::sn76489NoiseControlForPatch(patch);
     const auto registerText = juce::String("Reg E=0x") + juce::String::toHexString(static_cast<int>(noiseControl)).toUpperCase();
     const auto resolvedText = registerText + ", " + snNoiseRegisterLabel(noiseControl);
-    return patch.snNoiseMode == 0 ? juce::String("Follow -> ") + resolvedText : resolvedText;
+    return patch.snNoiseMode == 0 ? juce::String("Preset -> ") + resolvedText : resolvedText;
 }
 
 juce::String ChipperAudioProcessorEditor::stereoSpreadReadout(chipper::ChipMode mode, float value) const
@@ -7782,7 +7782,7 @@ void ChipperAudioProcessorEditor::updateSidAdsrControls(bool shouldBeVisible)
         const auto voice = i / sidAdsrFieldCount;
         const auto field = i % sidAdsrFieldCount;
         const auto resolvedNibble = resolvedNibbles[voice][field];
-        const auto nibbleText = clamped == 0 ? juce::String("Follow -> ") + juce::String(resolvedNibble)
+        const auto nibbleText = clamped == 0 ? juce::String("Preset -> ") + juce::String(resolvedNibble)
                                              : juce::String(clamped - 1);
         sidAdsrLabels[i].setVisible(shouldBeVisible);
         sidAdsrLabels[i].setTooltip(withMidiCcForRole(juce::String("SID ") + sidAdsrFieldLabel(i % sidAdsrFieldCount)
@@ -8024,7 +8024,7 @@ void ChipperAudioProcessorEditor::updateFmAlgorithmControl(chipper::ChipMode mod
     fmAlgorithmPreview.setAlgorithm(resolvedAlgorithm, followsTemplate);
 
     const auto valueText = followsTemplate
-        ? juce::String("Follow -> Alg ") + juce::String(resolvedAlgorithm)
+        ? juce::String("Preset -> Alg ") + juce::String(resolvedAlgorithm)
         : juce::String("Alg ") + juce::String(resolvedAlgorithm);
     const auto registerText = juce::String(mode == chipper::ChipMode::ym2151 ? "$20 bits alg=" : "$B0 bits alg=")
         + juce::String(resolvedAlgorithm)
@@ -8077,7 +8077,7 @@ void ChipperAudioProcessorEditor::updateOplWaveformControl(chipper::ChipMode mod
     oplWaveformPreview.setWaveform(resolvedWaveform, followsTemplate);
 
     const auto valueText = followsTemplate
-        ? juce::String("Follow -> W") + juce::String(resolvedWaveform)
+        ? juce::String("Preset -> W") + juce::String(resolvedWaveform)
         : juce::String("W") + juce::String(resolvedWaveform);
     const auto registerText = juce::String("$E0 operator waveform=") + juce::String(resolvedWaveform)
         + ", FB=" + juce::String(static_cast<int>(chipper::fmFeedbackForPatch(patch)))
@@ -8130,7 +8130,7 @@ void ChipperAudioProcessorEditor::updateOpllInstrumentControl(chipper::ChipMode 
     const auto volumeNibble = static_cast<int>(chipper::ym2413VolumeNibbleForPatch(patch, 0));
     const auto followsTemplate = safeChoice == 0;
     const auto valueText = followsTemplate
-        ? juce::String("Follow -> I") + juce::String(resolvedInstrument)
+        ? juce::String("Preset -> I") + juce::String(resolvedInstrument)
         : juce::String("I") + juce::String(resolvedInstrument);
     const auto registerText = juce::String("$30 instrument=") + juce::String(resolvedInstrument)
         + ", volume nibble=" + juce::String(volumeNibble) + "/15";
