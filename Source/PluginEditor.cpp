@@ -8274,7 +8274,22 @@ void ChipperAudioProcessorEditor::updateStereoSpreadReadout(chipper::ChipMode mo
 juce::String ChipperAudioProcessorEditor::envelopeDecayReadout(chipper::ChipMode mode, float value) const
 {
     if (value <= 0.01f)
+    {
+        if (mode == chipper::ChipMode::pokey)
+            return "Off: AUDV volume unchanged";
+        if (mode == chipper::ChipMode::paula)
+            return "Off: Paula volume unchanged";
+        if (mode == chipper::ChipMode::huc6280)
+            return "Off: HuC6280 volume unchanged";
+        if (mode == chipper::ChipMode::scc)
+            return "Off: SCC volume unchanged";
+        if (mode == chipper::ChipMode::namcoWsg)
+            return "Off: WSG volume unchanged";
+        if (mode == chipper::ChipMode::spc700)
+            return "Off: S-DSP gain unchanged";
+
         return "Off: macro envelope/level unchanged";
+    }
 
     if (mode == chipper::ChipMode::dmg)
     {
@@ -8312,17 +8327,17 @@ juce::String ChipperAudioProcessorEditor::envelopeDecayReadout(chipper::ChipMode
 
     const auto period = std::clamp(static_cast<int>(std::round(15.0f - (std::clamp(value, 0.0f, 1.0f) * 14.0f))), 1, 15);
     if (mode == chipper::ChipMode::pokey)
-        return juce::String("POKEY AUDV gate helper, step ") + juce::String(period) + "/15";
+        return juce::String("POKEY AUDV volume-gate helper, step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::paula)
-        return juce::String("Paula volume gate helper, step ") + juce::String(period) + "/15";
+        return juce::String("Paula 6-bit volume gate, step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::huc6280)
-        return juce::String("HuC6280 volume helper, step ") + juce::String(period) + "/15";
+        return juce::String("HuC6280 5-bit volume helper, step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::scc)
-        return juce::String("SCC volume helper, step ") + juce::String(period) + "/15";
+        return juce::String("SCC 4-bit volume helper, step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::namcoWsg)
-        return juce::String("Namco WSG volume helper, step ") + juce::String(period) + "/15";
+        return juce::String("Namco 4-bit lane volume helper, step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::spc700)
-        return juce::String("SPC700 ADSR/gain helper, step ") + juce::String(period) + "/15";
+        return juce::String("S-DSP ADSR/gain helper, step ") + juce::String(period) + "/15";
 
     return juce::String("NES envelope decay, period ") + juce::String(period);
 }
