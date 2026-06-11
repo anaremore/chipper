@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/chipper-ascii-logo.svg" alt="CHIPPER - chiptune synth core" width="100%">
+</p>
+
 # Chipper
 
 Chipper is a multi-chip retro synth VST3 focused on classic game and computer sound chips. The goal is to make chip limitations feel musical: fast presets and readable controls on the surface, with register-aware or emulator-backed behavior underneath.
