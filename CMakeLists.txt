@@ -763,6 +763,9 @@ add_test(NAME chipper_render_ym2612_dac_smoke
 add_test(NAME chipper_render_preset_opn2_dac_kick_smoke
     COMMAND chipper_render --preset opn2-dac-kick --rate 48000 --seconds 0.03 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2612-dac-events.txt --out preset-opn2-dac-kick.wav --debug preset-opn2-dac-kick.json
 )
+add_test(NAME chipper_render_preset_opn2_feedback_bass_held_smoke
+    COMMAND chipper_render --preset opn2-feedback-bass --rate 48000 --seconds 0.50 --note 48 --out preset-opn2-feedback-bass-held.wav --debug preset-opn2-feedback-bass-held.json
+)
 add_test(NAME chipper_render_opl3_smoke
     COMMAND chipper_render --chip opl3 --accuracy authentic --macro lead --wave-shape 4 --clock 14318180 --rate 48000 --seconds 0.08 --note 69 --out opl3-smoke.wav --debug opl3-smoke.json
 )
@@ -777,6 +780,9 @@ add_test(NAME chipper_render_opl3_rhythm_smoke
 )
 add_test(NAME chipper_render_preset_opl2_rhythm_kit_smoke
     COMMAND chipper_render --preset opl2-rhythm-kit --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/opl-rhythm-events.txt --out preset-opl2-rhythm-kit.wav --debug preset-opl2-rhythm-kit.json
+)
+add_test(NAME chipper_render_preset_opl2_bass_held_smoke
+    COMMAND chipper_render --preset opl2-bass --rate 48000 --seconds 0.50 --note 48 --out preset-opl2-bass-held.wav --debug preset-opl2-bass-held.json
 )
 add_test(NAME chipper_render_ym2151_smoke
     COMMAND chipper_render --chip ym2151 --accuracy authentic --macro lead --wave-shape 5 --clock 3579545 --rate 48000 --seconds 0.08 --note 69 --out ym2151-smoke.wav --debug ym2151-smoke.json
@@ -795,6 +801,9 @@ add_test(NAME chipper_render_ym2151_pan_right_smoke
 )
 add_test(NAME chipper_render_ym2151_noise_high_smoke
     COMMAND chipper_render --chip ym2151 --accuracy authentic --macro drum --opm-noise high --clock 3579545 --rate 48000 --seconds 0.08 --note 48 --out ym2151-noise-high-smoke.wav --debug ym2151-noise-high-smoke.json
+)
+add_test(NAME chipper_render_preset_opm_arcade_bass_held_smoke
+    COMMAND chipper_render --preset opm-arcade-bass --rate 48000 --seconds 0.50 --note 48 --out preset-opm-arcade-bass-held.wav --debug preset-opm-arcade-bass-held.json
 )
 add_test(NAME chipper_render_ym2612_held_tail_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro bass --wave-shape 1 --clock 7670454 --rate 48000 --seconds 0.50 --note 48 --out ym2612-held-tail-smoke.wav --debug ym2612-held-tail-smoke.json
@@ -846,6 +855,9 @@ add_test(NAME chipper_render_ym2413_sources_off_smoke
 )
 add_test(NAME chipper_render_ym2413_rhythm_smoke
     COMMAND chipper_render --chip ym2413 --accuracy authentic --macro drum --opll-rhythm rhythm --clock 3579545 --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2413-rhythm-events.txt --out ym2413-rhythm-smoke.wav --debug ym2413-rhythm-smoke.json
+)
+add_test(NAME chipper_render_preset_opll_preset_bass_held_smoke
+    COMMAND chipper_render --preset opll-preset-bass --rate 48000 --seconds 0.50 --note 48 --out preset-opll-preset-bass-held.wav --debug preset-opll-preset-bass-held.json
 )
 add_test(NAME chipper_render_list_descriptors_smoke
     COMMAND chipper_render --list-descriptors --debug chipper-descriptors.json
@@ -1616,6 +1628,11 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_preset_opn2_dac_kick_assert PROPERTIES DEPENDS chipper_render_preset_opn2_dac_kick_smoke)
 
+    add_test(NAME chipper_render_preset_opn2_feedback_bass_held_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-feedback-bass-held.json --implemented-contains ymfm --preset opn2-feedback-bass --macro Bass --min-peak 0.01 --min-tail-rms 0.03 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535
+    )
+    set_tests_properties(chipper_render_preset_opn2_feedback_bass_held_assert PROPERTIES DEPENDS chipper_render_preset_opn2_feedback_bass_held_smoke)
+
     add_test(NAME chipper_render_opl3_json_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-smoke.json --implemented-contains ymfm --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.01 --min-rms 0.002 --register-writes 0 --note-events 0 --core-min internalChannelCount=18 --core-max internalChannelCount=18 --core-min exposedChannelCount=9 --core-max exposedChannelCount=9 --core-min opl3Core=1 --core-max opl3Core=1 --core-min opl3NewFlag=1 --core-max opl3NewFlag=1 --core-min opl3NewModeRegister=1 --core-max opl3NewModeRegister=1 --core-min waveform0=3 --core-max waveform0=3 --core-min feedback0=3 --core-max feedback0=3 --core-min connectionRegister0=247 --core-max connectionRegister0=247 --core-min opl3OutputSelect0=240 --core-max opl3OutputSelect0=240 --core-min fnum0=1 --core-max fnum0=1023 --core-min block0=0 --core-max block0=7 --core-min keyOnMask=0 --core-max keyOnMask=0 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=menu --descriptor-param-label "waveShape=Waveform" --descriptor-param-choices waveShape=5
     )
@@ -1641,6 +1658,11 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_preset_opl2_rhythm_kit_assert PROPERTIES DEPENDS chipper_render_preset_opl2_rhythm_kit_smoke)
 
+    add_test(NAME chipper_render_preset_opl2_bass_held_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opl2-bass-held.json --implemented-contains ymfm --preset opl2-bass --macro Bass --min-peak 0.01 --min-tail-rms 0.02 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535
+    )
+    set_tests_properties(chipper_render_preset_opl2_bass_held_assert PROPERTIES DEPENDS chipper_render_preset_opl2_bass_held_smoke)
+
     add_test(NAME chipper_render_ym2151_json_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-smoke.json --implemented-contains ymfm --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.01 --min-rms 0.002 --register-writes 0 --note-events 0 --core-min internalChannelCount=8 --core-max internalChannelCount=8 --core-min exposedChannelCount=8 --core-max exposedChannelCount=8 --core-min algorithm0=4 --core-max algorithm0=4 --core-min feedback0=3 --core-max feedback0=3 --core-min panBits0=192 --core-max panBits0=192 --core-min panBits1=192 --core-max panBits1=192 --core-min noiseRegister=0 --core-max noiseRegister=0 --core-min noiseEnabled=0 --core-max noiseEnabled=0 --core-min algorithmFeedbackRegister0=220 --core-max algorithmFeedbackRegister0=220 --core-min keyCode0=1 --core-max keyCode0=127 --core-min keyFraction0=0 --core-max keyFraction0=0 --core-min keyOnMask=0 --core-max keyOnMask=0 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=menu --descriptor-param-label "waveShape=Algorithm" --descriptor-param-choices waveShape=9 --descriptor-param-kind dmgStereoRoute=chipRegister --descriptor-param-surface dmgStereoRoute=segmentedChoice --descriptor-param-label "dmgStereoRoute=Pan" --descriptor-param-choices dmgStereoRoute=5 --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=OPM Noise" --descriptor-param-choices snNoiseMode=5
     )
@@ -1655,6 +1677,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-noise-high-smoke.json --implemented-contains ymfm --macro Drum --min-peak 0.01 --core-min noiseRegister=159 --core-max noiseRegister=159 --core-min noiseEnabled=1 --core-max noiseEnabled=1 --core-min noiseFrequency=31 --core-max noiseFrequency=31 --descriptor-param-label "snNoiseMode=OPM Noise" --descriptor-param-choices snNoiseMode=5
     )
     set_tests_properties(chipper_render_ym2151_noise_high_assert PROPERTIES DEPENDS chipper_render_ym2151_noise_high_smoke)
+
+    add_test(NAME chipper_render_preset_opm_arcade_bass_held_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opm-arcade-bass-held.json --implemented-contains ymfm --preset opm-arcade-bass --macro Bass --min-peak 0.01 --min-tail-rms 0.03 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535
+    )
+    set_tests_properties(chipper_render_preset_opm_arcade_bass_held_assert PROPERTIES DEPENDS chipper_render_preset_opm_arcade_bass_held_smoke)
 
     add_test(NAME chipper_render_ym2151_chip_poly_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-chip-poly-smoke.json --implemented-contains ymfm --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 8 --min-peak 0.01 --core-min activeChannels=8 --core-max activeChannels=8 --core-min assignedNote0=48 --core-max assignedNote0=48 --core-min assignedNote1=52 --core-max assignedNote1=52 --core-min assignedNote2=55 --core-max assignedNote2=55 --core-min assignedNote3=60 --core-max assignedNote3=60 --core-min assignedNote4=64 --core-max assignedNote4=64 --core-min assignedNote5=67 --core-max assignedNote5=67 --core-min assignedNote6=72 --core-max assignedNote6=72 --core-min assignedNote7=76 --core-max assignedNote7=76 --core-min keyOnMask=255 --core-max keyOnMask=255
@@ -1755,6 +1782,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2413-rhythm-smoke.json --implemented-contains emu2413 --macro Drum --register-writes 0 --note-events 1 --min-peak 0.01 --core-min rhythmMode=1 --core-max rhythmMode=1 --core-min rhythmModeChoice=2 --core-max rhythmModeChoice=2 --core-min rhythmRegister=63 --core-max rhythmRegister=63 --core-min rhythmKeyBits=31 --core-max rhythmKeyBits=31 --core-min rhythmBdVolume=4 --core-max rhythmBdVolume=4 --core-min rhythmHatVolume=4 --core-max rhythmHatVolume=4 --core-min rhythmSnareVolume=4 --core-max rhythmSnareVolume=4 --core-min rhythmTomVolume=4 --core-max rhythmTomVolume=4 --core-min rhythmCymVolume=4 --core-max rhythmCymVolume=4 --core-min keyOnMask=448 --core-max keyOnMask=448 --descriptor-param-kind ymEnvelopeShape=chipRegister --descriptor-param-surface ymEnvelopeShape=segmentedChoice --descriptor-param-label "ymEnvelopeShape=Rhythm Mode" --descriptor-param-choices ymEnvelopeShape=3
     )
     set_tests_properties(chipper_render_ym2413_rhythm_assert PROPERTIES DEPENDS chipper_render_ym2413_rhythm_smoke)
+
+    add_test(NAME chipper_render_preset_opll_preset_bass_held_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opll-preset-bass-held.json --implemented-contains emu2413 --preset opll-preset-bass --macro Bass --min-peak 0.01 --min-tail-rms 0.003 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535
+    )
+    set_tests_properties(chipper_render_preset_opll_preset_bass_held_assert PROPERTIES DEPENDS chipper_render_preset_opll_preset_bass_held_smoke)
 
     add_test(NAME chipper_render_preset_nes_hero_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-hero-smoke.json --implemented-contains partial --preset nes-hero-pulse --macro Lead --play-mode "Big Mono" --output-db -9 --register-writes 0 --note-events 0 --min-peak 0.1 --core-min pulseDuty1=2 --core-max pulseDuty1=2 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0
