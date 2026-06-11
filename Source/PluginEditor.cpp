@@ -4316,11 +4316,12 @@ void ChipperAudioProcessorEditor::placeHucVoiceWaveControls(juce::Rectangle<int>
     const auto columns = visibleCount > 6u ? size_t { 4u } : size_t { 3u };
     const auto topCount = std::min(columns, visibleCount);
     const auto bottomCount = visibleCount - topCount;
-    const auto rowHeight = std::min(25, std::max(18, (bounds.getHeight() - 5) / 2));
+    const auto rowGap = std::min(8, std::max(4, bounds.getHeight() / 14));
+    const auto rowHeight = std::clamp((bounds.getHeight() - rowGap) / 2, 26, 36);
     auto topRow = bounds.removeFromTop(std::min(rowHeight, bounds.getHeight())).reduced(0, 1);
-    bounds.removeFromTop(std::min(5, bounds.getHeight()));
+    bounds.removeFromTop(std::min(rowGap, bounds.getHeight()));
     auto bottomRow = bounds.removeFromTop(std::min(rowHeight, bounds.getHeight())).reduced(0, 1);
-    const auto gap = 6;
+    const auto gap = 8;
 
     const auto layoutRow = [this, gap](juce::Rectangle<int> row, size_t first, size_t count)
     {
@@ -4335,8 +4336,9 @@ void ChipperAudioProcessorEditor::placeHucVoiceWaveControls(juce::Rectangle<int>
             if (local + 1u < count)
                 row.removeFromLeft(gap);
 
-            hucVoiceWaveLabels[i].setBounds(cell.removeFromLeft(std::min(34, cell.getWidth() / 3)));
-            hucVoiceWaveBoxes[i].setBounds(cell);
+            hucVoiceWaveLabels[i].setBounds(cell.removeFromTop(std::min(12, cell.getHeight())));
+            cell.removeFromTop(std::min(2, cell.getHeight()));
+            hucVoiceWaveBoxes[i].setBounds(cell.reduced(0, 1));
         }
     };
 
