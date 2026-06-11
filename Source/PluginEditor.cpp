@@ -3291,6 +3291,7 @@ void ChipperAudioProcessorEditor::resized()
     constexpr auto footerReserve = 52;
     const auto nesLayout = displayedMode == chipper::ChipMode::nes;
     const auto sidLayout = displayedMode == chipper::ChipMode::sid;
+    const auto dmgLayout = displayedMode == chipper::ChipMode::dmg;
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
     const auto sampleLayout = displayedMode == chipper::ChipMode::spc700 || displayedMode == chipper::ChipMode::paula;
     const auto showMotionModule = sidLayout;
@@ -3355,6 +3356,22 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[3] = { modules.getX() + topColumnWidth + gap, topY, topColumnWidth, topRowHeight };
         moduleBounds[4] = {};
         moduleBounds[5] = { modules.getX(), bottomY, modules.getWidth(), sampleRowHeight };
+    }
+    else if (dmgLayout)
+    {
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.31)), 138, 166);
+        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.38)), 174, 210);
+        const auto bottomRowHeight = std::max(132, modules.getHeight() - topRowHeight - middleRowHeight - (gap * 2));
+        const auto topY = modules.getY();
+        const auto middleY = topY + topRowHeight + gap;
+        const auto bottomY = middleY + middleRowHeight + gap;
+
+        moduleBounds[0] = {};
+        moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), topRowHeight };
+        moduleBounds[2] = { modules.getX(), middleY, columnWidth, middleRowHeight };
+        moduleBounds[3] = { modules.getX() + columnWidth + gap, middleY, columnWidth, middleRowHeight };
+        moduleBounds[4] = {};
+        moduleBounds[5] = { modules.getX(), bottomY, modules.getWidth(), bottomRowHeight };
     }
     else if (sampleLayout)
     {
@@ -3766,7 +3783,18 @@ void ChipperAudioProcessorEditor::resized()
     profilePanel.removeFromTop(20);
     profilePanel.removeFromTop(30);
     profilePanel.removeFromTop(4);
-    placeDmgStereoRouteSegment(displayedMode == chipper::ChipMode::sid ? profilePanel : outputRoutePanel);
+    if (sampleLayout)
+    {
+        dmgStereoRouteLabel.setBounds({});
+        dmgStereoRouteValueLabel.setBounds({});
+        dmgStereoRouteBox.setBounds({});
+        for (auto& button : dmgStereoRouteButtons)
+            button.setBounds({});
+    }
+    else
+    {
+        placeDmgStereoRouteSegment(displayedMode == chipper::ChipMode::sid ? profilePanel : outputRoutePanel);
+    }
 
     area.removeFromTop(12);
     globalStripBounds = area.removeFromTop(performanceStripHeight);
@@ -3946,6 +3974,22 @@ void ChipperAudioProcessorEditor::resized()
         rootCell.removeFromLeft(std::min(3, rootCell.getWidth()));
         dmcSampleSlotBox.setBounds(sampleRow.reduced(0, 1));
         dmcMapRootBox.setBounds(rootCell.reduced(0, 1));
+
+        if (displayedMode == chipper::ChipMode::spc700)
+        {
+            auto playbackLifeRow = controlColumn.removeFromTop(std::min(25, controlColumn.getHeight()));
+            dmgStereoRouteLabel.setBounds(playbackLifeRow.removeFromLeft(twoColumnSampleBank ? 70 : 78));
+            playbackLifeRow.removeFromLeft(std::min(6, playbackLifeRow.getWidth()));
+            dmgStereoRouteBox.setBounds(playbackLifeRow.reduced(0, 1));
+            for (auto& button : dmgStereoRouteButtons)
+                button.setBounds({});
+            controlColumn.removeFromTop(std::min(twoColumnSampleBank ? 4 : 5, controlColumn.getHeight()));
+        }
+        else
+        {
+            dmgStereoRouteLabel.setBounds({});
+            dmgStereoRouteBox.setBounds({});
+        }
 
         auto loopColumn = twoColumnSampleBank ? waveformColumn : controlColumn;
         if (twoColumnSampleBank)
@@ -4229,7 +4273,8 @@ void ChipperAudioProcessorEditor::placeWaveShapeSegment(juce::Rectangle<int> bou
     waveShapeSegmentBounds = bounds.removeFromTop(std::min(tight ? 20 : (compact ? 24 : 28), bounds.getHeight())).reduced(0, 1);
     layoutSegmentedButtons(waveShapeButtons, waveShapeSegmentBounds, waveShapeButtons.size());
 
-    waveShapeValueLabel.setBounds((compact || tight) ? juce::Rectangle<int> {} : bounds);
+    const auto canShowReadout = ! compact && ! tight && bounds.getHeight() >= 18 && displayedMode != chipper::ChipMode::paula;
+    waveShapeValueLabel.setBounds(canShowReadout ? bounds : juce::Rectangle<int> {});
 }
 
 void ChipperAudioProcessorEditor::placeFmAlgorithmControl(juce::Rectangle<int> bounds)
@@ -4455,7 +4500,8 @@ void ChipperAudioProcessorEditor::placeDmgWaveLevelSegment(juce::Rectangle<int> 
     dmgWaveLevelSegmentBounds = bounds.removeFromTop(std::min(tight ? 20 : (compact ? 24 : 28), bounds.getHeight())).reduced(0, 1);
     layoutSegmentedButtons(dmgWaveLevelButtons, dmgWaveLevelSegmentBounds, dmgWaveLevelButtons.size());
 
-    dmgWaveLevelValueLabel.setBounds((compact || tight) ? juce::Rectangle<int> {} : bounds);
+    const auto canShowReadout = ! compact && ! tight && bounds.getHeight() >= 18;
+    dmgWaveLevelValueLabel.setBounds(canShowReadout ? bounds : juce::Rectangle<int> {});
 }
 
 void ChipperAudioProcessorEditor::placeDmgStereoRouteSegment(juce::Rectangle<int> bounds)
@@ -8252,6 +8298,19 @@ juce::String ChipperAudioProcessorEditor::envelopeDecayReadout(chipper::ChipMode
     }
 
     const auto period = std::clamp(static_cast<int>(std::round(15.0f - (std::clamp(value, 0.0f, 1.0f) * 14.0f))), 1, 15);
+    if (mode == chipper::ChipMode::pokey)
+        return juce::String("POKEY AUDV gate helper, step ") + juce::String(period) + "/15";
+    if (mode == chipper::ChipMode::paula)
+        return juce::String("Paula volume gate helper, step ") + juce::String(period) + "/15";
+    if (mode == chipper::ChipMode::huc6280)
+        return juce::String("HuC6280 volume helper, step ") + juce::String(period) + "/15";
+    if (mode == chipper::ChipMode::scc)
+        return juce::String("SCC volume helper, step ") + juce::String(period) + "/15";
+    if (mode == chipper::ChipMode::namcoWsg)
+        return juce::String("Namco WSG volume helper, step ") + juce::String(period) + "/15";
+    if (mode == chipper::ChipMode::spc700)
+        return juce::String("SPC700 ADSR/gain helper, step ") + juce::String(period) + "/15";
+
     return juce::String("NES envelope decay, period ") + juce::String(period);
 }
 
