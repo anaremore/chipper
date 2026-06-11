@@ -2862,11 +2862,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
     for (size_t i = 0; i < moduleTitleLabels.size(); ++i)
     {
-        moduleNumberLabels[i].setFont(juce::FontOptions(13.0f, juce::Font::bold));
-        moduleNumberLabels[i].setJustificationType(juce::Justification::centred);
-        moduleNumberLabels[i].setColour(juce::Label::textColourId, juce::Colour(0xff101414));
-        moduleNumberLabels[i].setColour(juce::Label::backgroundColourId, juce::Colour(0xfff0c94d));
-        addAndMakeVisible(moduleNumberLabels[i]);
+        moduleNumberLabels[i].setVisible(false);
 
         moduleTitleLabels[i].setFont(juce::FontOptions(15.0f, juce::Font::bold));
         moduleTitleLabels[i].setJustificationType(juce::Justification::centredLeft);
@@ -3356,7 +3352,6 @@ void ChipperAudioProcessorEditor::resized()
         };
     }
 
-    auto visibleModuleNumber = 1;
     for (size_t i = 0; i < moduleBounds.size(); ++i)
     {
         if (moduleBounds[i].isEmpty())
@@ -3372,9 +3367,8 @@ void ChipperAudioProcessorEditor::resized()
 
         auto panel = moduleBounds[i].reduced(12, 9);
         auto titleRow = panel.removeFromTop(20);
-        moduleNumberLabels[i].setText(juce::String(visibleModuleNumber++), juce::dontSendNotification);
-        moduleNumberLabels[i].setBounds(titleRow.removeFromLeft(22));
-        titleRow.removeFromLeft(6);
+        moduleNumberLabels[i].setText({}, juce::dontSendNotification);
+        moduleNumberLabels[i].setBounds({});
         moduleTitleLabels[i].setBounds(titleRow);
         moduleSummaryLabels[i].setBounds(panel.removeFromTop(30));
         panel.removeFromTop(4);
