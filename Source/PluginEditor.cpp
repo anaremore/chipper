@@ -2866,7 +2866,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
     for (size_t i = 0; i < moduleTitleLabels.size(); ++i)
     {
-        moduleTitleLabels[i].setFont(juce::FontOptions(15.0f, juce::Font::bold));
+        moduleTitleLabels[i].setFont(juce::FontOptions(16.0f, juce::Font::bold));
         moduleTitleLabels[i].setJustificationType(juce::Justification::centredLeft);
         moduleTitleLabels[i].setColour(juce::Label::textColourId, juce::Colour(0xfff0c94d));
         addAndMakeVisible(moduleTitleLabels[i]);
@@ -3343,9 +3343,9 @@ void ChipperAudioProcessorEditor::resized()
         }
 
         auto panel = moduleBounds[i].reduced(12, 9);
-        auto titleRow = panel.removeFromTop(20);
+        auto titleRow = panel.removeFromTop(22);
         moduleTitleLabels[i].setBounds(titleRow);
-        moduleSummaryLabels[i].setBounds(panel.removeFromTop(30));
+        moduleSummaryLabels[i].setBounds(panel.removeFromTop(28));
         panel.removeFromTop(4);
 
         const auto itemGap = 6;
