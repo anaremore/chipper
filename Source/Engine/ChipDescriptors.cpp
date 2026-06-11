@@ -3879,7 +3879,7 @@ uint8_t wavetableWaveShapeForChannel(ChipMode mode, const PatchConfig& patch, si
         patch.dmgStereoRoute
     };
 
-    const auto channelCount = mode == ChipMode::namcoWsg ? size_t { 8u } : (mode == ChipMode::huc6280 ? size_t { 6u } : size_t { 1u });
+    const auto channelCount = mode == ChipMode::namcoWsg ? size_t { 8u } : (mode == ChipMode::huc6280 ? size_t { 6u } : (mode == ChipMode::scc ? size_t { 5u } : size_t { 1u }));
     const auto baseChoice = std::clamp(patch.waveShape, 0, 4);
     auto choice = choices[std::min(channel, channelCount - 1u)];
     choice = std::clamp(choice, 0, 4);
@@ -3963,7 +3963,7 @@ bool namcoWsgChannelEnabledForPatch(const PatchConfig& patch, size_t channel)
 uint8_t wavetableRamSampleForPatch(ChipMode mode, const PatchConfig& patch, size_t channel, size_t sampleIndex)
 {
     constexpr auto twoPiLocal = 6.283185307179586476925286766559;
-    const auto choice = mode == ChipMode::huc6280 || mode == ChipMode::namcoWsg
+    const auto choice = mode == ChipMode::huc6280 || mode == ChipMode::namcoWsg || mode == ChipMode::scc
                             ? static_cast<int>(wavetableWaveShapeForChannel(mode, patch, channel))
                             : std::clamp(patch.waveShape, 0, 4);
     const auto i = sampleIndex & 31u;

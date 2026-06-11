@@ -3592,7 +3592,7 @@ void ChipperAudioProcessorEditor::resized()
         placeOpllInstrumentControl(primaryTonePanel);
     else if (displayedMode == chipper::ChipMode::nes)
         placePulseDutySegment(primaryTonePanel);
-    else if (displayedMode == chipper::ChipMode::huc6280 || displayedMode == chipper::ChipMode::namcoWsg)
+    else if (displayedMode == chipper::ChipMode::huc6280 || displayedMode == chipper::ChipMode::namcoWsg || displayedMode == chipper::ChipMode::scc)
         placeHucVoiceWaveControls(primaryTonePanel);
     else
         placeWaveShapeSegment(primaryTonePanel);
@@ -4300,7 +4300,7 @@ void ChipperAudioProcessorEditor::placeHucVoiceWaveControls(juce::Rectangle<int>
     waveShapeLabel.setBounds(bounds.removeFromTop(std::min(18, bounds.getHeight())));
     bounds.removeFromTop(std::min(4, bounds.getHeight()));
 
-    const auto visibleCount = displayedMode == chipper::ChipMode::namcoWsg ? size_t { 8u } : size_t { 6u };
+    const auto visibleCount = displayedMode == chipper::ChipMode::namcoWsg ? size_t { 8u } : (displayedMode == chipper::ChipMode::scc ? size_t { 5u } : size_t { 6u });
     const auto columns = visibleCount > 6u ? size_t { 4u } : size_t { 3u };
     const auto topCount = std::min(columns, visibleCount);
     const auto bottomCount = visibleCount - topCount;
@@ -5944,7 +5944,7 @@ juce::String ChipperAudioProcessorEditor::wavetableSourceCardLabel(chipper::Chip
     const auto wave0 = chipper::wavetableRamSampleForPatch(mode, patch, index, 0);
     const auto wave31 = chipper::wavetableRamSampleForPatch(mode, patch, index, 31);
     juce::String shape;
-    const auto shapeChoice = mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg
+    const auto shapeChoice = mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc
                                  ? static_cast<int>(chipper::wavetableWaveShapeForChannel(mode, patch, index))
                                  : std::clamp(patch.waveShape, 0, 4);
     switch (shapeChoice)
@@ -6018,10 +6018,12 @@ juce::String ChipperAudioProcessorEditor::wavetableSourceRegisterReadout(chipper
     {
         const auto volume = chipper::sccVolumeForPatch(patch, index);
         const auto keyBit = chipper::sccChannelKeyOnForPatch(patch, index);
+        const auto shapeChoice = static_cast<int>(chipper::wavetableWaveShapeForChannel(mode, patch, index));
         return "SCC Ch " + juce::String(channel)
             + " | freq regs $" + byteHex(static_cast<uint8_t>(0xa0u + std::min(index, size_t { 4u }) * 2u))
             + "/$" + byteHex(static_cast<uint8_t>(0xa1u + std::min(index, size_t { 4u }) * 2u))
             + " | $" + byteHex(static_cast<uint8_t>(0xaau + std::min(index, size_t { 4u }))) + " vol " + juce::String(static_cast<int>(volume)) + "/15"
+            + " | wave " + juce::String(shapeChoice)
             + " | $AF bit " + juce::String(static_cast<int>(index)) + (keyBit ? " on" : " off")
             + " | RAM[0/31] $" + byteHex(wave0) + "/$" + byteHex(wave31);
     }
@@ -7042,7 +7044,7 @@ void ChipperAudioProcessorEditor::setPulse2DutySegmentVisible(chipper::ChipMode 
 
 void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
-    const auto usesPerLaneWaves = mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg;
+    const auto usesPerLaneWaves = mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc;
     setSidVoiceWaveControlsVisible(shouldBeVisible && mode == chipper::ChipMode::sid);
     setHucVoiceWaveControlsVisible(shouldBeVisible && usesPerLaneWaves);
     if (mode == chipper::ChipMode::sid)
@@ -7855,10 +7857,11 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
     }
     else if (mode == chipper::ChipMode::scc)
     {
-        shape = wavetablePreviewShape(patch);
+        const auto channelShape = static_cast<int>(chipper::wavetableWaveShapeForChannel(mode, patch, index));
+        shape = wavetablePreviewShapeForChoice(channelShape);
         tooltip = juce::String("Konami SCC wavetable channel ") + juce::String(static_cast<int>(index + 1u))
             + ": 32-byte wave RAM preview."
-            + "\nWave Shape: " + waveShapeReadout(mode, patch.waveShape)
+            + "\nWave Shape: " + waveShapeReadout(mode, channelShape)
             + "\n" + wavetableSourceRegisterReadout(mode, patch, index);
     }
     else if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413)
@@ -8118,7 +8121,7 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
         updateSidVoiceWaveControls(shouldBeVisible);
         return;
     }
-    if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg)
+    if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
     {
         for (auto& button : waveShapeButtons)
             button.setVisible(false);
@@ -8378,7 +8381,8 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
     const auto modeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::chipMode)));
     const auto mode = chipper::parameters::chipModeFromChoice(modeChoice);
     const auto isNamco = mode == chipper::ChipMode::namcoWsg;
-    const auto visibleCount = isNamco ? size_t { 8u } : size_t { 6u };
+    const auto isScc = mode == chipper::ChipMode::scc;
+    const auto visibleCount = isNamco ? size_t { 8u } : (isScc ? size_t { 5u } : size_t { 6u });
     const auto laneName = isNamco ? juce::String("Lane") : juce::String("Ch");
     waveShapeLabel.setText(isNamco ? "Lane Waves" : "Channel Waves", juce::dontSendNotification);
     waveShapeValueLabel.setJustificationType(juce::Justification::centredLeft);
@@ -8411,7 +8415,7 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
         hucVoiceWaveBoxes[i].setSelectedId(std::clamp(selected, 0, maxChoice) + 1, juce::dontSendNotification);
 
         const auto resolvedText = waveShapeReadout(mode, resolved);
-        const auto tooltip = juce::String(isNamco ? "Namco WSG lane " : "HuC6280 channel ") + juce::String(static_cast<int>(i + 1u))
+        const auto tooltip = juce::String(isNamco ? "Namco WSG lane " : (isScc ? "SCC channel " : "HuC6280 channel ")) + juce::String(static_cast<int>(i + 1u))
             + " wave RAM shape."
             + "\nResolved: " + resolvedText
             + "\n" + wavetableSourceRegisterReadout(mode, patch, i);
@@ -8427,7 +8431,7 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
         }
     }
 
-    waveShapeValueLabel.setText(summary.isNotEmpty() ? summary : (isNamco ? juce::String("Per-lane Namco WSG wave RAM shapes") : juce::String("Per-channel HuC wave RAM shapes")), juce::dontSendNotification);
+    waveShapeValueLabel.setText(summary.isNotEmpty() ? summary : (isNamco ? juce::String("Per-lane Namco WSG wave RAM shapes") : (isScc ? juce::String("Per-channel SCC wave RAM shapes") : juce::String("Per-channel HuC wave RAM shapes"))), juce::dontSendNotification);
 }
 
 void ChipperAudioProcessorEditor::updateSidVoicePulseWidthControls(const chipper::PatchConfig& patch, bool shouldBeVisible)

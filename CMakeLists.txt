@@ -718,6 +718,9 @@ add_test(NAME chipper_render_scc_steps_smoke
 add_test(NAME chipper_render_scc_chip_poly_smoke
     COMMAND chipper_render --chip scc --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 2 --clock 3579545 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/scc-five-chip-poly-events.txt --out scc-chip-poly-smoke.wav --debug scc-chip-poly-smoke.json
 )
+add_test(NAME chipper_render_scc_per_channel_waves_smoke
+    COMMAND chipper_render --chip scc --accuracy authentic --macro manual --play-mode chip-poly --wave-shape tri --sid-voice2-wave saw --sid-voice3-wave pulse --nes-pulse2-duty 75 --dmg-wave-level 50 --clock 3579545 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/scc-five-chip-poly-events.txt --out scc-per-channel-waves-smoke.wav --debug scc-per-channel-waves-smoke.json
+)
 add_test(NAME chipper_render_scc_register_trace_smoke
     COMMAND chipper_render --chip scc --accuracy authentic --macro manual --clock 3579545 --rate 48000 --seconds 0.05 --note 60 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/scc-register-trace-events.txt --out scc-register-trace-smoke.wav --debug scc-register-trace-smoke.json
 )
@@ -1541,6 +1544,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/scc-chip-poly-smoke.json --implemented-contains emu2212 --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 5 --min-peak 0.05 --core-min activeChannels=5 --core-max activeChannels=5 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min assignedNote4=76 --core-max assignedNote4=76 --core-min internalChannelCount=5 --core-max internalChannelCount=5 --core-min keyOnMask=31 --core-max keyOnMask=31
     )
     set_tests_properties(chipper_render_scc_chip_poly_assert PROPERTIES DEPENDS chipper_render_scc_chip_poly_smoke)
+
+    add_test(NAME chipper_render_scc_per_channel_waves_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/scc-per-channel-waves-smoke.json --implemented-contains emu2212 --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 5 --min-peak 0.05 --core-min activeChannels=5 --core-max activeChannels=5 --core-min waveShapeChoice0=1 --core-max waveShapeChoice0=1 --core-min waveShapeChoice1=2 --core-max waveShapeChoice1=2 --core-min waveShapeChoice2=3 --core-max waveShapeChoice2=3 --core-min waveShapeChoice3=4 --core-max waveShapeChoice3=4 --core-min waveShapeChoice4=3 --core-max waveShapeChoice4=3 --core-min keyOnMask=31 --core-max keyOnMask=31
+    )
+    set_tests_properties(chipper_render_scc_per_channel_waves_assert PROPERTIES DEPENDS chipper_render_scc_per_channel_waves_smoke)
 
     add_test(NAME chipper_render_scc_register_trace_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/scc-register-trace-smoke.json --implemented-contains emu2212 --macro Manual --register-writes 4 --note-events 0 --min-peak 0.05 --min-rms 0.02 --core-min period0=320 --core-max period0=320 --core-min volume0=15 --core-max volume0=15 --core-min internalChannelCount=5 --core-max internalChannelCount=5
