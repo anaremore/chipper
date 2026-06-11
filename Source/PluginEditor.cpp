@@ -4128,20 +4128,23 @@ void ChipperAudioProcessorEditor::placeOpllInstrumentControl(juce::Rectangle<int
 
     if (compact)
     {
-        const auto labelWidth = std::min(98, std::max(76, bounds.getWidth() / 5));
-        auto instrumentRow = bounds.removeFromTop(std::min(controlHeight, bounds.getHeight()));
-        waveShapeLabel.setBounds(instrumentRow.removeFromLeft(labelWidth));
-        instrumentRow.removeFromLeft(std::min(6, instrumentRow.getWidth()));
-        opllInstrumentBox.setBounds(instrumentRow.reduced(0, 1));
-        waveShapeValueLabel.setBounds({});
+        const auto availableHeight = bounds.getHeight();
+        const auto readoutFits = availableHeight >= 74;
+        const auto compactLabelHeight = readoutFits ? 14 : 12;
+        const auto compactControlHeight = readoutFits ? 26 : 24;
+        const auto compactGap = readoutFits ? 4 : 3;
 
-        bounds.removeFromTop(std::min(rowGap, bounds.getHeight()));
-        auto rhythmRow = bounds.removeFromTop(std::min(controlHeight, bounds.getHeight()));
-        ymEnvelopeShapeLabel.setBounds(rhythmRow.removeFromLeft(labelWidth));
-        rhythmRow.removeFromLeft(std::min(6, rhythmRow.getWidth()));
-        ymEnvelopeShapeSegmentBounds = rhythmRow.reduced(0, 1);
+        waveShapeLabel.setBounds(bounds.removeFromTop(std::min(compactLabelHeight, bounds.getHeight())));
+        opllInstrumentBox.setBounds(bounds.removeFromTop(std::min(compactControlHeight, bounds.getHeight())).reduced(0, 1));
+        waveShapeValueLabel.setBounds(readoutFits
+            ? bounds.removeFromTop(std::min(14, bounds.getHeight()))
+            : juce::Rectangle<int> {});
+
+        bounds.removeFromTop(std::min(compactGap, bounds.getHeight()));
+        ymEnvelopeShapeLabel.setBounds(bounds.removeFromTop(std::min(compactLabelHeight, bounds.getHeight())));
+        ymEnvelopeShapeSegmentBounds = bounds.removeFromTop(std::min(compactControlHeight, bounds.getHeight())).reduced(0, 1);
         layoutSegmentedButtons(ymEnvelopeShapeButtons, ymEnvelopeShapeSegmentBounds, rhythmCount);
-        ymEnvelopeShapeValueLabel.setBounds(bounds);
+        ymEnvelopeShapeValueLabel.setBounds(readoutFits ? bounds : juce::Rectangle<int> {});
 
         waveShapeSegmentBounds = {};
         for (auto& button : waveShapeButtons)
