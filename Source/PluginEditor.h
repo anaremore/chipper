@@ -518,7 +518,7 @@ private:
     chipper::ChipMode displayedMode = chipper::ChipMode::nes;
     std::vector<const chipper::PresetInfo*> displayedPresets;
     std::vector<UserPresetFile> displayedUserPresets;
-    std::array<ChipSettingsSnapshot, 15> chipSettingsSnapshots;
+    std::vector<ChipSettingsSnapshot> chipSettingsSnapshots;
     bool descriptorTextInitialized = false;
     int displayedDmcSampleCount = -1;
     uint64_t displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();

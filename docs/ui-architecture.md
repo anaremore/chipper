@@ -18,6 +18,8 @@ Every chip mode uses the same top-level layout:
 
 The footer/status area should include a subtle generated build label so a tester can match an installed VST3 to the reported source revision. It should also show a compact MIDI CC range badge with a tooltip for the full fixed hardware-control map, keeping MIDI discoverability close to the build/status information without crowding chip controls. Long accuracy caveats belong in tooltips or docs; the visible footer text should stay short enough that build and MIDI badges never cover it.
 
+The editor preserves a per-chip working snapshot when users switch chip modes. Shared APVTS parameters are reused across chips, but the UI stores each chip's current preset selection, user preset source, and exposed control values before switching away, then restores them when the user returns. This lets users compare NES, SID, SNES, FM, and sampler ideas without losing the sound they were shaping on each chip.
+
 The module contents may change, but the order should not. Users should learn where concepts live once and carry that knowledge across NES, DMG, SID, YM2149, SN76489, POKEY, FM, and sampler-style modes.
 
 ## Slot Scalability

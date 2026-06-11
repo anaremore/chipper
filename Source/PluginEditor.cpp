@@ -1831,6 +1831,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     setSize(1180, 1040);
 
     auto& state = audioProcessor.getValueTreeState();
+    chipSettingsSnapshots.resize(static_cast<size_t>(chipper::parameters::chipModeChoices().size()));
 
     titleLabel.setText("Chipper", juce::dontSendNotification);
     titleLabel.setJustificationType(juce::Justification::centredLeft);
