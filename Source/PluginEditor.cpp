@@ -3238,8 +3238,8 @@ void ChipperAudioProcessorEditor::resized()
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
     const auto sampleLayout = displayedMode == chipper::ChipMode::spc700 || displayedMode == chipper::ChipMode::paula;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (sampleLayout ? 420 : (nesLayout ? 350 : 300));
-    const auto maxModulesHeight = sidLayout ? 620 : (sampleLayout ? 520 : (nesLayout ? 500 : 492));
+    const auto performanceStripHeight = sidLayout ? 260 : (sampleLayout ? 420 : (nesLayout ? 280 : 300));
+    const auto maxModulesHeight = sidLayout ? 620 : (sampleLayout ? 520 : (nesLayout ? 540 : 492));
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
@@ -3266,29 +3266,22 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (nesLayout)
     {
-        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.25)), 112, 146);
-        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.43)), 178, 226);
-        const auto bottomRowHeight = std::max(96, modules.getHeight() - topRowHeight - middleRowHeight - (gap * 2));
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.24)), 110, 140);
+        const auto remainingHeight = modules.getHeight() - topRowHeight - gap;
+        const auto upperRightHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(remainingHeight) * 0.46)), 156, 198);
+        const auto lowerRightHeight = std::max(150, remainingHeight - upperRightHeight - gap);
         const auto toneWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getWidth()) * 0.54)), 520, 650);
         const auto detailWidth = modules.getWidth() - toneWidth - gap;
         const auto topY = modules.getY();
         const auto middleY = topY + topRowHeight + gap;
-        const auto bottomY = middleY + middleRowHeight + gap;
+        const auto bottomY = middleY + upperRightHeight + gap;
 
         moduleBounds[0] = {};
         moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), topRowHeight };
-        moduleBounds[2] = { modules.getX(), middleY, toneWidth, middleRowHeight };
-        moduleBounds[3] = { modules.getX() + toneWidth + gap, middleY, detailWidth, middleRowHeight };
-        if (showMotionModule)
-        {
-            moduleBounds[4] = { modules.getX(), bottomY, toneWidth, bottomRowHeight };
-            moduleBounds[5] = { modules.getX() + toneWidth + gap, bottomY, detailWidth, bottomRowHeight };
-        }
-        else
-        {
-            moduleBounds[4] = {};
-            moduleBounds[5] = { modules.getX(), bottomY, modules.getWidth(), bottomRowHeight };
-        }
+        moduleBounds[2] = { modules.getX(), middleY, toneWidth, remainingHeight };
+        moduleBounds[3] = { modules.getX() + toneWidth + gap, middleY, detailWidth, upperRightHeight };
+        moduleBounds[4] = {};
+        moduleBounds[5] = { modules.getX() + toneWidth + gap, bottomY, detailWidth, lowerRightHeight };
     }
     else if (spc700Layout)
     {
@@ -3763,10 +3756,20 @@ void ChipperAudioProcessorEditor::resized()
         placeToneNoiseMixSegment(sustainCell);
     }
 
+    auto nesDmcModuleCell = moduleBounds[5].reduced(12, 9);
+    if (displayedMode == chipper::ChipMode::nes)
+    {
+        nesDmcModuleCell.removeFromTop(20);
+        if (moduleSummaryLabels[5].isVisible())
+            nesDmcModuleCell.removeFromTop(30);
+        nesDmcModuleCell.removeFromTop(4);
+        nesDmcModuleCell.removeFromBottom(6);
+    }
+
     const auto utilityCell = displayedMode == chipper::ChipMode::sid
         ? controlCells[3]
         : (displayedMode == chipper::ChipMode::nes
-               ? controlCells[3].getUnion(controlCells[4])
+               ? nesDmcModuleCell
                : (sampleLayout ? controlCells[1].getUnion(controlCells[4]) : controlCells[4]));
     if (displayedMode == chipper::ChipMode::nes)
     {
@@ -3920,7 +3923,9 @@ void ChipperAudioProcessorEditor::resized()
         placeLabeledSliderWithReadout(clockSlider, clockLabel, controlValueLabels[4], utilityCell);
     }
 
-    auto outputCell = displayedMode == chipper::ChipMode::sid ? controlCells[4].getUnion(controlCells[5]) : controlCells[5];
+    auto outputCell = displayedMode == chipper::ChipMode::sid
+        ? controlCells[4].getUnion(controlCells[5])
+        : (displayedMode == chipper::ChipMode::nes ? controlCells[3].getUnion(controlCells[5]) : controlCells[5]);
     auto outputHeader = outputCell.removeFromTop(18);
     outputLabel.setBounds(outputHeader.removeFromLeft(96));
     controlValueLabels[5].setJustificationType(juce::Justification::centredRight);
@@ -9342,6 +9347,11 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         const auto& module = descriptor.modules[i];
         moduleTitleLabels[i].setText(module.title, juce::dontSendNotification);
         auto summary = juce::String(module.summary);
+        if (mode == chipper::ChipMode::nes && i == 5)
+        {
+            moduleTitleLabels[i].setText("DMC Sample", juce::dontSendNotification);
+            summary = "Load a DMC file or bank, then browse manually or map slots across notes.";
+        }
         if (i == 1 && hasLiveCore && usesSourceChannelSurface(mode))
         {
             const auto visibleCount = chipper::visibleSourceCountForMode(mode);
@@ -9456,7 +9466,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         itemLabel.setVisible(! hasCustomMotionSurface && mode == chipper::ChipMode::sid && ! itemLabel.getText().isEmpty());
     const auto hasCustomOutputSurface = hasLiveCore
         && mode != chipper::ChipMode::sid
-        && (usesStereoSpreadControl(mode) || usesDmgStereoRouteSegment(mode));
+        && (mode == chipper::ChipMode::nes || usesStereoSpreadControl(mode) || usesDmgStereoRouteSegment(mode));
     moduleSummaryLabels[5].setVisible(! hasCustomOutputSurface);
     for (auto& itemLabel : moduleItemLabels[5])
         itemLabel.setVisible(! hasCustomOutputSurface && ! itemLabel.getText().isEmpty());
