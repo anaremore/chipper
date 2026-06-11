@@ -127,6 +127,84 @@ void drawChipThemeTexture(juce::Graphics& g, juce::Rectangle<int> bounds, const 
     }
 }
 
+void drawChipIdentityAccent(juce::Graphics& g, juce::Rectangle<int> bounds, chipper::ChipMode mode, const ChipUiTheme& theme)
+{
+    auto header = bounds.reduced(16).removeFromTop(62);
+    const auto titleArea = header.removeFromLeft(122).toFloat();
+    const auto stripeY = titleArea.getBottom() - 10.0f;
+    const auto stripeX = titleArea.getX() + 4.0f;
+    const auto stripeW = std::min(92.0f, titleArea.getWidth() - 12.0f);
+
+    switch (mode)
+    {
+        case chipper::ChipMode::sid:
+        {
+            static const std::array<juce::Colour, 6> c64Rainbow {
+                juce::Colour(0xffd94a34), juce::Colour(0xffe58a2f), juce::Colour(0xfff3d34a),
+                juce::Colour(0xff8fe36b), juce::Colour(0xff7fd6ff), juce::Colour(0xffb16bff)
+            };
+            const auto segmentW = stripeW / static_cast<float>(c64Rainbow.size());
+            for (size_t i = 0; i < c64Rainbow.size(); ++i)
+            {
+                g.setColour(c64Rainbow[i].withAlpha(0.88f));
+                g.fillRect(stripeX + (segmentW * static_cast<float>(i)), stripeY, segmentW + 0.5f, 4.0f);
+            }
+            break;
+        }
+        case chipper::ChipMode::nes:
+        {
+            g.setColour(theme.primary.withAlpha(0.92f));
+            g.fillRect(stripeX, stripeY, stripeW * 0.64f, 4.0f);
+            g.setColour(theme.accent.withAlpha(0.88f));
+            g.fillRect(stripeX + (stripeW * 0.68f), stripeY, stripeW * 0.26f, 4.0f);
+            break;
+        }
+        case chipper::ChipMode::dmg:
+        {
+            for (int i = 0; i < 5; ++i)
+            {
+                g.setColour((i % 2 == 0 ? theme.primary : theme.accent).withAlpha(0.78f));
+                g.fillRect(stripeX + static_cast<float>(i * 15), stripeY, 10.0f, 4.0f);
+            }
+            break;
+        }
+        case chipper::ChipMode::ym2612:
+        case chipper::ChipMode::opl3:
+        case chipper::ChipMode::ym2151:
+        case chipper::ChipMode::ym2413:
+        {
+            g.setColour(theme.accent.withAlpha(0.88f));
+            const auto y = stripeY + 2.0f;
+            for (int i = 0; i < 4; ++i)
+            {
+                const auto x = stripeX + static_cast<float>(i * 20);
+                g.drawLine(x, y, x + 14.0f, y, 1.5f);
+                g.fillEllipse(x + 4.0f, y - 3.0f, 6.0f, 6.0f);
+            }
+            break;
+        }
+        case chipper::ChipMode::spc700:
+        case chipper::ChipMode::paula:
+        {
+            juce::Path wave;
+            wave.startNewSubPath(stripeX, stripeY + 2.0f);
+            for (int i = 0; i <= 10; ++i)
+            {
+                const auto x = stripeX + (stripeW * static_cast<float>(i) / 10.0f);
+                const auto y = stripeY + 2.0f + std::sin(static_cast<float>(i) * 1.4f) * 3.0f;
+                wave.lineTo(x, y);
+            }
+            g.setColour(theme.accent.withAlpha(0.88f));
+            g.strokePath(wave, juce::PathStrokeType(1.5f));
+            break;
+        }
+        default:
+            g.setColour(theme.primary.withAlpha(0.72f));
+            g.fillRect(stripeX, stripeY, stripeW, 3.0f);
+            break;
+    }
+}
+
 int chipModeChoiceIndex(chipper::ChipMode mode)
 {
     switch (mode)
@@ -2903,6 +2981,7 @@ void ChipperAudioProcessorEditor::paint(juce::Graphics& g)
 
     g.fillAll(theme.background);
     drawChipThemeTexture(g, getLocalBounds(), theme);
+    drawChipIdentityAccent(g, getLocalBounds(), displayedMode, theme);
     g.setColour(theme.outline);
     g.drawHorizontalLine(84, 16.0f, static_cast<float>(getWidth() - 16));
     g.drawHorizontalLine(getHeight() - 62, 16.0f, static_cast<float>(getWidth() - 16));
