@@ -2353,7 +2353,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("profile", "Profile", "Paula clean-room tracker sampler groundwork.", { "Amiga family", "3.55 MHz PAL default", "Hybrid default", "Authentic still partial" }),
                 makeModule("sources", "Channels", "Four native Paula sample channels in the fixed Amiga L/R/R/L hardware layout.", { "Ch 1 left", "Ch 2 right", "Ch 3 right", "Ch 4 left" }),
                 makeModule("sample", "Sample / Period", "8-bit sample shapes plus user WAV/AIFF/8SVX folder-bank import.", { "WAV/AIFF/8SVX file", "Folder bank", "Note map", "Slot CC117" }),
-                makeModule("envelope", "Loop / Decay", "Looped instrument and one-shot tracker behavior.", { "Loop bias", "One-shot drums", "Decay helper", "Register readout" }),
+                makeModule("envelope", "Loop / Decay", "Looped instrument, one-shot behavior, and LED/A500 output color.", { "Loop bias", "One-shot drums", "Decay helper", "Output filter" }),
                 makeModule("motion", "Motion", "Tracker SFX gestures mapped to sample periods.", { "Tracker arp", "Rate sweep", "Jump blip", "Damage hit" }),
                 makeModule("output", "Output", "Classic hard-panned Amiga channel layout groundwork.", { "0-64 volume", "Stereo spread convenience", "User samples", "Known differences" })
             },

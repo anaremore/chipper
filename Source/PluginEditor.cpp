@@ -3685,7 +3685,7 @@ void ChipperAudioProcessorEditor::resized()
     motionPanel.removeFromTop(20);
     motionPanel.removeFromTop(30);
     motionPanel.removeFromTop(4);
-    if (usesSnNoiseModeSegment(displayedMode))
+    if (usesSnNoiseModeSegment(displayedMode) && displayedMode != chipper::ChipMode::paula)
     {
         auto noiseModePanel = primaryTonePanel;
         if (displayedMode == chipper::ChipMode::sid)
@@ -3729,6 +3729,18 @@ void ChipperAudioProcessorEditor::resized()
         placeYmEnvelopeShapeSegment(shapeArea);
         envelopeDecayPanel.removeFromTop(6);
         placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
+        ymEnvelopePreview.setBounds({});
+    }
+    else if (displayedMode == chipper::ChipMode::paula)
+    {
+        const auto filterHeight = std::clamp(envelopeDecayPanel.getHeight() / 2, 50, 64);
+        const auto gapHeight = std::min(6, std::max(0, envelopeDecayPanel.getHeight() - filterHeight));
+        const auto decayHeight = std::max(44, envelopeDecayPanel.getHeight() - filterHeight - gapHeight);
+        auto decayArea = envelopeDecayPanel.removeFromTop(std::min(decayHeight, envelopeDecayPanel.getHeight()));
+        envelopeDecayPanel.removeFromTop(std::min(gapHeight, envelopeDecayPanel.getHeight()));
+
+        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, decayArea);
+        placeSnNoiseModeSegment(envelopeDecayPanel);
         ymEnvelopePreview.setBounds({});
     }
     else if (usesFmEnvelopeShapePanel)
