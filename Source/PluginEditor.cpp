@@ -8488,7 +8488,17 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
 
     dmcSampleSlotBox.setEnabled(sampleCount > 0);
     const auto playbackInfo = audioProcessor.nesDmcSamplePlaybackInfo();
-    dmcSampleStatusLabel.setText(playbackInfo.statusLine, juce::dontSendNotification);
+    auto visibleStatus = playbackInfo.byteCount > 0
+        ? "Slot " + juce::String(playbackInfo.activeSlot + 1) + "/" + juce::String(playbackInfo.activeSlotCount)
+            + ": " + playbackInfo.sampleName
+        : playbackInfo.statusLine;
+    if (playbackInfo.playbackMode != 0 && playbackInfo.activeSlotCount > 0)
+        visibleStatus += " | Map " + chipper::parameters::midiNoteChoices()[playbackInfo.mapRootNote]
+            + "-" + chipper::parameters::midiNoteChoices()[playbackInfo.mapHighNote];
+    if (playbackInfo.byteCount > 0)
+        visibleStatus += " | Rate " + juce::String(playbackInfo.rateIndex)
+            + (playbackInfo.loopEnabled ? " | Loop" : " | One-shot");
+    dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
     auto sampleTooltip = playbackInfo.statusLine
         + "\nDMC bit clock: " + juce::String(playbackInfo.bitRateHz / 1000.0, 2) + " kHz from $4010 rate index "
         + juce::String(playbackInfo.rateIndex) + ".";
