@@ -3464,7 +3464,8 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (displayedMode == chipper::ChipMode::nes
         || displayedMode == chipper::ChipMode::dmg
-        || displayedMode == chipper::ChipMode::ym2149)
+        || displayedMode == chipper::ChipMode::ym2149
+        || displayedMode == chipper::ChipMode::pokey)
     {
         if (displayedMode == chipper::ChipMode::nes)
         {
@@ -3537,7 +3538,9 @@ void ChipperAudioProcessorEditor::resized()
             && displayedMode != chipper::ChipMode::ym2413
             && ! usesFmEnvelopeShapePanel
             && usesYmEnvelopeShapeSegment(displayedMode))
-            placeYmEnvelopeShapeSegment(displayedMode == chipper::ChipMode::ym2149 || usesFmToneStack
+            placeYmEnvelopeShapeSegment(displayedMode == chipper::ChipMode::ym2149
+                                            || displayedMode == chipper::ChipMode::pokey
+                                            || usesFmToneStack
                                             ? secondaryTonePanel
                                             : primaryTonePanel);
     }
