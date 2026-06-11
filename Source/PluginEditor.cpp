@@ -5908,6 +5908,31 @@ static juce::String paulaHardwarePanLabel(size_t index)
     return (index == 0u || index == 3u) ? juce::String("L") : juce::String("R");
 }
 
+static juce::String sampleMappedModeLabel(chipper::ChipMode mode, int playbackMode)
+{
+    if (playbackMode <= 0)
+        return "Manual";
+
+    if (mode == chipper::ChipMode::spc700)
+        return playbackMode == 1 ? "Note" : "Drum";
+
+    if (mode == chipper::ChipMode::paula)
+        return playbackMode == 1 ? "Key" : "Track";
+
+    return "Map";
+}
+
+static int previewSampleSlotForVoice(const ChipperAudioProcessor::Spc700BrrSampleInfo& info, size_t voiceIndex)
+{
+    if (info.bankCount <= 0)
+        return -1;
+
+    if (info.playbackMode == 0)
+        return std::clamp(info.selectedSlot, 0, info.bankCount - 1);
+
+    return static_cast<int>(voiceIndex % static_cast<size_t>(info.bankCount));
+}
+
 static juce::String ym2149ResolvedChannelMixLabel(const chipper::PatchConfig& patch, size_t index)
 {
     if (index >= 3u)
@@ -5946,10 +5971,13 @@ juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMod
         const auto info = audioProcessor.spc700BrrSampleInfo();
         if (info.loaded)
         {
-            const auto modeText = info.playbackMode == 0 ? juce::String("Manual") : juce::String("Map");
-            const auto slotText = info.bankCount > 1
-                ? juce::String("S ") + modeText + " " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
+            const auto names = audioProcessor.spc700BrrSampleNames();
+            const auto slot = previewSampleSlotForVoice(info, index);
+            auto slotText = info.bankCount > 1
+                ? sampleMappedModeLabel(mode, info.playbackMode) + " S" + juce::String(slot + 1).paddedLeft('0', 2)
                 : juce::String("Sample");
+            if (slot >= 0 && slot < names.size())
+                slotText += " " + compactSampleName(names[slot], 12);
             return "V" + number + " | " + slotText;
         }
 
@@ -5959,10 +5987,25 @@ juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMod
     }
 
     if (mode == chipper::ChipMode::paula)
+    {
+        const auto info = audioProcessor.paulaSampleInfo();
+        if (info.loaded)
+        {
+            const auto names = audioProcessor.paulaSampleNames();
+            const auto slot = previewSampleSlotForVoice(info, index);
+            auto slotText = info.bankCount > 1
+                ? sampleMappedModeLabel(mode, info.playbackMode) + " S" + juce::String(slot + 1).paddedLeft('0', 2)
+                : juce::String("Sample");
+            if (slot >= 0 && slot < names.size())
+                slotText += " " + compactSampleName(names[slot], 12);
+            return "Ch " + number + " " + paulaHardwarePanLabel(index) + " | " + slotText;
+        }
+
         return "Ch " + number
             + " " + paulaHardwarePanLabel(index)
             + " | Shape " + juce::String(templateId)
             + " " + juce::String(sample0) + "/" + juce::String(sample32);
+    }
 
     return {};
 }
@@ -5999,13 +6042,21 @@ juce::String ChipperAudioProcessorEditor::sampleSourceRegisterReadout(chipper::C
         }
         else if (info.loaded)
         {
-            const auto modeText = info.playbackMode == 0 ? juce::String("manual") : juce::String("mapped");
-            readout += "sample slot " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
-                + " " + info.sampleName
-                + " | " + modeText;
+            if (info.bankCount <= 0 || info.selectedSlot < 0)
+            {
+                readout += info.statusLine;
+                return readout;
+            }
+
+            const auto names = audioProcessor.spc700BrrSampleNames();
+            const auto slot = previewSampleSlotForVoice(info, index);
+            const auto sampleName = slot >= 0 && slot < names.size() ? names[slot] : info.sampleName;
+            readout += "sample slot " + juce::String(slot + 1) + "/" + juce::String(info.bankCount)
+                + " " + sampleName
+                + " | " + sampleMappedModeLabel(mode, info.playbackMode).toLowerCase();
             if (info.playbackMode != 0)
             {
-                readout += " "
+                readout += " preview; triggered notes map "
                     + chipper::parameters::midiNoteChoices()[info.mapRootNote]
                     + "-"
                     + chipper::parameters::midiNoteChoices()[info.mapHighNote];
@@ -6024,14 +6075,41 @@ juce::String ChipperAudioProcessorEditor::sampleSourceRegisterReadout(chipper::C
         const auto volume = chipper::paulaChannelVolumeForPatch(patch, index);
         const auto control = chipper::paulaControlForPatch(patch, index);
         const auto base = static_cast<uint8_t>(std::min(index, size_t { 3u }) * 0x10u);
-        return "Paula ch " + juce::String(channel)
+        auto readout = "Paula ch " + juce::String(channel)
             + " " + paulaHardwarePanLabel(index)
             + " | regs $" + byteHex(base) + "-$" + byteHex(static_cast<uint8_t>(base + 4u))
             + " | vol " + juce::String(static_cast<int>(volume)) + "/64"
             + " | ctrl $" + byteHex(control)
-            + " | " + ((control & 0x02u) != 0 ? juce::String("loop") : juce::String("one-shot"))
-            + " | shape " + juce::String(templateId)
-            + " | sample[0/32] " + juce::String(sample0) + "/" + juce::String(sample32);
+            + " | " + ((control & 0x02u) != 0 ? juce::String("loop") : juce::String("one-shot"));
+
+        const auto info = audioProcessor.paulaSampleInfo();
+        if (info.loaded)
+        {
+            if (info.bankCount <= 0 || info.selectedSlot < 0)
+            {
+                readout += " | " + info.statusLine;
+                return readout;
+            }
+
+            const auto names = audioProcessor.paulaSampleNames();
+            const auto slot = previewSampleSlotForVoice(info, index);
+            const auto sampleName = slot >= 0 && slot < names.size() ? names[slot] : info.sampleName;
+            readout += " | sample slot " + juce::String(slot + 1) + "/" + juce::String(info.bankCount)
+                + " " + sampleName
+                + " | " + sampleMappedModeLabel(mode, info.playbackMode).toLowerCase();
+            if (info.playbackMode != 0)
+                readout += " preview; triggered notes map "
+                    + chipper::parameters::midiNoteChoices()[info.mapRootNote]
+                    + "-"
+                    + chipper::parameters::midiNoteChoices()[info.mapHighNote];
+        }
+        else
+        {
+            readout += " | shape " + juce::String(templateId)
+                + " | sample[0/32] " + juce::String(sample0) + "/" + juce::String(sample32);
+        }
+
+        return readout;
     }
 
     return {};
