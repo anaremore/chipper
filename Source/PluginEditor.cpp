@@ -3193,16 +3193,14 @@ void ChipperAudioProcessorEditor::resized()
         const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.29)), 128, 158);
         const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.36)), 156, 194);
         const auto bottomRowHeight = std::max(128, modules.getHeight() - topRowHeight - middleRowHeight - (gap * 2));
-        const auto profileWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getWidth()) * 0.34)), 360, 470);
-        const auto wideWidth = modules.getWidth() - profileWidth - gap;
         const auto toneWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getWidth()) * 0.54)), 520, 650);
         const auto detailWidth = modules.getWidth() - toneWidth - gap;
         const auto topY = modules.getY();
         const auto middleY = topY + topRowHeight + gap;
         const auto bottomY = middleY + middleRowHeight + gap;
 
-        moduleBounds[0] = { modules.getX(), topY, profileWidth, topRowHeight };
-        moduleBounds[1] = { modules.getX() + profileWidth + gap, topY, wideWidth, topRowHeight };
+        moduleBounds[0] = {};
+        moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), topRowHeight };
         moduleBounds[2] = { modules.getX(), middleY, toneWidth, middleRowHeight };
         moduleBounds[3] = { modules.getX() + toneWidth + gap, middleY, detailWidth, middleRowHeight };
         if (showMotionModule)
@@ -3221,8 +3219,6 @@ void ChipperAudioProcessorEditor::resized()
         const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.24)), 108, 136);
         const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.38)), 172, 220);
         const auto bottomRowHeight = std::max(128, modules.getHeight() - topRowHeight - sourceRowHeight - (gap * 2));
-        const auto leftX = modules.getX();
-        const auto rightX = modules.getX() + columnWidth + gap;
         const auto bottomColumnWidth = showMotionModule
             ? (modules.getWidth() - (gap * 2)) / 3
             : (modules.getWidth() - gap) / 2;
@@ -3230,9 +3226,9 @@ void ChipperAudioProcessorEditor::resized()
         const auto sourceY = topY + topRowHeight + gap;
         const auto bottomY = sourceY + sourceRowHeight + gap;
 
-        moduleBounds[0] = { leftX, topY, columnWidth, topRowHeight };
+        moduleBounds[0] = {};
         moduleBounds[1] = { modules.getX(), sourceY, modules.getWidth(), sourceRowHeight };
-        moduleBounds[2] = { rightX, topY, columnWidth, topRowHeight };
+        moduleBounds[2] = { modules.getX(), topY, modules.getWidth(), topRowHeight };
         moduleBounds[3] = { modules.getX(), bottomY, bottomColumnWidth, bottomRowHeight };
         if (showMotionModule)
         {
@@ -3245,27 +3241,35 @@ void ChipperAudioProcessorEditor::resized()
             moduleBounds[5] = { modules.getX() + bottomColumnWidth + gap, bottomY, bottomColumnWidth, bottomRowHeight };
         }
     }
+    else if (sampleLayout)
+    {
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.30)), 128, 164);
+        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.34)), 148, 190);
+        const auto bottomRowHeight = std::max(126, modules.getHeight() - topRowHeight - middleRowHeight - (gap * 2));
+        const auto topY = modules.getY();
+        const auto middleY = topY + topRowHeight + gap;
+        const auto bottomY = middleY + middleRowHeight + gap;
+
+        moduleBounds[0] = {};
+        moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), topRowHeight };
+        moduleBounds[2] = { modules.getX(), middleY, columnWidth, middleRowHeight };
+        moduleBounds[3] = { modules.getX() + columnWidth + gap, middleY, columnWidth, middleRowHeight };
+        moduleBounds[4] = {};
+        moduleBounds[5] = { modules.getX(), bottomY, modules.getWidth(), bottomRowHeight };
+    }
     else
     {
-        for (size_t i = 0; i < moduleBounds.size(); ++i)
-        {
-            const auto row = static_cast<int>(i / 2);
-            const auto column = static_cast<int>(i % 2);
-            const auto x = modules.getX() + (column * (columnWidth + gap));
-            const auto y = modules.getY() + (row * (rowHeight + gap));
-            moduleBounds[i] = { x, y, columnWidth, rowHeight };
-        }
-
-        if (! showMotionModule)
-        {
-            moduleBounds[4] = {};
-            moduleBounds[5] = {
-                modules.getX(),
-                modules.getY() + (2 * (rowHeight + gap)),
-                modules.getWidth(),
-                rowHeight
-            };
-        }
+        moduleBounds[0] = {};
+        moduleBounds[1] = { modules.getX(), modules.getY(), modules.getWidth(), rowHeight };
+        moduleBounds[2] = { modules.getX(), modules.getY() + rowHeight + gap, columnWidth, rowHeight };
+        moduleBounds[3] = { modules.getX() + columnWidth + gap, modules.getY() + rowHeight + gap, columnWidth, rowHeight };
+        moduleBounds[4] = {};
+        moduleBounds[5] = {
+            modules.getX(),
+            modules.getY() + (2 * (rowHeight + gap)),
+            modules.getWidth(),
+            rowHeight
+        };
     }
 
     for (size_t i = 0; i < moduleBounds.size(); ++i)
