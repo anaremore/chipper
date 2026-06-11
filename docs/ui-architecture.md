@@ -20,7 +20,9 @@ The footer/status area should include a subtle generated build label so a tester
 
 The editor preserves a per-chip working snapshot when users switch chip modes. Shared APVTS parameters are reused across chips, but the UI stores each chip's current preset selection, user preset source, and exposed control values before switching away, then restores them when the user returns. This lets users compare NES, SID, SNES, FM, and sampler ideas without losing the sound they were shaping on each chip.
 
-The module contents may change, but the order should not. Users should learn where concepts live once and carry that knowledge across NES, DMG, SID, YM2149, SN76489, POKEY, FM, and sampler-style modes.
+The module contents may change, but the order should not. Users should learn where concepts live once and carry that knowledge across NES, DMG, SID, YM2149, SN76489, POKEY, FM, and sampler-style modes. When a chip-specific layout hides or merges a conceptual zone, visible section badges are renumbered by display order rather than fixed descriptor slot so the UI never suggests missing panels.
+
+HuC6280 exposes six independent wavetable voices. Its UI should present per-channel wave choices rather than a single global wave-shape switch; Chipper reuses the existing automatable choice slots in HuC mode so MIDI/host control can address each channel while the engine seeds each channel's own 32-sample wave RAM.
 
 ## Slot Scalability
 

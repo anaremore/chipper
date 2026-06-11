@@ -4716,6 +4716,12 @@ public:
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"selectedChannel\":" << static_cast<int>(selectedChannel) << ","
              << "\"waveShapeChoice\":" << std::clamp(patch.waveShape, 0, 4) << ","
+             << "\"waveShapeChoice0\":" << static_cast<int>(huc6280WaveShapeForChannel(patch, 0)) << ","
+             << "\"waveShapeChoice1\":" << static_cast<int>(huc6280WaveShapeForChannel(patch, 1)) << ","
+             << "\"waveShapeChoice2\":" << static_cast<int>(huc6280WaveShapeForChannel(patch, 2)) << ","
+             << "\"waveShapeChoice3\":" << static_cast<int>(huc6280WaveShapeForChannel(patch, 3)) << ","
+             << "\"waveShapeChoice4\":" << static_cast<int>(huc6280WaveShapeForChannel(patch, 4)) << ","
+             << "\"waveShapeChoice5\":" << static_cast<int>(huc6280WaveShapeForChannel(patch, 5)) << ","
              << "\"frequency0\":" << frequency[0] << ","
              << "\"frequency1\":" << frequency[1] << ","
              << "\"frequency2\":" << frequency[2] << ","
@@ -4813,7 +4819,7 @@ private:
 
     void seedWave(size_t channel)
     {
-        const auto choice = std::clamp(patch.waveShape, 0, 4);
+        const auto choice = static_cast<int>(huc6280WaveShapeForChannel(patch, channel));
         for (size_t i = 0; i < 32; ++i)
         {
             const auto phaseValue = static_cast<double>(i) / 32.0;
@@ -4866,7 +4872,7 @@ private:
             const auto shape = currentLfoSample();
             hz *= std::pow(2.0, (shape * lfoDepthSemitones()) / 12.0);
         }
-        const auto useNoise = (noiseControl[channel] & 0x80u) != 0 || ((patch.waveShape == 4 || patch.macro == MacroKind::drum || patch.macro == MacroKind::hit) && channel >= 4);
+        const auto useNoise = (noiseControl[channel] & 0x80u) != 0 || huc6280ChannelUsesNoiseForPatch(patch, channel);
         if (useNoise)
             return renderNoise(channel, hz) * volume;
 

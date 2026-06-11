@@ -153,6 +153,7 @@ private:
     static constexpr size_t waveShapeCount = 5;
     static constexpr size_t pulse2DutyCount = 5;
     static constexpr size_t sidVoiceWaveCount = 3;
+    static constexpr size_t hucVoiceWaveCount = 6;
     static constexpr size_t dmgWaveLevelCount = 5;
     static constexpr size_t dmgStereoRouteCount = 5;
     static constexpr size_t ymEnvelopeShapeCount = 21;
@@ -187,6 +188,7 @@ private:
     void placeOplWaveformControl(juce::Rectangle<int> bounds);
     void placeOpllInstrumentControl(juce::Rectangle<int> bounds);
     void placeSidVoiceWaveControls(juce::Rectangle<int> bounds);
+    void placeHucVoiceWaveControls(juce::Rectangle<int> bounds);
     void placeDmgWaveLevelSegment(juce::Rectangle<int> bounds);
     void placeDmgStereoRouteSegment(juce::Rectangle<int> bounds);
     void placeYmEnvelopeShapeSegment(juce::Rectangle<int> bounds);
@@ -309,6 +311,7 @@ private:
     void setPulse2DutySegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setWaveShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setSidVoiceWaveControlsVisible(bool shouldBeVisible);
+    void setHucVoiceWaveControlsVisible(bool shouldBeVisible);
     void setSidVoicePulseWidthControlsVisible(bool shouldBeVisible);
     void setDmgWaveLevelSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void setDmgStereoRouteSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible);
@@ -329,6 +332,7 @@ private:
     void updateOplWaveformControl(chipper::ChipMode mode, int choice, bool shouldBeVisible);
     void updateOpllInstrumentControl(chipper::ChipMode mode, int choice, bool shouldBeVisible);
     void updateSidVoiceWaveControls(bool shouldBeVisible);
+    void updateHucVoiceWaveControls(bool shouldBeVisible);
     void updateSidVoicePulseWidthControls(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateDmgWaveLevelButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateDmgStereoRouteButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
@@ -399,6 +403,7 @@ private:
     std::array<juce::Label, sidVoiceWaveCount> sidVoiceWaveLabels;
     std::array<juce::Label, sidVoiceWaveCount> sidVoicePulseWidthLabels;
     std::array<juce::Label, sidVoiceWaveCount> sidVoicePulseWidthValueLabels;
+    std::array<juce::Label, hucVoiceWaveCount> hucVoiceWaveLabels;
     std::array<ChipWaveformPreview, sourceChannelCount> sourcePreviewScopes;
     juce::Label dmgWaveLevelLabel;
     juce::Label dmgWaveLevelValueLabel;
@@ -430,6 +435,7 @@ private:
     OplWaveformPreview oplWaveformPreview;
     juce::ComboBox opllInstrumentBox;
     std::array<juce::ComboBox, sidVoiceWaveCount> sidVoiceWaveBoxes;
+    std::array<juce::ComboBox, hucVoiceWaveCount> hucVoiceWaveBoxes;
     std::array<juce::Slider, sidVoiceWaveCount> sidVoicePulseWidthSliders;
     std::array<juce::TextButton, dmgWaveLevelCount> dmgWaveLevelButtons;
     std::array<juce::TextButton, dmgStereoRouteCount> dmgStereoRouteButtons;

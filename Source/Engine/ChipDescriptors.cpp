@@ -3866,9 +3866,26 @@ uint8_t huc6280ControlForPatch(const PatchConfig& patch, size_t)
     return static_cast<uint8_t>(0x80u | volume);
 }
 
+uint8_t huc6280WaveShapeForChannel(const PatchConfig& patch, size_t channel)
+{
+    const std::array<int, 6> choices {
+        patch.waveShape,
+        patch.sidVoice2WaveShape,
+        patch.sidVoice3WaveShape,
+        patch.pulse2Duty,
+        patch.dmgWaveLevel,
+        patch.snNoiseMode
+    };
+
+    const auto baseChoice = std::clamp(patch.waveShape, 0, 4);
+    auto choice = choices[std::min(channel, choices.size() - 1u)];
+    choice = std::clamp(choice, 0, 4);
+    return static_cast<uint8_t>(choice == 0 ? baseChoice : choice);
+}
+
 bool huc6280ChannelUsesNoiseForPatch(const PatchConfig& patch, size_t channel)
 {
-    const auto usesNoiseTemplate = patch.macro == MacroKind::drum || patch.macro == MacroKind::hit || patch.waveShape == 4;
+    const auto usesNoiseTemplate = patch.macro == MacroKind::drum || patch.macro == MacroKind::hit || huc6280WaveShapeForChannel(patch, channel) == 4u;
     return usesNoiseTemplate && channel >= 4u;
 }
 
@@ -3938,7 +3955,9 @@ bool namcoWsgChannelEnabledForPatch(const PatchConfig& patch, size_t channel)
 uint8_t wavetableRamSampleForPatch(ChipMode mode, const PatchConfig& patch, size_t channel, size_t sampleIndex)
 {
     constexpr auto twoPiLocal = 6.283185307179586476925286766559;
-    const auto choice = std::clamp(patch.waveShape, 0, 4);
+    const auto choice = mode == ChipMode::huc6280
+                            ? static_cast<int>(huc6280WaveShapeForChannel(patch, channel))
+                            : std::clamp(patch.waveShape, 0, 4);
     const auto i = sampleIndex & 31u;
     const auto phaseValue = static_cast<double>(i) / 32.0;
     const auto skew = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
