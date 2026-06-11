@@ -1782,7 +1782,7 @@ void SampleWaveformPreview::paint(juce::Graphics& g)
     g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
 
     auto graph = bounds.reduced(6.0f, 4.0f);
-    const auto labelHeight = std::min(14.0f, graph.getHeight() * 0.26f);
+    const auto labelHeight = std::min(15.0f, graph.getHeight() * 0.28f);
     const auto labelArea = graph.removeFromTop(labelHeight);
     graph.removeFromTop(1.0f);
 
@@ -1833,8 +1833,11 @@ void SampleWaveformPreview::paint(juce::Graphics& g)
     g.strokePath(waveform, juce::PathStrokeType(1.25f));
 
     g.setColour(snapshot.loaded ? juce::Colour(0xffd9e1e8) : juce::Colour(0xff7d8b93));
-    g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
-    g.drawText(snapshot.label.isNotEmpty() ? snapshot.label : juce::String("No sample"),
+    g.setFont(juce::FontOptions(labelArea.getHeight() < 12.0f ? 8.5f : 10.0f, juce::Font::bold));
+    auto labelText = snapshot.label.isNotEmpty() ? snapshot.label : juce::String("No sample");
+    const auto maxLabelChars = labelArea.getWidth() < 260.0f ? 30 : 44;
+    labelText = compactSampleName(labelText, maxLabelChars);
+    g.drawText(labelText,
                labelArea,
                juce::Justification::centredLeft,
                true);
