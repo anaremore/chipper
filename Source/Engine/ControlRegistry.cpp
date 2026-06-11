@@ -64,12 +64,12 @@ const MidiCcMappingList& midiCcMappings()
         { 61, parameter_ids::source8Enabled, "Source 8 Enabled" },
         { 62, parameter_ids::source7Level, "Source 7 Level" },
         { 63, parameter_ids::source8Level, "Source 8 Level" },
-        { 58, parameter_ids::source9Enabled, "Source 9 Enabled" },
-        { 59, parameter_ids::source9Level, "Source 9 Level" },
+        { 56, parameter_ids::source9Enabled, "Source 9 Enabled" },
+        { 57, parameter_ids::source9Level, "Source 9 Level" },
         { 69, parameter_ids::nesDmcMapRoot, "NES DMC Map Root" },
         { 68, parameter_ids::nesDmcLoop, "NES DMC Loop" },
-        { 120, parameter_ids::spc700LoopStart, "SPC700 Loop Start" },
-        { 121, parameter_ids::spc700LoopEnd, "SPC700 Loop End" }
+        { 58, parameter_ids::spc700LoopStart, "SPC700 Loop Start" },
+        { 59, parameter_ids::spc700LoopEnd, "SPC700 Loop End" }
     }};
 
     return mappings;

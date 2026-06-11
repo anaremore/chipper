@@ -123,7 +123,7 @@ int main()
     ok &= expect(hostParameterIds.size() == mappings.size(),
                  "Host parameter count does not match MIDI CC mapping count");
 
-    ok &= expect(chipper::parameters::parameterIdForMidiController(57) == nullptr,
+    ok &= expect(chipper::parameters::parameterIdForMidiController(55) == nullptr,
                  "Unexpected MIDI CC mapping below the Chipper control block");
     ok &= expect(chipper::parameters::parameterIdForMidiController(120) == nullptr,
                  "Unexpected MIDI CC mapping above the Chipper control block");
