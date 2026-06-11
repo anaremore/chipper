@@ -719,7 +719,7 @@ add_test(NAME chipper_render_scc_chip_poly_smoke
     COMMAND chipper_render --chip scc --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 2 --clock 3579545 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/scc-five-chip-poly-events.txt --out scc-chip-poly-smoke.wav --debug scc-chip-poly-smoke.json
 )
 add_test(NAME chipper_render_scc_per_channel_waves_smoke
-    COMMAND chipper_render --chip scc --accuracy authentic --macro manual --play-mode chip-poly --wave-shape tri --sid-voice2-wave saw --sid-voice3-wave pulse --nes-pulse2-duty 75 --dmg-wave-level 50 --clock 3579545 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/scc-five-chip-poly-events.txt --out scc-per-channel-waves-smoke.wav --debug scc-per-channel-waves-smoke.json
+    COMMAND chipper_render --chip scc --accuracy authentic --macro manual --play-mode chip-poly --scc-wave1 ramp --scc-wave2 tri --scc-wave3 pulse --scc-wave4 steps --scc-wave5 pulse --clock 3579545 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/scc-five-chip-poly-events.txt --out scc-per-channel-waves-smoke.wav --debug scc-per-channel-waves-smoke.json
 )
 add_test(NAME chipper_render_scc_register_trace_smoke
     COMMAND chipper_render --chip scc --accuracy authentic --macro manual --clock 3579545 --rate 48000 --seconds 0.05 --note 60 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/scc-register-trace-events.txt --out scc-register-trace-smoke.wav --debug scc-register-trace-smoke.json
@@ -734,7 +734,7 @@ add_test(NAME chipper_render_namco_wsg_chip_poly_smoke
     COMMAND chipper_render --chip namco --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 2 --clock 96000 --rate 48000 --seconds 0.10 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/namco-wsg-chip-poly-events.txt --out namco-wsg-chip-poly-smoke.wav --debug namco-wsg-chip-poly-smoke.json
 )
 add_test(NAME chipper_render_namco_wsg_per_lane_waves_smoke
-    COMMAND chipper_render --chip namco --accuracy authentic --macro manual --play-mode chip-poly --wave-shape tri --sid-voice2-wave saw --sid-voice3-wave pulse --nes-pulse2-duty 75 --dmg-wave-level 50 --sn-noise-mode short --ym-envelope-shape triangle --dmg-stereo-route split --clock 96000 --rate 48000 --seconds 0.10 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/namco-wsg-chip-poly-events.txt --out namco-wsg-per-lane-waves-smoke.wav --debug namco-wsg-per-lane-waves-smoke.json
+    COMMAND chipper_render --chip namco --accuracy authentic --macro manual --play-mode chip-poly --namco-wave1 ramp --namco-wave2 tri --namco-wave3 pulse --namco-wave4 steps --namco-wave5 pulse --namco-wave6 tri --namco-wave7 steps --namco-wave8 steps --clock 96000 --rate 48000 --seconds 0.10 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/namco-wsg-chip-poly-events.txt --out namco-wsg-per-lane-waves-smoke.wav --debug namco-wsg-per-lane-waves-smoke.json
 )
 add_test(NAME chipper_render_ym2612_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro lead --wave-shape 5 --clock 7670454 --rate 48000 --seconds 0.08 --note 69 --out ym2612-smoke.wav --debug ym2612-smoke.json

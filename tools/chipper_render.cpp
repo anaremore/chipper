@@ -290,6 +290,32 @@ bool parseHucWaveShape(const std::string& text, int& out)
     return true;
 }
 
+bool parseWavetableWaveShape(const std::string& text, int& out)
+{
+    uint32_t numeric = 0;
+    if (parseNumber(text, numeric))
+    {
+        out = std::clamp(static_cast<int>(numeric), 0, 4);
+        return true;
+    }
+
+    const auto key = normalizedToken(text);
+    if (key == "ram" || key == "manual" || key == "trace" || key == "macro" || key == "follow" || key == "auto" || key == "default")
+        out = 0;
+    else if (key == "ramp" || key == "saw")
+        out = 1;
+    else if (key == "tri" || key == "triangle")
+        out = 2;
+    else if (key == "pulse" || key == "square")
+        out = 3;
+    else if (key == "steps" || key == "step" || key == "noise")
+        out = 4;
+    else
+        return false;
+
+    return true;
+}
+
 bool parseYmEnvelopeShape(const std::string& text, int& out)
 {
     if (text.size() > 2u && text[0] == '0' && (text[1] == 'x' || text[1] == 'X'))
@@ -997,7 +1023,7 @@ void printUsage()
         << "       Metadata: chipper_render --list-presets [--chip sid] --debug presets.json\n"
         << "                 chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --spc700-brr-sample path.brr --spc700-brr-hex 017f... --spc700-brr-bank-hex 017f... --spc700-sample-slot 0..31 --spc700-map-root 60 --spc700-loop-start 0..1 --spc700-loop-end 0..1 --paula-sample path.8svx|raw --spc700-envelope follow|pluck|lead|pad|perc --spc700-noise follow|off|low|mid|high --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --huc-wave1 follow|ramp|tri|square|noise --huc-wave2 follow|ramp|tri|square|noise --huc-wave3 follow|ramp|tri|square|noise --huc-wave4 follow|ramp|tri|square|noise --huc-wave5 follow|ramp|tri|square|noise --huc-wave6 follow|ramp|tri|square|noise --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --huc-lfo follow|off|light|deep|fast --pokey-audctl follow|off|1+2|3+4|both --pokey-filter follow|off|1<-3|2<-4|both --paula-output-filter follow|raw|a500|led|both --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opm-pan follow|both|left|right|alt --opm-noise follow|off|low|mid|high --opn2-envelope follow|pluck|lead|pad|perc --opm-envelope follow|pluck|lead|pad|perc --fm-envelope follow|pluck|lead|pad|perc --opn2-dac follow|fm|dac --opl-rhythm follow|melodic|rhythm --opll-rhythm follow|melodic|rhythm --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --spc700-brr-sample path.brr --spc700-brr-hex 017f... --spc700-brr-bank-hex 017f... --spc700-sample-slot 0..31 --spc700-map-root 60 --spc700-loop-start 0..1 --spc700-loop-end 0..1 --paula-sample path.8svx|raw --spc700-envelope follow|pluck|lead|pad|perc --spc700-noise follow|off|low|mid|high --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --huc-wave1..6 follow|ramp|tri|square|noise --scc-wave1..5 follow|ramp|tri|pulse|steps --namco-wave1..8 follow|ramp|tri|pulse|steps --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --nes-pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --huc-lfo follow|off|light|deep|fast --pokey-audctl follow|off|1+2|3+4|both --pokey-filter follow|off|1<-3|2<-4|both --paula-output-filter follow|raw|a500|led|both --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opm-pan follow|both|left|right|alt --opm-noise follow|off|low|mid|high --opn2-envelope follow|pluck|lead|pad|perc --opm-envelope follow|pluck|lead|pad|perc --fm-envelope follow|pluck|lead|pad|perc --opn2-dac follow|fm|dac --opl-rhythm follow|melodic|rhythm --opll-rhythm follow|melodic|rhythm --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -1127,6 +1153,51 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             out = parsed != 0;
             return true;
+        };
+        auto parseWaveLane = [&](const char* name, int lane, bool huc) -> bool
+        {
+            const auto* value = requireValue(name);
+            int parsed = 0;
+            if (value == nullptr || ! (huc ? parseHucWaveShape(std::string(value), parsed) : parseWavetableWaveShape(std::string(value), parsed)))
+                return false;
+
+            switch (lane)
+            {
+                case 1:
+                    options.waveShape = parsed;
+                    options.waveShapeProvided = true;
+                    return true;
+                case 2:
+                    options.sidVoice2WaveShape = parsed;
+                    options.sidVoice2WaveShapeProvided = true;
+                    return true;
+                case 3:
+                    options.sidVoice3WaveShape = parsed;
+                    options.sidVoice3WaveShapeProvided = true;
+                    return true;
+                case 4:
+                    options.pulse2Duty = parsed;
+                    options.pulse2DutyProvided = true;
+                    return true;
+                case 5:
+                    options.dmgWaveLevel = parsed;
+                    options.dmgWaveLevelProvided = true;
+                    return true;
+                case 6:
+                    options.snNoiseMode = parsed;
+                    options.snNoiseModeProvided = true;
+                    return true;
+                case 7:
+                    options.ymEnvelopeShape = parsed;
+                    options.ymEnvelopeShapeProvided = true;
+                    return true;
+                case 8:
+                    options.dmgStereoRoute = parsed;
+                    options.dmgStereoRouteProvided = true;
+                    return true;
+                default:
+                    return false;
+            }
         };
 
         if (arg == "--preset")
@@ -1488,45 +1559,98 @@ bool parseArgs(int argc, char** argv, Options& options)
         }
         else if (arg == "--huc-wave1")
         {
-            const auto* value = requireValue("--huc-wave1");
-            if (value == nullptr || ! parseHucWaveShape(std::string(value), options.waveShape))
+            if (! parseWaveLane("--huc-wave1", 1, true))
                 return false;
-            options.waveShapeProvided = true;
         }
         else if (arg == "--huc-wave2")
         {
-            const auto* value = requireValue("--huc-wave2");
-            if (value == nullptr || ! parseHucWaveShape(std::string(value), options.sidVoice2WaveShape))
+            if (! parseWaveLane("--huc-wave2", 2, true))
                 return false;
-            options.sidVoice2WaveShapeProvided = true;
         }
         else if (arg == "--huc-wave3")
         {
-            const auto* value = requireValue("--huc-wave3");
-            if (value == nullptr || ! parseHucWaveShape(std::string(value), options.sidVoice3WaveShape))
+            if (! parseWaveLane("--huc-wave3", 3, true))
                 return false;
-            options.sidVoice3WaveShapeProvided = true;
         }
         else if (arg == "--huc-wave4")
         {
-            const auto* value = requireValue("--huc-wave4");
-            if (value == nullptr || ! parseHucWaveShape(std::string(value), options.pulse2Duty))
+            if (! parseWaveLane("--huc-wave4", 4, true))
                 return false;
-            options.pulse2DutyProvided = true;
         }
         else if (arg == "--huc-wave5")
         {
-            const auto* value = requireValue("--huc-wave5");
-            if (value == nullptr || ! parseHucWaveShape(std::string(value), options.dmgWaveLevel))
+            if (! parseWaveLane("--huc-wave5", 5, true))
                 return false;
-            options.dmgWaveLevelProvided = true;
         }
         else if (arg == "--huc-wave6")
         {
-            const auto* value = requireValue("--huc-wave6");
-            if (value == nullptr || ! parseHucWaveShape(std::string(value), options.snNoiseMode))
+            if (! parseWaveLane("--huc-wave6", 6, true))
                 return false;
-            options.snNoiseModeProvided = true;
+        }
+        else if (arg == "--scc-wave1")
+        {
+            if (! parseWaveLane("--scc-wave1", 1, false))
+                return false;
+        }
+        else if (arg == "--scc-wave2")
+        {
+            if (! parseWaveLane("--scc-wave2", 2, false))
+                return false;
+        }
+        else if (arg == "--scc-wave3")
+        {
+            if (! parseWaveLane("--scc-wave3", 3, false))
+                return false;
+        }
+        else if (arg == "--scc-wave4")
+        {
+            if (! parseWaveLane("--scc-wave4", 4, false))
+                return false;
+        }
+        else if (arg == "--scc-wave5")
+        {
+            if (! parseWaveLane("--scc-wave5", 5, false))
+                return false;
+        }
+        else if (arg == "--namco-wave1" || arg == "--wsg-wave1")
+        {
+            if (! parseWaveLane(arg.c_str(), 1, false))
+                return false;
+        }
+        else if (arg == "--namco-wave2" || arg == "--wsg-wave2")
+        {
+            if (! parseWaveLane(arg.c_str(), 2, false))
+                return false;
+        }
+        else if (arg == "--namco-wave3" || arg == "--wsg-wave3")
+        {
+            if (! parseWaveLane(arg.c_str(), 3, false))
+                return false;
+        }
+        else if (arg == "--namco-wave4" || arg == "--wsg-wave4")
+        {
+            if (! parseWaveLane(arg.c_str(), 4, false))
+                return false;
+        }
+        else if (arg == "--namco-wave5" || arg == "--wsg-wave5")
+        {
+            if (! parseWaveLane(arg.c_str(), 5, false))
+                return false;
+        }
+        else if (arg == "--namco-wave6" || arg == "--wsg-wave6")
+        {
+            if (! parseWaveLane(arg.c_str(), 6, false))
+                return false;
+        }
+        else if (arg == "--namco-wave7" || arg == "--wsg-wave7")
+        {
+            if (! parseWaveLane(arg.c_str(), 7, false))
+                return false;
+        }
+        else if (arg == "--namco-wave8" || arg == "--wsg-wave8")
+        {
+            if (! parseWaveLane(arg.c_str(), 8, false))
+                return false;
         }
         else if (arg == "--sid-voice2-pulse-width" || arg == "--sid-v2-pw")
         {
