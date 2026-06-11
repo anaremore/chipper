@@ -1891,10 +1891,10 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     auto& state = audioProcessor.getValueTreeState();
     chipSettingsSnapshots.resize(static_cast<size_t>(chipper::parameters::chipModeChoices().size()));
 
-    titleLabel.setText("█▀▀ █ █ █ █▀█ █▀█ █▀▀ █▀█\n█▄▄ █▀█ █ █ █▀  █▀  ██▄ █▀▄\n.oO chiptune synth core Oo.", juce::dontSendNotification);
+    titleLabel.setText("  ____ _   _ ___ ____  ____  _____ ____\n / ___| | | |_ _|  _ \\|  _ \\| ____|  _ \\\n| |   | |_| || || |_) | |_) |  _| | |_) |\n| |___|  _  || ||  __/|  __/| |___|  _ <\n \\____|_| |_|___|_|   |_|   |_____|_| \\_\\\n   .oO chiptune synth core Oo.", juce::dontSendNotification);
     titleLabel.setJustificationType(juce::Justification::centredLeft);
     titleLabel.setColour(juce::Label::textColourId, juce::Colour(0xfff7d85a));
-    titleLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 10.5f, juce::Font::bold));
+    titleLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 7.6f, juce::Font::bold));
     addAndMakeVisible(titleLabel);
 
     chipModeBox.addItemList(chipper::parameters::chipModeChoices(), 1);
