@@ -3238,8 +3238,8 @@ void ChipperAudioProcessorEditor::resized()
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
     const auto sampleLayout = displayedMode == chipper::ChipMode::spc700 || displayedMode == chipper::ChipMode::paula;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (sampleLayout ? 420 : (nesLayout ? 280 : 300));
-    const auto maxModulesHeight = sidLayout ? 620 : (sampleLayout ? 520 : (nesLayout ? 540 : 492));
+    const auto performanceStripHeight = sidLayout ? 260 : (sampleLayout ? 420 : (nesLayout ? 240 : 300));
+    const auto maxModulesHeight = sidLayout ? 620 : (sampleLayout ? 520 : (nesLayout ? 570 : 492));
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
@@ -3266,11 +3266,11 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (nesLayout)
     {
-        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.24)), 110, 140);
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.26)), 126, 156);
         const auto remainingHeight = modules.getHeight() - topRowHeight - gap;
-        const auto upperRightHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(remainingHeight) * 0.46)), 156, 198);
-        const auto lowerRightHeight = std::max(150, remainingHeight - upperRightHeight - gap);
-        const auto toneWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getWidth()) * 0.54)), 520, 650);
+        const auto upperRightHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(remainingHeight) * 0.46)), 168, 220);
+        const auto lowerRightHeight = std::max(172, remainingHeight - upperRightHeight - gap);
+        const auto toneWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getWidth()) * 0.54)), 540, 640);
         const auto detailWidth = modules.getWidth() - toneWidth - gap;
         const auto topY = modules.getY();
         const auto middleY = topY + topRowHeight + gap;
@@ -3516,13 +3516,14 @@ void ChipperAudioProcessorEditor::resized()
         {
             const auto availableHeight = tonePanel.getHeight();
             const auto gapHeight = std::min(8, std::max(0, availableHeight - 1));
-            const auto desiredPulseHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.58)), 64, 86);
-            const auto minNoiseHeight = 64;
+            const auto desiredPulseHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.52)), 92, 112);
+            const auto minNoiseHeight = 76;
             const auto pulseHeight = std::clamp(desiredPulseHeight,
                                                 0,
                                                 std::max(0, availableHeight - gapHeight - minNoiseHeight));
             primaryTonePanel = tonePanel.removeFromTop(std::min(pulseHeight, tonePanel.getHeight()));
             tonePanel.removeFromTop(std::min(gapHeight, tonePanel.getHeight()));
+            secondaryTonePanel = tonePanel;
         }
         else if (displayedMode == chipper::ChipMode::dmg)
         {
