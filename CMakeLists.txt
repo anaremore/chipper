@@ -706,6 +706,9 @@ add_test(NAME chipper_render_huc6280_chip_poly_smoke
 add_test(NAME chipper_render_huc6280_lfo_smoke
     COMMAND chipper_render --chip huc6280 --accuracy authentic --macro lead --huc-lfo deep --control2 0.60 --control3 0.70 --source1 1 --source2 1 --source3 0 --source4 0 --source5 0 --source6 0 --clock 3579545 --rate 48000 --seconds 0.08 --note 64 --out huc6280-lfo-smoke.wav --debug huc6280-lfo-smoke.json
 )
+add_test(NAME chipper_render_huc6280_per_voice_waves_smoke
+    COMMAND chipper_render --chip huc6280 --accuracy authentic --macro manual --play-mode chip-poly --wave-shape tri --sid-voice2-wave saw --sid-voice3-wave pulse --nes-pulse2-duty 75 --dmg-wave-level 50 --sn-noise-mode short --clock 3579545 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/huc6280-chip-poly-events.txt --out huc6280-per-voice-waves-smoke.wav --debug huc6280-per-voice-waves-smoke.json
+)
 add_test(NAME chipper_render_scc_smoke
     COMMAND chipper_render --chip scc --accuracy authentic --macro lead --wave-shape 1 --clock 3579545 --rate 48000 --seconds 0.05 --note 64 --out scc-smoke.wav --debug scc-smoke.json
 )
@@ -1515,6 +1518,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/huc6280-lfo-smoke.json --implemented-contains partial --macro Lead --min-peak 0.02 --register-writes 0 --note-events 0 --core-min lfoChoice=3 --core-max lfoChoice=3 --core-min lfoMode=3 --core-max lfoMode=3 --core-min lfoEnabled=1 --core-max lfoEnabled=1 --core-min lfoSourceChannel=1 --core-max lfoSourceChannel=1 --core-min lfoTargetChannel=0 --core-max lfoTargetChannel=0 --core-min lfoDepthCents=250 --core-min lfoRateHz=9 --descriptor-param-kind dmgStereoRoute=chipRegister --descriptor-param-surface dmgStereoRoute=segmentedChoice --descriptor-param-label "dmgStereoRoute=Ch 1/2 LFO" --descriptor-param-choices dmgStereoRoute=5
     )
     set_tests_properties(chipper_render_huc6280_lfo_assert PROPERTIES DEPENDS chipper_render_huc6280_lfo_smoke)
+
+    add_test(NAME chipper_render_huc6280_per_voice_waves_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/huc6280-per-voice-waves-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 6 --min-peak 0.05 --core-min waveShapeChoice0=1 --core-max waveShapeChoice0=1 --core-min waveShapeChoice1=2 --core-max waveShapeChoice1=2 --core-min waveShapeChoice2=3 --core-max waveShapeChoice2=3 --core-min waveShapeChoice3=4 --core-max waveShapeChoice3=4 --core-min waveShapeChoice4=3 --core-max waveShapeChoice4=3 --core-min waveShapeChoice5=2 --core-max waveShapeChoice5=2 --core-min internalChannelCount=6 --core-max internalChannelCount=6 --core-min chipPolyPlayableChannels=6 --core-max chipPolyPlayableChannels=6
+    )
+    set_tests_properties(chipper_render_huc6280_per_voice_waves_assert PROPERTIES DEPENDS chipper_render_huc6280_per_voice_waves_smoke)
 
     add_test(NAME chipper_render_scc_json_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/scc-smoke.json --implemented-contains emu2212 --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.05 --min-rms 0.02 --register-writes 0 --note-events 0 --core-min internalChannelCount=5 --core-max internalChannelCount=5 --core-min uiExposesFiveChannels=1 --core-max uiExposesFiveChannels=1 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1 --core-min sourceLevel4=1 --core-max sourceLevel4=1 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min period0=338 --core-max period0=340 --core-min keyOnMask=0 --core-max keyOnMask=0 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Wave Shape" --descriptor-param-choices waveShape=5
