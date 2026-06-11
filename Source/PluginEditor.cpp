@@ -3448,9 +3448,12 @@ void ChipperAudioProcessorEditor::resized()
         if (displayedMode == chipper::ChipMode::nes)
         {
             const auto availableHeight = tonePanel.getHeight();
-            const auto noiseHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.43)), 76, 92);
-            const auto gapHeight = std::min(8, std::max(0, availableHeight - noiseHeight));
-            const auto pulseHeight = std::max(0, availableHeight - noiseHeight - gapHeight);
+            const auto gapHeight = std::min(8, std::max(0, availableHeight - 1));
+            const auto desiredPulseHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.58)), 64, 86);
+            const auto minNoiseHeight = 42;
+            const auto pulseHeight = std::clamp(desiredPulseHeight,
+                                                0,
+                                                std::max(0, availableHeight - gapHeight - minNoiseHeight));
             primaryTonePanel = tonePanel.removeFromTop(std::min(pulseHeight, tonePanel.getHeight()));
             tonePanel.removeFromTop(std::min(gapHeight, tonePanel.getHeight()));
         }
@@ -4274,7 +4277,7 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
         || displayedMode == chipper::ChipMode::opl3
         || displayedMode == chipper::ChipMode::ym2151
         || displayedMode == chipper::ChipMode::ym2413;
-    const auto useRoomyNesNoise = displayedMode == chipper::ChipMode::nes && bounds.getHeight() >= 46;
+    const auto useRoomyNesNoise = displayedMode == chipper::ChipMode::nes && bounds.getHeight() >= 36;
     snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(useRoomyNesNoise ? 20 : (compact ? 15 : 18), bounds.getHeight())));
     if (displayedMode == chipper::ChipMode::sn76489)
     {
@@ -4285,8 +4288,8 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
     }
     else
     {
-        bounds.removeFromTop(std::min(useRoomyNesNoise ? 6 : (compact ? 2 : 0), bounds.getHeight()));
-        snNoiseModeSegmentBounds = bounds.removeFromTop(std::min(useRoomyNesNoise ? 36 : (compact ? 24 : 28), bounds.getHeight())).reduced(0, 1);
+        bounds.removeFromTop(std::min(useRoomyNesNoise ? 4 : (compact ? 2 : 0), bounds.getHeight()));
+        snNoiseModeSegmentBounds = bounds.removeFromTop(std::min(useRoomyNesNoise ? 32 : (compact ? 24 : 28), bounds.getHeight())).reduced(0, 1);
         layoutSegmentedButtons(snNoiseModeButtons, snNoiseModeSegmentBounds, choiceCount);
         snNoiseModeBox.setBounds({});
     }
@@ -4597,6 +4600,15 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
         snNoiseModeLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         snNoiseModeValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         applyChoices(snNoiseModeButtons, spec);
+        if (mode == chipper::ChipMode::nes && spec->choices.size() >= 3)
+        {
+            static constexpr std::array<const char*, 3> nesNoiseLabels { "Auto", "Long", "Short" };
+            for (size_t i = 0; i < nesNoiseLabels.size(); ++i)
+            {
+                snNoiseModeButtons[i].setButtonText(nesNoiseLabels[i]);
+                snNoiseModeButtons[i].setTooltip(withMidiCcForRole(choiceTooltip(*spec, i), spec->role));
+            }
+        }
         snNoiseModeBox.clear(juce::dontSendNotification);
         for (size_t i = 0; i < spec->choices.size(); ++i)
             snNoiseModeBox.addItem(juce::String(spec->choices[i].label), static_cast<int>(i) + 1);
