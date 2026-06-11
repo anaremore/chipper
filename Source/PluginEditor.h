@@ -202,6 +202,8 @@ private:
     void updatePresetChoices(chipper::ChipMode mode);
     void reloadUserPresetFiles(chipper::ChipMode mode);
     void updateSegmentedControlSpecs(chipper::ChipMode mode);
+    void storeChipSettingsSnapshot(chipper::ChipMode mode);
+    bool restoreChipSettingsSnapshot(chipper::ChipMode mode);
     void chooseUserPresetToLoad();
     void chooseUserPresetToSave();
     void chooseUserPresetToSaveAs();
@@ -458,6 +460,14 @@ private:
         juce::String name;
     };
 
+    struct ChipSettingsSnapshot
+    {
+        bool valid = false;
+        std::vector<float> parameterValues;
+        int presetSelectedId = 0;
+        juce::File userPresetFile;
+    };
+
     juce::Slider clockSlider;
     juce::Slider dmcDirectSlider;
     juce::ComboBox dmcRateBox;
@@ -508,6 +518,7 @@ private:
     chipper::ChipMode displayedMode = chipper::ChipMode::nes;
     std::vector<const chipper::PresetInfo*> displayedPresets;
     std::vector<UserPresetFile> displayedUserPresets;
+    std::array<ChipSettingsSnapshot, 15> chipSettingsSnapshots;
     bool descriptorTextInitialized = false;
     int displayedDmcSampleCount = -1;
     uint64_t displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();

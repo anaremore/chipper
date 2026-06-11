@@ -17,6 +17,72 @@ namespace
 
 constexpr int userPresetItemIdBase = 10000;
 
+constexpr std::array chipSettingsSnapshotParameterIds {
+    chipper::parameters::id::accuracy,
+    chipper::parameters::id::clockHz,
+    chipper::parameters::id::outputDb,
+    chipper::parameters::id::macro,
+    chipper::parameters::id::playMode,
+    chipper::parameters::id::macroControl1,
+    chipper::parameters::id::macroControl2,
+    chipper::parameters::id::macroControl3,
+    chipper::parameters::id::macroControl4,
+    chipper::parameters::id::source1Enabled,
+    chipper::parameters::id::source2Enabled,
+    chipper::parameters::id::source3Enabled,
+    chipper::parameters::id::source4Enabled,
+    chipper::parameters::id::source5Enabled,
+    chipper::parameters::id::source6Enabled,
+    chipper::parameters::id::source7Enabled,
+    chipper::parameters::id::source8Enabled,
+    chipper::parameters::id::source9Enabled,
+    chipper::parameters::id::source1Level,
+    chipper::parameters::id::source2Level,
+    chipper::parameters::id::source3Level,
+    chipper::parameters::id::source4Level,
+    chipper::parameters::id::source5Level,
+    chipper::parameters::id::source6Level,
+    chipper::parameters::id::source7Level,
+    chipper::parameters::id::source8Level,
+    chipper::parameters::id::source9Level,
+    chipper::parameters::id::stereoSpread,
+    chipper::parameters::id::sidFilterRouting,
+    chipper::parameters::id::sidVoice2PulseWidth,
+    chipper::parameters::id::sidVoice3PulseWidth,
+    chipper::parameters::id::envelopeDecay,
+    chipper::parameters::id::sidAttack,
+    chipper::parameters::id::sidDecay,
+    chipper::parameters::id::sidSustain,
+    chipper::parameters::id::sidRelease,
+    chipper::parameters::id::sidVoice2Attack,
+    chipper::parameters::id::sidVoice2Decay,
+    chipper::parameters::id::sidVoice2Sustain,
+    chipper::parameters::id::sidVoice2Release,
+    chipper::parameters::id::sidVoice3Attack,
+    chipper::parameters::id::sidVoice3Decay,
+    chipper::parameters::id::sidVoice3Sustain,
+    chipper::parameters::id::sidVoice3Release,
+    chipper::parameters::id::waveShape,
+    chipper::parameters::id::sidVoice2WaveShape,
+    chipper::parameters::id::sidVoice3WaveShape,
+    chipper::parameters::id::pulse2Duty,
+    chipper::parameters::id::dmgWaveLevel,
+    chipper::parameters::id::dmgStereoRoute,
+    chipper::parameters::id::ymEnvelopeShape,
+    chipper::parameters::id::ymChannelAMix,
+    chipper::parameters::id::ymChannelBMix,
+    chipper::parameters::id::ymChannelCMix,
+    chipper::parameters::id::snNoiseMode,
+    chipper::parameters::id::nesDmcDirectLevel,
+    chipper::parameters::id::nesDmcSampleSlot,
+    chipper::parameters::id::nesDmcRateIndex,
+    chipper::parameters::id::nesDmcPlaybackMode,
+    chipper::parameters::id::nesDmcMapRoot,
+    chipper::parameters::id::nesDmcLoop,
+    chipper::parameters::id::spc700LoopStart,
+    chipper::parameters::id::spc700LoopEnd
+};
+
 constexpr const char* chipperPluginVersionString =
 #ifdef JucePlugin_VersionString
     JucePlugin_VersionString;
@@ -3079,8 +3145,8 @@ void ChipperAudioProcessorEditor::resized()
     const auto nesLayout = displayedMode == chipper::ChipMode::nes;
     const auto sidLayout = displayedMode == chipper::ChipMode::sid;
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
-    const auto performanceStripHeight = sidLayout ? 260 : (spc700Layout ? 390 : (nesLayout ? 330 : 300));
-    const auto maxModulesHeight = sidLayout ? 620 : (spc700Layout ? 540 : (nesLayout ? 520 : 492));
+    const auto performanceStripHeight = sidLayout ? 260 : (spc700Layout ? 420 : (nesLayout ? 330 : 300));
+    const auto maxModulesHeight = sidLayout ? 620 : (spc700Layout ? 520 : (nesLayout ? 520 : 492));
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
@@ -3599,7 +3665,7 @@ void ChipperAudioProcessorEditor::resized()
         dmcLoopButton.setBounds({});
 
         auto sampleCell = utilityCell;
-        auto sampleHeader = sampleCell.removeFromTop(22);
+        auto sampleHeader = sampleCell.removeFromTop(24);
         dmcSampleLabel.setText(displayedMode == chipper::ChipMode::paula ? "Paula Sample" : "SPC700 Sample", juce::dontSendNotification);
         dmcSampleLabel.setBounds(sampleHeader.removeFromLeft(displayedMode == chipper::ChipMode::paula ? 104 : 92));
         const auto brrButtonWidth = std::max(46, (sampleHeader.getWidth() - 8) / 3);
@@ -3609,16 +3675,15 @@ void ChipperAudioProcessorEditor::resized()
         sampleHeader.removeFromLeft(4);
         dmcSampleBankButton.setBounds(sampleHeader.removeFromLeft(brrButtonWidth).reduced(0, 1));
         sampleCell.removeFromTop(4);
-        auto routingRow = sampleCell.removeFromTop(24);
-        auto playbackRow = routingRow.removeFromLeft(std::min(190, std::max(172, routingRow.getWidth() / 2)));
-        routingRow.removeFromLeft(std::min(8, routingRow.getWidth()));
+        auto playbackRow = sampleCell.removeFromTop(std::min(24, sampleCell.getHeight()));
         dmcPlaybackModeLabel.setText("Bank Mode", juce::dontSendNotification);
         dmcPlaybackModeLabel.setBounds(playbackRow.removeFromLeft(78));
         playbackRow.removeFromLeft(6);
         dmcPlaybackModeBox.setBounds(playbackRow.reduced(0, 1));
-        auto sampleRow = routingRow;
-        auto rootCell = sampleRow.removeFromRight(std::min(86, sampleRow.getWidth()));
-        sampleRow.removeFromRight(std::min(6, sampleRow.getWidth()));
+        sampleCell.removeFromTop(4);
+        auto sampleRow = sampleCell.removeFromTop(std::min(24, sampleCell.getHeight()));
+        auto rootCell = sampleRow.removeFromRight(std::min(96, sampleRow.getWidth()));
+        sampleRow.removeFromRight(std::min(8, sampleRow.getWidth()));
         dmcMapRootLabel.setBounds(rootCell.removeFromLeft(34));
         rootCell.removeFromLeft(std::min(3, rootCell.getWidth()));
         dmcSampleSlotBox.setBounds(sampleRow.reduced(0, 1));
@@ -4609,6 +4674,46 @@ void ChipperAudioProcessorEditor::saveUserPresetFile(const juce::File& file)
     macroSummaryLabel.setText("Saved user preset: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
     macroSummaryLabel.setTooltip("Saved to " + file.getFullPathName()
                                  + "\nExternal samples are referenced, not embedded. Put shared samples beside the preset or in a Samples folder.");
+}
+
+void ChipperAudioProcessorEditor::storeChipSettingsSnapshot(chipper::ChipMode mode)
+{
+    const auto index = chipModeChoiceIndex(mode);
+    if (index < 0 || static_cast<size_t>(index) >= chipSettingsSnapshots.size())
+        return;
+
+    auto& snapshot = chipSettingsSnapshots[static_cast<size_t>(index)];
+    snapshot.parameterValues.clear();
+    snapshot.parameterValues.reserve(chipSettingsSnapshotParameterIds.size());
+    for (const auto* parameterId : chipSettingsSnapshotParameterIds)
+        snapshot.parameterValues.push_back(parameterValue(parameterId));
+
+    snapshot.presetSelectedId = presetBox.getSelectedId();
+    snapshot.userPresetFile = currentUserPresetFile;
+    snapshot.valid = true;
+}
+
+bool ChipperAudioProcessorEditor::restoreChipSettingsSnapshot(chipper::ChipMode mode)
+{
+    const auto index = chipModeChoiceIndex(mode);
+    if (index < 0 || static_cast<size_t>(index) >= chipSettingsSnapshots.size())
+        return false;
+
+    const auto& snapshot = chipSettingsSnapshots[static_cast<size_t>(index)];
+    if (! snapshot.valid || snapshot.parameterValues.size() != chipSettingsSnapshotParameterIds.size())
+        return false;
+
+    const juce::ScopedValueSetter<bool> suppressManual(suppressManualChoiceCallbacks, true);
+    const juce::ScopedValueSetter<bool> suppressPreset(suppressPresetApply, true);
+    for (size_t i = 0; i < chipSettingsSnapshotParameterIds.size(); ++i)
+        setPlainParameterValueFromUi(chipSettingsSnapshotParameterIds[i], snapshot.parameterValues[i]);
+
+    presetBox.setSelectedId(snapshot.presetSelectedId, juce::dontSendNotification);
+    currentUserPresetFile = snapshot.userPresetFile;
+    userPresetSaveButton.setTooltip(currentUserPresetFile != juce::File {}
+                                        ? "Save changes back to " + currentUserPresetFile.getFileName()
+                                        : "Save the current sound as a shareable .chipperpreset file. Loaded user presets overwrite their source file; new sounds ask for a file name.");
+    return true;
 }
 
 void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
@@ -8676,7 +8781,11 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     if (descriptorTextInitialized && mode == displayedMode)
         return;
 
+    const auto previousMode = displayedMode;
     const auto chipChangedAfterInitialLoad = descriptorTextInitialized && mode != displayedMode;
+    if (chipChangedAfterInitialLoad && ! applyingFactoryPreset)
+        storeChipSettingsSnapshot(previousMode);
+
     descriptorTextInitialized = true;
     displayedMode = mode;
     if (chipChangedAfterInitialLoad)
@@ -8691,6 +8800,9 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
 
     updateMacroChoices(mode);
     updatePresetChoices(mode);
+    const auto restoredChipSettings = chipChangedAfterInitialLoad
+        && ! applyingFactoryPreset
+        && restoreChipSettingsSnapshot(mode);
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
     auto verificationBadge = juce::String(descriptor.verification.badge);
     coreReadinessLabel.setText(verificationBadge.toUpperCase(), juce::dontSendNotification);
@@ -8938,7 +9050,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     updatePulseDutyButtons(parameterValue(chipper::parameters::id::macroControl1), usesPulseDutySegment(mode) && hasLiveCore);
     updateLiveControlReadouts();
 
-    if (chipChangedAfterInitialLoad && ! applyingFactoryPreset && hasLiveCore && ! displayedPresets.empty())
+    if (chipChangedAfterInitialLoad && ! restoredChipSettings && ! applyingFactoryPreset && hasLiveCore && ! displayedPresets.empty())
         applyFactoryPreset(*displayedPresets.front());
 
     repaint();
