@@ -169,6 +169,7 @@ private:
     void timerCallback() override;
     void updateDescriptorText();
     void updateLiveControlReadouts();
+    void applyChipTheme();
     void addLabeledSlider(juce::Slider& slider, juce::Label& label, const juce::String& fallbackText);
     void placeLabeledSlider(juce::Slider& slider, juce::Label& label, juce::Rectangle<int> bounds);
     void placeGroupedSlider(juce::Slider& slider,

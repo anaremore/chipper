@@ -24,6 +24,109 @@ constexpr const char* chipperPluginVersionString =
     "0.1.0";
 #endif
 
+struct ChipUiTheme
+{
+    juce::Colour background;
+    juce::Colour panel;
+    juce::Colour panelAlt;
+    juce::Colour outline;
+    juce::Colour sourceCard;
+    juce::Colour primary;
+    juce::Colour accent;
+    juce::Colour text;
+    juce::Colour mutedText;
+    juce::Colour darkText;
+    float panelRadius = 6.0f;
+    int textureStep = 0;
+};
+
+ChipUiTheme chipThemeFor(chipper::ChipMode mode)
+{
+    const auto base = ChipUiTheme {
+        juce::Colour(0xff101414),
+        juce::Colour(0xff182125),
+        juce::Colour(0xff171c20),
+        juce::Colour(0xff34474c),
+        juce::Colour(0xff202c33),
+        juce::Colour(0xfff0c94d),
+        juce::Colour(0xff56c7d8),
+        juce::Colour(0xffd9e1e8),
+        juce::Colour(0xffaebbc4),
+        juce::Colour(0xff101414),
+        6.0f,
+        0
+    };
+
+    switch (mode)
+    {
+        case chipper::ChipMode::nes:
+            return { juce::Colour(0xff0f1112), juce::Colour(0xff171b1d), juce::Colour(0xff151819),
+                     juce::Colour(0xff4f5a60), juce::Colour(0xff202426), juce::Colour(0xffff5a2f),
+                     juce::Colour(0xff4fd3dd), juce::Colour(0xffececec), juce::Colour(0xffb9c0c4),
+                     juce::Colour(0xff111111), 2.0f, 16 };
+        case chipper::ChipMode::dmg:
+            return { juce::Colour(0xff11160f), juce::Colour(0xff1a2218), juce::Colour(0xff151d14),
+                     juce::Colour(0xff51624b), juce::Colour(0xff202a1f), juce::Colour(0xff9bd45d),
+                     juce::Colour(0xff74d1b4), juce::Colour(0xffe5ecd8), juce::Colour(0xffb3c3aa),
+                     juce::Colour(0xff101410), 3.0f, 12 };
+        case chipper::ChipMode::sid:
+            return { juce::Colour(0xff15120f), juce::Colour(0xff201a14), juce::Colour(0xff1a1511),
+                     juce::Colour(0xff5a4b36), juce::Colour(0xff2b241c), juce::Colour(0xfff3d34a),
+                     juce::Colour(0xff7fd6ff), juce::Colour(0xfff2e6c9), juce::Colour(0xffc9b993),
+                     juce::Colour(0xff15120f), 3.0f, 20 };
+        case chipper::ChipMode::ym2612:
+        case chipper::ChipMode::opl3:
+        case chipper::ChipMode::ym2151:
+        case chipper::ChipMode::ym2413:
+            return { juce::Colour(0xff101315), juce::Colour(0xff171f24), juce::Colour(0xff151b20),
+                     juce::Colour(0xff394b55), juce::Colour(0xff202a31), juce::Colour(0xffffce54),
+                     juce::Colour(0xff54c7ff), juce::Colour(0xffe3ebef), juce::Colour(0xffaebcc4),
+                     juce::Colour(0xff101316), 5.0f, 24 };
+        case chipper::ChipMode::spc700:
+        case chipper::ChipMode::paula:
+            return { juce::Colour(0xff111319), juce::Colour(0xff1a2028), juce::Colour(0xff161b22),
+                     juce::Colour(0xff3b4859), juce::Colour(0xff202834), juce::Colour(0xffffc857),
+                     juce::Colour(0xff79d7ff), juce::Colour(0xffe0e8f0), juce::Colour(0xffabb9c7),
+                     juce::Colour(0xff101318), 6.0f, 20 };
+        case chipper::ChipMode::pokey:
+            return { juce::Colour(0xff121313), juce::Colour(0xff1d1f1f), juce::Colour(0xff171a1a),
+                     juce::Colour(0xff4f5552), juce::Colour(0xff252827), juce::Colour(0xffffcf45),
+                     juce::Colour(0xffff6a3a), juce::Colour(0xffe7e6df), juce::Colour(0xffbeb9aa),
+                     juce::Colour(0xff111111), 3.0f, 12 };
+        case chipper::ChipMode::ym2149:
+        case chipper::ChipMode::sn76489:
+            return { juce::Colour(0xff101317), juce::Colour(0xff182027), juce::Colour(0xff151b20),
+                     juce::Colour(0xff364858), juce::Colour(0xff202a32), juce::Colour(0xff5fd3ff),
+                     juce::Colour(0xffffd24d), juce::Colour(0xffe1e8ec), juce::Colour(0xffabb9c0),
+                     juce::Colour(0xff101318), 3.0f, 14 };
+        case chipper::ChipMode::huc6280:
+        case chipper::ChipMode::namcoWsg:
+        case chipper::ChipMode::scc:
+            return { juce::Colour(0xff101418), juce::Colour(0xff18222a), juce::Colour(0xff151c22),
+                     juce::Colour(0xff374c5a), juce::Colour(0xff202c34), juce::Colour(0xffffd55a),
+                     juce::Colour(0xff5ed8c9), juce::Colour(0xffe1ece9), juce::Colour(0xffadc0bd),
+                     juce::Colour(0xff101414), 5.0f, 18 };
+    }
+
+    return base;
+}
+
+void drawChipThemeTexture(juce::Graphics& g, juce::Rectangle<int> bounds, const ChipUiTheme& theme)
+{
+    if (theme.textureStep <= 0)
+        return;
+
+    g.setColour(theme.outline.withAlpha(0.12f));
+    for (int x = bounds.getX(); x < bounds.getRight(); x += theme.textureStep)
+        g.drawVerticalLine(x, static_cast<float>(bounds.getY()), static_cast<float>(bounds.getBottom()));
+
+    if (theme.panelRadius <= 2.5f)
+    {
+        for (int y = bounds.getY(); y < bounds.getBottom(); y += theme.textureStep)
+            g.drawHorizontalLine(y, static_cast<float>(bounds.getX()), static_cast<float>(bounds.getRight()));
+    }
+}
+
 int chipModeChoiceIndex(chipper::ChipMode mode)
 {
     switch (mode)
@@ -1572,6 +1675,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     coreReadinessLabel.setMinimumHorizontalScale(0.70f);
     coreReadinessLabel.setColour(juce::Label::textColourId, juce::Colour(0xff101414));
     coreReadinessLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff56c7d8));
+    coreReadinessLabel.setVisible(false);
     addAndMakeVisible(coreReadinessLabel);
 
     chipModeBox.addItemList(chipper::parameters::chipModeChoices(), 1);
@@ -2631,10 +2735,175 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     startTimerHz(12);
 }
 
+void ChipperAudioProcessorEditor::applyChipTheme()
+{
+    const auto theme = chipThemeFor(displayedMode);
+
+    const auto styleSlider = [&theme](juce::Slider& slider)
+    {
+        slider.setColour(juce::Slider::trackColourId, theme.primary);
+        slider.setColour(juce::Slider::thumbColourId, theme.accent);
+        slider.setColour(juce::Slider::textBoxTextColourId, theme.text);
+        slider.setColour(juce::Slider::textBoxBackgroundColourId, theme.background);
+        slider.setColour(juce::Slider::textBoxOutlineColourId, theme.outline);
+    };
+
+    const auto styleCombo = [&theme](juce::ComboBox& box)
+    {
+        box.setColour(juce::ComboBox::backgroundColourId, theme.sourceCard);
+        box.setColour(juce::ComboBox::textColourId, theme.text);
+        box.setColour(juce::ComboBox::outlineColourId, theme.outline);
+        box.setColour(juce::ComboBox::arrowColourId, theme.text);
+    };
+
+    const auto styleButton = [&theme](juce::TextButton& button)
+    {
+        button.setColour(juce::TextButton::buttonColourId, theme.sourceCard);
+        button.setColour(juce::TextButton::buttonOnColourId, theme.primary);
+        button.setColour(juce::TextButton::textColourOffId, theme.text);
+        button.setColour(juce::TextButton::textColourOnId, theme.darkText);
+    };
+
+    titleLabel.setColour(juce::Label::textColourId, theme.primary);
+    chipSummaryLabel.setColour(juce::Label::textColourId, theme.text);
+    globalStripLabel.setColour(juce::Label::textColourId, theme.primary);
+    macroSummaryLabel.setColour(juce::Label::textColourId, theme.mutedText);
+    midiCcLabel.setColour(juce::Label::textColourId, theme.accent);
+    midiCcLabel.setColour(juce::Label::backgroundColourId, theme.panel);
+    statusLabel.setColour(juce::Label::backgroundColourId, theme.panelAlt);
+    buildLabel.setColour(juce::Label::backgroundColourId, theme.panelAlt);
+
+    for (auto& label : headerControlLabels)
+        label.setColour(juce::Label::textColourId, theme.mutedText);
+
+    for (auto& label : moduleNumberLabels)
+    {
+        label.setColour(juce::Label::textColourId, theme.darkText);
+        label.setColour(juce::Label::backgroundColourId, theme.primary);
+    }
+
+    for (auto& label : moduleTitleLabels)
+        label.setColour(juce::Label::textColourId, theme.primary);
+
+    for (auto& label : moduleSummaryLabels)
+        label.setColour(juce::Label::textColourId, theme.text.withAlpha(0.88f));
+
+    for (auto& moduleItems : moduleItemLabels)
+    {
+        for (auto& label : moduleItems)
+        {
+            label.setColour(juce::Label::textColourId, theme.text);
+            label.setColour(juce::Label::backgroundColourId, theme.sourceCard);
+        }
+    }
+
+    for (auto* label : std::array<juce::Label*, 23> {
+             &clockLabel, &dmcDirectLabel, &dmcRateLabel, &dmcSampleLabel, &sampleLoopStartLabel,
+             &sampleLoopEndLabel, &outputLabel, &stereoSpreadLabel, &envelopeDecayLabel,
+             &waveShapeLabel, &pulse2DutyLabel, &dmgWaveLevelLabel, &dmgStereoRouteLabel,
+             &ymEnvelopeShapeLabel, &sidFilterRoutingLabel, &ymChannelMixLabel, &snNoiseModeLabel,
+             &nativeGroupLabels[0], &nativeGroupLabels[1], &nativeGroupLabels[2], &nativeGroupLabels[3],
+             &sidFilterRoutingValueLabel, &ymChannelMixValueLabel })
+    {
+        label->setColour(juce::Label::textColourId, theme.accent);
+    }
+
+    for (auto* label : std::array<juce::Label*, 11> {
+             &stereoSpreadValueLabel, &envelopeDecayValueLabel, &waveShapeValueLabel, &pulse2DutyValueLabel,
+             &dmgWaveLevelValueLabel, &dmgStereoRouteValueLabel, &ymEnvelopeShapeValueLabel,
+             &snNoiseModeValueLabel, &dmcSampleStatusLabel, &sampleLoopStartValueLabel, &sampleLoopEndValueLabel })
+    {
+        label->setColour(juce::Label::textColourId, theme.mutedText);
+    }
+
+    for (auto& label : sidEnvelopeVoiceLabels)
+        label.setColour(juce::Label::textColourId, theme.accent);
+    for (auto& label : sidAdsrHeaderLabels)
+        label.setColour(juce::Label::textColourId, theme.accent);
+    for (auto& label : sidAdsrLabels)
+        label.setColour(juce::Label::textColourId, theme.accent);
+    for (auto& label : sidAdsrValueLabels)
+        label.setColour(juce::Label::textColourId, theme.mutedText);
+    for (auto& label : fmOperatorNameLabels)
+        label.setColour(juce::Label::textColourId, theme.accent);
+    for (auto& label : fmOperatorValueLabels)
+        label.setColour(juce::Label::textColourId, theme.mutedText);
+    for (auto& label : sourceLevelLabels)
+        label.setColour(juce::Label::textColourId, theme.accent);
+    for (auto& label : sourceLevelValueLabels)
+        label.setColour(juce::Label::textColourId, theme.mutedText);
+
+    for (auto* slider : std::array<juce::Slider*, 11> {
+             &clockSlider, &dmcDirectSlider, &sampleLoopStartSlider, &sampleLoopEndSlider, &outputSlider,
+             &stereoSpreadSlider, &envelopeDecaySlider, &nativeSliders[0], &nativeSliders[1],
+             &nativeSliders[2], &nativeSliders[3] })
+    {
+        styleSlider(*slider);
+    }
+
+    for (auto& slider : sourceLevelSliders)
+        styleSlider(slider);
+    for (auto& slider : sidVoicePulseWidthSliders)
+        styleSlider(slider);
+    for (auto& slider : sidAdsrSliders)
+        styleSlider(slider);
+
+    for (auto* box : std::array<juce::ComboBox*, 13> {
+             &presetBox, &chipModeBox, &accuracyBox, &macroBox, &playModeBox, &dmcRateBox,
+             &dmcSampleSlotBox, &dmcPlaybackModeBox, &dmcMapRootBox, &dmgStereoRouteBox,
+             &sidFilterModeBox, &sidFilterRoutingBox, &snNoiseModeBox })
+    {
+        styleCombo(*box);
+    }
+
+    for (auto& box : sidVoiceWaveBoxes)
+        styleCombo(box);
+    for (auto& box : sidAdsrBoxes)
+        styleCombo(box);
+    for (auto& box : ymChannelMixBoxes)
+        styleCombo(box);
+    styleCombo(fmAlgorithmBox);
+    styleCombo(oplWaveformBox);
+    styleCombo(opllInstrumentBox);
+
+    for (auto* button : std::array<juce::TextButton*, 5> {
+             &userPresetLoadButton, &userPresetSaveButton, &userPresetSaveAsButton,
+             &dmcSampleFileButton, &dmcSampleFolderButton })
+    {
+        styleButton(*button);
+    }
+    styleButton(dmcSampleBankButton);
+
+    for (auto& button : sourceChannelButtons)
+        styleButton(button);
+    for (auto& button : pulseDutyButtons)
+        styleButton(button);
+    for (auto& button : pulse2DutyButtons)
+        styleButton(button);
+    for (auto& button : waveShapeButtons)
+        styleButton(button);
+    for (auto& button : dmgWaveLevelButtons)
+        styleButton(button);
+    for (auto& button : dmgStereoRouteButtons)
+        styleButton(button);
+    for (auto& button : ymEnvelopeShapeButtons)
+        styleButton(button);
+    for (auto& button : snNoiseModeButtons)
+        styleButton(button);
+    for (auto& button : toneNoiseMixButtons)
+        styleButton(button);
+
+    dmcLoopButton.setColour(juce::ToggleButton::textColourId, theme.text);
+    repaint();
+}
+
 void ChipperAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(0xff101414));
-    g.setColour(juce::Colour(0xff314047));
+    const auto theme = chipThemeFor(displayedMode);
+
+    g.fillAll(theme.background);
+    drawChipThemeTexture(g, getLocalBounds(), theme);
+    g.setColour(theme.outline);
     g.drawHorizontalLine(84, 16.0f, static_cast<float>(getWidth() - 16));
     g.drawHorizontalLine(getHeight() - 62, 16.0f, static_cast<float>(getWidth() - 16));
 
@@ -2644,10 +2913,10 @@ void ChipperAudioProcessorEditor::paint(juce::Graphics& g)
             continue;
 
         const auto panel = bounds.toFloat();
-        g.setColour(juce::Colour(0xff182125));
-        g.fillRoundedRectangle(panel, 6.0f);
-        g.setColour(juce::Colour(0xff34474c));
-        g.drawRoundedRectangle(panel.reduced(0.5f), 6.0f, 1.0f);
+        g.setColour(theme.panel);
+        g.fillRoundedRectangle(panel, theme.panelRadius);
+        g.setColour(theme.outline);
+        g.drawRoundedRectangle(panel.reduced(0.5f), theme.panelRadius, 1.0f);
     }
 
     if (usesSourceChannelSurface(displayedMode))
@@ -2658,20 +2927,20 @@ void ChipperAudioProcessorEditor::paint(juce::Graphics& g)
                 continue;
 
             const auto card = bounds.toFloat();
-            g.setColour(juce::Colour(0xff202c33));
-            g.fillRoundedRectangle(card, 4.0f);
-            g.setColour(juce::Colour(0xff56c7d8).withAlpha(0.70f));
-            g.drawRoundedRectangle(card.reduced(0.5f), 4.0f, 1.0f);
+            g.setColour(theme.sourceCard);
+            g.fillRoundedRectangle(card, std::max(2.0f, theme.panelRadius - 2.0f));
+            g.setColour(theme.accent.withAlpha(0.70f));
+            g.drawRoundedRectangle(card.reduced(0.5f), std::max(2.0f, theme.panelRadius - 2.0f), 1.0f);
         }
     }
 
     if (! globalStripBounds.isEmpty())
     {
         const auto strip = globalStripBounds.toFloat();
-        g.setColour(juce::Colour(0xff171c20));
-        g.fillRoundedRectangle(strip, 6.0f);
-        g.setColour(juce::Colour(0xff344047));
-        g.drawRoundedRectangle(strip.reduced(0.5f), 6.0f, 1.0f);
+        g.setColour(theme.panelAlt);
+        g.fillRoundedRectangle(strip, theme.panelRadius);
+        g.setColour(theme.outline);
+        g.drawRoundedRectangle(strip.reduced(0.5f), theme.panelRadius, 1.0f);
     }
 }
 
@@ -2697,7 +2966,6 @@ void ChipperAudioProcessorEditor::resized()
     constexpr auto chipModeWidth = 190;
     constexpr auto accuracyWidth = 112;
     constexpr auto playModeWidth = 128;
-    constexpr auto readinessMinWidth = 140;
     constexpr auto presetMinWidth = 148;
     constexpr auto presetMaxWidth = 330;
 
@@ -2706,8 +2974,7 @@ void ChipperAudioProcessorEditor::resized()
         + compactGap + saveAsButtonWidth
         + headerGap + chipModeWidth
         + headerGap + accuracyWidth
-        + headerGap + playModeWidth
-        + headerGap + readinessMinWidth;
+        + headerGap + playModeWidth;
     const auto presetWidth = std::clamp(top.getWidth() - fixedHeaderWidth, presetMinWidth, presetMaxWidth);
 
     placeHeaderCombo(0, presetBox, top.removeFromLeft(presetWidth));
@@ -2723,18 +2990,18 @@ void ChipperAudioProcessorEditor::resized()
     placeHeaderCombo(2, accuracyBox, top.removeFromLeft(accuracyWidth));
     top.removeFromLeft(8);
     placeHeaderCombo(4, playModeBox, top.removeFromLeft(playModeWidth));
-    top.removeFromLeft(8);
-    coreReadinessLabel.setBounds(top.removeFromTop(44).reduced(0, 12));
+    coreReadinessLabel.setBounds({});
 
     area.removeFromTop(10);
     chipSummaryLabel.setBounds(area.removeFromTop(34));
     area.removeFromTop(10);
 
     constexpr auto footerReserve = 52;
+    const auto nesLayout = displayedMode == chipper::ChipMode::nes;
     const auto sidLayout = displayedMode == chipper::ChipMode::sid;
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
-    const auto performanceStripHeight = sidLayout ? 260 : (spc700Layout ? 390 : 300);
-    const auto maxModulesHeight = sidLayout ? 620 : (spc700Layout ? 540 : 492);
+    const auto performanceStripHeight = sidLayout ? 260 : (spc700Layout ? 390 : (nesLayout ? 330 : 300));
+    const auto maxModulesHeight = sidLayout ? 620 : (spc700Layout ? 540 : (nesLayout ? 520 : 492));
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
@@ -2758,6 +3025,26 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[3] = { modules.getX(), envelopeY, modules.getWidth(), envelopeHeight };
         moduleBounds[4] = { rightX, middleY, columnWidth, middleRowHeight };
         moduleBounds[5] = {};
+    }
+    else if (nesLayout)
+    {
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.29)), 128, 158);
+        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.36)), 156, 194);
+        const auto bottomRowHeight = std::max(128, modules.getHeight() - topRowHeight - middleRowHeight - (gap * 2));
+        const auto profileWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getWidth()) * 0.34)), 360, 470);
+        const auto wideWidth = modules.getWidth() - profileWidth - gap;
+        const auto toneWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getWidth()) * 0.54)), 520, 650);
+        const auto detailWidth = modules.getWidth() - toneWidth - gap;
+        const auto topY = modules.getY();
+        const auto middleY = topY + topRowHeight + gap;
+        const auto bottomY = middleY + middleRowHeight + gap;
+
+        moduleBounds[0] = { modules.getX(), topY, profileWidth, topRowHeight };
+        moduleBounds[1] = { modules.getX() + profileWidth + gap, topY, wideWidth, topRowHeight };
+        moduleBounds[2] = { modules.getX(), middleY, toneWidth, middleRowHeight };
+        moduleBounds[3] = { modules.getX() + toneWidth + gap, middleY, detailWidth, middleRowHeight };
+        moduleBounds[4] = { modules.getX(), bottomY, toneWidth, bottomRowHeight };
+        moduleBounds[5] = { modules.getX() + toneWidth + gap, bottomY, detailWidth, bottomRowHeight };
     }
     else if (spc700Layout)
     {
@@ -2964,8 +3251,8 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::dmg
         || displayedMode == chipper::ChipMode::ym2149)
     {
-        primaryTonePanel = tonePanel.removeFromTop(58);
-        tonePanel.removeFromTop(6);
+        primaryTonePanel = tonePanel.removeFromTop(displayedMode == chipper::ChipMode::nes ? std::min(96, tonePanel.getHeight()) : 58);
+        tonePanel.removeFromTop(displayedMode == chipper::ChipMode::nes ? std::min(10, tonePanel.getHeight()) : 6);
         secondaryTonePanel = tonePanel;
     }
 
@@ -3013,6 +3300,8 @@ void ChipperAudioProcessorEditor::resized()
         placeOpllInstrumentControl(instrumentArea);
         placeYmEnvelopeShapeSegment(primaryTonePanel);
     }
+    else if (displayedMode == chipper::ChipMode::nes)
+        placePulseDutySegment(primaryTonePanel);
     else
         placeWaveShapeSegment(primaryTonePanel);
     if (displayedMode != chipper::ChipMode::sid)
@@ -3149,30 +3438,45 @@ void ChipperAudioProcessorEditor::resized()
         };
     }
 
-    placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlValueLabels[0], controlCells[0]);
-    placePulseDutySegment(controlCells[0]);
-    placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[1]);
-    if (displayedMode != chipper::ChipMode::sid)
-        placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[2]);
+    if (displayedMode == chipper::ChipMode::nes)
+    {
+        placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[0]);
+        placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[1]);
+        placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[2]);
+    }
+    else
+    {
+        placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlValueLabels[0], controlCells[0]);
+        placePulseDutySegment(controlCells[0]);
+        placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[1]);
+        if (displayedMode != chipper::ChipMode::sid)
+            placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[2]);
 
-    const auto sustainCell = displayedMode == chipper::ChipMode::sid ? controlCells[2] : controlCells[3];
-    placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], sustainCell);
-    placeToneNoiseMixSegment(sustainCell);
+        const auto sustainCell = displayedMode == chipper::ChipMode::sid ? controlCells[2] : controlCells[3];
+        placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], sustainCell);
+        placeToneNoiseMixSegment(sustainCell);
+    }
 
-    const auto utilityCell = displayedMode == chipper::ChipMode::sid ? controlCells[3] : controlCells[4];
+    const auto utilityCell = displayedMode == chipper::ChipMode::sid
+        ? controlCells[3]
+        : (displayedMode == chipper::ChipMode::nes ? controlCells[3].getUnion(controlCells[4]) : controlCells[4]);
     if (displayedMode == chipper::ChipMode::nes)
     {
         clockSlider.setBounds({});
         clockLabel.setBounds({});
         auto dmcCell = utilityCell;
-        auto directCell = dmcCell.removeFromTop(std::max(44, dmcCell.getHeight() / 2));
-        auto rateCell = directCell.removeFromRight(std::max(116, directCell.getWidth() / 3));
+        auto directCell = dmcCell.removeFromTop(std::min(40, dmcCell.getHeight()));
+        auto rateCell = directCell.removeFromRight(std::max(148, directCell.getWidth() / 3));
         directCell.removeFromRight(8);
-        placeLabeledSliderWithReadout(dmcDirectSlider, dmcDirectLabel, controlValueLabels[4], directCell);
+        auto directHeader = directCell.removeFromTop(16);
+        dmcDirectLabel.setBounds(directHeader.removeFromLeft(86));
+        controlValueLabels[4].setJustificationType(juce::Justification::centredRight);
+        controlValueLabels[4].setBounds(directHeader);
+        dmcDirectSlider.setBounds(directCell.reduced(0, 2));
         dmcRateLabel.setBounds(rateCell.removeFromTop(16));
-        dmcRateBox.setBounds(rateCell.removeFromTop(24).reduced(0, 1));
-        dmcCell.removeFromTop(4);
-        auto sampleHeader = dmcCell.removeFromTop(20);
+        dmcRateBox.setBounds(rateCell.removeFromTop(std::min(22, rateCell.getHeight())).reduced(0, 1));
+        dmcCell.removeFromTop(3);
+        auto sampleHeader = dmcCell.removeFromTop(std::min(21, dmcCell.getHeight()));
         dmcSampleLabel.setText("DMC", juce::dontSendNotification);
         dmcSampleLabel.setBounds(sampleHeader.removeFromLeft(42));
         dmcPlaybackModeLabel.setBounds({});
@@ -3186,7 +3490,7 @@ void ChipperAudioProcessorEditor::resized()
         sampleHeader.removeFromLeft(4);
         dmcSampleBankButton.setBounds(sampleHeader.removeFromLeft(buttonWidth).reduced(0, 1));
         dmcCell.removeFromTop(2);
-        auto sampleRow = dmcCell.removeFromTop(22);
+        auto sampleRow = dmcCell.removeFromTop(std::min(22, dmcCell.getHeight()));
         auto loopCell = sampleRow.removeFromRight(62);
         sampleRow.removeFromRight(6);
         auto rootCell = sampleRow.removeFromRight(78);
@@ -3195,7 +3499,7 @@ void ChipperAudioProcessorEditor::resized()
         dmcMapRootBox.setBounds(rootCell.reduced(0, 1));
         dmcLoopButton.setBounds(loopCell.reduced(0, 1));
         dmcCell.removeFromTop(2);
-        dmcSampleStatusLabel.setBounds(dmcCell.removeFromTop(std::min(16, dmcCell.getHeight())).reduced(0, 1));
+        dmcSampleStatusLabel.setBounds(dmcCell.removeFromTop(std::min(14, dmcCell.getHeight())).reduced(0, 1));
         dmcCell.removeFromTop(2);
         sampleWaveformPreview.setBounds(dmcCell.reduced(0, 1));
         sampleLoopStartLabel.setBounds({});
@@ -8301,6 +8605,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         displayedDmcSampleCount = -1;
         displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();
     }
+    applyChipTheme();
     const auto& descriptor = chipper::descriptorFor(mode);
     const auto hasLiveCore = descriptor.implemented;
     const auto supportsChipPoly = chipper::supportsPlayMode(mode, chipper::PlayMode::chipPoly);
