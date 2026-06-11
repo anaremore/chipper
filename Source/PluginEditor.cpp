@@ -177,6 +177,24 @@ ChipUiTheme chipThemeFor(chipper::ChipMode mode)
     return base;
 }
 
+juce::String compactSampleName(juce::String name, int maxChars = 28)
+{
+    name = name.trim();
+    if (name.length() <= maxChars)
+        return name;
+
+    const auto dot = name.lastIndexOfChar('.');
+    const auto hasShortExtension = dot > 0 && name.length() - dot <= 8;
+    const auto extension = hasShortExtension ? name.substring(dot) : juce::String {};
+    const auto baseName = hasShortExtension ? name.substring(0, dot) : name;
+    const auto budget = std::max(12, maxChars - extension.length() - 3);
+    const auto head = std::max(6, budget / 2);
+    const auto tail = std::max(4, budget - head);
+    const auto tailStart = std::max(0, baseName.length() - tail);
+
+    return baseName.substring(0, head) + "..." + baseName.substring(tailStart) + extension;
+}
+
 void drawChipThemeTexture(juce::Graphics& g, juce::Rectangle<int> bounds, const ChipUiTheme& theme)
 {
     if (theme.textureStep <= 0)
@@ -8490,7 +8508,7 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
     const auto playbackInfo = audioProcessor.nesDmcSamplePlaybackInfo();
     auto visibleStatus = playbackInfo.byteCount > 0
         ? "Slot " + juce::String(playbackInfo.activeSlot + 1) + "/" + juce::String(playbackInfo.activeSlotCount)
-            + ": " + playbackInfo.sampleName
+            + ": " + compactSampleName(playbackInfo.sampleName)
         : playbackInfo.statusLine;
     if (playbackInfo.playbackMode != 0 && playbackInfo.activeSlotCount > 0)
         visibleStatus += " | Map " + chipper::parameters::midiNoteChoices()[playbackInfo.mapRootNote]
@@ -8602,7 +8620,7 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     const auto info = audioProcessor.spc700BrrSampleInfo();
     auto visibleStatus = info.loaded
         ? "Slot " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
-            + ": " + info.sampleName
+            + ": " + compactSampleName(info.sampleName)
         : "Generated " + waveShapeReadout(chipper::ChipMode::spc700, playbackPatch.waveShape);
     if (info.loaded && info.bankCount > 1 && playbackMode != 0)
         visibleStatus += " | Map " + chipper::parameters::midiNoteChoices()[info.mapRootNote]
@@ -8726,7 +8744,7 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
     const auto info = audioProcessor.paulaSampleInfo();
     auto visibleStatus = info.loaded
         ? "Slot " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
-            + ": " + info.sampleName
+            + ": " + compactSampleName(info.sampleName)
         : info.statusLine;
     if (info.loaded && info.bankCount > 1 && playbackMode != 0)
         visibleStatus += " | Map " + chipper::parameters::midiNoteChoices()[info.mapRootNote]
