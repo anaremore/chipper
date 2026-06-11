@@ -3648,6 +3648,12 @@ void ChipperAudioProcessorEditor::resized()
         placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[1]);
         placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[2]);
     }
+    else if (sampleLayout)
+    {
+        placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlValueLabels[0], controlCells[0]);
+        placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[2]);
+        placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[3]);
+    }
     else
     {
         placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlValueLabels[0], controlCells[0]);
@@ -3663,7 +3669,9 @@ void ChipperAudioProcessorEditor::resized()
 
     const auto utilityCell = displayedMode == chipper::ChipMode::sid
         ? controlCells[3]
-        : (displayedMode == chipper::ChipMode::nes ? controlCells[3].getUnion(controlCells[4]) : controlCells[4]);
+        : (displayedMode == chipper::ChipMode::nes
+               ? controlCells[3].getUnion(controlCells[4])
+               : (sampleLayout ? controlCells[1].getUnion(controlCells[4]) : controlCells[4]));
     if (displayedMode == chipper::ChipMode::nes)
     {
         clockSlider.setBounds({});
@@ -3724,6 +3732,10 @@ void ChipperAudioProcessorEditor::resized()
         dmcLoopButton.setBounds({});
 
         auto sampleCell = utilityCell;
+        auto pitchPanel = sampleCell.removeFromTop(std::min(72, sampleCell.getHeight()));
+        placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], pitchPanel);
+        sampleCell.removeFromTop(std::min(10, sampleCell.getHeight()));
+
         auto sampleHeader = sampleCell.removeFromTop(std::min(18, sampleCell.getHeight()));
         dmcSampleLabel.setText(displayedMode == chipper::ChipMode::paula ? "Paula Sample" : "SPC700 Sample", juce::dontSendNotification);
         dmcSampleLabel.setBounds(sampleHeader);
