@@ -363,7 +363,6 @@ private:
     juce::Label midiCcLabel;
     juce::Label chipSummaryLabel;
     juce::Label macroSummaryLabel;
-    juce::Label coreReadinessLabel;
     juce::Label globalStripLabel;
     juce::Label clockLabel;
     juce::Label dmcDirectLabel;

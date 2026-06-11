@@ -1839,14 +1839,6 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     titleLabel.setFont(juce::FontOptions(28.0f, juce::Font::bold));
     addAndMakeVisible(titleLabel);
 
-    coreReadinessLabel.setJustificationType(juce::Justification::centred);
-    coreReadinessLabel.setFont(juce::FontOptions(12.0f, juce::Font::bold));
-    coreReadinessLabel.setMinimumHorizontalScale(0.70f);
-    coreReadinessLabel.setColour(juce::Label::textColourId, juce::Colour(0xff101414));
-    coreReadinessLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff56c7d8));
-    coreReadinessLabel.setVisible(false);
-    addAndMakeVisible(coreReadinessLabel);
-
     chipModeBox.addItemList(chipper::parameters::chipModeChoices(), 1);
     accuracyBox.addItemList(chipper::parameters::accuracyChoices(), 1);
     presetBox.setTextWhenNothingSelected("Browse Chip Presets");
@@ -3160,8 +3152,6 @@ void ChipperAudioProcessorEditor::resized()
     placeHeaderCombo(2, accuracyBox, top.removeFromLeft(accuracyWidth));
     top.removeFromLeft(8);
     placeHeaderCombo(4, playModeBox, top.removeFromLeft(playModeWidth));
-    coreReadinessLabel.setBounds({});
-
     area.removeFromTop(10);
     chipSummaryLabel.setBounds(area.removeFromTop(34));
     area.removeFromTop(10);
@@ -8927,32 +8917,6 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         && ! applyingFactoryPreset
         && restoreChipSettingsSnapshot(mode);
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
-    auto verificationBadge = juce::String(descriptor.verification.badge);
-    coreReadinessLabel.setText(verificationBadge.toUpperCase(), juce::dontSendNotification);
-
-    auto verificationTooltip = juce::String(descriptor.verification.summary)
-        + "\nEvidence: " + juce::String(descriptor.verification.evidence);
-    if (! descriptor.verification.verifiedBehaviors.empty())
-    {
-        verificationTooltip += "\nVerified:";
-        for (const auto& behavior : descriptor.verification.verifiedBehaviors)
-            verificationTooltip += "\n- " + juce::String(behavior);
-    }
-    if (! descriptor.verification.knownGaps.empty())
-    {
-        verificationTooltip += "\nKnown gaps:";
-        for (const auto& gap : descriptor.verification.knownGaps)
-            verificationTooltip += "\n- " + juce::String(gap);
-    }
-    verificationTooltip += descriptor.verification.cycleAccurate
-        ? "\nCycle accuracy: claimed."
-        : "\nCycle accuracy: not claimed.";
-    verificationTooltip += descriptor.verification.hardwareValidated
-        ? "\nHardware validation: complete for the documented scope."
-        : "\nHardware validation: not complete.";
-    coreReadinessLabel.setTooltip(verificationTooltip);
-    coreReadinessLabel.setColour(juce::Label::textColourId, hasLiveCore ? juce::Colour(0xff101414) : juce::Colour(0xffd9e1e8));
-    coreReadinessLabel.setColour(juce::Label::backgroundColourId, hasLiveCore ? juce::Colour(0xff56c7d8) : juce::Colour(0xff344047));
     globalStripLabel.setText(hasLiveCore ? "Performance" : "Roadmap", juce::dontSendNotification);
     macroSummaryLabel.setVisible(true);
     macroSummaryLabel.setEnabled(true);

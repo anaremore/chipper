@@ -2598,10 +2598,34 @@ std::string ChipperAudioProcessor::currentCoreStatusDetail() const
         return "No core loaded";
 
     const auto& descriptor = chipper::descriptorFor(activeMode);
-    return descriptor.displayName + ": " + descriptor.verification.badge + ". "
+    auto detail = descriptor.displayName + ": " + descriptor.verification.badge + ". "
         + descriptor.verification.summary + " "
         + descriptor.summary + " "
-        + core->limitations();
+        + core->limitations()
+        + "\nEvidence: " + descriptor.verification.evidence;
+
+    if (! descriptor.verification.verifiedBehaviors.empty())
+    {
+        detail += "\nVerified:";
+        for (const auto& behavior : descriptor.verification.verifiedBehaviors)
+            detail += "\n- " + behavior;
+    }
+
+    if (! descriptor.verification.knownGaps.empty())
+    {
+        detail += "\nKnown gaps:";
+        for (const auto& gap : descriptor.verification.knownGaps)
+            detail += "\n- " + gap;
+    }
+
+    detail += descriptor.verification.cycleAccurate
+        ? "\nCycle accuracy: claimed."
+        : "\nCycle accuracy: not claimed.";
+    detail += descriptor.verification.hardwareValidated
+        ? "\nHardware validation: complete for the documented scope."
+        : "\nHardware validation: not complete.";
+
+    return detail;
 }
 
 ChipperAudioProcessor::OutputScopeSnapshot ChipperAudioProcessor::outputScopeSnapshot() const
