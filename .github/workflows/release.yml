@@ -1,0 +1,80 @@
+name: Release VST3
+
+# Normal pushes intentionally do not run this workflow. Use a manual dispatch for
+# a candidate build, or publish a GitHub Release to build and attach the VST3 zip.
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  windows-vst3:
+    name: Windows VST3
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake -S . -B build-release
+
+      - name: Build
+        run: cmake --build build-release --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build-release -C Release --output-on-failure
+
+      - name: Package VST3
+        id: package
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || github.ref_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          $tag = $env:RELEASE_TAG
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            $tag = "manual-$env:RUN_NUMBER"
+          }
+
+          $safeTag = $tag -replace '[^A-Za-z0-9._-]', '-'
+          $artifactName = "Chipper-$safeTag-windows-vst3"
+          $packageRoot = Join-Path $env:RUNNER_TEMP $artifactName
+          $vst3Source = "build-release\Chipper_artefacts\Release\VST3\Chipper.vst3"
+
+          if (!(Test-Path -LiteralPath $vst3Source)) {
+            throw "VST3 bundle was not found at $vst3Source"
+          }
+
+          New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
+          Copy-Item -LiteralPath $vst3Source -Destination $packageRoot -Recurse -Force
+          Copy-Item -LiteralPath README.md -Destination $packageRoot -Force
+          Copy-Item -LiteralPath THIRD_PARTY_NOTICES.md -Destination $packageRoot -Force
+          if (Test-Path -LiteralPath LICENSE) {
+            Copy-Item -LiteralPath LICENSE -Destination $packageRoot -Force
+          }
+
+          $zipPath = Join-Path (Get-Location) "$artifactName.zip"
+          Compress-Archive -Path (Join-Path $packageRoot "*") -DestinationPath $zipPath -Force
+
+          "zip_path=$zipPath" >> $env:GITHUB_OUTPUT
+          "artifact_name=$artifactName" >> $env:GITHUB_OUTPUT
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.artifact_name }}
+          path: ${{ steps.package.outputs.zip_path }}
+          if-no-files-found: error
+
+      - name: Attach zip to GitHub Release
+        if: github.event_name == 'release'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.package.outputs.zip_path }}" --clobber
