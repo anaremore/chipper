@@ -24,6 +24,9 @@ jobs:
           - label: Linux
             os: ubuntu-24.04
             artifact_suffix: linux
+          - label: macOS
+            os: macos-14
+            artifact_suffix: macos
 
     steps:
       - name: Check out repository
