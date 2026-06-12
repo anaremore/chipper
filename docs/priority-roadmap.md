@@ -2,6 +2,8 @@
 
 This list ranks near-term work by user value, implementation effort, and confidence. Value and confidence are scored 1-10, where 10 is highest. Effort is scored 1-10, where 10 is largest. "Confidence improves with" names the evidence or preparation that would make the work safer to execute.
 
+For broader product gaps beyond this immediate chip-core and UI execution list, see [product-gap-roadmap.md](product-gap-roadmap.md). That document tracks the larger instrument-workflow work: tracker motion, wave/sample editing, FM operator editing, drum/SFX workflows, multi-output routing, preset tags, accuracy-mode enforcement, and MIDI/automation polish.
+
 | Rank | Todo | User Value | Effort | Confidence | Confidence Improves With |
 | --- | --- | ---: | ---: | ---: | --- |
 | 1 | Make implemented chip UIs read as real instruments while preserving chip-native controls. Start with clearer SID voice cards, per-voice ADSR readability, filter-first SID tone controls, and legible output monitoring. | 10 | 5 | 8 | Visual checks in the standalone/VST host, reusable source-card layout helpers, and descriptor screenshots for each chip. |
