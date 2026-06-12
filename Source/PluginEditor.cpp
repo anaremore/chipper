@@ -3621,6 +3621,16 @@ void ChipperAudioProcessorEditor::resized()
         sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(previewHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isDmgSourceCard || isDenseSampleCard ? 3 : 1);
 
+        juce::Rectangle<int> reservedLevelRow;
+        juce::Rectangle<int> reservedLevelSlider;
+        if (isWavetableSourceCard)
+        {
+            reservedLevelSlider = sourceCard.removeFromBottom(std::min(16, sourceCard.getHeight())).reduced(0, 1);
+            sourceCard.removeFromBottom(std::min(1, sourceCard.getHeight()));
+            reservedLevelRow = sourceCard.removeFromBottom(std::min(13, sourceCard.getHeight()));
+            sourceCard.removeFromBottom(std::min(3, sourceCard.getHeight()));
+        }
+
         if (isSidSourceCard && i < sidVoiceWaveCount)
         {
             auto waveRow = sourceCard.removeFromTop(std::min(20, sourceCard.getHeight()));
@@ -3673,10 +3683,10 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isWavetableSourceCard && i < hucVoiceWaveBoxes.size())
         {
-            auto waveRow = sourceCard.removeFromTop(std::min(38, sourceCard.getHeight()));
+            auto waveRow = sourceCard.removeFromTop(std::min(32, sourceCard.getHeight()));
             hucVoiceWaveLabels[i].setBounds(waveRow.removeFromTop(std::min(10, waveRow.getHeight())));
             hucVoiceWaveBoxes[i].setBounds(waveRow.reduced(0, 1));
-            sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
+            sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
         }
         else if (isPaulaSourceCard && i < hucVoiceWaveBoxes.size())
         {
@@ -3693,12 +3703,22 @@ void ChipperAudioProcessorEditor::resized()
             sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
         }
 
-        auto levelRow = sourceCard.removeFromTop(std::min(useSpc700VoiceGrid ? 12 : (isDenseSampleCard ? 12 : 12), sourceCard.getHeight()));
-        sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(useSpc700VoiceGrid ? 36 : (isDenseSampleCard ? 38 : 48), levelRow.getWidth())));
-        sourceLevelValueLabels[i].setBounds(levelRow);
-        sourceCard.removeFromTop(1);
-        const auto sliderHeight = useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 11 : (isDenseSampleCard ? 14 : 14));
-        sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(sliderHeight, sourceCard.getHeight())).reduced(0, 1));
+        if (isWavetableSourceCard)
+        {
+            auto levelRow = reservedLevelRow;
+            sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(42, levelRow.getWidth())));
+            sourceLevelValueLabels[i].setBounds(levelRow);
+            sourceLevelSliders[i].setBounds(reservedLevelSlider);
+        }
+        else
+        {
+            auto levelRow = sourceCard.removeFromTop(std::min(useSpc700VoiceGrid ? 12 : (isDenseSampleCard ? 12 : 12), sourceCard.getHeight()));
+            sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(useSpc700VoiceGrid ? 36 : (isDenseSampleCard ? 38 : 48), levelRow.getWidth())));
+            sourceLevelValueLabels[i].setBounds(levelRow);
+            sourceCard.removeFromTop(1);
+            const auto sliderHeight = useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 11 : (isDenseSampleCard ? 14 : 14));
+            sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(sliderHeight, sourceCard.getHeight())).reduced(0, 1));
+        }
     }
 
     auto tonePanel = moduleBounds[2].reduced(12, 9);
