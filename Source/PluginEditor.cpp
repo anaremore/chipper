@@ -3454,7 +3454,7 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (paulaLayout)
     {
-        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.44)), 260, 330);
+        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.33)), 190, 230);
         const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.20)), 116, 148);
         const auto sampleRowHeight = std::max(220, modules.getHeight() - sourceRowHeight - middleRowHeight - (gap * 2));
         const auto topY = modules.getY();
@@ -3558,7 +3558,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
     const auto wavetableColumns = displayedMode == chipper::ChipMode::namcoWsg ? 4 : 3;
-    const auto sourceColumns = useSpc700VoiceGrid ? 4 : (usePaulaVoiceGrid ? 2 : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards)));
+    const auto sourceColumns = useSpc700VoiceGrid ? 4 : (usePaulaVoiceGrid ? 4 : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards)));
     const auto sourceRows = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid)
         ? static_cast<int>((visibleSourceCards + static_cast<size_t>(sourceColumns) - 1u) / static_cast<size_t>(sourceColumns))
         : 1;
@@ -3702,8 +3702,8 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isPaulaSourceCard && i < hucVoiceWaveBoxes.size())
         {
-            auto waveRow = sourceCard.removeFromTop(std::min(38, sourceCard.getHeight()));
-            hucVoiceWaveLabels[i].setBounds(waveRow.removeFromTop(std::min(10, waveRow.getHeight())));
+            auto waveRow = sourceCard.removeFromTop(std::min(36, sourceCard.getHeight()));
+            hucVoiceWaveLabels[i].setBounds(waveRow.removeFromTop(std::min(12, waveRow.getHeight())));
             hucVoiceWaveBoxes[i].setBounds(waveRow.reduced(0, 1));
             sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
         }
