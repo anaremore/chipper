@@ -4145,7 +4145,7 @@ void ChipperAudioProcessorEditor::resized()
         }
 
         controlCells[3] = {};
-        const auto lowerControlWidth = (nesRow.getWidth() - controlGap) / 3;
+        const auto lowerControlWidth = (nesRow.getWidth() - controlGap) / 2;
         controlCells[4] = nesRow.removeFromLeft(lowerControlWidth);
         nesRow.removeFromLeft(std::min(controlGap, nesRow.getWidth()));
         controlCells[5] = nesRow;
