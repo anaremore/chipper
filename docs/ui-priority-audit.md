@@ -6,7 +6,7 @@ This audit tracks layout and control-placement work that most directly improves 
 
 - Game Boy / DMG now treats channel cards as the owner of channel-native register controls: Pulse 1 duty, Pulse 2 duty, Wave RAM shape/level, and Noise width mode.
 - NES / RP2A03 should follow the same channel-ownership pattern: Pulse 1 duty lives under Pulse 1, Pulse 2 duty lives under Pulse 2, and Noise mode lives under Noise / DMC. The old Shape / Mixer panel should not be the primary place users edit these register-like choices.
-- NES / RP2A03 now reserves more vertical room for those channel-owned controls and explicitly clears the old global Pulse 1 Duty slot in the Performance strip. If Pulse 2 appears to follow Pulse 1, verify that Pulse 2 Duty is not set to `Follow`; explicit 12.5/25/50/75 choices are independent register overrides.
+- NES / RP2A03 now reserves more vertical room for those channel-owned controls and explicitly clears the old global Pulse 1 Duty slot in the Performance strip. If Pulse 2 appears to follow Pulse 1, verify whether Pulse 2 Duty is set to `Auto`; explicit 12.5/25/50/75 choices are independent register overrides.
 - Embedded channel controls must suppress their old standalone labels and readouts; otherwise stale labels can reappear after chip switching or parameter refresh.
 - HuC6280, Namco WSG, and Konami SCC now follow the same rule: per-channel wave shape selectors live inside a taller wavetable voice deck instead of a detached Wave/Mixer panel, with level strips reserved so wave controls cannot crowd out channel gain.
 - Wavetable-family source decks now take priority over duplicate summary copy: HuC6280, Namco WSG, and SCC reserve more height for channel cards so per-lane wave selectors and level controls stay readable.

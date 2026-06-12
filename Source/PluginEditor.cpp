@@ -6172,7 +6172,7 @@ juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mod
             case 4: return "AUDC Poly17 noise path";
             case 0:
             default:
-                return "Follow POKEY distortion from preset";
+                return "Preset POKEY distortion";
         }
     }
 
@@ -6188,7 +6188,7 @@ juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mod
                 case 4: return "Noise burst 8-bit sample";
                 case 0:
                 default:
-                    return "Follow Paula sample shape";
+                    return "Preset Paula sample shape";
             }
         }
 
@@ -6200,7 +6200,7 @@ juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mod
             case 4: return "Stepped/noise sample shape";
             case 0:
             default:
-                return "Follow generated sample shape";
+                return "Preset generated sample shape";
         }
     }
 
@@ -6214,7 +6214,7 @@ juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mod
             case 4: return "Stepped FM color";
             case 0:
             default:
-                return "Follow FM preset/operator registers";
+                return "Preset FM operator registers";
         }
     }
 
@@ -9258,7 +9258,7 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
         if (isSpc700)
         {
             const auto resolvedText = selected <= 0
-                ? juce::String("Follow manual slot / note map")
+                ? juce::String("Shared manual slot / note map")
                 : (selected <= spc700SampleNames.size()
                        ? juce::String("Slot ") + juce::String(selected).paddedLeft('0', 2) + ": " + spc700SampleNames[selected - 1]
                        : juce::String("Slot ") + juce::String(selected).paddedLeft('0', 2) + " is not loaded");
@@ -9784,7 +9784,7 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     else if (playbackMode == 2)
         tooltip += "\nSample Playback is Drum Map: notes browse the loaded bank from "
             + chipper::parameters::midiNoteChoices()[mapRoot]
-            + " upward and Follow Preset resolves to one-shot sample playback.";
+            + " upward and Preset loop mode resolves to one-shot sample playback.";
     else
         tooltip += "\nSample Playback is a map mode: notes browse the loaded bank from "
             + chipper::parameters::midiNoteChoices()[mapRoot] + " upward.";
@@ -9860,7 +9860,7 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
             ? "Selects the manual Paula sample from the loaded bank. MIDI CC117 selects the same slot; Manual Slot uses it for every note."
             : "No external Paula bank is loaded. Chipper is playing the generated Paula sample shape selected by Sample Shape.",
         chipper::ChipParameterRole::nesDmcSampleSlot));
-    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("Paula Sample Playback. Manual Slot plays the selected dropdown slot; Key Map maps loaded folder slots upward from the Sample Map Root for held/melodic samples. Tracker Map uses the same bank mapping path and resolves Follow Preset playback to one-shot tracker kits.", chipper::ChipParameterRole::nesDmcPlaybackMode));
+    dmcPlaybackModeBox.setTooltip(withMidiCcForRole("Paula Sample Playback. Manual Slot plays the selected dropdown slot; Key Map maps loaded folder slots upward from the Sample Map Root for held/melodic samples. Tracker Map uses the same bank mapping path and resolves Preset playback to one-shot tracker kits.", chipper::ChipParameterRole::nesDmcPlaybackMode));
     dmcMapRootBox.setTooltip(withMidiCcForRole("Paula Sample Map Root. Loaded folder slots map upward from this MIDI note when Sample Playback is a map mode.", chipper::ChipParameterRole::nesDmcMapRoot));
 
     const auto info = audioProcessor.paulaSampleInfo();
@@ -9882,7 +9882,7 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
     else if (playbackMode == 2)
         tooltip += "\nSample Playback is Tracker Map: notes browse the loaded bank from "
             + chipper::parameters::midiNoteChoices()[mapRoot]
-            + " upward and Follow Preset resolves to one-shot tracker playback.";
+            + " upward and Preset loop mode resolves to one-shot tracker playback.";
     else
         tooltip += "\nSample Playback is a map mode: notes browse the loaded bank from "
             + chipper::parameters::midiNoteChoices()[mapRoot] + " upward.";
