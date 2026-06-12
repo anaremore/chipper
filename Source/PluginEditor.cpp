@@ -3399,7 +3399,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 176 : (sampleLayout ? 220 : (nesLayout ? 240 : (wavetableLayout ? 210 : 300))));
+    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 176 : (sampleLayout ? 220 : (nesLayout ? 260 : (wavetableLayout ? 210 : 300))));
     const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 760 : (sampleLayout ? 620 : (nesLayout ? 570 : (wavetableLayout ? 650 : 492))));
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
@@ -4119,6 +4119,32 @@ void ChipperAudioProcessorEditor::resized()
 
     if (displayedMode == chipper::ChipMode::nes)
     {
+        const auto macroRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(strip.getHeight()) * 0.34)), 66, 78);
+        const auto decayRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(strip.getHeight()) * 0.24)), 48, 58);
+        auto nesRow = strip;
+        auto macroRow = nesRow.removeFromTop(std::min(macroRowHeight, nesRow.getHeight()));
+        nesRow.removeFromTop(std::min(controlGap, nesRow.getHeight()));
+        auto decayRow = nesRow.removeFromTop(std::min(decayRowHeight, nesRow.getHeight()));
+        nesRow.removeFromTop(std::min(controlGap, nesRow.getHeight()));
+
+        const auto nesMacroColumnWidth = (macroRow.getWidth() - (controlGap * 2)) / 3;
+        for (size_t i = 0; i < 3u; ++i)
+        {
+            controlCells[i] = {
+                macroRow.getX() + (static_cast<int>(i) * (nesMacroColumnWidth + controlGap)),
+                macroRow.getY(),
+                nesMacroColumnWidth,
+                macroRow.getHeight()
+            };
+        }
+
+        controlCells[3] = {};
+        controlCells[4] = decayRow;
+        controlCells[5] = nesRow;
+    }
+
+    if (displayedMode == chipper::ChipMode::nes)
+    {
         nativeGroupLabels[0].setBounds({});
         nativeLabels[0].setBounds({});
         nativeSliders[0].setBounds({});
@@ -4391,7 +4417,7 @@ void ChipperAudioProcessorEditor::resized()
 
     auto outputCell = displayedMode == chipper::ChipMode::sid
         ? controlCells[4].getUnion(controlCells[5])
-        : (displayedMode == chipper::ChipMode::nes ? controlCells[3].getUnion(controlCells[5]) : controlCells[5]);
+        : controlCells[5];
     auto outputHeader = outputCell.removeFromTop(18);
     outputLabel.setBounds(outputHeader.removeFromLeft(96));
     controlValueLabels[5].setJustificationType(juce::Justification::centredRight);
