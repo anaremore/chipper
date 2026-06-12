@@ -1586,10 +1586,49 @@ std::vector<ChipParameterSpec> paulaParameterSpecs()
                       },
                       ParameterKind::chipRegister),
         segmentedSpec(ChipParameterRole::waveShape,
-                      "paula.sampleShape",
-                      "Sample Shape",
+                      "paula.channel1.sampleShape",
+                      "Ch 1 Sample",
                       "Sample",
-                      "Selects the generated 8-bit sample shape. Follow resolves from the active Paula preset recipe.",
+                      "Selects the generated 8-bit sample shape for Paula channel 1. Follow resolves from the active Paula preset recipe.",
+                      {
+                          choice("Follow", "Use the active Paula preset recipe sample shape.", 0.0f, 0),
+                          choice("Ramp", "Rough 8-bit ramp sample for buzzy tracker leads.", 0.25f, 1),
+                          choice("Tri", "Triangle-style looped sample for bass.", 0.5f, 2),
+                          choice("Sine", "Rounded looped sample.", 0.75f, 3),
+                          choice("Noise", "Short decaying noise sample for percussion.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister),
+        segmentedSpec(ChipParameterRole::sidVoice2WaveShape,
+                      "paula.channel2.sampleShape",
+                      "Ch 2 Sample",
+                      "Sample",
+                      "Selects the generated 8-bit sample shape for Paula channel 2. Follow resolves from the active Paula preset recipe.",
+                      {
+                          choice("Follow", "Use the active Paula preset recipe sample shape.", 0.0f, 0),
+                          choice("Ramp", "Rough 8-bit ramp sample for buzzy tracker leads.", 0.25f, 1),
+                          choice("Tri", "Triangle-style looped sample for bass.", 0.5f, 2),
+                          choice("Sine", "Rounded looped sample.", 0.75f, 3),
+                          choice("Noise", "Short decaying noise sample for percussion.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister),
+        segmentedSpec(ChipParameterRole::sidVoice3WaveShape,
+                      "paula.channel3.sampleShape",
+                      "Ch 3 Sample",
+                      "Sample",
+                      "Selects the generated 8-bit sample shape for Paula channel 3. Follow resolves from the active Paula preset recipe.",
+                      {
+                          choice("Follow", "Use the active Paula preset recipe sample shape.", 0.0f, 0),
+                          choice("Ramp", "Rough 8-bit ramp sample for buzzy tracker leads.", 0.25f, 1),
+                          choice("Tri", "Triangle-style looped sample for bass.", 0.5f, 2),
+                          choice("Sine", "Rounded looped sample.", 0.75f, 3),
+                          choice("Noise", "Short decaying noise sample for percussion.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister),
+        segmentedSpec(ChipParameterRole::pulse2Duty,
+                      "paula.channel4.sampleShape",
+                      "Ch 4 Sample",
+                      "Sample",
+                      "Selects the generated 8-bit sample shape for Paula channel 4. Follow resolves from the active Paula preset recipe.",
                       {
                           choice("Follow", "Use the active Paula preset recipe sample shape.", 0.0f, 0),
                           choice("Ramp", "Rough 8-bit ramp sample for buzzy tracker leads.", 0.25f, 1),
@@ -3900,8 +3939,23 @@ uint8_t wavetableWaveShapeForChannel(ChipMode mode, const PatchConfig& patch, si
         patch.dmgStereoRoute
     };
 
-    const auto channelCount = mode == ChipMode::namcoWsg ? size_t { 8u } : (mode == ChipMode::huc6280 ? size_t { 6u } : (mode == ChipMode::scc ? size_t { 5u } : size_t { 1u }));
-    const auto baseChoice = std::clamp(patch.waveShape, 0, 4);
+    const auto channelCount = mode == ChipMode::namcoWsg ? size_t { 8u }
+        : (mode == ChipMode::huc6280 ? size_t { 6u }
+        : (mode == ChipMode::scc ? size_t { 5u }
+        : (mode == ChipMode::paula ? size_t { 4u } : size_t { 1u })));
+    auto baseChoice = std::clamp(patch.waveShape, 0, 4);
+    if (mode == ChipMode::paula && baseChoice == 0)
+    {
+        switch (patch.macro)
+        {
+            case MacroKind::bass: baseChoice = 2; break;
+            case MacroKind::drum:
+            case MacroKind::hit: baseChoice = 4; break;
+            case MacroKind::lead:
+            case MacroKind::arp: baseChoice = 1; break;
+            default: baseChoice = 3; break;
+        }
+    }
     auto choice = choices[std::min(channel, channelCount - 1u)];
     choice = std::clamp(choice, 0, 4);
     return static_cast<uint8_t>(choice == 0 ? baseChoice : choice);
@@ -4069,7 +4123,9 @@ uint8_t sampleTemplateForPatch(ChipMode mode, const PatchConfig& patch)
 int8_t generatedSampleValueForPatch(ChipMode mode, const PatchConfig& patch, size_t channel, size_t sampleIndex)
 {
     constexpr auto twoPiLocal = 6.283185307179586476925286766559;
-    const auto choice = sampleTemplateForPatch(mode, patch);
+    const auto choice = mode == ChipMode::paula
+        ? wavetableWaveShapeForChannel(mode, patch, channel)
+        : sampleTemplateForPatch(mode, patch);
     const auto i = sampleIndex & 63u;
     const auto phaseValue = static_cast<double>(i) / 64.0;
     auto sample = 0.0;

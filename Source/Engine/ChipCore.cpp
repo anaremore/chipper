@@ -9621,7 +9621,7 @@ public:
         noteStamp = 0;
         heldNote = -1;
         noteVelocity = 0.0f;
-        sampleTemplate = 0;
+        sampleTemplate.fill(0);
         leftA500State = 0.0;
         rightA500State = 0.0;
         leftLedState = 0.0;
@@ -9636,12 +9636,14 @@ public:
             clearChipPolyState();
 
         patch = nextPatch;
-        const auto nextTemplate = resolvedSampleTemplate();
-        if (nextTemplate != sampleTemplate)
+        for (size_t channel = 0; channel < sampleRam.size(); ++channel)
         {
-            sampleTemplate = nextTemplate;
-            for (size_t channel = 0; channel < sampleRam.size(); ++channel)
+            const auto nextTemplate = resolvedSampleTemplate(channel);
+            if (nextTemplate != sampleTemplate[channel])
+            {
+                sampleTemplate[channel] = nextTemplate;
                 seedSample(channel);
+            }
         }
     }
 
@@ -9700,7 +9702,7 @@ public:
             case 2: volume[channel] = static_cast<uint8_t>(std::min<int>(64, value & 0x7fu)); break;
             case 3: control[channel] = value & 0x03u; break;
             case 4:
-                sampleTemplate = value % 5u;
+                sampleTemplate[channel] = value % 5u;
                 seedSample(channel);
                 break;
             default:
@@ -9807,7 +9809,7 @@ public:
             writes.push_back({ 0, static_cast<uint16_t>(base + 1u), static_cast<uint8_t>((period[channel] >> 8u) & 0xffu) });
             writes.push_back({ 0, static_cast<uint16_t>(base + 2u), volume[channel] });
             writes.push_back({ 0, static_cast<uint16_t>(base + 3u), control[channel] });
-            writes.push_back({ 0, static_cast<uint16_t>(base + 4u), sampleTemplate });
+            writes.push_back({ 0, static_cast<uint16_t>(base + 4u), sampleTemplate[channel] });
         }
         return writes;
     }
@@ -9830,7 +9832,11 @@ public:
              << "\"clockHz\":" << clock << ","
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
-             << "\"waveShapeChoice\":" << static_cast<int>(sampleTemplate) << ","
+             << "\"waveShapeChoice\":" << static_cast<int>(sampleTemplate[0]) << ","
+             << "\"waveShapeChoice0\":" << static_cast<int>(sampleTemplate[0]) << ","
+             << "\"waveShapeChoice1\":" << static_cast<int>(sampleTemplate[1]) << ","
+             << "\"waveShapeChoice2\":" << static_cast<int>(sampleTemplate[2]) << ","
+             << "\"waveShapeChoice3\":" << static_cast<int>(sampleTemplate[3]) << ","
              << "\"period0\":" << period[0] << ","
              << "\"period1\":" << period[1] << ","
              << "\"period2\":" << period[2] << ","
@@ -9888,21 +9894,9 @@ private:
         return paulaLoopForPatch(patch);
     }
 
-    uint8_t resolvedSampleTemplate() const
+    uint8_t resolvedSampleTemplate(size_t channel) const
     {
-        const auto choiceValue = std::clamp(patch.waveShape, 0, 4);
-        if (choiceValue > 0)
-            return static_cast<uint8_t>(choiceValue);
-
-        switch (patch.macro)
-        {
-            case MacroKind::bass: return 2;
-            case MacroKind::drum:
-            case MacroKind::hit: return 4;
-            case MacroKind::lead:
-            case MacroKind::arp: return 1;
-            default: return 3;
-        }
+        return wavetableWaveShapeForChannel(ChipMode::paula, patch, channel);
     }
 
     void seedSample(size_t channel)
@@ -9917,7 +9911,7 @@ private:
         }
 
         auto data = std::vector<double>(64, 0.0);
-        const auto choice = sampleTemplate == 0 ? resolvedSampleTemplate() : sampleTemplate;
+        const auto choice = sampleTemplate[channel] == 0 ? resolvedSampleTemplate(channel) : sampleTemplate[channel];
         for (size_t i = 0; i < data.size(); ++i)
         {
             const auto phaseValue = static_cast<double>(i) / static_cast<double>(data.size());
@@ -10081,7 +10075,7 @@ private:
     std::array<uint16_t, 4> period {};
     std::array<uint8_t, 4> volume {};
     std::array<uint8_t, 4> control {};
-    uint8_t sampleTemplate = 0;
+    std::array<uint8_t, 4> sampleTemplate {};
     std::array<std::vector<double>, 4> sampleRam {};
     std::vector<std::vector<double>> externalSampleBank;
     int externalSampleSlot = -1;

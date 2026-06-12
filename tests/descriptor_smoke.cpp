@@ -966,8 +966,10 @@ int main()
     ok &= expectSegmentedRegister(chipper::ChipMode::pokey, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Follow");
     ok &= expectMacroLabel(chipper::ChipMode::paula, chipper::MacroKind::arp, "Paula Tracker Arp");
     ok &= expectPreset(chipper::ChipMode::paula, "paula-stab-chord");
-    ok &= expectSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Sample Shape");
-    ok &= expectSegmentedRegister(chipper::ChipMode::paula, chipper::ChipParameterRole::waveShape, 5, "Follow");
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::waveShape, "Ch 1 Sample", { "Follow", "Ramp", "Tri", "Sine", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::sidVoice2WaveShape, "Ch 2 Sample", { "Follow", "Ramp", "Tri", "Sine", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::sidVoice3WaveShape, "Ch 3 Sample", { "Follow", "Ramp", "Tri", "Sine", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::pulse2Duty, "Ch 4 Sample", { "Follow", "Ramp", "Tri", "Sine", "Noise" });
     ok &= expectSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::source1Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 1 L");
     ok &= expectSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::source2Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 2 R");
     ok &= expectSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::source3Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 3 R");
