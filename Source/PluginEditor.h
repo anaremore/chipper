@@ -241,6 +241,7 @@ private:
     juce::String waveShapeReadout(chipper::ChipMode mode, int choice) const;
     int pokeyCardMidiNote(const chipper::PatchConfig& patch, size_t index) const;
     juce::String pokeySourceRegisterReadout(const chipper::PatchConfig& patch, size_t index) const;
+    juce::String pokeySourceLevelReadout(const chipper::PatchConfig& patch, size_t index) const;
     juce::String pokeyRegisterReadout(const chipper::PatchConfig& patch) const;
     juce::String pokeyAudctlReadout(const chipper::PatchConfig& patch) const;
     juce::String pokeyAudctlFilterReadout(const chipper::PatchConfig& patch) const;

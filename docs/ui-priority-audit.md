@@ -23,9 +23,9 @@ This audit tracks layout and control-placement work that most directly improves 
    - Confidence: 8/10. Layout and parameters are in place; remaining work is deeper per-lane editing and any engine gaps found while playing.
 
 3. POKEY channel deck
-   - Issue: distortion/noise and AUDCTL pairing are readable, but individual channel AUDF/AUDC/AUDV relationships could be clearer in the four channel cards.
-   - User value: medium-high. Helps users understand why POKEY sounds chaotic and how channels pair.
-   - Confidence: 7/10. Requires careful UX so AUDCTL cross-channel behavior is visible without crowding.
+   - Issue: channel cards now expose AUDC in the header and AUDF/AUDV in the per-channel strip, but AUDCTL pairing/filter paths still need a stronger visual relationship between linked channels.
+   - User value: medium-high. Helps users understand why POKEY sounds chaotic and how channel pairing changes pitch behavior.
+   - Confidence: 7/10. Register readouts are now straightforward; the remaining work is a clearer cross-channel pairing visual without crowding the deck.
 
 4. Paula sample assignment depth
    - Issue: generated sample shape is now channel-local, but loaded sample-bank slot assignment is still shared rather than pinned per channel.

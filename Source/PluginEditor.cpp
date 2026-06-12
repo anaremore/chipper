@@ -6108,6 +6108,18 @@ juce::String ChipperAudioProcessorEditor::pokeySourceRegisterReadout(const chipp
     return "AUDC $" + byteHex(audc) + " | AUDF $" + byteHex(audf) + " | AUDV " + juce::String(audv) + "/15" + pairText;
 }
 
+juce::String ChipperAudioProcessorEditor::pokeySourceLevelReadout(const chipper::PatchConfig& patch, size_t index) const
+{
+    const auto audc = chipper::pokeyAudcForPatch(patch);
+    const auto audf = chipper::pokeyAudfForNote(chipper::parameters::defaultClockForMode(chipper::ChipMode::pokey),
+                                                pokeyCardMidiNote(patch, index));
+    const auto audv = static_cast<int>(audc & 0x0fu);
+    const auto audctl = chipper::pokeyAudctlForPatch(patch);
+    const auto pairedHigh = (index == 1u && (audctl & 0x10u) != 0) || (index == 3u && (audctl & 0x08u) != 0);
+    const auto pairText = pairedHigh ? juce::String(" | high byte") : juce::String();
+    return "AUDF $" + byteHex(audf) + " | AUDV " + juce::String(audv) + "/15" + pairText;
+}
+
 juce::String ChipperAudioProcessorEditor::pokeyRegisterReadout(const chipper::PatchConfig& patch) const
 {
     const auto audc = chipper::pokeyAudcForPatch(patch);
@@ -8253,8 +8265,11 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
 
         if (levelSpec != nullptr)
         {
-            sourceLevelLabels[i].setTooltip(withMidiCcForRole(juce::String(levelSpec->label) + ": " + juce::String(levelSpec->help), sourceLevelRole(i)));
-            sourceLevelSliders[i].setTooltip(withMidiCcForRole(juce::String(levelSpec->label) + ": " + juce::String(levelSpec->help), sourceLevelRole(i)));
+            auto levelTooltip = juce::String(levelSpec->label) + ": " + juce::String(levelSpec->help);
+            if (mode == chipper::ChipMode::pokey)
+                levelTooltip += "\n" + pokeySourceRegisterReadout(patch, i);
+            sourceLevelLabels[i].setTooltip(withMidiCcForRole(levelTooltip, sourceLevelRole(i)));
+            sourceLevelSliders[i].setTooltip(withMidiCcForRole(levelTooltip, sourceLevelRole(i)));
         }
         else
         {
@@ -8262,8 +8277,9 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
             sourceLevelSliders[i].setTooltip(withMidiCcForRole(juce::String("Trim level for ") + (*labels)[i], sourceLevelRole(i)));
         }
 
+        sourceLevelLabels[i].setText(mode == chipper::ChipMode::pokey ? "AUDV" : "Level", juce::dontSendNotification);
         sourceLevelValueLabels[i].setTooltip(sourceLevelSliders[i].getTooltip());
-        sourceLevelValueLabels[i].setText(sourceLevelReadout(i), juce::dontSendNotification);
+        sourceLevelValueLabels[i].setText(mode == chipper::ChipMode::pokey ? pokeySourceLevelReadout(patch, i) : sourceLevelReadout(i), juce::dontSendNotification);
         updateSourcePreviewScope(mode, patch, i, spec != nullptr && chipper::descriptorFor(mode).implemented);
     }
 
