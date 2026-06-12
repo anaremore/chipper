@@ -2389,7 +2389,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         slider.textFromValueFunction = [](double value)
         {
             const auto choice = static_cast<int>(std::round(value));
-            return choice <= 0 ? juce::String("Follow") : juce::String(choice - 1);
+            return choice <= 0 ? juce::String("Preset") : juce::String(choice - 1);
         };
         slider.valueFromTextFunction = [](const juce::String& text)
         {
@@ -2693,7 +2693,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(label);
 
         auto& box = hucVoiceWaveBoxes[i];
-        box.addItemList({ "Follow", "Ramp", "Tri", "Pulse", "Noise" }, 1);
+        box.addItemList({ "Preset", "Ramp", "Tri", "Pulse", "Noise" }, 1);
         box.setVisible(false);
         box.setTooltip(withMidiCcForRole("HuC6280 per-channel wave RAM shape.", hucVoiceWaveRole(i)));
         box.onChange = [this, i]()
@@ -2726,7 +2726,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
         auto& box = paulaVoiceSampleBoxes[i];
         box.setVisible(false);
-        box.setTextWhenNothingSelected("Follow");
+        box.setTextWhenNothingSelected("Preset");
         box.onChange = [this, i]()
         {
             if (suppressManualChoiceCallbacks)
@@ -5236,7 +5236,7 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
     }
 
     ymChannelMixLabel.setText("Channel Mix", juce::dontSendNotification);
-    ymChannelMixLabel.setTooltip("Per-channel AY mixer overrides. Follow uses the global Tone/Noise Mix control.");
+    ymChannelMixLabel.setTooltip("Per-channel AY mixer overrides. Preset uses the global Tone/Noise Mix control.");
     ymChannelMixValueLabel.setTooltip("Resolved YM/AY channel mixer choices.");
     for (size_t i = 0; i < ymChannelMixBoxes.size(); ++i)
     {
@@ -6061,8 +6061,8 @@ juce::String ChipperAudioProcessorEditor::pulse2DutyReadout(const chipper::Patch
     if (displayedMode == chipper::ChipMode::dmg)
     {
         const auto followMode = patch.playMode == chipper::PlayMode::chipPoly
-            ? juce::String("Follow P1 -> ")
-            : juce::String("Follow +1 -> ");
+            ? juce::String("Preset P1 -> ")
+            : juce::String("Preset +1 -> ");
         return followMode + detail;
     }
 
@@ -6081,7 +6081,7 @@ juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mod
             case 4: return "CTRL waveform bit 0x80, noise";
             case 0:
             default:
-                return "Follow waveform: resolves to SID CTRL bits";
+                return "Preset waveform: resolves to SID CTRL bits";
         }
     }
 
@@ -7069,7 +7069,7 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
             case 2: return "Rhythm, $BD enables BD/HH/SD/TOM/CYM on channels 7-9";
             case 0:
             default:
-                return "Follow preset, Drum/Hit use native OPL2 rhythm";
+                return "Preset recipe, Drum/Hit use native OPL2 rhythm";
         }
     }
 
@@ -7082,7 +7082,7 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
             case 2: return "Rhythm, $0E enables BD/HH/SD/TOM/CYM on channels 7-9";
             case 0:
             default:
-                return "Follow preset, Drum/Hit use native OPLL rhythm";
+                return "Preset recipe, Drum/Hit use native OPLL rhythm";
         }
     }
 
@@ -7098,7 +7098,7 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
             case 4: return chip + " AR/DR/SR/SL+RR set for percussive hits";
             case 0:
             default:
-                return "Follow preset, writes " + chip + " operator envelope registers";
+                return "Preset recipe, writes " + chip + " operator envelope registers";
         }
     }
 
@@ -7112,7 +7112,7 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
             case 4: return "AUDCTL bits 1+2: both high-pass paths";
             case 0:
             default:
-                return "Follow preset, writes POKEY AUDCTL filter bits";
+                return "Preset recipe, writes POKEY AUDCTL filter bits";
         }
     }
 
@@ -7126,7 +7126,7 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
             case 4: return "Perc: immediate transient with near-zero sustain";
             case 0:
             default:
-                return "Follow preset, writes clean-room SPC700 ADSR/gain contour";
+                return "Preset recipe, writes clean-room SPC700 ADSR/gain contour";
         }
     }
 
@@ -7424,7 +7424,7 @@ juce::String ChipperAudioProcessorEditor::ymToneNoiseReadout(float value) const
 
 juce::String ChipperAudioProcessorEditor::ymChannelMixReadout(const chipper::PatchConfig& patch) const
 {
-    static constexpr std::array<const char*, 5> choiceLabels { "Follow", "Tone", "Noise", "Both", "Off" };
+    static constexpr std::array<const char*, 5> choiceLabels { "Preset", "Tone", "Noise", "Both", "Off" };
     const auto macroMixer = chipper::ym2149MixerRegisterForControl(patch.control4);
     const auto mixer = chipper::ym2149MixerRegisterWithChannelOverrides(patch, macroMixer);
     juce::String text = "Reg 7=0x";
@@ -8656,7 +8656,7 @@ void ChipperAudioProcessorEditor::updateSidAdsrControls(bool shouldBeVisible)
         sidAdsrSliders[i].setVisible(shouldBeVisible);
         sidAdsrSliders[i].setTooltip(withMidiCcForRole(juce::String("SID ") + sidAdsrFieldLabel(i % sidAdsrFieldCount)
                                                            + " override: " + nibbleText
-                                                           + ". Follow uses the macro/control-resolved register nibble.",
+                                                           + ". Preset uses the macro/control-resolved register nibble.",
                                                        sidAdsrRole(i)));
         sidAdsrSliders[i].setValue(clamped, juce::dontSendNotification);
     }
@@ -9144,7 +9144,7 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
         if (isSpc700)
         {
             box.clear(juce::dontSendNotification);
-            box.addItem("Follow", 1);
+            box.addItem("Preset", 1);
             for (int slot = 0; slot < spc700SampleNames.size(); ++slot)
                 box.addItem(juce::String(slot + 1).paddedLeft('0', 2) + " " + compactSampleName(spc700SampleNames[slot], 18), slot + 2);
         }
@@ -9156,8 +9156,8 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
             {
                 box.clear(juce::dontSendNotification);
                 box.addItemList(isPaula
-                                    ? juce::StringArray { "Follow", "Ramp", "Tri", "Sine", "Noise" }
-                                    : juce::StringArray { "Follow", "Ramp", "Tri", "Pulse", "Noise" },
+                                    ? juce::StringArray { "Preset", "Ramp", "Tri", "Sine", "Noise" }
+                                    : juce::StringArray { "Preset", "Ramp", "Tri", "Pulse", "Noise" },
                                 1);
             }
         }
@@ -9186,7 +9186,7 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
                        ? juce::String("Slot ") + juce::String(selected).paddedLeft('0', 2) + ": " + spc700SampleNames[selected - 1]
                        : juce::String("Slot ") + juce::String(selected).paddedLeft('0', 2) + " is not loaded");
             const auto tooltip = juce::String("SPC700 voice ") + juce::String(static_cast<int>(i + 1u))
-                + " sample source.\nFollow uses the global manual slot or note map; slots 1-32 pin this voice to a loaded sample.\n"
+                + " sample source.\nPreset uses the global manual slot or note map; slots 1-32 pin this voice to a loaded sample.\n"
                 + resolvedText;
             hucVoiceWaveLabels[i].setTooltip(withMidiCcForRole(tooltip, spc700VoiceSampleRole(i)));
             box.setTooltip(withMidiCcForRole(tooltip, spc700VoiceSampleRole(i)));
@@ -9207,7 +9207,7 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
             auto& sampleLabel = paulaVoiceSampleLabels[i];
             auto& sampleBox = paulaVoiceSampleBoxes[i];
             sampleBox.clear(juce::dontSendNotification);
-            sampleBox.addItem("Follow Bank", 1);
+            sampleBox.addItem("Shared Bank", 1);
             for (int slot = 0; slot < paulaSampleNames.size(); ++slot)
                 sampleBox.addItem(juce::String(slot + 1).paddedLeft('0', 2) + " " + compactSampleName(paulaSampleNames[slot], 18), slot + 2);
 
@@ -9227,7 +9227,7 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
                        ? juce::String("Slot ") + juce::String(sampleSlot).paddedLeft('0', 2) + ": " + paulaSampleNames[sampleSlot - 1]
                        : juce::String("Slot ") + juce::String(sampleSlot).paddedLeft('0', 2) + " is not loaded");
             const auto sampleTooltip = juce::String("Paula channel ") + juce::String(static_cast<int>(i + 1u))
-                + " external sample source.\nFollow uses the shared manual slot or note map; slots 1-32 pin this DAC channel to a loaded sample.\n"
+                + " external sample source.\nShared Bank uses the shared manual slot or note map; slots 1-32 pin this DAC channel to a loaded sample.\n"
                 + resolvedSampleText;
             sampleLabel.setTooltip(withMidiCcForRole(sampleTooltip, spc700VoiceSampleRole(i)));
             sampleBox.setTooltip(withMidiCcForRole(sampleTooltip, spc700VoiceSampleRole(i)));

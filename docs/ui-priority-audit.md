@@ -14,13 +14,14 @@ This audit tracks layout and control-placement work that most directly improves 
 - SNES SPC700-style voices use the same source-card ownership rule for sample slots: each of the eight voice cards exposes a sample-source dropdown so loaded BRR/WAV/AIFF bank slots can be pinned per voice instead of relying only on one global manual slot.
 - SID already follows this pattern for per-voice waveform and pulse-width controls, with the global filter staying in the Filter panel.
 - Shared helper controls must use neutral base wording and chip-specific resolved readouts. For example, a volume-gate helper on POKEY or Paula should never describe itself as a NES/APU envelope period.
+- Visible preset-following states should say "Preset" rather than "Follow" when the control is using the selected preset recipe. "Shared Bank" is used for sample voices that inherit the global sample slot or note map.
 
 ## Highest-Value Next Fixes
 
-1. Rename and clarify the macro layer
-   - Issue: the bottom panel is the playable macro layer, but "Performance" and "Follow" make the relationship between preset recipes and manual overrides too vague.
+1. Macro destination clarity
+   - Issue: the bottom Performance Macros panel is now named correctly, but users still need clearer destination hints showing what each macro changes on the selected chip.
    - User value: very high. Users need to understand which controls are musical abstractions and which controls are chip-native.
-   - Confidence: 9/10. Mostly wording, tooltip, and control-label cleanup.
+   - Confidence: 8/10. Mostly tooltip, inline destination text, and control-label cleanup.
 
 2. Preset browser and preset sharing
    - Issue: the top dropdown works, but 15 chips need filters by chip, role, engine, tag, favorites, and init patch. User presets should remain simple flat files that are easy to share.
