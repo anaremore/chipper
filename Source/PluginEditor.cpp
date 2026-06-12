@@ -4043,8 +4043,7 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (wavetableLayout)
     {
-        auto sliderArea = envelopeDecayPanel.removeFromTop(std::min(56, envelopeDecayPanel.getHeight()));
-        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, sliderArea);
+        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
         ymEnvelopePreview.setBounds({});
     }
     else
@@ -4502,6 +4501,17 @@ void ChipperAudioProcessorEditor::placeLabeledSliderWithReadout(juce::Slider& sl
                                                                 juce::Rectangle<int> bounds)
 {
     valueLabel.setJustificationType(juce::Justification::centredLeft);
+
+    if (bounds.getHeight() <= 42)
+    {
+        auto header = bounds.removeFromTop(std::min(18, bounds.getHeight()));
+        label.setBounds(header.removeFromLeft(std::min(180, header.getWidth())));
+        valueLabel.setBounds(header);
+        bounds.removeFromTop(std::min(2, bounds.getHeight()));
+        slider.setBounds(bounds.reduced(0, 1));
+        return;
+    }
+
     auto header = bounds.removeFromTop(std::min(22, bounds.getHeight()));
     label.setBounds(header.removeFromLeft(std::min(220, header.getWidth())));
     if (header.getWidth() >= 76)
