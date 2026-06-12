@@ -193,7 +193,7 @@ UI controls should graduate from descriptor text to real controls only when they
 Equivalent concepts stay in equivalent places:
 
 - NES / RP2A03: Sources are Pulse 1, Pulse 2, Triangle, and a combined Noise / DMC lane; Tone becomes Shape / Mixer.
-- Game Boy / DMG: Sources are Pulse 1, Pulse 2, Wave, Noise; Tone becomes Wave / Noise.
+- Game Boy / DMG: Sources are Pulse 1, Pulse 2, Wave, Noise; each source card owns its native register controls, so Pulse 1/2 duty, Wave RAM shape/level, and Noise width live with their channels instead of in a separate Wave / Noise panel.
 - SID / C64: Sources are Voice 1-3; Tone becomes Filter.
 - YM2149 / AY: Sources are A, B, C, shared noise; Tone becomes Mixer / Envelope.
 - SN76489: Sources are Tone 1-3 and Noise; Tone becomes Tone / Crunch.
