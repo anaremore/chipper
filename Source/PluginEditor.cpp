@@ -3427,10 +3427,10 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (nesLayout)
     {
-        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.34)), 178, 216);
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.38)), 204, 248);
         const auto remainingHeight = modules.getHeight() - topRowHeight - gap;
-        const auto controlRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(remainingHeight) * 0.48)), 170, 210);
-        const auto sampleRowHeight = std::max(172, remainingHeight - controlRowHeight - gap);
+        const auto controlRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(remainingHeight) * 0.40)), 146, 188);
+        const auto sampleRowHeight = std::max(156, remainingHeight - controlRowHeight - gap);
         const auto topY = modules.getY();
         const auto middleY = topY + topRowHeight + gap;
         const auto bottomY = middleY + controlRowHeight + gap;
@@ -4118,12 +4118,6 @@ void ChipperAudioProcessorEditor::resized()
     }
 
     if (displayedMode == chipper::ChipMode::nes)
-    {
-        placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[0]);
-        placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[1]);
-        placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[2]);
-    }
-    else if (displayedMode == chipper::ChipMode::nes)
     {
         nativeGroupLabels[0].setBounds({});
         nativeLabels[0].setBounds({});
@@ -9490,7 +9484,7 @@ void ChipperAudioProcessorEditor::updateSnNoiseModeButtons(chipper::ChipMode mod
 
     const auto modeReadout = noiseModeReadout(mode, patch);
     const auto compactFmMode = mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151;
-    const auto embeddedInSourceCard = mode == chipper::ChipMode::dmg;
+    const auto embeddedInSourceCard = mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
     const auto registerSegmentMode = mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
     snNoiseModeLabel.setVisible(shouldBeVisible);
     snNoiseModeValueLabel.setVisible(shouldBeVisible && ! embeddedInSourceCard && ! compactFmMode && ! registerSegmentMode);
