@@ -4041,6 +4041,12 @@ void ChipperAudioProcessorEditor::resized()
         placeFmOperatorRegisterSurface(displayedMode, envelopeDecayPanel);
         ymEnvelopePreview.setBounds({});
     }
+    else if (wavetableLayout)
+    {
+        auto sliderArea = envelopeDecayPanel.removeFromTop(std::min(56, envelopeDecayPanel.getHeight()));
+        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, sliderArea);
+        ymEnvelopePreview.setBounds({});
+    }
     else
     {
         placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
