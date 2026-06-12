@@ -3448,8 +3448,8 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (paulaLayout)
     {
-        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.34)), 178, 226);
-        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.24)), 122, 154);
+        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.44)), 260, 330);
+        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.20)), 116, 148);
         const auto sampleRowHeight = std::max(220, modules.getHeight() - sourceRowHeight - middleRowHeight - (gap * 2));
         const auto topY = modules.getY();
         const auto middleY = topY + sourceRowHeight + gap;
@@ -3457,8 +3457,8 @@ void ChipperAudioProcessorEditor::resized()
 
         moduleBounds[0] = {};
         moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), sourceRowHeight };
-        moduleBounds[2] = { modules.getX(), middleY, columnWidth, middleRowHeight };
-        moduleBounds[3] = { modules.getX() + columnWidth + gap, middleY, columnWidth, middleRowHeight };
+        moduleBounds[2] = {};
+        moduleBounds[3] = { modules.getX(), middleY, modules.getWidth(), middleRowHeight };
         moduleBounds[4] = {};
         moduleBounds[5] = { modules.getX(), bottomY, modules.getWidth(), sampleRowHeight };
     }
@@ -3844,10 +3844,12 @@ void ChipperAudioProcessorEditor::resized()
         dmgWaveLevelLabel.setBounds({});
         dmgWaveLevelValueLabel.setBounds({});
     }
-    else if (displayedMode == chipper::ChipMode::huc6280 || displayedMode == chipper::ChipMode::namcoWsg || displayedMode == chipper::ChipMode::scc)
+    else if (displayedMode == chipper::ChipMode::huc6280 || displayedMode == chipper::ChipMode::namcoWsg || displayedMode == chipper::ChipMode::scc || displayedMode == chipper::ChipMode::paula)
     {
         waveShapeLabel.setBounds({});
         waveShapeValueLabel.setBounds({});
+        for (auto& button : waveShapeButtons)
+            button.setBounds({});
     }
     else
         placeWaveShapeSegment(primaryTonePanel);
@@ -10075,7 +10077,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         || mode == chipper::ChipMode::opl3
         || mode == chipper::ChipMode::ym2151;
     moduleSummaryLabels[1].setVisible(!(hasLiveCore
-        && (mode == chipper::ChipMode::sid || mode == chipper::ChipMode::dmg)
+        && (mode == chipper::ChipMode::sid || mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::paula)
         && usesSourceChannelSurface(mode)));
     moduleSummaryLabels[3].setVisible(!(hasLiveCore
         && ((mode == chipper::ChipMode::sid && usesEnvelopeDecayControl(mode))
@@ -10087,7 +10089,8 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         itemLabel.setVisible(! hasReferenceOnlyProfile && ! hasCustomProfileSurface && ! itemLabel.getText().isEmpty());
     const auto hasEmbeddedWavetableSourceControls = mode == chipper::ChipMode::huc6280
         || mode == chipper::ChipMode::namcoWsg
-        || mode == chipper::ChipMode::scc;
+        || mode == chipper::ChipMode::scc
+        || mode == chipper::ChipMode::paula;
     const auto hasCustomToneSurface = hasLiveCore && mode != chipper::ChipMode::dmg && ! hasEmbeddedWavetableSourceControls && (usesWaveShapeSegment(mode)
         || usesPulse2DutySegment(mode)
         || usesDmgWaveLevelSegment(mode)
