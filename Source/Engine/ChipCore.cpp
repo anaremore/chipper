@@ -253,10 +253,18 @@ public:
 
     void setPatch(const PatchConfig& newPatch) override
     {
+        const auto previousPatch = patch;
         if (newPatch.playMode != patch.playMode || newPatch.sourceEnabled != patch.sourceEnabled)
             clearChipPolyState();
 
         patch = newPatch;
+
+        if (newPatch.playMode == previousPatch.playMode
+            && newPatch.sourceEnabled == previousPatch.sourceEnabled
+            && (newPatch.control1 != previousPatch.control1 || newPatch.pulse2Duty != previousPatch.pulse2Duty))
+        {
+            refreshActivePulseDuties();
+        }
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -985,6 +993,36 @@ private:
         writeRegister(static_cast<uint16_t>(base + 1), dmgEnvelopeRegisterValue(volume));
         writeRegister(static_cast<uint16_t>(base + 2), static_cast<uint8_t>(freq & 0xffu));
         writeRegister(static_cast<uint16_t>(base + 3), static_cast<uint8_t>(0x80u | ((freq >> 8u) & 0x07u)));
+    }
+
+    void writePulseDutyRegister(int channel, DmgPulseDuty duty)
+    {
+        const auto index = channel == 0 ? 0x01u : 0x06u;
+        const auto address = channel == 0 ? 0xff11u : 0xff16u;
+        const auto lengthBits = static_cast<uint8_t>(regs[index] & 0x3fu);
+        writeRegister(static_cast<uint16_t>(address), static_cast<uint8_t>((dmgPulseDutyBits(duty) << 6u) | lengthBits));
+    }
+
+    void refreshActivePulseDuties()
+    {
+        const auto pulse1Duty = dmgPulseDutyFromControl(patch.control1);
+
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            if (channelNotes[0] >= 0)
+                writePulseDutyRegister(0, pulse1Duty);
+            if (channelNotes[1] >= 0)
+                writePulseDutyRegister(1, dmgPulse2DutyForPatch(patch, pulse1Duty, false));
+            return;
+        }
+
+        if (heldNote < 0)
+            return;
+
+        if (enabled[0])
+            writePulseDutyRegister(0, pulse1Duty);
+        if (enabled[1])
+            writePulseDutyRegister(1, dmgPulse2DutyForPatch(patch, pulse1Duty, true));
     }
 
     uint8_t scaledChipPolyEnvelopeVolume(size_t index) const

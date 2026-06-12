@@ -3447,6 +3447,13 @@ void ChipperAudioProcessorEditor::resized()
         }
     }
 
+    if (dmgLayout)
+    {
+        nativeGroupLabels[0].setBounds({});
+        nativeLabels[0].setBounds({});
+        controlValueLabels[0].setBounds({});
+    }
+
     auto sourcePanel = moduleBounds[1].reduced(12, 9);
     sourcePanel.removeFromTop(20);
     const auto sourceSurfaceActive = chipper::descriptorFor(displayedMode).implemented && usesSourceChannelSurface(displayedMode);
@@ -3461,8 +3468,14 @@ void ChipperAudioProcessorEditor::resized()
     const auto sourceGap = 6;
     const auto visibleSourceCards = chipper::visibleSourceCountForMode(displayedMode);
     const auto useSpc700VoiceGrid = displayedMode == chipper::ChipMode::spc700 && visibleSourceCards > 4u;
-    const auto sourceColumns = useSpc700VoiceGrid ? 4 : static_cast<int>(visibleSourceCards);
-    const auto sourceRows = useSpc700VoiceGrid ? static_cast<int>((visibleSourceCards + 3u) / 4u) : 1;
+    const auto useWavetableVoiceGrid = (displayedMode == chipper::ChipMode::huc6280
+        || displayedMode == chipper::ChipMode::namcoWsg
+        || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
+    const auto wavetableColumns = displayedMode == chipper::ChipMode::namcoWsg ? 4 : 3;
+    const auto sourceColumns = useSpc700VoiceGrid ? 4 : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards));
+    const auto sourceRows = (useSpc700VoiceGrid || useWavetableVoiceGrid)
+        ? static_cast<int>((visibleSourceCards + static_cast<size_t>(sourceColumns) - 1u) / static_cast<size_t>(sourceColumns))
+        : 1;
     const auto sourceCardWidth = sourceColumns > 0
         ? (sourcePanel.getWidth() - (sourceGap * (sourceColumns - 1))) / sourceColumns
         : sourcePanel.getWidth();
@@ -3479,6 +3492,11 @@ void ChipperAudioProcessorEditor::resized()
             sourceLevelSliders[i].setBounds({});
             sourceLevelLabels[i].setBounds({});
             sourceLevelValueLabels[i].setBounds({});
+            if (i < hucVoiceWaveBoxes.size())
+            {
+                hucVoiceWaveLabels[i].setBounds({});
+                hucVoiceWaveBoxes[i].setBounds({});
+            }
             if (displayedMode == chipper::ChipMode::sid && i < sidVoiceWaveCount)
             {
                 sidVoiceWaveLabels[i].setBounds({});
@@ -3490,8 +3508,8 @@ void ChipperAudioProcessorEditor::resized()
             continue;
         }
 
-        const auto sourceColumn = useSpc700VoiceGrid ? static_cast<int>(i % 4u) : static_cast<int>(i);
-        const auto sourceRow = useSpc700VoiceGrid ? static_cast<int>(i / 4u) : 0;
+        const auto sourceColumn = (useSpc700VoiceGrid || useWavetableVoiceGrid) ? static_cast<int>(i % static_cast<size_t>(sourceColumns)) : static_cast<int>(i);
+        const auto sourceRow = (useSpc700VoiceGrid || useWavetableVoiceGrid) ? static_cast<int>(i / static_cast<size_t>(sourceColumns)) : 0;
         sourceChannelBounds[i] = {
             sourcePanel.getX() + (sourceColumn * (sourceCardWidth + sourceGap)),
             sourcePanel.getY() + (sourceRow * (sourceCardHeight + sourceGap)),
@@ -3500,15 +3518,17 @@ void ChipperAudioProcessorEditor::resized()
         };
         const auto isSidSourceCard = displayedMode == chipper::ChipMode::sid;
         const auto isDmgSourceCard = displayedMode == chipper::ChipMode::dmg;
-        auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : 8, isSidSourceCard ? 2 : 4);
+        const auto isWavetableSourceCard = useWavetableVoiceGrid;
+        auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isWavetableSourceCard ? 5 : 8),
+                                                         isSidSourceCard ? 2 : (isWavetableSourceCard ? 3 : 4));
         const auto buttonHeight = useSpc700VoiceGrid ? 17 : (isSidSourceCard ? 17 : 18);
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(2);
         const auto previewHeight = std::clamp(sourceCard.getHeight() / (useSpc700VoiceGrid ? 3 : 4),
-                                              useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 22 : (isDmgSourceCard ? 24 : 20)),
-                                              useSpc700VoiceGrid ? 20 : (isSidSourceCard ? 32 : (isDmgSourceCard ? 34 : 28)));
+                                              useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 22 : (isDmgSourceCard ? 24 : (isWavetableSourceCard ? 16 : 20))),
+                                              useSpc700VoiceGrid ? 20 : (isSidSourceCard ? 32 : (isDmgSourceCard ? 34 : (isWavetableSourceCard ? 22 : 28))));
         sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(previewHeight, sourceCard.getHeight())));
-        sourceCard.removeFromTop(isDmgSourceCard ? 4 : 1);
+        sourceCard.removeFromTop(isDmgSourceCard || isWavetableSourceCard ? 4 : 1);
 
         if (isSidSourceCard && i < sidVoiceWaveCount)
         {
@@ -3559,6 +3579,13 @@ void ChipperAudioProcessorEditor::resized()
                 placeCompactSegment(snNoiseModeButtons, snNoiseModeSegmentBounds, snNoiseModeButtons.size());
                 sourceCard.removeFromTop(3);
             }
+        }
+        else if (isWavetableSourceCard && i < hucVoiceWaveBoxes.size())
+        {
+            hucVoiceWaveLabels[i].setBounds(sourceCard.removeFromTop(std::min(12, sourceCard.getHeight())));
+            sourceCard.removeFromTop(std::min(1, sourceCard.getHeight()));
+            hucVoiceWaveBoxes[i].setBounds(sourceCard.removeFromTop(std::min(22, sourceCard.getHeight())).reduced(0, 1));
+            sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
         }
 
         auto levelRow = sourceCard.removeFromTop(std::min(useSpc700VoiceGrid ? 10 : 12, sourceCard.getHeight()));
@@ -3718,7 +3745,10 @@ void ChipperAudioProcessorEditor::resized()
         dmgWaveLevelValueLabel.setBounds({});
     }
     else if (displayedMode == chipper::ChipMode::huc6280 || displayedMode == chipper::ChipMode::namcoWsg || displayedMode == chipper::ChipMode::scc)
-        placeHucVoiceWaveControls(primaryTonePanel);
+    {
+        waveShapeLabel.setBounds({});
+        waveShapeValueLabel.setBounds({});
+    }
     else
         placeWaveShapeSegment(primaryTonePanel);
     if (displayedMode != chipper::ChipMode::sid && displayedMode != chipper::ChipMode::dmg)
@@ -7450,8 +7480,8 @@ void ChipperAudioProcessorEditor::setSidVoiceWaveControlsVisible(bool shouldBeVi
 
 void ChipperAudioProcessorEditor::setHucVoiceWaveControlsVisible(bool shouldBeVisible)
 {
-    waveShapeLabel.setVisible(shouldBeVisible);
-    waveShapeValueLabel.setVisible(shouldBeVisible);
+    waveShapeLabel.setVisible(false);
+    waveShapeValueLabel.setVisible(false);
     for (auto& label : hucVoiceWaveLabels)
         label.setVisible(shouldBeVisible);
     for (auto& box : hucVoiceWaveBoxes)
@@ -8771,8 +8801,8 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
     const auto laneName = isNamco ? juce::String("Lane") : juce::String("Ch");
     waveShapeLabel.setText(isNamco ? "Lane Waves" : "Channel Waves", juce::dontSendNotification);
     waveShapeValueLabel.setJustificationType(juce::Justification::centredLeft);
-    waveShapeLabel.setVisible(shouldBeVisible);
-    waveShapeValueLabel.setVisible(shouldBeVisible);
+    waveShapeLabel.setVisible(false);
+    waveShapeValueLabel.setVisible(false);
 
     const auto patch = currentUiPatch(
         mode,
@@ -9835,7 +9865,10 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto hasReferenceOnlyProfile = hasLiveCore && ! hasCustomProfileSurface;
     for (auto& itemLabel : moduleItemLabels[0])
         itemLabel.setVisible(! hasReferenceOnlyProfile && ! hasCustomProfileSurface && ! itemLabel.getText().isEmpty());
-    const auto hasCustomToneSurface = hasLiveCore && mode != chipper::ChipMode::dmg && (usesWaveShapeSegment(mode)
+    const auto hasEmbeddedWavetableSourceControls = mode == chipper::ChipMode::huc6280
+        || mode == chipper::ChipMode::namcoWsg
+        || mode == chipper::ChipMode::scc;
+    const auto hasCustomToneSurface = hasLiveCore && mode != chipper::ChipMode::dmg && ! hasEmbeddedWavetableSourceControls && (usesWaveShapeSegment(mode)
         || usesPulse2DutySegment(mode)
         || usesDmgWaveLevelSegment(mode)
         || usesYmChannelMixControls(mode)
