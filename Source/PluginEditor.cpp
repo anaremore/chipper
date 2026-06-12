@@ -5979,7 +5979,18 @@ juce::String ChipperAudioProcessorEditor::pulse2DutyReadout(const chipper::Patch
     const auto detail = juce::String(displayedMode == chipper::ChipMode::dmg ? "NR21 bits " : "bits ")
         + dutyBits[static_cast<size_t>(resolved)] + ", " + dutyLabels[static_cast<size_t>(resolved)];
 
-    return choice == 0 ? juce::String("Preset -> ") + detail : detail;
+    if (choice != 0)
+        return detail;
+
+    if (displayedMode == chipper::ChipMode::dmg)
+    {
+        const auto followMode = patch.playMode == chipper::PlayMode::chipPoly
+            ? juce::String("Follow P1 -> ")
+            : juce::String("Follow +1 -> ");
+        return followMode + detail;
+    }
+
+    return juce::String("Preset -> ") + detail;
 }
 
 juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mode, int choice) const

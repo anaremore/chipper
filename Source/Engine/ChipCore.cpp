@@ -491,6 +491,7 @@ public:
              << "\"waveFreqReg\":" << waveFrequencyRegister() << ","
              << "\"pulseDuty1\":" << static_cast<int>(pulseDutyIndex(0)) << ","
              << "\"pulseDuty2\":" << static_cast<int>(pulseDutyIndex(1)) << ","
+             << "\"pulse2DutyChoice\":" << std::clamp(patch.pulse2Duty, 0, 4) << ","
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","

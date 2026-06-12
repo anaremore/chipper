@@ -2050,17 +2050,17 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_dmg_sweep_shift_max_assert PROPERTIES DEPENDS chipper_render_dmg_sweep_shift_max_smoke)
 
     add_test(NAME chipper_render_dmg_duty_12_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-duty-12-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.1 --core-min pulseDuty1=0 --core-max pulseDuty1=0 --core-min pulseDuty2=1 --core-max pulseDuty2=1
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-duty-12-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.1 --core-min pulseDuty1=0 --core-max pulseDuty1=0 --core-min pulseDuty2=1 --core-max pulseDuty2=1 --core-min pulse2DutyChoice=0 --core-max pulse2DutyChoice=0
     )
     set_tests_properties(chipper_render_dmg_duty_12_assert PROPERTIES DEPENDS chipper_render_dmg_duty_12_smoke)
 
     add_test(NAME chipper_render_dmg_duty_75_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-duty-75-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.1 --core-min pulseDuty1=3 --core-max pulseDuty1=3 --core-min pulseDuty2=3 --core-max pulseDuty2=3
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-duty-75-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.1 --core-min pulseDuty1=3 --core-max pulseDuty1=3 --core-min pulseDuty2=3 --core-max pulseDuty2=3 --core-min pulse2DutyChoice=0 --core-max pulse2DutyChoice=0
     )
     set_tests_properties(chipper_render_dmg_duty_75_assert PROPERTIES DEPENDS chipper_render_dmg_duty_75_smoke)
 
     add_test(NAME chipper_render_dmg_pulse2_duty_override_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-pulse2-duty-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.1 --core-min pulseDuty1=0 --core-max pulseDuty1=0 --core-min pulseDuty2=3 --core-max pulseDuty2=3
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-pulse2-duty-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.1 --core-min pulseDuty1=0 --core-max pulseDuty1=0 --core-min pulseDuty2=3 --core-max pulseDuty2=3 --core-min pulse2DutyChoice=4 --core-max pulse2DutyChoice=4 --descriptor-param-kind pulse2Duty=chipRegister --descriptor-param-surface pulse2Duty=segmentedChoice --descriptor-param-label "pulse2Duty=Pulse 2 Duty" --descriptor-param-choices pulse2Duty=5
     )
     set_tests_properties(chipper_render_dmg_pulse2_duty_override_assert PROPERTIES DEPENDS chipper_render_dmg_pulse2_duty_override_smoke)
 
