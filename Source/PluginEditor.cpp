@@ -80,7 +80,15 @@ constexpr std::array chipSettingsSnapshotParameterIds {
     chipper::parameters::id::nesDmcMapRoot,
     chipper::parameters::id::nesDmcLoop,
     chipper::parameters::id::spc700LoopStart,
-    chipper::parameters::id::spc700LoopEnd
+    chipper::parameters::id::spc700LoopEnd,
+    chipper::parameters::id::spc700Voice1SampleSlot,
+    chipper::parameters::id::spc700Voice2SampleSlot,
+    chipper::parameters::id::spc700Voice3SampleSlot,
+    chipper::parameters::id::spc700Voice4SampleSlot,
+    chipper::parameters::id::spc700Voice5SampleSlot,
+    chipper::parameters::id::spc700Voice6SampleSlot,
+    chipper::parameters::id::spc700Voice7SampleSlot,
+    chipper::parameters::id::spc700Voice8SampleSlot
 };
 
 constexpr const char* chipperPluginVersionString =
@@ -444,6 +452,38 @@ const char* hucVoiceWaveParameterId(size_t index)
         chipper::parameters::id::snNoiseMode,
         chipper::parameters::id::ymEnvelopeShape,
         chipper::parameters::id::dmgStereoRoute
+    };
+
+    return ids[std::min(index, ids.size() - 1u)];
+}
+
+chipper::ChipParameterRole spc700VoiceSampleRole(size_t index)
+{
+    static constexpr std::array<chipper::ChipParameterRole, 8> roles {
+        chipper::ChipParameterRole::spc700Voice1SampleSlot,
+        chipper::ChipParameterRole::spc700Voice2SampleSlot,
+        chipper::ChipParameterRole::spc700Voice3SampleSlot,
+        chipper::ChipParameterRole::spc700Voice4SampleSlot,
+        chipper::ChipParameterRole::spc700Voice5SampleSlot,
+        chipper::ChipParameterRole::spc700Voice6SampleSlot,
+        chipper::ChipParameterRole::spc700Voice7SampleSlot,
+        chipper::ChipParameterRole::spc700Voice8SampleSlot
+    };
+
+    return roles[std::min(index, roles.size() - 1u)];
+}
+
+const char* spc700VoiceSampleParameterId(size_t index)
+{
+    static constexpr std::array<const char*, 8> ids {
+        chipper::parameters::id::spc700Voice1SampleSlot,
+        chipper::parameters::id::spc700Voice2SampleSlot,
+        chipper::parameters::id::spc700Voice3SampleSlot,
+        chipper::parameters::id::spc700Voice4SampleSlot,
+        chipper::parameters::id::spc700Voice5SampleSlot,
+        chipper::parameters::id::spc700Voice6SampleSlot,
+        chipper::parameters::id::spc700Voice7SampleSlot,
+        chipper::parameters::id::spc700Voice8SampleSlot
     };
 
     return ids[std::min(index, ids.size() - 1u)];
@@ -2649,7 +2689,10 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
             const auto selected = hucVoiceWaveBoxes[i].getSelectedId() - 1;
             if (selected >= 0)
             {
-                setChoiceParameterFromUi(hucVoiceWaveParameterId(i), selected);
+                if (displayedMode == chipper::ChipMode::spc700)
+                    setPlainParameterValueFromUi(spc700VoiceSampleParameterId(i), static_cast<float>(selected));
+                else
+                    setChoiceParameterFromUi(hucVoiceWaveParameterId(i), selected);
                 updateLiveControlReadouts();
             }
         };
@@ -3538,10 +3581,11 @@ void ChipperAudioProcessorEditor::resized()
         const auto isSidSourceCard = displayedMode == chipper::ChipMode::sid;
         const auto isDmgSourceCard = displayedMode == chipper::ChipMode::dmg;
         const auto isPaulaSourceCard = displayedMode == chipper::ChipMode::paula;
+        const auto isSpc700SourceCard = displayedMode == chipper::ChipMode::spc700;
         const auto isWavetableSourceCard = useWavetableVoiceGrid;
         auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isWavetableSourceCard ? 5 : 8),
                                                          isSidSourceCard ? 2 : (isWavetableSourceCard ? 3 : 4));
-        const auto buttonHeight = useSpc700VoiceGrid ? 17 : (isSidSourceCard ? 17 : (isWavetableSourceCard ? 20 : 18));
+        const auto buttonHeight = useSpc700VoiceGrid ? 19 : (isSidSourceCard ? 17 : (isWavetableSourceCard ? 20 : 18));
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isWavetableSourceCard ? 3 : 2);
         const auto previewHeight = isWavetableSourceCard
@@ -3616,12 +3660,19 @@ void ChipperAudioProcessorEditor::resized()
             hucVoiceWaveBoxes[i].setBounds(waveRow.reduced(0, 1));
             sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
         }
+        else if (isSpc700SourceCard && i < hucVoiceWaveBoxes.size())
+        {
+            auto sampleRow = sourceCard.removeFromTop(std::min(22, sourceCard.getHeight()));
+            hucVoiceWaveLabels[i].setBounds(sampleRow.removeFromLeft(std::min(42, sampleRow.getWidth())));
+            hucVoiceWaveBoxes[i].setBounds(sampleRow.reduced(0, 1));
+            sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
+        }
 
-        auto levelRow = sourceCard.removeFromTop(std::min(useSpc700VoiceGrid ? 10 : (isWavetableSourceCard ? 12 : 12), sourceCard.getHeight()));
-        sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(useSpc700VoiceGrid ? 34 : (isWavetableSourceCard ? 38 : 48), levelRow.getWidth())));
+        auto levelRow = sourceCard.removeFromTop(std::min(useSpc700VoiceGrid ? 12 : (isWavetableSourceCard ? 12 : 12), sourceCard.getHeight()));
+        sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(useSpc700VoiceGrid ? 36 : (isWavetableSourceCard ? 38 : 48), levelRow.getWidth())));
         sourceLevelValueLabels[i].setBounds(levelRow);
         sourceCard.removeFromTop(1);
-        const auto sliderHeight = useSpc700VoiceGrid ? 10 : (isSidSourceCard ? 11 : (isWavetableSourceCard ? 13 : 14));
+        const auto sliderHeight = useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 11 : (isWavetableSourceCard ? 13 : 14));
         sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(sliderHeight, sourceCard.getHeight())).reduced(0, 1));
     }
 
@@ -5585,6 +5636,8 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
         setChoiceParameterFromUi(chipper::parameters::id::nesDmcPlaybackMode, 0);
     setParameterValueFromUi(chipper::parameters::id::spc700LoopStart, 0.0f);
     setParameterValueFromUi(chipper::parameters::id::spc700LoopEnd, 1.0f);
+    for (size_t i = 0; i < 8u; ++i)
+        setPlainParameterValueFromUi(spc700VoiceSampleParameterId(i), 0.0f);
     setPlainParameterValueFromUi(chipper::parameters::id::clockHz, 0.0f);
     setPlainParameterValueFromUi(chipper::parameters::id::outputDb, preset.outputDb);
 
@@ -5690,7 +5743,17 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
         mode == chipper::ChipMode::nes
             && samplePlaybackMode == 2,
         parameterValue(chipper::parameters::id::spc700LoopStart),
-        parameterValue(chipper::parameters::id::spc700LoopEnd));
+        parameterValue(chipper::parameters::id::spc700LoopEnd),
+        {
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::spc700Voice1SampleSlot))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::spc700Voice2SampleSlot))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::spc700Voice3SampleSlot))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::spc700Voice4SampleSlot))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::spc700Voice5SampleSlot))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::spc700Voice6SampleSlot))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::spc700Voice7SampleSlot))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::spc700Voice8SampleSlot)))
+        });
 }
 
 bool ChipperAudioProcessorEditor::usesPulseDutySegment(chipper::ChipMode mode) const
@@ -6148,6 +6211,28 @@ static int previewSampleSlotForVoice(const ChipperAudioProcessor::Spc700BrrSampl
     return static_cast<int>(voiceIndex % static_cast<size_t>(info.bankCount));
 }
 
+static int resolvedSpc700SampleSlotForVoice(const chipper::PatchConfig& patch,
+                                            const ChipperAudioProcessor::Spc700BrrSampleInfo& info,
+                                            size_t voiceIndex)
+{
+    if (info.bankCount <= 0)
+        return -1;
+
+    const auto pinnedSlotChoice = voiceIndex < patch.spc700VoiceSampleSlots.size()
+        ? std::clamp(patch.spc700VoiceSampleSlots[voiceIndex], 0, 32)
+        : 0;
+    if (pinnedSlotChoice > 0)
+        return std::clamp(pinnedSlotChoice - 1, 0, info.bankCount - 1);
+
+    return previewSampleSlotForVoice(info, voiceIndex);
+}
+
+static bool spc700VoiceUsesPinnedSample(const chipper::PatchConfig& patch, size_t voiceIndex)
+{
+    return voiceIndex < patch.spc700VoiceSampleSlots.size()
+        && std::clamp(patch.spc700VoiceSampleSlots[voiceIndex], 0, 32) > 0;
+}
+
 static juce::String ym2149ResolvedChannelMixLabel(const chipper::PatchConfig& patch, size_t index)
 {
     if (index >= 3u)
@@ -6189,9 +6274,11 @@ juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMod
         if (info.loaded)
         {
             const auto names = audioProcessor.spc700BrrSampleNames();
-            const auto slot = previewSampleSlotForVoice(info, index);
+            const auto slot = resolvedSpc700SampleSlotForVoice(patch, info, index);
+            const auto pinned = spc700VoiceUsesPinnedSample(patch, index);
             auto slotText = info.bankCount > 1
-                ? sampleMappedModeLabel(mode, info.playbackMode) + " S" + juce::String(slot + 1).paddedLeft('0', 2)
+                ? (pinned ? juce::String("Pinned") : sampleMappedModeLabel(mode, info.playbackMode))
+                    + " S" + juce::String(slot + 1).paddedLeft('0', 2)
                 : juce::String("Sample");
             if (slot >= 0 && slot < names.size())
                 slotText += " " + compactSampleName(names[slot], 12);
@@ -6268,12 +6355,13 @@ juce::String ChipperAudioProcessorEditor::sampleSourceRegisterReadout(chipper::C
             }
 
             const auto names = audioProcessor.spc700BrrSampleNames();
-            const auto slot = previewSampleSlotForVoice(info, index);
+            const auto slot = resolvedSpc700SampleSlotForVoice(patch, info, index);
+            const auto pinned = spc700VoiceUsesPinnedSample(patch, index);
             const auto sampleName = slot >= 0 && slot < names.size() ? names[slot] : info.sampleName;
             readout += "sample slot " + juce::String(slot + 1) + "/" + juce::String(info.bankCount)
                 + " " + sampleName
-                + " | " + sampleMappedModeLabel(mode, info.playbackMode).toLowerCase();
-            if (info.playbackMode != 0)
+                + " | " + (pinned ? juce::String("pinned voice slot") : sampleMappedModeLabel(mode, info.playbackMode).toLowerCase());
+            if (! pinned && info.playbackMode != 0)
             {
                 readout += " preview; triggered notes map "
                     + chipper::parameters::midiNoteChoices()[info.mapRootNote]
@@ -8597,7 +8685,11 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
         updateSidVoiceWaveControls(shouldBeVisible);
         return;
     }
-    if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc || mode == chipper::ChipMode::paula)
+    if (mode == chipper::ChipMode::huc6280
+        || mode == chipper::ChipMode::namcoWsg
+        || mode == chipper::ChipMode::scc
+        || mode == chipper::ChipMode::paula
+        || mode == chipper::ChipMode::spc700)
     {
         for (auto& button : waveShapeButtons)
             button.setVisible(false);
@@ -8861,9 +8953,10 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
     const auto isNamco = mode == chipper::ChipMode::namcoWsg;
     const auto isScc = mode == chipper::ChipMode::scc;
     const auto isPaula = mode == chipper::ChipMode::paula;
-    const auto visibleCount = isNamco ? size_t { 8u } : (isScc ? size_t { 5u } : (isPaula ? size_t { 4u } : size_t { 6u }));
-    const auto laneName = isNamco ? juce::String("Lane") : juce::String("Ch");
-    waveShapeLabel.setText(isPaula ? "Channel Samples" : (isNamco ? "Lane Waves" : "Channel Waves"), juce::dontSendNotification);
+    const auto isSpc700 = mode == chipper::ChipMode::spc700;
+    const auto visibleCount = isSpc700 ? size_t { 8u } : (isNamco ? size_t { 8u } : (isScc ? size_t { 5u } : (isPaula ? size_t { 4u } : size_t { 6u })));
+    const auto laneName = isNamco ? juce::String("Lane") : (isSpc700 ? juce::String("Voice") : juce::String("Ch"));
+    waveShapeLabel.setText(isSpc700 ? "Voice Samples" : (isPaula ? "Channel Samples" : (isNamco ? "Lane Waves" : "Channel Waves")), juce::dontSendNotification);
     waveShapeValueLabel.setJustificationType(juce::Justification::centredLeft);
     waveShapeLabel.setVisible(false);
     waveShapeValueLabel.setVisible(false);
@@ -8882,38 +8975,70 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
         parameterValue(chipper::parameters::id::stereoSpread));
 
     juce::String summary;
+    const auto spc700SampleNames = isSpc700 ? audioProcessor.spc700BrrSampleNames() : juce::StringArray {};
     for (size_t i = 0; i < hucVoiceWaveBoxes.size(); ++i)
     {
         auto& box = hucVoiceWaveBoxes[i];
-        const auto needsPaulaItems = isPaula && box.getItemText(3) != "Sine";
-        const auto needsWavetableItems = ! isPaula && box.getItemText(3) != "Pulse";
-        if (needsPaulaItems || needsWavetableItems)
+        if (isSpc700)
         {
             box.clear(juce::dontSendNotification);
-            box.addItemList(isPaula
-                                ? juce::StringArray { "Follow", "Ramp", "Tri", "Sine", "Noise" }
-                                : juce::StringArray { "Follow", "Ramp", "Tri", "Pulse", "Noise" },
-                            1);
+            box.addItem("Follow", 1);
+            for (int slot = 0; slot < spc700SampleNames.size(); ++slot)
+                box.addItem(juce::String(slot + 1).paddedLeft('0', 2) + " " + compactSampleName(spc700SampleNames[slot], 18), slot + 2);
+        }
+        else
+        {
+            const auto needsPaulaItems = isPaula && box.getItemText(3) != "Sine";
+            const auto needsWavetableItems = ! isPaula && box.getItemText(3) != "Pulse";
+            if (needsPaulaItems || needsWavetableItems)
+            {
+                box.clear(juce::dontSendNotification);
+                box.addItemList(isPaula
+                                    ? juce::StringArray { "Follow", "Ramp", "Tri", "Sine", "Noise" }
+                                    : juce::StringArray { "Follow", "Ramp", "Tri", "Pulse", "Noise" },
+                                1);
+            }
         }
 
-        const auto selected = std::clamp(static_cast<int>(std::round(parameterValue(hucVoiceWaveParameterId(i)))), 0, 4);
-        const auto resolved = static_cast<int>(chipper::wavetableWaveShapeForChannel(mode, patch, i));
+        const auto selected = isSpc700
+            ? std::clamp(static_cast<int>(std::round(parameterValue(spc700VoiceSampleParameterId(i)))), 0, 32)
+            : std::clamp(static_cast<int>(std::round(parameterValue(hucVoiceWaveParameterId(i)))), 0, 4);
+        if (isSpc700 && selected > spc700SampleNames.size())
+            box.addItem("Slot " + juce::String(selected).paddedLeft('0', 2) + " (not loaded)", selected + 1);
+
+        const auto resolved = isSpc700 ? selected : static_cast<int>(chipper::wavetableWaveShapeForChannel(mode, patch, i));
         const auto maxChoice = std::max(0, box.getNumItems() - 1);
         const auto visible = shouldBeVisible && i < visibleCount;
-        hucVoiceWaveLabels[i].setText(laneName + " " + juce::String(static_cast<int>(i + 1u)), juce::dontSendNotification);
+        hucVoiceWaveLabels[i].setText(isSpc700 ? juce::String("Sample") : laneName + " " + juce::String(static_cast<int>(i + 1u)), juce::dontSendNotification);
         hucVoiceWaveLabels[i].setVisible(visible);
         box.setVisible(visible);
         box.setSelectedId(std::clamp(selected, 0, maxChoice) + 1, juce::dontSendNotification);
 
-        const auto resolvedText = waveShapeReadout(mode, resolved);
-        const auto tooltip = juce::String(isNamco ? "Namco WSG lane " : (isScc ? "SCC channel " : (isPaula ? "Paula channel " : "HuC6280 channel "))) + juce::String(static_cast<int>(i + 1u))
-            + (isPaula ? " generated sample shape." : " wave RAM shape.")
-            + "\nResolved: " + resolvedText
-            + "\n" + (isPaula ? sampleSourceRegisterReadout(mode, patch, i) : wavetableSourceRegisterReadout(mode, patch, i));
-        hucVoiceWaveLabels[i].setTooltip(withMidiCcForRole(tooltip, hucVoiceWaveRole(i)));
-        box.setTooltip(withMidiCcForRole(tooltip, hucVoiceWaveRole(i)));
+        if (isSpc700)
+        {
+            const auto resolvedText = selected <= 0
+                ? juce::String("Follow manual slot / note map")
+                : (selected <= spc700SampleNames.size()
+                       ? juce::String("Slot ") + juce::String(selected).paddedLeft('0', 2) + ": " + spc700SampleNames[selected - 1]
+                       : juce::String("Slot ") + juce::String(selected).paddedLeft('0', 2) + " is not loaded");
+            const auto tooltip = juce::String("SPC700 voice ") + juce::String(static_cast<int>(i + 1u))
+                + " sample source.\nFollow uses the global manual slot or note map; slots 1-32 pin this voice to a loaded sample.\n"
+                + resolvedText;
+            hucVoiceWaveLabels[i].setTooltip(withMidiCcForRole(tooltip, spc700VoiceSampleRole(i)));
+            box.setTooltip(withMidiCcForRole(tooltip, spc700VoiceSampleRole(i)));
+        }
+        else
+        {
+            const auto resolvedText = waveShapeReadout(mode, resolved);
+            const auto tooltip = juce::String(isNamco ? "Namco WSG lane " : (isScc ? "SCC channel " : (isPaula ? "Paula channel " : "HuC6280 channel "))) + juce::String(static_cast<int>(i + 1u))
+                + (isPaula ? " generated sample shape." : " wave RAM shape.")
+                + "\nResolved: " + resolvedText
+                + "\n" + (isPaula ? sampleSourceRegisterReadout(mode, patch, i) : wavetableSourceRegisterReadout(mode, patch, i));
+            hucVoiceWaveLabels[i].setTooltip(withMidiCcForRole(tooltip, hucVoiceWaveRole(i)));
+            box.setTooltip(withMidiCcForRole(tooltip, hucVoiceWaveRole(i)));
+        }
 
-        if (i < (isNamco ? 4u : 3u))
+        if (i < (isSpc700 || isNamco ? 4u : 3u))
         {
             if (summary.isNotEmpty())
                 summary += " | ";
@@ -8922,7 +9047,7 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
         }
     }
 
-    waveShapeValueLabel.setText(summary.isNotEmpty() ? summary : (isNamco ? juce::String("Per-lane Namco WSG wave RAM shapes") : (isScc ? juce::String("Per-channel SCC wave RAM shapes") : (isPaula ? juce::String("Per-channel Paula sample shapes") : juce::String("Per-channel HuC wave RAM shapes")))), juce::dontSendNotification);
+    waveShapeValueLabel.setText(summary.isNotEmpty() ? summary : (isSpc700 ? juce::String("Per-voice SPC700 sample slots") : (isNamco ? juce::String("Per-lane Namco WSG wave RAM shapes") : (isScc ? juce::String("Per-channel SCC wave RAM shapes") : (isPaula ? juce::String("Per-channel Paula sample shapes") : juce::String("Per-channel HuC wave RAM shapes"))))), juce::dontSendNotification);
 }
 
 void ChipperAudioProcessorEditor::updateSidVoicePulseWidthControls(const chipper::PatchConfig& patch, bool shouldBeVisible)

@@ -101,6 +101,14 @@ enum class ChipParameterRole
     nesDmcLoop,
     spc700LoopStart,
     spc700LoopEnd,
+    spc700Voice1SampleSlot,
+    spc700Voice2SampleSlot,
+    spc700Voice3SampleSlot,
+    spc700Voice4SampleSlot,
+    spc700Voice5SampleSlot,
+    spc700Voice6SampleSlot,
+    spc700Voice7SampleSlot,
+    spc700Voice8SampleSlot,
     clockHz,
     outputDb
 };
@@ -243,7 +251,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             bool nesDmcLoop = false,
                             bool nesDmcOnly = false,
                             float spc700LoopStart = 0.0f,
-                            float spc700LoopEnd = 1.0f);
+                            float spc700LoopEnd = 1.0f,
+                            std::array<int, 8> spc700VoiceSampleSlots = { 0, 0, 0, 0, 0, 0, 0, 0 });
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t nesNoisePeriodForControl(float noisePeriodControl);
 uint8_t nesDmcDirectLevelForControl(float levelControl);

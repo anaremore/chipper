@@ -105,6 +105,7 @@ struct PatchConfig
     bool nesDmcOnly = false;
     float spc700LoopStart = 0.0f;
     float spc700LoopEnd = 1.0f;
+    std::array<int, 8> spc700VoiceSampleSlots { 0, 0, 0, 0, 0, 0, 0, 0 };
 };
 
 struct StereoFrame

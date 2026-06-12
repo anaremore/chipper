@@ -218,7 +218,8 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && a.nesDmcLoop == b.nesDmcLoop
         && a.nesDmcOnly == b.nesDmcOnly
         && std::abs(a.spc700LoopStart - b.spc700LoopStart) < tolerance
-        && std::abs(a.spc700LoopEnd - b.spc700LoopEnd) < tolerance;
+        && std::abs(a.spc700LoopEnd - b.spc700LoopEnd) < tolerance
+        && a.spc700VoiceSampleSlots == b.spc700VoiceSampleSlots;
 }
 
 bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
@@ -264,7 +265,8 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && a.nesDmcLoop == b.nesDmcLoop
         && a.nesDmcOnly == b.nesDmcOnly
         && std::abs(a.spc700LoopStart - b.spc700LoopStart) < tolerance
-        && std::abs(a.spc700LoopEnd - b.spc700LoopEnd) < tolerance;
+        && std::abs(a.spc700LoopEnd - b.spc700LoopEnd) < tolerance
+        && a.spc700VoiceSampleSlots == b.spc700VoiceSampleSlots;
 }
 
 int samplePlaybackModeForMacroTemplate(chipper::ChipMode mode, const chipper::MacroTemplate& templ)
@@ -2276,7 +2278,17 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
         apvts.getRawParameterValue(chipper::parameters::id::nesDmcLoop)->load() >= 0.5f,
         selectedMode == chipper::ChipMode::nes && dmcPlaybackMode == 2,
         apvts.getRawParameterValue(chipper::parameters::id::spc700LoopStart)->load(),
-        apvts.getRawParameterValue(chipper::parameters::id::spc700LoopEnd)->load());
+        apvts.getRawParameterValue(chipper::parameters::id::spc700LoopEnd)->load(),
+        {
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::spc700Voice1SampleSlot)->load())),
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::spc700Voice2SampleSlot)->load())),
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::spc700Voice3SampleSlot)->load())),
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::spc700Voice4SampleSlot)->load())),
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::spc700Voice5SampleSlot)->load())),
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::spc700Voice6SampleSlot)->load())),
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::spc700Voice7SampleSlot)->load())),
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::spc700Voice8SampleSlot)->load()))
+        });
 }
 
 void ChipperAudioProcessor::replayPendingRegisterState()

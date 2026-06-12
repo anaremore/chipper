@@ -6051,6 +6051,7 @@ public:
         if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled)
             clearChipPolyState();
 
+        const auto sampleSlotsChanged = nextPatch.spc700VoiceSampleSlots != patch.spc700VoiceSampleSlots;
         patch = nextPatch;
         const auto nextTemplate = resolvedSampleTemplate();
         if (! externalBrrSampleLoaded && nextTemplate != sampleTemplate)
@@ -6058,6 +6059,11 @@ public:
             sampleTemplate = nextTemplate;
             for (size_t voice = 0; voice < sampleRam.size(); ++voice)
                 seedSample(voice);
+        }
+        else if (externalBrrSampleLoaded && sampleSlotsChanged)
+        {
+            for (size_t voice = 0; voice < sampleRam.size(); ++voice)
+                applyCurrentSampleToVoice(voice);
         }
         playbackMode = spc700SamplePlaybackModeForPatch(patch);
     }
@@ -6126,19 +6132,6 @@ public:
 
         externalBrrSampleLoaded = true;
         setExternalSampleSlot(selectedSlot);
-        for (size_t voice = 0; voice < sampleRam.size(); ++voice)
-        {
-            if (selectedExternalBrrSlot >= 0)
-            {
-                sampleRam[voice] = externalBrrBank[static_cast<size_t>(selectedExternalBrrSlot)];
-                sampleLoopStarts[voice] = loopStartForExternalSlot(static_cast<size_t>(selectedExternalBrrSlot));
-            }
-            else
-            {
-                sampleRam[voice].clear();
-                sampleLoopStarts[voice] = 0;
-            }
-        }
         sampleTemplate = 0;
         position.fill(0.0);
     }
@@ -6149,6 +6142,8 @@ public:
         {
             selectedExternalBrrSlot = -1;
             externalBrrSampleLoaded = false;
+            for (size_t voice = 0; voice < sampleRam.size(); ++voice)
+                seedSample(voice);
             return;
         }
 
@@ -6156,11 +6151,15 @@ public:
         {
             selectedExternalBrrSlot = -1;
             externalBrrSampleLoaded = true;
+            for (size_t voice = 0; voice < sampleRam.size(); ++voice)
+                applyCurrentSampleToVoice(voice);
             return;
         }
 
         selectedExternalBrrSlot = std::clamp(selectedSlot, 0, static_cast<int>(externalBrrBank.size() - 1u));
         externalBrrSampleLoaded = true;
+        for (size_t voice = 0; voice < sampleRam.size(); ++voice)
+            applyCurrentSampleToVoice(voice);
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -6396,6 +6395,14 @@ public:
              << "\"selectedExternalBrrSlot\":" << selectedExternalBrrSlot << ","
              << "\"selectedExternalSampleLength\":" << selectedExternalSampleLength() << ","
              << "\"selectedExternalSampleLoopStart\":" << selectedExternalSampleLoopStart() << ","
+             << "\"voiceSampleSlot0\":" << patch.spc700VoiceSampleSlots[0] << ","
+             << "\"voiceSampleSlot1\":" << patch.spc700VoiceSampleSlots[1] << ","
+             << "\"voiceSampleSlot2\":" << patch.spc700VoiceSampleSlots[2] << ","
+             << "\"voiceSampleSlot3\":" << patch.spc700VoiceSampleSlots[3] << ","
+             << "\"voiceSampleSlot4\":" << patch.spc700VoiceSampleSlots[4] << ","
+             << "\"voiceSampleSlot5\":" << patch.spc700VoiceSampleSlots[5] << ","
+             << "\"voiceSampleSlot6\":" << patch.spc700VoiceSampleSlots[6] << ","
+             << "\"voiceSampleSlot7\":" << patch.spc700VoiceSampleSlots[7] << ","
              << "\"pitch0\":" << pitch[0] << ","
              << "\"pitch1\":" << pitch[1] << ","
              << "\"pitch2\":" << pitch[2] << ","
@@ -6538,9 +6545,6 @@ private:
 
     void seedSample(size_t voice)
     {
-        if (externalBrrSampleLoaded)
-            return;
-
         auto data = std::vector<double>(64, 0.0);
         const auto choice = sampleTemplate == 0 ? resolvedSampleTemplate() : sampleTemplate;
         for (size_t i = 0; i < data.size(); ++i)
@@ -6910,10 +6914,15 @@ private:
     {
         if (externalBrrSampleLoaded)
         {
-            if (selectedExternalBrrSlot >= 0 && static_cast<size_t>(selectedExternalBrrSlot) < externalBrrBank.size())
+            const auto explicitSlotChoice = voice < patch.spc700VoiceSampleSlots.size()
+                ? std::clamp(patch.spc700VoiceSampleSlots[voice], 0, 32)
+                : 0;
+            const auto explicitSlot = explicitSlotChoice > 0 ? explicitSlotChoice - 1 : -1;
+            const auto resolvedSlot = explicitSlot >= 0 ? explicitSlot : selectedExternalBrrSlot;
+            if (resolvedSlot >= 0 && static_cast<size_t>(resolvedSlot) < externalBrrBank.size())
             {
-                sampleRam[voice] = externalBrrBank[static_cast<size_t>(selectedExternalBrrSlot)];
-                sampleLoopStarts[voice] = loopStartForExternalSlot(static_cast<size_t>(selectedExternalBrrSlot));
+                sampleRam[voice] = externalBrrBank[static_cast<size_t>(resolvedSlot)];
+                sampleLoopStarts[voice] = loopStartForExternalSlot(static_cast<size_t>(resolvedSlot));
             }
             else
             {

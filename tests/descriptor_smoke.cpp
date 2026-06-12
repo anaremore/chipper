@@ -197,7 +197,7 @@ bool expectWavetableWaveSpec(chipper::ChipMode mode,
 {
     bool ok = true;
     ok &= expectSpec(mode, role, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, label);
-    ok &= expectSpecGroup(mode, role, "Wave");
+    ok &= expectSpecGroup(mode, role, mode == chipper::ChipMode::paula ? "Sample" : "Wave");
     ok &= expectChoiceLabels(mode, role, expectedChoices, label);
     return ok;
 }
@@ -956,6 +956,10 @@ int main()
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::source8Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Voice 8");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::source7Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Voice 7 Level");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::source8Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Voice 8 Level");
+    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::spc700Voice1SampleSlot, chipper::ParameterKind::steppedNumeric, chipper::ControlSurface::menu, "Voice 1 Sample");
+    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::spc700Voice8SampleSlot, chipper::ParameterKind::steppedNumeric, chipper::ControlSurface::menu, "Voice 8 Sample");
+    ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::spc700Voice1SampleSlot, "Sample");
+    ok &= expectSpecHelpContains(chipper::ChipMode::spc700, chipper::ChipParameterRole::spc700Voice8SampleSlot, "loaded sample-bank slot", "SPC700 voice sample slot help should explain per-voice bank pinning");
     ok &= expectMacroLabel(chipper::ChipMode::pokey, chipper::MacroKind::lead, "POKEY Buzzy Lead");
     ok &= expectPreset(chipper::ChipMode::pokey, "pokey-alien-laser");
     ok &= expectSpec(chipper::ChipMode::pokey, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Distortion Code");

@@ -23,6 +23,7 @@ Chipper's SNES mode should become a hardware-shaped sampler, not another oscilla
 - Modern convenience: WAV/AIFF directory import with background conversion preview, but do not imply hardware authenticity until converted to BRR or rendered through a verified BRR decoder.
 - UI should show memory budget and loop state. A directory browser with checkboxes fits the current NES DMC direction and should scale to SNES sample banks.
 - Done first pass: plugin sample-bank status reports checked-slot payload against a practical 64 KB SNES audio-RAM budget and warns when the bank is near or over that ceiling before driver/echo overhead.
+- Done first pass: each of the eight voice cards can now follow the global sample slot/note-map behavior or pin itself to a specific loaded bank slot, matching the S-DSP idea that every voice can point at its own sample source.
 
 ### Interpolation And Output
 
@@ -76,6 +77,7 @@ Checked 2026-06-07:
    - Add optional WAV/AIFF discovery later, with conversion preview and clear "converted to BRR" status.
    - Add MIDI CC/sample-slot mapping with a finite bank selection model, matching the NES DMC sample-bank pattern.
    - Done first pass: local BRR/WAV/AIFF folders can be staged as checked 32-slot banks, mapped from a root MIDI note, and shown with a practical 64 KB audio-RAM budget cue.
+   - Done first pass: loaded SPC700 banks expose per-voice sample-slot selectors in the voice cards; slots are host-automatable/MIDI-addressable so users can build multi-sample eight-voice patches without duplicating global settings.
    - Done first pass: renderer debug JSON exposes selected bank slot length and loop-start metadata so sample-map behavior can be regression tested without bundling third-party samples.
    - Done first pass: renderer `--spc700-map-root` covers note-to-slot selection with inline BRR banks, keeping factory tests asset-free.
 

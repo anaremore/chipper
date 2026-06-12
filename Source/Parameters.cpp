@@ -597,6 +597,27 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
         1.0f));
 
+    const std::array<const char*, 8> spc700VoiceSampleIds {
+        id::spc700Voice1SampleSlot,
+        id::spc700Voice2SampleSlot,
+        id::spc700Voice3SampleSlot,
+        id::spc700Voice4SampleSlot,
+        id::spc700Voice5SampleSlot,
+        id::spc700Voice6SampleSlot,
+        id::spc700Voice7SampleSlot,
+        id::spc700Voice8SampleSlot
+    };
+
+    for (size_t i = 0; i < spc700VoiceSampleIds.size(); ++i)
+    {
+        params.push_back(std::make_unique<juce::AudioParameterInt>(
+            juce::ParameterID { spc700VoiceSampleIds[i], 1 },
+            "SPC700 Voice " + juce::String(static_cast<int>(i + 1u)) + " Sample Slot",
+            0,
+            32,
+            0));
+    }
+
     return { params.begin(), params.end() };
 }
 

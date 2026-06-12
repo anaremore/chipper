@@ -1441,6 +1441,14 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source6Level, "spc700.voice6.level", "Voice 6 Level", "Modern trim after SPC700-style voice 6 volume."),
         sourceLevelSpec(ChipParameterRole::source7Level, "spc700.voice7.level", "Voice 7 Level", "Modern trim after SPC700-style voice 7 volume."),
         sourceLevelSpec(ChipParameterRole::source8Level, "spc700.voice8.level", "Voice 8 Level", "Modern trim after SPC700-style voice 8 volume."),
+        { ChipParameterRole::spc700Voice1SampleSlot, "spc700.voice1.sampleSlot", "Voice 1 Sample", "Sample", "Pins SPC700 voice 1 to a loaded sample-bank slot. Slot 0 follows the global manual slot or note map.", ParameterKind::steppedNumeric, ControlSurface::menu, {}, 0.0f, 32.0f, 0.0f },
+        { ChipParameterRole::spc700Voice2SampleSlot, "spc700.voice2.sampleSlot", "Voice 2 Sample", "Sample", "Pins SPC700 voice 2 to a loaded sample-bank slot. Slot 0 follows the global manual slot or note map.", ParameterKind::steppedNumeric, ControlSurface::menu, {}, 0.0f, 32.0f, 0.0f },
+        { ChipParameterRole::spc700Voice3SampleSlot, "spc700.voice3.sampleSlot", "Voice 3 Sample", "Sample", "Pins SPC700 voice 3 to a loaded sample-bank slot. Slot 0 follows the global manual slot or note map.", ParameterKind::steppedNumeric, ControlSurface::menu, {}, 0.0f, 32.0f, 0.0f },
+        { ChipParameterRole::spc700Voice4SampleSlot, "spc700.voice4.sampleSlot", "Voice 4 Sample", "Sample", "Pins SPC700 voice 4 to a loaded sample-bank slot. Slot 0 follows the global manual slot or note map.", ParameterKind::steppedNumeric, ControlSurface::menu, {}, 0.0f, 32.0f, 0.0f },
+        { ChipParameterRole::spc700Voice5SampleSlot, "spc700.voice5.sampleSlot", "Voice 5 Sample", "Sample", "Pins SPC700 voice 5 to a loaded sample-bank slot. Slot 0 follows the global manual slot or note map.", ParameterKind::steppedNumeric, ControlSurface::menu, {}, 0.0f, 32.0f, 0.0f },
+        { ChipParameterRole::spc700Voice6SampleSlot, "spc700.voice6.sampleSlot", "Voice 6 Sample", "Sample", "Pins SPC700 voice 6 to a loaded sample-bank slot. Slot 0 follows the global manual slot or note map.", ParameterKind::steppedNumeric, ControlSurface::menu, {}, 0.0f, 32.0f, 0.0f },
+        { ChipParameterRole::spc700Voice7SampleSlot, "spc700.voice7.sampleSlot", "Voice 7 Sample", "Sample", "Pins SPC700 voice 7 to a loaded sample-bank slot. Slot 0 follows the global manual slot or note map.", ParameterKind::steppedNumeric, ControlSurface::menu, {}, 0.0f, 32.0f, 0.0f },
+        { ChipParameterRole::spc700Voice8SampleSlot, "spc700.voice8.sampleSlot", "Voice 8 Sample", "Sample", "Pins SPC700 voice 8 to a loaded sample-bank slot. Slot 0 follows the global manual slot or note map.", ParameterKind::steppedNumeric, ControlSurface::menu, {}, 0.0f, 32.0f, 0.0f },
         stereoSpreadSpec("spc700.stereoSpread", "Modern stereo convenience that spreads exposed sample voices; zero preserves centered output."),
         envelopeSpec("spc700.adsrSpeed", "ADSR / Gain Speed", "Scales the playable clean-room S-DSP ADSR/gain-style envelope while exact hardware envelope timing remains unverified."),
         segmentedSpec(ChipParameterRole::ymEnvelopeShape,
@@ -2757,7 +2765,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             bool nesDmcLoop,
                             bool nesDmcOnly,
                             float spc700LoopStart,
-                            float spc700LoopEnd)
+                            float spc700LoopEnd,
+                            std::array<int, 8> spc700VoiceSampleSlots)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
@@ -2817,7 +2826,17 @@ PatchConfig makePatchConfig(ChipMode mode,
         nesDmcLoop,
         nesDmcOnly,
         clampControl(std::min(spc700LoopStart, spc700LoopEnd)),
-        clampControl(std::max(spc700LoopStart, spc700LoopEnd))
+        clampControl(std::max(spc700LoopStart, spc700LoopEnd)),
+        {
+            std::clamp(spc700VoiceSampleSlots[0], 0, 32),
+            std::clamp(spc700VoiceSampleSlots[1], 0, 32),
+            std::clamp(spc700VoiceSampleSlots[2], 0, 32),
+            std::clamp(spc700VoiceSampleSlots[3], 0, 32),
+            std::clamp(spc700VoiceSampleSlots[4], 0, 32),
+            std::clamp(spc700VoiceSampleSlots[5], 0, 32),
+            std::clamp(spc700VoiceSampleSlots[6], 0, 32),
+            std::clamp(spc700VoiceSampleSlots[7], 0, 32)
+        }
     };
 }
 

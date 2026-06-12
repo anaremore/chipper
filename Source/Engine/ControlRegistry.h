@@ -74,6 +74,14 @@ inline constexpr auto nesDmcMapRoot = "nesDmcMapRoot";
 inline constexpr auto nesDmcLoop = "nesDmcLoop";
 inline constexpr auto spc700LoopStart = "spc700LoopStart";
 inline constexpr auto spc700LoopEnd = "spc700LoopEnd";
+inline constexpr auto spc700Voice1SampleSlot = "spc700Voice1SampleSlot";
+inline constexpr auto spc700Voice2SampleSlot = "spc700Voice2SampleSlot";
+inline constexpr auto spc700Voice3SampleSlot = "spc700Voice3SampleSlot";
+inline constexpr auto spc700Voice4SampleSlot = "spc700Voice4SampleSlot";
+inline constexpr auto spc700Voice5SampleSlot = "spc700Voice5SampleSlot";
+inline constexpr auto spc700Voice6SampleSlot = "spc700Voice6SampleSlot";
+inline constexpr auto spc700Voice7SampleSlot = "spc700Voice7SampleSlot";
+inline constexpr auto spc700Voice8SampleSlot = "spc700Voice8SampleSlot";
 }
 
 struct MidiCcMapping
@@ -83,7 +91,7 @@ struct MidiCcMapping
     const char* label = nullptr;
 };
 
-inline constexpr auto midiCcMappingCount = 64u;
+inline constexpr auto midiCcMappingCount = 72u;
 using MidiCcMappingList = std::array<MidiCcMapping, midiCcMappingCount>;
 
 const MidiCcMappingList& midiCcMappings();
