@@ -28,7 +28,7 @@ This audit tracks layout and control-placement work that most directly improves 
    - Confidence: 7/10. Register readouts are now straightforward; the remaining work is a clearer cross-channel pairing visual without crowding the deck.
 
 4. Paula tracker import depth
-   - Issue: channel-local generated shapes and loaded sample-slot pins are in place, but MOD sample extraction, imported loop metadata, and per-channel renderer sample-slot flags remain planned.
+   - Issue: channel-local generated shapes, loaded sample-slot pins, and matching renderer flags are in place, but MOD sample extraction and imported loop metadata remain planned.
    - User value: medium-high. Makes Paula feel more like a four-channel tracker sampler for real module-style workflows.
    - Confidence: 6/10. The UI and runtime bank model are usable; the remaining work needs file-format parsing and stricter validation.
 

@@ -127,6 +127,7 @@ struct Options
     std::string spc700BrrHex;
     std::vector<std::string> spc700BrrBankHex;
     int spc700SampleSlot = 0;
+    std::array<int, 8> voiceSampleSlots { 0, 0, 0, 0, 0, 0, 0, 0 };
     int spc700MapRoot = -1;
     float spc700LoopStart = 0.0f;
     float spc700LoopEnd = 1.0f;
@@ -190,6 +191,20 @@ std::string normalizedToken(std::string text)
     std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
     text.erase(std::remove_if(text.begin(), text.end(), [](char c) { return c == '_' || c == '-' || c == ' '; }), text.end());
     return text;
+}
+
+bool paulaSampleSlotIndexForArg(const std::string& arg, size_t& index)
+{
+    constexpr const char* prefix = "--paula-sample-slot";
+    if (arg.rfind(prefix, 0) != 0)
+        return false;
+
+    uint32_t lane = 0;
+    if (! parseNumber(arg.substr(std::strlen(prefix)), lane) || lane < 1u || lane > 4u)
+        return false;
+
+    index = static_cast<size_t>(lane - 1u);
+    return true;
 }
 
 bool parseWaveShape(const std::string& text, int& out)
@@ -1049,7 +1064,7 @@ void printUsage()
         << "       Metadata: chipper_render --list-presets [--chip sid] --debug presets.json\n"
         << "                 chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --spc700-brr-sample path.brr --spc700-brr-hex 017f... --spc700-brr-bank-hex 017f... --spc700-sample-slot 0..31 --spc700-map-root 60 --spc700-loop-start 0..1 --spc700-loop-end 0..1 --paula-sample path.8svx|raw --paula-shape1..4 follow|ramp|tri|sine|noise --spc700-envelope follow|pluck|lead|pad|perc --spc700-noise follow|off|low|mid|high --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --huc-wave1..6 follow|ramp|tri|square|noise --scc-wave1..5 follow|ramp|tri|pulse|steps --namco-wave1..8 follow|ramp|tri|pulse|steps --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --huc-lfo follow|off|light|deep|fast --pokey-audctl follow|off|1+2|3+4|both --pokey-filter follow|off|1<-3|2<-4|both --paula-output-filter follow|raw|a500|led|both --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opm-pan follow|both|left|right|alt --opm-noise follow|off|low|mid|high --opn2-envelope follow|pluck|lead|pad|perc --opm-envelope follow|pluck|lead|pad|perc --fm-envelope follow|pluck|lead|pad|perc --opn2-dac follow|fm|dac --opl-rhythm follow|melodic|rhythm --opll-rhythm follow|melodic|rhythm --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --spc700-brr-sample path.brr --spc700-brr-hex 017f... --spc700-brr-bank-hex 017f... --spc700-sample-slot 0..31 --spc700-map-root 60 --spc700-loop-start 0..1 --spc700-loop-end 0..1 --paula-sample path.8svx|raw --paula-shape1..4 follow|ramp|tri|sine|noise --paula-sample-slot1..4 0..32 --spc700-envelope follow|pluck|lead|pad|perc --spc700-noise follow|off|low|mid|high --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --huc-wave1..6 follow|ramp|tri|square|noise --scc-wave1..5 follow|ramp|tri|pulse|steps --namco-wave1..8 follow|ramp|tri|pulse|steps --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --huc-lfo follow|off|light|deep|fast --pokey-audctl follow|off|1+2|3+4|both --pokey-filter follow|off|1<-3|2<-4|both --paula-output-filter follow|raw|a500|led|both --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opm-pan follow|both|left|right|alt --opm-noise follow|off|low|mid|high --opn2-envelope follow|pluck|lead|pad|perc --opm-envelope follow|pluck|lead|pad|perc --fm-envelope follow|pluck|lead|pad|perc --opn2-dac follow|fm|dac --opl-rhythm follow|melodic|rhythm --opll-rhythm follow|melodic|rhythm --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -1726,6 +1741,14 @@ bool parseArgs(int argc, char** argv, Options& options)
         {
             if (! parsePaulaSampleLane(arg.c_str(), 4))
                 return false;
+        }
+        else if (size_t paulaSlotIndex = 0; paulaSampleSlotIndexForArg(arg, paulaSlotIndex))
+        {
+            const auto* value = requireValue(arg.c_str());
+            int parsed = 0;
+            if (value == nullptr || ! parseNumber(std::string(value), parsed))
+                return false;
+            options.voiceSampleSlots[paulaSlotIndex] = std::clamp(parsed, 0, 32);
         }
         else if (arg == "--sid-voice2-pulse-width" || arg == "--sid-v2-pw")
         {
@@ -3172,7 +3195,8 @@ int main(int argc, char** argv)
                                                     options.nesDmcLoop,
                                                     options.nesDmcOnly,
                                                     options.spc700LoopStart,
-                                                    options.spc700LoopEnd);
+                                                    options.spc700LoopEnd,
+                                                    options.voiceSampleSlots);
         core->setPatch(patch);
         const auto events = loadEvents(options.eventFile);
         const auto registerWriteCount = static_cast<size_t>(std::count_if(events.begin(), events.end(), [](const auto& event) { return event.type == EventType::write; }));
