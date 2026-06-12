@@ -37,7 +37,7 @@ This roadmap captures the broad product gaps that remain after the first playabl
    - Preset files should remain portable flat files and should store recipe metadata as well as parameter state.
 
 7. **Enforceable Authentic / Hybrid / Inspired Behavior**
-   - User value: high. Accuracy labels should change what controls are allowed and how honestly the UI describes them.
+   - User value: high. Behavior Strictness choices should change what controls are allowed and how honestly the UI describes them.
    - Authentic: hardware ranges, stepped values, native channel limits, real-ish register behavior, no impossible polyphony.
    - Hybrid: native core plus musical helpers, voice stacking, modern tuning, and helper envelopes where labeled.
    - Inspired: freer synth behavior, extra modulation, wider stereo, smoothing, and less strict hardware limitation.

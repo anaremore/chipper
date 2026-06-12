@@ -66,7 +66,7 @@ This audit tracks layout and control-placement work that most directly improves 
    - User value: medium-high. Makes Paula feel more like a four-channel tracker sampler for real module-style workflows.
    - Confidence: 6/10. The UI and runtime bank model are usable; the remaining work needs file-format parsing and stricter validation.
 
-9. Accuracy and register text presentation
+9. Behavior strictness and register text presentation
    - Issue: exact register readouts help prove honesty, but they compete with musical labels in the default view.
    - User value: high. Musicians should see what they hear first, while advanced users can still inspect register-level behavior.
    - Confidence: 7/10. Requires a consistent Expert/detail overlay and tooltip policy across chips.

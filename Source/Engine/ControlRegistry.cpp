@@ -7,7 +7,7 @@ const MidiCcMappingList& midiCcMappings()
 {
     static constexpr MidiCcMappingList mappings {{
         { 70, parameter_ids::chipMode, "Chip Mode" },
-        { 71, parameter_ids::accuracy, "Accuracy" },
+        { 71, parameter_ids::accuracy, "Behavior Strictness" },
         { 72, parameter_ids::clockHz, "Clock Rate Override" },
         { 73, parameter_ids::outputDb, "Output Level" },
         { 74, parameter_ids::macro, "Preset Recipe" },

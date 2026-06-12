@@ -218,7 +218,7 @@ Important shared assignments:
 | CC | Parameter |
 | --- | --- |
 | 70 | Chip Mode |
-| 71 | Accuracy |
+| 71 | Behavior Strictness |
 | 73 | Output Level |
 | 74 | Preset recipe (internal compatibility parameter) |
 | 75 | Play Mode |
@@ -251,6 +251,6 @@ Do not import GPL/LGPL emulator code, preset banks, songs, samples, lookup table
 - [docs/snes-spc700-plan.md](docs/snes-spc700-plan.md): SPC700-style sampler roadmap
 - [docs/priority-roadmap.md](docs/priority-roadmap.md): execution priorities
 
-## Accuracy Rule
+## Accuracy And Strictness Rule
 
-Chipper should sound like an instrument, but it should not overclaim. If a mode is not verified at register/timing level, label it as inspired, style, or partial. Cycle-accurate claims require accepted test suites, trusted emulator comparisons, or real hardware captures.
+Chipper should sound like an instrument, but it should not overclaim. The header's Behavior Strictness selector requests Inspired, Hybrid, or Authentic behavior; it does not prove that a chip mode is fully accurate. If a mode is not verified at register/timing level, label it as inspired, style, or partial. Cycle-accurate claims require accepted test suites, trusted emulator comparisons, or real hardware captures.

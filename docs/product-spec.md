@@ -15,7 +15,7 @@ The plugin must not use generic retro oscillators with famous chip labels. Each 
 - **OPL2/OPL3:** two-operator FM, rhythm mode, waveform variants, envelopes, stereo for OPL3.
 - **Expansion:** SPC700-style sample playback, Paula, HuC6280 wavetable, Namco WSG, YM2151, YM2413/OPLL, Konami SCC. SPC700-style, POKEY, Paula, HuC6280, Namco WSG, YM2413/OPLL, and SCC have started as audible partial expansion cores; YM2413/OPLL is backed by vendored MIT emu2413.
 
-Accuracy levels:
+Behavior strictness levels:
 
 - **Inspired:** musical approximation with smoothed edges.
 - **Hybrid:** default chip flavor with modern playability.
@@ -25,7 +25,7 @@ Accuracy levels:
 ## Parameter List
 
 - Chip Mode: NES/RP2A03, Game Boy/DMG, SID/C64, YM2149/AY, SN76489, YM2612, OPL2/OPL3, SPC700, POKEY, Paula, HuC6280, Namco WSG, YM2151, YM2413/OPLL, SCC
-- Accuracy: Inspired, Hybrid, Authentic
+- Behavior Strictness: Inspired, Hybrid, Authentic. This is a requested behavior mode, not the verification claim; footer badges and renderer debug JSON report what is actually proven.
 - Play Mode: Big Mono, Chip Poly where the selected chip has tested finite-channel allocation; Manual and Clone are reserved until tracker routing and hybrid engine cloning are implemented.
 - Output Level
 - Preset Recipe: internal chip-native defaults used by factory/user presets for Coin, Bass, Lead, Arp, Drum, Hit, Laser, Jump, and Power-Up style sounds
@@ -196,7 +196,7 @@ Roadmap preset targets, kept as product direction until their chip cores exist:
 Single-screen layout:
 
 - **Top bar:** category, preset, randomize, Init Lead, Init Bass, Init Drum, Init SFX, output.
-- **Chip:** Chip Mode, Accuracy, chip model variant, clock, and mode-specific musical controls.
+- **Chip:** Chip Mode, Behavior Strictness, chip model variant, clock, and mode-specific musical controls.
 - **Register View:** optional debug panel for renderer/developer builds; hidden from normal musical workflow.
 - **Mixer:** chip-native channels and levels.
 - **Shape:** only chip-authentic controls plus clearly labeled hybrid tone/crunch when enabled.
