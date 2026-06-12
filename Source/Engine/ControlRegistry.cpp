@@ -70,14 +70,14 @@ const MidiCcMappingList& midiCcMappings()
         { 68, parameter_ids::nesDmcLoop, "NES DMC Loop" },
         { 58, parameter_ids::spc700LoopStart, "SPC700 Loop Start" },
         { 59, parameter_ids::spc700LoopEnd, "SPC700 Loop End" },
-        { 48, parameter_ids::spc700Voice1SampleSlot, "SPC700 Voice 1 Sample Slot" },
-        { 49, parameter_ids::spc700Voice2SampleSlot, "SPC700 Voice 2 Sample Slot" },
-        { 50, parameter_ids::spc700Voice3SampleSlot, "SPC700 Voice 3 Sample Slot" },
-        { 51, parameter_ids::spc700Voice4SampleSlot, "SPC700 Voice 4 Sample Slot" },
-        { 52, parameter_ids::spc700Voice5SampleSlot, "SPC700 Voice 5 Sample Slot" },
-        { 53, parameter_ids::spc700Voice6SampleSlot, "SPC700 Voice 6 Sample Slot" },
-        { 54, parameter_ids::spc700Voice7SampleSlot, "SPC700 Voice 7 Sample Slot" },
-        { 55, parameter_ids::spc700Voice8SampleSlot, "SPC700 Voice 8 Sample Slot" }
+        { 48, parameter_ids::spc700Voice1SampleSlot, "Sample Voice 1 Slot" },
+        { 49, parameter_ids::spc700Voice2SampleSlot, "Sample Voice 2 Slot" },
+        { 50, parameter_ids::spc700Voice3SampleSlot, "Sample Voice 3 Slot" },
+        { 51, parameter_ids::spc700Voice4SampleSlot, "Sample Voice 4 Slot" },
+        { 52, parameter_ids::spc700Voice5SampleSlot, "Sample Voice 5 Slot" },
+        { 53, parameter_ids::spc700Voice6SampleSlot, "Sample Voice 6 Slot" },
+        { 54, parameter_ids::spc700Voice7SampleSlot, "Sample Voice 7 Slot" },
+        { 55, parameter_ids::spc700Voice8SampleSlot, "Sample Voice 8 Slot" }
     }};
 
     return mappings;

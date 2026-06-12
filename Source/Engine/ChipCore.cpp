@@ -9645,11 +9645,12 @@ public:
         if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled)
             clearChipPolyState();
 
+        const auto sampleSlotsChanged = nextPatch.spc700VoiceSampleSlots != patch.spc700VoiceSampleSlots;
         patch = nextPatch;
         for (size_t channel = 0; channel < sampleRam.size(); ++channel)
         {
             const auto nextTemplate = resolvedSampleTemplate(channel);
-            if (nextTemplate != sampleTemplate[channel])
+            if (nextTemplate != sampleTemplate[channel] || sampleSlotsChanged)
             {
                 sampleTemplate[channel] = nextTemplate;
                 seedSample(channel);
@@ -9869,6 +9870,14 @@ public:
              << "\"externalSampleLoaded\":" << (externalSampleBank.empty() ? 0 : 1) << ","
              << "\"externalSampleBankCount\":" << externalSampleBank.size() << ","
              << "\"externalSampleSlot\":" << externalSampleSlot << ","
+             << "\"voiceSampleSlot0\":" << patch.spc700VoiceSampleSlots[0] << ","
+             << "\"voiceSampleSlot1\":" << patch.spc700VoiceSampleSlots[1] << ","
+             << "\"voiceSampleSlot2\":" << patch.spc700VoiceSampleSlots[2] << ","
+             << "\"voiceSampleSlot3\":" << patch.spc700VoiceSampleSlots[3] << ","
+             << "\"resolvedExternalSampleSlot0\":" << resolvedExternalSampleSlot[0] << ","
+             << "\"resolvedExternalSampleSlot1\":" << resolvedExternalSampleSlot[1] << ","
+             << "\"resolvedExternalSampleSlot2\":" << resolvedExternalSampleSlot[2] << ","
+             << "\"resolvedExternalSampleSlot3\":" << resolvedExternalSampleSlot[3] << ","
              << "\"internalChannelCount\":4,"
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNote0\":" << channelNotes[0] << ","
@@ -9911,10 +9920,21 @@ private:
 
     void seedSample(size_t channel)
     {
+        if (channel < resolvedExternalSampleSlot.size())
+            resolvedExternalSampleSlot[channel] = -1;
+
         if (! externalSampleBank.empty())
         {
-            if (externalSampleSlot >= 0 && externalSampleSlot < static_cast<int>(externalSampleBank.size()))
-                sampleRam[channel] = externalSampleBank[static_cast<size_t>(externalSampleSlot)];
+            auto selectedSlot = externalSampleSlot;
+            if (channel < patch.spc700VoiceSampleSlots.size() && patch.spc700VoiceSampleSlots[channel] > 0)
+                selectedSlot = patch.spc700VoiceSampleSlots[channel] - 1;
+
+            if (selectedSlot >= 0 && selectedSlot < static_cast<int>(externalSampleBank.size()))
+            {
+                sampleRam[channel] = externalSampleBank[static_cast<size_t>(selectedSlot)];
+                if (channel < resolvedExternalSampleSlot.size())
+                    resolvedExternalSampleSlot[channel] = selectedSlot;
+            }
             else
                 sampleRam[channel].clear();
             return;
@@ -10089,6 +10109,7 @@ private:
     std::array<std::vector<double>, 4> sampleRam {};
     std::vector<std::vector<double>> externalSampleBank;
     int externalSampleSlot = -1;
+    std::array<int, 4> resolvedExternalSampleSlot { -1, -1, -1, -1 };
     std::array<double, 4> position {};
     int heldNote = -1;
     float noteVelocity = 0.0f;

@@ -2705,6 +2705,34 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(box);
     }
 
+    for (size_t i = 0; i < paulaVoiceSampleBoxes.size(); ++i)
+    {
+        auto& label = paulaVoiceSampleLabels[i];
+        label.setText("Sample Slot", juce::dontSendNotification);
+        label.setJustificationType(juce::Justification::centredLeft);
+        label.setColour(juce::Label::textColourId, juce::Colour(0xff56c7d8));
+        label.setFont(juce::FontOptions(10.5f, juce::Font::bold));
+        label.setVisible(false);
+        addAndMakeVisible(label);
+
+        auto& box = paulaVoiceSampleBoxes[i];
+        box.setVisible(false);
+        box.setTextWhenNothingSelected("Follow");
+        box.onChange = [this, i]()
+        {
+            if (suppressManualChoiceCallbacks)
+                return;
+
+            const auto selected = paulaVoiceSampleBoxes[i].getSelectedId() - 1;
+            if (selected >= 0)
+            {
+                setPlainParameterValueFromUi(spc700VoiceSampleParameterId(i), static_cast<float>(selected));
+                updateLiveControlReadouts();
+            }
+        };
+        addAndMakeVisible(box);
+    }
+
     dmgWaveLevelLabel.setText("Wave Level", juce::dontSendNotification);
     dmgWaveLevelLabel.setJustificationType(juce::Justification::centredLeft);
     dmgWaveLevelLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
@@ -3212,6 +3240,8 @@ void ChipperAudioProcessorEditor::applyChipTheme()
         styleCombo(box);
     for (auto& box : hucVoiceWaveBoxes)
         styleCombo(box);
+    for (auto& box : paulaVoiceSampleBoxes)
+        styleCombo(box);
     for (auto& box : sidAdsrBoxes)
         styleCombo(box);
     for (auto& box : ymChannelMixBoxes)
@@ -3584,6 +3614,11 @@ void ChipperAudioProcessorEditor::resized()
                 hucVoiceWaveLabels[i].setBounds({});
                 hucVoiceWaveBoxes[i].setBounds({});
             }
+            if (i < paulaVoiceSampleBoxes.size())
+            {
+                paulaVoiceSampleLabels[i].setBounds({});
+                paulaVoiceSampleBoxes[i].setBounds({});
+            }
             if (displayedMode == chipper::ChipMode::sid && i < sidVoiceWaveCount)
             {
                 sidVoiceWaveLabels[i].setBounds({});
@@ -3701,10 +3736,18 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isPaulaSourceCard && i < hucVoiceWaveBoxes.size())
         {
-            auto waveRow = sourceCard.removeFromTop(std::min(48, sourceCard.getHeight()));
+            auto waveRow = sourceCard.removeFromTop(std::min(38, sourceCard.getHeight()));
             hucVoiceWaveLabels[i].setBounds(waveRow.removeFromTop(std::min(15, waveRow.getHeight())));
-            hucVoiceWaveBoxes[i].setBounds(waveRow.removeFromTop(std::min(26, waveRow.getHeight())).reduced(0, 2));
-            sourceCard.removeFromTop(std::min(5, sourceCard.getHeight()));
+            hucVoiceWaveBoxes[i].setBounds(waveRow.removeFromTop(std::min(22, waveRow.getHeight())).reduced(0, 1));
+            sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
+
+            if (i < paulaVoiceSampleBoxes.size())
+            {
+                auto sampleRow = sourceCard.removeFromTop(std::min(38, sourceCard.getHeight()));
+                paulaVoiceSampleLabels[i].setBounds(sampleRow.removeFromTop(std::min(15, sampleRow.getHeight())));
+                paulaVoiceSampleBoxes[i].setBounds(sampleRow.removeFromTop(std::min(22, sampleRow.getHeight())).reduced(0, 1));
+                sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
+            }
         }
         else if (isSpc700SourceCard && i < hucVoiceWaveBoxes.size())
         {
@@ -7567,6 +7610,12 @@ void ChipperAudioProcessorEditor::setSourceChannelSurfaceVisible(chipper::ChipMo
         sourceLevelSliders[i].setVisible(visible && chipper::parameterSpecFor(mode, sourceLevelRole(i)) != nullptr);
         sourceLevelLabels[i].setVisible(visible && chipper::parameterSpecFor(mode, sourceLevelRole(i)) != nullptr);
         sourceLevelValueLabels[i].setVisible(visible && chipper::parameterSpecFor(mode, sourceLevelRole(i)) != nullptr);
+        if (i < paulaVoiceSampleBoxes.size())
+        {
+            const auto paulaSlotVisible = visible && mode == chipper::ChipMode::paula;
+            paulaVoiceSampleLabels[i].setVisible(paulaSlotVisible);
+            paulaVoiceSampleBoxes[i].setVisible(paulaSlotVisible);
+        }
     }
 
     setSidVoicePulseWidthControlsVisible(active && mode == chipper::ChipMode::sid);
@@ -9066,6 +9115,7 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
 
     juce::String summary;
     const auto spc700SampleNames = isSpc700 ? audioProcessor.spc700BrrSampleNames() : juce::StringArray {};
+    const auto paulaSampleNames = isPaula ? audioProcessor.paulaSampleNames() : juce::StringArray {};
     for (size_t i = 0; i < hucVoiceWaveBoxes.size(); ++i)
     {
         auto& box = hucVoiceWaveBoxes[i];
@@ -9130,7 +9180,38 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
             box.setTooltip(withMidiCcForRole(tooltip, hucVoiceWaveRole(i)));
         }
 
-        if (i < (isSpc700 || isNamco ? 4u : 3u))
+        if (isPaula && i < paulaVoiceSampleBoxes.size())
+        {
+            auto& sampleLabel = paulaVoiceSampleLabels[i];
+            auto& sampleBox = paulaVoiceSampleBoxes[i];
+            sampleBox.clear(juce::dontSendNotification);
+            sampleBox.addItem("Follow Bank", 1);
+            for (int slot = 0; slot < paulaSampleNames.size(); ++slot)
+                sampleBox.addItem(juce::String(slot + 1).paddedLeft('0', 2) + " " + compactSampleName(paulaSampleNames[slot], 18), slot + 2);
+
+            const auto sampleSlot = std::clamp(static_cast<int>(std::round(parameterValue(spc700VoiceSampleParameterId(i)))), 0, 32);
+            if (sampleSlot > paulaSampleNames.size())
+                sampleBox.addItem("Slot " + juce::String(sampleSlot).paddedLeft('0', 2) + " (not loaded)", sampleSlot + 1);
+
+            const auto sampleMaxChoice = std::max(0, sampleBox.getNumItems() - 1);
+            sampleBox.setSelectedId(std::clamp(sampleSlot, 0, sampleMaxChoice) + 1, juce::dontSendNotification);
+            sampleLabel.setText("Loaded Sample", juce::dontSendNotification);
+            sampleLabel.setVisible(visible);
+            sampleBox.setVisible(visible);
+
+            const auto resolvedSampleText = sampleSlot <= 0
+                ? juce::String("Follow the global Paula manual slot or note map")
+                : (sampleSlot <= paulaSampleNames.size()
+                       ? juce::String("Slot ") + juce::String(sampleSlot).paddedLeft('0', 2) + ": " + paulaSampleNames[sampleSlot - 1]
+                       : juce::String("Slot ") + juce::String(sampleSlot).paddedLeft('0', 2) + " is not loaded");
+            const auto sampleTooltip = juce::String("Paula channel ") + juce::String(static_cast<int>(i + 1u))
+                + " external sample source.\nFollow uses the shared manual slot or note map; slots 1-32 pin this DAC channel to a loaded sample.\n"
+                + resolvedSampleText;
+            sampleLabel.setTooltip(withMidiCcForRole(sampleTooltip, spc700VoiceSampleRole(i)));
+            sampleBox.setTooltip(withMidiCcForRole(sampleTooltip, spc700VoiceSampleRole(i)));
+        }
+
+        if (i < ((isSpc700 || isNamco || isPaula) ? 4u : 3u))
         {
             if (summary.isNotEmpty())
                 summary += " | ";

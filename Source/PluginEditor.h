@@ -405,6 +405,8 @@ private:
     std::array<juce::Label, sidVoiceWaveCount> sidVoicePulseWidthLabels;
     std::array<juce::Label, sidVoiceWaveCount> sidVoicePulseWidthValueLabels;
     std::array<juce::Label, hucVoiceWaveCount> hucVoiceWaveLabels;
+    std::array<juce::Label, 4> paulaVoiceSampleLabels;
+    std::array<juce::ComboBox, 4> paulaVoiceSampleBoxes;
     std::array<ChipWaveformPreview, sourceChannelCount> sourcePreviewScopes;
     juce::Label dmgWaveLevelLabel;
     juce::Label dmgWaveLevelValueLabel;

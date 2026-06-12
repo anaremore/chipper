@@ -612,7 +612,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     {
         params.push_back(std::make_unique<juce::AudioParameterInt>(
             juce::ParameterID { spc700VoiceSampleIds[i], 1 },
-            "SPC700 Voice " + juce::String(static_cast<int>(i + 1u)) + " Sample Slot",
+            "Sample Voice " + juce::String(static_cast<int>(i + 1u)) + " Slot",
             0,
             32,
             0));
