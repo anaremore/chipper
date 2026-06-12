@@ -2387,7 +2387,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("profile", "Profile", "POKEY clean-room groundwork.", { "Atari 8-bit family", "1.79 MHz default", "Hybrid default", "Authentic still partial" }),
                 makeModule("sources", "Channels", "Four native POKEY audio channels.", { "Channel 1", "Channel 2", "Channel 3", "Channel 4" }),
                 makeModule("tone", "Distortion / Noise", "AUDC-style tone and polynomial texture controls.", { "Pure tone", "Poly4", "Poly5", "Poly17" }),
-                makeModule("envelope", "Volume Helper", "AUDV volume nibble plus musical decay helper; POKEY has no native ADSR.", { "4-bit volume", "Per-channel trims", "Decay helper", "Register readout" }),
+                makeModule("envelope", "AUDV Gate", "AUDV volume nibble plus musical gate helper; POKEY has no native ADSR.", { "4-bit volume", "Per-channel trims", "Gate helper", "Register readout" }),
                 makeModule("motion", "Motion", "Atari SFX gestures mapped to channel timers.", { "Console blip", "Pitch drop", "Four-channel arp", "Poly perc" }),
                 makeModule("output", "Output", "Bright mono Atari-style output groundwork.", { "Output gain", "Stereo spread convenience", "AUDCTL pairing", "AUDCTL filter" })
             },
@@ -2455,7 +2455,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("profile", "Profile", "HuC6280 clean-room groundwork.", { "PC Engine family", "3.58 MHz default", "Hybrid default", "Authentic still partial" }),
                 makeModule("sources", "Wavetable Voices", "Six direct HuC6280 channels.", { "Ch 1-3 wave", "Ch 4 wave/noise", "Ch 5-6 wave/noise", "6-note Chip Poly" }),
                 makeModule("tone", "Wave / Noise", "32-sample wave RAM plus simplified noise.", { "Sine-like", "Ramp", "Triangle", "Square / noise" }),
-                makeModule("envelope", "Channel Amp Env", "HuC6280 channel volume plus musical decay helper; not native ADSR.", { "5-bit volume", "Per-channel trims", "Decay helper", "Register readout" }),
+                makeModule("envelope", "Global Amp Env", "Shared musical helper over HuC6280 channel volume; not native ADSR.", { "5-bit volume", "Per-channel trims", "Amp helper", "Register readout" }),
                 makeModule("motion", "Motion", "PC Engine SFX gestures mapped to frequency registers.", { "Coin ping", "Sweep zap", "Six-wave arp", "Noise tap" }),
                 makeModule("output", "Output", "Compact console wavetable output groundwork.", { "Output gain", "Stereo spread convenience", "LFO planned", "Known differences" })
             },
@@ -2489,7 +2489,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("profile", "Profile", "Namco WSG clean-room groundwork.", { "Arcade wavetable family", "96 kHz default", "Hybrid default", "Authentic still partial" }),
                 makeModule("sources", "WSG Lanes", "All eight wavetable lanes are exposed as playable source lanes.", { "Lanes 1-4", "Lanes 5-8", "4-bit wave RAM", "Enable mask" }),
                 makeModule("wave", "Wave / Mixer", "Wave RAM plus frequency and volume behavior.", { "Wave shape", "Wave skew", "4-bit volume", "Pitch periods" }),
-                makeModule("envelope", "Lane Amp Env", "Modern musical helper over Namco WSG lane volume; not native ADSR.", { "4-bit lane volume", "Enable mask", "Decay helper", "Register readout" }),
+                makeModule("envelope", "Global Amp Env", "Shared musical helper over Namco WSG lane volume; not native ADSR.", { "4-bit lane volume", "Enable mask", "Amp helper", "Register readout" }),
                 makeModule("motion", "Motion", "Arcade SFX gestures mapped to lane frequency registers.", { "Coin ping", "Sweep zap", "Tracker arp", "Wave tick" }),
                 makeModule("output", "Output", "Centered arcade wavetable output with optional modern spread.", { "Output gain", "Stereo spread", "Verified partial", "Known gaps" })
             },
@@ -2582,7 +2582,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("profile", "Profile", "Konami SCC/SCC+ emu2212 groundwork.", { "Konami wavetable family", "3.58 MHz default", "MIT emu2212 core", "Authentic still partial" }),
                 makeModule("sources", "Wavetable Voices", "All five SCC channels are exposed as playable wavetable lanes.", { "Channel 1", "Channel 2", "Channel 3", "Channel 4-5" }),
                 makeModule("wave", "Wave / Mixer", "Wave RAM plus frequency and volume behavior.", { "Wave shape", "Wave skew", "4-bit volume", "Pitch periods" }),
-                makeModule("envelope", "Wave Amp Env", "Modern musical helper over SCC channel volume and key state; not native ADSR.", { "4-bit channel volume", "Key mask", "Decay helper", "Register readout" }),
+                makeModule("envelope", "Global Amp Env", "Shared musical helper over SCC channel volume and key state; not native ADSR.", { "4-bit channel volume", "Key mask", "Amp helper", "Register readout" }),
                 makeModule("motion", "Motion", "Arcade SFX gestures mapped to frequency registers.", { "Coin ping", "Sweep zap", "Five-voice arp", "Wave tick" }),
                 makeModule("output", "Output", "Centered SCC output with optional modern spread.", { "Output gain", "Stereo spread", "Verified partial", "Known gaps" })
             },
