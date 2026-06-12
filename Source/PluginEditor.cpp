@@ -3482,7 +3482,7 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[0] = {};
         moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), sourceRowHeight };
         moduleBounds[2] = {};
-        moduleBounds[3] = { modules.getX(), utilityY, columnWidth, utilityRowHeight };
+        moduleBounds[3] = { modules.getX(), utilityY, modules.getWidth(), utilityRowHeight };
         moduleBounds[4] = {};
         moduleBounds[5] = { modules.getX(), outputY, modules.getWidth(), outputRowHeight };
     }
