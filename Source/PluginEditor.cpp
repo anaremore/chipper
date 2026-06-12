@@ -3399,7 +3399,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 176 : (sampleLayout ? 220 : (nesLayout ? 260 : (wavetableLayout ? 210 : 300))));
+    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 176 : (sampleLayout ? 220 : (nesLayout ? 300 : (wavetableLayout ? 210 : 300))));
     const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 760 : (sampleLayout ? 620 : (nesLayout ? 570 : (wavetableLayout ? 650 : 492))));
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
@@ -4119,8 +4119,8 @@ void ChipperAudioProcessorEditor::resized()
 
     if (displayedMode == chipper::ChipMode::nes)
     {
-        const auto macroRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(strip.getHeight()) * 0.34)), 66, 78);
-        const auto decayRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(strip.getHeight()) * 0.24)), 48, 58);
+        const auto macroRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(strip.getHeight()) * 0.30)), 68, 78);
+        const auto decayRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(strip.getHeight()) * 0.28)), 66, 74);
         auto nesRow = strip;
         auto macroRow = nesRow.removeFromTop(std::min(macroRowHeight, nesRow.getHeight()));
         nesRow.removeFromTop(std::min(controlGap, nesRow.getHeight()));
