@@ -682,6 +682,9 @@ add_test(NAME chipper_render_paula_noise_smoke
 add_test(NAME chipper_render_paula_chip_poly_smoke
     COMMAND chipper_render --chip paula --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 2 --clock 3546895 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/paula-chip-poly-events.txt --out paula-chip-poly-smoke.wav --debug paula-chip-poly-smoke.json
 )
+add_test(NAME chipper_render_paula_channel_shapes_smoke
+    COMMAND chipper_render --chip paula --accuracy authentic --macro manual --play-mode chip-poly --paula-shape1 ramp --paula-shape2 tri --paula-shape3 sine --paula-shape4 noise --clock 3546895 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/paula-chip-poly-events.txt --out paula-channel-shapes-smoke.wav --debug paula-channel-shapes-smoke.json
+)
 add_test(NAME chipper_render_paula_led_filter_smoke
     COMMAND chipper_render --chip paula --accuracy authentic --macro bass --paula-output-filter led --wave-shape tri --clock 3546895 --rate 48000 --seconds 0.08 --note 48 --out paula-led-filter-smoke.wav --debug paula-led-filter-smoke.json
 )
@@ -1509,6 +1512,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/paula-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 4 --min-peak 0.05 --core-min activeChannels=4 --core-max activeChannels=4 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min internalChannelCount=4 --core-max internalChannelCount=4 --core-min period0=6776 --core-max period0=6779 --core-min period3=3388 --core-max period3=3391
     )
     set_tests_properties(chipper_render_paula_chip_poly_assert PROPERTIES DEPENDS chipper_render_paula_chip_poly_smoke)
+
+    add_test(NAME chipper_render_paula_channel_shapes_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/paula-channel-shapes-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 4 --min-peak 0.05 --core-min internalChannelCount=4 --core-max internalChannelCount=4 --core-min activeChannels=4 --core-max activeChannels=4 --core-min waveShapeChoice0=1 --core-max waveShapeChoice0=1 --core-min waveShapeChoice1=2 --core-max waveShapeChoice1=2 --core-min waveShapeChoice2=3 --core-max waveShapeChoice2=3 --core-min waveShapeChoice3=4 --core-max waveShapeChoice3=4
+    )
+    set_tests_properties(chipper_render_paula_channel_shapes_assert PROPERTIES DEPENDS chipper_render_paula_channel_shapes_smoke)
 
     add_test(NAME chipper_render_paula_led_filter_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/paula-led-filter-smoke.json --implemented-contains partial --macro Bass --min-peak 0.01 --register-writes 0 --note-events 0 --core-min outputFilterMode=3 --core-max outputFilterMode=3 --core-min sampleLength0=64 --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=Output Filter" --descriptor-param-choices snNoiseMode=5

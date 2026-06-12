@@ -189,7 +189,7 @@ Roadmap preset targets, kept as product direction until their chip cores exist:
 - Host tempo is read from the playhead. The arp emits note/register events at sample offsets inside the block.
 - Post rendering applies only honest modern conveniences: output trim, optional safety limiting/DC cleanup, and labeled hybrid effects.
 - State save/restore uses APVTS XML plus an internal register replay snapshot for the active core where practical.
-- Paula sample banks accept WAV, AIFF, and uncompressed IFF/8SVX files. The Paula UI should treat all four DAC channels as independent sample voices: generated sample-shape controls live in each channel card, while the shared Sample Bank section handles external file/folder/bank loading and playback mapping. Compressed 8SVX, MOD sample extraction, loop-point import, and tracker effect metadata remain planned.
+- Paula sample banks accept WAV, AIFF, and uncompressed IFF/8SVX files. The Paula UI should treat all four DAC channels as independent sample voices: generated sample-shape controls live in each channel card, while the shared Sample Bank section handles external file/folder/bank loading and playback mapping. The renderer exposes the same per-channel idea through `--paula-shape1..4` for regression coverage. Compressed 8SVX, MOD sample extraction, loop-point import, and tracker effect metadata remain planned.
 
 ## UI Layout Plan
 
