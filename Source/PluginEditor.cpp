@@ -4128,8 +4128,15 @@ void ChipperAudioProcessorEditor::resized()
 
     if (displayedMode == chipper::ChipMode::nes)
     {
-        const auto macroRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(strip.getHeight()) * 0.30)), 68, 78);
+        constexpr int minNesMacroRowHeight = 64;
+        constexpr int maxNesMacroRowHeight = 76;
+        constexpr int minNesEnvelopeRowHeight = 52;
+        constexpr int maxNesEnvelopeRowHeight = 60;
+
         auto nesRow = strip;
+        const auto macroRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(nesRow.getHeight()) * 0.28)),
+                                               minNesMacroRowHeight,
+                                               maxNesMacroRowHeight);
         auto macroRow = nesRow.removeFromTop(std::min(macroRowHeight, nesRow.getHeight()));
         nesRow.removeFromTop(std::min(controlGap, nesRow.getHeight()));
 
@@ -4145,9 +4152,11 @@ void ChipperAudioProcessorEditor::resized()
         }
 
         controlCells[3] = {};
-        const auto lowerControlWidth = (nesRow.getWidth() - controlGap) / 2;
-        controlCells[4] = nesRow.removeFromLeft(lowerControlWidth);
-        nesRow.removeFromLeft(std::min(controlGap, nesRow.getWidth()));
+        const auto envelopeRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(nesRow.getHeight()) * 0.28)),
+                                                  minNesEnvelopeRowHeight,
+                                                  maxNesEnvelopeRowHeight);
+        controlCells[4] = nesRow.removeFromTop(std::min(envelopeRowHeight, nesRow.getHeight()));
+        nesRow.removeFromTop(std::min(controlGap, nesRow.getHeight()));
         controlCells[5] = nesRow;
     }
 
