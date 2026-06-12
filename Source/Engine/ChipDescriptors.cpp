@@ -517,7 +517,7 @@ std::vector<ParameterChoiceSpec> pulseDutyChoices(std::string thinHelp, std::str
 std::vector<ParameterChoiceSpec> pulse2DutyChoices(std::string macroHelp)
 {
     return {
-        choice("Follow", macroHelp, 0.0f, 0),
+        choice("Auto", macroHelp, 0.0f, 0),
         choice("12.5%", "Write duty bits 00 to pulse channel 2.", 0.25f, 1),
         choice("25%", "Write duty bits 01 to pulse channel 2.", 0.5f, 2),
         choice("50%", "Write duty bits 10 to pulse channel 2.", 0.75f, 3),

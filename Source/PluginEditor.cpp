@@ -2492,7 +2492,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     pulse2DutyValueLabel.setVisible(false);
     addAndMakeVisible(pulse2DutyValueLabel);
 
-    const std::array<const char*, pulse2DutyCount> pulse2Labels { "Preset", "12.5%", "25%", "50%", "75%" };
+    const std::array<const char*, pulse2DutyCount> pulse2Labels { "Auto", "12.5%", "25%", "50%", "75%" };
     for (size_t i = 0; i < pulse2DutyButtons.size(); ++i)
     {
         auto& button = pulse2DutyButtons[i];
@@ -6138,12 +6138,12 @@ juce::String ChipperAudioProcessorEditor::pulse2DutyReadout(const chipper::Patch
     if (displayedMode == chipper::ChipMode::dmg)
     {
         const auto followMode = patch.playMode == chipper::PlayMode::chipPoly
-            ? juce::String("Preset P1 -> ")
-            : juce::String("Preset +1 -> ");
+            ? juce::String("Auto P1 -> ")
+            : juce::String("Auto +1 -> ");
         return followMode + detail;
     }
 
-    return juce::String("Preset -> ") + detail;
+    return juce::String("Auto -> ") + detail;
 }
 
 juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mode, int choice) const
