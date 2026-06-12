@@ -3651,9 +3651,9 @@ void ChipperAudioProcessorEditor::resized()
         const auto isDenseSampleCard = isWavetableSourceCard || isPaulaSourceCard || isSpc700SourceCard;
         auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isDenseSampleCard ? 5 : 8),
                                                          isSidSourceCard ? 2 : (isDenseSampleCard ? 3 : 4));
-        constexpr auto standardInlineControlHeight = 28;
-        constexpr auto embeddedLabelHeight = 13;
-        constexpr auto embeddedControlRowHeight = embeddedLabelHeight + standardInlineControlHeight + 3;
+        constexpr auto standardInlineControlHeight = 30;
+        constexpr auto embeddedLabelHeight = 14;
+        constexpr auto embeddedControlRowHeight = embeddedLabelHeight + standardInlineControlHeight + 4;
         const auto buttonHeight = useSpc700VoiceGrid ? 19 : (isPaulaSourceCard ? 18 : (isSidSourceCard ? 17 : (isDenseSampleCard ? 20 : 18)));
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isDenseSampleCard ? 3 : 2);
@@ -3667,15 +3667,15 @@ void ChipperAudioProcessorEditor::resized()
 
         const auto placeEmbeddedLevel = [this, i](juce::Rectangle<int>& cardArea)
         {
-            auto levelArea = cardArea.removeFromBottom(std::min(46, cardArea.getHeight()));
+            auto levelArea = cardArea.removeFromBottom(std::min(56, cardArea.getHeight()));
             if (! cardArea.isEmpty())
                 cardArea.removeFromBottom(std::min(4, cardArea.getHeight()));
 
-            auto levelRow = levelArea.removeFromTop(std::min(15, levelArea.getHeight()));
+            auto levelRow = levelArea.removeFromTop(std::min(16, levelArea.getHeight()));
             sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(52, levelRow.getWidth())));
             sourceLevelValueLabels[i].setBounds(levelRow);
-            levelArea.removeFromTop(std::min(4, levelArea.getHeight()));
-            sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(24, levelArea.getHeight())).reduced(0, 1));
+            levelArea.removeFromTop(std::min(5, levelArea.getHeight()));
+            sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(28, levelArea.getHeight())).reduced(0, 1));
         };
 
         if (isSidSourceCard && i < sidVoiceWaveCount)
