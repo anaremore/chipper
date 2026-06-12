@@ -8757,20 +8757,20 @@ juce::String ChipperAudioProcessorEditor::envelopeDecayReadout(chipper::ChipMode
     if (mode == chipper::ChipMode::namcoWsg)
         return juce::String("Namco 4-bit lane volume helper, step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::spc700)
-        return juce::String("S-DSP ADSR/gain helper, step ") + juce::String(period) + "/15";
+        return juce::String("S-DSP ADSR/GAIN speed, step ") + juce::String(period) + "/15";
 
     if (mode == chipper::ChipMode::nes)
         return juce::String("APU envelope decay, period ") + juce::String(period);
     if (mode == chipper::ChipMode::sn76489)
         return juce::String("PSG attenuation gate helper, step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::ym2612)
-        return juce::String("OPN2 operator envelope helper, step ") + juce::String(period) + "/15";
+        return juce::String("OPN2 Operator EG speed, step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::opl3)
-        return juce::String("OPL operator envelope helper, step ") + juce::String(period) + "/15";
+        return juce::String("OPL Operator EG speed, step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::ym2151)
-        return juce::String("OPM operator envelope helper, step ") + juce::String(period) + "/15";
+        return juce::String("OPM Operator EG speed, step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::ym2413)
-        return juce::String("OPLL preset envelope helper, step ") + juce::String(period) + "/15";
+        return juce::String("OPLL ROM envelope speed, step ") + juce::String(period) + "/15";
 
     return juce::String("Volume gate helper, step ") + juce::String(period) + "/15";
 }

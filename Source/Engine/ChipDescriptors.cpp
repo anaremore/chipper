@@ -2489,6 +2489,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("profile", "Profile", "Namco WSG clean-room groundwork.", { "Arcade wavetable family", "96 kHz default", "Hybrid default", "Authentic still partial" }),
                 makeModule("sources", "WSG Lanes", "All eight wavetable lanes are exposed as playable source lanes.", { "Lanes 1-4", "Lanes 5-8", "4-bit wave RAM", "Enable mask" }),
                 makeModule("wave", "Wave / Mixer", "Wave RAM plus frequency and volume behavior.", { "Wave shape", "Wave skew", "4-bit volume", "Pitch periods" }),
+                makeModule("envelope", "Lane Amp Env", "Modern musical helper over Namco WSG lane volume; not native ADSR.", { "4-bit lane volume", "Enable mask", "Decay helper", "Register readout" }),
                 makeModule("motion", "Motion", "Arcade SFX gestures mapped to lane frequency registers.", { "Coin ping", "Sweep zap", "Tracker arp", "Wave tick" }),
                 makeModule("output", "Output", "Centered arcade wavetable output with optional modern spread.", { "Output gain", "Stereo spread", "Verified partial", "Known gaps" })
             },
@@ -2581,6 +2582,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("profile", "Profile", "Konami SCC/SCC+ emu2212 groundwork.", { "Konami wavetable family", "3.58 MHz default", "MIT emu2212 core", "Authentic still partial" }),
                 makeModule("sources", "Wavetable Voices", "All five SCC channels are exposed as playable wavetable lanes.", { "Channel 1", "Channel 2", "Channel 3", "Channel 4-5" }),
                 makeModule("wave", "Wave / Mixer", "Wave RAM plus frequency and volume behavior.", { "Wave shape", "Wave skew", "4-bit volume", "Pitch periods" }),
+                makeModule("envelope", "Wave Amp Env", "Modern musical helper over SCC channel volume and key state; not native ADSR.", { "4-bit channel volume", "Key mask", "Decay helper", "Register readout" }),
                 makeModule("motion", "Motion", "Arcade SFX gestures mapped to frequency registers.", { "Coin ping", "Sweep zap", "Five-voice arp", "Wave tick" }),
                 makeModule("output", "Output", "Centered SCC output with optional modern spread.", { "Output gain", "Stereo spread", "Verified partial", "Known gaps" })
             },
