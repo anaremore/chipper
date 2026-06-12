@@ -57,3 +57,35 @@ This roadmap captures the broad product gaps that remain after the first playabl
 ## Execution Principle
 
 Avoid polishing Chipper into fifteen pretty but separate chip panels. Prioritize features that turn the existing chip surfaces into a complete musical workflow: browse a role, play a patch, edit native chip controls, add tracker motion, shape samples/waves/operators, save/share the result, and automate it from DAW or MIDI hardware.
+
+## Additional Gaps To Watch
+
+These are not as visible as chip-specific controls, but they strongly affect whether musicians can trust Chipper in real projects.
+
+1. **Project Recall and State Migration**
+   - Saved DAW projects must reopen with the same chip, preset, loaded sample paths, per-chip settings, MIDI mappings, and accuracy mode.
+   - Parameter IDs, preset schema versions, and sample-bank references need migration rules before public releases.
+
+2. **Missing-Asset and Crash Recovery**
+   - Sample-based chips should show clear missing-file states instead of failing silently.
+   - External sample paths, deleted folders, moved preset files, invalid BRR/DMC/WAV files, and unsupported formats should be handled without audio-thread allocation, hangs, or crashes.
+
+3. **Performance Budgets**
+   - Each chip should have a CPU and memory budget for common use: mono lead, chip poly, sample bank browsing, heavy echo/filter use, and large preset banks.
+   - Background sample decoding/import should never block the audio thread.
+
+4. **Accessibility and Readability**
+   - Every chip theme should preserve readable contrast, keyboard focus, large enough hit targets, and non-color-only state cues.
+   - Dense expert controls should scale by layout size rather than shrinking text into unreadable labels.
+
+5. **Release and Compatibility QA**
+   - Test in at least one major DAW per platform before public release.
+   - Verify VST3 scanning, plugin ID stability, preset loading, automation recall, MIDI CC handling, and installer behavior on Windows, Linux, and macOS builds.
+
+6. **Legal Asset Boundaries**
+   - Factory presets must not embed unlicensed samples, ROM data, copyrighted wave dumps, or derived game content.
+   - User import workflows should make it clear that external samples stay user-owned and outside the repository.
+
+7. **Beginner-to-Expert Path**
+   - A new user should be able to select a chip, choose a musical role, tweak a few obvious controls, and save a patch.
+   - Expert users should still have a clear route to register-like behavior, operator/wave/sample editing, and strict accuracy constraints.
