@@ -3488,9 +3488,9 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (paulaLayout)
     {
-        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.48)), 300, 390);
-        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.15)), 92, 116);
-        const auto sampleRowHeight = std::max(220, modules.getHeight() - sourceRowHeight - middleRowHeight - (gap * 2));
+        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.43)), 286, 342);
+        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.14)), 88, 108);
+        const auto sampleRowHeight = std::max(260, modules.getHeight() - sourceRowHeight - middleRowHeight - (gap * 2));
         const auto topY = modules.getY();
         const auto middleY = topY + sourceRowHeight + gap;
         const auto bottomY = middleY + middleRowHeight + gap;
@@ -4303,7 +4303,7 @@ void ChipperAudioProcessorEditor::resized()
         dmcSampleLabel.setBounds(sampleHeader);
         controlColumn.removeFromTop(3);
 
-        constexpr int standardSampleControlHeight = 28;
+        constexpr int standardSampleControlHeight = 30;
         auto sampleActionRow = controlColumn.removeFromTop(std::min(standardSampleControlHeight, controlColumn.getHeight()));
         const auto brrButtonWidth = std::max(54, (sampleActionRow.getWidth() - 8) / 3);
         dmcSampleFileButton.setBounds(sampleActionRow.removeFromLeft(brrButtonWidth).reduced(0, 1));
