@@ -1494,7 +1494,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_preset_spc700_pmon_shimmer_assert PROPERTIES DEPENDS chipper_render_preset_spc700_pmon_shimmer_smoke)
 
     add_test(NAME chipper_render_paula_json_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/paula-smoke.json --implemented-contains partial --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.05 --min-rms 0.02 --register-writes 0 --note-events 0 --core-min internalChannelCount=4 --core-max internalChannelCount=4 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min period0=5378 --core-max period0=5381 --core-min volume0=50 --core-max volume0=52 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Sample Shape" --descriptor-param-choices waveShape=5
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/paula-smoke.json --implemented-contains partial --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.05 --min-rms 0.02 --register-writes 0 --note-events 0 --core-min internalChannelCount=4 --core-max internalChannelCount=4 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min period0=5378 --core-max period0=5381 --core-min volume0=50 --core-max volume0=52 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Ch 1 Sample" --descriptor-param-choices waveShape=5
     )
     set_tests_properties(chipper_render_paula_json_assert PROPERTIES DEPENDS chipper_render_paula_smoke)
 

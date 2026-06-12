@@ -3558,7 +3558,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
     const auto wavetableColumns = displayedMode == chipper::ChipMode::namcoWsg ? 4 : 3;
-    const auto sourceColumns = useSpc700VoiceGrid ? 4 : (usePaulaVoiceGrid ? 4 : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards)));
+    const auto sourceColumns = useSpc700VoiceGrid ? 4 : (usePaulaVoiceGrid ? 2 : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards)));
     const auto sourceRows = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid)
         ? static_cast<int>((visibleSourceCards + static_cast<size_t>(sourceColumns) - 1u) / static_cast<size_t>(sourceColumns))
         : 1;
@@ -3610,14 +3610,14 @@ void ChipperAudioProcessorEditor::resized()
         const auto isDenseSampleCard = isWavetableSourceCard || isPaulaSourceCard || isSpc700SourceCard;
         auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isDenseSampleCard ? 5 : 8),
                                                          isSidSourceCard ? 2 : (isDenseSampleCard ? 3 : 4));
-        const auto buttonHeight = useSpc700VoiceGrid ? 19 : (isSidSourceCard ? 17 : (isDenseSampleCard ? 20 : 18));
+        const auto buttonHeight = useSpc700VoiceGrid ? 19 : (isPaulaSourceCard ? 18 : (isSidSourceCard ? 17 : (isDenseSampleCard ? 20 : 18)));
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isDenseSampleCard ? 3 : 2);
         const auto previewHeight = isWavetableSourceCard
             ? std::clamp(sourceCard.getHeight() / 6, 18, 26)
             : std::clamp(sourceCard.getHeight() / (useSpc700VoiceGrid ? 3 : 4),
                          useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 22 : ((isDmgSourceCard || isPaulaSourceCard) ? 24 : 20)),
-                         useSpc700VoiceGrid ? 20 : (isSidSourceCard ? 32 : ((isDmgSourceCard || isPaulaSourceCard) ? 34 : 28)));
+                         useSpc700VoiceGrid ? 20 : (isSidSourceCard ? 32 : (isPaulaSourceCard ? 30 : (isDmgSourceCard ? 34 : 28))));
         sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(previewHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isDmgSourceCard || isDenseSampleCard ? 3 : 1);
 
@@ -3692,10 +3692,10 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isPaulaSourceCard && i < hucVoiceWaveBoxes.size())
         {
-            auto waveRow = sourceCard.removeFromTop(std::min(36, sourceCard.getHeight()));
+            auto waveRow = sourceCard.removeFromTop(std::min(40, sourceCard.getHeight()));
             hucVoiceWaveLabels[i].setBounds(waveRow.removeFromTop(std::min(12, waveRow.getHeight())));
             hucVoiceWaveBoxes[i].setBounds(waveRow.reduced(0, 1));
-            sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
+            sourceCard.removeFromTop(std::min(4, sourceCard.getHeight()));
         }
         else if (isSpc700SourceCard && i < hucVoiceWaveBoxes.size())
         {
@@ -3705,13 +3705,13 @@ void ChipperAudioProcessorEditor::resized()
             sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
         }
 
-        if (isWavetableSourceCard)
+        if (isWavetableSourceCard || isPaulaSourceCard)
         {
             auto levelRow = sourceCard.removeFromTop(std::min(13, sourceCard.getHeight()));
             sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(42, levelRow.getWidth())));
             sourceLevelValueLabels[i].setBounds(levelRow);
             sourceCard.removeFromTop(std::min(1, sourceCard.getHeight()));
-            sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(16, sourceCard.getHeight())).reduced(0, 1));
+            sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(isPaulaSourceCard ? 18 : 16, sourceCard.getHeight())).reduced(0, 1));
         }
         else
         {
