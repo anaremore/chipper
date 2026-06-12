@@ -512,6 +512,9 @@ add_test(NAME chipper_render_dmg_duty_75_smoke
 add_test(NAME chipper_render_dmg_pulse2_duty_override_smoke
     COMMAND chipper_render --chip dmg --accuracy authentic --macro manual --control1 0.0 --pulse2-duty 75 --clock 4194304 --rate 48000 --seconds 0.01 --note 69 --out dmg-pulse2-duty-smoke.wav --debug dmg-pulse2-duty-smoke.json
 )
+add_test(NAME chipper_render_dmg_pulse2_duty_follow_smoke
+    COMMAND chipper_render --chip dmg --accuracy authentic --macro manual --control1 0.0 --pulse2-duty follow --clock 4194304 --rate 48000 --seconds 0.01 --note 69 --out dmg-pulse2-duty-follow-smoke.wav --debug dmg-pulse2-duty-follow-smoke.json
+)
 add_test(NAME chipper_render_dmg_sources_off_smoke
     COMMAND chipper_render --chip dmg --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 0 --clock 4194304 --rate 48000 --seconds 0.01 --note 69 --out dmg-sources-off-smoke.wav --debug dmg-sources-off-smoke.json
 )
@@ -2063,6 +2066,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-pulse2-duty-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.1 --core-min pulseDuty1=0 --core-max pulseDuty1=0 --core-min pulseDuty2=3 --core-max pulseDuty2=3 --core-min pulse2DutyChoice=4 --core-max pulse2DutyChoice=4 --descriptor-param-kind pulse2Duty=chipRegister --descriptor-param-surface pulse2Duty=segmentedChoice --descriptor-param-label "pulse2Duty=Pulse 2 Duty" --descriptor-param-choices pulse2Duty=5
     )
     set_tests_properties(chipper_render_dmg_pulse2_duty_override_assert PROPERTIES DEPENDS chipper_render_dmg_pulse2_duty_override_smoke)
+
+    add_test(NAME chipper_render_dmg_pulse2_duty_follow_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-pulse2-duty-follow-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.1 --core-min pulseDuty1=0 --core-max pulseDuty1=0 --core-min pulseDuty2=1 --core-max pulseDuty2=1 --core-min pulse2DutyChoice=0 --core-max pulse2DutyChoice=0
+    )
+    set_tests_properties(chipper_render_dmg_pulse2_duty_follow_assert PROPERTIES DEPENDS chipper_render_dmg_pulse2_duty_follow_smoke)
 
     add_test(NAME chipper_render_dmg_sources_off_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-sources-off-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --max-peak 0.001 --max-rms 0.001 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min enabled0=0 --core-max enabled0=0 --core-min enabled1=0 --core-max enabled1=0 --core-min enabledWave=0 --core-max enabledWave=0 --core-min enabledNoise=0 --core-max enabledNoise=0
