@@ -3622,6 +3622,14 @@ void ChipperAudioProcessorEditor::resized()
         sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(previewHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isDmgSourceCard || isDenseSampleCard ? 3 : 1);
 
+        juce::Rectangle<int> embeddedLevelArea;
+        if (isWavetableSourceCard || isPaulaSourceCard)
+        {
+            const auto levelAreaHeight = std::min(isPaulaSourceCard ? 36 : 38, sourceCard.getHeight());
+            embeddedLevelArea = sourceCard.removeFromBottom(levelAreaHeight);
+            sourceCard.removeFromBottom(std::min(2, sourceCard.getHeight()));
+        }
+
         if (isSidSourceCard && i < sidVoiceWaveCount)
         {
             auto waveRow = sourceCard.removeFromTop(std::min(20, sourceCard.getHeight()));
@@ -3708,11 +3716,12 @@ void ChipperAudioProcessorEditor::resized()
 
         if (isWavetableSourceCard || isPaulaSourceCard)
         {
-            auto levelRow = sourceCard.removeFromTop(std::min(13, sourceCard.getHeight()));
+            auto levelArea = embeddedLevelArea;
+            auto levelRow = levelArea.removeFromTop(std::min(13, levelArea.getHeight()));
             sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(42, levelRow.getWidth())));
             sourceLevelValueLabels[i].setBounds(levelRow);
-            sourceCard.removeFromTop(std::min(1, sourceCard.getHeight()));
-            sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(isPaulaSourceCard ? 18 : 16, sourceCard.getHeight())).reduced(0, 1));
+            levelArea.removeFromTop(std::min(2, levelArea.getHeight()));
+            sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(isPaulaSourceCard ? 20 : 22, levelArea.getHeight())).reduced(0, 1));
         }
         else
         {
