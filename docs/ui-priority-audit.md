@@ -7,7 +7,7 @@ This audit tracks layout and control-placement work that most directly improves 
 - Game Boy / DMG now treats channel cards as the owner of channel-native register controls: Pulse 1 duty, Pulse 2 duty, Wave RAM shape/level, and Noise width mode.
 - Embedded channel controls must suppress their old standalone labels and readouts; otherwise stale labels can reappear after chip switching or parameter refresh.
 - HuC6280, Namco WSG, and Konami SCC now follow the same rule: per-channel wave shape selectors live inside a taller wavetable voice deck instead of a detached Wave/Mixer panel, with level strips reserved so wave controls cannot crowd out channel gain.
-- Amiga Paula now follows the channel-local rule too: each of the four hard-panned sample channels exposes its own generated sample shape selector in the channel card, matching Paula's independent DAC/sample playback model, and keeps a reserved level strip per channel.
+- Amiga Paula now follows the channel-local rule too: each of the four hard-panned sample channels exposes its own generated sample shape selector inside a roomy channel card, matching Paula's independent DAC/sample playback model, while the shared sample-bank panel stays focused on file/folder import and waveform preview.
 - SID already follows this pattern for per-voice waveform and pulse-width controls, with the global filter staying in the Filter panel.
 
 ## Highest-Value Next Fixes
@@ -27,10 +27,10 @@ This audit tracks layout and control-placement work that most directly improves 
    - User value: medium-high. Helps users understand why POKEY sounds chaotic and how channels pair.
    - Confidence: 7/10. Requires careful UX so AUDCTL cross-channel behavior is visible without crowding.
 
-4. Paula sample channels
-   - Issue: sample import is strong, but per-channel sample assignment and hard-pan identity could become more explicit.
-   - User value: medium-high. Makes Paula feel like a four-channel tracker sampler.
-   - Confidence: 7/10. Similar to SNES, but four channels make the UI easier.
+4. Paula sample assignment depth
+   - Issue: generated sample shape is now channel-local, but loaded sample-bank slot assignment is still shared rather than pinned per channel.
+   - User value: medium-high. Makes Paula feel like a four-channel tracker sampler when users load drum, bass, lead, and vocal samples together.
+   - Confidence: 7/10. The per-channel card surface is ready; the remaining work needs explicit engine semantics for per-channel sample slots.
 
 5. FM operator editors
    - Issue: FM chips are playable, but the current UI is still too macro/operator-summary driven for serious FM editing.

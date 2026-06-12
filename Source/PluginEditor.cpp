@@ -3360,8 +3360,8 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (sampleLayout ? 220 : (nesLayout ? 240 : (wavetableLayout ? 240 : 300)));
-    const auto maxModulesHeight = sidLayout ? 620 : (sampleLayout ? 620 : (nesLayout ? 570 : (wavetableLayout ? 610 : 492)));
+    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 210 : (sampleLayout ? 220 : (nesLayout ? 240 : (wavetableLayout ? 240 : 300))));
+    const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 660 : (sampleLayout ? 620 : (nesLayout ? 570 : (wavetableLayout ? 610 : 492))));
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
@@ -3454,8 +3454,8 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (paulaLayout)
     {
-        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.33)), 190, 230);
-        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.20)), 116, 148);
+        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.50)), 300, 360);
+        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.18)), 110, 136);
         const auto sampleRowHeight = std::max(220, modules.getHeight() - sourceRowHeight - middleRowHeight - (gap * 2));
         const auto topY = modules.getY();
         const auto middleY = topY + sourceRowHeight + gap;
@@ -3558,7 +3558,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
     const auto wavetableColumns = displayedMode == chipper::ChipMode::namcoWsg ? 4 : 3;
-    const auto paulaColumns = 4;
+    const auto paulaColumns = 2;
     const auto sourceColumns = useSpc700VoiceGrid ? 4 : (usePaulaVoiceGrid ? paulaColumns : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards)));
     const auto sourceRows = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid)
         ? static_cast<int>((visibleSourceCards + static_cast<size_t>(sourceColumns) - 1u) / static_cast<size_t>(sourceColumns))
@@ -3618,14 +3618,14 @@ void ChipperAudioProcessorEditor::resized()
             ? std::clamp(sourceCard.getHeight() / 6, 18, 26)
             : std::clamp(sourceCard.getHeight() / (useSpc700VoiceGrid ? 3 : 4),
                          useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 22 : ((isDmgSourceCard || isPaulaSourceCard) ? 24 : 20)),
-                         useSpc700VoiceGrid ? 20 : (isSidSourceCard ? 32 : (isPaulaSourceCard ? 30 : (isDmgSourceCard ? 34 : 28))));
+                         useSpc700VoiceGrid ? 20 : (isSidSourceCard ? 32 : (isPaulaSourceCard ? 44 : (isDmgSourceCard ? 34 : 28))));
         sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(previewHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isDmgSourceCard || isDenseSampleCard ? 3 : 1);
 
         juce::Rectangle<int> embeddedLevelArea;
         if (isWavetableSourceCard || isPaulaSourceCard)
         {
-            const auto levelAreaHeight = std::min(isPaulaSourceCard ? 36 : 38, sourceCard.getHeight());
+            const auto levelAreaHeight = std::min(isPaulaSourceCard ? 42 : 38, sourceCard.getHeight());
             embeddedLevelArea = sourceCard.removeFromBottom(levelAreaHeight);
             sourceCard.removeFromBottom(std::min(2, sourceCard.getHeight()));
         }
@@ -3701,10 +3701,10 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isPaulaSourceCard && i < hucVoiceWaveBoxes.size())
         {
-            auto waveRow = sourceCard.removeFromTop(std::min(40, sourceCard.getHeight()));
-            hucVoiceWaveLabels[i].setBounds(waveRow.removeFromTop(std::min(12, waveRow.getHeight())));
-            hucVoiceWaveBoxes[i].setBounds(waveRow.reduced(0, 1));
-            sourceCard.removeFromTop(std::min(4, sourceCard.getHeight()));
+            auto waveRow = sourceCard.removeFromTop(std::min(48, sourceCard.getHeight()));
+            hucVoiceWaveLabels[i].setBounds(waveRow.removeFromTop(std::min(15, waveRow.getHeight())));
+            hucVoiceWaveBoxes[i].setBounds(waveRow.removeFromTop(std::min(26, waveRow.getHeight())).reduced(0, 2));
+            sourceCard.removeFromTop(std::min(5, sourceCard.getHeight()));
         }
         else if (isSpc700SourceCard && i < hucVoiceWaveBoxes.size())
         {
@@ -3717,8 +3717,8 @@ void ChipperAudioProcessorEditor::resized()
         if (isWavetableSourceCard || isPaulaSourceCard)
         {
             auto levelArea = embeddedLevelArea;
-            auto levelRow = levelArea.removeFromTop(std::min(13, levelArea.getHeight()));
-            sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(42, levelRow.getWidth())));
+            auto levelRow = levelArea.removeFromTop(std::min(isPaulaSourceCard ? 15 : 13, levelArea.getHeight()));
+            sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(isPaulaSourceCard ? 50 : 42, levelRow.getWidth())));
             sourceLevelValueLabels[i].setBounds(levelRow);
             levelArea.removeFromTop(std::min(2, levelArea.getHeight()));
             sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(isPaulaSourceCard ? 20 : 22, levelArea.getHeight())).reduced(0, 1));
@@ -9083,7 +9083,9 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
         const auto resolved = isSpc700 ? selected : static_cast<int>(chipper::wavetableWaveShapeForChannel(mode, patch, i));
         const auto maxChoice = std::max(0, box.getNumItems() - 1);
         const auto visible = shouldBeVisible && i < visibleCount;
-        hucVoiceWaveLabels[i].setText(isSpc700 ? juce::String("Sample") : laneName + " " + juce::String(static_cast<int>(i + 1u)), juce::dontSendNotification);
+        hucVoiceWaveLabels[i].setText(isSpc700 ? juce::String("Sample")
+                                                : (isPaula ? juce::String("Sample Shape") : laneName + " " + juce::String(static_cast<int>(i + 1u))),
+                                      juce::dontSendNotification);
         hucVoiceWaveLabels[i].setVisible(visible);
         box.setVisible(visible);
         box.setSelectedId(std::clamp(selected, 0, maxChoice) + 1, juce::dontSendNotification);
