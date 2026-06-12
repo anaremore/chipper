@@ -17,7 +17,8 @@ This audit tracks layout and control-placement work that most directly improves 
 - SID already follows this pattern for per-voice waveform and pulse-width controls, with the global filter staying in the Filter panel.
 - Shared helper controls must use neutral base wording and chip-specific resolved readouts. For example, a volume-gate helper on POKEY or Paula should never describe itself as a NES/APU envelope period.
 - Visible preset-following states should say "Preset" rather than "Follow" when the control is using the selected preset recipe. "Shared Bank" is used for sample voices that inherit the global sample slot or note map.
-- Envelope sections should use truthful chip taxonomy: **ADSR** for SID-style per-voice ADSR, **Operator EG** for FM operator envelopes, **APU/Volume/Hardware Envelope** for native non-ADSR chips, and **Amp Env/Volume Helper** when Chipper adds a musical helper over volume, attenuation, or sample playback.
+- Envelope sections should use truthful chip taxonomy: **ADSR** for SID-style per-voice ADSR and S-DSP ADSR/GAIN work, **Operator EG** for FM operator envelopes, **APU/Volume/Hardware Envelope** for native non-ADSR chips, and **Amp Env/Volume Helper** when Chipper adds a musical helper over volume, attenuation, or sample playback.
+- Chipper helper envelopes must name the underlying chip path when practical: POKEY should say **AUDV Gate**, Paula should say **Tracker Amp Env**, HuC6280 should say **Channel Amp Env**, SCC should say **Wave Amp Env**, and Namco WSG should say **Lane Amp Env**. Avoid generic ADSR/Decay wording unless the chip really exposes that behavior.
 
 ## Highest-Value Next Fixes
 
