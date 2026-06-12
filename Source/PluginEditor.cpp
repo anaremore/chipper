@@ -3648,34 +3648,46 @@ void ChipperAudioProcessorEditor::resized()
         if (isDmgSourceCard)
         {
             constexpr auto compactSegmentHeight = 22;
+            constexpr auto compactLabelHeight = 12;
             const auto placeCompactSegment = [](auto& buttons, juce::Rectangle<int> segmentBounds, size_t count)
             {
                 layoutSegmentedButtons(buttons, segmentBounds.reduced(0, 1), count);
             };
+            const auto placeCompactLabel = [](juce::Label& label, juce::Label* valueLabel, juce::Rectangle<int> labelBounds)
+            {
+                label.setBounds(labelBounds);
+                if (valueLabel != nullptr)
+                    valueLabel->setBounds({});
+            };
 
             if (i == 0)
             {
+                placeCompactLabel(nativeLabels[0], &controlValueLabels[0], sourceCard.removeFromTop(std::min(compactLabelHeight, sourceCard.getHeight())));
                 pulseDutySegmentBounds = sourceCard.removeFromTop(std::min(compactSegmentHeight, sourceCard.getHeight()));
                 placeCompactSegment(pulseDutyButtons, pulseDutySegmentBounds, pulseDutyButtons.size());
                 sourceCard.removeFromTop(3);
             }
             else if (i == 1)
             {
+                placeCompactLabel(pulse2DutyLabel, &pulse2DutyValueLabel, sourceCard.removeFromTop(std::min(compactLabelHeight, sourceCard.getHeight())));
                 pulse2DutySegmentBounds = sourceCard.removeFromTop(std::min(compactSegmentHeight, sourceCard.getHeight()));
                 placeCompactSegment(pulse2DutyButtons, pulse2DutySegmentBounds, pulse2DutyButtons.size());
                 sourceCard.removeFromTop(3);
             }
             else if (i == 2)
             {
+                placeCompactLabel(waveShapeLabel, &waveShapeValueLabel, sourceCard.removeFromTop(std::min(compactLabelHeight, sourceCard.getHeight())));
                 waveShapeSegmentBounds = sourceCard.removeFromTop(std::min(compactSegmentHeight, sourceCard.getHeight()));
                 placeCompactSegment(waveShapeButtons, waveShapeSegmentBounds, waveShapeButtons.size());
                 sourceCard.removeFromTop(3);
+                placeCompactLabel(dmgWaveLevelLabel, &dmgWaveLevelValueLabel, sourceCard.removeFromTop(std::min(compactLabelHeight, sourceCard.getHeight())));
                 dmgWaveLevelSegmentBounds = sourceCard.removeFromTop(std::min(compactSegmentHeight, sourceCard.getHeight()));
                 placeCompactSegment(dmgWaveLevelButtons, dmgWaveLevelSegmentBounds, dmgWaveLevelButtons.size());
                 sourceCard.removeFromTop(3);
             }
             else if (i == 3)
             {
+                placeCompactLabel(snNoiseModeLabel, &snNoiseModeValueLabel, sourceCard.removeFromTop(std::min(compactLabelHeight, sourceCard.getHeight())));
                 snNoiseModeSegmentBounds = sourceCard.removeFromTop(std::min(compactSegmentHeight, sourceCard.getHeight()));
                 placeCompactSegment(snNoiseModeButtons, snNoiseModeSegmentBounds, snNoiseModeButtons.size());
                 sourceCard.removeFromTop(3);
@@ -4056,6 +4068,9 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (displayedMode == chipper::ChipMode::dmg)
     {
+        nativeGroupLabels[0].setBounds({});
+        nativeSliders[0].setBounds({});
+        controlValueLabels[0].setBounds({});
         placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[0]);
         placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[1]);
         placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[2]);
@@ -7568,7 +7583,7 @@ void ChipperAudioProcessorEditor::setPulse2DutySegmentVisible(chipper::ChipMode 
 {
     const auto active = shouldBeVisible && usesPulse2DutySegment(mode);
     const auto embeddedInSourceCard = mode == chipper::ChipMode::dmg;
-    pulse2DutyLabel.setVisible(active && ! embeddedInSourceCard);
+    pulse2DutyLabel.setVisible(active);
     pulse2DutyValueLabel.setVisible(active && ! embeddedInSourceCard);
     for (auto& button : pulse2DutyButtons)
         button.setVisible(active);
@@ -7630,7 +7645,7 @@ void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode m
     const auto oplWaveformActive = active && mode == chipper::ChipMode::opl3;
     const auto opllInstrumentActive = active && mode == chipper::ChipMode::ym2413;
     const auto embeddedInSourceCard = mode == chipper::ChipMode::dmg;
-    waveShapeLabel.setVisible(active && ! embeddedInSourceCard);
+    waveShapeLabel.setVisible(active);
     waveShapeValueLabel.setVisible(active && ! embeddedInSourceCard);
     for (auto& button : waveShapeButtons)
         button.setVisible(active && ! fmAlgorithmActive && ! oplWaveformActive && ! opllInstrumentActive);
@@ -7711,7 +7726,7 @@ void ChipperAudioProcessorEditor::setDmgWaveLevelSegmentVisible(chipper::ChipMod
 {
     const auto active = shouldBeVisible && usesDmgWaveLevelSegment(mode);
     const auto embeddedInSourceCard = mode == chipper::ChipMode::dmg;
-    dmgWaveLevelLabel.setVisible(active && ! embeddedInSourceCard);
+    dmgWaveLevelLabel.setVisible(active);
     dmgWaveLevelValueLabel.setVisible(active && ! embeddedInSourceCard);
     for (auto& button : dmgWaveLevelButtons)
         button.setVisible(active);
@@ -7822,7 +7837,7 @@ void ChipperAudioProcessorEditor::setSnNoiseModeSegmentVisible(chipper::ChipMode
     const auto menuActive = active && chipper::chipHasParameterSurface(mode,
                                                                        chipper::ChipParameterRole::snNoiseMode,
                                                                        chipper::ControlSurface::menu);
-    snNoiseModeLabel.setVisible(active && ! embeddedInSourceCard);
+    snNoiseModeLabel.setVisible(active);
     snNoiseModeValueLabel.setVisible(active && ! embeddedInSourceCard);
     for (auto& button : snNoiseModeButtons)
         button.setVisible(active && ! menuActive);
@@ -8699,7 +8714,7 @@ void ChipperAudioProcessorEditor::updatePulse2DutyButtons(const chipper::PatchCo
     }
 
     const auto embeddedInSourceCard = displayedMode == chipper::ChipMode::dmg;
-    pulse2DutyLabel.setVisible(shouldBeVisible && ! embeddedInSourceCard);
+    pulse2DutyLabel.setVisible(shouldBeVisible);
     pulse2DutyValueLabel.setVisible(shouldBeVisible && ! embeddedInSourceCard);
     pulse2DutyValueLabel.setText(pulse2DutyReadout(patch), juce::dontSendNotification);
 }
@@ -8784,7 +8799,7 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
     }
 
     const auto embeddedInSourceCard = mode == chipper::ChipMode::dmg;
-    waveShapeLabel.setVisible(shouldBeVisible && ! embeddedInSourceCard);
+    waveShapeLabel.setVisible(shouldBeVisible);
     waveShapeValueLabel.setVisible(shouldBeVisible && ! embeddedInSourceCard);
     waveShapeValueLabel.setText(waveShapeReadout(mode, static_cast<int>(selected)), juce::dontSendNotification);
 }
@@ -9133,7 +9148,7 @@ void ChipperAudioProcessorEditor::updateDmgWaveLevelButtons(const chipper::Patch
     }
 
     const auto embeddedInSourceCard = displayedMode == chipper::ChipMode::dmg;
-    dmgWaveLevelLabel.setVisible(shouldBeVisible && ! embeddedInSourceCard);
+    dmgWaveLevelLabel.setVisible(shouldBeVisible);
     dmgWaveLevelValueLabel.setVisible(shouldBeVisible && ! embeddedInSourceCard);
     dmgWaveLevelValueLabel.setText(dmgWaveLevelReadout(patch), juce::dontSendNotification);
 }
@@ -9344,7 +9359,7 @@ void ChipperAudioProcessorEditor::updateSnNoiseModeButtons(chipper::ChipMode mod
     const auto compactFmMode = mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151;
     const auto embeddedInSourceCard = mode == chipper::ChipMode::dmg;
     const auto registerSegmentMode = mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
-    snNoiseModeLabel.setVisible(shouldBeVisible && ! embeddedInSourceCard);
+    snNoiseModeLabel.setVisible(shouldBeVisible);
     snNoiseModeValueLabel.setVisible(shouldBeVisible && ! embeddedInSourceCard && ! compactFmMode && ! registerSegmentMode);
     snNoiseModeValueLabel.setText(modeReadout, juce::dontSendNotification);
     snNoiseModeLabel.setTooltip(withMidiCcForRole((spec != nullptr ? juce::String(spec->help) : juce::String("Chip noise/DAC mode."))
@@ -10223,7 +10238,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     nativeSliders[0].setVisible(! hasPulseDutySegment);
     const auto embeddedPulseDuty = mode == chipper::ChipMode::dmg && hasPulseDutySegment;
     nativeGroupLabels[0].setVisible(! embeddedPulseDuty);
-    nativeLabels[0].setVisible(! embeddedPulseDuty);
+    nativeLabels[0].setVisible(! embeddedPulseDuty || hasPulseDutySegment);
     controlValueLabels[0].setVisible(! embeddedPulseDuty);
     nativeSliders[3].setVisible(! hasToneNoiseMixSegment);
     updatePulseDutyButtons(patch.control1, hasPulseDutySegment);
