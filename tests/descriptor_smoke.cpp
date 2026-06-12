@@ -379,6 +379,8 @@ bool expectEnvelopeModels()
                  "native ADSR envelope label should stay user-facing");
     ok &= expect(std::string(chipper::envelopeModelLabel(chipper::EnvelopeModel::nativeOperatorEg)) == "Native Operator EG",
                  "operator EG envelope label should stay user-facing");
+    ok &= expect(std::string(chipper::envelopeModelLabel(chipper::EnvelopeModel::nativeNonAdsr)) == "Native Envelope",
+                 "native non-ADSR envelope label should stay honest");
     ok &= expect(std::string(chipper::envelopeModelLabel(chipper::EnvelopeModel::chipperAmpHelper)) == "Chipper Amp Env",
                  "helper envelope label should stay honest");
 
