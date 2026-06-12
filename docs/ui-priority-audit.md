@@ -6,7 +6,7 @@ This audit tracks layout and control-placement work that most directly improves 
 
 - Game Boy / DMG now treats channel cards as the owner of channel-native register controls: Pulse 1 duty, Pulse 2 duty, Wave RAM shape/level, and Noise width mode.
 - Embedded channel controls must suppress their old standalone labels and readouts; otherwise stale labels can reappear after chip switching or parameter refresh.
-- HuC6280, Namco WSG, and Konami SCC now follow the same rule: per-channel wave shape selectors live inside their wavetable voice cards instead of a detached Wave/Mixer panel.
+- HuC6280, Namco WSG, and Konami SCC now follow the same rule: per-channel wave shape selectors live inside a taller wavetable voice deck instead of a detached Wave/Mixer panel.
 - SID already follows this pattern for per-voice waveform and pulse-width controls, with the global filter staying in the Filter panel.
 
 ## Highest-Value Next Fixes
@@ -17,9 +17,9 @@ This audit tracks layout and control-placement work that most directly improves 
    - Confidence: 7/10. Existing sample-bank and voice-card surfaces are usable foundations; engine voice assignment semantics need careful scoping.
 
 2. Wavetable voice polish
-   - Issue: HuC6280, Namco WSG, and SCC now place per-voice wave selectors in the cards, but the next pass should verify spacing, labels, and per-chip terminology after real DAW use.
+   - Issue: HuC6280, Namco WSG, and SCC now place per-voice wave selectors in the cards, but the next pass should verify whether they also need per-lane volume/pan/pitch controls in the same cards.
    - User value: high. These chips are fundamentally independent wavetable lanes, so users should shape each lane where they hear and enable it.
-   - Confidence: 8/10. Layout and parameters are in place; remaining work is visual QA and any engine gaps found while playing.
+   - Confidence: 8/10. Layout and parameters are in place; remaining work is deeper per-lane editing and any engine gaps found while playing.
 
 3. POKEY channel deck
    - Issue: distortion/noise and AUDCTL pairing are readable, but individual channel AUDF/AUDC/AUDV relationships could be clearer in the four channel cards.

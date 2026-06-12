@@ -3306,9 +3306,12 @@ void ChipperAudioProcessorEditor::resized()
     const auto dmgLayout = displayedMode == chipper::ChipMode::dmg;
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
     const auto sampleLayout = displayedMode == chipper::ChipMode::spc700 || displayedMode == chipper::ChipMode::paula;
+    const auto wavetableLayout = displayedMode == chipper::ChipMode::huc6280
+        || displayedMode == chipper::ChipMode::namcoWsg
+        || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (sampleLayout ? 220 : (nesLayout ? 240 : 300));
-    const auto maxModulesHeight = sidLayout ? 620 : (sampleLayout ? 620 : (nesLayout ? 570 : 492));
+    const auto performanceStripHeight = sidLayout ? 260 : (sampleLayout ? 220 : (nesLayout ? 240 : (wavetableLayout ? 240 : 300)));
+    const auto maxModulesHeight = sidLayout ? 620 : (sampleLayout ? 620 : (nesLayout ? 570 : (wavetableLayout ? 610 : 492)));
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
@@ -3382,6 +3385,22 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[3] = { modules.getX(), bottomY, columnWidth, bottomRowHeight };
         moduleBounds[4] = {};
         moduleBounds[5] = { modules.getX() + columnWidth + gap, bottomY, columnWidth, bottomRowHeight };
+    }
+    else if (wavetableLayout)
+    {
+        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.54)), 270, 330);
+        const auto utilityRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.24)), 116, 150);
+        const auto outputRowHeight = std::max(112, modules.getHeight() - sourceRowHeight - utilityRowHeight - (gap * 2));
+        const auto topY = modules.getY();
+        const auto utilityY = topY + sourceRowHeight + gap;
+        const auto outputY = utilityY + utilityRowHeight + gap;
+
+        moduleBounds[0] = {};
+        moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), sourceRowHeight };
+        moduleBounds[2] = {};
+        moduleBounds[3] = { modules.getX(), utilityY, columnWidth, utilityRowHeight };
+        moduleBounds[4] = {};
+        moduleBounds[5] = { modules.getX(), outputY, modules.getWidth(), outputRowHeight };
     }
     else if (sampleLayout)
     {
@@ -3521,12 +3540,12 @@ void ChipperAudioProcessorEditor::resized()
         const auto isWavetableSourceCard = useWavetableVoiceGrid;
         auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isWavetableSourceCard ? 5 : 8),
                                                          isSidSourceCard ? 2 : (isWavetableSourceCard ? 3 : 4));
-        const auto buttonHeight = useSpc700VoiceGrid ? 17 : (isSidSourceCard ? 17 : 18);
+        const auto buttonHeight = useSpc700VoiceGrid ? 17 : (isSidSourceCard ? 17 : (isWavetableSourceCard ? 20 : 18));
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
-        sourceCard.removeFromTop(2);
+        sourceCard.removeFromTop(isWavetableSourceCard ? 4 : 2);
         const auto previewHeight = std::clamp(sourceCard.getHeight() / (useSpc700VoiceGrid ? 3 : 4),
-                                              useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 22 : (isDmgSourceCard ? 24 : (isWavetableSourceCard ? 16 : 20))),
-                                              useSpc700VoiceGrid ? 20 : (isSidSourceCard ? 32 : (isDmgSourceCard ? 34 : (isWavetableSourceCard ? 22 : 28))));
+                                              useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 22 : (isDmgSourceCard ? 24 : (isWavetableSourceCard ? 24 : 20))),
+                                              useSpc700VoiceGrid ? 20 : (isSidSourceCard ? 32 : (isDmgSourceCard ? 34 : (isWavetableSourceCard ? 34 : 28))));
         sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(previewHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isDmgSourceCard || isWavetableSourceCard ? 4 : 1);
 
@@ -3582,17 +3601,17 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isWavetableSourceCard && i < hucVoiceWaveBoxes.size())
         {
-            hucVoiceWaveLabels[i].setBounds(sourceCard.removeFromTop(std::min(12, sourceCard.getHeight())));
-            sourceCard.removeFromTop(std::min(1, sourceCard.getHeight()));
-            hucVoiceWaveBoxes[i].setBounds(sourceCard.removeFromTop(std::min(22, sourceCard.getHeight())).reduced(0, 1));
-            sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
+            hucVoiceWaveLabels[i].setBounds(sourceCard.removeFromTop(std::min(14, sourceCard.getHeight())));
+            sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
+            hucVoiceWaveBoxes[i].setBounds(sourceCard.removeFromTop(std::min(26, sourceCard.getHeight())).reduced(0, 1));
+            sourceCard.removeFromTop(std::min(5, sourceCard.getHeight()));
         }
 
-        auto levelRow = sourceCard.removeFromTop(std::min(useSpc700VoiceGrid ? 10 : 12, sourceCard.getHeight()));
-        sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(useSpc700VoiceGrid ? 34 : 48, levelRow.getWidth())));
+        auto levelRow = sourceCard.removeFromTop(std::min(useSpc700VoiceGrid ? 10 : (isWavetableSourceCard ? 13 : 12), sourceCard.getHeight()));
+        sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(useSpc700VoiceGrid ? 34 : (isWavetableSourceCard ? 44 : 48), levelRow.getWidth())));
         sourceLevelValueLabels[i].setBounds(levelRow);
         sourceCard.removeFromTop(1);
-        sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(useSpc700VoiceGrid ? 10 : (isSidSourceCard ? 11 : 14), sourceCard.getHeight())).reduced(0, 1));
+        sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(useSpc700VoiceGrid ? 10 : (isSidSourceCard ? 11 : (isWavetableSourceCard ? 15 : 14)), sourceCard.getHeight())).reduced(0, 1));
     }
 
     auto tonePanel = moduleBounds[2].reduced(12, 9);
@@ -7412,7 +7431,10 @@ void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode m
 {
     const auto usesPerLaneWaves = mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc;
     setSidVoiceWaveControlsVisible(shouldBeVisible && mode == chipper::ChipMode::sid);
-    setHucVoiceWaveControlsVisible(shouldBeVisible && usesPerLaneWaves);
+    const auto perLaneWaveActive = usesPerLaneWaves
+        && chipper::descriptorFor(mode).implemented
+        && usesSourceChannelSurface(mode);
+    setHucVoiceWaveControlsVisible(perLaneWaveActive);
     if (mode == chipper::ChipMode::sid)
     {
         for (auto& button : waveShapeButtons)
