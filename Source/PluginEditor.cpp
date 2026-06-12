@@ -4286,7 +4286,10 @@ void ChipperAudioProcessorEditor::placeWaveShapeSegment(juce::Rectangle<int> bou
     waveShapeSegmentBounds = bounds.removeFromTop(std::min(tight ? 20 : (compact ? 24 : 28), bounds.getHeight())).reduced(0, 1);
     layoutSegmentedButtons(waveShapeButtons, waveShapeSegmentBounds, waveShapeButtons.size());
 
-    const auto canShowReadout = ! compact && ! tight && bounds.getHeight() >= 18 && displayedMode != chipper::ChipMode::paula;
+    const auto canShowReadout = ! compact
+        && ! tight
+        && bounds.getHeight() >= 18
+        && displayedMode != chipper::ChipMode::paula;
     waveShapeValueLabel.setBounds(canShowReadout ? bounds : juce::Rectangle<int> {});
 }
 
@@ -4640,7 +4643,11 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
         snNoiseModeBox.setBounds({});
     }
 
-    snNoiseModeValueLabel.setBounds((compact || tight || useRegisterSegment) ? juce::Rectangle<int> {} : bounds);
+    const auto hideValueReadout = compact
+        || tight
+        || useRegisterSegment
+        || displayedMode == chipper::ChipMode::paula;
+    snNoiseModeValueLabel.setBounds(hideValueReadout ? juce::Rectangle<int> {} : bounds);
 }
 
 void ChipperAudioProcessorEditor::placeToneNoiseMixSegment(juce::Rectangle<int> bounds)
