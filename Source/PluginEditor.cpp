@@ -822,7 +822,7 @@ juce::String choiceTooltip(const chipper::ChipParameterSpec& spec, size_t choice
 
 juce::String visibleChoiceLabel(const std::string& label)
 {
-    return label == "Macro" ? juce::String("Follow") : juce::String(label);
+    return label == "Macro" ? juce::String("Preset") : juce::String(label);
 }
 
 juce::String withMidiCc(juce::String text, const char* parameterId)
@@ -2293,7 +2293,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
     addLabeledSlider(envelopeDecaySlider, envelopeDecayLabel, "Envelope Decay");
     envelopeDecaySlider.setNumDecimalPlacesToDisplay(2);
-    envelopeDecaySlider.setTooltip(withMidiCc("Maps musical decay to the active chip's hardware envelope period. Zero preserves the macro's original envelope/level behavior.", chipper::parameters::id::envelopeDecay));
+    envelopeDecaySlider.setTooltip(withMidiCc("Maps musical decay to the selected chip's native envelope, gain, or volume-register helper. Zero preserves the preset recipe's original envelope/level behavior.", chipper::parameters::id::envelopeDecay));
     envelopeDecayAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::envelopeDecay, envelopeDecaySlider);
 
     envelopeDecayValueLabel.setJustificationType(juce::Justification::centredLeft);
@@ -2492,7 +2492,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     pulse2DutyValueLabel.setVisible(false);
     addAndMakeVisible(pulse2DutyValueLabel);
 
-    const std::array<const char*, pulse2DutyCount> pulse2Labels { "Follow", "12.5%", "25%", "50%", "75%" };
+    const std::array<const char*, pulse2DutyCount> pulse2Labels { "Preset", "12.5%", "25%", "50%", "75%" };
     for (size_t i = 0; i < pulse2DutyButtons.size(); ++i)
     {
         auto& button = pulse2DutyButtons[i];
@@ -2756,7 +2756,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     dmgWaveLevelValueLabel.setVisible(false);
     addAndMakeVisible(dmgWaveLevelValueLabel);
 
-    const std::array<const char*, dmgWaveLevelCount> dmgWaveLevelLabels { "Follow", "Mute", "100%", "50%", "25%" };
+    const std::array<const char*, dmgWaveLevelCount> dmgWaveLevelLabels { "Preset", "Mute", "100%", "50%", "25%" };
     for (size_t i = 0; i < dmgWaveLevelButtons.size(); ++i)
     {
         auto& button = dmgWaveLevelButtons[i];
@@ -2790,7 +2790,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     dmgStereoRouteValueLabel.setVisible(false);
     addAndMakeVisible(dmgStereoRouteValueLabel);
 
-    const std::array<const char*, dmgStereoRouteCount> dmgStereoRouteLabels { "Follow", "Both", "Left", "Right", "Split" };
+    const std::array<const char*, dmgStereoRouteCount> dmgStereoRouteLabels { "Preset", "Both", "Left", "Right", "Split" };
     for (size_t i = 0; i < dmgStereoRouteButtons.size(); ++i)
     {
         auto& button = dmgStereoRouteButtons[i];
@@ -2952,7 +2952,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     snNoiseModeValueLabel.setVisible(false);
     addAndMakeVisible(snNoiseModeValueLabel);
 
-    const std::array<const char*, snNoiseModeCount> snNoiseLabels { "Follow", "P-Lo", "P-Hi", "W-Lo", "W-T3" };
+    const std::array<const char*, snNoiseModeCount> snNoiseLabels { "Preset", "P-Lo", "P-Hi", "W-Lo", "W-T3" };
     for (size_t i = 0; i < snNoiseModeButtons.size(); ++i)
     {
         auto& button = snNoiseModeButtons[i];
@@ -3112,7 +3112,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(scope);
     }
 
-    globalStripLabel.setText("Performance", juce::dontSendNotification);
+    globalStripLabel.setText("Performance Macros", juce::dontSendNotification);
     globalStripLabel.setJustificationType(juce::Justification::centredLeft);
     globalStripLabel.setColour(juce::Label::textColourId, juce::Colour(0xfff0c94d));
     globalStripLabel.setFont(juce::FontOptions(14.0f, juce::Font::bold));
@@ -3427,20 +3427,18 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (nesLayout)
     {
-        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.26)), 126, 156);
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.34)), 178, 216);
         const auto remainingHeight = modules.getHeight() - topRowHeight - gap;
-        const auto controlRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(remainingHeight) * 0.54)), 212, 238);
+        const auto controlRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(remainingHeight) * 0.48)), 170, 210);
         const auto sampleRowHeight = std::max(172, remainingHeight - controlRowHeight - gap);
-        const auto toneWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getWidth()) * 0.54)), 540, 640);
-        const auto detailWidth = modules.getWidth() - toneWidth - gap;
         const auto topY = modules.getY();
         const auto middleY = topY + topRowHeight + gap;
         const auto bottomY = middleY + controlRowHeight + gap;
 
         moduleBounds[0] = {};
         moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), topRowHeight };
-        moduleBounds[2] = { modules.getX(), middleY, toneWidth, controlRowHeight };
-        moduleBounds[3] = { modules.getX() + toneWidth + gap, middleY, detailWidth, controlRowHeight };
+        moduleBounds[2] = {};
+        moduleBounds[3] = { modules.getX(), middleY, modules.getWidth(), controlRowHeight };
         moduleBounds[4] = {};
         moduleBounds[5] = { modules.getX(), bottomY, modules.getWidth(), sampleRowHeight };
     }
@@ -3648,6 +3646,7 @@ void ChipperAudioProcessorEditor::resized()
             sourceCardHeight
         };
         const auto isSidSourceCard = displayedMode == chipper::ChipMode::sid;
+        const auto isNesSourceCard = displayedMode == chipper::ChipMode::nes;
         const auto isDmgSourceCard = displayedMode == chipper::ChipMode::dmg;
         const auto isPaulaSourceCard = displayedMode == chipper::ChipMode::paula;
         const auto isSpc700SourceCard = displayedMode == chipper::ChipMode::spc700;
@@ -3661,10 +3660,10 @@ void ChipperAudioProcessorEditor::resized()
         const auto previewHeight = isWavetableSourceCard
             ? std::clamp(sourceCard.getHeight() / 6, 18, 26)
             : std::clamp(sourceCard.getHeight() / (useSpc700VoiceGrid ? 3 : 4),
-                         useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 22 : ((isDmgSourceCard || isPaulaSourceCard) ? 24 : 20)),
-                         useSpc700VoiceGrid ? 20 : (isSidSourceCard ? 32 : (isPaulaSourceCard ? 30 : (isDmgSourceCard ? 34 : 28))));
+                         useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 22 : ((isNesSourceCard || isDmgSourceCard || isPaulaSourceCard) ? 24 : 20)),
+                         useSpc700VoiceGrid ? 20 : (isSidSourceCard ? 32 : (isPaulaSourceCard ? 30 : ((isNesSourceCard || isDmgSourceCard) ? 34 : 28))));
         sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(previewHeight, sourceCard.getHeight())));
-        sourceCard.removeFromTop(isDmgSourceCard || isDenseSampleCard ? 3 : 1);
+        sourceCard.removeFromTop(isNesSourceCard || isDmgSourceCard || isDenseSampleCard ? 3 : 1);
 
         juce::Rectangle<int> embeddedLevelArea;
         if (isWavetableSourceCard || isPaulaSourceCard)
@@ -3688,7 +3687,7 @@ void ChipperAudioProcessorEditor::resized()
             sourceCard.removeFromTop(1);
         }
 
-        if (isDmgSourceCard)
+        if (isNesSourceCard || isDmgSourceCard)
         {
             constexpr auto compactSegmentHeight = 22;
             constexpr auto compactLabelHeight = 12;
@@ -3717,7 +3716,7 @@ void ChipperAudioProcessorEditor::resized()
                 placeCompactSegment(pulse2DutyButtons, pulse2DutySegmentBounds, pulse2DutyButtons.size());
                 sourceCard.removeFromTop(3);
             }
-            else if (i == 2)
+            else if (isDmgSourceCard && i == 2)
             {
                 placeCompactLabel(waveShapeLabel, &waveShapeValueLabel, sourceCard.removeFromTop(std::min(compactLabelHeight, sourceCard.getHeight())));
                 waveShapeSegmentBounds = sourceCard.removeFromTop(std::min(compactSegmentHeight, sourceCard.getHeight()));
@@ -3925,7 +3924,9 @@ void ChipperAudioProcessorEditor::resized()
     else if (displayedMode == chipper::ChipMode::ym2413)
         placeOpllInstrumentControl(primaryTonePanel);
     else if (displayedMode == chipper::ChipMode::nes)
-        placePulseDutySegment(primaryTonePanel);
+    {
+        // NES register controls are owned by the individual source cards.
+    }
     else if (displayedMode == chipper::ChipMode::dmg)
     {
         waveShapeLabel.setBounds({});
@@ -3963,7 +3964,10 @@ void ChipperAudioProcessorEditor::resized()
     motionPanel.removeFromTop(20);
     motionPanel.removeFromTop(30);
     motionPanel.removeFromTop(4);
-    if (usesSnNoiseModeSegment(displayedMode) && displayedMode != chipper::ChipMode::paula)
+    if (usesSnNoiseModeSegment(displayedMode)
+        && displayedMode != chipper::ChipMode::nes
+        && displayedMode != chipper::ChipMode::dmg
+        && displayedMode != chipper::ChipMode::paula)
     {
         auto noiseModePanel = primaryTonePanel;
         if (displayedMode == chipper::ChipMode::sid)
@@ -4115,6 +4119,16 @@ void ChipperAudioProcessorEditor::resized()
 
     if (displayedMode == chipper::ChipMode::nes)
     {
+        placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[0]);
+        placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[1]);
+        placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[2]);
+    }
+    else if (displayedMode == chipper::ChipMode::nes)
+    {
+        nativeGroupLabels[0].setBounds({});
+        nativeLabels[0].setBounds({});
+        nativeSliders[0].setBounds({});
+        controlValueLabels[0].setBounds({});
         placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[0]);
         placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[1]);
         placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[2]);
@@ -7664,7 +7678,7 @@ void ChipperAudioProcessorEditor::setStereoSpreadControlVisible(chipper::ChipMod
 void ChipperAudioProcessorEditor::setPulse2DutySegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
     const auto active = shouldBeVisible && usesPulse2DutySegment(mode);
-    const auto embeddedInSourceCard = mode == chipper::ChipMode::dmg;
+    const auto embeddedInSourceCard = mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
     pulse2DutyLabel.setVisible(active);
     pulse2DutyValueLabel.setVisible(active && ! embeddedInSourceCard);
     for (auto& button : pulse2DutyButtons)
@@ -7912,7 +7926,7 @@ void ChipperAudioProcessorEditor::setYmChannelMixControlsVisible(bool shouldBeVi
 void ChipperAudioProcessorEditor::setSnNoiseModeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
     const auto active = shouldBeVisible && usesSnNoiseModeSegment(mode);
-    const auto embeddedInSourceCard = mode == chipper::ChipMode::dmg;
+    const auto embeddedInSourceCard = mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
     const auto menuActive = active && chipper::chipHasParameterSurface(mode,
                                                                        chipper::ChipParameterRole::snNoiseMode,
                                                                        chipper::ControlSurface::menu);
@@ -8796,7 +8810,8 @@ void ChipperAudioProcessorEditor::updatePulse2DutyButtons(const chipper::PatchCo
         pulse2DutyButtons[i].setToggleState(visible && i == selected, juce::dontSendNotification);
     }
 
-    const auto embeddedInSourceCard = displayedMode == chipper::ChipMode::dmg;
+    const auto embeddedInSourceCard = displayedMode == chipper::ChipMode::nes
+        || displayedMode == chipper::ChipMode::dmg;
     pulse2DutyLabel.setVisible(shouldBeVisible);
     pulse2DutyValueLabel.setVisible(shouldBeVisible && ! embeddedInSourceCard);
     pulse2DutyValueLabel.setText(pulse2DutyReadout(patch), juce::dontSendNotification);
@@ -8881,7 +8896,8 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
         waveShapeButtons[i].setToggleState(shouldBeVisible && i == selected, juce::dontSendNotification);
     }
 
-    const auto embeddedInSourceCard = mode == chipper::ChipMode::dmg;
+    const auto embeddedInSourceCard = mode == chipper::ChipMode::nes
+        || mode == chipper::ChipMode::dmg;
     waveShapeLabel.setVisible(shouldBeVisible);
     waveShapeValueLabel.setVisible(shouldBeVisible && ! embeddedInSourceCard);
     waveShapeValueLabel.setText(waveShapeReadout(mode, static_cast<int>(selected)), juce::dontSendNotification);
@@ -10036,7 +10052,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         && ! applyingFactoryPreset
         && restoreChipSettingsSnapshot(mode);
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
-    globalStripLabel.setText(hasLiveCore ? "Performance" : "Roadmap", juce::dontSendNotification);
+    globalStripLabel.setText(hasLiveCore ? "Performance Macros" : "Roadmap", juce::dontSendNotification);
     macroSummaryLabel.setVisible(true);
     macroSummaryLabel.setEnabled(true);
     macroSummaryLabel.setAlpha(hasLiveCore ? 1.0f : 0.85f);
@@ -10244,8 +10260,10 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto hasReferenceOnlyProfile = hasLiveCore && ! hasCustomProfileSurface;
     for (auto& itemLabel : moduleItemLabels[0])
         itemLabel.setVisible(! hasReferenceOnlyProfile && ! hasCustomProfileSurface && ! itemLabel.getText().isEmpty());
-    const auto hasEmbeddedWavetableSourceControls = usesChannelLocalWaveDeck(mode);
-    const auto hasCustomToneSurface = hasLiveCore && mode != chipper::ChipMode::dmg && ! hasEmbeddedWavetableSourceControls && (usesWaveShapeSegment(mode)
+    const auto hasEmbeddedSourceRegisterControls = mode == chipper::ChipMode::nes
+        || mode == chipper::ChipMode::dmg
+        || usesChannelLocalWaveDeck(mode);
+    const auto hasCustomToneSurface = hasLiveCore && mode != chipper::ChipMode::dmg && ! hasEmbeddedSourceRegisterControls && (usesWaveShapeSegment(mode)
         || usesPulse2DutySegment(mode)
         || usesDmgWaveLevelSegment(mode)
         || usesYmChannelMixControls(mode)
@@ -10350,7 +10368,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto hasSnNoiseModeSegment = usesSnNoiseModeSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasToneNoiseMixSegment = usesToneNoiseMixSegment(mode) && chipper::descriptorFor(mode).implemented;
     nativeSliders[0].setVisible(! hasPulseDutySegment);
-    const auto embeddedPulseDuty = mode == chipper::ChipMode::dmg && hasPulseDutySegment;
+    const auto embeddedPulseDuty = (mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg) && hasPulseDutySegment;
     nativeGroupLabels[0].setVisible(! embeddedPulseDuty);
     nativeLabels[0].setVisible(! embeddedPulseDuty || hasPulseDutySegment);
     controlValueLabels[0].setVisible(! embeddedPulseDuty);
