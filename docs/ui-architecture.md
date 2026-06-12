@@ -22,7 +22,7 @@ The editor preserves a per-chip working snapshot when users switch chip modes. S
 
 The module contents may change, but the order should not. Users should learn where concepts live once and carry that knowledge across NES, DMG, SID, YM2149, SN76489, POKEY, FM, and sampler-style modes. Section headers are unnumbered so chip-specific layouts can hide, merge, or expand conceptual zones without implying that panels are missing.
 
-HuC6280 exposes six independent wavetable voices. Its UI should present per-channel wave choices rather than a single global wave-shape switch; Chipper reuses the existing automatable choice slots in HuC mode so MIDI/host control can address each channel while the engine seeds each channel's own 32-sample wave RAM.
+HuC6280, Namco WSG, and SCC expose independent wavetable voices. Their UIs should present per-channel or per-lane wave choices rather than a single global wave-shape switch; Chipper reuses stable automatable choice slots in those modes so MIDI/host control can address each channel while the engine seeds each channel's own Wave RAM. Generic helper surfaces must not render those reused slots as unrelated chip controls.
 
 ## Slot Scalability
 

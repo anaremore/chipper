@@ -190,6 +190,18 @@ bool expectChoiceLabels(chipper::ChipMode mode,
     return ok;
 }
 
+bool expectWavetableWaveSpec(chipper::ChipMode mode,
+                             chipper::ChipParameterRole role,
+                             const std::string& label,
+                             const std::vector<std::string>& expectedChoices)
+{
+    bool ok = true;
+    ok &= expectSpec(mode, role, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, label);
+    ok &= expectSpecGroup(mode, role, "Wave");
+    ok &= expectChoiceLabels(mode, role, expectedChoices, label);
+    return ok;
+}
+
 bool expectMacroSourceMask(chipper::ChipMode mode, chipper::MacroKind macro, std::array<bool, 4> expected)
 {
     const auto& templ = chipper::macroTemplateFor(mode, macro);
@@ -497,6 +509,34 @@ bool expectWavetableRegisterHelpers()
     ok &= expect((chipper::huc6280ControlForPatch(hucLead, 0) & 0x1fu) == 24u, "HuC6280 helper should resolve 5-bit volume");
     ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::huc6280, hucLead, 0, 31) == 30u, "HuC6280 ramp Wave RAM tail should follow the 32-sample core formula");
     ok &= expect(! chipper::huc6280ChannelUsesNoiseForPatch(hucLead, 3), "HuC6280 exposed melodic channels should not claim noise for lead macro");
+    const auto hucSplit = chipper::makePatchConfig(chipper::ChipMode::huc6280,
+                                                   chipper::MacroKind::manual,
+                                                   0.0f,
+                                                   0.0f,
+                                                   0.5f,
+                                                   0.8f,
+                                                   chipper::PlayMode::stack,
+                                                   { true, true, true, true, true, true, true, true, true },
+                                                   { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f },
+                                                   0.0f,
+                                                   0.0f,
+                                                   1,
+                                                   3,
+                                                   4,
+                                                   0,
+                                                   0,
+                                                   0,
+                                                   0,
+                                                   0,
+                                                   2,
+                                                   4,
+                                                   2);
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::huc6280, hucSplit, 0) == 1u, "HuC6280 channel 1 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::huc6280, hucSplit, 1) == 4u, "HuC6280 channel 2 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::huc6280, hucSplit, 2) == 2u, "HuC6280 channel 3 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::huc6280, hucSplit, 3) == 3u, "HuC6280 channel 4 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::huc6280, hucSplit, 4) == 4u, "HuC6280 channel 5 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::huc6280, hucSplit, 5) == 2u, "HuC6280 channel 6 should use its own wave choice");
 
     const auto sccPulse = chipper::makePatchConfig(chipper::ChipMode::scc,
                                                    chipper::MacroKind::manual,
@@ -514,6 +554,33 @@ bool expectWavetableRegisterHelpers()
     ok &= expect(! chipper::sccChannelKeyOnForPatch(sccPulse, 1), "SCC helper should honor source mute for exposed channels");
     ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::scc, sccPulse, 0, 0) == 255u, "SCC pulse Wave RAM head should resolve high");
     ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::scc, sccPulse, 0, 31) == 0u, "SCC pulse Wave RAM tail should resolve low");
+    const auto sccSplit = chipper::makePatchConfig(chipper::ChipMode::scc,
+                                                   chipper::MacroKind::manual,
+                                                   0.0f,
+                                                   0.0f,
+                                                   0.5f,
+                                                   0.8f,
+                                                   chipper::PlayMode::stack,
+                                                   { true, true, true, true, true, true, true, true, true },
+                                                   { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f },
+                                                   0.0f,
+                                                   0.0f,
+                                                   1,
+                                                   3,
+                                                   4,
+                                                   0,
+                                                   0,
+                                                   0,
+                                                   0,
+                                                   0,
+                                                   0,
+                                                   4,
+                                                   2);
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::scc, sccSplit, 0) == 1u, "SCC channel 1 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::scc, sccSplit, 1) == 4u, "SCC channel 2 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::scc, sccSplit, 2) == 2u, "SCC channel 3 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::scc, sccSplit, 3) == 3u, "SCC channel 4 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::scc, sccSplit, 4) == 4u, "SCC channel 5 should use its own wave choice");
 
     const auto namcoArp = chipper::makePatchConfig(chipper::ChipMode::namcoWsg,
                                                    chipper::MacroKind::arp,
@@ -531,6 +598,36 @@ bool expectWavetableRegisterHelpers()
     ok &= expect(chipper::namcoWsgChannelEnabledForPatch(namcoArp, 7), "Namco WSG arp macro should expose internal extra lanes as enabled");
     ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::namcoWsg, namcoArp, 1, 0) == 3u, "Namco WSG stepped RAM should include channel offset");
     ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::namcoWsg, namcoArp, 1, 31) == 14u, "Namco WSG stepped RAM tail should match core formula");
+    const auto namcoSplit = chipper::makePatchConfig(chipper::ChipMode::namcoWsg,
+                                                     chipper::MacroKind::manual,
+                                                     0.0f,
+                                                     0.0f,
+                                                     0.5f,
+                                                     0.8f,
+                                                     chipper::PlayMode::stack,
+                                                     { true, true, true, true, true, true, true, true, true },
+                                                     { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f },
+                                                     0.0f,
+                                                     0.0f,
+                                                     1,
+                                                     3,
+                                                     4,
+                                                     2,
+                                                     3,
+                                                     0,
+                                                     0,
+                                                     0,
+                                                     2,
+                                                     4,
+                                                     2);
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::namcoWsg, namcoSplit, 0) == 1u, "Namco WSG lane 1 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::namcoWsg, namcoSplit, 1) == 4u, "Namco WSG lane 2 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::namcoWsg, namcoSplit, 2) == 2u, "Namco WSG lane 3 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::namcoWsg, namcoSplit, 3) == 3u, "Namco WSG lane 4 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::namcoWsg, namcoSplit, 4) == 4u, "Namco WSG lane 5 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::namcoWsg, namcoSplit, 5) == 2u, "Namco WSG lane 6 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::namcoWsg, namcoSplit, 6) == 3u, "Namco WSG lane 7 should use its own wave choice");
+    ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::namcoWsg, namcoSplit, 7) == 2u, "Namco WSG lane 8 should use its own wave choice");
 
     return ok;
 }
@@ -873,16 +970,26 @@ int main()
     ok &= expectSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::source4Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 4 L");
     ok &= expectMacroLabel(chipper::ChipMode::huc6280, chipper::MacroKind::lead, "HuC6280 Glass Lead");
     ok &= expectPreset(chipper::ChipMode::huc6280, "huc-boss-alert");
-    ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
-    ok &= expectSegmentedRegister(chipper::ChipMode::huc6280, chipper::ChipParameterRole::waveShape, 5, "Follow");
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::waveShape, "Ch 1 Wave", { "Follow", "Ramp", "Tri", "Square", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::sidVoice2WaveShape, "Ch 2 Wave", { "Follow", "Ramp", "Tri", "Square", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::sidVoice3WaveShape, "Ch 3 Wave", { "Follow", "Ramp", "Tri", "Square", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::pulse2Duty, "Ch 4 Wave", { "Follow", "Ramp", "Tri", "Square", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::dmgWaveLevel, "Ch 5 Wave", { "Follow", "Ramp", "Tri", "Square", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::snNoiseMode, "Ch 6 Wave", { "Follow", "Ramp", "Tri", "Square", "Noise" });
     ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Ch 1/2 LFO");
     ok &= expectSegmentedRegister(chipper::ChipMode::huc6280, chipper::ChipParameterRole::dmgStereoRoute, 5, "Follow");
     ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 5");
     ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::source6Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 6");
     ok &= expectMacroLabel(chipper::ChipMode::namcoWsg, chipper::MacroKind::arp, "Namco Tracker Arp");
     ok &= expectPreset(chipper::ChipMode::namcoWsg, "namco-start-button");
-    ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
-    ok &= expectSegmentedRegister(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::waveShape, 5, "Follow");
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::waveShape, "Lane 1 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::sidVoice2WaveShape, "Lane 2 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::sidVoice3WaveShape, "Lane 3 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::pulse2Duty, "Lane 4 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::dmgWaveLevel, "Lane 5 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::snNoiseMode, "Lane 6 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::ymEnvelopeShape, "Lane 7 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::dmgStereoRoute, "Lane 8 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
     ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::source8Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Lane 8");
     ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::source8Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Lane 8 Level");
     ok &= expectMacroLabel(chipper::ChipMode::ym2151, chipper::MacroKind::lead, "OPM Metallic Lead");
@@ -916,8 +1023,11 @@ int main()
     ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::source9Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 9 / TOM+CYM Level");
     ok &= expectMacroLabel(chipper::ChipMode::scc, chipper::MacroKind::powerUp, "SCC Power Wave");
     ok &= expectPreset(chipper::ChipMode::scc, "scc-power-wave");
-    ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Wave Shape");
-    ok &= expectSegmentedRegister(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, 5, "Follow");
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, "Ch 1 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::sidVoice2WaveShape, "Ch 2 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::sidVoice3WaveShape, "Ch 3 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::pulse2Duty, "Ch 4 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::dmgWaveLevel, "Ch 5 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
     ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 5");
     ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Channel 5 Level");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::nes, "nes-hero-pulse");

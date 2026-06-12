@@ -3550,7 +3550,7 @@ void ChipperAudioProcessorEditor::resized()
         tonePanel.removeFromTop(std::min(rowGap, tonePanel.getHeight()));
         tertiaryTonePanel = tonePanel;
     }
-    if (usesFmToneStack)
+    else if (usesFmToneStack)
     {
         const auto isFourOperatorFm = displayedMode == chipper::ChipMode::ym2612
             || displayedMode == chipper::ChipMode::ym2151;
@@ -5581,6 +5581,9 @@ bool ChipperAudioProcessorEditor::usesPulseDutySegment(chipper::ChipMode mode) c
 
 bool ChipperAudioProcessorEditor::usesPulse2DutySegment(chipper::ChipMode mode) const
 {
+    if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
+        return false;
+
     return chipper::chipHasParameterSurface(mode,
                                             chipper::ChipParameterRole::pulse2Duty,
                                             chipper::ControlSurface::segmentedChoice);
@@ -5600,6 +5603,9 @@ bool ChipperAudioProcessorEditor::usesWaveShapeSegment(chipper::ChipMode mode) c
 
 bool ChipperAudioProcessorEditor::usesDmgWaveLevelSegment(chipper::ChipMode mode) const
 {
+    if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
+        return false;
+
     return chipper::chipHasParameterSurface(mode,
                                             chipper::ChipParameterRole::dmgWaveLevel,
                                             chipper::ControlSurface::segmentedChoice);
@@ -5607,6 +5613,9 @@ bool ChipperAudioProcessorEditor::usesDmgWaveLevelSegment(chipper::ChipMode mode
 
 bool ChipperAudioProcessorEditor::usesDmgStereoRouteSegment(chipper::ChipMode mode) const
 {
+    if (mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
+        return false;
+
     return chipper::chipHasParameterSurface(mode,
                                             chipper::ChipParameterRole::dmgStereoRoute,
                                             chipper::ControlSurface::segmentedChoice)
@@ -5617,6 +5626,9 @@ bool ChipperAudioProcessorEditor::usesDmgStereoRouteSegment(chipper::ChipMode mo
 
 bool ChipperAudioProcessorEditor::usesYmEnvelopeShapeSegment(chipper::ChipMode mode) const
 {
+    if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
+        return false;
+
     return chipper::chipHasParameterSurface(mode,
                                             chipper::ChipParameterRole::ymEnvelopeShape,
                                             chipper::ControlSurface::segmentedChoice);
@@ -5631,6 +5643,9 @@ bool ChipperAudioProcessorEditor::usesYmChannelMixControls(chipper::ChipMode mod
 
 bool ChipperAudioProcessorEditor::usesSnNoiseModeSegment(chipper::ChipMode mode) const
 {
+    if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
+        return false;
+
     return chipper::chipHasParameterSurface(mode,
                                             chipper::ChipParameterRole::snNoiseMode,
                                             chipper::ControlSurface::segmentedChoice)

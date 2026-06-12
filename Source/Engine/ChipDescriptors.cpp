@@ -363,6 +363,40 @@ ChipParameterSpec segmentedSpec(ChipParameterRole role,
     return { role, id, label, group, help, kind, ControlSurface::segmentedChoice, choices, 0.0f, 1.0f, defaultValue };
 }
 
+std::vector<ParameterChoiceSpec> wavetableWaveChoices(std::string chipName, std::string memoryName, std::string pulseName = "Pulse", std::string stepsName = "Steps")
+{
+    return {
+        choice("Follow", "Use the selected " + chipName + " preset waveform for this lane.", 0.0f, 0),
+        choice("Ramp", "Rising " + memoryName + " wave RAM.", 0.25f, 1),
+        choice("Tri", "Triangle-style " + memoryName + " wave RAM.", 0.5f, 2),
+        choice(pulseName, pulseName + "-style wave RAM using the wave-shaping macro where available.", 0.75f, 3),
+        choice(stepsName, stepsName + " wave RAM texture.", 1.0f, 4)
+    };
+}
+
+ChipParameterSpec wavetableWaveSpec(ChipParameterRole role,
+                                    std::string id,
+                                    std::string label,
+                                    std::string chipName,
+                                    std::string memoryName,
+                                    std::string helpSuffix = {},
+                                    std::string pulseName = "Pulse",
+                                    std::string stepsName = "Steps")
+{
+    auto help = "Selects this " + chipName + " channel's generated " + memoryName
+        + " waveform RAM shape. Follow resolves from the selected preset recipe or the first channel's explicit shape.";
+    if (! helpSuffix.empty())
+        help += " " + helpSuffix;
+
+    return segmentedSpec(role,
+                         std::move(id),
+                         std::move(label),
+                         "Wave",
+                         std::move(help),
+                         wavetableWaveChoices(std::move(chipName), std::move(memoryName), std::move(pulseName), std::move(stepsName)),
+                         ParameterKind::chipRegister);
+}
+
 ChipParameterSpec sourceSpec(ChipParameterRole role, std::string id, std::string label, std::string help)
 {
     return { role, id, label, "Sources", help, ParameterKind::booleanToggle, ControlSurface::sourceCards, {}, 0.0f, 1.0f, 1.0f };
@@ -1613,19 +1647,12 @@ std::vector<ChipParameterSpec> huc6280ParameterSpecs()
                           choice("Fast", "Use channel 2 as a muted faster wavetable LFO for sharp arcade chirps.", 1.0f, 4)
                       },
                       ParameterKind::chipRegister),
-        segmentedSpec(ChipParameterRole::waveShape,
-                      "huc6280.waveShape",
-                      "Wave Shape",
-                      "Wave",
-                      "Selects the generated 32-sample waveform RAM shape. Follow resolves from the selected preset recipe.",
-                      {
-                          choice("Follow", "Use the selected HuC6280 preset waveform.", 0.0f, 0),
-                          choice("Ramp", "Rising 5-bit ramp wave RAM.", 0.25f, 1),
-                          choice("Tri", "Triangle-style 32-sample wave RAM.", 0.5f, 2),
-                          choice("Square", "Hard two-level wave RAM.", 0.75f, 3),
-                          choice("Noise", "Noise-shaped wave/noise preset.", 1.0f, 4)
-                      },
-                      ParameterKind::chipRegister)
+        wavetableWaveSpec(ChipParameterRole::waveShape, "huc6280.channel1.waveShape", "Ch 1 Wave", "HuC6280", "32-sample 5-bit", {}, "Square", "Noise"),
+        wavetableWaveSpec(ChipParameterRole::sidVoice2WaveShape, "huc6280.channel2.waveShape", "Ch 2 Wave", "HuC6280", "32-sample 5-bit", {}, "Square", "Noise"),
+        wavetableWaveSpec(ChipParameterRole::sidVoice3WaveShape, "huc6280.channel3.waveShape", "Ch 3 Wave", "HuC6280", "32-sample 5-bit", {}, "Square", "Noise"),
+        wavetableWaveSpec(ChipParameterRole::pulse2Duty, "huc6280.channel4.waveShape", "Ch 4 Wave", "HuC6280", "32-sample 5-bit", {}, "Square", "Noise"),
+        wavetableWaveSpec(ChipParameterRole::dmgWaveLevel, "huc6280.channel5.waveShape", "Ch 5 Wave", "HuC6280", "32-sample 5-bit", {}, "Square", "Noise"),
+        wavetableWaveSpec(ChipParameterRole::snNoiseMode, "huc6280.channel6.waveShape", "Ch 6 Wave", "HuC6280", "32-sample 5-bit", {}, "Square", "Noise")
     };
 }
 
@@ -1667,19 +1694,11 @@ std::vector<ChipParameterSpec> sccParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source5Level, "scc.channel5.level", "Channel 5 Level", "Modern trim after SCC channel 5 volume."),
         stereoSpreadSpec("scc.stereoSpread", "Modern stereo convenience that spreads audible SCC channels; zero preserves centered output."),
         envelopeSpec("scc.decay", "Decay", "Applies a modern musical helper over SCC channel volume; native key and 4-bit volume registers remain visible in debug output."),
-        segmentedSpec(ChipParameterRole::waveShape,
-                      "scc.waveShape",
-                      "Wave Shape",
-                      "Wave",
-                      "Selects the generated 32-byte waveform RAM shape. Follow resolves from the selected preset recipe.",
-                      {
-                          choice("Follow", "Use the selected SCC preset waveform.", 0.0f, 0),
-                          choice("Ramp", "Rising 8-bit wave RAM.", 0.25f, 1),
-                          choice("Tri", "Triangle-style 32-byte wave RAM.", 0.5f, 2),
-                          choice("Pulse", "Pulse-style SCC wave RAM using Wave Skew as width.", 0.75f, 3),
-                          choice("Steps", "Stepped arcade wave RAM texture.", 1.0f, 4)
-                      },
-                      ParameterKind::chipRegister)
+        wavetableWaveSpec(ChipParameterRole::waveShape, "scc.channel1.waveShape", "Ch 1 Wave", "SCC", "32-byte 8-bit"),
+        wavetableWaveSpec(ChipParameterRole::sidVoice2WaveShape, "scc.channel2.waveShape", "Ch 2 Wave", "SCC", "32-byte 8-bit"),
+        wavetableWaveSpec(ChipParameterRole::sidVoice3WaveShape, "scc.channel3.waveShape", "Ch 3 Wave", "SCC", "32-byte 8-bit"),
+        wavetableWaveSpec(ChipParameterRole::pulse2Duty, "scc.channel4.waveShape", "Ch 4 Wave", "SCC", "32-byte 8-bit"),
+        wavetableWaveSpec(ChipParameterRole::dmgWaveLevel, "scc.channel5.waveShape", "Ch 5 Wave", "SCC", "32-byte 8-bit")
     };
 }
 
@@ -1727,19 +1746,14 @@ std::vector<ChipParameterSpec> namcoWsgParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source8Level, "namcoWsg.channel8.level", "Lane 8 Level", "Modern trim after Namco WSG lane 8 volume."),
         stereoSpreadSpec("namcoWsg.stereoSpread", "Modern stereo convenience that spreads audible WSG lanes; zero preserves centered output."),
         envelopeSpec("namcoWsg.decay", "Decay", "Applies a modern musical helper over Namco WSG lane volume; native 4-bit volume and enable state remain visible in debug output."),
-        segmentedSpec(ChipParameterRole::waveShape,
-                      "namcoWsg.waveShape",
-                      "Wave Shape",
-                      "Wave",
-                      "Selects the generated 32-sample 4-bit waveform RAM shape. Follow resolves from the selected preset recipe.",
-                      {
-                          choice("Follow", "Use the selected Namco WSG preset waveform.", 0.0f, 0),
-                          choice("Ramp", "Rising 4-bit wave RAM.", 0.25f, 1),
-                          choice("Tri", "Triangle-style 32-sample wave RAM.", 0.5f, 2),
-                          choice("Pulse", "Pulse-style wave RAM using Wave Skew as width.", 0.75f, 3),
-                          choice("Steps", "Stepped arcade wave RAM texture.", 1.0f, 4)
-                      },
-                      ParameterKind::chipRegister)
+        wavetableWaveSpec(ChipParameterRole::waveShape, "namcoWsg.lane1.waveShape", "Lane 1 Wave", "Namco WSG", "32-sample 4-bit"),
+        wavetableWaveSpec(ChipParameterRole::sidVoice2WaveShape, "namcoWsg.lane2.waveShape", "Lane 2 Wave", "Namco WSG", "32-sample 4-bit"),
+        wavetableWaveSpec(ChipParameterRole::sidVoice3WaveShape, "namcoWsg.lane3.waveShape", "Lane 3 Wave", "Namco WSG", "32-sample 4-bit"),
+        wavetableWaveSpec(ChipParameterRole::pulse2Duty, "namcoWsg.lane4.waveShape", "Lane 4 Wave", "Namco WSG", "32-sample 4-bit"),
+        wavetableWaveSpec(ChipParameterRole::dmgWaveLevel, "namcoWsg.lane5.waveShape", "Lane 5 Wave", "Namco WSG", "32-sample 4-bit"),
+        wavetableWaveSpec(ChipParameterRole::snNoiseMode, "namcoWsg.lane6.waveShape", "Lane 6 Wave", "Namco WSG", "32-sample 4-bit"),
+        wavetableWaveSpec(ChipParameterRole::ymEnvelopeShape, "namcoWsg.lane7.waveShape", "Lane 7 Wave", "Namco WSG", "32-sample 4-bit"),
+        wavetableWaveSpec(ChipParameterRole::dmgStereoRoute, "namcoWsg.lane8.waveShape", "Lane 8 Wave", "Namco WSG", "32-sample 4-bit")
     };
 }
 
