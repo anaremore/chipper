@@ -9,14 +9,15 @@ This audit tracks layout and control-placement work that most directly improves 
 - HuC6280, Namco WSG, and Konami SCC now follow the same rule: per-channel wave shape selectors live inside a taller wavetable voice deck instead of a detached Wave/Mixer panel, with level strips reserved so wave controls cannot crowd out channel gain.
 - Wavetable-family source decks now take priority over duplicate summary copy: HuC6280, Namco WSG, and SCC reserve more height for channel cards so per-lane wave selectors and level controls stay readable.
 - Amiga Paula now follows the channel-local rule too: each of the four hard-panned sample channels exposes its own generated sample shape selector and optional loaded sample-bank slot selector inside a taller sampler-style channel card, matching Paula's independent DAC/sample playback model. The shared sample-bank panel stays focused on file/folder import, note mapping, and waveform preview; the old global Sample Shape segment stays hidden for Paula.
+- SNES SPC700-style voices use the same source-card ownership rule for sample slots: each of the eight voice cards exposes a sample-source dropdown so loaded BRR/WAV/AIFF bank slots can be pinned per voice instead of relying only on one global manual slot.
 - SID already follows this pattern for per-voice waveform and pulse-width controls, with the global filter staying in the Filter panel.
 
 ## Highest-Value Next Fixes
 
 1. SNES SPC700-style sample voices
-   - Issue: each of the eight voices can become a selected/generated sample source, but the voice cards still mainly display state rather than offering per-voice sample assignment.
+   - Issue: each voice can now pin a loaded sample slot in its card, but deeper work still needs per-voice loop/envelope/noise controls and clearer visual confirmation of voice-to-sample mapping.
    - User value: high. Makes SNES mode feel like an eight-voice sample instrument rather than one global sample player.
-   - Confidence: 7/10. Existing sample-bank and voice-card surfaces are usable foundations; engine voice assignment semantics need careful scoping.
+   - Confidence: 7/10. Existing sample-bank and voice-card surfaces are usable foundations; remaining engine voice assignment semantics need careful scoping.
 
 2. Wavetable voice polish
    - Issue: HuC6280, Namco WSG, and SCC now place per-voice wave selectors and protected level strips in the cards, but the next pass should verify whether they also need per-lane pan/pitch controls in the same cards.

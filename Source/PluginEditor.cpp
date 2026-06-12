@@ -462,6 +462,7 @@ bool usesChannelLocalWaveDeck(chipper::ChipMode mode)
     return mode == chipper::ChipMode::huc6280
         || mode == chipper::ChipMode::namcoWsg
         || mode == chipper::ChipMode::scc
+        || mode == chipper::ChipMode::spc700
         || mode == chipper::ChipMode::paula;
 }
 
