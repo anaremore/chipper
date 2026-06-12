@@ -2634,6 +2634,51 @@ const ChipParameterSpec* parameterSpecFor(ChipMode mode, ChipParameterRole role)
     return iter != descriptor.parameters.end() ? &*iter : nullptr;
 }
 
+EnvelopeModel envelopeModelFor(ChipMode mode)
+{
+    switch (mode)
+    {
+        case ChipMode::sid:
+        case ChipMode::spc700:
+            return EnvelopeModel::nativeAdsr;
+
+        case ChipMode::ym2612:
+        case ChipMode::opl3:
+        case ChipMode::ym2151:
+        case ChipMode::ym2413:
+            return EnvelopeModel::nativeOperatorEg;
+
+        case ChipMode::nes:
+        case ChipMode::dmg:
+        case ChipMode::ym2149:
+            return EnvelopeModel::nativeNonAdsr;
+
+        case ChipMode::sn76489:
+        case ChipMode::pokey:
+        case ChipMode::paula:
+        case ChipMode::huc6280:
+        case ChipMode::namcoWsg:
+        case ChipMode::scc:
+            return EnvelopeModel::chipperAmpHelper;
+    }
+
+    return EnvelopeModel::none;
+}
+
+const char* envelopeModelLabel(EnvelopeModel model)
+{
+    switch (model)
+    {
+        case EnvelopeModel::nativeAdsr: return "Native ADSR / GAIN";
+        case EnvelopeModel::nativeOperatorEg: return "Native Operator EG";
+        case EnvelopeModel::nativeNonAdsr: return "Native Envelope";
+        case EnvelopeModel::chipperAmpHelper: return "Chipper Amp Env";
+        case EnvelopeModel::none: return "No Envelope";
+    }
+
+    return "No Envelope";
+}
+
 bool chipHasParameterSurface(ChipMode mode, ChipParameterRole role, ControlSurface surface)
 {
     const auto* spec = parameterSpecFor(mode, role);

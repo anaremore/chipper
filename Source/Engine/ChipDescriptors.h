@@ -41,6 +41,15 @@ enum class ControlSurface
     hidden
 };
 
+enum class EnvelopeModel
+{
+    none,
+    nativeAdsr,
+    nativeOperatorEg,
+    nativeNonAdsr,
+    chipperAmpHelper
+};
+
 enum class ChipParameterRole
 {
     macroControl1,
@@ -202,6 +211,8 @@ struct ChipDescriptor
 const ChipDescriptor& descriptorFor(ChipMode mode);
 const MacroTemplate& macroTemplateFor(ChipMode mode, MacroKind macro);
 const ChipParameterSpec* parameterSpecFor(ChipMode mode, ChipParameterRole role);
+EnvelopeModel envelopeModelFor(ChipMode mode);
+const char* envelopeModelLabel(EnvelopeModel model);
 bool chipHasParameterSurface(ChipMode mode, ChipParameterRole role, ControlSurface surface);
 bool supportsPlayMode(ChipMode mode, PlayMode playMode);
 size_t visibleSourceCountForMode(ChipMode mode);

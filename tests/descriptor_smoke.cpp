@@ -338,6 +338,53 @@ bool expectVerificationDisclosure()
     return ok;
 }
 
+bool expectEnvelopeModels()
+{
+    bool ok = true;
+
+    ok &= expect(chipper::envelopeModelFor(chipper::ChipMode::sid) == chipper::EnvelopeModel::nativeAdsr,
+                 "SID should be classified as native ADSR");
+    ok &= expect(chipper::envelopeModelFor(chipper::ChipMode::spc700) == chipper::EnvelopeModel::nativeAdsr,
+                 "SPC700/S-DSP should be classified as native ADSR/GAIN");
+
+    for (const auto mode : { chipper::ChipMode::ym2612,
+                             chipper::ChipMode::opl3,
+                             chipper::ChipMode::ym2151,
+                             chipper::ChipMode::ym2413 })
+    {
+        ok &= expect(chipper::envelopeModelFor(mode) == chipper::EnvelopeModel::nativeOperatorEg,
+                     "FM chips should be classified as native operator EG");
+    }
+
+    for (const auto mode : { chipper::ChipMode::nes,
+                             chipper::ChipMode::dmg,
+                             chipper::ChipMode::ym2149 })
+    {
+        ok &= expect(chipper::envelopeModelFor(mode) == chipper::EnvelopeModel::nativeNonAdsr,
+                     "NES, DMG, and YM/AY should be classified as native non-ADSR envelope chips");
+    }
+
+    for (const auto mode : { chipper::ChipMode::sn76489,
+                             chipper::ChipMode::pokey,
+                             chipper::ChipMode::paula,
+                             chipper::ChipMode::huc6280,
+                             chipper::ChipMode::namcoWsg,
+                             chipper::ChipMode::scc })
+    {
+        ok &= expect(chipper::envelopeModelFor(mode) == chipper::EnvelopeModel::chipperAmpHelper,
+                     "chips without native ADSR/envelope generators should use Chipper helper envelope labels");
+    }
+
+    ok &= expect(std::string(chipper::envelopeModelLabel(chipper::EnvelopeModel::nativeAdsr)) == "Native ADSR / GAIN",
+                 "native ADSR envelope label should stay user-facing");
+    ok &= expect(std::string(chipper::envelopeModelLabel(chipper::EnvelopeModel::nativeOperatorEg)) == "Native Operator EG",
+                 "operator EG envelope label should stay user-facing");
+    ok &= expect(std::string(chipper::envelopeModelLabel(chipper::EnvelopeModel::chipperAmpHelper)) == "Chipper Amp Env",
+                 "helper envelope label should stay honest");
+
+    return ok;
+}
+
 bool expectFmRegisterHelpers()
 {
     bool ok = true;
@@ -1086,6 +1133,7 @@ int main()
     ok &= expectLiveSourceLevelSpecs();
     ok &= expectAutomatableDescriptorParametersHaveMidiCc();
     ok &= expectVerificationDisclosure();
+    ok &= expectEnvelopeModels();
     ok &= expectFmRegisterHelpers();
     ok &= expectWavetableRegisterHelpers();
     ok &= expectSampleRegisterHelpers();
