@@ -3398,8 +3398,8 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 200 : (sampleLayout ? 220 : (nesLayout ? 240 : (wavetableLayout ? 240 : 300))));
-    const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 720 : (sampleLayout ? 620 : (nesLayout ? 570 : (wavetableLayout ? 610 : 492))));
+    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 200 : (sampleLayout ? 220 : (nesLayout ? 240 : (wavetableLayout ? 210 : 300))));
+    const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 720 : (sampleLayout ? 620 : (nesLayout ? 570 : (wavetableLayout ? 650 : 492))));
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
@@ -3476,8 +3476,8 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (wavetableLayout)
     {
-        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.60)), 330, 410);
-        const auto utilityRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.20)), 104, 136);
+        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.66)), 380, 470);
+        const auto utilityRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.16)), 96, 124);
         const auto outputRowHeight = std::max(82, modules.getHeight() - sourceRowHeight - utilityRowHeight - (gap * 2));
         const auto topY = modules.getY();
         const auto utilityY = topY + sourceRowHeight + gap;
@@ -10234,9 +10234,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto hasFmOperatorRegisterSurface = mode == chipper::ChipMode::ym2612
         || mode == chipper::ChipMode::opl3
         || mode == chipper::ChipMode::ym2151;
-    moduleSummaryLabels[1].setVisible(!(hasLiveCore
-        && (mode == chipper::ChipMode::sid || mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::paula)
-        && usesSourceChannelSurface(mode)));
+    moduleSummaryLabels[1].setVisible(!(hasLiveCore && usesSourceChannelSurface(mode)));
     moduleSummaryLabels[3].setVisible(!(hasLiveCore
         && ((mode == chipper::ChipMode::sid && usesEnvelopeDecayControl(mode))
             || (hasFmEnvelopeShapeSurface && usesYmEnvelopeShapeSegment(mode))
