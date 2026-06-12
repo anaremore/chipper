@@ -457,6 +457,14 @@ const char* hucVoiceWaveParameterId(size_t index)
     return ids[std::min(index, ids.size() - 1u)];
 }
 
+bool usesChannelLocalWaveDeck(chipper::ChipMode mode)
+{
+    return mode == chipper::ChipMode::huc6280
+        || mode == chipper::ChipMode::namcoWsg
+        || mode == chipper::ChipMode::scc
+        || mode == chipper::ChipMode::paula;
+}
+
 chipper::ChipParameterRole spc700VoiceSampleRole(size_t index)
 {
     static constexpr std::array<chipper::ChipParameterRole, 8> roles {
@@ -3653,14 +3661,14 @@ void ChipperAudioProcessorEditor::resized()
             ? std::clamp(sourceCard.getHeight() / 6, 18, 26)
             : std::clamp(sourceCard.getHeight() / (useSpc700VoiceGrid ? 3 : 4),
                          useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 22 : ((isDmgSourceCard || isPaulaSourceCard) ? 24 : 20)),
-                         useSpc700VoiceGrid ? 20 : (isSidSourceCard ? 32 : (isPaulaSourceCard ? 44 : (isDmgSourceCard ? 34 : 28))));
+                         useSpc700VoiceGrid ? 20 : (isSidSourceCard ? 32 : (isPaulaSourceCard ? 30 : (isDmgSourceCard ? 34 : 28))));
         sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(previewHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isDmgSourceCard || isDenseSampleCard ? 3 : 1);
 
         juce::Rectangle<int> embeddedLevelArea;
         if (isWavetableSourceCard || isPaulaSourceCard)
         {
-            const auto levelAreaHeight = std::min(isPaulaSourceCard ? 42 : 38, sourceCard.getHeight());
+            const auto levelAreaHeight = std::min(isPaulaSourceCard ? 38 : 38, sourceCard.getHeight());
             embeddedLevelArea = sourceCard.removeFromBottom(levelAreaHeight);
             sourceCard.removeFromBottom(std::min(2, sourceCard.getHeight()));
         }
@@ -3736,17 +3744,17 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isPaulaSourceCard && i < hucVoiceWaveBoxes.size())
         {
-            auto waveRow = sourceCard.removeFromTop(std::min(38, sourceCard.getHeight()));
-            hucVoiceWaveLabels[i].setBounds(waveRow.removeFromTop(std::min(15, waveRow.getHeight())));
-            hucVoiceWaveBoxes[i].setBounds(waveRow.removeFromTop(std::min(22, waveRow.getHeight())).reduced(0, 1));
-            sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
+            auto waveRow = sourceCard.removeFromTop(std::min(32, sourceCard.getHeight()));
+            hucVoiceWaveLabels[i].setBounds(waveRow.removeFromTop(std::min(11, waveRow.getHeight())));
+            hucVoiceWaveBoxes[i].setBounds(waveRow.removeFromTop(std::min(20, waveRow.getHeight())).reduced(0, 1));
+            sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
 
             if (i < paulaVoiceSampleBoxes.size())
             {
-                auto sampleRow = sourceCard.removeFromTop(std::min(38, sourceCard.getHeight()));
-                paulaVoiceSampleLabels[i].setBounds(sampleRow.removeFromTop(std::min(15, sampleRow.getHeight())));
-                paulaVoiceSampleBoxes[i].setBounds(sampleRow.removeFromTop(std::min(22, sampleRow.getHeight())).reduced(0, 1));
-                sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
+                auto sampleRow = sourceCard.removeFromTop(std::min(32, sourceCard.getHeight()));
+                paulaVoiceSampleLabels[i].setBounds(sampleRow.removeFromTop(std::min(11, sampleRow.getHeight())));
+                paulaVoiceSampleBoxes[i].setBounds(sampleRow.removeFromTop(std::min(20, sampleRow.getHeight())).reduced(0, 1));
+                sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
             }
         }
         else if (isSpc700SourceCard && i < hucVoiceWaveBoxes.size())
@@ -3760,11 +3768,11 @@ void ChipperAudioProcessorEditor::resized()
         if (isWavetableSourceCard || isPaulaSourceCard)
         {
             auto levelArea = embeddedLevelArea;
-            auto levelRow = levelArea.removeFromTop(std::min(isPaulaSourceCard ? 15 : 13, levelArea.getHeight()));
-            sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(isPaulaSourceCard ? 50 : 42, levelRow.getWidth())));
+            auto levelRow = levelArea.removeFromTop(std::min(isPaulaSourceCard ? 13 : 13, levelArea.getHeight()));
+            sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(isPaulaSourceCard ? 42 : 42, levelRow.getWidth())));
             sourceLevelValueLabels[i].setBounds(levelRow);
             levelArea.removeFromTop(std::min(2, levelArea.getHeight()));
-            sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(isPaulaSourceCard ? 20 : 22, levelArea.getHeight())).reduced(0, 1));
+            sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(isPaulaSourceCard ? 19 : 22, levelArea.getHeight())).reduced(0, 1));
         }
         else
         {
@@ -7681,10 +7689,7 @@ void ChipperAudioProcessorEditor::setPulse2DutySegmentVisible(chipper::ChipMode 
 
 void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
-    const auto usesPerLaneWaves = mode == chipper::ChipMode::huc6280
-        || mode == chipper::ChipMode::namcoWsg
-        || mode == chipper::ChipMode::scc
-        || mode == chipper::ChipMode::paula;
+    const auto usesPerLaneWaves = usesChannelLocalWaveDeck(mode);
     setSidVoiceWaveControlsVisible(shouldBeVisible && mode == chipper::ChipMode::sid);
     const auto perLaneWaveActive = usesPerLaneWaves
         && chipper::descriptorFor(mode).implemented
@@ -9150,7 +9155,7 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
         const auto maxChoice = std::max(0, box.getNumItems() - 1);
         const auto visible = shouldBeVisible && i < visibleCount;
         hucVoiceWaveLabels[i].setText(isSpc700 ? juce::String("Sample")
-                                                : (isPaula ? juce::String("Sample Shape") : laneName + " " + juce::String(static_cast<int>(i + 1u))),
+                                                : (isPaula ? juce::String("Shape") : laneName + " " + juce::String(static_cast<int>(i + 1u))),
                                       juce::dontSendNotification);
         hucVoiceWaveLabels[i].setVisible(visible);
         box.setVisible(visible);
@@ -9195,7 +9200,7 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
 
             const auto sampleMaxChoice = std::max(0, sampleBox.getNumItems() - 1);
             sampleBox.setSelectedId(std::clamp(sampleSlot, 0, sampleMaxChoice) + 1, juce::dontSendNotification);
-            sampleLabel.setText("Loaded Sample", juce::dontSendNotification);
+            sampleLabel.setText("Sample", juce::dontSendNotification);
             sampleLabel.setVisible(visible);
             sampleBox.setVisible(visible);
 
@@ -10211,8 +10216,9 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     controlValueLabels[4].setAlpha(hasLiveCore ? 1.0f : 0.55f);
     controlValueLabels[5].setAlpha(hasLiveCore ? 1.0f : 0.55f);
     setSourceChannelSurfaceVisible(mode, usesSourceChannelSurface(mode));
-    setPulse2DutySegmentVisible(mode, usesPulse2DutySegment(mode) && hasLiveCore);
-    setWaveShapeSegmentVisible(mode, usesWaveShapeSegment(mode) && hasLiveCore);
+    const auto hasChannelLocalWaveDeck = usesChannelLocalWaveDeck(mode);
+    setPulse2DutySegmentVisible(mode, usesPulse2DutySegment(mode) && hasLiveCore && ! hasChannelLocalWaveDeck);
+    setWaveShapeSegmentVisible(mode, usesWaveShapeSegment(mode) && hasLiveCore && ! hasChannelLocalWaveDeck);
     setDmgWaveLevelSegmentVisible(mode, usesDmgWaveLevelSegment(mode) && hasLiveCore);
     setDmgStereoRouteSegmentVisible(mode, usesDmgStereoRouteSegment(mode) && hasLiveCore);
     setYmEnvelopeShapeSegmentVisible(mode, usesYmEnvelopeShapeSegment(mode) && hasLiveCore);
@@ -10239,10 +10245,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto hasReferenceOnlyProfile = hasLiveCore && ! hasCustomProfileSurface;
     for (auto& itemLabel : moduleItemLabels[0])
         itemLabel.setVisible(! hasReferenceOnlyProfile && ! hasCustomProfileSurface && ! itemLabel.getText().isEmpty());
-    const auto hasEmbeddedWavetableSourceControls = mode == chipper::ChipMode::huc6280
-        || mode == chipper::ChipMode::namcoWsg
-        || mode == chipper::ChipMode::scc
-        || mode == chipper::ChipMode::paula;
+    const auto hasEmbeddedWavetableSourceControls = usesChannelLocalWaveDeck(mode);
     const auto hasCustomToneSurface = hasLiveCore && mode != chipper::ChipMode::dmg && ! hasEmbeddedWavetableSourceControls && (usesWaveShapeSegment(mode)
         || usesPulse2DutySegment(mode)
         || usesDmgWaveLevelSegment(mode)
@@ -10334,9 +10337,10 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
 
     macroSummaryLabel.setText(performanceText, juce::dontSendNotification);
     macroSummaryLabel.setTooltip(performanceTooltip);
+    const auto hasChannelLocalWaveDeck = usesChannelLocalWaveDeck(mode);
     const auto hasPulseDutySegment = usesPulseDutySegment(mode) && chipper::descriptorFor(mode).implemented;
-    const auto hasPulse2DutySegment = usesPulse2DutySegment(mode) && chipper::descriptorFor(mode).implemented;
-    const auto hasWaveShapeSegment = usesWaveShapeSegment(mode) && chipper::descriptorFor(mode).implemented;
+    const auto hasPulse2DutySegment = usesPulse2DutySegment(mode) && chipper::descriptorFor(mode).implemented && ! hasChannelLocalWaveDeck;
+    const auto hasWaveShapeSegment = usesWaveShapeSegment(mode) && chipper::descriptorFor(mode).implemented && ! hasChannelLocalWaveDeck;
     const auto hasDmgWaveLevelSegment = usesDmgWaveLevelSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasDmgStereoRouteSegment = usesDmgStereoRouteSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasYmEnvelopeShapeSegment = usesYmEnvelopeShapeSegment(mode) && chipper::descriptorFor(mode).implemented;
