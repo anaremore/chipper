@@ -23,6 +23,7 @@ This audit tracks layout and control-placement work that most directly improves 
 - The code now exposes this as `EnvelopeModel` metadata via `envelopeModelFor()`, with descriptor-smoke coverage for native ADSR/GAIN, native Operator EG, native non-ADSR envelopes, Chipper helper envelopes, and the visible module titles for SPC700, FM, POKEY, Paula, HuC6280, Namco WSG, and SCC. Host/MIDI wording should use neutral names like **Envelope / EG** when one shared parameter spans multiple chips, while visible chip panels should use the chip-specific labels above.
 - HuC6280, Namco WSG, and Konami SCC now have explicit helper-envelope modules instead of letting the decay helper appear under Motion/Wave copy. These modules must render a real slider, not just title/summary text, and the source cards remain the home for per-channel shape/sample/level editing.
 - Embedded combo boxes and numeric inputs should use the standard control height wherever there is room. If a card cannot fit a standard-height dropdown plus label, increase the card or layout size instead of shrinking the dropdown into unreadable text. Dense wavetable and sampler source cards now reserve standard-height selectors and a clearer bottom level lane.
+- The editor default canvas now gives chip-specific layouts more room. This is intentional: Chipper should favor readable channel-local controls and waveform/sample previews over forcing every chip into the earliest compact prototype size.
 
 ## Highest-Value Next Fixes
 
