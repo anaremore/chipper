@@ -10303,7 +10303,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         || mode == chipper::ChipMode::ym2151;
     moduleSummaryLabels[1].setVisible(!(hasLiveCore && usesSourceChannelSurface(mode)));
     moduleSummaryLabels[3].setVisible(!(hasLiveCore
-        && ((mode == chipper::ChipMode::sid && usesEnvelopeDecayControl(mode))
+        && (usesEnvelopeDecayControl(mode)
             || (hasFmEnvelopeShapeSurface && usesYmEnvelopeShapeSegment(mode))
             || hasFmOperatorRegisterSurface)));
     const auto hasCustomProfileSurface = hasLiveCore && mode == chipper::ChipMode::sid && usesDmgStereoRouteSegment(mode);
