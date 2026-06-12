@@ -114,6 +114,15 @@ DmgPulseDuty offsetDmgPulseDuty(DmgPulseDuty duty, int offset)
     return static_cast<DmgPulseDuty>(std::clamp(static_cast<int>(duty) + offset, 0, 3));
 }
 
+DmgPulseDuty dmgPulse2DutyForPatch(const PatchConfig& patch, DmgPulseDuty pulse1Duty, bool stackedMacroOffset)
+{
+    const auto choice = std::clamp(patch.pulse2Duty, 0, 4);
+    if (choice > 0)
+        return static_cast<DmgPulseDuty>(choice - 1);
+
+    return stackedMacroOffset ? offsetDmgPulseDuty(pulse1Duty, 1) : pulse1Duty;
+}
+
 uint8_t dmgPulseDutyBits(DmgPulseDuty duty)
 {
     return static_cast<uint8_t>(duty);
@@ -382,7 +391,7 @@ public:
             silenceChannel(0);
 
         if ((enable & 0x02u) != 0)
-            writePulseRegisters(1, offsetDmgPulseDuty(duty, 1), ch2Vol, ch2Note);
+            writePulseRegisters(1, dmgPulse2DutyForPatch(patch, duty, true), ch2Vol, ch2Note);
         else
             silenceChannel(1);
 
@@ -940,7 +949,8 @@ private:
         else if (channel == 1)
         {
             const auto volume = scaledChipPolyEnvelopeVolume(index);
-            writePulseRegisters(1, dmgPulseDutyFromControl(patch.control1), volume, channelNotes[index]);
+            const auto pulse1Duty = dmgPulseDutyFromControl(patch.control1);
+            writePulseRegisters(1, dmgPulse2DutyForPatch(patch, pulse1Duty, false), volume, channelNotes[index]);
         }
         else
         {

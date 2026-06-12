@@ -245,10 +245,12 @@ void drawChipIdentityAccent(juce::Graphics& g, juce::Rectangle<int> bounds, chip
         }
         case chipper::ChipMode::dmg:
         {
-            for (int i = 0; i < 5; ++i)
+            constexpr int blocks = 10;
+            const auto blockW = stripeW / static_cast<float>(blocks);
+            for (int i = 0; i < blocks; ++i)
             {
                 g.setColour((i % 2 == 0 ? theme.primary : theme.accent).withAlpha(0.78f));
-                g.fillRect(stripeX + static_cast<float>(i * 15), stripeY, 10.0f, 4.0f);
+                g.fillRect(stripeX + blockW * static_cast<float>(i), stripeY, std::max(5.0f, blockW - 4.0f), 4.0f);
             }
             break;
         }
@@ -259,10 +261,16 @@ void drawChipIdentityAccent(juce::Graphics& g, juce::Rectangle<int> bounds, chip
         {
             g.setColour(theme.accent.withAlpha(0.88f));
             const auto y = stripeY + 2.0f;
-            for (int i = 0; i < 4; ++i)
+            constexpr int nodes = 8;
+            const auto nodeGap = stripeW / static_cast<float>(nodes - 1);
+            for (int i = 0; i < nodes; ++i)
             {
-                const auto x = stripeX + static_cast<float>(i * 20);
-                g.drawLine(x, y, x + 14.0f, y, 1.5f);
+                const auto x = stripeX + nodeGap * static_cast<float>(i);
+                if (i + 1 < nodes)
+                {
+                    const auto nextX = stripeX + nodeGap * static_cast<float>(i + 1);
+                    g.drawLine(x + 8.0f, y, nextX - 4.0f, y, 1.5f);
+                }
                 g.fillEllipse(x + 4.0f, y - 3.0f, 6.0f, 6.0f);
             }
             break;
@@ -5739,7 +5747,8 @@ juce::String ChipperAudioProcessorEditor::pulse2DutyReadout(const chipper::Patch
     const auto resolved = choice > 0
                               ? choice - 1
                               : (patch.playMode == chipper::PlayMode::chipPoly ? primary : std::min(primary + 1, 3));
-    const auto detail = juce::String("bits ") + dutyBits[static_cast<size_t>(resolved)] + ", " + dutyLabels[static_cast<size_t>(resolved)];
+    const auto detail = juce::String(displayedMode == chipper::ChipMode::dmg ? "NR21 bits " : "bits ")
+        + dutyBits[static_cast<size_t>(resolved)] + ", " + dutyLabels[static_cast<size_t>(resolved)];
 
     return choice == 0 ? juce::String("Preset -> ") + detail : detail;
 }
@@ -8361,7 +8370,20 @@ juce::String ChipperAudioProcessorEditor::envelopeDecayReadout(chipper::ChipMode
     if (mode == chipper::ChipMode::spc700)
         return juce::String("S-DSP ADSR/gain helper, step ") + juce::String(period) + "/15";
 
-    return juce::String("NES envelope decay, period ") + juce::String(period);
+    if (mode == chipper::ChipMode::nes)
+        return juce::String("APU envelope decay, period ") + juce::String(period);
+    if (mode == chipper::ChipMode::sn76489)
+        return juce::String("PSG attenuation gate helper, step ") + juce::String(period) + "/15";
+    if (mode == chipper::ChipMode::ym2612)
+        return juce::String("OPN2 operator envelope helper, step ") + juce::String(period) + "/15";
+    if (mode == chipper::ChipMode::opl3)
+        return juce::String("OPL operator envelope helper, step ") + juce::String(period) + "/15";
+    if (mode == chipper::ChipMode::ym2151)
+        return juce::String("OPM operator envelope helper, step ") + juce::String(period) + "/15";
+    if (mode == chipper::ChipMode::ym2413)
+        return juce::String("OPLL preset envelope helper, step ") + juce::String(period) + "/15";
+
+    return juce::String("Volume gate helper, step ") + juce::String(period) + "/15";
 }
 
 void ChipperAudioProcessorEditor::updatePulseDutyButtons(float value, bool shouldBeVisible)
@@ -8376,7 +8398,7 @@ void ChipperAudioProcessorEditor::updatePulseDutyButtons(float value, bool shoul
 
 void ChipperAudioProcessorEditor::updatePulse2DutyButtons(const chipper::PatchConfig& patch, bool shouldBeVisible)
 {
-    const auto* spec = chipper::parameterSpecFor(chipper::ChipMode::nes, chipper::ChipParameterRole::pulse2Duty);
+    const auto* spec = chipper::parameterSpecFor(displayedMode, chipper::ChipParameterRole::pulse2Duty);
     const auto choiceCount = spec == nullptr || spec->choices.empty()
                                  ? pulse2DutyButtons.size()
                                  : std::min(pulse2DutyButtons.size(), spec->choices.size());

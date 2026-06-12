@@ -741,6 +741,7 @@ int main()
     ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::pulse2Duty, 5, "Follow");
     ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::snNoiseMode, 3, "Follow");
     ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl1, 4, "12.5%");
+    ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::pulse2Duty, 5, "Follow");
     ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::waveShape, 5, "RAM");
     ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::dmgWaveLevel, 5, "Follow");
     ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::dmgStereoRoute, 5, "Follow");
@@ -778,6 +779,9 @@ int main()
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcLoop, chipper::ParameterKind::chipRegister, chipper::ControlSurface::toggle, "DMC Loop");
     ok &= expectSpecGroup(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcLoop, "DMC");
     ok &= expectSpecHelpContains(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcLoop, "$4010 loop bit", "NES DMC loop help should mention the hardware loop bit");
+    ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Pulse 1 Duty");
+    ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::pulse2Duty, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Pulse 2 Duty");
+    ok &= expectSpecHelpContains(chipper::ChipMode::dmg, chipper::ChipParameterRole::pulse2Duty, "NR21", "DMG pulse 2 duty help should mention the independent channel-2 duty register");
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Sweep Shift");
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise Period");
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Noise Clock");
