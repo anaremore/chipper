@@ -8843,7 +8843,7 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
         oplWaveformBox.setVisible(false);
         oplWaveformPreview.setVisible(false);
         opllInstrumentBox.setVisible(false);
-        updateHucVoiceWaveControls(shouldBeVisible);
+        updateHucVoiceWaveControls(shouldBeVisible || usesChannelLocalWaveDeck(mode));
         return;
     }
     if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151)
