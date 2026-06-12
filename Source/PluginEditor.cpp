@@ -3753,16 +3753,19 @@ void ChipperAudioProcessorEditor::resized()
         {
             placeEmbeddedLevel(sourceCard);
 
-            auto waveRow = sourceCard.removeFromTop(std::min(embeddedControlRowHeight, sourceCard.getHeight()));
-            hucVoiceWaveLabels[i].setBounds(waveRow.removeFromTop(std::min(embeddedLabelHeight, waveRow.getHeight())));
-            hucVoiceWaveBoxes[i].setBounds(waveRow.removeFromTop(std::min(standardInlineControlHeight, waveRow.getHeight())).reduced(0, 1));
-            sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
-
             if (i < paulaVoiceSampleBoxes.size())
             {
-                auto sampleRow = sourceCard.removeFromTop(std::min(embeddedControlRowHeight, sourceCard.getHeight()));
-                paulaVoiceSampleLabels[i].setBounds(sampleRow.removeFromTop(std::min(embeddedLabelHeight, sampleRow.getHeight())));
-                paulaVoiceSampleBoxes[i].setBounds(sampleRow.removeFromTop(std::min(standardInlineControlHeight, sampleRow.getHeight())).reduced(0, 1));
+                auto selectorArea = sourceCard.removeFromTop(std::min(embeddedControlRowHeight, sourceCard.getHeight()));
+                const auto selectorGap = 8;
+                const auto selectorWidth = (selectorArea.getWidth() - selectorGap) / 2;
+                auto shapeColumn = selectorArea.removeFromLeft(selectorWidth);
+                selectorArea.removeFromLeft(std::min(selectorGap, selectorArea.getWidth()));
+                auto sampleColumn = selectorArea;
+
+                hucVoiceWaveLabels[i].setBounds(shapeColumn.removeFromTop(std::min(embeddedLabelHeight, shapeColumn.getHeight())));
+                hucVoiceWaveBoxes[i].setBounds(shapeColumn.removeFromTop(std::min(standardInlineControlHeight, shapeColumn.getHeight())).reduced(0, 1));
+                paulaVoiceSampleLabels[i].setBounds(sampleColumn.removeFromTop(std::min(embeddedLabelHeight, sampleColumn.getHeight())));
+                paulaVoiceSampleBoxes[i].setBounds(sampleColumn.removeFromTop(std::min(standardInlineControlHeight, sampleColumn.getHeight())).reduced(0, 1));
                 sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
             }
         }
