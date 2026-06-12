@@ -1064,8 +1064,14 @@ int nesPulse2DutyChoiceForPatch(const chipper::PatchConfig& patch)
 int dmgPulseDutyChoiceForSource(const chipper::PatchConfig& patch, size_t sourceIndex)
 {
     const auto primary = std::clamp(static_cast<int>(std::round(patch.control1 * 3.0f)), 0, 3);
-    if (sourceIndex == 1 && patch.playMode != chipper::PlayMode::chipPoly)
-        return std::min(primary + 1, 3);
+    if (sourceIndex == 1)
+    {
+        const auto explicitChoice = std::clamp(patch.pulse2Duty, 0, 4);
+        if (explicitChoice > 0)
+            return explicitChoice - 1;
+
+        return patch.playMode == chipper::PlayMode::chipPoly ? primary : std::min(primary + 1, 3);
+    }
 
     return primary;
 }
@@ -5879,7 +5885,7 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
         return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | " + nesNoiseModeReadout(patch) + " | " + nesFocusReadout(patch.control4) + laneText;
 
     if (mode == chipper::ChipMode::dmg)
-        return label + " -> " + pulseDutyReadout(mode, patch.control1) + " | " + dmgWaveLevelReadout(patch) + " | " + dmgStereoRouteReadout(patch) + laneText;
+        return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | " + dmgWaveLevelReadout(patch) + " | " + dmgStereoRouteReadout(patch) + laneText;
 
     if (mode == chipper::ChipMode::ym2149)
         return label + " -> " + ymSpreadReadout(patch.control1) + " | " + ymNoiseReadout(patch.control3) + " | " + ymChannelMixReadout(patch) + laneText;
