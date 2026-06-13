@@ -24,50 +24,46 @@ This audit tracks layout and control-placement work that most directly improves 
 - HuC6280, Namco WSG, and Konami SCC now have explicit helper-envelope modules instead of letting the decay helper appear under Motion/Wave copy. These modules must render a real slider, not just title/summary text, and the source cards remain the home for per-channel shape/sample/level editing.
 - Embedded combo boxes and numeric inputs should use the standard control height wherever there is room. If a card cannot fit a standard-height dropdown plus label, increase the card or layout size instead of shrinking the dropdown into unreadable text. Dense wavetable and sampler source cards now reserve standard-height selectors and a clearer bottom level lane.
 - The editor default canvas now gives chip-specific layouts more room. This is intentional: Chipper should favor readable channel-local controls and waveform/sample previews over forcing every chip into the earliest compact prototype size.
+- Performance Macros now show chip-aware destination hints in their resolved readout lines, such as `$400E noise`, `NR43 noise`, `$D415 cutoff`, `AUDV gate`, `Wave RAM`, and `$B0 feedback`. These hints make it clear which macros are musical gestures over native chip paths rather than generic unlabeled sliders.
 
 ## Highest-Value Next Fixes
 
-1. Macro destination clarity
-   - Issue: the bottom Performance Macros panel is now named correctly, but users still need clearer destination hints showing what each macro changes on the selected chip.
-   - User value: very high. Users need to understand which controls are musical abstractions and which controls are chip-native.
-   - Confidence: 8/10. Mostly tooltip, inline destination text, and control-label cleanup.
-
-2. Preset browser and preset sharing
+1. Preset browser and preset sharing
    - Issue: the top dropdown works, but 15 chips need filters by chip, role, engine, tag, favorites, and init patch. User presets should remain simple flat files that are easy to share.
    - User value: very high. Most musicians will browse for "arcade bass" or "Game Boy lead" before they know which chip engine they want.
    - Confidence: 7/10. Preset data already exists; browser UX and save/load polish are the main work.
 
-3. Basic / Edit / Expert views
+2. Basic / Edit / Expert views
    - Issue: Play, edit, and register/audit information are currently shown together, which makes the instrument feel powerful but dense.
    - User value: very high. Keeps the default view musical while preserving honest chip detail for users who want it.
    - Confidence: 6/10. Needs careful visibility state and host-parameter behavior so no controls disappear from automation unexpectedly.
 
-4. SNES SPC700-style sample voices
+3. SNES SPC700-style sample voices
    - Issue: each voice can now pin a loaded sample slot in its card, but deeper work still needs per-voice loop/envelope/noise controls and clearer visual confirmation of voice-to-sample mapping.
    - User value: high. Makes SNES mode feel like an eight-voice sample instrument rather than one global sample player.
    - Confidence: 7/10. Existing sample-bank and voice-card surfaces are usable foundations; remaining engine voice assignment semantics need careful scoping.
 
-5. Wavetable voice polish
+4. Wavetable voice polish
    - Issue: HuC6280, Namco WSG, and SCC now place per-voice wave selectors and protected level strips in the cards, but the next pass should verify whether they also need per-lane pan/pitch controls in the same cards.
    - User value: high. These chips are fundamentally independent wavetable lanes, so users should shape each lane where they hear and enable it.
    - Confidence: 8/10. Layout and parameters are in place; remaining work is deeper per-lane editing and any engine gaps found while playing.
 
-6. FM operator editors
+5. FM operator editors
    - Issue: FM chips are playable, but the current UI is still too macro/operator-summary driven for serious FM editing.
    - User value: very high for FM users.
    - Confidence: 6/10. Needs a larger design slice: algorithm graph, operator grid, per-operator envelopes, and readable register values.
 
-7. POKEY channel deck
+6. POKEY channel deck
    - Issue: channel cards now expose AUDC in the header and AUDF/AUDV in the per-channel strip, but AUDCTL pairing/filter paths still need a stronger visual relationship between linked channels.
    - User value: medium-high. Helps users understand why POKEY sounds chaotic and how channel pairing changes pitch behavior.
    - Confidence: 7/10. Register readouts are now straightforward; the remaining work is a clearer cross-channel pairing visual without crowding the deck.
 
-8. Paula tracker import depth
+7. Paula tracker import depth
    - Issue: channel-local generated shapes, loaded sample-slot pins, and matching renderer flags are in place, but MOD sample extraction and imported loop metadata remain planned.
    - User value: medium-high. Makes Paula feel more like a four-channel tracker sampler for real module-style workflows.
    - Confidence: 6/10. The UI and runtime bank model are usable; the remaining work needs file-format parsing and stricter validation.
 
-9. Behavior strictness and register text presentation
+8. Behavior strictness and register text presentation
    - Issue: exact register readouts help prove honesty, but they compete with musical labels in the default view.
    - User value: high. Musicians should see what they hear first, while advanced users can still inspect register-level behavior.
    - Confidence: 7/10. Requires a consistent Expert/detail overlay and tooltip policy across chips.

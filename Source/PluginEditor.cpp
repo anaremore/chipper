@@ -6099,6 +6099,110 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
     return label + ": " + juce::String(templ.help) + laneText;
 }
 
+juce::String ChipperAudioProcessorEditor::performanceMacroDestination(chipper::ChipMode mode, size_t index) const
+{
+    switch (mode)
+    {
+        case chipper::ChipMode::nes:
+        {
+            static constexpr std::array<const char*, 4> labels { "P1 duty bits", "Sweep/timer", "$400E noise", "Mixer focus" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::dmg:
+        {
+            static constexpr std::array<const char*, 4> labels { "NR11 duty", "NR10 sweep", "NR43 noise", "NRx2 envelope" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::ym2149:
+        {
+            static constexpr std::array<const char*, 4> labels { "A/B/C tune", "Tone period", "Reg 6 noise", "Reg 7 mixer" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::sn76489:
+        {
+            static constexpr std::array<const char*, 4> labels { "Tone stack", "Tone period", "Reg E noise", "Noise atten." };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::sid:
+        {
+            static constexpr std::array<const char*, 4> labels { "PW regs", "Voice tune", "$D415 cutoff", "$D40x SR" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::pokey:
+        {
+            static constexpr std::array<const char*, 4> labels { "AUDC path", "AUDF/AUDCTL", "Poly timer", "AUDV gate" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::spc700:
+        {
+            static constexpr std::array<const char*, 4> labels { "Sample shape", "Pitch/PMON", "Echo regs", "GAIN/ADSR" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::paula:
+        {
+            static constexpr std::array<const char*, 4> labels { "Sample shape", "PER motion", "Filter/color", "VOL gate" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::huc6280:
+        {
+            static constexpr std::array<const char*, 4> labels { "Voice spread", "Freq regs", "Wave RAM", "5-bit volume" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::namcoWsg:
+        {
+            static constexpr std::array<const char*, 4> labels { "Lane spread", "Freq regs", "WSG RAM", "4-bit volume" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::scc:
+        {
+            static constexpr std::array<const char*, 4> labels { "Ch spread", "Freq regs", "SCC RAM", "$AA volume" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::ym2612:
+        {
+            static constexpr std::array<const char*, 4> labels { "Algorithm", "$B0 feedback", "Ch6 DAC", "FM level" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::opl3:
+        {
+            static constexpr std::array<const char*, 4> labels { "OPL wave", "$C0 feedback", "Operator tone", "FM level" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::ym2151:
+        {
+            static constexpr std::array<const char*, 4> labels { "Algorithm", "$20 feedback", "$0F noise", "FM level" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::ym2413:
+        {
+            static constexpr std::array<const char*, 4> labels { "ROM instr.", "Pitch spread", "Motion", "Volume nibble" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+    }
+
+    return {};
+}
+
+juce::String ChipperAudioProcessorEditor::performanceMacroReadout(chipper::ChipMode mode, size_t index, juce::String readout) const
+{
+    const auto destination = performanceMacroDestination(mode, index);
+    return destination.isEmpty() ? readout : destination + ": " + readout;
+}
+
 juce::String ChipperAudioProcessorEditor::sourceLaneExposureReadout(chipper::ChipMode mode) const
 {
     if (! chipper::hasInternalSourceLanes(mode))
@@ -10470,88 +10574,94 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
                                             || mode == chipper::ChipMode::ym2151));
     updateStereoSpreadReadout(mode);
 
+    const auto macroReadout = [this, mode](size_t index, juce::String text)
+    {
+        return performanceMacroReadout(mode, index, std::move(text));
+    };
+
     if (mode == chipper::ChipMode::nes)
     {
-        controlValueLabels[0].setText(pulseDutyReadout(mode, patch.control1), juce::dontSendNotification);
-        controlValueLabels[1].setText(nesSweepReadout(patch.control2), juce::dontSendNotification);
-        controlValueLabels[2].setText(nesNoiseReadout(patch.control3), juce::dontSendNotification);
-        controlValueLabels[3].setText(nesFocusReadout(patch.control4), juce::dontSendNotification);
+        controlValueLabels[0].setText(macroReadout(0, pulseDutyReadout(mode, patch.control1)), juce::dontSendNotification);
+        controlValueLabels[1].setText(macroReadout(1, nesSweepReadout(patch.control2)), juce::dontSendNotification);
+        controlValueLabels[2].setText(macroReadout(2, nesNoiseReadout(patch.control3)), juce::dontSendNotification);
+        controlValueLabels[3].setText(macroReadout(3, nesFocusReadout(patch.control4)), juce::dontSendNotification);
 
         updateSourceChannelButtons(mode);
     }
     else if (mode == chipper::ChipMode::dmg)
     {
-        controlValueLabels[0].setText(pulseDutyReadout(mode, patch.control1), juce::dontSendNotification);
-        controlValueLabels[1].setText(dmgSweepReadout(patch.control2), juce::dontSendNotification);
-        controlValueLabels[2].setText(dmgNoiseReadout(patch.control3), juce::dontSendNotification);
-        controlValueLabels[3].setText(dmgEnvelopeReadout(patch.control4), juce::dontSendNotification);
+        controlValueLabels[0].setText(macroReadout(0, pulseDutyReadout(mode, patch.control1)), juce::dontSendNotification);
+        controlValueLabels[1].setText(macroReadout(1, dmgSweepReadout(patch.control2)), juce::dontSendNotification);
+        controlValueLabels[2].setText(macroReadout(2, dmgNoiseReadout(patch.control3)), juce::dontSendNotification);
+        controlValueLabels[3].setText(macroReadout(3, dmgEnvelopeReadout(patch.control4)), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
     else if (mode == chipper::ChipMode::ym2149)
     {
-        controlValueLabels[0].setText(ymSpreadReadout(patch.control1), juce::dontSendNotification);
-        controlValueLabels[1].setText(ymMotionReadout(patch.control2), juce::dontSendNotification);
-        controlValueLabels[2].setText(ymNoiseReadout(patch.control3), juce::dontSendNotification);
-        controlValueLabels[3].setText(ymToneNoiseReadout(patch.control4) + " | " + ymChannelMixReadout(patch), juce::dontSendNotification);
+        controlValueLabels[0].setText(macroReadout(0, ymSpreadReadout(patch.control1)), juce::dontSendNotification);
+        controlValueLabels[1].setText(macroReadout(1, ymMotionReadout(patch.control2)), juce::dontSendNotification);
+        controlValueLabels[2].setText(macroReadout(2, ymNoiseReadout(patch.control3)), juce::dontSendNotification);
+        controlValueLabels[3].setText(macroReadout(3, ymToneNoiseReadout(patch.control4) + " | " + ymChannelMixReadout(patch)), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
     else if (mode == chipper::ChipMode::sn76489)
     {
-        controlValueLabels[0].setText(snStackReadout(patch.control1), juce::dontSendNotification);
-        controlValueLabels[1].setText(snMotionReadout(patch.control2), juce::dontSendNotification);
-        controlValueLabels[2].setText(snNoiseModeReadout(patch), juce::dontSendNotification);
-        controlValueLabels[3].setText(snLevelReadout(patch.control4), juce::dontSendNotification);
+        controlValueLabels[0].setText(macroReadout(0, snStackReadout(patch.control1)), juce::dontSendNotification);
+        controlValueLabels[1].setText(macroReadout(1, snMotionReadout(patch.control2)), juce::dontSendNotification);
+        controlValueLabels[2].setText(macroReadout(2, snNoiseModeReadout(patch)), juce::dontSendNotification);
+        controlValueLabels[3].setText(macroReadout(3, snLevelReadout(patch.control4)), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
     else if (mode == chipper::ChipMode::sid)
     {
-        controlValueLabels[0].setText(sidPulseWidthReadout(patch.control1), juce::dontSendNotification);
-        controlValueLabels[1].setText(sidDetuneReadout(patch.control2), juce::dontSendNotification);
-        controlValueLabels[2].setText(sidCutoffReadout(patch.control3), juce::dontSendNotification);
-        controlValueLabels[3].setText(sidSustainReadout(patch), juce::dontSendNotification);
+        controlValueLabels[0].setText(macroReadout(0, sidPulseWidthReadout(patch.control1)), juce::dontSendNotification);
+        controlValueLabels[1].setText(macroReadout(1, sidDetuneReadout(patch.control2)), juce::dontSendNotification);
+        controlValueLabels[2].setText(macroReadout(2, sidCutoffReadout(patch.control3)), juce::dontSendNotification);
+        controlValueLabels[3].setText(macroReadout(3, sidSustainReadout(patch)), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
     else if (mode == chipper::ChipMode::pokey)
     {
-        controlValueLabels[0].setText(waveShapeReadout(mode, patch.waveShape), juce::dontSendNotification);
-        controlValueLabels[1].setText(pokeyRegisterReadout(patch), juce::dontSendNotification);
-        controlValueLabels[2].setText("Poly/timer bias " + juce::String(patch.control3, 2), juce::dontSendNotification);
-        controlValueLabels[3].setText("AUDV volume " + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15", juce::dontSendNotification);
+        controlValueLabels[0].setText(macroReadout(0, waveShapeReadout(mode, patch.waveShape)), juce::dontSendNotification);
+        controlValueLabels[1].setText(macroReadout(1, pokeyRegisterReadout(patch)), juce::dontSendNotification);
+        controlValueLabels[2].setText(macroReadout(2, "Poly/timer bias " + juce::String(patch.control3, 2)), juce::dontSendNotification);
+        controlValueLabels[3].setText(macroReadout(3, "AUDV volume " + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15"), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
     else if (mode == chipper::ChipMode::spc700)
     {
-        controlValueLabels[0].setText(waveShapeReadout(mode, patch.waveShape), juce::dontSendNotification);
-        controlValueLabels[1].setText(spc700PitchMotionReadout(patch), juce::dontSendNotification);
-        controlValueLabels[2].setText(spc700EchoReadout(patch), juce::dontSendNotification);
-        controlValueLabels[3].setText(sampleChipReadout(mode, patch), juce::dontSendNotification);
+        controlValueLabels[0].setText(macroReadout(0, waveShapeReadout(mode, patch.waveShape)), juce::dontSendNotification);
+        controlValueLabels[1].setText(macroReadout(1, spc700PitchMotionReadout(patch)), juce::dontSendNotification);
+        controlValueLabels[2].setText(macroReadout(2, spc700EchoReadout(patch)), juce::dontSendNotification);
+        controlValueLabels[3].setText(macroReadout(3, sampleChipReadout(mode, patch)), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
     else if (mode == chipper::ChipMode::paula)
     {
-        controlValueLabels[0].setText(waveShapeReadout(mode, patch.waveShape), juce::dontSendNotification);
-        controlValueLabels[1].setText("Pitch/rate motion " + juce::String(patch.control2, 2), juce::dontSendNotification);
-        controlValueLabels[2].setText("Sample color " + juce::String(patch.control3, 2), juce::dontSendNotification);
-        controlValueLabels[3].setText(sampleChipReadout(mode, patch), juce::dontSendNotification);
+        controlValueLabels[0].setText(macroReadout(0, waveShapeReadout(mode, patch.waveShape)), juce::dontSendNotification);
+        controlValueLabels[1].setText(macroReadout(1, "Pitch/rate motion " + juce::String(patch.control2, 2)), juce::dontSendNotification);
+        controlValueLabels[2].setText(macroReadout(2, "Sample color " + juce::String(patch.control3, 2)), juce::dontSendNotification);
+        controlValueLabels[3].setText(macroReadout(3, sampleChipReadout(mode, patch)), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
     else if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
     {
-        controlValueLabels[0].setText("Channel spread " + juce::String(static_cast<int>(std::round(patch.control1 * 12.0f))) + " st", juce::dontSendNotification);
-        controlValueLabels[1].setText("Pitch motion " + juce::String(patch.control2, 2), juce::dontSendNotification);
-        controlValueLabels[2].setText(waveShapeReadout(mode, patch.waveShape), juce::dontSendNotification);
-        controlValueLabels[3].setText(wavetableChipReadout(mode, patch), juce::dontSendNotification);
+        controlValueLabels[0].setText(macroReadout(0, "Channel spread " + juce::String(static_cast<int>(std::round(patch.control1 * 12.0f))) + " st"), juce::dontSendNotification);
+        controlValueLabels[1].setText(macroReadout(1, "Pitch motion " + juce::String(patch.control2, 2)), juce::dontSendNotification);
+        controlValueLabels[2].setText(macroReadout(2, waveShapeReadout(mode, patch.waveShape)), juce::dontSendNotification);
+        controlValueLabels[3].setText(macroReadout(3, wavetableChipReadout(mode, patch)), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
     else if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413)
     {
-        controlValueLabels[0].setText(fmChipReadout(mode, patch), juce::dontSendNotification);
-        controlValueLabels[1].setText(fmFeedbackReadout(mode, patch), juce::dontSendNotification);
-        controlValueLabels[2].setText(mode == chipper::ChipMode::ym2612
-                                          ? ym2612DacModeReadout(patch)
-                                          : (mode == chipper::ChipMode::ym2151 ? ym2151NoiseReadout(patch) : waveShapeReadout(mode, patch.waveShape)),
+        controlValueLabels[0].setText(macroReadout(0, fmChipReadout(mode, patch)), juce::dontSendNotification);
+        controlValueLabels[1].setText(macroReadout(1, fmFeedbackReadout(mode, patch)), juce::dontSendNotification);
+        controlValueLabels[2].setText(macroReadout(2,
+                                                   mode == chipper::ChipMode::ym2612
+                                                       ? ym2612DacModeReadout(patch)
+                                                       : (mode == chipper::ChipMode::ym2151 ? ym2151NoiseReadout(patch) : waveShapeReadout(mode, patch.waveShape))),
                                       juce::dontSendNotification);
-        controlValueLabels[3].setText("FM output level " + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15", juce::dontSendNotification);
+        controlValueLabels[3].setText(macroReadout(3, "FM output level " + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15"), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
     else

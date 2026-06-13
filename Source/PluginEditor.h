@@ -235,6 +235,8 @@ private:
     bool usesSnNoiseModeSegment(chipper::ChipMode mode) const;
     bool usesToneNoiseMixSegment(chipper::ChipMode mode) const;
     juce::String macroTemplateReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
+    juce::String performanceMacroDestination(chipper::ChipMode mode, size_t index) const;
+    juce::String performanceMacroReadout(chipper::ChipMode mode, size_t index, juce::String readout) const;
     juce::String sourceLaneExposureReadout(chipper::ChipMode mode) const;
     juce::String pulseDutyReadout(chipper::ChipMode mode, float value) const;
     juce::String pulse2DutyReadout(const chipper::PatchConfig& patch) const;
