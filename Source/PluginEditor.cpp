@@ -3400,8 +3400,8 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (sampleLayout ? 220 : (nesLayout ? 318 : (wavetableLayout ? 218 : 300)));
-    const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 830 : (sampleLayout ? 700 : (nesLayout ? 650 : (wavetableLayout ? 720 : 492))));
+    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 190 : (sampleLayout ? 220 : (nesLayout ? 318 : (wavetableLayout ? 218 : 300))));
+    const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 870 : (sampleLayout ? 700 : (nesLayout ? 650 : (wavetableLayout ? 720 : 492))));
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
@@ -3489,9 +3489,9 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (paulaLayout)
     {
-        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.48)), 360, 430);
-        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.12)), 76, 96);
-        const auto sampleRowHeight = std::max(300, modules.getHeight() - sourceRowHeight - middleRowHeight - (gap * 2));
+        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.10)), 76, 92);
+        const auto sampleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.24)), 150, 230);
+        const auto sourceRowHeight = std::max(360, modules.getHeight() - middleRowHeight - sampleRowHeight - (gap * 2));
         const auto topY = modules.getY();
         const auto middleY = topY + sourceRowHeight + gap;
         const auto bottomY = middleY + middleRowHeight + gap;
@@ -3652,9 +3652,9 @@ void ChipperAudioProcessorEditor::resized()
         const auto isDenseSampleCard = isWavetableSourceCard || isPaulaSourceCard || isSpc700SourceCard;
         auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isDenseSampleCard ? 5 : 8),
                                                          isSidSourceCard ? 2 : (isDenseSampleCard ? 3 : 4));
-        constexpr auto standardInlineControlHeight = 30;
-        constexpr auto embeddedLabelHeight = 16;
-        constexpr auto embeddedControlRowHeight = embeddedLabelHeight + standardInlineControlHeight + 4;
+        constexpr auto standardInlineControlHeight = 28;
+        constexpr auto embeddedLabelHeight = 14;
+        constexpr auto embeddedControlRowHeight = embeddedLabelHeight + standardInlineControlHeight + 3;
         const auto buttonHeight = useSpc700VoiceGrid ? 20 : (isPaulaSourceCard ? 20 : (isSidSourceCard ? 17 : (isDenseSampleCard ? 20 : 18)));
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isDenseSampleCard ? 3 : 2);
@@ -3668,13 +3668,13 @@ void ChipperAudioProcessorEditor::resized()
 
         const auto placeEmbeddedLevel = [this, i](juce::Rectangle<int>& cardArea, int labelWidth = 52)
         {
-            auto levelArea = cardArea.removeFromTop(std::min(50, cardArea.getHeight()));
-            auto levelRow = levelArea.removeFromTop(std::min(16, levelArea.getHeight()));
+            auto levelArea = cardArea.removeFromTop(std::min(40, cardArea.getHeight()));
+            auto levelRow = levelArea.removeFromTop(std::min(14, levelArea.getHeight()));
             sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(labelWidth, levelRow.getWidth())));
             sourceLevelValueLabels[i].setBounds(levelRow);
-            levelArea.removeFromTop(std::min(5, levelArea.getHeight()));
-            sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(24, levelArea.getHeight())).reduced(0, 1));
-            cardArea.removeFromTop(std::min(4, cardArea.getHeight()));
+            levelArea.removeFromTop(std::min(3, levelArea.getHeight()));
+            sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(20, levelArea.getHeight())).reduced(0, 1));
+            cardArea.removeFromTop(std::min(3, cardArea.getHeight()));
         };
 
         if (isSidSourceCard && i < sidVoiceWaveCount)
