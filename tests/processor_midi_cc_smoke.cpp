@@ -163,6 +163,28 @@ float scopePeak(const ChipperAudioProcessor::OutputScopeSnapshot& snapshot)
     return peak;
 }
 
+int jsonIntValue(const std::string& json, const std::string& key, int fallback = -1)
+{
+    const auto marker = "\"" + key + "\":";
+    const auto start = json.find(marker);
+    if (start == std::string::npos)
+        return fallback;
+
+    const auto valueStart = start + marker.size();
+    const auto valueEnd = json.find_first_of(",}", valueStart);
+    if (valueEnd == std::string::npos)
+        return fallback;
+
+    try
+    {
+        return std::stoi(json.substr(valueStart, valueEnd - valueStart));
+    }
+    catch (...)
+    {
+        return fallback;
+    }
+}
+
 bool writeDmcFixture(const juce::File& file, uint8_t seed)
 {
     const std::array<uint8_t, 4> bytes { seed, static_cast<uint8_t>(seed ^ 0x55u), 0xf0u, 0x0fu };
@@ -586,6 +608,29 @@ int main()
     ok &= expect(playbackInfo.rateIndex == 15, "DMC playback info should update after rate CC changes");
     ok &= expect(playbackInfo.durationMs < 1.1 && playbackInfo.durationMs > 0.9,
                  "DMC playback info should estimate short fixture duration at the fastest rate");
+
+    ChipperAudioProcessor dmcOneShotProcessor;
+    dmcOneShotProcessor.prepareToPlay(48000.0, 256);
+    ok &= expect(dmcOneShotProcessor.loadNesDmcSampleDirectory(dmcDir).wasOk(),
+                 "Should load DMC sample directory for one-shot replay regression");
+    sendController(dmcOneShotProcessor, 68, 0);
+    sendController(dmcOneShotProcessor, 118, controllerValueForChoice(dmcOneShotProcessor, chipper::parameters::id::nesDmcRateIndex, 15));
+    sendNoteOn(dmcOneShotProcessor, 48);
+    for (int i = 0; i < 8; ++i)
+        processEmptyBlock(dmcOneShotProcessor);
+    auto dmcDebug = dmcOneShotProcessor.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleActive") == 0,
+                 "NES DMC one-shot should stop after the selected sample ends when Loop is off");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") == 32,
+                 "NES DMC one-shot should report all fixture bits consumed before held-note replay");
+
+    setPlainFromHost(dmcOneShotProcessor, chipper::parameters::id::macroControl2, 0.73f);
+    processEmptyBlock(dmcOneShotProcessor);
+    dmcDebug = dmcOneShotProcessor.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleActive") == 0,
+                 "NES DMC one-shot should not restart when a host parameter change replays held notes");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") == 32,
+                 "NES DMC held-note replay should preserve the completed one-shot bit position");
 
     juce::AudioBuffer<float> dmcMapBuffer(2, 64);
     juce::MidiBuffer dmcMapMidi;

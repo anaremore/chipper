@@ -180,6 +180,7 @@ public:
     virtual void writeRegister(uint16_t address, uint8_t value) = 0;
     virtual void noteOn(int midiNote, float velocity) = 0;
     virtual void noteOff(int midiNote) = 0;
+    virtual void replayHeldNote(int midiNote, float velocity) { noteOn(midiNote, velocity); }
     virtual StereoFrame renderSample() = 0;
     virtual std::vector<RegisterWrite> exportRegisterState() const = 0;
 

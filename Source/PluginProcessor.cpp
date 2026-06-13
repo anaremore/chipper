@@ -2308,7 +2308,7 @@ void ChipperAudioProcessor::replayHeldNotes()
         return;
 
     for (const auto held : heldNotes)
-        core->noteOn(held.note, held.velocity);
+        core->replayHeldNote(held.note, held.velocity);
 }
 
 void ChipperAudioProcessor::rememberHeldNote(int note, float velocity)
@@ -2638,6 +2638,14 @@ std::string ChipperAudioProcessor::currentCoreStatusDetail() const
         : "\nHardware validation: not complete.";
 
     return detail;
+}
+
+std::string ChipperAudioProcessor::currentCoreDebugStateJson() const
+{
+    if (core == nullptr)
+        return "{}";
+
+    return core->debugStateJson();
 }
 
 ChipperAudioProcessor::OutputScopeSnapshot ChipperAudioProcessor::outputScopeSnapshot() const

@@ -4054,16 +4054,7 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (wavetableLayout)
     {
-        auto helperPanel = envelopeDecayPanel;
-        helperPanel.removeFromTop(std::min(2, helperPanel.getHeight()));
-
-        auto header = helperPanel.removeFromTop(std::min(24, helperPanel.getHeight()));
-        envelopeDecayLabel.setBounds(header.removeFromLeft(std::min(240, header.getWidth())));
-        envelopeDecayValueLabel.setJustificationType(juce::Justification::centred);
-        envelopeDecayValueLabel.setBounds(header.removeFromRight(std::min(86, header.getWidth())));
-
-        helperPanel.removeFromTop(std::min(6, helperPanel.getHeight()));
-        envelopeDecaySlider.setBounds(helperPanel.removeFromTop(std::min(34, helperPanel.getHeight())).reduced(0, 3));
+        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
         ymEnvelopePreview.setBounds({});
     }
     else
@@ -8976,11 +8967,11 @@ juce::String ChipperAudioProcessorEditor::envelopeDecayReadout(chipper::ChipMode
         if (mode == chipper::ChipMode::paula)
             return "Off: Paula volume unchanged";
         if (mode == chipper::ChipMode::huc6280)
-            return "Off: HuC6280 volume unchanged";
+            return "Off: native 5-bit volume";
         if (mode == chipper::ChipMode::scc)
-            return "Off: SCC volume unchanged";
+            return "Off: native 4-bit volume";
         if (mode == chipper::ChipMode::namcoWsg)
-            return "Off: WSG volume unchanged";
+            return "Off: native lane volume";
         if (mode == chipper::ChipMode::spc700)
             return "Off: S-DSP gain unchanged";
 
@@ -9027,11 +9018,11 @@ juce::String ChipperAudioProcessorEditor::envelopeDecayReadout(chipper::ChipMode
     if (mode == chipper::ChipMode::paula)
         return juce::String("Paula 6-bit volume gate, step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::huc6280)
-        return juce::String("HuC6280 5-bit volume helper, step ") + juce::String(period) + "/15";
+        return juce::String("Gate step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::scc)
-        return juce::String("SCC 4-bit volume helper, step ") + juce::String(period) + "/15";
+        return juce::String("Gate step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::namcoWsg)
-        return juce::String("Namco 4-bit lane volume helper, step ") + juce::String(period) + "/15";
+        return juce::String("Gate step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::spc700)
         return juce::String("S-DSP ADSR/GAIN speed, step ") + juce::String(period) + "/15";
 

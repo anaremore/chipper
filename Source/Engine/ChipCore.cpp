@@ -2064,21 +2064,7 @@ public:
             sweepReload[1] = true;
 
         if (address == 0x4015)
-        {
-            enabled[0] = (value & 0x01) != 0;
-            enabled[1] = (value & 0x02) != 0;
-            enabled[2] = (value & 0x04) != 0;
-            enabled[3] = (value & 0x08) != 0;
-            if ((value & 0x10u) != 0)
-                startDmcSample();
-            else
-                dmcActive = false;
-            for (size_t i = 0; i < enabled.size(); ++i)
-            {
-                if (! enabled[i])
-                    lengthCounter[i] = 0;
-            }
-        }
+            writeStatusRegister(value, true);
         else if (address == 0x4017)
         {
             writeFrameCounter(value);
@@ -2097,7 +2083,8 @@ public:
 
         heldNote = midiNote;
         noteVelocity = static_cast<float>(clamp01(velocity));
-        startDmcSample();
+        if (! suppressDmcRestartOnNoteOn)
+            startDmcSample();
         const auto duty = nesPulseDutyFromControl(patch.control1);
         const auto pulse2Duty = nesPulse2DutyForPatch(patch, duty, true);
 
@@ -2203,7 +2190,16 @@ public:
         writeRegister(0x400e, nesNoiseRegisterForPatch(patch));
         writeRegister(0x400f, 0x18);
         regs[0x10] = static_cast<uint8_t>((regs[0x10] & 0xf0u) | static_cast<uint8_t>(patch.nesDmcRateIndex & 0x0f));
-        writeRegister(0x4015, static_cast<uint8_t>(enable));
+        writeStatusRegister(static_cast<uint8_t>(enable), ! suppressDmcRestartOnNoteOn);
+        updateTimers();
+    }
+
+    void replayHeldNote(int midiNote, float velocity) override
+    {
+        const auto previous = suppressDmcRestartOnNoteOn;
+        suppressDmcRestartOnNoteOn = true;
+        noteOn(midiNote, velocity);
+        suppressDmcRestartOnNoteOn = previous;
     }
 
     void noteOff(int midiNote) override
@@ -2400,6 +2396,29 @@ private:
     bool dmcLoopEnabled() const
     {
         return (regs[0x10] & 0x40u) != 0;
+    }
+
+    void writeStatusRegister(uint8_t value, bool allowDmcStart)
+    {
+        regs[0x15] = value;
+        enabled[0] = (value & 0x01) != 0;
+        enabled[1] = (value & 0x02) != 0;
+        enabled[2] = (value & 0x04) != 0;
+        enabled[3] = (value & 0x08) != 0;
+        if ((value & 0x10u) != 0)
+        {
+            if (allowDmcStart)
+                startDmcSample();
+        }
+        else
+        {
+            dmcActive = false;
+        }
+        for (size_t i = 0; i < enabled.size(); ++i)
+        {
+            if (! enabled[i])
+                lengthCounter[i] = 0;
+        }
     }
 
     void startDmcSample()
@@ -2979,6 +2998,7 @@ private:
     uint64_t noteStamp = 0;
     std::vector<uint8_t> dmcSample;
     bool dmcActive = false;
+    bool suppressDmcRestartOnNoteOn = false;
     size_t dmcByteIndex = 0;
     uint8_t dmcBitIndex = 0;
     double dmcPhase = 0.0;

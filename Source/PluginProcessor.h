@@ -120,6 +120,7 @@ public:
     const juce::AudioProcessorValueTreeState& getValueTreeState() const { return apvts; }
     std::string currentCoreStatus() const;
     std::string currentCoreStatusDetail() const;
+    std::string currentCoreDebugStateJson() const;
     chipper::ChipMode currentChipMode() const { return activeMode; }
     OutputScopeSnapshot outputScopeSnapshot() const;
     SampleWaveformSnapshot sampleWaveformSnapshot(chipper::ChipMode mode) const;
