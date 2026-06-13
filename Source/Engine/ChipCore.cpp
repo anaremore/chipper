@@ -2382,10 +2382,10 @@ private:
 
     uint8_t dmcMixerLevel() const
     {
-        if (dmcSample.empty() || dmcActive || dmcLoopEnabled())
-            return dmcOutputLevel();
-
-        return nesDmcDirectLevelForControl(patch.nesDmcDirectLevel);
+        // The DMC DAC holds its last output after a one-shot sample finishes.
+        // Loop off stops byte stepping; it should not replace the held DAC with
+        // the separate DMC Direct macro level.
+        return dmcOutputLevel();
     }
 
     uint8_t dmcRateIndex() const

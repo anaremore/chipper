@@ -625,8 +625,8 @@ int main()
                  "NES DMC one-shot should report all fixture bits consumed before held-note replay");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleByteIndex") == 4,
                  "NES DMC one-shot should stop at the exact end of the selected fixture");
-    ok &= expect(jsonIntValue(dmcDebug, "dmcMixerLevel") == 0,
-                 "NES DMC one-shot should return the audible mixer lane to DMC Direct when Loop is off");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcMixerLevel") == jsonIntValue(dmcDebug, "dmcLevel"),
+                 "NES DMC one-shot should hold the final DAC level after Loop-off playback stops");
 
     setPlainFromHost(dmcOneShotProcessor, chipper::parameters::id::macroControl2, 0.73f);
     processEmptyBlock(dmcOneShotProcessor);
@@ -635,8 +635,8 @@ int main()
                  "NES DMC one-shot should not restart when a host parameter change replays held notes");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") == 32,
                  "NES DMC held-note replay should preserve the completed one-shot bit position");
-    ok &= expect(jsonIntValue(dmcDebug, "dmcMixerLevel") == 0,
-                 "NES DMC held-note replay should keep the completed one-shot silent unless Loop or DMC Direct is enabled");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcMixerLevel") == jsonIntValue(dmcDebug, "dmcLevel"),
+                 "NES DMC held-note replay should preserve the completed one-shot DAC hold");
 
     ChipperAudioProcessor dmcLoopProcessor;
     dmcLoopProcessor.prepareToPlay(48000.0, 256);
