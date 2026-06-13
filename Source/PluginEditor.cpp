@@ -3400,8 +3400,8 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 190 : (sampleLayout ? 220 : (nesLayout ? 318 : (wavetableLayout ? 218 : 300))));
-    const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 870 : (sampleLayout ? 700 : (nesLayout ? 650 : (wavetableLayout ? 720 : 492))));
+    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 190 : (sampleLayout ? 220 : (nesLayout ? 318 : (wavetableLayout ? 260 : 300))));
+    const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 870 : (sampleLayout ? 700 : (nesLayout ? 650 : (wavetableLayout ? 650 : 492))));
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
@@ -3473,17 +3473,15 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (wavetableLayout)
     {
-        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.64)), 420, 500);
-        const auto utilityRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.17)), 110, 140);
-        const auto outputRowHeight = std::max(82, modules.getHeight() - sourceRowHeight - utilityRowHeight - (gap * 2));
+        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.70)), 420, 540);
+        const auto outputRowHeight = std::max(96, modules.getHeight() - sourceRowHeight - gap);
         const auto topY = modules.getY();
-        const auto utilityY = topY + sourceRowHeight + gap;
-        const auto outputY = utilityY + utilityRowHeight + gap;
+        const auto outputY = topY + sourceRowHeight + gap;
 
         moduleBounds[0] = {};
         moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), sourceRowHeight };
         moduleBounds[2] = {};
-        moduleBounds[3] = { modules.getX(), utilityY, modules.getWidth(), utilityRowHeight };
+        moduleBounds[3] = {};
         moduleBounds[4] = {};
         moduleBounds[5] = { modules.getX(), outputY, modules.getWidth(), outputRowHeight };
     }
@@ -4205,6 +4203,9 @@ void ChipperAudioProcessorEditor::resized()
         const auto sustainCell = displayedMode == chipper::ChipMode::sid ? controlCells[2] : controlCells[3];
         placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], sustainCell);
         placeToneNoiseMixSegment(sustainCell);
+
+        if (wavetableLayout)
+            placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, controlCells[4]);
     }
 
     auto nesDmcModuleCell = moduleBounds[5].reduced(12, 9);
@@ -4437,7 +4438,14 @@ void ChipperAudioProcessorEditor::resized()
         sampleLoopEndValueLabel.setBounds({});
         sampleLoopStartSlider.setBounds({});
         sampleLoopEndSlider.setBounds({});
-        placeLabeledSliderWithReadout(clockSlider, clockLabel, controlValueLabels[4], utilityCell);
+        if (wavetableLayout)
+        {
+            clockSlider.setBounds({});
+            clockLabel.setBounds({});
+            controlValueLabels[4].setBounds({});
+        }
+        else
+            placeLabeledSliderWithReadout(clockSlider, clockLabel, controlValueLabels[4], utilityCell);
     }
 
     auto outputCell = displayedMode == chipper::ChipMode::sid
