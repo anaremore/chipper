@@ -640,6 +640,28 @@ int main()
     ok &= expect(jsonIntValue(dmcDebug, "dmcMixerLevel") == jsonIntValue(dmcDebug, "dmcLevel"),
                  "NES DMC held-note replay should preserve the completed one-shot DAC hold");
 
+    ChipperAudioProcessor dmcNoteMapOneShotProcessor;
+    dmcNoteMapOneShotProcessor.prepareToPlay(48000.0, 256);
+    ok &= expect(dmcNoteMapOneShotProcessor.loadNesDmcSampleDirectory(dmcDir).wasOk(),
+                 "Should load DMC sample directory for note-map one-shot regression");
+    sendController(dmcNoteMapOneShotProcessor, 68, 0);
+    sendController(dmcNoteMapOneShotProcessor, 118, controllerValueForChoice(dmcNoteMapOneShotProcessor, chipper::parameters::id::nesDmcRateIndex, 15));
+    sendController(dmcNoteMapOneShotProcessor, 119, controllerValueForChoice(dmcNoteMapOneShotProcessor, chipper::parameters::id::nesDmcPlaybackMode, 1));
+    sendController(dmcNoteMapOneShotProcessor, 69, controllerValueForChoice(dmcNoteMapOneShotProcessor, chipper::parameters::id::nesDmcMapRoot, 48));
+    sendNoteOn(dmcNoteMapOneShotProcessor, 48);
+    for (int i = 0; i < 8; ++i)
+        processEmptyBlock(dmcNoteMapOneShotProcessor);
+    dmcDebug = dmcNoteMapOneShotProcessor.currentCoreDebugStateJson();
+    auto dmcNoteMapInfo = dmcNoteMapOneShotProcessor.nesDmcSamplePlaybackInfo();
+    ok &= expect(dmcNoteMapInfo.activeSlot == 0 && dmcNoteMapInfo.statusLine.contains("One-shot, DAC holds"),
+                 "NES DMC Note Map loop-off should keep one-shot status for the mapped slot");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleActive") == 0,
+                 "NES DMC Note Map loop-off should stop after the mapped sample ends");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") == 32,
+                 "NES DMC Note Map loop-off should consume one mapped fixture pass without wrapping");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleByteIndex") == 4,
+                 "NES DMC Note Map loop-off should stop at the exact mapped fixture end");
+
     ChipperAudioProcessor dmcLoopProcessor;
     dmcLoopProcessor.prepareToPlay(48000.0, 256);
     ok &= expect(dmcLoopProcessor.loadNesDmcSampleDirectory(dmcDir).wasOk(),
