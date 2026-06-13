@@ -390,7 +390,7 @@ bool expectEnvelopeModels()
                  "YM2612 envelope module should expose native operator EG wording");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2413).modules[3].title == "ROM Envelope",
                  "YM2413 envelope module should expose ROM envelope wording until custom patch EG exists");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::pokey).modules[3].title == "Volume Helper",
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::pokey).modules[3].title == "Volume Gate",
                  "POKEY envelope module should avoid ADSR wording");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::paula).modules[3].title == "Tracker Amp Env",
                  "Paula envelope module should identify the tracker helper layer");
@@ -804,22 +804,22 @@ int main()
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).implemented, "SCC descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).supportsChipPoly, "SCC should support Chip Poly across exposed wavetable channels");
     ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl1, 4, "12.5%");
-    ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::pulse2Duty, 5, "Follow");
-    ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::snNoiseMode, 3, "Follow");
+    ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::pulse2Duty, 5, "Preset");
+    ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::snNoiseMode, 3, "Preset");
     ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl1, 4, "12.5%");
-    ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::pulse2Duty, 5, "Follow");
+    ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::pulse2Duty, 5, "Preset");
     ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::waveShape, 5, "RAM");
-    ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::dmgWaveLevel, 5, "Follow");
-    ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::dmgStereoRoute, 5, "Follow");
-    ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::snNoiseMode, 3, "Follow");
-    ok &= expectSegmentedRegister(chipper::ChipMode::sid, chipper::ChipParameterRole::waveShape, 9, "Follow");
-    ok &= expectSegmentedRegister(chipper::ChipMode::sid, chipper::ChipParameterRole::snNoiseMode, 5, "Follow");
-    ok &= expectSegmentedRegister(chipper::ChipMode::sid, chipper::ChipParameterRole::dmgStereoRoute, 3, "Auto");
+    ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::dmgWaveLevel, 5, "Preset");
+    ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::dmgStereoRoute, 5, "Preset");
+    ok &= expectSegmentedRegister(chipper::ChipMode::dmg, chipper::ChipParameterRole::snNoiseMode, 3, "Preset");
+    ok &= expectSegmentedRegister(chipper::ChipMode::sid, chipper::ChipParameterRole::waveShape, 9, "Preset");
+    ok &= expectSegmentedRegister(chipper::ChipMode::sid, chipper::ChipParameterRole::snNoiseMode, 5, "Preset");
+    ok &= expectSegmentedRegister(chipper::ChipMode::sid, chipper::ChipParameterRole::dmgStereoRoute, 3, "Preset");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2149, chipper::ChipParameterRole::macroControl4, 3, "Noise");
     ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::ymChannelAMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "A Mix");
     ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::ymChannelBMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "B Mix");
     ok &= expectSpec(chipper::ChipMode::ym2149, chipper::ChipParameterRole::ymChannelCMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "C Mix");
-    ok &= expectChoiceRegister(chipper::ChipMode::sn76489, chipper::ChipParameterRole::snNoiseMode, chipper::ControlSurface::menu, 5, "Follow");
+    ok &= expectChoiceRegister(chipper::ChipMode::sn76489, chipper::ChipParameterRole::snNoiseMode, chipper::ControlSurface::menu, 5, "Preset");
 
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Sweep Motion");
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::pulse2Duty, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Pulse 2 Duty");
@@ -872,7 +872,7 @@ int main()
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::sidVoice2WaveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Voice 2 Wave");
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::sidVoice3WaveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Voice 3 Wave");
     const std::vector<std::string> expectedSidWaveChoices {
-        "Follow",
+        "Preset",
         "Tri",
         "Saw",
         "Pulse",
@@ -910,7 +910,7 @@ int main()
     if (const auto* spec = chipper::parameterSpecFor(chipper::ChipMode::sid, chipper::ChipParameterRole::ymEnvelopeShape))
     {
         ok &= expect(spec->choices.size() == 9u, "SID filter mode should expose nine choices");
-        ok &= expect(! spec->choices.empty() && spec->choices.front().label == "Follow", "SID filter mode should use Follow as the inherited choice");
+        ok &= expect(! spec->choices.empty() && spec->choices.front().label == "Preset", "SID filter mode should use Preset as the inherited choice");
     }
     ok &= expectSpec(chipper::ChipMode::sid, chipper::ChipParameterRole::stereoSpread, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Resonance");
     ok &= expectSpecGroup(chipper::ChipMode::sid, chipper::ChipParameterRole::stereoSpread, "Filter");
@@ -965,13 +965,13 @@ int main()
     ok &= expectPreset(chipper::ChipMode::ym2612, "opn2-dac-kick");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Pan");
     ok &= expectSpecGroup(chipper::ChipMode::ym2612, chipper::ChipParameterRole::dmgStereoRoute, "Output");
-    ok &= expectSegmentedRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::dmgStereoRoute, 5, "Follow");
+    ok &= expectSegmentedRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::dmgStereoRoute, 5, "Preset");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Envelope Shape");
     ok &= expectSpecGroup(chipper::ChipMode::ym2612, chipper::ChipParameterRole::ymEnvelopeShape, "Envelope");
-    ok &= expectSegmentedRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Follow");
+    ok &= expectSegmentedRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Preset");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::snNoiseMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "DAC Mode");
     ok &= expectSpecGroup(chipper::ChipMode::ym2612, chipper::ChipParameterRole::snNoiseMode, "Output");
-    ok &= expectSegmentedRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::snNoiseMode, 3, "Follow");
+    ok &= expectSegmentedRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::snNoiseMode, 3, "Preset");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "FM Ch 5");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source6Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "FM Ch 6");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "FM Ch 5 Level");
@@ -982,13 +982,13 @@ int main()
     ok &= expectPreset(chipper::ChipMode::spc700, "spc700-noise-snare");
     ok &= expectPreset(chipper::ChipMode::spc700, "spc700-pmon-shimmer");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Sample Shape");
-    ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, 5, "Follow");
+    ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, 5, "Preset");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Loop Mode");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, "Sample");
-    ok &= expectChoiceRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ControlSurface::menu, 3, "Follow Preset");
+    ok &= expectChoiceRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ControlSurface::menu, 3, "Preset");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Envelope Shape");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::ymEnvelopeShape, "Envelope");
-    ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Follow");
+    ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Preset");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Pitch / PMON");
     ok &= expectSpecHelpContains(chipper::ChipMode::spc700,
                                  chipper::ChipParameterRole::macroControl2,
@@ -1002,11 +1002,12 @@ int main()
                                  "SPC700 Echo Color help should disclose the current echo approximation");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcPlaybackMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Sample Playback");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcPlaybackMode, "Sample");
+    ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcPlaybackMode, 3, "Manual");
     ok &= expectSpecHelpContains(chipper::ChipMode::spc700, chipper::ChipParameterRole::nesDmcPlaybackMode, "manual slot", "SPC700 sample playback help should explain manual-slot behavior");
     ok &= expectSpecHelpContains(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, "separate from Sample Playback", "SPC700 loop mode help should distinguish voice lifetime from bank mapping");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::snNoiseMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Noise Source");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::snNoiseMode, "Noise");
-    ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::snNoiseMode, 5, "Follow");
+    ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::snNoiseMode, 5, "Preset");
     const auto spcDescriptorDrum = chipper::makePatchConfig(chipper::ChipMode::spc700,
                                                             chipper::MacroKind::drum,
                                                             0.5f,
@@ -1029,57 +1030,57 @@ int main()
     ok &= expectMacroLabel(chipper::ChipMode::pokey, chipper::MacroKind::lead, "POKEY Buzzy Lead");
     ok &= expectPreset(chipper::ChipMode::pokey, "pokey-alien-laser");
     ok &= expectSpec(chipper::ChipMode::pokey, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Distortion Code");
-    ok &= expectSegmentedRegister(chipper::ChipMode::pokey, chipper::ChipParameterRole::waveShape, 5, "Follow");
+    ok &= expectSegmentedRegister(chipper::ChipMode::pokey, chipper::ChipParameterRole::waveShape, 5, "Preset");
     ok &= expectSpec(chipper::ChipMode::pokey, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "AUDCTL Pairing");
-    ok &= expectSegmentedRegister(chipper::ChipMode::pokey, chipper::ChipParameterRole::dmgStereoRoute, 5, "Follow");
+    ok &= expectSegmentedRegister(chipper::ChipMode::pokey, chipper::ChipParameterRole::dmgStereoRoute, 5, "Preset");
     ok &= expectSpec(chipper::ChipMode::pokey, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "AUDCTL Filter");
-    ok &= expectSegmentedRegister(chipper::ChipMode::pokey, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Follow");
+    ok &= expectSegmentedRegister(chipper::ChipMode::pokey, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Preset");
     ok &= expectMacroLabel(chipper::ChipMode::paula, chipper::MacroKind::arp, "Paula Tracker Arp");
     ok &= expectPreset(chipper::ChipMode::paula, "paula-stab-chord");
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::waveShape, "Ch 1 Sample", { "Follow", "Ramp", "Tri", "Sine", "Noise" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::sidVoice2WaveShape, "Ch 2 Sample", { "Follow", "Ramp", "Tri", "Sine", "Noise" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::sidVoice3WaveShape, "Ch 3 Sample", { "Follow", "Ramp", "Tri", "Sine", "Noise" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::pulse2Duty, "Ch 4 Sample", { "Follow", "Ramp", "Tri", "Sine", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::waveShape, "Ch 1 Sample", { "Preset", "Ramp", "Tri", "Sine", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::sidVoice2WaveShape, "Ch 2 Sample", { "Preset", "Ramp", "Tri", "Sine", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::sidVoice3WaveShape, "Ch 3 Sample", { "Preset", "Ramp", "Tri", "Sine", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::pulse2Duty, "Ch 4 Sample", { "Preset", "Ramp", "Tri", "Sine", "Noise" });
     ok &= expectSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::source1Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 1 L");
     ok &= expectSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::source2Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 2 R");
     ok &= expectSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::source3Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 3 R");
     ok &= expectSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::source4Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 4 L");
     ok &= expectMacroLabel(chipper::ChipMode::huc6280, chipper::MacroKind::lead, "HuC6280 Glass Lead");
     ok &= expectPreset(chipper::ChipMode::huc6280, "huc-boss-alert");
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::waveShape, "Ch 1 Wave", { "Follow", "Ramp", "Tri", "Square", "Noise" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::sidVoice2WaveShape, "Ch 2 Wave", { "Follow", "Ramp", "Tri", "Square", "Noise" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::sidVoice3WaveShape, "Ch 3 Wave", { "Follow", "Ramp", "Tri", "Square", "Noise" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::pulse2Duty, "Ch 4 Wave", { "Follow", "Ramp", "Tri", "Square", "Noise" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::dmgWaveLevel, "Ch 5 Wave", { "Follow", "Ramp", "Tri", "Square", "Noise" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::snNoiseMode, "Ch 6 Wave", { "Follow", "Ramp", "Tri", "Square", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::waveShape, "Ch 1 Wave", { "Preset", "Ramp", "Tri", "Square", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::sidVoice2WaveShape, "Ch 2 Wave", { "Preset", "Ramp", "Tri", "Square", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::sidVoice3WaveShape, "Ch 3 Wave", { "Preset", "Ramp", "Tri", "Square", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::pulse2Duty, "Ch 4 Wave", { "Preset", "Ramp", "Tri", "Square", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::dmgWaveLevel, "Ch 5 Wave", { "Preset", "Ramp", "Tri", "Square", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::snNoiseMode, "Ch 6 Wave", { "Preset", "Ramp", "Tri", "Square", "Noise" });
     ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Ch 1/2 LFO");
-    ok &= expectSegmentedRegister(chipper::ChipMode::huc6280, chipper::ChipParameterRole::dmgStereoRoute, 5, "Follow");
+    ok &= expectSegmentedRegister(chipper::ChipMode::huc6280, chipper::ChipParameterRole::dmgStereoRoute, 5, "Preset");
     ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 5");
     ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::source6Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 6");
     ok &= expectMacroLabel(chipper::ChipMode::namcoWsg, chipper::MacroKind::arp, "Namco Tracker Arp");
     ok &= expectPreset(chipper::ChipMode::namcoWsg, "namco-start-button");
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::waveShape, "Lane 1 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::sidVoice2WaveShape, "Lane 2 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::sidVoice3WaveShape, "Lane 3 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::pulse2Duty, "Lane 4 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::dmgWaveLevel, "Lane 5 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::snNoiseMode, "Lane 6 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::ymEnvelopeShape, "Lane 7 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::dmgStereoRoute, "Lane 8 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::waveShape, "Lane 1 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::sidVoice2WaveShape, "Lane 2 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::sidVoice3WaveShape, "Lane 3 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::pulse2Duty, "Lane 4 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::dmgWaveLevel, "Lane 5 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::snNoiseMode, "Lane 6 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::ymEnvelopeShape, "Lane 7 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::dmgStereoRoute, "Lane 8 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
     ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::source8Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Lane 8");
     ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::source8Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Lane 8 Level");
     ok &= expectMacroLabel(chipper::ChipMode::ym2151, chipper::MacroKind::lead, "OPM Metallic Lead");
     ok &= expectPreset(chipper::ChipMode::ym2151, "opm-metallic-lead");
     ok &= expectMacroSourceMask(chipper::ChipMode::ym2151, chipper::MacroKind::drum, { false, false, true, true });
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Algorithm");
-    ok &= expectChoiceRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 9, "Follow");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 9, "Preset");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Algorithm Bias");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Feedback");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Operator Tone");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "FM Level");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Envelope Shape");
     ok &= expectSpecGroup(chipper::ChipMode::ym2151, chipper::ChipParameterRole::ymEnvelopeShape, "Envelope");
-    ok &= expectSegmentedRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Follow");
+    ok &= expectSegmentedRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Preset");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::source7Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPM Ch 7");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::source8Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPM Ch 8");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::source7Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "OPM Ch 7 Level");
@@ -1087,23 +1088,23 @@ int main()
     ok &= expectMacroLabel(chipper::ChipMode::ym2413, chipper::MacroKind::coin, "OPLL UI Chime");
     ok &= expectPreset(chipper::ChipMode::ym2413, "opll-soft-keys");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Instrument");
-    ok &= expectChoiceRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 16, "Follow");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 16, "Preset");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Rhythm Mode");
-    ok &= expectSegmentedRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::ymEnvelopeShape, 3, "Follow");
+    ok &= expectSegmentedRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::ymEnvelopeShape, 3, "Preset");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPLL Ch 9");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 9 Level");
     ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Rhythm Mode");
-    ok &= expectSegmentedRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::ymEnvelopeShape, 3, "Follow");
+    ok &= expectSegmentedRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::ymEnvelopeShape, 3, "Preset");
     ok &= expectPreset(chipper::ChipMode::opl3, "opl2-rhythm-kit");
     ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::source9Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPL Ch 9 / TOM+CYM");
     ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::source9Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 9 / TOM+CYM Level");
     ok &= expectMacroLabel(chipper::ChipMode::scc, chipper::MacroKind::powerUp, "SCC Power Wave");
     ok &= expectPreset(chipper::ChipMode::scc, "scc-power-wave");
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, "Ch 1 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::sidVoice2WaveShape, "Ch 2 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::sidVoice3WaveShape, "Ch 3 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::pulse2Duty, "Ch 4 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::dmgWaveLevel, "Ch 5 Wave", { "Follow", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::waveShape, "Ch 1 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::sidVoice2WaveShape, "Ch 2 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::sidVoice3WaveShape, "Ch 3 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::pulse2Duty, "Ch 4 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::dmgWaveLevel, "Ch 5 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
     ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 5");
     ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Channel 5 Level");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::nes, "nes-hero-pulse");

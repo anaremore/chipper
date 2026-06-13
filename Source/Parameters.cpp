@@ -94,7 +94,7 @@ juce::StringArray sidFilterRoutingChoices()
 
 juce::StringArray pulse2DutyChoices()
 {
-    return { "Auto", "12.5%", "25%", "50%", "75%" };
+    return { "Preset", "12.5%", "25%", "50%", "75%" };
 }
 
 juce::StringArray dmgWaveLevelChoices()

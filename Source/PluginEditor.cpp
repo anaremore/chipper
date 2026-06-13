@@ -2493,7 +2493,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     pulse2DutyValueLabel.setVisible(false);
     addAndMakeVisible(pulse2DutyValueLabel);
 
-    const std::array<const char*, pulse2DutyCount> pulse2Labels { "Auto", "12.5%", "25%", "50%", "75%" };
+    const std::array<const char*, pulse2DutyCount> pulse2Labels { "Preset", "12.5%", "25%", "50%", "75%" };
     for (size_t i = 0; i < pulse2DutyButtons.size(); ++i)
     {
         auto& button = pulse2DutyButtons[i];
@@ -7294,7 +7294,7 @@ juce::String ChipperAudioProcessorEditor::sidModelReadout(const chipper::PatchCo
     const auto model = chipper::sidModelNumberForPatch(patch);
     const auto detail = model == 8580 ? "cleaner/brighter filter profile" : "warmer/rougher filter profile";
     const auto text = juce::String("SID ") + juce::String(model) + ", " + detail;
-    return std::clamp(patch.dmgStereoRoute, 0, 2) == 0 ? juce::String("Auto -> ") + text : text;
+    return std::clamp(patch.dmgStereoRoute, 0, 2) == 0 ? juce::String("Preset -> ") + text : text;
 }
 
 juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) const
