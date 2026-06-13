@@ -489,6 +489,7 @@ private:
     juce::ComboBox dmcPlaybackModeBox;
     juce::ComboBox dmcMapRootBox;
     juce::ToggleButton dmcLoopButton;
+    juce::ToggleButton spc700LoopModeButton;
     juce::Slider sampleLoopStartSlider;
     juce::Slider sampleLoopEndSlider;
     juce::Slider outputSlider;
