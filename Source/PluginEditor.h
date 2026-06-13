@@ -213,6 +213,7 @@ private:
     void saveUserPresetFile(const juce::File& file);
     void applySelectedMacroTemplate();
     void applySelectedPreset();
+    void applyInitPreset();
     void applyFactoryPreset(const chipper::PresetInfo& preset);
     chipper::PatchConfig currentUiPatch(chipper::ChipMode mode,
                                          float control1,

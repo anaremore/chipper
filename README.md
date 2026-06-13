@@ -207,6 +207,8 @@ Documents\Chipper Presets
 
 Files saved there are scanned into the preset browser as a chip-filtered **User Presets** bank. Selecting a user preset from the browser loads the flat file directly; `Save` updates the loaded user preset file, `Save As` writes a new shareable copy, and a new sound asks for a `.chipperpreset` file name. A preset loaded from another folder also appears in the User Presets list for the current session, so downloaded/shared sounds stay reachable while you audition them.
 
+The browser also includes an `Init Patch` entry at the top for a neutral chip-local starting point. It resets the current chip's sound controls while preserving the current Strictness and supported Play Mode.
+
 Factory presets are grouped by chip-local musical categories in the browser, such as leads, basses, drums, UI sounds, FM patches, or sampler voices. The grouping is only presentation: selecting a preset still applies a normal Chipper parameter snapshot that can be edited, saved, and shared as a flat file.
 
 `Save As` suggests the currently selected preset name when possible, which keeps variant files easy to recognize when building banks like `SID Dirty Bass 02.chipperpreset` or `SPC700 Echo Pad Soft.chipperpreset`.

@@ -3379,6 +3379,51 @@ std::vector<const PresetInfo*> presetBrowserCatalog(ChipMode preferredChip)
     return presetsForChip(preferredChip);
 }
 
+PresetInfo initPresetForChip(ChipMode chip)
+{
+    PresetInfo preset;
+    preset.id = "init-" + presetKey(toString(chip));
+    preset.category = "Init";
+    preset.name = "Init Patch";
+    preset.note = "Neutral chip-local starting point with centered controls, native sources enabled, and no curated motion.";
+    preset.chip = chip;
+    preset.accuracy = AccuracyMode::hybrid;
+    preset.macro = MacroKind::manual;
+    preset.playMode = supportsPlayMode(chip, PlayMode::chipPoly) ? PlayMode::chipPoly : PlayMode::stack;
+    preset.controls = { 0.5f, 0.5f, 0.5f, 0.5f };
+    preset.sourceEnabled = { true, true, true, true };
+    preset.envelopeDecay = 0.0f;
+    preset.waveShape = 0;
+    preset.ymEnvelopeShape = 0;
+    preset.snNoiseMode = 0;
+    preset.outputDb = -9.0f;
+    preset.clockHz = 0.0;
+    preset.stereoSpread = 0.0f;
+    preset.dmgStereoRoute = 0;
+    preset.sidVoice2WaveShape = 0;
+    preset.sidVoice3WaveShape = 0;
+    preset.sidFilterRouting = 0;
+    preset.sidAttack = 0;
+    preset.sidDecay = 0;
+    preset.sidSustain = 0;
+    preset.sidRelease = 0;
+    preset.sidVoice2Attack = 0;
+    preset.sidVoice2Decay = 0;
+    preset.sidVoice2Sustain = 0;
+    preset.sidVoice2Release = 0;
+    preset.sidVoice3Attack = 0;
+    preset.sidVoice3Decay = 0;
+    preset.sidVoice3Sustain = 0;
+    preset.sidVoice3Release = 0;
+    preset.source1Level = 1.0f;
+    preset.source2Level = 1.0f;
+    preset.source3Level = 1.0f;
+    preset.source4Level = 1.0f;
+    preset.dmgWaveLevel = 0;
+    preset.nesDmcDirectLevel = 0.0f;
+    return preset;
+}
+
 const PresetInfo* presetById(std::string_view idOrName)
 {
     const auto key = presetKey(idOrName);

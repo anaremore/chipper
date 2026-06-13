@@ -16,6 +16,7 @@ namespace
 {
 
 constexpr int userPresetItemIdBase = 10000;
+constexpr int initPresetItemId = 9000;
 
 constexpr std::array chipSettingsSnapshotParameterIds {
     chipper::parameters::id::accuracy,
@@ -5102,6 +5103,8 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
     reloadUserPresetFiles(mode);
 
     presetBox.clear(juce::dontSendNotification);
+    presetBox.addSectionHeading("Start");
+    presetBox.addItem("Init Patch", initPresetItemId);
 
     juce::String currentFactoryCategory;
     for (size_t i = 0; i < displayedPresets.size(); ++i)
@@ -5142,8 +5145,8 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
     if (presetCount == 0)
     {
         headerControlLabels[0].setText("Preset", juce::dontSendNotification);
-        presetBox.setText("No presets", juce::dontSendNotification);
-        presetBox.setTooltip("No factory or user presets are active for this chip mode yet.");
+        presetBox.setTextWhenNothingSelected("Init Patch");
+        presetBox.setTooltip("Use Init Patch for a neutral chip-local starting point. No factory or user presets are active for this chip mode yet.");
     }
     else
     {
@@ -5714,8 +5717,8 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
     if (presetCount == 0)
     {
         headerControlLabels[0].setText("Preset", juce::dontSendNotification);
-        presetBox.setTextWhenNothingSelected("No presets");
-        presetBox.setTooltip("No factory or user presets are active for this chip mode yet.");
+        presetBox.setTextWhenNothingSelected("Init Patch");
+        presetBox.setTooltip("Use Init Patch for a neutral chip-local starting point. No factory or user presets are active for this chip mode yet.");
     }
     else
     {
@@ -5739,6 +5742,12 @@ void ChipperAudioProcessorEditor::applySelectedPreset()
         return;
 
     const auto selectedId = presetBox.getSelectedId();
+    if (selectedId == initPresetItemId)
+    {
+        applyInitPreset();
+        return;
+    }
+
     if (selectedId >= userPresetItemIdBase)
     {
         const auto userIndex = selectedId - userPresetItemIdBase;
@@ -5752,6 +5761,28 @@ void ChipperAudioProcessorEditor::applySelectedPreset()
         return;
 
     applyFactoryPreset(*displayedPresets[static_cast<size_t>(selected)]);
+}
+
+void ChipperAudioProcessorEditor::applyInitPreset()
+{
+    auto preset = chipper::initPresetForChip(displayedMode);
+    preset.accuracy = chipper::parameters::accuracyFromChoice(
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::accuracy))));
+    const auto requestedPlayMode = chipper::parameters::playModeFromChoice(
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::playMode))));
+    preset.playMode = chipper::supportsPlayMode(displayedMode, requestedPlayMode)
+        ? requestedPlayMode
+        : chipper::PlayMode::stack;
+
+    applyFactoryPreset(preset);
+    {
+        const juce::ScopedValueSetter<bool> suppressPreset(suppressPresetApply, true);
+        presetBox.setSelectedId(initPresetItemId, juce::dontSendNotification);
+    }
+    presetBox.setTooltip("Init Patch: neutral chip-local starting point for " + juce::String(chipper::toString(displayedMode)) + ".");
+    macroSummaryLabel.setText("Init Patch: neutral " + juce::String(chipper::toString(displayedMode)) + " starting point",
+                              juce::dontSendNotification);
+    macroSummaryLabel.setTooltip("Init Patch resets the current chip's sound controls while preserving the current Strictness and supported Play Mode.");
 }
 
 void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& preset)
@@ -10256,7 +10287,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     macroSummaryLabel.setEnabled(true);
     macroSummaryLabel.setAlpha(hasLiveCore ? 1.0f : 0.85f);
     accuracyBox.setEnabled(hasLiveCore);
-    presetBox.setEnabled(hasLiveCore && (! displayedPresets.empty() || ! displayedUserPresets.empty()));
+    presetBox.setEnabled(hasLiveCore);
     headerControlLabels[3].setVisible(false);
     macroBox.setVisible(false);
     macroBox.setEnabled(false);
