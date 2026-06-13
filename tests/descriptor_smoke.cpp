@@ -390,16 +390,16 @@ bool expectEnvelopeModels()
                  "YM2612 envelope module should expose native operator EG wording");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2413).modules[3].title == "ROM Envelope",
                  "YM2413 envelope module should expose ROM envelope wording until custom patch EG exists");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::pokey).modules[3].title == "Volume Gate",
-                 "POKEY envelope module should avoid ADSR wording");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::pokey).modules[3].title == "AUDV Gate",
+                 "POKEY envelope module should name the AUDV helper path and avoid ADSR wording");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::paula).modules[3].title == "Tracker Amp Env",
                  "Paula envelope module should identify the tracker helper layer");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::huc6280).modules[3].title == "Channel Amp Env",
-                 "HuC6280 envelope module should identify the channel-volume helper");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::namcoWsg).modules[3].title == "Lane Amp Env",
-                 "Namco WSG envelope module should identify the lane-volume helper");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).modules[3].title == "Wave Amp Env",
-                 "SCC envelope module should identify the wave-channel helper");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::huc6280).modules[3].title == "Global Amp Env",
+                 "HuC6280 envelope module should identify its shared volume helper");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::namcoWsg).modules[3].title == "Global Amp Env",
+                 "Namco WSG envelope module should identify its shared lane-volume helper");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).modules[3].title == "Global Amp Env",
+                 "SCC envelope module should identify its shared wave-channel helper");
 
     return ok;
 }

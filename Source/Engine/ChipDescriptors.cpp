@@ -1382,7 +1382,7 @@ std::vector<ChipParameterSpec> pokeyParameterSpecs()
                           choice("Both", "Enable both modeled POKEY high-pass filter paths.", 1.0f, 4)
                       },
                       ParameterKind::chipRegister),
-        envelopeSpec("pokey.decay", "Volume Gate", "Applies a modern musical volume-gate helper on top of POKEY AUDV nibbles; native AUDV state remains visible in debug output."),
+        envelopeSpec("pokey.decay", "AUDV Gate", "Applies a modern musical volume-gate helper on top of POKEY AUDV nibbles; native AUDV state remains visible in debug output."),
         segmentedSpec(ChipParameterRole::waveShape,
                       "pokey.distortionCode",
                       "Distortion Code",
@@ -2387,7 +2387,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("profile", "Profile", "POKEY clean-room groundwork.", { "Atari 8-bit family", "1.79 MHz default", "Hybrid default", "Authentic still partial" }),
                 makeModule("sources", "Channels", "Four native POKEY audio channels.", { "Channel 1", "Channel 2", "Channel 3", "Channel 4" }),
                 makeModule("tone", "Distortion / Noise", "AUDC-style tone and polynomial texture controls.", { "Pure tone", "Poly4", "Poly5", "Poly17" }),
-                makeModule("envelope", "Volume Gate", "AUDV volume nibble plus musical gate helper; POKEY has no native ADSR.", { "4-bit volume", "Per-channel trims", "Gate helper", "Register readout" }),
+                makeModule("envelope", "AUDV Gate", "AUDV volume nibble plus musical gate helper; POKEY has no native ADSR.", { "4-bit volume", "Per-channel trims", "Gate helper", "Register readout" }),
                 makeModule("motion", "Motion", "Atari SFX gestures mapped to channel timers.", { "Console blip", "Pitch drop", "Four-channel arp", "Poly perc" }),
                 makeModule("output", "Output", "Bright mono Atari-style output groundwork.", { "Output gain", "Stereo spread convenience", "AUDCTL pairing", "AUDCTL filter" })
             },
