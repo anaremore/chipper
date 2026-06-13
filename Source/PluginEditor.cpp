@@ -3696,16 +3696,29 @@ void ChipperAudioProcessorEditor::resized()
         if (isNesSourceCard || isDmgSourceCard)
         {
             constexpr auto compactSegmentHeight = 24;
-            constexpr auto compactLabelHeight = 16;
+            constexpr auto compactLabelHeight = 18;
             const auto placeCompactSegment = [](auto& buttons, juce::Rectangle<int> segmentBounds, size_t count)
             {
                 layoutSegmentedButtons(buttons, segmentBounds.reduced(0, 1), count);
             };
             const auto placeCompactLabel = [](juce::Label& label, juce::Label* valueLabel, juce::Rectangle<int> labelBounds)
             {
-                label.setBounds(labelBounds);
-                if (valueLabel != nullptr)
+                auto labelTextBounds = labelBounds;
+                if (valueLabel != nullptr && labelBounds.getWidth() > 160)
+                {
+                    valueLabel->setJustificationType(juce::Justification::centredRight);
+                    valueLabel->setMinimumHorizontalScale(0.65f);
+                    valueLabel->setBounds(labelTextBounds.removeFromRight(std::min(138, labelTextBounds.getWidth() / 2)));
+                    labelTextBounds.removeFromRight(std::min(8, labelTextBounds.getWidth()));
+                }
+                else if (valueLabel != nullptr)
+                {
                     valueLabel->setBounds({});
+                }
+
+                label.setJustificationType(juce::Justification::centredLeft);
+                label.setMinimumHorizontalScale(0.7f);
+                label.setBounds(labelTextBounds);
             };
 
             if (i == 0)
@@ -6307,6 +6320,22 @@ juce::String ChipperAudioProcessorEditor::pulse2DutyReadout(const chipper::Patch
     return juce::String("Preset -> ") + detail;
 }
 
+juce::String ChipperAudioProcessorEditor::compactPulse2DutyReadout(const chipper::PatchConfig& patch) const
+{
+    static constexpr std::array<const char*, 4> dutyLabels { "12.5%", "25%", "50%", "75%" };
+    const auto choice = std::clamp(patch.pulse2Duty, 0, 4);
+    const auto primary = std::clamp(static_cast<int>(std::round(patch.control1 * 3.0f)), 0, 3);
+    const auto resolved = choice > 0
+                              ? choice - 1
+                              : (patch.playMode == chipper::PlayMode::chipPoly ? primary : std::min(primary + 1, 3));
+    const auto resolvedText = juce::String(dutyLabels[static_cast<size_t>(resolved)]);
+
+    if (choice > 0)
+        return resolvedText + " independent";
+
+    return juce::String("Follow -> ") + resolvedText;
+}
+
 juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mode, int choice) const
 {
     if (mode == chipper::ChipMode::sid)
@@ -7916,9 +7945,8 @@ void ChipperAudioProcessorEditor::setStereoSpreadControlVisible(chipper::ChipMod
 void ChipperAudioProcessorEditor::setPulse2DutySegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
     const auto active = shouldBeVisible && usesPulse2DutySegment(mode);
-    const auto embeddedInSourceCard = mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
     pulse2DutyLabel.setVisible(active);
-    pulse2DutyValueLabel.setVisible(active && ! embeddedInSourceCard);
+    pulse2DutyValueLabel.setVisible(active);
     for (auto& button : pulse2DutyButtons)
         button.setVisible(active);
 
@@ -9051,8 +9079,9 @@ void ChipperAudioProcessorEditor::updatePulse2DutyButtons(const chipper::PatchCo
     const auto embeddedInSourceCard = displayedMode == chipper::ChipMode::nes
         || displayedMode == chipper::ChipMode::dmg;
     pulse2DutyLabel.setVisible(shouldBeVisible);
-    pulse2DutyValueLabel.setVisible(shouldBeVisible && ! embeddedInSourceCard);
-    pulse2DutyValueLabel.setText(pulse2DutyReadout(patch), juce::dontSendNotification);
+    pulse2DutyValueLabel.setVisible(shouldBeVisible);
+    pulse2DutyValueLabel.setText(embeddedInSourceCard ? compactPulse2DutyReadout(patch) : pulse2DutyReadout(patch),
+                                 juce::dontSendNotification);
 }
 
 void ChipperAudioProcessorEditor::updateToneNoiseMixButtons(float value, bool shouldBeVisible)
@@ -10609,7 +10638,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto embeddedPulseDuty = (mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg) && hasPulseDutySegment;
     nativeGroupLabels[0].setVisible(! embeddedPulseDuty);
     nativeLabels[0].setVisible(! embeddedPulseDuty || hasPulseDutySegment);
-    controlValueLabels[0].setVisible(! embeddedPulseDuty);
+    controlValueLabels[0].setVisible(! embeddedPulseDuty || hasPulseDutySegment);
     nativeSliders[3].setVisible(! hasToneNoiseMixSegment);
     updatePulseDutyButtons(patch.control1, hasPulseDutySegment);
     updatePulse2DutyButtons(patch, hasPulse2DutySegment);
@@ -10638,7 +10667,8 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
 
     if (mode == chipper::ChipMode::nes)
     {
-        controlValueLabels[0].setText(macroReadout(0, pulseDutyReadout(mode, patch.control1)), juce::dontSendNotification);
+        controlValueLabels[0].setText(embeddedPulseDuty ? pulseDutyReadout(mode, patch.control1) : macroReadout(0, pulseDutyReadout(mode, patch.control1)),
+                                      juce::dontSendNotification);
         controlValueLabels[1].setText(macroReadout(1, nesSweepReadout(patch.control2)), juce::dontSendNotification);
         controlValueLabels[2].setText(macroReadout(2, nesNoiseReadout(patch.control3)), juce::dontSendNotification);
         controlValueLabels[3].setText(macroReadout(3, nesFocusReadout(patch.control4)), juce::dontSendNotification);
@@ -10647,7 +10677,8 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     }
     else if (mode == chipper::ChipMode::dmg)
     {
-        controlValueLabels[0].setText(macroReadout(0, pulseDutyReadout(mode, patch.control1)), juce::dontSendNotification);
+        controlValueLabels[0].setText(embeddedPulseDuty ? pulseDutyReadout(mode, patch.control1) : macroReadout(0, pulseDutyReadout(mode, patch.control1)),
+                                      juce::dontSendNotification);
         controlValueLabels[1].setText(macroReadout(1, dmgSweepReadout(patch.control2)), juce::dontSendNotification);
         controlValueLabels[2].setText(macroReadout(2, dmgNoiseReadout(patch.control3)), juce::dontSendNotification);
         controlValueLabels[3].setText(macroReadout(3, dmgEnvelopeReadout(patch.control4)), juce::dontSendNotification);
