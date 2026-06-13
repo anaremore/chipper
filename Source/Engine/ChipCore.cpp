@@ -2412,7 +2412,7 @@ private:
         }
         else
         {
-            dmcActive = false;
+            stopDmcSample();
         }
         for (size_t i = 0; i < enabled.size(); ++i)
         {
@@ -2427,6 +2427,7 @@ private:
             return;
 
         dmcActive = true;
+        regs[0x15] = static_cast<uint8_t>(regs[0x15] | 0x10u);
         dmcByteIndex = 0;
         dmcBitIndex = 0;
         dmcPhase = 0.0;
@@ -2457,7 +2458,7 @@ private:
             }
             else
             {
-                dmcActive = false;
+                stopDmcSample();
                 return;
             }
         }
@@ -2482,7 +2483,24 @@ private:
         {
             dmcBitIndex = 0;
             ++dmcByteIndex;
+            if (dmcByteIndex >= dmcSample.size())
+            {
+                if (dmcLoopEnabled())
+                {
+                    dmcByteIndex = 0;
+                }
+                else
+                {
+                    stopDmcSample();
+                }
+            }
         }
+    }
+
+    void stopDmcSample()
+    {
+        dmcActive = false;
+        regs[0x15] = static_cast<uint8_t>(regs[0x15] & ~0x10u);
     }
 
     double highPass(double input, double cutoffHz, double& previousInput, double& previousOutput) const

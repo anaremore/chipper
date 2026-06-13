@@ -623,6 +623,8 @@ int main()
                  "NES DMC one-shot should stop after the selected sample ends when Loop is off");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") == 32,
                  "NES DMC one-shot should report all fixture bits consumed before held-note replay");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleByteIndex") == 4,
+                 "NES DMC one-shot should stop at the exact end of the selected fixture");
 
     setPlainFromHost(dmcOneShotProcessor, chipper::parameters::id::macroControl2, 0.73f);
     processEmptyBlock(dmcOneShotProcessor);
@@ -631,6 +633,21 @@ int main()
                  "NES DMC one-shot should not restart when a host parameter change replays held notes");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") == 32,
                  "NES DMC held-note replay should preserve the completed one-shot bit position");
+
+    ChipperAudioProcessor dmcLoopProcessor;
+    dmcLoopProcessor.prepareToPlay(48000.0, 256);
+    ok &= expect(dmcLoopProcessor.loadNesDmcSampleDirectory(dmcDir).wasOk(),
+                 "Should load DMC sample directory for loop regression");
+    sendController(dmcLoopProcessor, 68, 127);
+    sendController(dmcLoopProcessor, 118, controllerValueForChoice(dmcLoopProcessor, chipper::parameters::id::nesDmcRateIndex, 15));
+    sendNoteOn(dmcLoopProcessor, 48);
+    for (int block = 0; block < 14; ++block)
+        processEmptyBlock(dmcLoopProcessor);
+    dmcDebug = dmcLoopProcessor.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleActive") == 1,
+                 "NES DMC loop should remain active after the selected sample end when Loop is on");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") > 32,
+                 "NES DMC loop should continue stepping bits after the first fixture pass");
 
     juce::AudioBuffer<float> dmcMapBuffer(2, 64);
     juce::MidiBuffer dmcMapMidi;
