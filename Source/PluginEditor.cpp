@@ -3668,13 +3668,13 @@ void ChipperAudioProcessorEditor::resized()
 
         const auto placeEmbeddedLevel = [this, i](juce::Rectangle<int>& cardArea, int labelWidth = 52)
         {
-            auto levelArea = cardArea.removeFromTop(std::min(42, cardArea.getHeight()));
-            auto levelRow = levelArea.removeFromTop(std::min(14, levelArea.getHeight()));
+            auto levelArea = cardArea.removeFromTop(std::min(50, cardArea.getHeight()));
+            auto levelRow = levelArea.removeFromTop(std::min(16, levelArea.getHeight()));
             sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(labelWidth, levelRow.getWidth())));
             sourceLevelValueLabels[i].setBounds(levelRow);
-            levelArea.removeFromTop(std::min(4, levelArea.getHeight()));
-            sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(18, levelArea.getHeight())).reduced(0, 1));
-            cardArea.removeFromTop(std::min(3, cardArea.getHeight()));
+            levelArea.removeFromTop(std::min(5, levelArea.getHeight()));
+            sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(24, levelArea.getHeight())).reduced(0, 1));
+            cardArea.removeFromTop(std::min(4, cardArea.getHeight()));
         };
 
         if (isSidSourceCard && i < sidVoiceWaveCount)
