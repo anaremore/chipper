@@ -5103,19 +5103,37 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
 
     presetBox.clear(juce::dontSendNotification);
 
-    if (! displayedPresets.empty())
-        presetBox.addSectionHeading("Factory Presets");
-
+    juce::String currentFactoryCategory;
     for (size_t i = 0; i < displayedPresets.size(); ++i)
     {
         const auto& preset = *displayedPresets[i];
-        presetBox.addItem(juce::String(preset.category) + " / " + juce::String(preset.name),
-                          static_cast<int>(i + 1u));
+        const auto category = juce::String(preset.category).isNotEmpty()
+            ? juce::String(preset.category)
+            : juce::String("Factory Presets");
+        if (category != currentFactoryCategory)
+        {
+            const auto categoryCount = std::count_if(displayedPresets.begin(),
+                                                     displayedPresets.end(),
+                                                     [&category](const chipper::PresetInfo* candidate)
+                                                     {
+                                                         if (candidate == nullptr)
+                                                             return false;
+
+                                                         const auto candidateCategory = juce::String(candidate->category).isNotEmpty()
+                                                             ? juce::String(candidate->category)
+                                                             : juce::String("Factory Presets");
+                                                         return candidateCategory == category;
+                                                     });
+            presetBox.addSectionHeading(category + " (" + juce::String(static_cast<int>(categoryCount)) + ")");
+            currentFactoryCategory = category;
+        }
+
+        presetBox.addItem(juce::String(preset.name), static_cast<int>(i + 1u));
     }
 
     if (! displayedUserPresets.empty())
     {
-        presetBox.addSectionHeading("User Presets");
+        presetBox.addSectionHeading("User Presets (" + juce::String(static_cast<int>(displayedUserPresets.size())) + ")");
         for (size_t i = 0; i < displayedUserPresets.size(); ++i)
             presetBox.addItem(displayedUserPresets[i].name, userPresetItemIdBase + static_cast<int>(i));
     }
@@ -5138,7 +5156,7 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
         presetBox.setTextWhenNothingSelected(juce::String(presetCount) + " presets - " + firstName);
         presetBox.setTooltip("Browse " + juce::String(presetCount) + " factory/user presets for "
                              + juce::String(chipper::toString(mode))
-                             + ". Choosing one applies an audible chip-specific sound immediately.");
+                             + ". Factory sounds are grouped by musical category; choosing one applies an audible chip-specific sound immediately.");
     }
 }
 
@@ -5709,7 +5727,7 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
         presetBox.setTextWhenNothingSelected(juce::String(presetCount) + " presets - " + firstName);
         presetBox.setTooltip("Browse " + juce::String(presetCount) + " factory/user presets for "
                              + juce::String(chipper::toString(mode))
-                             + ". Choosing one applies an audible chip-specific sound immediately.");
+                             + ". Factory sounds are grouped by musical category; choosing one applies an audible chip-specific sound immediately.");
     }
 
     updateLiveControlReadouts();

@@ -25,11 +25,12 @@ This audit tracks layout and control-placement work that most directly improves 
 - Embedded combo boxes and numeric inputs should use the standard control height wherever there is room. If a card cannot fit a standard-height dropdown plus label, increase the card or layout size instead of shrinking the dropdown into unreadable text. Dense wavetable and sampler source cards now reserve standard-height selectors and a clearer bottom level lane.
 - The editor default canvas now gives chip-specific layouts more room. This is intentional: Chipper should favor readable channel-local controls and waveform/sample previews over forcing every chip into the earliest compact prototype size.
 - Performance Macros now show chip-aware destination hints in their resolved readout lines, such as `$400E noise`, `NR43 noise`, `$D415 cutoff`, `AUDV gate`, `Wave RAM`, and `$B0 feedback`. These hints make it clear which macros are musical gestures over native chip paths rather than generic unlabeled sliders.
+- The preset browser now groups factory sounds by chip-local musical category and shows counts in the section headers, while user presets remain a separate flat-file bank. This keeps browsing useful without changing the simple `.chipperpreset` sharing model.
 
 ## Highest-Value Next Fixes
 
 1. Preset browser and preset sharing
-   - Issue: the top dropdown works, but 15 chips need filters by chip, role, engine, tag, favorites, and init patch. User presets should remain simple flat files that are easy to share.
+   - Issue: the top dropdown now groups the current chip's presets by category, but 15 chips still need richer search/filtering by role, engine, tag, favorites, and init patch. User presets should remain simple flat files that are easy to share.
    - User value: very high. Most musicians will browse for "arcade bass" or "Game Boy lead" before they know which chip engine they want.
    - Confidence: 7/10. Preset data already exists; browser UX and save/load polish are the main work.
 
