@@ -517,11 +517,11 @@ std::vector<ParameterChoiceSpec> pulseDutyChoices(std::string thinHelp, std::str
 std::vector<ParameterChoiceSpec> pulse2DutyChoices(std::string macroHelp)
 {
     return {
-        choice("Auto", macroHelp, 0.0f, 0),
-        choice("12.5%", "Write duty bits 00 to pulse channel 2.", 0.25f, 1),
-        choice("25%", "Write duty bits 01 to pulse channel 2.", 0.5f, 2),
-        choice("50%", "Write duty bits 10 to pulse channel 2.", 0.75f, 3),
-        choice("75%", "Write duty bits 11 to pulse channel 2.", 1.0f, 4)
+        choice("Preset", macroHelp, 0.0f, 0),
+        choice("12.5%", "Write duty bits 00 directly to pulse channel 2.", 0.25f, 1),
+        choice("25%", "Write duty bits 01 directly to pulse channel 2.", 0.5f, 2),
+        choice("50%", "Write duty bits 10 directly to pulse channel 2.", 0.75f, 3),
+        choice("75%", "Write duty bits 11 directly to pulse channel 2.", 1.0f, 4)
     };
 }
 
@@ -987,8 +987,8 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
                       "nes.pulse2Duty",
                       "Pulse 2 Duty",
                       "Channels",
-                      "Overrides the RP2A03 pulse 2 duty register field. Auto uses the selected NES preset recipe.",
-                      pulse2DutyChoices("Keep the current preset recipe: stacked Big Mono offsets Pulse 2 by one duty step; Chip Poly follows Pulse 1."),
+                      "Overrides the RP2A03 pulse 2 duty register field. Preset uses the selected NES recipe; explicit choices write independently.",
+                      pulse2DutyChoices("Use the current preset recipe: stacked Big Mono may offset Pulse 2 by one duty step; explicit choices override $4004 independently."),
                       ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl2, "nes.sweepMotion", "Sweep Motion", "Pitch", "Scales musical pitch gestures into RP2A03 sweep/timer behavior."),
         sliderSpec(ChipParameterRole::macroControl3,
@@ -1120,8 +1120,8 @@ std::vector<ChipParameterSpec> dmgParameterSpecs()
                       "dmg.pulse2Duty",
                       "Pulse 2 Duty",
                       "Pulse",
-                      "Maps to the DMG NR21 duty register field for pulse channel 2. Auto keeps preset-friendly pairing with Pulse 1.",
-                      pulse2DutyChoices("Keep the current preset recipe: mono stacks offset Pulse 2 by one duty step; Chip Poly follows Pulse 1."),
+                      "Maps to the DMG NR21 duty register field for pulse channel 2. Preset keeps the recipe pairing; explicit choices write independently.",
+                      pulse2DutyChoices("Use the current preset recipe: mono stacks may offset Pulse 2 by one duty step; explicit choices override NR21 independently."),
                       ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl2,
                    "dmg.sweepShift",
