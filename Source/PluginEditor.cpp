@@ -6300,12 +6300,12 @@ juce::String ChipperAudioProcessorEditor::pulse2DutyReadout(const chipper::Patch
     if (displayedMode == chipper::ChipMode::dmg)
     {
         const auto followMode = patch.playMode == chipper::PlayMode::chipPoly
-            ? juce::String("Auto P1 -> ")
-            : juce::String("Auto +1 -> ");
+            ? juce::String("Preset P1 -> ")
+            : juce::String("Preset +1 -> ");
         return followMode + detail;
     }
 
-    return juce::String("Auto -> ") + detail;
+    return juce::String("Preset -> ") + detail;
 }
 
 juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mode, int choice) const
