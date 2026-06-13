@@ -29,6 +29,28 @@ juce::String midiNoteName(int note)
     return juce::String(names[static_cast<size_t>(clampedNote % 12)]) + juce::String((clampedNote / 12) - 2);
 }
 
+int jsonIntValue(const std::string& json, const std::string& key, int fallback = 0)
+{
+    const auto marker = "\"" + key + "\":";
+    const auto markerPosition = json.find(marker);
+    if (markerPosition == std::string::npos)
+        return fallback;
+
+    const auto valueStart = markerPosition + marker.size();
+    const auto valueEnd = json.find_first_of(",}", valueStart);
+    if (valueEnd == std::string::npos)
+        return fallback;
+
+    try
+    {
+        return std::stoi(json.substr(valueStart, valueEnd - valueStart));
+    }
+    catch (...)
+    {
+        return fallback;
+    }
+}
+
 std::vector<float> decodeDmcPreview(const std::vector<uint8_t>& bytes)
 {
     std::vector<float> decoded;
@@ -774,6 +796,13 @@ ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSample
     info.playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
     info.mapRootNote = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcMapRoot)->load())), 0, 127);
     info.loopEnabled = apvts.getRawParameterValue(chipper::parameters::id::nesDmcLoop)->load() >= 0.5f;
+    if (core != nullptr)
+    {
+        const auto debugState = core->debugStateJson();
+        info.sampleActive = jsonIntValue(debugState, "dmcSampleActive") != 0;
+        info.sampleCompleted = jsonIntValue(debugState, "dmcSampleCompleted") != 0;
+        info.bitsPlayed = jsonIntValue(debugState, "dmcSampleBitsPlayed");
+    }
     const auto selectedSlot = info.playbackMode != 0 && activeDmcSampleSlot >= 0 ? activeDmcSampleSlot : manualSlot;
     info.rateIndex = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcRateIndex)->load()));
     info.rateIndex = std::clamp(info.rateIndex, 0, 15);
@@ -823,10 +852,20 @@ ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSample
     info.byteCount = static_cast<int>(slot.bytes.size());
     info.bitCount = info.byteCount * 8;
     info.durationMs = info.bitRateHz > 0.0 ? (static_cast<double>(info.bitCount) / info.bitRateHz) * 1000.0 : 0.0;
+    auto runState = juce::String(info.loopEnabled ? "Loop" : "One-shot, DAC holds");
+    if (! info.loopEnabled)
+    {
+        if (info.sampleCompleted)
+            runState += " (stopped)";
+        else if (info.sampleActive)
+            runState += " (playing)";
+        else
+            runState += " (ready)";
+    }
     info.statusLine = "Slot " + juce::String(info.activeSlot + 1) + "/" + juce::String(info.activeSlotCount)
         + ": " + info.sampleName + " (" + juce::String(info.byteCount) + " bytes, "
         + juce::String(info.durationMs, info.durationMs < 10.0 ? 1 : 0) + " ms @ rate "
-        + juce::String(info.rateIndex) + (info.loopEnabled ? ", Loop)" : ", One-shot, DAC holds)");
+        + juce::String(info.rateIndex) + ", " + runState + ")";
     if (info.playbackMode != 0)
         info.statusLine += " | Map " + midiNoteName(info.mapRootNote) + "-" + midiNoteName(info.mapHighNote);
     return info;

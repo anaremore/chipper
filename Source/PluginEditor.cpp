@@ -9832,10 +9832,21 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
         visibleStatus += " | Map " + chipper::parameters::midiNoteChoices()[playbackInfo.mapRootNote]
             + "-" + chipper::parameters::midiNoteChoices()[playbackInfo.mapHighNote];
     if (playbackInfo.byteCount > 0)
-        visibleStatus += " | Rate " + juce::String(playbackInfo.rateIndex)
-            + (playbackInfo.loopEnabled ? " | Loop" : " | One-shot, DAC holds");
+    {
+        auto runState = juce::String(playbackInfo.loopEnabled ? "Loop" : "One-shot, DAC holds");
+        if (! playbackInfo.loopEnabled)
+        {
+            if (playbackInfo.sampleCompleted)
+                runState += " (stopped)";
+            else if (playbackInfo.sampleActive)
+                runState += " (playing)";
+            else
+                runState += " (ready)";
+        }
+        visibleStatus += " | Rate " + juce::String(playbackInfo.rateIndex) + " | " + runState;
+    }
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
-    dmcLoopButton.setButtonText(playbackInfo.loopEnabled ? "Loop: On" : "Loop: Off");
+    dmcLoopButton.setButtonText(playbackInfo.loopEnabled ? "Loop: On" : "Loop: Off / one-shot");
     auto sampleTooltip = playbackInfo.statusLine
         + "\nDMC bit clock: " + juce::String(playbackInfo.bitRateHz / 1000.0, 2) + " kHz from $4010 rate index "
         + juce::String(playbackInfo.rateIndex) + ".";
@@ -9844,6 +9855,18 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
         sampleTooltip += "\nSample payload: " + juce::String(playbackInfo.byteCount) + " bytes / "
             + juce::String(playbackInfo.bitCount) + " DPCM bits, approx "
             + juce::String(playbackInfo.durationMs, playbackInfo.durationMs < 10.0 ? 1 : 0) + " ms at this rate.";
+        if (! playbackInfo.loopEnabled)
+        {
+            sampleTooltip += "\nPlayback state: ";
+            if (playbackInfo.sampleCompleted)
+                sampleTooltip += "stopped at the sample end; the final DAC value is held.";
+            else if (playbackInfo.sampleActive)
+                sampleTooltip += "currently stepping DPCM bits.";
+            else
+                sampleTooltip += "ready for the next trigger.";
+            if (playbackInfo.bitsPlayed > 0)
+                sampleTooltip += " Bits stepped: " + juce::String(playbackInfo.bitsPlayed) + ".";
+        }
     }
     sampleTooltip += playbackInfo.loopEnabled
         ? "\nLoop is on: $4010 bit 6 restarts playback from byte 0 when the sample ends."

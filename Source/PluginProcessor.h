@@ -62,6 +62,9 @@ public:
         int mapRootNote = 36;
         int mapHighNote = 36;
         bool loopEnabled = false;
+        bool sampleActive = false;
+        bool sampleCompleted = false;
+        int bitsPlayed = 0;
         double bitRateHz = 0.0;
         double durationMs = 0.0;
     };

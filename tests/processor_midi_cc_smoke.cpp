@@ -633,6 +633,11 @@ int main()
                  "NES DMC one-shot should stop at the exact end of the selected fixture");
     ok &= expect(jsonIntValue(dmcDebug, "dmcMixerLevel") == jsonIntValue(dmcDebug, "dmcLevel"),
                  "NES DMC one-shot should hold the final DAC level after Loop-off playback stops");
+    auto dmcOneShotInfo = dmcOneShotProcessor.nesDmcSamplePlaybackInfo();
+    ok &= expect(! dmcOneShotInfo.sampleActive && dmcOneShotInfo.sampleCompleted && dmcOneShotInfo.bitsPlayed == 32,
+                 "NES DMC playback info should expose stopped one-shot state for the UI");
+    ok &= expect(dmcOneShotInfo.statusLine.contains("One-shot, DAC holds") && dmcOneShotInfo.statusLine.contains("stopped"),
+                 "NES DMC playback info should describe stopped one-shot playback without implying a loop");
 
     ChipperAudioProcessor dmcNoRestartProcessor;
     dmcNoRestartProcessor.prepareToPlay(48000.0, 256);
@@ -647,6 +652,9 @@ int main()
                  "NES DMC slow one-shot should still be active after the first short trigger block");
     ok &= expect(dmcBitsAfterFirstTrigger > 0 && dmcBitsAfterFirstTrigger < 32,
                  "NES DMC slow one-shot fixture should be mid-stream before the retrigger regression");
+    auto dmcActiveOneShotInfo = dmcNoRestartProcessor.nesDmcSamplePlaybackInfo();
+    ok &= expect(dmcActiveOneShotInfo.sampleActive && ! dmcActiveOneShotInfo.sampleCompleted,
+                 "NES DMC playback info should expose active one-shot state while bits are still stepping");
     sendNoteOn(dmcNoRestartProcessor, 48);
     dmcNoRestartDebug = dmcNoRestartProcessor.currentCoreDebugStateJson();
     ok &= expect(jsonIntValue(dmcNoRestartDebug, "dmcSampleActive") == 1,
@@ -711,6 +719,9 @@ int main()
                  "NES DMC loop should remain active after the selected sample end when Loop is on");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleCompleted") == 0,
                  "NES DMC loop should not report one-shot completion while wrapping is enabled");
+    auto dmcLoopInfo = dmcLoopProcessor.nesDmcSamplePlaybackInfo();
+    ok &= expect(dmcLoopInfo.loopEnabled && dmcLoopInfo.sampleActive && ! dmcLoopInfo.sampleCompleted,
+                 "NES DMC playback info should expose active loop state while the loop bit is enabled");
     ok &= expect(jsonIntValue(dmcDebug, "dmcLoopEnabled") == 1,
                  "NES DMC loop regression should keep the loop bit enabled");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") > 32,
