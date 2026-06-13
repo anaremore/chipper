@@ -2009,6 +2009,7 @@ public:
         channelStamp.fill(0);
         noteStamp = 0;
         dmcActive = false;
+        dmcSampleCompleted = false;
         dmcByteIndex = 0;
         dmcBitIndex = 0;
         dmcPhase = 0.0;
@@ -2032,6 +2033,7 @@ public:
     {
         dmcSample = std::move(data);
         dmcActive = false;
+        dmcSampleCompleted = false;
         dmcByteIndex = 0;
         dmcBitIndex = 0;
         dmcPhase = 0.0;
@@ -2287,6 +2289,7 @@ public:
              << "\"dmcSampleLoaded\":" << (dmcSample.empty() ? 0 : 1) << ","
              << "\"dmcSampleBytes\":" << dmcSample.size() << ","
              << "\"dmcSampleActive\":" << (dmcActive ? 1 : 0) << ","
+             << "\"dmcSampleCompleted\":" << (dmcSampleCompleted ? 1 : 0) << ","
              << "\"dmcSampleByteIndex\":" << dmcByteIndex << ","
              << "\"dmcSampleBitIndex\":" << static_cast<int>(dmcBitIndex) << ","
              << "\"dmcSampleBitsPlayed\":" << dmcBitsPlayed << ","
@@ -2436,6 +2439,7 @@ private:
             return;
 
         dmcActive = true;
+        dmcSampleCompleted = false;
         regs[0x15] = static_cast<uint8_t>(regs[0x15] | 0x10u);
         dmcByteIndex = 0;
         dmcBitIndex = 0;
@@ -2467,7 +2471,7 @@ private:
             }
             else
             {
-                stopDmcSample();
+                stopDmcSample(true);
                 return;
             }
         }
@@ -2500,15 +2504,16 @@ private:
                 }
                 else
                 {
-                    stopDmcSample();
+                    stopDmcSample(true);
                 }
             }
         }
     }
 
-    void stopDmcSample()
+    void stopDmcSample(bool completed = false)
     {
         dmcActive = false;
+        dmcSampleCompleted = completed;
         regs[0x15] = static_cast<uint8_t>(regs[0x15] & ~0x10u);
     }
 
@@ -3025,6 +3030,7 @@ private:
     uint64_t noteStamp = 0;
     std::vector<uint8_t> dmcSample;
     bool dmcActive = false;
+    bool dmcSampleCompleted = false;
     bool suppressDmcRestartOnNoteOn = false;
     size_t dmcByteIndex = 0;
     uint8_t dmcBitIndex = 0;

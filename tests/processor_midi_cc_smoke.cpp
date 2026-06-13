@@ -623,6 +623,10 @@ int main()
     auto dmcDebug = dmcOneShotProcessor.currentCoreDebugStateJson();
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleActive") == 0,
                  "NES DMC one-shot should stop after the selected sample ends when Loop is off");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleCompleted") == 1,
+                 "NES DMC one-shot should report that the sample stream completed when Loop is off");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcLoopEnabled") == 0,
+                 "NES DMC one-shot regression should keep the loop bit disabled");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") == 32,
                  "NES DMC one-shot should report all fixture bits consumed before held-note replay");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleByteIndex") == 4,
@@ -639,6 +643,13 @@ int main()
                  "NES DMC held-note replay should preserve the completed one-shot bit position");
     ok &= expect(jsonIntValue(dmcDebug, "dmcMixerLevel") == jsonIntValue(dmcDebug, "dmcLevel"),
                  "NES DMC held-note replay should preserve the completed one-shot DAC hold");
+    for (int i = 0; i < 16; ++i)
+        processEmptyBlock(dmcOneShotProcessor);
+    dmcDebug = dmcOneShotProcessor.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleActive") == 0 && jsonIntValue(dmcDebug, "dmcSampleCompleted") == 1,
+                 "NES DMC loop-off held note should remain stopped/completed after additional audio blocks");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") == 32 && jsonIntValue(dmcDebug, "dmcSampleByteIndex") == 4,
+                 "NES DMC loop-off held note should not wrap or advance after the one-shot endpoint");
 
     ChipperAudioProcessor dmcNoteMapOneShotProcessor;
     dmcNoteMapOneShotProcessor.prepareToPlay(48000.0, 256);
@@ -657,6 +668,8 @@ int main()
                  "NES DMC Note Map loop-off should keep one-shot status for the mapped slot");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleActive") == 0,
                  "NES DMC Note Map loop-off should stop after the mapped sample ends");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleCompleted") == 1,
+                 "NES DMC Note Map loop-off should report a completed one-shot stream");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") == 32,
                  "NES DMC Note Map loop-off should consume one mapped fixture pass without wrapping");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleByteIndex") == 4,
@@ -674,6 +687,10 @@ int main()
     dmcDebug = dmcLoopProcessor.currentCoreDebugStateJson();
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleActive") == 1,
                  "NES DMC loop should remain active after the selected sample end when Loop is on");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleCompleted") == 0,
+                 "NES DMC loop should not report one-shot completion while wrapping is enabled");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcLoopEnabled") == 1,
+                 "NES DMC loop regression should keep the loop bit enabled");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") > 32,
                  "NES DMC loop should continue stepping bits after the first fixture pass");
     ok &= expect(jsonIntValue(dmcDebug, "dmcMixerLevel") > 0,
