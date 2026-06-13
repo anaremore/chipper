@@ -2226,7 +2226,7 @@ public:
         const auto p2 = channelActive(1) ? renderPulse(1) * sourceLevel(patch, 1) : 0.0;
         const auto tri = triangleActive() ? renderTriangle() * sourceLevel(patch, 2) : 0.0;
         const auto noi = channelActive(3) ? renderNoise() * sourceLevel(patch, 3) : 0.0;
-        const auto dmc = static_cast<double>(dmcOutputLevel());
+        const auto dmc = static_cast<double>(dmcMixerLevel());
 
         const auto pulseSum = p1 + p2;
         const auto tndSum = tri / 8227.0 + noi / 12241.0 + dmc / 22638.0;
@@ -2312,6 +2312,7 @@ public:
              << "\"frameIrqFlag\":" << (frameIrqFlag ? 1 : 0) << ","
              << "\"frameSequenceStep\":" << static_cast<int>(frameSequenceStep) << ","
              << "\"dmcLevel\":" << static_cast<int>(dmcOutputLevel()) << ","
+             << "\"dmcMixerLevel\":" << static_cast<int>(dmcMixerLevel()) << ","
              << "\"sweepTarget0\":" << sweepTargetPeriod(0) << ","
              << "\"sweepTarget1\":" << sweepTargetPeriod(1) << ","
              << "\"sweepMuted0\":" << (pulseSweepMuted(0) ? 1 : 0) << ","
@@ -2377,6 +2378,14 @@ private:
     uint8_t dmcOutputLevel() const
     {
         return static_cast<uint8_t>(regs[0x11] & 0x7fu);
+    }
+
+    uint8_t dmcMixerLevel() const
+    {
+        if (dmcSample.empty() || dmcActive || dmcLoopEnabled())
+            return dmcOutputLevel();
+
+        return nesDmcDirectLevelForControl(patch.nesDmcDirectLevel);
     }
 
     uint8_t dmcRateIndex() const

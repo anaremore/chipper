@@ -625,6 +625,8 @@ int main()
                  "NES DMC one-shot should report all fixture bits consumed before held-note replay");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleByteIndex") == 4,
                  "NES DMC one-shot should stop at the exact end of the selected fixture");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcMixerLevel") == 0,
+                 "NES DMC one-shot should return the audible mixer lane to DMC Direct when Loop is off");
 
     setPlainFromHost(dmcOneShotProcessor, chipper::parameters::id::macroControl2, 0.73f);
     processEmptyBlock(dmcOneShotProcessor);
@@ -633,6 +635,8 @@ int main()
                  "NES DMC one-shot should not restart when a host parameter change replays held notes");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") == 32,
                  "NES DMC held-note replay should preserve the completed one-shot bit position");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcMixerLevel") == 0,
+                 "NES DMC held-note replay should keep the completed one-shot silent unless Loop or DMC Direct is enabled");
 
     ChipperAudioProcessor dmcLoopProcessor;
     dmcLoopProcessor.prepareToPlay(48000.0, 256);
@@ -648,6 +652,8 @@ int main()
                  "NES DMC loop should remain active after the selected sample end when Loop is on");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") > 32,
                  "NES DMC loop should continue stepping bits after the first fixture pass");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcMixerLevel") > 0,
+                 "NES DMC loop should keep the sample audible through the DMC mixer lane");
 
     juce::AudioBuffer<float> dmcMapBuffer(2, 64);
     juce::MidiBuffer dmcMapMidi;
