@@ -4044,7 +4044,16 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (wavetableLayout)
     {
-        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
+        auto helperPanel = envelopeDecayPanel;
+        helperPanel.removeFromTop(std::min(2, helperPanel.getHeight()));
+
+        auto header = helperPanel.removeFromTop(std::min(24, helperPanel.getHeight()));
+        envelopeDecayLabel.setBounds(header.removeFromLeft(std::min(240, header.getWidth())));
+        envelopeDecayValueLabel.setJustificationType(juce::Justification::centred);
+        envelopeDecayValueLabel.setBounds(header.removeFromRight(std::min(86, header.getWidth())));
+
+        helperPanel.removeFromTop(std::min(6, helperPanel.getHeight()));
+        envelopeDecaySlider.setBounds(helperPanel.removeFromTop(std::min(34, helperPanel.getHeight())).reduced(0, 3));
         ymEnvelopePreview.setBounds({});
     }
     else
