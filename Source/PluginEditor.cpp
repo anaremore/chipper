@@ -2208,7 +2208,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     dmcMapRootAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::nesDmcMapRoot, dmcMapRootBox);
 
     dmcLoopButton.setButtonText("Loop");
-    dmcLoopButton.setTooltip(withMidiCcForRole("RP2A03 $4010 DMC loop bit. Off steps the selected sample once per trigger and returns the audible DMC lane to DMC Direct. Loop repeats from byte 0 at the sample end.", chipper::ChipParameterRole::nesDmcLoop));
+    dmcLoopButton.setTooltip(withMidiCcForRole("RP2A03 $4010 DMC loop bit. Off steps the selected sample once per trigger, then holds the final DMC DAC level until retriggered. Loop repeats from byte 0 at the sample end.", chipper::ChipParameterRole::nesDmcLoop));
     addAndMakeVisible(dmcLoopButton);
     dmcLoopAttachment = std::make_unique<ButtonAttachment>(state, chipper::parameters::id::nesDmcLoop, dmcLoopButton);
 

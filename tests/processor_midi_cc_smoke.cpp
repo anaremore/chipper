@@ -608,6 +608,8 @@ int main()
     ok &= expect(playbackInfo.rateIndex == 15, "DMC playback info should update after rate CC changes");
     ok &= expect(playbackInfo.durationMs < 1.1 && playbackInfo.durationMs > 0.9,
                  "DMC playback info should estimate short fixture duration at the fastest rate");
+    ok &= expect(playbackInfo.statusLine.contains("One-shot, DAC holds"),
+                 "DMC status should describe loop-off playback as one-shot with DAC hold");
 
     ChipperAudioProcessor dmcOneShotProcessor;
     dmcOneShotProcessor.prepareToPlay(48000.0, 256);

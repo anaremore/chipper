@@ -826,7 +826,7 @@ ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSample
     info.statusLine = "Slot " + juce::String(info.activeSlot + 1) + "/" + juce::String(info.activeSlotCount)
         + ": " + info.sampleName + " (" + juce::String(info.byteCount) + " bytes, "
         + juce::String(info.durationMs, info.durationMs < 10.0 ? 1 : 0) + " ms @ rate "
-        + juce::String(info.rateIndex) + (info.loopEnabled ? ", Loop)" : ", One-shot)");
+        + juce::String(info.rateIndex) + (info.loopEnabled ? ", Loop)" : ", One-shot, DAC holds)");
     if (info.playbackMode != 0)
         info.statusLine += " | Map " + midiNoteName(info.mapRootNote) + "-" + midiNoteName(info.mapHighNote);
     return info;
