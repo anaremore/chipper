@@ -1083,7 +1083,7 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
           "nes.dmcLoop",
           "DMC Loop",
           "DMC",
-          "Maps to the RP2A03 $4010 loop bit. Off plays the selected DMC sample once; Loop repeats it from the first byte.",
+          "Maps to the RP2A03 $4010 loop bit. Off steps the selected DMC sample once and leaves the DAC holding its final level; Loop repeats from the first byte.",
           ParameterKind::chipRegister,
           ControlSurface::toggle,
           {},

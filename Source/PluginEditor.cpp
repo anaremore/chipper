@@ -2208,7 +2208,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     dmcMapRootAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::nesDmcMapRoot, dmcMapRootBox);
 
     dmcLoopButton.setButtonText("Loop");
-    dmcLoopButton.setTooltip(withMidiCcForRole("RP2A03 $4010 DMC loop bit. Off plays one-shot; Loop repeats the selected DMC sample from the first byte.", chipper::ChipParameterRole::nesDmcLoop));
+    dmcLoopButton.setTooltip(withMidiCcForRole("RP2A03 $4010 DMC loop bit. Off steps the selected sample once per trigger, then the DMC DAC holds its final level until another note or $4011 write. Loop repeats from byte 0 at the sample end.", chipper::ChipParameterRole::nesDmcLoop));
     addAndMakeVisible(dmcLoopButton);
     dmcLoopAttachment = std::make_unique<ButtonAttachment>(state, chipper::parameters::id::nesDmcLoop, dmcLoopButton);
 
@@ -9827,7 +9827,7 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
             + "-" + chipper::parameters::midiNoteChoices()[playbackInfo.mapHighNote];
     if (playbackInfo.byteCount > 0)
         visibleStatus += " | Rate " + juce::String(playbackInfo.rateIndex)
-            + (playbackInfo.loopEnabled ? " | Loop" : " | One-shot");
+            + (playbackInfo.loopEnabled ? " | Loop" : " | One-shot, DAC holds");
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
     auto sampleTooltip = playbackInfo.statusLine
         + "\nDMC bit clock: " + juce::String(playbackInfo.bitRateHz / 1000.0, 2) + " kHz from $4010 rate index "
@@ -9840,7 +9840,7 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
     }
     sampleTooltip += playbackInfo.loopEnabled
         ? "\nLoop is on: $4010 bit 6 restarts playback from byte 0 when the sample ends."
-        : "\nLoop is off: playback stops when the selected DMC sample ends.";
+        : "\nLoop is off: DPCM bit stepping stops at the sample end, and the NES DMC DAC keeps its final output level until retriggered.";
     sampleTooltip += "\nManual Slot plays the selected dropdown slot. Note Map maps checked slots upward from the DMC Map Root; Sample Map Only maps notes and suppresses pulse, triangle, and noise.";
     if (playbackInfo.playbackMode != 0 && playbackInfo.activeSlotCount > 0)
         sampleTooltip += "\nCurrent map span: "
