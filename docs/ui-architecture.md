@@ -24,6 +24,8 @@ The module contents may change, but the order should not. Users should learn whe
 
 HuC6280, Namco WSG, and SCC expose independent wavetable voices. Their UIs should present per-channel or per-lane wave choices rather than a single global wave-shape switch; Chipper reuses stable automatable choice slots in those modes so MIDI/host control can address each channel while the engine seeds each channel's own Wave RAM. Generic helper surfaces must not render those reused slots as unrelated chip controls. Wavetable and sample-channel cards must reserve standard-height selector rows plus a visible source-level row inside every card, even when that requires a taller fixed editor size; channel-local controls are more important than preserving a compact mockup.
 
+Source-card controls should read in native ownership order: source enable/state, waveform or sample selection, then the channel/lane level trim. Avoid placing the level row at the card's lower edge when there is unused vertical space above it; the level control is part of the voice, not a footer.
+
 Wavetable chips that lack native ADSR should not show empty or generic "envelope" placeholders. HuC6280, Namco WSG, and SCC expose a shared `Shared Volume Gate` helper over their native volume paths until per-channel gate controls are implemented. The label must stay explicit that this is a Chipper musical helper layered over native volume registers, not authentic chip ADSR.
 
 ## Slot Scalability
