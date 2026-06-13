@@ -2435,7 +2435,7 @@ private:
 
     void startDmcSample()
     {
-        if (dmcSample.empty())
+        if (dmcSample.empty() || dmcActive)
             return;
 
         dmcActive = true;

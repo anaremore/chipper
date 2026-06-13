@@ -3473,15 +3473,27 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (wavetableLayout)
     {
-        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.70)), 420, 540);
-        const auto outputRowHeight = std::max(96, modules.getHeight() - sourceRowHeight - gap);
+        const auto availableHeight = modules.getHeight();
+        const auto reservedGap = gap * 2;
+        const auto minimumEnvelopeHeight = 88;
+        const auto minimumOutputHeight = 86;
+        const auto sourceMaximumHeight = std::max(160, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap);
+        const auto sourceMinimumHeight = std::min(300, sourceMaximumHeight);
+        const auto desiredSourceHeight = static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.62));
+        const auto sourceRowHeight = std::clamp(desiredSourceHeight, sourceMinimumHeight, sourceMaximumHeight);
+        const auto remainingHeight = std::max(0, availableHeight - sourceRowHeight - reservedGap);
+        const auto envelopeMinimumHeight = std::min(minimumEnvelopeHeight, remainingHeight);
+        const auto envelopeMaximumHeight = std::min(118, remainingHeight);
+        const auto envelopeRowHeight = std::clamp(remainingHeight / 2, envelopeMinimumHeight, envelopeMaximumHeight);
+        const auto outputRowHeight = std::max(0, remainingHeight - envelopeRowHeight);
         const auto topY = modules.getY();
-        const auto outputY = topY + sourceRowHeight + gap;
+        const auto envelopeY = topY + sourceRowHeight + gap;
+        const auto outputY = envelopeY + envelopeRowHeight + gap;
 
         moduleBounds[0] = {};
         moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), sourceRowHeight };
         moduleBounds[2] = {};
-        moduleBounds[3] = {};
+        moduleBounds[3] = { modules.getX(), envelopeY, modules.getWidth(), envelopeRowHeight };
         moduleBounds[4] = {};
         moduleBounds[5] = { modules.getX(), outputY, modules.getWidth(), outputRowHeight };
     }
@@ -4203,9 +4215,6 @@ void ChipperAudioProcessorEditor::resized()
         const auto sustainCell = displayedMode == chipper::ChipMode::sid ? controlCells[2] : controlCells[3];
         placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], sustainCell);
         placeToneNoiseMixSegment(sustainCell);
-
-        if (wavetableLayout)
-            placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, controlCells[4]);
     }
 
     auto nesDmcModuleCell = moduleBounds[5].reduced(12, 9);

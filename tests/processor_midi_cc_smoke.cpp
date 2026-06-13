@@ -634,6 +634,28 @@ int main()
     ok &= expect(jsonIntValue(dmcDebug, "dmcMixerLevel") == jsonIntValue(dmcDebug, "dmcLevel"),
                  "NES DMC one-shot should hold the final DAC level after Loop-off playback stops");
 
+    ChipperAudioProcessor dmcNoRestartProcessor;
+    dmcNoRestartProcessor.prepareToPlay(48000.0, 256);
+    ok &= expect(dmcNoRestartProcessor.loadNesDmcSampleDirectory(dmcDir).wasOk(),
+                 "Should load DMC sample directory for active one-shot restart regression");
+    sendController(dmcNoRestartProcessor, 68, 0);
+    sendController(dmcNoRestartProcessor, 118, controllerValueForChoice(dmcNoRestartProcessor, chipper::parameters::id::nesDmcRateIndex, 0));
+    sendNoteOn(dmcNoRestartProcessor, 48);
+    auto dmcNoRestartDebug = dmcNoRestartProcessor.currentCoreDebugStateJson();
+    const auto dmcBitsAfterFirstTrigger = jsonIntValue(dmcNoRestartDebug, "dmcSampleBitsPlayed");
+    ok &= expect(jsonIntValue(dmcNoRestartDebug, "dmcSampleActive") == 1,
+                 "NES DMC slow one-shot should still be active after the first short trigger block");
+    ok &= expect(dmcBitsAfterFirstTrigger > 0 && dmcBitsAfterFirstTrigger < 32,
+                 "NES DMC slow one-shot fixture should be mid-stream before the retrigger regression");
+    sendNoteOn(dmcNoRestartProcessor, 48);
+    dmcNoRestartDebug = dmcNoRestartProcessor.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(dmcNoRestartDebug, "dmcSampleActive") == 1,
+                 "NES DMC repeated note-on should keep the active one-shot stream running");
+    ok &= expect(jsonIntValue(dmcNoRestartDebug, "dmcSampleBitsPlayed") > dmcBitsAfterFirstTrigger,
+                 "NES DMC repeated note-on should not rewind the active one-shot sample to byte 0");
+    ok &= expect(jsonIntValue(dmcNoRestartDebug, "dmcLoopEnabled") == 0,
+                 "NES DMC repeated note-on regression should keep the loop bit disabled");
+
     setPlainFromHost(dmcOneShotProcessor, chipper::parameters::id::macroControl2, 0.73f);
     processEmptyBlock(dmcOneShotProcessor);
     dmcDebug = dmcOneShotProcessor.currentCoreDebugStateJson();
