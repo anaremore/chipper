@@ -25,6 +25,8 @@ This focused pass is the current high-signal regression gate for:
 - NES DMC one-shot versus loop behavior
 - FM held-tail behavior and held factory presets
 
+If those fixed-regression gates pass, keep the release checklist unchanged and continue with forward product work. Reopen a fixed regression only after it reproduces in the current build and the relevant gate fails.
+
 Install the exact local build you just made:
 
 ```powershell

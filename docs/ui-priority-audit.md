@@ -31,6 +31,7 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
 - no overlap between sample-bank editors, waveform previews, and Performance Macros
 - source-owned controls stay in the source cards
 - footer verification wording remains visible and truthful
+- the Performance Macros strip never draws over chip-owned editors such as sample banks, waveform previews, operator grids, or source cards
 
 ## Non-Regression Checklist
 
@@ -147,6 +148,8 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
 ## Design Rule
 
 When a control maps to a channel-local register, place it in or directly under that channel's card. Reserve shared panels for genuinely shared hardware: filters, output routing, sample banks, global clocks, echo, LFOs, and cross-channel pairing.
+
+When a chip needs more detail than the current card can hold, grow the chip layout or add a chip-specific editor surface. Do not hide the control, shrink it below the standard control height, or move it into a vague global macro area just to preserve the old grid.
 
 ## Cleanup Rule
 
