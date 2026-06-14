@@ -1963,8 +1963,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
       audioProcessor(processor)
 {
     setResizable(true, true);
-    setResizeLimits(1180, 1180, 1800, 1500);
-    setSize(1240, 1240);
+    setResizeLimits(1180, 1280, 1800, 1600);
+    setSize(1240, 1320);
 
     auto& state = audioProcessor.getValueTreeState();
     chipSettingsSnapshots.resize(static_cast<size_t>(chipper::parameters::chipModeChoices().size()));
@@ -2207,12 +2207,12 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addAndMakeVisible(dmcMapRootBox);
     dmcMapRootAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::nesDmcMapRoot, dmcMapRootBox);
 
-    dmcLoopButton.setButtonText("Loop");
+    dmcLoopButton.setButtonText("Loop Sample");
     dmcLoopButton.setTooltip(withMidiCcForRole("RP2A03 $4010 DMC loop bit. Off steps the selected sample once per trigger, then holds the final DMC DAC level until retriggered. Loop repeats from byte 0 at the sample end.", chipper::ChipParameterRole::nesDmcLoop));
     addAndMakeVisible(dmcLoopButton);
     dmcLoopAttachment = std::make_unique<ButtonAttachment>(state, chipper::parameters::id::nesDmcLoop, dmcLoopButton);
 
-    spc700LoopModeButton.setButtonText("Loop");
+    spc700LoopModeButton.setButtonText("Loop Sample");
     spc700LoopModeButton.setTooltip(withMidiCcForRole("SPC700 sample lifetime helper. Checked writes Loop While Held; unchecked writes One Shot. Preset recipes still resolve to the shown effective state until you click the toggle.", chipper::ChipParameterRole::dmgStereoRoute));
     spc700LoopModeButton.onClick = [this]()
     {
@@ -3412,7 +3412,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 156 : (spc700Layout ? 176 : (sampleLayout ? 200 : (nesLayout ? 318 : (wavetableLayout ? 260 : 300)))));
+    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 190 : (spc700Layout ? 200 : (sampleLayout ? 200 : (nesLayout ? 318 : (wavetableLayout ? 260 : 300)))));
     const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 1080 : (sampleLayout ? 960 : (nesLayout ? 650 : (wavetableLayout ? 650 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
@@ -3456,10 +3456,10 @@ void ChipperAudioProcessorEditor::resized()
     else if (spc700Layout)
     {
         const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.20)), 164, 188);
-        const auto minimumSampleRowHeight = 290;
-        const auto maximumSourceRowHeight = std::max(300, modules.getHeight() - topRowHeight - minimumSampleRowHeight - (gap * 2));
+        const auto minimumSampleRowHeight = 320;
+        const auto maximumSourceRowHeight = std::max(340, modules.getHeight() - topRowHeight - minimumSampleRowHeight - (gap * 2));
         const auto desiredSourceHeight = static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.42));
-        const auto sourceRowHeight = std::clamp(desiredSourceHeight, std::min(300, maximumSourceRowHeight), std::min(360, maximumSourceRowHeight));
+        const auto sourceRowHeight = std::clamp(desiredSourceHeight, std::min(340, maximumSourceRowHeight), std::min(430, maximumSourceRowHeight));
         const auto sampleRowHeight = std::max(0, modules.getHeight() - topRowHeight - sourceRowHeight - (gap * 2));
         const auto topColumnWidth = (modules.getWidth() - gap) / 2;
         const auto topY = modules.getY();
@@ -3517,10 +3517,10 @@ void ChipperAudioProcessorEditor::resized()
     else if (paulaLayout)
     {
         const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.07)), 68, 78);
-        const auto minimumSourceRowHeight = 390;
-        const auto maximumSampleRowHeight = std::max(300, modules.getHeight() - middleRowHeight - minimumSourceRowHeight - (gap * 2));
+        const auto minimumSourceRowHeight = 420;
+        const auto maximumSampleRowHeight = std::max(360, modules.getHeight() - middleRowHeight - minimumSourceRowHeight - (gap * 2));
         const auto desiredSampleRowHeight = static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.45));
-        const auto sampleRowHeight = std::clamp(desiredSampleRowHeight, std::min(360, maximumSampleRowHeight), std::min(440, maximumSampleRowHeight));
+        const auto sampleRowHeight = std::clamp(desiredSampleRowHeight, std::min(380, maximumSampleRowHeight), std::min(500, maximumSampleRowHeight));
         const auto sourceRowHeight = std::max(0, modules.getHeight() - middleRowHeight - sampleRowHeight - (gap * 2));
         const auto topY = modules.getY();
         const auto middleY = topY + sourceRowHeight + gap;
@@ -3691,8 +3691,8 @@ void ChipperAudioProcessorEditor::resized()
         const auto previewHeight = isWavetableSourceCard
             ? std::clamp(sourceCard.getHeight() / 6, 18, 26)
             : std::clamp(sourceCard.getHeight() / (useSpc700VoiceGrid ? 3 : 4),
-                         useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 22 : ((isNesSourceCard || isDmgSourceCard || isPaulaSourceCard) ? 24 : 20)),
-                         useSpc700VoiceGrid ? 20 : (isSidSourceCard ? 32 : (isPaulaSourceCard ? 30 : ((isNesSourceCard || isDmgSourceCard) ? 34 : 28))));
+                         useSpc700VoiceGrid ? 18 : (isSidSourceCard ? 22 : ((isNesSourceCard || isDmgSourceCard || isPaulaSourceCard) ? 24 : 20)),
+                         useSpc700VoiceGrid ? 28 : (isSidSourceCard ? 32 : (isPaulaSourceCard ? 30 : ((isNesSourceCard || isDmgSourceCard) ? 34 : 28))));
         sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(previewHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isNesSourceCard || isDmgSourceCard || isDenseSampleCard ? 3 : 1);
 
@@ -3810,7 +3810,7 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isSpc700SourceCard && i < hucVoiceWaveBoxes.size())
         {
-            constexpr int spc700ReservedLevelHeight = 40;
+            constexpr int spc700ReservedLevelHeight = 46;
             const auto sampleRowHeight = std::min(embeddedControlRowHeight,
                                                   std::max(0, sourceCard.getHeight() - spc700ReservedLevelHeight));
             auto sampleRow = sourceCard.removeFromTop(sampleRowHeight);
@@ -4313,7 +4313,7 @@ void ChipperAudioProcessorEditor::resized()
         dmcSampleBankButton.setBounds(sampleHeader.removeFromLeft(buttonWidth).reduced(0, 1));
         dmcControlColumn.removeFromTop(6);
         auto sampleRow = dmcControlColumn.removeFromTop(std::min(standardDmcControlHeight, dmcControlColumn.getHeight()));
-        auto loopCell = sampleRow.removeFromRight(62);
+        auto loopCell = sampleRow.removeFromRight(108);
         sampleRow.removeFromRight(6);
         auto rootCell = sampleRow.removeFromRight(78);
         sampleRow.removeFromRight(6);
@@ -9636,7 +9636,7 @@ void ChipperAudioProcessorEditor::updateDmgStereoRouteButtons(chipper::ChipMode 
     {
         const auto loops = chipper::spc700SampleLoopsForPatch(patch);
         spc700LoopModeButton.setToggleState(loops, juce::dontSendNotification);
-        spc700LoopModeButton.setButtonText("Loop");
+        spc700LoopModeButton.setButtonText("Loop Sample");
         if (spec != nullptr)
             spc700LoopModeButton.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + spc700SamplePlaybackReadout(patch), spec->role));
     }
@@ -9902,7 +9902,7 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
         visibleStatus += " | Rate " + juce::String(playbackInfo.rateIndex) + " | " + runState;
     }
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
-    dmcLoopButton.setButtonText("Loop");
+    dmcLoopButton.setButtonText("Loop Sample");
     auto sampleTooltip = playbackInfo.statusLine
         + "\nDMC bit clock: " + juce::String(playbackInfo.bitRateHz / 1000.0, 2) + " kHz from $4010 rate index "
         + juce::String(playbackInfo.rateIndex) + ".";
