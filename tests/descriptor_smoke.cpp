@@ -78,6 +78,28 @@ bool expectSpec(chipper::ChipMode mode,
     return ok;
 }
 
+bool expectControlGroup(chipper::ChipMode mode,
+                        const std::string& id,
+                        const std::string& expectedGroup)
+{
+    const auto& descriptor = chipper::descriptorFor(mode);
+    const auto iter = std::find_if(descriptor.controls.begin(),
+                                   descriptor.controls.end(),
+                                   [&](const chipper::ControlDescriptor& control)
+                                   {
+                                       return control.id == id;
+                                   });
+
+    bool ok = true;
+    ok &= expect(iter != descriptor.controls.end(), id + " control descriptor should exist");
+    if (iter == descriptor.controls.end())
+        return false;
+
+    ok &= expect(iter->group == expectedGroup,
+                 id + " control descriptor should use " + expectedGroup + " wording");
+    return ok;
+}
+
 bool expectSpecGroup(chipper::ChipMode mode, chipper::ChipParameterRole role, const std::string& group)
 {
     const auto* spec = chipper::parameterSpecFor(mode, role);
@@ -843,6 +865,7 @@ int main()
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::namcoWsg).supportsChipPoly, "Namco WSG should support Chip Poly across exposed wavetable lanes");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2413).implemented, "YM2413 descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2413).supportsChipPoly, "YM2413 should support Chip Poly across exposed melodic channels");
+    ok &= expectControlGroup(chipper::ChipMode::ym2413, "core", "Provenance");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2151).implemented, "YM2151 descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2151).supportsChipPoly, "YM2151 should support Chip Poly across exposed melodic channels");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).implemented, "SCC descriptor should be partially implemented");

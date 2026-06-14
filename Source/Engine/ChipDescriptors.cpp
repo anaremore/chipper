@@ -2543,7 +2543,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 { "pitch", "F-Number / Block", "Pitch", "MIDI notes map to native f-number and block register writes." },
                 { "rhythm", "Rhythm Mode", "OPLL", "Register $0E switches channels 7-9 into BD/HH/SD/TOM/CYM rhythm slots." },
                 { "volume", "Channel Volume", "Mixer", "Source trims map to channel volume nibbles." },
-                { "core", "emu2413 Core", "Accuracy", "MIT-licensed OPLL synthesis core by Mitsutaka Okazaki." },
+                { "core", "emu2413 Core", "Provenance", "MIT-licensed OPLL synthesis core by Mitsutaka Okazaki." },
             },
             {
                 makeModule("profile", "Profile", "YM2413/OPLL preset-FM groundwork backed by emu2413.", { "YM2413 family", "3.58 MHz default", "MIT emu2413 core", "Authentic still partial" }),
