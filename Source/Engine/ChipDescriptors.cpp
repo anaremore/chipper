@@ -2029,7 +2029,7 @@ std::array<ModuleDescriptor, 6> nesModules()
         makeModule("profile", "Profile", "RP2A03-inspired clean-room APU model.", { "2A03 family", "NTSC/PAL clock override", "Hybrid default", "Authentic still partial" }),
         makeModule("sources", "Channels", "Native channel layout exposed musically.", { "Pulse 1", "Pulse 2", "Triangle / Chip Poly", "Noise / DMC lane" }),
         makeModule("tone", "Shape / Mixer", "Pulse, triangle, noise, and nonlinear mixer behavior.", { "Pulse duty", "Pitch sweep macro", "Noise mode", "Nonlinear mixer" }),
-        makeModule("envelope", "APU Envelope", "Pulse/noise APU envelope and duration behavior.", { "Envelope decay", "Length counters", "Triangle linear planned", "Drum decay" }),
+        makeModule("envelope", "APU Envelope", "Pulse/noise APU envelope and duration behavior.", { "Envelope decay", "Length counters", "Triangle linear counter", "Drum decay helper" }),
         makeModule("motion", "Motion", "Musical gestures write chip-like preset recipes.", { "Coin blip", "Jump rise", "Laser sweep", "Fast arps" }),
         makeModule("output", "Output", "Bright direct mono chip output.", { "Output gain", "Dry mono", "Bit/sample grit", "SFX presets" })
     };
@@ -2038,12 +2038,12 @@ std::array<ModuleDescriptor, 6> nesModules()
 std::array<ModuleDescriptor, 6> dmgModules()
 {
     return std::array<ModuleDescriptor, 6> {
-        makeModule("profile", "Profile", "DMG APU clean-room register model.", { "DMG profile", "CGB quirks planned", "Hybrid default", "Authentic still partial" }),
+        makeModule("profile", "Profile", "DMG APU clean-room register model.", { "DMG profile", "DMG clock domain", "Hybrid default", "Authentic still partial" }),
         makeModule("sources", "Channels", "Four hardware sound generators.", { "Pulse 1 / sweep", "Pulse 2", "Wave RAM", "Chip Poly ready" }),
         makeModule("tone", "Wave / Noise", "Duty, wave RAM, and polynomial noise behavior.", { "Pulse duty", "Wave shape", "Wave level", "Noise clock" }),
         makeModule("envelope", "Volume Envelope", "DMG volume envelope, length, and sweep groundwork.", { "64 Hz volume envelope", "256 Hz length", "DAC gating", "128 Hz CH1 sweep" }),
         makeModule("motion", "Motion", "Portable-game gesture presets.", { "Arp stack", "Pitch rise/drop", "Retrigger", "Coin/noise SFX" }),
-        makeModule("output", "Output", "Compact handheld output character.", { "Output gain", "NR50 volume", "NR51 routing", "Speaker color planned" })
+        makeModule("output", "Output", "Compact handheld output character.", { "Output gain", "NR50 volume", "NR51 routing", "Speaker color helper" })
     };
 }
 
@@ -2075,11 +2075,11 @@ std::array<ModuleDescriptor, 6> sidModules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "SID clean-room voice-core groundwork.", { "6581 / 8580 model", "PAL clock default", "Hybrid default", "Authentic still partial" }),
-        makeModule("sources", "Voices", "Three SID oscillator voices.", { "Voice 1", "Voice 2", "Audible Voice 3", "OSC3/ENV3 utility planned" }),
+        makeModule("sources", "Voices", "Three SID oscillator voices.", { "Voice 1", "Voice 2", "Audible Voice 3", "OSC3/ENV3 readout scope" }),
         makeModule("tone", "Filter", "Register-backed SID filter mode and voice routing.", { "Filter mode", "Voice routing", "Cutoff", "Resonance" }),
-        makeModule("envelope", "ADSR", "SID-style per-voice ADSR gate behavior.", { "Attack/decay nibbles", "Sustain nibble", "Release nibble", "ADSR quirks planned" }),
+        makeModule("envelope", "ADSR", "SID-style per-voice ADSR gate behavior.", { "Attack/decay nibbles", "Sustain nibble", "Release nibble", "Per-voice ADSR" }),
         makeModule("motion", "Motion", "Classic SID modulation gestures.", { "Voice detune", "PWM-ready width", "Osc interaction", "Preset motion" }),
-        makeModule("output", "Output", "Warm mono C64-style output groundwork.", { "Output gain", "Voice trims", "Drive planned", "Known differences" })
+        makeModule("output", "Output", "Warm mono C64-style output groundwork.", { "Output gain", "Voice trims", "Model color", "Verified partial" })
     };
 }
 
@@ -2091,7 +2091,7 @@ std::array<ModuleDescriptor, 6> fmModules(std::string profile, std::string sourc
         makeModule("tone", toneTitle, "Operator-level tone shaping.", { "Operator ratios", "Operator levels", "Feedback", "Waveforms where native" }),
         makeModule("envelope", "Operator EG", "Native operator envelope controls.", { "Attack", "Decay", "Sustain", "Release" }),
         makeModule("motion", "Motion", "FM modulation and performance helpers.", { "LFO", "Pitch mod", "Arp/glide", "Preset morph" }),
-        makeModule("output", "Output", "Chip output and stereo behavior.", { "Pan / stereo", "DAC grit", "Output gain", "Reference tests needed" })
+        makeModule("output", "Output", "Chip output and stereo behavior.", { "Pan / stereo", "DAC grit", "Output gain", "Verified partial" })
     };
 }
 
@@ -2101,9 +2101,9 @@ std::array<ModuleDescriptor, 6> ym2612Modules()
         makeModule("profile", "Profile", "YM2612/OPN2 core is backed by audited BSD-licensed ymfm.", { "YM2612 model", "NTSC Genesis clock", "Hybrid default", "Verified partial" }),
         makeModule("sources", "FM Voices", "All six YM2612 melodic channels are exposed as playable source lanes.", { "FM Ch 1", "FM Ch 2", "FM Ch 3", "FM Ch 4-6" }),
         makeModule("tone", "Operators", "Musical controls write native OPN2 algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
-        makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPN2 attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Per-operator EG planned" }),
+        makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPN2 attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
         makeModule("motion", "Motion", "Genesis-style preset recipes map to register-backed FM patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
-                makeModule("output", "Output", "ymfm stereo OPN2 output follows native channel pan bits plus output trim.", { "Stereo core", "Pan bits", "DAC drum", "Reference tests needed" })
+        makeModule("output", "Output", "ymfm stereo OPN2 output follows native channel pan bits plus output trim.", { "Stereo core", "Pan bits", "DAC drum", "Verified partial" })
     };
 }
 
@@ -2113,9 +2113,9 @@ std::array<ModuleDescriptor, 6> oplModules()
         makeModule("profile", "Profile", "OPL2-compatible surface is backed by audited BSD-licensed ymfm YMF262/OPL3 core.", { "YMF262 core", "14.32 MHz clock", "Hybrid default", "Verified partial" }),
         makeModule("sources", "FM Voices", "All nine OPL2 melodic channels are exposed as playable lanes; rhythm mode repurposes 7-9.", { "Ch 1-6 melodic", "Ch 7-9 melodic/rhythm", "BD HH SD TOM CYM", "Chip Poly" }),
         makeModule("tone", "Operators", "Musical controls write native OPL operator and channel registers.", { "Waveform", "Feedback", "Connection", "Operator tone" }),
-        makeModule("envelope", "Operator EG", "Melodic and rhythm presets write native OPL attack/decay and sustain/release bytes.", { "EG type sustain", "Attack/decay bytes", "Sustain/release bytes", "Per-operator EG planned" }),
+        makeModule("envelope", "Operator EG", "Melodic and rhythm presets write native OPL attack/decay and sustain/release bytes.", { "EG type sustain", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
         makeModule("motion", "Motion", "DOS FM preset recipes map to register-backed melodic and rhythm patches.", { "UI bell", "FM bass", "Rhythm hits", "Laser" }),
-        makeModule("output", "Output", "ymfm OPL3 output is routed from the four native YMF262 output buses into plugin stereo.", { "OPL3 core", "$BD rhythm bits", "Output gain", "Reference tests needed" })
+        makeModule("output", "Output", "ymfm OPL3 output is routed from the four native YMF262 output buses into plugin stereo.", { "OPL3 core", "$BD rhythm bits", "Output gain", "Verified partial" })
     };
 }
 
@@ -2125,9 +2125,9 @@ std::array<ModuleDescriptor, 6> ym2151Modules()
         makeModule("profile", "Profile", "YM2151/OPM core is backed by audited BSD-licensed ymfm.", { "YM2151 core", "Arcade clock", "Hybrid default", "Verified partial" }),
         makeModule("sources", "FM Voices", "All eight OPM melodic channels are exposed as playable lanes.", { "Ch 1-4", "Ch 5-8", "Chip Poly", "Per-lane trims" }),
         makeModule("tone", "Operators", "Musical controls write native OPM algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
-        makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPM attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Per-operator EG planned" }),
+        makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPM attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
         makeModule("motion", "Motion", "Arcade FM preset recipes map to register-backed OPM patches.", { "Chime", "Arcade bass", "Metal lead", "Laser" }),
-        makeModule("output", "Output", "ymfm stereo OPM output is rendered with left/right pan enabled per active lane.", { "Stereo core", "$0F noise", "Output gain", "Reference tests needed" })
+        makeModule("output", "Output", "ymfm stereo OPM output is rendered with left/right pan enabled per active lane.", { "Stereo core", "$0F noise", "Output gain", "Verified partial" })
     };
 }
 
@@ -2139,7 +2139,7 @@ std::array<ModuleDescriptor, 6> sampleModules(std::string profile, std::string s
         makeModule("tone", toneTitle, "Native playback coloration.", { "Pitch/period", "Rate reduction", "Aliasing", "Crunch" }),
         makeModule("envelope", "Amp Env Helper", "Tracker-style level shaping; label as helper unless native envelope timing is implemented.", { "Gate length", "Volume steps", "Loop decay", "Hybrid helper" }),
         makeModule("motion", "Motion", "Tracker and arcade gestures.", { "Retrigger", "Pitch slide", "Wave scan", "Pattern macro" }),
-        makeModule("output", "Output", "Machine-specific output coloration.", { "Output gain", "Stereo/voice pan", "Drive", "Reference tests needed" })
+        makeModule("output", "Output", "Machine-specific output coloration.", { "Output gain", "Stereo/voice pan", "Drive/color", "Verified partial" })
     };
 }
 
@@ -2354,7 +2354,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("sample", "Sample / Pitch", "Generated lo-fi sample shapes plus user BRR/WAV/AIFF file and folder loading.", { "Sample file", "Sample folder bank", "Note map", "Noise source" }),
                 makeModule("envelope", "ADSR / Gain", "Playable gain and envelope shaping derived from the selected preset.", { "Attack", "Decay", "Sustain", "Release" }),
                 makeModule("motion", "Motion", "SNES-style SFX gestures mapped to sample pitch and previous-voice modulation.", { "Voice arp", "Pitch sweep", "PMON-style link", "Damage hit" }),
-                makeModule("output", "Output", "Soft sample output with echo-color helper.", { "Voice volume", "Stereo spread convenience", "Echo color", "Known differences" })
+                makeModule("output", "Output", "Soft sample output with echo-color helper.", { "Voice volume", "Stereo spread convenience", "Echo color", "Verified partial" })
             },
             spc700Macros(),
             true,
@@ -2423,7 +2423,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("sample", "Sample Bank", "User WAV/AIFF/8SVX file and folder-bank import for Paula-style 8-bit playback.", { "WAV/AIFF/8SVX file", "Folder bank", "Note map", "Slot CC117" }),
                 makeModule("envelope", "Tracker Amp Env", "Looped instrument, one-shot behavior, and tracker-style amp helper; Paula has no native ADSR.", { "Loop bias", "One-shot drums", "Decay helper", "Output filter" }),
                 makeModule("motion", "Motion", "Tracker SFX gestures mapped to sample periods.", { "Tracker arp", "Rate sweep", "Jump blip", "Damage hit" }),
-                makeModule("output", "Output", "Classic hard-panned Amiga channel layout groundwork.", { "0-64 volume", "Stereo spread convenience", "User samples", "Known differences" })
+                makeModule("output", "Output", "Classic hard-panned Amiga channel layout groundwork.", { "0-64 volume", "Stereo spread convenience", "User samples", "Verified partial" })
             },
             paulaMacros(),
             true,
@@ -2457,7 +2457,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("tone", "Wave / Noise", "32-sample wave RAM plus simplified noise.", { "Sine-like", "Ramp", "Triangle", "Square / noise" }),
                 makeModule("envelope", "Global Amp Env", "Shared musical helper over HuC6280 channel volume; not native ADSR.", { "5-bit volume", "Per-channel trims", "Gate helper", "Register readout" }),
                 makeModule("motion", "Motion", "PC Engine SFX gestures mapped to frequency registers.", { "Coin ping", "Sweep zap", "Six-wave arp", "Noise tap" }),
-                makeModule("output", "Output", "Compact console wavetable output groundwork.", { "Output gain", "Stereo spread convenience", "LFO planned", "Known differences" })
+                makeModule("output", "Output", "Compact console wavetable output groundwork.", { "Output gain", "Stereo spread convenience", "Ch 1/2 LFO helper", "Verified partial" })
             },
             huc6280Macros(),
             true,
@@ -2549,9 +2549,9 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("profile", "Profile", "YM2413/OPLL preset-FM groundwork backed by emu2413.", { "YM2413 family", "3.58 MHz default", "MIT emu2413 core", "Authentic still partial" }),
                 makeModule("sources", "Preset FM Voices", "All nine OPLL melodic channels are exposed as playable lanes; rhythm mode repurposes 7-9.", { "Ch 1-6 melodic", "Ch 7-9 melodic/rhythm", "BD HH SD TOM CYM", "Chip Poly" }),
                 makeModule("instrument", "ROM Instrument / Rhythm", "Preset instrument, rhythm-mode, f-number, block, and key-on register writes.", { "ROM preset instruments", "$0E rhythm mode", "F-number/block", "Key-on" }),
-                makeModule("envelope", "ROM Envelope", "Native preset and rhythm patch envelopes come from the OPLL core; editable EG belongs to future custom patch mode.", { "ROM patch EG", "Volume nibbles", "$0E rhythm bits", "Custom patch planned" }),
+                makeModule("envelope", "ROM Envelope", "Native preset and rhythm patch envelopes come from the OPLL core; editable EG belongs to future custom patch mode.", { "ROM patch EG", "Volume nibbles", "$0E rhythm bits", "Preset patch core" }),
                 makeModule("motion", "Motion", "Musical OPLL preset recipes mapped to melodic-channel registers.", { "UI chime", "Organ arp", "Sweep zap", "Power organ" }),
-                makeModule("output", "Output", "Mono/stereo render through emu2413 with modern output trim.", { "Channel volume", "Output gain", "Known differences", "No cycle claim" })
+                makeModule("output", "Output", "Mono/stereo render through emu2413 with modern output trim.", { "Channel volume", "Output gain", "emu2413 core", "Verified partial" })
             },
             ym2413Macros(),
             true,
