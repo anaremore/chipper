@@ -4,7 +4,7 @@ This audit tracks layout and control-placement work that most directly improves 
 
 ## Current Audit Focus
 
-The current UI baseline is source-card ownership plus readable standard controls. New screenshot feedback should be turned into durable rules here, then pruned from the active queue once the rule is implemented and verified. Fixed audio bugs such as FM held-tail and NES DMC loop-off only belong in this audit when a UI change could reintroduce them.
+The current UI baseline is source-card ownership plus readable standard controls. New screenshot feedback should be turned into durable rules here, then pruned from the active queue once the rule is implemented and verified. Fixed audio bugs such as FM held-tail and NES DMC loop-off only belong in this audit when a UI change could reintroduce them. Broad product backlog items belong in `product-gap-roadmap.md`; this file is the visual and control-placement checklist.
 
 ## Non-Regression Checklist
 
@@ -116,11 +116,6 @@ The current UI baseline is source-card ownership plus readable standard controls
    - Issue: FM held-tail assertions and NES DMC loop-off assertions are now in place, but sample, loop, and helper-envelope fixes can still look correct while regressing key-on/key-off, one-shot/loop behavior, or sustained output.
    - User value: high. A playable instrument must hold notes predictably before deeper editor polish matters.
    - Confidence: 8/10. Existing renderer and processor smoke tests already expose source levels, key-on state, sample loop state, `tailRms`, and debug JSON; the next value is expanding the same assertion style beyond FM.
-
-11. Planning/doc cleanup cadence
-   - Issue: rapid UI and engine iteration can leave stale roadmap notes that make fixed issues look active, make implemented chip surfaces sound planned-only, or leave shared host parameter names tied to only one chip.
-   - User value: medium-high. Clean docs help decide what to build next and keep public claims honest.
-   - Confidence: 9/10. This is low-risk as long as wording stays tied to implemented tests, screenshots, and descriptor metadata.
 
 ## Design Rule
 

@@ -158,8 +158,4 @@ These are not as visible as chip-specific controls, but they strongly affect whe
    - A new user should be able to select a chip, choose a musical role, tweak a few obvious controls, and save a patch.
    - Expert users should still have a clear route to register-like behavior, operator/wave/sample editing, and strict accuracy constraints.
 
-8. **Planning Hygiene**
-   - Docs should separate fixed regressions, active product gaps, and future research. Fixed regressions stay as named tests and verification checklist items, not as repeated feature priorities.
-   - Screenshots and user feedback should update this roadmap only when they identify a reproducible problem, a missing chip-native control, or a workflow gap that blocks making music.
-   - Planning docs have distinct jobs: the priority roadmap decides next execution order, this file tracks broad product gaps, the UI audit records layout non-regression rules, the product spec states the public instrument contract, and the accuracy/source docs constrain claims and licensing.
-   - When a chip surface graduates from placeholder to playable, remove stale "planned-only" language from the relevant docs in the same slice so screenshots, tests, and docs tell the same story.
+Planning hygiene is handled by the ownership table above. Keep this section focused on product risks that affect musicians in real projects; move visual clipping rules, release steps, and verification/license evidence to their owning docs.

@@ -2,7 +2,7 @@
 
 This list ranks near-term work by user value, implementation effort, and confidence. Value and confidence are scored 1-10, where 10 is highest. Effort is scored 1-10, where 10 is largest. "Confidence improves with" names the evidence or preparation that would make the work safer to execute.
 
-Review status: the FM held-note fade and NES DMC loop-off issues are currently fixed regression gates, not active feature work. New planning entries should only reopen them after a current build reproduces the behavior and the targeted smoke tests fail.
+Review status: cleaned on 2026-06-14. The FM held-note fade and NES DMC loop-off issues are currently fixed regression gates, not active feature work. New planning entries should only reopen them after a current build reproduces the behavior and the targeted smoke tests fail.
 
 For broader product gaps beyond this immediate chip-core and UI execution list, see [product-gap-roadmap.md](product-gap-roadmap.md). That document tracks the larger instrument-workflow work: tracker motion, wave/sample editing, FM operator editing, drum/SFX workflows, multi-output routing, preset tags, Strictness behavior, and MIDI/automation polish.
 
@@ -144,3 +144,4 @@ Each completed development slice should:
 - Avoid product claims stronger than the current renderer tests and documented verification support.
 - Update only the docs that own the changed behavior: `ui-priority-audit.md` for layout/control placement, `product-gap-roadmap.md` for broad workflow gaps, `product-spec.md` for user-facing product contract, `emulation-accuracy.md` and `emulator-source-map.md` for accuracy/source posture, and `release-builds.md` for build/install/release workflow.
 - Keep fixed bugs listed as regression gates with named tests, not as repeated open roadmap items.
+- Keep planning docs lean: remove stale "planned-only" wording when a chip becomes playable, and avoid copying the same fixed-regression note into multiple active queues.
