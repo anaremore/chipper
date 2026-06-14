@@ -15,6 +15,7 @@ This audit tracks layout and control-placement work that most directly improves 
 - Footer verification language must remain truthful: **Verified partial** is acceptable; **Cycle accurate** is not allowed without accepted tests or hardware/reference proof.
 - Chip themes may differ, but contrast, focus, hit targets, and readable text size must stay consistent.
 - Logo underline decorations should align to the full logo width so the header feels intentional on every theme.
+- Screenshot feedback should become durable layout rules in this audit. Avoid preserving one-off visual bug notes after the underlying rule is captured and verified.
 
 ## Completed Pattern
 

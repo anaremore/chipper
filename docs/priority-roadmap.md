@@ -132,3 +132,5 @@ Each completed development slice should:
 - Keep DAW parameter IDs and MIDI CC mappings stable unless a migration plan exists.
 - Build `Chipper_VST3` and `chipper_render` for code changes, run the relevant tests, install the VST3 from the same build root, verify the installed marker when practical, commit, and push.
 - Avoid product claims stronger than the current renderer tests and documented verification support.
+- Update only the docs that own the changed behavior: `ui-priority-audit.md` for layout/control placement, `product-gap-roadmap.md` for broad workflow gaps, `product-spec.md` for user-facing product contract, `emulation-accuracy.md` and `emulator-source-map.md` for accuracy/source posture, and `release-builds.md` for build/install/release workflow.
+- Keep fixed bugs listed as regression gates with named tests, not as repeated open roadmap items.
