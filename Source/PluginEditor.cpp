@@ -1963,8 +1963,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
       audioProcessor(processor)
 {
     setResizable(true, true);
-    setResizeLimits(1180, 1120, 1800, 1440);
-    setSize(1240, 1180);
+    setResizeLimits(1180, 1180, 1800, 1500);
+    setSize(1240, 1240);
 
     auto& state = audioProcessor.getValueTreeState();
     chipSettingsSnapshots.resize(static_cast<size_t>(chipper::parameters::chipModeChoices().size()));
@@ -3413,7 +3413,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
     const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 190 : (sampleLayout ? 220 : (nesLayout ? 318 : (wavetableLayout ? 260 : 300))));
-    const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 980 : (sampleLayout ? 840 : (nesLayout ? 650 : (wavetableLayout ? 650 : 492))));
+    const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 1060 : (sampleLayout ? 920 : (nesLayout ? 650 : (wavetableLayout ? 650 : 492))));
     const auto modulesHeight = std::clamp(area.getHeight() - footerReserve - 12 - performanceStripHeight, 410, maxModulesHeight);
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
