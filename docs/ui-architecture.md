@@ -2,7 +2,7 @@
 
 Chipper should feel like one instrument with many chip profiles, not a bundle of unrelated mini-plugins. The UI is therefore data-driven: the outer workflow stays stable while each chip definition decides which controls appear inside each module.
 
-Planning sync: this document reflects the current June 2026 direction. FM held-note fade-out and NES DMC loop-off playback are treated as fixed regressions covered by tests and release gates, not active design questions.
+Planning sync: this document reflects the current June 2026 direction. FM held-note fade-out and NES DMC loop-off playback are treated as fixed regressions covered by tests and release gates, not active design questions. When they pass, the next UI value is clearer chip-owned controls, sample/wave/operator editors, and truthful Strictness/verification wording.
 
 ## Execution Contracts
 
@@ -11,7 +11,7 @@ Use these contracts when deciding whether a UI change is ready to ship:
 - Chip-owned controls live with the source that owns them. Pulse duty belongs under pulse channels, noise mode/period belongs under noise channels, wave/sample selection belongs under wavetable or sampler voices, and native level trims stay visible inside each card.
 - Shared modules are for truly shared behavior: filter, echo, sample bank, output, routing, pairing, global clock/strictness, and performance helpers. Do not move a channel-local control into a generic helper panel just to save space.
 - Standard-height dropdowns, buttons, numeric inputs, and visible level rows are non-negotiable. If a chip needs more room, grow the layout or use a chip-specific fixed aspect ratio instead of shrinking controls until text or sliders disappear.
-- Roadmap controls stay in docs until they have engine behavior, stable APVTS identity, MIDI mapping, preset recall, and renderer or descriptor coverage.
+- Roadmap controls stay in docs until they have engine behavior, stable APVTS identity, MIDI mapping, preset recall, and renderer or descriptor coverage. Once a bug has a passing release gate, keep it out of active UI planning unless a current build reproduces it.
 - Strictness is a behavior request. Verification status remains an evidence label in the footer/docs and must not imply hardware or cycle accuracy without tests.
 
 Descriptor smoke tests are the fast guardrail for source-card ownership. When a visible source-card control is added or moved, update `ControlSurface::sourceCards`, APVTS/CC mapping, presets, renderer/debug metadata, and tests together.

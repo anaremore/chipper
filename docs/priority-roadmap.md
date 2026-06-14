@@ -4,7 +4,7 @@ This list ranks near-term work by user value, implementation effort, and confide
 
 Review status: planning docs synced on 2026-06-14 after the FM held-tail and NES DMC loop-off cleanup. This file is the execution list. There is no current active "FM fades to silence" task; that behavior is treated as fixed unless the held-tail gate fails. Fixed regressions are release gates, not active roadmap items; broad workflow ideas, visual audit rules, fixed-bug details, and license evidence live in their owning docs.
 
-Planning rule: keep this file pointed at the next shippable slice. If a behavior is already fixed and protected by a named CTest gate, reference the gate once here and keep the active queue focused on playable user value.
+Planning rule: keep this file pointed at the next shippable slice. If a behavior is already fixed and protected by a named CTest gate, reference the gate once here and keep the active queue focused on playable user value. For the current build, that means FM sustain is a guardrail and the next FM work is operator/algorithm/editing depth.
 
 For broader product gaps beyond this immediate chip-core and UI execution list, see [product-gap-roadmap.md](product-gap-roadmap.md). That document tracks the larger instrument-workflow work: tracker motion, wave/sample editing, FM operator editing, drum/SFX workflows, multi-output routing, preset tags, Strictness behavior, and MIDI/automation polish.
 

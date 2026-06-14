@@ -8,7 +8,7 @@ The current UI baseline is source-card ownership plus readable standard controls
 
 Review status: synced on 2026-06-14 after the fixed-regression cleanup. The audit treats FM held-tail and NES DMC loop-off as protected release gates, while active UI work focuses on chip-owned controls, readable source cards, sample/wave/operator editors, and current screenshot regressions. The FM fade-to-silence issue is not an active UI task unless a current build reproduces it and the held-tail gate fails.
 
-Command-line release gates live in [release-builds.md](release-builds.md). This audit should keep only the visual rules that prevent users from misunderstanding or losing access to chip behavior.
+Command-line release gates live in [release-builds.md](release-builds.md). This audit should keep only the visual rules that prevent users from misunderstanding or losing access to chip behavior. When an audio bug is fixed and tested, keep the UI implication here only if it affects what users can see, choose, or trust.
 
 ## Planning Hygiene
 

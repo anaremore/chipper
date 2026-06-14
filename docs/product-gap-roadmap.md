@@ -18,7 +18,7 @@ Recent work has converted many early placeholder panels into playable, chip-awar
 - Source cards are now the baseline home for chip-owned controls. Do not move per-channel duty, wave, sample, or level controls back into detached summary panels unless the chip hardware really shares that control.
 - Roadmap-only chip features should remain in docs until they have an audible engine path, stable parameters, state recall, and renderer or descriptor coverage. The plugin UI should favor implemented, truthful surfaces over planned-looking controls.
 
-Do not reopen fixed regressions in this roadmap unless a current build reproduces them and the owning gate fails. Otherwise, keep pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, and verification evidence.
+Do not reopen fixed regressions in this roadmap unless a current build reproduces them and the owning gate fails. Otherwise, keep pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, state recall, and verification evidence.
 
 The current product bias is workflow completion over breadth. A good next slice should let a user choose one chip, load or design a sound source, hear it on the intended lane, see the relevant native controls, save a preset, reload it, and verify the renderer reports the same state. Layout polish matters most when it protects that loop.
 
