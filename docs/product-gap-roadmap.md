@@ -34,14 +34,7 @@ When a fixed gate passes, the next work should move Chipper forward as an instru
 - strengthen verification evidence for a currently audible behavior
 - clean up labels or docs only when they remove user confusion
 
-Current fixed-regression gates:
-
-| Gate | Protective Check |
-| --- | --- |
-| FM sustained-note output | `ctest --test-dir build-codex -C Release -R "held_tail|preset_.*held" --output-on-failure` |
-| NES DMC one-shot loop-off behavior | `ctest --test-dir build-codex -C Release -R "processor_midi_cc_smoke" --output-on-failure` |
-
-See [release-builds.md](release-builds.md) for the combined smoke command and install/verify flow. This file should describe why the gates matter, not duplicate every command.
+Current fixed-regression gates are FM sustained-note output and NES DMC one-shot loop-off behavior. See [release-builds.md](release-builds.md) for the exact commands, combined smoke gate, and install/verify flow. This file should describe why the gates matter, not duplicate command lines that can drift.
 
 ## How To Read This Roadmap
 

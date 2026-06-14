@@ -14,10 +14,12 @@ When doing a planning-only cleanup, keep this checklist small and mechanical:
 
 - Fixed regressions stay in the gate table, not the active queue. FM held-tail and NES DMC loop-off are closed unless a current build fails their named tests.
 - The active queue should describe forward user value: playable controls, better presets, sample/wave/operator editing, state recall, verification evidence, or release readiness.
-- UI placement rules live in [ui-priority-audit.md](ui-priority-audit.md); do not duplicate every screenshot note here.
-- Build/install commands live in [release-builds.md](release-builds.md); this file should only name the gate or workflow.
-- Verification and license strength live in [emulation-accuracy.md](emulation-accuracy.md) and [emulator-source-map.md](emulator-source-map.md); do not upgrade claims in this roadmap.
-- Product-facing behavior belongs in [product-spec.md](product-spec.md) and README when it affects users, hosts, presets, or sharing.
+- Keep owner docs separate:
+  - [ui-priority-audit.md](ui-priority-audit.md): screenshot rules, chip-owned control placement, and visual non-regression checks.
+  - [product-gap-roadmap.md](product-gap-roadmap.md): larger instrument workflows and backlog shape.
+  - [emulation-accuracy.md](emulation-accuracy.md) and [emulator-source-map.md](emulator-source-map.md): verification, source, and license strength.
+  - [release-builds.md](release-builds.md): build, install, release, and gate command lines.
+  - [product-spec.md](product-spec.md) and README: user-facing behavior when it affects hosts, presets, sharing, or public positioning.
 
 ## Living Plan For The Next Slices
 
@@ -25,7 +27,8 @@ When doing a planning-only cleanup, keep this checklist small and mechanical:
 - Use [release-builds.md](release-builds.md) as the source of truth for local build/install commands and release-gate command lines. This roadmap should name the relevant gate, not fork its own build procedure.
 - Default to a vertical slice when there is no fresh regression: choose one chip, improve the audible/editable workflow, add or tighten the smallest useful guardrail, update the owning doc, then build/test/install for code changes.
 - Keep moving chip-owned controls into their source cards. The most valuable UI work is still making the panel match the chip signal path: pulse controls under pulse voices, sample controls under sampler voices, wave controls under wavetable lanes, operator controls under FM operators, and shared hardware in shared modules.
-- The next deeper feature work should favor first-class editors: sample/wavetable editing for Paula, SPC700, HuC6280, Namco WSG, SCC, and Game Boy wave RAM; then FM operator/algorithm editing for the Yamaha family. FM sustain behavior is protected by held-tail tests; the next FM value is editability, algorithm clarity, and envelope terminology rather than re-solving an already-fixed fade.
+- The next deeper feature work should favor first-class editors: sample/wavetable editing for Paula, SPC700, HuC6280, Namco WSG, SCC, and Game Boy wave RAM; then FM operator/algorithm editing for the Yamaha family.
+- Treat fixed FM sustain as a guardrail, not the FM roadmap. The next FM value is editability, algorithm clarity, and envelope terminology while keeping held-tail tests green.
 - Treat screenshot feedback as a verification habit, not a permanent backlog. Once a layout bug becomes a durable rule in `ui-priority-audit.md`, the next code slice should apply that rule to the affected chip and then move on to the next playable workflow.
 - Treat planning updates as maintenance, not product progress, unless they remove confusion or make the next implementation slice easier to execute. The default next step should still be a playable instrument improvement.
 - Presets should grow from original sound design, not imported game data. Every new preset should be audible, visibly reflected in controls, provenance-safe, and easy to share as a flat file.
