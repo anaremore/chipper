@@ -613,6 +613,15 @@ int main()
                  "DMC playback info should estimate short fixture duration at the fastest rate");
     ok &= expect(playbackInfo.statusLine.contains("One-shot, DAC holds"),
                  "DMC status should describe loop-off playback as one-shot with DAC hold");
+    auto dmcPreview = processor.sampleWaveformSnapshot(chipper::ChipMode::nes);
+    ok &= expect(dmcPreview.loaded && ! dmcPreview.hasLoop,
+                 "NES DMC waveform preview should not display loop markers while Loop is off");
+
+    sendController(processor, 68, 127);
+    dmcPreview = processor.sampleWaveformSnapshot(chipper::ChipMode::nes);
+    ok &= expect(dmcPreview.loaded && dmcPreview.hasLoop && dmcPreview.loopStart == 0.0f && dmcPreview.loopEnd == 1.0f,
+                 "NES DMC waveform preview should display full-sample loop markers only when Loop is on");
+    sendController(processor, 68, 0);
 
     ChipperAudioProcessor dmcOneShotProcessor;
     dmcOneShotProcessor.prepareToPlay(48000.0, 256);
