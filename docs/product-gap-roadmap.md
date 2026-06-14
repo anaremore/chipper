@@ -54,6 +54,8 @@ See [release-builds.md](release-builds.md) for the combined smoke command and in
 
 Cleanup rule: fixed bugs, screenshot complaints, and one-off exploratory notes should not live here once the durable rule is captured in the owning doc. A passing regression gate keeps this roadmap unchanged; a failing gate promotes the issue back to active work and should leave behind a tighter test when fixed.
 
+Planning-only cleanup should not become its own backlog. If no current build reproduces a fixed regression, this roadmap should keep pointing at user workflows: tracker motion, wave/sample editing, FM operator editing, drum/SFX design, preset browsing, MIDI/automation polish, and release readiness. Use [priority-roadmap.md](priority-roadmap.md) for ranked execution and [release-builds.md](release-builds.md) for the exact gate commands.
+
 ## Highest-Value Product Gaps
 
 1. **Chip-Aware Tracker Motion / SFX Gestures**

@@ -8,6 +8,17 @@ Planning rule: keep this file pointed at the next shippable slice. If a behavior
 
 For broader product gaps beyond this immediate chip-core and UI execution list, see [product-gap-roadmap.md](product-gap-roadmap.md). That document tracks the larger instrument-workflow work: tracker motion, wave/sample editing, FM operator editing, drum/SFX workflows, multi-output routing, preset tags, Strictness behavior, and MIDI/automation polish.
 
+## Planning Sync Check
+
+When doing a planning-only cleanup, keep this checklist small and mechanical:
+
+- Fixed regressions stay in the gate table, not the active queue. FM held-tail and NES DMC loop-off are closed unless a current build fails their named tests.
+- The active queue should describe forward user value: playable controls, better presets, sample/wave/operator editing, state recall, verification evidence, or release readiness.
+- UI placement rules live in [ui-priority-audit.md](ui-priority-audit.md); do not duplicate every screenshot note here.
+- Build/install commands live in [release-builds.md](release-builds.md); this file should only name the gate or workflow.
+- Verification and license strength live in [emulation-accuracy.md](emulation-accuracy.md) and [emulator-source-map.md](emulator-source-map.md); do not upgrade claims in this roadmap.
+- Product-facing behavior belongs in [product-spec.md](product-spec.md) and README when it affects users, hosts, presets, or sharing.
+
 ## Living Plan For The Next Slices
 
 - Keep fixed regressions as tests, not roadmap churn. The gate table below names the current protected behaviors and the tests that guard them. If the gate passes, do not add a new todo for that bug.
