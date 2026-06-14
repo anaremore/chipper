@@ -31,13 +31,13 @@ Install the exact local build you just made:
 
 ```powershell
 .\install-vst3.ps1 -Scope User -BuildRoot build-codex
-.\install-vst3.ps1 -VerifyOnly -Scope User -BuildRoot build-codex
+.\install-vst3.ps1 -VerifyOnly -BuildRoot build-codex
 ```
 
 The build hash in Chipper's footer should match the installed marker reported by the installer. If a host still opens an older build, close the host and check both user and global VST3 folders:
 
 ```powershell
-.\install-vst3.ps1 -VerifyOnly -Scope User -BuildRoot build-codex
+.\install-vst3.ps1 -VerifyOnly -BuildRoot build-codex
 ```
 
 If both locations contain Chipper, sync them from an elevated PowerShell:

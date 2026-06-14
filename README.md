@@ -284,9 +284,11 @@ Do not import GPL/LGPL emulator code, preset banks, songs, samples, lookup table
 - [docs/emulator-source-map.md](docs/emulator-source-map.md): source candidates, license audit tiers, and reference-only projects
 - [docs/product-spec.md](docs/product-spec.md): product goals, chip modes, and UX/DSP direction
 - [docs/ui-architecture.md](docs/ui-architecture.md): adaptive UI strategy and MIDI/automation contract
+- [docs/ui-priority-audit.md](docs/ui-priority-audit.md): current chip-aware layout rules and screenshot non-regression checklist
 - [docs/snes-spc700-plan.md](docs/snes-spc700-plan.md): SPC700-style sampler roadmap
 - [docs/priority-roadmap.md](docs/priority-roadmap.md): execution priorities
 - [docs/product-gap-roadmap.md](docs/product-gap-roadmap.md): larger workflow gaps and non-regression policy
+- [docs/release-builds.md](docs/release-builds.md): local install, GitHub release builds, and release gates
 
 ## Strictness And Verification Rule
 
