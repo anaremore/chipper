@@ -353,6 +353,8 @@ bool expectLiveSourceLevelSpecs()
             ok &= expect(spec->kind == chipper::ParameterKind::continuous, spec->id + " should be a continuous trim");
             ok &= expect(spec->surface == chipper::ControlSurface::slider, spec->id + " should use a slider surface");
             ok &= expect(spec->group == "Sources", spec->id + " should stay in the Sources group");
+            ok &= expect(! spec->label.empty(), spec->id + " should have a visible source-level label");
+            ok &= expect(! spec->help.empty(), spec->id + " should explain the native trim path");
 
             const auto* parameterId = chipper::parameterIdForChipParameterRole(role);
             ok &= expect(parameterId != nullptr, spec->id + " has no APVTS parameter id");
