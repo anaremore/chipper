@@ -3454,11 +3454,11 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (spc700Layout)
     {
-        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.18)), 104, 132);
-        const auto minimumSampleRowHeight = 280;
-        const auto maximumSourceRowHeight = std::max(220, modules.getHeight() - topRowHeight - minimumSampleRowHeight - (gap * 2));
-        const auto desiredSourceHeight = static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.43));
-        const auto sourceRowHeight = std::clamp(desiredSourceHeight, std::min(320, maximumSourceRowHeight), std::min(370, maximumSourceRowHeight));
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.20)), 148, 170);
+        const auto minimumSampleRowHeight = 320;
+        const auto maximumSourceRowHeight = std::max(260, modules.getHeight() - topRowHeight - minimumSampleRowHeight - (gap * 2));
+        const auto desiredSourceHeight = static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.39));
+        const auto sourceRowHeight = std::clamp(desiredSourceHeight, std::min(330, maximumSourceRowHeight), std::min(380, maximumSourceRowHeight));
         const auto sampleRowHeight = std::max(0, modules.getHeight() - topRowHeight - sourceRowHeight - (gap * 2));
         const auto topColumnWidth = (modules.getWidth() - gap) / 2;
         const auto topY = modules.getY();
@@ -4385,8 +4385,7 @@ void ChipperAudioProcessorEditor::resized()
         if (displayedMode == chipper::ChipMode::spc700)
         {
             auto playbackLifeRow = controlColumn.removeFromTop(std::min(standardSampleControlHeight, controlColumn.getHeight()));
-            dmgStereoRouteLabel.setBounds(playbackLifeRow.removeFromLeft(twoColumnSampleBank ? 62 : 70));
-            playbackLifeRow.removeFromLeft(std::min(6, playbackLifeRow.getWidth()));
+            dmgStereoRouteLabel.setBounds({});
             spc700LoopModeButton.setBounds(playbackLifeRow.reduced(0, 1));
             dmgStereoRouteBox.setBounds({});
             for (auto& button : dmgStereoRouteButtons)
