@@ -100,6 +100,8 @@ For UI cleanup, favor a chip-aware source-of-truth layout over another decorativ
 
 The current UI cleanup baseline is practical rather than aesthetic: every visible chip should expose its playable path without hidden controls, clipped labels, or dead placeholder panels. Sampler and wavetable chips are the most sensitive because their per-channel selectors, level lanes, sample-bank waveform editors, and Performance Macros compete for space. When those collide, preserve the source cards and waveform editor first, then move helper envelopes or macro controls into a larger secondary area.
 
+As of the current planning pass, the FM held-note fade and NES DMC loop-off bugs are closed unless a current build reproduces them. Keep those checks in the smoke-test habit, but spend active development energy on the remaining user-value gaps: deeper operator editors, cleaner sample/wavetable workflows, stronger preset coverage, state recall, and verification evidence.
+
 ## Additional Gaps To Watch
 
 These are not as visible as chip-specific controls, but they strongly affect whether musicians can trust Chipper in real projects.
