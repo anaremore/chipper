@@ -98,7 +98,7 @@ This audit tracks layout and control-placement work that most directly improves 
    - Confidence: 8/10. The latest screenshots make the remaining problems visible; a repeatable screenshot checklist will catch most regressions before release.
 
 10. Sustained-note audio smoke checks
-   - Issue: FM, sample, and helper-envelope fixes can look correct while breaking key-on/key-off or sustained output.
+   - Issue: FM, sample, and helper-envelope fixes can look correct while regressing key-on/key-off or sustained output.
    - User value: high. A playable instrument must hold notes predictably before deeper editor polish matters.
    - Confidence: 8/10. Existing renderer and processor smoke tests already expose source levels, key-on state, sample loop state, and debug JSON.
 

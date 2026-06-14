@@ -8,7 +8,7 @@ This roadmap captures the broad product gaps that remain after the first playabl
 
 Recent work has converted many early placeholder panels into playable, chip-aware surfaces. Treat these as non-regression requirements while moving forward:
 
-- FM modes should sustain normally; any return of "one note fades to silence" is a regression, not an accepted limitation.
+- FM modes should sustain normally; the previous "one note fades to silence" issue is treated as fixed and covered by held-tail regression tests. Any return of that behavior is a regression, not an accepted limitation.
 - NES DMC one-shot mode should not loop when the Loop control is off. The authentic behavior to communicate is "bit stream stops, DAC holds final level."
 - Sample and wavetable chips should keep per-voice wave/sample selectors and visible level controls in the voice cards wherever the chip has independent channels.
 - Strictness is a behavior request, not a proof label. Verification strength remains in the footer and docs.
