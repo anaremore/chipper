@@ -2014,12 +2014,12 @@ ModuleDescriptor makeModule(std::string id, std::string title, std::string summa
 std::array<ModuleDescriptor, 6> plannedModules(std::string sourceTitle, std::string toneTitle)
 {
     return std::array<ModuleDescriptor, 6> {
-        makeModule("profile", "Profile", "Awaiting an audited core or clean-room model.", { "Hybrid default", "Authentic hidden until verified", "Clock profile reserved", "License audit required" }),
-        makeModule("sources", sourceTitle, "Chip-specific source layout is planned.", { "Native channels planned", "Register adapter required", "Preset mappings reserved", "Silent until implemented" }),
-        makeModule("tone", toneTitle, "Tone controls are placeholders until the core exists.", { "Native shaping planned", "Chip limits preserved", "Hybrid helper planned", "No accuracy claim yet" }),
-        makeModule("envelope", "Envelope / EG", "Envelope behavior must come from chip-native timing or be clearly labeled as a Chipper helper.", { "Native envelope planned", "Length behavior planned", "Helper envelope planned", "Regression tests required" }),
-        makeModule("motion", "Motion", "Musical gestures will map to native registers.", { "Arp mapping planned", "Pitch motion planned", "Retrigger planned", "SFX presets planned" }),
-        makeModule("output", "Output", "Output model waits for source validation.", { "Output level", "Variant coloration planned", "Golden references required", "Known differences documented" })
+        makeModule("profile", "Profile", "Migration fallback for retired or unknown chip IDs.", { "Not selectable", "No playable core", "Choose a named chip", "Docs disclose status" }),
+        makeModule("sources", sourceTitle, "Retired chip modes do not expose playable sources.", { "Unavailable", "No register target", "No preset bank", "Migration only" }),
+        makeModule("tone", toneTitle, "Retired chip modes do not expose tone controls.", { "Unavailable", "No native shaping", "No helper surface", "No accuracy claim" }),
+        makeModule("envelope", "Envelope / EG", "Retired chip modes do not expose envelope controls.", { "Unavailable", "No native timing", "No helper envelope", "Migration only" }),
+        makeModule("motion", "Motion", "Retired chip modes do not expose performance gestures.", { "Unavailable", "No arp mapping", "No pitch motion", "No SFX recipes" }),
+        makeModule("output", "Output", "Retired chip modes do not expose an output model.", { "Unavailable", "No output level", "No coloration", "Migration only" })
     };
 }
 
@@ -2086,7 +2086,7 @@ std::array<ModuleDescriptor, 6> sidModules()
 std::array<ModuleDescriptor, 6> fmModules(std::string profile, std::string sourceTitle, std::string toneTitle)
 {
     return std::array<ModuleDescriptor, 6> {
-        makeModule("profile", "Profile", profile, { "Chip variant", "Clock profile", "Hybrid default", "Core audit required" }),
+        makeModule("profile", "Profile", profile, { "Chip variant", "Clock profile", "Hybrid default", "Verification in footer" }),
         makeModule("sources", sourceTitle, "FM voice selection and routing.", { "Voice select", "Algorithm", "Feedback", "Voice level" }),
         makeModule("tone", toneTitle, "Operator-level tone shaping.", { "Operator ratios", "Operator levels", "Feedback", "Waveforms where native" }),
         makeModule("envelope", "Operator EG", "Native operator envelope controls.", { "Attack", "Decay", "Sustain", "Release" }),
@@ -2134,7 +2134,7 @@ std::array<ModuleDescriptor, 6> ym2151Modules()
 std::array<ModuleDescriptor, 6> sampleModules(std::string profile, std::string sourceTitle, std::string toneTitle)
 {
     return std::array<ModuleDescriptor, 6> {
-        makeModule("profile", "Profile", profile, { "Model profile", "Clock/rate profile", "Hybrid default", "Validation required" }),
+        makeModule("profile", "Profile", profile, { "Model profile", "Clock/rate profile", "Hybrid default", "Verification in footer" }),
         makeModule("sources", sourceTitle, "Sample or wavetable sources.", { "Channel select", "Sample/wave slot", "Loop behavior", "Level" }),
         makeModule("tone", toneTitle, "Native playback coloration.", { "Pitch/period", "Rate reduction", "Aliasing", "Crunch" }),
         makeModule("envelope", "Amp Env Helper", "Tracker-style level shaping; label as helper unless native envelope timing is implemented.", { "Gate length", "Volume steps", "Loop decay", "Hybrid helper" }),
@@ -2491,7 +2491,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("wave", "Wave / Mixer", "Wave RAM plus frequency and volume behavior.", { "Wave shape", "Wave skew", "4-bit volume", "Pitch periods" }),
                 makeModule("envelope", "Global Amp Env", "Shared musical helper over Namco WSG lane volume; not native ADSR.", { "4-bit lane volume", "Enable mask", "Gate helper", "Register readout" }),
                 makeModule("motion", "Motion", "Arcade SFX gestures mapped to lane frequency registers.", { "Coin ping", "Sweep zap", "Tracker arp", "Wave tick" }),
-                makeModule("output", "Output", "Centered arcade wavetable output with optional modern spread.", { "Output gain", "Stereo spread", "Verified partial", "Known gaps" })
+                makeModule("output", "Output", "Centered arcade wavetable output with optional modern spread.", { "Output gain", "Stereo spread", "Verified partial", "Wavetable mix" })
             },
             namcoWsgMacros(),
             true,
@@ -2584,7 +2584,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 makeModule("wave", "Wave / Mixer", "Wave RAM plus frequency and volume behavior.", { "Wave shape", "Wave skew", "4-bit volume", "Pitch periods" }),
                 makeModule("envelope", "Global Amp Env", "Shared musical helper over SCC channel volume and key state; not native ADSR.", { "4-bit channel volume", "Key mask", "Gate helper", "Register readout" }),
                 makeModule("motion", "Motion", "Arcade SFX gestures mapped to frequency registers.", { "Coin ping", "Sweep zap", "Five-voice arp", "Wave tick" }),
-                makeModule("output", "Output", "Centered SCC output with optional modern spread.", { "Output gain", "Stereo spread", "Verified partial", "Known gaps" })
+                makeModule("output", "Output", "Centered SCC output with optional modern spread.", { "Output gain", "Stereo spread", "Verified partial", "Wavetable mix" })
             },
             sccMacros(),
             true,

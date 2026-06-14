@@ -93,6 +93,7 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
 - Descriptor smoke tests also act as the first UI contract for chip-owned controls: NES/DMG pulse duty and noise choices, SPC700/Paula sample slots, HuC6280/Namco/SCC wave selectors, source enable toggles, and source level trims must remain tied to source-card surfaces or explicitly documented shared modules.
 - Shared APVTS/MIDI slots should use generic host-facing names when their chip meaning changes by mode. CC94 remains the stable parameter behind DMG Stereo Route, SID Model, SPC700/Paula loop behavior, POKEY AUDCTL pairing, HuC6280 LFO mode, FM pan/routing, and some final wavetable lane choices, so the host/default map calls it `Chip Choice / Route` while each chip panel shows the descriptor-specific label.
 - Active chip panels should describe what the current build can do, while verification gaps and future work belong in the footer tooltip, accuracy docs, and roadmaps. Avoid dead-looking rows such as `Reference tests needed`, `Custom patch planned`, or `Drive planned` inside playable chip modules; use current-state labels such as `Verified partial`, `Operator EG readout`, `Model color`, or the exact register path instead.
+- Retired or unknown chip descriptors are migration fallbacks only. If an old session somehow reaches that surface, it should say `Unavailable` / `Migration only` and point the user toward named hardware-family modes rather than presenting planned modules or half-productized generic engines.
 
 ## Highest-Value Next Fixes
 
