@@ -33,6 +33,17 @@ Chipper is being developed as an accurate, truthful chip instrument rather than 
 - Fixed regressions stay in tests and release gates. FM held-note fade-out and NES DMC loop-off behavior are currently treated as fixed; if they return, they are regressions, not open design questions.
 - UI readability wins over compactness. It is acceptable for chip-specific layouts to grow or use fixed aspect ratios when that preserves standard-height controls, visible level lanes, and waveform previews.
 
+## Planning Map
+
+The planning docs intentionally separate current execution from broader research so fixed bugs do not keep looking like active product gaps:
+
+- [docs/priority-roadmap.md](docs/priority-roadmap.md) is the ranked execution list for the next high-value slices.
+- [docs/product-gap-roadmap.md](docs/product-gap-roadmap.md) tracks larger instrument workflows such as tracker motion, wave/sample editing, FM operator editing, preset sharing, and release readiness.
+- [docs/ui-priority-audit.md](docs/ui-priority-audit.md) is the UI non-regression checklist for chip-aware layouts, standard control sizes, and channel-local controls.
+- [docs/emulation-accuracy.md](docs/emulation-accuracy.md) is the truthful source/verification/license status for each chip.
+
+Fixed issues such as FM sustained-note fade-out and NES DMC one-shot looping should remain in regression tests and release gates, not in the active feature queue unless they reproduce in the current build.
+
 ## Current Chip Modes
 
 Implemented depth varies by chip. See [docs/emulation-accuracy.md](docs/emulation-accuracy.md) for the source, verification status, known gaps, and license posture of each mode.
