@@ -18,6 +18,13 @@ For a focused smoke pass while iterating:
 ctest --test-dir build-codex -C Release -R "chipper_descriptor_smoke|processor_midi_cc_smoke|held_tail|preset_.*held" --output-on-failure
 ```
 
+This focused pass is the current high-signal regression gate for:
+
+- chip descriptor/UI metadata
+- MIDI CC and state-recall smoke behavior
+- NES DMC one-shot versus loop behavior
+- FM held-tail behavior and held factory presets
+
 Install the exact local build you just made:
 
 ```powershell
@@ -44,6 +51,8 @@ git diff --check
 ```
 
 If the docs uncovered a mismatch that also required source, preset, installer, or workflow changes, use the normal build, targeted test, install, and verify flow above.
+
+For docs-only planning cleanup, prefer removing duplicate command snippets from roadmap files and pointing back here. That keeps release gates from drifting as the test suite evolves.
 
 ## GitHub Release Build
 

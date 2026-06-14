@@ -4,7 +4,7 @@ This roadmap captures the broad product gaps that remain after the first playabl
 
 > Can a musician make a complete chiptune bass, lead, arp, drum kit, and SFX pack in Chipper without fighting the UI?
 
-Review status: synced on 2026-06-14 after the fixed-regression cleanup. FM held-tail and NES DMC loop-off are release gates; this document stays focused on product workflows that are still missing and user-visible.
+Review status: synced on 2026-06-14 after the fixed-regression cleanup. FM held-tail and NES DMC loop-off are release gates; this document stays focused on product workflows that are still missing and user-visible. Use [release-builds.md](release-builds.md) for the exact gate commands.
 
 ## Current Baseline To Preserve
 
@@ -41,17 +41,14 @@ Current fixed-regression gates:
 | FM sustained-note output | `ctest --test-dir build-codex -C Release -R "held_tail|preset_.*held" --output-on-failure` |
 | NES DMC one-shot loop-off behavior | `ctest --test-dir build-codex -C Release -R "processor_midi_cc_smoke" --output-on-failure` |
 
-Fast smoke command for both fixed-regression gates plus descriptor coverage:
-
-```powershell
-ctest --test-dir build-codex -C Release -R "chipper_descriptor_smoke|processor_midi_cc_smoke|held_tail|preset_.*held" --output-on-failure
-```
+See [release-builds.md](release-builds.md) for the combined smoke command and install/verify flow. This file should describe why the gates matter, not duplicate every command.
 
 ## How To Read This Roadmap
 
 - This document is the product backlog, not the immediate work queue. Use [priority-roadmap.md](priority-roadmap.md) for execution order.
 - UI clipping, hidden controls, source-card ownership, and screenshot-audit findings belong in [ui-priority-audit.md](ui-priority-audit.md).
 - Emulator provenance, licenses, accuracy wording, and verification evidence belong in [emulation-accuracy.md](emulation-accuracy.md), [emulator-source-map.md](emulator-source-map.md), and `THIRD_PARTY_NOTICES.md`.
+- Build, install, and release-gate command lines belong in [release-builds.md](release-builds.md).
 - Fixed regressions should stay as named tests. Do not reopen FM held-tail or NES DMC loop-off in this roadmap unless the current build reproduces the bug.
 - Prefer user-visible slices that make a chip more playable: a clearer editor, a better preset set, a trustworthy sample/wave workflow, or stronger validation around an audible feature.
 

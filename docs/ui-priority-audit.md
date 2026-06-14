@@ -8,6 +8,8 @@ The current UI baseline is source-card ownership plus readable standard controls
 
 Review status: synced on 2026-06-14 after the fixed-regression cleanup. The audit treats FM held-tail and NES DMC loop-off as protected release gates, while active UI work focuses on chip-owned controls, readable source cards, sample/wave/operator editors, and current screenshot regressions.
 
+Command-line release gates live in [release-builds.md](release-builds.md). This audit should keep only the visual rules that prevent users from misunderstanding or losing access to chip behavior.
+
 ## Planning Hygiene
 
 This file should stay visual. If a bug is fixed by a renderer or processor gate, keep only the UI rule that prevents confusing the user. Do not keep old audio bugs in the active UI queue unless a UI change can reintroduce them or the current screenshot shows the same class of visual failure.
@@ -19,6 +21,16 @@ For every new screenshot issue, reduce it to one of these reusable questions bef
 - Does the visible wording tell the truth about native hardware versus Chipper helper behavior?
 - Does the panel have enough room for all controls without hiding level, sample, wave, loop, or envelope state?
 - If the issue is fixed, is there a descriptor, renderer, screenshot, or checklist gate that makes it less likely to regress?
+
+## Current Visual Gate
+
+Before a UI slice is considered done, inspect the changed chip at the default editor size and one neighboring chip from a different layout family. The pass should confirm:
+
+- no hidden source-level lanes
+- no shrunken dropdowns or numeric boxes where standard-height controls should fit
+- no overlap between sample-bank editors, waveform previews, and Performance Macros
+- source-owned controls stay in the source cards
+- footer verification wording remains visible and truthful
 
 ## Non-Regression Checklist
 
