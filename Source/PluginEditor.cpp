@@ -4354,7 +4354,9 @@ void ChipperAudioProcessorEditor::resized()
         spc700LoopModeButton.setBounds({});
 
         auto sampleCell = utilityCell;
-        const auto twoColumnSampleBank = sampleCell.getWidth() >= 760 && sampleCell.getHeight() >= 300;
+        const auto minimumTwoColumnSampleBankHeight = displayedMode == chipper::ChipMode::spc700 ? 360 : 340;
+        const auto twoColumnSampleBank = sampleCell.getWidth() >= 760
+            && sampleCell.getHeight() >= minimumTwoColumnSampleBankHeight;
         auto controlColumn = sampleCell;
         auto waveformColumn = sampleCell;
         if (twoColumnSampleBank)
