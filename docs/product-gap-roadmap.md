@@ -4,7 +4,7 @@ This roadmap captures the broad product gaps that remain after the first playabl
 
 > Can a musician make a complete chiptune bass, lead, arp, drum kit, and SFX pack in Chipper without fighting the UI?
 
-Review status: synced on 2026-06-14. The FM held-note fade-out and NES DMC loop-off behaviors are fixed regression gates, not active product gaps.
+Review status: synced on 2026-06-14. The FM held-note fade-out and NES DMC loop-off behaviors are fixed regression gates, not active product gaps. Planning should stay focused on new user value unless one of those gates fails in the current build.
 
 ## Current Baseline To Preserve
 
@@ -18,7 +18,7 @@ Recent work has converted many early placeholder panels into playable, chip-awar
 - Source cards are now the baseline home for chip-owned controls. Do not move per-channel duty, wave, sample, or level controls back into detached summary panels unless the chip hardware really shares that control.
 - Roadmap-only chip features should remain in docs until they have an audible engine path, stable parameters, state recall, and renderer or descriptor coverage. The plugin UI should favor implemented, truthful surfaces over planned-looking controls.
 
-Do not spend new planning cycles on fixed regressions unless they are reproduced in the current build. Instead, keep them as smoke-test checks while pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, and verification evidence. If a user reports a fixed issue again, first run the targeted regression and then decide whether the roadmap needs to change.
+Do not spend new planning cycles on fixed regressions unless they are reproduced in the current build. Instead, keep them as smoke-test checks while pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, and verification evidence. If a user reports a fixed issue again, first run the targeted regression and then decide whether the roadmap needs to change. A passing gate means the roadmap should continue forward instead of accumulating stale bug notes.
 
 Current fixed-regression gates:
 
@@ -42,6 +42,8 @@ ctest --test-dir build-codex -C Release -R "chipper_descriptor_smoke|processor_m
 - Prefer user-visible slices that make a chip more playable: a clearer editor, a better preset set, a trustworthy sample/wave workflow, or stronger validation around an audible feature.
 
 The next implementation work should bias toward one complete user workflow at a time. Good slices are: load or draw a sample/wave, hear it on the intended lane, see the lane's native controls, save it as a preset, reload it, and verify the renderer reports the same state. Avoid adding more visible controls until the target chip can preserve and explain the controls it already exposes.
+
+Cleanup rule: fixed bugs, screenshot complaints, and one-off exploratory notes should not live here once the durable rule is captured in the owning doc. This roadmap should answer what product workflow is still missing, not preserve a chronological record of every issue that has already been resolved.
 
 ## Highest-Value Product Gaps
 
