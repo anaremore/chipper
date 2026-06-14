@@ -193,17 +193,16 @@ Roadmap preset targets, kept as product direction until their chip cores exist:
 
 ## UI Layout Plan
 
-Single-screen layout:
+Current single-screen shell:
 
-- **Top bar:** category, preset, randomize, Init Lead, Init Bass, Init Drum, Init SFX, output.
-- **Chip:** Chip Mode, Behavior Strictness, chip model variant, clock, and mode-specific musical controls.
-- **Register View:** optional debug panel for renderer/developer builds; hidden from normal musical workflow.
-- **Mixer:** chip-native channels and levels.
-- **Shape:** only chip-authentic controls plus clearly labeled hybrid tone/crunch when enabled.
-- **Envelope/Motion:** maps to chip envelopes, sweeps, timers, FM envelopes, or sample playback behavior.
-- **SFX:** type, length, pitch movement, brightness, crunch, noise.
-- **Visuals:** source cards may show register-resolved waveform/envelope state, while the Output performance cell may show actual post-trim audio from processor telemetry.
+- **Header:** ASCII logo, preset browser, Load/Save/Save As, Chip Mode, Behavior Strictness, and Play Mode.
+- **Chip summary:** one concise implementation/status sentence for the active chip.
+- **Sources:** chip-native channels, voices, lanes, operators, or sample slots with their owned controls.
+- **Chip edit workspace:** tone, shape, filter, operator, envelope, sample-bank, loop, routing, and chip-specific utility controls.
+- **Performance macros:** modern musical helpers and register-aware macro gestures, clearly labeled when they are not native hardware behavior.
+- **Output and telemetry:** output trim, scope, footer status, build marker, MIDI CC range, and verification disclosure.
+- **Register/debug view:** renderer/developer output only; hidden from the normal musical workflow except as compact readouts and tooltips.
 
 Controls use plain names and tooltips. Mode-specific controls remain musically labeled and avoid register names, hex values, and chip-documentation jargon in the main workflow.
 
-Mode-specific layouts should adapt structurally, not just change labels. NES and SN76489 can stay generator/register-strip oriented; SID should use three deep voice panels plus a global filter; SNES should become an eight-voice sample-bank workstation with BRR/sample selection, ADSR/GAIN, memory budget, and echo/FIR controls; FM chips should use operator and algorithm views. Reuse Chipper components where possible, but let each chip's native instrument shape determine the layout.
+Mode-specific layouts should adapt structurally, not just change labels. Section headers stay unnumbered, and each chip may use a fixed or aspect-aware layout when that better serves readability. NES and SN76489 can stay generator/register-strip oriented; SID should use three deep voice panels plus a global filter; SNES should become an eight-voice sample-bank workstation with BRR/sample selection, ADSR/GAIN, memory budget, and echo/FIR controls; FM chips should use operator and algorithm views. Reuse Chipper components where possible, but let each chip's native instrument shape determine the layout.

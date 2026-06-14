@@ -4,23 +4,19 @@ Chipper should feel like one instrument with many chip profiles, not a bundle of
 
 ## Stable Shell
 
-Every chip mode uses the same top-level layout:
+Every chip mode uses the same outer workflow, but the visible sections are unnumbered and may expand, merge, or hide according to the selected chip. The stable shell is:
 
-1. Header
-2. Chip tabs or chip selector
-3. Profile
-4. Sources / Voices
-5. Tone / Filter / Shape
-6. Envelope
-7. Motion
-8. Output / Utility
-9. Bottom global strip
+- Header: ASCII logo, preset browser, Load/Save/Save As, Chip Mode, Behavior Strictness, and Play Mode.
+- Chip summary: one short truthful sentence about the selected chip model and implementation status.
+- Source/voice deck: native channels, operators, sample voices, or wavetable lanes with channel-owned controls.
+- Chip edit workspace: tone, shape, filter, operator, envelope, sample-bank, and routing controls that belong to the selected chip.
+- Performance and output strip: playable macros, output trim/scope, MIDI/build/status badges, and compact verification text.
 
 The footer/status area should include a subtle generated build label so a tester can match an installed VST3 to the reported source revision. It should also show a compact MIDI CC range badge with a tooltip for the full fixed hardware-control map, keeping MIDI discoverability close to the build/status information without crowding chip controls. Long accuracy caveats belong in tooltips or docs; the visible footer text should stay short enough that build and MIDI badges never cover it.
 
 The editor preserves a per-chip working snapshot when users switch chip modes. Shared APVTS parameters are reused across chips, but the UI stores each chip's current preset selection, user preset source, and exposed control values before switching away, then restores them when the user returns. This lets users compare NES, SID, SNES, FM, and sampler ideas without losing the sound they were shaping on each chip.
 
-The module contents may change, but the order should not. Users should learn where concepts live once and carry that knowledge across NES, DMG, SID, YM2149, SN76489, POKEY, FM, and sampler-style modes. Section headers are unnumbered so chip-specific layouts can hide, merge, or expand conceptual zones without implying that panels are missing.
+The module contents may change, but the mental model should not. Users should learn where concepts live once and carry that knowledge across NES, DMG, SID, YM2149, SN76489, POKEY, FM, wavetable, and sampler-style modes. Section headers are unnumbered so chip-specific layouts can hide, merge, or expand conceptual zones without implying that panels are missing.
 
 HuC6280, Namco WSG, and SCC expose independent wavetable voices. Their UIs should present per-channel or per-lane wave choices rather than a single global wave-shape switch; Chipper reuses stable automatable choice slots in those modes so MIDI/host control can address each channel while the engine seeds each channel's own Wave RAM. Generic helper surfaces must not render those reused slots as unrelated chip controls. Wavetable and sample-channel cards must reserve standard-height selector rows plus a visible source-level row inside every card, even when that requires a taller fixed editor size; channel-local controls are more important than preserving a compact mockup.
 
@@ -30,16 +26,16 @@ Wavetable chips that lack native ADSR should not show empty or generic "envelope
 
 ## Slot Scalability
 
-The six slots are functional zones, not six rigid equal boxes. Every chip should use the same concepts:
+The old six-card grid is a convenience template, not a product rule. Every chip should preserve the same conceptual zones:
 
-1. Chip Profile
-2. Sources
-3. Tone / Shape
-4. Envelope / Level
-5. Motion / Performance
-6. Output / Utility
+- Chip profile and context.
+- Sources, voices, lanes, samples, or operators.
+- Tone, shape, filter, operator, or sample editor.
+- Envelope, gain, level, or native attenuation behavior.
+- Motion, performance gestures, and musical helpers.
+- Output, utility, telemetry, and status.
 
-Chip manifests may choose different panel templates and layout density inside those zones. The equal six-card grid is only the default layout, not a product rule. Chips with a larger native control surface may use a chip-specific layout template while preserving the same conceptual zones and stable parameter IDs. SID is the first proof point: Profile and Voices stay near the top, Filter and Motion stay together, and the per-voice Envelope surface spans the full width because ADSR is central to using the chip. PSG, wavetable, and most sample chips fit a standard channel-bank layout. FM chips should use the same conceptual slots but need a denser operator editor or operator grid inside Tone / Shape. Sample-heavy chips such as SPC700-style and Paula modes should use sample voice banks plus sample/loop/pitch panels instead of oscillator-style controls.
+Chip manifests may choose different panel templates and layout density inside those zones. The equal six-card grid is only a fallback layout. Chips with a larger native control surface may use a chip-specific layout template while preserving the same conceptual zones and stable parameter IDs. SID is the first proof point: Profile and Voices stay near the top, Filter and Motion stay together, and the per-voice Envelope surface spans the full width because ADSR is central to using the chip. PSG, wavetable, and most sample chips fit a standard channel-bank layout. FM chips should use the same conceptual zones but need a denser operator editor or operator grid inside Tone / Shape. Sample-heavy chips such as SPC700-style and Paula modes should use sample voice banks plus sample/loop/pitch panels instead of oscillator-style controls.
 
 The product rule is: every chip feels distinct, but no chip feels like a different plugin.
 
@@ -59,7 +55,7 @@ These views should reuse the same shell, typography, APVTS parameters, MIDI mapp
 
 Use JUCE's native plugin-safe controls for DAW-facing behavior: `ComboBox` for selectors, `Slider` for continuous automatable parameters, `Label` for readouts/status, and button-style controls for future discrete actions. Add Chipper-specific presentation components only where the chip metaphor needs structure that generic controls do not provide.
 
-The first custom surface is the NES channel card grid inside Sources. It keeps the stable six-slot shell, but makes Pulse 1, Pulse 2, Triangle, and Noise / DMC visible as chip channels. The fourth card gates the native noise source and the DMC sample lane when external bytes are supplied; its level trim remains noise-only because DMC output follows the native DAC path. Similar chip surfaces should follow this pattern: PSG channel banks, FM operator grids, sampler voice banks, wavetable editors, and macro/readout tiles. These components should reflect stable parameters and tested engine behavior rather than presenting fake controls for planned features. Shared sample-bank dropdowns are map-aware: Manual Slot lists numbered files, while Note Map, Drum Map, Sample Map Only, and tracker map modes prefix each active slot with the MIDI note that will trigger it from the current map root.
+The first custom surface is the NES channel card grid inside Sources. It keeps the stable shell, but makes Pulse 1, Pulse 2, Triangle, and Noise / DMC visible as chip channels. The fourth card gates the native noise source and the DMC sample lane when external bytes are supplied; its level trim remains noise-only because DMC output follows the native DAC path. Similar chip surfaces should follow this pattern: PSG channel banks, FM operator grids, sampler voice banks, wavetable editors, and macro/readout tiles. These components should reflect stable parameters and tested engine behavior rather than presenting fake controls for planned features. Shared sample-bank dropdowns are map-aware: Manual Slot lists numbered files, while Note Map, Drum Map, Sample Map Only, and tracker map modes prefix each active slot with the MIDI note that will trigger it from the current map root.
 
 NES and DMG Pulse Duty use segmented register-choice components because RP2A03 and DMG pulse duty are four-state register fields, not continuous PWM values. NES exposes Pulse 1 through `macroControl1` and Pulse 2 through `pulse2Duty`; DMG mirrors that pattern as Pulse 1 Duty over `NR11` and Pulse 2 Duty over `NR21`, because Game Boy pulse channels can choose their duty cycles independently. `Preset` preserves the current preset-friendly pairing behavior for Pulse 2, while explicit choices write the channel-2 duty bits independently and show the resolved register bits in the live readout. NES and DMG place these register choices in the owning channel cards: pulse cards own duty, wave cards own wave/sample-shape plus level choices, and noise cards own noise mode/period behavior. Embedded channel-card readouts must stay short and resolved: Pulse 2 shows `Follow -> 50%` or `75% independent` in the card, while the detailed register string such as `NR21 bits 11, 75%` remains available in the status text or tooltip. DMG Sweep Shift uses `macroControl2` as a chip-aware slider over the `NR10` channel-1 sweep shift bits. NES Noise Period and DMG Noise Clock use `macroControl3` as chip-aware sliders over `$400E` and `NR43` noise fields, while YM2149 Noise Pitch uses the same stable parameter over the 5-bit shared noise period in register 6.
 
@@ -209,7 +205,7 @@ Authentic mode should expose chip-native behavior. Hybrid mode can add musical h
 
 ## Current Bridge
 
-The current `ChipDescriptor` layer is the first implemented step toward this system. It provides chip names, summaries, preset recipes, chip-specific labels and groups for the universal recipe controls, implementation status, verification disclosure, Chip Poly capability, six stable UI module definitions per chip, and first-pass `ChipParameterSpec` metadata for live controls. The JUCE editor renders those numbered concepts with a default six-card grid, but can switch to chip-specific layout templates when a chip needs more room for native controls. Implemented chips show live native controls and live readouts; planned chips keep roadmap module text and chip-specific planned recipes visible but disable inactive controls so the UI does not imply sound behavior that is not backed by a core. The shared Play Mode parameter is the first patch/channel control exposed globally. Chip Poly is descriptor-gated and renderer-tested across implemented finite-channel cores, including APU/PSG chips, SID, POKEY, SPC700-style sample voices, Paula sample channels, HuC6280/Namco/SCC wavetable lanes, and the current FM adapters where exposed melodic lanes are playable.
+The current `ChipDescriptor` layer is the first implemented step toward this system. It provides chip names, summaries, preset recipes, chip-specific labels and groups for the universal recipe controls, implementation status, verification disclosure, Chip Poly capability, stable UI module definitions per chip, and first-pass `ChipParameterSpec` metadata for live controls. The JUCE editor renders those concepts as unnumbered modules and uses the default grid only where it fits; chip-specific layout templates take over when a chip needs more room for native controls. Implemented chips show live native controls and live readouts; planned chips keep roadmap module text and chip-specific planned recipes visible but disable inactive controls so the UI does not imply sound behavior that is not backed by a core. The shared Play Mode parameter is the first patch/channel control exposed globally. Chip Poly is descriptor-gated and renderer-tested across implemented finite-channel cores, including APU/PSG chips, SID, POKEY, SPC700-style sample voices, Paula sample channels, HuC6280/Namco/SCC wavetable lanes, and the current FM adapters where exposed melodic lanes are playable.
 
 NES Pulse 1 Duty, NES Pulse 2 Duty, NES Noise Period, DMG Pulse 1 Duty, DMG Pulse 2 Duty, DMG Sweep Shift, DMG Noise Clock, SID Pulse Width/Cutoff/Filter Mode/Filter Routing/Resonance/Sustain/ADSR Speed/per-voice ADSR/per-voice Waveform/Osc Interaction/Model, YM2149 per-channel mixer choices, and SN76489 Noise Bias now present as register-backed controls, and DMG Envelope Level presents as a register-backed envelope control because it writes the NRx2 initial volume nibble rather than acting as a generic macro. Each SID voice has independent pulse width: Voice 1 uses the shared native pulse-width control, while Voice 2 and Voice 3 use dedicated APVTS/MIDI controls mapped to their own 12-bit register pairs. Each SID voice's Attack, Decay, Sustain, and Release controls live beside ADSR Speed as stepped vertical overrides over that voice's AD/SR nibbles; `Follow` uses the musical ADSR Speed mapping for attack/decay/release and the Sustain slider for sustain, while explicit values write exact 0-15 nibbles. Compact `F->n` labels show the macro-resolved nibble, and renderer JSON reports the resolved per-voice choices/register bytes.
 

@@ -1,12 +1,13 @@
 # Emulation Accuracy and Licensing
 
-Chipper's simple UX must be backed by real chip behavior wherever possible. This document is the implementation contract for chip modes, accuracy labels, renderer tests, golden references, and licensing.
+Chipper's simple UX must be backed by real chip behavior wherever possible. This document is the implementation contract for chip modes, behavior strictness, verification labels, renderer tests, golden references, and licensing.
 
 Source candidates, reference projects, validation targets, and license-audit tiers are tracked in `docs/emulator-source-map.md`. Nothing from that source map is vendored until this document and `THIRD_PARTY_NOTICES.md` are updated with the exact upstream revision and license posture.
 
-## Accuracy Labels
+## Strictness And Verification Labels
 
 - The VST header exposes these choices as **Behavior Strictness**. That selector requests how strict the musical surface should be; the footer verification badge and renderer debug JSON remain the actual implementation claim.
+- The UI must not present Strictness as certification. A user can request Authentic behavior while a chip truthfully remains `Verified partial` until tests and references justify a stronger label.
 - **Inspired:** musical approximation. The UI may say "NES-inspired" or "SID-inspired"; it must not claim accurate emulation.
 - **Hybrid:** chip model plus modern conveniences. This is the default product mode.
 - **Authentic:** register/channel/timing behavior closely follows the original chip where implemented and tested.
