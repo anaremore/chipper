@@ -98,6 +98,8 @@ When a bug is fixed, keep it in the docs only as a regression gate. Current exam
 
 For UI cleanup, favor a chip-aware source-of-truth layout over another decorative pass. Controls should live where the hardware owns them: pulse duty under pulse channels, sample/wave selectors under sample or wavetable channels, noise modes under noise channels, and shared sample banks, filters, echo, and output in shared modules. If a control is not visible at standard size, the layout should grow.
 
+The current UI cleanup baseline is practical rather than aesthetic: every visible chip should expose its playable path without hidden controls, clipped labels, or dead placeholder panels. Sampler and wavetable chips are the most sensitive because their per-channel selectors, level lanes, sample-bank waveform editors, and Performance Macros compete for space. When those collide, preserve the source cards and waveform editor first, then move helper envelopes or macro controls into a larger secondary area.
+
 ## Additional Gaps To Watch
 
 These are not as visible as chip-specific controls, but they strongly affect whether musicians can trust Chipper in real projects.

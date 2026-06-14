@@ -35,9 +35,10 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 
 These are the highest-signal cleanup items after the latest all-chip screenshot pass:
 
-- Keep sampler layouts collision-free. Paula and SPC700 now have protected sample-bank areas; future changes must preserve readable waveform previews, root/playback controls, loop state, per-voice sample controls, and Performance Macros.
-- Keep wavetable cards readable. HuC6280, Namco WSG, and SCC now keep per-lane wave selectors and visible level controls in each source card; if future per-lane pitch, pan, or wave-edit controls do not fit, grow the layout rather than hiding controls.
-- Keep helper envelopes honest. POKEY, Paula, HuC6280, Namco WSG, and SCC helper envelopes are Chipper musical volume helpers, not native ADSR.
+- Keep sampler layouts collision-free. Paula and SPC700 now have protected sample-bank areas; future changes must preserve readable waveform previews, root/playback controls, loop state, per-voice sample controls, and Performance Macros. If those compete, the sample editor wins and the macro strip moves or grows.
+- Keep wavetable cards readable. HuC6280, Namco WSG, and SCC now keep per-lane wave selectors and visible level controls in each source card; if future per-lane pitch, pan, gate, or wave-edit controls do not fit, grow the layout rather than hiding controls.
+- Keep helper envelopes honest and visible. POKEY, Paula, HuC6280, Namco WSG, and SCC helper envelopes are Chipper musical volume helpers, not native ADSR. They should render as standard controls with chip-specific readouts, never as empty title-only panels.
+- Keep channel ownership intact. NES/DMG pulse duty, noise mode, wave level, wavetable shape, sampler slot, and per-source level belong in the source card that owns the sound path.
 - Keep FM surfaces playable while the deeper operator editor is planned. Macro/editor passes must not disturb key-on, source-level, or operator-envelope sustain behavior.
 - Keep fixed FM fade behavior in the smoke-test set rather than in the active feature queue. The next FM value is editable operator structure, not re-solving held-note sustain unless a regression is reproduced.
 - Keep docs and UI labels aligned: the header says **Strictness**; verification strength belongs in the footer, renderer debug JSON, and accuracy docs.
@@ -56,6 +57,14 @@ Use this checklist before calling any slice done. It is intentionally small enou
 - **State:** switch away from the chip and back, then confirm the chip-local settings, preset choice, and sample/wave selections are preserved.
 - **Honesty:** update docs and footer/descriptor wording whenever implementation evidence changes; do not promote a mode beyond what tests or references support.
 - **Release hygiene:** for code changes, build `Chipper_VST3`, run targeted tests, install from the same build root, and verify the footer hash against the installed marker before committing.
+
+## Fixed Regression Policy
+
+Fixed regressions are release gates, not active roadmap items. Keep them named in tests and docs so they can be checked quickly, but do not let them crowd out forward product work unless a current build reproduces the problem.
+
+- FM held notes fading to silence: fixed and covered by held-tail renderer assertions for the FM families.
+- NES DMC one-shot samples looping with Loop off: fixed and covered by DMC loop-off behavior checks.
+- Reappearing clipped or invisible controls: treat as UI regressions against the current source-card and standard-control-size rules.
 
 ## Chip UI And License Pass Order
 
