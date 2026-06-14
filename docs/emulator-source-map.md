@@ -1,5 +1,7 @@
 # Emulator Source Candidate Map
 
+Review status: synced on 2026-06-14 with the current planning docs. This file owns source/licensing posture only; implementation status and verification claims belong in `docs/emulation-accuracy.md`, release-gate commands belong in `docs/release-builds.md`, and active execution order belongs in `docs/priority-roadmap.md`.
+
 This document captures emulator projects shared as possible Chipper source material. Some permissive cores are now vendored, and the remaining entries are candidates, references, or validation targets only. Check `THIRD_PARTY_NOTICES.md` before assuming any source is included.
 
 Every non-vendored project listed here still needs a file-level license audit before any code is imported, linked, translated, or bundled. "Reference" means behavior comparison, UX comparison, rendered-output comparison, or documentation research. It does not mean copying source code.
@@ -22,7 +24,7 @@ Even with an AGPL-compatible project license, use GPL-family projects such as Fu
 
 ## Latest Source Check
 
-Checked 2026-06-07 from upstream GitHub pages/license files:
+Latest planning sync: 2026-06-14. Latest upstream license/source spot-check: 2026-06-07 from upstream GitHub pages/license files. Do not treat a repository name, README claim, GitHub license badge, or tracker implementation as enough evidence to vendor code. Re-check the exact files and revision before reuse.
 
 - FigBug/SID is a C64 SID VST/AU reference and GitHub reports GPL-3.0. Keep reference-only unless Chipper adopts a compatible distribution model.
 - FigBug/RP2A03 is an NES RP2A03 VST/AU reference and GitHub reports LGPL-2.1. Treat as license-sensitive comparison material until an LGPL compliance path is chosen.
