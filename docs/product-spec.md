@@ -1,5 +1,7 @@
 # Chipper Product Spec
 
+Review status: planning docs synced on 2026-06-14. Fixed regressions such as FM held-note fade-out and NES DMC one-shot loop-off are release gates, not active feature requests, unless reproduced in the current build.
+
 ## Concise Product Spec
 
 Chipper is a classic chip synth VST3 focused on iconic console, computer, and arcade sound chips. It should feel authentic enough for chiptune users while staying immediate for modern producers who want a usable lead, bass, arp, drum, blip, laser, coin, jump, or explosion sound in seconds.
@@ -177,8 +179,7 @@ Every shipped factory preset must appear in that catalog, include chip/category/
 
 Roadmap preset targets, kept as product direction until their chip cores exist:
 
-- Genesis FM Bass
-- OPL Bell Lead
+- None at the moment. YM2612/OPN2 and OPL2/OPL3 now have audible verified-partial cores and renderer-exported factory preset catalogs. Future preset targets should be added only after confirming the chip has an audible engine path, stable state recall, and clean provenance.
 
 ## DSP Architecture Outline
 
