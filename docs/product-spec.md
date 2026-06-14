@@ -1,6 +1,6 @@
 # Chipper Product Spec
 
-Review status: planning docs synced on 2026-06-14 after the fixed-regression cleanup. FM held-note fade-out and NES DMC one-shot loop-off are release gates, not active feature requests, unless reproduced in the current build.
+Review status: planning docs synced on 2026-06-14 after the fixed-regression cleanup. The focused FM/DMC regression gate passed 25/25 on 2026-06-14. FM held-note fade-out and NES DMC one-shot loop-off are release gates, not active feature requests, unless reproduced in the current build.
 
 ## Concise Product Spec
 

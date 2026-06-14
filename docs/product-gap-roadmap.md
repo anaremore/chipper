@@ -4,7 +4,7 @@ This roadmap captures the broad product gaps that remain after the first playabl
 
 > Can a musician make a complete chiptune bass, lead, arp, drum kit, and SFX pack in Chipper without fighting the UI?
 
-Review status: synced on 2026-06-14 after the fixed-regression cleanup. FM held-tail and NES DMC loop-off are release gates; this document stays focused on product workflows that are still missing and user-visible. As of this sync, the FM fade-to-silence issue is not active product work unless the held-tail gate fails in the current build. Use [release-builds.md](release-builds.md) for the exact gate commands.
+Review status: synced on 2026-06-14 after the fixed-regression cleanup. The focused FM/DMC regression gate passed 25/25 on 2026-06-14. FM held-tail and NES DMC loop-off are release gates; this document stays focused on product workflows that are still missing and user-visible. Use [release-builds.md](release-builds.md) for exact gate commands.
 
 ## Current Baseline To Preserve
 
@@ -24,7 +24,7 @@ The current product bias is workflow completion over breadth. A good next slice 
 
 ## Fixed Versus Active Work
 
-The FM sustained-note fade and NES DMC loop-off issues are currently fixed and protected. They should stay visible only as release gates and smoke-test habits. The active product backlog should not say "fix FM fade" or "fix DMC loop" unless the current build fails the named gate. If they do fail, the fix must leave behind a tighter renderer or processor assertion before returning to forward feature work.
+The FM sustained-note fade and NES DMC loop-off issues are currently fixed and protected. They should stay visible only as release gates and smoke-test habits. If either fails again, the fix must leave behind a tighter renderer or processor assertion before returning to forward feature work.
 
 When a fixed gate passes, the next work should move Chipper forward as an instrument:
 

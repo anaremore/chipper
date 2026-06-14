@@ -2,7 +2,7 @@
 
 This list ranks near-term work by user value, implementation effort, and confidence. Value and confidence are scored 1-10, where 10 is highest. Effort is scored 1-10, where 10 is largest. "Confidence improves with" names the evidence or preparation that would make the work safer to execute.
 
-Review status: planning docs synced on 2026-06-14 after the FM held-tail and NES DMC loop-off cleanup. This file is the execution list. There is no current active "FM fades to silence" task; that behavior is treated as fixed unless the held-tail gate fails. Fixed regressions are release gates, not active roadmap items; broad workflow ideas, visual audit rules, fixed-bug details, and license evidence live in their owning docs.
+Review status: planning docs synced on 2026-06-14 after the FM held-tail and NES DMC loop-off cleanup. The focused regression gate passed 25/25 on 2026-06-14 (`held_tail|preset_.*held|processor_midi_cc_smoke`). This file is the execution list: fixed regressions are release gates, not active roadmap items; broad workflow ideas, visual audit rules, fixed-bug details, and license evidence live in their owning docs.
 
 Planning rule: keep this file pointed at the next shippable slice. If a behavior is already fixed and protected by a named CTest gate, reference the gate once here and keep the active queue focused on playable user value. For the current build, that means FM sustain is a guardrail and the next FM work is operator/algorithm/editing depth.
 
@@ -21,8 +21,7 @@ When doing a planning-only cleanup, keep this checklist small and mechanical:
 
 ## Living Plan For The Next Slices
 
-- Keep fixed regressions as tests, not roadmap churn. The gate table below names the current protected behaviors and the tests that guard them. If the gate passes, do not add a new todo for that bug.
-- Current audio-regression posture: FM held-tail and NES DMC loop-off are closed gates, not design tasks. Reopen them only with a current repro and a failing targeted test.
+- Keep fixed regressions as tests, not roadmap churn. FM held-tail and NES DMC loop-off are closed gates, not design tasks. Reopen them only with a current repro and a failing targeted test.
 - Use [release-builds.md](release-builds.md) as the source of truth for local build/install commands and release-gate command lines. This roadmap should name the relevant gate, not fork its own build procedure.
 - Default to a vertical slice when there is no fresh regression: choose one chip, improve the audible/editable workflow, add or tighten the smallest useful guardrail, update the owning doc, then build/test/install for code changes.
 - Keep moving chip-owned controls into their source cards. The most valuable UI work is still making the panel match the chip signal path: pulse controls under pulse voices, sample controls under sampler voices, wave controls under wavetable lanes, operator controls under FM operators, and shared hardware in shared modules.
@@ -32,7 +31,7 @@ When doing a planning-only cleanup, keep this checklist small and mechanical:
 - Presets should grow from original sound design, not imported game data. Every new preset should be audible, visibly reflected in controls, provenance-safe, and easy to share as a flat file.
 - Reliable preset expansion means hand-authored patches plus a QA loop: render the full catalog with `tests\assert_factory_presets_audible.py`, audition the new preset, confirm loudness and sustain/one-shot behavior, confirm visible controls match the sound, and record any external sample dependency as a user-owned path instead of repository content.
 - Update only the owning doc when possible. UI screenshot rules belong in [ui-priority-audit.md](ui-priority-audit.md), broad product workflow gaps belong in [product-gap-roadmap.md](product-gap-roadmap.md), verification/license evidence belongs in the accuracy and source-map docs, and release/build mechanics belong in [release-builds.md](release-builds.md).
-- Keep this plan lean. When a bug is fixed and protected by a named test, keep it in the gate table but remove it from the active queue. Spend the next slice on playable instrument value: clearer controls, better sound design, stronger sample/wave/operator workflows, or better validation evidence.
+- Keep this plan lean. Spend the next slice on playable instrument value: clearer controls, better sound design, stronger sample/wave/operator workflows, or better validation evidence.
 
 ## Next Code Slices To Prefer
 
