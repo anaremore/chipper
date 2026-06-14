@@ -99,19 +99,23 @@ Envelope UI is a correctness issue, not just a layout issue. Chipper should only
 
 Avoid polishing Chipper into fifteen pretty but separate chip panels. Prioritize features that turn the existing chip surfaces into a complete musical workflow: browse a role, play a patch, edit native chip controls, add tracker motion, shape samples/waves/operators, save/share the result, and automate it from DAW or MIDI hardware.
 
-## Immediate Cleanup Policy
+## Planning Ownership
 
-When a bug is fixed, keep it in the docs only as a regression gate. Current examples are FM sustained-note fade-out and NES DMC one-shot looping. Use the named regression tests as living documentation: the held-tail renderer subset for FM sustain, and `processor_midi_cc_smoke` for DMC loop-off/manual-slot/note-map behavior. Do not keep reprioritizing these as active feature work unless they are reproduced in the current build.
+Keep planning split into three buckets so fixed work does not keep looking unfinished:
 
-For UI cleanup, favor a chip-aware source-of-truth layout over another decorative pass. Controls should live where the hardware owns them: pulse duty under pulse channels, sample/wave selectors under sample or wavetable channels, noise modes under noise channels, and shared sample banks, filters, echo, and output in shared modules. If a control is not visible at standard size, the layout should grow.
+- **Fixed regressions with named tests:** FM sustained-note fade-out and NES DMC one-shot looping are closed unless a current build reproduces them. Keep the held-tail renderer subset and `processor_midi_cc_smoke` in the smoke-test habit, then reopen roadmap work only after a failing repro.
+- **Implemented-but-shallow surfaces:** prioritize deeper operator editors, clearer sample/wavetable workflows, stronger presets, state recall, and verification evidence.
+- **Future research:** keep source/licensing decisions, hardware captures, and unverified emulator comparisons out of the active UI unless they have an audible engine path and truthful verification label.
 
-The current UI cleanup baseline is practical rather than aesthetic: every visible chip should expose its playable path without hidden controls, clipped labels, or dead placeholder panels. Sampler and wavetable chips are the most sensitive because their per-channel selectors, level lanes, sample-bank waveform editors, and Performance Macros compete for space. When those collide, preserve the source cards and waveform editor first, then move helper envelopes or macro controls into a larger secondary area.
+When docs drift, update the owning document instead of repeating the same note everywhere:
 
-As of the current planning pass, the FM held-note fade and NES DMC loop-off bugs are closed unless a current build reproduces them. Keep those checks in the smoke-test habit, but spend active development energy on the remaining user-value gaps: deeper operator editors, cleaner sample/wavetable workflows, stronger preset coverage, state recall, and verification evidence.
-
-The active roadmap should stay split into three buckets: fixed regressions with named tests, implemented-but-shallow surfaces that need deeper musical editing, and future research that still needs source/licensing or verification decisions. Mixing those buckets makes Chipper look less complete than it is and makes it harder to choose the next valuable build slice.
-
-When docs drift, update the owning document instead of repeating the same note everywhere: `priority-roadmap.md` owns ranked execution order, this file owns broad product gaps, `ui-priority-audit.md` owns layout rules, `product-spec.md` owns the public instrument contract, and `emulation-accuracy.md` owns verification/source claims.
+| Document | Owns |
+| --- | --- |
+| [priority-roadmap.md](priority-roadmap.md) | Ranked execution order and the immediate done checklist |
+| [product-gap-roadmap.md](product-gap-roadmap.md) | Broad product gaps and workflow direction |
+| [ui-priority-audit.md](ui-priority-audit.md) | Layout non-regression rules and chip-aware control placement |
+| [product-spec.md](product-spec.md) | Public instrument contract and visible behavior |
+| [emulation-accuracy.md](emulation-accuracy.md) | Verification, accuracy labels, source posture, and license constraints |
 
 ## Additional Gaps To Watch
 
