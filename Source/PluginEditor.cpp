@@ -3412,7 +3412,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 220 : (sampleLayout ? 200 : (nesLayout ? 318 : (wavetableLayout ? 260 : 300))));
+    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 180 : (sampleLayout ? 200 : (nesLayout ? 318 : (wavetableLayout ? 260 : 300))));
     const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 1120 : (sampleLayout ? 960 : (nesLayout ? 650 : (wavetableLayout ? 650 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
@@ -3515,11 +3515,11 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (paulaLayout)
     {
-        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.08)), 72, 84);
-        const auto minimumSourceRowHeight = 370;
+        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.08)), 70, 82);
+        const auto minimumSourceRowHeight = 350;
         const auto maximumSampleRowHeight = std::max(230, modules.getHeight() - middleRowHeight - minimumSourceRowHeight - (gap * 2));
-        const auto desiredSampleRowHeight = static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.34));
-        const auto sampleRowHeight = std::clamp(desiredSampleRowHeight, std::min(260, maximumSampleRowHeight), std::min(340, maximumSampleRowHeight));
+        const auto desiredSampleRowHeight = static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.42));
+        const auto sampleRowHeight = std::clamp(desiredSampleRowHeight, std::min(300, maximumSampleRowHeight), std::min(380, maximumSampleRowHeight));
         const auto sourceRowHeight = std::max(0, modules.getHeight() - middleRowHeight - sampleRowHeight - (gap * 2));
         const auto topY = modules.getY();
         const auto middleY = topY + sourceRowHeight + gap;
