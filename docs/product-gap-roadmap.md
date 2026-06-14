@@ -4,7 +4,7 @@ This roadmap captures the broad product gaps that remain after the first playabl
 
 > Can a musician make a complete chiptune bass, lead, arp, drum kit, and SFX pack in Chipper without fighting the UI?
 
-Review status: synced on 2026-06-14 after the fixed-regression cleanup. The focused FM/DMC regression gate passed 25/25 on 2026-06-14. FM held-tail and NES DMC loop-off are release gates; descriptor smoke owns source-card placement, visible level controls, MIDI CC coverage, and honest helper-envelope wording. This document stays focused on product workflows that are still missing and user-visible. Use [release-builds.md](release-builds.md) for exact gate commands. Current active product gaps are sample/wave/operator editing, preset sharing, state recall, tracker motion, and release confidence.
+Review status: synced on 2026-06-14 after the fixed-regression and helper-envelope cleanup. The focused release gate passed 26/26 on 2026-06-14. FM held-tail and NES DMC loop-off are release gates; descriptor smoke owns source-card placement, visible level controls, MIDI CC coverage, named chip modes, preset presence, and honest helper-envelope wording. This document stays focused on product workflows that are still missing and user-visible. Use [release-builds.md](release-builds.md) for exact gate commands. Current active product gaps are sample/wave/operator editing, preset sharing, state recall, tracker motion, and release confidence.
 
 ## Current Baseline To Preserve
 

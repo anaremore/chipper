@@ -2,7 +2,7 @@
 
 This list ranks near-term work by user value, implementation effort, and confidence. Value and confidence are scored 1-10, where 10 is highest. Effort is scored 1-10, where 10 is largest. "Confidence improves with" names the evidence or preparation that would make the work safer to execute.
 
-Review status: planning docs synced on 2026-06-14 after the FM held-tail and NES DMC loop-off cleanup. The focused regression gate passed 25/25 on 2026-06-14 (`held_tail|preset_.*held|processor_midi_cc_smoke`). This file is the execution list: fixed regressions are release gates, not active roadmap items; broad workflow ideas, visual audit rules, fixed-bug details, and license evidence live in their owning docs. The current forward bias is deeper chip-aware editing, higher-quality presets, stronger state/sample verification, and release readiness.
+Review status: planning docs synced on 2026-06-14 after the FM held-tail, NES DMC loop-off, and helper-envelope honesty cleanup. The focused regression gate passed 26/26 on 2026-06-14 (`chipper_descriptor_smoke|processor_midi_cc_smoke|held_tail|preset_.*held`). This file is the execution list: fixed regressions are release gates, not active roadmap items; broad workflow ideas, visual audit rules, fixed-bug details, and license evidence live in their owning docs. The current forward bias is deeper chip-aware editing, higher-quality presets, stronger state/sample verification, and release readiness.
 
 Planning rule: keep this file pointed at the next shippable slice. If a behavior is already fixed and protected by a named CTest gate, reference the gate once here and keep the active queue focused on playable user value. For the current build, that means FM sustain is a guardrail and the next FM work is operator/algorithm/editing depth.
 
@@ -13,6 +13,7 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 When doing a planning-only cleanup, keep this checklist small and mechanical:
 
 - Fixed regressions stay in the gate table, not the active queue. FM held-tail and NES DMC loop-off are closed unless a current build fails their named tests.
+- Descriptor smoke is also a planning guardrail now: source-card ownership, visible source levels, MIDI CC coverage, named chip modes, preset presence, and truthful helper-envelope labels should stay green before UI cleanup is considered done.
 - The active queue should describe forward user value: playable controls, better presets, sample/wave/operator editing, state recall, verification evidence, or release readiness.
 - Keep owner docs separate:
   - [ui-priority-audit.md](ui-priority-audit.md): screenshot rules, chip-owned control placement, and visual non-regression checks.
