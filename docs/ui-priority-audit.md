@@ -64,7 +64,7 @@ This audit tracks layout and control-placement work that most directly improves 
 1. Preset browser and preset sharing
    - Issue: the top dropdown now groups the current chip's presets by category and includes a chip-local Init Patch, but 15 chips still need richer search/filtering by role, engine, tag, and favorites. User presets should remain simple flat files that are easy to share.
    - User value: very high. Most musicians will browse for "arcade bass" or "Game Boy lead" before they know which chip engine they want.
-   - Confidence: 7/10. Preset data already exists; browser UX and save/load polish are the main work.
+   - Confidence: 7/10. Preset data already exists; browser UX and save/load polish are the main work. Confidence improves with a preset QA pass that checks audibility, loudness, visible-control recall, and clean provenance for every factory preset.
 
 2. Basic / Edit / Expert views
    - Issue: Play, edit, and register/audit information are currently shown together, which makes the instrument feel powerful but dense.
