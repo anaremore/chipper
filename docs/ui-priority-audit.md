@@ -56,6 +56,7 @@ This audit tracks layout and control-placement work that most directly improves 
 - Performance Macros now show chip-aware destination hints in their resolved readout lines, such as `$400E noise`, `NR43 noise`, `$D415 cutoff`, `AUDV gate`, `Wave RAM`, and `$B0 feedback`. These hints make it clear which macros are musical gestures over native chip paths rather than generic unlabeled sliders.
 - The preset browser now groups factory sounds by chip-local musical category and shows counts in the section headers, while user presets remain a separate flat-file bank. A chip-local Init Patch entry sits above both banks for a neutral reset point that preserves the current Strictness and supported Play Mode. This keeps browsing useful without changing the simple `.chipperpreset` sharing model.
 - Descriptor smoke tests now lock the public chip catalog to named hardware families only, assert that `Arcade Hybrid` and `Custom` do not return as undefined selector modes, and require each exposed chip to have factory presets available in the UI.
+- Shared APVTS/MIDI slots should use generic host-facing names when their chip meaning changes by mode. CC94 remains the stable parameter behind DMG Stereo Route, SID Model, SPC700/Paula loop behavior, POKEY AUDCTL pairing, HuC6280 LFO mode, FM pan/routing, and some final wavetable lane choices, so the host/default map calls it `Chip Choice / Route` while each chip panel shows the descriptor-specific label.
 
 ## Highest-Value Next Fixes
 
@@ -110,7 +111,7 @@ This audit tracks layout and control-placement work that most directly improves 
    - Confidence: 8/10. Existing renderer and processor smoke tests already expose source levels, key-on state, sample loop state, `tailRms`, and debug JSON; the next value is expanding the same assertion style beyond FM.
 
 11. Planning/doc cleanup cadence
-   - Issue: rapid UI and engine iteration can leave stale roadmap notes that make fixed issues look active or make implemented chip surfaces sound planned-only.
+   - Issue: rapid UI and engine iteration can leave stale roadmap notes that make fixed issues look active, make implemented chip surfaces sound planned-only, or leave shared host parameter names tied to only one chip.
    - User value: medium-high. Clean docs help decide what to build next and keep public claims honest.
    - Confidence: 9/10. This is low-risk as long as wording stays tied to implemented tests, screenshots, and descriptor metadata.
 

@@ -30,7 +30,7 @@ const MidiCcMappingList& midiCcMappings()
         { 91, parameter_ids::snNoiseMode, "Noise Mode / SID Osc Interaction / OPN2 DAC Mode" },
         { 92, parameter_ids::dmgWaveLevel, "DMG Wave Level" },
         { 93, parameter_ids::stereoSpread, "Stereo Spread / SID Resonance" },
-        { 94, parameter_ids::dmgStereoRoute, "DMG Stereo Routing / SID Model" },
+        { 94, parameter_ids::dmgStereoRoute, "Chip Choice / Route" },
         { 95, parameter_ids::sidVoice2WaveShape, "SID Voice 2 Waveform" },
         { 96, parameter_ids::sidVoice3WaveShape, "SID Voice 3 Waveform" },
         { 97, parameter_ids::sidAttack, "SID Voice 1 Attack" },

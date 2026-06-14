@@ -515,7 +515,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::dmgStereoRoute, 1 },
-        "DMG Stereo Routing",
+        "Chip Choice / Route",
         dmgStereoRouteChoices(),
         0));
 
