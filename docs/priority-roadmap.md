@@ -2,7 +2,7 @@
 
 This list ranks near-term work by user value, implementation effort, and confidence. Value and confidence are scored 1-10, where 10 is highest. Effort is scored 1-10, where 10 is largest. "Confidence improves with" names the evidence or preparation that would make the work safer to execute.
 
-Review status: planning docs synced on 2026-06-14 after the FM held-tail and NES DMC loop-off cleanup. This file is the execution list. Fixed regressions are release gates, not active roadmap items; broad workflow ideas, visual audit rules, fixed-bug details, and license evidence live in their owning docs.
+Review status: planning docs synced on 2026-06-14 after the FM held-tail and NES DMC loop-off cleanup. This file is the execution list. There is no current active "FM fades to silence" task; that behavior is treated as fixed unless the held-tail gate fails. Fixed regressions are release gates, not active roadmap items; broad workflow ideas, visual audit rules, fixed-bug details, and license evidence live in their owning docs.
 
 Planning rule: keep this file pointed at the next shippable slice. If a behavior is already fixed and protected by a named CTest gate, reference the gate once here and keep the active queue focused on playable user value.
 
@@ -11,6 +11,7 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 ## Living Plan For The Next Slices
 
 - Keep fixed regressions as tests, not roadmap churn. The gate table below names the current protected behaviors and the tests that guard them. If the gate passes, do not add a new todo for that bug.
+- Current audio-regression posture: FM held-tail and NES DMC loop-off are closed gates, not design tasks. Reopen them only with a current repro and a failing targeted test.
 - Use [release-builds.md](release-builds.md) as the source of truth for local build/install commands and release-gate command lines. This roadmap should name the relevant gate, not fork its own build procedure.
 - Default to a vertical slice when there is no fresh regression: choose one chip, improve the audible/editable workflow, add or tighten the smallest useful guardrail, update the owning doc, then build/test/install for code changes.
 - Keep moving chip-owned controls into their source cards. The most valuable UI work is still making the panel match the chip signal path: pulse controls under pulse voices, sample controls under sampler voices, wave controls under wavetable lanes, operator controls under FM operators, and shared hardware in shared modules.
@@ -88,7 +89,7 @@ Use this checklist before calling any slice done. It is intentionally small enou
 - **Release hygiene:** for code changes, build `Chipper_VST3`, run targeted tests, install from the same build root, and verify the footer hash against the installed marker before committing.
 - **Docs-only hygiene:** for planning, README, or release-note-only changes, run `git diff --check` and skip VST rebuild/install unless the docs reveal a code mismatch that was also changed.
 
-Current docs-only cleanup status: FM sustained notes fading to silence and NES DMC one-shot looping are already represented as fixed regression gates. Do not add more planning prose about fixing them unless a current build fails the gate. The active value path is deeper sampler/wavetable/FM editing, better presets, and stronger state/sample verification.
+Current docs-only cleanup status: FM sustained notes fading to silence and NES DMC one-shot looping are already represented as fixed regression gates. Do not add more planning prose about fixing them unless a current build fails the gate. The active value path is deeper sampler/wavetable/FM editing, better presets, stronger state/sample verification, and cleaner chip-aware control ownership.
 
 ## Regression Gate Quick Reference
 
