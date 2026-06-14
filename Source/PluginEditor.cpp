@@ -2207,7 +2207,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addAndMakeVisible(dmcMapRootBox);
     dmcMapRootAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::nesDmcMapRoot, dmcMapRootBox);
 
-    dmcLoopButton.setButtonText("Loop: Off");
+    dmcLoopButton.setButtonText("Loop");
     dmcLoopButton.setTooltip(withMidiCcForRole("RP2A03 $4010 DMC loop bit. Off steps the selected sample once per trigger, then holds the final DMC DAC level until retriggered. Loop repeats from byte 0 at the sample end.", chipper::ChipParameterRole::nesDmcLoop));
     addAndMakeVisible(dmcLoopButton);
     dmcLoopAttachment = std::make_unique<ButtonAttachment>(state, chipper::parameters::id::nesDmcLoop, dmcLoopButton);
@@ -9895,7 +9895,7 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
         visibleStatus += " | Rate " + juce::String(playbackInfo.rateIndex) + " | " + runState;
     }
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
-    dmcLoopButton.setButtonText(playbackInfo.loopEnabled ? "Loop: On" : "Loop: Off / one-shot");
+    dmcLoopButton.setButtonText("Loop");
     auto sampleTooltip = playbackInfo.statusLine
         + "\nDMC bit clock: " + juce::String(playbackInfo.bitRateHz / 1000.0, 2) + " kHz from $4010 rate index "
         + juce::String(playbackInfo.rateIndex) + ".";
