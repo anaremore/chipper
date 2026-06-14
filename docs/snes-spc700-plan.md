@@ -24,6 +24,8 @@ Chipper's SNES mode should become a hardware-shaped sampler, not another oscilla
 - UI should show memory budget and loop state. A directory browser with checkboxes fits the current NES DMC direction and should scale to SNES sample banks.
 - Done first pass: plugin sample-bank status reports checked-slot payload against a practical 64 KB SNES audio-RAM budget and warns when the bank is near or over that ceiling before driver/echo overhead.
 - Done first pass: each of the eight voice cards can now follow the global sample slot/note-map behavior or pin itself to a specific loaded bank slot, matching the S-DSP idea that every voice can point at its own sample source.
+- Done first pass: the shared Sample Bank panel is treated as protected workspace for import, playback mapping, loop start/end, root note, and waveform preview. Performance macros and envelope helpers should not overlap this panel.
+- UI rule: loop mode should be exposed as a clear binary **Loop While Held** style control where possible. A dropdown is only appropriate when multiple playback lifetimes are genuinely available.
 
 ### Interpolation And Output
 
@@ -37,6 +39,7 @@ Chipper's SNES mode should become a hardware-shaped sampler, not another oscilla
 - Expose ADSR per voice, because S-DSP voices have meaningful envelope behavior.
 - Also expose GAIN mode for direct, linear, exponential, and bent-line style changes once implemented.
 - Keep the UI voice-centric: sample waveform at top, ADSR/GAIN below, echo/noise/pitch-mod toggles at the bottom.
+- Done first pass: ADSR/GAIN shape and speed controls are visible in the top envelope module, and voice cards reserve a bottom level lane. Hiding those controls is a regression because level and envelope are native musical behavior for S-DSP voices.
 
 ### Echo / FIR
 
@@ -63,6 +66,7 @@ Checked 2026-06-07:
    - Replace the generic expansion layout with an eight-voice sample instrument layout.
    - Add voice cards with sample slot, waveform preview, pitch, level, pan, ADSR/GAIN summary, echo send, and active state.
    - Keep only the first four voices visible in compact mode if needed, with a clear 1-8 voice selector/page.
+   - Done first pass: all eight voice cards can be shown at the current editor size, each with a sample selector and visible level lane.
 
 2. **BRR Playback Path**
    - Done first pass: renderer can feed `.brr` bytes or inline BRR hex into the clean-room SPC700 sample voice model.

@@ -54,6 +54,26 @@ This roadmap captures the broad product gaps that remain after the first playabl
     - User value: medium-high. Small chip-aware hints make the instrument approachable without turning the UI into a manual.
     - Direction: terse tooltips and optional help text for concepts like DMC, OPL rhythm mode, SID filter routing, POKEY AUDCTL, and SNES BRR/echo.
 
+## Envelope And EG Policy
+
+Envelope UI is a correctness issue, not just a layout issue. Chipper should only show ADSR-style controls when the chip or selected emulation path actually has ADSR-like behavior.
+
+1. **Native ADSR / GAIN**
+   - Chips: SID and SNES SPC700/S-DSP.
+   - UI: voice-centric ADSR or ADSR/GAIN controls with envelope visuals. These are first-class chip behaviors, not optional macro helpers.
+
+2. **Native Operator EG**
+   - Chips: YM2612/OPN2, YM2151/OPM, OPL2/OPL3, and YM2413/OPLL where the editable/custom path exposes operator envelopes.
+   - UI: operator envelope controls named as FM EG stages, not generic synth ADSR unless the chip's terms map cleanly. Carrier/modulator roles should be visible.
+
+3. **Native Non-ADSR Envelope / Volume Hardware**
+   - Chips: NES/RP2A03, Game Boy/DMG, YM2149/AY, SN76489, and similar PSG/APU chips.
+   - UI: stepped envelope, length, attenuation, volume nibble, or hardware-envelope controls. Do not present these as full ADSR.
+
+4. **Chipper Helper Amp Envelopes**
+   - Chips: POKEY, Paula, HuC6280, Namco WSG, SCC, and any chip path where Chipper adds musical volume shaping over hardware that lacks native ADSR.
+   - UI: label as **Amp Env**, **Volume Gate**, **Tracker Amp Env**, or another chip-specific helper. The copy must say it is a modern musical helper when it is not native hardware.
+
 ## Execution Principle
 
 Avoid polishing Chipper into fifteen pretty but separate chip panels. Prioritize features that turn the existing chip surfaces into a complete musical workflow: browse a role, play a patch, edit native chip controls, add tracker motion, shape samples/waves/operators, save/share the result, and automate it from DAW or MIDI hardware.

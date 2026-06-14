@@ -2,6 +2,19 @@
 
 This audit tracks layout and control-placement work that most directly improves Chipper as a usable, chip-aware instrument.
 
+## Non-Regression Checklist
+
+- Do not number sections. Hidden or chip-specific modules make numbering misleading.
+- Keep the header focused on preset, chip mode, Strictness, and Play Mode. Verification strength belongs in the footer.
+- Use standard-height dropdowns, buttons, and numeric inputs. If a control cannot fit at standard size, grow the card or layout.
+- Never let labels, readouts, dropdowns, sliders, or waveform views overlap. Readability beats compactness.
+- Channel-local register controls live in their channel card: duty under pulse channels, sample/wave selectors under sample/wavetable voices, and noise controls under noise channels.
+- Shared modules are only for shared hardware or shared workflow: filters, echo, sample banks, output routing, global clocks, and cross-channel pairing.
+- Sample and wavetable chips must reserve a real waveform/sample workspace. Performance macros may be compact, but they must not overlap sample-bank controls.
+- Footer verification language must remain truthful: **Verified partial** is acceptable; **Cycle accurate** is not allowed without accepted tests or hardware/reference proof.
+- Chip themes may differ, but contrast, focus, hit targets, and readable text size must stay consistent.
+- Logo underline decorations should align to the full logo width so the header feels intentional on every theme.
+
 ## Completed Pattern
 
 - Game Boy / DMG now treats channel cards as the owner of channel-native register controls: Pulse 1 duty, Pulse 2 duty, Wave RAM shape/level, and Noise width mode.
@@ -77,6 +90,11 @@ This audit tracks layout and control-placement work that most directly improves 
    - Issue: exact register readouts help prove honesty, but they compete with musical labels in the default view.
    - User value: high. Musicians should see what they hear first, while advanced users can still inspect register-level behavior.
    - Confidence: 7/10. Requires a consistent Expert/detail overlay and tooltip policy across chips.
+
+9. All-chip screenshot audit
+   - Issue: each bespoke chip layout can regress independently, especially when a source card grows per-voice controls.
+   - User value: high. Users should never need to guess whether a control is hidden, clipped, or decorative.
+   - Confidence: 8/10. The latest screenshots make the remaining problems visible; a repeatable screenshot checklist will catch most regressions before release.
 
 ## Design Rule
 
