@@ -113,11 +113,15 @@ Review status: synced on 2026-06-14. The audit now treats FM held-tail and NES D
    - User value: high. Users should never need to guess whether a control is hidden, clipped, or decorative.
    - Confidence: 8/10. The latest screenshots make the remaining problems visible; a repeatable screenshot checklist will catch most regressions before release.
 
-10. Audio non-regression smoke checks
-   - Issue: FM held-tail assertions and NES DMC loop-off assertions are now in place as release gates, but sample, loop, and helper-envelope fixes can still look correct while regressing key-on/key-off, one-shot/loop behavior, or sustained output.
+10. Expand audio non-regression smoke checks
+   - Issue: FM held-tail assertions and NES DMC loop-off assertions are now release gates, not open UI bugs. The next coverage value is extending that same confidence to sample, loop, helper-envelope, and source-card changes that can look correct while regressing key-on/key-off, one-shot/loop behavior, or sustained output.
    - User value: high. A playable instrument must hold notes predictably before deeper editor polish matters.
    - Confidence: 8/10. Existing renderer and processor smoke tests already expose source levels, key-on state, sample loop state, `tailRms`, and debug JSON; the next value is expanding the same assertion style beyond FM.
 
 ## Design Rule
 
 When a control maps to a channel-local register, place it in or directly under that channel's card. Reserve shared panels for genuinely shared hardware: filters, output routing, sample banks, global clocks, echo, LFOs, and cross-channel pairing.
+
+## Cleanup Rule
+
+After a screenshot-driven fix lands, keep the durable rule and remove the one-off complaint from active planning language. The audit should answer "what class of UI regression are we preventing now?" rather than preserve a chronological bug diary.

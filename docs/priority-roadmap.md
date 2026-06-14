@@ -10,9 +10,18 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 
 - Keep fixed regressions as tests, not roadmap churn. The regression gate table below names the current closed bugs and the tests that protect them.
 - Keep moving chip-owned controls into their source cards. The most valuable UI work is still making the panel match the chip signal path: pulse controls under pulse voices, sample controls under sampler voices, wave controls under wavetable lanes, operator controls under FM operators, and shared hardware in shared modules.
-- The next deeper feature work should favor first-class editors: sample/wavetable editing for Paula, SPC700, HuC6280, Namco WSG, SCC, and Game Boy wave RAM; then FM operator/algorithm editing for the Yamaha family.
+- The next deeper feature work should favor first-class editors: sample/wavetable editing for Paula, SPC700, HuC6280, Namco WSG, SCC, and Game Boy wave RAM; then FM operator/algorithm editing for the Yamaha family. The FM held-note fix is now a release gate, so the next FM value is editability and clarity rather than re-solving sustain.
 - Presets should grow from original sound design, not imported game data. Every new preset should be audible, visibly reflected in controls, provenance-safe, and easy to share as a flat file.
 - Update only the owning doc when possible. UI screenshot rules belong in [ui-priority-audit.md](ui-priority-audit.md), broad product workflow gaps belong in [product-gap-roadmap.md](product-gap-roadmap.md), verification/license evidence belongs in the accuracy and source-map docs, and release/build mechanics belong in [release-builds.md](release-builds.md).
+
+## Next Code Slices To Prefer
+
+When there is no fresh P0 regression, use this order for the next development slice:
+
+1. Add or tighten regression coverage for source-card ownership and visible standard controls, especially the controls users repeatedly reported as disappearing: per-source level, per-channel wave/sample selectors, sampler loop state, and helper-envelope sliders.
+2. Polish one sampler or wavetable chip end-to-end instead of spreading tiny changes across all chips. Best current candidates are Paula sample-bank workflow, SPC700 voice-to-sample mapping, or HuC6280/Namco/SCC per-lane wave editing.
+3. Expand original factory presets only after the target chip's visible controls and renderer/debug metadata can prove what the preset changed.
+4. Start the FM operator editor as a contained vertical slice for one FM family, keeping the held-tail test subset green throughout.
 
 | Rank | Todo | User Value | Effort | Confidence | Confidence Improves With |
 | --- | --- | ---: | ---: | ---: | --- |

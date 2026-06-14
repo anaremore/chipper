@@ -41,6 +41,8 @@ ctest --test-dir build-codex -C Release -R "chipper_descriptor_smoke|processor_m
 - Fixed regressions should stay as named tests. Do not reopen FM held-tail or NES DMC loop-off in this roadmap unless the current build reproduces the bug.
 - Prefer user-visible slices that make a chip more playable: a clearer editor, a better preset set, a trustworthy sample/wave workflow, or stronger validation around an audible feature.
 
+The next implementation work should bias toward one complete user workflow at a time. Good slices are: load or draw a sample/wave, hear it on the intended lane, see the lane's native controls, save it as a preset, reload it, and verify the renderer reports the same state. Avoid adding more visible controls until the target chip can preserve and explain the controls it already exposes.
+
 ## Highest-Value Product Gaps
 
 1. **Chip-Aware Tracker Motion / SFX Gestures**
