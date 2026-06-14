@@ -16,6 +16,7 @@ This audit tracks layout and control-placement work that most directly improves 
 - Chip themes may differ, but contrast, focus, hit targets, and readable text size must stay consistent.
 - Logo underline decorations should align to the full logo width so the header feels intentional on every theme.
 - Screenshot feedback should become durable layout rules in this audit. Avoid preserving one-off visual bug notes after the underlying rule is captured and verified.
+- Fixed audio regressions should only appear here when they constrain UI changes. The active UI queue should focus on visible chip-aware controls, readable source cards, sample/wave/operator editing, and screenshot regressions.
 
 ## Completed Pattern
 

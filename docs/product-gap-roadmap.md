@@ -18,6 +18,12 @@ Recent work has converted many early placeholder panels into playable, chip-awar
 
 Do not spend new planning cycles on fixed regressions unless they are reproduced in the current build. Instead, keep them as smoke-test checks while pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, and verification evidence. If a user reports a fixed issue again, first run the targeted regression and then decide whether the roadmap needs to change.
 
+Fast smoke command for the fixed-regression gates:
+
+```powershell
+ctest --test-dir build-codex -C Release -R "chipper_descriptor_smoke|processor_midi_cc_smoke|held_tail|preset_.*held" --output-on-failure
+```
+
 ## Highest-Value Product Gaps
 
 1. **Chip-Aware Tracker Motion / SFX Gestures**
@@ -104,6 +110,8 @@ The current UI cleanup baseline is practical rather than aesthetic: every visibl
 As of the current planning pass, the FM held-note fade and NES DMC loop-off bugs are closed unless a current build reproduces them. Keep those checks in the smoke-test habit, but spend active development energy on the remaining user-value gaps: deeper operator editors, cleaner sample/wavetable workflows, stronger preset coverage, state recall, and verification evidence.
 
 The active roadmap should stay split into three buckets: fixed regressions with named tests, implemented-but-shallow surfaces that need deeper musical editing, and future research that still needs source/licensing or verification decisions. Mixing those buckets makes Chipper look less complete than it is and makes it harder to choose the next valuable build slice.
+
+When docs drift, update the owning document instead of repeating the same note everywhere: `priority-roadmap.md` owns ranked execution order, this file owns broad product gaps, `ui-priority-audit.md` owns layout rules, `product-spec.md` owns the public instrument contract, and `emulation-accuracy.md` owns verification/source claims.
 
 ## Additional Gaps To Watch
 

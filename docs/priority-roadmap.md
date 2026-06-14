@@ -2,6 +2,8 @@
 
 This list ranks near-term work by user value, implementation effort, and confidence. Value and confidence are scored 1-10, where 10 is highest. Effort is scored 1-10, where 10 is largest. "Confidence improves with" names the evidence or preparation that would make the work safer to execute.
 
+Review status: the FM held-note fade and NES DMC loop-off issues are currently fixed regression gates, not active feature work. New planning entries should only reopen them after a current build reproduces the behavior and the targeted smoke tests fail.
+
 For broader product gaps beyond this immediate chip-core and UI execution list, see [product-gap-roadmap.md](product-gap-roadmap.md). That document tracks the larger instrument-workflow work: tracker motion, wave/sample editing, FM operator editing, drum/SFX workflows, multi-output routing, preset tags, Strictness behavior, and MIDI/automation polish.
 
 | Rank | Todo | User Value | Effort | Confidence | Confidence Improves With |
@@ -65,8 +67,8 @@ Use this checklist before calling any slice done. It is intentionally small enou
 
 Fixed regressions are release gates, not active roadmap items. Keep them named in tests and docs so they can be checked quickly, but do not let them crowd out forward product work unless a current build reproduces the problem.
 
-- FM held notes fading to silence: fixed and covered by held-tail renderer assertions for the FM families.
-- NES DMC one-shot samples looping with Loop off: fixed and covered by `processor_midi_cc_smoke` DMC loop-off behavior checks.
+- FM held notes fading to silence: fixed and covered by held-tail renderer assertions for the FM families and held factory-preset assertions.
+- NES DMC one-shot samples looping with Loop off: fixed and covered by `processor_midi_cc_smoke` DMC loop-off behavior checks for manual-slot and note-map playback.
 - Reappearing clipped or invisible controls: treat as UI regressions against the current source-card and standard-control-size rules.
 
 When a fixed regression is suspected, update this section only after reproducing it in the current build. Otherwise keep active priority on forward user value: deeper source editors, better presets, clearer sample/wave/operator workflows, and stronger verification evidence.
