@@ -2,7 +2,7 @@
 
 This list ranks near-term work by user value, implementation effort, and confidence. Value and confidence are scored 1-10, where 10 is highest. Effort is scored 1-10, where 10 is largest. "Confidence improves with" names the evidence or preparation that would make the work safer to execute.
 
-Review status: planning docs synced on 2026-06-14. Fixed regressions now live as named release gates, not active feature work. Reopen them only after a current build reproduces the behavior and the targeted smoke tests fail.
+Review status: planning docs synced on 2026-06-14. Fixed regressions now live as named release gates, not active feature work. Reopen them only after a current build reproduces the behavior and the targeted smoke tests fail. This file is the execution list; broad workflow ideas, visual audit rules, and license evidence live in their owning docs.
 
 For broader product gaps beyond this immediate chip-core and UI execution list, see [product-gap-roadmap.md](product-gap-roadmap.md). That document tracks the larger instrument-workflow work: tracker motion, wave/sample editing, FM operator editing, drum/SFX workflows, multi-output routing, preset tags, Strictness behavior, and MIDI/automation polish.
 
@@ -12,7 +12,7 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 - Keep moving chip-owned controls into their source cards. The most valuable UI work is still making the panel match the chip signal path: pulse controls under pulse voices, sample controls under sampler voices, wave controls under wavetable lanes, operator controls under FM operators, and shared hardware in shared modules.
 - The next deeper feature work should favor first-class editors: sample/wavetable editing for Paula, SPC700, HuC6280, Namco WSG, SCC, and Game Boy wave RAM; then FM operator/algorithm editing for the Yamaha family.
 - Presets should grow from original sound design, not imported game data. Every new preset should be audible, visibly reflected in controls, provenance-safe, and easy to share as a flat file.
-- Update only the owning doc when possible. UI screenshot rules belong in [ui-priority-audit.md](ui-priority-audit.md), broad product workflow gaps belong in [product-gap-roadmap.md](product-gap-roadmap.md), and verification/license evidence belongs in the accuracy and source-map docs.
+- Update only the owning doc when possible. UI screenshot rules belong in [ui-priority-audit.md](ui-priority-audit.md), broad product workflow gaps belong in [product-gap-roadmap.md](product-gap-roadmap.md), verification/license evidence belongs in the accuracy and source-map docs, and release/build mechanics belong in [release-builds.md](release-builds.md).
 
 | Rank | Todo | User Value | Effort | Confidence | Confidence Improves With |
 | --- | --- | ---: | ---: | ---: | --- |
@@ -49,8 +49,7 @@ These are the highest-signal cleanup items after the latest all-chip screenshot 
 - Keep wavetable cards readable. HuC6280, Namco WSG, and SCC now keep per-lane wave selectors and visible level controls in each source card; if future per-lane pitch, pan, gate, or wave-edit controls do not fit, grow the layout rather than hiding controls.
 - Keep helper envelopes honest and visible. POKEY, Paula, HuC6280, Namco WSG, and SCC helper envelopes are Chipper musical volume helpers, not native ADSR. They should render as standard controls with chip-specific readouts, never as empty title-only panels.
 - Keep channel ownership intact. NES/DMG pulse duty, noise mode, wave level, wavetable shape, sampler slot, and per-source level belong in the source card that owns the sound path. Descriptor smoke tests should pin these ownership rules whenever a new chip-local control becomes visible.
-- Keep FM surfaces playable while the deeper operator editor is planned. Macro/editor passes must not disturb key-on, source-level, or operator-envelope sustain behavior.
-- Keep fixed FM held-tail behavior in the smoke-test set rather than in the active feature queue. The next FM value is editable operator structure, not re-solving held-note sustain unless a regression is reproduced.
+- Keep FM surfaces playable while the deeper operator editor is planned. Macro/editor passes must not disturb key-on, source-level, or operator-envelope sustain behavior. The next FM value is editable operator structure, not re-solving held-note sustain unless a regression is reproduced.
 - Keep docs and UI labels aligned: the header says **Strictness**; verification strength belongs in the footer, renderer debug JSON, and accuracy docs.
 - Keep shared host/CC names neutral when one stable parameter serves different chip meanings. For example, CC94 is `Chip Choice / Route` at the host layer, while each chip panel relabels it as DMG Stereo Route, SID Model, SPC700 loop behavior, POKEY AUDCTL pairing, HuC6280 LFO mode, FM pan/routing, or a wavetable lane selector as appropriate.
 - Keep the standard control-size baseline: source-card dropdowns, numeric boxes, and level lanes must remain readable at the default editor size. If a future chip-specific control needs more room, grow the card or layout instead of shrinking controls back into clipped mini rows.
@@ -67,6 +66,7 @@ Use this checklist before calling any slice done. It is intentionally small enou
 - **State:** switch away from the chip and back, then confirm the chip-local settings, preset choice, and sample/wave selections are preserved.
 - **Honesty:** update docs and footer/descriptor wording whenever implementation evidence changes; do not promote a mode beyond what tests or references support.
 - **Release hygiene:** for code changes, build `Chipper_VST3`, run targeted tests, install from the same build root, and verify the footer hash against the installed marker before committing.
+- **Docs-only hygiene:** for planning, README, or release-note-only changes, run `git diff --check` and skip VST rebuild/install unless the docs reveal a code mismatch that was also changed.
 
 ## Regression Gate Quick Reference
 
@@ -139,7 +139,7 @@ Each completed development slice should:
 
 - Improve either emulation truth, musical usability, verification, presets, documentation, or installability.
 - Keep DAW parameter IDs and MIDI CC mappings stable unless a migration plan exists.
-- Build `Chipper_VST3` and `chipper_render` for code changes, run the relevant tests, install the VST3 from the same build root, verify the installed marker when practical, commit, and push.
+- Build `Chipper_VST3` and `chipper_render` for code changes, run the relevant tests, install the VST3 from the same build root, verify the installed marker when practical, commit, and push. For docs-only changes, run `git diff --check`; do not spend a build/install cycle unless code changed too.
 - Avoid product claims stronger than the current renderer tests and documented verification support.
 - Update only the docs that own the changed behavior: `ui-priority-audit.md` for layout/control placement, `product-gap-roadmap.md` for broad workflow gaps, `product-spec.md` for user-facing product contract, `emulation-accuracy.md` and `emulator-source-map.md` for accuracy/source posture, and `release-builds.md` for build/install/release workflow.
 - Keep fixed bugs listed as regression gates with named tests, not as repeated open roadmap items.

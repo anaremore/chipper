@@ -133,6 +133,7 @@ When docs drift, update the owning document instead of repeating the same note e
 | [ui-priority-audit.md](ui-priority-audit.md) | Layout non-regression rules and chip-aware control placement |
 | [product-spec.md](product-spec.md) | Public instrument contract and visible behavior |
 | [emulation-accuracy.md](emulation-accuracy.md) | Verification, accuracy labels, source posture, and license constraints |
+| [release-builds.md](release-builds.md) | Local build/install flow, release workflow, and release-gate checks |
 
 ## Additional Gaps To Watch
 

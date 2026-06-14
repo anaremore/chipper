@@ -37,6 +37,14 @@ If both locations contain Chipper, sync them from an elevated PowerShell:
 .\install-vst3.ps1 -Scope Both -BuildRoot build-codex
 ```
 
+Docs-only planning, README, or release-note updates do not need a VST3 build/install cycle. For those slices, run:
+
+```powershell
+git diff --check
+```
+
+If the docs uncovered a mismatch that also required source, preset, installer, or workflow changes, use the normal build, targeted test, install, and verify flow above.
+
 ## GitHub Release Build
 
 The workflow is `.github/workflows/release.yml`.

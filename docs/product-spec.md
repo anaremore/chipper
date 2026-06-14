@@ -72,9 +72,9 @@ Controls should only become visible when they have an engine mapping, stable par
 - Classic Game SFX
 - Modern Chip Hybrid
 
-## Initial Preset Bank
+## Factory Preset Catalog
 
-Factory preset v1 should prioritize implemented chips and avoid implying that planned chips already have audio cores. The first executable factory presets are:
+Factory presets should prioritize implemented chips and avoid implying that planned chips already have audio cores. The current executable factory presets include:
 
 Unimplemented chip modes should not expose non-audible presets. If a chip has only roadmap metadata, keep that metadata in docs/descriptors and avoid presenting it as a playable factory preset until the chip has an audited or clean-room audio core.
 
@@ -211,4 +211,4 @@ Controls use plain names and tooltips. Mode-specific controls remain musically l
 
 Mode-specific layouts should adapt structurally, not just change labels. Section headers stay unnumbered, and each chip may use a fixed or aspect-aware layout when that better serves readability. NES and SN76489 can stay generator/register-strip oriented; SID should use three deep voice panels plus a global filter; SNES should become an eight-voice sample-bank workstation with BRR/sample selection, ADSR/GAIN, memory budget, and echo/FIR controls; FM chips should use operator and algorithm views. Reuse Chipper components where possible, but let each chip's native instrument shape determine the layout.
 
-Fixed regressions remain part of the release gate rather than active feature planning. Current smoke gates include FM held-note tail checks for the ymfm/emu2413-backed chips and NES DMC one-shot loop-off behavior. If either issue returns in a current build, treat it as a P0 regression; otherwise prioritize deeper operator, sample, wave, preset, and verification work.
+Fixed regressions remain part of the release gate rather than active feature planning. Current smoke gates include FM held-note tail checks for the ymfm/emu2413-backed chips and NES DMC one-shot loop-off behavior. If either issue returns in a current build, treat it as a P0 regression; otherwise prioritize deeper operator, sample, wave, preset, and verification work. Documentation-only planning updates should use `git diff --check`; rebuild, install, and DAW footer verification are required for code, DSP, parameter, UI, preset, or installer changes.
