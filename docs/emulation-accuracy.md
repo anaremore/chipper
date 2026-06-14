@@ -37,7 +37,7 @@ Source candidates, reference projects, validation targets, and license-audit tie
 The command-line renderer is the truth source for core validation. It accepts:
 
 - chip mode
-- accuracy mode
+- behavior strictness
 - chip clock rate
 - host sample rate
 - render length

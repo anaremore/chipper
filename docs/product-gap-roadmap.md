@@ -8,7 +8,7 @@ This roadmap captures the broad product gaps that remain after the first playabl
 
 Recent work has converted many early placeholder panels into playable, chip-aware surfaces. Treat these as non-regression requirements while moving forward:
 
-- FM modes should sustain normally; the previous "one note fades to silence" issue is treated as fixed and covered by held-tail regression tests. Any return of that behavior is a regression, not an accepted limitation.
+- FM modes should sustain normally; the previous "one note fades to silence" issue is treated as fixed and covered by held-tail regression tests. Any return of that behavior is a P0 regression, not an accepted limitation or normal FM envelope behavior.
 - NES DMC one-shot mode should not loop when the Loop control is off. The authentic behavior to communicate is "bit stream stops, DAC holds final level."
 - Sample and wavetable chips should keep per-voice wave/sample selectors and visible level controls in the voice cards wherever the chip has independent channels.
 - Strictness is a behavior request, not a proof label. Verification strength remains in the footer and docs.
@@ -45,7 +45,7 @@ Do not spend new planning cycles on fixed regressions unless they are reproduced
 
 6. **Preset Browser With Musical Tags**
    - User value: high. Fifteen chips need browsing by musical intent, not only chip name.
-   - Scope: chip, category, musical role, active lanes, macro destinations, native feature use, accuracy mode, sample usage, tracker motion usage, mono/poly/drum/SFX flags, favorites, and init patches.
+   - Scope: chip, category, musical role, active lanes, macro destinations, native feature use, Strictness behavior, sample usage, tracker motion usage, mono/poly/drum/SFX flags, favorites, and init patches.
    - Preset files should remain portable flat files and should store recipe metadata as well as parameter state.
 
 7. **Enforceable Authentic / Hybrid / Inspired Behavior**
@@ -90,12 +90,18 @@ Envelope UI is a correctness issue, not just a layout issue. Chipper should only
 
 Avoid polishing Chipper into fifteen pretty but separate chip panels. Prioritize features that turn the existing chip surfaces into a complete musical workflow: browse a role, play a patch, edit native chip controls, add tracker motion, shape samples/waves/operators, save/share the result, and automate it from DAW or MIDI hardware.
 
+## Immediate Cleanup Policy
+
+When a bug is fixed, keep it in the docs only as a regression gate. Current examples are FM sustained-note fade-out and NES DMC one-shot looping. Do not keep reprioritizing these as active feature work unless they are reproduced in the current build.
+
+For UI cleanup, favor a chip-aware source-of-truth layout over another decorative pass. Controls should live where the hardware owns them: pulse duty under pulse channels, sample/wave selectors under sample or wavetable channels, noise modes under noise channels, and shared sample banks, filters, echo, and output in shared modules. If a control is not visible at standard size, the layout should grow.
+
 ## Additional Gaps To Watch
 
 These are not as visible as chip-specific controls, but they strongly affect whether musicians can trust Chipper in real projects.
 
 1. **Project Recall and State Migration**
-   - Saved DAW projects must reopen with the same chip, preset, loaded sample paths, per-chip settings, MIDI mappings, and accuracy mode.
+   - Saved DAW projects must reopen with the same chip, preset, loaded sample paths, per-chip settings, MIDI mappings, and Strictness setting.
    - Parameter IDs, preset schema versions, and sample-bank references need migration rules before public releases.
 
 2. **Missing-Asset and Crash Recovery**

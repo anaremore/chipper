@@ -262,6 +262,7 @@ Do not import GPL/LGPL emulator code, preset banks, songs, samples, lookup table
 - [docs/ui-architecture.md](docs/ui-architecture.md): adaptive UI strategy and MIDI/automation contract
 - [docs/snes-spc700-plan.md](docs/snes-spc700-plan.md): SPC700-style sampler roadmap
 - [docs/priority-roadmap.md](docs/priority-roadmap.md): execution priorities
+- [docs/product-gap-roadmap.md](docs/product-gap-roadmap.md): larger workflow gaps and non-regression policy
 
 ## Accuracy And Strictness Rule
 
