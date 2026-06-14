@@ -31,7 +31,7 @@ Verification labels are separate from that control. The footer, renderer debug J
 - Strictness: Inspired, Hybrid, Authentic. This is a requested behavior mode, not the verification claim; footer badges and renderer debug JSON report what is actually proven. The stable host/MIDI parameter remains named `Behavior Strictness`.
 - Play Mode: Big Mono, Chip Poly where the selected chip has tested finite-channel allocation; Manual and Clone are reserved until tracker routing and hybrid engine cloning are implemented.
 - Output Level
-- Preset Recipe: internal chip-native defaults used by factory/user presets for Coin, Bass, Lead, Arp, Drum, Hit, Laser, Jump, and Power-Up style sounds
+- Preset Recipe: internal chip-native defaults used by factory/user presets for Coin, Bass, Lead, Arp, Drum, Hit, Laser, Jump, and Power-Up style sounds. The user-facing workflow should still say **Preset**; "recipe" is internal compatibility wording for the stable APVTS/CC parameter.
 - Clock Rate override and model variant where applicable
 - Register-backed channel controls for each implemented chip
 - Duty, noise mode, sweep, length/envelope controls for pulse/noise chips
@@ -154,6 +154,26 @@ Every shipped factory preset must appear in that catalog, include chip/category/
 - SCC Wave Bass
 - SCC Five-Voice Arp
 - SCC Wave Tick
+- OPN2 Feedback Bass
+- OPN2 Metallic Lead
+- OPN2 Fake Chord Arp
+- OPN2 UI Chime
+- OPN2 Damage Hit
+- OPN2 Pitch Laser
+- OPN2 Power Rise
+- OPN2 Rubber Bass
+- OPN2 Brass Stack
+- OPN2 DAC Kick
+- OPL2 Bass
+- OPL2 Bright Lead
+- OPL2 Organ Arp
+- OPL2 UI Bell
+- OPL2 Laser
+- OPL2 Power Rise
+- OPL2 Velvet Keys
+- OPL2 Crunch Hit
+- OPL2 Rhythm Kit
+- OPL2 Rhythm Impact
 - OPM Arcade Bass
 - OPM Metallic Lead
 - OPM Arcade Arp
@@ -184,7 +204,7 @@ Roadmap preset targets, kept as product direction until their chip cores exist:
 ## DSP Architecture Outline
 
 - `AudioProcessorValueTreeState` owns all DAW-facing parameters with stable IDs.
-- A chip-core interface owns clock rate, register writes, note helper mapping, sample rendering, debug JSON, and accuracy status.
+- A chip-core interface owns clock rate, register writes, note helper mapping, sample rendering, debug JSON, and verification status.
 - The VST and command-line renderer use the same chip-core interface.
 - Clean-room cores use register-level state where practical.
 - Third-party cores must pass a license audit before vendoring.
@@ -211,4 +231,4 @@ Controls use plain names and tooltips. Mode-specific controls remain musically l
 
 Mode-specific layouts should adapt structurally, not just change labels. Section headers stay unnumbered, and each chip may use a fixed or aspect-aware layout when that better serves readability. NES and SN76489 can stay generator/register-strip oriented; SID should use three deep voice panels plus a global filter; SNES should become an eight-voice sample-bank workstation with BRR/sample selection, ADSR/GAIN, memory budget, and echo/FIR controls; FM chips should use operator and algorithm views. Reuse Chipper components where possible, but let each chip's native instrument shape determine the layout.
 
-Fixed regressions remain part of the release gate rather than active feature planning. Current smoke gates include FM held-note tail checks for the ymfm/emu2413-backed chips and NES DMC one-shot loop-off behavior. If either issue returns in a current build, treat it as a P0 regression; otherwise prioritize deeper operator, sample, wave, preset, and verification work. Documentation-only planning updates should use `git diff --check`; rebuild, install, and DAW footer verification are required for code, DSP, parameter, UI, preset, or installer changes.
+Fixed regressions remain part of the release gate rather than active feature planning. Current smoke gates include FM held-note tail checks for the ymfm/emu2413-backed chips and NES DMC one-shot loop-off behavior. If either issue returns in a current build, treat it as a P0 regression; otherwise prioritize deeper operator, sample, wave, preset, and verification work. Documentation-only planning updates should use `git diff --check`; rebuild, install, and DAW footer verification are required for code, DSP, parameter, UI, preset, or installer changes. When a doc says a chip or preset is "current," prefer renderer-exported metadata over hand-maintained prose.
