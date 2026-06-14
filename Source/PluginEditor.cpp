@@ -3623,7 +3623,7 @@ void ChipperAudioProcessorEditor::resized()
     const auto useWavetableVoiceGrid = (displayedMode == chipper::ChipMode::huc6280
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
-    const auto wavetableColumns = displayedMode == chipper::ChipMode::namcoWsg ? 4 : 3;
+    constexpr auto wavetableColumns = 4;
     const auto paulaColumns = 2;
     const auto sourceColumns = useSpc700VoiceGrid ? 4 : (usePaulaVoiceGrid ? paulaColumns : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards)));
     const auto sourceRows = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid)
