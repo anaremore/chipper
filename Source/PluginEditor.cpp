@@ -3455,7 +3455,7 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (spc700Layout)
     {
-        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.17)), 132, 150);
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.20)), 164, 188);
         const auto minimumSampleRowHeight = 290;
         const auto maximumSourceRowHeight = std::max(300, modules.getHeight() - topRowHeight - minimumSampleRowHeight - (gap * 2));
         const auto desiredSourceHeight = static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.42));
