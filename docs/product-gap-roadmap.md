@@ -8,7 +8,7 @@ This roadmap captures the broad product gaps that remain after the first playabl
 
 Recent work has converted many early placeholder panels into playable, chip-aware surfaces. Treat these as non-regression requirements while moving forward:
 
-- FM modes should sustain normally; the previous "one note fades to silence" issue is treated as fixed and covered by held-tail regression tests. Any return of that behavior is a P0 regression, not an accepted limitation or normal FM envelope behavior.
+- FM modes should sustain normally; the previous "one note fades to silence" issue is treated as fixed and covered by held-tail regression tests that assert renderer `tailRms` for YM2612/OPN2, OPL2/OPL3, YM2151/OPM, YM2413/OPLL, and key FM factory presets. Any return of that behavior is a P0 regression, not an accepted limitation or normal FM envelope behavior.
 - NES DMC one-shot mode should not loop when the Loop control is off. The authentic behavior to communicate is "bit stream stops, DAC holds final level."
 - Sample and wavetable chips should keep per-voice wave/sample selectors and visible level controls in the voice cards wherever the chip has independent channels.
 - Strictness is a behavior request, not a proof label. Verification strength remains in the footer and docs.
@@ -92,7 +92,7 @@ Avoid polishing Chipper into fifteen pretty but separate chip panels. Prioritize
 
 ## Immediate Cleanup Policy
 
-When a bug is fixed, keep it in the docs only as a regression gate. Current examples are FM sustained-note fade-out and NES DMC one-shot looping. Do not keep reprioritizing these as active feature work unless they are reproduced in the current build.
+When a bug is fixed, keep it in the docs only as a regression gate. Current examples are FM sustained-note fade-out and NES DMC one-shot looping. Use the named regression tests as living documentation, and do not keep reprioritizing these as active feature work unless they are reproduced in the current build.
 
 For UI cleanup, favor a chip-aware source-of-truth layout over another decorative pass. Controls should live where the hardware owns them: pulse duty under pulse channels, sample/wave selectors under sample or wavetable channels, noise modes under noise channels, and shared sample banks, filters, echo, and output in shared modules. If a control is not visible at standard size, the layout should grow.
 

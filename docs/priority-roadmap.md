@@ -25,7 +25,7 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 - The top control is **Strictness**, not an accuracy claim. It changes how hard Chipper leans into native limits. The small footer status is where verification language belongs.
 - Channel-local register controls must stay inside the channel/voice cards wherever practical. Detached summary panels are only for genuinely shared hardware such as filters, echo, sample banks, output routing, and cross-channel pairing.
 - Factory presets and user presets must not embed copyrighted samples, ROM data, copyrighted wave dumps, or derived game assets. External sample paths stay user-owned and outside the repository.
-- FM sustained-note output is considered fixed by current engine work. Treat "FM fades to silence while a note is held" as a P0 regression if it reappears, not as open product design work. Keep sustained-note smoke/regression coverage in the FM test plan for YM2612/OPN2, OPL2/OPL3, YM2151/OPM, and YM2413/OPLL.
+- FM sustained-note output is considered fixed by current engine work and covered by renderer held-tail assertions (`chipper_render_*_held_tail_assert` plus held factory-preset asserts) for YM2612/OPN2, OPL2/OPL3, YM2151/OPM, and YM2413/OPLL. Treat "FM fades to silence while a note is held" as a P0 regression if it reappears, not as open product design work.
 - NES DMC loop-off playback is now part of the regression contract: one-shot sample stepping stops at the final bit and the DMC DAC holds the terminal level until retrigger, while the loop bit explicitly repeats the sample. Treat "DMC loops while Loop Sample is off" as a regression.
 - Current planning assumes recent layout passes are the baseline, not the destination. Remaining UI work should prioritize controls that are still hard to see, channel-local controls that still live in shared panels, and chip families that still need deeper editor surfaces.
 
@@ -45,7 +45,7 @@ Use this checklist before calling any slice done. It is intentionally small enou
 
 - **Readability:** inspect the affected chip plus one neighboring chip for overlapping labels, clipped dropdowns/inputs, invisible level lanes, and stale hidden-module text.
 - **Audibility:** load at least one preset for the affected chip and confirm the visible controls represent the sound that is playing.
-- **Sustain:** when an FM chip is touched, run or manually verify a held note does not decay to silence unless the selected envelope clearly asks for that.
+- **Sustain:** when an FM chip is touched, run the held-tail subset (`ctest --test-dir build-codex -C Release -R "held_tail|preset_.*held" --output-on-failure`) or manually verify a held note does not decay to silence unless the selected envelope clearly asks for that.
 - **Samples:** when NES DMC, SPC700, or Paula sample handling is touched, verify one-shot vs loop behavior, note-map/manual-slot behavior, and missing-file UI states.
 - **State:** switch away from the chip and back, then confirm the chip-local settings, preset choice, and sample/wave selections are preserved.
 - **Honesty:** update docs and footer/descriptor wording whenever implementation evidence changes; do not promote a mode beyond what tests or references support.
@@ -70,7 +70,7 @@ After SID, prioritize the other implemented chips before adding planned chips:
 | 9 | PC Engine HuC6280 | 7 | Current code is internal clean-room partial; MAME/GME/Furnace/HuSIC remain reference or audit targets only. | Deepen the current six-lane wavetable surface with editable 32-sample Wave RAM, native noise, Ch 1/2 LFO clarity, per-lane pitch/pan where appropriate, and PC Engine preset vocabulary. |
 | 10 | Namco arcade WSG | 7 | Current code is internal clean-room partial; MAME/Furnace remain reference or audit targets only. | Deepen the current eight-lane WSG surface with 4-bit Wave RAM editing, enable/volume masks, voice-count variants, tuning controls, and arcade preset vocabulary. |
 | 11 | Konami SCC | 7 | Current audio path is backed by vendored MIT emu2212; exact SCC/SCC+ quirks still need golden/reference validation. | Deepen the current five-lane SCC wavetable surface with Wave RAM editing, key/volume controls, SCC/SCC+ distinctions, and deeper Konami preset vocabulary. |
-| 12 | YM2612 / OPN2, OPL2/OPL3, YM2151 / OPM, and YM2413 / OPLL | 8 | ymfm is now vendored for first YM2612, OPL2, and YM2151 melodic adapters; emu2413 is vendored for OPLL. Keep OPL3-specific, custom OPLL patch, and rhythm behavior inside the audited source/licensing plan. | Move from macro/operator summaries to real operator/algorithm UI with envelope visuals, carrier/modulator clarity, sustained-note regression checks, and chip-specific FM artifacts. |
+| 12 | YM2612 / OPN2, OPL2/OPL3, YM2151 / OPM, and YM2413 / OPLL | 8 | ymfm is now vendored for first YM2612, OPL2, and YM2151 melodic adapters; emu2413 is vendored for OPLL. Keep OPL3-specific, custom OPLL patch, and rhythm behavior inside the audited source/licensing plan. | Move from macro/operator summaries to real operator/algorithm UI with envelope visuals, carrier/modulator clarity, preserved held-tail regression coverage, and chip-specific FM artifacts. |
 
 ## Wide Chip Implementation Queue
 

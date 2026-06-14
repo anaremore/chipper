@@ -33,7 +33,7 @@ This audit tracks layout and control-placement work that most directly improves 
 - SPC700/SNES voice cards must reserve a bottom level lane before placing sample dropdowns. Each S-DSP voice is a playable source with its own output level, so hidden level sliders are a usability regression.
 - NES / RP2A03 DMC sample controls now prioritize the sample bank and waveform preview over the APU envelope helper. APU decay moved into Performance Macros so the DMC panel can use a two-column sample-editor layout with a larger waveform surface.
 - NES / RP2A03 DMC loop wording should distinguish true sample looping from the hardware DAC hold. The `Loop Sample` checkbox maps to the `$4010` loop bit; when it is off, DPCM bit stepping stops at the final bit and the DMC DAC holds its terminal level until the next trigger.
-- FM modes should not be allowed to regress into sustained-note fade-out. Any FM UI/control pass that touches operator envelopes, source levels, or key-on handling should include a quick sustained-note check for YM2612/OPN2, OPL2/OPL3, YM2151/OPM, and YM2413/OPLL.
+- FM modes should not be allowed to regress into sustained-note fade-out. Renderer `tailRms` held-tail assertions are in place for YM2612/OPN2, OPL2/OPL3, YM2151/OPM, YM2413/OPLL, and key factory presets; any FM UI/control pass touching operator envelopes, source levels, or key-on handling should keep that CTest subset green.
 - SID already follows this pattern for per-voice waveform and pulse-width controls, with the global filter staying in the Filter panel.
 - Shared helper controls must use neutral base wording and chip-specific resolved readouts. For example, a volume-gate helper on POKEY or Paula should never describe itself as a NES/APU envelope period.
 - Visible preset-following states should say "Preset" rather than "Follow" when the control is using the selected preset recipe. "Shared Bank" is used for sample voices that inherit the global sample slot or note map.
@@ -99,10 +99,10 @@ This audit tracks layout and control-placement work that most directly improves 
    - User value: high. Users should never need to guess whether a control is hidden, clipped, or decorative.
    - Confidence: 8/10. The latest screenshots make the remaining problems visible; a repeatable screenshot checklist will catch most regressions before release.
 
-10. Sustained-note audio smoke checks
-   - Issue: FM, sample, and helper-envelope fixes can look correct while regressing key-on/key-off or sustained output.
+10. Audio non-regression smoke checks
+   - Issue: FM held-tail assertions are now in place, but sample, loop, and helper-envelope fixes can still look correct while regressing key-on/key-off, one-shot/loop behavior, or sustained output.
    - User value: high. A playable instrument must hold notes predictably before deeper editor polish matters.
-   - Confidence: 8/10. Existing renderer and processor smoke tests already expose source levels, key-on state, sample loop state, and debug JSON.
+   - Confidence: 8/10. Existing renderer and processor smoke tests already expose source levels, key-on state, sample loop state, `tailRms`, and debug JSON; the next value is expanding the same assertion style beyond FM.
 
 ## Design Rule
 

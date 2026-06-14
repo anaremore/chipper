@@ -78,7 +78,7 @@ For fast regression checks while developing, run the focused renderer/processor 
 ctest --test-dir build-codex -C Release -R "chipper_processor_midi_cc_smoke|chipper_render_.*(dmc|opn2|opl|opm|opll)" --output-on-failure
 ```
 
-These cover high-risk playable-instrument paths such as NES DMC loop-off behavior and FM sustained-note/key-on regressions before a full suite run.
+These cover high-risk playable-instrument paths such as NES DMC loop-off behavior and FM sustained-note/key-on regressions before a full suite run. For the FM sustain regression specifically, the CTest names include `held_tail` and assert renderer `tailRms` rather than only checking that rendering completed.
 
 ## GitHub Release Builds
 
