@@ -49,6 +49,7 @@ This audit tracks layout and control-placement work that most directly improves 
 - Dense sampler and wavetable cards reserve their bottom level lane before placing optional shape/sample selectors. This keeps per-channel gain readable for Paula, SPC700, HuC6280, Namco WSG, and SCC even when those cards grow more chip-aware controls. Treat the reserved level lane as the non-negotiable part of the card; if future controls do not fit above it, grow the card instead of shrinking level controls.
 - Performance Macros now show chip-aware destination hints in their resolved readout lines, such as `$400E noise`, `NR43 noise`, `$D415 cutoff`, `AUDV gate`, `Wave RAM`, and `$B0 feedback`. These hints make it clear which macros are musical gestures over native chip paths rather than generic unlabeled sliders.
 - The preset browser now groups factory sounds by chip-local musical category and shows counts in the section headers, while user presets remain a separate flat-file bank. A chip-local Init Patch entry sits above both banks for a neutral reset point that preserves the current Strictness and supported Play Mode. This keeps browsing useful without changing the simple `.chipperpreset` sharing model.
+- Descriptor smoke tests now lock the public chip catalog to named hardware families only, assert that `Arcade Hybrid` and `Custom` do not return as undefined selector modes, and require each exposed chip to have factory presets available in the UI.
 
 ## Highest-Value Next Fixes
 

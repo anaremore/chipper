@@ -160,6 +160,49 @@ bool expectPresetBrowserCatalog(chipper::ChipMode preferredChip, const std::stri
     return ok;
 }
 
+bool expectChipCatalogIsProductReady()
+{
+    constexpr std::array expectedModes {
+        chipper::ChipMode::nes,
+        chipper::ChipMode::dmg,
+        chipper::ChipMode::sid,
+        chipper::ChipMode::ym2149,
+        chipper::ChipMode::sn76489,
+        chipper::ChipMode::ym2612,
+        chipper::ChipMode::opl3,
+        chipper::ChipMode::spc700,
+        chipper::ChipMode::pokey,
+        chipper::ChipMode::paula,
+        chipper::ChipMode::huc6280,
+        chipper::ChipMode::namcoWsg,
+        chipper::ChipMode::ym2151,
+        chipper::ChipMode::ym2413,
+        chipper::ChipMode::scc
+    };
+
+    const auto modes = chipper::chipModeOrder();
+    bool ok = true;
+    ok &= expect(modes.size() == expectedModes.size(), "chip selector should expose only named hardware families");
+
+    const auto count = std::min(modes.size(), expectedModes.size());
+    for (size_t index = 0; index < count; ++index)
+    {
+        ok &= expect(modes[index] == expectedModes[index],
+                     "chip selector order changed at index " + std::to_string(index));
+
+        const auto& descriptor = chipper::descriptorFor(modes[index]);
+        ok &= expect(descriptor.displayName.find("Arcade Hybrid") == std::string::npos,
+                     descriptor.displayName + " should not resurrect the undefined Arcade Hybrid mode");
+        ok &= expect(descriptor.displayName.find("Custom") == std::string::npos,
+                     descriptor.displayName + " should not resurrect the undefined Custom mode");
+
+        const auto presets = chipper::presetsForChip(modes[index]);
+        ok &= expect(! presets.empty(), descriptor.displayName + " should have audible factory presets in the UI");
+    }
+
+    return ok;
+}
+
 bool expectSourceLaneCounts(chipper::ChipMode mode, size_t visibleCount, size_t nativeCount)
 {
     bool ok = true;
@@ -785,6 +828,7 @@ int main()
 {
     bool ok = true;
 
+    ok &= expectChipCatalogIsProductReady();
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::nes).implemented, "NES descriptor should be implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::sid).implemented, "SID descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::spc700).implemented, "SPC700 descriptor should be partially implemented");
