@@ -3412,8 +3412,8 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 168 : (spc700Layout ? 200 : (sampleLayout ? 200 : (nesLayout ? 318 : (wavetableLayout ? 260 : 300)))));
-    const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 1160 : (sampleLayout ? 960 : (nesLayout ? 650 : (wavetableLayout ? 650 : 492))));
+    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 168 : (spc700Layout ? 184 : (sampleLayout ? 200 : (nesLayout ? 318 : (wavetableLayout ? 260 : 300)))));
+    const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 1160 : (spc700Layout ? 1040 : (sampleLayout ? 960 : (nesLayout ? 650 : (wavetableLayout ? 650 : 492)))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
     auto modules = area.removeFromTop(modulesHeight);
@@ -3455,11 +3455,11 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (spc700Layout)
     {
-        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.20)), 164, 188);
-        const auto minimumSampleRowHeight = 320;
-        const auto maximumSourceRowHeight = std::max(340, modules.getHeight() - topRowHeight - minimumSampleRowHeight - (gap * 2));
-        const auto desiredSourceHeight = static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.42));
-        const auto sourceRowHeight = std::clamp(desiredSourceHeight, std::min(340, maximumSourceRowHeight), std::min(430, maximumSourceRowHeight));
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.22)), 184, 212);
+        const auto minimumSampleRowHeight = 328;
+        const auto maximumSourceRowHeight = std::max(380, modules.getHeight() - topRowHeight - minimumSampleRowHeight - (gap * 2));
+        const auto desiredSourceHeight = static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.44));
+        const auto sourceRowHeight = std::clamp(desiredSourceHeight, std::min(380, maximumSourceRowHeight), std::min(470, maximumSourceRowHeight));
         const auto sampleRowHeight = std::max(0, modules.getHeight() - topRowHeight - sourceRowHeight - (gap * 2));
         const auto topColumnWidth = (modules.getWidth() - gap) / 2;
         const auto topY = modules.getY();
@@ -3698,13 +3698,13 @@ void ChipperAudioProcessorEditor::resized()
 
         const auto placeEmbeddedLevel = [this, i](juce::Rectangle<int>& cardArea, int labelWidth = 52)
         {
-            auto levelArea = cardArea.removeFromBottom(std::min(42, cardArea.getHeight()));
+            auto levelArea = cardArea.removeFromBottom(std::min(48, cardArea.getHeight()));
             cardArea.removeFromBottom(std::min(3, cardArea.getHeight()));
             auto levelRow = levelArea.removeFromTop(std::min(14, levelArea.getHeight()));
             sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(labelWidth, levelRow.getWidth())));
             sourceLevelValueLabels[i].setBounds(levelRow);
-            levelArea.removeFromTop(std::min(3, levelArea.getHeight()));
-            sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(20, levelArea.getHeight())).reduced(0, 1));
+            levelArea.removeFromTop(std::min(5, levelArea.getHeight()));
+            sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(24, levelArea.getHeight())).reduced(0, 2));
         };
 
         if (isSidSourceCard && i < sidVoiceWaveCount)
@@ -3810,7 +3810,7 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isSpc700SourceCard && i < hucVoiceWaveBoxes.size())
         {
-            constexpr int spc700ReservedLevelHeight = 46;
+            constexpr int spc700ReservedLevelHeight = 54;
             const auto sampleRowHeight = std::min(embeddedControlRowHeight,
                                                   std::max(0, sourceCard.getHeight() - spc700ReservedLevelHeight));
             auto sampleRow = sourceCard.removeFromTop(sampleRowHeight);
