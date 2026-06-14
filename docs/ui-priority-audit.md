@@ -8,6 +8,18 @@ The current UI baseline is source-card ownership plus readable standard controls
 
 Review status: synced on 2026-06-14. The audit now treats FM held-tail and NES DMC loop-off as protected release gates, while the active UI work focuses on chip-owned controls, readable source cards, sample/wave/operator editors, and current screenshot regressions.
 
+## Planning Hygiene
+
+This file should stay visual. If a bug is fixed by a renderer or processor gate, keep only the UI rule that prevents confusing the user. Do not keep old audio bugs in the active UI queue unless a UI change can reintroduce them or the current screenshot shows the same class of visual failure.
+
+For every new screenshot issue, reduce it to one of these reusable questions before editing:
+
+- Is the control owned by the channel, lane, voice, operator, or shared chip block that actually controls the sound?
+- Is the control standard height and readable at the default editor size?
+- Does the visible wording tell the truth about native hardware versus Chipper helper behavior?
+- Does the panel have enough room for all controls without hiding level, sample, wave, loop, or envelope state?
+- If the issue is fixed, is there a descriptor, renderer, screenshot, or checklist gate that makes it less likely to regress?
+
 ## Non-Regression Checklist
 
 - Do not number sections. Hidden or chip-specific modules make numbering misleading.

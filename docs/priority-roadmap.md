@@ -2,15 +2,16 @@
 
 This list ranks near-term work by user value, implementation effort, and confidence. Value and confidence are scored 1-10, where 10 is highest. Effort is scored 1-10, where 10 is largest. "Confidence improves with" names the evidence or preparation that would make the work safer to execute.
 
-Review status: planning docs synced on 2026-06-14. This file is the execution list; broad workflow ideas, visual audit rules, fixed-bug details, and license evidence live in their owning docs.
+Review status: planning docs synced on 2026-06-14. This file is the execution list. Fixed regressions are release gates, not active roadmap items; broad workflow ideas, visual audit rules, fixed-bug details, and license evidence live in their owning docs.
 
 For broader product gaps beyond this immediate chip-core and UI execution list, see [product-gap-roadmap.md](product-gap-roadmap.md). That document tracks the larger instrument-workflow work: tracker motion, wave/sample editing, FM operator editing, drum/SFX workflows, multi-output routing, preset tags, Strictness behavior, and MIDI/automation polish.
 
 ## Living Plan For The Next Slices
 
-- Keep fixed regressions as tests, not roadmap churn. The gate table below names the current protected behaviors and the tests that guard them.
+- Keep fixed regressions as tests, not roadmap churn. The gate table below names the current protected behaviors and the tests that guard them. If the gate passes, do not add a new todo for that bug.
 - Keep moving chip-owned controls into their source cards. The most valuable UI work is still making the panel match the chip signal path: pulse controls under pulse voices, sample controls under sampler voices, wave controls under wavetable lanes, operator controls under FM operators, and shared hardware in shared modules.
 - The next deeper feature work should favor first-class editors: sample/wavetable editing for Paula, SPC700, HuC6280, Namco WSG, SCC, and Game Boy wave RAM; then FM operator/algorithm editing for the Yamaha family. FM sustain behavior is protected by held-tail tests; the next FM value is editability, algorithm clarity, and envelope terminology rather than re-solving an already-fixed fade.
+- Treat planning updates as maintenance, not product progress, unless they remove confusion or make the next implementation slice easier to execute. The default next step should still be a playable instrument improvement.
 - Presets should grow from original sound design, not imported game data. Every new preset should be audible, visibly reflected in controls, provenance-safe, and easy to share as a flat file.
 - Update only the owning doc when possible. UI screenshot rules belong in [ui-priority-audit.md](ui-priority-audit.md), broad product workflow gaps belong in [product-gap-roadmap.md](product-gap-roadmap.md), verification/license evidence belongs in the accuracy and source-map docs, and release/build mechanics belong in [release-builds.md](release-builds.md).
 - Keep this plan lean. When a bug is fixed and protected by a named test, keep it in the gate table but remove it from the active queue. Spend the next slice on playable instrument value: clearer controls, better sound design, stronger sample/wave/operator workflows, or better validation evidence.

@@ -4,7 +4,7 @@ This roadmap captures the broad product gaps that remain after the first playabl
 
 > Can a musician make a complete chiptune bass, lead, arp, drum kit, and SFX pack in Chipper without fighting the UI?
 
-Review status: synced on 2026-06-14. Fixed regressions are tracked as release gates; this document stays focused on product workflows that are still missing.
+Review status: synced on 2026-06-14. Fixed regressions are tracked as release gates; this document stays focused on product workflows that are still missing and user-visible.
 
 ## Current Baseline To Preserve
 
@@ -19,6 +19,18 @@ Recent work has converted many early placeholder panels into playable, chip-awar
 - Roadmap-only chip features should remain in docs until they have an audible engine path, stable parameters, state recall, and renderer or descriptor coverage. The plugin UI should favor implemented, truthful surfaces over planned-looking controls.
 
 Do not reopen fixed regressions in this roadmap unless a current build reproduces them and the owning gate fails. Otherwise, keep pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, and verification evidence.
+
+## Fixed Versus Active Work
+
+The FM sustained-note fade and NES DMC loop-off issues are currently fixed and protected. They should stay visible only as release gates and smoke-test habits. The active product backlog should not say "fix FM fade" or "fix DMC loop" unless the current build fails the named gate.
+
+When a fixed gate passes, the next work should move Chipper forward as an instrument:
+
+- make one chip's native controls clearer and more playable
+- add a first-class editor for waves, samples, operators, or tracker motion
+- improve preset quality and preset sharing
+- strengthen verification evidence for a currently audible behavior
+- clean up labels or docs only when they remove user confusion
 
 Current fixed-regression gates:
 

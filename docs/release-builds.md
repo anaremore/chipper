@@ -90,6 +90,8 @@ Before a release is considered usable, keep these checks green:
 
 Passing fixed-regression gates should not create new roadmap work. If one fails, reopen the owning bug as a P0, fix it with a tighter test, then return it to this release gate instead of leaving stale todo language in the planning docs.
 
+For planning cleanup, treat this release gate as the source of truth for fixed high-risk regressions. The roadmap should point here or name the same focused CTest command; it should not keep separate open-ended todos for issues that already pass the gate.
+
 ## Legal Packaging
 
 Do not package copyrighted samples, ROM data, ripped instruments, tracker modules, or game-derived wave tables. Factory presets should be original Chipper sound design unless every imported asset has compatible licensing and documented provenance.
