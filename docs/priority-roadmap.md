@@ -28,15 +28,15 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 - Factory presets and user presets must not embed copyrighted samples, ROM data, copyrighted wave dumps, or derived game assets. External sample paths stay user-owned and outside the repository.
 - FM sustained-note output is considered fixed by current engine work and covered by renderer held-tail assertions (`chipper_render_*_held_tail_assert` plus held factory-preset asserts) for YM2612/OPN2, OPL2/OPL3, YM2151/OPM, and YM2413/OPLL. Treat "FM fades to silence while a note is held" as a P0 regression if it reappears, not as open product design work.
 - NES DMC loop-off playback is now part of the regression contract: one-shot sample stepping stops at the final bit and the DMC DAC holds the terminal level until retrigger, while the loop bit explicitly repeats the sample. Treat "DMC loops while Loop Sample is off" as a regression.
-- Current planning assumes recent layout passes are the baseline, not the destination. Remaining UI work should prioritize controls that are still hard to see, channel-local controls that still live in shared panels, and chip families that still need deeper editor surfaces.
+- Current planning assumes recent layout passes are the baseline, not the destination. Remaining UI work should prioritize controls that are still hard to see, any chip-owned controls that still live in shared panels, and chip families that still need deeper editor surfaces.
 - If a previously fixed bug is suspected again, verify it first with the targeted regression before adding new roadmap work. Current examples are FM sustained-note fade-out and NES DMC one-shot looping.
 
 ## Current Cleanup Targets
 
 These are the highest-signal cleanup items after the latest all-chip screenshot pass:
 
-- Keep sampler layouts collision-free. Paula and SPC700 need protected vertical room for sample banks, waveform previews, root/playback controls, and Performance Macros.
-- Keep wavetable cards readable. HuC6280, Namco WSG, and SCC should keep per-lane wave selectors and visible level controls in each source card; if a card cannot fit them, grow the layout rather than hiding controls.
+- Keep sampler layouts collision-free. Paula and SPC700 now have protected sample-bank areas; future changes must preserve readable waveform previews, root/playback controls, loop state, per-voice sample controls, and Performance Macros.
+- Keep wavetable cards readable. HuC6280, Namco WSG, and SCC now keep per-lane wave selectors and visible level controls in each source card; if future per-lane pitch, pan, or wave-edit controls do not fit, grow the layout rather than hiding controls.
 - Keep helper envelopes honest. POKEY, Paula, HuC6280, Namco WSG, and SCC helper envelopes are Chipper musical volume helpers, not native ADSR.
 - Keep FM surfaces playable while the deeper operator editor is planned. Macro/editor passes must not disturb key-on, source-level, or operator-envelope sustain behavior.
 - Keep fixed FM fade behavior in the smoke-test set rather than in the active feature queue. The next FM value is editable operator structure, not re-solving held-note sustain unless a regression is reproduced.
