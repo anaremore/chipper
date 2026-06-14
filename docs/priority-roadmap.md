@@ -17,7 +17,7 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 | 9 | Expand verification coverage across implemented chips: pitch, envelope/EG, noise, mixer, sample/wave selection, source-enable, MIDI CC, preset, sustained-note, loop-off, and debug JSON assertions. | 8 | 7 | 8 | Compact assertion helpers and reference metadata exported from `chipper_render --list-descriptors`. |
 | 10 | Keep the license/provenance audit current before importing or deriving from any outside emulator, waveform, table, preset dump, or sample asset. | 8 | 5 | 9 | Exact upstream URL, revision, license file, file-level notes, and `THIRD_PARTY_NOTICES.md` entries before code enters the tree. |
 | 11 | Add hardware/reference comparison documentation and tolerance thresholds for each implemented chip. | 7 | 8 | 5 | Real hardware recordings, reproducible capture settings, accepted emulator comparisons, and agreed spectral/timing tolerances. |
-| 12 | Release readiness: installer clarity, GitHub tag builds, DAW scan guidance, platform build notes, and compatibility QA for Windows, Linux, and macOS. | 7 | 6 | 7 | GitHub Actions release workflow, artifact naming, smoke tests, and host verification notes. |
+| 12 | Release readiness: installer clarity, GitHub tag builds, DAW scan guidance, platform build notes, and compatibility QA for Windows, Linux, and macOS. | 7 | 6 | 7 | Keep [release-builds.md](release-builds.md), the GitHub Actions release workflow, artifact naming, smoke tests, and host verification notes aligned. |
 
 ## Current State Snapshot
 

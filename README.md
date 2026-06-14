@@ -110,6 +110,8 @@ GitHub Actions are intentionally quiet on normal pushes. The release workflow on
 - The zip includes `Chipper.vst3`, `README.md`, `THIRD_PARTY_NOTICES.md`, and `LICENSE` when present.
 - No build cache is configured yet, keeping the workflow simple and avoiding extra artifact/storage churn.
 
+See [docs/release-builds.md](docs/release-builds.md) for the local build sequence, release workflow behavior, install verification, and release gate checklist.
+
 ## Install Locally
 
 The root installer defaults to a user-scope install, so it does not need UAC:

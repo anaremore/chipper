@@ -125,6 +125,7 @@ These are not as visible as chip-specific controls, but they strongly affect whe
 5. **Release and Compatibility QA**
    - Test in at least one major DAW per platform before public release.
    - Verify VST3 scanning, plugin ID stability, preset loading, automation recall, MIDI CC handling, and installer behavior on Windows, Linux, and macOS builds.
+   - Keep [release-builds.md](release-builds.md) aligned with the actual GitHub workflow so releases stay deliberate and do not run on every push.
 
 6. **Legal Asset Boundaries**
    - Factory presets must not embed unlicensed samples, ROM data, copyrighted wave dumps, or derived game content.
