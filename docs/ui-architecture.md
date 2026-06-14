@@ -51,6 +51,8 @@ The old six-card grid is a convenience template, not a product rule. Every chip 
 
 Chip manifests may choose different panel templates and layout density inside those zones. The equal six-card grid is only a fallback layout. Chips with a larger native control surface may use a chip-specific layout template while preserving the same conceptual zones and stable parameter IDs. SID is the first proof point: Profile and Voices stay near the top, Filter and Motion stay together, and the per-voice Envelope surface spans the full width because ADSR is central to using the chip. PSG, wavetable, and most sample chips fit a standard channel-bank layout. FM chips should use the same conceptual zones but need a denser operator editor or operator grid inside Tone / Shape. Sample-heavy chips such as SPC700-style and Paula modes should use sample voice banks plus sample/loop/pitch panels instead of oscillator-style controls.
 
+Sampler and wavetable layouts are allowed to spend vertical space differently from the compact PSG/FM fallback. Keep those height budgets explicit per chip family so SPC700 and Paula sample-bank editors cannot be compressed by an unrelated fallback branch, and so HuC6280/Namco/SCC source cards keep enough room for per-lane wave selection plus level.
+
 The product rule is: every chip feels distinct, but no chip feels like a different plugin.
 
 ## Adaptive System Views

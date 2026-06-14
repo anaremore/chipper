@@ -3407,13 +3407,13 @@ void ChipperAudioProcessorEditor::resized()
     const auto dmgLayout = displayedMode == chipper::ChipMode::dmg;
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
     const auto paulaLayout = displayedMode == chipper::ChipMode::paula;
-    const auto sampleLayout = displayedMode == chipper::ChipMode::spc700 || displayedMode == chipper::ChipMode::paula;
+    const auto sampleLayout = spc700Layout || paulaLayout;
     const auto wavetableLayout = displayedMode == chipper::ChipMode::huc6280
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (paulaLayout ? 172 : (spc700Layout ? 172 : (sampleLayout ? 180 : (nesLayout ? 318 : (wavetableLayout ? 260 : 300)))));
-    const auto maxModulesHeight = sidLayout ? 620 : (paulaLayout ? 1080 : (spc700Layout ? 1160 : (sampleLayout ? 1040 : (nesLayout ? 650 : (wavetableLayout ? 650 : 492)))));
+    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 318 : ((spc700Layout || paulaLayout) ? 172 : (wavetableLayout ? 260 : 300)));
+    const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 650 : (spc700Layout ? 1160 : (paulaLayout ? 1080 : (wavetableLayout ? 650 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
     auto modules = area.removeFromTop(modulesHeight);
