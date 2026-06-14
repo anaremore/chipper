@@ -2,7 +2,7 @@
 
 Chipper should feel like one instrument with many chip profiles, not a bundle of unrelated mini-plugins. The UI is therefore data-driven: the outer workflow stays stable while each chip definition decides which controls appear inside each module.
 
-Planning sync: this document reflects the current June 2026 direction. FM held-note fade-out and NES DMC loop-off playback are treated as fixed regressions covered by tests and release gates, not active design questions. When they pass, the next UI value is clearer chip-owned controls, sample/wave/operator editors, and truthful Strictness/verification wording.
+Planning sync: this document reflects the current June 2026 direction. FM held-note fade-out and NES DMC loop-off playback are treated as fixed regressions covered by tests and release gates, not active design questions. When they pass, the next UI value is clearer chip-owned controls, sample/wave/operator editors, preset/state workflows, and truthful Strictness/verification wording.
 
 ## Execution Contracts
 

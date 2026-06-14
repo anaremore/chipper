@@ -43,7 +43,7 @@ The planning docs intentionally separate current execution from broader research
 - [docs/emulation-accuracy.md](docs/emulation-accuracy.md) is the truthful source/verification/license status for each chip.
 - [docs/release-builds.md](docs/release-builds.md) owns local install, GitHub release, and release-gate procedure.
 
-Fixed issues such as FM sustained-note fade-out and NES DMC one-shot looping should remain in regression tests and release gates, not in the active feature queue unless they reproduce in the current build. When a fixed issue is suspected, run the named gate first; if it passes, keep planning focused on new user value instead of adding another stale todo.
+Fixed issues such as FM sustained-note fade-out and NES DMC one-shot looping should remain in regression tests and release gates, not in the active feature queue unless they reproduce in the current build. When a fixed issue is suspected, run the named gate first; if it passes, keep planning focused on new user value instead of adding another stale todo. As of the current planning cleanup, those gates are treated as green guardrails and the next work should favor chip-aware editors, preset quality, state recall, and verification evidence.
 
 ## Current Chip Modes
 

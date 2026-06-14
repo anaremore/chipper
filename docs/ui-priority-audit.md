@@ -6,7 +6,7 @@ This audit tracks layout and control-placement work that most directly improves 
 
 The current UI baseline is source-card ownership plus readable standard controls. New screenshot feedback should be turned into durable rules here, then pruned from the active queue once the rule is implemented and verified. Fixed audio bugs such as FM held-tail and NES DMC loop-off only belong in this audit when a UI change could reintroduce them. Broad product backlog items belong in `product-gap-roadmap.md`; this file is the visual and control-placement checklist.
 
-Review status: synced on 2026-06-14 after the fixed-regression cleanup. The focused FM/DMC regression gate passed 25/25 on 2026-06-14, so this audit treats those issues as protected release gates. Active UI work focuses on chip-owned controls, readable source cards, sample/wave/operator editors, and current screenshot regressions.
+Review status: synced on 2026-06-14 after the fixed-regression cleanup. The focused FM/DMC regression gate passed 25/25 on 2026-06-14, so this audit treats those issues as protected release gates. Active UI work focuses on chip-owned controls, readable source cards, sample/wave/operator editors, and current screenshot regressions. If a fixed audio issue is suspected again, verify the gate first; do not turn it into a UI todo unless the current screen gives users a misleading or inaccessible control path.
 
 Command-line release gates live in [release-builds.md](release-builds.md). This audit should keep only the visual rules that prevent users from misunderstanding or losing access to chip behavior. When an audio bug is fixed and tested, keep the UI implication here only if it affects what users can see, choose, or trust.
 

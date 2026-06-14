@@ -2,7 +2,7 @@
 
 This list ranks near-term work by user value, implementation effort, and confidence. Value and confidence are scored 1-10, where 10 is highest. Effort is scored 1-10, where 10 is largest. "Confidence improves with" names the evidence or preparation that would make the work safer to execute.
 
-Review status: planning docs synced on 2026-06-14 after the FM held-tail and NES DMC loop-off cleanup. The focused regression gate passed 25/25 on 2026-06-14 (`held_tail|preset_.*held|processor_midi_cc_smoke`). This file is the execution list: fixed regressions are release gates, not active roadmap items; broad workflow ideas, visual audit rules, fixed-bug details, and license evidence live in their owning docs.
+Review status: planning docs synced on 2026-06-14 after the FM held-tail and NES DMC loop-off cleanup. The focused regression gate passed 25/25 on 2026-06-14 (`held_tail|preset_.*held|processor_midi_cc_smoke`). This file is the execution list: fixed regressions are release gates, not active roadmap items; broad workflow ideas, visual audit rules, fixed-bug details, and license evidence live in their owning docs. The current forward bias is deeper chip-aware editing, higher-quality presets, stronger state/sample verification, and release readiness.
 
 Planning rule: keep this file pointed at the next shippable slice. If a behavior is already fixed and protected by a named CTest gate, reference the gate once here and keep the active queue focused on playable user value. For the current build, that means FM sustain is a guardrail and the next FM work is operator/algorithm/editing depth.
 
@@ -98,8 +98,6 @@ Use this checklist before calling any slice done. It is intentionally small enou
 - **Honesty:** update docs and footer/descriptor wording whenever implementation evidence changes; do not promote a mode beyond what tests or references support.
 - **Release hygiene:** for code changes, build `Chipper_VST3`, run targeted tests, install from the same build root, and verify the footer hash against the installed marker before committing.
 - **Docs-only hygiene:** for planning, README, or release-note-only changes, run `git diff --check` and skip VST rebuild/install unless the docs reveal a code mismatch that was also changed.
-
-Current docs-only cleanup status: FM sustained notes fading to silence and NES DMC one-shot looping are already represented as fixed regression gates. Do not add more planning prose about fixing them unless a current build fails the gate. The active value path is deeper sampler/wavetable/FM editing, better presets, stronger state/sample verification, and cleaner chip-aware control ownership.
 
 ## Regression Gate Quick Reference
 
