@@ -27,6 +27,16 @@ This focused pass is the current high-signal regression gate for:
 
 If those fixed-regression gates pass, keep the release checklist unchanged and continue with forward product work. Reopen a fixed regression only after it reproduces in the current build and the relevant gate fails.
 
+For preset work, run the catalog and audibility checks before calling the bank ready:
+
+```powershell
+.\build-codex\Release\chipper_render.exe --list-presets --debug build-codex\preset-catalog.json
+python tests\assert_preset_catalog_json.py build-codex\preset-catalog.json --min-presets 80 --min-per-chip 6
+python tests\assert_factory_presets_audible.py --renderer build-codex\Release\chipper_render.exe --work-dir build-codex\preset-audibility
+```
+
+These commands verify that factory presets are chip-local, metadata-complete, category-safe, and actually render audible output. They do not prove that a preset is musically excellent, so new presets still need a quick hand-audition pass and clean provenance.
+
 Install the exact local build you just made:
 
 ```powershell
@@ -97,6 +107,7 @@ Before a release is considered usable, keep these checks green:
 - Descriptor and MIDI CC smoke tests.
 - FM held-tail tests, because FM notes fading to silence is a fixed regression.
 - NES DMC loop-off tests, because one-shot DMC playback should stop stepping and hold the DAC value instead of looping.
+- Factory preset catalog and audibility checks whenever preset content changed.
 - At least one manual DAW scan/load check for Windows. Linux and macOS host checks should be added before public cross-platform releases are advertised as tested.
 
 Passing fixed-regression gates should not create new roadmap work. If one fails, reopen the owning bug as a P0, fix it with a tighter test, then return it to this release gate instead of leaving stale todo language in the planning docs.

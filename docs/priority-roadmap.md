@@ -30,7 +30,7 @@ When doing a planning-only cleanup, keep this checklist small and mechanical:
 - Treat screenshot feedback as a verification habit, not a permanent backlog. Once a layout bug becomes a durable rule in `ui-priority-audit.md`, the next code slice should apply that rule to the affected chip and then move on to the next playable workflow.
 - Treat planning updates as maintenance, not product progress, unless they remove confusion or make the next implementation slice easier to execute. The default next step should still be a playable instrument improvement.
 - Presets should grow from original sound design, not imported game data. Every new preset should be audible, visibly reflected in controls, provenance-safe, and easy to share as a flat file.
-- Reliable preset expansion means hand-authored patches plus a QA loop: render or audition the preset, confirm loudness and sustain/one-shot behavior, confirm visible controls match the sound, and record any external sample dependency as a user-owned path instead of repository content.
+- Reliable preset expansion means hand-authored patches plus a QA loop: render the full catalog with `tests\assert_factory_presets_audible.py`, audition the new preset, confirm loudness and sustain/one-shot behavior, confirm visible controls match the sound, and record any external sample dependency as a user-owned path instead of repository content.
 - Update only the owning doc when possible. UI screenshot rules belong in [ui-priority-audit.md](ui-priority-audit.md), broad product workflow gaps belong in [product-gap-roadmap.md](product-gap-roadmap.md), verification/license evidence belongs in the accuracy and source-map docs, and release/build mechanics belong in [release-builds.md](release-builds.md).
 - Keep this plan lean. When a bug is fixed and protected by a named test, keep it in the gate table but remove it from the active queue. Spend the next slice on playable instrument value: clearer controls, better sound design, stronger sample/wave/operator workflows, or better validation evidence.
 
@@ -110,6 +110,7 @@ Fixed regressions are release gates, not active roadmap items. Keep them named i
 | --- | --- | --- |
 | FM held notes fading to silence | Fixed | `ctest --test-dir build-codex -C Release -R "held_tail|preset_.*held" --output-on-failure` |
 | NES DMC one-shot samples looping with Loop off | Fixed | `ctest --test-dir build-codex -C Release -R "processor_midi_cc_smoke" --output-on-failure` |
+| Factory presets becoming silent or metadata-invalid | Preset regression | `python tests\assert_preset_catalog_json.py build-codex\preset-catalog.json --min-presets 80 --min-per-chip 6` and `python tests\assert_factory_presets_audible.py --renderer build-codex\Release\chipper_render.exe --work-dir build-codex\preset-audibility` |
 | Reappearing clipped, hidden, or overlapping controls | UI regression | All-chip screenshot pass plus the checklist in [ui-priority-audit.md](ui-priority-audit.md) |
 
 The complete local command set lives in [release-builds.md](release-builds.md). When a fixed regression is suspected, update this section only after reproducing it in the current build. Otherwise keep active priority on forward user value: deeper source editors, better presets, clearer sample/wave/operator workflows, and stronger verification evidence.
