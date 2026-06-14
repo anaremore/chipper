@@ -14,7 +14,7 @@ Use these contracts when deciding whether a UI change is ready to ship:
 - Roadmap controls stay in docs until they have engine behavior, stable APVTS identity, MIDI mapping, preset recall, and renderer or descriptor coverage. Once a bug has a passing release gate, keep it out of active UI planning unless a current build reproduces it.
 - Strictness is a behavior request. Verification status remains an evidence label in the footer/docs and must not imply hardware or cycle accuracy without tests.
 
-Descriptor smoke tests are the fast guardrail for source-card ownership. When a visible source-card control is added or moved, update `ControlSurface::sourceCards`, APVTS/CC mapping, presets, renderer/debug metadata, and tests together.
+Descriptor smoke tests are the fast guardrail for source-card ownership and truthful helper-envelope wording. When a visible source-card control is added or moved, update `ControlSurface::sourceCards`, APVTS/CC mapping, presets, renderer/debug metadata, and tests together. When a chip lacks native ADSR, its module copy must stay explicit about Chipper amp/gate helpers rather than borrowing NES decay or synth ADSR language.
 
 ## Stable Shell
 

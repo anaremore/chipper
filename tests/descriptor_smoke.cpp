@@ -534,6 +534,45 @@ bool expectEnvelopeModels()
     return ok;
 }
 
+bool expectHelperEnvelopeModulesStayHonest()
+{
+    bool ok = true;
+
+    for (const auto mode : { chipper::ChipMode::sn76489,
+                             chipper::ChipMode::pokey,
+                             chipper::ChipMode::paula,
+                             chipper::ChipMode::huc6280,
+                             chipper::ChipMode::namcoWsg,
+                             chipper::ChipMode::scc })
+    {
+        const auto& descriptor = chipper::descriptorFor(mode);
+        const auto module = std::find_if(descriptor.modules.begin(),
+                                         descriptor.modules.end(),
+                                         [] (const chipper::ModuleDescriptor& candidate)
+                                         {
+                                             return candidate.id == "envelope";
+                                         });
+
+        ok &= expect(module != descriptor.modules.end(),
+                     descriptor.displayName + " should expose an honest helper envelope module");
+
+        if (module == descriptor.modules.end())
+            continue;
+
+        ok &= expect(module->title.find("ADSR") == std::string::npos,
+                     descriptor.displayName + " helper envelope module should not claim native ADSR");
+        ok &= expect(module->summary.find("NES") == std::string::npos,
+                     descriptor.displayName + " helper envelope module should not reuse NES decay copy");
+        ok &= expect(module->summary.find("helper") != std::string::npos
+                         || module->summary.find("Helper") != std::string::npos
+                         || module->summary.find("gate") != std::string::npos
+                         || module->summary.find("Gate") != std::string::npos,
+                     descriptor.displayName + " helper envelope module should disclose the musical helper layer");
+    }
+
+    return ok;
+}
+
 bool expectFmRegisterHelpers()
 {
     bool ok = true;
@@ -1287,6 +1326,7 @@ int main()
     ok &= expectAutomatableDescriptorParametersHaveMidiCc();
     ok &= expectVerificationDisclosure();
     ok &= expectEnvelopeModels();
+    ok &= expectHelperEnvelopeModulesStayHonest();
     ok &= expectFmRegisterHelpers();
     ok &= expectWavetableRegisterHelpers();
     ok &= expectSampleRegisterHelpers();

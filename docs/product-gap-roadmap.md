@@ -4,7 +4,7 @@ This roadmap captures the broad product gaps that remain after the first playabl
 
 > Can a musician make a complete chiptune bass, lead, arp, drum kit, and SFX pack in Chipper without fighting the UI?
 
-Review status: synced on 2026-06-14 after the fixed-regression cleanup. The focused FM/DMC regression gate passed 25/25 on 2026-06-14. FM held-tail and NES DMC loop-off are release gates; this document stays focused on product workflows that are still missing and user-visible. Use [release-builds.md](release-builds.md) for exact gate commands. Current active product gaps are sample/wave/operator editing, preset sharing, state recall, tracker motion, and release confidence.
+Review status: synced on 2026-06-14 after the fixed-regression cleanup. The focused FM/DMC regression gate passed 25/25 on 2026-06-14. FM held-tail and NES DMC loop-off are release gates; descriptor smoke owns source-card placement, visible level controls, MIDI CC coverage, and honest helper-envelope wording. This document stays focused on product workflows that are still missing and user-visible. Use [release-builds.md](release-builds.md) for exact gate commands. Current active product gaps are sample/wave/operator editing, preset sharing, state recall, tracker motion, and release confidence.
 
 ## Current Baseline To Preserve
 
@@ -16,6 +16,7 @@ Recent work has converted many early placeholder panels into playable, chip-awar
 - Strictness is a behavior request, not a proof label. Verification strength remains in the footer and docs.
 - Factory and user presets are real user value only when they load audible, playable states and visibly update the chip controls.
 - Source cards are now the baseline home for chip-owned controls. Do not move per-channel duty, wave, sample, or level controls back into detached summary panels unless the chip hardware really shares that control.
+- Chips without native ADSR must keep helper envelope modules labeled as Chipper amp/gate helpers, never as native ADSR or reused NES decay behavior.
 - Roadmap-only chip features should remain in docs until they have an audible engine path, stable parameters, state recall, and renderer or descriptor coverage. The plugin UI should favor implemented, truthful surfaces over planned-looking controls.
 
 Do not reopen fixed regressions in this roadmap unless a current build reproduces them and the owning gate fails. Otherwise, keep pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, state recall, and verification evidence.

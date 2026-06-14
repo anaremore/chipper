@@ -25,7 +25,7 @@ This focused pass is the current high-signal regression gate for:
 - NES DMC one-shot versus loop behavior
 - FM held-tail behavior and held factory presets
 
-Latest focused gate check: 25/25 passing on 2026-06-14 for `held_tail|preset_.*held|processor_midi_cc_smoke`.
+Latest focused gate check: 26/26 passing on 2026-06-14 for `chipper_descriptor_smoke|processor_midi_cc_smoke|held_tail|preset_.*held`.
 
 If those fixed-regression gates pass, keep the release checklist unchanged and continue with forward product work. Reopen a fixed regression only after it reproduces in the current build and the relevant gate fails.
 
