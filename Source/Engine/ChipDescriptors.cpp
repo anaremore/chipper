@@ -2148,12 +2148,12 @@ const ChipDescriptor& fallbackDescriptor()
     static const ChipDescriptor descriptor {
         ChipMode::nes,
         "Unknown / Retired Chip Mode",
-        "This stored chip mode is not product-facing. Select a named chip mode with an audited or planned register target.",
+        "This stored chip mode is migration-only and not product-facing. Select a named hardware-family chip mode.",
         {
-            { "native1", "Native Control 1", "Planned", "Reserved for the audited chip core." },
-            { "native2", "Native Control 2", "Planned", "Reserved for the audited chip core." },
-            { "native3", "Native Control 3", "Planned", "Reserved for the audited chip core." },
-            { "native4", "Native Control 4", "Planned", "Reserved for the audited chip core." },
+            { "native1", "Native Control 1", "Unavailable", "Retired chip modes do not expose playable controls." },
+            { "native2", "Native Control 2", "Unavailable", "Retired chip modes do not expose playable controls." },
+            { "native3", "Native Control 3", "Unavailable", "Retired chip modes do not expose playable controls." },
+            { "native4", "Native Control 4", "Unavailable", "Retired chip modes do not expose playable controls." },
         },
         plannedModules("Sources", "Tone"),
         commonMacros(),

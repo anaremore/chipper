@@ -45,6 +45,8 @@ All current VST parameters have fixed default MIDI CC mappings. Chip-aware contr
 
 Controls should only become visible when they have an engine mapping, stable parameter identity, preset/save-state behavior, and at least targeted renderer or descriptor coverage. Placeholder prose can describe planned chip work, but fake knobs or empty helper modules are worse than honest absence. Planning docs should follow the same rule: active tasks should describe the next user-visible capability, while fixed regressions should point to their release gate.
 
+Retired or unknown chip IDs are migration fallbacks only. They should never be advertised as selectable instruments, preset categories, or generic "custom" engines; users should always land on a named chip family with a truthful implementation status.
+
 ## Preset Categories
 
 - NES Leads

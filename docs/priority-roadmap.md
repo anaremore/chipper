@@ -51,6 +51,7 @@ If a protected behavior is suspected again, first run the named gate. A passing 
 ## Current State Snapshot
 
 - `Arcade Hybrid` and `Custom` are intentionally removed from the chip selector. Arcade sounds should come from named hardware families such as YM2149, SN76489, Namco WSG, SCC, YM2151, and OPL.
+- Any unknown or retired chip descriptor is migration-only. It should help old projects resolve to a named hardware-family mode, not appear as a roadmap target, preset bank, or semi-playable generic engine.
 - The top control is **Strictness**, not an accuracy claim. It changes how hard Chipper leans into native limits. The small footer status is where verification language belongs.
 - Channel-local register controls must stay inside the channel/voice cards wherever practical. Detached summary panels are only for genuinely shared hardware such as filters, echo, sample banks, output routing, and cross-channel pairing.
 - Presets are the product's main fast path. A preset should be audible, chip-local, editable, shareable, and visibly represented by the controls after it loads. Do not add preset names for non-playable cores.
