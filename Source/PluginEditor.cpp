@@ -3491,7 +3491,7 @@ void ChipperAudioProcessorEditor::resized()
     {
         const auto availableHeight = modules.getHeight();
         const auto reservedGap = gap * 2;
-        const auto minimumEnvelopeHeight = 112;
+        const auto minimumEnvelopeHeight = 150;
         const auto minimumOutputHeight = displayedMode == chipper::ChipMode::huc6280 ? 114 : 96;
         const auto sourceMaximumHeight = std::max(160, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap);
         const auto sourceMinimumHeight = std::min(300, sourceMaximumHeight);
@@ -3499,8 +3499,9 @@ void ChipperAudioProcessorEditor::resized()
         const auto sourceRowHeight = std::clamp(desiredSourceHeight, sourceMinimumHeight, sourceMaximumHeight);
         const auto remainingHeight = std::max(0, availableHeight - sourceRowHeight - reservedGap);
         const auto envelopeMinimumHeight = std::min(minimumEnvelopeHeight, remainingHeight);
-        const auto envelopeMaximumHeight = std::min(132, remainingHeight);
-        const auto envelopeRowHeight = std::clamp(remainingHeight / 2, envelopeMinimumHeight, envelopeMaximumHeight);
+        const auto envelopeMaximumHeight = std::min(172, remainingHeight);
+        const auto desiredEnvelopeHeight = std::max(remainingHeight / 2, minimumEnvelopeHeight);
+        const auto envelopeRowHeight = std::clamp(desiredEnvelopeHeight, envelopeMinimumHeight, envelopeMaximumHeight);
         const auto outputRowHeight = std::max(0, remainingHeight - envelopeRowHeight);
         const auto topY = modules.getY();
         const auto envelopeY = topY + sourceRowHeight + gap;
