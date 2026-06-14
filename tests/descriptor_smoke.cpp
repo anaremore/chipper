@@ -368,6 +368,69 @@ bool expectLiveSourceLevelSpecs()
     return ok;
 }
 
+bool expectLiveSourceCardSpecs()
+{
+    bool ok = true;
+    constexpr std::array liveModes {
+        chipper::ChipMode::nes,
+        chipper::ChipMode::dmg,
+        chipper::ChipMode::sid,
+        chipper::ChipMode::ym2149,
+        chipper::ChipMode::sn76489,
+        chipper::ChipMode::ym2612,
+        chipper::ChipMode::opl3,
+        chipper::ChipMode::ym2151,
+        chipper::ChipMode::ym2413,
+        chipper::ChipMode::spc700,
+        chipper::ChipMode::pokey,
+        chipper::ChipMode::paula,
+        chipper::ChipMode::huc6280,
+        chipper::ChipMode::namcoWsg,
+        chipper::ChipMode::scc
+    };
+    constexpr std::array sourceEnabledRoles {
+        chipper::ChipParameterRole::source1Enabled,
+        chipper::ChipParameterRole::source2Enabled,
+        chipper::ChipParameterRole::source3Enabled,
+        chipper::ChipParameterRole::source4Enabled,
+        chipper::ChipParameterRole::source5Enabled,
+        chipper::ChipParameterRole::source6Enabled,
+        chipper::ChipParameterRole::source7Enabled,
+        chipper::ChipParameterRole::source8Enabled,
+        chipper::ChipParameterRole::source9Enabled
+    };
+
+    for (const auto mode : liveModes)
+    {
+        const auto expectedSourceCount = mode == chipper::ChipMode::sid ? 3u : chipper::visibleSourceCountForMode(mode);
+        for (size_t index = 0; index < expectedSourceCount; ++index)
+        {
+            const auto role = sourceEnabledRoles[index];
+            const auto* spec = chipper::parameterSpecFor(mode, role);
+            ok &= expect(spec != nullptr, "live chip missing source-card enable spec");
+            if (spec == nullptr)
+                continue;
+
+            ok &= expect(spec->kind == chipper::ParameterKind::booleanToggle, spec->id + " should be a source-card toggle");
+            ok &= expect(spec->surface == chipper::ControlSurface::sourceCards, spec->id + " should stay on source cards");
+            ok &= expect(spec->group == "Sources", spec->id + " should stay in the Sources group");
+            ok &= expect(! spec->label.empty(), spec->id + " should have a visible source-card label");
+            ok &= expect(! spec->help.empty(), spec->id + " should explain the native lane");
+
+            const auto* parameterId = chipper::parameterIdForChipParameterRole(role);
+            ok &= expect(parameterId != nullptr, spec->id + " has no APVTS parameter id");
+            if (parameterId != nullptr)
+                ok &= expect(chipper::midiControllerForParameterId(parameterId) >= 0, spec->id + " has no MIDI CC mapping");
+        }
+
+        if (mode == chipper::ChipMode::sid)
+            ok &= expect(chipper::parameterSpecFor(mode, chipper::ChipParameterRole::source4Enabled) == nullptr,
+                         "SID should expose only its three oscillator voice toggles");
+    }
+
+    return ok;
+}
+
 bool expectVerificationDisclosure()
 {
     bool ok = true;
@@ -1217,6 +1280,7 @@ int main()
                                                     chipper::ChipParameterRole::source4Enabled,
                                                     chipper::ControlSurface::sourceCards),
                  "SID should not expose a fourth voice source card yet");
+    ok &= expectLiveSourceCardSpecs();
     ok &= expectLiveSourceLevelSpecs();
     ok &= expectAutomatableDescriptorParametersHaveMidiCc();
     ok &= expectVerificationDisclosure();
