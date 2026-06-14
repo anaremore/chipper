@@ -2,7 +2,7 @@
 
 This list ranks near-term work by user value, implementation effort, and confidence. Value and confidence are scored 1-10, where 10 is highest. Effort is scored 1-10, where 10 is largest. "Confidence improves with" names the evidence or preparation that would make the work safer to execute.
 
-Review status: planning docs synced on 2026-06-14. This file is the execution list. Fixed regressions are release gates, not active roadmap items; broad workflow ideas, visual audit rules, fixed-bug details, and license evidence live in their owning docs.
+Review status: planning docs synced on 2026-06-14 after the FM held-tail and NES DMC loop-off cleanup. This file is the execution list. Fixed regressions are release gates, not active roadmap items; broad workflow ideas, visual audit rules, fixed-bug details, and license evidence live in their owning docs.
 
 For broader product gaps beyond this immediate chip-core and UI execution list, see [product-gap-roadmap.md](product-gap-roadmap.md). That document tracks the larger instrument-workflow work: tracker motion, wave/sample editing, FM operator editing, drum/SFX workflows, multi-output routing, preset tags, Strictness behavior, and MIDI/automation polish.
 
@@ -11,6 +11,7 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 - Keep fixed regressions as tests, not roadmap churn. The gate table below names the current protected behaviors and the tests that guard them. If the gate passes, do not add a new todo for that bug.
 - Keep moving chip-owned controls into their source cards. The most valuable UI work is still making the panel match the chip signal path: pulse controls under pulse voices, sample controls under sampler voices, wave controls under wavetable lanes, operator controls under FM operators, and shared hardware in shared modules.
 - The next deeper feature work should favor first-class editors: sample/wavetable editing for Paula, SPC700, HuC6280, Namco WSG, SCC, and Game Boy wave RAM; then FM operator/algorithm editing for the Yamaha family. FM sustain behavior is protected by held-tail tests; the next FM value is editability, algorithm clarity, and envelope terminology rather than re-solving an already-fixed fade.
+- Treat screenshot feedback as a verification habit, not a permanent backlog. Once a layout bug becomes a durable rule in `ui-priority-audit.md`, the next code slice should apply that rule to the affected chip and then move on to the next playable workflow.
 - Treat planning updates as maintenance, not product progress, unless they remove confusion or make the next implementation slice easier to execute. The default next step should still be a playable instrument improvement.
 - Presets should grow from original sound design, not imported game data. Every new preset should be audible, visibly reflected in controls, provenance-safe, and easy to share as a flat file.
 - Update only the owning doc when possible. UI screenshot rules belong in [ui-priority-audit.md](ui-priority-audit.md), broad product workflow gaps belong in [product-gap-roadmap.md](product-gap-roadmap.md), verification/license evidence belongs in the accuracy and source-map docs, and release/build mechanics belong in [release-builds.md](release-builds.md).
@@ -20,8 +21,8 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 
 When there is no fresh P0 regression, use this order for the next development slice:
 
-1. Extend regression coverage only where the current gates do not already protect the behavior. `descriptor_smoke` already covers source-card ownership, source levels, MIDI CC mappings, per-channel wave/sample selectors, named chip modes, and factory preset presence; the next useful checks should target remaining engine-visible behavior such as sample-bank loop state, helper-envelope output, and state recall.
-2. Polish one sampler or wavetable chip end-to-end instead of spreading tiny changes across all chips. Best current candidates are Paula sample-bank workflow, SPC700 voice-to-sample mapping, or HuC6280/Namco/SCC per-lane wave editing.
+1. Polish one sampler or wavetable chip end-to-end instead of spreading tiny changes across all chips. Best current candidates are Paula sample-bank workflow, SPC700 voice-to-sample mapping, or HuC6280/Namco/SCC per-lane wave editing.
+2. Extend regression coverage only where the current gates do not already protect the behavior. `descriptor_smoke` already covers source-card ownership, source levels, MIDI CC mappings, per-channel wave/sample selectors, named chip modes, and factory preset presence; the next useful checks should target remaining engine-visible behavior such as sample-bank loop state, helper-envelope output, and state recall.
 3. Expand original factory presets only after the target chip's visible controls and renderer/debug metadata can prove what the preset changed.
 4. Start the FM operator editor as a contained vertical slice for one FM family, keeping the held-tail test subset green throughout.
 
@@ -80,6 +81,8 @@ Use this checklist before calling any slice done. It is intentionally small enou
 - **Honesty:** update docs and footer/descriptor wording whenever implementation evidence changes; do not promote a mode beyond what tests or references support.
 - **Release hygiene:** for code changes, build `Chipper_VST3`, run targeted tests, install from the same build root, and verify the footer hash against the installed marker before committing.
 - **Docs-only hygiene:** for planning, README, or release-note-only changes, run `git diff --check` and skip VST rebuild/install unless the docs reveal a code mismatch that was also changed.
+
+Current docs-only cleanup status: FM sustained notes fading to silence and NES DMC one-shot looping are already represented as fixed regression gates. Do not add more planning prose about fixing them unless a current build fails the gate. The active value path is deeper sampler/wavetable/FM editing, better presets, and stronger state/sample verification.
 
 ## Regression Gate Quick Reference
 

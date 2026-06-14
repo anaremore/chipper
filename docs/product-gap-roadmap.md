@@ -4,7 +4,7 @@ This roadmap captures the broad product gaps that remain after the first playabl
 
 > Can a musician make a complete chiptune bass, lead, arp, drum kit, and SFX pack in Chipper without fighting the UI?
 
-Review status: synced on 2026-06-14. Fixed regressions are tracked as release gates; this document stays focused on product workflows that are still missing and user-visible.
+Review status: synced on 2026-06-14 after the fixed-regression cleanup. FM held-tail and NES DMC loop-off are release gates; this document stays focused on product workflows that are still missing and user-visible.
 
 ## Current Baseline To Preserve
 
@@ -19,6 +19,8 @@ Recent work has converted many early placeholder panels into playable, chip-awar
 - Roadmap-only chip features should remain in docs until they have an audible engine path, stable parameters, state recall, and renderer or descriptor coverage. The plugin UI should favor implemented, truthful surfaces over planned-looking controls.
 
 Do not reopen fixed regressions in this roadmap unless a current build reproduces them and the owning gate fails. Otherwise, keep pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, and verification evidence.
+
+The current product bias is workflow completion over breadth. A good next slice should let a user choose one chip, load or design a sound source, hear it on the intended lane, see the relevant native controls, save a preset, reload it, and verify the renderer reports the same state. Layout polish matters most when it protects that loop.
 
 ## Fixed Versus Active Work
 
@@ -52,8 +54,6 @@ ctest --test-dir build-codex -C Release -R "chipper_descriptor_smoke|processor_m
 - Emulator provenance, licenses, accuracy wording, and verification evidence belong in [emulation-accuracy.md](emulation-accuracy.md), [emulator-source-map.md](emulator-source-map.md), and `THIRD_PARTY_NOTICES.md`.
 - Fixed regressions should stay as named tests. Do not reopen FM held-tail or NES DMC loop-off in this roadmap unless the current build reproduces the bug.
 - Prefer user-visible slices that make a chip more playable: a clearer editor, a better preset set, a trustworthy sample/wave workflow, or stronger validation around an audible feature.
-
-The next implementation work should bias toward one complete user workflow at a time. Good slices are: load or draw a sample/wave, hear it on the intended lane, see the lane's native controls, save it as a preset, reload it, and verify the renderer reports the same state. Avoid adding more visible controls until the target chip can preserve and explain the controls it already exposes.
 
 Cleanup rule: fixed bugs, screenshot complaints, and one-off exploratory notes should not live here once the durable rule is captured in the owning doc. A passing regression gate keeps this roadmap unchanged; a failing gate promotes the issue back to active work and should leave behind a tighter test when fixed.
 

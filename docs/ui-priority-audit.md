@@ -6,7 +6,7 @@ This audit tracks layout and control-placement work that most directly improves 
 
 The current UI baseline is source-card ownership plus readable standard controls. New screenshot feedback should be turned into durable rules here, then pruned from the active queue once the rule is implemented and verified. Fixed audio bugs such as FM held-tail and NES DMC loop-off only belong in this audit when a UI change could reintroduce them. Broad product backlog items belong in `product-gap-roadmap.md`; this file is the visual and control-placement checklist.
 
-Review status: synced on 2026-06-14. The audit now treats FM held-tail and NES DMC loop-off as protected release gates, while the active UI work focuses on chip-owned controls, readable source cards, sample/wave/operator editors, and current screenshot regressions.
+Review status: synced on 2026-06-14 after the fixed-regression cleanup. The audit treats FM held-tail and NES DMC loop-off as protected release gates, while active UI work focuses on chip-owned controls, readable source cards, sample/wave/operator editors, and current screenshot regressions.
 
 ## Planning Hygiene
 
@@ -36,6 +36,7 @@ For every new screenshot issue, reduce it to one of these reusable questions bef
 - Screenshot feedback should become durable layout rules in this audit. Avoid preserving one-off visual bug notes after the underlying rule is captured and verified.
 - Fixed audio regressions should only appear here when they constrain UI changes. The active UI queue should focus on visible chip-aware controls, readable source cards, sample/wave/operator editing, and screenshot regressions that still reproduce.
 - If a visual problem has already been fixed, keep only the reusable rule that would prevent it from returning. If a chip still violates that rule in screenshots, track the chip-specific fix under Highest-Value Next Fixes.
+- If a screenshot issue is fixed in code, prefer adding or tightening a descriptor/render/checklist gate over preserving the screenshot as a permanent todo.
 
 ## Completed Pattern
 
