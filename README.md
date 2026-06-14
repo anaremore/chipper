@@ -226,6 +226,12 @@ build\Release\chipper_render.exe --list-presets --debug presets.json
 build\Release\chipper_render.exe --list-presets --chip sid --debug sid-presets.json
 ```
 
+Run the preset QA gate before adding or releasing factory sounds:
+
+```powershell
+.\scripts\verify-presets.ps1 -BuildRoot build-codex
+```
+
 ## User Presets
 
 The plugin header includes `Load` and `Save` buttons beside the preset browser. User presets are saved as plain `.chipperpreset` XML files so they can be shared, versioned, and inspected without a DAW-specific preset container.

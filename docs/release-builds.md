@@ -32,9 +32,7 @@ If those fixed-regression gates pass, keep the release checklist unchanged and c
 For preset work, run the catalog and audibility checks before calling the bank ready:
 
 ```powershell
-.\build-codex\Release\chipper_render.exe --list-presets --debug build-codex\preset-catalog.json
-python tests\assert_preset_catalog_json.py build-codex\preset-catalog.json --min-presets 80 --min-per-chip 6
-python tests\assert_factory_presets_audible.py --renderer build-codex\Release\chipper_render.exe --work-dir build-codex\preset-audibility
+.\scripts\verify-presets.ps1 -BuildRoot build-codex
 ```
 
 These commands verify that factory presets are chip-local, metadata-complete, category-safe, and actually render audible output. They do not prove that a preset is musically excellent, so new presets still need a quick hand-audition pass and clean provenance.
