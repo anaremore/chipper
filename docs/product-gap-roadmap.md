@@ -4,12 +4,14 @@ This roadmap captures the broad product gaps that remain after the first playabl
 
 > Can a musician make a complete chiptune bass, lead, arp, drum kit, and SFX pack in Chipper without fighting the UI?
 
+Review status: synced on 2026-06-14. The FM held-note fade-out and NES DMC loop-off behaviors are fixed regression gates, not active product gaps.
+
 ## Current Baseline To Preserve
 
 Recent work has converted many early placeholder panels into playable, chip-aware surfaces. Treat these as non-regression requirements while moving forward:
 
-- FM modes should sustain normally; the previous "one note fades to silence" issue is treated as fixed and covered by held-tail regression tests that assert renderer `tailRms` for YM2612/OPN2, OPL2/OPL3, YM2151/OPM, YM2413/OPLL, and key FM factory presets. Any return of that behavior is a P0 regression, not an accepted limitation or normal FM envelope behavior.
-- NES DMC one-shot mode should not loop when the Loop control is off. The authentic behavior to communicate is "bit stream stops, DAC holds final level." The `processor_midi_cc_smoke` test covers this behavior for manual-slot and note-map playback so it can be checked quickly when DMC UI or sample playback changes.
+- FM modes should sustain normally unless the selected operator envelope intentionally decays. Any return of the previous "one note fades to silence" behavior is a P0 regression, not accepted FM behavior.
+- NES DMC one-shot mode should not loop when the Loop control is off. The authentic behavior to communicate is "bit stream stops, DAC holds final level."
 - Sample and wavetable chips should keep per-voice wave/sample selectors and visible level controls in the voice cards wherever the chip has independent channels.
 - Strictness is a behavior request, not a proof label. Verification strength remains in the footer and docs.
 - Factory and user presets are real user value only when they load audible, playable states and visibly update the chip controls.
@@ -18,7 +20,14 @@ Recent work has converted many early placeholder panels into playable, chip-awar
 
 Do not spend new planning cycles on fixed regressions unless they are reproduced in the current build. Instead, keep them as smoke-test checks while pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, and verification evidence. If a user reports a fixed issue again, first run the targeted regression and then decide whether the roadmap needs to change.
 
-Fast smoke command for the fixed-regression gates:
+Current fixed-regression gates:
+
+| Gate | Protective Check |
+| --- | --- |
+| FM sustained-note output | `ctest --test-dir build-codex -C Release -R "held_tail|preset_.*held" --output-on-failure` |
+| NES DMC one-shot loop-off behavior | `ctest --test-dir build-codex -C Release -R "processor_midi_cc_smoke" --output-on-failure` |
+
+Fast smoke command for both fixed-regression gates plus descriptor coverage:
 
 ```powershell
 ctest --test-dir build-codex -C Release -R "chipper_descriptor_smoke|processor_midi_cc_smoke|held_tail|preset_.*held" --output-on-failure

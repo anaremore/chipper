@@ -2,13 +2,13 @@
 
 This list ranks near-term work by user value, implementation effort, and confidence. Value and confidence are scored 1-10, where 10 is highest. Effort is scored 1-10, where 10 is largest. "Confidence improves with" names the evidence or preparation that would make the work safer to execute.
 
-Review status: cleaned on 2026-06-14. The FM held-note fade and NES DMC loop-off issues are currently fixed regression gates, not active feature work. New planning entries should only reopen them after a current build reproduces the behavior and the targeted smoke tests fail.
+Review status: planning docs synced on 2026-06-14. Fixed regressions now live as named release gates, not active feature work. Reopen them only after a current build reproduces the behavior and the targeted smoke tests fail.
 
 For broader product gaps beyond this immediate chip-core and UI execution list, see [product-gap-roadmap.md](product-gap-roadmap.md). That document tracks the larger instrument-workflow work: tracker motion, wave/sample editing, FM operator editing, drum/SFX workflows, multi-output routing, preset tags, Strictness behavior, and MIDI/automation polish.
 
 ## Living Plan For The Next Slices
 
-- Keep fixed regressions as tests, not roadmap churn. FM held-tail and NES DMC loop-off are release gates that should stay in smoke coverage unless a current build breaks them again.
+- Keep fixed regressions as tests, not roadmap churn. The regression gate table below names the current closed bugs and the tests that protect them.
 - Keep moving chip-owned controls into their source cards. The most valuable UI work is still making the panel match the chip signal path: pulse controls under pulse voices, sample controls under sampler voices, operator controls under FM operators, and shared hardware in shared modules.
 - The next deeper feature work should favor first-class editors: sample/wavetable editing for Paula, SPC700, HuC6280, Namco WSG, SCC, and Game Boy wave RAM; then FM operator/algorithm editing for the Yamaha family.
 - Presets should grow from original sound design, not imported game data. Every new preset should be audible, visibly reflected in controls, provenance-safe, and easy to share as a flat file.
@@ -38,10 +38,8 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 - Roadmap-only ideas belong in docs until they have an audible engine path, stable parameters, preset recall, and renderer or descriptor coverage. The executable chip selector and preset browser should stay focused on named, playable hardware-family surfaces.
 - Factory presets and user presets must not embed copyrighted samples, ROM data, copyrighted wave dumps, or derived game assets. External sample paths stay user-owned and outside the repository.
 - High-quality factory presets should be original Chipper patch design based on chip behavior, public hardware documentation, common synthesis techniques, and hand-authored sound design. Do not copy commercial game patches, ripped instrument data, tracker modules, ROM wave tables, or sample assets into presets unless the license and provenance are explicitly compatible and documented.
-- FM sustained-note output is considered fixed by current engine work and covered by renderer held-tail assertions (`chipper_render_*_held_tail_assert` plus held factory-preset asserts) for YM2612/OPN2, OPL2/OPL3, YM2151/OPM, and YM2413/OPLL. Treat "FM fades to silence while a note is held" as a P0 regression if it reappears, not as open product design work.
-- NES DMC loop-off playback is now part of the regression contract: one-shot sample stepping stops at the final bit and the DMC DAC holds the terminal level until retrigger, while the loop bit explicitly repeats the sample. `processor_midi_cc_smoke` covers manual-slot and note-map one-shot behavior, loop-on behavior, held-note non-retrigger, final DAC hold, and playback debug state. Treat "DMC loops while Loop Sample is off" as a regression.
 - Current planning assumes recent layout passes are the baseline, not the destination. Remaining UI work should prioritize controls that are still hard to see, any chip-owned controls that still live in shared panels, and chip families that still need deeper editor surfaces.
-- If a previously fixed bug is suspected again, verify it first with the targeted regression before adding new roadmap work. Current examples are FM sustained-note fade-out and NES DMC one-shot looping.
+- If a previously fixed bug is suspected again, verify it first with the targeted regression before adding new roadmap work.
 
 ## Current Cleanup Targets
 
@@ -52,7 +50,7 @@ These are the highest-signal cleanup items after the latest all-chip screenshot 
 - Keep helper envelopes honest and visible. POKEY, Paula, HuC6280, Namco WSG, and SCC helper envelopes are Chipper musical volume helpers, not native ADSR. They should render as standard controls with chip-specific readouts, never as empty title-only panels.
 - Keep channel ownership intact. NES/DMG pulse duty, noise mode, wave level, wavetable shape, sampler slot, and per-source level belong in the source card that owns the sound path.
 - Keep FM surfaces playable while the deeper operator editor is planned. Macro/editor passes must not disturb key-on, source-level, or operator-envelope sustain behavior.
-- Keep fixed FM fade behavior in the smoke-test set rather than in the active feature queue. The next FM value is editable operator structure, not re-solving held-note sustain unless a regression is reproduced.
+- Keep fixed FM held-tail behavior in the smoke-test set rather than in the active feature queue. The next FM value is editable operator structure, not re-solving held-note sustain unless a regression is reproduced.
 - Keep docs and UI labels aligned: the header says **Strictness**; verification strength belongs in the footer, renderer debug JSON, and accuracy docs.
 - Keep shared host/CC names neutral when one stable parameter serves different chip meanings. For example, CC94 is `Chip Choice / Route` at the host layer, while each chip panel relabels it as DMG Stereo Route, SID Model, SPC700 loop behavior, POKEY AUDCTL pairing, HuC6280 LFO mode, FM pan/routing, or a wavetable lane selector as appropriate.
 - Keep the standard control-size baseline: source-card dropdowns, numeric boxes, and level lanes must remain readable at the default editor size. If a future chip-specific control needs more room, grow the card or layout instead of shrinking controls back into clipped mini rows.
@@ -71,13 +69,15 @@ Use this checklist before calling any slice done. It is intentionally small enou
 - **Honesty:** update docs and footer/descriptor wording whenever implementation evidence changes; do not promote a mode beyond what tests or references support.
 - **Release hygiene:** for code changes, build `Chipper_VST3`, run targeted tests, install from the same build root, and verify the footer hash against the installed marker before committing.
 
-## Fixed Regression Policy
+## Regression Gate Quick Reference
 
 Fixed regressions are release gates, not active roadmap items. Keep them named in tests and docs so they can be checked quickly, but do not let them crowd out forward product work unless a current build reproduces the problem.
 
-- FM held notes fading to silence: fixed and covered by held-tail renderer assertions for the FM families and held factory-preset assertions.
-- NES DMC one-shot samples looping with Loop off: fixed and covered by `processor_midi_cc_smoke` DMC loop-off behavior checks for manual-slot and note-map playback.
-- Reappearing clipped or invisible controls: treat as UI regressions against the current source-card and standard-control-size rules.
+| Gate | Current Status | Protective Check |
+| --- | --- | --- |
+| FM held notes fading to silence | Fixed | `ctest --test-dir build-codex -C Release -R "held_tail|preset_.*held" --output-on-failure` |
+| NES DMC one-shot samples looping with Loop off | Fixed | `ctest --test-dir build-codex -C Release -R "processor_midi_cc_smoke" --output-on-failure` |
+| Reappearing clipped, hidden, or overlapping controls | UI regression | All-chip screenshot pass plus the checklist in [ui-priority-audit.md](ui-priority-audit.md) |
 
 When a fixed regression is suspected, update this section only after reproducing it in the current build. Otherwise keep active priority on forward user value: deeper source editors, better presets, clearer sample/wave/operator workflows, and stronger verification evidence.
 
