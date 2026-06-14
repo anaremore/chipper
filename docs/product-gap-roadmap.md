@@ -24,6 +24,14 @@ Fast smoke command for the fixed-regression gates:
 ctest --test-dir build-codex -C Release -R "chipper_descriptor_smoke|processor_midi_cc_smoke|held_tail|preset_.*held" --output-on-failure
 ```
 
+## How To Read This Roadmap
+
+- This document is the product backlog, not the immediate work queue. Use [priority-roadmap.md](priority-roadmap.md) for execution order.
+- UI clipping, hidden controls, source-card ownership, and screenshot-audit findings belong in [ui-priority-audit.md](ui-priority-audit.md).
+- Emulator provenance, licenses, accuracy wording, and verification evidence belong in [emulation-accuracy.md](emulation-accuracy.md), [emulator-source-map.md](emulator-source-map.md), and `THIRD_PARTY_NOTICES.md`.
+- Fixed regressions should stay as named tests. Do not reopen FM held-tail or NES DMC loop-off in this roadmap unless the current build reproduces the bug.
+- Prefer user-visible slices that make a chip more playable: a clearer editor, a better preset set, a trustworthy sample/wave workflow, or stronger validation around an audible feature.
+
 ## Highest-Value Product Gaps
 
 1. **Chip-Aware Tracker Motion / SFX Gestures**

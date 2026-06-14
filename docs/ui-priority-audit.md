@@ -2,6 +2,10 @@
 
 This audit tracks layout and control-placement work that most directly improves Chipper as a usable, chip-aware instrument.
 
+## Current Audit Focus
+
+The current UI baseline is source-card ownership plus readable standard controls. New screenshot feedback should be turned into durable rules here, then pruned from the active queue once the rule is implemented and verified. Fixed audio bugs such as FM held-tail and NES DMC loop-off only belong in this audit when a UI change could reintroduce them.
+
 ## Non-Regression Checklist
 
 - Do not number sections. Hidden or chip-specific modules make numbering misleading.

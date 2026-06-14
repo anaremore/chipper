@@ -6,6 +6,14 @@ Review status: the FM held-note fade and NES DMC loop-off issues are currently f
 
 For broader product gaps beyond this immediate chip-core and UI execution list, see [product-gap-roadmap.md](product-gap-roadmap.md). That document tracks the larger instrument-workflow work: tracker motion, wave/sample editing, FM operator editing, drum/SFX workflows, multi-output routing, preset tags, Strictness behavior, and MIDI/automation polish.
 
+## Living Plan For The Next Slices
+
+- Keep fixed regressions as tests, not roadmap churn. FM held-tail and NES DMC loop-off are release gates that should stay in smoke coverage unless a current build breaks them again.
+- Keep moving chip-owned controls into their source cards. The most valuable UI work is still making the panel match the chip signal path: pulse controls under pulse voices, sample controls under sampler voices, operator controls under FM operators, and shared hardware in shared modules.
+- The next deeper feature work should favor first-class editors: sample/wavetable editing for Paula, SPC700, HuC6280, Namco WSG, SCC, and Game Boy wave RAM; then FM operator/algorithm editing for the Yamaha family.
+- Presets should grow from original sound design, not imported game data. Every new preset should be audible, visibly reflected in controls, provenance-safe, and easy to share as a flat file.
+- Update only the owning doc when possible. UI screenshot rules belong in [ui-priority-audit.md](ui-priority-audit.md), broad product workflow gaps belong in [product-gap-roadmap.md](product-gap-roadmap.md), and verification/license evidence belongs in the accuracy and source-map docs.
+
 | Rank | Todo | User Value | Effort | Confidence | Confidence Improves With |
 | --- | --- | ---: | ---: | ---: | --- |
 | 1 | Finish the all-chip readability pass: no overlapping text, standard-height dropdowns/inputs, visible level controls, and no dead placeholder modules. | 10 | 4 | 9 | Screenshot checks for every chip after each layout change and a small UI non-regression checklist. |
