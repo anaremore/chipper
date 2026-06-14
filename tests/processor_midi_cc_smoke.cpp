@@ -603,6 +603,9 @@ int main()
     ok &= expect(activeNames.size() == 32 && activeNames[31] == "sample-31.dmc",
                  "DMC first-32 action should restore the default active bank");
 
+    sendController(processor, 68, 0);
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcLoop), 0.0f, 0.0001f,
+                     "CC68 should turn NES DMC Loop back off before one-shot status checks");
     sendController(processor, 118, controllerValueForChoice(processor, chipper::parameters::id::nesDmcRateIndex, 15));
     playbackInfo = processor.nesDmcSamplePlaybackInfo();
     ok &= expect(playbackInfo.rateIndex == 15, "DMC playback info should update after rate CC changes");
