@@ -72,6 +72,14 @@ Run the test suite:
 ctest --test-dir build -C Release --output-on-failure
 ```
 
+For fast regression checks while developing, run the focused renderer/processor smoke tests first:
+
+```powershell
+ctest --test-dir build-codex -C Release -R "chipper_processor_midi_cc_smoke|chipper_render_.*(dmc|opn2|opl|opm|opll)" --output-on-failure
+```
+
+These cover high-risk playable-instrument paths such as NES DMC loop-off behavior and FM sustained-note/key-on regressions before a full suite run.
+
 ## GitHub Release Builds
 
 GitHub Actions are intentionally quiet on normal pushes. The release workflow only runs when you publish a GitHub Release or start it manually from the Actions tab.
