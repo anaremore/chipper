@@ -33,7 +33,7 @@ This audit tracks layout and control-placement work that most directly improves 
 - SPC700/SNES envelope shaping is not decorative: ADSR/GAIN-style speed controls must remain visible beside the envelope shape buttons because this is one of the chip's native musical behaviors.
 - SPC700/SNES voice cards must reserve a bottom level lane before placing sample dropdowns. Each S-DSP voice is a playable source with its own output level, so hidden level sliders are a usability regression.
 - NES / RP2A03 DMC sample controls now prioritize the sample bank and waveform preview over the APU envelope helper. APU decay moved into Performance Macros so the DMC panel can use a two-column sample-editor layout with a larger waveform surface.
-- NES / RP2A03 DMC loop wording should distinguish true sample looping from the hardware DAC hold. The `Loop Sample` checkbox maps to the `$4010` loop bit; when it is off, DPCM bit stepping stops at the final bit and the DMC DAC holds its terminal level until the next trigger.
+- NES / RP2A03 DMC loop wording should distinguish true sample looping from the hardware DAC hold. The `Loop Sample` checkbox maps to the `$4010` loop bit; when it is off, DPCM bit stepping stops at the final bit and the DMC DAC holds its terminal level until the next trigger. `processor_midi_cc_smoke` is the quick regression check for manual-slot and note-map one-shot behavior, loop-on behavior, and debug playback state.
 - FM modes should not be allowed to regress into sustained-note fade-out. Renderer `tailRms` held-tail assertions are in place for YM2612/OPN2, OPL2/OPL3, YM2151/OPM, YM2413/OPLL, and key factory presets; any FM UI/control pass touching operator envelopes, source levels, or key-on handling should keep that CTest subset green.
 - Because the FM fade issue is currently fixed, FM planning should focus on user-visible operator editing, algorithm clarity, and envelope terminology. Do not keep "fix FM fade" as an active UI item unless a current build reproduces it.
 - SID already follows this pattern for per-voice waveform and pulse-width controls, with the global filter staying in the Filter panel.
@@ -106,7 +106,7 @@ This audit tracks layout and control-placement work that most directly improves 
    - Confidence: 8/10. The latest screenshots make the remaining problems visible; a repeatable screenshot checklist will catch most regressions before release.
 
 10. Audio non-regression smoke checks
-   - Issue: FM held-tail assertions are now in place, but sample, loop, and helper-envelope fixes can still look correct while regressing key-on/key-off, one-shot/loop behavior, or sustained output.
+   - Issue: FM held-tail assertions and NES DMC loop-off assertions are now in place, but sample, loop, and helper-envelope fixes can still look correct while regressing key-on/key-off, one-shot/loop behavior, or sustained output.
    - User value: high. A playable instrument must hold notes predictably before deeper editor polish matters.
    - Confidence: 8/10. Existing renderer and processor smoke tests already expose source levels, key-on state, sample loop state, `tailRms`, and debug JSON; the next value is expanding the same assertion style beyond FM.
 

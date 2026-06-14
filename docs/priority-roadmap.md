@@ -27,7 +27,7 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 - Presets are the product's main fast path. A preset should be audible, chip-local, editable, shareable, and visibly represented by the controls after it loads. Do not add preset names for non-playable cores.
 - Factory presets and user presets must not embed copyrighted samples, ROM data, copyrighted wave dumps, or derived game assets. External sample paths stay user-owned and outside the repository.
 - FM sustained-note output is considered fixed by current engine work and covered by renderer held-tail assertions (`chipper_render_*_held_tail_assert` plus held factory-preset asserts) for YM2612/OPN2, OPL2/OPL3, YM2151/OPM, and YM2413/OPLL. Treat "FM fades to silence while a note is held" as a P0 regression if it reappears, not as open product design work.
-- NES DMC loop-off playback is now part of the regression contract: one-shot sample stepping stops at the final bit and the DMC DAC holds the terminal level until retrigger, while the loop bit explicitly repeats the sample. Treat "DMC loops while Loop Sample is off" as a regression.
+- NES DMC loop-off playback is now part of the regression contract: one-shot sample stepping stops at the final bit and the DMC DAC holds the terminal level until retrigger, while the loop bit explicitly repeats the sample. `processor_midi_cc_smoke` covers manual-slot and note-map one-shot behavior, loop-on behavior, held-note non-retrigger, final DAC hold, and playback debug state. Treat "DMC loops while Loop Sample is off" as a regression.
 - Current planning assumes recent layout passes are the baseline, not the destination. Remaining UI work should prioritize controls that are still hard to see, any chip-owned controls that still live in shared panels, and chip families that still need deeper editor surfaces.
 - If a previously fixed bug is suspected again, verify it first with the targeted regression before adding new roadmap work. Current examples are FM sustained-note fade-out and NES DMC one-shot looping.
 
@@ -53,7 +53,7 @@ Use this checklist before calling any slice done. It is intentionally small enou
 - **Readability:** inspect the affected chip plus one neighboring chip for overlapping labels, clipped dropdowns/inputs, invisible level lanes, and stale hidden-module text.
 - **Audibility:** load at least one preset for the affected chip and confirm the visible controls represent the sound that is playing.
 - **Sustain:** when an FM chip is touched, run the held-tail subset (`ctest --test-dir build-codex -C Release -R "held_tail|preset_.*held" --output-on-failure`) or manually verify a held note does not decay to silence unless the selected envelope clearly asks for that.
-- **Samples:** when NES DMC, SPC700, or Paula sample handling is touched, verify one-shot vs loop behavior, note-map/manual-slot behavior, and missing-file UI states.
+- **Samples:** when NES DMC, SPC700, or Paula sample handling is touched, verify one-shot vs loop behavior, note-map/manual-slot behavior, and missing-file UI states. For NES DMC, keep `ctest --test-dir build-codex -C Release -R "processor_midi_cc_smoke" --output-on-failure` green because it now acts as the loop-off regression contract.
 - **State:** switch away from the chip and back, then confirm the chip-local settings, preset choice, and sample/wave selections are preserved.
 - **Honesty:** update docs and footer/descriptor wording whenever implementation evidence changes; do not promote a mode beyond what tests or references support.
 - **Release hygiene:** for code changes, build `Chipper_VST3`, run targeted tests, install from the same build root, and verify the footer hash against the installed marker before committing.
@@ -63,7 +63,7 @@ Use this checklist before calling any slice done. It is intentionally small enou
 Fixed regressions are release gates, not active roadmap items. Keep them named in tests and docs so they can be checked quickly, but do not let them crowd out forward product work unless a current build reproduces the problem.
 
 - FM held notes fading to silence: fixed and covered by held-tail renderer assertions for the FM families.
-- NES DMC one-shot samples looping with Loop off: fixed and covered by DMC loop-off behavior checks.
+- NES DMC one-shot samples looping with Loop off: fixed and covered by `processor_midi_cc_smoke` DMC loop-off behavior checks.
 - Reappearing clipped or invisible controls: treat as UI regressions against the current source-card and standard-control-size rules.
 
 ## Chip UI And License Pass Order
