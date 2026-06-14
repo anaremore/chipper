@@ -10,7 +10,7 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 | 2 | Keep chip-native controls owned by their source cards. Pulse duty belongs under pulse voices, wave/sample selectors under wavetable or sampler voices, and noise modes under noise voices. | 10 | 5 | 9 | Reusable source-card layout helpers and descriptor-driven visibility tests. |
 | 3 | Make sample and wavetable chips feel first-class: Paula, SPC700, HuC6280, Namco WSG, and SCC need per-channel sample/wave selection, visible level, waveform preview, root/loop behavior, and missing-asset states. | 10 | 7 | 8 | More renderer coverage for sample-slot selection, note-map behavior, loop flags, and state recall. |
 | 4 | Expand preset value: more high-quality factory presets, role/category filtering, user preset save/load, portable flat files, and audible preset regression checks. | 9 | 5 | 8 | Preset metadata validation, loudness checks, and a small hand-audition checklist for each chip. |
-| 5 | Build real FM editor surfaces for YM2612/OPN2, YM2151/OPM, OPL2/OPL3, and YM2413/OPLL. Macros can stay, but serious users need operator/algorithm/envelope access. | 9 | 8 | 7 | Operator-grid UI spike, sustained-note regression checks, and register/debug JSON for algorithm, level, feedback, and envelope state. |
+| 5 | Build real FM editor surfaces for YM2612/OPN2, YM2151/OPM, OPL2/OPL3, and YM2413/OPLL. Macros can stay, but serious users need operator/algorithm/envelope access. | 9 | 8 | 7 | Operator-grid UI spike, kept-green held-tail regression checks, and register/debug JSON for algorithm, level, feedback, and envelope state. |
 | 6 | Improve NES/RP2A03 authenticity and usability around DMC playback, sweep edge cases, frame sequencing, nonlinear mixer tolerances, and test trace coverage. | 9 | 7 | 8 | Local development samples, test ROM references, emulator comparison renders, and golden metadata for clean-room behavior. |
 | 7 | Add chip-aware tracker motion and SFX gestures that write native-looking register changes instead of generic modulation. | 9 | 7 | 7 | A per-chip destination map, renderer traces for common gestures, and UI copy that shows the resolved register path. |
 | 8 | Enforce Strictness behavior consistently. The header control should choose Inspired/Hybrid/Authentic behavior; the footer verification label should state what is actually tested. | 8 | 5 | 8 | Descriptor metadata for allowed controls, host-state recall tests, and docs reviewed against current test coverage. |
@@ -28,6 +28,7 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 - FM sustained-note output is considered fixed by current engine work and covered by renderer held-tail assertions (`chipper_render_*_held_tail_assert` plus held factory-preset asserts) for YM2612/OPN2, OPL2/OPL3, YM2151/OPM, and YM2413/OPLL. Treat "FM fades to silence while a note is held" as a P0 regression if it reappears, not as open product design work.
 - NES DMC loop-off playback is now part of the regression contract: one-shot sample stepping stops at the final bit and the DMC DAC holds the terminal level until retrigger, while the loop bit explicitly repeats the sample. Treat "DMC loops while Loop Sample is off" as a regression.
 - Current planning assumes recent layout passes are the baseline, not the destination. Remaining UI work should prioritize controls that are still hard to see, channel-local controls that still live in shared panels, and chip families that still need deeper editor surfaces.
+- If a previously fixed bug is suspected again, verify it first with the targeted regression before adding new roadmap work. Current examples are FM sustained-note fade-out and NES DMC one-shot looping.
 
 ## Current Cleanup Targets
 
@@ -37,8 +38,10 @@ These are the highest-signal cleanup items after the latest all-chip screenshot 
 - Keep wavetable cards readable. HuC6280, Namco WSG, and SCC should keep per-lane wave selectors and visible level controls in each source card; if a card cannot fit them, grow the layout rather than hiding controls.
 - Keep helper envelopes honest. POKEY, Paula, HuC6280, Namco WSG, and SCC helper envelopes are Chipper musical volume helpers, not native ADSR.
 - Keep FM surfaces playable while the deeper operator editor is planned. Macro/editor passes must not disturb key-on, source-level, or operator-envelope sustain behavior.
+- Keep fixed FM fade behavior in the smoke-test set rather than in the active feature queue. The next FM value is editable operator structure, not re-solving held-note sustain unless a regression is reproduced.
 - Keep docs and UI labels aligned: the header says **Strictness**; verification strength belongs in the footer, renderer debug JSON, and accuracy docs.
 - Keep the standard control-size baseline: source-card dropdowns, numeric boxes, and level lanes must remain readable at the default editor size. If a future chip-specific control needs more room, grow the card or layout instead of shrinking controls back into clipped mini rows.
+- Keep helper envelope controls visible. If a chip has a Chipper-added volume gate or amp envelope, it should render as a normal control with honest chip-specific wording; empty title-only modules are not acceptable.
 
 ## Immediate Execution Checklist
 

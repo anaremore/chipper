@@ -11,6 +11,7 @@ This audit tracks layout and control-placement work that most directly improves 
 - Channel-local register controls live in their channel card: duty under pulse channels, sample/wave selectors under sample/wavetable voices, and noise controls under noise channels.
 - Shared modules are only for shared hardware or shared workflow: filters, echo, sample banks, output routing, global clocks, and cross-channel pairing.
 - Sample and wavetable chips must reserve a real waveform/sample workspace. Performance macros may be compact, but they must not overlap sample-bank controls.
+- When a chip has per-voice or per-lane ownership, the source card should show the playable path in one place: waveform or sample selector, key/loop/noise mode where applicable, level, and any visible helper envelope state. If those controls cannot fit, the layout grows instead of hiding them.
 - Footer verification language must remain truthful: **Verified partial** is acceptable; **Cycle accurate** is not allowed without accepted tests or hardware/reference proof.
 - Chip themes may differ, but contrast, focus, hit targets, and readable text size must stay consistent.
 - Logo underline decorations should align to the full logo width so the header feels intentional on every theme.
@@ -34,11 +35,13 @@ This audit tracks layout and control-placement work that most directly improves 
 - NES / RP2A03 DMC sample controls now prioritize the sample bank and waveform preview over the APU envelope helper. APU decay moved into Performance Macros so the DMC panel can use a two-column sample-editor layout with a larger waveform surface.
 - NES / RP2A03 DMC loop wording should distinguish true sample looping from the hardware DAC hold. The `Loop Sample` checkbox maps to the `$4010` loop bit; when it is off, DPCM bit stepping stops at the final bit and the DMC DAC holds its terminal level until the next trigger.
 - FM modes should not be allowed to regress into sustained-note fade-out. Renderer `tailRms` held-tail assertions are in place for YM2612/OPN2, OPL2/OPL3, YM2151/OPM, YM2413/OPLL, and key factory presets; any FM UI/control pass touching operator envelopes, source levels, or key-on handling should keep that CTest subset green.
+- Because the FM fade issue is currently fixed, FM planning should focus on user-visible operator editing, algorithm clarity, and envelope terminology. Do not keep "fix FM fade" as an active UI item unless a current build reproduces it.
 - SID already follows this pattern for per-voice waveform and pulse-width controls, with the global filter staying in the Filter panel.
 - Shared helper controls must use neutral base wording and chip-specific resolved readouts. For example, a volume-gate helper on POKEY or Paula should never describe itself as a NES/APU envelope period.
 - Visible preset-following states should say "Preset" rather than "Follow" when the control is using the selected preset recipe. "Shared Bank" is used for sample voices that inherit the global sample slot or note map.
 - Envelope sections should use truthful chip taxonomy: **ADSR** for SID-style per-voice ADSR and S-DSP ADSR/GAIN work, **Operator EG** for FM operator envelopes, **APU/Volume/Hardware Envelope** for native non-ADSR chips, and **Amp Env/Volume Helper** when Chipper adds a musical helper over volume, attenuation, or sample playback.
 - Chipper helper envelopes must name the underlying chip path when practical and must be honest about scope. POKEY should say **AUDV Gate** and Paula should say **Tracker Amp Env**. HuC6280, SCC, and Namco WSG currently expose one shared musical volume helper, so the visible control says **Global Amp Env** while per-channel shape/sample/level controls stay in the source cards. Avoid generic ADSR/Decay wording unless the chip really exposes that behavior.
+- Helper envelope modules must not be empty. If the engine only has a shared helper, show one standard-height shared control with an honest readout. If a future pass adds per-channel helper envelopes, move them into the channel cards so users can see which lane is being shaped.
 - The code now exposes this as `EnvelopeModel` metadata via `envelopeModelFor()`, with descriptor-smoke coverage for native ADSR/GAIN, native Operator EG, native non-ADSR envelopes, Chipper helper envelopes, and the visible module titles for SPC700, FM, POKEY, Paula, HuC6280, Namco WSG, and SCC. Host/MIDI wording should use neutral names like **Envelope / EG** when one shared parameter spans multiple chips, while visible chip panels should use the chip-specific labels above.
 - HuC6280, Namco WSG, and Konami SCC now expose the shared helper envelope as a visible `Global Amp Env` module with enough height for a normal slider/readout instead of a dead-looking title-only placeholder. The source cards remain the home for per-channel shape/sample/level editing; future per-channel gate helpers should move into those cards if the engine supports them.
 - Embedded combo boxes and numeric inputs should use the standard control height wherever there is room. If a card cannot fit a standard-height dropdown plus label, increase the card or layout size instead of shrinking the dropdown into unreadable text. Dense wavetable and sampler source cards now reserve standard-height selectors and a clearer bottom level lane.
@@ -103,6 +106,11 @@ This audit tracks layout and control-placement work that most directly improves 
    - Issue: FM held-tail assertions are now in place, but sample, loop, and helper-envelope fixes can still look correct while regressing key-on/key-off, one-shot/loop behavior, or sustained output.
    - User value: high. A playable instrument must hold notes predictably before deeper editor polish matters.
    - Confidence: 8/10. Existing renderer and processor smoke tests already expose source levels, key-on state, sample loop state, `tailRms`, and debug JSON; the next value is expanding the same assertion style beyond FM.
+
+11. Planning/doc cleanup cadence
+   - Issue: rapid UI and engine iteration can leave stale roadmap notes that make fixed issues look active or make implemented chip surfaces sound planned-only.
+   - User value: medium-high. Clean docs help decide what to build next and keep public claims honest.
+   - Confidence: 9/10. This is low-risk as long as wording stays tied to implemented tests, screenshots, and descriptor metadata.
 
 ## Design Rule
 

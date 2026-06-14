@@ -15,7 +15,7 @@ Recent work has converted many early placeholder panels into playable, chip-awar
 - Factory and user presets are real user value only when they load audible, playable states and visibly update the chip controls.
 - Source cards are now the baseline home for chip-owned controls. Do not move per-channel duty, wave, sample, or level controls back into detached summary panels unless the chip hardware really shares that control.
 
-Do not spend new planning cycles on fixed regressions unless they are reproduced in the current build. Instead, keep them as smoke-test checks while pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, and verification evidence.
+Do not spend new planning cycles on fixed regressions unless they are reproduced in the current build. Instead, keep them as smoke-test checks while pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, and verification evidence. If a user reports a fixed issue again, first run the targeted regression and then decide whether the roadmap needs to change.
 
 ## Highest-Value Product Gaps
 
@@ -33,6 +33,7 @@ Do not spend new planning cycles on fixed regressions unless they are reproduced
    - User value: very high for FM users. Macros are useful starts, but serious FM patches require operator access.
    - Chips: YM2612/OPN2, YM2151/OPM, OPL2/OPL3, YM2413/OPLL custom patch.
    - Scope: algorithm, feedback, operator enable/mute, level, ratio/multiple, detune, attack, decay, sustain/level, release, key scale, velocity response, and clear output-operator highlighting.
+   - Non-goal: do not treat the old held-note fade-out as open design work unless it reproduces. Keep held-tail tests green while adding editor depth.
 
 4. **Drum / SFX Workflow**
    - User value: high. Classic chips are as much about kicks, hats, zaps, lasers, coins, jumps, and explosions as leads and basses.
@@ -128,3 +129,7 @@ These are not as visible as chip-specific controls, but they strongly affect whe
 7. **Beginner-to-Expert Path**
    - A new user should be able to select a chip, choose a musical role, tweak a few obvious controls, and save a patch.
    - Expert users should still have a clear route to register-like behavior, operator/wave/sample editing, and strict accuracy constraints.
+
+8. **Planning Hygiene**
+   - Docs should separate fixed regressions, active product gaps, and future research. Fixed regressions stay as named tests and verification checklist items, not as repeated feature priorities.
+   - Screenshots and user feedback should update this roadmap only when they identify a reproducible problem, a missing chip-native control, or a workflow gap that blocks making music.

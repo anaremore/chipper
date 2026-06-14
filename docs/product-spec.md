@@ -22,6 +22,8 @@ Behavior strictness levels:
 - **Authentic:** register/channel/timing behavior closely follows the original chip where implemented.
 - **Cycle-accurate:** only allowed after accepted test suites or real hardware captures prove it.
 
+Strictness is not a marketing badge. The header selector asks Chipper to prefer freer, hybrid, or stricter behavior, while the footer verification label and renderer debug JSON describe what is actually proven. A chip can run in Authentic strictness and still truthfully report **Verified partial** until the implementation, tests, emulator comparisons, and/or hardware captures justify a stronger claim.
+
 ## Parameter List
 
 - Chip Mode: NES/RP2A03, Game Boy/DMG, SID/C64, YM2149/AY, SN76489, YM2612, OPL2/OPL3, SPC700, POKEY, Paula, HuC6280, Namco WSG, YM2151, YM2413/OPLL, SCC
@@ -39,6 +41,8 @@ Behavior strictness levels:
 - Debug/validation export controls in the renderer, not the VST audio thread
 
 All current VST parameters have fixed default MIDI CC mappings. Chip-aware controls use the same stable APVTS parameters for UI, host automation, preset recall, and MIDI CC control; register-style choices quantize to legal chip values instead of exposing fake continuous states. Current examples include NES Pulse 2 Duty override bits, DMG Pulse 2 Duty / `NR21` override bits, NES `$4011` DMC Direct Level, shared Sample Slot control for manual DMC/SPC700/Paula bank browsing, per-voice Sample Slot pins for SPC700 and Paula channel banks, NES `$4010` DMC Rate for matching DPCM sample clocking, NES `$4010` DMC Loop for one-shot versus looped playback, shared Sample Playback Mode for Manual Slot, mapped sample-bank playback, and NES Sample Map Only playback, shared Sample Bank Root for choosing the first MIDI note of the sample-bank map, SPC700 Loop Start/End controls for explicit normalized sample-loop ranges, DMG `NR32` Wave Level, DMG `NR51` Stereo Route, independent SID 12-bit pulse-width controls for voices 1-3, SID `$D418` Filter Mode choices including combined LP/BP/HP bit outputs, per-voice SID AD/SR attack/decay/sustain/release nibble overrides, SID voice control-register sync/ring Osc Interaction, SID 6581/8580 Model profile, SID `$D417` Resonance, SID `$D417` voice filter routing, and YM2149 register 7 per-channel A/B/C tone/noise mixer overrides. Inherited register choices should be shown as `Preset`, not `Macro`, so users understand that the patch is following preset-resolved chip state rather than selecting zero/off/none. Envelope UI uses honest chip taxonomy: native ADSR/EG for SID, S-DSP/SPC700, and FM/operator chips; native envelope controls for NES, DMG, and AY/YM2149; and clearly labeled Chipper amp-envelope helpers for attenuation, sample, or wavetable chips that do not own ADSR hardware.
+
+Controls should only become visible when they have an engine mapping, stable parameter identity, preset/save-state behavior, and at least targeted renderer or descriptor coverage. Placeholder prose can describe planned chip work, but fake knobs or empty helper modules are worse than honest absence.
 
 ## Preset Categories
 
@@ -206,3 +210,5 @@ Current single-screen shell:
 Controls use plain names and tooltips. Mode-specific controls remain musically labeled and avoid register names, hex values, and chip-documentation jargon in the main workflow.
 
 Mode-specific layouts should adapt structurally, not just change labels. Section headers stay unnumbered, and each chip may use a fixed or aspect-aware layout when that better serves readability. NES and SN76489 can stay generator/register-strip oriented; SID should use three deep voice panels plus a global filter; SNES should become an eight-voice sample-bank workstation with BRR/sample selection, ADSR/GAIN, memory budget, and echo/FIR controls; FM chips should use operator and algorithm views. Reuse Chipper components where possible, but let each chip's native instrument shape determine the layout.
+
+Fixed regressions remain part of the release gate rather than active feature planning. Current smoke gates include FM held-note tail checks for the ymfm/emu2413-backed chips and NES DMC one-shot loop-off behavior. If either issue returns in a current build, treat it as a P0 regression; otherwise prioritize deeper operator, sample, wave, preset, and verification work.
