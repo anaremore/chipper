@@ -2018,6 +2018,7 @@ public:
 
     void setPatch(const PatchConfig& newPatch) override
     {
+        const auto previousPatch = patch;
         if (newPatch.playMode != patch.playMode || newPatch.sourceEnabled != patch.sourceEnabled)
             clearChipPolyState();
 
@@ -2027,6 +2028,13 @@ public:
         else
             regs[0x10] = static_cast<uint8_t>(regs[0x10] & ~0x40u);
         regs[0x11] = nesDmcDirectLevelForControl(patch.nesDmcDirectLevel);
+
+        if (newPatch.playMode == previousPatch.playMode
+            && newPatch.sourceEnabled == previousPatch.sourceEnabled
+            && (newPatch.control1 != previousPatch.control1 || newPatch.pulse2Duty != previousPatch.pulse2Duty))
+        {
+            refreshActivePulseDuties();
+        }
     }
 
     void setExternalSampleData(std::vector<uint8_t> data) override
@@ -2793,6 +2801,16 @@ private:
         writeRegister(static_cast<uint16_t>(baseAddress + 3), static_cast<uint8_t>((pulseTimer >> 8) & 0x07));
     }
 
+    void writePulseDutyRegister(uint16_t baseAddress, NesPulseDuty duty)
+    {
+        const auto regIndex = static_cast<size_t>(baseAddress - 0x4000);
+        if (regIndex >= regs.size())
+            return;
+
+        const auto flagsAndVolume = static_cast<uint8_t>(regs[regIndex] & 0x3fu);
+        writeRegister(baseAddress, static_cast<uint8_t>((nesPulseDutyBits(duty) << 6u) | flagsAndVolume));
+    }
+
     uint8_t nesNoiseEnvelopeValue(unsigned volume) const
     {
         if (envelopeDecayActive(patch))
@@ -2919,6 +2937,28 @@ private:
         }
 
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
+    }
+
+    void refreshActivePulseDuties()
+    {
+        const auto pulse1Duty = nesPulseDutyFromControl(patch.control1);
+
+        if (patch.playMode == PlayMode::chipPoly)
+        {
+            if (channelNotes[0] >= 0)
+                writePulseDutyRegister(0x4000, pulse1Duty);
+            if (channelNotes[1] >= 0)
+                writePulseDutyRegister(0x4004, nesPulse2DutyForPatch(patch, pulse1Duty, false));
+            return;
+        }
+
+        if (heldNote < 0)
+            return;
+
+        if (enabled[0])
+            writePulseDutyRegister(0x4000, pulse1Duty);
+        if (enabled[1])
+            writePulseDutyRegister(0x4004, nesPulse2DutyForPatch(patch, pulse1Duty, true));
     }
 
     uint8_t pulseDutyIndex(int index) const
