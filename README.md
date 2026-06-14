@@ -188,7 +188,7 @@ The installer removes the previous `Chipper.vst3` bundle before copying the new 
 
 ## Command-Line Renderer
 
-`chipper_render` is the verification path for the engine. It accepts chip mode, accuracy, note/register events, render length, chip-specific parameters, and outputs WAV plus debug JSON:
+`chipper_render` is the verification path for the engine. It accepts chip mode, behavior strictness, note/register events, render length, chip-specific parameters, and outputs WAV plus debug JSON. The command-line flag is still named `--accuracy` for compatibility with earlier tests and scripts, but it represents the same Inspired/Hybrid/Authentic strictness request shown in the plugin header:
 
 ```powershell
 build\Release\chipper_render.exe --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --output-db -9 --out nes.wav --debug nes.json

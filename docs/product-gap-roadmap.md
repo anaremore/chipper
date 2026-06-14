@@ -13,6 +13,7 @@ Recent work has converted many early placeholder panels into playable, chip-awar
 - Sample and wavetable chips should keep per-voice wave/sample selectors and visible level controls in the voice cards wherever the chip has independent channels.
 - Strictness is a behavior request, not a proof label. Verification strength remains in the footer and docs.
 - Factory and user presets are real user value only when they load audible, playable states and visibly update the chip controls.
+- Source cards are now the baseline home for chip-owned controls. Do not move per-channel duty, wave, sample, or level controls back into detached summary panels unless the chip hardware really shares that control.
 
 Do not spend new planning cycles on fixed regressions unless they are reproduced in the current build. Instead, keep them as smoke-test checks while pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, and verification evidence.
 
