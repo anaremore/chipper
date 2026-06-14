@@ -24,6 +24,7 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 - `Arcade Hybrid` and `Custom` are intentionally removed from the chip selector. Arcade sounds should come from named hardware families such as YM2149, SN76489, Namco WSG, SCC, YM2151, and OPL.
 - The top control is **Strictness**, not an accuracy claim. It changes how hard Chipper leans into native limits. The small footer status is where verification language belongs.
 - Channel-local register controls must stay inside the channel/voice cards wherever practical. Detached summary panels are only for genuinely shared hardware such as filters, echo, sample banks, output routing, and cross-channel pairing.
+- Presets are the product's main fast path. A preset should be audible, chip-local, editable, shareable, and visibly represented by the controls after it loads. Do not add preset names for non-playable cores.
 - Factory presets and user presets must not embed copyrighted samples, ROM data, copyrighted wave dumps, or derived game assets. External sample paths stay user-owned and outside the repository.
 - FM sustained-note output is considered fixed by current engine work and covered by renderer held-tail assertions (`chipper_render_*_held_tail_assert` plus held factory-preset asserts) for YM2612/OPN2, OPL2/OPL3, YM2151/OPM, and YM2413/OPLL. Treat "FM fades to silence while a note is held" as a P0 regression if it reappears, not as open product design work.
 - NES DMC loop-off playback is now part of the regression contract: one-shot sample stepping stops at the final bit and the DMC DAC holds the terminal level until retrigger, while the loop bit explicitly repeats the sample. Treat "DMC loops while Loop Sample is off" as a regression.
@@ -114,5 +115,5 @@ Each completed development slice should:
 
 - Improve either emulation truth, musical usability, verification, presets, documentation, or installability.
 - Keep DAW parameter IDs and MIDI CC mappings stable unless a migration plan exists.
-- Build `Chipper_VST3`, run the relevant tests, install the VST3, commit, and push.
+- Build `Chipper_VST3` and `chipper_render` for code changes, run the relevant tests, install the VST3 from the same build root, verify the installed marker when practical, commit, and push.
 - Avoid product claims stronger than the current renderer tests and documented verification support.

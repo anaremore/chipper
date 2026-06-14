@@ -23,6 +23,16 @@ The project is intentionally honest about accuracy. A mode is only labeled accur
 - A separate `chipper_render` command-line tool renders WAV plus debug JSON for regression tests and emulator validation.
 - Third-party emulator cores are vendored only after a license/provenance audit.
 
+## Current Development Focus
+
+Chipper is being developed as an accurate, truthful chip instrument rather than a decorative retro synth. The current product rules are:
+
+- Presets are the primary musical entry point. They should load audible chip-local sounds, update the visible controls, and remain editable/shareable as normal Chipper state.
+- The header's **Behavior Strictness** control requests Inspired, Hybrid, or Authentic behavior. It is not an accuracy certificate; the footer and docs carry the actual verification claim.
+- Chip-owned controls belong where the hardware owns them: duty under pulse channels, noise mode under noise channels, wave/sample choices and level under each wavetable or sampler lane, filters/echo/sample banks in shared modules.
+- Fixed regressions stay in tests and release gates. FM held-note fade-out and NES DMC loop-off behavior are currently treated as fixed; if they return, they are regressions, not open design questions.
+- UI readability wins over compactness. It is acceptable for chip-specific layouts to grow or use fixed aspect ratios when that preserves standard-height controls, visible level lanes, and waveform previews.
+
 ## Current Chip Modes
 
 Implemented depth varies by chip. See [docs/emulation-accuracy.md](docs/emulation-accuracy.md) for the source, verification status, known gaps, and license posture of each mode.
@@ -104,7 +114,7 @@ If `-BuildRoot` and `CHIPPER_BUILD_ROOT` are not set, the installer auto-selects
 For day-to-day development, use this sequence from the repo root:
 
 ```powershell
-cmake --build build-codex --config Release --target Chipper_VST3
+cmake --build build-codex --config Release --target Chipper_VST3 chipper_render
 .\install-vst3.ps1 -Scope User -BuildRoot build-codex
 .\install-vst3.ps1 -VerifyOnly -BuildRoot build-codex
 ```
@@ -205,7 +215,7 @@ build\Release\chipper_render.exe --list-presets --chip sid --debug sid-presets.j
 
 The plugin header includes `Load` and `Save` buttons beside the preset browser. User presets are saved as plain `.chipperpreset` XML files so they can be shared, versioned, and inspected without a DAW-specific preset container.
 
-User preset files store the same Chipper state used by host project recall, including chip mode, behavior strictness, play mode, the internal preset recipe used for chip-native defaults, public parameters, register snapshots, and external sample-bank references. Audio sample data is not embedded. For portable sharing, put referenced NES DMC, SPC700, or Paula samples next to the preset or in a `Samples` folder beside it; Chipper will try those relative locations before falling back to the original local path.
+User preset files store the same Chipper state used by host project recall, including chip mode, behavior strictness, play mode, the selected factory/user preset state, public parameters, register snapshots, and external sample-bank references. Audio sample data is not embedded. For portable sharing, put referenced NES DMC, SPC700, or Paula samples next to the preset or in a `Samples` folder beside it; Chipper will try those relative locations before falling back to the original local path.
 
 The default save location is:
 
