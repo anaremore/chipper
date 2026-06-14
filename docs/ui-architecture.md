@@ -26,7 +26,7 @@ HuC6280, Namco WSG, and SCC expose independent wavetable voices. Their UIs shoul
 
 Source-card controls should read in native ownership order: source enable/state, waveform or sample selection, then the channel/lane level trim. Avoid placing the level row at the card's lower edge when there is unused vertical space above it; the level control is part of the voice, not a footer.
 
-Wavetable chips that lack native ADSR should not show empty or generic "envelope" placeholders. HuC6280, Namco WSG, and SCC expose a shared `Global Amp Env` helper over their native volume paths until per-channel gate controls are implemented. That helper belongs in the Performance Macros area rather than a dead standalone module, while per-channel wave and level controls stay inside the source cards. The label must stay explicit that this is a Chipper musical helper layered over native volume registers, not authentic chip ADSR.
+Wavetable chips that lack native ADSR should not show empty or generic "envelope" placeholders. HuC6280, Namco WSG, and SCC expose a shared `Global Amp Env` helper over their native volume paths until per-channel gate controls are implemented. If that helper appears as a standalone module it must reserve enough height for a normal labeled slider/readout; otherwise it belongs in the Performance Macros area rather than a dead-looking placeholder. Per-channel wave and level controls stay inside the source cards. The label must stay explicit that this is a Chipper musical helper layered over native volume registers, not authentic chip ADSR.
 
 ## Slot Scalability
 
