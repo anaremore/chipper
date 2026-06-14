@@ -22,7 +22,7 @@ Review status: synced on 2026-06-14. The audit now treats FM held-tail and NES D
 - Chip themes may differ, but contrast, focus, hit targets, and readable text size must stay consistent.
 - Logo underline decorations should align to the full logo width so the header feels intentional on every theme.
 - Screenshot feedback should become durable layout rules in this audit. Avoid preserving one-off visual bug notes after the underlying rule is captured and verified.
-- Fixed audio regressions should only appear here when they constrain UI changes. The active UI queue should focus on visible chip-aware controls, readable source cards, sample/wave/operator editing, and screenshot regressions.
+- Fixed audio regressions should only appear here when they constrain UI changes. The active UI queue should focus on visible chip-aware controls, readable source cards, sample/wave/operator editing, and screenshot regressions that still reproduce.
 - If a visual problem has already been fixed, keep only the reusable rule that would prevent it from returning. If a chip still violates that rule in screenshots, track the chip-specific fix under Highest-Value Next Fixes.
 
 ## Completed Pattern
@@ -44,7 +44,7 @@ Review status: synced on 2026-06-14. The audit now treats FM held-tail and NES D
 - NES / RP2A03 DMC sample controls now prioritize the sample bank and waveform preview over the APU envelope helper. APU decay moved into Performance Macros so the DMC panel can use a two-column sample-editor layout with a larger waveform surface.
 - NES / RP2A03 DMC loop wording should distinguish true sample looping from the hardware DAC hold. The `Loop Sample` checkbox maps to the `$4010` loop bit; when it is off, DPCM bit stepping stops at the final bit and the DMC DAC holds its terminal level until the next trigger. `processor_midi_cc_smoke` is the quick regression check for manual-slot and note-map one-shot behavior, loop-on behavior, and debug playback state.
 - FM modes should not be allowed to regress into sustained-note fade-out. Renderer `tailRms` held-tail assertions are in place for YM2612/OPN2, OPL2/OPL3, YM2151/OPM, YM2413/OPLL, and key factory presets; any FM UI/control pass touching operator envelopes, source levels, or key-on handling should keep that CTest subset green.
-- Because the FM fade issue is currently fixed, FM planning should focus on user-visible operator editing, algorithm clarity, and envelope terminology. Do not keep "fix FM fade" as an active UI item unless a current build reproduces it.
+- Because the FM fade issue is currently fixed, FM planning should focus on user-visible operator editing, algorithm clarity, and envelope terminology. Do not keep "fix FM fade" as an active UI item unless a current build reproduces it and the held-tail gate fails.
 - SID already follows this pattern for per-voice waveform and pulse-width controls, with the global filter staying in the Filter panel.
 - Shared helper controls must use neutral base wording and chip-specific resolved readouts. For example, a volume-gate helper on POKEY or Paula should never describe itself as a NES/APU envelope period.
 - Visible preset-following states should say "Preset" rather than "Follow" when the control is using the selected preset recipe. "Shared Bank" is used for sample voices that inherit the global sample slot or note map.

@@ -20,6 +20,8 @@ Recent work has converted many early placeholder panels into playable, chip-awar
 
 Do not spend new planning cycles on fixed regressions unless they are reproduced in the current build. Instead, keep them as smoke-test checks while pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, and verification evidence. If a user reports a fixed issue again, first run the targeted regression and then decide whether the roadmap needs to change. A passing gate means the roadmap should continue forward instead of accumulating stale bug notes.
 
+Planning cleanup rule: current docs should describe the product path, not preserve every historical bug as open work. If a fixed issue needs to stay visible, it belongs in a named gate, a release checklist, or a narrow UI rule that prevents the regression from returning.
+
 Current fixed-regression gates:
 
 | Gate | Protective Check |
@@ -63,7 +65,7 @@ Closed-bug policy: if FM sustain, NES DMC loop-off, or another protected behavio
    - User value: very high for FM users. Macros are useful starts, but serious FM patches require operator access.
    - Chips: YM2612/OPN2, YM2151/OPM, OPL2/OPL3, YM2413/OPLL custom patch.
    - Scope: algorithm, feedback, operator enable/mute, level, ratio/multiple, detune, attack, decay, sustain/level, release, key scale, velocity response, and clear output-operator highlighting.
-   - Non-goal: do not treat the old held-note fade-out as open design work unless it reproduces. Keep held-tail tests green while adding editor depth.
+   - Non-goal: do not treat the old held-note fade-out as open design work unless it reproduces. FM editor slices must keep held-tail tests green while adding depth.
 
 4. **Drum / SFX Workflow**
    - User value: high. Classic chips are as much about kicks, hats, zaps, lasers, coins, jumps, and explosions as leads and basses.

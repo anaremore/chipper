@@ -88,6 +88,8 @@ Before a release is considered usable, keep these checks green:
 - NES DMC loop-off tests, because one-shot DMC playback should stop stepping and hold the DAC value instead of looping.
 - At least one manual DAW scan/load check for Windows. Linux and macOS host checks should be added before public cross-platform releases are advertised as tested.
 
+Passing fixed-regression gates should not create new roadmap work. If one fails, reopen the owning bug as a P0, fix it with a tighter test, then return it to this release gate instead of leaving stale todo language in the planning docs.
+
 ## Legal Packaging
 
 Do not package copyrighted samples, ROM data, ripped instruments, tracker modules, or game-derived wave tables. Factory presets should be original Chipper sound design unless every imported asset has compatible licensing and documented provenance.
