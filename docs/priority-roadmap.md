@@ -29,6 +29,18 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 - NES DMC loop-off playback is now part of the regression contract: one-shot sample stepping stops at the final bit and the DMC DAC holds the terminal level until retrigger, while the loop bit explicitly repeats the sample.
 - Current planning assumes recent layout passes are the baseline, not the destination. Remaining UI work should prioritize controls that are still hard to see, channel-local controls that still live in shared panels, and chip families that still need deeper editor surfaces.
 
+## Immediate Execution Checklist
+
+Use this checklist before calling any slice done. It is intentionally small enough to run often.
+
+- **Readability:** inspect the affected chip plus one neighboring chip for overlapping labels, clipped dropdowns/inputs, invisible level lanes, and stale hidden-module text.
+- **Audibility:** load at least one preset for the affected chip and confirm the visible controls represent the sound that is playing.
+- **Sustain:** when an FM chip is touched, run or manually verify a held note does not decay to silence unless the selected envelope clearly asks for that.
+- **Samples:** when NES DMC, SPC700, or Paula sample handling is touched, verify one-shot vs loop behavior, note-map/manual-slot behavior, and missing-file UI states.
+- **State:** switch away from the chip and back, then confirm the chip-local settings, preset choice, and sample/wave selections are preserved.
+- **Honesty:** update docs and footer/descriptor wording whenever implementation evidence changes; do not promote a mode beyond what tests or references support.
+- **Release hygiene:** for code changes, build `Chipper_VST3`, run targeted tests, install from the same build root, and verify the footer hash against the installed marker before committing.
+
 ## Chip UI And License Pass Order
 
 SID proved the first deep instrument UI pattern: three independent oscillator voices, per-voice ADSR, PWM, sync/ring interaction, multimode filter routing, model selection, source scopes, and output monitoring. That pattern should now generalize carefully, not blindly. Each chip gets the structure implied by its hardware: channel strips for PSG/APU chips, deep voice cards for SID, operator grids for FM, and sampler/wavetable workspaces for SPC700, Paula, HuC6280, Namco WSG, and SCC.

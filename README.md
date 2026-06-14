@@ -104,7 +104,7 @@ If `-BuildRoot` and `CHIPPER_BUILD_ROOT` are not set, the installer auto-selects
 For day-to-day development, use this sequence from the repo root:
 
 ```powershell
-cmake --build build-codex --config Release
+cmake --build build-codex --config Release --target Chipper_VST3
 .\install-vst3.ps1 -Scope User -BuildRoot build-codex
 .\install-vst3.ps1 -VerifyOnly -BuildRoot build-codex
 ```

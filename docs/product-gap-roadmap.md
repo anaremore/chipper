@@ -14,6 +14,8 @@ Recent work has converted many early placeholder panels into playable, chip-awar
 - Strictness is a behavior request, not a proof label. Verification strength remains in the footer and docs.
 - Factory and user presets are real user value only when they load audible, playable states and visibly update the chip controls.
 
+Do not spend new planning cycles on fixed regressions unless they are reproduced in the current build. Instead, keep them as smoke-test checks while pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, and verification evidence.
+
 ## Highest-Value Product Gaps
 
 1. **Chip-Aware Tracker Motion / SFX Gestures**
