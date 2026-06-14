@@ -264,6 +264,6 @@ Do not import GPL/LGPL emulator code, preset banks, songs, samples, lookup table
 - [docs/priority-roadmap.md](docs/priority-roadmap.md): execution priorities
 - [docs/product-gap-roadmap.md](docs/product-gap-roadmap.md): larger workflow gaps and non-regression policy
 
-## Accuracy And Strictness Rule
+## Strictness And Verification Rule
 
 Chipper should sound like an instrument, but it should not overclaim. The header's Behavior Strictness selector requests Inspired, Hybrid, or Authentic behavior; it does not prove that a chip mode is fully accurate. If a mode is not verified at register/timing level, label it as inspired, style, or partial. Cycle-accurate claims require accepted test suites, trusted emulator comparisons, or real hardware captures.

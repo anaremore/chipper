@@ -15,14 +15,13 @@ The plugin must not use generic retro oscillators with famous chip labels. Each 
 - **OPL2/OPL3:** two-operator FM, rhythm mode, waveform variants, envelopes, stereo for OPL3.
 - **Expansion:** SPC700-style sample playback, Paula, HuC6280 wavetable, Namco WSG, YM2151, YM2413/OPLL, Konami SCC. SPC700-style, POKEY, Paula, HuC6280, Namco WSG, YM2413/OPLL, and SCC have started as audible partial expansion cores; YM2413/OPLL is backed by vendored MIT emu2413.
 
-Behavior strictness levels:
+Behavior strictness levels exposed in the instrument:
 
 - **Inspired:** musical approximation with smoothed edges.
 - **Hybrid:** default chip flavor with modern playability.
 - **Authentic:** register/channel/timing behavior closely follows the original chip where implemented.
-- **Cycle-accurate:** only allowed after accepted test suites or real hardware captures prove it.
 
-Strictness is not a marketing badge. The header selector asks Chipper to prefer freer, hybrid, or stricter behavior, while the footer verification label and renderer debug JSON describe what is actually proven. A chip can run in Authentic strictness and still truthfully report **Verified partial** until the implementation, tests, emulator comparisons, and/or hardware captures justify a stronger claim.
+Verification labels are separate from that control. The footer, renderer debug JSON, and accuracy docs describe what is actually proven: planned, partial, verified partial, or eventually cycle-accurate when accepted test suites or real hardware captures justify it. A chip can run in Authentic strictness and still truthfully report **Verified partial** until the implementation, tests, emulator comparisons, and/or hardware captures justify a stronger claim.
 
 ## Parameter List
 
