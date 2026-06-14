@@ -1300,6 +1300,7 @@ std::vector<ChipParameterSpec> sn76489ParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source2Level, "sn76489.tone2.level", "Tone 2 Level", "Trims SN76489 tone channel 2 after attenuation."),
         sourceLevelSpec(ChipParameterRole::source3Level, "sn76489.tone3.level", "Tone 3 Level", "Trims SN76489 tone channel 3 after attenuation."),
         sourceLevelSpec(ChipParameterRole::source4Level, "sn76489.noise.level", "Noise Level", "Trims the SN76489 noise channel after attenuation."),
+        envelopeSpec("sn76489.gate", "PSG Gate", "Applies a Chipper helper gate over SN76489 attenuation levels; native PSG attenuation state remains visible in debug output."),
         stereoSpreadSpec("sn76489.stereoSpread", "Modern stereo convenience that spreads tone channels across the stereo field; zero preserves mono PSG output."),
         { ChipParameterRole::snNoiseMode,
           "sn76489.noiseMode",
