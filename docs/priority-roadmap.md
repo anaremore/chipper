@@ -25,6 +25,7 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 - The top control is **Strictness**, not an accuracy claim. It changes how hard Chipper leans into native limits. The small footer status is where verification language belongs.
 - Channel-local register controls must stay inside the channel/voice cards wherever practical. Detached summary panels are only for genuinely shared hardware such as filters, echo, sample banks, output routing, and cross-channel pairing.
 - Presets are the product's main fast path. A preset should be audible, chip-local, editable, shareable, and visibly represented by the controls after it loads. Do not add preset names for non-playable cores.
+- Roadmap-only ideas belong in docs until they have an audible engine path, stable parameters, preset recall, and renderer or descriptor coverage. The executable chip selector and preset browser should stay focused on named, playable hardware-family surfaces.
 - Factory presets and user presets must not embed copyrighted samples, ROM data, copyrighted wave dumps, or derived game assets. External sample paths stay user-owned and outside the repository.
 - High-quality factory presets should be original Chipper patch design based on chip behavior, public hardware documentation, common synthesis techniques, and hand-authored sound design. Do not copy commercial game patches, ripped instrument data, tracker modules, ROM wave tables, or sample assets into presets unless the license and provenance are explicitly compatible and documented.
 - FM sustained-note output is considered fixed by current engine work and covered by renderer held-tail assertions (`chipper_render_*_held_tail_assert` plus held factory-preset asserts) for YM2612/OPN2, OPL2/OPL3, YM2151/OPM, and YM2413/OPLL. Treat "FM fades to silence while a note is held" as a P0 regression if it reappears, not as open product design work.
@@ -67,6 +68,8 @@ Fixed regressions are release gates, not active roadmap items. Keep them named i
 - FM held notes fading to silence: fixed and covered by held-tail renderer assertions for the FM families.
 - NES DMC one-shot samples looping with Loop off: fixed and covered by `processor_midi_cc_smoke` DMC loop-off behavior checks.
 - Reappearing clipped or invisible controls: treat as UI regressions against the current source-card and standard-control-size rules.
+
+When a fixed regression is suspected, update this section only after reproducing it in the current build. Otherwise keep active priority on forward user value: deeper source editors, better presets, clearer sample/wave/operator workflows, and stronger verification evidence.
 
 ## Chip UI And License Pass Order
 

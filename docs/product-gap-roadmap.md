@@ -14,6 +14,7 @@ Recent work has converted many early placeholder panels into playable, chip-awar
 - Strictness is a behavior request, not a proof label. Verification strength remains in the footer and docs.
 - Factory and user presets are real user value only when they load audible, playable states and visibly update the chip controls.
 - Source cards are now the baseline home for chip-owned controls. Do not move per-channel duty, wave, sample, or level controls back into detached summary panels unless the chip hardware really shares that control.
+- Roadmap-only chip features should remain in docs until they have an audible engine path, stable parameters, state recall, and renderer or descriptor coverage. The plugin UI should favor implemented, truthful surfaces over planned-looking controls.
 
 Do not spend new planning cycles on fixed regressions unless they are reproduced in the current build. Instead, keep them as smoke-test checks while pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, and verification evidence. If a user reports a fixed issue again, first run the targeted regression and then decide whether the roadmap needs to change.
 
@@ -101,6 +102,8 @@ For UI cleanup, favor a chip-aware source-of-truth layout over another decorativ
 The current UI cleanup baseline is practical rather than aesthetic: every visible chip should expose its playable path without hidden controls, clipped labels, or dead placeholder panels. Sampler and wavetable chips are the most sensitive because their per-channel selectors, level lanes, sample-bank waveform editors, and Performance Macros compete for space. When those collide, preserve the source cards and waveform editor first, then move helper envelopes or macro controls into a larger secondary area.
 
 As of the current planning pass, the FM held-note fade and NES DMC loop-off bugs are closed unless a current build reproduces them. Keep those checks in the smoke-test habit, but spend active development energy on the remaining user-value gaps: deeper operator editors, cleaner sample/wavetable workflows, stronger preset coverage, state recall, and verification evidence.
+
+The active roadmap should stay split into three buckets: fixed regressions with named tests, implemented-but-shallow surfaces that need deeper musical editing, and future research that still needs source/licensing or verification decisions. Mixing those buckets makes Chipper look less complete than it is and makes it harder to choose the next valuable build slice.
 
 ## Additional Gaps To Watch
 
