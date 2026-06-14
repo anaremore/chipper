@@ -54,7 +54,6 @@ These are the highest-signal cleanup items after the latest all-chip screenshot 
 - Keep docs and UI labels aligned: the header says **Strictness**; verification strength belongs in the footer, renderer debug JSON, and accuracy docs.
 - Keep shared host/CC names neutral when one stable parameter serves different chip meanings. For example, CC94 is `Chip Choice / Route` at the host layer, while each chip panel relabels it as DMG Stereo Route, SID Model, SPC700 loop behavior, POKEY AUDCTL pairing, HuC6280 LFO mode, FM pan/routing, or a wavetable lane selector as appropriate.
 - Keep the standard control-size baseline: source-card dropdowns, numeric boxes, and level lanes must remain readable at the default editor size. If a future chip-specific control needs more room, grow the card or layout instead of shrinking controls back into clipped mini rows.
-- Keep helper envelope controls visible. If a chip has a Chipper-added volume gate or amp envelope, it should render as a normal control with honest chip-specific wording; empty title-only modules are not acceptable.
 - Keep preset sourcing clean. More factory presets are valuable, but the safe path is original patch design plus renderer/debug metadata, not importing copyrighted game sounds, tracker instruments, ROM data, or sample banks.
 
 ## Immediate Execution Checklist
