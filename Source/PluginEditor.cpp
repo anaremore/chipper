@@ -3805,14 +3805,28 @@ void ChipperAudioProcessorEditor::resized()
             if (i < paulaVoiceSampleBoxes.size())
             {
                 auto levelArea = reserveEmbeddedLevel(sourceCard, 54);
-                auto shapeRow = sourceCard.removeFromTop(std::min(embeddedControlRowHeight, sourceCard.getHeight()));
-                hucVoiceWaveLabels[i].setBounds(shapeRow.removeFromTop(std::min(embeddedLabelHeight, shapeRow.getHeight())));
-                hucVoiceWaveBoxes[i].setBounds(shapeRow.removeFromTop(std::min(standardInlineControlHeight, shapeRow.getHeight())).reduced(0, 1));
-                sourceCard.removeFromTop(std::min(4, sourceCard.getHeight()));
+                const auto placeLabeledCombo = [&](juce::Label& label, juce::ComboBox& box, juce::Rectangle<int> area)
+                {
+                    label.setBounds(area.removeFromTop(std::min(embeddedLabelHeight, area.getHeight())));
+                    box.setBounds(area.removeFromTop(std::min(standardInlineControlHeight, area.getHeight())).reduced(0, 1));
+                };
 
-                auto sampleRow = sourceCard.removeFromTop(std::min(embeddedControlRowHeight, sourceCard.getHeight()));
-                paulaVoiceSampleLabels[i].setBounds(sampleRow.removeFromTop(std::min(embeddedLabelHeight, sampleRow.getHeight())));
-                paulaVoiceSampleBoxes[i].setBounds(sampleRow.removeFromTop(std::min(standardInlineControlHeight, sampleRow.getHeight())).reduced(0, 1));
+                auto selectorRow = sourceCard.removeFromTop(std::min(embeddedControlRowHeight, sourceCard.getHeight()));
+                if (selectorRow.getWidth() >= 320)
+                {
+                    constexpr auto selectorGap = 8;
+                    const auto halfWidth = (selectorRow.getWidth() - selectorGap) / 2;
+                    auto shapeArea = selectorRow.removeFromLeft(halfWidth);
+                    selectorRow.removeFromLeft(std::min(selectorGap, selectorRow.getWidth()));
+                    placeLabeledCombo(hucVoiceWaveLabels[i], hucVoiceWaveBoxes[i], shapeArea);
+                    placeLabeledCombo(paulaVoiceSampleLabels[i], paulaVoiceSampleBoxes[i], selectorRow);
+                }
+                else
+                {
+                    placeLabeledCombo(hucVoiceWaveLabels[i], hucVoiceWaveBoxes[i], selectorRow);
+                    auto sampleRow = sourceCard.removeFromTop(std::min(embeddedControlRowHeight, sourceCard.getHeight()));
+                    placeLabeledCombo(paulaVoiceSampleLabels[i], paulaVoiceSampleBoxes[i], sampleRow);
+                }
                 sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
 
                 placeEmbeddedLevelInArea(levelArea);
