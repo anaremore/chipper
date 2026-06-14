@@ -26,7 +26,7 @@ Verification labels are separate from that control. The footer, renderer debug J
 ## Parameter List
 
 - Chip Mode: NES/RP2A03, Game Boy/DMG, SID/C64, YM2149/AY, SN76489, YM2612, OPL2/OPL3, SPC700, POKEY, Paula, HuC6280, Namco WSG, YM2151, YM2413/OPLL, SCC
-- Behavior Strictness: Inspired, Hybrid, Authentic. This is a requested behavior mode, not the verification claim; footer badges and renderer debug JSON report what is actually proven.
+- Strictness: Inspired, Hybrid, Authentic. This is a requested behavior mode, not the verification claim; footer badges and renderer debug JSON report what is actually proven. The stable host/MIDI parameter remains named `Behavior Strictness`.
 - Play Mode: Big Mono, Chip Poly where the selected chip has tested finite-channel allocation; Manual and Clone are reserved until tracker routing and hybrid engine cloning are implemented.
 - Output Level
 - Preset Recipe: internal chip-native defaults used by factory/user presets for Coin, Bass, Lead, Arp, Drum, Hit, Laser, Jump, and Power-Up style sounds
@@ -198,7 +198,7 @@ Roadmap preset targets, kept as product direction until their chip cores exist:
 
 Current single-screen shell:
 
-- **Header:** ASCII logo, preset browser, Load/Save/Save As, Chip Mode, Behavior Strictness, and Play Mode.
+- **Header:** ASCII logo, preset browser, Load/Save/Save As, Chip Mode, Strictness, and Play Mode.
 - **Chip summary:** one concise implementation/status sentence for the active chip.
 - **Sources:** chip-native channels, voices, lanes, operators, or sample slots with their owned controls.
 - **Chip edit workspace:** tone, shape, filter, operator, envelope, sample-bank, loop, routing, and chip-specific utility controls.

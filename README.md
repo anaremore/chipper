@@ -28,7 +28,7 @@ The project is intentionally honest about accuracy. A mode is only labeled accur
 Chipper is being developed as an accurate, truthful chip instrument rather than a decorative retro synth. The current product rules are:
 
 - Presets are the primary musical entry point. They should load audible chip-local sounds, update the visible controls, and remain editable/shareable as normal Chipper state.
-- The header's **Behavior Strictness** control requests Inspired, Hybrid, or Authentic behavior. It is not an accuracy certificate; the footer and docs carry the actual verification claim.
+- The header's **Strictness** control requests Inspired, Hybrid, or Authentic behavior. It is not an accuracy certificate; the footer and docs carry the actual verification claim. Hosts and MIDI maps may show the same stable parameter as `Behavior Strictness`.
 - Chip-owned controls belong where the hardware owns them: duty under pulse channels, noise mode under noise channels, wave/sample choices and level under each wavetable or sampler lane, filters/echo/sample banks in shared modules.
 - Fixed regressions stay in tests and release gates. FM held-note fade-out and NES DMC loop-off behavior are currently treated as fixed; if they return, they are regressions, not open design questions.
 - UI readability wins over compactness. It is acceptable for chip-specific layouts to grow or use fixed aspect ratios when that preserves standard-height controls, visible level lanes, and waveform previews.
@@ -240,7 +240,7 @@ Important shared assignments:
 | CC | Parameter |
 | --- | --- |
 | 70 | Chip Mode |
-| 71 | Behavior Strictness |
+| 71 | Behavior Strictness (header label: Strictness) |
 | 73 | Output Level |
 | 74 | Preset recipe (internal compatibility parameter) |
 | 75 | Play Mode |
@@ -276,4 +276,4 @@ Do not import GPL/LGPL emulator code, preset banks, songs, samples, lookup table
 
 ## Strictness And Verification Rule
 
-Chipper should sound like an instrument, but it should not overclaim. The header's Behavior Strictness selector requests Inspired, Hybrid, or Authentic behavior; it does not prove that a chip mode is fully accurate. If a mode is not verified at register/timing level, label it as inspired, style, or partial. Cycle-accurate claims require accepted test suites, trusted emulator comparisons, or real hardware captures.
+Chipper should sound like an instrument, but it should not overclaim. The header's Strictness selector requests Inspired, Hybrid, or Authentic behavior; it does not prove that a chip mode is fully accurate. The host/MIDI parameter is named `Behavior Strictness` to make automation lanes self-explanatory. If a mode is not verified at register/timing level, label it as inspired, style, or partial. Cycle-accurate claims require accepted test suites, trusted emulator comparisons, or real hardware captures.

@@ -6,7 +6,7 @@ Chipper should feel like one instrument with many chip profiles, not a bundle of
 
 Every chip mode uses the same outer workflow, but the visible sections are unnumbered and may expand, merge, or hide according to the selected chip. The stable shell is:
 
-- Header: ASCII logo, preset browser, Load/Save/Save As, Chip Mode, Behavior Strictness, and Play Mode.
+- Header: ASCII logo, preset browser, Load/Save/Save As, Chip Mode, Strictness, and Play Mode.
 - Chip summary: one short truthful sentence about the selected chip model and implementation status.
 - Source/voice deck: native channels, operators, sample voices, or wavetable lanes with channel-owned controls.
 - Chip edit workspace: tone, shape, filter, operator, envelope, sample-bank, and routing controls that belong to the selected chip.
@@ -201,7 +201,7 @@ Equivalent concepts stay in equivalent places:
 - SN76489: Sources are Tone 1-3 and Noise; Tone becomes Tone / Crunch.
 - YM2612 and OPL: Sources are FM voices; Tone becomes Operators.
 
-Authentic mode should expose chip-native behavior. Hybrid mode can add musical helpers. Inspired mode should simplify controls and clearly avoid accuracy claims. The requested Behavior Strictness selector is a user preference, not a proof badge. Each chip descriptor also carries a verification disclosure with a badge, evidence text, known gaps, and explicit `hardwareValidated` / `cycleAccurate` booleans. The footer/status tooltip and renderer descriptor JSON must use that disclosure so a user can request Authentic behavior while still seeing "Verified partial" or "Unverified planned" when that is the honest implementation state, without turning the header into an accuracy warning banner.
+Authentic mode should expose chip-native behavior. Hybrid mode can add musical helpers. Inspired mode should simplify controls and clearly avoid accuracy claims. The requested Strictness selector is a user preference, not a proof badge; the stable host/MIDI parameter remains named `Behavior Strictness` for automation clarity. Each chip descriptor also carries a verification disclosure with a badge, evidence text, known gaps, and explicit `hardwareValidated` / `cycleAccurate` booleans. The footer/status tooltip and renderer descriptor JSON must use that disclosure so a user can request Authentic behavior while still seeing "Verified partial" or "Unverified planned" when that is the honest implementation state, without turning the header into an accuracy warning banner.
 
 ## Current Bridge
 

@@ -6,7 +6,7 @@ Source candidates, reference projects, validation targets, and license-audit tie
 
 ## Strictness And Verification Labels
 
-- The VST header exposes these choices as **Behavior Strictness**. That selector requests how strict the musical surface should be; the footer verification badge and renderer debug JSON remain the actual implementation claim.
+- The VST header exposes these choices as **Strictness**. The stable host/MIDI parameter is named `Behavior Strictness` for automation clarity, but the visible UI term should stay short. That selector requests how strict the musical surface should be; the footer verification badge and renderer debug JSON remain the actual implementation claim.
 - The UI must not present Strictness as certification. A user can request Authentic behavior while a chip truthfully remains `Verified partial` until tests and references justify a stronger label.
 - **Inspired:** musical approximation. The UI may say "NES-inspired" or "SID-inspired"; it must not claim accurate emulation.
 - **Hybrid:** chip model plus modern conveniences. This is the default product mode.
