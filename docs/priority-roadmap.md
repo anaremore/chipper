@@ -14,6 +14,7 @@ For broader product gaps beyond this immediate chip-core and UI execution list, 
 - Presets should grow from original sound design, not imported game data. Every new preset should be audible, visibly reflected in controls, provenance-safe, and easy to share as a flat file.
 - Update only the owning doc when possible. UI screenshot rules belong in [ui-priority-audit.md](ui-priority-audit.md), broad product workflow gaps belong in [product-gap-roadmap.md](product-gap-roadmap.md), verification/license evidence belongs in the accuracy and source-map docs, and release/build mechanics belong in [release-builds.md](release-builds.md).
 - Keep this plan lean. When a bug is fixed and protected by a named test, remove it from the active queue and spend the next slice on playable instrument value: clearer controls, better sound design, stronger sample/wave/operator workflows, or better validation evidence.
+- Do not edit multiple planning docs just to say the same bug is closed. Put the durable rule in the owning doc, keep the named gate in this roadmap, and move on.
 
 ## Next Code Slices To Prefer
 
@@ -25,6 +26,8 @@ When there is no fresh P0 regression, use this order for the next development sl
 4. Start the FM operator editor as a contained vertical slice for one FM family, keeping the held-tail test subset green throughout.
 
 If a user suspects an old fixed regression, first run the named gate before editing docs or code. If the gate passes, document only the current forward path; if it fails, promote the issue back to P0 and update the relevant owner doc.
+
+Closed-bug policy: a passing gate means the plan does not change. A failing gate becomes a P0 regression, gets one owner doc update, and must leave behind a tighter test before returning to the fixed list.
 
 | Rank | Todo | User Value | Effort | Confidence | Confidence Improves With |
 | --- | --- | ---: | ---: | ---: | --- |

@@ -41,8 +41,9 @@ The planning docs intentionally separate current execution from broader research
 - [docs/product-gap-roadmap.md](docs/product-gap-roadmap.md) tracks larger instrument workflows such as tracker motion, wave/sample editing, FM operator editing, preset sharing, and release readiness.
 - [docs/ui-priority-audit.md](docs/ui-priority-audit.md) is the UI non-regression checklist for chip-aware layouts, standard control sizes, and channel-local controls.
 - [docs/emulation-accuracy.md](docs/emulation-accuracy.md) is the truthful source/verification/license status for each chip.
+- [docs/release-builds.md](docs/release-builds.md) owns local install, GitHub release, and release-gate procedure.
 
-Fixed issues such as FM sustained-note fade-out and NES DMC one-shot looping should remain in regression tests and release gates, not in the active feature queue unless they reproduce in the current build.
+Fixed issues such as FM sustained-note fade-out and NES DMC one-shot looping should remain in regression tests and release gates, not in the active feature queue unless they reproduce in the current build. When a fixed issue is suspected, run the named gate first; if it passes, keep planning focused on new user value instead of adding another stale todo.
 
 ## Current Chip Modes
 

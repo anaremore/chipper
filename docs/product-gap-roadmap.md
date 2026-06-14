@@ -45,6 +45,8 @@ The next implementation work should bias toward one complete user workflow at a 
 
 Cleanup rule: fixed bugs, screenshot complaints, and one-off exploratory notes should not live here once the durable rule is captured in the owning doc. This roadmap should answer what product workflow is still missing, not preserve a chronological record of every issue that has already been resolved.
 
+Closed-bug policy: if FM sustain, NES DMC loop-off, or another protected behavior is reported again, run the owning gate first. A passing gate keeps this roadmap unchanged. A failing gate promotes the bug back to active work and should produce a tighter test plus a short owner-doc update when fixed.
+
 ## Highest-Value Product Gaps
 
 1. **Chip-Aware Tracker Motion / SFX Gestures**
