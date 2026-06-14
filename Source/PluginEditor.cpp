@@ -3412,8 +3412,8 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 318 : ((spc700Layout || paulaLayout) ? 172 : (wavetableLayout ? 260 : 300)));
-    const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 650 : (spc700Layout ? 1160 : (paulaLayout ? 1080 : (wavetableLayout ? 650 : 492))));
+    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 318 : ((spc700Layout || paulaLayout) ? 220 : (wavetableLayout ? 260 : 300)));
+    const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 650 : (spc700Layout ? 1120 : (paulaLayout ? 1040 : (wavetableLayout ? 650 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
     auto modules = area.removeFromTop(modulesHeight);
@@ -3455,11 +3455,11 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (spc700Layout)
     {
-        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.20)), 186, 214);
-        const auto minimumSampleRowHeight = 390;
-        const auto maximumSourceRowHeight = std::max(380, modules.getHeight() - topRowHeight - minimumSampleRowHeight - (gap * 2));
-        const auto desiredSourceHeight = static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.40));
-        const auto sourceRowHeight = std::clamp(desiredSourceHeight, std::min(380, maximumSourceRowHeight), std::min(470, maximumSourceRowHeight));
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.20)), 196, 226);
+        const auto minimumSampleRowHeight = 380;
+        const auto maximumSourceRowHeight = std::max(400, modules.getHeight() - topRowHeight - minimumSampleRowHeight - (gap * 2));
+        const auto desiredSourceHeight = static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.45));
+        const auto sourceRowHeight = std::clamp(desiredSourceHeight, std::min(400, maximumSourceRowHeight), std::min(500, maximumSourceRowHeight));
         const auto sampleRowHeight = std::max(0, modules.getHeight() - topRowHeight - sourceRowHeight - (gap * 2));
         const auto topColumnWidth = (modules.getWidth() - gap) / 2;
         const auto topY = modules.getY();
@@ -3516,11 +3516,11 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (paulaLayout)
     {
-        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.08)), 70, 82);
-        const auto sampleMinimumHeight = std::min(420, std::max(340, modules.getHeight() / 3));
-        const auto sourceMaximumHeight = std::max(260, modules.getHeight() - middleRowHeight - sampleMinimumHeight - (gap * 2));
-        const auto sourceMinimumHeight = std::min(360, sourceMaximumHeight);
-        const auto desiredSourceHeight = static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.42));
+        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.09)), 82, 96);
+        const auto sampleMinimumHeight = std::min(430, std::max(360, modules.getHeight() / 3));
+        const auto sourceMaximumHeight = std::max(360, modules.getHeight() - middleRowHeight - sampleMinimumHeight - (gap * 2));
+        const auto sourceMinimumHeight = std::min(400, sourceMaximumHeight);
+        const auto desiredSourceHeight = static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.44));
         const auto sourceRowHeight = std::clamp(desiredSourceHeight, sourceMinimumHeight, sourceMaximumHeight);
         const auto sampleRowHeight = std::max(0, modules.getHeight() - middleRowHeight - sourceRowHeight - (gap * 2));
         const auto topY = modules.getY();
