@@ -6733,6 +6733,16 @@ static juce::String sampleMappedModeLabel(chipper::ChipMode mode, int playbackMo
     return "Map";
 }
 
+static juce::String spc700LifetimeShortLabel(const chipper::PatchConfig& patch)
+{
+    return chipper::spc700SampleLoopsForPatch(patch) ? "Loop" : "1x";
+}
+
+static juce::String spc700LifetimeLongLabel(const chipper::PatchConfig& patch)
+{
+    return chipper::spc700SampleLoopsForPatch(patch) ? "loop while held" : "one-shot";
+}
+
 static int previewSampleSlotForVoice(const ChipperAudioProcessor::Spc700BrrSampleInfo& info, size_t voiceIndex)
 {
     if (info.bankCount <= 0)
@@ -6815,12 +6825,13 @@ juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMod
                 : juce::String("Sample");
             if (slot >= 0 && slot < names.size())
                 slotText += " " + compactSampleName(names[slot], 12);
-            return "V" + number + " | " + slotText;
+            return "V" + number + " | " + slotText + " | " + spc700LifetimeShortLabel(patch);
         }
 
         return "V" + number
             + " | Shape " + juce::String(templateId)
-            + " " + juce::String(sample0) + "/" + juce::String(sample32);
+            + " " + juce::String(sample0) + "/" + juce::String(sample32)
+            + " | " + spc700LifetimeShortLabel(patch);
     }
 
     if (mode == chipper::ChipMode::paula)
@@ -6873,6 +6884,7 @@ juce::String ChipperAudioProcessorEditor::sampleSourceRegisterReadout(chipper::C
             + " | ADSR $" + byteHex(adsr)
             + " | GAIN $" + byteHex(gain)
             + " | " + (enabled ? juce::String("key on") : juce::String("muted"))
+            + " | " + spc700LifetimeLongLabel(patch)
             + " | ";
         if (noiseMode > 1u)
         {
