@@ -15,17 +15,18 @@ ctest --test-dir build-codex -C Release --output-on-failure
 For a focused smoke pass while iterating:
 
 ```powershell
-ctest --test-dir build-codex -C Release -R "chipper_descriptor_smoke|processor_midi_cc_smoke|held_tail|preset_.*held" --output-on-failure
+ctest --test-dir build-codex -C Release -R "chipper_descriptor_smoke|processor_midi_cc_smoke|chipper_editor_size_smoke|held_tail|preset_.*held" --output-on-failure
 ```
 
 This focused pass is the current high-signal regression gate for:
 
 - chip descriptor/UI metadata
 - MIDI CC and state-recall smoke behavior
+- DAW-friendly editor default and restored-window height
 - NES DMC one-shot versus loop behavior
 - FM held-tail behavior and held factory presets
 
-Latest focused gate check: 26/26 passing on 2026-06-14 for `chipper_descriptor_smoke|processor_midi_cc_smoke|held_tail|preset_.*held`.
+Latest focused gate check: 27/27 passing on 2026-06-15 for `chipper_descriptor_smoke|processor_midi_cc_smoke|chipper_editor_size_smoke|held_tail|preset_.*held`.
 
 Generated sample prerequisites such as NES `.dmc` and Paula `.8svx` fixtures should use CTest fixtures, not only `DEPENDS`, so filtered sample-focused runs still prepare their binary inputs.
 
@@ -111,6 +112,7 @@ Before a release is considered usable, keep these checks green:
 - Descriptor and MIDI CC smoke tests.
 - FM held-tail tests, because FM notes fading to silence is a fixed regression.
 - NES DMC loop-off tests, because one-shot DMC playback should stop stepping and hold the DAC value instead of looping.
+- Editor-size smoke tests, because Chipper should open and restore inside the DAW-friendly 620 px height cap.
 - Factory preset catalog and audibility checks whenever preset content changed.
 - At least one manual DAW scan/load check for Windows. Linux and macOS host checks should be added before public cross-platform releases are advertised as tested.
 

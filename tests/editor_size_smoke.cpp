@@ -127,7 +127,7 @@ int main()
         ChipperAudioProcessorEditor chipEditor(chipProcessor);
         ok &= expect(chipEditor.getWidth() == 1240, "chip default width changed");
         ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "chip default height changed");
-        ok &= expect(chipEditor.getHeight() <= 680, "chip default height exceeded DAW-friendly cap");
+        ok &= expect(chipEditor.getHeight() <= 620, "chip default height exceeded DAW-friendly cap");
         ok &= checkVisibleChildGeometry(chipEditor, chipEditor, juce::Point<int> {}, "editor/" + chipPath);
         chipEditor.setSize(1240, 1200);
         ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "chip-switched editor height was not clamped to its chip budget");
