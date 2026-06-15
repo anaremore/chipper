@@ -3493,8 +3493,8 @@ void ChipperAudioProcessorEditor::resized()
         const auto reservedGap = gap * 2;
         const auto minimumEnvelopeHeight = 112;
         const auto minimumOutputHeight = displayedMode == chipper::ChipMode::huc6280 ? 104 : 90;
-        const auto sourceMaximumHeight = std::min(360, std::max(280, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap));
-        const auto sourceMinimumHeight = std::min(300, sourceMaximumHeight);
+        const auto sourceMaximumHeight = std::min(312, std::max(260, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap));
+        const auto sourceMinimumHeight = std::min(268, sourceMaximumHeight);
         const auto desiredSourceHeight = static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.44));
         const auto sourceRowHeight = std::clamp(desiredSourceHeight, sourceMinimumHeight, sourceMaximumHeight);
         const auto remainingHeight = std::max(0, availableHeight - sourceRowHeight - reservedGap);
@@ -3701,11 +3701,11 @@ void ChipperAudioProcessorEditor::resized()
 
         const auto placeEmbeddedLevelInArea = [this, i](juce::Rectangle<int> levelArea, int labelWidth = 52)
         {
-            auto levelRow = levelArea.removeFromTop(std::min(15, levelArea.getHeight()));
+            auto levelRow = levelArea.removeFromTop(std::min(14, levelArea.getHeight()));
             sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(labelWidth, levelRow.getWidth())));
             sourceLevelValueLabels[i].setBounds(levelRow);
-            levelArea.removeFromTop(std::min(4, levelArea.getHeight()));
-            const auto sliderHeight = std::clamp(levelArea.getHeight(), 18, 24);
+            levelArea.removeFromTop(std::min(2, levelArea.getHeight()));
+            const auto sliderHeight = std::clamp(levelArea.getHeight(), 16, 22);
             sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(sliderHeight, levelArea.getHeight())).reduced(0, 2));
         };
 
@@ -3789,9 +3789,9 @@ void ChipperAudioProcessorEditor::resized()
             auto waveRow = sourceCard.removeFromTop(std::min(embeddedControlRowHeight, sourceCard.getHeight()));
             hucVoiceWaveLabels[i].setBounds(waveRow.removeFromTop(std::min(embeddedLabelHeight, waveRow.getHeight())));
             hucVoiceWaveBoxes[i].setBounds(waveRow.removeFromTop(std::min(standardInlineControlHeight, waveRow.getHeight())).reduced(0, 1));
-            sourceCard.removeFromTop(std::min(4, sourceCard.getHeight()));
+            sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
 
-            auto levelArea = sourceCard.removeFromBottom(std::min(50, sourceCard.getHeight()));
+            auto levelArea = sourceCard.removeFromBottom(std::min(40, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea);
         }
         else if (isPaulaSourceCard && i < hucVoiceWaveBoxes.size())
@@ -3820,9 +3820,9 @@ void ChipperAudioProcessorEditor::resized()
                     auto sampleRow = sourceCard.removeFromTop(std::min(embeddedControlRowHeight, sourceCard.getHeight()));
                     placeLabeledCombo(paulaVoiceSampleLabels[i], paulaVoiceSampleBoxes[i], sampleRow);
                 }
-                sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
+                sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
 
-                auto levelArea = sourceCard.removeFromBottom(std::min(50, sourceCard.getHeight()));
+                auto levelArea = sourceCard.removeFromBottom(std::min(40, sourceCard.getHeight()));
                 placeEmbeddedLevelInArea(levelArea);
             }
         }
@@ -3832,9 +3832,9 @@ void ChipperAudioProcessorEditor::resized()
             auto sampleRow = sourceCard.removeFromTop(sampleRowHeight);
             hucVoiceWaveLabels[i].setBounds(sampleRow.removeFromTop(std::min(embeddedLabelHeight, sampleRow.getHeight())));
             hucVoiceWaveBoxes[i].setBounds(sampleRow.removeFromTop(std::min(standardInlineControlHeight, sampleRow.getHeight())).reduced(0, 1));
-            sourceCard.removeFromTop(std::min(4, sourceCard.getHeight()));
+            sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
 
-            auto levelArea = sourceCard.removeFromBottom(std::min(50, sourceCard.getHeight()));
+            auto levelArea = sourceCard.removeFromBottom(std::min(40, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea, 42);
         }
 
