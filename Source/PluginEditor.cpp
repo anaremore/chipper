@@ -3497,7 +3497,7 @@ void ChipperAudioProcessorEditor::resized()
         const auto availableHeight = modules.getHeight();
         const auto reservedGap = gap * 2;
         const auto minimumEnvelopeHeight = 66;
-        const auto minimumOutputHeight = displayedMode == chipper::ChipMode::huc6280 ? 78 : 72;
+        const auto minimumOutputHeight = displayedMode == chipper::ChipMode::huc6280 ? 104 : 72;
         const auto visibleSources = static_cast<int>(chipper::visibleSourceCountForMode(displayedMode));
         constexpr auto sourceColumns = 4;
         const auto sourceRows = std::max(1, (visibleSources + sourceColumns - 1) / sourceColumns);
@@ -4145,9 +4145,12 @@ void ChipperAudioProcessorEditor::resized()
     if (splitOutputCard)
     {
         const auto availableHeight = outputPanel.getHeight();
-        const auto routeHeight = std::clamp((availableHeight / 2) + 12, 58, 72);
+        const auto routeMinimum = displayedMode == chipper::ChipMode::huc6280 ? 70 : 58;
+        const auto routeMaximum = displayedMode == chipper::ChipMode::huc6280 ? 84 : 72;
+        const auto routeHeight = std::clamp((availableHeight / 2) + 12, routeMinimum, routeMaximum);
         const auto gapHeight = std::min(6, std::max(0, availableHeight - routeHeight));
-        const auto toneHeight = std::max(38, availableHeight - routeHeight - gapHeight);
+        const auto toneHeight = std::max(displayedMode == chipper::ChipMode::huc6280 ? 42 : 38,
+                                         availableHeight - routeHeight - gapHeight);
         outputTonePanel = outputPanel.removeFromTop(std::min(toneHeight, outputPanel.getHeight()));
         outputPanel.removeFromTop(std::min(gapHeight, outputPanel.getHeight()));
         outputRoutePanel = outputPanel;
