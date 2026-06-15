@@ -18,14 +18,14 @@ namespace
 constexpr int userPresetItemIdBase = 10000;
 constexpr int initPresetItemId = 9000;
 constexpr int editorDefaultWidth = 1240;
-constexpr int editorDefaultHeight = 720;
+constexpr int editorDefaultHeight = 800;
 constexpr int editorMinWidth = 1180;
-constexpr int editorMinHeight = 560;
+constexpr int editorMinHeight = 700;
 constexpr int editorMaxWidth = 1800;
 constexpr int editorMaxHeight = editorDefaultHeight;
 
 static_assert(editorDefaultHeight <= editorMaxHeight);
-static_assert(editorMaxHeight <= 720, "Keep the Chipper editor DAW-friendly by default.");
+static_assert(editorMaxHeight <= 800, "Keep the Chipper editor DAW-friendly by default.");
 
 int preferredEditorHeightForMode(chipper::ChipMode mode)
 {
@@ -1137,6 +1137,13 @@ ChipWaveformPreviewShape wavetablePreviewShape(const chipper::PatchConfig& patch
 template <typename ButtonArray>
 void layoutSegmentedButtons(ButtonArray& buttons, juce::Rectangle<int> bounds, size_t visibleCount)
 {
+    if (bounds.getWidth() < 24 || bounds.getHeight() < 18)
+    {
+        for (auto& button : buttons)
+            button.setBounds({});
+        return;
+    }
+
     const auto count = std::max<size_t>(1u, std::min(visibleCount, buttons.size()));
     const auto idealButtonWidth = 92;
     const auto gap = bounds.getWidth() < static_cast<int>(count) * idealButtonWidth ? 3 : 4;
@@ -3440,8 +3447,8 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 96 : (spc700Layout ? 72 : (paulaLayout ? 122 : (wavetableLayout ? 178 : 220))));
-    const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 430 : (spc700Layout ? 520 : (paulaLayout ? 520 : (wavetableLayout ? 470 : 492))));
+    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 220 : (spc700Layout ? 112 : (paulaLayout ? 126 : (wavetableLayout ? 150 : 220))));
+    const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 390 : (spc700Layout ? 520 : (paulaLayout ? 530 : (wavetableLayout ? 500 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 8 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
     auto modules = area.removeFromTop(modulesHeight);
@@ -3500,13 +3507,13 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (spc700Layout)
     {
-        constexpr auto minimumTopRowHeight = 126;
+        constexpr auto minimumTopRowHeight = 150;
         constexpr auto minimumSourceRowHeight = 196;
-        constexpr auto minimumSampleRowHeight = 92;
+        constexpr auto minimumSampleRowHeight = 138;
         const auto availableHeight = modules.getHeight();
         auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.22)),
                                        minimumTopRowHeight,
-                                       138);
+                                       164);
         auto remainingHeight = std::max(0, availableHeight - topRowHeight - (gap * 2));
         auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(remainingHeight) * 0.60)),
                                           std::min(minimumSourceRowHeight, remainingHeight),
@@ -3553,9 +3560,9 @@ void ChipperAudioProcessorEditor::resized()
         constexpr auto sourceColumns = 4;
         const auto sourceRows = std::max(1, (visibleSources + sourceColumns - 1) / sourceColumns);
         constexpr auto sourceHeaderReserve = 56;
-        constexpr auto targetCardHeight = 100;
+        constexpr auto targetCardHeight = 124;
         const auto desiredSourceHeight = sourceHeaderReserve + (targetCardHeight * sourceRows) + (gap * (sourceRows - 1));
-        const auto sourceMaximumHeight = std::min(272, std::max(224, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap));
+        const auto sourceMaximumHeight = std::min(326, std::max(224, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap));
         const auto sourceMinimumHeight = std::min(desiredSourceHeight, sourceMaximumHeight);
         const auto sourceRowHeight = std::clamp(desiredSourceHeight, sourceMinimumHeight, sourceMaximumHeight);
         const auto remainingHeight = std::max(0, availableHeight - sourceRowHeight - reservedGap);
@@ -3577,13 +3584,13 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (paulaLayout)
     {
-        constexpr auto minimumSourceRowHeight = 222;
-        constexpr auto minimumMiddleRowHeight = 44;
-        constexpr auto minimumSampleRowHeight = 154;
+        constexpr auto minimumSourceRowHeight = 260;
+        constexpr auto minimumMiddleRowHeight = 68;
+        constexpr auto minimumSampleRowHeight = 176;
         const auto availableHeight = modules.getHeight();
         auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.12)),
                                           minimumMiddleRowHeight,
-                                          62);
+                                          82);
         auto remainingHeight = std::max(0, availableHeight - middleRowHeight - (gap * 2));
         auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(remainingHeight) * 0.60)),
                                           std::min(minimumSourceRowHeight, remainingHeight),
@@ -3778,12 +3785,17 @@ void ChipperAudioProcessorEditor::resized()
 
         const auto placeEmbeddedLevelInArea = [this, i](juce::Rectangle<int> levelArea, int labelWidth = 52)
         {
-            auto levelRow = levelArea.removeFromTop(std::min(14, levelArea.getHeight()));
+            constexpr auto minimumSliderHeight = 6;
+            const auto compact = levelArea.getHeight() < 28;
+            const auto labelHeight = compact
+                ? std::max(0, std::min(10, levelArea.getHeight() - minimumSliderHeight - 1))
+                : std::min(14, levelArea.getHeight());
+            auto levelRow = levelArea.removeFromTop(labelHeight);
             sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(labelWidth, levelRow.getWidth())));
-            sourceLevelValueLabels[i].setBounds(levelRow);
-            levelArea.removeFromTop(std::min(2, levelArea.getHeight()));
+            sourceLevelValueLabels[i].setBounds(compact ? juce::Rectangle<int> {} : levelRow);
+            levelArea.removeFromTop(std::min(compact ? 1 : 2, levelArea.getHeight()));
             const auto sliderHeight = std::clamp(levelArea.getHeight(), 16, 22);
-            sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(sliderHeight, levelArea.getHeight())).reduced(0, 2));
+            sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(sliderHeight, levelArea.getHeight())));
         };
 
         if (isSidSourceCard && i < sidVoiceWaveCount)
@@ -4453,15 +4465,15 @@ void ChipperAudioProcessorEditor::resized()
 
         constexpr int standardSampleControlHeight = 32;
         const auto compactSampleBank = controlColumn.getHeight() < 190;
-        auto pitchPanel = controlColumn.removeFromTop(std::min(compactSampleBank ? 48 : 80, controlColumn.getHeight()));
+        auto pitchPanel = controlColumn.removeFromTop(std::min(compactSampleBank ? 44 : 80, controlColumn.getHeight()));
         nativeGroupLabels[1].setBounds(pitchPanel.removeFromTop(std::min(14, pitchPanel.getHeight())));
-        auto pitchHeader = pitchPanel.removeFromTop(std::min(compactSampleBank ? 24 : standardSampleControlHeight, pitchPanel.getHeight()));
+        auto pitchHeader = pitchPanel.removeFromTop(std::min(compactSampleBank ? 20 : standardSampleControlHeight, pitchPanel.getHeight()));
         controlValueLabels[1].setJustificationType(juce::Justification::centred);
         controlValueLabels[1].setBounds(pitchHeader.removeFromRight(std::min(104, pitchHeader.getWidth())));
         pitchHeader.removeFromRight(std::min(8, pitchHeader.getWidth()));
         nativeLabels[1].setBounds(pitchHeader);
-        pitchPanel.removeFromTop(std::min(3, pitchPanel.getHeight()));
-        nativeSliders[1].setBounds(pitchPanel.removeFromTop(std::min(compactSampleBank ? 20 : standardSampleControlHeight, pitchPanel.getHeight())).reduced(0, 2));
+        pitchPanel.removeFromTop(std::min(compactSampleBank ? 1 : 3, pitchPanel.getHeight()));
+        nativeSliders[1].setBounds(pitchPanel.removeFromTop(std::min(compactSampleBank ? 20 : standardSampleControlHeight, pitchPanel.getHeight())));
         controlColumn.removeFromTop(std::min(twoColumnSampleBank ? 4 : 6, controlColumn.getHeight()));
 
         auto sampleHeader = controlColumn.removeFromTop(std::min(18, controlColumn.getHeight()));
@@ -4698,7 +4710,7 @@ void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
         valueLabel.setBounds(readout);
 
         bounds.removeFromTop(std::min(2, bounds.getHeight()));
-        slider.setBounds(bounds.removeFromTop(std::min(sliderHeight, bounds.getHeight())).reduced(0, 2));
+        slider.setBounds(bounds.removeFromTop(std::min(sliderHeight, bounds.getHeight())));
         return;
     }
 
@@ -4717,11 +4729,13 @@ void ChipperAudioProcessorEditor::placeLabeledSliderWithReadout(juce::Slider& sl
 
     if (bounds.getHeight() <= 42)
     {
-        auto header = bounds.removeFromTop(std::min(18, bounds.getHeight()));
+        constexpr auto minimumSliderHeight = 6;
+        const auto headerHeight = std::max(0, std::min(18, bounds.getHeight() - minimumSliderHeight - 1));
+        auto header = bounds.removeFromTop(headerHeight);
         label.setBounds(header.removeFromLeft(std::min(180, header.getWidth())));
         valueLabel.setBounds(header);
-        bounds.removeFromTop(std::min(2, bounds.getHeight()));
-        slider.setBounds(bounds.reduced(0, 1));
+        bounds.removeFromTop(std::min(1, bounds.getHeight()));
+        slider.setBounds(bounds);
         return;
     }
 

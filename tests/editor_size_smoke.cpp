@@ -8,7 +8,8 @@
 
 namespace
 {
-constexpr int expectedEditorHeight = 720;
+constexpr int expectedEditorHeight = 800;
+constexpr int expectedEditorMinimumHeight = 700;
 
 bool expect(bool condition, const char* message)
 {
@@ -76,6 +77,7 @@ bool checkVisibleChildGeometry(const juce::Component& root,
 
             const auto* comboBox = dynamic_cast<const juce::ComboBox*>(child);
             const auto* textButton = dynamic_cast<const juce::TextButton*>(child);
+            const auto* slider = dynamic_cast<const juce::Slider*>(child);
             if (comboBox != nullptr)
             {
                 if (bounds.getWidth() < 48 || bounds.getHeight() < 24)
@@ -96,6 +98,20 @@ bool checkVisibleChildGeometry(const juce::Component& root,
                               << childPath << " type " << typeid(*child).name()
                               << " bounds " << absoluteBounds.toString()
                               << " text \"" << textButton->getButtonText() << "\"\n";
+                    ok = false;
+                }
+            }
+
+            if (slider != nullptr)
+            {
+                const auto isHorizontalSlider = bounds.getWidth() >= bounds.getHeight();
+                const auto minimumWidth = isHorizontalSlider ? 48 : 12;
+                const auto minimumHeight = isHorizontalSlider ? 6 : 48;
+                if (bounds.getWidth() < minimumWidth || bounds.getHeight() < minimumHeight)
+                {
+                    std::cerr << "editor_size_smoke: slider below readable minimum size at "
+                              << childPath << " type " << typeid(*child).name()
+                              << " bounds " << absoluteBounds.toString() << "\n";
                     ok = false;
                 }
             }
@@ -125,7 +141,7 @@ int main()
 
     editor.setSize(1000, 600);
     ok &= expect(editor.getWidth() >= 1180, "editor width was not clamped to minimum");
-    ok &= expect(editor.getHeight() >= 560, "editor height was not clamped to minimum");
+    ok &= expect(editor.getHeight() >= expectedEditorMinimumHeight, "editor height was not clamped to minimum");
 
     const auto chipModeCount = chipper::parameters::chipModeChoices().size();
     for (auto chipMode = 0; chipMode < chipModeCount; ++chipMode)
