@@ -37,6 +37,8 @@ For preset work, run the catalog and audibility checks before calling the bank r
 
 These commands verify that factory presets are chip-local, metadata-complete, category-safe, and actually render audible output. They do not prove that a preset is musically excellent, so new presets still need a quick hand-audition pass and clean provenance.
 
+The preset QA helper auto-detects `chipper_render` in common Windows and Unix CMake layouts, including `Release/chipper_render.exe`, `Release/chipper_render`, and single-config `chipper_render` builds. Pass `-Renderer` only when using a custom output path.
+
 Install the exact local build you just made:
 
 ```powershell

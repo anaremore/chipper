@@ -21,12 +21,15 @@ jobs:
           - label: Windows
             os: windows-latest
             artifact_suffix: windows
+            python: python
           - label: Linux
             os: ubuntu-24.04
             artifact_suffix: linux
+            python: python3
           - label: macOS
             os: macos-14
             artifact_suffix: macos
+            python: python3
 
     steps:
       - name: Check out repository
@@ -65,6 +68,10 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build-release -C Release --output-on-failure
+
+      - name: Preset QA
+        shell: pwsh
+        run: ./scripts/verify-presets.ps1 -BuildRoot build-release -Python ${{ matrix.python }}
 
       - name: Package VST3
         id: package

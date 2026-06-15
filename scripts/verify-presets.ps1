@@ -20,10 +20,19 @@ $buildPath = if ([System.IO.Path]::IsPathRooted($BuildRoot)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($Renderer)) {
-    $Renderer = Join-Path $buildPath "Release\chipper_render.exe"
+    $candidateRenderers = @(
+        (Join-Path $buildPath "Release\chipper_render.exe"),
+        (Join-Path $buildPath "Release\chipper_render"),
+        (Join-Path $buildPath "chipper_render.exe"),
+        (Join-Path $buildPath "chipper_render")
+    )
+
+    $Renderer = $candidateRenderers |
+        Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+        Select-Object -First 1
 }
-if (-not (Test-Path -LiteralPath $Renderer)) {
-    throw "Renderer not found: $Renderer. Build it first with: cmake --build $BuildRoot --config Release --target chipper_render"
+if ([string]::IsNullOrWhiteSpace($Renderer) -or -not (Test-Path -LiteralPath $Renderer -PathType Leaf)) {
+    throw "Renderer not found under $buildPath. Build it first with: cmake --build $BuildRoot --config Release --target chipper_render, or pass -Renderer explicitly."
 }
 
 if ([string]::IsNullOrWhiteSpace($WorkDir)) {
