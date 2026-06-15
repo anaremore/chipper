@@ -3412,8 +3412,8 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 318 : (sampleLayout ? 220 : (wavetableLayout ? 220 : 300)));
-    const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 650 : (spc700Layout ? 1220 : (paulaLayout ? 1320 : (wavetableLayout ? 680 : 492))));
+    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 318 : (sampleLayout ? (paulaLayout ? 200 : 210) : (wavetableLayout ? 220 : 300)));
+    const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 650 : (spc700Layout ? 1260 : (paulaLayout ? 1360 : (wavetableLayout ? 680 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
     auto modules = area.removeFromTop(modulesHeight);
@@ -3457,13 +3457,13 @@ void ChipperAudioProcessorEditor::resized()
     {
         const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.20)), 196, 226);
         constexpr auto spc700SourceRows = 2;
-        constexpr auto targetSpc700CardHeight = 134;
+        constexpr auto targetSpc700CardHeight = 146;
         const auto targetSourceHeight = (targetSpc700CardHeight * spc700SourceRows) + gap;
-        const auto minimumSampleRowHeight = 430;
+        const auto minimumSampleRowHeight = 450;
         const auto maximumSourceRowHeight = std::max(0, modules.getHeight() - topRowHeight - minimumSampleRowHeight - (gap * 2));
         const auto sourceRowHeight = std::clamp(targetSourceHeight,
-                                                std::min(250, maximumSourceRowHeight),
-                                                std::min(320, maximumSourceRowHeight));
+                                                std::min(272, maximumSourceRowHeight),
+                                                std::min(340, maximumSourceRowHeight));
         const auto sampleRowHeight = std::max(0, modules.getHeight() - topRowHeight - sourceRowHeight - (gap * 2));
         const auto topColumnWidth = (modules.getWidth() - gap) / 2;
         const auto topY = modules.getY();
@@ -3524,16 +3524,16 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (paulaLayout)
     {
-        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.07)), 72, 92);
-        const auto sampleMinimumHeight = std::min(560, std::max(470, modules.getHeight() / 3));
+        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.06)), 68, 86);
+        const auto sampleMinimumHeight = std::min(610, std::max(500, modules.getHeight() / 3));
         const auto sourceMaximumHeight = std::max(0, modules.getHeight() - middleRowHeight - sampleMinimumHeight - (gap * 2));
         constexpr auto paulaSourceRows = 2;
-        constexpr auto targetPaulaCardHeight = 158;
+        constexpr auto targetPaulaCardHeight = 174;
         const auto desiredSourceHeight = (targetPaulaCardHeight * paulaSourceRows) + gap;
-        const auto sourceMinimumHeight = std::min(300, sourceMaximumHeight);
+        const auto sourceMinimumHeight = std::min(330, sourceMaximumHeight);
         const auto sourceRowHeight = std::clamp(desiredSourceHeight,
                                                 sourceMinimumHeight,
-                                                std::min(350, sourceMaximumHeight));
+                                                std::min(380, sourceMaximumHeight));
         const auto sampleRowHeight = std::max(0, modules.getHeight() - middleRowHeight - sourceRowHeight - (gap * 2));
         const auto topY = modules.getY();
         const auto middleY = topY + sourceRowHeight + gap;
