@@ -31,11 +31,11 @@ int preferredEditorHeightForMode(chipper::ChipMode mode)
 {
     switch (mode)
     {
-        case chipper::ChipMode::nes:
         case chipper::ChipMode::spc700:
         case chipper::ChipMode::paula:
             return editorMaxHeight;
 
+        case chipper::ChipMode::nes:
         default:
             return editorDefaultHeight;
     }
@@ -3391,7 +3391,7 @@ void ChipperAudioProcessorEditor::resized()
 
     auto area = getLocalBounds().reduced(16);
 
-    auto top = area.removeFromTop(62);
+    auto top = area.removeFromTop(56);
     const auto placeHeaderCombo = [this](size_t index, juce::ComboBox& comboBox, juce::Rectangle<int> bounds)
     {
         headerControlLabels[index].setBounds(bounds.removeFromTop(16));
@@ -3433,11 +3433,11 @@ void ChipperAudioProcessorEditor::resized()
     placeHeaderCombo(2, accuracyBox, top.removeFromLeft(accuracyWidth));
     top.removeFromLeft(8);
     placeHeaderCombo(4, playModeBox, top.removeFromLeft(playModeWidth));
-    area.removeFromTop(10);
-    chipSummaryLabel.setBounds(area.removeFromTop(34));
-    area.removeFromTop(10);
+    area.removeFromTop(6);
+    chipSummaryLabel.setBounds(area.removeFromTop(28));
+    area.removeFromTop(8);
 
-    constexpr auto footerReserve = 52;
+    constexpr auto footerReserve = 44;
     const auto nesLayout = displayedMode == chipper::ChipMode::nes;
     const auto sidLayout = displayedMode == chipper::ChipMode::sid;
     const auto dmgLayout = displayedMode == chipper::ChipMode::dmg;
@@ -3448,9 +3448,9 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 108 : (spc700Layout ? 142 : (paulaLayout ? 122 : (wavetableLayout ? 178 : 300))));
+    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 96 : (spc700Layout ? 142 : (paulaLayout ? 122 : (wavetableLayout ? 178 : 300))));
     const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 430 : (spc700Layout ? 520 : (paulaLayout ? 520 : (wavetableLayout ? 470 : 492))));
-    const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
+    const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 8 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
