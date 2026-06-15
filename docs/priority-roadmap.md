@@ -82,6 +82,7 @@ If a protected behavior is suspected again, first run the named gate. A passing 
 These are the highest-signal cleanup items after the latest all-chip screenshot pass:
 
 - Keep sampler layouts collision-free. Paula and SPC700 now reserve extra module height for sample-bank editing and use a shorter Performance Macros strip so waveform previews, root/playback controls, loop state, per-voice sample controls, and macros do not collide. If those compete, the sample editor wins and the macro strip moves or grows.
+- Keep the plugin DAW-fit first. Compact chip pages open at 680 px tall and sample-heavy Paula/SPC700 pages cap at 760 px so high-DPI hosts do not reopen Chipper off-screen; any future layout work has to fit inside those chip-specific budgets or introduce a deliberate secondary view.
 - Keep wavetable cards readable. HuC6280, Namco WSG, and SCC now keep per-lane wave selectors and visible level controls in each source card; if future per-lane pitch, pan, gate, or wave-edit controls do not fit, grow the layout rather than hiding controls.
 - Keep helper envelopes honest and visible. POKEY, Paula, HuC6280, Namco WSG, and SCC helper envelopes are Chipper musical volume helpers, not native ADSR. They should render as standard controls with chip-specific readouts, never as empty title-only panels.
 - Keep shared output controls complete. If a chip uses one output module for both a tone/spread slider and a route/LFO segment, reserve enough height for the label, the actual control, and the readout; showing only the label is a UI regression.
