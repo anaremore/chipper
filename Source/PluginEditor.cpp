@@ -3496,15 +3496,15 @@ void ChipperAudioProcessorEditor::resized()
     {
         const auto availableHeight = modules.getHeight();
         const auto reservedGap = gap * 2;
-        const auto minimumEnvelopeHeight = 92;
-        const auto minimumOutputHeight = displayedMode == chipper::ChipMode::huc6280 ? 104 : 90;
+        const auto minimumEnvelopeHeight = 74;
+        const auto minimumOutputHeight = displayedMode == chipper::ChipMode::huc6280 ? 84 : 78;
         const auto visibleSources = static_cast<int>(chipper::visibleSourceCountForMode(displayedMode));
         const auto sourceColumns = displayedMode == chipper::ChipMode::namcoWsg ? 4 : (displayedMode == chipper::ChipMode::scc ? 3 : 3);
         const auto sourceRows = std::max(1, (visibleSources + sourceColumns - 1) / sourceColumns);
         constexpr auto sourceHeaderReserve = 58;
-        constexpr auto targetCardHeight = 118;
+        constexpr auto targetCardHeight = 136;
         const auto desiredSourceHeight = sourceHeaderReserve + (targetCardHeight * sourceRows) + (gap * (sourceRows - 1));
-        const auto sourceMaximumHeight = std::min(310, std::max(244, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap));
+        const auto sourceMaximumHeight = std::min(356, std::max(244, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap));
         const auto sourceMinimumHeight = std::min(desiredSourceHeight, sourceMaximumHeight);
         const auto sourceRowHeight = std::clamp(desiredSourceHeight, sourceMinimumHeight, sourceMaximumHeight);
         const auto remainingHeight = std::max(0, availableHeight - sourceRowHeight - reservedGap);
