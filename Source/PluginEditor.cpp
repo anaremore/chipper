@@ -3455,12 +3455,12 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (spc700Layout)
     {
-        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.17)), 148, 176);
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.19)), 176, 210);
         constexpr auto spc700SourceRows = 2;
-        constexpr auto sourcePanelChrome = 72;
-        constexpr auto targetSpc700CardHeight = 158;
+        constexpr auto sourcePanelChrome = 68;
+        constexpr auto targetSpc700CardHeight = 166;
         const auto targetSourceHeight = sourcePanelChrome + (targetSpc700CardHeight * spc700SourceRows) + gap;
-        const auto minimumSampleRowHeight = 340;
+        const auto minimumSampleRowHeight = 320;
         const auto maximumSourceRowHeight = std::max(0, modules.getHeight() - topRowHeight - minimumSampleRowHeight - (gap * 2));
         const auto sourceRowHeight = std::clamp(targetSourceHeight,
                                                 std::min(340, maximumSourceRowHeight),
@@ -3656,7 +3656,7 @@ void ChipperAudioProcessorEditor::resized()
         ? std::min(rawSourceCardHeight, 118)
         : (usePaulaVoiceGrid
                ? std::min(rawSourceCardHeight, 178)
-               : (useSpc700VoiceGrid ? std::min(rawSourceCardHeight, 158) : rawSourceCardHeight));
+               : (useSpc700VoiceGrid ? std::min(rawSourceCardHeight, 166) : rawSourceCardHeight));
     for (size_t i = 0; i < sourceChannelBounds.size(); ++i)
     {
         if (i >= visibleSourceCards)
@@ -3846,11 +3846,10 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isSpc700SourceCard && i < hucVoiceWaveBoxes.size())
         {
-            auto levelArea = sourceCard.removeFromBottom(std::min(46, sourceCard.getHeight()));
-            const auto sampleRowHeight = std::min(embeddedControlRowHeight, sourceCard.getHeight());
-            auto sampleRow = sourceCard.removeFromTop(sampleRowHeight);
-            hucVoiceWaveLabels[i].setBounds(sampleRow.removeFromTop(std::min(embeddedLabelHeight, sampleRow.getHeight())));
-            hucVoiceWaveBoxes[i].setBounds(sampleRow.removeFromTop(std::min(standardInlineControlHeight, sampleRow.getHeight())).reduced(0, 1));
+            auto levelArea = sourceCard.removeFromBottom(std::min(50, sourceCard.getHeight()));
+            auto sampleRow = sourceCard.removeFromTop(std::min(standardInlineControlHeight, sourceCard.getHeight()));
+            hucVoiceWaveLabels[i].setBounds(sampleRow.removeFromLeft(std::min(52, sampleRow.getWidth())));
+            hucVoiceWaveBoxes[i].setBounds(sampleRow.reduced(0, 1));
             sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
 
             placeEmbeddedLevelInArea(levelArea, 42);
