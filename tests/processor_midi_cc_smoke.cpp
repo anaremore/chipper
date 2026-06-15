@@ -366,6 +366,22 @@ int main()
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::stereoSpread), 0.0f, 0.0001f,
                      "CC74 NES Drum macro should reset stereo/spread role to the chip macro template");
 
+    {
+        ChipperAudioProcessor dmgPulse2Processor;
+        dmgPulse2Processor.prepareToPlay(48000.0, 64);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::chipMode, 1.0f);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::macro, 2.0f);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::source1Enabled, 0.0f);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::source2Enabled, 1.0f);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::source3Enabled, 0.0f);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::source4Enabled, 0.0f);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::source2Level, 1.0f);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::pulse2Duty, 4.0f);
+        const auto pulse2OnlyPeak = renderNoteOnPeak(dmgPulse2Processor, 60);
+        ok &= expect(pulse2OnlyPeak > 0.0001f,
+                     "DMG Pulse 2 source card should produce audio when explicitly enabled by the UI");
+    }
+
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 2));
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 2));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::waveShape), 3.0f, 0.0001f,

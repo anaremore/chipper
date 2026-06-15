@@ -157,6 +157,22 @@ uint8_t sourceEnableMask(const PatchConfig& patch)
     return mask;
 }
 
+uint8_t enabledSourceMaskOrRecipe(const PatchConfig& patch, uint8_t recipeMask)
+{
+    const auto requestedMask = sourceEnableMask(patch);
+    return requestedMask != 0u ? requestedMask : recipeMask;
+}
+
+uint8_t ensureDmgRegisterVolume(uint8_t volume, uint8_t fallback)
+{
+    return volume > 0u ? volume : std::clamp<uint8_t>(fallback, static_cast<uint8_t>(1u), static_cast<uint8_t>(15u));
+}
+
+unsigned ensureNesRegisterVolume(unsigned volume, unsigned fallback)
+{
+    return volume > 0u ? volume : std::clamp<unsigned>(fallback, 1u, 15u);
+}
+
 bool envelopeDecayActive(const PatchConfig& patch)
 {
     return patch.envelopeDecay > 0.01f;
@@ -383,10 +399,13 @@ public:
                 break;
         }
 
-        const auto requestedSources = sourceEnableMask(patch);
-        auto enabledSources = static_cast<unsigned>((enable & 0x0fu) & requestedSources);
-        if (enabledSources == 0u && requestedSources != 0u)
-            enabledSources = requestedSources;
+        const auto enabledSources = enabledSourceMaskOrRecipe(patch, static_cast<uint8_t>(enable & 0x0fu)) & 0x0fu;
+        if ((enabledSources & 0x01u) != 0u)
+            ch1Vol = ensureDmgRegisterVolume(ch1Vol, envelope);
+        if ((enabledSources & 0x02u) != 0u)
+            ch2Vol = ensureDmgRegisterVolume(ch2Vol, static_cast<uint8_t>(std::max<int>(1, envelope - 4)));
+        if ((enabledSources & 0x08u) != 0u)
+            noiseVol = ensureDmgRegisterVolume(noiseVol, static_cast<uint8_t>(std::max<int>(8, std::round(patch.control3 * 15.0f))));
         enable = static_cast<unsigned>(0x80u | enabledSources);
 
         writeRegister(0xff26, 0x80);
@@ -2176,7 +2195,14 @@ public:
         }
         else
         {
-            enable &= sourceEnableMask(patch);
+            const auto requestedSources = enabledSourceMaskOrRecipe(patch, static_cast<uint8_t>(enable & 0x0fu)) & 0x0fu;
+            enable = requestedSources;
+            if ((enable & 0x01u) != 0u)
+                p1Vol = ensureNesRegisterVolume(p1Vol, 8u);
+            if ((enable & 0x02u) != 0u)
+                p2Vol = ensureNesRegisterVolume(p2Vol, std::max(5u, p1Vol));
+            if ((enable & 0x08u) != 0u)
+                noiseVol = ensureNesRegisterVolume(noiseVol, static_cast<unsigned>(std::max<int>(8, std::round(patch.control3 * 12.0f))));
             if (! dmcSample.empty() && sourceEnabled(patch, 3))
                 enable |= 0x10u;
         }
