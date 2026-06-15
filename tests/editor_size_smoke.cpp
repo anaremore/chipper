@@ -9,7 +9,7 @@
 namespace
 {
 constexpr int expectedEditorHeight = 880;
-constexpr int expectedEditorMinimumHeight = 700;
+constexpr int expectedEditorMinimumHeight = 820;
 
 bool expect(bool condition, const char* message)
 {

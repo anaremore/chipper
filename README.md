@@ -32,7 +32,7 @@ Chipper is being developed as an accurate, truthful chip instrument rather than 
 - Chip-owned controls belong where the hardware owns them: duty under pulse channels, noise mode under noise channels, wave/sample choices and level under each wavetable or sampler lane, filters/echo/sample banks in shared modules.
 - Chips without native ADSR use clearly labeled Chipper amp/gate helpers instead of pretending the hardware has full ADSR.
 - Fixed regressions stay in tests and release gates. FM held-note fade-out and NES DMC loop-off behavior are currently treated as fixed; if they return, they are regressions, not open design questions.
-- UI readability wins over density, but the default editor must remain DAW-friendly. Chip-specific layouts may rebalance or use fixed aspect ratios when that preserves standard-height controls, visible level lanes, and waveform previews without opening off-screen by default; the current editor opens at an 880 px height cap with a 700 px minimum clamp so sample editors and macros have room without returning to an oversized host window.
+- UI readability wins over density, but the default editor must remain DAW-friendly. Chip-specific layouts may rebalance or use fixed aspect ratios when that preserves standard-height controls, visible level lanes, and waveform previews without opening off-screen by default; the current editor opens at an 880 px height cap with an 820 px minimum clamp so sample editors and macros have room without returning to an oversized host window.
 
 ## Planning Map
 

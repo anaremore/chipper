@@ -20,7 +20,7 @@ constexpr int initPresetItemId = 9000;
 constexpr int editorDefaultWidth = 1240;
 constexpr int editorDefaultHeight = 880;
 constexpr int editorMinWidth = 1180;
-constexpr int editorMinHeight = 700;
+constexpr int editorMinHeight = 820;
 constexpr int editorMaxWidth = 1800;
 constexpr int editorMaxHeight = editorDefaultHeight;
 
