@@ -4390,7 +4390,7 @@ void ChipperAudioProcessorEditor::resized()
             waveformColumn = sampleCell;
         }
 
-        auto pitchPanel = controlColumn.removeFromTop(std::min(twoColumnSampleBank ? 82 : 88, controlColumn.getHeight()));
+        auto pitchPanel = controlColumn.removeFromTop(std::min(88, controlColumn.getHeight()));
         placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], pitchPanel);
         controlColumn.removeFromTop(std::min(twoColumnSampleBank ? 6 : 8, controlColumn.getHeight()));
 
