@@ -36,6 +36,7 @@ When doing a planning-only cleanup, keep this checklist small and mechanical:
 - Reliable preset expansion means hand-authored patches plus the sourcing/QA loop in [preset-sourcing.md](preset-sourcing.md): run `.\scripts\verify-presets.ps1 -BuildRoot build-codex`, audition the new preset, confirm loudness and sustain/one-shot behavior, confirm visible controls match the sound, and record any external sample dependency as a user-owned path instead of repository content.
 - Update only the owning doc when possible. UI screenshot rules belong in [ui-priority-audit.md](ui-priority-audit.md), broad product workflow gaps belong in [product-gap-roadmap.md](product-gap-roadmap.md), verification/license evidence belongs in the accuracy and source-map docs, and release/build mechanics belong in [release-builds.md](release-builds.md).
 - Keep this plan lean. Spend the next slice on playable instrument value: clearer controls, better sound design, stronger sample/wave/operator workflows, or better validation evidence.
+- Do not re-audit the whole product when this queue already contains a concrete user-reported issue. Execute the highest-ranked known issue first, verify the affected chip plus one neighboring layout family, then return here only if the next slice is unclear.
 
 ## Next Code Slices To Prefer
 
