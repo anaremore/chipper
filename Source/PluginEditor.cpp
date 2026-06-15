@@ -4088,10 +4088,20 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (displayedMode == chipper::ChipMode::spc700)
     {
-        auto shapeArea = envelopeDecayPanel.removeFromTop(std::min(38, envelopeDecayPanel.getHeight()));
-        placeYmEnvelopeShapeSegment(shapeArea);
-        envelopeDecayPanel.removeFromTop(std::min(3, envelopeDecayPanel.getHeight()));
-        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
+        if (envelopeDecayPanel.getWidth() >= 520)
+        {
+            auto shapeArea = envelopeDecayPanel.removeFromLeft(std::max(260, envelopeDecayPanel.getWidth() / 2));
+            envelopeDecayPanel.removeFromLeft(std::min(12, envelopeDecayPanel.getWidth()));
+            placeYmEnvelopeShapeSegment(shapeArea);
+            placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
+        }
+        else
+        {
+            auto shapeArea = envelopeDecayPanel.removeFromTop(std::min(48, envelopeDecayPanel.getHeight()));
+            placeYmEnvelopeShapeSegment(shapeArea);
+            envelopeDecayPanel.removeFromTop(std::min(5, envelopeDecayPanel.getHeight()));
+            placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
+        }
         ymEnvelopePreview.setBounds({});
     }
     else if (displayedMode == chipper::ChipMode::paula)
