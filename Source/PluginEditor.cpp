@@ -17,6 +17,15 @@ namespace
 
 constexpr int userPresetItemIdBase = 10000;
 constexpr int initPresetItemId = 9000;
+constexpr int editorDefaultWidth = 1240;
+constexpr int editorDefaultHeight = 760;
+constexpr int editorMinWidth = 1180;
+constexpr int editorMinHeight = 700;
+constexpr int editorMaxWidth = 1800;
+constexpr int editorMaxHeight = 820;
+
+static_assert(editorDefaultHeight <= editorMaxHeight);
+static_assert(editorMaxHeight <= 820, "Keep the Chipper editor DAW-friendly by default.");
 
 constexpr std::array chipSettingsSnapshotParameterIds {
     chipper::parameters::id::accuracy,
@@ -1962,16 +1971,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     : AudioProcessorEditor(processor),
       audioProcessor(processor)
 {
-    constexpr auto defaultEditorWidth = 1240;
-    constexpr auto defaultEditorHeight = 820;
-    constexpr auto minEditorWidth = 1180;
-    constexpr auto minEditorHeight = 760;
-    constexpr auto maxEditorWidth = 1800;
-    constexpr auto maxEditorHeight = 860;
-
     setResizable(true, true);
-    setResizeLimits(minEditorWidth, minEditorHeight, maxEditorWidth, maxEditorHeight);
-    setSize(defaultEditorWidth, defaultEditorHeight);
+    setResizeLimits(editorMinWidth, editorMinHeight, editorMaxWidth, editorMaxHeight);
+    setSize(editorDefaultWidth, editorDefaultHeight);
 
     auto& state = audioProcessor.getValueTreeState();
     chipSettingsSnapshots.resize(static_cast<size_t>(chipper::parameters::chipModeChoices().size()));
@@ -3360,6 +3362,14 @@ void ChipperAudioProcessorEditor::paint(juce::Graphics& g)
 
 void ChipperAudioProcessorEditor::resized()
 {
+    const auto clampedWidth = std::clamp(getWidth(), editorMinWidth, editorMaxWidth);
+    const auto clampedHeight = std::clamp(getHeight(), editorMinHeight, editorMaxHeight);
+    if (clampedWidth != getWidth() || clampedHeight != getHeight())
+    {
+        setSize(clampedWidth, clampedHeight);
+        return;
+    }
+
     auto area = getLocalBounds().reduced(16);
 
     auto top = area.removeFromTop(62);

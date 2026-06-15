@@ -165,7 +165,7 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
    - Confidence: 7/10. Requires a consistent Expert/detail overlay and tooltip policy across chips.
 
 9. All-chip screenshot audit
-   - Issue: each bespoke chip layout can regress independently, especially when a source card grows per-voice controls.
+   - Issue: each bespoke chip layout can regress independently, especially when a source card grows per-voice controls. The editor default/restored size is clamped to a DAW-friendly height so hosts cannot reopen old oversized windows that run off screen.
    - User value: high. Users should never need to guess whether a control is hidden, clipped, or decorative.
    - Confidence: 8/10. The latest screenshots make the remaining problems visible; a repeatable screenshot checklist will catch most regressions before release.
 
