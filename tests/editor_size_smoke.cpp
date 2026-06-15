@@ -58,7 +58,7 @@ int main()
     ok &= expect(editor.getHeight() == 660, "unexpected default height");
 
     editor.setSize(1240, 1200);
-    ok &= expect(editor.getHeight() <= 720, "host-restored editor height was not clamped");
+    ok &= expect(editor.getHeight() == 660, "host-restored default editor height was not clamped to its chip budget");
 
     editor.setSize(1000, 600);
     ok &= expect(editor.getWidth() >= 1180, "editor width was not clamped to minimum");
@@ -75,7 +75,7 @@ int main()
         ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "chip default height changed");
         ok &= expect(chipEditor.getHeight() <= 720, "chip default height exceeded DAW-friendly cap");
         chipEditor.setSize(1240, 1200);
-        ok &= expect(chipEditor.getHeight() <= 720, "chip-switched editor height was not clamped");
+        ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "chip-switched editor height was not clamped to its chip budget");
         ok &= expect(chipEditor.getWidth() == 1240, "chip-switched editor width unexpectedly changed");
     }
 

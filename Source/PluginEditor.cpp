@@ -3377,7 +3377,11 @@ void ChipperAudioProcessorEditor::paint(juce::Graphics& g)
 void ChipperAudioProcessorEditor::resized()
 {
     const auto clampedWidth = std::clamp(getWidth(), editorMinWidth, editorMaxWidth);
-    const auto clampedHeight = std::clamp(getHeight(), editorMinHeight, editorMaxHeight);
+    const auto modeChoice = static_cast<int>(std::round(audioProcessor.getValueTreeState()
+                                                            .getRawParameterValue(chipper::parameters::id::chipMode)
+                                                            ->load()));
+    const auto modeHeight = preferredEditorHeightForMode(chipper::parameters::chipModeFromChoice(modeChoice));
+    const auto clampedHeight = std::clamp(getHeight(), editorMinHeight, modeHeight);
     if (clampedWidth != getWidth() || clampedHeight != getHeight())
     {
         setSize(clampedWidth, clampedHeight);
@@ -3863,10 +3867,11 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isWavetableSourceCard && i < hucVoiceWaveBoxes.size())
         {
-            auto levelArea = sourceCard.removeFromBottom(std::min(34, sourceCard.getHeight()));
             auto waveRow = sourceCard.removeFromTop(std::min(standardInlineControlHeight, sourceCard.getHeight()));
             hucVoiceWaveLabels[i].setBounds(waveRow.removeFromLeft(std::min(44, waveRow.getWidth())));
             hucVoiceWaveBoxes[i].setBounds(waveRow.reduced(0, 1));
+            sourceCard.removeFromTop(std::min(4, sourceCard.getHeight()));
+            auto levelArea = sourceCard.removeFromTop(std::min(34, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea, 44);
         }
         else if (isPaulaSourceCard && i < hucVoiceWaveBoxes.size())
