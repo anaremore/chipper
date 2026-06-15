@@ -3649,9 +3649,12 @@ void ChipperAudioProcessorEditor::resized()
     const auto sourceCardWidth = sourceColumns > 0
         ? (sourcePanel.getWidth() - (sourceGap * (sourceColumns - 1))) / sourceColumns
         : sourcePanel.getWidth();
-    const auto sourceCardHeight = sourceRows > 0
+    const auto rawSourceCardHeight = sourceRows > 0
         ? (sourcePanel.getHeight() - (sourceGap * (sourceRows - 1))) / sourceRows
         : sourcePanel.getHeight();
+    const auto sourceCardHeight = useWavetableVoiceGrid
+        ? std::min(rawSourceCardHeight, 128)
+        : rawSourceCardHeight;
     for (size_t i = 0; i < sourceChannelBounds.size(); ++i)
     {
         if (i >= visibleSourceCards)
