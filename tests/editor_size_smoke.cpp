@@ -42,8 +42,8 @@ bool setChoiceParameter(ChipperAudioProcessor& processor, const juce::String& pa
 
 int expectedHeightForChipMode(int chipMode)
 {
-    const auto mode = chipper::parameters::chipModeFromChoice(chipMode);
-    return (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 680 : 620;
+    juce::ignoreUnused(chipMode);
+    return 620;
 }
 
 bool checkVisibleChildGeometry(const juce::Component& root,
