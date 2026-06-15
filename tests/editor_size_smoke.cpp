@@ -65,6 +65,8 @@ int main()
         ok &= setChoiceParameter(chipProcessor, chipper::parameters::id::chipMode, chipMode);
 
         ChipperAudioProcessorEditor chipEditor(chipProcessor);
+        ok &= expect(chipEditor.getWidth() == 1240, "chip default width changed");
+        ok &= expect(chipEditor.getHeight() == 720, "chip default height changed");
         chipEditor.setSize(1240, 1200);
         ok &= expect(chipEditor.getHeight() <= 820, "chip-switched editor height was not clamped");
         ok &= expect(chipEditor.getWidth() == 1240, "chip-switched editor width unexpectedly changed");
