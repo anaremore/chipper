@@ -3502,9 +3502,9 @@ void ChipperAudioProcessorEditor::resized()
         const auto sourceColumns = displayedMode == chipper::ChipMode::namcoWsg ? 4 : 3;
         const auto sourceRows = std::max(1, (visibleSources + sourceColumns - 1) / sourceColumns);
         constexpr auto sourceHeaderReserve = 58;
-        constexpr auto targetCardHeight = 142;
+        constexpr auto targetCardHeight = 112;
         const auto desiredSourceHeight = sourceHeaderReserve + (targetCardHeight * sourceRows) + (gap * (sourceRows - 1));
-        const auto sourceMaximumHeight = std::min(352, std::max(240, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap));
+        const auto sourceMaximumHeight = std::min(304, std::max(240, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap));
         const auto sourceMinimumHeight = std::min(desiredSourceHeight, sourceMaximumHeight);
         const auto sourceRowHeight = std::clamp(desiredSourceHeight, sourceMinimumHeight, sourceMaximumHeight);
         const auto remainingHeight = std::max(0, availableHeight - sourceRowHeight - reservedGap);
@@ -3801,11 +3801,11 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isWavetableSourceCard && i < hucVoiceWaveBoxes.size())
         {
-            auto levelArea = sourceCard.removeFromBottom(std::min(42, sourceCard.getHeight()));
             auto waveRow = sourceCard.removeFromTop(std::min(embeddedControlRowHeight, sourceCard.getHeight()));
             hucVoiceWaveLabels[i].setBounds(waveRow.removeFromTop(std::min(embeddedLabelHeight, waveRow.getHeight())));
             hucVoiceWaveBoxes[i].setBounds(waveRow.removeFromTop(std::min(standardInlineControlHeight, waveRow.getHeight())).reduced(0, 1));
             sourceCard.removeFromTop(std::min(4, sourceCard.getHeight()));
+            auto levelArea = sourceCard.removeFromTop(std::min(42, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea);
         }
         else if (isPaulaSourceCard && i < hucVoiceWaveBoxes.size())
