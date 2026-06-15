@@ -1962,9 +1962,16 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     : AudioProcessorEditor(processor),
       audioProcessor(processor)
 {
+    constexpr auto defaultEditorWidth = 1240;
+    constexpr auto defaultEditorHeight = 920;
+    constexpr auto minEditorWidth = 1180;
+    constexpr auto minEditorHeight = 760;
+    constexpr auto maxEditorWidth = 1800;
+    constexpr auto maxEditorHeight = 1000;
+
     setResizable(true, true);
-    setResizeLimits(1180, 760, 1800, 1000);
-    setSize(1240, 920);
+    setResizeLimits(minEditorWidth, minEditorHeight, maxEditorWidth, maxEditorHeight);
+    setSize(defaultEditorWidth, defaultEditorHeight);
 
     auto& state = audioProcessor.getValueTreeState();
     chipSettingsSnapshots.resize(static_cast<size_t>(chipper::parameters::chipModeChoices().size()));
