@@ -230,8 +230,11 @@ build\Release\chipper_render.exe --list-presets --chip sid --debug sid-presets.j
 Run the preset QA gate before adding or releasing factory sounds:
 
 ```powershell
-.\scripts\verify-presets.ps1 -BuildRoot build-codex
+cmake --build build --config Release --target Chipper_VST3 chipper_render
+.\scripts\verify-presets.ps1
 ```
+
+The QA gate exports the factory preset catalog, validates chip/category metadata, prints chip-by-chip preset counts, and renders every factory preset to catch silent, clipped, or missing-output sounds before release.
 
 ## User Presets
 

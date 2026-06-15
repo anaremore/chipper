@@ -1,5 +1,6 @@
 param(
-    [string] $BuildRoot = "build-codex",
+    [string] $BuildRoot = "",
+    [string] $Config = "Release",
     [string] $Renderer = "",
     [string] $Python = "python",
     [string] $WorkDir = "",
@@ -13,6 +14,18 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+
+if ([string]::IsNullOrWhiteSpace($BuildRoot)) {
+    $candidateBuildRoots = @("build", "build-codex") |
+        ForEach-Object { Join-Path $repoRoot $_ } |
+        Where-Object { Test-Path -LiteralPath $_ -PathType Container }
+
+    $BuildRoot = $candidateBuildRoots | Select-Object -First 1
+    if ([string]::IsNullOrWhiteSpace($BuildRoot)) {
+        $BuildRoot = Join-Path $repoRoot "build"
+    }
+}
+
 $buildPath = if ([System.IO.Path]::IsPathRooted($BuildRoot)) {
     $BuildRoot
 } else {
@@ -21,10 +34,12 @@ $buildPath = if ([System.IO.Path]::IsPathRooted($BuildRoot)) {
 
 if ([string]::IsNullOrWhiteSpace($Renderer)) {
     $candidateRenderers = @(
-        (Join-Path $buildPath "Release\chipper_render.exe"),
-        (Join-Path $buildPath "Release\chipper_render"),
+        (Join-Path $buildPath "$Config\chipper_render.exe"),
+        (Join-Path $buildPath "$Config\chipper_render"),
         (Join-Path $buildPath "chipper_render.exe"),
-        (Join-Path $buildPath "chipper_render")
+        (Join-Path $buildPath "chipper_render"),
+        (Join-Path $buildPath "Release\chipper_render.exe"),
+        (Join-Path $buildPath "Release\chipper_render")
     )
 
     $Renderer = $candidateRenderers |
@@ -32,11 +47,11 @@ if ([string]::IsNullOrWhiteSpace($Renderer)) {
         Select-Object -First 1
 }
 if ([string]::IsNullOrWhiteSpace($Renderer) -or -not (Test-Path -LiteralPath $Renderer -PathType Leaf)) {
-    throw "Renderer not found under $buildPath. Build it first with: cmake --build $BuildRoot --config Release --target chipper_render, or pass -Renderer explicitly."
+    throw "Renderer not found under $buildPath. Build it first with: cmake --build $BuildRoot --config $Config --target chipper_render, or pass -Renderer explicitly."
 }
 
 if ([string]::IsNullOrWhiteSpace($WorkDir)) {
-    $WorkDir = Join-Path $buildPath "preset-audibility"
+    $WorkDir = Join-Path $buildPath "preset-qa"
 }
 
 $catalogPath = Join-Path $buildPath "preset-catalog.json"
@@ -53,6 +68,12 @@ if ($LASTEXITCODE -ne 0) {
     throw "Preset catalog validation failed with exit code $LASTEXITCODE"
 }
 
+$catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json
+Write-Host ("Factory presets: {0}" -f $catalog.summary.totalPresetCount)
+foreach ($chip in $catalog.summary.chipCounts) {
+    Write-Host ("  {0,-28} {1,3}" -f $chip.chip, $chip.presetCount)
+}
+
 Write-Host "Rendering every factory preset for audibility"
 & $Python (Join-Path $repoRoot "tests\assert_factory_presets_audible.py") `
     --renderer $Renderer `
@@ -65,4 +86,4 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Preset QA passed. Catalog: $catalogPath"
-Write-Host "Audibility renders: $WorkDir"
+Write-Host "Preset QA artifacts: $WorkDir"

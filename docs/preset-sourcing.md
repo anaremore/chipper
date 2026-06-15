@@ -53,9 +53,11 @@ A factory preset is not ready just because it has a good name. It should pass th
 Before adding or releasing factory presets:
 
 ```powershell
-cmake --build build-codex --config Release --target Chipper_VST3 chipper_render
-.\scripts\verify-presets.ps1 -BuildRoot build-codex
+cmake --build build --config Release --target Chipper_VST3 chipper_render
+.\scripts\verify-presets.ps1
 ```
+
+`verify-presets.ps1` defaults to the local `build` folder, falls back to `build-codex` when that is the available build tree, validates the catalog metadata, prints the preset count for every implemented chip, and renders every factory preset into `preset-qa` artifacts. Use `-BuildRoot`, `-Config`, or `-Renderer` only when testing a non-standard build.
 
 For each new preset bank, also audition representative presets in the plugin:
 
