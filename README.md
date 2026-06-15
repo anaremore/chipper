@@ -41,6 +41,7 @@ The planning docs intentionally separate current execution from broader research
 - [docs/priority-roadmap.md](docs/priority-roadmap.md) is the ranked execution list for the next high-value slices.
 - [docs/product-gap-roadmap.md](docs/product-gap-roadmap.md) tracks larger instrument workflows such as tracker motion, wave/sample editing, FM operator editing, preset sharing, and release readiness.
 - [docs/ui-priority-audit.md](docs/ui-priority-audit.md) is the UI non-regression checklist for chip-aware layouts, standard control sizes, and channel-local controls.
+- [docs/preset-sourcing.md](docs/preset-sourcing.md) is the factory preset provenance and quality checklist.
 - [docs/emulation-accuracy.md](docs/emulation-accuracy.md) is the truthful source/verification/license status for each chip.
 - [docs/release-builds.md](docs/release-builds.md) owns local install, GitHub release, and release-gate procedure.
 
@@ -252,6 +253,8 @@ Factory presets are grouped by chip-local musical categories in the browser, suc
 
 `Save As` suggests the currently selected preset name when possible, which keeps variant files easy to recognize when building banks like `SID Dirty Bass 02.chipperpreset` or `SPC700 Echo Pad Soft.chipperpreset`.
 
+Factory preset growth follows [docs/preset-sourcing.md](docs/preset-sourcing.md): original Chipper sound design first, permissive sources only with documented provenance, no copied game data, no bundled unlicensed samples, and every preset must pass audibility plus visible-control QA before release.
+
 ## MIDI CC
 
 Chipper keeps a stable MIDI CC map so hardware controllers and DAW automation can reach all current parameters. The compact map is shown in the plugin footer, exported in descriptor JSON, and documented in [docs/ui-architecture.md](docs/ui-architecture.md).
@@ -292,6 +295,7 @@ Do not import GPL/LGPL emulator code, preset banks, songs, samples, lookup table
 - [docs/product-spec.md](docs/product-spec.md): product goals, chip modes, and UX/DSP direction
 - [docs/ui-architecture.md](docs/ui-architecture.md): adaptive UI strategy and MIDI/automation contract
 - [docs/ui-priority-audit.md](docs/ui-priority-audit.md): current chip-aware layout rules and screenshot non-regression checklist
+- [docs/preset-sourcing.md](docs/preset-sourcing.md): factory preset provenance, legal boundaries, and QA checklist
 - [docs/snes-spc700-plan.md](docs/snes-spc700-plan.md): SPC700-style sampler roadmap
 - [docs/priority-roadmap.md](docs/priority-roadmap.md): execution priorities
 - [docs/product-gap-roadmap.md](docs/product-gap-roadmap.md): larger workflow gaps and non-regression policy
