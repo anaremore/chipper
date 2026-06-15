@@ -2212,7 +2212,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addAndMakeVisible(dmcLoopButton);
     dmcLoopAttachment = std::make_unique<ButtonAttachment>(state, chipper::parameters::id::nesDmcLoop, dmcLoopButton);
 
-    spc700LoopModeButton.setButtonText("Loop");
+    spc700LoopModeButton.setButtonText("Loop While Held");
     spc700LoopModeButton.setTooltip(withMidiCcForRole("SPC700 sample lifetime helper. Checked writes Loop While Held; unchecked writes One Shot. Preset recipes still resolve to the shown effective state until you click the toggle.", chipper::ChipParameterRole::dmgStereoRoute));
     spc700LoopModeButton.onClick = [this]()
     {
@@ -4438,7 +4438,7 @@ void ChipperAudioProcessorEditor::resized()
             controlColumn.removeFromTop(std::min(twoColumnSampleBank ? 3 : 4, controlColumn.getHeight()));
             auto playbackLifeRow = controlColumn.removeFromTop(std::min(standardSampleControlHeight, controlColumn.getHeight()));
             dmgStereoRouteLabel.setBounds({});
-            spc700LoopModeButton.setBounds(playbackLifeRow.removeFromLeft(std::min(112, playbackLifeRow.getWidth())).reduced(0, 1));
+            spc700LoopModeButton.setBounds(playbackLifeRow.removeFromLeft(std::min(190, playbackLifeRow.getWidth())).reduced(0, 1));
             dmgStereoRouteBox.setBounds({});
             for (auto& button : dmgStereoRouteButtons)
                 button.setBounds({});
@@ -9701,7 +9701,7 @@ void ChipperAudioProcessorEditor::updateDmgStereoRouteButtons(chipper::ChipMode 
     {
         const auto loops = chipper::spc700SampleLoopsForPatch(patch);
         spc700LoopModeButton.setToggleState(loops, juce::dontSendNotification);
-        spc700LoopModeButton.setButtonText("Loop");
+        spc700LoopModeButton.setButtonText("Loop While Held");
         if (spec != nullptr)
             spc700LoopModeButton.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + spc700SamplePlaybackReadout(patch), spec->role));
     }
