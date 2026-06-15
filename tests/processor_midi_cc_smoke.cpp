@@ -611,7 +611,7 @@ int main()
     ok &= expect(playbackInfo.rateIndex == 15, "DMC playback info should update after rate CC changes");
     ok &= expect(playbackInfo.durationMs < 1.1 && playbackInfo.durationMs > 0.9,
                  "DMC playback info should estimate short fixture duration at the fastest rate");
-    ok &= expect(playbackInfo.statusLine.contains("One-shot, DAC holds"),
+    ok &= expect(playbackInfo.statusLine.contains("One-shot, no loop; DAC holds"),
                  "DMC status should describe loop-off playback as one-shot with DAC hold");
     auto dmcPreview = processor.sampleWaveformSnapshot(chipper::ChipMode::nes);
     ok &= expect(dmcPreview.loaded && ! dmcPreview.hasLoop,
@@ -648,7 +648,7 @@ int main()
     auto dmcOneShotInfo = dmcOneShotProcessor.nesDmcSamplePlaybackInfo();
     ok &= expect(! dmcOneShotInfo.sampleActive && dmcOneShotInfo.sampleCompleted && dmcOneShotInfo.bitsPlayed == 32,
                  "NES DMC playback info should expose stopped one-shot state for the UI");
-    ok &= expect(dmcOneShotInfo.statusLine.contains("One-shot, DAC holds") && dmcOneShotInfo.statusLine.contains("stopped"),
+    ok &= expect(dmcOneShotInfo.statusLine.contains("One-shot, no loop; DAC holds") && dmcOneShotInfo.statusLine.contains("stopped"),
                  "NES DMC playback info should describe stopped one-shot playback without implying a loop");
 
     ChipperAudioProcessor dmcNoRestartProcessor;
@@ -732,7 +732,7 @@ int main()
         processEmptyBlock(dmcNoteMapOneShotProcessor);
     dmcDebug = dmcNoteMapOneShotProcessor.currentCoreDebugStateJson();
     auto dmcNoteMapInfo = dmcNoteMapOneShotProcessor.nesDmcSamplePlaybackInfo();
-    ok &= expect(dmcNoteMapInfo.activeSlot == 0 && dmcNoteMapInfo.statusLine.contains("One-shot, DAC holds"),
+    ok &= expect(dmcNoteMapInfo.activeSlot == 0 && dmcNoteMapInfo.statusLine.contains("One-shot, no loop; DAC holds"),
                  "NES DMC Note Map loop-off should keep one-shot status for the mapped slot");
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleActive") == 0,
                  "NES DMC Note Map loop-off should stop after the mapped sample ends");
