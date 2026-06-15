@@ -18,14 +18,14 @@ namespace
 constexpr int userPresetItemIdBase = 10000;
 constexpr int initPresetItemId = 9000;
 constexpr int editorDefaultWidth = 1240;
-constexpr int editorDefaultHeight = 660;
+constexpr int editorDefaultHeight = 620;
 constexpr int editorMinWidth = 1180;
-constexpr int editorMinHeight = 620;
+constexpr int editorMinHeight = 560;
 constexpr int editorMaxWidth = 1800;
-constexpr int editorMaxHeight = 720;
+constexpr int editorMaxHeight = 680;
 
 static_assert(editorDefaultHeight <= editorMaxHeight);
-static_assert(editorMaxHeight <= 720, "Keep the Chipper editor DAW-friendly by default.");
+static_assert(editorMaxHeight <= 680, "Keep the Chipper editor DAW-friendly by default.");
 
 int preferredEditorHeightForMode(chipper::ChipMode mode)
 {
