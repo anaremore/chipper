@@ -3,6 +3,8 @@
 #include "Parameters.h"
 
 #include <iostream>
+#include <string>
+#include <typeinfo>
 
 namespace
 {
@@ -41,7 +43,52 @@ bool setChoiceParameter(ChipperAudioProcessor& processor, const juce::String& pa
 int expectedHeightForChipMode(int chipMode)
 {
     const auto mode = chipper::parameters::chipModeFromChoice(chipMode);
-    return (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 680 : 620;
+    return (mode == chipper::ChipMode::nes || mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 680 : 620;
+}
+
+bool checkVisibleChildGeometry(const juce::Component& root,
+                               const juce::Component& component,
+                               juce::Point<int> parentOrigin,
+                               const std::string& path)
+{
+    bool ok = true;
+
+    for (auto childIndex = 0; childIndex < component.getNumChildComponents(); ++childIndex)
+    {
+        const auto* child = component.getChildComponent(childIndex);
+        if (child == nullptr || ! child->isVisible())
+            continue;
+
+        const auto bounds = child->getBounds();
+        const auto absoluteBounds = bounds.translated(parentOrigin.x, parentOrigin.y);
+        const auto childPath = path + "/" + std::to_string(childIndex);
+
+        if (! bounds.isEmpty())
+        {
+            if (! root.getLocalBounds().expanded(2).contains(absoluteBounds))
+            {
+                std::cerr << "editor_size_smoke: visible child out of editor bounds at "
+                          << childPath << " bounds " << absoluteBounds.toString() << '\n';
+                ok = false;
+            }
+
+            if (dynamic_cast<const juce::ComboBox*>(child) != nullptr
+                || dynamic_cast<const juce::TextButton*>(child) != nullptr)
+            {
+                if (bounds.getWidth() < 24 || bounds.getHeight() < 16)
+                {
+                    std::cerr << "editor_size_smoke: interactive control too small at "
+                              << childPath << " type " << typeid(*child).name()
+                              << " bounds " << absoluteBounds.toString() << '\n';
+                    ok = false;
+                }
+            }
+        }
+
+        ok &= checkVisibleChildGeometry(root, *child, absoluteBounds.getPosition(), childPath);
+    }
+
+    return ok;
 }
 
 }
@@ -55,10 +102,10 @@ int main()
 
     bool ok = true;
     ok &= expect(editor.getWidth() == 1240, "unexpected default width");
-    ok &= expect(editor.getHeight() == 620, "unexpected default height");
+    ok &= expect(editor.getHeight() == 680, "unexpected default height");
 
     editor.setSize(1240, 1200);
-    ok &= expect(editor.getHeight() == 620, "host-restored default editor height was not clamped to its chip budget");
+    ok &= expect(editor.getHeight() == 680, "host-restored default editor height was not clamped to its chip budget");
 
     editor.setSize(1000, 600);
     ok &= expect(editor.getWidth() >= 1180, "editor width was not clamped to minimum");
@@ -67,6 +114,7 @@ int main()
     const auto chipModeCount = chipper::parameters::chipModeChoices().size();
     for (auto chipMode = 0; chipMode < chipModeCount; ++chipMode)
     {
+        const auto chipPath = chipper::parameters::chipModeChoices()[chipMode].toStdString();
         ChipperAudioProcessor chipProcessor;
         ok &= setChoiceParameter(chipProcessor, chipper::parameters::id::chipMode, chipMode);
 
@@ -74,9 +122,11 @@ int main()
         ok &= expect(chipEditor.getWidth() == 1240, "chip default width changed");
         ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "chip default height changed");
         ok &= expect(chipEditor.getHeight() <= 680, "chip default height exceeded DAW-friendly cap");
+        ok &= checkVisibleChildGeometry(chipEditor, chipEditor, juce::Point<int> {}, "editor/" + chipPath);
         chipEditor.setSize(1240, 1200);
         ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "chip-switched editor height was not clamped to its chip budget");
         ok &= expect(chipEditor.getWidth() == 1240, "chip-switched editor width unexpectedly changed");
+        ok &= checkVisibleChildGeometry(chipEditor, chipEditor, juce::Point<int> {}, "editor/restored/" + chipPath);
     }
 
     return ok ? 0 : 1;
