@@ -27,6 +27,19 @@ constexpr int editorMaxHeight = 820;
 static_assert(editorDefaultHeight <= editorMaxHeight);
 static_assert(editorMaxHeight <= 820, "Keep the Chipper editor DAW-friendly by default.");
 
+int preferredEditorHeightForMode(chipper::ChipMode mode)
+{
+    switch (mode)
+    {
+        case chipper::ChipMode::spc700:
+        case chipper::ChipMode::paula:
+            return editorMaxHeight;
+
+        default:
+            return editorDefaultHeight;
+    }
+}
+
 constexpr std::array chipSettingsSnapshotParameterIds {
     chipper::parameters::id::accuracy,
     chipper::parameters::id::clockHz,
@@ -1973,9 +1986,10 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 {
     setResizable(true, true);
     setResizeLimits(editorMinWidth, editorMinHeight, editorMaxWidth, editorMaxHeight);
-    setSize(editorDefaultWidth, editorDefaultHeight);
 
     auto& state = audioProcessor.getValueTreeState();
+    const auto initialModeChoice = static_cast<int>(std::round(state.getRawParameterValue(chipper::parameters::id::chipMode)->load()));
+    setSize(editorDefaultWidth, preferredEditorHeightForMode(chipper::parameters::chipModeFromChoice(initialModeChoice)));
     chipSettingsSnapshots.resize(static_cast<size_t>(chipper::parameters::chipModeChoices().size()));
 
     const auto blockLogo = []()
@@ -10480,6 +10494,10 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
 
     descriptorTextInitialized = true;
     displayedMode = mode;
+    const auto preferredHeight = preferredEditorHeightForMode(mode);
+    if (getHeight() != preferredHeight)
+        setSize(getWidth(), preferredHeight);
+
     if (chipChangedAfterInitialLoad)
     {
         displayedDmcSampleCount = -1;
