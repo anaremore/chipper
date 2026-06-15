@@ -3653,7 +3653,7 @@ void ChipperAudioProcessorEditor::resized()
         ? (sourcePanel.getHeight() - (sourceGap * (sourceRows - 1))) / sourceRows
         : sourcePanel.getHeight();
     const auto sourceCardHeight = useWavetableVoiceGrid
-        ? std::min(rawSourceCardHeight, 122)
+        ? std::min(rawSourceCardHeight, 136)
         : (usePaulaVoiceGrid
                ? std::min(rawSourceCardHeight, 156)
                : (useSpc700VoiceGrid ? std::min(rawSourceCardHeight, 146) : rawSourceCardHeight));
