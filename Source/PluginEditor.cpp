@@ -2212,7 +2212,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addAndMakeVisible(dmcLoopButton);
     dmcLoopAttachment = std::make_unique<ButtonAttachment>(state, chipper::parameters::id::nesDmcLoop, dmcLoopButton);
 
-    spc700LoopModeButton.setButtonText("Loop While Held");
+    spc700LoopModeButton.setButtonText("Loop");
     spc700LoopModeButton.setTooltip(withMidiCcForRole("SPC700 sample lifetime helper. Checked writes Loop While Held; unchecked writes One Shot. Preset recipes still resolve to the shown effective state until you click the toggle.", chipper::ChipParameterRole::dmgStereoRoute));
     spc700LoopModeButton.onClick = [this]()
     {
@@ -4390,16 +4390,23 @@ void ChipperAudioProcessorEditor::resized()
             waveformColumn = sampleCell;
         }
 
-        auto pitchPanel = controlColumn.removeFromTop(std::min(88, controlColumn.getHeight()));
-        placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], pitchPanel);
-        controlColumn.removeFromTop(std::min(twoColumnSampleBank ? 6 : 8, controlColumn.getHeight()));
+        constexpr int standardSampleControlHeight = 30;
+        auto pitchPanel = controlColumn.removeFromTop(std::min(82, controlColumn.getHeight()));
+        nativeGroupLabels[1].setBounds(pitchPanel.removeFromTop(std::min(14, pitchPanel.getHeight())));
+        auto pitchHeader = pitchPanel.removeFromTop(std::min(standardSampleControlHeight, pitchPanel.getHeight()));
+        controlValueLabels[1].setJustificationType(juce::Justification::centred);
+        controlValueLabels[1].setBounds(pitchHeader.removeFromRight(std::min(96, pitchHeader.getWidth())).reduced(0, 1));
+        pitchHeader.removeFromRight(std::min(8, pitchHeader.getWidth()));
+        nativeLabels[1].setBounds(pitchHeader);
+        pitchPanel.removeFromTop(std::min(3, pitchPanel.getHeight()));
+        nativeSliders[1].setBounds(pitchPanel.removeFromTop(std::min(standardSampleControlHeight, pitchPanel.getHeight())).reduced(0, 2));
+        controlColumn.removeFromTop(std::min(twoColumnSampleBank ? 4 : 6, controlColumn.getHeight()));
 
         auto sampleHeader = controlColumn.removeFromTop(std::min(18, controlColumn.getHeight()));
         dmcSampleLabel.setText(displayedMode == chipper::ChipMode::paula ? "Paula Sample" : "SPC700 Sample", juce::dontSendNotification);
         dmcSampleLabel.setBounds(sampleHeader);
         controlColumn.removeFromTop(3);
 
-        constexpr int standardSampleControlHeight = 30;
         auto sampleActionRow = controlColumn.removeFromTop(std::min(standardSampleControlHeight, controlColumn.getHeight()));
         const auto brrButtonWidth = std::max(54, (sampleActionRow.getWidth() - 8) / 3);
         dmcSampleFileButton.setBounds(sampleActionRow.removeFromLeft(brrButtonWidth).reduced(0, 1));
@@ -4428,7 +4435,7 @@ void ChipperAudioProcessorEditor::resized()
             controlColumn.removeFromTop(std::min(twoColumnSampleBank ? 3 : 4, controlColumn.getHeight()));
             auto playbackLifeRow = controlColumn.removeFromTop(std::min(standardSampleControlHeight, controlColumn.getHeight()));
             dmgStereoRouteLabel.setBounds({});
-            spc700LoopModeButton.setBounds(playbackLifeRow.removeFromLeft(std::min(190, playbackLifeRow.getWidth())).reduced(0, 1));
+            spc700LoopModeButton.setBounds(playbackLifeRow.removeFromLeft(std::min(112, playbackLifeRow.getWidth())).reduced(0, 1));
             dmgStereoRouteBox.setBounds({});
             for (auto& button : dmgStereoRouteButtons)
                 button.setBounds({});
@@ -9691,7 +9698,7 @@ void ChipperAudioProcessorEditor::updateDmgStereoRouteButtons(chipper::ChipMode 
     {
         const auto loops = chipper::spc700SampleLoopsForPatch(patch);
         spc700LoopModeButton.setToggleState(loops, juce::dontSendNotification);
-        spc700LoopModeButton.setButtonText(loops ? "Loop While Held" : "One Shot");
+        spc700LoopModeButton.setButtonText("Loop");
         if (spec != nullptr)
             spc700LoopModeButton.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + spc700SamplePlaybackReadout(patch), spec->role));
     }
