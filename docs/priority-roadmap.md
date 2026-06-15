@@ -81,14 +81,14 @@ If a protected behavior is suspected again, first run the named gate. A passing 
 
 These are the highest-signal cleanup items after the latest all-chip screenshot pass:
 
-- Keep sampler layouts collision-free. Paula and SPC700 now have protected sample-bank areas; future changes must preserve readable waveform previews, root/playback controls, loop state, per-voice sample controls, and Performance Macros. If those compete, the sample editor wins and the macro strip moves or grows.
+- Keep sampler layouts collision-free. Paula and SPC700 now reserve extra module height for sample-bank editing and use a shorter Performance Macros strip so waveform previews, root/playback controls, loop state, per-voice sample controls, and macros do not collide. If those compete, the sample editor wins and the macro strip moves or grows.
 - Keep wavetable cards readable. HuC6280, Namco WSG, and SCC now keep per-lane wave selectors and visible level controls in each source card; if future per-lane pitch, pan, gate, or wave-edit controls do not fit, grow the layout rather than hiding controls.
 - Keep helper envelopes honest and visible. POKEY, Paula, HuC6280, Namco WSG, and SCC helper envelopes are Chipper musical volume helpers, not native ADSR. They should render as standard controls with chip-specific readouts, never as empty title-only panels.
 - Keep channel ownership intact. NES/DMG pulse duty, noise mode, wave level, wavetable shape, sampler slot, and per-source level belong in the source card that owns the sound path. Descriptor smoke tests already pin the current ownership rules; add new assertions when a new chip-local control becomes visible.
 - Keep FM surfaces playable while the deeper operator editor is planned. Macro/editor passes must not disturb key-on, source-level, or operator-envelope sustain behavior. The next FM value is editable operator structure, not re-solving held-note sustain unless a regression is reproduced.
 - Keep docs and UI labels aligned: the header says **Strictness**; verification strength belongs in the footer, renderer debug JSON, and accuracy docs.
 - Keep shared host/CC names neutral when one stable parameter serves different chip meanings. For example, CC94 is `Chip Choice / Route` at the host layer, while each chip panel relabels it as DMG Stereo Route, SID Model, SPC700 loop behavior, POKEY AUDCTL pairing, HuC6280 LFO mode, FM pan/routing, or a wavetable lane selector as appropriate.
-- Keep the standard control-size baseline: source-card dropdowns, numeric boxes, and level lanes must remain readable at the default editor size. If a future chip-specific control needs more room, grow the card or layout instead of shrinking controls back into clipped mini rows.
+- Keep the standard control-size baseline: source-card dropdowns, sample-bank dropdowns, numeric boxes, and level lanes must remain readable at the default editor size. If a future chip-specific control needs more room, grow the card or layout instead of shrinking controls back into clipped mini rows.
 - Keep preset sourcing clean. More factory presets are valuable, but the safe path is original patch design plus renderer/debug metadata, not importing copyrighted game sounds, tracker instruments, ROM data, or sample banks.
 
 ## Immediate Execution Checklist
