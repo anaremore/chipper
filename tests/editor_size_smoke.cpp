@@ -41,7 +41,7 @@ bool setChoiceParameter(ChipperAudioProcessor& processor, const juce::String& pa
 int expectedHeightForChipMode(int chipMode)
 {
     const auto mode = chipper::parameters::chipModeFromChoice(chipMode);
-    return (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 760 : 680;
+    return (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 720 : 660;
 }
 
 }
@@ -55,10 +55,10 @@ int main()
 
     bool ok = true;
     ok &= expect(editor.getWidth() == 1240, "unexpected default width");
-    ok &= expect(editor.getHeight() == 680, "unexpected default height");
+    ok &= expect(editor.getHeight() == 660, "unexpected default height");
 
     editor.setSize(1240, 1200);
-    ok &= expect(editor.getHeight() <= 760, "host-restored editor height was not clamped");
+    ok &= expect(editor.getHeight() <= 720, "host-restored editor height was not clamped");
 
     editor.setSize(1000, 600);
     ok &= expect(editor.getWidth() >= 1180, "editor width was not clamped to minimum");
@@ -73,9 +73,9 @@ int main()
         ChipperAudioProcessorEditor chipEditor(chipProcessor);
         ok &= expect(chipEditor.getWidth() == 1240, "chip default width changed");
         ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "chip default height changed");
-        ok &= expect(chipEditor.getHeight() <= 760, "chip default height exceeded DAW-friendly cap");
+        ok &= expect(chipEditor.getHeight() <= 720, "chip default height exceeded DAW-friendly cap");
         chipEditor.setSize(1240, 1200);
-        ok &= expect(chipEditor.getHeight() <= 760, "chip-switched editor height was not clamped");
+        ok &= expect(chipEditor.getHeight() <= 720, "chip-switched editor height was not clamped");
         ok &= expect(chipEditor.getWidth() == 1240, "chip-switched editor width unexpectedly changed");
     }
 
