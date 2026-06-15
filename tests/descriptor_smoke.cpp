@@ -434,6 +434,47 @@ bool expectLiveSourceCardSpecs()
     return ok;
 }
 
+bool expectSpc700VoiceSampleSlotSpecs()
+{
+    bool ok = true;
+    constexpr std::array sampleSlotRoles {
+        chipper::ChipParameterRole::spc700Voice1SampleSlot,
+        chipper::ChipParameterRole::spc700Voice2SampleSlot,
+        chipper::ChipParameterRole::spc700Voice3SampleSlot,
+        chipper::ChipParameterRole::spc700Voice4SampleSlot,
+        chipper::ChipParameterRole::spc700Voice5SampleSlot,
+        chipper::ChipParameterRole::spc700Voice6SampleSlot,
+        chipper::ChipParameterRole::spc700Voice7SampleSlot,
+        chipper::ChipParameterRole::spc700Voice8SampleSlot
+    };
+
+    for (size_t index = 0; index < sampleSlotRoles.size(); ++index)
+    {
+        const auto role = sampleSlotRoles[index];
+        const auto* spec = chipper::parameterSpecFor(chipper::ChipMode::spc700, role);
+        ok &= expect(spec != nullptr, "SPC700 missing per-voice sample slot spec");
+        if (spec == nullptr)
+            continue;
+
+        const auto expectedLabel = "Voice " + std::to_string(index + 1) + " Sample";
+        ok &= expect(spec->label == expectedLabel, spec->id + " should keep a per-voice sample label");
+        ok &= expect(spec->kind == chipper::ParameterKind::steppedNumeric, spec->id + " should be a stepped sample-bank index");
+        ok &= expect(spec->surface == chipper::ControlSurface::menu, spec->id + " should use the standard menu surface");
+        ok &= expect(spec->group == "Sample", spec->id + " should stay in the Sample group");
+        ok &= expect(spec->minValue == 0.0f && spec->maxValue == 32.0f, spec->id + " should cover preset plus 32 bank slots");
+        ok &= expect(! spec->help.empty(), spec->id + " should explain sample-bank pinning");
+        ok &= expect(spec->help.find("loaded sample-bank slot") != std::string::npos,
+                     spec->id + " should mention loaded sample-bank slots");
+
+        const auto* parameterId = chipper::parameterIdForChipParameterRole(role);
+        ok &= expect(parameterId != nullptr, spec->id + " has no APVTS parameter id");
+        if (parameterId != nullptr)
+            ok &= expect(chipper::midiControllerForParameterId(parameterId) >= 0, spec->id + " has no MIDI CC mapping");
+    }
+
+    return ok;
+}
+
 bool expectVerificationDisclosure()
 {
     bool ok = true;
@@ -1340,6 +1381,7 @@ int main()
                  "SID should not expose a fourth voice source card yet");
     ok &= expectLiveSourceCardSpecs();
     ok &= expectLiveSourceLevelSpecs();
+    ok &= expectSpc700VoiceSampleSlotSpecs();
     ok &= expectAutomatableDescriptorParametersHaveMidiCc();
     ok &= expectVerificationDisclosure();
     ok &= expectEnvelopeModels();
