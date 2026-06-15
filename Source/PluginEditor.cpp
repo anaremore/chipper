@@ -3412,7 +3412,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 318 : (sampleLayout ? 216 : (wavetableLayout ? 204 : 300)));
+    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 318 : (sampleLayout ? 190 : (wavetableLayout ? 204 : 300)));
     const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 650 : (spc700Layout ? 1160 : (paulaLayout ? 1060 : (wavetableLayout ? 528 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
@@ -3455,16 +3455,16 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (spc700Layout)
     {
-        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.18)), 158, 190);
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.17)), 148, 176);
         constexpr auto spc700SourceRows = 2;
         constexpr auto sourcePanelChrome = 72;
-        constexpr auto targetSpc700CardHeight = 144;
+        constexpr auto targetSpc700CardHeight = 158;
         const auto targetSourceHeight = sourcePanelChrome + (targetSpc700CardHeight * spc700SourceRows) + gap;
-        const auto minimumSampleRowHeight = 390;
+        const auto minimumSampleRowHeight = 340;
         const auto maximumSourceRowHeight = std::max(0, modules.getHeight() - topRowHeight - minimumSampleRowHeight - (gap * 2));
         const auto sourceRowHeight = std::clamp(targetSourceHeight,
-                                                std::min(328, maximumSourceRowHeight),
-                                                std::min(368, maximumSourceRowHeight));
+                                                std::min(340, maximumSourceRowHeight),
+                                                std::min(398, maximumSourceRowHeight));
         const auto sampleRowHeight = std::max(0, modules.getHeight() - topRowHeight - sourceRowHeight - (gap * 2));
         const auto topColumnWidth = (modules.getWidth() - gap) / 2;
         const auto topY = modules.getY();
@@ -3656,7 +3656,7 @@ void ChipperAudioProcessorEditor::resized()
         ? std::min(rawSourceCardHeight, 136)
         : (usePaulaVoiceGrid
                ? std::min(rawSourceCardHeight, 156)
-               : (useSpc700VoiceGrid ? std::min(rawSourceCardHeight, 146) : rawSourceCardHeight));
+               : (useSpc700VoiceGrid ? std::min(rawSourceCardHeight, 158) : rawSourceCardHeight));
     for (size_t i = 0; i < sourceChannelBounds.size(); ++i)
     {
         if (i >= visibleSourceCards)
@@ -4090,20 +4090,10 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (displayedMode == chipper::ChipMode::spc700)
     {
-        if (envelopeDecayPanel.getWidth() >= 520)
-        {
-            auto shapeArea = envelopeDecayPanel.removeFromLeft(std::max(260, envelopeDecayPanel.getWidth() / 2));
-            envelopeDecayPanel.removeFromLeft(std::min(12, envelopeDecayPanel.getWidth()));
-            placeYmEnvelopeShapeSegment(shapeArea);
-            placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
-        }
-        else
-        {
-            auto shapeArea = envelopeDecayPanel.removeFromTop(std::min(48, envelopeDecayPanel.getHeight()));
-            placeYmEnvelopeShapeSegment(shapeArea);
-            envelopeDecayPanel.removeFromTop(std::min(5, envelopeDecayPanel.getHeight()));
-            placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
-        }
+        auto shapeArea = envelopeDecayPanel.removeFromTop(std::min(50, envelopeDecayPanel.getHeight()));
+        placeYmEnvelopeShapeSegment(shapeArea);
+        envelopeDecayPanel.removeFromTop(std::min(8, envelopeDecayPanel.getHeight()));
+        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
         ymEnvelopePreview.setBounds({});
     }
     else if (displayedMode == chipper::ChipMode::paula)
