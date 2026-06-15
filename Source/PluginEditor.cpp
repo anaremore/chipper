@@ -3412,7 +3412,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 318 : (sampleLayout ? (paulaLayout ? 180 : 210) : (wavetableLayout ? 220 : 300)));
+    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 318 : (sampleLayout ? (paulaLayout ? 160 : 210) : (wavetableLayout ? 220 : 300)));
     const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 650 : (spc700Layout ? 1260 : (paulaLayout ? 1360 : (wavetableLayout ? 680 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
@@ -3527,7 +3527,7 @@ void ChipperAudioProcessorEditor::resized()
     else if (paulaLayout)
     {
         const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.055)), 58, 72);
-        const auto sampleMinimumHeight = std::min(600, std::max(450, modules.getHeight() / 3));
+        const auto sampleMinimumHeight = std::min(640, std::max(480, modules.getHeight() / 3));
         const auto sourceMaximumHeight = std::max(0, modules.getHeight() - middleRowHeight - sampleMinimumHeight - (gap * 2));
         constexpr auto paulaSourceRows = 2;
         constexpr auto sourcePanelChrome = 72;
@@ -4376,7 +4376,7 @@ void ChipperAudioProcessorEditor::resized()
         spc700LoopModeButton.setBounds({});
 
         auto sampleCell = utilityCell;
-        const auto minimumTwoColumnSampleBankHeight = displayedMode == chipper::ChipMode::spc700 ? 360 : 300;
+        const auto minimumTwoColumnSampleBankHeight = displayedMode == chipper::ChipMode::spc700 ? 380 : 340;
         const auto twoColumnSampleBank = sampleCell.getWidth() >= 760
             && sampleCell.getHeight() >= minimumTwoColumnSampleBankHeight;
         auto controlColumn = sampleCell;
@@ -4384,13 +4384,13 @@ void ChipperAudioProcessorEditor::resized()
         if (twoColumnSampleBank)
         {
             const auto columnGap = 12;
-            const auto controlWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(sampleCell.getWidth()) * 0.40)), 390, 500);
+            const auto controlWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(sampleCell.getWidth()) * 0.42)), 420, 520);
             controlColumn = sampleCell.removeFromLeft(std::min(controlWidth, sampleCell.getWidth()));
             sampleCell.removeFromLeft(std::min(columnGap, sampleCell.getWidth()));
             waveformColumn = sampleCell;
         }
 
-        auto pitchPanel = controlColumn.removeFromTop(std::min(twoColumnSampleBank ? 72 : 84, controlColumn.getHeight()));
+        auto pitchPanel = controlColumn.removeFromTop(std::min(twoColumnSampleBank ? 82 : 88, controlColumn.getHeight()));
         placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], pitchPanel);
         controlColumn.removeFromTop(std::min(twoColumnSampleBank ? 6 : 8, controlColumn.getHeight()));
 
@@ -4428,7 +4428,7 @@ void ChipperAudioProcessorEditor::resized()
             controlColumn.removeFromTop(std::min(twoColumnSampleBank ? 3 : 4, controlColumn.getHeight()));
             auto playbackLifeRow = controlColumn.removeFromTop(std::min(standardSampleControlHeight, controlColumn.getHeight()));
             dmgStereoRouteLabel.setBounds({});
-            spc700LoopModeButton.setBounds(playbackLifeRow.removeFromLeft(std::min(170, playbackLifeRow.getWidth())).reduced(0, 1));
+            spc700LoopModeButton.setBounds(playbackLifeRow.removeFromLeft(std::min(190, playbackLifeRow.getWidth())).reduced(0, 1));
             dmgStereoRouteBox.setBounds({});
             for (auto& button : dmgStereoRouteButtons)
                 button.setBounds({});
