@@ -1963,11 +1963,11 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
       audioProcessor(processor)
 {
     constexpr auto defaultEditorWidth = 1240;
-    constexpr auto defaultEditorHeight = 920;
+    constexpr auto defaultEditorHeight = 860;
     constexpr auto minEditorWidth = 1180;
     constexpr auto minEditorHeight = 760;
     constexpr auto maxEditorWidth = 1800;
-    constexpr auto maxEditorHeight = 1000;
+    constexpr auto maxEditorHeight = 920;
 
     setResizable(true, true);
     setResizeLimits(minEditorWidth, minEditorHeight, maxEditorWidth, maxEditorHeight);
