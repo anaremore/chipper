@@ -49,7 +49,7 @@ int main()
 
     bool ok = true;
     ok &= expect(editor.getWidth() == 1240, "unexpected default width");
-    ok &= expect(editor.getHeight() == 760, "unexpected default height");
+    ok &= expect(editor.getHeight() == 720, "unexpected default height");
 
     editor.setSize(1240, 1200);
     ok &= expect(editor.getHeight() <= 820, "host-restored editor height was not clamped");
