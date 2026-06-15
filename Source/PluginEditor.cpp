@@ -1963,8 +1963,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
       audioProcessor(processor)
 {
     setResizable(true, true);
-    setResizeLimits(1180, 1320, 1800, 1700);
-    setSize(1240, 1440);
+    setResizeLimits(1180, 820, 1800, 1120);
+    setSize(1240, 980);
 
     auto& state = audioProcessor.getValueTreeState();
     chipSettingsSnapshots.resize(static_cast<size_t>(chipper::parameters::chipModeChoices().size()));
@@ -3412,8 +3412,8 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 318 : (spc700Layout ? 176 : (paulaLayout ? 132 : (wavetableLayout ? 204 : 300))));
-    const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 650 : (spc700Layout ? 1184 : (paulaLayout ? 1160 : (wavetableLayout ? 528 : 492))));
+    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 250 : (spc700Layout ? 176 : (paulaLayout ? 132 : (wavetableLayout ? 204 : 300))));
+    const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 520 : (spc700Layout ? 900 : (paulaLayout ? 860 : (wavetableLayout ? 528 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
     auto modules = area.removeFromTop(modulesHeight);
@@ -3441,8 +3441,8 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (nesLayout)
     {
-        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.36)), 220, 258);
-        const auto sampleRowHeight = std::max(260, modules.getHeight() - topRowHeight - gap);
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.40)), 210, 238);
+        const auto sampleRowHeight = std::max(210, modules.getHeight() - topRowHeight - gap);
         const auto topY = modules.getY();
         const auto bottomY = topY + topRowHeight + gap;
 
