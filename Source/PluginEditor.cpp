@@ -18,14 +18,14 @@ namespace
 constexpr int userPresetItemIdBase = 10000;
 constexpr int initPresetItemId = 9000;
 constexpr int editorDefaultWidth = 1240;
-constexpr int editorDefaultHeight = 620;
+constexpr int editorDefaultHeight = 720;
 constexpr int editorMinWidth = 1180;
 constexpr int editorMinHeight = 560;
 constexpr int editorMaxWidth = 1800;
 constexpr int editorMaxHeight = editorDefaultHeight;
 
 static_assert(editorDefaultHeight <= editorMaxHeight);
-static_assert(editorMaxHeight <= 620, "Keep the Chipper editor DAW-friendly by default.");
+static_assert(editorMaxHeight <= 720, "Keep the Chipper editor DAW-friendly by default.");
 
 int preferredEditorHeightForMode(chipper::ChipMode mode)
 {
@@ -3440,7 +3440,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 96 : (spc700Layout ? 72 : (paulaLayout ? 122 : (wavetableLayout ? 178 : 300))));
+    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 96 : (spc700Layout ? 72 : (paulaLayout ? 122 : (wavetableLayout ? 178 : 220))));
     const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 430 : (spc700Layout ? 520 : (paulaLayout ? 520 : (wavetableLayout ? 470 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 8 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
@@ -3762,10 +3762,10 @@ void ChipperAudioProcessorEditor::resized()
         const auto isDenseSampleCard = isWavetableSourceCard || isPaulaSourceCard || isSpc700SourceCard;
         auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isDenseSampleCard ? 5 : 8),
                                                          isSidSourceCard ? 2 : (isDenseSampleCard ? 3 : 4));
-        const auto standardInlineControlHeight = isDenseSampleCard ? 24 : (isWavetableSourceCard ? 24 : 30);
+        const auto standardInlineControlHeight = isDenseSampleCard ? 26 : (isWavetableSourceCard ? 26 : 30);
         const auto embeddedLabelHeight = isDenseSampleCard ? 12 : 14;
         const auto embeddedControlRowHeight = embeddedLabelHeight + standardInlineControlHeight;
-        const auto buttonHeight = isDenseSampleCard ? 20 : (isSidSourceCard ? 17 : (isWavetableSourceCard ? 18 : 18));
+        const auto buttonHeight = isDenseSampleCard ? 20 : (isSidSourceCard ? 18 : (isWavetableSourceCard ? 18 : 18));
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isDenseSampleCard ? 3 : 2);
         const auto previewHeight = isWavetableSourceCard
@@ -3788,7 +3788,7 @@ void ChipperAudioProcessorEditor::resized()
 
         if (isSidSourceCard && i < sidVoiceWaveCount)
         {
-            auto waveRow = sourceCard.removeFromTop(std::min(20, sourceCard.getHeight()));
+            auto waveRow = sourceCard.removeFromTop(std::min(24, sourceCard.getHeight()));
             sidVoiceWaveLabels[i].setBounds(waveRow.removeFromLeft(38));
             sidVoiceWaveBoxes[i].setBounds(waveRow);
             sourceCard.removeFromTop(1);
@@ -4470,12 +4470,21 @@ void ChipperAudioProcessorEditor::resized()
         controlColumn.removeFromTop(3);
 
         auto sampleActionRow = controlColumn.removeFromTop(std::min(compactSampleBank ? 26 : standardSampleControlHeight, controlColumn.getHeight()));
-        const auto brrButtonWidth = std::max(54, (sampleActionRow.getWidth() - 8) / 3);
-        dmcSampleFileButton.setBounds(sampleActionRow.removeFromLeft(brrButtonWidth));
-        sampleActionRow.removeFromLeft(4);
-        dmcSampleFolderButton.setBounds(sampleActionRow.removeFromLeft(brrButtonWidth));
-        sampleActionRow.removeFromLeft(4);
-        dmcSampleBankButton.setBounds(sampleActionRow.removeFromLeft(brrButtonWidth));
+        if (sampleActionRow.getHeight() >= 18)
+        {
+            const auto brrButtonWidth = std::max(54, (sampleActionRow.getWidth() - 8) / 3);
+            dmcSampleFileButton.setBounds(sampleActionRow.removeFromLeft(brrButtonWidth));
+            sampleActionRow.removeFromLeft(4);
+            dmcSampleFolderButton.setBounds(sampleActionRow.removeFromLeft(brrButtonWidth));
+            sampleActionRow.removeFromLeft(4);
+            dmcSampleBankButton.setBounds(sampleActionRow.removeFromLeft(brrButtonWidth));
+        }
+        else
+        {
+            dmcSampleFileButton.setBounds({});
+            dmcSampleFolderButton.setBounds({});
+            dmcSampleBankButton.setBounds({});
+        }
         controlColumn.removeFromTop(std::min(twoColumnSampleBank ? 5 : 6, controlColumn.getHeight()));
 
         auto playbackRow = controlColumn.removeFromTop(std::min(compactSampleBank ? 26 : standardSampleControlHeight, controlColumn.getHeight()));
@@ -4886,7 +4895,7 @@ void ChipperAudioProcessorEditor::placeFmAlgorithmControl(juce::Rectangle<int> b
 
     if (compact)
     {
-        fmAlgorithmBox.setBounds(bounds.removeFromTop(std::min(24, bounds.getHeight())).reduced(0, 1));
+        fmAlgorithmBox.setBounds(bounds.removeFromTop(std::min(24, bounds.getHeight())));
         fmAlgorithmPreview.setBounds({});
         waveShapeSegmentBounds = {};
         for (auto& button : waveShapeButtons)
@@ -4916,7 +4925,7 @@ void ChipperAudioProcessorEditor::placeOplWaveformControl(juce::Rectangle<int> b
 
     if (compact)
     {
-        oplWaveformBox.setBounds(bounds.removeFromTop(std::min(24, bounds.getHeight())).reduced(0, 1));
+        oplWaveformBox.setBounds(bounds.removeFromTop(std::min(24, bounds.getHeight())));
         oplWaveformPreview.setBounds({});
         waveShapeSegmentBounds = {};
         for (auto& button : waveShapeButtons)
@@ -4957,7 +4966,7 @@ void ChipperAudioProcessorEditor::placeOpllInstrumentControl(juce::Rectangle<int
         const auto compactGap = readoutFits ? 4 : 3;
 
         waveShapeLabel.setBounds(bounds.removeFromTop(std::min(compactLabelHeight, bounds.getHeight())));
-        opllInstrumentBox.setBounds(bounds.removeFromTop(std::min(compactControlHeight, bounds.getHeight())).reduced(0, 1));
+        opllInstrumentBox.setBounds(bounds.removeFromTop(std::min(compactControlHeight, bounds.getHeight())));
         waveShapeValueLabel.setBounds(readoutFits
             ? bounds.removeFromTop(std::min(14, bounds.getHeight()))
             : juce::Rectangle<int> {});

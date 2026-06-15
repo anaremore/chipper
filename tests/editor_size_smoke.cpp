@@ -8,6 +8,8 @@
 
 namespace
 {
+constexpr int expectedEditorHeight = 720;
+
 bool expect(bool condition, const char* message)
 {
     if (! condition)
@@ -43,7 +45,7 @@ bool setChoiceParameter(ChipperAudioProcessor& processor, const juce::String& pa
 int expectedHeightForChipMode(int chipMode)
 {
     juce::ignoreUnused(chipMode);
-    return 620;
+    return expectedEditorHeight;
 }
 
 bool checkVisibleChildGeometry(const juce::Component& root,
@@ -74,18 +76,26 @@ bool checkVisibleChildGeometry(const juce::Component& root,
 
             const auto* comboBox = dynamic_cast<const juce::ComboBox*>(child);
             const auto* textButton = dynamic_cast<const juce::TextButton*>(child);
-            if (comboBox != nullptr || textButton != nullptr)
+            if (comboBox != nullptr)
             {
-                if (bounds.getWidth() < 24 || bounds.getHeight() < 16)
+                if (bounds.getWidth() < 48 || bounds.getHeight() < 24)
                 {
-                    std::cerr << "editor_size_smoke: interactive control too small at "
+                    std::cerr << "editor_size_smoke: dropdown below readable standard size at "
                               << childPath << " type " << typeid(*child).name()
-                              << " bounds " << absoluteBounds.toString();
-                    if (textButton != nullptr)
-                        std::cerr << " text \"" << textButton->getButtonText() << "\"";
-                    if (comboBox != nullptr)
-                        std::cerr << " text \"" << comboBox->getText() << "\"";
-                    std::cerr << '\n';
+                              << " bounds " << absoluteBounds.toString()
+                              << " text \"" << comboBox->getText() << "\"\n";
+                    ok = false;
+                }
+            }
+
+            if (textButton != nullptr)
+            {
+                if (bounds.getWidth() < 24 || bounds.getHeight() < 18)
+                {
+                    std::cerr << "editor_size_smoke: button below readable minimum size at "
+                              << childPath << " type " << typeid(*child).name()
+                              << " bounds " << absoluteBounds.toString()
+                              << " text \"" << textButton->getButtonText() << "\"\n";
                     ok = false;
                 }
             }
@@ -108,10 +118,10 @@ int main()
 
     bool ok = true;
     ok &= expect(editor.getWidth() == 1240, "unexpected default width");
-    ok &= expect(editor.getHeight() == 620, "unexpected default height");
+    ok &= expect(editor.getHeight() == expectedEditorHeight, "unexpected default height");
 
     editor.setSize(1240, 1200);
-    ok &= expect(editor.getHeight() == 620, "host-restored default editor height was not clamped to its chip budget");
+    ok &= expect(editor.getHeight() == expectedEditorHeight, "host-restored default editor height was not clamped to its chip budget");
 
     editor.setSize(1000, 600);
     ok &= expect(editor.getWidth() >= 1180, "editor width was not clamped to minimum");
@@ -127,7 +137,7 @@ int main()
         ChipperAudioProcessorEditor chipEditor(chipProcessor);
         ok &= expect(chipEditor.getWidth() == 1240, "chip default width changed");
         ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "chip default height changed");
-        ok &= expect(chipEditor.getHeight() <= 620, "chip default height exceeded DAW-friendly cap");
+        ok &= expect(chipEditor.getHeight() <= expectedEditorHeight, "chip default height exceeded DAW-friendly cap");
         ok &= checkVisibleChildGeometry(chipEditor, chipEditor, juce::Point<int> {}, "editor/" + chipPath);
         chipEditor.setSize(1240, 1200);
         ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "chip-switched editor height was not clamped to its chip budget");
