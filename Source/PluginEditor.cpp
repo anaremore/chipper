@@ -3509,9 +3509,9 @@ void ChipperAudioProcessorEditor::resized()
         constexpr auto sourceColumns = 4;
         const auto sourceRows = std::max(1, (visibleSources + sourceColumns - 1) / sourceColumns);
         constexpr auto sourceHeaderReserve = 56;
-        constexpr auto targetCardHeight = 116;
+        constexpr auto targetCardHeight = 100;
         const auto desiredSourceHeight = sourceHeaderReserve + (targetCardHeight * sourceRows) + (gap * (sourceRows - 1));
-        const auto sourceMaximumHeight = std::min(304, std::max(252, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap));
+        const auto sourceMaximumHeight = std::min(272, std::max(224, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap));
         const auto sourceMinimumHeight = std::min(desiredSourceHeight, sourceMaximumHeight);
         const auto sourceRowHeight = std::clamp(desiredSourceHeight, sourceMinimumHeight, sourceMaximumHeight);
         const auto remainingHeight = std::max(0, availableHeight - sourceRowHeight - reservedGap);
@@ -3658,7 +3658,7 @@ void ChipperAudioProcessorEditor::resized()
         ? (sourcePanel.getHeight() - (sourceGap * (sourceRows - 1))) / sourceRows
         : sourcePanel.getHeight();
     const auto sourceCardHeight = useWavetableVoiceGrid
-        ? std::min(rawSourceCardHeight, 116)
+        ? std::min(rawSourceCardHeight, 100)
         : (usePaulaVoiceGrid
                ? std::min(rawSourceCardHeight, 172)
                : (useSpc700VoiceGrid ? std::min(rawSourceCardHeight, 172) : rawSourceCardHeight));
@@ -3710,14 +3710,14 @@ void ChipperAudioProcessorEditor::resized()
         const auto isDenseSampleCard = isWavetableSourceCard || isPaulaSourceCard || isSpc700SourceCard;
         auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isDenseSampleCard ? 5 : 8),
                                                          isSidSourceCard ? 2 : (isDenseSampleCard ? 3 : 4));
-        constexpr auto standardInlineControlHeight = 30;
+        const auto standardInlineControlHeight = isWavetableSourceCard ? 24 : 30;
         constexpr auto embeddedLabelHeight = 14;
-        constexpr auto embeddedControlRowHeight = embeddedLabelHeight + standardInlineControlHeight;
-        const auto buttonHeight = useSpc700VoiceGrid ? 22 : (isPaulaSourceCard ? 22 : (isSidSourceCard ? 17 : (isDenseSampleCard ? 20 : 18)));
+        const auto embeddedControlRowHeight = embeddedLabelHeight + standardInlineControlHeight;
+        const auto buttonHeight = useSpc700VoiceGrid ? 22 : (isPaulaSourceCard ? 22 : (isSidSourceCard ? 17 : (isWavetableSourceCard ? 18 : (isDenseSampleCard ? 20 : 18))));
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isDenseSampleCard ? 3 : 2);
         const auto previewHeight = isWavetableSourceCard
-            ? std::clamp(sourceCard.getHeight() / 4, 20, 26)
+            ? std::clamp(sourceCard.getHeight() / 5, 18, 22)
             : std::clamp(sourceCard.getHeight() / (useSpc700VoiceGrid ? 3 : 4),
                          useSpc700VoiceGrid ? 18 : (isSidSourceCard ? 22 : ((isNesSourceCard || isDmgSourceCard || isPaulaSourceCard) ? 24 : 20)),
                          useSpc700VoiceGrid ? 28 : (isSidSourceCard ? 32 : (isPaulaSourceCard ? 30 : ((isNesSourceCard || isDmgSourceCard) ? 34 : 28))));
@@ -3811,8 +3811,8 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isWavetableSourceCard && i < hucVoiceWaveBoxes.size())
         {
-            auto levelArea = sourceCard.removeFromBottom(std::min(32, sourceCard.getHeight()));
-            auto waveRow = sourceCard.removeFromTop(std::min(30, sourceCard.getHeight()));
+            auto levelArea = sourceCard.removeFromBottom(std::min(30, sourceCard.getHeight()));
+            auto waveRow = sourceCard.removeFromTop(std::min(standardInlineControlHeight, sourceCard.getHeight()));
             hucVoiceWaveLabels[i].setBounds(waveRow.removeFromLeft(std::min(44, waveRow.getWidth())));
             hucVoiceWaveBoxes[i].setBounds(waveRow.reduced(0, 1));
             placeEmbeddedLevelInArea(levelArea, 44);
