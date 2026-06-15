@@ -3206,7 +3206,10 @@ int main(int argc, char** argv)
         std::vector<chipper::StereoFrame> frames;
         frames.reserve(static_cast<size_t>(sampleCount));
 
-        if (noteEventCount == 0)
+        const auto hasEnabledSource = std::any_of(options.sourceEnabled.begin(),
+                                                  options.sourceEnabled.end(),
+                                                  [](bool enabled) { return enabled; });
+        if (noteEventCount == 0 && hasEnabledSource)
             core->noteOn(options.note, 1.0f);
 
         size_t eventIndex = 0;

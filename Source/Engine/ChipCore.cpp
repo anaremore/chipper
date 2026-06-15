@@ -2269,7 +2269,8 @@ public:
         const auto pulseOut = pulseSum <= 0.0 ? 0.0 : 95.88 / ((8128.0 / pulseSum) + 100.0);
         const auto tndOut = tndSum <= 0.0 ? 0.0 : 159.79 / ((1.0 / tndSum) + 100.0);
         const auto mixed = static_cast<float>(applyOutputFilters(pulseOut + tndOut) * 2.0);
-        const auto scaled = mixed * noteVelocity;
+        const auto outputGate = (dmc > 0.0 && noteVelocity <= 0.0f) ? 1.0f : noteVelocity;
+        const auto scaled = mixed * outputGate;
         return { scaled, scaled };
     }
 

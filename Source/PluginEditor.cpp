@@ -4627,6 +4627,15 @@ void ChipperAudioProcessorEditor::resized()
 
 void ChipperAudioProcessorEditor::timerCallback()
 {
+    const auto targetHeight = preferredEditorHeightForMode(displayedMode);
+    const auto clampedWidth = std::clamp(getWidth(), editorMinWidth, editorMaxWidth);
+    const auto clampedHeight = std::clamp(getHeight(), editorMinHeight, targetHeight);
+    if (clampedWidth != getWidth() || clampedHeight != getHeight())
+    {
+        setSize(clampedWidth, clampedHeight);
+        return;
+    }
+
     updateDescriptorText();
     updateLiveControlReadouts();
     statusLabel.setText(audioProcessor.currentCoreStatus(), juce::dontSendNotification);
@@ -10526,6 +10535,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     descriptorTextInitialized = true;
     displayedMode = mode;
     const auto preferredHeight = preferredEditorHeightForMode(mode);
+    setResizeLimits(editorMinWidth, editorMinHeight, editorMaxWidth, preferredHeight);
     if (getHeight() != preferredHeight)
         setSize(getWidth(), preferredHeight);
 
