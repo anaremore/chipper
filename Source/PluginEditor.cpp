@@ -3703,10 +3703,10 @@ void ChipperAudioProcessorEditor::resized()
         const auto isDenseSampleCard = isWavetableSourceCard || isPaulaSourceCard || isSpc700SourceCard;
         auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isDenseSampleCard ? 5 : 8),
                                                          isSidSourceCard ? 2 : (isDenseSampleCard ? 3 : 4));
-        constexpr auto standardInlineControlHeight = 28;
+        constexpr auto standardInlineControlHeight = 30;
         constexpr auto embeddedLabelHeight = 14;
         constexpr auto embeddedControlRowHeight = embeddedLabelHeight + standardInlineControlHeight;
-        const auto buttonHeight = useSpc700VoiceGrid ? 20 : (isPaulaSourceCard ? 20 : (isSidSourceCard ? 17 : (isDenseSampleCard ? 20 : 18)));
+        const auto buttonHeight = useSpc700VoiceGrid ? 22 : (isPaulaSourceCard ? 22 : (isSidSourceCard ? 17 : (isDenseSampleCard ? 20 : 18)));
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isDenseSampleCard ? 3 : 2);
         const auto previewHeight = isWavetableSourceCard
@@ -3723,7 +3723,7 @@ void ChipperAudioProcessorEditor::resized()
             sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(labelWidth, levelRow.getWidth())));
             sourceLevelValueLabels[i].setBounds(levelRow);
             levelArea.removeFromTop(std::min(2, levelArea.getHeight()));
-            const auto sliderHeight = std::clamp(levelArea.getHeight(), 16, 22);
+            const auto sliderHeight = std::clamp(levelArea.getHeight(), 18, 24);
             sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(sliderHeight, levelArea.getHeight())).reduced(0, 2));
         };
 
@@ -3808,14 +3808,14 @@ void ChipperAudioProcessorEditor::resized()
             hucVoiceWaveLabels[i].setBounds(waveRow.removeFromTop(std::min(embeddedLabelHeight, waveRow.getHeight())));
             hucVoiceWaveBoxes[i].setBounds(waveRow.removeFromTop(std::min(standardInlineControlHeight, waveRow.getHeight())).reduced(0, 1));
             sourceCard.removeFromTop(std::min(4, sourceCard.getHeight()));
-            auto levelArea = sourceCard.removeFromTop(std::min(42, sourceCard.getHeight()));
+            auto levelArea = sourceCard.removeFromTop(std::min(46, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea);
         }
         else if (isPaulaSourceCard && i < hucVoiceWaveBoxes.size())
         {
             if (i < paulaVoiceSampleBoxes.size())
             {
-                auto levelArea = sourceCard.removeFromBottom(std::min(42, sourceCard.getHeight()));
+                auto levelArea = sourceCard.removeFromBottom(std::min(46, sourceCard.getHeight()));
                 const auto placeLabeledCombo = [&](juce::Label& label, juce::ComboBox& box, juce::Rectangle<int> area)
                 {
                     label.setBounds(area.removeFromTop(std::min(embeddedLabelHeight, area.getHeight())));
@@ -3845,7 +3845,7 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isSpc700SourceCard && i < hucVoiceWaveBoxes.size())
         {
-            auto levelArea = sourceCard.removeFromBottom(std::min(42, sourceCard.getHeight()));
+            auto levelArea = sourceCard.removeFromBottom(std::min(46, sourceCard.getHeight()));
             const auto sampleRowHeight = std::min(embeddedControlRowHeight, sourceCard.getHeight());
             auto sampleRow = sourceCard.removeFromTop(sampleRowHeight);
             hucVoiceWaveLabels[i].setBounds(sampleRow.removeFromTop(std::min(embeddedLabelHeight, sampleRow.getHeight())));
@@ -4379,7 +4379,7 @@ void ChipperAudioProcessorEditor::resized()
         spc700LoopModeButton.setBounds({});
 
         auto sampleCell = utilityCell;
-        const auto minimumTwoColumnSampleBankHeight = displayedMode == chipper::ChipMode::spc700 ? 350 : 312;
+        const auto minimumTwoColumnSampleBankHeight = displayedMode == chipper::ChipMode::spc700 ? 380 : 340;
         const auto twoColumnSampleBank = sampleCell.getWidth() >= 760
             && sampleCell.getHeight() >= minimumTwoColumnSampleBankHeight;
         auto controlColumn = sampleCell;
