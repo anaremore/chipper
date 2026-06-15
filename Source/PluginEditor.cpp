@@ -3499,7 +3499,7 @@ void ChipperAudioProcessorEditor::resized()
         const auto minimumEnvelopeHeight = 92;
         const auto minimumOutputHeight = displayedMode == chipper::ChipMode::huc6280 ? 104 : 90;
         const auto visibleSources = static_cast<int>(chipper::visibleSourceCountForMode(displayedMode));
-        const auto sourceColumns = displayedMode == chipper::ChipMode::namcoWsg ? 4 : 3;
+        const auto sourceColumns = displayedMode == chipper::ChipMode::namcoWsg ? 4 : visibleSources;
         const auto sourceRows = std::max(1, (visibleSources + sourceColumns - 1) / sourceColumns);
         constexpr auto sourceHeaderReserve = 58;
         constexpr auto targetCardHeight = 126;
@@ -3639,7 +3639,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
     const auto wavetableColumns = useWavetableVoiceGrid
-        ? (displayedMode == chipper::ChipMode::namcoWsg ? 4 : 3)
+        ? (displayedMode == chipper::ChipMode::namcoWsg ? 4 : static_cast<int>(visibleSourceCards))
         : 0;
     const auto paulaColumns = 2;
     const auto sourceColumns = useSpc700VoiceGrid ? 4 : (usePaulaVoiceGrid ? paulaColumns : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards)));
