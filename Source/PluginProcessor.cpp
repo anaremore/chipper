@@ -852,7 +852,7 @@ ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSample
     info.byteCount = static_cast<int>(slot.bytes.size());
     info.bitCount = info.byteCount * 8;
     info.durationMs = info.bitRateHz > 0.0 ? (static_cast<double>(info.bitCount) / info.bitRateHz) * 1000.0 : 0.0;
-    auto runState = juce::String(info.loopEnabled ? "Loop" : "One-shot, DAC holds");
+    auto runState = juce::String(info.loopEnabled ? "Looping sample" : "One-shot; DAC holds");
     if (! info.loopEnabled)
     {
         if (info.sampleCompleted)
