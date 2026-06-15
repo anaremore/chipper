@@ -367,6 +367,22 @@ int main()
                      "CC74 NES Drum macro should reset stereo/spread role to the chip macro template");
 
     {
+        ChipperAudioProcessor nesPulse2Processor;
+        nesPulse2Processor.prepareToPlay(48000.0, 64);
+        setPlainFromHost(nesPulse2Processor, chipper::parameters::id::chipMode, 0.0f);
+        setPlainFromHost(nesPulse2Processor, chipper::parameters::id::macro, 5.0f);
+        setPlainFromHost(nesPulse2Processor, chipper::parameters::id::source1Enabled, 0.0f);
+        setPlainFromHost(nesPulse2Processor, chipper::parameters::id::source2Enabled, 1.0f);
+        setPlainFromHost(nesPulse2Processor, chipper::parameters::id::source3Enabled, 0.0f);
+        setPlainFromHost(nesPulse2Processor, chipper::parameters::id::source4Enabled, 0.0f);
+        setPlainFromHost(nesPulse2Processor, chipper::parameters::id::source2Level, 1.0f);
+        setPlainFromHost(nesPulse2Processor, chipper::parameters::id::pulse2Duty, 4.0f);
+        const auto nesPulse2OnlyPeak = renderNoteOnPeak(nesPulse2Processor, 60);
+        ok &= expect(nesPulse2OnlyPeak > 0.0001f,
+                     "NES Pulse 2 source card should produce audio when explicitly enabled by the UI");
+    }
+
+    {
         ChipperAudioProcessor dmgPulse2Processor;
         dmgPulse2Processor.prepareToPlay(48000.0, 64);
         setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::chipMode, 1.0f);
