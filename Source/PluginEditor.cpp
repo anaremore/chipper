@@ -22,10 +22,10 @@ constexpr int editorDefaultHeight = 620;
 constexpr int editorMinWidth = 1180;
 constexpr int editorMinHeight = 560;
 constexpr int editorMaxWidth = 1800;
-constexpr int editorMaxHeight = 680;
+constexpr int editorMaxHeight = editorDefaultHeight;
 
 static_assert(editorDefaultHeight <= editorMaxHeight);
-static_assert(editorMaxHeight <= 680, "Keep the Chipper editor DAW-friendly by default.");
+static_assert(editorMaxHeight <= 620, "Keep the Chipper editor DAW-friendly by default.");
 
 int preferredEditorHeightForMode(chipper::ChipMode mode)
 {
@@ -3440,7 +3440,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 96 : (spc700Layout ? 142 : (paulaLayout ? 122 : (wavetableLayout ? 178 : 300))));
+    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 96 : (spc700Layout ? 72 : (paulaLayout ? 122 : (wavetableLayout ? 178 : 300))));
     const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 430 : (spc700Layout ? 520 : (paulaLayout ? 520 : (wavetableLayout ? 470 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 8 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
@@ -3500,13 +3500,13 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (spc700Layout)
     {
-        constexpr auto minimumTopRowHeight = 106;
+        constexpr auto minimumTopRowHeight = 126;
         constexpr auto minimumSourceRowHeight = 196;
         constexpr auto minimumSampleRowHeight = 92;
         const auto availableHeight = modules.getHeight();
         auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.22)),
                                        minimumTopRowHeight,
-                                       118);
+                                       138);
         auto remainingHeight = std::max(0, availableHeight - topRowHeight - (gap * 2));
         auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(remainingHeight) * 0.60)),
                                           std::min(minimumSourceRowHeight, remainingHeight),
@@ -3679,7 +3679,16 @@ void ChipperAudioProcessorEditor::resized()
     auto sourcePanel = moduleBounds[1].reduced(12, 9);
     sourcePanel.removeFromTop(20);
     const auto sourceSurfaceActive = chipper::descriptorFor(displayedMode).implemented && usesSourceChannelSurface(displayedMode);
-    if (! sourceSurfaceActive || moduleSummaryLabels[1].isVisible())
+    const auto visibleSourceCards = chipper::visibleSourceCountForMode(displayedMode);
+    const auto useSpc700VoiceGrid = displayedMode == chipper::ChipMode::spc700 && visibleSourceCards > 4u;
+    const auto usePaulaVoiceGrid = displayedMode == chipper::ChipMode::paula && visibleSourceCards > 2u;
+    const auto useWavetableVoiceGrid = (displayedMode == chipper::ChipMode::huc6280
+        || displayedMode == chipper::ChipMode::namcoWsg
+        || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
+    const auto compactSourceGrid = useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid;
+    if (compactSourceGrid)
+        moduleSummaryLabels[1].setBounds({});
+    if (! compactSourceGrid && (! sourceSurfaceActive || moduleSummaryLabels[1].isVisible()))
     {
         sourcePanel.removeFromTop(30);
         sourcePanel.removeFromTop(4);
@@ -3688,12 +3697,6 @@ void ChipperAudioProcessorEditor::resized()
         sourcePanel.removeFromTop(4);
 
     const auto sourceGap = 6;
-    const auto visibleSourceCards = chipper::visibleSourceCountForMode(displayedMode);
-    const auto useSpc700VoiceGrid = displayedMode == chipper::ChipMode::spc700 && visibleSourceCards > 4u;
-    const auto usePaulaVoiceGrid = displayedMode == chipper::ChipMode::paula && visibleSourceCards > 2u;
-    const auto useWavetableVoiceGrid = (displayedMode == chipper::ChipMode::huc6280
-        || displayedMode == chipper::ChipMode::namcoWsg
-        || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
     const auto wavetableColumns = useWavetableVoiceGrid ? 4 : 0;
     const auto paulaColumns = 2;
     const auto sourceColumns = useSpc700VoiceGrid ? 4 : (usePaulaVoiceGrid ? paulaColumns : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards)));

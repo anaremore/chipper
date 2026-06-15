@@ -72,14 +72,20 @@ bool checkVisibleChildGeometry(const juce::Component& root,
                 ok = false;
             }
 
-            if (dynamic_cast<const juce::ComboBox*>(child) != nullptr
-                || dynamic_cast<const juce::TextButton*>(child) != nullptr)
+            const auto* comboBox = dynamic_cast<const juce::ComboBox*>(child);
+            const auto* textButton = dynamic_cast<const juce::TextButton*>(child);
+            if (comboBox != nullptr || textButton != nullptr)
             {
                 if (bounds.getWidth() < 24 || bounds.getHeight() < 16)
                 {
                     std::cerr << "editor_size_smoke: interactive control too small at "
                               << childPath << " type " << typeid(*child).name()
-                              << " bounds " << absoluteBounds.toString() << '\n';
+                              << " bounds " << absoluteBounds.toString();
+                    if (textButton != nullptr)
+                        std::cerr << " text \"" << textButton->getButtonText() << "\"";
+                    if (comboBox != nullptr)
+                        std::cerr << " text \"" << comboBox->getText() << "\"";
+                    std::cerr << '\n';
                     ok = false;
                 }
             }
