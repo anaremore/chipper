@@ -1963,8 +1963,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
       audioProcessor(processor)
 {
     setResizable(true, true);
-    setResizeLimits(1180, 820, 1800, 1120);
-    setSize(1240, 980);
+    setResizeLimits(1180, 760, 1800, 1000);
+    setSize(1240, 920);
 
     auto& state = audioProcessor.getValueTreeState();
     chipSettingsSnapshots.resize(static_cast<size_t>(chipper::parameters::chipModeChoices().size()));
