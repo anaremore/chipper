@@ -18,14 +18,14 @@ namespace
 constexpr int userPresetItemIdBase = 10000;
 constexpr int initPresetItemId = 9000;
 constexpr int editorDefaultWidth = 1240;
-constexpr int editorDefaultHeight = 800;
+constexpr int editorDefaultHeight = 880;
 constexpr int editorMinWidth = 1180;
 constexpr int editorMinHeight = 700;
 constexpr int editorMaxWidth = 1800;
 constexpr int editorMaxHeight = editorDefaultHeight;
 
 static_assert(editorDefaultHeight <= editorMaxHeight);
-static_assert(editorMaxHeight <= 800, "Keep the Chipper editor DAW-friendly by default.");
+static_assert(editorMaxHeight <= 900, "Keep the Chipper editor DAW-friendly by default.");
 
 int preferredEditorHeightForMode(chipper::ChipMode mode)
 {
@@ -3448,7 +3448,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
     const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 220 : (spc700Layout ? 112 : (paulaLayout ? 126 : (wavetableLayout ? 150 : 220))));
-    const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 390 : (spc700Layout ? 520 : (paulaLayout ? 530 : (wavetableLayout ? 500 : 492))));
+    const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 460 : (spc700Layout ? 520 : (paulaLayout ? 530 : (wavetableLayout ? 500 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 8 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
     auto modules = area.removeFromTop(modulesHeight);
@@ -3479,7 +3479,7 @@ void ChipperAudioProcessorEditor::resized()
         constexpr auto minimumSourceHeight = 170;
         constexpr auto minimumSampleHeight = 170;
         constexpr auto targetSourceHeight = 190;
-        constexpr auto targetSampleHeight = 190;
+        constexpr auto targetSampleHeight = 260;
 
         const auto availableHeight = modules.getHeight();
         auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.47)),
@@ -3775,11 +3775,13 @@ void ChipperAudioProcessorEditor::resized()
         const auto buttonHeight = isDenseSampleCard ? 20 : (isSidSourceCard ? 18 : (isWavetableSourceCard ? 18 : 18));
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isDenseSampleCard ? 3 : 2);
-        const auto previewHeight = isWavetableSourceCard
+        const auto previewHeight = isPaulaSourceCard
+            ? std::clamp(sourceCard.getHeight() / 8, 12, 18)
+            : (isWavetableSourceCard
             ? std::clamp(sourceCard.getHeight() / 5, 18, 22)
             : std::clamp(sourceCard.getHeight() / (useSpc700VoiceGrid ? 3 : 4),
                          useSpc700VoiceGrid ? 18 : (isSidSourceCard ? 22 : ((isNesSourceCard || isDmgSourceCard || isPaulaSourceCard) ? 22 : 20)),
-                         useSpc700VoiceGrid ? 24 : (isSidSourceCard ? 32 : (isPaulaSourceCard ? 26 : ((isNesSourceCard || isDmgSourceCard) ? 34 : 28))));
+                         useSpc700VoiceGrid ? 24 : (isSidSourceCard ? 32 : (isPaulaSourceCard ? 26 : ((isNesSourceCard || isDmgSourceCard) ? 34 : 28)))));
         sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(previewHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isNesSourceCard || isDmgSourceCard || isDenseSampleCard ? 3 : 1);
 
@@ -3886,14 +3888,15 @@ void ChipperAudioProcessorEditor::resized()
         {
             if (i < paulaVoiceSampleBoxes.size())
             {
-                auto levelArea = sourceCard.removeFromBottom(std::min(34, sourceCard.getHeight()));
+                auto levelArea = sourceCard.removeFromBottom(std::min(32, sourceCard.getHeight()));
                 const auto placeLabeledCombo = [&](juce::Label& label, juce::ComboBox& box, juce::Rectangle<int> area)
                 {
-                    label.setBounds(area.removeFromTop(std::min(embeddedLabelHeight, area.getHeight())));
-                    box.setBounds(area.removeFromTop(std::min(standardInlineControlHeight, area.getHeight())).reduced(0, 1));
+                    const auto labelHeight = area.getHeight() >= 36 ? std::min(12, area.getHeight()) : 0;
+                    label.setBounds(area.removeFromTop(labelHeight));
+                    box.setBounds(area.removeFromTop(std::min(24, area.getHeight())));
                 };
 
-                auto selectorRow = sourceCard.removeFromTop(std::min(embeddedControlRowHeight, sourceCard.getHeight()));
+                auto selectorRow = sourceCard.removeFromTop(std::min(36, sourceCard.getHeight()));
                 if (selectorRow.getWidth() >= 320)
                 {
                     constexpr auto selectorGap = 8;
