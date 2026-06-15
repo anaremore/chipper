@@ -621,30 +621,31 @@ if (Python3_EXECUTABLE)
     add_test(NAME chipper_generate_nes_dmc_fixture
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/write_binary_fixture.py ${CMAKE_CURRENT_BINARY_DIR}/generated-nes-dmc-sample.dmc "55 aa f0 0f"
     )
+    set_tests_properties(chipper_generate_nes_dmc_fixture PROPERTIES FIXTURES_SETUP nes_dmc_fixture)
     add_test(NAME chipper_render_nes_dmc_sample_smoke
         COMMAND chipper_render --chip nes --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 1 --nes-dmc-direct-level 0.5 --nes-dmc-sample ${CMAKE_CURRENT_BINARY_DIR}/generated-nes-dmc-sample.dmc --clock 1789773 --rate 48000 --seconds 0.01 --out nes-dmc-sample-smoke.wav --debug nes-dmc-sample-smoke.json
     )
-    set_tests_properties(chipper_render_nes_dmc_sample_smoke PROPERTIES DEPENDS chipper_generate_nes_dmc_fixture)
+    set_tests_properties(chipper_render_nes_dmc_sample_smoke PROPERTIES DEPENDS chipper_generate_nes_dmc_fixture FIXTURES_REQUIRED nes_dmc_fixture)
     add_test(NAME chipper_render_nes_dmc_rate0_sample_smoke
         COMMAND chipper_render --chip nes --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 1 --nes-dmc-direct-level 0.5 --nes-dmc-rate 0 --nes-dmc-sample ${CMAKE_CURRENT_BINARY_DIR}/generated-nes-dmc-sample.dmc --clock 1789773 --rate 48000 --seconds 0.004 --out nes-dmc-rate0-sample-smoke.wav --debug nes-dmc-rate0-sample-smoke.json
     )
-    set_tests_properties(chipper_render_nes_dmc_rate0_sample_smoke PROPERTIES DEPENDS chipper_generate_nes_dmc_fixture)
+    set_tests_properties(chipper_render_nes_dmc_rate0_sample_smoke PROPERTIES DEPENDS chipper_generate_nes_dmc_fixture FIXTURES_REQUIRED nes_dmc_fixture)
     add_test(NAME chipper_render_nes_dmc_rate15_sample_smoke
         COMMAND chipper_render --chip nes --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 1 --nes-dmc-direct-level 0.5 --nes-dmc-rate 15 --nes-dmc-sample ${CMAKE_CURRENT_BINARY_DIR}/generated-nes-dmc-sample.dmc --clock 1789773 --rate 48000 --seconds 0.004 --out nes-dmc-rate15-sample-smoke.wav --debug nes-dmc-rate15-sample-smoke.json
     )
-    set_tests_properties(chipper_render_nes_dmc_rate15_sample_smoke PROPERTIES DEPENDS chipper_generate_nes_dmc_fixture)
+    set_tests_properties(chipper_render_nes_dmc_rate15_sample_smoke PROPERTIES DEPENDS chipper_generate_nes_dmc_fixture FIXTURES_REQUIRED nes_dmc_fixture)
     add_test(NAME chipper_render_nes_dmc_loop_sample_smoke
         COMMAND chipper_render --chip nes --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 1 --nes-dmc-direct-level 0.5 --nes-dmc-rate 15 --nes-dmc-loop 1 --nes-dmc-sample ${CMAKE_CURRENT_BINARY_DIR}/generated-nes-dmc-sample.dmc --clock 1789773 --rate 48000 --seconds 0.004 --out nes-dmc-loop-sample-smoke.wav --debug nes-dmc-loop-sample-smoke.json
     )
-    set_tests_properties(chipper_render_nes_dmc_loop_sample_smoke PROPERTIES DEPENDS chipper_generate_nes_dmc_fixture)
+    set_tests_properties(chipper_render_nes_dmc_loop_sample_smoke PROPERTIES DEPENDS chipper_generate_nes_dmc_fixture FIXTURES_REQUIRED nes_dmc_fixture)
     add_test(NAME chipper_render_nes_dmc_only_sample_smoke
         COMMAND chipper_render --chip nes --accuracy authentic --macro drum --source1 1 --source2 1 --source3 1 --source4 1 --nes-dmc-direct-level 0.5 --nes-dmc-rate 15 --nes-dmc-only 1 --nes-dmc-sample ${CMAKE_CURRENT_BINARY_DIR}/generated-nes-dmc-sample.dmc --clock 1789773 --rate 48000 --seconds 0.004 --out nes-dmc-only-sample-smoke.wav --debug nes-dmc-only-sample-smoke.json
     )
-    set_tests_properties(chipper_render_nes_dmc_only_sample_smoke PROPERTIES DEPENDS chipper_generate_nes_dmc_fixture)
+    set_tests_properties(chipper_render_nes_dmc_only_sample_smoke PROPERTIES DEPENDS chipper_generate_nes_dmc_fixture FIXTURES_REQUIRED nes_dmc_fixture)
     add_test(NAME chipper_render_nes_dmc_chip_poly_sample_smoke
         COMMAND chipper_render --chip nes --accuracy authentic --macro manual --play-mode chip-poly --source1 0 --source2 0 --source3 0 --source4 1 --nes-dmc-direct-level 0.5 --nes-dmc-sample ${CMAKE_CURRENT_BINARY_DIR}/generated-nes-dmc-sample.dmc --clock 1789773 --rate 48000 --seconds 0.01 --note 60 --out nes-dmc-chip-poly-sample-smoke.wav --debug nes-dmc-chip-poly-sample-smoke.json
     )
-    set_tests_properties(chipper_render_nes_dmc_chip_poly_sample_smoke PROPERTIES DEPENDS chipper_generate_nes_dmc_fixture)
+    set_tests_properties(chipper_render_nes_dmc_chip_poly_sample_smoke PROPERTIES DEPENDS chipper_generate_nes_dmc_fixture FIXTURES_REQUIRED nes_dmc_fixture)
 endif()
 add_test(NAME chipper_render_nes_frame_counter_5step_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --macro manual --clock 1789773 --rate 48000 --seconds 0.001 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/nes-frame-counter-5step-events.txt --out nes-frame-counter-5step-smoke.wav --debug nes-frame-counter-5step-smoke.json
@@ -698,10 +699,11 @@ if (Python3_EXECUTABLE)
     add_test(NAME chipper_generate_paula_8svx_fixture
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/write_binary_fixture.py ${CMAKE_CURRENT_BINARY_DIR}/generated-paula-sample.8svx "46 4f 52 4d 00 00 00 38 38 53 56 58 56 48 44 52 00 00 00 14 00 00 00 10 00 00 00 00 00 00 00 00 20 ab 01 00 00 01 00 00 42 4f 44 59 00 00 00 10 80 90 a0 b0 c0 d0 e0 f0 00 10 20 30 40 50 60 70"
     )
+    set_tests_properties(chipper_generate_paula_8svx_fixture PROPERTIES FIXTURES_SETUP paula_8svx_fixture)
     add_test(NAME chipper_render_paula_8svx_sample_smoke
         COMMAND chipper_render --chip paula --accuracy authentic --macro lead --paula-sample ${CMAKE_CURRENT_BINARY_DIR}/generated-paula-sample.8svx --source1 1 --source2 0 --source3 0 --source4 0 --clock 3546895 --rate 48000 --seconds 0.06 --note 60 --out paula-8svx-sample-smoke.wav --debug paula-8svx-sample-smoke.json
     )
-    set_tests_properties(chipper_render_paula_8svx_sample_smoke PROPERTIES DEPENDS chipper_generate_paula_8svx_fixture)
+    set_tests_properties(chipper_render_paula_8svx_sample_smoke PROPERTIES DEPENDS chipper_generate_paula_8svx_fixture FIXTURES_REQUIRED paula_8svx_fixture)
 endif()
 add_test(NAME chipper_render_huc6280_smoke
     COMMAND chipper_render --chip huc6280 --accuracy authentic --macro lead --wave-shape 1 --clock 3579545 --rate 48000 --seconds 0.05 --note 64 --out huc6280-smoke.wav --debug huc6280-smoke.json

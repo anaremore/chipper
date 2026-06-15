@@ -27,6 +27,8 @@ This focused pass is the current high-signal regression gate for:
 
 Latest focused gate check: 26/26 passing on 2026-06-14 for `chipper_descriptor_smoke|processor_midi_cc_smoke|held_tail|preset_.*held`.
 
+Generated sample prerequisites such as NES `.dmc` and Paula `.8svx` fixtures should use CTest fixtures, not only `DEPENDS`, so filtered sample-focused runs still prepare their binary inputs.
+
 If those fixed-regression gates pass, keep the release checklist unchanged and continue with forward product work. Reopen a fixed regression only after it reproduces in the current build and the relevant gate fails.
 
 For preset work, run the catalog and audibility checks before calling the bank ready:
