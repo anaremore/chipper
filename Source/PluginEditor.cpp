@@ -3500,10 +3500,11 @@ void ChipperAudioProcessorEditor::resized()
         const auto visibleSources = static_cast<int>(chipper::visibleSourceCountForMode(displayedMode));
         const auto sourceColumns = displayedMode == chipper::ChipMode::namcoWsg ? 4 : 3;
         const auto sourceRows = std::max(1, (visibleSources + sourceColumns - 1) / sourceColumns);
-        const auto targetCardHeight = displayedMode == chipper::ChipMode::scc ? 138 : 132;
-        const auto desiredSourceHeight = (targetCardHeight * sourceRows) + (gap * (sourceRows - 1));
-        const auto sourceMaximumHeight = std::min(302, std::max(240, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap));
-        const auto sourceMinimumHeight = std::min(236, sourceMaximumHeight);
+        constexpr auto sourceHeaderReserve = 58;
+        constexpr auto targetCardHeight = 136;
+        const auto desiredSourceHeight = sourceHeaderReserve + (targetCardHeight * sourceRows) + (gap * (sourceRows - 1));
+        const auto sourceMaximumHeight = std::min(340, std::max(240, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap));
+        const auto sourceMinimumHeight = std::min(desiredSourceHeight, sourceMaximumHeight);
         const auto sourceRowHeight = std::clamp(desiredSourceHeight, sourceMinimumHeight, sourceMaximumHeight);
         const auto remainingHeight = std::max(0, availableHeight - sourceRowHeight - reservedGap);
         const auto envelopeMinimumHeight = std::min(minimumEnvelopeHeight, remainingHeight);
