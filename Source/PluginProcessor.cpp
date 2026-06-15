@@ -1600,7 +1600,7 @@ void ChipperAudioProcessor::handleMidiMessage(const juce::MidiMessage& message)
             applyMappedDmcSampleForMidiNote(held.note);
             applyMappedSpc700BrrSampleForMidiNote(held.note);
             applyMappedPaulaSampleForMidiNote(held.note);
-            core->noteOn(held.note, held.velocity);
+            core->replayHeldNote(held.note, held.velocity);
         }
     }
     else if (message.isAllNotesOff() || message.isAllSoundOff())

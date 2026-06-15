@@ -693,6 +693,32 @@ int main()
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") == 32 && jsonIntValue(dmcDebug, "dmcSampleByteIndex") == 4,
                  "NES DMC loop-off held note should not wrap or advance after the one-shot endpoint");
 
+    ChipperAudioProcessor dmcMonoRestoreProcessor;
+    dmcMonoRestoreProcessor.prepareToPlay(48000.0, 256);
+    ok &= expect(dmcMonoRestoreProcessor.loadNesDmcSampleDirectory(dmcDir).wasOk(),
+                 "Should load DMC sample directory for mono-note restore one-shot regression");
+    sendController(dmcMonoRestoreProcessor, 68, 0);
+    sendController(dmcMonoRestoreProcessor, 118, controllerValueForChoice(dmcMonoRestoreProcessor, chipper::parameters::id::nesDmcRateIndex, 15));
+    sendNoteOn(dmcMonoRestoreProcessor, 48);
+    for (int i = 0; i < 8; ++i)
+        processEmptyBlock(dmcMonoRestoreProcessor);
+    sendNoteOn(dmcMonoRestoreProcessor, 52);
+    for (int i = 0; i < 8; ++i)
+        processEmptyBlock(dmcMonoRestoreProcessor);
+    auto dmcBeforeMonoRestoreDebug = dmcMonoRestoreProcessor.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(dmcBeforeMonoRestoreDebug, "dmcSampleActive") == 0
+                     && jsonIntValue(dmcBeforeMonoRestoreDebug, "dmcSampleCompleted") == 1
+                     && jsonIntValue(dmcBeforeMonoRestoreDebug, "dmcSampleBitsPlayed") == 32,
+                 "NES DMC mono restore regression setup should finish the second one-shot before note restore");
+    sendNoteOff(dmcMonoRestoreProcessor, 52);
+    dmcDebug = dmcMonoRestoreProcessor.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleActive") == 0,
+                 "NES DMC one-shot should not restart when Big Mono restores a previous held note");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleCompleted") == 1,
+                 "NES DMC one-shot should remain completed after Big Mono note restore");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") == 32 && jsonIntValue(dmcDebug, "dmcSampleByteIndex") == 4,
+                 "NES DMC Big Mono restore should preserve the stopped one-shot endpoint");
+
     ChipperAudioProcessor dmcNoteMapOneShotProcessor;
     dmcNoteMapOneShotProcessor.prepareToPlay(48000.0, 256);
     ok &= expect(dmcNoteMapOneShotProcessor.loadNesDmcSampleDirectory(dmcDir).wasOk(),
