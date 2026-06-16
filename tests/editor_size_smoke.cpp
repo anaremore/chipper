@@ -47,7 +47,7 @@ int expectedHeightForChipMode(int chipMode)
 {
     const auto mode = chipper::parameters::chipModeFromChoice(chipMode);
     if (mode == chipper::ChipMode::nes)
-        return 760;
+        return 820;
 
     return expectedEditorHeight;
 }
