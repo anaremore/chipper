@@ -315,6 +315,7 @@ bool checkWavetableSourceDeck(chipper::ChipMode mode)
     {
         const auto sourceBounds = editor.getSourceChannelBoundsForLayoutTest(channel);
         const auto levelBounds = editor.getSourceLevelBoundsForLayoutTest(channel);
+        const auto waveSelectorBounds = editor.getSourceWaveSelectorBoundsForLayoutTest(channel);
 
         if (sourceBounds.isEmpty())
         {
@@ -336,6 +337,17 @@ bool checkWavetableSourceDeck(chipper::ChipMode mode)
             std::cerr << "editor_size_smoke: wavetable level lane is not readable/owned for channel "
                       << channel << " source " << sourceBounds.toString()
                       << " level " << levelBounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (waveSelectorBounds.isEmpty()
+            || waveSelectorBounds.getHeight() < 24
+            || waveSelectorBounds.getWidth() < 96
+            || ! sourceBounds.expanded(2).contains(waveSelectorBounds))
+        {
+            std::cerr << "editor_size_smoke: wavetable wave selector is not standard-size/owned for channel "
+                      << channel << " source " << sourceBounds.toString()
+                      << " selector " << waveSelectorBounds.toString() << '\n';
             ok = false;
         }
     }
@@ -431,6 +443,7 @@ bool checkSamplerSourceDeck(chipper::ChipMode mode)
 
         if (waveSelectorBounds.isEmpty()
             || waveSelectorBounds.getHeight() < 24
+            || waveSelectorBounds.getWidth() < 96
             || ! sourceBounds.expanded(2).contains(waveSelectorBounds))
         {
             std::cerr << "editor_size_smoke: sampler wave/sample selector is not readable/owned for channel "
@@ -442,6 +455,7 @@ bool checkSamplerSourceDeck(chipper::ChipMode mode)
         if (mode == chipper::ChipMode::paula
             && (sampleSelectorBounds.isEmpty()
                 || sampleSelectorBounds.getHeight() < 24
+                || sampleSelectorBounds.getWidth() < 96
                 || ! sourceBounds.expanded(2).contains(sampleSelectorBounds)))
         {
             std::cerr << "editor_size_smoke: Paula sample selector is not readable/owned for channel "
