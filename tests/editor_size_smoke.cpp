@@ -97,7 +97,7 @@ bool checkPrimaryPanelStack(const ChipperAudioProcessorEditor& editor, chipper::
     if (mode == chipper::ChipMode::nes || mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
         requirePanel(editor.getModuleBoundsForLayoutTest(5), "sample bank", mode == chipper::ChipMode::nes ? 176 : 132);
 
-    requirePanel(editor.getPerformanceBoundsForLayoutTest(), "performance macros", mode == chipper::ChipMode::nes ? 220 : 108);
+    requirePanel(editor.getPerformanceBoundsForLayoutTest(), "performance macros", mode == chipper::ChipMode::nes ? 220 : (mode == chipper::ChipMode::spc700 ? 84 : 108));
     return ok;
 }
 
@@ -301,6 +301,76 @@ bool checkWavetableSourceDeck(chipper::ChipMode mode)
     return ok;
 }
 
+bool checkSamplerSourceDeck(chipper::ChipMode mode)
+{
+    const auto chipChoice = chipModeChoiceFor(mode);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: sampler chip mode choice unavailable\n";
+        return false;
+    }
+
+    ChipperAudioProcessor processor;
+    auto ok = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+    ChipperAudioProcessorEditor editor(processor);
+    editor.setSize(1240, expectedHeightForChipMode(chipChoice));
+
+    const auto visibleSources = chipper::visibleSourceCountForMode(mode);
+    for (size_t channel = 0; channel < visibleSources; ++channel)
+    {
+        const auto sourceBounds = editor.getSourceChannelBoundsForLayoutTest(channel);
+        const auto levelBounds = editor.getSourceLevelBoundsForLayoutTest(channel);
+        const auto waveSelectorBounds = editor.getSourceWaveSelectorBoundsForLayoutTest(channel);
+        const auto sampleSelectorBounds = editor.getPaulaSourceSampleSelectorBoundsForLayoutTest(channel);
+
+        if (sourceBounds.isEmpty())
+        {
+            std::cerr << "editor_size_smoke: missing sampler source card for channel "
+                      << channel << '\n';
+            ok = false;
+            continue;
+        }
+
+        if (sourceBounds.getHeight() < 90)
+        {
+            std::cerr << "editor_size_smoke: sampler source card below useful height: "
+                      << sourceBounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (waveSelectorBounds.isEmpty()
+            || waveSelectorBounds.getHeight() < 24
+            || ! sourceBounds.expanded(2).contains(waveSelectorBounds))
+        {
+            std::cerr << "editor_size_smoke: sampler wave/sample selector is not readable/owned for channel "
+                      << channel << " source " << sourceBounds.toString()
+                      << " selector " << waveSelectorBounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (mode == chipper::ChipMode::paula
+            && (sampleSelectorBounds.isEmpty()
+                || sampleSelectorBounds.getHeight() < 24
+                || ! sourceBounds.expanded(2).contains(sampleSelectorBounds)))
+        {
+            std::cerr << "editor_size_smoke: Paula sample selector is not readable/owned for channel "
+                      << channel << " source " << sourceBounds.toString()
+                      << " selector " << sampleSelectorBounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (levelBounds.isEmpty() || levelBounds.getHeight() < 10 || ! sourceBounds.expanded(2).contains(levelBounds))
+        {
+            std::cerr << "editor_size_smoke: sampler level lane is not readable/owned for channel "
+                      << channel << " source " << sourceBounds.toString()
+                      << " level " << levelBounds.toString() << '\n';
+            ok = false;
+        }
+    }
+
+    return ok;
+}
+
 }
 
 int main()
@@ -347,6 +417,8 @@ int main()
     ok &= checkWavetableSourceDeck(chipper::ChipMode::huc6280);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::namcoWsg);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::scc);
+    ok &= checkSamplerSourceDeck(chipper::ChipMode::spc700);
+    ok &= checkSamplerSourceDeck(chipper::ChipMode::paula);
 
     return ok ? 0 : 1;
 }

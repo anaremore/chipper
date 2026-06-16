@@ -153,6 +153,14 @@ public:
     {
         return channel < sourceLevelSliders.size() ? sourceLevelSliders[channel].getBounds() : juce::Rectangle<int> {};
     }
+    juce::Rectangle<int> getSourceWaveSelectorBoundsForLayoutTest(size_t channel) const
+    {
+        return channel < hucVoiceWaveBoxes.size() ? hucVoiceWaveBoxes[channel].getBounds() : juce::Rectangle<int> {};
+    }
+    juce::Rectangle<int> getPaulaSourceSampleSelectorBoundsForLayoutTest(size_t channel) const
+    {
+        return channel < paulaVoiceSampleBoxes.size() ? paulaVoiceSampleBoxes[channel].getBounds() : juce::Rectangle<int> {};
+    }
 
     juce::Rectangle<int> getPulseDutyBoundsForLayoutTest() const { return pulseDutySegmentBounds; }
     juce::Rectangle<int> getPulse2DutyBoundsForLayoutTest() const { return pulse2DutySegmentBounds; }
