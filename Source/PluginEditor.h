@@ -149,6 +149,10 @@ public:
     {
         return channel < sourceChannelBounds.size() ? sourceChannelBounds[channel] : juce::Rectangle<int> {};
     }
+    juce::Rectangle<int> getSourceLevelBoundsForLayoutTest(size_t channel) const
+    {
+        return channel < sourceLevelSliders.size() ? sourceLevelSliders[channel].getBounds() : juce::Rectangle<int> {};
+    }
 
     juce::Rectangle<int> getPulseDutyBoundsForLayoutTest() const { return pulseDutySegmentBounds; }
     juce::Rectangle<int> getPulse2DutyBoundsForLayoutTest() const { return pulse2DutySegmentBounds; }

@@ -3560,7 +3560,7 @@ void ChipperAudioProcessorEditor::resized()
         constexpr auto sourceColumns = 4;
         const auto sourceRows = std::max(1, (visibleSources + sourceColumns - 1) / sourceColumns);
         constexpr auto sourceHeaderReserve = 56;
-        constexpr auto targetCardHeight = 124;
+        constexpr auto targetCardHeight = 116;
         const auto desiredSourceHeight = sourceHeaderReserve + (targetCardHeight * sourceRows) + (gap * (sourceRows - 1));
         const auto sourceMaximumHeight = std::min(326, std::max(224, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap));
         const auto sourceMinimumHeight = std::min(desiredSourceHeight, sourceMaximumHeight);
@@ -3717,7 +3717,7 @@ void ChipperAudioProcessorEditor::resized()
         ? (sourcePanel.getHeight() - (sourceGap * (sourceRows - 1))) / sourceRows
         : sourcePanel.getHeight();
     const auto sourceCardHeight = useWavetableVoiceGrid
-        ? std::min(rawSourceCardHeight, 100)
+        ? std::min(rawSourceCardHeight, 116)
         : (usePaulaVoiceGrid
                ? std::min(rawSourceCardHeight, 172)
                : (useSpc700VoiceGrid ? std::min(rawSourceCardHeight, 172) : rawSourceCardHeight));

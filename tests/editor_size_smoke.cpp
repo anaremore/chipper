@@ -254,6 +254,53 @@ bool checkChannelOwnedControlLayout(chipper::ChipMode mode)
     return ok;
 }
 
+bool checkWavetableSourceDeck(chipper::ChipMode mode)
+{
+    const auto chipChoice = chipModeChoiceFor(mode);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: wavetable chip mode choice unavailable\n";
+        return false;
+    }
+
+    ChipperAudioProcessor processor;
+    auto ok = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+    ChipperAudioProcessorEditor editor(processor);
+    editor.setSize(1240, expectedHeightForChipMode(chipChoice));
+
+    const auto visibleSources = chipper::visibleSourceCountForMode(mode);
+    for (size_t channel = 0; channel < visibleSources; ++channel)
+    {
+        const auto sourceBounds = editor.getSourceChannelBoundsForLayoutTest(channel);
+        const auto levelBounds = editor.getSourceLevelBoundsForLayoutTest(channel);
+
+        if (sourceBounds.isEmpty())
+        {
+            std::cerr << "editor_size_smoke: missing wavetable source card for channel "
+                      << channel << '\n';
+            ok = false;
+            continue;
+        }
+
+        if (sourceBounds.getHeight() > 124)
+        {
+            std::cerr << "editor_size_smoke: wavetable source card grew into empty vertical space: "
+                      << sourceBounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (levelBounds.isEmpty() || levelBounds.getHeight() < 16 || ! sourceBounds.expanded(2).contains(levelBounds))
+        {
+            std::cerr << "editor_size_smoke: wavetable level lane is not readable/owned for channel "
+                      << channel << " source " << sourceBounds.toString()
+                      << " level " << levelBounds.toString() << '\n';
+            ok = false;
+        }
+    }
+
+    return ok;
+}
+
 }
 
 int main()
@@ -297,6 +344,9 @@ int main()
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::nes);
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::dmg);
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::sn76489);
+    ok &= checkWavetableSourceDeck(chipper::ChipMode::huc6280);
+    ok &= checkWavetableSourceDeck(chipper::ChipMode::namcoWsg);
+    ok &= checkWavetableSourceDeck(chipper::ChipMode::scc);
 
     return ok ? 0 : 1;
 }
