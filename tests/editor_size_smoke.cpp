@@ -8,8 +8,8 @@
 
 namespace
 {
-constexpr int expectedEditorHeight = 880;
-constexpr int expectedEditorMinimumHeight = 720;
+constexpr int expectedEditorHeight = 800;
+constexpr int expectedEditorMinimumHeight = expectedEditorHeight;
 
 bool expect(bool condition, const char* message)
 {
@@ -65,6 +65,7 @@ bool checkPrimaryPanelStack(const ChipperAudioProcessorEditor& editor, chipper::
 {
     bool ok = true;
     auto lastBottom = 0;
+    const auto footerTop = editor.getHeight() - 16 - 44;
 
     const auto requirePanel = [&](juce::Rectangle<int> bounds, const char* name, int minimumHeight)
     {
@@ -98,6 +99,13 @@ bool checkPrimaryPanelStack(const ChipperAudioProcessorEditor& editor, chipper::
         requirePanel(editor.getModuleBoundsForLayoutTest(5), "sample bank", mode == chipper::ChipMode::nes ? 176 : 132);
 
     requirePanel(editor.getPerformanceBoundsForLayoutTest(), "performance macros", mode == chipper::ChipMode::nes ? 220 : (mode == chipper::ChipMode::spc700 ? 84 : 108));
+    if (editor.getPerformanceBoundsForLayoutTest().getBottom() > footerTop)
+    {
+        std::cerr << "editor_size_smoke: performance panel overlaps footer reserve: "
+                  << editor.getPerformanceBoundsForLayoutTest().toString() << '\n';
+        ok = false;
+    }
+
     return ok;
 }
 

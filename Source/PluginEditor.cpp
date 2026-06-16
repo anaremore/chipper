@@ -18,14 +18,14 @@ namespace
 constexpr int userPresetItemIdBase = 10000;
 constexpr int initPresetItemId = 9000;
 constexpr int editorDefaultWidth = 1240;
-constexpr int editorDefaultHeight = 880;
+constexpr int editorDefaultHeight = 800;
 constexpr int editorMinWidth = 1180;
-constexpr int editorMinHeight = 720;
+constexpr int editorMinHeight = editorDefaultHeight;
 constexpr int editorMaxWidth = 1800;
 constexpr int editorMaxHeight = editorDefaultHeight;
 
 static_assert(editorDefaultHeight <= editorMaxHeight);
-static_assert(editorMaxHeight <= 900, "Keep the Chipper editor DAW-friendly by default.");
+static_assert(editorMaxHeight <= 820, "Keep the Chipper editor DAW-friendly by default.");
 
 int preferredEditorHeightForMode(chipper::ChipMode mode)
 {
@@ -3447,9 +3447,9 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 236 : (spc700Layout ? 88 : (paulaLayout ? 126 : (wavetableLayout ? 150 : 220))));
+    const auto performanceStripHeight = sidLayout ? 260 : (nesLayout ? 236 : (spc700Layout ? 88 : (paulaLayout ? 126 : (wavetableLayout ? 150 : 196))));
     const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 430 : (spc700Layout ? 520 : (paulaLayout ? 530 : (wavetableLayout ? 500 : 492))));
-    const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 8 - performanceStripHeight);
+    const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
     auto modules = area.removeFromTop(modulesHeight);
     const auto gap = 10;
@@ -3586,7 +3586,7 @@ void ChipperAudioProcessorEditor::resized()
     {
         constexpr auto minimumSourceRowHeight = 260;
         constexpr auto minimumMiddleRowHeight = 68;
-        constexpr auto minimumSampleRowHeight = 176;
+        constexpr auto minimumSampleRowHeight = 128;
         const auto availableHeight = modules.getHeight();
         auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.12)),
                                           minimumMiddleRowHeight,
