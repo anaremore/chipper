@@ -18,7 +18,7 @@ namespace
 constexpr int userPresetItemIdBase = 10000;
 constexpr int initPresetItemId = 9000;
 constexpr int editorDefaultWidth = 1240;
-constexpr int editorDefaultHeight = 800;
+constexpr int editorDefaultHeight = 790;
 constexpr int editorMinWidth = 1180;
 constexpr int editorMinHeight = editorDefaultHeight;
 constexpr int editorMaxWidth = 1800;
@@ -3884,11 +3884,10 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isWavetableSourceCard && i < hucVoiceWaveBoxes.size())
         {
+            auto levelArea = sourceCard.removeFromBottom(std::min(34, sourceCard.getHeight()));
             auto waveRow = sourceCard.removeFromTop(std::min(standardInlineControlHeight, sourceCard.getHeight()));
             hucVoiceWaveLabels[i].setBounds(waveRow.removeFromLeft(std::min(44, waveRow.getWidth())));
             hucVoiceWaveBoxes[i].setBounds(waveRow);
-            sourceCard.removeFromTop(std::min(4, sourceCard.getHeight()));
-            auto levelArea = sourceCard.removeFromTop(std::min(34, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea, 44);
         }
         else if (isPaulaSourceCard && i < hucVoiceWaveBoxes.size())
