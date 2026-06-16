@@ -46,10 +46,19 @@ bool setChoiceParameter(ChipperAudioProcessor& processor, const juce::String& pa
 int expectedHeightForChipMode(int chipMode)
 {
     const auto mode = chipper::parameters::chipModeFromChoice(chipMode);
-    if (mode == chipper::ChipMode::nes)
+    switch (mode)
+    {
+    case chipper::ChipMode::sid:
+    case chipper::ChipMode::spc700:
+    case chipper::ChipMode::paula:
+        return expectedEditorHeight;
+
+    case chipper::ChipMode::nes:
         return 820;
 
-    return expectedEditorHeight;
+    default:
+        return 820;
+    }
 }
 
 bool checkVisibleChildGeometry(const juce::Component& root,

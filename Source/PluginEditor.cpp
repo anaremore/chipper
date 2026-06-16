@@ -29,10 +29,19 @@ static_assert(editorMaxHeight <= 900, "Keep the Chipper editor DAW-friendly by d
 
 int preferredEditorHeightForMode(chipper::ChipMode mode)
 {
-    if (mode == chipper::ChipMode::nes)
+    switch (mode)
+    {
+    case chipper::ChipMode::sid:
+    case chipper::ChipMode::spc700:
+    case chipper::ChipMode::paula:
+        return editorDefaultHeight;
+
+    case chipper::ChipMode::nes:
         return 820;
 
-    return editorDefaultHeight;
+    default:
+        return 820;
+    }
 }
 
 constexpr std::array chipSettingsSnapshotParameterIds {
