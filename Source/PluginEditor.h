@@ -145,6 +145,17 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
+    juce::Rectangle<int> getSourceChannelBoundsForLayoutTest(size_t channel) const
+    {
+        return channel < sourceChannelBounds.size() ? sourceChannelBounds[channel] : juce::Rectangle<int> {};
+    }
+
+    juce::Rectangle<int> getPulseDutyBoundsForLayoutTest() const { return pulseDutySegmentBounds; }
+    juce::Rectangle<int> getPulse2DutyBoundsForLayoutTest() const { return pulse2DutySegmentBounds; }
+    juce::Rectangle<int> getDmgWaveLevelBoundsForLayoutTest() const { return dmgWaveLevelSegmentBounds; }
+    juce::Rectangle<int> getSnNoiseModeBoundsForLayoutTest() const { return snNoiseModeSegmentBounds; }
+    juce::Rectangle<int> getSnNoiseModeMenuBoundsForLayoutTest() const { return snNoiseModeBox.getBounds(); }
+
 private:
     static constexpr size_t uiModuleCount = 6;
     static constexpr size_t uiModuleRows = 4;

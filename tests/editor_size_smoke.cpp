@@ -43,6 +43,18 @@ bool setChoiceParameter(ChipperAudioProcessor& processor, const juce::String& pa
     return true;
 }
 
+int chipModeChoiceFor(chipper::ChipMode target)
+{
+    const auto choiceCount = chipper::parameters::chipModeChoices().size();
+    for (int choice = 0; choice < choiceCount; ++choice)
+    {
+        if (chipper::parameters::chipModeFromChoice(choice) == target)
+            return choice;
+    }
+
+    return -1;
+}
+
 int expectedHeightForChipMode(int chipMode)
 {
     const auto mode = chipper::parameters::chipModeFromChoice(chipMode);
@@ -135,6 +147,85 @@ bool checkVisibleChildGeometry(const juce::Component& root,
     return ok;
 }
 
+bool expectControlOwnedBySourceChannel(const ChipperAudioProcessorEditor& editor,
+                                       size_t channel,
+                                       juce::Rectangle<int> controlBounds,
+                                       const char* controlName)
+{
+    const auto sourceBounds = editor.getSourceChannelBoundsForLayoutTest(channel);
+    auto ok = true;
+
+    if (sourceBounds.isEmpty())
+    {
+        std::cerr << "editor_size_smoke: missing source channel bounds for " << controlName << '\n';
+        return false;
+    }
+
+    if (controlBounds.isEmpty())
+    {
+        std::cerr << "editor_size_smoke: missing channel-owned control bounds for " << controlName << '\n';
+        return false;
+    }
+
+    if (controlBounds.getWidth() < 40 || controlBounds.getHeight() < 18)
+    {
+        std::cerr << "editor_size_smoke: channel-owned control below readable size for "
+                  << controlName << " bounds " << controlBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (! sourceBounds.expanded(2).contains(controlBounds))
+    {
+        std::cerr << "editor_size_smoke: " << controlName
+                  << " is not owned by its channel card; source "
+                  << sourceBounds.toString() << " control "
+                  << controlBounds.toString() << '\n';
+        ok = false;
+    }
+
+    return ok;
+}
+
+bool checkChannelOwnedControlLayout(chipper::ChipMode mode)
+{
+    const auto chipChoice = chipModeChoiceFor(mode);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: chip mode choice unavailable for ownership layout check\n";
+        return false;
+    }
+
+    ChipperAudioProcessor processor;
+    auto ok = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+    ChipperAudioProcessorEditor editor(processor);
+    editor.setSize(1240, expectedHeightForChipMode(chipChoice));
+
+    switch (mode)
+    {
+    case chipper::ChipMode::nes:
+        ok &= expectControlOwnedBySourceChannel(editor, 0, editor.getPulseDutyBoundsForLayoutTest(), "NES pulse 1 duty");
+        ok &= expectControlOwnedBySourceChannel(editor, 1, editor.getPulse2DutyBoundsForLayoutTest(), "NES pulse 2 duty");
+        ok &= expectControlOwnedBySourceChannel(editor, 3, editor.getSnNoiseModeBoundsForLayoutTest(), "NES noise mode");
+        break;
+
+    case chipper::ChipMode::dmg:
+        ok &= expectControlOwnedBySourceChannel(editor, 0, editor.getPulseDutyBoundsForLayoutTest(), "DMG pulse 1 duty");
+        ok &= expectControlOwnedBySourceChannel(editor, 1, editor.getPulse2DutyBoundsForLayoutTest(), "DMG pulse 2 duty");
+        ok &= expectControlOwnedBySourceChannel(editor, 2, editor.getDmgWaveLevelBoundsForLayoutTest(), "DMG wave level");
+        ok &= expectControlOwnedBySourceChannel(editor, 3, editor.getSnNoiseModeBoundsForLayoutTest(), "DMG noise mode");
+        break;
+
+    case chipper::ChipMode::sn76489:
+        ok &= expectControlOwnedBySourceChannel(editor, 3, editor.getSnNoiseModeMenuBoundsForLayoutTest(), "SN76489 noise mode");
+        break;
+
+    default:
+        break;
+    }
+
+    return ok;
+}
+
 }
 
 int main()
@@ -172,6 +263,10 @@ int main()
         ok &= expect(chipEditor.getWidth() == 1240, "chip-switched editor width unexpectedly changed");
         ok &= checkVisibleChildGeometry(chipEditor, chipEditor, juce::Point<int> {}, "editor/restored/" + chipPath);
     }
+
+    ok &= checkChannelOwnedControlLayout(chipper::ChipMode::nes);
+    ok &= checkChannelOwnedControlLayout(chipper::ChipMode::dmg);
+    ok &= checkChannelOwnedControlLayout(chipper::ChipMode::sn76489);
 
     return ok ? 0 : 1;
 }
