@@ -346,6 +346,13 @@ bool checkSamplerSourceDeck(chipper::ChipMode mode)
             ok = false;
         }
 
+        if (sourceBounds.getHeight() > 178)
+        {
+            std::cerr << "editor_size_smoke: sampler source card grew into empty vertical space: "
+                      << sourceBounds.toString() << '\n';
+            ok = false;
+        }
+
         if (waveSelectorBounds.isEmpty()
             || waveSelectorBounds.getHeight() < 24
             || ! sourceBounds.expanded(2).contains(waveSelectorBounds))
