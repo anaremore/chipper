@@ -3774,6 +3774,7 @@ void ChipperAudioProcessorEditor::resized()
         const auto isSidSourceCard = displayedMode == chipper::ChipMode::sid;
         const auto isNesSourceCard = displayedMode == chipper::ChipMode::nes;
         const auto isDmgSourceCard = displayedMode == chipper::ChipMode::dmg;
+        const auto isSnSourceCard = displayedMode == chipper::ChipMode::sn76489;
         const auto isPaulaSourceCard = displayedMode == chipper::ChipMode::paula;
         const auto isSpc700SourceCard = displayedMode == chipper::ChipMode::spc700;
         const auto isWavetableSourceCard = useWavetableVoiceGrid;
@@ -3885,6 +3886,12 @@ void ChipperAudioProcessorEditor::resized()
                 placeCompactSegment(snNoiseModeButtons, snNoiseModeSegmentBounds, snNoiseModeButtons.size());
                 sourceCard.removeFromTop(3);
             }
+        }
+        else if (isSnSourceCard && i == 3)
+        {
+            auto noiseModeArea = sourceCard.removeFromTop(std::min(48, sourceCard.getHeight()));
+            placeSnNoiseModeSegment(noiseModeArea);
+            sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
         }
         else if (isWavetableSourceCard && i < hucVoiceWaveBoxes.size())
         {
@@ -4132,6 +4139,7 @@ void ChipperAudioProcessorEditor::resized()
     if (usesSnNoiseModeSegment(displayedMode)
         && displayedMode != chipper::ChipMode::nes
         && displayedMode != chipper::ChipMode::dmg
+        && displayedMode != chipper::ChipMode::sn76489
         && displayedMode != chipper::ChipMode::paula)
     {
         auto noiseModePanel = primaryTonePanel;
@@ -8426,7 +8434,9 @@ void ChipperAudioProcessorEditor::setYmChannelMixControlsVisible(bool shouldBeVi
 void ChipperAudioProcessorEditor::setSnNoiseModeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
     const auto active = shouldBeVisible && usesSnNoiseModeSegment(mode);
-    const auto embeddedInSourceCard = mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
+    const auto embeddedInSourceCard = mode == chipper::ChipMode::nes
+        || mode == chipper::ChipMode::dmg
+        || mode == chipper::ChipMode::sn76489;
     const auto menuActive = active && chipper::chipHasParameterSurface(mode,
                                                                        chipper::ChipParameterRole::snNoiseMode,
                                                                        chipper::ControlSurface::menu);
