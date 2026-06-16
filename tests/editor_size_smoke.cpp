@@ -43,6 +43,30 @@ bool setChoiceParameter(ChipperAudioProcessor& processor, const juce::String& pa
     return true;
 }
 
+bool setPlainParameter(ChipperAudioProcessor& processor, const juce::String& parameterId, float plainValue)
+{
+    auto* parameter = processor.getValueTreeState().getParameter(parameterId);
+    if (parameter == nullptr)
+    {
+        std::cerr << "editor_size_smoke: missing parameter " << parameterId << '\n';
+        return false;
+    }
+
+    parameter->beginChangeGesture();
+    parameter->setValueNotifyingHost(parameter->convertTo0to1(plainValue));
+    parameter->endChangeGesture();
+    return true;
+}
+
+float plainParameterValue(const ChipperAudioProcessor& processor, const juce::String& parameterId)
+{
+    if (const auto* value = processor.getValueTreeState().getRawParameterValue(parameterId))
+        return value->load();
+
+    std::cerr << "editor_size_smoke: missing raw parameter " << parameterId << '\n';
+    return 0.0f;
+}
+
 int chipModeChoiceFor(chipper::ChipMode target)
 {
     const auto choiceCount = chipper::parameters::chipModeChoices().size();
@@ -309,6 +333,48 @@ bool checkWavetableSourceDeck(chipper::ChipMode mode)
     return ok;
 }
 
+bool checkChipSwitchPreservesEditorSettings()
+{
+    ChipperAudioProcessor processor;
+    ChipperAudioProcessorEditor editor(processor);
+    editor.runEditorUpdateForLayoutTest();
+
+    auto ok = true;
+    const auto nesChoice = chipModeChoiceFor(chipper::ChipMode::nes);
+    const auto sidChoice = chipModeChoiceFor(chipper::ChipMode::sid);
+    ok &= expect(nesChoice >= 0 && sidChoice >= 0, "NES/SID choices unavailable for chip-switch preservation check");
+
+    ok &= setPlainParameter(processor, chipper::parameters::id::macroControl1, 0.73f);
+    ok &= setPlainParameter(processor, chipper::parameters::id::outputDb, -12.0f);
+    ok &= setChoiceParameter(processor, chipper::parameters::id::pulse2Duty, 3);
+
+    ok &= setChoiceParameter(processor, chipper::parameters::id::chipMode, sidChoice);
+    editor.runEditorUpdateForLayoutTest();
+    ok &= setPlainParameter(processor, chipper::parameters::id::macroControl1, 0.18f);
+    ok &= setPlainParameter(processor, chipper::parameters::id::outputDb, -6.0f);
+    ok &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 2);
+
+    ok &= setChoiceParameter(processor, chipper::parameters::id::chipMode, nesChoice);
+    editor.runEditorUpdateForLayoutTest();
+    ok &= expect(std::abs(plainParameterValue(processor, chipper::parameters::id::macroControl1) - 0.73f) < 0.001f,
+                 "switching back to NES should restore its local macro control value");
+    ok &= expect(std::abs(plainParameterValue(processor, chipper::parameters::id::outputDb) - -12.0f) < 0.001f,
+                 "switching back to NES should restore its local output trim");
+    ok &= expect(std::abs(plainParameterValue(processor, chipper::parameters::id::pulse2Duty) - 3.0f) < 0.001f,
+                 "switching back to NES should restore its local pulse 2 duty choice");
+
+    ok &= setChoiceParameter(processor, chipper::parameters::id::chipMode, sidChoice);
+    editor.runEditorUpdateForLayoutTest();
+    ok &= expect(std::abs(plainParameterValue(processor, chipper::parameters::id::macroControl1) - 0.18f) < 0.001f,
+                 "switching back to SID should restore its local macro control value");
+    ok &= expect(std::abs(plainParameterValue(processor, chipper::parameters::id::outputDb) - -6.0f) < 0.001f,
+                 "switching back to SID should restore its local output trim");
+    ok &= expect(std::abs(plainParameterValue(processor, chipper::parameters::id::waveShape) - 2.0f) < 0.001f,
+                 "switching back to SID should restore its local waveform choice");
+
+    return ok;
+}
+
 bool checkSamplerSourceDeck(chipper::ChipMode mode)
 {
     const auto chipChoice = chipModeChoiceFor(mode);
@@ -434,6 +500,7 @@ int main()
     ok &= checkWavetableSourceDeck(chipper::ChipMode::scc);
     ok &= checkSamplerSourceDeck(chipper::ChipMode::spc700);
     ok &= checkSamplerSourceDeck(chipper::ChipMode::paula);
+    ok &= checkChipSwitchPreservesEditorSettings();
 
     return ok ? 0 : 1;
 }

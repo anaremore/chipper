@@ -172,6 +172,7 @@ public:
         return module < moduleBounds.size() ? moduleBounds[module] : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getPerformanceBoundsForLayoutTest() const { return globalStripBounds; }
+    void runEditorUpdateForLayoutTest() { timerCallback(); }
 
 private:
     static constexpr size_t uiModuleCount = 6;
