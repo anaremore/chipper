@@ -4237,6 +4237,8 @@ public:
             clearChipPolyState();
 
         patch = newPatch;
+        setNoiseControl(sn76489NoiseControlForPatch(patch), false);
+        applySourceAttenuationMask();
         if (emu != nullptr)
             syncEmuRegisters();
     }

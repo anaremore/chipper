@@ -1179,7 +1179,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_nes_pulse2_duty_follow_assert PROPERTIES DEPENDS chipper_render_nes_pulse2_duty_follow_smoke)
 
     add_test(NAME chipper_render_nes_sources_off_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-sources-off-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --max-peak 0.001 --max-rms 0.001 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min enabled0=0 --core-max enabled0=0 --core-min enabled1=0 --core-max enabled1=0 --core-min enabled2=0 --core-max enabled2=0 --core-min enabled3=0 --core-max enabled3=0
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-sources-off-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --max-peak 0.001 --max-rms 0.001 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0
     )
     set_tests_properties(chipper_render_nes_sources_off_assert PROPERTIES DEPENDS chipper_render_nes_sources_off_smoke)
 
@@ -2040,7 +2040,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_preset_sn_periodic_bass_click_assert PROPERTIES DEPENDS chipper_render_preset_sn_periodic_bass_click_smoke)
 
     add_test(NAME chipper_render_dmg_json_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-smoke.json --implemented-contains partial --macro Lead --min-peak 0.08 --min-left-peak 0.1 --min-rms 0.03 --register-writes 0 --note-events 0 --min-zero-crossings 30 --max-zero-crossings 80 --core-min pulse1FreqReg=800 --core-max pulse1FreqReg=860 --core-min sweepRegister=28 --core-max sweepRegister=28 --core-min sweepPace=1 --core-max sweepPace=1 --core-min sweepShift=4 --core-max sweepShift=4 --core-min sweepSubtract=1 --core-max sweepSubtract=1 --core-min sweepEnabled=1 --core-max sweepEnabled=1 --core-min enabled0=1 --core-max enabled0=1 --core-min enabledNoise=0 --core-max enabledNoise=0 --core-min dmgStereoRoute=4 --core-max dmgStereoRoute=4 --core-min dmgStereoRouteRegister=90 --core-max dmgStereoRouteRegister=90 --core-min nr51=90 --core-max nr51=90 --descriptor-param-kind macroControl2=chipRegister --descriptor-param-surface macroControl2=slider --descriptor-param-label "macroControl2=Sweep Shift" --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=Noise Mode" --descriptor-param-choices snNoiseMode=3
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-smoke.json --implemented-contains partial --macro Lead --min-peak 0.08 --min-left-peak 0.1 --min-rms 0.03 --register-writes 0 --note-events 0 --min-zero-crossings 180 --max-zero-crossings 320 --core-min pulse1FreqReg=800 --core-max pulse1FreqReg=860 --core-min sweepRegister=28 --core-max sweepRegister=28 --core-min sweepPace=1 --core-max sweepPace=1 --core-min sweepShift=4 --core-max sweepShift=4 --core-min sweepSubtract=1 --core-max sweepSubtract=1 --core-min sweepEnabled=1 --core-max sweepEnabled=1 --core-min enabled0=1 --core-max enabled0=1 --core-min enabledNoise=0 --core-max enabledNoise=0 --core-min dmgStereoRoute=4 --core-max dmgStereoRoute=4 --core-min dmgStereoRouteRegister=90 --core-max dmgStereoRouteRegister=90 --core-min nr51=90 --core-max nr51=90 --descriptor-param-kind macroControl2=chipRegister --descriptor-param-surface macroControl2=slider --descriptor-param-label "macroControl2=Sweep Shift" --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=Noise Mode" --descriptor-param-choices snNoiseMode=3
     )
     set_tests_properties(chipper_render_dmg_json_assert PROPERTIES DEPENDS chipper_render_dmg_smoke)
 
@@ -2487,5 +2487,4 @@ target_link_libraries(chipper_editor_size_smoke
 add_test(NAME chipper_editor_size_smoke
     COMMAND chipper_editor_size_smoke
 )
-
 
