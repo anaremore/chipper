@@ -155,6 +155,11 @@ public:
     juce::Rectangle<int> getDmgWaveLevelBoundsForLayoutTest() const { return dmgWaveLevelSegmentBounds; }
     juce::Rectangle<int> getSnNoiseModeBoundsForLayoutTest() const { return snNoiseModeSegmentBounds; }
     juce::Rectangle<int> getSnNoiseModeMenuBoundsForLayoutTest() const { return snNoiseModeBox.getBounds(); }
+    juce::Rectangle<int> getModuleBoundsForLayoutTest(size_t module) const
+    {
+        return module < moduleBounds.size() ? moduleBounds[module] : juce::Rectangle<int> {};
+    }
+    juce::Rectangle<int> getPerformanceBoundsForLayoutTest() const { return globalStripBounds; }
 
 private:
     static constexpr size_t uiModuleCount = 6;

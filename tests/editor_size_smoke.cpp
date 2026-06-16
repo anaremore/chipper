@@ -57,20 +57,48 @@ int chipModeChoiceFor(chipper::ChipMode target)
 
 int expectedHeightForChipMode(int chipMode)
 {
-    const auto mode = chipper::parameters::chipModeFromChoice(chipMode);
-    switch (mode)
+    juce::ignoreUnused(chipMode);
+    return expectedEditorHeight;
+}
+
+bool checkPrimaryPanelStack(const ChipperAudioProcessorEditor& editor, chipper::ChipMode mode)
+{
+    bool ok = true;
+    auto lastBottom = 0;
+
+    const auto requirePanel = [&](juce::Rectangle<int> bounds, const char* name, int minimumHeight)
     {
-    case chipper::ChipMode::sid:
-    case chipper::ChipMode::spc700:
-    case chipper::ChipMode::paula:
-        return expectedEditorHeight;
+        if (bounds.isEmpty())
+        {
+            std::cerr << "editor_size_smoke: missing " << name << " panel\n";
+            ok = false;
+            return;
+        }
 
-    case chipper::ChipMode::nes:
-        return 820;
+        if (bounds.getHeight() < minimumHeight)
+        {
+            std::cerr << "editor_size_smoke: " << name << " panel below useful height: "
+                      << bounds.toString() << '\n';
+            ok = false;
+        }
 
-    default:
-        return 820;
-    }
+        if (bounds.getY() < lastBottom)
+        {
+            std::cerr << "editor_size_smoke: " << name << " panel overlaps previous stack item: "
+                      << bounds.toString() << '\n';
+            ok = false;
+        }
+
+        lastBottom = bounds.getBottom();
+    };
+
+    requirePanel(editor.getModuleBoundsForLayoutTest(1), "source/channel", 118);
+
+    if (mode == chipper::ChipMode::nes || mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
+        requirePanel(editor.getModuleBoundsForLayoutTest(5), "sample bank", mode == chipper::ChipMode::nes ? 176 : 132);
+
+    requirePanel(editor.getPerformanceBoundsForLayoutTest(), "performance macros", mode == chipper::ChipMode::nes ? 220 : 108);
+    return ok;
 }
 
 bool checkVisibleChildGeometry(const juce::Component& root,
@@ -258,10 +286,12 @@ int main()
         ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "chip default height changed");
         ok &= expect(chipEditor.getHeight() <= expectedEditorHeight, "chip default height exceeded DAW-friendly cap");
         ok &= checkVisibleChildGeometry(chipEditor, chipEditor, juce::Point<int> {}, "editor/" + chipPath);
+        ok &= checkPrimaryPanelStack(chipEditor, chipper::parameters::chipModeFromChoice(chipMode));
         chipEditor.setSize(1240, 1200);
         ok &= expect(chipEditor.getHeight() == expectedEditorHeight, "chip-switched editor height was not clamped to the DAW-friendly cap");
         ok &= expect(chipEditor.getWidth() == 1240, "chip-switched editor width unexpectedly changed");
         ok &= checkVisibleChildGeometry(chipEditor, chipEditor, juce::Point<int> {}, "editor/restored/" + chipPath);
+        ok &= checkPrimaryPanelStack(chipEditor, chipper::parameters::chipModeFromChoice(chipMode));
     }
 
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::nes);
