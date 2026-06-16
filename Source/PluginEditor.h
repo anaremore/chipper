@@ -172,6 +172,12 @@ public:
         return module < moduleBounds.size() ? moduleBounds[module] : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getPerformanceBoundsForLayoutTest() const { return globalStripBounds; }
+    juce::Rectangle<int> getSampleBankBoundsForLayoutTest() const { return moduleBounds[5]; }
+    juce::Rectangle<int> getSamplePlaybackModeBoundsForLayoutTest() const { return dmcPlaybackModeBox.getBounds(); }
+    juce::Rectangle<int> getSampleSlotBoundsForLayoutTest() const { return dmcSampleSlotBox.getBounds(); }
+    juce::Rectangle<int> getSampleRootBoundsForLayoutTest() const { return dmcMapRootBox.getBounds(); }
+    juce::Rectangle<int> getSampleLoopToggleBoundsForLayoutTest() const { return spc700LoopModeButton.getBounds(); }
+    juce::Rectangle<int> getSampleWaveformBoundsForLayoutTest() const { return sampleWaveformPreview.getBounds(); }
     void runEditorUpdateForLayoutTest() { timerCallback(); }
 
 private:

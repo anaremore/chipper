@@ -79,6 +79,16 @@ int chipModeChoiceFor(chipper::ChipMode target)
     return -1;
 }
 
+const char* chipModeName(chipper::ChipMode mode)
+{
+    switch (mode)
+    {
+    case chipper::ChipMode::spc700: return "SPC700";
+    case chipper::ChipMode::paula: return "Paula";
+    default: return "chip";
+    }
+}
+
 int expectedHeightForChipMode(int chipMode)
 {
     juce::ignoreUnused(chipMode);
@@ -122,7 +132,7 @@ bool checkPrimaryPanelStack(const ChipperAudioProcessorEditor& editor, chipper::
     if (mode == chipper::ChipMode::nes || mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
         requirePanel(editor.getModuleBoundsForLayoutTest(5), "sample bank", mode == chipper::ChipMode::nes ? 176 : 132);
 
-    requirePanel(editor.getPerformanceBoundsForLayoutTest(), "performance macros", mode == chipper::ChipMode::nes ? 220 : (mode == chipper::ChipMode::spc700 ? 84 : 108));
+    requirePanel(editor.getPerformanceBoundsForLayoutTest(), "performance macros", mode == chipper::ChipMode::nes ? 220 : ((mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 84 : 108));
     if (editor.getPerformanceBoundsForLayoutTest().getBottom() > footerTop)
     {
         std::cerr << "editor_size_smoke: performance panel overlaps footer reserve: "
@@ -452,6 +462,88 @@ bool checkSamplerSourceDeck(chipper::ChipMode mode)
     return ok;
 }
 
+bool checkSamplerBankLayout(chipper::ChipMode mode)
+{
+    const auto chipChoice = chipModeChoiceFor(mode);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: sampler chip mode choice unavailable for sample-bank check\n";
+        return false;
+    }
+
+    ChipperAudioProcessor processor;
+    auto ok = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+    ChipperAudioProcessorEditor editor(processor);
+    editor.setSize(1240, expectedHeightForChipMode(chipChoice));
+
+    const auto sampleBankBounds = editor.getSampleBankBoundsForLayoutTest();
+    const auto playbackBounds = editor.getSamplePlaybackModeBoundsForLayoutTest();
+    const auto slotBounds = editor.getSampleSlotBoundsForLayoutTest();
+    const auto rootBounds = editor.getSampleRootBoundsForLayoutTest();
+    const auto waveformBounds = editor.getSampleWaveformBoundsForLayoutTest();
+    const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+
+    const auto expectOwnedStandardControl = [&](juce::Rectangle<int> bounds, const char* name)
+    {
+        if (bounds.isEmpty())
+        {
+            std::cerr << "editor_size_smoke: missing " << name << " in sample bank\n";
+            ok = false;
+            return;
+        }
+
+        if (bounds.getHeight() < 28 || bounds.getWidth() < 72)
+        {
+            std::cerr << "editor_size_smoke: " << chipModeName(mode) << ' ' << name
+                      << " below standard sample-bank control size: "
+                      << bounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (! sampleBankBounds.expanded(2).contains(bounds))
+        {
+            std::cerr << "editor_size_smoke: " << name
+                      << " is not owned by the sample bank; sample bank "
+                      << sampleBankBounds.toString() << " control "
+                      << bounds.toString() << '\n';
+            ok = false;
+        }
+    };
+
+    expectOwnedStandardControl(playbackBounds, "sample playback mode");
+    expectOwnedStandardControl(slotBounds, "sample slot");
+    expectOwnedStandardControl(rootBounds, "sample root");
+
+    if (mode == chipper::ChipMode::spc700)
+        expectOwnedStandardControl(editor.getSampleLoopToggleBoundsForLayoutTest(), "SPC700 loop toggle");
+
+    if (waveformBounds.isEmpty() || waveformBounds.getHeight() < 108 || waveformBounds.getWidth() < 420)
+    {
+        std::cerr << "editor_size_smoke: " << chipModeName(mode)
+                  << " sample waveform preview below useful size: "
+                  << waveformBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (! sampleBankBounds.expanded(2).contains(waveformBounds))
+    {
+        std::cerr << "editor_size_smoke: sample waveform preview is not owned by sample bank; sample bank "
+                  << sampleBankBounds.toString() << " waveform "
+                  << waveformBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (! performanceBounds.isEmpty() && sampleBankBounds.getBottom() > performanceBounds.getY())
+    {
+        std::cerr << "editor_size_smoke: sample bank overlaps performance macros: sample bank "
+                  << sampleBankBounds.toString() << " performance "
+                  << performanceBounds.toString() << '\n';
+        ok = false;
+    }
+
+    return ok;
+}
+
 }
 
 int main()
@@ -500,6 +592,8 @@ int main()
     ok &= checkWavetableSourceDeck(chipper::ChipMode::scc);
     ok &= checkSamplerSourceDeck(chipper::ChipMode::spc700);
     ok &= checkSamplerSourceDeck(chipper::ChipMode::paula);
+    ok &= checkSamplerBankLayout(chipper::ChipMode::spc700);
+    ok &= checkSamplerBankLayout(chipper::ChipMode::paula);
     ok &= checkChipSwitchPreservesEditorSettings();
 
     return ok ? 0 : 1;
