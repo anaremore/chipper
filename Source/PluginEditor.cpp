@@ -9272,13 +9272,19 @@ juce::String ChipperAudioProcessorEditor::envelopeDecayReadout(chipper::ChipMode
     if (mode == chipper::ChipMode::pokey)
         return juce::String("POKEY AUDV volume-gate helper, step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::paula)
-        return juce::String("Paula 6-bit volume gate, step ") + juce::String(period) + "/15";
+    {
+        const auto volume = std::clamp(static_cast<int>(std::round((std::clamp(value, 0.0f, 1.0f) * 63.0f) + 1.0f)), 1, 64);
+        return juce::String("Paula 6-bit volume gate, step ") + juce::String(volume) + "/64";
+    }
     if (mode == chipper::ChipMode::huc6280)
-        return juce::String("Gate step ") + juce::String(period) + "/15";
+    {
+        const auto volume = std::clamp(static_cast<int>(std::round((std::clamp(value, 0.0f, 1.0f) * 30.0f) + 1.0f)), 1, 31);
+        return juce::String("HuC6280 5-bit volume helper, step ") + juce::String(volume) + "/31";
+    }
     if (mode == chipper::ChipMode::scc)
-        return juce::String("Gate step ") + juce::String(period) + "/15";
+        return juce::String("SCC 4-bit volume/key helper, step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::namcoWsg)
-        return juce::String("Gate step ") + juce::String(period) + "/15";
+        return juce::String("Namco 4-bit lane-volume helper, step ") + juce::String(period) + "/15";
     if (mode == chipper::ChipMode::spc700)
         return juce::String("S-DSP ADSR/GAIN speed, step ") + juce::String(period) + "/15";
 

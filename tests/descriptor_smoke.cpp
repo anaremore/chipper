@@ -566,11 +566,11 @@ bool expectEnvelopeModels()
                  "POKEY envelope module should name the AUDV helper path and avoid ADSR wording");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::paula).modules[3].title == "Tracker Amp Env",
                  "Paula envelope module should identify the tracker helper layer");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::huc6280).modules[3].title == "Global Amp Env",
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::huc6280).modules[3].title == "Shared Amp Env",
                  "HuC6280 envelope module should identify its shared volume helper");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::namcoWsg).modules[3].title == "Global Amp Env",
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::namcoWsg).modules[3].title == "Shared Amp Env",
                  "Namco WSG envelope module should identify its shared lane-volume helper");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).modules[3].title == "Global Amp Env",
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).modules[3].title == "Shared Amp Env",
                  "SCC envelope module should identify its shared wave-channel helper");
 
     return ok;
