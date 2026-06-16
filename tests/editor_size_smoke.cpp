@@ -544,6 +544,118 @@ bool checkSamplerBankLayout(chipper::ChipMode mode)
     return ok;
 }
 
+bool checkNesDmcAndPerformanceLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::nes);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: NES chip mode choice unavailable for DMC layout check\n";
+        return false;
+    }
+
+    ChipperAudioProcessor processor;
+    auto ok = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+    ChipperAudioProcessorEditor editor(processor);
+    editor.setSize(1240, expectedEditorHeight);
+
+    const auto sampleBankBounds = editor.getSampleBankBoundsForLayoutTest();
+    const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+    const auto playbackBounds = editor.getSamplePlaybackModeBoundsForLayoutTest();
+    const auto slotBounds = editor.getSampleSlotBoundsForLayoutTest();
+    const auto rootBounds = editor.getSampleRootBoundsForLayoutTest();
+    const auto loopBounds = editor.getDmcLoopToggleBoundsForLayoutTest();
+    const auto rateBounds = editor.getDmcRateBoundsForLayoutTest();
+    const auto waveformBounds = editor.getSampleWaveformBoundsForLayoutTest();
+    const auto apuDecayBounds = editor.getEnvelopeDecayBoundsForLayoutTest();
+    const auto outputBounds = editor.getOutputSliderBoundsForLayoutTest();
+    const auto scopeBounds = editor.getOutputScopeBoundsForLayoutTest();
+
+    const auto expectOwnedReadable = [&](juce::Rectangle<int> bounds,
+                                         const char* name,
+                                         int minWidth,
+                                         int minHeight)
+    {
+        if (bounds.isEmpty())
+        {
+            std::cerr << "editor_size_smoke: missing NES " << name << '\n';
+            ok = false;
+            return;
+        }
+
+        if (bounds.getWidth() < minWidth || bounds.getHeight() < minHeight)
+        {
+            std::cerr << "editor_size_smoke: NES " << name
+                      << " below readable size: " << bounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (! sampleBankBounds.expanded(2).contains(bounds))
+        {
+            std::cerr << "editor_size_smoke: NES " << name
+                      << " is not owned by the DMC sample bank; sample bank "
+                      << sampleBankBounds.toString() << " control "
+                      << bounds.toString() << '\n';
+            ok = false;
+        }
+    };
+
+    expectOwnedReadable(playbackBounds, "playback mode", 88, 24);
+    expectOwnedReadable(slotBounds, "sample slot", 180, 24);
+    expectOwnedReadable(rootBounds, "root note", 64, 24);
+    expectOwnedReadable(loopBounds, "loop toggle", 82, 24);
+    expectOwnedReadable(rateBounds, "DMC rate", 128, 24);
+    expectOwnedReadable(waveformBounds, "waveform preview", 420, 96);
+
+    if (! performanceBounds.expanded(2).contains(apuDecayBounds)
+        || apuDecayBounds.getWidth() < 160
+        || apuDecayBounds.getHeight() < 6)
+    {
+        std::cerr << "editor_size_smoke: NES APU decay slider is not readable/owned by performance macros: "
+                  << apuDecayBounds.toString() << " performance "
+                  << performanceBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (! performanceBounds.expanded(2).contains(outputBounds)
+        || outputBounds.getWidth() < 160
+        || outputBounds.getHeight() < 6)
+    {
+        std::cerr << "editor_size_smoke: NES output slider is not readable/owned by performance macros: "
+                  << outputBounds.toString() << " performance "
+                  << performanceBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (! performanceBounds.expanded(2).contains(scopeBounds)
+        || scopeBounds.getWidth() < 420
+        || scopeBounds.getHeight() < 28)
+    {
+        std::cerr << "editor_size_smoke: NES output scope is not readable/owned by performance macros: "
+                  << scopeBounds.toString() << " performance "
+                  << performanceBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (apuDecayBounds.intersects(outputBounds) || apuDecayBounds.intersects(scopeBounds))
+    {
+        std::cerr << "editor_size_smoke: NES APU decay overlaps output controls: decay "
+                  << apuDecayBounds.toString() << " output "
+                  << outputBounds.toString() << " scope "
+                  << scopeBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (! performanceBounds.isEmpty() && sampleBankBounds.getBottom() > performanceBounds.getY())
+    {
+        std::cerr << "editor_size_smoke: NES DMC sample bank overlaps performance macros: sample bank "
+                  << sampleBankBounds.toString() << " performance "
+                  << performanceBounds.toString() << '\n';
+        ok = false;
+    }
+
+    return ok;
+}
+
 }
 
 int main()
@@ -594,6 +706,7 @@ int main()
     ok &= checkSamplerSourceDeck(chipper::ChipMode::paula);
     ok &= checkSamplerBankLayout(chipper::ChipMode::spc700);
     ok &= checkSamplerBankLayout(chipper::ChipMode::paula);
+    ok &= checkNesDmcAndPerformanceLayout();
     ok &= checkChipSwitchPreservesEditorSettings();
 
     return ok ? 0 : 1;

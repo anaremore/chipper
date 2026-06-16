@@ -177,7 +177,12 @@ public:
     juce::Rectangle<int> getSampleSlotBoundsForLayoutTest() const { return dmcSampleSlotBox.getBounds(); }
     juce::Rectangle<int> getSampleRootBoundsForLayoutTest() const { return dmcMapRootBox.getBounds(); }
     juce::Rectangle<int> getSampleLoopToggleBoundsForLayoutTest() const { return spc700LoopModeButton.getBounds(); }
+    juce::Rectangle<int> getDmcLoopToggleBoundsForLayoutTest() const { return dmcLoopButton.getBounds(); }
+    juce::Rectangle<int> getDmcRateBoundsForLayoutTest() const { return dmcRateBox.getBounds(); }
     juce::Rectangle<int> getSampleWaveformBoundsForLayoutTest() const { return sampleWaveformPreview.getBounds(); }
+    juce::Rectangle<int> getEnvelopeDecayBoundsForLayoutTest() const { return envelopeDecaySlider.getBounds(); }
+    juce::Rectangle<int> getOutputSliderBoundsForLayoutTest() const { return outputSlider.getBounds(); }
+    juce::Rectangle<int> getOutputScopeBoundsForLayoutTest() const { return outputScopePreview.getBounds(); }
     void runEditorUpdateForLayoutTest() { timerCallback(); }
 
 private:

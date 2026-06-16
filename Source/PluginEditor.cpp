@@ -4291,10 +4291,10 @@ void ChipperAudioProcessorEditor::resized()
 
     if (displayedMode == chipper::ChipMode::nes)
     {
-        constexpr int minNesMacroRowHeight = 54;
-        constexpr int maxNesMacroRowHeight = 62;
-        constexpr int nesApuDecayHeight = 50;
-        constexpr int nesControlGap = 8;
+        constexpr int minNesMacroRowHeight = 52;
+        constexpr int maxNesMacroRowHeight = 58;
+        constexpr int nesApuDecayHeight = 44;
+        constexpr int nesControlGap = 6;
 
         auto nesRow = strip;
         const auto macroRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(nesRow.getHeight()) * 0.30)),
@@ -4388,7 +4388,7 @@ void ChipperAudioProcessorEditor::resized()
         clockLabel.setBounds({});
         auto dmcCell = utilityCell;
         constexpr int standardDmcControlHeight = 28;
-        const auto useTwoColumnDmc = dmcCell.getWidth() >= 760 && dmcCell.getHeight() >= 168;
+        const auto useTwoColumnDmc = dmcCell.getWidth() >= 760 && dmcCell.getHeight() >= 140;
         auto dmcControlColumn = dmcCell;
         auto dmcWaveformColumn = dmcCell;
         if (useTwoColumnDmc)
