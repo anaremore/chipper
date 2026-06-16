@@ -20,7 +20,7 @@ constexpr int initPresetItemId = 9000;
 constexpr int editorDefaultWidth = 1240;
 constexpr int editorDefaultHeight = 880;
 constexpr int editorMinWidth = 1180;
-constexpr int editorMinHeight = 820;
+constexpr int editorMinHeight = 720;
 constexpr int editorMaxWidth = 1800;
 constexpr int editorMaxHeight = editorDefaultHeight;
 
@@ -29,7 +29,9 @@ static_assert(editorMaxHeight <= 900, "Keep the Chipper editor DAW-friendly by d
 
 int preferredEditorHeightForMode(chipper::ChipMode mode)
 {
-    juce::ignoreUnused(mode);
+    if (mode == chipper::ChipMode::nes)
+        return 760;
+
     return editorDefaultHeight;
 }
 
@@ -3380,8 +3382,8 @@ void ChipperAudioProcessorEditor::resized()
     const auto modeChoice = static_cast<int>(std::round(audioProcessor.getValueTreeState()
                                                             .getRawParameterValue(chipper::parameters::id::chipMode)
                                                             ->load()));
-    const auto modeHeight = preferredEditorHeightForMode(chipper::parameters::chipModeFromChoice(modeChoice));
-    const auto clampedHeight = std::clamp(getHeight(), editorMinHeight, modeHeight);
+    juce::ignoreUnused(modeChoice);
+    const auto clampedHeight = std::clamp(getHeight(), editorMinHeight, editorMaxHeight);
     if (clampedWidth != getWidth() || clampedHeight != getHeight())
     {
         setSize(clampedWidth, clampedHeight);
@@ -4382,7 +4384,7 @@ void ChipperAudioProcessorEditor::resized()
         clockLabel.setBounds({});
         auto dmcCell = utilityCell;
         constexpr int standardDmcControlHeight = 28;
-        const auto useTwoColumnDmc = dmcCell.getWidth() >= 760 && dmcCell.getHeight() >= 180;
+        const auto useTwoColumnDmc = dmcCell.getWidth() >= 760 && dmcCell.getHeight() >= 168;
         auto dmcControlColumn = dmcCell;
         auto dmcWaveformColumn = dmcCell;
         if (useTwoColumnDmc)
@@ -4652,8 +4654,9 @@ void ChipperAudioProcessorEditor::resized()
 void ChipperAudioProcessorEditor::timerCallback()
 {
     const auto targetHeight = preferredEditorHeightForMode(displayedMode);
+    juce::ignoreUnused(targetHeight);
     const auto clampedWidth = std::clamp(getWidth(), editorMinWidth, editorMaxWidth);
-    const auto clampedHeight = std::clamp(getHeight(), editorMinHeight, targetHeight);
+    const auto clampedHeight = std::clamp(getHeight(), editorMinHeight, editorMaxHeight);
     if (clampedWidth != getWidth() || clampedHeight != getHeight())
     {
         setSize(clampedWidth, clampedHeight);
@@ -10561,8 +10564,8 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     descriptorTextInitialized = true;
     displayedMode = mode;
     const auto preferredHeight = preferredEditorHeightForMode(mode);
-    setResizeLimits(editorMinWidth, editorMinHeight, editorMaxWidth, preferredHeight);
-    if (getHeight() != preferredHeight)
+    setResizeLimits(editorMinWidth, editorMinHeight, editorMaxWidth, editorMaxHeight);
+    if (chipChangedAfterInitialLoad && getHeight() != preferredHeight)
         setSize(getWidth(), preferredHeight);
 
     if (chipChangedAfterInitialLoad)

@@ -9,7 +9,7 @@
 namespace
 {
 constexpr int expectedEditorHeight = 880;
-constexpr int expectedEditorMinimumHeight = 820;
+constexpr int expectedEditorMinimumHeight = 720;
 
 bool expect(bool condition, const char* message)
 {
@@ -45,7 +45,10 @@ bool setChoiceParameter(ChipperAudioProcessor& processor, const juce::String& pa
 
 int expectedHeightForChipMode(int chipMode)
 {
-    juce::ignoreUnused(chipMode);
+    const auto mode = chipper::parameters::chipModeFromChoice(chipMode);
+    if (mode == chipper::ChipMode::nes)
+        return 760;
+
     return expectedEditorHeight;
 }
 
@@ -134,10 +137,10 @@ int main()
 
     bool ok = true;
     ok &= expect(editor.getWidth() == 1240, "unexpected default width");
-    ok &= expect(editor.getHeight() == expectedEditorHeight, "unexpected default height");
+    ok &= expect(editor.getHeight() == expectedHeightForChipMode(0), "unexpected default height");
 
     editor.setSize(1240, 1200);
-    ok &= expect(editor.getHeight() == expectedEditorHeight, "host-restored default editor height was not clamped to its chip budget");
+    ok &= expect(editor.getHeight() == expectedEditorHeight, "host-restored default editor height was not clamped to the DAW-friendly cap");
 
     editor.setSize(1000, 600);
     ok &= expect(editor.getWidth() >= 1180, "editor width was not clamped to minimum");
@@ -156,7 +159,7 @@ int main()
         ok &= expect(chipEditor.getHeight() <= expectedEditorHeight, "chip default height exceeded DAW-friendly cap");
         ok &= checkVisibleChildGeometry(chipEditor, chipEditor, juce::Point<int> {}, "editor/" + chipPath);
         chipEditor.setSize(1240, 1200);
-        ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "chip-switched editor height was not clamped to its chip budget");
+        ok &= expect(chipEditor.getHeight() == expectedEditorHeight, "chip-switched editor height was not clamped to the DAW-friendly cap");
         ok &= expect(chipEditor.getWidth() == 1240, "chip-switched editor width unexpectedly changed");
         ok &= checkVisibleChildGeometry(chipEditor, chipEditor, juce::Point<int> {}, "editor/restored/" + chipPath);
     }
