@@ -570,6 +570,13 @@ bool checkNesDmcAndPerformanceLayout()
     const auto outputBounds = editor.getOutputSliderBoundsForLayoutTest();
     const auto scopeBounds = editor.getOutputScopeBoundsForLayoutTest();
 
+    if (performanceBounds.isEmpty() || performanceBounds.getHeight() < 220)
+    {
+        std::cerr << "editor_size_smoke: NES performance macros strip below usable height: "
+                  << performanceBounds.toString() << '\n';
+        ok = false;
+    }
+
     const auto expectOwnedReadable = [&](juce::Rectangle<int> bounds,
                                          const char* name,
                                          int minWidth,
