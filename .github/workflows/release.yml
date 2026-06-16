@@ -1,9 +1,13 @@
 name: Release VST3
 
-# Normal pushes intentionally do not run this workflow. Use a manual dispatch for
-# a candidate build, or publish a GitHub Release to build and attach VST3 zips.
+# Normal branch pushes intentionally do not run this workflow. Use a manual
+# dispatch for a candidate build, push a v* tag for a release build, or publish a
+# GitHub Release to build and attach VST3 zips.
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
   release:
     types: [published]
 
@@ -136,3 +140,35 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.package.outputs.zip_path }}" --clobber
+
+  publish-tag-release:
+    name: Publish tag release
+    needs: vst3
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download packaged artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          mapfile -t zips < <(find release-artifacts -maxdepth 1 -type f -name 'Chipper-*.zip' | sort)
+          if [ "${#zips[@]}" -eq 0 ]; then
+            echo "No release zip artifacts were downloaded" >&2
+            exit 1
+          fi
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${zips[@]}" --clobber
+          else
+            gh release create "$RELEASE_TAG" "${zips[@]}" \
+              --title "Chipper $RELEASE_TAG" \
+              --notes "Automated Chipper VST3 release build for $RELEASE_TAG. Download the zip for your platform and see README.md plus THIRD_PARTY_NOTICES.md inside the package."
+          fi

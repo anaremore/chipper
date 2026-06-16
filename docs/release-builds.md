@@ -78,6 +78,7 @@ The workflow is `.github/workflows/release.yml`.
 It runs only for:
 
 - Manual `workflow_dispatch` from the GitHub Actions tab.
+- Version tag pushes that match `v*`, such as `v0.2.0`.
 - Published GitHub Releases.
 
 It does not run on normal pushes or pull requests.
@@ -99,11 +100,12 @@ For a public release:
 
 1. Make sure `main` is green locally.
 2. Create and push a version tag, for example `v0.2.0`.
-3. Publish a GitHub Release for that tag.
-4. Let the `Release VST3` workflow build, test, package, and attach the zips.
-5. Download each artifact and smoke-test it in a host before calling the release production-ready.
+3. Let the `Release VST3` workflow build, test, package, create or update the GitHub Release, and attach the zips.
+4. Download each artifact and smoke-test it in a host before calling the release production-ready.
 
 For a private candidate build, run `Release VST3` manually from the Actions tab instead of publishing a release.
+
+Publishing a GitHub Release manually for an existing tag also runs the workflow and uploads the platform zips to that release. This is useful if you want to edit release notes first, but a plain `v*` tag push is enough to start an automated release build.
 
 ## Release Gate
 
