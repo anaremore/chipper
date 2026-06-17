@@ -1984,7 +1984,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     : AudioProcessorEditor(processor),
       audioProcessor(processor)
 {
-    setResizable(true, true);
+    setResizable(false, false);
     setResizeLimits(editorMinWidth, editorMinHeight, editorMaxWidth, editorMaxHeight);
 
     auto& state = audioProcessor.getValueTreeState();
