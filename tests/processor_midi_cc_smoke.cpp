@@ -106,6 +106,35 @@ float renderNoteOnPeak(ChipperAudioProcessor& processor, int note, float velocit
     return peak;
 }
 
+float renderNoteOnHighStateRatio(ChipperAudioProcessor& processor, int note, float velocity = 1.0f)
+{
+    juce::AudioBuffer<float> buffer(2, 256);
+    std::vector<float> samples;
+    samples.reserve(2048);
+
+    for (int block = 0; block < 8; ++block)
+    {
+        buffer.clear();
+        juce::MidiBuffer midi;
+        if (block == 0)
+            midi.addEvent(juce::MidiMessage::noteOn(1, note, velocity), 0);
+
+        processor.processBlock(buffer, midi);
+
+        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+            samples.push_back(buffer.getSample(0, sample));
+    }
+
+    const auto [minIt, maxIt] = std::minmax_element(samples.begin(), samples.end());
+    if (minIt == samples.end() || maxIt == samples.end() || std::abs(*maxIt - *minIt) < 0.00001f)
+        return 0.0f;
+
+    const auto threshold = (*minIt + *maxIt) * 0.5f;
+    const auto highCount = std::count_if(samples.begin(), samples.end(),
+                                         [threshold](float sample) { return sample > threshold; });
+    return static_cast<float>(highCount) / static_cast<float>(samples.size());
+}
+
 float renderHeldNoteTailPeak(ChipperAudioProcessor& processor, int note, int blockCount = 80, float velocity = 1.0f)
 {
     juce::AudioBuffer<float> buffer(2, 256);
@@ -397,6 +426,25 @@ int main()
         ok &= expect(pulse2OnlyPeak > 0.0001f,
                      "DMG Pulse 2 source card should produce audio when explicitly enabled by the UI");
     }
+
+    auto renderDmgPulse2DutyRatio = [](float pulse2DutyChoice) {
+        ChipperAudioProcessor dmgPulse2Processor;
+        dmgPulse2Processor.prepareToPlay(48000.0, 64);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::chipMode, 1.0f);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::macro, 2.0f);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::source1Enabled, 0.0f);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::source2Enabled, 1.0f);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::source3Enabled, 0.0f);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::source4Enabled, 0.0f);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::source2Level, 1.0f);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::pulse2Duty, pulse2DutyChoice);
+        return renderNoteOnHighStateRatio(dmgPulse2Processor, 60);
+    };
+
+    const auto dmgPulse2ThinDutyRatio = renderDmgPulse2DutyRatio(1.0f);
+    const auto dmgPulse2WideDutyRatio = renderDmgPulse2DutyRatio(4.0f);
+    ok &= expect(dmgPulse2WideDutyRatio - dmgPulse2ThinDutyRatio > 0.35f,
+                 "DMG Pulse 2 explicit duty choices should independently change the rendered waveform high-state ratio");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 2));
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 2));
