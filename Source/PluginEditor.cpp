@@ -3886,17 +3886,17 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isWavetableSourceCard && i < hucVoiceWaveBoxes.size())
         {
-            auto levelArea = sourceCard.removeFromBottom(std::min(30, sourceCard.getHeight()));
             auto waveRow = sourceCard.removeFromTop(std::min(standardInlineControlHeight, sourceCard.getHeight()));
             hucVoiceWaveLabels[i].setBounds(waveRow.removeFromLeft(std::min(44, waveRow.getWidth())));
             hucVoiceWaveBoxes[i].setBounds(waveRow);
+            sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
+            auto levelArea = sourceCard.removeFromTop(std::min(30, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea, 44);
         }
         else if (isPaulaSourceCard && i < hucVoiceWaveBoxes.size())
         {
             if (i < paulaVoiceSampleBoxes.size())
             {
-                auto levelArea = sourceCard.removeFromBottom(std::min(30, sourceCard.getHeight()));
                 const auto placeLabeledCombo = [&](juce::Label& label, juce::ComboBox& box, juce::Rectangle<int> area)
                 {
                     const auto labelHeight = area.getHeight() >= 42 ? std::min(10, area.getHeight()) : 0;
@@ -3922,6 +3922,7 @@ void ChipperAudioProcessorEditor::resized()
                 }
                 sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
 
+                auto levelArea = sourceCard.removeFromTop(std::min(30, sourceCard.getHeight()));
                 placeEmbeddedLevelInArea(levelArea);
             }
         }
@@ -3932,7 +3933,7 @@ void ChipperAudioProcessorEditor::resized()
             hucVoiceWaveBoxes[i].setBounds(sampleRow);
             sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
 
-            auto levelArea = sourceCard.removeFromBottom(std::min(30, sourceCard.getHeight()));
+            auto levelArea = sourceCard.removeFromTop(std::min(30, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea, 42);
         }
 

@@ -350,6 +350,16 @@ bool checkWavetableSourceDeck(chipper::ChipMode mode)
                       << " selector " << waveSelectorBounds.toString() << '\n';
             ok = false;
         }
+
+        if (! levelBounds.isEmpty()
+            && ! waveSelectorBounds.isEmpty()
+            && levelBounds.getY() - waveSelectorBounds.getBottom() > 28)
+        {
+            std::cerr << "editor_size_smoke: wavetable level lane drifted away from its selector for channel "
+                      << channel << " selector " << waveSelectorBounds.toString()
+                      << " level " << levelBounds.toString() << '\n';
+            ok = false;
+        }
     }
 
     return ok;
@@ -468,6 +478,19 @@ bool checkSamplerSourceDeck(chipper::ChipMode mode)
         {
             std::cerr << "editor_size_smoke: sampler level lane is not readable/owned for channel "
                       << channel << " source " << sourceBounds.toString()
+                      << " level " << levelBounds.toString() << '\n';
+            ok = false;
+        }
+
+        const auto selectorForLevel = mode == chipper::ChipMode::paula && ! sampleSelectorBounds.isEmpty()
+            ? sampleSelectorBounds
+            : waveSelectorBounds;
+        if (! levelBounds.isEmpty()
+            && ! selectorForLevel.isEmpty()
+            && levelBounds.getY() - selectorForLevel.getBottom() > 28)
+        {
+            std::cerr << "editor_size_smoke: sampler level lane drifted away from its selector for channel "
+                      << channel << " selector " << selectorForLevel.toString()
                       << " level " << levelBounds.toString() << '\n';
             ok = false;
         }
