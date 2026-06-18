@@ -132,12 +132,28 @@ bool checkPrimaryPanelStack(const ChipperAudioProcessorEditor& editor, chipper::
     if (mode == chipper::ChipMode::nes || mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
         requirePanel(editor.getModuleBoundsForLayoutTest(5), "sample bank", mode == chipper::ChipMode::nes ? 176 : 132);
 
-    requirePanel(editor.getPerformanceBoundsForLayoutTest(), "performance macros", mode == chipper::ChipMode::nes ? 220 : ((mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 84 : 108));
-    if (editor.getPerformanceBoundsForLayoutTest().getBottom() > footerTop)
+    const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+    requirePanel(performanceBounds, "performance macros", mode == chipper::ChipMode::nes ? 220 : ((mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 84 : 108));
+    if (performanceBounds.getBottom() > footerTop)
     {
         std::cerr << "editor_size_smoke: performance panel overlaps footer reserve: "
-                  << editor.getPerformanceBoundsForLayoutTest().toString() << '\n';
+                  << performanceBounds.toString() << '\n';
         ok = false;
+    }
+
+    for (size_t moduleIndex = 0; moduleIndex < 6; ++moduleIndex)
+    {
+        const auto bounds = editor.getModuleBoundsForLayoutTest(moduleIndex);
+        if (bounds.isEmpty() || performanceBounds.isEmpty())
+            continue;
+
+        if (bounds.getBottom() > performanceBounds.getY())
+        {
+            std::cerr << "editor_size_smoke: module panel overlaps performance macros: module "
+                      << moduleIndex << ' ' << bounds.toString()
+                      << " performance " << performanceBounds.toString() << '\n';
+            ok = false;
+        }
     }
 
     return ok;
