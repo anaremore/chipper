@@ -3717,10 +3717,10 @@ void ChipperAudioProcessorEditor::resized()
         ? (sourcePanel.getHeight() - (sourceGap * (sourceRows - 1))) / sourceRows
         : sourcePanel.getHeight();
     const auto sourceCardHeight = useWavetableVoiceGrid
-        ? std::min(rawSourceCardHeight, 118)
+        ? std::min(rawSourceCardHeight, 112)
         : (usePaulaVoiceGrid
-               ? std::min(rawSourceCardHeight, 172)
-               : (useSpc700VoiceGrid ? std::min(rawSourceCardHeight, 172) : rawSourceCardHeight));
+               ? std::min(rawSourceCardHeight, 142)
+               : (useSpc700VoiceGrid ? std::min(rawSourceCardHeight, 132) : rawSourceCardHeight));
     for (size_t i = 0; i < sourceChannelBounds.size(); ++i)
     {
         if (i >= visibleSourceCards)
@@ -3770,7 +3770,7 @@ void ChipperAudioProcessorEditor::resized()
         const auto isDenseSampleCard = isWavetableSourceCard || isPaulaSourceCard || isSpc700SourceCard;
         auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isDenseSampleCard ? 5 : 8),
                                                          isSidSourceCard ? 2 : (isDenseSampleCard ? 3 : 4));
-        const auto standardInlineControlHeight = isDenseSampleCard ? 26 : (isWavetableSourceCard ? 26 : 30);
+        const auto standardInlineControlHeight = isDenseSampleCard ? 26 : (isWavetableSourceCard ? 24 : 30);
         const auto embeddedLabelHeight = isDenseSampleCard ? 12 : 14;
         const auto embeddedControlRowHeight = embeddedLabelHeight + standardInlineControlHeight;
         const auto buttonHeight = isDenseSampleCard ? 20 : (isSidSourceCard ? 18 : (isWavetableSourceCard ? 18 : 18));
@@ -3788,7 +3788,7 @@ void ChipperAudioProcessorEditor::resized()
 
         const auto placeEmbeddedLevelInArea = [this, i](juce::Rectangle<int> levelArea, int labelWidth = 52)
         {
-            const auto compact = levelArea.getHeight() < 28;
+            const auto compact = levelArea.getHeight() <= 32;
             const auto minimumSliderHeight = compact ? 12 : 16;
             const auto labelHeight = compact
                 ? std::max(0, std::min(10, levelArea.getHeight() - minimumSliderHeight - 1))
@@ -3884,7 +3884,7 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isWavetableSourceCard && i < hucVoiceWaveBoxes.size())
         {
-            auto levelArea = sourceCard.removeFromBottom(std::min(34, sourceCard.getHeight()));
+            auto levelArea = sourceCard.removeFromBottom(std::min(30, sourceCard.getHeight()));
             auto waveRow = sourceCard.removeFromTop(std::min(standardInlineControlHeight, sourceCard.getHeight()));
             hucVoiceWaveLabels[i].setBounds(waveRow.removeFromLeft(std::min(44, waveRow.getWidth())));
             hucVoiceWaveBoxes[i].setBounds(waveRow);
@@ -3894,7 +3894,7 @@ void ChipperAudioProcessorEditor::resized()
         {
             if (i < paulaVoiceSampleBoxes.size())
             {
-                auto levelArea = sourceCard.removeFromBottom(std::min(26, sourceCard.getHeight()));
+                auto levelArea = sourceCard.removeFromBottom(std::min(30, sourceCard.getHeight()));
                 const auto placeLabeledCombo = [&](juce::Label& label, juce::ComboBox& box, juce::Rectangle<int> area)
                 {
                     const auto labelHeight = area.getHeight() >= 40 ? std::min(8, area.getHeight()) : 0;
@@ -3930,7 +3930,7 @@ void ChipperAudioProcessorEditor::resized()
             hucVoiceWaveBoxes[i].setBounds(sampleRow);
             sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
 
-            auto levelArea = sourceCard.removeFromTop(std::min(30, sourceCard.getHeight()));
+            auto levelArea = sourceCard.removeFromBottom(std::min(30, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea, 42);
         }
 
