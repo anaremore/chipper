@@ -5,6 +5,14 @@ description: Use when modifying Chipper's JUCE plugin editor, LookAndFeel, chip-
 
 # Chipper JUCE UI
 
+## Scope And Design Source Of Truth
+
+- Use general UI/design skills only for inspiration: spacing, hierarchy, accessibility, contrast, typography, and interaction clarity.
+- Resolve implementation decisions through Chipper's actual constraints: JUCE Components, APVTS attachments, host automation, MIDI CC mapping, LookAndFeel tokens, fixed/default editor size, and chip-native behavior.
+- Do not translate web patterns directly into the plugin. React-style layout assumptions, DOM-like state, CSS overflow fixes, and web animation habits are advisory at most.
+- Prefer a custom Chipper component or descriptor rule when a generic UI rule conflicts with chip ownership, register behavior, DAW host behavior, or audio-thread safety.
+- The final question for any control is: does this make the chip easier to play and understand without lying about what the engine is doing?
+
 ## Working Rules
 
 - Keep `PluginEditor` thin. Prefer reusable helpers, small Components, descriptor metadata, and LookAndFeel tokens over growing one-off layout branches.
@@ -33,6 +41,7 @@ description: Use when modifying Chipper's JUCE plugin editor, LookAndFeel, chip-
 - Identify source cards that are too tall, too short, or have dead space between selector and level controls.
 - Identify places where a roadmap placeholder is visible but not engine-backed.
 - Identify chip-specific controls that should move from shared panels into source cards.
+- Identify generic visual polish that would reduce usability, shrink standard inputs, or detach controls from their chip source.
 - Prefer one shippable vertical slice: change the affected chip layout, add or tighten a smoke-test guard, update the owning doc, build/test/install when code changes, then commit and push.
 
 ## Verification
