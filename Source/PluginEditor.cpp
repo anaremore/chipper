@@ -3985,9 +3985,12 @@ void ChipperAudioProcessorEditor::resized()
         if (isFourOperatorFm)
         {
             const auto availableHeight = tonePanel.getHeight();
-            const auto routeHeight = std::clamp(availableHeight / 3, 38, 50);
-            const auto gapHeight = std::min(6, std::max(0, availableHeight - routeHeight));
-            const auto primaryHeight = std::max(54, availableHeight - routeHeight - gapHeight);
+            const auto gapHeight = std::min(6, std::max(0, availableHeight / 14));
+            const auto minPrimaryHeight = std::min(45, std::max(0, availableHeight - gapHeight));
+            const auto maxRouteHeight = std::max(0, availableHeight - gapHeight - minPrimaryHeight);
+            const auto preferredRouteHeight = displayedMode == chipper::ChipMode::ym2612 ? 44 : 40;
+            const auto routeHeight = std::min(preferredRouteHeight, maxRouteHeight);
+            const auto primaryHeight = std::max(0, availableHeight - routeHeight - gapHeight);
             primaryTonePanel = tonePanel.removeFromTop(std::min(primaryHeight, tonePanel.getHeight()));
             tonePanel.removeFromTop(std::min(gapHeight, tonePanel.getHeight()));
             secondaryTonePanel = {};
@@ -4940,7 +4943,7 @@ void ChipperAudioProcessorEditor::placeWaveShapeSegment(juce::Rectangle<int> bou
 
 void ChipperAudioProcessorEditor::placeFmAlgorithmControl(juce::Rectangle<int> bounds)
 {
-    const auto compact = bounds.getHeight() < 56;
+    const auto compact = bounds.getHeight() < 50;
     auto header = bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight()));
     waveShapeLabel.setBounds(header.removeFromLeft(labelReservation(header, 128)));
     waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);

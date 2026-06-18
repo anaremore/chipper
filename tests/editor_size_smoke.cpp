@@ -355,6 +355,37 @@ bool checkYm2149ToneNoiseMixLayout()
 
     return ok;
 }
+
+bool checkYm2612DacModeLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::ym2612);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: YM2612 chip mode choice unavailable\n";
+        return false;
+    }
+
+    ChipperAudioProcessor processor;
+    auto ok = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+    ChipperAudioProcessorEditor editor(processor);
+    editor.setSize(1240, expectedHeightForChipMode(chipChoice));
+    editor.runEditorUpdateForLayoutTest();
+
+    const auto dacBounds = editor.getSnNoiseModeBoundsForLayoutTest();
+    if (dacBounds.isEmpty())
+    {
+        std::cerr << "editor_size_smoke: YM2612 DAC mode control is missing\n";
+        ok = false;
+    }
+    else if (dacBounds.getWidth() < 240 || dacBounds.getHeight() < 20)
+    {
+        std::cerr << "editor_size_smoke: YM2612 DAC mode control below readable size: "
+                  << dacBounds.toString() << '\n';
+        ok = false;
+    }
+
+    return ok;
+}
 bool checkWavetableSourceDeck(chipper::ChipMode mode)
 {
     const auto chipChoice = chipModeChoiceFor(mode);
@@ -810,6 +841,7 @@ int main()
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::dmg);
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::sn76489);
     ok &= checkYm2149ToneNoiseMixLayout();
+    ok &= checkYm2612DacModeLayout();
     ok &= checkWavetableSourceDeck(chipper::ChipMode::huc6280);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::namcoWsg);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::scc);
