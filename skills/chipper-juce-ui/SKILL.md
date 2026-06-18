@@ -1,17 +1,25 @@
 ---
 name: chipper-juce-ui
-description: Use when modifying Chipper's JUCE plugin editor, LookAndFeel, chip-specific layouts, APVTS parameter attachments, custom controls, preset-visible UI state, or UI tests. Applies to chip-aware VST UI work where controls must reflect authentic or truthfully partial chip behavior rather than generic web/frontend patterns.
+description: Use when modifying Chipper's JUCE plugin editor, LookAndFeel, chip-specific layouts, APVTS parameter attachments, custom controls, preset-visible UI state, or UI tests. Applies to chip-aware VST UI work where controls must reflect authentic or truthfully partial chip behavior rather than generic web/frontend patterns. Use this as the authority for Chipper UI decisions; use generic design/frontend skills only as optional inspiration.
 ---
 
 # Chipper JUCE UI
 
 ## Scope And Design Source Of Truth
 
+- Treat this skill as the decision-making authority for Chipper plugin UI work.
 - Use general UI/design skills only for inspiration: spacing, hierarchy, accessibility, contrast, typography, and interaction clarity.
 - Resolve implementation decisions through Chipper's actual constraints: JUCE Components, APVTS attachments, host automation, MIDI CC mapping, LookAndFeel tokens, fixed/default editor size, and chip-native behavior.
 - Do not translate web patterns directly into the plugin. React-style layout assumptions, DOM-like state, CSS overflow fixes, and web animation habits are advisory at most.
 - Prefer a custom Chipper component or descriptor rule when a generic UI rule conflicts with chip ownership, register behavior, DAW host behavior, or audio-thread safety.
 - The final question for any control is: does this make the chip easier to play and understand without lying about what the engine is doing?
+
+## Using Other Design Skills
+
+- Load broad design/frontend skills only when visual inspiration or critique is useful.
+- Translate any useful advice back into JUCE terms: `Component` bounds, `LookAndFeel` drawing, APVTS attachments, parameter metadata, smoke tests, and host automation behavior.
+- Reject web-first fixes that depend on scrolling pages, CSS overflow, DOM reflow, browser font metrics, or client-side state patterns that do not map cleanly to a DAW plugin editor.
+- Prefer a small Chipper-specific component over a generic abstraction when the control represents real chip behavior: duty bits, waveform masks, operator algorithms, sample slots, loop points, or mixer routing.
 
 ## Working Rules
 
