@@ -3458,9 +3458,27 @@ void ChipperAudioProcessorEditor::resized()
 
     if (sidLayout)
     {
-        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.31)), 176, 196);
-        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.23)), 112, 148);
-        const auto envelopeHeight = std::max(160, modules.getHeight() - topRowHeight - middleRowHeight - (gap * 2));
+        const auto availableRowsHeight = std::max(0, modules.getHeight() - (gap * 2));
+        auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.31)), 132, 190);
+        auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.23)), 96, 142);
+        constexpr auto minimumEnvelopeHeight = 124;
+
+        auto overflow = topRowHeight + middleRowHeight + minimumEnvelopeHeight - availableRowsHeight;
+        if (overflow > 0)
+        {
+            const auto middleReduction = std::min(overflow, std::max(0, middleRowHeight - 84));
+            middleRowHeight -= middleReduction;
+            overflow -= middleReduction;
+        }
+
+        if (overflow > 0)
+        {
+            const auto topReduction = std::min(overflow, std::max(0, topRowHeight - 118));
+            topRowHeight -= topReduction;
+            overflow -= topReduction;
+        }
+
+        const auto envelopeHeight = std::max(0, availableRowsHeight - topRowHeight - middleRowHeight);
         const auto leftX = modules.getX();
         const auto rightX = modules.getX() + columnWidth + gap;
         const auto topY = modules.getY();
