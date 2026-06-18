@@ -167,6 +167,7 @@ public:
     juce::Rectangle<int> getDmgWaveLevelBoundsForLayoutTest() const { return dmgWaveLevelSegmentBounds; }
     juce::Rectangle<int> getSnNoiseModeBoundsForLayoutTest() const { return snNoiseModeSegmentBounds; }
     juce::Rectangle<int> getSnNoiseModeMenuBoundsForLayoutTest() const { return snNoiseModeBox.getBounds(); }
+    juce::Rectangle<int> getToneNoiseMixBoundsForLayoutTest() const { return toneNoiseMixSegmentBounds; }
     juce::Rectangle<int> getModuleBoundsForLayoutTest(size_t module) const
     {
         return module < moduleBounds.size() ? moduleBounds[module] : juce::Rectangle<int> {};

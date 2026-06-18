@@ -4359,7 +4359,17 @@ void ChipperAudioProcessorEditor::resized()
             placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[2]);
 
         const auto sustainCell = displayedMode == chipper::ChipMode::sid ? controlCells[2] : controlCells[3];
-        placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], sustainCell);
+        if (displayedMode == chipper::ChipMode::ym2149)
+        {
+            nativeGroupLabels[3].setBounds({});
+            nativeLabels[3].setBounds({});
+            nativeSliders[3].setBounds({});
+            controlValueLabels[3].setBounds({});
+        }
+        else
+        {
+            placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], sustainCell);
+        }
         placeToneNoiseMixSegment(sustainCell);
     }
 
@@ -10939,7 +10949,11 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     nativeGroupLabels[0].setVisible(! embeddedPulseDuty);
     nativeLabels[0].setVisible(! embeddedPulseDuty || hasPulseDutySegment);
     controlValueLabels[0].setVisible(! embeddedPulseDuty || hasPulseDutySegment);
-    nativeSliders[3].setVisible(! hasToneNoiseMixSegment || usesEnvelopeDecayControl(mode));
+    const auto toneNoiseMixOwnsMacroCell = hasToneNoiseMixSegment && mode == chipper::ChipMode::ym2149;
+    nativeGroupLabels[3].setVisible(! toneNoiseMixOwnsMacroCell);
+    nativeLabels[3].setVisible(! toneNoiseMixOwnsMacroCell);
+    nativeSliders[3].setVisible(! toneNoiseMixOwnsMacroCell);
+    controlValueLabels[3].setVisible(! toneNoiseMixOwnsMacroCell);
     updatePulseDutyButtons(patch.control1, hasPulseDutySegment);
     updatePulse2DutyButtons(patch, hasPulse2DutySegment);
     updateToneNoiseMixButtons(patch.control4, hasToneNoiseMixSegment);

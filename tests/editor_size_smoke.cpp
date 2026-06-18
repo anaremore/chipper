@@ -312,6 +312,49 @@ bool checkChannelOwnedControlLayout(chipper::ChipMode mode)
     return ok;
 }
 
+bool checkYm2149ToneNoiseMixLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::ym2149);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: YM2149 chip mode choice unavailable\n";
+        return false;
+    }
+
+    ChipperAudioProcessor processor;
+    auto ok = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+    ChipperAudioProcessorEditor editor(processor);
+    editor.setSize(1240, expectedHeightForChipMode(chipChoice));
+    editor.runEditorUpdateForLayoutTest();
+
+    const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+    const auto mixBounds = editor.getToneNoiseMixBoundsForLayoutTest();
+
+    if (mixBounds.isEmpty())
+    {
+        std::cerr << "editor_size_smoke: YM2149 tone/noise mix control is missing\n";
+        ok = false;
+    }
+    else
+    {
+        if (! performanceBounds.expanded(2).contains(mixBounds))
+        {
+            std::cerr << "editor_size_smoke: YM2149 tone/noise mix control is not owned by performance macros: "
+                      << mixBounds.toString() << " performance "
+                      << performanceBounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (mixBounds.getWidth() < 240 || mixBounds.getHeight() < 24)
+        {
+            std::cerr << "editor_size_smoke: YM2149 tone/noise mix control below readable size: "
+                      << mixBounds.toString() << '\n';
+            ok = false;
+        }
+    }
+
+    return ok;
+}
 bool checkWavetableSourceDeck(chipper::ChipMode mode)
 {
     const auto chipChoice = chipModeChoiceFor(mode);
@@ -766,6 +809,7 @@ int main()
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::nes);
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::dmg);
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::sn76489);
+    ok &= checkYm2149ToneNoiseMixLayout();
     ok &= checkWavetableSourceDeck(chipper::ChipMode::huc6280);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::namcoWsg);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::scc);
