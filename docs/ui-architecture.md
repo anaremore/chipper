@@ -4,6 +4,34 @@ Chipper should feel like one instrument with many chip profiles, not a bundle of
 
 Planning sync: this document reflects the current June 2026 direction. FM held-note fade-out and NES DMC loop-off playback are treated as fixed regressions covered by tests and release gates, not active design questions. When they pass, the next UI value is clearer chip-owned controls, sample/wave/operator editors, preset/state workflows, and truthful Strictness/verification wording.
 
+## Chipper JUCE UI Working Rules
+
+Use these rules whenever editing the JUCE plugin editor, LookAndFeel, custom controls, parameter attachments, chip-specific panels, or descriptor-driven UI metadata. Generic frontend/design guidance can inspire hierarchy and spacing, but Chipper UI decisions must stay grounded in JUCE, APVTS, host automation, and chip-native behavior.
+
+- Keep `PluginEditor` thin. Prefer reusable components, layout helpers, and descriptor metadata when a pattern repeats across chips.
+- Use APVTS attachments for parameter binding. UI code must not mutate DSP state directly or bypass host automation/MIDI mapping.
+- Keep `paint()` cheap: no file IO, sample loading, parsing, allocation-heavy analysis, or expensive per-frame work.
+- Use chip-accurate controls. Hardware choices should be segmented or stepped; continuous sliders belong only on continuous behavior or deliberate macro layers that clearly resolve to chip-native values.
+- Preserve readability over decorative retro styling. A themed control that clips text, hides a level lane, or forces tiny hit targets is a regression.
+- Support HiDPI and the current fixed editor sizes. If a chip needs more room, rebalance the chip layout or create a deliberate chip-specific aspect/secondary view instead of shrinking standard controls.
+- Keep visual theming tokenized by chip so color/style changes do not fork layout logic or obscure shared component behavior.
+
+Chip-specific anchors:
+
+- NES/RP2A03 pulse duty is four-position and belongs under the pulse voices. Noise mode belongs under Noise/DMC. DMC sample controls are file/bank based, not fake oscillator knobs.
+- SID sync, ring, model, combined waveform bits, and filter routing should be explicit. Cutoff and resonance stay with the filter.
+- Game Boy/DMG pulse duty is independent per pulse channel; wave RAM shape/level and noise mode/clock belong with their owning channels.
+- YM2612/Genesis FM, YM2151/OPM, OPL, and OPLL surfaces should expose operator, algorithm, envelope, feedback, rhythm, DAC, and pan concepts instead of pretending FM is a simple subtractive synth.
+- Sampler and wavetable chips should put per-channel sample/wave selection plus level in the source card. Shared banks, loops, echo, routing, filters, and output live in shared modules.
+
+UI review checklist:
+
+- Is any control confusing, mislabeled, or placed away from the chip block it controls?
+- Is any fake-continuous slider really a register choice that should be segmented or stepped?
+- Are standard-height dropdowns, buttons, text boxes, and level lanes visible and readable?
+- Is retro styling harming usability, contrast, or hit targets?
+- Is there a concrete reusable `Component`, layout helper, descriptor field, or LookAndFeel token that would reduce repeated layout risk?
+
 ## Execution Contracts
 
 Use these contracts when deciding whether a UI change is ready to ship:
