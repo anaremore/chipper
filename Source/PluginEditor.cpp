@@ -10844,7 +10844,9 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         || usesPulse2DutySegment(mode)
         || usesDmgWaveLevelSegment(mode)
         || usesYmChannelMixControls(mode)
-        || (mode != chipper::ChipMode::sid && usesSnNoiseModeSegment(mode))
+        || (mode != chipper::ChipMode::sid
+            && mode != chipper::ChipMode::sn76489
+            && usesSnNoiseModeSegment(mode))
         || (mode != chipper::ChipMode::spc700 && ! hasFmEnvelopeShapeSurface && usesYmEnvelopeShapeSegment(mode))
         || hasSidFilterRoutingControl);
     moduleSummaryLabels[2].setVisible(! hasCustomToneSurface);

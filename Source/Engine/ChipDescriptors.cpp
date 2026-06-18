@@ -2065,7 +2065,7 @@ std::array<ModuleDescriptor, 6> sn76489Modules()
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "SN76489 PSG model backed by MIT emu76489.", { "Sega PSG", "Clock override", "MIT emu76489 core", "Authentic still partial" }),
         makeModule("sources", "Channels", "Three tone channels and one noise channel.", { "Tone 1", "Tone 2", "Tone 3", "Noise channel" }),
-        makeModule("tone", "Tone / Crunch", "Tone periods, noise mode, and attenuation.", { "Tone stack", "White noise", "Periodic noise", "Attenuation" }),
+        makeModule("tone", "Tone / Noise", "Tone dividers come from notes/macros; the Noise channel owns the PSG noise register.", { "10-bit tone periods", "Noise register in channel", "4-bit attenuation", "No native ADSR" }),
         makeModule("envelope", "Volume Helper", "Chipper helper decay over PSG attenuation; the SN76489 has no native ADSR.", { "Level steps", "Retrigger decay", "Amp env helper", "SFX decay" }),
         makeModule("motion", "Motion", "Sega-style beeps and fake chord motion.", { "Arp stack", "Fake chords", "Pitch sweep", "UI blips" }),
         makeModule("output", "Output", "Clean PSG output with optional modern spread.", { "Output gain", "Stereo spread", "Crunch", "Preset suggestions" })
