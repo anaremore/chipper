@@ -174,7 +174,7 @@ bool checkVisibleChildGeometry(const juce::Component& root,
             const auto* slider = dynamic_cast<const juce::Slider*>(child);
             if (comboBox != nullptr)
             {
-                if (bounds.getWidth() < 48 || bounds.getHeight() < 24)
+                if (bounds.getWidth() < 48 || bounds.getHeight() < 28)
                 {
                     std::cerr << "editor_size_smoke: dropdown below readable standard size at "
                               << childPath << " type " << typeid(*child).name()

@@ -3458,8 +3458,8 @@ void ChipperAudioProcessorEditor::resized()
 
     if (sidLayout)
     {
-        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.27)), 126, 166);
-        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.26)), 118, 156);
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.31)), 176, 196);
+        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.23)), 112, 148);
         const auto envelopeHeight = std::max(160, modules.getHeight() - topRowHeight - middleRowHeight - (gap * 2));
         const auto leftX = modules.getX();
         const auto rightX = modules.getX() + columnWidth + gap;
@@ -3693,9 +3693,11 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
     const auto compactSourceGrid = useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid;
-    if (compactSourceGrid)
+    if (compactSourceGrid || displayedMode == chipper::ChipMode::sid)
         moduleSummaryLabels[1].setBounds({});
-    if (! compactSourceGrid && (! sourceSurfaceActive || moduleSummaryLabels[1].isVisible()))
+    if (! compactSourceGrid
+        && displayedMode != chipper::ChipMode::sid
+        && (! sourceSurfaceActive || moduleSummaryLabels[1].isVisible()))
     {
         sourcePanel.removeFromTop(30);
         sourcePanel.removeFromTop(4);
@@ -3803,7 +3805,7 @@ void ChipperAudioProcessorEditor::resized()
 
         if (isSidSourceCard && i < sidVoiceWaveCount)
         {
-            auto waveRow = sourceCard.removeFromTop(std::min(24, sourceCard.getHeight()));
+            auto waveRow = sourceCard.removeFromTop(std::min(28, sourceCard.getHeight()));
             sidVoiceWaveLabels[i].setBounds(waveRow.removeFromLeft(38));
             sidVoiceWaveBoxes[i].setBounds(waveRow);
             sourceCard.removeFromTop(1);
@@ -4416,7 +4418,7 @@ void ChipperAudioProcessorEditor::resized()
         dmcSampleLabel.setBounds(sampleHeader.removeFromLeft(42));
         dmcPlaybackModeLabel.setBounds({});
         dmcMapRootLabel.setBounds({});
-        dmcPlaybackModeBox.setBounds(sampleHeader.removeFromLeft(116).reduced(0, 1));
+        dmcPlaybackModeBox.setBounds(sampleHeader.removeFromLeft(116));
         sampleHeader.removeFromLeft(4);
         const auto buttonWidth = std::max(42, (sampleHeader.getWidth() - 12) / 3);
         dmcSampleFileButton.setBounds(sampleHeader.removeFromLeft(buttonWidth).reduced(0, 1));
@@ -4430,8 +4432,8 @@ void ChipperAudioProcessorEditor::resized()
         sampleRow.removeFromRight(6);
         auto rootCell = sampleRow.removeFromRight(78);
         sampleRow.removeFromRight(6);
-        dmcSampleSlotBox.setBounds(sampleRow.reduced(0, 1));
-        dmcMapRootBox.setBounds(rootCell.reduced(0, 1));
+        dmcSampleSlotBox.setBounds(sampleRow);
+        dmcMapRootBox.setBounds(rootCell);
         dmcLoopButton.setBounds(loopCell.reduced(0, 1));
         spc700LoopModeButton.setBounds({});
         dmcControlColumn.removeFromTop(6);
@@ -4935,7 +4937,7 @@ void ChipperAudioProcessorEditor::placeFmAlgorithmControl(juce::Rectangle<int> b
 
     if (compact)
     {
-        fmAlgorithmBox.setBounds(bounds.removeFromTop(std::min(24, bounds.getHeight())));
+        fmAlgorithmBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())));
         fmAlgorithmPreview.setBounds({});
         waveShapeSegmentBounds = {};
         for (auto& button : waveShapeButtons)
@@ -4945,7 +4947,7 @@ void ChipperAudioProcessorEditor::placeFmAlgorithmControl(juce::Rectangle<int> b
 
     const auto selectorWidth = std::clamp(bounds.getWidth() / 3, 142, 190);
     auto selectorArea = bounds.removeFromLeft(std::min(selectorWidth, bounds.getWidth()));
-    fmAlgorithmBox.setBounds(selectorArea.removeFromTop(std::min(28, selectorArea.getHeight())).reduced(0, 1));
+    fmAlgorithmBox.setBounds(selectorArea.removeFromTop(std::min(28, selectorArea.getHeight())));
     if (bounds.getWidth() > 12)
         bounds.removeFromLeft(8);
     fmAlgorithmPreview.setBounds(bounds.reduced(0, 1));
@@ -4965,7 +4967,7 @@ void ChipperAudioProcessorEditor::placeOplWaveformControl(juce::Rectangle<int> b
 
     if (compact)
     {
-        oplWaveformBox.setBounds(bounds.removeFromTop(std::min(24, bounds.getHeight())));
+        oplWaveformBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())));
         oplWaveformPreview.setBounds({});
         waveShapeSegmentBounds = {};
         for (auto& button : waveShapeButtons)
@@ -4975,7 +4977,7 @@ void ChipperAudioProcessorEditor::placeOplWaveformControl(juce::Rectangle<int> b
 
     const auto selectorWidth = std::clamp(bounds.getWidth() / 3, 142, 190);
     auto selectorArea = bounds.removeFromLeft(std::min(selectorWidth, bounds.getWidth()));
-    oplWaveformBox.setBounds(selectorArea.removeFromTop(std::min(28, selectorArea.getHeight())).reduced(0, 1));
+    oplWaveformBox.setBounds(selectorArea.removeFromTop(std::min(28, selectorArea.getHeight())));
     if (bounds.getWidth() > 12)
         bounds.removeFromLeft(8);
     oplWaveformPreview.setBounds(bounds.reduced(0, 1));
@@ -5002,7 +5004,7 @@ void ChipperAudioProcessorEditor::placeOpllInstrumentControl(juce::Rectangle<int
         const auto availableHeight = bounds.getHeight();
         const auto readoutFits = availableHeight >= 74;
         const auto compactLabelHeight = readoutFits ? 14 : 12;
-        const auto compactControlHeight = readoutFits ? 26 : 24;
+        const auto compactControlHeight = 28;
         const auto compactGap = readoutFits ? 4 : 3;
 
         waveShapeLabel.setBounds(bounds.removeFromTop(std::min(compactLabelHeight, bounds.getHeight())));
@@ -5048,7 +5050,7 @@ void ChipperAudioProcessorEditor::placeOpllInstrumentControl(juce::Rectangle<int
         rhythmPanel = bounds;
     }
 
-    opllInstrumentBox.setBounds(instrumentPanel.removeFromTop(std::min(controlHeight, instrumentPanel.getHeight())).reduced(0, 1));
+    opllInstrumentBox.setBounds(instrumentPanel.removeFromTop(std::min(controlHeight, instrumentPanel.getHeight())));
     waveShapeValueLabel.setBounds(instrumentPanel.removeFromTop(std::min(readoutHeight, instrumentPanel.getHeight())));
 
     auto rhythmHeader = rhythmPanel.removeFromTop(std::min(labelHeight, rhythmPanel.getHeight()));
@@ -5080,7 +5082,7 @@ void ChipperAudioProcessorEditor::placeSidVoiceWaveControls(juce::Rectangle<int>
         return;
     }
 
-    auto row = bounds.removeFromTop(28).reduced(0, 2);
+    auto row = bounds.removeFromTop(28);
     const auto gap = 6;
     const auto width = (row.getWidth() - (gap * static_cast<int>(sidVoiceWaveBoxes.size() - 1u))) / static_cast<int>(sidVoiceWaveBoxes.size());
 
@@ -5159,7 +5161,7 @@ void ChipperAudioProcessorEditor::placeDmgStereoRouteSegment(juce::Rectangle<int
     dmgStereoRouteLabel.setBounds(bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight())));
     if (displayedMode == chipper::ChipMode::spc700 || displayedMode == chipper::ChipMode::paula)
     {
-        dmgStereoRouteBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
+        dmgStereoRouteBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())));
         dmgStereoRouteSegmentBounds = {};
         for (auto& button : dmgStereoRouteButtons)
             button.setBounds({});
@@ -5194,7 +5196,7 @@ void ChipperAudioProcessorEditor::placeYmEnvelopeShapeSegment(juce::Rectangle<in
         ymEnvelopeShapeValueLabel.setJustificationType(juce::Justification::centredRight);
         ymEnvelopeShapeValueLabel.setBounds(header);
         bounds.removeFromTop(3);
-        sidFilterModeBox.setBounds(bounds.removeFromTop(std::min(26, bounds.getHeight())).reduced(0, 1));
+        sidFilterModeBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())));
         ymEnvelopeShapeSegmentBounds = {};
         for (auto& button : ymEnvelopeShapeButtons)
             button.setBounds({});
@@ -5217,13 +5219,13 @@ void ChipperAudioProcessorEditor::placeSidFilterRoutingControl(juce::Rectangle<i
     sidFilterRoutingValueLabel.setJustificationType(juce::Justification::centredRight);
     sidFilterRoutingValueLabel.setBounds(header);
     bounds.removeFromTop(3);
-    sidFilterRoutingBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
+    sidFilterRoutingBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())));
 }
 
 void ChipperAudioProcessorEditor::placeYmChannelMixControls(juce::Rectangle<int> bounds)
 {
     ymChannelMixLabel.setBounds(bounds.removeFromTop(16));
-    auto row = bounds.removeFromTop(28).reduced(0, 2);
+    auto row = bounds.removeFromTop(28);
     const auto gap = 6;
     const auto width = (row.getWidth() - (gap * static_cast<int>(ymChannelMixBoxes.size() - 1u))) / static_cast<int>(ymChannelMixBoxes.size());
 
@@ -5258,7 +5260,7 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
     snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(tight ? 12 : (useRegisterSegment ? 15 : (compact ? 15 : 18)), bounds.getHeight())));
     if (displayedMode == chipper::ChipMode::sn76489)
     {
-        snNoiseModeBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())).reduced(0, 1));
+        snNoiseModeBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())));
         snNoiseModeSegmentBounds = {};
         for (auto& button : snNoiseModeButtons)
             button.setBounds({});
