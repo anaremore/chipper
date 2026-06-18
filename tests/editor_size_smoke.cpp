@@ -620,16 +620,16 @@ bool checkNesDmcAndPerformanceLayout()
         }
     };
 
-    expectOwnedReadable(playbackBounds, "playback mode", 88, 24);
-    expectOwnedReadable(slotBounds, "sample slot", 180, 24);
-    expectOwnedReadable(rootBounds, "root note", 64, 24);
-    expectOwnedReadable(loopBounds, "loop toggle", 82, 24);
-    expectOwnedReadable(rateBounds, "DMC rate", 128, 24);
-    expectOwnedReadable(waveformBounds, "waveform preview", 420, 96);
+    expectOwnedReadable(playbackBounds, "playback mode", 112, 28);
+    expectOwnedReadable(slotBounds, "sample slot", 240, 28);
+    expectOwnedReadable(rootBounds, "root note", 72, 28);
+    expectOwnedReadable(loopBounds, "loop toggle", 104, 28);
+    expectOwnedReadable(rateBounds, "DMC rate", 136, 28);
+    expectOwnedReadable(waveformBounds, "waveform preview", 520, 150);
 
     if (! performanceBounds.expanded(2).contains(apuDecayBounds)
         || apuDecayBounds.getWidth() < 160
-        || apuDecayBounds.getHeight() < 6)
+        || apuDecayBounds.getHeight() < 18)
     {
         std::cerr << "editor_size_smoke: NES APU decay slider is not readable/owned by performance macros: "
                   << apuDecayBounds.toString() << " performance "
@@ -639,7 +639,7 @@ bool checkNesDmcAndPerformanceLayout()
 
     if (! performanceBounds.expanded(2).contains(outputBounds)
         || outputBounds.getWidth() < 160
-        || outputBounds.getHeight() < 6)
+        || outputBounds.getHeight() < 18)
     {
         std::cerr << "editor_size_smoke: NES output slider is not readable/owned by performance macros: "
                   << outputBounds.toString() << " performance "

@@ -4292,8 +4292,8 @@ void ChipperAudioProcessorEditor::resized()
     if (displayedMode == chipper::ChipMode::nes)
     {
         constexpr int minNesMacroRowHeight = 52;
-        constexpr int maxNesMacroRowHeight = 58;
-        constexpr int nesApuDecayHeight = 44;
+        constexpr int maxNesMacroRowHeight = 52;
+        constexpr int nesApuDecayHeight = 50;
         constexpr int nesControlGap = 6;
 
         auto nesRow = strip;
@@ -4387,7 +4387,7 @@ void ChipperAudioProcessorEditor::resized()
         clockSlider.setBounds({});
         clockLabel.setBounds({});
         auto dmcCell = utilityCell;
-        constexpr int standardDmcControlHeight = 28;
+        constexpr int standardDmcControlHeight = 30;
         const auto useTwoColumnDmc = dmcCell.getWidth() >= 760 && dmcCell.getHeight() >= 140;
         auto dmcControlColumn = dmcCell;
         auto dmcWaveformColumn = dmcCell;
@@ -4409,14 +4409,14 @@ void ChipperAudioProcessorEditor::resized()
         controlValueLabels[4].setBounds(directHeader);
         dmcDirectSlider.setBounds(directCell.reduced(0, 2));
         dmcRateLabel.setBounds(rateCell.removeFromTop(16));
-        dmcRateBox.setBounds(rateCell.removeFromTop(std::min(standardDmcControlHeight, rateCell.getHeight())).reduced(0, 1));
+        dmcRateBox.setBounds(rateCell.removeFromTop(std::min(standardDmcControlHeight, rateCell.getHeight())));
         dmcControlColumn.removeFromTop(8);
         auto sampleHeader = dmcControlColumn.removeFromTop(std::min(standardDmcControlHeight, dmcControlColumn.getHeight()));
         dmcSampleLabel.setText("DMC", juce::dontSendNotification);
         dmcSampleLabel.setBounds(sampleHeader.removeFromLeft(42));
         dmcPlaybackModeLabel.setBounds({});
         dmcMapRootLabel.setBounds({});
-        dmcPlaybackModeBox.setBounds(sampleHeader.removeFromLeft(104).reduced(0, 1));
+        dmcPlaybackModeBox.setBounds(sampleHeader.removeFromLeft(116).reduced(0, 1));
         sampleHeader.removeFromLeft(4);
         const auto buttonWidth = std::max(42, (sampleHeader.getWidth() - 12) / 3);
         dmcSampleFileButton.setBounds(sampleHeader.removeFromLeft(buttonWidth).reduced(0, 1));
