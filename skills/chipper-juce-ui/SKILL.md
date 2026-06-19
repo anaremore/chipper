@@ -31,11 +31,11 @@ description: Use when modifying Chipper's JUCE plugin editor, LookAndFeel, chip-
 - Keep UI honest. Strictness is a behavior preference; verification strength belongs in footer/status/docs. Do not label a mode cycle-accurate without test evidence.
 - Preserve readability over decorative retro styling. The app can look like a tracker, but labels, dropdowns, numeric boxes, level lanes, and waveform previews must remain readable at the default editor size.
 - Keep visual theme values tokenized by chip. Prefer theme structs, palette helpers, and shared drawing primitives over hard-coded colors scattered through layout code.
-- Keep HiDPI and host restore behavior in mind. Default to the 1240 x 820 DAW-fit contract unless a deliberate fixed-size redesign changes the smoke tests and docs together.
+- Keep HiDPI and host restore behavior in mind. Default to the 1240 x 820 DAW-fit contract and the 1180 px compact-width floor unless a deliberate fixed-size redesign changes the smoke tests and docs together.
 - Do not solve cramped panels by making the editor taller. Rebalance rows, shorten copy, move secondary details into tooltips/status text, or split source cards into denser reusable controls.
 - Standardize input sizes. ComboBoxes, TextEditors, and meaningful buttons should use the shared default height; only tiny segmented buttons may go smaller, and only when their labels remain readable.
 - Keep source-card level controls visible. If a card owns a sound source, its waveform/sample selector, active state, and level lane must be visible without relying on clipped text or hidden rows.
-- Keep performance macros secondary. They should never overlap source panels, sample banks, native envelopes, or output scopes.
+- Keep performance macros secondary. They should never overlap source panels, sample banks, native envelopes, or output scopes. SID ADSR in particular must remain clear of Performance Macros at default and compact widths.
 
 ## Chipper-Specific Control Rules
 
@@ -59,6 +59,7 @@ description: Use when modifying Chipper's JUCE plugin editor, LookAndFeel, chip-
 - Identify chip-specific controls that should move from shared panels into source cards.
 - Identify shared sections that are mostly informational. Remove, collapse, or replace them with chip-owned controls unless the information directly helps the musician act.
 - Identify excessive vertical whitespace. Compact the panel while preserving control height and label readability; do not bury controls at the bottom of oversized cards.
+- Check both default width and compact width. A chip page that only works at 1240 px but clips at 1180 px is still a layout regression.
 - Identify generic visual polish that would reduce usability, shrink standard inputs, or detach controls from their chip source.
 - Prefer one shippable vertical slice: change the affected chip layout, add or tighten a smoke-test guard, update the owning doc, build/test/install when code changes, then commit and push.
 

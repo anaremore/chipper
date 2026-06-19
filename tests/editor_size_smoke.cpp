@@ -9,6 +9,7 @@
 namespace
 {
 constexpr int expectedEditorHeight = 820;
+constexpr int expectedEditorMinimumWidth = 1180;
 constexpr int expectedEditorMinimumHeight = expectedEditorHeight;
 
 bool expect(bool condition, const char* message)
@@ -967,45 +968,77 @@ bool checkSidAdsrLayout()
         return false;
     }
 
-    ChipperAudioProcessor processor;
-    auto ok = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
-    ChipperAudioProcessorEditor editor(processor);
-    editor.setSize(1240, expectedHeightForChipMode(chipChoice));
-    editor.runEditorUpdateForLayoutTest();
-
-    const auto adsrModuleBounds = editor.getModuleBoundsForLayoutTest(3);
-    const auto adsrContentBounds = editor.getSidAdsrContentBoundsForLayoutTest();
-    const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
-
-    if (adsrModuleBounds.isEmpty() || adsrContentBounds.isEmpty())
+    auto checkAtWidth = [&](int editorWidth)
     {
-        std::cerr << "editor_size_smoke: SID ADSR module/content is missing; module "
-                  << adsrModuleBounds.toString() << " content "
-                  << adsrContentBounds.toString() << '\n';
-        return false;
-    }
+        ChipperAudioProcessor processor;
+        auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(editorWidth, expectedHeightForChipMode(chipChoice));
+        editor.runEditorUpdateForLayoutTest();
 
-    if (adsrModuleBounds.getHeight() < 176)
-    {
-        std::cerr << "editor_size_smoke: SID ADSR module is too short for readable per-voice controls: "
-                  << adsrModuleBounds.toString() << '\n';
-        ok = false;
-    }
+        const auto adsrModuleBounds = editor.getModuleBoundsForLayoutTest(3);
+        const auto adsrContentBounds = editor.getSidAdsrContentBoundsForLayoutTest();
+        const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
 
-    if (! adsrModuleBounds.expanded(2).contains(adsrContentBounds))
-    {
-        std::cerr << "editor_size_smoke: SID ADSR content escaped its module: module "
-                  << adsrModuleBounds.toString() << " content "
-                  << adsrContentBounds.toString() << '\n';
-        ok = false;
-    }
+        if (adsrModuleBounds.isEmpty() || adsrContentBounds.isEmpty())
+        {
+            std::cerr << "editor_size_smoke: SID ADSR module/content is missing at width "
+                      << editorWidth << "; module " << adsrModuleBounds.toString()
+                      << " content " << adsrContentBounds.toString() << '\n';
+            return false;
+        }
 
-    if (! performanceBounds.isEmpty() && adsrContentBounds.getBottom() > performanceBounds.getY() - 4)
+        if (adsrModuleBounds.getHeight() < 176)
+        {
+            std::cerr << "editor_size_smoke: SID ADSR module is too short for readable per-voice controls at width "
+                      << editorWidth << ": " << adsrModuleBounds.toString() << '\n';
+            widthOk = false;
+        }
+
+        if (! adsrModuleBounds.expanded(2).contains(adsrContentBounds))
+        {
+            std::cerr << "editor_size_smoke: SID ADSR content escaped its module at width "
+                      << editorWidth << ": module " << adsrModuleBounds.toString()
+                      << " content " << adsrContentBounds.toString() << '\n';
+            widthOk = false;
+        }
+
+        if (! performanceBounds.isEmpty() && adsrContentBounds.getBottom() > performanceBounds.getY() - 4)
+        {
+            std::cerr << "editor_size_smoke: SID ADSR content overlaps performance macros at width "
+                      << editorWidth << ": content " << adsrContentBounds.toString()
+                      << " performance " << performanceBounds.toString() << '\n';
+            widthOk = false;
+        }
+
+        return widthOk;
+    };
+
+    auto ok = checkAtWidth(1240);
+    ok &= checkAtWidth(expectedEditorMinimumWidth);
+
+    return ok;
+}
+
+bool checkCompactChipLayouts()
+{
+    bool ok = true;
+    const auto chipModeCount = chipper::parameters::chipModeChoices().size();
+    for (auto chipMode = 0; chipMode < chipModeCount; ++chipMode)
     {
-        std::cerr << "editor_size_smoke: SID ADSR content overlaps performance macros: content "
-                  << adsrContentBounds.toString() << " performance "
-                  << performanceBounds.toString() << '\n';
-        ok = false;
+        const auto mode = chipper::parameters::chipModeFromChoice(chipMode);
+        const auto chipPath = chipper::parameters::chipModeChoices()[chipMode].toStdString();
+        ChipperAudioProcessor chipProcessor;
+        ok &= setChoiceParameter(chipProcessor, chipper::parameters::id::chipMode, chipMode);
+
+        ChipperAudioProcessorEditor chipEditor(chipProcessor);
+        chipEditor.setSize(expectedEditorMinimumWidth, expectedHeightForChipMode(chipMode));
+        chipEditor.runEditorUpdateForLayoutTest();
+
+        ok &= expect(chipEditor.getWidth() == expectedEditorMinimumWidth, "compact editor width was not preserved");
+        ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "compact editor height changed");
+        ok &= checkVisibleChildGeometry(chipEditor, chipEditor, juce::Point<int> {}, "editor/compact/" + chipPath);
+        ok &= checkPrimaryPanelStack(chipEditor, mode);
     }
 
     return ok;
@@ -1028,7 +1061,7 @@ int main()
     ok &= expect(editor.getHeight() == expectedEditorHeight, "host-restored default editor height was not clamped to the DAW-friendly cap");
 
     editor.setSize(1000, 600);
-    ok &= expect(editor.getWidth() >= 1180, "editor width was not clamped to minimum");
+    ok &= expect(editor.getWidth() >= expectedEditorMinimumWidth, "editor width was not clamped to minimum");
     ok &= expect(editor.getHeight() >= expectedEditorMinimumHeight, "editor height was not clamped to minimum");
 
     const auto chipModeCount = chipper::parameters::chipModeChoices().size();
@@ -1066,6 +1099,7 @@ int main()
     ok &= checkNesDmcAndPerformanceLayout();
     ok &= checkPerformanceMacroSliderLayout();
     ok &= checkSidAdsrLayout();
+    ok &= checkCompactChipLayouts();
     ok &= checkChipSwitchPreservesEditorSettings();
 
     return ok ? 0 : 1;
