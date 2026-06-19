@@ -3593,7 +3593,7 @@ void ChipperAudioProcessorEditor::resized()
         constexpr auto sourceColumns = 4;
         const auto sourceRows = std::max(1, (visibleSources + sourceColumns - 1) / sourceColumns);
         constexpr auto sourceHeaderReserve = 50;
-        constexpr auto targetCardHeight = 108;
+        constexpr auto targetCardHeight = 102;
         const auto desiredSourceHeight = sourceHeaderReserve + (targetCardHeight * sourceRows) + (gap * (sourceRows - 1));
         const auto sourceMaximumHeight = std::min(306, std::max(224, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap));
         const auto sourceMinimumHeight = std::min(desiredSourceHeight, sourceMaximumHeight);
@@ -3754,7 +3754,7 @@ void ChipperAudioProcessorEditor::resized()
         ? (sourcePanel.getHeight() - (sourceGap * (sourceRows - 1))) / sourceRows
         : sourcePanel.getHeight();
     const auto sourceCardHeight = useWavetableVoiceGrid
-        ? std::min(rawSourceCardHeight, 108)
+        ? std::min(rawSourceCardHeight, 102)
         : (usePaulaVoiceGrid
                ? std::min(rawSourceCardHeight, 146)
                : (useSpc700VoiceGrid ? std::min(rawSourceCardHeight, 136) : rawSourceCardHeight));
@@ -3826,7 +3826,7 @@ void ChipperAudioProcessorEditor::resized()
         const auto placeEmbeddedLevelInArea = [this, i](juce::Rectangle<int> levelArea, int labelWidth = 52)
         {
             const auto compact = levelArea.getHeight() <= 32;
-            const auto minimumSliderHeight = compact ? 12 : 16;
+            constexpr auto minimumSliderHeight = 16;
             const auto labelHeight = compact
                 ? std::max(0, std::min(10, levelArea.getHeight() - minimumSliderHeight - 1))
                 : std::min(14, levelArea.getHeight());
