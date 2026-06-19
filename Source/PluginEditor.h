@@ -184,6 +184,10 @@ public:
     juce::Rectangle<int> getEnvelopeDecayBoundsForLayoutTest() const { return envelopeDecaySlider.getBounds(); }
     juce::Rectangle<int> getOutputSliderBoundsForLayoutTest() const { return outputSlider.getBounds(); }
     juce::Rectangle<int> getOutputScopeBoundsForLayoutTest() const { return outputScopePreview.getBounds(); }
+    juce::Rectangle<int> getNativeSliderBoundsForLayoutTest(size_t index) const
+    {
+        return index < nativeSliders.size() ? nativeSliders[index].getBounds() : juce::Rectangle<int> {};
+    }
     juce::Rectangle<int> getSidAdsrContentBoundsForLayoutTest() const;
     void runEditorUpdateForLayoutTest() { timerCallback(); }
 

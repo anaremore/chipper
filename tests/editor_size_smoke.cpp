@@ -829,6 +829,81 @@ bool checkNesDmcAndPerformanceLayout()
     return ok;
 }
 
+bool checkPerformanceMacroSliderLayout()
+{
+    auto ok = true;
+    const auto chipModeCount = chipper::parameters::chipModeChoices().size();
+
+    for (auto chipMode = 0; chipMode < chipModeCount; ++chipMode)
+    {
+        const auto mode = chipper::parameters::chipModeFromChoice(chipMode);
+        ChipperAudioProcessor processor;
+        ok &= setChoiceParameter(processor, chipper::parameters::id::chipMode, chipMode);
+
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(1240, expectedHeightForChipMode(chipMode));
+        editor.runEditorUpdateForLayoutTest();
+
+        const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+        if (performanceBounds.isEmpty())
+        {
+            std::cerr << "editor_size_smoke: missing performance macro strip for mode "
+                      << chipper::parameters::chipModeChoices()[chipMode] << '\n';
+            ok = false;
+            continue;
+        }
+
+        std::vector<size_t> expectedMacroSliders;
+        switch (mode)
+        {
+            case chipper::ChipMode::nes:
+            case chipper::ChipMode::dmg:
+                expectedMacroSliders = { 1, 2, 3 };
+                break;
+            case chipper::ChipMode::sid:
+                expectedMacroSliders = { 0, 1, 3 };
+                break;
+            case chipper::ChipMode::spc700:
+            case chipper::ChipMode::paula:
+                expectedMacroSliders = { 0, 2, 3 };
+                break;
+            case chipper::ChipMode::ym2149:
+                expectedMacroSliders = { 0, 1, 2 };
+                break;
+            default:
+                expectedMacroSliders = { 0, 1, 2, 3 };
+                break;
+        }
+
+        for (const auto sliderIndex : expectedMacroSliders)
+        {
+            const auto sliderBounds = editor.getNativeSliderBoundsForLayoutTest(sliderIndex);
+            if (sliderBounds.isEmpty())
+            {
+                std::cerr << "editor_size_smoke: missing performance macro slider "
+                          << sliderIndex << " for mode "
+                          << chipper::parameters::chipModeChoices()[chipMode] << '\n';
+                ok = false;
+                continue;
+            }
+
+            if (! performanceBounds.expanded(2).contains(sliderBounds)
+                || sliderBounds.getWidth() < 96
+                || sliderBounds.getHeight() < 18)
+            {
+                std::cerr << "editor_size_smoke: performance macro slider "
+                          << sliderIndex << " is not readable/owned by performance strip for mode "
+                          << chipper::parameters::chipModeChoices()[chipMode]
+                          << ": slider " << sliderBounds.toString()
+                          << " performance " << performanceBounds.toString() << '\n';
+                ok = false;
+            }
+        }
+    }
+
+    return ok;
+}
+
 bool checkSidAdsrLayout()
 {
     const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::sid);
@@ -935,6 +1010,7 @@ int main()
     ok &= checkSamplerBankLayout(chipper::ChipMode::spc700);
     ok &= checkSamplerBankLayout(chipper::ChipMode::paula);
     ok &= checkNesDmcAndPerformanceLayout();
+    ok &= checkPerformanceMacroSliderLayout();
     ok &= checkSidAdsrLayout();
     ok &= checkChipSwitchPreservesEditorSettings();
 
