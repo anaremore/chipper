@@ -6689,8 +6689,49 @@ juce::String ChipperAudioProcessorEditor::performanceMacroDestination(chipper::C
 
 juce::String ChipperAudioProcessorEditor::performanceMacroReadout(chipper::ChipMode mode, size_t index, juce::String readout) const
 {
-    juce::ignoreUnused(mode, index);
-    return readout;
+    auto compact = readout.trim();
+    if (compact.isEmpty())
+        return {};
+
+    compact = compact.replace("Preset -> ", "")
+                     .replace("Follow -> ", "")
+                     .replace("Preset: ", "")
+                     .replace("Register ", "Reg ")
+                     .replace("Channel ", "Ch ")
+                     .replace("Algorithm ", "Alg ")
+                     .replace("Feedback", "FB")
+                     .replace("frequency", "freq")
+                     .replace("output level", "level")
+                     .replace("Pitch motion", "Pitch")
+                     .replace("Pitch/rate motion", "Rate")
+                     .replace("Channel spread", "Spread")
+                     .replace("Voice spread", "Spread")
+                     .replace("Sample color", "Color")
+                     .replace("Poly/timer bias", "Poly bias");
+
+    juce::StringArray parts;
+    parts.addTokens(compact, "|", {});
+    parts.trim();
+    parts.removeEmptyStrings();
+
+    if (parts.size() > 1)
+    {
+        const auto first = parts[0].trim();
+        const auto second = parts[1].trim();
+        const auto keepSecond = first.length() <= 16
+            && second.length() <= 18
+            && mode != chipper::ChipMode::ym2149
+            && mode != chipper::ChipMode::sn76489;
+
+        compact = keepSecond ? first + " | " + second : first;
+    }
+
+    const auto maxLength = (mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg) ? 42 : 38;
+    if (compact.length() > maxLength)
+        compact = compact.substring(0, maxLength - 3).trim() + "...";
+
+    juce::ignoreUnused(index);
+    return compact;
 }
 
 juce::String ChipperAudioProcessorEditor::sourceLaneExposureReadout(chipper::ChipMode mode) const
@@ -11153,6 +11194,10 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
 
     const auto macroReadout = [this, mode](size_t index, juce::String text)
     {
+        const auto fullText = text.trim();
+        if (index < controlValueLabels.size())
+            controlValueLabels[index].setTooltip(fullText);
+
         return performanceMacroReadout(mode, index, std::move(text));
     };
 
