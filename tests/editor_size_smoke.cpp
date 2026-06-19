@@ -445,6 +445,14 @@ bool checkWavetableSourceDeck(chipper::ChipMode mode)
             ok = false;
         }
 
+        if (! levelBounds.isEmpty() && levelBounds.getY() - sourceBounds.getY() < 70)
+        {
+            std::cerr << "editor_size_smoke: wavetable level lane is crowding the wave selector stack for channel "
+                      << channel << " source " << sourceBounds.toString()
+                      << " level " << levelBounds.toString() << '\n';
+            ok = false;
+        }
+
         if (waveSelectorBounds.isEmpty()
             || waveSelectorBounds.getHeight() < 28
             || waveSelectorBounds.getWidth() < 96

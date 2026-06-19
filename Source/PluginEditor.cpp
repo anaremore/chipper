@@ -3752,7 +3752,7 @@ void ChipperAudioProcessorEditor::resized()
         ? (sourcePanel.getHeight() - (sourceGap * (sourceRows - 1))) / sourceRows
         : sourcePanel.getHeight();
     const auto sourceCardHeight = useWavetableVoiceGrid
-        ? std::min(rawSourceCardHeight, 116)
+        ? std::min(rawSourceCardHeight, 108)
         : (usePaulaVoiceGrid
                ? std::min(rawSourceCardHeight, 146)
                : (useSpc700VoiceGrid ? std::min(rawSourceCardHeight, 136) : rawSourceCardHeight));
@@ -3923,7 +3923,7 @@ void ChipperAudioProcessorEditor::resized()
             hucVoiceWaveLabels[i].setBounds(waveRow.removeFromLeft(std::min(44, waveRow.getWidth())));
             hucVoiceWaveBoxes[i].setBounds(waveRow);
             sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
-            auto levelArea = sourceCard.removeFromTop(std::min(30, sourceCard.getHeight()));
+            auto levelArea = sourceCard.removeFromTop(std::min(36, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea, 44);
         }
         else if (isPaulaSourceCard && i < hucVoiceWaveBoxes.size())
