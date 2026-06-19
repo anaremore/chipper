@@ -4805,6 +4805,15 @@ void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
 
     if (bounds.getHeight() < labelHeight + sliderHeight + readoutHeight)
     {
+        if (bounds.getHeight() >= 56)
+        {
+            label.setBounds(bounds.removeFromTop(std::min(16, bounds.getHeight())));
+            slider.setBounds(bounds.removeFromTop(std::min(24, bounds.getHeight())).reduced(0, 1));
+            bounds.removeFromTop(std::min(2, bounds.getHeight()));
+            valueLabel.setBounds(bounds);
+            return;
+        }
+
         auto header = bounds.removeFromTop(std::min(24, bounds.getHeight()));
         auto readout = header.removeFromRight(std::min(96, std::max(70, header.getWidth() / 4)));
         header.removeFromRight(std::min(8, header.getWidth()));
@@ -5332,7 +5341,8 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
     const auto useRegisterSegment = (displayedMode == chipper::ChipMode::nes
                                      || displayedMode == chipper::ChipMode::dmg)
                                     && bounds.getHeight() >= 44;
-    snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(tight ? 12 : (useRegisterSegment ? 15 : (compact ? 15 : 18)), bounds.getHeight())));
+    const auto registerLabelHeight = bounds.getHeight() < 52 ? 12 : 15;
+    snNoiseModeLabel.setBounds(bounds.removeFromTop(std::min(tight ? 12 : (useRegisterSegment ? registerLabelHeight : (compact ? 15 : 18)), bounds.getHeight())));
     if (displayedMode == chipper::ChipMode::sn76489)
     {
         snNoiseModeBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())));
@@ -5342,7 +5352,7 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
     }
     else
     {
-        bounds.removeFromTop(std::min(tight ? 1 : (useRegisterSegment ? 2 : (compact ? 2 : 0)), bounds.getHeight()));
+        bounds.removeFromTop(std::min(tight ? 1 : (useRegisterSegment ? 1 : (compact ? 2 : 0)), bounds.getHeight()));
         const auto preferredButtonHeight = useRegisterSegment
             ? std::min(38, std::max(30, bounds.getHeight()))
             : (tight ? 20 : (compact ? 24 : 28));
