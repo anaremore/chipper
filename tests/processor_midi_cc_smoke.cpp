@@ -828,6 +828,17 @@ int main()
     ok &= expect(jsonIntValue(dmcDebug, "dmcSampleByteIndex") == 4,
                  "NES DMC Note Map loop-off should stop at the exact mapped fixture end");
 
+    for (int i = 0; i < 8; ++i)
+        processEmptyBlock(dmcNoteMapOneShotProcessor);
+    dmcDebug = dmcNoteMapOneShotProcessor.currentCoreDebugStateJson();
+    dmcNoteMapInfo = dmcNoteMapOneShotProcessor.nesDmcSamplePlaybackInfo();
+    ok &= expect(jsonIntValue(dmcDebug, "dmcSampleActive") == 0
+                     && jsonIntValue(dmcDebug, "dmcSampleCompleted") == 1
+                     && jsonIntValue(dmcDebug, "dmcSampleBitsPlayed") == 32
+                     && jsonIntValue(dmcDebug, "dmcSampleByteIndex") == 4,
+                 "NES DMC Note Map loop-off should not retrigger or wrap while the mapped note remains held");
+    ok &= expect(! dmcNoteMapInfo.sampleActive && dmcNoteMapInfo.sampleCompleted && dmcNoteMapInfo.bitsPlayed == 32,
+                 "NES DMC Note Map playback info should keep reporting a stopped one-shot while the mapped note remains held");
     ChipperAudioProcessor dmcLoopProcessor;
     dmcLoopProcessor.prepareToPlay(48000.0, 256);
     ok &= expect(dmcLoopProcessor.loadNesDmcSampleDirectory(dmcDir).wasOk(),
