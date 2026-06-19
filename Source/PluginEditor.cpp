@@ -4333,7 +4333,21 @@ void ChipperAudioProcessorEditor::resized()
         };
     }
 
-    if (displayedMode == chipper::ChipMode::nes)
+    if (displayedMode == chipper::ChipMode::sid)
+    {
+        constexpr int sidControlGap = 8;
+        const auto sidControlWidth = (strip.getWidth() - (sidControlGap * 5)) / 6;
+        for (size_t i = 0; i < controlCells.size(); ++i)
+        {
+            controlCells[i] = {
+                strip.getX() + (static_cast<int>(i) * (sidControlWidth + sidControlGap)),
+                strip.getY(),
+                sidControlWidth,
+                strip.getHeight()
+            };
+        }
+    }
+    else if (displayedMode == chipper::ChipMode::nes)
     {
         constexpr int minNesMacroRowHeight = 52;
         constexpr int maxNesMacroRowHeight = 52;
