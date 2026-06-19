@@ -4365,16 +4365,21 @@ void ChipperAudioProcessorEditor::resized()
     else if (sampleLayout)
     {
         constexpr int sampleControlGap = 10;
-        const auto sampleMacroColumnWidth = (strip.getWidth() - (sampleControlGap * 2)) / 3;
+        const auto sampleMacroColumnWidth = (strip.getWidth() - (sampleControlGap * 3)) / 4;
         controlCells.fill({});
-        for (size_t i = 0; i < 3u; ++i)
+        for (size_t i = 0; i < 4u; ++i)
         {
-            controlCells[i] = {
+            const auto cell = juce::Rectangle<int> {
                 strip.getX() + (static_cast<int>(i) * (sampleMacroColumnWidth + sampleControlGap)),
                 strip.getY(),
                 sampleMacroColumnWidth,
                 strip.getHeight()
             };
+
+            if (i < 3u)
+                controlCells[i] = cell;
+            else
+                controlCells[5] = cell;
         }
     }
 

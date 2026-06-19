@@ -845,6 +845,7 @@ bool checkPerformanceMacroSliderLayout()
         editor.runEditorUpdateForLayoutTest();
 
         const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+        const auto outputBounds = editor.getOutputSliderBoundsForLayoutTest();
         if (performanceBounds.isEmpty())
         {
             std::cerr << "editor_size_smoke: missing performance macro strip for mode "
@@ -898,6 +899,18 @@ bool checkPerformanceMacroSliderLayout()
                           << " performance " << performanceBounds.toString() << '\n';
                 ok = false;
             }
+        }
+
+        if (outputBounds.isEmpty()
+            || ! performanceBounds.expanded(2).contains(outputBounds)
+            || outputBounds.getWidth() < 96
+            || outputBounds.getHeight() < 18)
+        {
+            std::cerr << "editor_size_smoke: output slider is not readable/owned by performance strip for mode "
+                      << chipper::parameters::chipModeChoices()[chipMode]
+                      << ": output " << outputBounds.toString()
+                      << " performance " << performanceBounds.toString() << '\n';
+            ok = false;
         }
     }
 
