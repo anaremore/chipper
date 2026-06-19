@@ -4869,7 +4869,9 @@ void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
     constexpr auto readoutHeight = 16;
     constexpr auto verticalGap = 2;
     const auto originalBounds = bounds;
-    const auto tightCell = bounds.getHeight() < groupHeight + labelHeight + sliderHeight + readoutHeight + (verticalGap * 2);
+    const auto fullStackHeight = groupHeight + labelHeight + sliderHeight + readoutHeight + (verticalGap * 2);
+    const auto tightCell = bounds.getHeight() < fullStackHeight;
+    const auto canShowCompactReadout = bounds.getHeight() >= 58;
 
     label.setMinimumHorizontalScale(0.72f);
     valueLabel.setJustificationType(juce::Justification::centredLeft);
@@ -4885,7 +4887,7 @@ void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
         return;
     }
 
-    const auto canShowFullStack = bounds.getHeight() >= groupHeight + labelHeight + sliderHeight + readoutHeight + (verticalGap * 2);
+    const auto canShowFullStack = bounds.getHeight() >= fullStackHeight;
     groupLabel.setBounds(canShowFullStack ? bounds.removeFromTop(std::min(groupHeight, bounds.getHeight()))
                                           : juce::Rectangle<int> {});
 
@@ -4901,8 +4903,9 @@ void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
             slider.setBounds(originalBounds.reduced(0, 1));
 
         bounds.removeFromTop(std::min(1, bounds.getHeight()));
-        valueLabel.setBounds(bounds.getHeight() >= 12 ? bounds.removeFromTop(std::min(readoutHeight, bounds.getHeight()))
-                                                      : juce::Rectangle<int> {});
+        valueLabel.setBounds(canShowCompactReadout && bounds.getHeight() >= 12
+                                 ? bounds.removeFromTop(std::min(readoutHeight, bounds.getHeight()))
+                                 : juce::Rectangle<int> {});
         return;
     }
 

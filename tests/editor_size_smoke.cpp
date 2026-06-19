@@ -925,6 +925,7 @@ bool checkPerformanceMacroSliderLayout()
             const auto groupBounds = editor.getNativeGroupLabelBoundsForLayoutTest(sliderIndex);
             const auto labelBounds = editor.getNativeLabelBoundsForLayoutTest(sliderIndex);
             const auto valueBounds = editor.getNativeValueLabelBoundsForLayoutTest(sliderIndex);
+            const auto compactMacroCell = groupBounds.isEmpty();
             const auto shouldShowMacroReadout = mode == chipper::ChipMode::ym2149
                 || mode == chipper::ChipMode::sn76489
                 || mode == chipper::ChipMode::ym2612
@@ -995,6 +996,7 @@ bool checkPerformanceMacroSliderLayout()
             }
 
             if (shouldShowMacroReadout
+                && ! compactMacroCell
                 && (valueBounds.isEmpty()
                     || valueBounds.getY() <= sliderBounds.getBottom()))
             {
