@@ -3448,8 +3448,8 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 108 : (nesLayout ? 236 : (spc700Layout ? 88 : (paulaLayout ? 96 : (wavetableLayout ? 150 : 196))));
-    const auto maxModulesHeight = sidLayout ? 646 : (nesLayout ? 430 : (spc700Layout ? 520 : (paulaLayout ? 560 : (wavetableLayout ? 500 : 492))));
+    const auto performanceStripHeight = sidLayout ? 108 : (nesLayout ? 236 : (spc700Layout ? 88 : (paulaLayout ? 96 : (wavetableLayout ? 140 : 196))));
+    const auto maxModulesHeight = sidLayout ? 646 : (nesLayout ? 430 : (spc700Layout ? 520 : (paulaLayout ? 560 : (wavetableLayout ? 412 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
     auto modules = area.removeFromTop(modulesHeight);
@@ -3586,34 +3586,27 @@ void ChipperAudioProcessorEditor::resized()
     else if (wavetableLayout)
     {
         const auto availableHeight = modules.getHeight();
-        const auto reservedGap = gap * 2;
-        const auto minimumEnvelopeHeight = 66;
-        const auto minimumOutputHeight = displayedMode == chipper::ChipMode::huc6280 ? 104 : 72;
+        const auto bottomRowHeight = displayedMode == chipper::ChipMode::huc6280 ? 112 : 96;
         const auto visibleSources = static_cast<int>(chipper::visibleSourceCountForMode(displayedMode));
         constexpr auto sourceColumns = 4;
         const auto sourceRows = std::max(1, (visibleSources + sourceColumns - 1) / sourceColumns);
-        constexpr auto sourceHeaderReserve = 50;
+        constexpr auto sourceHeaderReserve = 72;
         constexpr auto targetCardHeight = 100;
         const auto desiredSourceHeight = sourceHeaderReserve + (targetCardHeight * sourceRows) + (gap * (sourceRows - 1));
-        const auto sourceMaximumHeight = std::min(330, std::max(224, availableHeight - minimumEnvelopeHeight - minimumOutputHeight - reservedGap));
+        const auto sourceMaximumHeight = std::min(300, std::max(224, availableHeight - bottomRowHeight - gap));
         const auto sourceMinimumHeight = std::min(desiredSourceHeight, sourceMaximumHeight);
         const auto sourceRowHeight = std::clamp(desiredSourceHeight, sourceMinimumHeight, sourceMaximumHeight);
-        const auto remainingHeight = std::max(0, availableHeight - sourceRowHeight - reservedGap);
-        const auto envelopeMinimumHeight = std::min(minimumEnvelopeHeight, remainingHeight);
-        const auto envelopeMaximumHeight = std::min(126, remainingHeight);
-        const auto desiredEnvelopeHeight = std::max(remainingHeight / 2, minimumEnvelopeHeight);
-        const auto envelopeRowHeight = std::clamp(desiredEnvelopeHeight, envelopeMinimumHeight, envelopeMaximumHeight);
-        const auto outputRowHeight = std::max(0, remainingHeight - envelopeRowHeight);
+        const auto actualBottomRowHeight = std::max(0, std::min(bottomRowHeight, availableHeight - sourceRowHeight - gap));
+        const auto bottomColumnWidth = (modules.getWidth() - gap) / 2;
         const auto topY = modules.getY();
-        const auto envelopeY = topY + sourceRowHeight + gap;
-        const auto outputY = envelopeY + envelopeRowHeight + gap;
+        const auto bottomY = topY + sourceRowHeight + gap;
 
         moduleBounds[0] = {};
         moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), sourceRowHeight };
         moduleBounds[2] = {};
-        moduleBounds[3] = { modules.getX(), envelopeY, modules.getWidth(), envelopeRowHeight };
+        moduleBounds[3] = { modules.getX(), bottomY, bottomColumnWidth, actualBottomRowHeight };
         moduleBounds[4] = {};
-        moduleBounds[5] = { modules.getX(), outputY, modules.getWidth(), outputRowHeight };
+        moduleBounds[5] = { modules.getX() + bottomColumnWidth + gap, bottomY, bottomColumnWidth, actualBottomRowHeight };
     }
     else if (paulaLayout)
     {
