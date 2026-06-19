@@ -1288,7 +1288,7 @@ int main()
                      "CC104 should control NES Pulse 2 Duty");
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 2));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::pulse2Duty), 0.0f, 0.0001f,
-                     "CC74 NES macro change should reset Pulse 2 Duty to Preset");
+                     "CC74 NES macro change should reset Pulse 2 Duty to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcDirectLevel), 0.0f, 0.0001f,
                      "CC74 NES Bass macro should keep DMC Direct silent");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 0.0f, 0.0001f,
