@@ -1079,6 +1079,62 @@ bool checkSidAdsrLayout()
             widthOk = false;
         }
 
+        for (size_t voice = 0; voice < 3; ++voice)
+        {
+            const auto preview = editor.getSidEnvelopePreviewBoundsForLayoutTest(voice);
+            if (preview.isEmpty() || preview.getWidth() < 160 || preview.getHeight() < 42)
+            {
+                std::cerr << "editor_size_smoke: SID envelope preview is not readable for voice "
+                          << (voice + 1u) << " at width " << editorWidth
+                          << ": " << preview.toString() << '\n';
+                widthOk = false;
+            }
+
+            if (! adsrModuleBounds.expanded(2).contains(preview))
+            {
+                std::cerr << "editor_size_smoke: SID envelope preview escaped ADSR module for voice "
+                          << (voice + 1u) << " at width " << editorWidth
+                          << ": module " << adsrModuleBounds.toString()
+                          << " preview " << preview.toString() << '\n';
+                widthOk = false;
+            }
+
+            auto sliderBottom = 0;
+            for (size_t field = 0; field < 4; ++field)
+            {
+                const auto slider = editor.getSidAdsrSliderBoundsForLayoutTest((voice * 4u) + field);
+                if (slider.isEmpty() || slider.getHeight() < 26)
+                {
+                    std::cerr << "editor_size_smoke: SID ADSR slider is not readable for voice "
+                              << (voice + 1u) << ", field " << (field + 1u)
+                              << " at width " << editorWidth << ": " << slider.toString() << '\n';
+                    widthOk = false;
+                }
+
+                if (! adsrModuleBounds.expanded(2).contains(slider))
+                {
+                    std::cerr << "editor_size_smoke: SID ADSR slider escaped ADSR module for voice "
+                              << (voice + 1u) << ", field " << (field + 1u)
+                              << " at width " << editorWidth
+                              << ": module " << adsrModuleBounds.toString()
+                              << " slider " << slider.toString() << '\n';
+                    widthOk = false;
+                }
+
+                if (slider.getBottom() > sliderBottom)
+                    sliderBottom = slider.getBottom();
+            }
+
+            if (! preview.isEmpty() && preview.getY() <= sliderBottom)
+            {
+                std::cerr << "editor_size_smoke: SID envelope preview overlaps ADSR sliders for voice "
+                          << (voice + 1u) << " at width " << editorWidth
+                          << ": slider bottom " << sliderBottom
+                          << " preview " << preview.toString() << '\n';
+                widthOk = false;
+            }
+        }
+
         return widthOk;
     };
 

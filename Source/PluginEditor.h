@@ -204,6 +204,14 @@ public:
         return index < controlValueLabels.size() ? controlValueLabels[index].getBounds() : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getSidAdsrContentBoundsForLayoutTest() const;
+    juce::Rectangle<int> getSidAdsrSliderBoundsForLayoutTest(size_t index) const
+    {
+        return index < sidAdsrSliders.size() ? sidAdsrSliders[index].getBounds() : juce::Rectangle<int> {};
+    }
+    juce::Rectangle<int> getSidEnvelopePreviewBoundsForLayoutTest(size_t voice) const
+    {
+        return voice < sidEnvelopePreviews.size() ? sidEnvelopePreviews[voice].getBounds() : juce::Rectangle<int> {};
+    }
     void runEditorUpdateForLayoutTest() { timerCallback(); }
 
 private:
