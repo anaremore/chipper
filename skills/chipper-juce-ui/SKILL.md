@@ -34,7 +34,7 @@ description: Use when modifying Chipper's JUCE plugin editor, LookAndFeel, chip-
 - Keep HiDPI and host restore behavior in mind. Default to the 1240 x 820 DAW-fit contract and the 1180 px compact-width floor unless a deliberate fixed-size redesign changes the smoke tests and docs together.
 - Do not solve cramped panels by making the editor taller. Rebalance rows, shorten copy, move secondary details into tooltips/status text, or split source cards into denser reusable controls.
 - Standardize input sizes. ComboBoxes, TextEditors, and meaningful buttons should use the shared default height; only tiny segmented buttons may go smaller, and only when their labels remain readable.
-- Keep source-card level controls visible. If a card owns a sound source, its waveform/sample selector, active state, and level lane must be visible without relying on clipped text or hidden rows.
+- Keep source-card level controls visible. If a card owns a sound source, its waveform/sample selector, active state, and level lane must be visible without relying on clipped text or hidden rows. Sampler and wavetable cards should treat a readable Level lane as non-negotiable, not as leftover space.
 - Keep performance macros secondary. They should never overlap source panels, sample banks, native envelopes, or output scopes. SID ADSR in particular must remain clear of Performance Macros at default and compact widths.
 
 ## Chipper-Specific Control Rules
@@ -54,6 +54,7 @@ description: Use when modifying Chipper's JUCE plugin editor, LookAndFeel, chip-
 - Identify fake-continuous controls that should be segmented or stepped.
 - Identify source cards that are too tall, too short, or have dead space between selector and level controls.
 - Identify source cards where the selector is visible but the level lane, active state, or sample/wave assignment is clipped.
+- Identify sampler or wavetable cards where the Level lane is technically present but too short, too narrow, overlapping the selector, or stranded far away from the sample/wave selector.
 - Identify standard dropdowns or numeric boxes rendered below the default usable height.
 - Identify places where a roadmap placeholder is visible but not engine-backed.
 - Identify chip-specific controls that should move from shared panels into source cards.

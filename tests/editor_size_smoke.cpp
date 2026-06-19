@@ -588,7 +588,10 @@ bool checkSamplerSourceDeck(chipper::ChipMode mode)
             ok = false;
         }
 
-        if (levelBounds.isEmpty() || levelBounds.getHeight() < 10 || ! sourceBounds.expanded(2).contains(levelBounds))
+        if (levelBounds.isEmpty()
+            || levelBounds.getHeight() < 16
+            || levelBounds.getWidth() < 120
+            || ! sourceBounds.expanded(2).contains(levelBounds))
         {
             std::cerr << "editor_size_smoke: sampler level lane is not readable/owned for channel "
                       << channel << " source " << sourceBounds.toString()
@@ -599,6 +602,16 @@ bool checkSamplerSourceDeck(chipper::ChipMode mode)
         const auto selectorForLevel = mode == chipper::ChipMode::paula && ! sampleSelectorBounds.isEmpty()
             ? sampleSelectorBounds
             : waveSelectorBounds;
+        if (! levelBounds.isEmpty()
+            && ! selectorForLevel.isEmpty()
+            && levelBounds.getY() < selectorForLevel.getBottom() + 2)
+        {
+            std::cerr << "editor_size_smoke: sampler level lane overlaps its selector for channel "
+                      << channel << " selector " << selectorForLevel.toString()
+                      << " level " << levelBounds.toString() << '\n';
+            ok = false;
+        }
+
         if (! levelBounds.isEmpty()
             && ! selectorForLevel.isEmpty()
             && levelBounds.getY() - selectorForLevel.getBottom() > 28)

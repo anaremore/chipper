@@ -3828,12 +3828,14 @@ void ChipperAudioProcessorEditor::resized()
             const auto compact = levelArea.getHeight() <= 32;
             constexpr auto minimumSliderHeight = 16;
             const auto labelHeight = compact
-                ? std::max(0, std::min(10, levelArea.getHeight() - minimumSliderHeight - 1))
+                ? std::max(0, std::min(10, levelArea.getHeight() - minimumSliderHeight - 2))
                 : std::min(14, levelArea.getHeight());
             auto levelRow = levelArea.removeFromTop(labelHeight);
             sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(labelWidth, levelRow.getWidth())));
             sourceLevelValueLabels[i].setBounds(compact ? juce::Rectangle<int> {} : levelRow);
-            levelArea.removeFromTop(std::min(compact ? 1 : 2, levelArea.getHeight()));
+            const auto needsAllRemainingHeight = compact && levelArea.getHeight() <= minimumSliderHeight;
+            if (! needsAllRemainingHeight)
+                levelArea.removeFromTop(std::min(compact ? 1 : 2, levelArea.getHeight()));
             const auto sliderHeight = std::clamp(levelArea.getHeight(), 16, 22);
             sourceLevelSliders[i].setBounds(levelArea.removeFromTop(std::min(sliderHeight, levelArea.getHeight())));
         };
@@ -3968,7 +3970,7 @@ void ChipperAudioProcessorEditor::resized()
             hucVoiceWaveBoxes[i].setBounds(sampleRow);
             sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
 
-            auto levelArea = sourceCard.removeFromTop(std::min(24, sourceCard.getHeight()));
+            auto levelArea = sourceCard.removeFromTop(std::min(26, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea, 42);
         }
 
