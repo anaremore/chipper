@@ -4336,6 +4336,8 @@ void ChipperAudioProcessorEditor::resized()
         constexpr int minNesMacroRowHeight = 52;
         constexpr int maxNesMacroRowHeight = 52;
         constexpr int nesControlGap = 8;
+        constexpr int nesLowerControlGap = 6;
+        constexpr int nesDecayRowHeight = 48;
 
         auto nesRow = strip;
         const auto macroRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(nesRow.getHeight()) * 0.30)),
@@ -4356,11 +4358,9 @@ void ChipperAudioProcessorEditor::resized()
         }
 
         controlCells[3] = {};
-        auto lowerRow = nesRow;
-        const auto decayWidth = std::max(220, (lowerRow.getWidth() - nesControlGap) / 3);
-        controlCells[4] = lowerRow.removeFromLeft(std::min(decayWidth, lowerRow.getWidth()));
-        lowerRow.removeFromLeft(std::min(nesControlGap, lowerRow.getWidth()));
-        controlCells[5] = lowerRow;
+        controlCells[4] = nesRow.removeFromTop(std::min(nesDecayRowHeight, nesRow.getHeight()));
+        nesRow.removeFromTop(std::min(nesLowerControlGap, nesRow.getHeight()));
+        controlCells[5] = nesRow;
     }
     else if (sampleLayout)
     {
