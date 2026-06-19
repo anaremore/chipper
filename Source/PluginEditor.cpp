@@ -3590,7 +3590,7 @@ void ChipperAudioProcessorEditor::resized()
         const auto visibleSources = static_cast<int>(chipper::visibleSourceCountForMode(displayedMode));
         constexpr auto sourceColumns = 4;
         const auto sourceRows = std::max(1, (visibleSources + sourceColumns - 1) / sourceColumns);
-        constexpr auto sourceHeaderReserve = 72;
+        constexpr auto sourceHeaderReserve = 48;
         constexpr auto targetCardHeight = 100;
         const auto desiredSourceHeight = sourceHeaderReserve + (targetCardHeight * sourceRows) + (gap * (sourceRows - 1));
         const auto sourceMaximumHeight = std::min(300, std::max(224, availableHeight - bottomRowHeight - gap));
@@ -4430,7 +4430,14 @@ void ChipperAudioProcessorEditor::resized()
         placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[0]);
         placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[1]);
         placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[2]);
-        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, controlCells[4]);
+
+        auto decayCell = controlCells[4];
+        auto decayHeader = decayCell.removeFromTop(std::min(18, decayCell.getHeight()));
+        envelopeDecayLabel.setBounds(decayHeader.removeFromLeft(std::min(160, decayHeader.getWidth())));
+        envelopeDecayValueLabel.setJustificationType(juce::Justification::centredRight);
+        envelopeDecayValueLabel.setBounds(decayHeader);
+        decayCell.removeFromTop(std::min(1, decayCell.getHeight()));
+        envelopeDecaySlider.setBounds(decayCell.reduced(0, 2));
     }
     else if (displayedMode == chipper::ChipMode::dmg)
     {
@@ -4763,8 +4770,6 @@ void ChipperAudioProcessorEditor::resized()
     auto outputCell = displayedMode == chipper::ChipMode::sid
         ? controlCells[4].getUnion(controlCells[5])
         : controlCells[5];
-    if (displayedMode == chipper::ChipMode::nes)
-        outputCell.removeFromTop(std::min(6, outputCell.getHeight()));
     auto outputHeader = outputCell.removeFromTop(18);
     outputLabel.setBounds(outputHeader.removeFromLeft(96));
     controlValueLabels[5].setJustificationType(juce::Justification::centredRight);

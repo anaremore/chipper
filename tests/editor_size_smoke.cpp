@@ -436,6 +436,14 @@ bool checkWavetableSourceDeck(chipper::ChipMode mode)
     ChipperAudioProcessorEditor editor(processor);
     editor.setSize(1240, expectedHeightForChipMode(chipChoice));
 
+    const auto sourceDeckBounds = editor.getModuleBoundsForLayoutTest(1);
+    if (sourceDeckBounds.getHeight() > 264)
+    {
+        std::cerr << "editor_size_smoke: wavetable source deck is reserving empty vertical space: "
+                  << sourceDeckBounds.toString() << '\n';
+        ok = false;
+    }
+
     const auto visibleSources = chipper::visibleSourceCountForMode(mode);
     for (size_t channel = 0; channel < visibleSources; ++channel)
     {
