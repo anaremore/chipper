@@ -632,6 +632,7 @@ bool checkSamplerBankLayout(chipper::ChipMode mode)
     const auto rootBounds = editor.getSampleRootBoundsForLayoutTest();
     const auto waveformBounds = editor.getSampleWaveformBoundsForLayoutTest();
     const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+    const auto envelopeBounds = editor.getEnvelopeDecayBoundsForLayoutTest();
 
     const auto expectOwnedStandardControl = [&](juce::Rectangle<int> bounds, const char* name)
     {
@@ -666,6 +667,21 @@ bool checkSamplerBankLayout(chipper::ChipMode mode)
 
     if (mode == chipper::ChipMode::spc700)
         expectOwnedStandardControl(editor.getSampleLoopToggleBoundsForLayoutTest(), "SPC700 loop toggle");
+
+    if (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
+    {
+        const auto envelopePanel = editor.getModuleBoundsForLayoutTest(3);
+        if (envelopeBounds.isEmpty()
+            || envelopeBounds.getHeight() < 16
+            || ! envelopePanel.expanded(2).contains(envelopeBounds))
+        {
+            std::cerr << "editor_size_smoke: " << chipModeName(mode)
+                      << " sampler envelope/gain control is not visible/owned: panel "
+                      << envelopePanel.toString() << " control "
+                      << envelopeBounds.toString() << '\n';
+            ok = false;
+        }
+    }
 
     if (waveformBounds.isEmpty() || waveformBounds.getHeight() < 108 || waveformBounds.getWidth() < 420)
     {
