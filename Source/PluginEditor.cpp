@@ -3448,8 +3448,8 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 148 : (nesLayout ? 236 : (spc700Layout ? 88 : (paulaLayout ? 96 : (wavetableLayout ? 150 : 196))));
-    const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 430 : (spc700Layout ? 520 : (paulaLayout ? 560 : (wavetableLayout ? 500 : 492))));
+    const auto performanceStripHeight = sidLayout ? 136 : (nesLayout ? 236 : (spc700Layout ? 88 : (paulaLayout ? 96 : (wavetableLayout ? 150 : 196))));
+    const auto maxModulesHeight = sidLayout ? 632 : (nesLayout ? 430 : (spc700Layout ? 520 : (paulaLayout ? 560 : (wavetableLayout ? 500 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
     auto modules = area.removeFromTop(modulesHeight);
@@ -3462,7 +3462,7 @@ void ChipperAudioProcessorEditor::resized()
         const auto availableRowsHeight = std::max(0, modules.getHeight() - (gap * 2));
         auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.31)), 166, 176);
         auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.20)), 84, 118);
-        constexpr auto minimumEnvelopeHeight = 168;
+        constexpr auto minimumEnvelopeHeight = 180;
 
         auto overflow = topRowHeight + middleRowHeight + minimumEnvelopeHeight - availableRowsHeight;
         if (overflow > 0)
