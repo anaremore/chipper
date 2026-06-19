@@ -4816,10 +4816,11 @@ void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
     constexpr auto groupHeight = 13;
     constexpr auto labelHeight = 18;
     constexpr auto sliderHeight = 28;
-    constexpr auto readoutHeight = 24;
-    const auto tightCell = bounds.getHeight() < 58;
+    constexpr auto readoutHeight = 18;
+    const auto tightCell = bounds.getHeight() < 68;
 
     valueLabel.setJustificationType(juce::Justification::centredLeft);
+    valueLabel.setTooltip(valueLabel.getText());
     groupLabel.setBounds(tightCell ? juce::Rectangle<int> {}
                                    : bounds.removeFromTop(std::min(groupHeight, bounds.getHeight())));
 
@@ -4828,7 +4829,6 @@ void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
         auto header = bounds.removeFromTop(std::min(18, bounds.getHeight()));
         label.setBounds(header);
         valueLabel.setBounds({});
-        valueLabel.setTooltip(valueLabel.getText());
 
         bounds.removeFromTop(std::min(tightCell ? 1 : 3, bounds.getHeight()));
         slider.setBounds(bounds.removeFromTop(std::min(sliderHeight, bounds.getHeight())).reduced(0, 1));
@@ -6599,8 +6599,8 @@ juce::String ChipperAudioProcessorEditor::performanceMacroDestination(chipper::C
 
 juce::String ChipperAudioProcessorEditor::performanceMacroReadout(chipper::ChipMode mode, size_t index, juce::String readout) const
 {
-    const auto destination = performanceMacroDestination(mode, index);
-    return destination.isEmpty() ? readout : destination + ": " + readout;
+    juce::ignoreUnused(mode, index);
+    return readout;
 }
 
 juce::String ChipperAudioProcessorEditor::sourceLaneExposureReadout(chipper::ChipMode mode) const
