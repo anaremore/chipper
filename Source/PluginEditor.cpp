@@ -5455,10 +5455,11 @@ void ChipperAudioProcessorEditor::placeToneNoiseMixSegment(juce::Rectangle<int> 
 
     bounds = bounds.reduced(0, 2);
 
-    constexpr int labelHeight = 16;
-    constexpr int buttonHeight = 30;
-    constexpr int readoutHeight = 16;
-    constexpr int verticalGap = 3;
+    const auto compact = bounds.getHeight() < 68;
+    const auto labelHeight = compact ? 14 : 16;
+    const auto buttonHeight = compact ? 26 : 30;
+    const auto readoutHeight = compact ? 14 : 16;
+    const auto verticalGap = compact ? 2 : 3;
 
     nativeLabels[3].setBounds(bounds.removeFromTop(std::min(labelHeight, bounds.getHeight())));
     bounds.removeFromTop(std::min(verticalGap, bounds.getHeight()));
@@ -6700,7 +6701,14 @@ juce::String ChipperAudioProcessorEditor::performanceMacroReadout(chipper::ChipM
                      .replace("Channel spread", "Spread")
                      .replace("Voice spread", "Spread")
                      .replace("Sample color", "Color")
-                     .replace("Poly/timer bias", "Poly bias");
+                     .replace("Poly/timer bias", "Poly bias")
+                     .replace(" semitones", " st")
+                     .replace("tone + noise", "tone+noise")
+                     .replace("noise only", "noise")
+                     .replace("tone only", "tone")
+                     .replace("periodic tone ", "periodic T")
+                     .replace("Attenuation", "Atten")
+                     .replace("full level", "full");
 
     juce::StringArray parts;
     parts.addTokens(compact, "|", {});
@@ -6719,7 +6727,9 @@ juce::String ChipperAudioProcessorEditor::performanceMacroReadout(chipper::ChipM
         compact = keepSecond ? first + " | " + second : first;
     }
 
-    const auto maxLength = (mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg) ? 42 : 38;
+    const auto maxLength = (mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg)
+        ? 42
+        : ((mode == chipper::ChipMode::ym2149 || mode == chipper::ChipMode::sn76489) ? 32 : 38);
     if (compact.length() > maxLength)
         compact = compact.substring(0, maxLength - 3).trim() + "...";
 
@@ -8124,22 +8134,22 @@ juce::String ChipperAudioProcessorEditor::dmgEnvelopeReadout(float value) const
 juce::String ChipperAudioProcessorEditor::ymSpreadReadout(float value) const
 {
     const auto spread = std::clamp(static_cast<int>(std::round(value * 12.0f)), 0, 12);
-    return juce::String("A/B/C spread ") + juce::String(spread) + " semitones";
+    return juce::String("A/B/C spread ") + juce::String(spread) + " st";
 }
 
 juce::String ChipperAudioProcessorEditor::ymMotionReadout(float value) const
 {
     if (value < 0.25f)
-        return "Minimal pitch motion";
+        return "Minimal pitch";
     if (value < 0.65f)
-        return "Moderate pitch motion";
-    return "Wide arcade pitch motion";
+        return "Moderate pitch";
+    return "Wide arcade pitch";
 }
 
 juce::String ChipperAudioProcessorEditor::ymNoiseReadout(float value) const
 {
     const auto period = chipper::ym2149NoisePeriodForControl(value);
-    return juce::String("Reg 6 period ") + juce::String(static_cast<int>(period)) + "/31";
+    return juce::String("Reg 6 noise ") + juce::String(static_cast<int>(period)) + "/31";
 }
 
 juce::String ChipperAudioProcessorEditor::ymToneNoiseReadout(float value) const
@@ -8147,11 +8157,11 @@ juce::String ChipperAudioProcessorEditor::ymToneNoiseReadout(float value) const
     const auto mixer = chipper::ym2149MixerRegisterForControl(value);
     switch (mixer)
     {
-        case 0x07u: return "Reg 7=0x07, noise only";
-        case 0x00u: return "Reg 7=0x00, tone + noise";
+        case 0x07u: return "Reg 7 0x07 noise";
+        case 0x00u: return "Reg 7 0x00 tone+noise";
         case 0x38u:
         default:
-            return "Reg 7=0x38, tone only";
+            return "Reg 7 0x38 tone";
     }
 }
 
@@ -8160,7 +8170,7 @@ juce::String ChipperAudioProcessorEditor::ymChannelMixReadout(const chipper::Pat
     static constexpr std::array<const char*, 5> choiceLabels { "Preset", "Tone", "Noise", "Both", "Off" };
     const auto macroMixer = chipper::ym2149MixerRegisterForControl(patch.control4);
     const auto mixer = chipper::ym2149MixerRegisterWithChannelOverrides(patch, macroMixer);
-    juce::String text = "Reg 7=0x";
+    juce::String text = "Reg 7 0x";
     text += juce::String::toHexString(static_cast<int>(mixer)).paddedLeft('0', 2).toUpperCase();
     text += " ";
 
@@ -8181,22 +8191,22 @@ juce::String ChipperAudioProcessorEditor::ymChannelMixReadout(const chipper::Pat
 juce::String ChipperAudioProcessorEditor::snStackReadout(float value) const
 {
     const auto spread = std::clamp(static_cast<int>(std::round(value * 12.0f)), 0, 12);
-    return juce::String("Tone spread ") + juce::String(spread) + " semitones";
+    return juce::String("Tone spread ") + juce::String(spread) + " st";
 }
 
 juce::String ChipperAudioProcessorEditor::snMotionReadout(float value) const
 {
     if (value < 0.25f)
-        return "Small pitch motion";
+        return "Small pitch";
     if (value < 0.60f)
         return "Arcade blip bends";
-    return "Wide SFX pitch motion";
+    return "Wide SFX pitch";
 }
 
 juce::String ChipperAudioProcessorEditor::snLevelReadout(float value) const
 {
     const auto attenuation = chipper::sn76489NoiseAttenuationForControl(value);
-    const auto attenuationText = juce::String("Attenuation reg ") + juce::String(static_cast<int>(attenuation)) + "/15";
+    const auto attenuationText = juce::String("Atten reg ") + juce::String(static_cast<int>(attenuation)) + "/15";
     if (attenuation == 15u)
         return attenuationText + ", muted";
     if (attenuation == 0u)
