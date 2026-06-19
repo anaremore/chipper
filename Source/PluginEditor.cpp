@@ -3448,7 +3448,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 176 : (nesLayout ? 236 : (spc700Layout ? 88 : (paulaLayout ? 96 : (wavetableLayout ? 150 : 196))));
+    const auto performanceStripHeight = sidLayout ? 148 : (nesLayout ? 236 : (spc700Layout ? 88 : (paulaLayout ? 96 : (wavetableLayout ? 150 : 196))));
     const auto maxModulesHeight = sidLayout ? 620 : (nesLayout ? 430 : (spc700Layout ? 520 : (paulaLayout ? 560 : (wavetableLayout ? 500 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
@@ -3460,7 +3460,7 @@ void ChipperAudioProcessorEditor::resized()
     if (sidLayout)
     {
         const auto availableRowsHeight = std::max(0, modules.getHeight() - (gap * 2));
-        auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.31)), 132, 190);
+        auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.33)), 166, 190);
         auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.23)), 96, 142);
         constexpr auto minimumEnvelopeHeight = 124;
 
@@ -3474,7 +3474,7 @@ void ChipperAudioProcessorEditor::resized()
 
         if (overflow > 0)
         {
-            const auto topReduction = std::min(overflow, std::max(0, topRowHeight - 118));
+            const auto topReduction = std::min(overflow, std::max(0, topRowHeight - 154));
             topRowHeight -= topReduction;
             overflow -= topReduction;
         }
@@ -4719,6 +4719,33 @@ void ChipperAudioProcessorEditor::resized()
     midiCcLabel.setBounds(footer.removeFromRight(136));
     footer.removeFromRight(8);
     statusLabel.setBounds(footer);
+}
+
+juce::Rectangle<int> ChipperAudioProcessorEditor::getSidAdsrContentBoundsForLayoutTest() const
+{
+    juce::Rectangle<int> content;
+    const auto add = [&content](juce::Rectangle<int> bounds)
+    {
+        if (bounds.isEmpty())
+            return;
+
+        content = content.isEmpty() ? bounds : content.getUnion(bounds);
+    };
+
+    add(envelopeDecaySlider.getBounds());
+    add(envelopeDecayValueLabel.getBounds());
+    for (const auto& label : sidEnvelopeVoiceLabels)
+        add(label.getBounds());
+    for (const auto& preview : sidEnvelopePreviews)
+        add(preview.getBounds());
+    for (const auto& label : sidAdsrLabels)
+        add(label.getBounds());
+    for (const auto& label : sidAdsrValueLabels)
+        add(label.getBounds());
+    for (const auto& slider : sidAdsrSliders)
+        add(slider.getBounds());
+
+    return content;
 }
 
 void ChipperAudioProcessorEditor::timerCallback()

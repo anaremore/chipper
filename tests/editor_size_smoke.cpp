@@ -805,6 +805,59 @@ bool checkNesDmcAndPerformanceLayout()
     return ok;
 }
 
+bool checkSidAdsrLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::sid);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: SID chip mode choice unavailable\n";
+        return false;
+    }
+
+    ChipperAudioProcessor processor;
+    auto ok = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+    ChipperAudioProcessorEditor editor(processor);
+    editor.setSize(1240, expectedHeightForChipMode(chipChoice));
+    editor.runEditorUpdateForLayoutTest();
+
+    const auto adsrModuleBounds = editor.getModuleBoundsForLayoutTest(3);
+    const auto adsrContentBounds = editor.getSidAdsrContentBoundsForLayoutTest();
+    const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+
+    if (adsrModuleBounds.isEmpty() || adsrContentBounds.isEmpty())
+    {
+        std::cerr << "editor_size_smoke: SID ADSR module/content is missing; module "
+                  << adsrModuleBounds.toString() << " content "
+                  << adsrContentBounds.toString() << '\n';
+        return false;
+    }
+
+    if (adsrModuleBounds.getHeight() < 150)
+    {
+        std::cerr << "editor_size_smoke: SID ADSR module is too short for readable per-voice controls: "
+                  << adsrModuleBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (! adsrModuleBounds.expanded(2).contains(adsrContentBounds))
+    {
+        std::cerr << "editor_size_smoke: SID ADSR content escaped its module: module "
+                  << adsrModuleBounds.toString() << " content "
+                  << adsrContentBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (! performanceBounds.isEmpty() && adsrContentBounds.getBottom() > performanceBounds.getY() - 4)
+    {
+        std::cerr << "editor_size_smoke: SID ADSR content overlaps performance macros: content "
+                  << adsrContentBounds.toString() << " performance "
+                  << performanceBounds.toString() << '\n';
+        ok = false;
+    }
+
+    return ok;
+}
+
 }
 
 int main()
@@ -858,6 +911,7 @@ int main()
     ok &= checkSamplerBankLayout(chipper::ChipMode::spc700);
     ok &= checkSamplerBankLayout(chipper::ChipMode::paula);
     ok &= checkNesDmcAndPerformanceLayout();
+    ok &= checkSidAdsrLayout();
     ok &= checkChipSwitchPreservesEditorSettings();
 
     return ok ? 0 : 1;
