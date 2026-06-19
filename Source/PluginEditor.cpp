@@ -4822,10 +4822,10 @@ void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
                                                      juce::Label& valueLabel,
                                                      juce::Rectangle<int> bounds)
 {
-    constexpr auto groupHeight = 13;
-    constexpr auto labelHeight = 18;
-    constexpr auto sliderHeight = 28;
-    constexpr auto readoutHeight = 18;
+    constexpr auto groupHeight = 12;
+    constexpr auto labelHeight = 16;
+    constexpr auto sliderHeight = 23;
+    constexpr auto readoutHeight = 16;
     constexpr auto verticalGap = 2;
     const auto originalBounds = bounds;
     const auto tightCell = bounds.getHeight() < groupHeight + labelHeight + sliderHeight + readoutHeight + (verticalGap * 2);
@@ -4852,12 +4852,15 @@ void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
     {
         const auto compactLabelHeight = bounds.getHeight() >= labelHeight + sliderHeight ? labelHeight : 14;
         label.setBounds(bounds.removeFromTop(std::min(compactLabelHeight, bounds.getHeight())));
-        valueLabel.setBounds({});
 
         bounds.removeFromTop(std::min(tightCell ? 1 : verticalGap, bounds.getHeight()));
         slider.setBounds(bounds.removeFromTop(std::min(sliderHeight, bounds.getHeight())).reduced(0, 1));
         if (! originalBounds.expanded(1).contains(slider.getBounds()))
             slider.setBounds(originalBounds.reduced(0, 1));
+
+        bounds.removeFromTop(std::min(1, bounds.getHeight()));
+        valueLabel.setBounds(bounds.getHeight() >= 12 ? bounds.removeFromTop(std::min(readoutHeight, bounds.getHeight()))
+                                                      : juce::Rectangle<int> {});
         return;
     }
 

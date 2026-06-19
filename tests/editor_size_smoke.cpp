@@ -899,6 +899,16 @@ bool checkPerformanceMacroSliderLayout()
             const auto groupBounds = editor.getNativeGroupLabelBoundsForLayoutTest(sliderIndex);
             const auto labelBounds = editor.getNativeLabelBoundsForLayoutTest(sliderIndex);
             const auto valueBounds = editor.getNativeValueLabelBoundsForLayoutTest(sliderIndex);
+            const auto shouldShowMacroReadout = mode == chipper::ChipMode::ym2149
+                || mode == chipper::ChipMode::sn76489
+                || mode == chipper::ChipMode::ym2612
+                || mode == chipper::ChipMode::opl3
+                || mode == chipper::ChipMode::ym2151
+                || mode == chipper::ChipMode::ym2413
+                || mode == chipper::ChipMode::pokey
+                || mode == chipper::ChipMode::huc6280
+                || mode == chipper::ChipMode::namco_wsg
+                || mode == chipper::ChipMode::scc;
             if (sliderBounds.isEmpty())
             {
                 std::cerr << "editor_size_smoke: missing performance macro slider "
@@ -951,6 +961,19 @@ bool checkPerformanceMacroSliderLayout()
             {
                 std::cerr << "editor_size_smoke: performance macro readout "
                           << sliderIndex << " overlaps/escapes its slider area for mode "
+                          << chipper::parameters::chipModeChoices()[chipMode]
+                          << ": readout " << valueBounds.toString()
+                          << " slider " << sliderBounds.toString()
+                          << " performance " << performanceBounds.toString() << '\n';
+                ok = false;
+            }
+
+            if (shouldShowMacroReadout
+                && (valueBounds.isEmpty()
+                    || valueBounds.getY() <= sliderBounds.getBottom()))
+            {
+                std::cerr << "editor_size_smoke: performance macro readout "
+                          << sliderIndex << " should be visible below its slider for mode "
                           << chipper::parameters::chipModeChoices()[chipMode]
                           << ": readout " << valueBounds.toString()
                           << " slider " << sliderBounds.toString()
