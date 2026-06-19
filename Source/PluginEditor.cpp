@@ -3460,21 +3460,21 @@ void ChipperAudioProcessorEditor::resized()
     if (sidLayout)
     {
         const auto availableRowsHeight = std::max(0, modules.getHeight() - (gap * 2));
-        auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.33)), 166, 190);
-        auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.23)), 96, 142);
-        constexpr auto minimumEnvelopeHeight = 124;
+        auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.31)), 166, 176);
+        auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.20)), 84, 118);
+        constexpr auto minimumEnvelopeHeight = 168;
 
         auto overflow = topRowHeight + middleRowHeight + minimumEnvelopeHeight - availableRowsHeight;
         if (overflow > 0)
         {
-            const auto middleReduction = std::min(overflow, std::max(0, middleRowHeight - 84));
+            const auto middleReduction = std::min(overflow, std::max(0, middleRowHeight - 64));
             middleRowHeight -= middleReduction;
             overflow -= middleReduction;
         }
 
         if (overflow > 0)
         {
-            const auto topReduction = std::min(overflow, std::max(0, topRowHeight - 154));
+            const auto topReduction = std::min(overflow, std::max(0, topRowHeight - 166));
             topRowHeight -= topReduction;
             overflow -= topReduction;
         }

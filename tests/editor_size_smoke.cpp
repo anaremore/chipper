@@ -832,7 +832,7 @@ bool checkSidAdsrLayout()
         return false;
     }
 
-    if (adsrModuleBounds.getHeight() < 150)
+    if (adsrModuleBounds.getHeight() < 166)
     {
         std::cerr << "editor_size_smoke: SID ADSR module is too short for readable per-voice controls: "
                   << adsrModuleBounds.toString() << '\n';
