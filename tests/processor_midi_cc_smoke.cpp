@@ -730,6 +730,11 @@ int main()
                  "NES DMC playback info should expose stopped one-shot state for the UI");
     ok &= expect(dmcOneShotInfo.statusLine.contains("One-shot, no loop; DAC holds") && dmcOneShotInfo.statusLine.contains("stopped"),
                  "NES DMC playback info should describe stopped one-shot playback without implying a loop");
+    ok &= expect(jsonIntValue(dmcDebug, "dmcMixerLevel") > 0,
+                 "NES DMC one-shot regression fixture should leave a held DAC value to prove this is not silent by coincidence");
+    sendNoteOff(dmcOneShotProcessor, 48);
+    ok &= expect(renderEmptyBlocksPeak(dmcOneShotProcessor, 4) <= 0.000001f,
+                 "NES DMC completed one-shot should not keep the plugin voice audibly open after note release when Loop is off");
 
     ChipperAudioProcessor dmcNoRestartProcessor;
     dmcNoRestartProcessor.prepareToPlay(48000.0, 256);
