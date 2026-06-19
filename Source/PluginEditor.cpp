@@ -4378,6 +4378,35 @@ void ChipperAudioProcessorEditor::resized()
         nesRow.removeFromTop(std::min(nesLowerControlGap, nesRow.getHeight()));
         controlCells[5] = nesRow;
     }
+    else if (displayedMode == chipper::ChipMode::ym2149)
+    {
+        constexpr int ymControlGap = 10;
+        constexpr int ymBottomRowHeight = 96;
+        auto ymRows = strip;
+        auto bottomRow = ymRows.removeFromBottom(std::min(ymBottomRowHeight, ymRows.getHeight()));
+        ymRows.removeFromBottom(std::min(ymControlGap, ymRows.getHeight()));
+        auto topRow = ymRows;
+
+        const auto topColumnWidth = (topRow.getWidth() - (ymControlGap * 2)) / 3;
+        const auto bottomColumnWidth = (bottomRow.getWidth() - (ymControlGap * 2)) / 3;
+
+        for (size_t i = 0; i < 3u; ++i)
+        {
+            controlCells[i] = {
+                topRow.getX() + (static_cast<int>(i) * (topColumnWidth + ymControlGap)),
+                topRow.getY(),
+                topColumnWidth,
+                topRow.getHeight()
+            };
+
+            controlCells[i + 3u] = {
+                bottomRow.getX() + (static_cast<int>(i) * (bottomColumnWidth + ymControlGap)),
+                bottomRow.getY(),
+                bottomColumnWidth,
+                bottomRow.getHeight()
+            };
+        }
+    }
     else if (sampleLayout)
     {
         constexpr int sampleControlGap = 10;
@@ -4437,9 +4466,7 @@ void ChipperAudioProcessorEditor::resized()
         if (displayedMode == chipper::ChipMode::ym2149)
         {
             nativeGroupLabels[3].setBounds({});
-            nativeLabels[3].setBounds({});
             nativeSliders[3].setBounds({});
-            controlValueLabels[3].setBounds({});
         }
         else
         {
@@ -4864,11 +4891,12 @@ void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
 
     if (! canShowFullStack)
     {
+        const auto compactSliderHeight = tightCell ? 20 : sliderHeight;
         const auto compactLabelHeight = bounds.getHeight() >= labelHeight + sliderHeight ? labelHeight : 14;
         label.setBounds(bounds.removeFromTop(std::min(compactLabelHeight, bounds.getHeight())));
 
         bounds.removeFromTop(std::min(tightCell ? 1 : verticalGap, bounds.getHeight()));
-        slider.setBounds(bounds.removeFromTop(std::min(sliderHeight, bounds.getHeight())).reduced(0, 1));
+        slider.setBounds(bounds.removeFromTop(std::min(compactSliderHeight, bounds.getHeight())).reduced(0, 1));
         if (! originalBounds.expanded(1).contains(slider.getBounds()))
             slider.setBounds(originalBounds.reduced(0, 1));
 
@@ -5422,12 +5450,28 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
 
 void ChipperAudioProcessorEditor::placeToneNoiseMixSegment(juce::Rectangle<int> bounds)
 {
-    const auto topPadding = bounds.getHeight() >= 72 ? 8 : 4;
-    bounds.removeFromTop(std::min(topPadding, bounds.getHeight()));
+    if (! usesToneNoiseMixSegment(displayedMode))
+    {
+        toneNoiseMixSegmentBounds = {};
+        layoutSegmentedButtons(toneNoiseMixButtons, toneNoiseMixSegmentBounds, toneNoiseMixButtons.size());
+        return;
+    }
 
-    const auto buttonHeight = std::min(30, std::max(24, bounds.getHeight()));
-    toneNoiseMixSegmentBounds = bounds.removeFromTop(buttonHeight).reduced(0, 1);
+    bounds = bounds.reduced(0, 2);
+
+    constexpr int labelHeight = 16;
+    constexpr int buttonHeight = 30;
+    constexpr int readoutHeight = 16;
+    constexpr int verticalGap = 3;
+
+    nativeLabels[3].setBounds(bounds.removeFromTop(std::min(labelHeight, bounds.getHeight())));
+    bounds.removeFromTop(std::min(verticalGap, bounds.getHeight()));
+
+    toneNoiseMixSegmentBounds = bounds.removeFromTop(std::min(buttonHeight, bounds.getHeight())).reduced(0, 1);
     layoutSegmentedButtons(toneNoiseMixButtons, toneNoiseMixSegmentBounds, toneNoiseMixButtons.size());
+
+    bounds.removeFromTop(std::min(verticalGap, bounds.getHeight()));
+    controlValueLabels[3].setBounds(bounds.removeFromTop(std::min(readoutHeight, bounds.getHeight())));
 }
 
 float ChipperAudioProcessorEditor::parameterValue(const char* parameterId) const
@@ -11081,9 +11125,9 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     controlValueLabels[0].setVisible(! embeddedPulseDuty || hasPulseDutySegment);
     const auto toneNoiseMixOwnsMacroCell = hasToneNoiseMixSegment && mode == chipper::ChipMode::ym2149;
     nativeGroupLabels[3].setVisible(! toneNoiseMixOwnsMacroCell);
-    nativeLabels[3].setVisible(! toneNoiseMixOwnsMacroCell);
+    nativeLabels[3].setVisible(! toneNoiseMixOwnsMacroCell || hasToneNoiseMixSegment);
     nativeSliders[3].setVisible(! toneNoiseMixOwnsMacroCell);
-    controlValueLabels[3].setVisible(! toneNoiseMixOwnsMacroCell);
+    controlValueLabels[3].setVisible(! toneNoiseMixOwnsMacroCell || hasToneNoiseMixSegment);
     updatePulseDutyButtons(patch.control1, hasPulseDutySegment);
     updatePulse2DutyButtons(patch, hasPulse2DutySegment);
     updateToneNoiseMixButtons(patch.control4, hasToneNoiseMixSegment);

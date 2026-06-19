@@ -330,6 +330,8 @@ bool checkYm2149ToneNoiseMixLayout()
 
     const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
     const auto mixBounds = editor.getToneNoiseMixBoundsForLayoutTest();
+    const auto mixLabelBounds = editor.getNativeLabelBoundsForLayoutTest(3);
+    const auto mixReadoutBounds = editor.getNativeValueLabelBoundsForLayoutTest(3);
 
     if (mixBounds.isEmpty())
     {
@@ -360,6 +362,30 @@ bool checkYm2149ToneNoiseMixLayout()
                       << performanceBounds.toString() << '\n';
             ok = false;
         }
+    }
+
+    if (mixLabelBounds.isEmpty()
+        || ! performanceBounds.expanded(2).contains(mixLabelBounds)
+        || mixLabelBounds.getHeight() < 12
+        || mixLabelBounds.intersects(mixBounds))
+    {
+        std::cerr << "editor_size_smoke: YM2149 tone/noise mix label is missing or overlaps the segmented control: label "
+                  << mixLabelBounds.toString() << " control " << mixBounds.toString()
+                  << " performance " << performanceBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (mixReadoutBounds.isEmpty()
+        || ! performanceBounds.expanded(2).contains(mixReadoutBounds)
+        || mixReadoutBounds.getHeight() < 12
+        || mixReadoutBounds.intersects(mixBounds)
+        || mixReadoutBounds.intersects(mixLabelBounds))
+    {
+        std::cerr << "editor_size_smoke: YM2149 tone/noise mix readout is missing or overlaps the segmented control: readout "
+                  << mixReadoutBounds.toString() << " control " << mixBounds.toString()
+                  << " label " << mixLabelBounds.toString()
+                  << " performance " << performanceBounds.toString() << '\n';
+        ok = false;
     }
 
     return ok;
@@ -907,7 +933,7 @@ bool checkPerformanceMacroSliderLayout()
                 || mode == chipper::ChipMode::ym2413
                 || mode == chipper::ChipMode::pokey
                 || mode == chipper::ChipMode::huc6280
-                || mode == chipper::ChipMode::namco_wsg
+                || mode == chipper::ChipMode::namcoWsg
                 || mode == chipper::ChipMode::scc;
             if (sliderBounds.isEmpty())
             {
