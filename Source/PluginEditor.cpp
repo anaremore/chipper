@@ -3442,6 +3442,7 @@ void ChipperAudioProcessorEditor::resized()
     const auto dmgLayout = displayedMode == chipper::ChipMode::dmg;
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
     const auto paulaLayout = displayedMode == chipper::ChipMode::paula;
+    const auto sn76489Layout = displayedMode == chipper::ChipMode::sn76489;
     const auto sampleLayout = spc700Layout || paulaLayout;
     const auto wavetableLayout = displayedMode == chipper::ChipMode::huc6280
         || displayedMode == chipper::ChipMode::namcoWsg
@@ -3558,6 +3559,20 @@ void ChipperAudioProcessorEditor::resized()
     {
         const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.50)), 232, 270);
         const auto bottomRowHeight = std::max(170, modules.getHeight() - topRowHeight - gap);
+        const auto topY = modules.getY();
+        const auto bottomY = topY + topRowHeight + gap;
+
+        moduleBounds[0] = {};
+        moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), topRowHeight };
+        moduleBounds[2] = {};
+        moduleBounds[3] = { modules.getX(), bottomY, columnWidth, bottomRowHeight };
+        moduleBounds[4] = {};
+        moduleBounds[5] = { modules.getX() + columnWidth + gap, bottomY, columnWidth, bottomRowHeight };
+    }
+    else if (sn76489Layout)
+    {
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.42)), 120, 150);
+        const auto bottomRowHeight = std::max(120, modules.getHeight() - topRowHeight - gap);
         const auto topY = modules.getY();
         const auto bottomY = topY + topRowHeight + gap;
 
