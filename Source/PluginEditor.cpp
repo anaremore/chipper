@@ -3448,7 +3448,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 108 : (nesLayout ? 236 : (spc700Layout ? 88 : (paulaLayout ? 96 : (wavetableLayout ? 140 : 196))));
+    const auto performanceStripHeight = sidLayout ? 96 : (nesLayout ? 236 : (spc700Layout ? 88 : (paulaLayout ? 96 : (wavetableLayout ? 140 : 196))));
     const auto maxModulesHeight = sidLayout ? 646 : (nesLayout ? 430 : (spc700Layout ? 520 : (paulaLayout ? 560 : (wavetableLayout ? 412 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
@@ -3462,12 +3462,12 @@ void ChipperAudioProcessorEditor::resized()
         const auto availableRowsHeight = std::max(0, modules.getHeight() - (gap * 2));
         auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.29)), 156, 170);
         auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.18)), 76, 108);
-        constexpr auto minimumEnvelopeHeight = 198;
+        constexpr auto minimumEnvelopeHeight = 216;
 
         auto overflow = topRowHeight + middleRowHeight + minimumEnvelopeHeight - availableRowsHeight;
         if (overflow > 0)
         {
-            const auto middleReduction = std::min(overflow, std::max(0, middleRowHeight - 64));
+            const auto middleReduction = std::min(overflow, std::max(0, middleRowHeight - 60));
             middleRowHeight -= middleReduction;
             overflow -= middleReduction;
         }
@@ -4342,11 +4342,11 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (displayedMode == chipper::ChipMode::nes)
     {
-        constexpr int minNesMacroRowHeight = 52;
-        constexpr int maxNesMacroRowHeight = 52;
+        constexpr int minNesMacroRowHeight = 60;
+        constexpr int maxNesMacroRowHeight = 60;
         constexpr int nesControlGap = 8;
         constexpr int nesLowerControlGap = 6;
-        constexpr int nesDecayRowHeight = 48;
+        constexpr int nesDecayRowHeight = 44;
 
         auto nesRow = strip;
         const auto macroRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(nesRow.getHeight()) * 0.30)),

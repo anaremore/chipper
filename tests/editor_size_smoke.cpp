@@ -134,7 +134,8 @@ bool checkPrimaryPanelStack(const ChipperAudioProcessorEditor& editor, chipper::
         requirePanel(editor.getModuleBoundsForLayoutTest(5), "sample bank", mode == chipper::ChipMode::nes ? 176 : 132);
 
     const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
-    requirePanel(performanceBounds, "performance macros", mode == chipper::ChipMode::nes ? 220 : ((mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 84 : 108));
+    const auto minimumPerformanceHeight = mode == chipper::ChipMode::nes ? 220 : (mode == chipper::ChipMode::sid ? 96 : ((mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 84 : 108));
+    requirePanel(performanceBounds, "performance macros", minimumPerformanceHeight);
     if (performanceBounds.getBottom() > footerTop)
     {
         std::cerr << "editor_size_smoke: performance panel overlaps footer reserve: "
@@ -1055,7 +1056,7 @@ bool checkSidAdsrLayout()
             return false;
         }
 
-        if (adsrModuleBounds.getHeight() < 196)
+        if (adsrModuleBounds.getHeight() < 212)
         {
             std::cerr << "editor_size_smoke: SID ADSR module is too short for readable per-voice controls at width "
                       << editorWidth << ": " << adsrModuleBounds.toString() << '\n';
