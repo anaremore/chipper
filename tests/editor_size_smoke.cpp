@@ -351,6 +351,14 @@ bool checkYm2149ToneNoiseMixLayout()
                       << mixBounds.toString() << '\n';
             ok = false;
         }
+
+        if (mixBounds.getBottom() > performanceBounds.getBottom() - 40)
+        {
+            std::cerr << "editor_size_smoke: YM2149 tone/noise mix control is too close to the performance strip edge: "
+                      << mixBounds.toString() << " performance "
+                      << performanceBounds.toString() << '\n';
+            ok = false;
+        }
     }
 
     return ok;

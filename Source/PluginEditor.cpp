@@ -5333,8 +5333,11 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
 
 void ChipperAudioProcessorEditor::placeToneNoiseMixSegment(juce::Rectangle<int> bounds)
 {
-    bounds.removeFromTop(30);
-    toneNoiseMixSegmentBounds = bounds.removeFromTop(26).reduced(0, 1);
+    const auto topPadding = bounds.getHeight() >= 72 ? 8 : 4;
+    bounds.removeFromTop(std::min(topPadding, bounds.getHeight()));
+
+    const auto buttonHeight = std::min(30, std::max(24, bounds.getHeight()));
+    toneNoiseMixSegmentBounds = bounds.removeFromTop(buttonHeight).reduced(0, 1);
     layoutSegmentedButtons(toneNoiseMixButtons, toneNoiseMixSegmentBounds, toneNoiseMixButtons.size());
 }
 
