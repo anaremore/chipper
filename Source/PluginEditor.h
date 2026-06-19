@@ -188,6 +188,18 @@ public:
     {
         return index < nativeSliders.size() ? nativeSliders[index].getBounds() : juce::Rectangle<int> {};
     }
+    juce::Rectangle<int> getNativeGroupLabelBoundsForLayoutTest(size_t index) const
+    {
+        return index < nativeGroupLabels.size() ? nativeGroupLabels[index].getBounds() : juce::Rectangle<int> {};
+    }
+    juce::Rectangle<int> getNativeLabelBoundsForLayoutTest(size_t index) const
+    {
+        return index < nativeLabels.size() ? nativeLabels[index].getBounds() : juce::Rectangle<int> {};
+    }
+    juce::Rectangle<int> getNativeValueLabelBoundsForLayoutTest(size_t index) const
+    {
+        return index < controlValueLabels.size() ? controlValueLabels[index].getBounds() : juce::Rectangle<int> {};
+    }
     juce::Rectangle<int> getSidAdsrContentBoundsForLayoutTest() const;
     void runEditorUpdateForLayoutTest() { timerCallback(); }
 

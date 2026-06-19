@@ -879,6 +879,9 @@ bool checkPerformanceMacroSliderLayout()
         for (const auto sliderIndex : expectedMacroSliders)
         {
             const auto sliderBounds = editor.getNativeSliderBoundsForLayoutTest(sliderIndex);
+            const auto groupBounds = editor.getNativeGroupLabelBoundsForLayoutTest(sliderIndex);
+            const auto labelBounds = editor.getNativeLabelBoundsForLayoutTest(sliderIndex);
+            const auto valueBounds = editor.getNativeValueLabelBoundsForLayoutTest(sliderIndex);
             if (sliderBounds.isEmpty())
             {
                 std::cerr << "editor_size_smoke: missing performance macro slider "
@@ -896,6 +899,44 @@ bool checkPerformanceMacroSliderLayout()
                           << sliderIndex << " is not readable/owned by performance strip for mode "
                           << chipper::parameters::chipModeChoices()[chipMode]
                           << ": slider " << sliderBounds.toString()
+                          << " performance " << performanceBounds.toString() << '\n';
+                ok = false;
+            }
+
+            if (! groupBounds.isEmpty() && ! performanceBounds.expanded(2).contains(groupBounds))
+            {
+                std::cerr << "editor_size_smoke: performance macro group label "
+                          << sliderIndex << " escaped performance strip for mode "
+                          << chipper::parameters::chipModeChoices()[chipMode]
+                          << ": group " << groupBounds.toString()
+                          << " performance " << performanceBounds.toString() << '\n';
+                ok = false;
+            }
+
+            if (labelBounds.isEmpty()
+                || ! performanceBounds.expanded(2).contains(labelBounds)
+                || labelBounds.getHeight() < 12
+                || labelBounds.intersects(sliderBounds))
+            {
+                std::cerr << "editor_size_smoke: performance macro label "
+                          << sliderIndex << " is not readable/owned by performance strip for mode "
+                          << chipper::parameters::chipModeChoices()[chipMode]
+                          << ": label " << labelBounds.toString()
+                          << " slider " << sliderBounds.toString()
+                          << " performance " << performanceBounds.toString() << '\n';
+                ok = false;
+            }
+
+            if (! valueBounds.isEmpty()
+                && (! performanceBounds.expanded(2).contains(valueBounds)
+                    || valueBounds.getHeight() < 12
+                    || valueBounds.intersects(sliderBounds)))
+            {
+                std::cerr << "editor_size_smoke: performance macro readout "
+                          << sliderIndex << " overlaps/escapes its slider area for mode "
+                          << chipper::parameters::chipModeChoices()[chipMode]
+                          << ": readout " << valueBounds.toString()
+                          << " slider " << sliderBounds.toString()
                           << " performance " << performanceBounds.toString() << '\n';
                 ok = false;
             }

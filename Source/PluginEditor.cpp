@@ -4822,27 +4822,44 @@ void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
     constexpr auto labelHeight = 18;
     constexpr auto sliderHeight = 28;
     constexpr auto readoutHeight = 18;
-    const auto tightCell = bounds.getHeight() < 68;
+    constexpr auto verticalGap = 2;
+    const auto originalBounds = bounds;
+    const auto tightCell = bounds.getHeight() < groupHeight + labelHeight + sliderHeight + readoutHeight + (verticalGap * 2);
 
+    label.setMinimumHorizontalScale(0.72f);
     valueLabel.setJustificationType(juce::Justification::centredLeft);
+    valueLabel.setMinimumHorizontalScale(0.58f);
     valueLabel.setTooltip(valueLabel.getText());
-    groupLabel.setBounds(tightCell ? juce::Rectangle<int> {}
-                                   : bounds.removeFromTop(std::min(groupHeight, bounds.getHeight())));
 
-    if (bounds.getHeight() < labelHeight + sliderHeight + readoutHeight)
+    if (bounds.isEmpty())
     {
-        auto header = bounds.removeFromTop(std::min(18, bounds.getHeight()));
-        label.setBounds(header);
+        groupLabel.setBounds({});
+        label.setBounds({});
+        slider.setBounds({});
+        valueLabel.setBounds({});
+        return;
+    }
+
+    const auto canShowFullStack = bounds.getHeight() >= groupHeight + labelHeight + sliderHeight + readoutHeight + (verticalGap * 2);
+    groupLabel.setBounds(canShowFullStack ? bounds.removeFromTop(std::min(groupHeight, bounds.getHeight()))
+                                          : juce::Rectangle<int> {});
+
+    if (! canShowFullStack)
+    {
+        const auto compactLabelHeight = bounds.getHeight() >= labelHeight + sliderHeight ? labelHeight : 14;
+        label.setBounds(bounds.removeFromTop(std::min(compactLabelHeight, bounds.getHeight())));
         valueLabel.setBounds({});
 
-        bounds.removeFromTop(std::min(tightCell ? 1 : 3, bounds.getHeight()));
+        bounds.removeFromTop(std::min(tightCell ? 1 : verticalGap, bounds.getHeight()));
         slider.setBounds(bounds.removeFromTop(std::min(sliderHeight, bounds.getHeight())).reduced(0, 1));
+        if (! originalBounds.expanded(1).contains(slider.getBounds()))
+            slider.setBounds(originalBounds.reduced(0, 1));
         return;
     }
 
     label.setBounds(bounds.removeFromTop(labelHeight));
     slider.setBounds(bounds.removeFromTop(sliderHeight).reduced(0, 2));
-    bounds.removeFromTop(std::min(2, bounds.getHeight()));
+    bounds.removeFromTop(std::min(verticalGap, bounds.getHeight()));
     valueLabel.setBounds(bounds.removeFromTop(std::min(readoutHeight, bounds.getHeight())));
 }
 
