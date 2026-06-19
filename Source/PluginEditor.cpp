@@ -4576,7 +4576,9 @@ void ChipperAudioProcessorEditor::resized()
         dmcSampleLabel.setBounds(sampleHeader);
         controlColumn.removeFromTop(std::min(compactSampleBank ? 2 : 3, controlColumn.getHeight()));
 
-        auto sampleActionRow = controlColumn.removeFromTop(std::min(compactSampleBank ? 22 : standardSampleControlHeight, controlColumn.getHeight()));
+        auto sampleActionRow = controlColumn.removeFromTop(
+            std::min(compactSampleBank ? compactSampleControlHeight : standardSampleControlHeight,
+                     controlColumn.getHeight()));
         if (sampleActionRow.getHeight() >= 18)
         {
             const auto brrButtonWidth = std::max(54, (sampleActionRow.getWidth() - 8) / 3);

@@ -678,6 +678,9 @@ bool checkSamplerBankLayout(chipper::ChipMode mode)
     expectOwnedStandardControl(playbackBounds, "sample playback mode");
     expectOwnedStandardControl(slotBounds, "sample slot");
     expectOwnedStandardControl(rootBounds, "sample root");
+    expectOwnedStandardControl(editor.getSampleFileButtonBoundsForLayoutTest(), "sample file button");
+    expectOwnedStandardControl(editor.getSampleFolderButtonBoundsForLayoutTest(), "sample folder button");
+    expectOwnedStandardControl(editor.getSampleBankButtonBoundsForLayoutTest(), "sample bank button");
 
     if (mode == chipper::ChipMode::spc700)
         expectOwnedStandardControl(editor.getSampleLoopToggleBoundsForLayoutTest(), "SPC700 loop toggle");

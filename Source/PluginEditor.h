@@ -174,6 +174,9 @@ public:
     }
     juce::Rectangle<int> getPerformanceBoundsForLayoutTest() const { return globalStripBounds; }
     juce::Rectangle<int> getSampleBankBoundsForLayoutTest() const { return moduleBounds[5]; }
+    juce::Rectangle<int> getSampleFileButtonBoundsForLayoutTest() const { return dmcSampleFileButton.getBounds(); }
+    juce::Rectangle<int> getSampleFolderButtonBoundsForLayoutTest() const { return dmcSampleFolderButton.getBounds(); }
+    juce::Rectangle<int> getSampleBankButtonBoundsForLayoutTest() const { return dmcSampleBankButton.getBounds(); }
     juce::Rectangle<int> getSamplePlaybackModeBoundsForLayoutTest() const { return dmcPlaybackModeBox.getBounds(); }
     juce::Rectangle<int> getSampleSlotBoundsForLayoutTest() const { return dmcSampleSlotBox.getBounds(); }
     juce::Rectangle<int> getSampleRootBoundsForLayoutTest() const { return dmcMapRootBox.getBounds(); }
