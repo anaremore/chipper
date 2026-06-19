@@ -98,6 +98,7 @@ These are the highest-signal cleanup items after the latest all-chip screenshot 
 - Keep the standard control-size baseline: source-card dropdowns, sample-bank dropdowns, numeric boxes, and level lanes must remain readable at the default editor size. If a future chip-specific control needs more room, grow the card or layout instead of shrinking controls back into clipped mini rows.
 - Keep NES compact without hiding important controls. The channel cards own pulse/noise controls, the DMC module owns sample browsing and waveform preview, and Performance Macros use a two-row layout where APU Decay sits beside Output so their sliders and readouts cannot overlap.
 - Keep preset sourcing clean. More factory presets are valuable, but the safe path is original patch design plus renderer/debug metadata, not importing copyrighted game sounds, tracker instruments, ROM data, or sample banks.
+- 2026-06-19 verification pass: the current 820 px DAW-fit editor baseline builds, passes the editor geometry smoke test, passes the processor MIDI/CC smoke test, and passes the focused NES DMC renderer smoke/assert set. NES DMC loop-off behavior is treated as one-shot byte stepping plus final DAC hold, not sample wrap.
 
 ## Immediate Execution Checklist
 
