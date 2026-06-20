@@ -8,7 +8,7 @@
 
 namespace
 {
-constexpr int expectedEditorHeight = 820;
+constexpr int expectedEditorHeight = 860;
 constexpr int expectedEditorSidHeight = 880;
 constexpr int expectedEditorMinimumWidth = 1180;
 constexpr int expectedEditorMaximumHeight = expectedEditorSidHeight;
