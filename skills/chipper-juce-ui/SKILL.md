@@ -36,6 +36,7 @@ description: Use when modifying Chipper's JUCE plugin editor, LookAndFeel, chip-
 - Standardize input sizes. ComboBoxes, TextEditors, and meaningful buttons should use the shared default height; only tiny segmented buttons may go smaller, and only when their labels remain readable.
 - Keep source-card level controls visible. If a card owns a sound source, its waveform/sample selector, active state, and level lane must be visible without relying on clipped text or hidden rows. Sampler and wavetable cards should treat a readable Level lane as non-negotiable, not as leftover space.
 - Keep performance macros secondary. They should never overlap source panels, sample banks, native envelopes, or output scopes. SID ADSR in particular must remain clear of Performance Macros at default and compact widths.
+- Keep compact performance macro cells focused on the live control. If there is not enough height for a full label, slider, and readout stack, hide the secondary register readout in the cell and keep that detail in tooltips, footer/status text, or the preset summary.
 
 ## Chipper-Specific Control Rules
 

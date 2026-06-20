@@ -987,6 +987,17 @@ bool checkPerformanceMacroSliderLayout()
                 ok = false;
             }
 
+            if (compactMacroCell && ! valueBounds.isEmpty())
+            {
+                std::cerr << "editor_size_smoke: compact performance macro cell "
+                          << sliderIndex << " should hide secondary readout text for mode "
+                          << chipper::parameters::chipModeChoices()[chipMode]
+                          << ": readout " << valueBounds.toString()
+                          << " slider " << sliderBounds.toString()
+                          << " performance " << performanceBounds.toString() << '\n';
+                ok = false;
+            }
+
             if (shouldShowMacroReadout
                 && ! compactMacroCell
                 && (valueBounds.isEmpty()
