@@ -305,6 +305,11 @@ bool checkChannelOwnedControlLayout(chipper::ChipMode mode)
 
     case chipper::ChipMode::sn76489:
         ok &= expectControlOwnedBySourceChannel(editor, 3, editor.getSnNoiseModeMenuBoundsForLayoutTest(), "SN76489 noise mode");
+        if (! editor.getModuleBoundsForLayoutTest(2).isEmpty())
+        {
+            std::cerr << "editor_size_smoke: SN76489 should not show a separate tone/noise module once Noise Mode is owned by the Noise channel\n";
+            ok = false;
+        }
         break;
 
     default:

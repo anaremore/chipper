@@ -242,7 +242,7 @@ Equivalent concepts stay in equivalent places:
 - Game Boy / DMG: Sources are Pulse 1, Pulse 2, Wave, Noise; each source card owns its native register controls, so Pulse 1/2 duty, Wave RAM shape/level, and Noise width live with their channels instead of in a separate Wave / Noise panel.
 - SID / C64: Sources are Voice 1-3; Tone becomes Filter.
 - YM2149 / AY: Sources are A, B, C, shared noise; A/B/C source cards own their `Tone`, `Noise`, `Both`, or `Off` mixer override, while shared hardware-envelope controls stay in the Mixer / Envelope area.
-- SN76489: Sources are Tone 1-3 and Noise; Tone becomes Tone / Crunch.
+- SN76489: Sources are Tone 1-3 and Noise; the Noise source card owns the PSG noise-register mode, so no separate Tone / Noise panel should appear unless it contains backed controls.
 - YM2612 and OPL: Sources are FM voices; Tone becomes Operators.
 
 Authentic mode should expose chip-native behavior. Hybrid mode can add musical helpers. Inspired mode should simplify controls and clearly avoid accuracy claims. The requested Strictness selector is a user preference, not a proof badge; the stable host/MIDI parameter remains named `Behavior Strictness` for automation clarity. Each chip descriptor also carries a verification disclosure with a badge, evidence text, known gaps, and explicit `hardwareValidated` / `cycleAccurate` booleans. The footer/status tooltip and renderer descriptor JSON must use that disclosure so a user can request Authentic behavior while still seeing "Verified partial" or "Unverified planned" when that is the honest implementation state, without turning the header into an accuracy warning banner.
