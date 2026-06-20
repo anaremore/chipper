@@ -3794,27 +3794,30 @@ void ChipperAudioProcessorEditor::resized()
         const auto isNesSourceCard = displayedMode == chipper::ChipMode::nes;
         const auto isDmgSourceCard = displayedMode == chipper::ChipMode::dmg;
         const auto isSnSourceCard = displayedMode == chipper::ChipMode::sn76489;
+        const auto isYm2149ToneSourceCard = displayedMode == chipper::ChipMode::ym2149 && i < ymChannelMixBoxes.size();
         const auto isPaulaSourceCard = displayedMode == chipper::ChipMode::paula;
         const auto isSpc700SourceCard = displayedMode == chipper::ChipMode::spc700;
         const auto isWavetableSourceCard = useWavetableVoiceGrid;
         const auto isDenseSampleCard = isWavetableSourceCard || isPaulaSourceCard || isSpc700SourceCard;
         auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isDenseSampleCard ? 5 : 8),
-                                                         isSidSourceCard ? 2 : (isDenseSampleCard ? 3 : 4));
+                                                         isSidSourceCard ? 2 : (isDenseSampleCard ? 3 : (isYm2149ToneSourceCard ? 2 : 4)));
         const auto standardInlineControlHeight = isDenseSampleCard ? 28 : 30;
         const auto embeddedLabelHeight = isSpc700SourceCard ? 10 : (isDenseSampleCard ? 12 : 14);
         const auto embeddedControlRowHeight = embeddedLabelHeight + standardInlineControlHeight;
         const auto buttonHeight = (isSpc700SourceCard || isPaulaSourceCard) ? 18 : (isDenseSampleCard ? 20 : (isSidSourceCard ? 18 : (isWavetableSourceCard ? 18 : 18)));
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
-        sourceCard.removeFromTop(isDenseSampleCard ? 3 : 2);
-        const auto previewHeight = isPaulaSourceCard
+        sourceCard.removeFromTop(isYm2149ToneSourceCard ? 1 : (isDenseSampleCard ? 3 : 2));
+        const auto previewHeight = isYm2149ToneSourceCard
+            ? std::clamp(sourceCard.getHeight() / 7, 14, 18)
+            : (isPaulaSourceCard
             ? std::clamp(sourceCard.getHeight() / 9, 10, 14)
             : (isWavetableSourceCard
             ? std::clamp(sourceCard.getHeight() / 5, 18, 22)
             : std::clamp(sourceCard.getHeight() / (useSpc700VoiceGrid ? 5 : 4),
                          useSpc700VoiceGrid ? 14 : (isSidSourceCard ? 22 : ((isNesSourceCard || isDmgSourceCard || isPaulaSourceCard) ? 22 : 20)),
-                         useSpc700VoiceGrid ? 18 : (isSidSourceCard ? 32 : (isPaulaSourceCard ? 26 : ((isNesSourceCard || isDmgSourceCard) ? 34 : 28)))));
+                         useSpc700VoiceGrid ? 18 : (isSidSourceCard ? 32 : (isPaulaSourceCard ? 26 : ((isNesSourceCard || isDmgSourceCard) ? 34 : 28))))));
         sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(previewHeight, sourceCard.getHeight())));
-        sourceCard.removeFromTop(isNesSourceCard || isDmgSourceCard || isDenseSampleCard ? 3 : 1);
+        sourceCard.removeFromTop(isYm2149ToneSourceCard ? 1 : (isNesSourceCard || isDmgSourceCard || isDenseSampleCard ? 3 : 1));
 
         const auto placeEmbeddedLevelInArea = [this, i](juce::Rectangle<int> levelArea, int labelWidth = 52)
         {
@@ -3914,6 +3917,14 @@ void ChipperAudioProcessorEditor::resized()
             placeSnNoiseModeSegment(noiseModeArea);
             sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
         }
+        else if (isYm2149ToneSourceCard)
+        {
+            auto mixRow = sourceCard.removeFromTop(std::min(28, sourceCard.getHeight()));
+            ymChannelMixLabels[i].setText("Mix", juce::dontSendNotification);
+            ymChannelMixLabels[i].setBounds(mixRow.removeFromLeft(std::min(34, mixRow.getWidth())));
+            ymChannelMixBoxes[i].setBounds(mixRow);
+            sourceCard.removeFromTop(std::min(1, sourceCard.getHeight()));
+        }
         else if (isWavetableSourceCard && i < hucVoiceWaveBoxes.size())
         {
             auto waveRow = sourceCard.removeFromTop(std::min(standardInlineControlHeight, sourceCard.getHeight()));
@@ -3969,12 +3980,14 @@ void ChipperAudioProcessorEditor::resized()
 
         if (! isWavetableSourceCard && ! isPaulaSourceCard && ! isSpc700SourceCard)
         {
-            auto levelRow = sourceCard.removeFromTop(std::min(useSpc700VoiceGrid ? 12 : (isDenseSampleCard ? 12 : 12), sourceCard.getHeight()));
-            sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(useSpc700VoiceGrid ? 36 : (isDenseSampleCard ? 38 : 48), levelRow.getWidth())));
+            const auto levelLabelHeight = isYm2149ToneSourceCard ? 10 : (useSpc700VoiceGrid ? 12 : (isDenseSampleCard ? 12 : 12));
+            auto levelRow = sourceCard.removeFromTop(std::min(levelLabelHeight, sourceCard.getHeight()));
+            sourceLevelLabels[i].setBounds(levelRow.removeFromLeft(std::min(isYm2149ToneSourceCard ? 34 : (useSpc700VoiceGrid ? 36 : (isDenseSampleCard ? 38 : 48)), levelRow.getWidth())));
             sourceLevelValueLabels[i].setBounds(levelRow);
-            sourceCard.removeFromTop(1);
-            const auto sliderHeight = useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 11 : (isDenseSampleCard ? 14 : 14));
-            sourceLevelSliders[i].setBounds(sourceCard.removeFromTop(std::min(sliderHeight, sourceCard.getHeight())).reduced(0, 1));
+            sourceCard.removeFromTop(std::min(1, sourceCard.getHeight()));
+            const auto sliderHeight = isYm2149ToneSourceCard ? 12 : (useSpc700VoiceGrid ? 12 : (isSidSourceCard ? 11 : (isDenseSampleCard ? 14 : 14)));
+            auto levelSliderBounds = sourceCard.removeFromTop(std::min(sliderHeight, sourceCard.getHeight()));
+            sourceLevelSliders[i].setBounds(isYm2149ToneSourceCard ? levelSliderBounds : levelSliderBounds.reduced(0, 1));
         }
     }
 
@@ -4112,7 +4125,10 @@ void ChipperAudioProcessorEditor::resized()
         placeSidFilterRoutingControl(bottomRow);
     }
     else if (displayedMode == chipper::ChipMode::ym2149)
-        placeYmChannelMixControls(primaryTonePanel);
+    {
+        ymChannelMixLabel.setBounds({});
+        ymChannelMixValueLabel.setBounds({});
+    }
     else if (displayedMode == chipper::ChipMode::ym2612 || displayedMode == chipper::ChipMode::ym2151)
         placeFmAlgorithmControl(primaryTonePanel);
     else if (displayedMode == chipper::ChipMode::opl3)
@@ -8661,8 +8677,9 @@ void ChipperAudioProcessorEditor::setSidFilterRoutingControlVisible(bool shouldB
 
 void ChipperAudioProcessorEditor::setYmChannelMixControlsVisible(bool shouldBeVisible)
 {
-    ymChannelMixLabel.setVisible(shouldBeVisible);
-    ymChannelMixValueLabel.setVisible(shouldBeVisible);
+    const auto embeddedInSourceCards = displayedMode == chipper::ChipMode::ym2149;
+    ymChannelMixLabel.setVisible(shouldBeVisible && ! embeddedInSourceCards);
+    ymChannelMixValueLabel.setVisible(shouldBeVisible && ! embeddedInSourceCards);
     for (auto& label : ymChannelMixLabels)
         label.setVisible(shouldBeVisible);
     for (auto& box : ymChannelMixBoxes)
@@ -10212,8 +10229,9 @@ void ChipperAudioProcessorEditor::updateYmChannelMixControls(bool shouldBeVisibl
         ymChannelMixBoxes[i].setSelectedItemIndex(std::clamp(selected, 0, 4), juce::dontSendNotification);
     }
 
-    ymChannelMixLabel.setVisible(shouldBeVisible);
-    ymChannelMixValueLabel.setVisible(shouldBeVisible);
+    const auto embeddedInSourceCards = displayedMode == chipper::ChipMode::ym2149;
+    ymChannelMixLabel.setVisible(shouldBeVisible && ! embeddedInSourceCards);
+    ymChannelMixValueLabel.setVisible(shouldBeVisible && ! embeddedInSourceCards);
     if (! shouldBeVisible)
         return;
 

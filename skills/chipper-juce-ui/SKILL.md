@@ -41,6 +41,7 @@ description: Use when modifying Chipper's JUCE plugin editor, LookAndFeel, chip-
 
 - NES/RP2A03: Pulse duty is four-position register behavior, not a continuous pulse-width slider. DMC controls are sample/bank/rate/loop controls, not oscillator controls.
 - Game Boy/DMG: Pulse 1 and Pulse 2 duty are independent four-position controls in their source cards. Wave RAM shape/level belongs in the Wave source card. Noise width/mode belongs in the Noise source card.
+- YM2149/AY: A/B/C tone-noise mixer overrides are per-channel register choices and belong in the A/B/C source cards. Shared noise pitch and hardware-envelope timing may stay in global/performance areas.
 - SID/C64: Each voice owns waveform, pulse width, level, and ADSR. Filter cutoff, resonance, mode, and voice routing stay together in the Filter module. Sync and ring are explicit oscillator-interaction choices.
 - PSG chips: Tone/noise and attenuation choices should read as hardware mixer/register behavior, with modern helpers labeled as helpers.
 - FM chips: Do not present YM2612/OPL/YM2151 as subtractive synths. Show algorithms, operators, feedback, envelopes, rhythm/DAC modes, and routing as FM structure.

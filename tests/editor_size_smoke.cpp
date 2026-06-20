@@ -329,64 +329,42 @@ bool checkYm2149ToneNoiseMixLayout()
     editor.setSize(1240, expectedHeightForChipMode(chipChoice));
     editor.runEditorUpdateForLayoutTest();
 
-    const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
-    const auto mixBounds = editor.getToneNoiseMixBoundsForLayoutTest();
-    const auto mixLabelBounds = editor.getNativeLabelBoundsForLayoutTest(3);
-    const auto mixReadoutBounds = editor.getNativeValueLabelBoundsForLayoutTest(3);
+    for (size_t channel = 0; channel < 3; ++channel)
+    {
+        const auto sourceBounds = editor.getSourceChannelBoundsForLayoutTest(channel);
+        const auto mixBounds = editor.getYmChannelMixBoundsForLayoutTest(channel);
+        const auto levelBounds = editor.getSourceLevelBoundsForLayoutTest(channel);
 
-    if (mixBounds.isEmpty())
-    {
-        std::cerr << "editor_size_smoke: YM2149 tone/noise mix control is missing\n";
-        ok = false;
-    }
-    else
-    {
-        if (! performanceBounds.expanded(2).contains(mixBounds))
+        if (sourceBounds.isEmpty() || mixBounds.isEmpty())
         {
-            std::cerr << "editor_size_smoke: YM2149 tone/noise mix control is not owned by performance macros: "
-                      << mixBounds.toString() << " performance "
-                      << performanceBounds.toString() << '\n';
+            std::cerr << "editor_size_smoke: YM2149 channel " << channel
+                      << " mix control is missing from its source card\n";
+            ok = false;
+            continue;
+        }
+
+        if (! sourceBounds.expanded(2).contains(mixBounds))
+        {
+            std::cerr << "editor_size_smoke: YM2149 channel " << channel
+                      << " mix control is not owned by its source card: control "
+                      << mixBounds.toString() << " source " << sourceBounds.toString() << '\n';
             ok = false;
         }
 
-        if (mixBounds.getWidth() < 240 || mixBounds.getHeight() < 24)
+        if (mixBounds.getWidth() < 96 || mixBounds.getHeight() < 24)
         {
-            std::cerr << "editor_size_smoke: YM2149 tone/noise mix control below readable size: "
-                      << mixBounds.toString() << '\n';
+            std::cerr << "editor_size_smoke: YM2149 channel " << channel
+                      << " mix control below readable source-card size: " << mixBounds.toString() << '\n';
             ok = false;
         }
 
-        if (mixBounds.getBottom() > performanceBounds.getBottom() - 40)
+        if (! levelBounds.isEmpty() && mixBounds.intersects(levelBounds))
         {
-            std::cerr << "editor_size_smoke: YM2149 tone/noise mix control is too close to the performance strip edge: "
-                      << mixBounds.toString() << " performance "
-                      << performanceBounds.toString() << '\n';
+            std::cerr << "editor_size_smoke: YM2149 channel " << channel
+                      << " mix control overlaps its level lane: mix " << mixBounds.toString()
+                      << " level " << levelBounds.toString() << '\n';
             ok = false;
         }
-    }
-
-    if (mixLabelBounds.isEmpty()
-        || ! performanceBounds.expanded(2).contains(mixLabelBounds)
-        || mixLabelBounds.getHeight() < 12
-        || mixLabelBounds.intersects(mixBounds))
-    {
-        std::cerr << "editor_size_smoke: YM2149 tone/noise mix label is missing or overlaps the segmented control: label "
-                  << mixLabelBounds.toString() << " control " << mixBounds.toString()
-                  << " performance " << performanceBounds.toString() << '\n';
-        ok = false;
-    }
-
-    if (mixReadoutBounds.isEmpty()
-        || ! performanceBounds.expanded(2).contains(mixReadoutBounds)
-        || mixReadoutBounds.getHeight() < 12
-        || mixReadoutBounds.intersects(mixBounds)
-        || mixReadoutBounds.intersects(mixLabelBounds))
-    {
-        std::cerr << "editor_size_smoke: YM2149 tone/noise mix readout is missing or overlaps the segmented control: readout "
-                  << mixReadoutBounds.toString() << " control " << mixBounds.toString()
-                  << " label " << mixLabelBounds.toString()
-                  << " performance " << performanceBounds.toString() << '\n';
-        ok = false;
     }
 
     return ok;
