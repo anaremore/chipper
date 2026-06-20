@@ -5486,6 +5486,12 @@ void ChipperAudioProcessorEditor::placeToneNoiseMixSegment(juce::Rectangle<int> 
     toneNoiseMixSegmentBounds = bounds.removeFromTop(std::min(buttonHeight, bounds.getHeight())).reduced(0, 1);
     layoutSegmentedButtons(toneNoiseMixButtons, toneNoiseMixSegmentBounds, toneNoiseMixButtons.size());
 
+    if (displayedMode == chipper::ChipMode::ym2149)
+    {
+        controlValueLabels[3].setBounds({});
+        return;
+    }
+
     bounds.removeFromTop(std::min(verticalGap, bounds.getHeight()));
     controlValueLabels[3].setBounds(bounds.removeFromTop(std::min(readoutHeight, bounds.getHeight())));
 }
@@ -11195,7 +11201,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     nativeGroupLabels[3].setVisible(! toneNoiseMixOwnsMacroCell);
     nativeLabels[3].setVisible(! toneNoiseMixOwnsMacroCell || hasToneNoiseMixSegment);
     nativeSliders[3].setVisible(! toneNoiseMixOwnsMacroCell);
-    controlValueLabels[3].setVisible(! toneNoiseMixOwnsMacroCell || hasToneNoiseMixSegment);
+    controlValueLabels[3].setVisible(! toneNoiseMixOwnsMacroCell);
     updatePulseDutyButtons(patch.control1, hasPulseDutySegment);
     updatePulse2DutyButtons(patch, hasPulse2DutySegment);
     updateToneNoiseMixButtons(patch.control4, hasToneNoiseMixSegment);

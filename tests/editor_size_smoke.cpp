@@ -376,6 +376,31 @@ bool checkYm2149ToneNoiseMixLayout()
         }
     }
 
+    const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+    const auto toneNoiseBounds = editor.getToneNoiseMixBoundsForLayoutTest();
+    const auto legacyReadoutBounds = editor.getNativeValueLabelBoundsForLayoutTest(3);
+
+    if (toneNoiseBounds.isEmpty() || toneNoiseBounds.getWidth() < 240 || toneNoiseBounds.getHeight() < 24)
+    {
+        std::cerr << "editor_size_smoke: YM2149 performance tone/noise mix is not readable: "
+                  << toneNoiseBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (! performanceBounds.expanded(2).contains(toneNoiseBounds))
+    {
+        std::cerr << "editor_size_smoke: YM2149 performance tone/noise mix escaped performance area: control "
+                  << toneNoiseBounds.toString() << " performance " << performanceBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (! legacyReadoutBounds.isEmpty())
+    {
+        std::cerr << "editor_size_smoke: YM2149 hidden tone/noise macro readout still occupies space: "
+                  << legacyReadoutBounds.toString() << '\n';
+        ok = false;
+    }
+
     return ok;
 }
 
