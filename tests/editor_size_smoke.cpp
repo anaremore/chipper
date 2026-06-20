@@ -9,8 +9,9 @@
 namespace
 {
 constexpr int expectedEditorHeight = 820;
+constexpr int expectedEditorSidHeight = 880;
 constexpr int expectedEditorMinimumWidth = 1180;
-constexpr int expectedEditorMinimumHeight = expectedEditorHeight;
+constexpr int expectedEditorMaximumHeight = expectedEditorSidHeight;
 
 bool expect(bool condition, const char* message)
 {
@@ -92,7 +93,10 @@ const char* chipModeName(chipper::ChipMode mode)
 
 int expectedHeightForChipMode(int chipMode)
 {
-    juce::ignoreUnused(chipMode);
+    const auto mode = chipper::parameters::chipModeFromChoice(chipMode);
+    if (mode == chipper::ChipMode::sid)
+        return expectedEditorSidHeight;
+
     return expectedEditorHeight;
 }
 
@@ -1184,11 +1188,11 @@ int main()
     ok &= expect(editor.getHeight() == expectedHeightForChipMode(0), "unexpected default height");
 
     editor.setSize(1240, 1200);
-    ok &= expect(editor.getHeight() == expectedEditorHeight, "host-restored default editor height was not clamped to the DAW-friendly cap");
+    ok &= expect(editor.getHeight() == expectedHeightForChipMode(0), "host-restored default editor height was not clamped to the chip preferred size");
 
     editor.setSize(1000, 600);
     ok &= expect(editor.getWidth() >= expectedEditorMinimumWidth, "editor width was not clamped to minimum");
-    ok &= expect(editor.getHeight() >= expectedEditorMinimumHeight, "editor height was not clamped to minimum");
+    ok &= expect(editor.getHeight() >= expectedHeightForChipMode(0), "editor height was not clamped to the default chip preferred size");
 
     const auto chipModeCount = chipper::parameters::chipModeChoices().size();
     for (auto chipMode = 0; chipMode < chipModeCount; ++chipMode)
@@ -1200,11 +1204,11 @@ int main()
         ChipperAudioProcessorEditor chipEditor(chipProcessor);
         ok &= expect(chipEditor.getWidth() == 1240, "chip default width changed");
         ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "chip default height changed");
-        ok &= expect(chipEditor.getHeight() <= expectedEditorHeight, "chip default height exceeded DAW-friendly cap");
+        ok &= expect(chipEditor.getHeight() <= expectedEditorMaximumHeight, "chip default height exceeded DAW-friendly cap");
         ok &= checkVisibleChildGeometry(chipEditor, chipEditor, juce::Point<int> {}, "editor/" + chipPath);
         ok &= checkPrimaryPanelStack(chipEditor, chipper::parameters::chipModeFromChoice(chipMode));
         chipEditor.setSize(1240, 1200);
-        ok &= expect(chipEditor.getHeight() == expectedEditorHeight, "chip-switched editor height was not clamped to the DAW-friendly cap");
+        ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "chip-switched editor height was not clamped to the chip preferred size");
         ok &= expect(chipEditor.getWidth() == 1240, "chip-switched editor width unexpectedly changed");
         ok &= checkVisibleChildGeometry(chipEditor, chipEditor, juce::Point<int> {}, "editor/restored/" + chipPath);
         ok &= checkPrimaryPanelStack(chipEditor, chipper::parameters::chipModeFromChoice(chipMode));

@@ -114,7 +114,7 @@ Before a release is considered usable, keep these checks green:
 - Descriptor and MIDI CC smoke tests.
 - FM held-tail tests, because FM notes fading to silence is a fixed regression.
 - NES DMC loop-off tests, because one-shot DMC playback should stop stepping and hold the DAC value instead of looping.
-- Editor-size smoke tests, because Chipper should open and restore inside the DAW-friendly 820 px height cap.
+- Editor-size smoke tests, because Chipper should open and restore inside the documented DAW-friendly per-chip fixed height. Most chips are capped at 820 px; SID is currently capped at 880 px for readable ADSR.
 - Factory preset catalog and audibility checks whenever preset content changed.
 - At least one manual DAW scan/load check for Windows. Linux and macOS host checks should be added before public cross-platform releases are advertised as tested.
 

@@ -19,17 +19,19 @@ constexpr int userPresetItemIdBase = 10000;
 constexpr int initPresetItemId = 9000;
 constexpr int editorDefaultWidth = 1240;
 constexpr int editorDefaultHeight = 820;
+constexpr int editorSidHeight = 880;
 constexpr int editorMinWidth = 1180;
-constexpr int editorMinHeight = editorDefaultHeight;
 constexpr int editorMaxWidth = 1800;
-constexpr int editorMaxHeight = editorDefaultHeight;
+constexpr int editorMaxHeight = editorSidHeight;
 
 static_assert(editorDefaultHeight <= editorMaxHeight);
-static_assert(editorMaxHeight <= 820, "Keep the Chipper editor DAW-friendly by default.");
+static_assert(editorMaxHeight <= 900, "Keep the Chipper editor DAW-friendly by default.");
 
 int preferredEditorHeightForMode(chipper::ChipMode mode)
 {
-    juce::ignoreUnused(mode);
+    if (mode == chipper::ChipMode::sid)
+        return editorSidHeight;
+
     return editorDefaultHeight;
 }
 
@@ -1985,11 +1987,12 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
       audioProcessor(processor)
 {
     setResizable(false, false);
-    setResizeLimits(editorMinWidth, editorMinHeight, editorMaxWidth, editorMaxHeight);
 
     auto& state = audioProcessor.getValueTreeState();
     const auto initialModeChoice = static_cast<int>(std::round(state.getRawParameterValue(chipper::parameters::id::chipMode)->load()));
-    setSize(editorDefaultWidth, preferredEditorHeightForMode(chipper::parameters::chipModeFromChoice(initialModeChoice)));
+    const auto initialEditorHeight = preferredEditorHeightForMode(chipper::parameters::chipModeFromChoice(initialModeChoice));
+    setResizeLimits(editorMinWidth, initialEditorHeight, editorMaxWidth, initialEditorHeight);
+    setSize(editorDefaultWidth, initialEditorHeight);
     chipSettingsSnapshots.resize(static_cast<size_t>(chipper::parameters::chipModeChoices().size()));
 
     const auto blockLogo = []()
@@ -3380,11 +3383,11 @@ void ChipperAudioProcessorEditor::resized()
     const auto modeChoice = static_cast<int>(std::round(audioProcessor.getValueTreeState()
                                                             .getRawParameterValue(chipper::parameters::id::chipMode)
                                                             ->load()));
-    juce::ignoreUnused(modeChoice);
-    const auto clampedHeight = std::clamp(getHeight(), editorMinHeight, editorMaxHeight);
-    if (clampedWidth != getWidth() || clampedHeight != getHeight())
+    const auto targetHeight = preferredEditorHeightForMode(chipper::parameters::chipModeFromChoice(modeChoice));
+    setResizeLimits(editorMinWidth, targetHeight, editorMaxWidth, targetHeight);
+    if (clampedWidth != getWidth() || targetHeight != getHeight())
     {
-        setSize(clampedWidth, clampedHeight);
+        setSize(clampedWidth, targetHeight);
         return;
     }
 
@@ -4833,12 +4836,11 @@ juce::Rectangle<int> ChipperAudioProcessorEditor::getSidAdsrContentBoundsForLayo
 void ChipperAudioProcessorEditor::timerCallback()
 {
     const auto targetHeight = preferredEditorHeightForMode(displayedMode);
-    juce::ignoreUnused(targetHeight);
+    setResizeLimits(editorMinWidth, targetHeight, editorMaxWidth, targetHeight);
     const auto clampedWidth = std::clamp(getWidth(), editorMinWidth, editorMaxWidth);
-    const auto clampedHeight = std::clamp(getHeight(), editorMinHeight, editorMaxHeight);
-    if (clampedWidth != getWidth() || clampedHeight != getHeight())
+    if (clampedWidth != getWidth() || targetHeight != getHeight())
     {
-        setSize(clampedWidth, clampedHeight);
+        setSize(clampedWidth, targetHeight);
         return;
     }
 
@@ -10844,7 +10846,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     descriptorTextInitialized = true;
     displayedMode = mode;
     const auto preferredHeight = preferredEditorHeightForMode(mode);
-    setResizeLimits(editorMinWidth, editorMinHeight, editorMaxWidth, editorMaxHeight);
+    setResizeLimits(editorMinWidth, preferredHeight, editorMaxWidth, preferredHeight);
     if (chipChangedAfterInitialLoad && getHeight() != preferredHeight)
         setSize(getWidth(), preferredHeight);
 
