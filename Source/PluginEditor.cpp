@@ -2233,7 +2233,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addAndMakeVisible(dmcMapRootBox);
     dmcMapRootAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::nesDmcMapRoot, dmcMapRootBox);
 
-    dmcLoopButton.setButtonText("One Shot");
+    dmcLoopButton.setButtonText("Loop Sample");
     dmcLoopButton.setTooltip(withMidiCcForRole("RP2A03 $4010 DMC loop bit. Off means one-shot: the selected sample steps once, stops at the final bit, and holds the final DMC DAC level until retriggered. On repeats from byte 0 at the sample end.", chipper::ChipParameterRole::nesDmcLoop));
     addAndMakeVisible(dmcLoopButton);
     dmcLoopAttachment = std::make_unique<ButtonAttachment>(state, chipper::parameters::id::nesDmcLoop, dmcLoopButton);
@@ -6809,17 +6809,17 @@ juce::String ChipperAudioProcessorEditor::pulse2DutyReadout(const chipper::Patch
         + dutyBits[static_cast<size_t>(resolved)] + ", " + dutyLabels[static_cast<size_t>(resolved)];
 
     if (choice != 0)
-        return detail;
+        return juce::String("Independent -> ") + detail;
 
     if (displayedMode == chipper::ChipMode::dmg)
     {
         const auto followMode = patch.playMode == chipper::PlayMode::chipPoly
-            ? juce::String("Preset P1 -> ")
-            : juce::String("Preset +1 -> ");
+            ? juce::String("Preset follows P1 -> ")
+            : juce::String("Preset offsets P1 -> ");
         return followMode + detail;
     }
 
-    return juce::String("Preset -> ") + detail;
+    return juce::String("Preset maps -> ") + detail;
 }
 
 juce::String ChipperAudioProcessorEditor::compactPulse2DutyReadout(const chipper::PatchConfig& patch) const
@@ -6833,9 +6833,15 @@ juce::String ChipperAudioProcessorEditor::compactPulse2DutyReadout(const chipper
     const auto resolvedText = juce::String(dutyLabels[static_cast<size_t>(resolved)]);
 
     if (choice > 0)
-        return resolvedText + " independent";
+        return juce::String("Independent ") + resolvedText;
 
-    return juce::String("Preset -> ") + resolvedText;
+    if (displayedMode == chipper::ChipMode::dmg)
+        return (patch.playMode == chipper::PlayMode::chipPoly
+                    ? juce::String("Preset follows P1: ")
+                    : juce::String("Preset +1: "))
+            + resolvedText;
+
+    return juce::String("Preset maps: ") + resolvedText;
 }
 
 juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mode, int choice) const
@@ -10377,7 +10383,7 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
         visibleStatus += " | Rate " + juce::String(playbackInfo.rateIndex) + " | " + runState;
     }
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
-    dmcLoopButton.setButtonText(playbackInfo.loopEnabled ? "Loop Sample" : "One Shot");
+    dmcLoopButton.setButtonText("Loop Sample");
     auto sampleTooltip = playbackInfo.statusLine
         + "\nDMC bit clock: " + juce::String(playbackInfo.bitRateHz / 1000.0, 2) + " kHz from $4010 rate index "
         + juce::String(playbackInfo.rateIndex) + ".";
