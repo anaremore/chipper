@@ -3930,11 +3930,11 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isWavetableSourceCard && i < hucVoiceWaveBoxes.size())
         {
+            auto levelArea = sourceCard.removeFromBottom(std::min(24, sourceCard.getHeight()));
+            sourceCard.removeFromBottom(std::min(1, sourceCard.getHeight()));
             auto waveRow = sourceCard.removeFromTop(std::min(standardInlineControlHeight, sourceCard.getHeight()));
             hucVoiceWaveLabels[i].setBounds(waveRow.removeFromLeft(std::min(44, waveRow.getWidth())));
             hucVoiceWaveBoxes[i].setBounds(waveRow);
-            sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
-            auto levelArea = sourceCard.removeFromTop(std::min(36, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea, 44);
         }
         else if (isPaulaSourceCard && i < hucVoiceWaveBoxes.size())
@@ -3948,7 +3948,10 @@ void ChipperAudioProcessorEditor::resized()
                     box.setBounds(area.removeFromTop(std::min(standardInlineControlHeight, area.getHeight())));
                 };
 
-                auto selectorRow = sourceCard.removeFromTop(std::min(isPaulaSourceCard ? 30 : 40, sourceCard.getHeight()));
+                auto levelArea = sourceCard.removeFromBottom(std::min(30, sourceCard.getHeight()));
+                sourceCard.removeFromBottom(std::min(2, sourceCard.getHeight()));
+
+                auto selectorRow = sourceCard.removeFromTop(std::min(standardInlineControlHeight, sourceCard.getHeight()));
                 if (selectorRow.getWidth() >= 320)
                 {
                     constexpr auto selectorGap = 8;
@@ -3960,24 +3963,23 @@ void ChipperAudioProcessorEditor::resized()
                 }
                 else
                 {
-                    placeLabeledCombo(hucVoiceWaveLabels[i], hucVoiceWaveBoxes[i], selectorRow);
+                    auto shapeRow = sourceCard.removeFromTop(std::min(embeddedControlRowHeight, sourceCard.getHeight()));
+                    placeLabeledCombo(hucVoiceWaveLabels[i], hucVoiceWaveBoxes[i], shapeRow);
+                    sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
+
                     auto sampleRow = sourceCard.removeFromTop(std::min(embeddedControlRowHeight, sourceCard.getHeight()));
                     placeLabeledCombo(paulaVoiceSampleLabels[i], paulaVoiceSampleBoxes[i], sampleRow);
                 }
-                sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
-
-                auto levelArea = sourceCard.removeFromTop(std::min(30, sourceCard.getHeight()));
                 placeEmbeddedLevelInArea(levelArea);
             }
         }
         else if (isSpc700SourceCard && i < hucVoiceWaveBoxes.size())
         {
+            auto levelArea = sourceCard.removeFromBottom(std::min(24, sourceCard.getHeight()));
+            sourceCard.removeFromBottom(std::min(1, sourceCard.getHeight()));
             auto sampleRow = sourceCard.removeFromTop(std::min(standardInlineControlHeight, sourceCard.getHeight()));
             hucVoiceWaveLabels[i].setBounds(sampleRow.removeFromLeft(std::min(52, sampleRow.getWidth())));
             hucVoiceWaveBoxes[i].setBounds(sampleRow);
-            sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
-
-            auto levelArea = sourceCard.removeFromTop(std::min(26, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea, 42);
         }
 
@@ -4902,6 +4904,9 @@ void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
     }
 
     const auto canShowFullStack = bounds.getHeight() >= fullStackHeight;
+    const auto canShowReadout = canShowFullStack
+        && originalBounds.getWidth() >= 280
+        && originalBounds.getHeight() >= fullStackHeight + 2;
     groupLabel.setBounds(canShowFullStack ? bounds.removeFromTop(std::min(groupHeight, bounds.getHeight()))
                                           : juce::Rectangle<int> {});
 
@@ -4924,7 +4929,9 @@ void ChipperAudioProcessorEditor::placeGroupedSlider(juce::Slider& slider,
     label.setBounds(bounds.removeFromTop(labelHeight));
     slider.setBounds(bounds.removeFromTop(sliderHeight).reduced(0, 2));
     bounds.removeFromTop(std::min(verticalGap, bounds.getHeight()));
-    valueLabel.setBounds(bounds.removeFromTop(std::min(readoutHeight, bounds.getHeight())));
+    valueLabel.setBounds(canShowReadout
+        ? bounds.removeFromTop(std::min(readoutHeight, bounds.getHeight()))
+        : juce::Rectangle<int> {});
 }
 
 void ChipperAudioProcessorEditor::placeLabeledSliderWithReadout(juce::Slider& slider,
