@@ -3451,7 +3451,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 96 : (nesLayout ? 236 : (spc700Layout ? 88 : (paulaLayout ? 96 : (wavetableLayout ? 140 : 196))));
+    const auto performanceStripHeight = sidLayout ? 176 : (nesLayout ? 236 : (spc700Layout ? 88 : (paulaLayout ? 96 : (wavetableLayout ? 140 : 196))));
     const auto maxModulesHeight = sidLayout ? 646 : (nesLayout ? 430 : (spc700Layout ? 560 : (paulaLayout ? 570 : (wavetableLayout ? 412 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
