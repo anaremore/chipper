@@ -3451,7 +3451,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
     const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 176 : (nesLayout ? 236 : (spc700Layout ? 88 : (paulaLayout ? 108 : (wavetableLayout ? 126 : 196))));
+    const auto performanceStripHeight = sidLayout ? 152 : (nesLayout ? 236 : (spc700Layout ? 88 : (paulaLayout ? 108 : (wavetableLayout ? 126 : 196))));
     const auto maxModulesHeight = sidLayout ? 646 : (nesLayout ? 430 : (spc700Layout ? 540 : (paulaLayout ? 540 : (wavetableLayout ? 372 : 492))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
@@ -3465,7 +3465,7 @@ void ChipperAudioProcessorEditor::resized()
         const auto availableRowsHeight = std::max(0, modules.getHeight() - (gap * 2));
         auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.29)), 156, 170);
         auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.18)), 76, 108);
-        constexpr auto minimumEnvelopeHeight = 216;
+        constexpr auto minimumEnvelopeHeight = 238;
 
         auto overflow = topRowHeight + middleRowHeight + minimumEnvelopeHeight - availableRowsHeight;
         if (overflow > 0)
@@ -4987,7 +4987,6 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
 
     constexpr auto voiceGap = 10;
     const auto voiceWidth = (bounds.getWidth() - (voiceGap * static_cast<int>(sidAdsrVoiceCount - 1u))) / static_cast<int>(sidAdsrVoiceCount);
-    const auto voiceHeight = bounds.getHeight();
     for (size_t voice = 0; voice < sidAdsrVoiceCount; ++voice)
     {
         auto voiceColumn = bounds.removeFromLeft(voiceWidth).reduced(0, 1);
@@ -4998,13 +4997,12 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
         voiceColumn.removeFromTop(1);
 
         const auto availableVoiceHeight = voiceColumn.getHeight();
-        const auto previewReserve = availableVoiceHeight >= 136 ? 54
-            : (availableVoiceHeight >= 112 ? 46
-                   : (availableVoiceHeight >= 88 ? 36
-                          : (availableVoiceHeight >= 72 ? 28 : 0)));
-        const auto targetControlHeight = std::clamp(availableVoiceHeight - previewReserve - 4, 54, 76);
+        const auto previewReserve = availableVoiceHeight >= 144 ? 52
+            : (availableVoiceHeight >= 118 ? 40
+                   : (availableVoiceHeight >= 96 ? 30 : 0));
+        const auto maxControlHeight = availableVoiceHeight >= 144 ? 76 : 64;
+        const auto targetControlHeight = std::clamp(availableVoiceHeight - previewReserve - 4, 42, maxControlHeight);
         auto sliderRow = voiceColumn.removeFromTop(std::min(targetControlHeight, voiceColumn.getHeight()));
-        sliderRow = sliderRow.withHeight(std::min(sliderRow.getHeight(), voiceHeight));
 
         constexpr auto fieldGap = 4;
         const auto fieldWidth = (sliderRow.getWidth() - (fieldGap * static_cast<int>(sidAdsrFieldCount - 1u))) / static_cast<int>(sidAdsrFieldCount);
@@ -5021,9 +5019,10 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
             sidAdsrBoxes[index].setBounds({});
         }
 
-        voiceColumn.removeFromTop(4);
-        if (voiceColumn.getHeight() >= 24)
-            sidEnvelopePreviews[voice].setBounds(voiceColumn.removeFromTop(std::min(54, voiceColumn.getHeight())).reduced(0, 1));
+        voiceColumn.removeFromTop(std::min(4, voiceColumn.getHeight()));
+        const auto previewHeight = std::min(previewReserve, voiceColumn.getHeight());
+        if (previewHeight >= 24)
+            sidEnvelopePreviews[voice].setBounds(voiceColumn.removeFromTop(previewHeight).reduced(0, 1));
         else
             sidEnvelopePreviews[voice].setBounds({});
     }
