@@ -427,11 +427,12 @@ int main()
                      "DMG Pulse 2 source card should produce audio when explicitly enabled by the UI");
     }
 
-    auto renderDmgPulse2DutyRatio = [](float pulse2DutyChoice) {
+    auto renderDmgPulse2DutyRatio = [](float pulse2DutyChoice, float pulse1Duty = 2.0f / 3.0f) {
         ChipperAudioProcessor dmgPulse2Processor;
         dmgPulse2Processor.prepareToPlay(48000.0, 64);
         setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::chipMode, 1.0f);
         setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::macro, 2.0f);
+        setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::macroControl1, pulse1Duty);
         setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::source1Enabled, 0.0f);
         setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::source2Enabled, 1.0f);
         setPlainFromHost(dmgPulse2Processor, chipper::parameters::id::source3Enabled, 0.0f);
@@ -445,6 +446,10 @@ int main()
     const auto dmgPulse2WideDutyRatio = renderDmgPulse2DutyRatio(4.0f);
     ok &= expect(dmgPulse2WideDutyRatio - dmgPulse2ThinDutyRatio > 0.35f,
                  "DMG Pulse 2 explicit duty choices should independently change the rendered waveform high-state ratio");
+    const auto dmgPulse2ExplicitWideWithThinP1 = renderDmgPulse2DutyRatio(4.0f, 0.0f);
+    const auto dmgPulse2ExplicitWideWithSquareP1 = renderDmgPulse2DutyRatio(4.0f, 2.0f / 3.0f);
+    ok &= expect(std::abs(dmgPulse2ExplicitWideWithThinP1 - dmgPulse2ExplicitWideWithSquareP1) < 0.05f,
+                 "DMG Pulse 2 explicit duty should stay independent when Pulse 1 duty changes");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 2));
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 2));
@@ -1299,7 +1304,7 @@ int main()
                      "CC104 should control NES Pulse 2 Duty");
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 2));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::pulse2Duty), 0.0f, 0.0001f,
-                     "CC74 NES macro change should reset Pulse 2 Duty to Follow");
+                     "CC74 NES macro change should reset Pulse 2 Duty to Preset");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcDirectLevel), 0.0f, 0.0001f,
                      "CC74 NES Bass macro should keep DMC Direct silent");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 0.0f, 0.0001f,

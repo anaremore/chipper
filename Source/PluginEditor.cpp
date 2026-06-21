@@ -2233,7 +2233,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addAndMakeVisible(dmcMapRootBox);
     dmcMapRootAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::nesDmcMapRoot, dmcMapRootBox);
 
-    dmcLoopButton.setButtonText("Loop Sample");
+    dmcLoopButton.setButtonText("One Shot");
     dmcLoopButton.setTooltip(withMidiCcForRole("RP2A03 $4010 DMC loop bit. Off means one-shot: the selected sample steps once, stops at the final bit, and holds the final DMC DAC level until retriggered. On repeats from byte 0 at the sample end.", chipper::ChipParameterRole::nesDmcLoop));
     addAndMakeVisible(dmcLoopButton);
     dmcLoopAttachment = std::make_unique<ButtonAttachment>(state, chipper::parameters::id::nesDmcLoop, dmcLoopButton);
@@ -2530,7 +2530,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     pulse2DutyValueLabel.setVisible(false);
     addAndMakeVisible(pulse2DutyValueLabel);
 
-    const std::array<const char*, pulse2DutyCount> pulse2Labels { "Follow", "12.5%", "25%", "50%", "75%" };
+    const std::array<const char*, pulse2DutyCount> pulse2Labels { "Preset", "12.5%", "25%", "50%", "75%" };
     for (size_t i = 0; i < pulse2DutyButtons.size(); ++i)
     {
         auto& button = pulse2DutyButtons[i];
@@ -6801,12 +6801,12 @@ juce::String ChipperAudioProcessorEditor::pulse2DutyReadout(const chipper::Patch
     if (displayedMode == chipper::ChipMode::dmg)
     {
         const auto followMode = patch.playMode == chipper::PlayMode::chipPoly
-            ? juce::String("Follow P1 -> ")
-            : juce::String("Follow +1 -> ");
+            ? juce::String("Preset P1 -> ")
+            : juce::String("Preset +1 -> ");
         return followMode + detail;
     }
 
-    return juce::String("Follow -> ") + detail;
+    return juce::String("Preset -> ") + detail;
 }
 
 juce::String ChipperAudioProcessorEditor::compactPulse2DutyReadout(const chipper::PatchConfig& patch) const
@@ -6822,7 +6822,7 @@ juce::String ChipperAudioProcessorEditor::compactPulse2DutyReadout(const chipper
     if (choice > 0)
         return resolvedText + " independent";
 
-    return juce::String("Follow -> ") + resolvedText;
+    return juce::String("Preset -> ") + resolvedText;
 }
 
 juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mode, int choice) const
@@ -10364,7 +10364,7 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
         visibleStatus += " | Rate " + juce::String(playbackInfo.rateIndex) + " | " + runState;
     }
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
-    dmcLoopButton.setButtonText("Loop Sample");
+    dmcLoopButton.setButtonText(playbackInfo.loopEnabled ? "Loop Sample" : "One Shot");
     auto sampleTooltip = playbackInfo.statusLine
         + "\nDMC bit clock: " + juce::String(playbackInfo.bitRateHz / 1000.0, 2) + " kHz from $4010 rate index "
         + juce::String(playbackInfo.rateIndex) + ".";
