@@ -478,7 +478,7 @@ bool checkWavetableSourceDeck(chipper::ChipMode mode)
             ok = false;
         }
 
-        if (sourceBounds.getHeight() > 104)
+        if (sourceBounds.getHeight() > 116)
         {
             std::cerr << "editor_size_smoke: wavetable source card grew into empty vertical space: "
                       << sourceBounds.toString() << '\n';

@@ -3594,7 +3594,7 @@ void ChipperAudioProcessorEditor::resized()
         constexpr auto sourceColumns = 4;
         const auto sourceRows = std::max(1, (visibleSources + sourceColumns - 1) / sourceColumns);
         constexpr auto sourceHeaderReserve = 34;
-        constexpr auto targetCardHeight = 96;
+        constexpr auto targetCardHeight = 110;
         const auto desiredSourceHeight = sourceHeaderReserve + (targetCardHeight * sourceRows) + (gap * (sourceRows - 1));
         const auto sourceMaximumHeight = std::min(248, std::max(214, availableHeight - bottomRowHeight - gap));
         const auto sourceMinimumHeight = std::min(desiredSourceHeight, sourceMaximumHeight);
@@ -3750,10 +3750,10 @@ void ChipperAudioProcessorEditor::resized()
         ? (sourcePanel.getHeight() - (sourceGap * (sourceRows - 1))) / sourceRows
         : sourcePanel.getHeight();
     const auto sourceCardHeight = useWavetableVoiceGrid
-        ? std::clamp(rawSourceCardHeight, 96, 104)
+        ? std::clamp(rawSourceCardHeight, 110, 116)
         : (usePaulaVoiceGrid
-               ? std::clamp(rawSourceCardHeight, 90, 146)
-               : (useSpc700VoiceGrid ? std::clamp(rawSourceCardHeight, 90, 136) : rawSourceCardHeight));
+               ? std::clamp(rawSourceCardHeight, 112, 146)
+               : (useSpc700VoiceGrid ? std::clamp(rawSourceCardHeight, 112, 136) : rawSourceCardHeight));
     for (size_t i = 0; i < sourceChannelBounds.size(); ++i)
     {
         if (i >= visibleSourceCards)
@@ -3932,18 +3932,21 @@ void ChipperAudioProcessorEditor::resized()
         }
         else if (isWavetableSourceCard && i < hucVoiceWaveBoxes.size())
         {
+            auto levelArea = sourceCard.removeFromBottom(std::min(30, sourceCard.getHeight()));
+            sourceCard.removeFromBottom(std::min(3, sourceCard.getHeight()));
+
             auto waveRow = sourceCard.removeFromTop(std::min(standardInlineControlHeight, sourceCard.getHeight()));
             hucVoiceWaveLabels[i].setBounds(waveRow.removeFromLeft(std::min(44, waveRow.getWidth())));
             hucVoiceWaveBoxes[i].setBounds(waveRow);
-            sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
-
-            auto levelArea = sourceCard.removeFromTop(std::min(28, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea, 44);
         }
         else if (isPaulaSourceCard && i < hucVoiceWaveBoxes.size())
         {
             if (i < paulaVoiceSampleBoxes.size())
             {
+                auto levelArea = sourceCard.removeFromBottom(std::min(30, sourceCard.getHeight()));
+                sourceCard.removeFromBottom(std::min(3, sourceCard.getHeight()));
+
                 const auto placeLabeledCombo = [&](juce::Label& label, juce::ComboBox& box, juce::Rectangle<int> area)
                 {
                     const auto labelHeight = area.getHeight() >= 42 ? std::min(10, area.getHeight()) : 0;
@@ -3971,19 +3974,17 @@ void ChipperAudioProcessorEditor::resized()
                     placeLabeledCombo(paulaVoiceSampleLabels[i], paulaVoiceSampleBoxes[i], sampleRow);
                 }
 
-                sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
-                auto levelArea = sourceCard.removeFromTop(std::min(28, sourceCard.getHeight()));
                 placeEmbeddedLevelInArea(levelArea);
             }
         }
         else if (isSpc700SourceCard && i < hucVoiceWaveBoxes.size())
         {
+            auto levelArea = sourceCard.removeFromBottom(std::min(30, sourceCard.getHeight()));
+            sourceCard.removeFromBottom(std::min(3, sourceCard.getHeight()));
+
             auto sampleRow = sourceCard.removeFromTop(std::min(standardInlineControlHeight, sourceCard.getHeight()));
             hucVoiceWaveLabels[i].setBounds(sampleRow.removeFromLeft(std::min(52, sampleRow.getWidth())));
             hucVoiceWaveBoxes[i].setBounds(sampleRow);
-            sourceCard.removeFromTop(std::min(1, sourceCard.getHeight()));
-
-            auto levelArea = sourceCard.removeFromTop(std::min(28, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea, 42);
         }
 
