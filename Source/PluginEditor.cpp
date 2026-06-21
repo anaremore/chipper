@@ -3593,10 +3593,10 @@ void ChipperAudioProcessorEditor::resized()
         const auto visibleSources = static_cast<int>(chipper::visibleSourceCountForMode(displayedMode));
         constexpr auto sourceColumns = 4;
         const auto sourceRows = std::max(1, (visibleSources + sourceColumns - 1) / sourceColumns);
-        constexpr auto sourceHeaderReserve = 34;
-        constexpr auto targetCardHeight = 110;
+        constexpr auto sourceHeaderReserve = 42;
+        constexpr auto targetCardHeight = 108;
         const auto desiredSourceHeight = sourceHeaderReserve + (targetCardHeight * sourceRows) + (gap * (sourceRows - 1));
-        const auto sourceMaximumHeight = std::min(248, std::max(214, availableHeight - bottomRowHeight - gap));
+        const auto sourceMaximumHeight = std::min(264, std::max(240, availableHeight - bottomRowHeight - gap));
         const auto sourceMinimumHeight = std::min(desiredSourceHeight, sourceMaximumHeight);
         const auto sourceRowHeight = std::clamp(desiredSourceHeight, sourceMinimumHeight, sourceMaximumHeight);
         const auto actualBottomRowHeight = std::max(0, std::min(bottomRowHeight, availableHeight - sourceRowHeight - gap));
@@ -3750,7 +3750,7 @@ void ChipperAudioProcessorEditor::resized()
         ? (sourcePanel.getHeight() - (sourceGap * (sourceRows - 1))) / sourceRows
         : sourcePanel.getHeight();
     const auto sourceCardHeight = useWavetableVoiceGrid
-        ? std::clamp(rawSourceCardHeight, 110, 116)
+        ? std::clamp(rawSourceCardHeight, 104, 108)
         : (usePaulaVoiceGrid
                ? std::clamp(rawSourceCardHeight, 112, 146)
                : (useSpc700VoiceGrid ? std::clamp(rawSourceCardHeight, 112, 136) : rawSourceCardHeight));
