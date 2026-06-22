@@ -4319,7 +4319,7 @@ void ChipperAudioProcessorEditor::resized()
     globalStripBounds = area.removeFromTop(performanceStripHeight);
     auto strip = globalStripBounds.reduced(12, 8);
     auto stripHeader = strip.removeFromTop(20);
-    globalStripLabel.setBounds(stripHeader.removeFromLeft(116));
+    globalStripLabel.setBounds(stripHeader.removeFromLeft(150));
     stripHeader.removeFromLeft(10);
     macroSummaryLabel.setBounds(stripHeader);
     strip.removeFromTop(4);
