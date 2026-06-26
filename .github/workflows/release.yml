@@ -53,14 +53,17 @@ jobs:
             os: windows-latest
             artifact_suffix: windows
             python: python
+            build_parallel: 2
           - label: Linux
             os: ubuntu-24.04
             artifact_suffix: linux
             python: python3
+            build_parallel: 1
           - label: macOS
             os: macos-14
             artifact_suffix: macos
             python: python3
+            build_parallel: 2
 
     steps:
       - name: Check out repository
@@ -95,7 +98,7 @@ jobs:
         run: cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: cmake --build build-release --config Release --parallel
+        run: cmake --build build-release --config Release --parallel ${{ matrix.build_parallel }}
 
       - name: Test
         run: ctest --test-dir build-release -C Release --output-on-failure
