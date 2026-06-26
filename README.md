@@ -29,7 +29,7 @@ Each interface screenshot includes a click-to-play MP3 example for GitHub users.
 
 <table>
   <tr>
-    <td width="33%" valign="top"><strong>NES / RP2A03</strong><br><img src="screenshots/nes.png" alt="Chipper NES / RP2A03 plugin interface" width="100%"><br>[<a href="examples/nes.mp3?raw=1">Play MP3 sample</a>](https://github.com/user-attachments/assets/32cbc005-e426-4020-b2bc-52ae95a68368)</td>
+    <td width="33%" valign="top"><strong>NES / RP2A03</strong><br><img src="screenshots/nes.png" alt="Chipper NES / RP2A03 plugin interface" width="100%"><br>[<a href="https://github.com/user-attachments/assets/32cbc005-e426-4020-b2bc-52ae95a68368">Play sample</a>]</td>
     <td width="33%" valign="top"><strong>Game Boy / DMG</strong><br><img src="screenshots/gameboy.png" alt="Chipper Game Boy / DMG plugin interface" width="100%"><br><a href="examples/gameboy.mp3?raw=1">Play MP3 sample</a></td>
     <td width="33%" valign="top"><strong>SID / C64</strong><br><img src="screenshots/sid.png" alt="Chipper SID / C64 plugin interface" width="100%"><br><a href="examples/sid.mp3?raw=1">Play MP3 sample</a></td>
   </tr>
