@@ -29,29 +29,29 @@ Each interface screenshot includes a click-to-play MP3 example for GitHub users.
 
 <table>
   <tr>
-    <td width="33%" valign="top"><strong>NES / RP2A03</strong><br><img src="screenshots/nes.png" alt="Chipper NES / RP2A03 plugin interface" width="100%"><br>[<a href="https://github.com/user-attachments/assets/32cbc005-e426-4020-b2bc-52ae95a68368">Play sample</a>]</td>
-    <td width="33%" valign="top"><strong>Game Boy / DMG</strong><br><img src="screenshots/gameboy.png" alt="Chipper Game Boy / DMG plugin interface" width="100%"><br><a href="examples/gameboy.mp3?raw=1">Play MP3 sample</a></td>
-    <td width="33%" valign="top"><strong>SID / C64</strong><br><img src="screenshots/sid.png" alt="Chipper SID / C64 plugin interface" width="100%"><br><a href="examples/sid.mp3?raw=1">Play MP3 sample</a></td>
+    <td width="33%" valign="top"><strong>NES / RP2A03</strong><br><img src="screenshots/nes.png" alt="Chipper NES / RP2A03 plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/32cbc005-e426-4020-b2bc-52ae95a68368">Play sample</a></td>
+    <td width="33%" valign="top"><strong>Game Boy / DMG</strong><br><img src="screenshots/gameboy.png" alt="Chipper Game Boy / DMG plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/a144fde3-6501-486f-acc9-d453f6cea84d">Play sample</a></td>
+    <td width="33%" valign="top"><strong>SID / C64</strong><br><img src="screenshots/sid.png" alt="Chipper SID / C64 plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/126b8857-dee5-491b-8df0-6df41bca207c">Play sample</a></td>
   </tr>
   <tr>
-    <td width="33%" valign="top"><strong>YM2149 / AY</strong><br><img src="screenshots/ym2149.png" alt="Chipper YM2149 / AY plugin interface" width="100%"><br><a href="examples/ym2149.mp3?raw=1">Play MP3 sample</a></td>
-    <td width="33%" valign="top"><strong>SN76489 / Sega PSG</strong><br><img src="screenshots/sn76489.png" alt="Chipper SN76489 / Sega PSG plugin interface" width="100%"><br><a href="examples/sn76489.mp3?raw=1">Play MP3 sample</a></td>
-    <td width="33%" valign="top"><strong>YM2612 / Genesis FM</strong><br><img src="screenshots/ym2612.png" alt="Chipper YM2612 / Genesis FM plugin interface" width="100%"><br><a href="examples/ym2612.mp3?raw=1">Play MP3 sample</a></td>
+    <td width="33%" valign="top"><strong>YM2149 / AY</strong><br><img src="screenshots/ym2149.png" alt="Chipper YM2149 / AY plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/75544a12-be8f-4e0b-a0b0-a17a3c5f1049">Play sample</a></td>
+    <td width="33%" valign="top"><strong>SN76489 / Sega PSG</strong><br><img src="screenshots/sn76489.png" alt="Chipper SN76489 / Sega PSG plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/94c45407-1864-4f41-b88f-941f77f7309d">Play sample</a></td>
+    <td width="33%" valign="top"><strong>YM2612 / Genesis FM</strong><br><img src="screenshots/ym2612.png" alt="Chipper YM2612 / Genesis FM plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/457466e5-f6ca-4dc8-a7fb-36670c96a615">Play sample</a></td>
   </tr>
   <tr>
-    <td width="33%" valign="top"><strong>OPL2 / OPL3</strong><br><img src="screenshots/opl2.png" alt="Chipper OPL2 / OPL3 plugin interface" width="100%"><br><a href="examples/opl2.mp3?raw=1">Play MP3 sample</a></td>
-    <td width="33%" valign="top"><strong>SNES SPC700-style</strong><br><img src="screenshots/snes.png" alt="Chipper SNES SPC700-style plugin interface" width="100%"><br><a href="examples/spc700.mp3?raw=1">Play MP3 sample</a></td>
-    <td width="33%" valign="top"><strong>Atari POKEY</strong><br><img src="screenshots/ataripokey.png" alt="Chipper Atari POKEY plugin interface" width="100%"><br><a href="examples/ataripokey.mp3?raw=1">Play MP3 sample</a></td>
+    <td width="33%" valign="top"><strong>OPL2 / OPL3</strong><br><img src="screenshots/opl2.png" alt="Chipper OPL2 / OPL3 plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/9f5e1262-bd2f-419a-b6a9-0f98f7899134">Play sample</a></td>
+    <td width="33%" valign="top"><strong>SNES SPC700-style</strong><br><img src="screenshots/snes.png" alt="Chipper SNES SPC700-style plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/8bbd1187-0916-4e8a-922c-72c95e1490c6">Play sample</a></td>
+    <td width="33%" valign="top"><strong>Atari POKEY</strong><br><img src="screenshots/ataripokey.png" alt="Chipper Atari POKEY plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/87481ab0-0bc8-49fb-b3f6-71b25398de57">Play sample</a></td>
   </tr>
   <tr>
-    <td width="33%" valign="top"><strong>PC Engine HuC6280</strong><br><img src="screenshots/huc6280.png" alt="Chipper PC Engine HuC6280 plugin interface" width="100%"><br><a href="examples/huc6280.mp3?raw=1">Play MP3 sample</a></td>
-    <td width="33%" valign="top"><strong>Namco WSG</strong><br><img src="screenshots/namcowsg.png" alt="Chipper Namco WSG plugin interface" width="100%"><br><a href="examples/namcowsg.mp3?raw=1">Play MP3 sample</a></td>
-    <td width="33%" valign="top"><strong>Konami SCC</strong><br><img src="screenshots/konamiscc.png" alt="Chipper Konami SCC plugin interface" width="100%"><br><a href="examples/konamiscc.mp3?raw=1">Play MP3 sample</a></td>
+    <td width="33%" valign="top"><strong>PC Engine HuC6280</strong><br><img src="screenshots/huc6280.png" alt="Chipper PC Engine HuC6280 plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/c7d5c736-88af-49ea-a52a-79909d45f3b1">Play sample</a></td>
+    <td width="33%" valign="top"><strong>Namco WSG</strong><br><img src="screenshots/namcowsg.png" alt="Chipper Namco WSG plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/1a4b994c-42cd-4a98-bf13-bd08534ceaa5">Play sample</a></td>
+    <td width="33%" valign="top"><strong>Konami SCC</strong><br><img src="screenshots/konamiscc.png" alt="Chipper Konami SCC plugin interface" width="100%"><br<a href="https://github.com/user-attachments/assets/1b04da2c-e8d7-4e5a-9351-b4955ef34d26">Play sample</a></td>
   </tr>
   <tr>
-    <td width="33%" valign="top"><strong>YM2151 / OPM</strong><br><img src="screenshots/ym2151.png" alt="Chipper YM2151 / OPM plugin interface" width="100%"><br><a href="examples/ym2151.mp3?raw=1">Play MP3 sample</a></td>
-    <td width="33%" valign="top"><strong>YM2413 / OPLL</strong><br><img src="screenshots/ym2413.png" alt="Chipper YM2413 / OPLL plugin interface" width="100%"><br><a href="examples/ym2413.mp3?raw=1">Play MP3 sample</a></td>
-    <td width="33%" valign="top"><strong>Amiga Paula</strong><br><img src="screenshots/amigapaula.png" alt="Chipper Amiga Paula plugin interface" width="100%"><br><a href="examples/amigapaula.mp3?raw=1">Play MP3 sample</a></td>
+    <td width="33%" valign="top"><strong>YM2151 / OPM</strong><br><img src="screenshots/ym2151.png" alt="Chipper YM2151 / OPM plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/7b73fb11-0e02-4d50-972d-c3f713c5f3e3">Play sample</a></td>
+    <td width="33%" valign="top"><strong>YM2413 / OPLL</strong><br><img src="screenshots/ym2413.png" alt="Chipper YM2413 / OPLL plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/4f728f6c-96f5-4905-a53a-4d47c48cc40f">Play sample</a></td>
+    <td width="33%" valign="top"><strong>Amiga Paula</strong><br><img src="screenshots/amigapaula.png" alt="Chipper Amiga Paula plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/0a80f638-e354-4d3c-afcc-cc8b35e398c8">Play sample</a></td>
   </tr>
 </table>
 
