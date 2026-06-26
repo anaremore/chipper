@@ -23,6 +23,12 @@ The project is intentionally honest about accuracy. A mode is only labeled accur
 - A separate `chipper_render` command-line tool renders WAV plus debug JSON for regression tests and emulator validation.
 - Third-party emulator cores are vendored only after a license/provenance audit.
 
+## Screenshots
+
+| NES / RP2A03 | Game Boy / DMG | SID / C64 |
+| --- | --- | --- |
+| <img src="screenshots/nes.png" alt="Chipper NES / RP2A03 plugin interface" width="100%"> | <img src="screenshots/gameboy.png" alt="Chipper Game Boy / DMG plugin interface" width="100%"> | <img src="screenshots/sid.png" alt="Chipper SID / C64 plugin interface" width="100%"> |
+
 ## Current Development Focus
 
 Chipper is being developed as an accurate, truthful chip instrument rather than a decorative retro synth. The current product rules are:

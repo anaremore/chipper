@@ -165,6 +165,10 @@ public:
     juce::Rectangle<int> getPulseDutyBoundsForLayoutTest() const { return pulseDutySegmentBounds; }
     juce::Rectangle<int> getPulse2DutyBoundsForLayoutTest() const { return pulse2DutySegmentBounds; }
     juce::Rectangle<int> getDmgWaveLevelBoundsForLayoutTest() const { return dmgWaveLevelSegmentBounds; }
+    juce::Rectangle<int> getDmgStereoRouteBoundsForLayoutTest() const
+    {
+        return ! dmgStereoRouteSegmentBounds.isEmpty() ? dmgStereoRouteSegmentBounds : dmgStereoRouteBox.getBounds();
+    }
     juce::Rectangle<int> getSnNoiseModeBoundsForLayoutTest() const { return snNoiseModeSegmentBounds; }
     juce::Rectangle<int> getSnNoiseModeMenuBoundsForLayoutTest() const { return snNoiseModeBox.getBounds(); }
     juce::Rectangle<int> getYmChannelMixBoundsForLayoutTest(size_t channel) const
@@ -189,6 +193,7 @@ public:
     juce::Rectangle<int> getDmcRateBoundsForLayoutTest() const { return dmcRateBox.getBounds(); }
     juce::Rectangle<int> getSampleWaveformBoundsForLayoutTest() const { return sampleWaveformPreview.getBounds(); }
     juce::Rectangle<int> getEnvelopeDecayBoundsForLayoutTest() const { return envelopeDecaySlider.getBounds(); }
+    juce::Rectangle<int> getStereoSpreadBoundsForLayoutTest() const { return stereoSpreadSlider.getBounds(); }
     juce::Rectangle<int> getOutputSliderBoundsForLayoutTest() const { return outputSlider.getBounds(); }
     juce::Rectangle<int> getOutputScopeBoundsForLayoutTest() const { return outputScopePreview.getBounds(); }
     juce::Rectangle<int> getNativeSliderBoundsForLayoutTest(size_t index) const

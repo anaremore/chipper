@@ -2,7 +2,9 @@
 #include "PluginProcessor.h"
 #include "Parameters.h"
 
+#include <algorithm>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <typeinfo>
 
@@ -519,6 +521,60 @@ bool checkWavetableSourceDeck(chipper::ChipMode mode)
             std::cerr << "editor_size_smoke: wavetable level lane drifted away from its selector for channel "
                       << channel << " selector " << waveSelectorBounds.toString()
                       << " level " << levelBounds.toString() << '\n';
+            ok = false;
+        }
+    }
+
+    if (mode == chipper::ChipMode::huc6280)
+    {
+        const auto envelopeBounds = editor.getModuleBoundsForLayoutTest(3);
+        const auto motionBounds = editor.getModuleBoundsForLayoutTest(4);
+        const auto outputModuleBounds = editor.getModuleBoundsForLayoutTest(5);
+        const auto lfoBounds = editor.getDmgStereoRouteBoundsForLayoutTest();
+        const auto stereoSpreadBounds = editor.getStereoSpreadBoundsForLayoutTest();
+        const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+        const auto lowerModuleBottom = std::max({ envelopeBounds.getBottom(), motionBounds.getBottom(), outputModuleBounds.getBottom() });
+
+        if (motionBounds.isEmpty() || motionBounds.getHeight() < 150)
+        {
+            std::cerr << "editor_size_smoke: HuC6280 motion panel is missing or too short for Ch 1/2 LFO: "
+                      << motionBounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (lfoBounds.isEmpty()
+            || lfoBounds.getWidth() < 180
+            || lfoBounds.getHeight() < 24
+            || ! motionBounds.expanded(2).contains(lfoBounds))
+        {
+            std::cerr << "editor_size_smoke: HuC6280 Ch 1/2 LFO control is not readable/owned by Motion: motion "
+                      << motionBounds.toString() << " control " << lfoBounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (outputModuleBounds.isEmpty() || outputModuleBounds.getHeight() < 150)
+        {
+            std::cerr << "editor_size_smoke: HuC6280 output panel is missing or too short: "
+                      << outputModuleBounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (stereoSpreadBounds.isEmpty()
+            || stereoSpreadBounds.getWidth() < 180
+            || stereoSpreadBounds.getHeight() < 18
+            || ! outputModuleBounds.expanded(2).contains(stereoSpreadBounds))
+        {
+            std::cerr << "editor_size_smoke: HuC6280 stereo spread is not readable/owned by Output: output "
+                      << outputModuleBounds.toString() << " control " << stereoSpreadBounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (! performanceBounds.isEmpty()
+            && lowerModuleBottom > 0
+            && performanceBounds.getY() - lowerModuleBottom > 36)
+        {
+            std::cerr << "editor_size_smoke: HuC6280 module stack leaves excessive dead space before performance macros: modules bottom "
+                      << lowerModuleBottom << " performance " << performanceBounds.toString() << '\n';
             ok = false;
         }
     }
@@ -1087,10 +1143,18 @@ bool checkSidAdsrLayout()
             return false;
         }
 
-        if (adsrModuleBounds.getHeight() < 230)
+        if (adsrModuleBounds.getHeight() < 260)
         {
             std::cerr << "editor_size_smoke: SID ADSR module is too short for readable per-voice controls at width "
                       << editorWidth << ": " << adsrModuleBounds.toString() << '\n';
+            widthOk = false;
+        }
+
+        if (! performanceBounds.isEmpty() && adsrModuleBounds.getBottom() > performanceBounds.getY() - 8)
+        {
+            std::cerr << "editor_size_smoke: SID ADSR panel crowds performance macros at width "
+                      << editorWidth << ": module " << adsrModuleBounds.toString()
+                      << " performance " << performanceBounds.toString() << '\n';
             widthOk = false;
         }
 
@@ -1113,7 +1177,7 @@ bool checkSidAdsrLayout()
         for (size_t voice = 0; voice < 3; ++voice)
         {
             const auto preview = editor.getSidEnvelopePreviewBoundsForLayoutTest(voice);
-            if (preview.isEmpty() || preview.getWidth() < 160 || preview.getHeight() < 42)
+            if (preview.isEmpty() || preview.getWidth() < 160 || preview.getHeight() < 46)
             {
                 std::cerr << "editor_size_smoke: SID envelope preview is not readable for voice "
                           << (voice + 1u) << " at width " << editorWidth
@@ -1130,11 +1194,11 @@ bool checkSidAdsrLayout()
                 widthOk = false;
             }
 
-            auto sliderBottom = 0;
+            auto sliderTop = std::numeric_limits<int>::max();
             for (size_t field = 0; field < 4; ++field)
             {
                 const auto slider = editor.getSidAdsrSliderBoundsForLayoutTest((voice * 4u) + field);
-                if (slider.isEmpty() || slider.getHeight() < 26)
+                if (slider.isEmpty() || slider.getHeight() < 62)
                 {
                     std::cerr << "editor_size_smoke: SID ADSR slider is not readable for voice "
                               << (voice + 1u) << ", field " << (field + 1u)
@@ -1152,15 +1216,15 @@ bool checkSidAdsrLayout()
                     widthOk = false;
                 }
 
-                if (slider.getBottom() > sliderBottom)
-                    sliderBottom = slider.getBottom();
+                if (slider.getY() < sliderTop)
+                    sliderTop = slider.getY();
             }
 
-            if (! preview.isEmpty() && preview.getY() <= sliderBottom)
+            if (! preview.isEmpty() && preview.getBottom() > sliderTop - 4)
             {
-                std::cerr << "editor_size_smoke: SID envelope preview overlaps ADSR sliders for voice "
+                std::cerr << "editor_size_smoke: SID envelope preview overlaps or crowds ADSR sliders for voice "
                           << (voice + 1u) << " at width " << editorWidth
-                          << ": slider bottom " << sliderBottom
+                          << ": slider top " << sliderTop
                           << " preview " << preview.toString() << '\n';
                 widthOk = false;
             }

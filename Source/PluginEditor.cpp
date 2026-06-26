@@ -3446,13 +3446,13 @@ void ChipperAudioProcessorEditor::resized()
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
     const auto paulaLayout = displayedMode == chipper::ChipMode::paula;
     const auto sn76489Layout = displayedMode == chipper::ChipMode::sn76489;
+    const auto huc6280Layout = displayedMode == chipper::ChipMode::huc6280;
     const auto sampleLayout = spc700Layout || paulaLayout;
-    const auto wavetableLayout = displayedMode == chipper::ChipMode::huc6280
+    const auto wavetableLayout = huc6280Layout
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
-    const auto showMotionModule = sidLayout;
-    const auto performanceStripHeight = sidLayout ? 132 : (nesLayout ? 236 : (spc700Layout ? 124 : (paulaLayout ? 124 : (wavetableLayout ? 132 : 196))));
-    const auto maxModulesHeight = sidLayout ? 666 : (nesLayout ? 436 : (spc700Layout ? 548 : (paulaLayout ? 580 : (wavetableLayout ? 416 : 492))));
+    const auto performanceStripHeight = sidLayout ? 124 : (nesLayout ? 236 : (spc700Layout ? 124 : (paulaLayout ? 124 : (wavetableLayout ? 132 : 196))));
+    const auto maxModulesHeight = sidLayout ? 666 : (nesLayout ? 436 : (spc700Layout ? 548 : (paulaLayout ? 580 : (huc6280Layout ? 478 : (wavetableLayout ? 416 : 492)))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
     auto modules = area.removeFromTop(modulesHeight);
@@ -3463,14 +3463,14 @@ void ChipperAudioProcessorEditor::resized()
     if (sidLayout)
     {
         const auto availableRowsHeight = std::max(0, modules.getHeight() - (gap * 2));
-        auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.29)), 156, 170);
-        auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.18)), 76, 108);
-        constexpr auto minimumEnvelopeHeight = 238;
+        auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.29)), 162, 170);
+        auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.17)), 84, 100);
+        constexpr auto minimumEnvelopeHeight = 260;
 
         auto overflow = topRowHeight + middleRowHeight + minimumEnvelopeHeight - availableRowsHeight;
         if (overflow > 0)
         {
-            const auto middleReduction = std::min(overflow, std::max(0, middleRowHeight - 60));
+            const auto middleReduction = std::min(overflow, std::max(0, middleRowHeight - 72));
             middleRowHeight -= middleReduction;
             overflow -= middleReduction;
         }
@@ -3592,7 +3592,7 @@ void ChipperAudioProcessorEditor::resized()
     else if (wavetableLayout)
     {
         const auto availableHeight = modules.getHeight();
-        const auto bottomRowHeight = displayedMode == chipper::ChipMode::huc6280 ? 96 : 88;
+        const auto bottomRowHeight = huc6280Layout ? 196 : 88;
         const auto visibleSources = static_cast<int>(chipper::visibleSourceCountForMode(displayedMode));
         const auto sourceColumns = visibleSources <= 6 ? 3 : 4;
         const auto sourceRows = std::max(1, (visibleSources + sourceColumns - 1) / sourceColumns);
@@ -3603,7 +3603,8 @@ void ChipperAudioProcessorEditor::resized()
         const auto sourceMinimumHeight = std::min(desiredSourceHeight, sourceMaximumHeight);
         const auto sourceRowHeight = std::clamp(desiredSourceHeight, sourceMinimumHeight, sourceMaximumHeight);
         const auto actualBottomRowHeight = std::max(0, std::min(bottomRowHeight, availableHeight - sourceRowHeight - gap));
-        const auto bottomColumnWidth = (modules.getWidth() - gap) / 2;
+        const auto bottomColumns = huc6280Layout ? 3 : 2;
+        const auto bottomColumnWidth = (modules.getWidth() - (gap * (bottomColumns - 1))) / bottomColumns;
         const auto topY = modules.getY();
         const auto bottomY = topY + sourceRowHeight + gap;
 
@@ -3611,8 +3612,10 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), sourceRowHeight };
         moduleBounds[2] = {};
         moduleBounds[3] = { modules.getX(), bottomY, bottomColumnWidth, actualBottomRowHeight };
-        moduleBounds[4] = {};
-        moduleBounds[5] = { modules.getX() + bottomColumnWidth + gap, bottomY, bottomColumnWidth, actualBottomRowHeight };
+        moduleBounds[4] = huc6280Layout
+            ? juce::Rectangle<int> { modules.getX() + bottomColumnWidth + gap, bottomY, bottomColumnWidth, actualBottomRowHeight }
+            : juce::Rectangle<int> {};
+        moduleBounds[5] = { modules.getX() + ((bottomColumnWidth + gap) * (bottomColumns - 1)), bottomY, bottomColumnWidth, actualBottomRowHeight };
     }
     else if (paulaLayout)
     {
@@ -4273,7 +4276,11 @@ void ChipperAudioProcessorEditor::resized()
     }
     auto outputTonePanel = outputPanel;
     auto outputRoutePanel = outputPanel;
+    const auto routeOwnsMotionCard = displayedMode == chipper::ChipMode::huc6280
+        && usesDmgStereoRouteSegment(displayedMode)
+        && ! moduleBounds[4].isEmpty();
     const auto splitOutputCard = displayedMode != chipper::ChipMode::sid
+        && ! routeOwnsMotionCard
         && usesStereoSpreadControl(displayedMode)
         && usesDmgStereoRouteSegment(displayedMode);
     if (splitOutputCard)
@@ -4302,6 +4309,7 @@ void ChipperAudioProcessorEditor::resized()
     profilePanel.removeFromTop(20);
     profilePanel.removeFromTop(30);
     profilePanel.removeFromTop(4);
+    auto motionRoutePanel = motionPanel;
     if (sampleLayout)
     {
         dmgStereoRouteLabel.setBounds({});
@@ -4312,7 +4320,9 @@ void ChipperAudioProcessorEditor::resized()
     }
     else
     {
-        placeDmgStereoRouteSegment(displayedMode == chipper::ChipMode::sid ? profilePanel : outputRoutePanel);
+        placeDmgStereoRouteSegment(displayedMode == chipper::ChipMode::sid
+                                       ? profilePanel
+                                       : (routeOwnsMotionCard ? motionRoutePanel : outputRoutePanel));
     }
 
     area.removeFromTop(12);
@@ -4988,15 +4998,28 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
             bounds.removeFromLeft(voiceGap);
 
         sidEnvelopeVoiceLabels[voice].setBounds(voiceColumn.removeFromTop(std::min(15, voiceColumn.getHeight())));
-        voiceColumn.removeFromTop(1);
+        voiceColumn.removeFromTop(std::min(2, voiceColumn.getHeight()));
 
         const auto availableVoiceHeight = voiceColumn.getHeight();
-        const auto previewReserve = availableVoiceHeight >= 144 ? 52
-            : (availableVoiceHeight >= 118 ? 40
-                   : (availableVoiceHeight >= 96 ? 30 : 0));
-        const auto maxControlHeight = availableVoiceHeight >= 144 ? 76 : 64;
-        const auto targetControlHeight = std::clamp(availableVoiceHeight - previewReserve - 4, 42, maxControlHeight);
-        auto sliderRow = voiceColumn.removeFromTop(std::min(targetControlHeight, voiceColumn.getHeight()));
+        auto previewHeight = availableVoiceHeight >= 158 ? 64
+            : (availableVoiceHeight >= 132 ? 54
+                   : (availableVoiceHeight >= 108 ? 44 : 0));
+        const auto previewGap = previewHeight > 0 ? (availableVoiceHeight >= 132 ? 7 : 5) : 0;
+        const auto minimumSliderHeight = 62;
+        if (previewHeight > 0 && availableVoiceHeight - previewHeight - previewGap < minimumSliderHeight)
+            previewHeight = std::max(0, availableVoiceHeight - minimumSliderHeight - previewGap);
+
+        if (previewHeight >= 36)
+        {
+            sidEnvelopePreviews[voice].setBounds(voiceColumn.removeFromTop(previewHeight).reduced(0, 1));
+            voiceColumn.removeFromTop(std::min(previewGap, voiceColumn.getHeight()));
+        }
+        else
+        {
+            sidEnvelopePreviews[voice].setBounds({});
+        }
+
+        auto sliderRow = voiceColumn.removeFromTop(voiceColumn.getHeight());
 
         constexpr auto fieldGap = 4;
         const auto fieldWidth = (sliderRow.getWidth() - (fieldGap * static_cast<int>(sidAdsrFieldCount - 1u))) / static_cast<int>(sidAdsrFieldCount);
@@ -5012,13 +5035,6 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
             sidAdsrSliders[index].setBounds(cell.reduced(0, 1));
             sidAdsrBoxes[index].setBounds({});
         }
-
-        voiceColumn.removeFromTop(std::min(4, voiceColumn.getHeight()));
-        const auto previewHeight = std::min(previewReserve, voiceColumn.getHeight());
-        if (previewHeight >= 24)
-            sidEnvelopePreviews[voice].setBounds(voiceColumn.removeFromTop(previewHeight).reduced(0, 1));
-        else
-            sidEnvelopePreviews[voice].setBounds({});
     }
 }
 
