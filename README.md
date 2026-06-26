@@ -25,9 +25,35 @@ The project is intentionally honest about accuracy. A mode is only labeled accur
 
 ## Screenshots
 
-| NES / RP2A03 | Game Boy / DMG | SID / C64 |
-| --- | --- | --- |
-| <img src="screenshots/nes.png" alt="Chipper NES / RP2A03 plugin interface" width="100%"> | <img src="screenshots/gameboy.png" alt="Chipper Game Boy / DMG plugin interface" width="100%"> | <img src="screenshots/sid.png" alt="Chipper SID / C64 plugin interface" width="100%"> |
+Each interface screenshot includes a click-to-play MP3 example for GitHub users.
+
+<table>
+  <tr>
+    <td width="33%" valign="top"><strong>NES / RP2A03</strong><br><img src="screenshots/nes.png" alt="Chipper NES / RP2A03 plugin interface" width="100%"><br><a href="examples/nes.mp3?raw=1">Play MP3 sample</a></td>
+    <td width="33%" valign="top"><strong>Game Boy / DMG</strong><br><img src="screenshots/gameboy.png" alt="Chipper Game Boy / DMG plugin interface" width="100%"><br><a href="examples/gameboy.mp3?raw=1">Play MP3 sample</a></td>
+    <td width="33%" valign="top"><strong>SID / C64</strong><br><img src="screenshots/sid.png" alt="Chipper SID / C64 plugin interface" width="100%"><br><a href="examples/sid.mp3?raw=1">Play MP3 sample</a></td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top"><strong>YM2149 / AY</strong><br><img src="screenshots/ym2149.png" alt="Chipper YM2149 / AY plugin interface" width="100%"><br><a href="examples/ym2149.mp3?raw=1">Play MP3 sample</a></td>
+    <td width="33%" valign="top"><strong>SN76489 / Sega PSG</strong><br><img src="screenshots/sn76489.png" alt="Chipper SN76489 / Sega PSG plugin interface" width="100%"><br><a href="examples/sn76489.mp3?raw=1">Play MP3 sample</a></td>
+    <td width="33%" valign="top"><strong>YM2612 / Genesis FM</strong><br><img src="screenshots/ym2612.png" alt="Chipper YM2612 / Genesis FM plugin interface" width="100%"><br><a href="examples/ym2612.mp3?raw=1">Play MP3 sample</a></td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top"><strong>OPL2 / OPL3</strong><br><img src="screenshots/opl2.png" alt="Chipper OPL2 / OPL3 plugin interface" width="100%"><br><a href="examples/opl2.mp3?raw=1">Play MP3 sample</a></td>
+    <td width="33%" valign="top"><strong>SNES SPC700-style</strong><br><img src="screenshots/snes.png" alt="Chipper SNES SPC700-style plugin interface" width="100%"><br><a href="examples/spc700.mp3?raw=1">Play MP3 sample</a></td>
+    <td width="33%" valign="top"><strong>Atari POKEY</strong><br><img src="screenshots/ataripokey.png" alt="Chipper Atari POKEY plugin interface" width="100%"><br><a href="examples/ataripokey.mp3?raw=1">Play MP3 sample</a></td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top"><strong>PC Engine HuC6280</strong><br><img src="screenshots/huc6280.png" alt="Chipper PC Engine HuC6280 plugin interface" width="100%"><br><a href="examples/huc6280.mp3?raw=1">Play MP3 sample</a></td>
+    <td width="33%" valign="top"><strong>Namco WSG</strong><br><img src="screenshots/namcowsg.png" alt="Chipper Namco WSG plugin interface" width="100%"><br><a href="examples/namcowsg.mp3?raw=1">Play MP3 sample</a></td>
+    <td width="33%" valign="top"><strong>Konami SCC</strong><br><img src="screenshots/konamiscc.png" alt="Chipper Konami SCC plugin interface" width="100%"><br><a href="examples/konamiscc.mp3?raw=1">Play MP3 sample</a></td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top"><strong>YM2151 / OPM</strong><br><img src="screenshots/ym2151.png" alt="Chipper YM2151 / OPM plugin interface" width="100%"><br><a href="examples/ym2151.mp3?raw=1">Play MP3 sample</a></td>
+    <td width="33%" valign="top"><strong>YM2413 / OPLL</strong><br><img src="screenshots/ym2413.png" alt="Chipper YM2413 / OPLL plugin interface" width="100%"><br><a href="examples/ym2413.mp3?raw=1">Play MP3 sample</a></td>
+    <td width="33%" valign="top"><strong>Amiga Paula</strong><br><img src="screenshots/amigapaula.png" alt="Chipper Amiga Paula plugin interface" width="100%"><br><a href="examples/amigapaula.mp3?raw=1">Play MP3 sample</a></td>
+  </tr>
+</table>
 
 ## Current Development Focus
 
