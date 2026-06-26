@@ -6336,7 +6336,7 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
 
     const juce::ScopedValueSetter<bool> suppressMacro(suppressMacroTemplateApply, true);
     const juce::ScopedValueSetter<bool> applyingPreset(applyingFactoryPreset, true);
-    currentUserPresetFile = {};
+    currentUserPresetFile = juce::File{};
     userPresetSaveButton.setTooltip("Save the current sound as a shareable .chipperpreset file. Loaded user presets overwrite their source file; new sounds ask for a file name.");
     setChoiceParameterFromUi(chipper::parameters::id::chipMode, chipModeChoiceIndex(preset.chip));
     setChoiceParameterFromUi(chipper::parameters::id::accuracy, accuracyChoiceIndex(preset.accuracy));
