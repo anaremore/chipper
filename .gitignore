@@ -25,3 +25,4 @@ JUCE/
 __pycache__/
 *.py[cod]
 .codex-audit/
+examples/video/

@@ -141,9 +141,11 @@ These cover high-risk playable-instrument paths such as NES DMC loop-off behavio
 GitHub Actions are intentionally quiet on normal branch pushes. The release workflow only runs when you push a `v*` tag, publish a GitHub Release, or start it manually from the Actions tab.
 
 - Push a tag such as `v0.2.0` when you want GitHub to build, test, package, create or update the GitHub Release, and attach Windows, macOS, and Linux VST3 zips.
-- Publishing a GitHub Release manually for an existing tag also builds and attaches the same platform zips.
-- Use the manual `Release VST3` workflow for candidate builds without creating a public release.
-- The zip includes `Chipper.vst3`, `README.md`, `THIRD_PARTY_NOTICES.md`, and `LICENSE` when present.
+- Tag-created releases are draft/prerelease by default so the artifacts can be downloaded, checksum-verified, and smoke-tested before publishing.
+- Publishing a GitHub Release manually for an existing tag also builds and attaches the same platform zips and checksum files.
+- Use the manual `Release VST3` workflow for private candidate builds, or provide a `release_tag` and enable `attach_to_release` to stage assets on a draft/prerelease release.
+- The zip includes `Chipper.vst3`, `README.md`, `THIRD_PARTY_NOTICES.md`, `CHANGELOG.md`, and `LICENSE` when present.
+- Each zip has a matching `.sha256` file using the standard `hash  filename` checksum format.
 - No build cache is configured yet, keeping the workflow simple and avoiding extra artifact/storage churn.
 
 See [docs/release-builds.md](docs/release-builds.md) for the local build sequence, release workflow behavior, install verification, and release gate checklist.

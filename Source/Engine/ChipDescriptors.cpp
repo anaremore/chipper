@@ -2053,7 +2053,7 @@ std::array<ModuleDescriptor, 6> ym2149Modules()
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "AY/YM PSG clean-room register model.", { "AY / YM2149", "Clock override", "Hybrid default", "Authentic still partial" }),
         makeModule("sources", "Channels", "Three tone channels plus shared noise.", { "Channel A", "Channel B", "Channel C", "Shared noise" }),
-        makeModule("tone", "Mixer / Envelope", "Tone/noise mixer and hardware envelope shapes.", { "Tone/noise bits", "Noise period", "Envelope shape", "Crunch" }),
+        makeModule("tone", "Mixer", "Global tone/noise behavior with per-channel overrides.", { "Tone/noise bits", "Noise period", "Channel overrides", "Crunch" }),
         makeModule("envelope", "Hardware Envelope", "AY/YM shape generator and volume timing.", { "Volume registers", "Env speed", "Shape select", "Hybrid helper" }),
         makeModule("motion", "Motion", "Classic fake-chord and demo-scene movement.", { "Fast arps", "Fake chords", "Pattern retrigger", "Pitch motion" }),
         makeModule("output", "Output", "Bright buzzy computer output.", { "Output gain", "Stereo spread", "Alias character", "Preset suggestions" })

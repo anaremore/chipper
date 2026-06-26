@@ -3446,6 +3446,7 @@ void ChipperAudioProcessorEditor::resized()
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
     const auto paulaLayout = displayedMode == chipper::ChipMode::paula;
     const auto sn76489Layout = displayedMode == chipper::ChipMode::sn76489;
+    const auto ym2149Layout = displayedMode == chipper::ChipMode::ym2149;
     const auto huc6280Layout = displayedMode == chipper::ChipMode::huc6280;
     const auto sampleLayout = spc700Layout || paulaLayout;
     const auto wavetableLayout = huc6280Layout
@@ -3588,6 +3589,37 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[3] = { modules.getX(), bottomY, columnWidth, bottomRowHeight };
         moduleBounds[4] = {};
         moduleBounds[5] = { modules.getX() + columnWidth + gap, bottomY, columnWidth, bottomRowHeight };
+    }
+    else if (ym2149Layout)
+    {
+        const auto availableHeight = modules.getHeight();
+        auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.31)), 136, 154);
+        auto outputRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.20)), 82, 104);
+        auto middleRowHeight = std::max(0, availableHeight - sourceRowHeight - outputRowHeight - (gap * 2));
+
+        constexpr auto minimumMiddleRowHeight = 170;
+        auto deficit = minimumMiddleRowHeight - middleRowHeight;
+        if (deficit > 0)
+        {
+            const auto outputReduction = std::min(deficit, std::max(0, outputRowHeight - 82));
+            outputRowHeight -= outputReduction;
+            deficit -= outputReduction;
+
+            const auto sourceReduction = std::min(deficit, std::max(0, sourceRowHeight - 136));
+            sourceRowHeight -= sourceReduction;
+            middleRowHeight = std::max(0, availableHeight - sourceRowHeight - outputRowHeight - (gap * 2));
+        }
+
+        const auto topY = modules.getY();
+        const auto middleY = topY + sourceRowHeight + gap;
+        const auto bottomY = middleY + middleRowHeight + gap;
+
+        moduleBounds[0] = {};
+        moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), sourceRowHeight };
+        moduleBounds[2] = { modules.getX(), middleY, columnWidth, middleRowHeight };
+        moduleBounds[3] = { modules.getX() + columnWidth + gap, middleY, columnWidth, middleRowHeight };
+        moduleBounds[4] = {};
+        moduleBounds[5] = { modules.getX(), bottomY, modules.getWidth(), outputRowHeight };
     }
     else if (wavetableLayout)
     {
@@ -4130,6 +4162,8 @@ void ChipperAudioProcessorEditor::resized()
     {
         ymChannelMixLabel.setBounds({});
         ymChannelMixValueLabel.setBounds({});
+        placeToneNoiseMixSegment(primaryTonePanel);
+        placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], secondaryTonePanel);
     }
     else if (displayedMode == chipper::ChipMode::ym2612 || displayedMode == chipper::ChipMode::ym2151)
         placeFmAlgorithmControl(primaryTonePanel);
@@ -4164,6 +4198,7 @@ void ChipperAudioProcessorEditor::resized()
         if (usesDmgWaveLevelSegment(displayedMode))
             placeDmgWaveLevelSegment(displayedMode == chipper::ChipMode::dmg ? tertiaryTonePanel : secondaryTonePanel);
         if (displayedMode != chipper::ChipMode::spc700
+            && displayedMode != chipper::ChipMode::ym2149
             && displayedMode != chipper::ChipMode::ym2413
             && ! usesFmEnvelopeShapePanel
             && usesYmEnvelopeShapeSegment(displayedMode))
@@ -4215,9 +4250,14 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (displayedMode == chipper::ChipMode::ym2149)
     {
-        auto speedArea = envelopeDecayPanel.removeFromTop(std::min(56, envelopeDecayPanel.getHeight()));
+        const auto compactEnvelopePanel = envelopeDecayPanel.getHeight() < 142;
+        auto shapeArea = envelopeDecayPanel.removeFromTop(std::min(compactEnvelopePanel ? 47 : 52, envelopeDecayPanel.getHeight()));
+        placeYmEnvelopeShapeSegment(shapeArea);
+        envelopeDecayPanel.removeFromTop(std::min(compactEnvelopePanel ? 4 : 6, envelopeDecayPanel.getHeight()));
+
+        auto speedArea = envelopeDecayPanel.removeFromTop(std::min(compactEnvelopePanel ? 50 : 56, envelopeDecayPanel.getHeight()));
         placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, speedArea);
-        envelopeDecayPanel.removeFromTop(6);
+        envelopeDecayPanel.removeFromTop(std::min(compactEnvelopePanel ? 4 : 6, envelopeDecayPanel.getHeight()));
         ymEnvelopePreview.setBounds(envelopeDecayPanel.reduced(0, 1));
     }
     else if (displayedMode == chipper::ChipMode::spc700)
@@ -4484,7 +4524,7 @@ void ChipperAudioProcessorEditor::resized()
         placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlValueLabels[0], controlCells[0]);
         placePulseDutySegment(controlCells[0]);
         placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[1]);
-        if (displayedMode != chipper::ChipMode::sid)
+        if (displayedMode != chipper::ChipMode::sid && displayedMode != chipper::ChipMode::ym2149)
             placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[2]);
 
         const auto sustainCell = displayedMode == chipper::ChipMode::sid ? controlCells[2] : controlCells[3];
@@ -4496,8 +4536,8 @@ void ChipperAudioProcessorEditor::resized()
         else
         {
             placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], sustainCell);
+            placeToneNoiseMixSegment(sustainCell);
         }
-        placeToneNoiseMixSegment(sustainCell);
     }
 
     auto nesDmcModuleCell = moduleBounds[5].reduced(12, 9);
@@ -6548,7 +6588,10 @@ bool ChipperAudioProcessorEditor::usesYmEnvelopeShapeSegment(chipper::ChipMode m
 
     return chipper::chipHasParameterSurface(mode,
                                             chipper::ChipParameterRole::ymEnvelopeShape,
-                                            chipper::ControlSurface::segmentedChoice);
+                                            chipper::ControlSurface::segmentedChoice)
+        || chipper::chipHasParameterSurface(mode,
+                                            chipper::ChipParameterRole::ymEnvelopeShape,
+                                            chipper::ControlSurface::menu);
 }
 
 bool ChipperAudioProcessorEditor::usesYmChannelMixControls(chipper::ChipMode mode) const

@@ -176,6 +176,11 @@ public:
         return channel < ymChannelMixBoxes.size() ? ymChannelMixBoxes[channel].getBounds() : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getToneNoiseMixBoundsForLayoutTest() const { return toneNoiseMixSegmentBounds; }
+    juce::Rectangle<int> getYmEnvelopeShapeBoundsForLayoutTest() const
+    {
+        return ! ymEnvelopeShapeSegmentBounds.isEmpty() ? ymEnvelopeShapeSegmentBounds : sidFilterModeBox.getBounds();
+    }
+    juce::Rectangle<int> getYmEnvelopePreviewBoundsForLayoutTest() const { return ymEnvelopePreview.getBounds(); }
     juce::Rectangle<int> getModuleBoundsForLayoutTest(size_t module) const
     {
         return module < moduleBounds.size() ? moduleBounds[module] : juce::Rectangle<int> {};

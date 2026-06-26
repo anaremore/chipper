@@ -77,7 +77,7 @@ The workflow is `.github/workflows/release.yml`.
 
 It runs only for:
 
-- Manual `workflow_dispatch` from the GitHub Actions tab.
+- Manual `workflow_dispatch` from the GitHub Actions tab. Manual runs can set an optional `release_tag` for artifact names and can set `attach_to_release` to upload assets to a draft/prerelease GitHub Release for that tag.
 - Version tag pushes that match `v*`, such as `v0.2.0`.
 - Published GitHub Releases.
 
@@ -95,17 +95,25 @@ Each platform artifact is packaged as a zip containing:
 - `README.md`
 - `THIRD_PARTY_NOTICES.md`
 - `LICENSE`
+- `CHANGELOG.md`
 
-For a public release:
+Each platform zip is accompanied by a `.sha256` file in the standard `hash  filename` format for `sha256sum -c` style verification. README media assets under `screenshots/`, `examples/`, and generated upload helpers under `examples/video/` are intentionally excluded from release zips so platform downloads stay focused on the plugin.
+
+For a candidate build:
+
+1. Run `Release VST3` manually from the Actions tab.
+2. Leave `attach_to_release` off for private workflow artifacts, or provide `release_tag` and enable `attach_to_release` to stage assets on a draft/prerelease GitHub Release.
+3. Download each platform zip plus `.sha256` file, verify the checksum, and smoke-test at least the Windows VST3 in a host.
+
+For a public release draft:
 
 1. Make sure `main` is green locally.
-2. Create and push a version tag, for example `v0.2.0`.
-3. Let the `Release VST3` workflow build, test, package, create or update the GitHub Release, and attach the zips.
-4. Download each artifact and smoke-test it in a host before calling the release production-ready.
+2. Update `CHANGELOG.md` and bump the CMake project version if this is a new release version.
+3. Create and push a version tag, for example `v0.2.0`.
+4. Let the `Release VST3` workflow build, test, package, create or update a draft/prerelease GitHub Release, and attach the zips plus checksums.
+5. Download each artifact, verify checksums, and smoke-test it in a host before publishing the release.
 
-For a private candidate build, run `Release VST3` manually from the Actions tab instead of publishing a release.
-
-Publishing a GitHub Release manually for an existing tag also runs the workflow and uploads the platform zips to that release. This is useful if you want to edit release notes first, but a plain `v*` tag push is enough to start an automated release build.
+Publishing a GitHub Release manually for an existing tag also runs the workflow and uploads the platform zips plus checksums to that release. This is useful if you want to write release notes first. A plain `v*` tag push creates a draft/prerelease build by default so maintainers can inspect artifacts before making the release public.
 
 ## Release Gate
 

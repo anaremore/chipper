@@ -378,21 +378,48 @@ bool checkYm2149ToneNoiseMixLayout()
         }
     }
 
+    const auto mixerBounds = editor.getModuleBoundsForLayoutTest(2);
+    const auto envelopeModuleBounds = editor.getModuleBoundsForLayoutTest(3);
+    const auto outputModuleBounds = editor.getModuleBoundsForLayoutTest(5);
     const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
     const auto toneNoiseBounds = editor.getToneNoiseMixBoundsForLayoutTest();
+    const auto noisePitchBounds = editor.getNativeSliderBoundsForLayoutTest(2);
+    const auto retiredMacroSliderBounds = editor.getNativeSliderBoundsForLayoutTest(3);
     const auto legacyReadoutBounds = editor.getNativeValueLabelBoundsForLayoutTest(3);
+    const auto envelopeShapeBounds = editor.getYmEnvelopeShapeBoundsForLayoutTest();
+    const auto envelopeSpeedBounds = editor.getEnvelopeDecayBoundsForLayoutTest();
+    const auto envelopePreviewBounds = editor.getYmEnvelopePreviewBoundsForLayoutTest();
+
+    if (mixerBounds.isEmpty() || mixerBounds.getHeight() < 160)
+    {
+        std::cerr << "editor_size_smoke: YM2149 mixer module is missing useful space: "
+                  << mixerBounds.toString() << '\n';
+        ok = false;
+    }
 
     if (toneNoiseBounds.isEmpty() || toneNoiseBounds.getWidth() < 240 || toneNoiseBounds.getHeight() < 24)
     {
-        std::cerr << "editor_size_smoke: YM2149 performance tone/noise mix is not readable: "
+        std::cerr << "editor_size_smoke: YM2149 mixer tone/noise mix is not readable: "
                   << toneNoiseBounds.toString() << '\n';
         ok = false;
     }
 
-    if (! performanceBounds.expanded(2).contains(toneNoiseBounds))
+    if (! mixerBounds.expanded(2).contains(toneNoiseBounds))
     {
-        std::cerr << "editor_size_smoke: YM2149 performance tone/noise mix escaped performance area: control "
-                  << toneNoiseBounds.toString() << " performance " << performanceBounds.toString() << '\n';
+        std::cerr << "editor_size_smoke: YM2149 tone/noise mix escaped mixer module: control "
+                  << toneNoiseBounds.toString() << " mixer " << mixerBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (noisePitchBounds.isEmpty()
+        || noisePitchBounds.getWidth() < 180
+        || noisePitchBounds.getHeight() < 18
+        || ! mixerBounds.expanded(2).contains(noisePitchBounds)
+        || noisePitchBounds.intersects(toneNoiseBounds))
+    {
+        std::cerr << "editor_size_smoke: YM2149 noise pitch is not readable/owned by mixer module: noise "
+                  << noisePitchBounds.toString() << " tone/noise " << toneNoiseBounds.toString()
+                  << " mixer " << mixerBounds.toString() << '\n';
         ok = false;
     }
 
@@ -400,6 +427,71 @@ bool checkYm2149ToneNoiseMixLayout()
     {
         std::cerr << "editor_size_smoke: YM2149 hidden tone/noise macro readout still occupies space: "
                   << legacyReadoutBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (! retiredMacroSliderBounds.isEmpty())
+    {
+        std::cerr << "editor_size_smoke: YM2149 tone/noise macro slider still occupies performance space: "
+                  << retiredMacroSliderBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (envelopeModuleBounds.isEmpty() || envelopeModuleBounds.getHeight() < 160)
+    {
+        std::cerr << "editor_size_smoke: YM2149 envelope module is missing useful space: "
+                  << envelopeModuleBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (envelopeShapeBounds.isEmpty()
+        || envelopeShapeBounds.getWidth() < 180
+        || envelopeShapeBounds.getHeight() < 28
+        || ! envelopeModuleBounds.expanded(2).contains(envelopeShapeBounds))
+    {
+        std::cerr << "editor_size_smoke: YM2149 envelope shape menu is not readable/owned by envelope module: shape "
+                  << envelopeShapeBounds.toString() << " envelope " << envelopeModuleBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (envelopeSpeedBounds.isEmpty()
+        || envelopeSpeedBounds.getWidth() < 180
+        || envelopeSpeedBounds.getHeight() < 18
+        || ! envelopeModuleBounds.expanded(2).contains(envelopeSpeedBounds)
+        || envelopeSpeedBounds.intersects(envelopeShapeBounds))
+    {
+        std::cerr << "editor_size_smoke: YM2149 envelope speed is not readable/owned by envelope module: speed "
+                  << envelopeSpeedBounds.toString() << " shape " << envelopeShapeBounds.toString()
+                  << " envelope " << envelopeModuleBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (envelopePreviewBounds.isEmpty()
+        || envelopePreviewBounds.getWidth() < 180
+        || envelopePreviewBounds.getHeight() < 24
+        || ! envelopeModuleBounds.expanded(2).contains(envelopePreviewBounds)
+        || envelopePreviewBounds.intersects(envelopeSpeedBounds))
+    {
+        std::cerr << "editor_size_smoke: YM2149 envelope preview is not readable/owned by envelope module: preview "
+                  << envelopePreviewBounds.toString() << " speed " << envelopeSpeedBounds.toString()
+                  << " envelope " << envelopeModuleBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (! outputModuleBounds.isEmpty()
+        && ((! mixerBounds.isEmpty() && mixerBounds.getBottom() > outputModuleBounds.getY())
+            || (! envelopeModuleBounds.isEmpty() && envelopeModuleBounds.getBottom() > outputModuleBounds.getY())))
+    {
+        std::cerr << "editor_size_smoke: YM2149 middle modules overlap the output module: mixer "
+                  << mixerBounds.toString() << " envelope " << envelopeModuleBounds.toString()
+                  << " output " << outputModuleBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (! performanceBounds.isEmpty() && ! outputModuleBounds.isEmpty() && outputModuleBounds.getBottom() > performanceBounds.getY())
+    {
+        std::cerr << "editor_size_smoke: YM2149 output module overlaps performance macros: output "
+                  << outputModuleBounds.toString() << " performance " << performanceBounds.toString() << '\n';
         ok = false;
     }
 
@@ -989,7 +1081,7 @@ bool checkPerformanceMacroSliderLayout()
                 expectedMacroSliders = { 0, 2, 3 };
                 break;
             case chipper::ChipMode::ym2149:
-                expectedMacroSliders = { 0, 1, 2 };
+                expectedMacroSliders = { 0, 1 };
                 break;
             default:
                 expectedMacroSliders = { 0, 1, 2, 3 };

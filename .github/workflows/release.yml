@@ -5,6 +5,16 @@ name: Release VST3
 # GitHub Release to build and attach VST3 zips.
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Optional release tag for artifact names or manual release upload, for example v0.2.0'
+        required: false
+        type: string
+      attach_to_release:
+        description: 'Upload manual-build assets to the release_tag release as draft/prerelease if needed'
+        required: false
+        default: false
+        type: boolean
   push:
     tags:
       - 'v*'
@@ -15,8 +25,25 @@ permissions:
   contents: write
 
 jobs:
+  validate-release-inputs:
+    name: Validate release inputs
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Validate manual release upload inputs
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ATTACH_TO_RELEASE: ${{ inputs.attach_to_release }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$ATTACH_TO_RELEASE" = "true" ] && [ -z "$RELEASE_TAG" ]; then
+            echo "release_tag is required when attach_to_release is enabled" >&2
+            exit 1
+          fi
+
   vst3:
     name: ${{ matrix.label }} VST3
+    needs: validate-release-inputs
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -82,10 +109,20 @@ jobs:
         shell: pwsh
         env:
           ARTIFACT_SUFFIX: ${{ matrix.artifact_suffix }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
           RELEASE_TAG: ${{ github.event.release.tag_name || github.ref_name }}
           RUN_NUMBER: ${{ github.run_number }}
         run: |
-          $tag = $env:RELEASE_TAG
+          $tag = $env:INPUT_RELEASE_TAG
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            if ($env:EVENT_NAME -eq "workflow_dispatch") {
+              $tag = "manual-$env:RUN_NUMBER"
+            } else {
+              $tag = $env:RELEASE_TAG
+            }
+          }
+
           if ([string]::IsNullOrWhiteSpace($tag)) {
             $tag = "manual-$env:RUN_NUMBER"
           }
@@ -117,29 +154,61 @@ jobs:
           Copy-Item -LiteralPath $vst3Source -Destination $packageRoot -Recurse -Force
           Copy-Item -LiteralPath README.md -Destination $packageRoot -Force
           Copy-Item -LiteralPath THIRD_PARTY_NOTICES.md -Destination $packageRoot -Force
+          if (Test-Path -LiteralPath CHANGELOG.md) {
+            Copy-Item -LiteralPath CHANGELOG.md -Destination $packageRoot -Force
+          }
           if (Test-Path -LiteralPath LICENSE) {
             Copy-Item -LiteralPath LICENSE -Destination $packageRoot -Force
           }
 
           $zipPath = Join-Path (Get-Location) "$artifactName.zip"
           Compress-Archive -Path (Join-Path $packageRoot "*") -DestinationPath $zipPath -Force
+          $shaPath = "$zipPath.sha256"
+          $hash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $zipName = Split-Path $zipPath -Leaf
+          "$hash  $zipName" | Out-File -LiteralPath $shaPath -Encoding ascii
 
           "zip_path=$zipPath" >> $env:GITHUB_OUTPUT
+          "sha_path=$shaPath" >> $env:GITHUB_OUTPUT
           "artifact_name=$artifactName" >> $env:GITHUB_OUTPUT
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.package.outputs.artifact_name }}
-          path: ${{ steps.package.outputs.zip_path }}
+          path: |
+            ${{ steps.package.outputs.zip_path }}
+            ${{ steps.package.outputs.sha_path }}
           if-no-files-found: error
 
-      - name: Attach zip to GitHub Release
-        if: github.event_name == 'release'
+      - name: Attach assets to GitHub Release
+        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.attach_to_release)
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.package.outputs.zip_path }}" --clobber
+          EVENT_NAME: ${{ github.event_name }}
+          TARGET_RELEASE_TAG: ${{ inputs.release_tag || github.event.release.tag_name }}
+          ZIP_PATH: ${{ steps.package.outputs.zip_path }}
+          SHA_PATH: ${{ steps.package.outputs.sha_path }}
+        run: |
+          $tag = $env:TARGET_RELEASE_TAG
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            throw "release_tag is required when attach_to_release is enabled for a manual release build"
+          }
+
+          & gh release view $tag *> $null
+          $releaseExists = $LASTEXITCODE -eq 0
+          if (-not $releaseExists) {
+            & gh release create $tag --draft --prerelease --title "Chipper $tag" --notes "Draft Chipper VST3 release build for $tag. Download the zip for your platform, verify the SHA256 checksum, and see README.md plus THIRD_PARTY_NOTICES.md inside the package."
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to create draft release $tag"
+            }
+          }
+
+          & gh release upload $tag $env:ZIP_PATH $env:SHA_PATH --clobber
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to upload release assets for $tag"
+          }
 
   publish-tag-release:
     name: Publish tag release
@@ -160,15 +229,18 @@ jobs:
         run: |
           set -euo pipefail
           mapfile -t zips < <(find release-artifacts -maxdepth 1 -type f -name 'Chipper-*.zip' | sort)
+          mapfile -t assets < <(find release-artifacts -maxdepth 1 -type f \( -name 'Chipper-*.zip' -o -name 'Chipper-*.zip.sha256' \) | sort)
           if [ "${#zips[@]}" -eq 0 ]; then
             echo "No release zip artifacts were downloaded" >&2
             exit 1
           fi
 
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" "${zips[@]}" --clobber
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
           else
-            gh release create "$RELEASE_TAG" "${zips[@]}" \
+            gh release create "$RELEASE_TAG" "${assets[@]}" \
               --title "Chipper $RELEASE_TAG" \
-              --notes "Automated Chipper VST3 release build for $RELEASE_TAG. Download the zip for your platform and see README.md plus THIRD_PARTY_NOTICES.md inside the package."
+              --draft \
+              --prerelease \
+              --notes "Draft automated Chipper VST3 release build for $RELEASE_TAG. Download the zip for your platform, verify the SHA256 checksum, and see README.md plus THIRD_PARTY_NOTICES.md inside the package."
           fi
