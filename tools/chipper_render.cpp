@@ -3209,7 +3209,8 @@ int main(int argc, char** argv)
         const auto hasEnabledSource = std::any_of(options.sourceEnabled.begin(),
                                                   options.sourceEnabled.end(),
                                                   [](bool enabled) { return enabled; });
-        if (noteEventCount == 0 && hasEnabledSource)
+        const auto hasAudibleDmcDirect = options.chip == chipper::ChipMode::nes && options.nesDmcDirectLevel > 0.0f;
+        if (noteEventCount == 0 && (hasEnabledSource || hasAudibleDmcDirect))
             core->noteOn(options.note, 1.0f);
 
         size_t eventIndex = 0;

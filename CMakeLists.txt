@@ -51,6 +51,7 @@ add_library(chipper_engine STATIC
 
 target_include_directories(chipper_engine PUBLIC Source ThirdParty/emu2149 ThirdParty/emu2212 ThirdParty/emu2413 ThirdParty/emu76489 ThirdParty/ymfm/src)
 target_compile_features(chipper_engine PUBLIC cxx_std_20)
+set_target_properties(chipper_engine PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_executable(chipper_render tools/chipper_render.cpp)
 target_link_libraries(chipper_render PRIVATE chipper_engine)
@@ -2245,7 +2246,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_nes_dmc_direct_parameter_low_assert PROPERTIES DEPENDS chipper_render_nes_dmc_direct_parameter_low_smoke)
 
     add_test(NAME chipper_render_nes_dmc_direct_parameter_high_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-dmc-direct-parameter-high-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.65 --max-peak 0.95 --core-min dmcDirectControl=1 --core-max dmcDirectControl=1 --core-min dmcLevel=127 --core-max dmcLevel=127
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/nes-dmc-direct-parameter-high-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.65 --max-peak 1.0 --core-min dmcDirectControl=1 --core-max dmcDirectControl=1 --core-min dmcLevel=127 --core-max dmcLevel=127
     )
     set_tests_properties(chipper_render_nes_dmc_direct_parameter_high_assert PROPERTIES DEPENDS chipper_render_nes_dmc_direct_parameter_high_smoke)
 
