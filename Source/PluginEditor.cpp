@@ -900,6 +900,25 @@ juce::String safePresetFileStem(juce::String text)
     return safe.isNotEmpty() ? safe : juce::String("Chipper-Preset");
 }
 
+bool textMatchesPresetSearch(const juce::String& corpus, const juce::String& query)
+{
+    const auto trimmed = query.trim();
+    if (trimmed.isEmpty())
+        return true;
+
+    juce::StringArray tokens;
+    tokens.addTokens(trimmed, " \t\r\n", "\"'");
+    tokens.trim();
+    tokens.removeEmptyStrings();
+    for (const auto& token : tokens)
+    {
+        if (! corpus.containsIgnoreCase(token))
+            return false;
+    }
+
+    return true;
+}
+
 std::optional<chipper::ChipMode> chipModeFromUserPresetXml(const juce::XmlElement& root)
 {
     if (root.hasAttribute("chip"))
@@ -2050,12 +2069,18 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     chipModeBox.addItemList(chipper::parameters::chipModeChoices(), 1);
     accuracyBox.addItemList(chipper::parameters::accuracyChoices(), 1);
     presetFilterBox.setTextWhenNothingSelected("All");
+    presetSearchBox.setTextToShowWhenEmpty("Search", juce::Colour(0xff788894));
+    presetSearchBox.setMultiLine(false);
+    presetSearchBox.setReturnKeyStartsNewLine(false);
+    presetSearchBox.setScrollbarsShown(false);
+    presetSearchBox.setSelectAllWhenFocused(true);
     presetBox.setTextWhenNothingSelected("Browse Chip Presets");
     macroBox.addItemList(chipper::parameters::macroChoices(), 1);
     playModeBox.addItemList(chipper::parameters::playModeChoices(), 1);
     chipModeBox.setTooltip(withMidiCc("Selects the named chip engine. Each mode shows its current verification status in the footer.", chipper::parameters::id::chipMode));
     accuracyBox.setTooltip(withMidiCc("Selects requested behavior strictness. Authentic favors chip limits, Hybrid keeps labeled musical helpers, and Inspired permits looser conveniences. The footer verification badge is the implementation claim.", chipper::parameters::id::accuracy));
     presetFilterBox.setTooltip("Filter factory presets by musical role. User presets remain listed as a portable flat-file bank.");
+    presetSearchBox.setTooltip("Search factory and user presets by name, category, chip role, engine, tags, or note text.");
     presetBox.setTooltip("Browse factory and user presets for the selected chip mode. Choosing one applies the sound immediately.");
     macroBox.setTooltip(withMidiCc("Internal preset recipe. Factory/user presets set this automatically for chip-native defaults.", chipper::parameters::id::macro));
     playModeBox.setTooltip(withMidiCc("Chooses how incoming notes use the chip channels inside one patch.", chipper::parameters::id::playMode));
@@ -2071,6 +2096,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     }
 
     addAndMakeVisible(presetFilterBox);
+    addAndMakeVisible(presetSearchBox);
     addAndMakeVisible(presetBox);
     userPresetLoadButton.setButtonText("Load");
     userPresetLoadButton.setTooltip("Import a shareable .chipperpreset file from any folder.");
@@ -2114,6 +2140,11 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         if (suppressPresetFilterChange)
             return;
 
+        updatePresetChoices(displayedMode);
+        updateLiveControlReadouts();
+    };
+    presetSearchBox.onTextChange = [this]()
+    {
         updatePresetChoices(displayedMode);
         updateLiveControlReadouts();
     };
@@ -3200,6 +3231,17 @@ void ChipperAudioProcessorEditor::applyChipTheme()
         box.setColour(juce::ComboBox::arrowColourId, theme.text);
     };
 
+    const auto styleTextEditor = [&theme](juce::TextEditor& editor)
+    {
+        editor.setColour(juce::TextEditor::backgroundColourId, theme.sourceCard);
+        editor.setColour(juce::TextEditor::textColourId, theme.text);
+        editor.setColour(juce::TextEditor::outlineColourId, theme.outline);
+        editor.setColour(juce::TextEditor::focusedOutlineColourId, theme.accent);
+        editor.setColour(juce::TextEditor::highlightColourId, theme.primary.withAlpha(0.35f));
+        editor.setColour(juce::TextEditor::highlightedTextColourId, theme.text);
+        editor.setColour(juce::TextEditor::shadowColourId, juce::Colours::transparentBlack);
+    };
+
     const auto styleButton = [&theme](juce::TextButton& button)
     {
         button.setColour(juce::TextButton::buttonColourId, theme.sourceCard);
@@ -3293,6 +3335,7 @@ void ChipperAudioProcessorEditor::applyChipTheme()
     {
         styleCombo(*box);
     }
+    styleTextEditor(presetSearchBox);
 
     for (auto& box : sidVoiceWaveBoxes)
         styleCombo(box);
@@ -3417,11 +3460,11 @@ void ChipperAudioProcessorEditor::resized()
     constexpr auto headerGap = 8;
     constexpr auto compactGap = 4;
     constexpr auto loadButtonWidth = 46;
-    constexpr auto saveButtonWidth = 60;
-    constexpr auto saveAsButtonWidth = 76;
-    constexpr auto chipModeWidth = 190;
-    constexpr auto accuracyWidth = 112;
-    constexpr auto playModeWidth = 128;
+    constexpr auto saveButtonWidth = 56;
+    constexpr auto saveAsButtonWidth = 72;
+    constexpr auto chipModeWidth = 184;
+    constexpr auto accuracyWidth = 108;
+    constexpr auto playModeWidth = 122;
     constexpr auto presetMinWidth = 148;
     constexpr auto presetMaxWidth = 330;
 
@@ -3437,8 +3480,11 @@ void ChipperAudioProcessorEditor::resized()
         auto presetArea = top.removeFromLeft(presetWidth);
         headerControlLabels[0].setBounds(presetArea.removeFromTop(16));
         auto presetRow = presetArea.reduced(0, 4);
-        const auto filterWidth = std::clamp(presetRow.getWidth() / 3, 86, 112);
+        const auto filterWidth = std::clamp(presetRow.getWidth() / 4, 86, 98);
+        const auto searchWidth = std::clamp(presetRow.getWidth() / 3, 86, 112);
         presetFilterBox.setBounds(presetRow.removeFromLeft(filterWidth));
+        presetRow.removeFromLeft(compactGap);
+        presetSearchBox.setBounds(presetRow.removeFromLeft(searchWidth));
         presetRow.removeFromLeft(compactGap);
         presetBox.setBounds(presetRow);
     }
@@ -4871,6 +4917,13 @@ void ChipperAudioProcessorEditor::resized()
     statusLabel.setBounds(footer);
 }
 
+juce::String ChipperAudioProcessorEditor::getFirstDisplayedFactoryPresetNameForLayoutTest() const
+{
+    return displayedPresets.empty() || displayedPresets.front() == nullptr
+        ? juce::String()
+        : juce::String(displayedPresets.front()->name);
+}
+
 juce::Rectangle<int> ChipperAudioProcessorEditor::getSidAdsrContentBoundsForLayoutTest() const
 {
     juce::Rectangle<int> content;
@@ -5730,10 +5783,84 @@ juce::String ChipperAudioProcessorEditor::activePresetFilterRole() const
     return "All";
 }
 
+juce::String ChipperAudioProcessorEditor::activePresetSearchText() const
+{
+    return presetSearchBox.getText().trim();
+}
+
 bool ChipperAudioProcessorEditor::factoryPresetMatchesActiveFilter(const chipper::PresetInfo& preset) const
 {
     const auto selectedRole = activePresetFilterRole();
-    return selectedRole.isEmpty() || selectedRole == "All" || selectedRole == juce::String(chipper::presetRoleFor(preset));
+    return (selectedRole.isEmpty() || selectedRole == "All" || selectedRole == juce::String(chipper::presetRoleFor(preset)))
+        && factoryPresetMatchesActiveSearch(preset);
+}
+
+bool ChipperAudioProcessorEditor::factoryPresetMatchesActiveSearch(const chipper::PresetInfo& preset) const
+{
+    const auto query = activePresetSearchText();
+    if (query.isEmpty())
+        return true;
+
+    juce::String corpus = juce::String(preset.id) + " "
+        + juce::String(preset.category) + " "
+        + juce::String(preset.name) + " "
+        + juce::String(preset.note) + " "
+        + juce::String(chipper::presetRoleFor(preset)) + " "
+        + juce::String(chipper::presetEngineFor(preset));
+    for (const auto& tag : chipper::presetTagsFor(preset))
+        corpus += " " + juce::String(tag);
+
+    return textMatchesPresetSearch(corpus, query);
+}
+
+bool ChipperAudioProcessorEditor::userPresetMatchesActiveSearch(const UserPresetFile& preset) const
+{
+    const auto query = activePresetSearchText();
+    if (query.isEmpty())
+        return true;
+
+    return textMatchesPresetSearch(preset.name + " " + preset.file.getFileNameWithoutExtension(), query);
+}
+
+void ChipperAudioProcessorEditor::refreshPresetBrowserReadout(chipper::ChipMode mode)
+{
+    const auto selectedFilterRole = activePresetFilterRole();
+    const auto searchText = activePresetSearchText();
+    const auto allPresetCount = static_cast<int>(allDisplayedPresets.size() + allDisplayedUserPresets.size());
+    const auto presetCount = static_cast<int>(displayedPresets.size() + displayedUserPresets.size());
+    const auto roleFilterActive = selectedFilterRole.isNotEmpty() && selectedFilterRole != "All";
+    const auto searchActive = searchText.isNotEmpty();
+    const auto anyFilterActive = roleFilterActive || searchActive;
+
+    if (presetCount == 0)
+    {
+        headerControlLabels[0].setText(anyFilterActive ? juce::String("Preset (0/") + juce::String(allPresetCount) + ")" : juce::String("Preset"),
+                                       juce::dontSendNotification);
+        presetBox.setTextWhenNothingSelected(searchActive ? "No search matches" : (roleFilterActive ? "No role matches" : "Init Patch"));
+        presetBox.setTooltip(anyFilterActive
+                                 ? "No presets match the current browser filters for "
+                                       + juce::String(chipper::toString(mode))
+                                       + ". Change the search text or role filter, or use Init Patch."
+                                 : "Use Init Patch for a neutral chip-local starting point. No factory or user presets are active for this chip mode yet.");
+    }
+    else
+    {
+        headerControlLabels[0].setText(anyFilterActive
+                                           ? juce::String("Preset (") + juce::String(presetCount) + "/" + juce::String(allPresetCount) + ")"
+                                           : juce::String("Preset (") + juce::String(presetCount) + ")",
+                                       juce::dontSendNotification);
+        const auto firstName = ! displayedPresets.empty()
+            ? juce::String(displayedPresets.front()->name)
+            : displayedUserPresets.front().name;
+        presetBox.setTextWhenNothingSelected(juce::String(presetCount) + " presets - " + firstName);
+        presetBox.setTooltip("Browse " + juce::String(presetCount) + " factory/user presets for "
+                             + juce::String(chipper::toString(mode))
+                             + ". Factory sounds are grouped by musical category and can be filtered by role or search text; choosing one applies an audible chip-specific sound immediately.");
+    }
+
+    presetSearchBox.setTooltip(searchActive
+                                   ? "Searching presets for: " + searchText
+                                   : "Search factory and user presets by name, category, chip role, engine, tags, or note text.");
 }
 
 void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
@@ -5748,6 +5875,13 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
     {
         if (preset != nullptr && factoryPresetMatchesActiveFilter(*preset))
             displayedPresets.push_back(preset);
+    }
+
+    displayedUserPresets.clear();
+    for (const auto& preset : allDisplayedUserPresets)
+    {
+        if (userPresetMatchesActiveSearch(preset))
+            displayedUserPresets.push_back(preset);
     }
 
     presetBox.clear(juce::dontSendNotification);
@@ -5789,40 +5923,13 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
             presetBox.addItem(displayedUserPresets[i].name, userPresetItemIdBase + static_cast<int>(i));
     }
 
-    const auto selectedFilterRole = activePresetFilterRole();
-    const auto allPresetCount = static_cast<int>(allDisplayedPresets.size() + displayedUserPresets.size());
-    const auto presetCount = static_cast<int>(displayedPresets.size() + displayedUserPresets.size());
-    const auto filterActive = selectedFilterRole.isNotEmpty() && selectedFilterRole != "All";
-    if (presetCount == 0)
-    {
-        headerControlLabels[0].setText(filterActive ? juce::String("Preset (0/") + juce::String(allPresetCount) + ")" : juce::String("Preset"),
-                                       juce::dontSendNotification);
-        presetBox.setTextWhenNothingSelected(filterActive ? "No role matches" : "Init Patch");
-        presetBox.setTooltip(filterActive
-                                 ? "No factory presets match the selected role for "
-                                       + juce::String(chipper::toString(mode))
-                                       + ". Change the role filter or use Init Patch."
-                                 : "Use Init Patch for a neutral chip-local starting point. No factory or user presets are active for this chip mode yet.");
-    }
-    else
-    {
-        headerControlLabels[0].setText(filterActive
-                                           ? juce::String("Preset (") + juce::String(presetCount) + "/" + juce::String(allPresetCount) + ")"
-                                           : juce::String("Preset (") + juce::String(presetCount) + ")",
-                                       juce::dontSendNotification);
-        presetBox.setSelectedId(0, juce::dontSendNotification);
-        const auto firstName = ! displayedPresets.empty()
-            ? juce::String(displayedPresets.front()->name)
-            : displayedUserPresets.front().name;
-        presetBox.setTextWhenNothingSelected(juce::String(presetCount) + " presets - " + firstName);
-        presetBox.setTooltip("Browse " + juce::String(presetCount) + " factory/user presets for "
-                             + juce::String(chipper::toString(mode))
-                             + ". Factory sounds are grouped by musical category and can be filtered by role; choosing one applies an audible chip-specific sound immediately.");
-    }
+    presetBox.setSelectedId(0, juce::dontSendNotification);
+    refreshPresetBrowserReadout(mode);
 }
 
 void ChipperAudioProcessorEditor::reloadUserPresetFiles(chipper::ChipMode mode)
 {
+    allDisplayedUserPresets.clear();
     displayedUserPresets.clear();
 
     const auto addPresetFileIfMatchesMode = [this, mode](const juce::File& file)
@@ -5838,14 +5945,14 @@ void ChipperAudioProcessorEditor::reloadUserPresetFiles(chipper::ChipMode mode)
         if (! presetMode.has_value() || *presetMode != mode)
             return;
 
-        const auto alreadyListed = std::any_of(displayedUserPresets.begin(),
-                                               displayedUserPresets.end(),
+        const auto alreadyListed = std::any_of(allDisplayedUserPresets.begin(),
+                                               allDisplayedUserPresets.end(),
                                                [&file](const UserPresetFile& preset)
                                                {
                                                    return preset.file == file;
                                                });
         if (! alreadyListed)
-            displayedUserPresets.push_back({ file, userPresetNameFromXml(*root, file) });
+            allDisplayedUserPresets.push_back({ file, userPresetNameFromXml(*root, file) });
     };
 
     const auto directory = defaultUserPresetDirectory();
@@ -5861,8 +5968,8 @@ void ChipperAudioProcessorEditor::reloadUserPresetFiles(chipper::ChipMode mode)
 
     addPresetFileIfMatchesMode(currentUserPresetFile);
 
-    std::sort(displayedUserPresets.begin(),
-              displayedUserPresets.end(),
+    std::sort(allDisplayedUserPresets.begin(),
+              allDisplayedUserPresets.end(),
               [](const UserPresetFile& left, const UserPresetFile& right)
               {
                   return left.name.compareIgnoreCase(right.name) < 0;
@@ -6371,35 +6478,7 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
 
     const juce::ScopedValueSetter<bool> suppressPreset(suppressPresetApply, true);
     presetBox.setSelectedId(0, juce::dontSendNotification);
-    const auto selectedFilterRole = activePresetFilterRole();
-    const auto allPresetCount = static_cast<int>(allDisplayedPresets.size() + displayedUserPresets.size());
-    const auto presetCount = static_cast<int>(displayedPresets.size() + displayedUserPresets.size());
-    const auto filterActive = selectedFilterRole.isNotEmpty() && selectedFilterRole != "All";
-    if (presetCount == 0)
-    {
-        headerControlLabels[0].setText(filterActive ? juce::String("Preset (0/") + juce::String(allPresetCount) + ")" : juce::String("Preset"),
-                                       juce::dontSendNotification);
-        presetBox.setTextWhenNothingSelected(filterActive ? "No role matches" : "Init Patch");
-        presetBox.setTooltip(filterActive
-                                 ? "No factory presets match the selected role for "
-                                       + juce::String(chipper::toString(mode))
-                                       + ". Change the role filter or use Init Patch."
-                                 : "Use Init Patch for a neutral chip-local starting point. No factory or user presets are active for this chip mode yet.");
-    }
-    else
-    {
-        const auto firstName = ! displayedPresets.empty()
-            ? juce::String(displayedPresets.front()->name)
-            : displayedUserPresets.front().name;
-        headerControlLabels[0].setText(filterActive
-                                           ? juce::String("Preset (") + juce::String(presetCount) + "/" + juce::String(allPresetCount) + ")"
-                                           : juce::String("Preset (") + juce::String(presetCount) + ")",
-                                       juce::dontSendNotification);
-        presetBox.setTextWhenNothingSelected(juce::String(presetCount) + " presets - " + firstName);
-        presetBox.setTooltip("Browse " + juce::String(presetCount) + " factory/user presets for "
-                             + juce::String(chipper::toString(mode))
-                             + ". Factory sounds are grouped by musical category and can be filtered by role; choosing one applies an audible chip-specific sound immediately.");
-    }
+    refreshPresetBrowserReadout(mode);
 
     updateLiveControlReadouts();
 }
@@ -11099,6 +11178,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     macroSummaryLabel.setAlpha(hasLiveCore ? 1.0f : 0.85f);
     accuracyBox.setEnabled(hasLiveCore);
     presetFilterBox.setEnabled(hasLiveCore);
+    presetSearchBox.setEnabled(hasLiveCore);
     presetBox.setEnabled(hasLiveCore);
     headerControlLabels[3].setVisible(false);
     macroBox.setVisible(false);
@@ -11112,6 +11192,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     clockLabel.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     clockSlider.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     presetFilterBox.setAlpha(hasLiveCore ? 1.0f : 0.55f);
+    presetSearchBox.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     dmcDirectLabel.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);
     dmcDirectSlider.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);
     dmcRateLabel.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);

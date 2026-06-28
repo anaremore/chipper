@@ -1381,6 +1381,42 @@ bool checkPresetRoleFilterLayout()
             std::cerr << "editor_size_smoke: preset role filter should default to All\n";
             ok = false;
         }
+
+        const auto searchBounds = chipEditor.getPresetSearchBoundsForLayoutTest();
+        if (searchBounds.getWidth() < 86 || searchBounds.getHeight() < 28)
+        {
+            std::cerr << "editor_size_smoke: preset search box below readable size at compact width: "
+                      << searchBounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (chipEditor.getPresetSearchTextForLayoutTest().isNotEmpty())
+        {
+            std::cerr << "editor_size_smoke: preset search should default to empty text\n";
+            ok = false;
+        }
+
+        if (chipMode == 0)
+        {
+            chipEditor.setPresetSearchTextForLayoutTest("organ");
+            const auto organSearchCount = chipEditor.getDisplayedFactoryPresetCountForLayoutTest();
+            const auto organSearchName = chipEditor.getFirstDisplayedFactoryPresetNameForLayoutTest();
+            if (organSearchCount != 1 || organSearchName != "NES Pulse Organ")
+            {
+                std::cerr << "editor_size_smoke: preset search should narrow NES presets to the organ entry, got count "
+                          << organSearchCount << " first " << organSearchName.toStdString() << '\n';
+                ok = false;
+            }
+
+            chipEditor.setPresetSearchTextForLayoutTest("no-such-preset-token");
+            const auto emptySearchCount = chipEditor.getDisplayedFactoryPresetCountForLayoutTest();
+            if (emptySearchCount != 0)
+            {
+                std::cerr << "editor_size_smoke: preset search should report no factory matches for unknown tokens, got count "
+                          << emptySearchCount << '\n';
+                ok = false;
+            }
+        }
     }
 
     return ok;

@@ -159,6 +159,15 @@ public:
     }
     juce::Rectangle<int> getPresetFilterBoundsForLayoutTest() const { return presetFilterBox.getBounds(); }
     juce::String getPresetFilterTextForLayoutTest() const { return presetFilterBox.getText(); }
+    juce::Rectangle<int> getPresetSearchBoundsForLayoutTest() const { return presetSearchBox.getBounds(); }
+    juce::String getPresetSearchTextForLayoutTest() const { return presetSearchBox.getText(); }
+    void setPresetSearchTextForLayoutTest(const juce::String& text)
+    {
+        presetSearchBox.setText(text, false);
+        updatePresetChoices(displayedMode);
+    }
+    int getDisplayedFactoryPresetCountForLayoutTest() const { return static_cast<int>(displayedPresets.size()); }
+    juce::String getFirstDisplayedFactoryPresetNameForLayoutTest() const;
     juce::Rectangle<int> getPaulaSourceSampleSelectorBoundsForLayoutTest(size_t channel) const
     {
         return channel < paulaVoiceSampleBoxes.size() ? paulaVoiceSampleBoxes[channel].getBounds() : juce::Rectangle<int> {};
@@ -252,6 +261,8 @@ private:
     static constexpr size_t fmOperatorReadoutRows = 4;
     static constexpr size_t sidFilterRoutingChoiceCount = 9;
 
+    struct UserPresetFile;
+
     void timerCallback() override;
     void updateDescriptorText();
     void updateLiveControlReadouts();
@@ -289,7 +300,11 @@ private:
     void updatePresetChoices(chipper::ChipMode mode);
     void updatePresetFilterChoices(chipper::ChipMode mode);
     juce::String activePresetFilterRole() const;
+    juce::String activePresetSearchText() const;
     bool factoryPresetMatchesActiveFilter(const chipper::PresetInfo& preset) const;
+    bool factoryPresetMatchesActiveSearch(const chipper::PresetInfo& preset) const;
+    bool userPresetMatchesActiveSearch(const UserPresetFile& preset) const;
+    void refreshPresetBrowserReadout(chipper::ChipMode mode);
     void reloadUserPresetFiles(chipper::ChipMode mode);
     void updateSegmentedControlSpecs(chipper::ChipMode mode);
     void storeChipSettingsSnapshot(chipper::ChipMode mode);
@@ -547,6 +562,7 @@ private:
     juce::ComboBox chipModeBox;
     juce::ComboBox accuracyBox;
     juce::ComboBox presetFilterBox;
+    juce::TextEditor presetSearchBox;
     juce::ComboBox presetBox;
     juce::TextButton userPresetLoadButton;
     juce::TextButton userPresetSaveButton;
@@ -619,6 +635,7 @@ private:
     chipper::ChipMode displayedMode = chipper::ChipMode::nes;
     std::vector<const chipper::PresetInfo*> allDisplayedPresets;
     std::vector<const chipper::PresetInfo*> displayedPresets;
+    std::vector<UserPresetFile> allDisplayedUserPresets;
     std::vector<UserPresetFile> displayedUserPresets;
     std::vector<juce::String> presetFilterRoles;
     std::vector<ChipSettingsSnapshot> chipSettingsSnapshots;

@@ -46,7 +46,7 @@ Furnace is most useful to Chipper as a product/reference map, not as code or pat
 
 Use this implementation order when no current regression is blocking release:
 
-1. **Preset browser metadata and filtering.** Role, engine, and tag metadata are exported and validated, the VST header now has a compact role filter, and a first original coverage pack fills thin role gaps plus neutral Patch entries without importing Furnace data. Remaining browser work is search text, engine/tag filtering, favorites, and richer user preset affordances while keeping user presets as portable `.chipperpreset` files.
+1. **Preset browser metadata and filtering.** Role, engine, and tag metadata are exported and validated, the VST header now has compact role plus search filtering, and a first original coverage pack fills thin role gaps plus neutral Patch entries without importing Furnace data. Remaining browser work is engine/tag filtering, favorites, and richer user preset affordances while keeping user presets as portable `.chipperpreset` files.
 2. **One sample/wave vertical slice.** Pick SPC700, Paula, or a wavetable family and complete the workflow: loaded asset state, lane/voice assignment, loop/root behavior, waveform preview, missing-file state, state recall, and renderer coverage.
 3. **OPN2 FM operator editor slice.** Start with YM2612 because ymfm is already vendored and six lanes are visible. Add editable operator/algorithm controls only where APVTS parameters, MIDI CCs, presets, renderer JSON, and held-tail checks can move together.
 4. **Tracker motion and SFX gestures.** Add chip-aware arps, slides, vibrato, retrigger, and one-shot gestures as native-looking register changes. Keep the UI musical, but make tooltips/debug JSON show the resolved register path.
