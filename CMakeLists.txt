@@ -441,6 +441,9 @@ add_test(NAME chipper_render_preset_ym_arcade_clang_smoke
 add_test(NAME chipper_render_preset_ym_fast_minor_arp_smoke
     COMMAND chipper_render --preset ym-fast-minor-arp --rate 48000 --seconds 0.04 --note 60 --out preset-ym-fast-minor-arp-smoke.wav --debug preset-ym-fast-minor-arp-smoke.json
 )
+add_test(NAME chipper_render_preset_ym_tracker_lead_smoke
+    COMMAND chipper_render --preset ym-tracker-lead --rate 48000 --seconds 0.04 --note 72 --out preset-ym-tracker-lead-smoke.wav --debug preset-ym-tracker-lead-smoke.json
+)
 add_test(NAME chipper_render_preset_sn_noise_hit_smoke
     COMMAND chipper_render --preset sn-noise-hit --rate 48000 --seconds 0.04 --note 60 --out preset-sn-noise-hit-smoke.wav --debug preset-sn-noise-hit-smoke.json
 )
@@ -967,7 +970,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_descriptors_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_ym_preset_catalog_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset ym-three-voice-arp --preset ym-menu-beep --preset ym-bright-beep --preset ym-arcade-clang --preset ym-fast-minor-arp --preset ym-triangle-env-keys
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset ym-three-voice-arp --preset ym-menu-beep --preset ym-bright-beep --preset ym-arcade-clang --preset ym-fast-minor-arp --preset ym-triangle-env-keys --preset ym-tracker-lead
     )
     set_tests_properties(chipper_render_list_ym_preset_catalog_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -980,7 +983,7 @@ if (Python3_Interpreter_FOUND)
     )
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=15 --preset-count dmg=15 --preset-count sid=19 --preset-count ym2149=15 --preset-count sn76489=16 --preset-count ym2612=18 --preset-count opl3=15 --preset-count spc700=14 --preset-count pokey=13 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=14 --preset-count ym2151=15 --preset-count ym2413=17 --preset-count scc=15
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=15 --preset-count dmg=15 --preset-count sid=19 --preset-count ym2149=16 --preset-count sn76489=16 --preset-count ym2612=18 --preset-count opl3=15 --preset-count spc700=14 --preset-count pokey=13 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=14 --preset-count ym2151=15 --preset-count ym2413=17 --preset-count scc=15
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -2070,6 +2073,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-fast-minor-arp-smoke.json --implemented-contains partial --preset ym-fast-minor-arp --macro Arp --play-mode "Chip Poly" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.05 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=1 --core-max sourceEnabledB=1 --core-min sourceEnabledC=1 --core-max sourceEnabledC=1 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0
     )
     set_tests_properties(chipper_render_preset_ym_fast_minor_arp_assert PROPERTIES DEPENDS chipper_render_preset_ym_fast_minor_arp_smoke)
+
+    add_test(NAME chipper_render_preset_ym_tracker_lead_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-tracker-lead-smoke.json --implemented-contains partial --preset ym-tracker-lead --macro Lead --play-mode "Big Mono" --output-db -9.5 --register-writes 0 --note-events 0 --min-peak 0.02 --core-min envelopeShapeChoice=1 --core-max envelopeShapeChoice=1 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=1 --core-max sourceEnabledB=1 --core-min sourceEnabledC=1 --core-max sourceEnabledC=1 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0 --core-min sourceLevelA=1 --core-max sourceLevelA=1 --core-min sourceLevelB=0.72 --core-max sourceLevelB=0.72 --core-min sourceLevelC=0.52 --core-max sourceLevelC=0.52
+    )
+    set_tests_properties(chipper_render_preset_ym_tracker_lead_assert PROPERTIES DEPENDS chipper_render_preset_ym_tracker_lead_smoke)
 
     add_test(NAME chipper_render_preset_sn_noise_hit_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sn-noise-hit-smoke.json --implemented-contains partial --preset sn-noise-hit --macro Drum --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.02 --min-zero-crossings 35 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabledNoise=1 --core-max sourceEnabledNoise=1 --core-min noiseModeChoice=3 --core-max noiseModeChoice=3 --core-min noiseControl=4 --core-max noiseControl=4 --core-min attenuationNoise=2 --core-max attenuationNoise=2
