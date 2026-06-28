@@ -275,7 +275,7 @@ The QA gate exports the factory preset catalog, validates chip/category metadata
 
 The plugin header includes `Load` and `Save` buttons beside the preset browser. User presets are saved as plain `.chipperpreset` XML files so they can be shared, versioned, and inspected without a DAW-specific preset container.
 
-User preset files store the same Chipper state used by host project recall, including chip mode, behavior strictness, play mode, the selected factory/user preset state, public parameters, register snapshots, and external sample-bank references. Audio sample data is not embedded. For portable sharing, put referenced NES DMC, SPC700, or Paula samples next to the preset or in a `Samples` folder beside it; Chipper will try those relative locations before falling back to the original local path.
+User preset files store the same Chipper state used by host project recall, including chip mode, behavior strictness, play mode, the selected factory/user preset state, public parameters, register snapshots, and external sample-bank references. They also carry browser metadata such as musical role, chip engine, tags, note text, and source context, so saved presets can participate in the same Role/Engine/Tag filtering and search vocabulary as factory sounds. Audio sample data is not embedded. For portable sharing, put referenced NES DMC, SPC700, or Paula samples next to the preset or in a `Samples` folder beside it; Chipper will try those relative locations before falling back to the original local path.
 
 The default save location is:
 
@@ -283,7 +283,7 @@ The default save location is:
 Documents\Chipper Presets
 ```
 
-Files saved there are scanned into the preset browser as a chip-filtered **User Presets** bank. Selecting a user preset from the browser loads the flat file directly; `Save` updates the loaded user preset file, `Save As` writes a new shareable copy, and a new sound asks for a `.chipperpreset` file name. A preset loaded from another folder also appears in the User Presets list for the current session, so downloaded/shared sounds stay reachable while you audition them.
+Files saved there are scanned into the preset browser as a chip-filtered **User Presets** bank. Metadata-bearing user presets appear in Role/Engine/Tag filter counts alongside factory presets, while older files without metadata still load as portable flat files. Selecting a user preset from the browser loads the file directly; `Save` updates the loaded user preset file, `Save As` writes a new shareable copy, and a new sound asks for a `.chipperpreset` file name. A preset loaded from another folder also appears in the User Presets list for the current session, so downloaded/shared sounds stay reachable while you audition them.
 
 The browser also includes an `Init Patch` entry at the top for a neutral chip-local starting point. It resets the current chip's sound controls while preserving the current Strictness and supported Play Mode.
 

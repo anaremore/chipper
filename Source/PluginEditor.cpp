@@ -957,6 +957,75 @@ juce::String userPresetNameFromXml(const juce::XmlElement& root, const juce::Fil
     return name.isNotEmpty() ? name : juce::String("User Preset");
 }
 
+juce::String userPresetAttributeFromXml(const juce::XmlElement& root, const char* attributeName)
+{
+    if (root.hasAttribute(attributeName))
+        return root.getStringAttribute(attributeName).trim();
+
+    if (const auto* child = root.getChildByName("ChipperPreset"))
+        return userPresetAttributeFromXml(*child, attributeName);
+
+    return {};
+}
+
+juce::StringArray splitUserPresetTags(juce::String text)
+{
+    juce::StringArray tags;
+    text = text.replace(";", ",").replace("\n", ",").replace("\r", ",").replace("\t", ",");
+    tags.addTokens(text, ",", "\"'");
+    tags.trim();
+    tags.removeEmptyStrings();
+
+    juce::StringArray normalized;
+    for (const auto& tagText : tags)
+    {
+        auto tag = tagText.trim().toLowerCase();
+        tag = tag.retainCharacters("abcdefghijklmnopqrstuvwxyz0123456789-_");
+        if (tag.isNotEmpty() && ! normalized.contains(tag))
+            normalized.add(tag);
+    }
+
+    return normalized;
+}
+
+juce::StringArray userPresetTagsFromXml(const juce::XmlElement& root)
+{
+    auto tags = splitUserPresetTags(root.getStringAttribute("tags"));
+    if (tags.isEmpty())
+    {
+        if (const auto* child = root.getChildByName("ChipperPreset"))
+            tags = userPresetTagsFromXml(*child);
+    }
+
+    return tags;
+}
+
+juce::String joinUserPresetTags(const juce::StringArray& tags)
+{
+    juce::StringArray normalized;
+    for (const auto& tag : tags)
+    {
+        const auto cleanTag = tag.trim().toLowerCase().retainCharacters("abcdefghijklmnopqrstuvwxyz0123456789-_");
+        if (cleanTag.isNotEmpty() && ! normalized.contains(cleanTag))
+            normalized.add(cleanTag);
+    }
+
+    return normalized.joinIntoString(",");
+}
+
+juce::String joinPresetTags(const std::vector<std::string>& tags)
+{
+    juce::StringArray strings;
+    for (const auto& tag : tags)
+    {
+        const auto text = juce::String(tag);
+        if (text.isNotEmpty() && ! strings.contains(text))
+            strings.add(text);
+    }
+
+    return joinUserPresetTags(strings);
+}
+
 bool isPresetSampleReferenceTag(const juce::String& tagName)
 {
     return tagName == "DMC_SAMPLE"
@@ -2079,7 +2148,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     playModeBox.addItemList(chipper::parameters::playModeChoices(), 1);
     chipModeBox.setTooltip(withMidiCc("Selects the named chip engine. Each mode shows its current verification status in the footer.", chipper::parameters::id::chipMode));
     accuracyBox.setTooltip(withMidiCc("Selects requested behavior strictness. Authentic favors chip limits, Hybrid keeps labeled musical helpers, and Inspired permits looser conveniences. The footer verification badge is the implementation claim.", chipper::parameters::id::accuracy));
-    presetFilterBox.setTooltip("Filter factory presets by role, engine, or chip-feature tag. User presets remain listed as a portable flat-file bank.");
+    presetFilterBox.setTooltip("Filter factory presets and metadata-bearing user presets by role, engine, or chip-feature tag.");
     presetSearchBox.setTooltip("Search factory and user presets by name, category, chip role, engine, tags, or note text.");
     presetBox.setTooltip("Browse factory and user presets for the selected chip mode. Choosing one applies the sound immediately.");
     macroBox.setTooltip(withMidiCc("Internal preset recipe. Factory/user presets set this automatically for chip-native defaults.", chipper::parameters::id::macro));
@@ -4961,6 +5030,27 @@ bool ChipperAudioProcessorEditor::selectPresetFilterForLayoutTest(const juce::St
     return false;
 }
 
+bool ChipperAudioProcessorEditor::userPresetMetadataMatchesFilterForLayoutTest(const juce::String& kind,
+                                                                               const juce::String& value,
+                                                                               const juce::String& role,
+                                                                               const juce::String& engine,
+                                                                               const juce::String& tags)
+{
+    if (! selectPresetFilterForLayoutTest(kind, value))
+        return false;
+
+    UserPresetFile preset;
+    preset.name = "Synthetic User Preset";
+    preset.role = role;
+    preset.engine = engine;
+    preset.tags = splitUserPresetTags(tags);
+    preset.note = "Synthetic metadata-only preset for browser filter checks.";
+    preset.source = "Editor layout smoke";
+    const auto matches = userPresetMatchesActiveFilter(preset);
+    selectPresetFilterForLayoutTest("all", {});
+    return matches;
+}
+
 juce::Rectangle<int> ChipperAudioProcessorEditor::getSidAdsrContentBoundsForLayoutTest() const
 {
     juce::Rectangle<int> content;
@@ -5761,14 +5851,20 @@ void ChipperAudioProcessorEditor::updatePresetFilterChoices(chipper::ChipMode mo
 
     for (const auto role : roleOrder)
     {
-        const auto count = std::count_if(allDisplayedPresets.begin(),
-                                         allDisplayedPresets.end(),
-                                         [role](const chipper::PresetInfo* preset)
-                                         {
-                                             return preset != nullptr && chipper::presetRoleFor(*preset) == role;
-                                         });
+        const auto factoryCount = std::count_if(allDisplayedPresets.begin(),
+                                                allDisplayedPresets.end(),
+                                                [role](const chipper::PresetInfo* preset)
+                                                {
+                                                    return preset != nullptr && chipper::presetRoleFor(*preset) == role;
+                                                });
+        const auto userCount = std::count_if(allDisplayedUserPresets.begin(),
+                                             allDisplayedUserPresets.end(),
+                                             [role](const UserPresetFile& preset)
+                                             {
+                                                 return preset.role == juce::String(role);
+                                             });
         const auto displayRole = juce::String(role) == "Keys / Pad" ? juce::String("Keys") : juce::String(role);
-        appendUnique(roles, PresetFilterKind::role, role, displayRole, static_cast<int>(count));
+        appendUnique(roles, PresetFilterKind::role, role, displayRole, static_cast<int>(factoryCount + userCount));
     }
 
     std::vector<juce::String> engineOrder;
@@ -5780,6 +5876,11 @@ void ChipperAudioProcessorEditor::updatePresetFilterChoices(chipper::ChipMode mo
         const auto engine = juce::String(chipper::presetEngineFor(*preset));
         if (std::find(engineOrder.begin(), engineOrder.end(), engine) == engineOrder.end())
             engineOrder.push_back(engine);
+    }
+    for (const auto& preset : allDisplayedUserPresets)
+    {
+        if (preset.engine.isNotEmpty() && std::find(engineOrder.begin(), engineOrder.end(), preset.engine) == engineOrder.end())
+            engineOrder.push_back(preset.engine);
     }
     std::sort(engineOrder.begin(), engineOrder.end());
     const auto displayEngine = [](const juce::String& engine)
@@ -5796,13 +5897,19 @@ void ChipperAudioProcessorEditor::updatePresetFilterChoices(chipper::ChipMode mo
     };
     for (const auto& engine : engineOrder)
     {
-        const auto count = std::count_if(allDisplayedPresets.begin(),
-                                         allDisplayedPresets.end(),
-                                         [&engine](const chipper::PresetInfo* preset)
-                                         {
-                                             return preset != nullptr && engine == juce::String(chipper::presetEngineFor(*preset));
-                                         });
-        appendUnique(engines, PresetFilterKind::engine, engine, displayEngine(engine), static_cast<int>(count));
+        const auto factoryCount = std::count_if(allDisplayedPresets.begin(),
+                                                allDisplayedPresets.end(),
+                                                [&engine](const chipper::PresetInfo* preset)
+                                                {
+                                                    return preset != nullptr && engine == juce::String(chipper::presetEngineFor(*preset));
+                                                });
+        const auto userCount = std::count_if(allDisplayedUserPresets.begin(),
+                                             allDisplayedUserPresets.end(),
+                                             [&engine](const UserPresetFile& preset)
+                                             {
+                                                 return preset.engine == engine;
+                                             });
+        appendUnique(engines, PresetFilterKind::engine, engine, displayEngine(engine), static_cast<int>(factoryCount + userCount));
     }
 
     const auto displayTag = [](const juce::String& tag)
@@ -5849,23 +5956,37 @@ void ChipperAudioProcessorEditor::updatePresetFilterChoices(chipper::ChipMode mo
         if (std::find(tagOrder.begin(), tagOrder.end(), tagText) == tagOrder.end())
             tagOrder.push_back(tagText);
     }
+    for (const auto& preset : allDisplayedUserPresets)
+    {
+        for (const auto& tag : preset.tags)
+        {
+            if (std::find(tagOrder.begin(), tagOrder.end(), tag) == tagOrder.end())
+                tagOrder.push_back(tag);
+        }
+    }
 
     for (const auto& tag : tagOrder)
     {
-        const auto count = std::count_if(allDisplayedPresets.begin(),
-                                         allDisplayedPresets.end(),
-                                         [&tag](const chipper::PresetInfo* preset)
-                                         {
-                                             if (preset == nullptr)
-                                                 return false;
+        const auto factoryCount = std::count_if(allDisplayedPresets.begin(),
+                                                allDisplayedPresets.end(),
+                                                [&tag](const chipper::PresetInfo* preset)
+                                                {
+                                                    if (preset == nullptr)
+                                                        return false;
 
-                                             const auto presetTags = chipper::presetTagsFor(*preset);
-                                             return std::find_if(presetTags.begin(), presetTags.end(), [&tag](const std::string& presetTag)
+                                                    const auto presetTags = chipper::presetTagsFor(*preset);
+                                                    return std::find_if(presetTags.begin(), presetTags.end(), [&tag](const std::string& presetTag)
+                                                    {
+                                                        return tag == juce::String(presetTag);
+                                                    }) != presetTags.end();
+                                                });
+        const auto userCount = std::count_if(allDisplayedUserPresets.begin(),
+                                             allDisplayedUserPresets.end(),
+                                             [&tag](const UserPresetFile& preset)
                                              {
-                                                 return tag == juce::String(presetTag);
-                                             }) != presetTags.end();
-                                         });
-        appendUnique(tags, PresetFilterKind::tag, tag, displayTag(tag), static_cast<int>(count));
+                                                 return preset.tags.contains(tag);
+                                             });
+        appendUnique(tags, PresetFilterKind::tag, tag, displayTag(tag), static_cast<int>(factoryCount + userCount));
     }
 
     const auto previousFilter = activePresetFilterChoice();
@@ -5919,10 +6040,10 @@ void ChipperAudioProcessorEditor::updatePresetFilterChoices(chipper::ChipMode mo
         presetFilterBox.setSelectedId(1, juce::dontSendNotification);
     }
 
-    presetFilterBox.setTooltip("Filter factory presets by role, engine, or chip-feature tag. "
+    presetFilterBox.setTooltip("Filter factory presets and metadata-bearing user presets by role, engine, or chip-feature tag. "
                                + juce::String("Current filter: ")
                                + activePresetFilterDescription()
-                               + ". User presets remain listed as a portable flat-file bank.");
+                               + ". User presets remain portable .chipperpreset files.");
 }
 
 ChipperAudioProcessorEditor::PresetFilterChoice ChipperAudioProcessorEditor::activePresetFilterChoice() const
@@ -6009,7 +6130,36 @@ bool ChipperAudioProcessorEditor::userPresetMatchesActiveSearch(const UserPreset
     if (query.isEmpty())
         return true;
 
-    return textMatchesPresetSearch(preset.name + " " + preset.file.getFileNameWithoutExtension(), query);
+    return textMatchesPresetSearch(preset.name + " "
+                                       + preset.file.getFileNameWithoutExtension() + " "
+                                       + preset.role + " "
+                                       + preset.engine + " "
+                                       + preset.tags.joinIntoString(" ") + " "
+                                       + preset.note + " "
+                                       + preset.source,
+                                   query);
+}
+
+bool ChipperAudioProcessorEditor::userPresetMatchesActiveFilter(const UserPresetFile& preset) const
+{
+    const auto filter = activePresetFilterChoice();
+    auto metadataMatches = true;
+    switch (filter.kind)
+    {
+        case PresetFilterKind::role:
+            metadataMatches = preset.role == filter.value;
+            break;
+        case PresetFilterKind::engine:
+            metadataMatches = preset.engine == filter.value;
+            break;
+        case PresetFilterKind::tag:
+            metadataMatches = preset.tags.contains(filter.value);
+            break;
+        case PresetFilterKind::all:
+            break;
+    }
+
+    return metadataMatches && userPresetMatchesActiveSearch(preset);
 }
 
 void ChipperAudioProcessorEditor::refreshPresetBrowserReadout(chipper::ChipMode mode)
@@ -6070,7 +6220,7 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
     displayedUserPresets.clear();
     for (const auto& preset : allDisplayedUserPresets)
     {
-        if (userPresetMatchesActiveSearch(preset))
+        if (userPresetMatchesActiveFilter(preset))
             displayedUserPresets.push_back(preset);
     }
 
@@ -6142,7 +6292,13 @@ void ChipperAudioProcessorEditor::reloadUserPresetFiles(chipper::ChipMode mode)
                                                    return preset.file == file;
                                                });
         if (! alreadyListed)
-            allDisplayedUserPresets.push_back({ file, userPresetNameFromXml(*root, file) });
+            allDisplayedUserPresets.push_back({ file,
+                                                userPresetNameFromXml(*root, file),
+                                                userPresetAttributeFromXml(*root, "role"),
+                                                userPresetAttributeFromXml(*root, "engine"),
+                                                userPresetTagsFromXml(*root),
+                                                userPresetAttributeFromXml(*root, "note"),
+                                                userPresetAttributeFromXml(*root, "source") });
     };
 
     const auto directory = defaultUserPresetDirectory();
@@ -6472,12 +6628,62 @@ void ChipperAudioProcessorEditor::saveUserPresetFile(const juce::File& file)
     if (presetName.isEmpty())
         presetName = "Chipper Preset";
 
+    const chipper::PresetInfo* metadataPreset = nullptr;
+    chipper::PresetInfo currentPatchMetadata;
+    juce::String metadataSource;
+    const auto selectedId = presetBox.getSelectedId();
+    const auto selectedFactoryPreset = selectedId - 1;
+    if (selectedFactoryPreset >= 0 && static_cast<size_t>(selectedFactoryPreset) < displayedPresets.size())
+    {
+        metadataPreset = displayedPresets[static_cast<size_t>(selectedFactoryPreset)];
+        if (metadataPreset != nullptr)
+            metadataSource = "User preset saved from factory preset: " + juce::String(metadataPreset->id);
+    }
+
+    if (metadataPreset == nullptr)
+    {
+        currentPatchMetadata = chipper::initPresetForChip(displayedMode);
+        currentPatchMetadata.id = safePresetFileStem(presetName).toStdString();
+        currentPatchMetadata.category = chipper::toString(displayedMode);
+        currentPatchMetadata.name = presetName.toStdString();
+        currentPatchMetadata.note = "User-saved Chipper patch metadata derived from the current chip controls.";
+        currentPatchMetadata.macro = chipper::parameters::macroFromChoice(static_cast<int>(std::round(parameterValue(chipper::parameters::id::macro))));
+        currentPatchMetadata.playMode = chipper::parameters::playModeFromChoice(static_cast<int>(std::round(parameterValue(chipper::parameters::id::playMode))));
+        currentPatchMetadata.controls = {
+            static_cast<float>(parameterValue(chipper::parameters::id::macroControl1)),
+            static_cast<float>(parameterValue(chipper::parameters::id::macroControl2)),
+            static_cast<float>(parameterValue(chipper::parameters::id::macroControl3)),
+            static_cast<float>(parameterValue(chipper::parameters::id::macroControl4))
+        };
+        currentPatchMetadata.envelopeDecay = static_cast<float>(parameterValue(chipper::parameters::id::envelopeDecay));
+        currentPatchMetadata.waveShape = static_cast<int>(std::round(parameterValue(chipper::parameters::id::waveShape)));
+        currentPatchMetadata.ymEnvelopeShape = static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape)));
+        currentPatchMetadata.snNoiseMode = static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode)));
+        currentPatchMetadata.dmgWaveLevel = static_cast<int>(std::round(parameterValue(chipper::parameters::id::dmgWaveLevel)));
+        currentPatchMetadata.nesDmcDirectLevel = static_cast<float>(parameterValue(chipper::parameters::id::nesDmcDirectLevel));
+        metadataPreset = &currentPatchMetadata;
+        metadataSource = "User preset saved from current Chipper controls.";
+    }
+
     juce::XmlElement presetXml("ChipperPreset");
     presetXml.setAttribute("formatVersion", 1);
     presetXml.setAttribute("plugin", "Chipper");
     presetXml.setAttribute("pluginVersion", chipperPluginVersionString);
     presetXml.setAttribute("name", presetName);
     presetXml.setAttribute("chip", chipper::toString(displayedMode));
+    if (metadataPreset != nullptr)
+    {
+        const auto role = chipper::presetRoleFor(*metadataPreset);
+        const auto engine = chipper::presetEngineFor(*metadataPreset);
+        const auto tags = joinPresetTags(chipper::presetTagsFor(*metadataPreset));
+        presetXml.setAttribute("role", role);
+        presetXml.setAttribute("engine", engine);
+        presetXml.setAttribute("tags", tags);
+        presetXml.setAttribute("note", juce::String(metadataPreset->note));
+        presetXml.setAttribute("source", metadataSource);
+        if (metadataSource.contains("factory preset: "))
+            presetXml.setAttribute("factoryPresetId", juce::String(metadataPreset->id));
+    }
     presetXml.addChildElement(stateXml.release());
 
     const auto directoryResult = file.getParentDirectory().createDirectory();

@@ -169,6 +169,11 @@ public:
     }
     int getDisplayedFactoryPresetCountForLayoutTest() const { return static_cast<int>(displayedPresets.size()); }
     juce::String getFirstDisplayedFactoryPresetNameForLayoutTest() const;
+    bool userPresetMetadataMatchesFilterForLayoutTest(const juce::String& kind,
+                                                      const juce::String& value,
+                                                      const juce::String& role,
+                                                      const juce::String& engine,
+                                                      const juce::String& tags);
     juce::Rectangle<int> getPaulaSourceSampleSelectorBoundsForLayoutTest(size_t channel) const
     {
         return channel < paulaVoiceSampleBoxes.size() ? paulaVoiceSampleBoxes[channel].getBounds() : juce::Rectangle<int> {};
@@ -317,6 +322,7 @@ private:
     juce::String activePresetSearchText() const;
     bool factoryPresetMatchesActiveFilter(const chipper::PresetInfo& preset) const;
     bool factoryPresetMatchesActiveSearch(const chipper::PresetInfo& preset) const;
+    bool userPresetMatchesActiveFilter(const UserPresetFile& preset) const;
     bool userPresetMatchesActiveSearch(const UserPresetFile& preset) const;
     void refreshPresetBrowserReadout(chipper::ChipMode mode);
     void reloadUserPresetFiles(chipper::ChipMode mode);
@@ -588,6 +594,11 @@ private:
     {
         juce::File file;
         juce::String name;
+        juce::String role;
+        juce::String engine;
+        juce::StringArray tags;
+        juce::String note;
+        juce::String source;
     };
 
     struct ChipSettingsSnapshot

@@ -1419,6 +1419,24 @@ bool checkPresetRoleFilterLayout()
                 ok = false;
             }
 
+            if (! chipEditor.userPresetMetadataMatchesFilterForLayoutTest("role", "Bass", "Bass", "RP2A03 APU", "factory,bass,apu"))
+            {
+                std::cerr << "editor_size_smoke: user preset role metadata should participate in the preset filter\n";
+                ok = false;
+            }
+
+            if (! chipEditor.userPresetMetadataMatchesFilterForLayoutTest("engine", "RP2A03 APU", "Bass", "RP2A03 APU", "factory,bass,apu"))
+            {
+                std::cerr << "editor_size_smoke: user preset engine metadata should participate in the preset filter\n";
+                ok = false;
+            }
+
+            if (! chipEditor.userPresetMetadataMatchesFilterForLayoutTest("tag", "dmc", "Bass", "RP2A03 APU", "factory,bass,dmc"))
+            {
+                std::cerr << "editor_size_smoke: user preset tag metadata should participate in the preset filter\n";
+                ok = false;
+            }
+
             chipEditor.setPresetSearchTextForLayoutTest("organ");
             const auto organSearchCount = chipEditor.getDisplayedFactoryPresetCountForLayoutTest();
             const auto organSearchName = chipEditor.getFirstDisplayedFactoryPresetNameForLayoutTest();
