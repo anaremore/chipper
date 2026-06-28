@@ -46,7 +46,7 @@ Furnace is most useful to Chipper as a product/reference map, not as code or pat
 
 Use this implementation order when no current regression is blocking release:
 
-1. **Preset browser metadata and filtering.** Add role, engine, tag, favorite, and search affordances around the existing factory/user preset model. The first slice is metadata/export/test coverage; the next slice is the visible VST filter UI while keeping user presets as portable `.chipperpreset` files.
+1. **Preset browser metadata and filtering.** Role, engine, and tag metadata are exported and validated, and the VST header now has a compact role filter. Remaining browser work is search text, engine/tag filtering, favorites, and richer user preset affordances while keeping user presets as portable `.chipperpreset` files.
 2. **One sample/wave vertical slice.** Pick SPC700, Paula, or a wavetable family and complete the workflow: loaded asset state, lane/voice assignment, loop/root behavior, waveform preview, missing-file state, state recall, and renderer coverage.
 3. **OPN2 FM operator editor slice.** Start with YM2612 because ymfm is already vendored and six lanes are visible. Add editable operator/algorithm controls only where APVTS parameters, MIDI CCs, presets, renderer JSON, and held-tail checks can move together.
 4. **Tracker motion and SFX gestures.** Add chip-aware arps, slides, vibrato, retrigger, and one-shot gestures as native-looking register changes. Keep the UI musical, but make tooltips/debug JSON show the resolved register path.
@@ -62,7 +62,7 @@ When there is no fresh P0 regression, use this order for the next development sl
 1. Finish the current DAW-fit layout debt without changing the default editor height. Known high-value targets are sampler Performance Macro/sample-bank overlap, standard-height dropdowns/inputs, and any remaining chip pages where visible controls are still clipped or hidden.
 2. Polish one sampler or wavetable chip end-to-end instead of spreading tiny changes across all chips. Best current candidates are Paula sample-bank workflow, SPC700 voice-to-sample mapping, or HuC6280/Namco/SCC per-lane wave editing.
 3. Extend regression coverage only where the current gates do not already protect the behavior. `descriptor_smoke` already covers source-card ownership, source levels, MIDI CC mappings, per-channel wave/sample selectors, named chip modes, and factory preset presence; the next useful checks should target remaining engine-visible behavior such as sample-bank loop state, helper-envelope output, preset audibility, and state recall.
-4. Expand original factory presets only after the target chip's visible controls and renderer/debug metadata can prove what the preset changed.
+4. Expand original factory presets only after the target chip's visible controls and renderer/debug metadata can prove what the preset changed. Furnace can guide coverage targets and audition vocabulary, but Chipper presets must remain original parameter snapshots rather than copied tracker instruments, modules, wave tables, or sample data.
 5. Start the FM operator editor as a contained vertical slice for one FM family, keeping the held-tail test subset green throughout.
 
 If a protected behavior is suspected again, first run the named gate. A passing gate leaves the plan unchanged; a failing gate becomes a P0 regression, gets one owner-doc update, and must leave behind a tighter test before returning to the fixed list.

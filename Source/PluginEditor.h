@@ -157,6 +157,8 @@ public:
     {
         return channel < hucVoiceWaveBoxes.size() ? hucVoiceWaveBoxes[channel].getBounds() : juce::Rectangle<int> {};
     }
+    juce::Rectangle<int> getPresetFilterBoundsForLayoutTest() const { return presetFilterBox.getBounds(); }
+    juce::String getPresetFilterTextForLayoutTest() const { return presetFilterBox.getText(); }
     juce::Rectangle<int> getPaulaSourceSampleSelectorBoundsForLayoutTest(size_t channel) const
     {
         return channel < paulaVoiceSampleBoxes.size() ? paulaVoiceSampleBoxes[channel].getBounds() : juce::Rectangle<int> {};
@@ -285,6 +287,9 @@ private:
     void setChoiceParameterFromUi(const char* parameterId, int choiceIndex);
     void updateMacroChoices(chipper::ChipMode mode);
     void updatePresetChoices(chipper::ChipMode mode);
+    void updatePresetFilterChoices(chipper::ChipMode mode);
+    juce::String activePresetFilterRole() const;
+    bool factoryPresetMatchesActiveFilter(const chipper::PresetInfo& preset) const;
     void reloadUserPresetFiles(chipper::ChipMode mode);
     void updateSegmentedControlSpecs(chipper::ChipMode mode);
     void storeChipSettingsSnapshot(chipper::ChipMode mode);
@@ -541,6 +546,7 @@ private:
 
     juce::ComboBox chipModeBox;
     juce::ComboBox accuracyBox;
+    juce::ComboBox presetFilterBox;
     juce::ComboBox presetBox;
     juce::TextButton userPresetLoadButton;
     juce::TextButton userPresetSaveButton;
@@ -611,8 +617,10 @@ private:
     juce::File currentUserPresetFile;
 
     chipper::ChipMode displayedMode = chipper::ChipMode::nes;
+    std::vector<const chipper::PresetInfo*> allDisplayedPresets;
     std::vector<const chipper::PresetInfo*> displayedPresets;
     std::vector<UserPresetFile> displayedUserPresets;
+    std::vector<juce::String> presetFilterRoles;
     std::vector<ChipSettingsSnapshot> chipSettingsSnapshots;
     bool descriptorTextInitialized = false;
     int displayedDmcSampleCount = -1;
@@ -622,6 +630,7 @@ private:
     int displayedSampleMapRoot = -1;
     bool suppressMacroTemplateApply = false;
     bool suppressPresetApply = false;
+    bool suppressPresetFilterChange = false;
     bool suppressManualChoiceCallbacks = false;
     bool applyingFactoryPreset = false;
     std::array<juce::Rectangle<int>, uiModuleCount> moduleBounds;

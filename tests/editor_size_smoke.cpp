@@ -1355,6 +1355,37 @@ bool checkCompactChipLayouts()
     return ok;
 }
 
+bool checkPresetRoleFilterLayout()
+{
+    bool ok = true;
+    const auto chipModeCount = chipper::parameters::chipModeChoices().size();
+    for (auto chipMode = 0; chipMode < chipModeCount; ++chipMode)
+    {
+        ChipperAudioProcessor chipProcessor;
+        ok &= setChoiceParameter(chipProcessor, chipper::parameters::id::chipMode, chipMode);
+
+        ChipperAudioProcessorEditor chipEditor(chipProcessor);
+        chipEditor.setSize(expectedEditorMinimumWidth, expectedHeightForChipMode(chipMode));
+        chipEditor.runEditorUpdateForLayoutTest();
+
+        const auto bounds = chipEditor.getPresetFilterBoundsForLayoutTest();
+        if (bounds.getWidth() < 86 || bounds.getHeight() < 28)
+        {
+            std::cerr << "editor_size_smoke: preset role filter below readable size at compact width: "
+                      << bounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (chipEditor.getPresetFilterTextForLayoutTest().isEmpty())
+        {
+            std::cerr << "editor_size_smoke: preset role filter should default to All\n";
+            ok = false;
+        }
+    }
+
+    return ok;
+}
+
 }
 
 int main()
@@ -1411,6 +1442,7 @@ int main()
     ok &= checkPerformanceMacroSliderLayout();
     ok &= checkSidAdsrLayout();
     ok &= checkCompactChipLayouts();
+    ok &= checkPresetRoleFilterLayout();
     ok &= checkChipSwitchPreservesEditorSettings();
 
     return ok ? 0 : 1;
