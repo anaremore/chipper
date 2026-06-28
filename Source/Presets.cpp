@@ -3763,6 +3763,55 @@ const std::vector<PresetInfo>& presetCatalog()
     return presets;
 }
 
+const std::vector<std::string>& presetCoreRoleTargets()
+{
+    static const std::vector<std::string> roles {
+        "Bass",
+        "Lead",
+        "Arp",
+        "Keys / Pad",
+        "Drums",
+        "SFX"
+    };
+
+    return roles;
+}
+
+const std::vector<PresetQualityTarget>& presetQualityTargets()
+{
+    const auto roles = presetCoreRoleTargets();
+    static const std::vector<PresetQualityTarget> targets {
+        { ChipMode::nes, roles, { "apu", "pulse", "noise", "dmc" }, "Furnace-informed RP2A03 coverage: melodic pulse/triangle, DMC/noise percussion, UI and game SFX." },
+        { ChipMode::dmg, roles, { "apu", "pulse", "wave", "noise" }, "Furnace-informed DMG coverage: pulse leads, wave bass/keys, noise drums, handheld SFX." },
+        { ChipMode::sid, roles, { "sid", "filter", "pwm", "sync" }, "Furnace-informed SID coverage: bass, PWM leads, filter keys, oscillator interaction, and noise hits." },
+        { ChipMode::ym2149, roles, { "psg", "noise", "envelope" }, "Furnace-informed AY/YM coverage: tone stacks, envelope tricks, fake chords, and noise percussion." },
+        { ChipMode::sn76489, roles, { "psg", "noise" }, "Furnace-informed Sega PSG coverage: tone stacks, periodic/noise percussion, zaps, and arcade UI sounds." },
+        { ChipMode::ym2612, roles, { "fm", "operator", "dac" }, "Furnace-informed OPN2 coverage: operator bass/leads/keys plus rhythm, DAC, and SFX recipes." },
+        { ChipMode::opl3, roles, { "fm", "operator", "rhythm" }, "Furnace-informed OPL coverage: two-op melodic voices, rhythm mode, bells, basses, and DOS-style SFX." },
+        { ChipMode::spc700, roles, { "sampler", "loop", "noise" }, "Furnace-informed SPC700-style coverage: looped sample voices, drum maps, pitch motion, and noise colors." },
+        { ChipMode::pokey, roles, { "pokey", "noise" }, "Furnace-informed POKEY coverage: polynomial bass/leads, paired-channel tones, percussion, and harsh SFX." },
+        { ChipMode::paula, roles, { "sampler", "tracker", "loop" }, "Furnace-informed Paula coverage: tracker sample roles, looped instruments, drums, and retrigger-style SFX." },
+        { ChipMode::huc6280, roles, { "wavetable", "wave", "noise" }, "Furnace-informed HuC6280 coverage: wave-RAM bass/leads/keys, noise drums, and PC Engine SFX." },
+        { ChipMode::namcoWsg, roles, { "wavetable", "wave" }, "Furnace-informed Namco WSG coverage: arcade wavetable stacks, basses, leads, arps, drums, and SFX." },
+        { ChipMode::ym2151, roles, { "fm", "operator", "noise" }, "Furnace-informed OPM coverage: arcade FM leads, basses, keys, noise hits, and fast motion." },
+        { ChipMode::ym2413, roles, { "fm", "operator", "rhythm" }, "Furnace-informed OPLL coverage: ROM instrument bass/leads/keys, rhythm slots, and compact SFX." },
+        { ChipMode::scc, roles, { "wavetable", "wave" }, "Furnace-informed SCC coverage: five-lane wavetable basses, leads, keys, arps, drums, and arcade SFX." }
+    };
+
+    return targets;
+}
+
+const PresetQualityTarget* presetQualityTargetForChip(ChipMode chip)
+{
+    const auto& targets = presetQualityTargets();
+    const auto iter = std::find_if(targets.begin(), targets.end(), [chip](const auto& target)
+    {
+        return target.chip == chip;
+    });
+
+    return iter != targets.end() ? &*iter : nullptr;
+}
+
 std::vector<const PresetInfo*> presetsForChip(ChipMode chip)
 {
     std::vector<const PresetInfo*> matches;

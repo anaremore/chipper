@@ -48,6 +48,12 @@ A factory preset is not ready just because it has a good name. It should pass th
 - **Truthful:** helper envelopes, modern stereo, imported samples, and partial emulation are labeled honestly.
 - **Stable:** it survives chip switching, project recall, MIDI CC changes, and the renderer/debug JSON path.
 
+## Furnace-Informed Coverage Matrix
+
+Furnace is the benchmark for breadth, chip vocabulary, and tracker-style workflow coverage. Chipper may use it to define coverage targets, but not as a source of copied patch data, wave tables, modules, or samples.
+
+`presetQualityTargets()` owns the shippable matrix. Each implemented chip must cover the core musical roles `Bass`, `Lead`, `Arp`, `Keys / Pad`, `Drums`, and `SFX`, plus chip-family reference tags such as `fm`, `sampler`, `wavetable`, `noise`, `tracker`, or `dmc`. `chipper_render --list-presets` exports this matrix under `summary.qualityTargets`, and `assert_preset_catalog_json.py` fails when any required role is missing.
+
 ## Required QA Loop
 
 Before adding or releasing factory presets:

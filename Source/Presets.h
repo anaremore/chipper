@@ -53,12 +53,23 @@ struct PresetInfo
     float nesDmcDirectLevel = 0.0f;
 };
 
+struct PresetQualityTarget
+{
+    ChipMode chip = ChipMode::nes;
+    std::vector<std::string> requiredRoles;
+    std::vector<std::string> referenceTags;
+    std::string note;
+};
+
 const std::vector<PresetInfo>& presetCatalog();
 std::vector<const PresetInfo*> presetsForChip(ChipMode chip);
 std::vector<const PresetInfo*> presetBrowserCatalog(ChipMode preferredChip);
 std::string presetRoleFor(const PresetInfo& preset);
 std::string presetEngineFor(const PresetInfo& preset);
 std::vector<std::string> presetTagsFor(const PresetInfo& preset);
+const std::vector<std::string>& presetCoreRoleTargets();
+const std::vector<PresetQualityTarget>& presetQualityTargets();
+const PresetQualityTarget* presetQualityTargetForChip(ChipMode chip);
 PresetInfo initPresetForChip(ChipMode chip);
 const PresetInfo* presetById(std::string_view idOrName);
 PatchConfig patchConfigForPreset(const PresetInfo& preset);

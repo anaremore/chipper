@@ -220,6 +220,69 @@ def main() -> int:
     if declared_chip_counts != actual_chip_counts:
         failures.append(f"summary chipCounts expected {actual_chip_counts!r}, got {declared_chip_counts!r}")
 
+    quality_targets = summary.get("qualityTargets", [])
+    if not isinstance(quality_targets, list):
+        failures.append("summary qualityTargets must be a list")
+        quality_targets = []
+
+    expected_target_chips = [args.only_chip] if args.only_chip else sorted(IMPLEMENTED_CHIPS)
+    declared_target_chips: list[str] = []
+    for target in quality_targets:
+        if not isinstance(target, dict):
+            failures.append(f"summary qualityTargets entry must be an object: {target!r}")
+            continue
+
+        chip = str(target.get("chipKey", ""))
+        declared_target_chips.append(chip)
+        if chip not in expected_target_chips:
+            failures.append(f"quality target chip {chip!r} is not expected for this catalog")
+
+        source = str(target.get("source", ""))
+        if "Furnace-informed" not in source:
+            failures.append(f"{chip}: quality target source should name the Furnace-informed clean-room policy")
+
+        required_roles = target.get("requiredRoles", [])
+        if not isinstance(required_roles, list) or not required_roles:
+            failures.append(f"{chip}: quality target requiredRoles must be a non-empty list")
+            required_roles = []
+        required_roles = [str(role) for role in required_roles]
+        for role in required_roles:
+            if role not in EXPECTED_ROLES:
+                failures.append(f"{chip}: quality target role {role!r} is not one of {sorted(EXPECTED_ROLES)!r}")
+
+        reference_tags = target.get("referenceTags", [])
+        if not isinstance(reference_tags, list) or not reference_tags:
+            failures.append(f"{chip}: quality target referenceTags must be a non-empty list")
+            reference_tags = []
+        for tag in [str(item) for item in reference_tags]:
+            if not tag or tag != tag_token(tag):
+                failures.append(f"{chip}: quality target reference tag {tag!r} is not normalized")
+
+        chip_roles = {str(preset.get("role", "")) for preset in by_chip.get(chip, [])}
+        expected_missing_roles = sorted(role for role in required_roles if role not in chip_roles)
+        declared_missing_roles = sorted(str(role) for role in target.get("missingRoles", []))
+        if declared_missing_roles != expected_missing_roles:
+            failures.append(f"{chip}: quality target missingRoles expected {expected_missing_roles!r}, got {declared_missing_roles!r}")
+        if declared_missing_roles:
+            failures.append(f"{chip}: quality target is missing required roles: {', '.join(declared_missing_roles)}")
+
+        target_role_count = target.get("targetRoleCount")
+        covered_role_count = target.get("coveredRoleCount")
+        if target_role_count != len(required_roles):
+            failures.append(f"{chip}: quality target targetRoleCount expected {len(required_roles)}, got {target_role_count!r}")
+        if covered_role_count != len(required_roles) - len(expected_missing_roles):
+            failures.append(
+                f"{chip}: quality target coveredRoleCount expected {len(required_roles) - len(expected_missing_roles)}, "
+                f"got {covered_role_count!r}"
+            )
+
+        note = str(target.get("note", ""))
+        if len(note.strip()) < 24:
+            failures.append(f"{chip}: quality target note is too short")
+
+    if sorted(declared_target_chips) != expected_target_chips:
+        failures.append(f"quality target chips expected {expected_target_chips!r}, got {sorted(declared_target_chips)!r}")
+
     def read_named_counts(field: str, name_key: str) -> dict[str, int]:
         items = summary.get(field, [])
         if not isinstance(items, list):

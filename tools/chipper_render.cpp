@@ -2853,6 +2853,7 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
     std::vector<ChipPresetCount> chipCounts;
     std::vector<NamedPresetCount> roleCounts;
     std::vector<NamedPresetCount> engineCounts;
+    const auto& qualityTargets = chipper::presetQualityTargets();
     chipCounts.reserve(modes.size());
     size_t totalPresetCount = 0u;
     for (const auto mode : modes)
@@ -2913,7 +2914,57 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
         out << ", \"presetCount\": " << entry.count << " }"
             << (i + 1u == engineCounts.size() ? "\n" : ",\n");
     }
-    out << "    ]\n"
+    out << "    ],\n"
+        << "    \"qualityTargets\": [\n";
+    bool wroteTarget = false;
+    for (const auto& target : qualityTargets)
+    {
+        if (! includesMode(modes, target.chip))
+            continue;
+
+        if (wroteTarget)
+            out << ",\n";
+
+        std::vector<std::string> missingRoles;
+        for (const auto& role : target.requiredRoles)
+        {
+            const auto hasRole = std::any_of(presets.begin(), presets.end(), [&target, &role](const auto& preset)
+            {
+                return preset.chip == target.chip && chipper::presetRoleFor(preset) == role;
+            });
+            if (! hasRole)
+                missingRoles.push_back(role);
+        }
+
+        out << "      {\n"
+            << "        \"chipKey\": ";
+        writeJsonString(out, chipModeKey(target.chip));
+        out << ",\n"
+            << "        \"chip\": ";
+        writeJsonString(out, chipper::toString(target.chip));
+        out << ",\n"
+            << "        \"source\": ";
+        writeJsonString(out, "Furnace-informed clean-room coverage target");
+        out << ",\n"
+            << "        \"requiredRoles\": ";
+        writeJsonStringArray(out, target.requiredRoles, "          ");
+        out << ",\n"
+            << "        \"referenceTags\": ";
+        writeJsonStringArray(out, target.referenceTags, "          ");
+        out << ",\n"
+            << "        \"note\": ";
+        writeJsonString(out, target.note);
+        out << ",\n"
+            << "        \"targetRoleCount\": " << target.requiredRoles.size() << ",\n"
+            << "        \"coveredRoleCount\": " << (target.requiredRoles.size() - missingRoles.size()) << ",\n"
+            << "        \"missingRoles\": ";
+        writeJsonStringArray(out, missingRoles, "          ");
+        out << "\n"
+            << "      }";
+        wroteTarget = true;
+    }
+    out << "\n"
+        << "    ]\n"
         << "  },\n"
         << "  \"presets\": [\n";
     bool wrotePreset = false;
