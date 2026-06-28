@@ -41,6 +41,7 @@ public:
         size_t loopStart = 0;
         size_t loopEnd = 0;
         bool included = true;
+        int sourceSampleIndex = -1;
     };
 
     struct DmcSampleEntryInfo

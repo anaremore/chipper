@@ -415,6 +415,49 @@ bool writeLoopedAiffFixture(const juce::File& file, float frequency, uint32_t lo
     return file.replaceWithData(data.data(), data.size());
 }
 
+bool writeProTrackerModFixture(const juce::File& file)
+{
+    std::vector<uint8_t> data(1084u + 1024u, 0u);
+    const auto writeText = [&data](size_t offset, size_t width, const char* text)
+    {
+        for (size_t i = 0; i < width && text[i] != '\0'; ++i)
+            data[offset + i] = static_cast<uint8_t>(text[i]);
+    };
+    const auto writeU16 = [&data](size_t offset, uint16_t value)
+    {
+        data[offset] = static_cast<uint8_t>((value >> 8u) & 0xffu);
+        data[offset + 1u] = static_cast<uint8_t>(value & 0xffu);
+    };
+    const auto writeSampleHeader = [&](size_t index,
+                                       const char* name,
+                                       uint16_t lengthWords,
+                                       uint8_t volume,
+                                       uint16_t loopStartWords,
+                                       uint16_t loopLengthWords)
+    {
+        const auto offset = 20u + index * 30u;
+        writeText(offset, 22u, name);
+        writeU16(offset + 22u, lengthWords);
+        data[offset + 24u] = 0u;
+        data[offset + 25u] = volume;
+        writeU16(offset + 26u, loopStartWords);
+        writeU16(offset + 28u, loopLengthWords);
+    };
+
+    writeText(0u, 20u, "Chipper MOD Test");
+    writeSampleHeader(0u, "Loop Bass", 32u, 64u, 8u, 16u);
+    writeSampleHeader(1u, "One Shot", 16u, 48u, 0u, 1u);
+    data[950u] = 1u;
+    writeText(1080u, 4u, "M.K.");
+
+    for (int i = 0; i < 64; ++i)
+        data.push_back(static_cast<uint8_t>(static_cast<int8_t>((i % 32) - 16)));
+    for (int i = 0; i < 32; ++i)
+        data.push_back(static_cast<uint8_t>(static_cast<int8_t>(31 - i * 2)));
+
+    return file.replaceWithData(data.data(), data.size());
+}
+
 bool write8svxFixture(const juce::File& file, uint8_t seed, uint32_t oneShotSamples = 256u, uint32_t repeatSamples = 0u)
 {
     std::vector<uint8_t> body;
@@ -1488,6 +1531,47 @@ int main()
         ok &= expect(portablePaulaNames.size() == 1 && portablePaulaNames[0] == "portable-paula.wav",
                      "Portable preset restore should load Paula samples from preset-relative Samples folder");
     }
+
+    auto paulaModFile = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-paula-mod-sample-test.mod");
+    paulaModFile.deleteFile();
+    ok &= expect(writeProTrackerModFixture(paulaModFile), "Should write temporary ProTracker MOD fixture");
+    ChipperAudioProcessor paulaModProcessor;
+    paulaModProcessor.prepareToPlay(48000.0, 64);
+    sendController(paulaModProcessor, 70, controllerValueForChoice(paulaModProcessor, chipper::parameters::id::chipMode, 9));
+    ok &= expect(paulaModProcessor.loadPaulaSampleFile(paulaModFile).wasOk(),
+                 "Paula MOD import should extract sample instruments into the playable bank");
+    auto paulaModNames = paulaModProcessor.paulaSampleNames();
+    ok &= expect(paulaModNames.size() == 2 && paulaModNames[0].contains("#01 Loop Bass")
+                     && paulaModNames[1].contains("#02 One Shot"),
+                 "Paula MOD import should expose non-empty instruments as named sample slots");
+    auto paulaModInfo = paulaModProcessor.paulaSampleInfo();
+    ok &= expect(paulaModInfo.loaded && paulaModInfo.sampleName.contains("#01 Loop Bass") && paulaModInfo.byteCount == 64,
+                 "Paula MOD import should select the first extracted sample by default");
+    ok &= expect(paulaModInfo.hasLoop && paulaModInfo.loopStartSample == 16 && paulaModInfo.loopEndSample == 48,
+                 "Paula MOD import should preserve ProTracker sample repeat points");
+    const auto paulaModDebug = paulaModProcessor.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(paulaModDebug, "externalSampleLoopMetadataSelected") == 1
+                     && jsonIntValue(paulaModDebug, "externalSampleLoopStartSelected") == 16
+                     && jsonIntValue(paulaModDebug, "externalSampleLoopEndSelected") == 48,
+                 "Paula core debug state should expose loop metadata from the selected MOD sample");
+    sendController(paulaModProcessor, 117, controllerValueForChoice(paulaModProcessor, chipper::parameters::id::nesDmcSampleSlot, 1));
+    paulaModInfo = paulaModProcessor.paulaSampleInfo();
+    ok &= expect(paulaModInfo.loaded && paulaModInfo.sampleName.contains("#02 One Shot") && paulaModInfo.byteCount == 32
+                     && ! paulaModInfo.hasLoop,
+                 "CC117 should select one-shot MOD samples without inventing loop metadata");
+    juce::MemoryBlock savedPaulaModState;
+    paulaModProcessor.getStateInformation(savedPaulaModState);
+    ChipperAudioProcessor restoredPaulaModProcessor;
+    restoredPaulaModProcessor.prepareToPlay(48000.0, 64);
+    restoredPaulaModProcessor.setStateInformation(savedPaulaModState.getData(), static_cast<int>(savedPaulaModState.getSize()));
+    processEmptyBlock(restoredPaulaModProcessor);
+    auto restoredPaulaModNames = restoredPaulaModProcessor.paulaSampleNames();
+    auto restoredPaulaModInfo = restoredPaulaModProcessor.paulaSampleInfo();
+    ok &= expect(restoredPaulaModNames.size() == 2, "Paula state restore should reload all extracted MOD sample slots");
+    ok &= expect(restoredPaulaModInfo.loaded && restoredPaulaModInfo.sampleName.contains("#02 One Shot")
+                     && restoredPaulaModInfo.byteCount == 32 && ! restoredPaulaModInfo.hasLoop,
+                 "Paula state restore should preserve the selected extracted MOD sample slot");
+    paulaModFile.deleteFile();
     portablePaulaPresetDir.deleteRecursively();
     paulaDir.deleteRecursively();
 

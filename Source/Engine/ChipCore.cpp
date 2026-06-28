@@ -9978,7 +9978,7 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Four Paula-inspired 8-bit sample channels, period, volume, enable/loop control, classic hard-panned channel layout, generated tracker sample templates, plugin/renderer-loaded WAV/AIFF/uncompressed IFF-8SVX sample banks, and imported WAV smpl, AIFF MARK/INST, and uncompressed 8SVX loop metadata are modeled; DMA pointer timing, exact PAL/NTSC video timing, compressed 8SVX, MOD import/loop-point metadata, mod playback effects, CIA timing, analog output path, and hardware validation are not complete.";
+        return "Four Paula-inspired 8-bit sample channels, period, volume, enable/loop control, classic hard-panned channel layout, generated tracker sample templates, plugin-loaded WAV/AIFF/uncompressed IFF-8SVX/ProTracker MOD sample banks, renderer-loaded WAV/uncompressed IFF-8SVX samples, and imported WAV smpl, AIFF MARK/INST, uncompressed 8SVX, and MOD sample loop metadata are modeled; DMA pointer timing, exact PAL/NTSC video timing, compressed 8SVX, full MOD playback/effects, CIA timing, analog output path, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override

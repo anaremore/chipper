@@ -391,6 +391,11 @@ bool fileLooksLikeIff8svxImport(const juce::File& file)
     return file.hasFileExtension(".8svx;.iff");
 }
 
+bool fileLooksLikeModImport(const juce::File& file)
+{
+    return file.hasFileExtension(".mod");
+}
+
 uint16_t readBigEndian16(const uint8_t* data)
 {
     return static_cast<uint16_t>((static_cast<uint16_t>(data[0]) << 8u) | static_cast<uint16_t>(data[1]));
@@ -755,6 +760,120 @@ juce::Result readIff8svxSampleFile(const juce::File& file, ChipperAudioProcessor
     return juce::Result::ok();
 }
 
+juce::String fixedAsciiString(const uint8_t* data, size_t size)
+{
+    juce::String text;
+    for (size_t i = 0; i < size; ++i)
+    {
+        const auto byte = data[i];
+        if (byte == 0u)
+            break;
+
+        text += juce::String::charToString(static_cast<juce_wchar>(byte >= 32u && byte < 127u ? byte : '?'));
+    }
+    return text.trim();
+}
+
+bool isSupportedProTrackerSignature(const uint8_t* signature)
+{
+    return std::memcmp(signature, "M.K.", 4u) == 0
+        || std::memcmp(signature, "M!K!", 4u) == 0
+        || std::memcmp(signature, "4CHN", 4u) == 0
+        || std::memcmp(signature, "FLT4", 4u) == 0;
+}
+
+juce::Result readProTrackerModSampleFile(const juce::File& file, std::vector<ChipperAudioProcessor::DmcSampleSlot>& slots)
+{
+    if (! file.existsAsFile())
+        return juce::Result::fail("Paula MOD sample file does not exist: " + file.getFullPathName());
+
+    juce::MemoryBlock block;
+    if (! file.loadFileAsData(block))
+        return juce::Result::fail("Could not read Paula MOD sample file: " + file.getFullPathName());
+
+    const auto* bytes = static_cast<const uint8_t*>(block.getData());
+    const auto size = block.getSize();
+    constexpr auto headerSize = size_t { 1084u };
+    constexpr auto sampleHeaderOffset = size_t { 20u };
+    constexpr auto sampleHeaderSize = size_t { 30u };
+    constexpr auto sampleCount = size_t { 31u };
+    if (size < headerSize || ! isSupportedProTrackerSignature(bytes + 1080u))
+        return juce::Result::fail("Paula MOD import supports 31-sample ProTracker 4-channel .mod files in this build: " + file.getFileName());
+
+    const auto songLength = std::clamp(static_cast<int>(bytes[950]), 1, 128);
+    auto highestPattern = uint8_t { 0u };
+    for (int i = 0; i < songLength; ++i)
+        highestPattern = std::max(highestPattern, bytes[952u + static_cast<size_t>(i)]);
+
+    const auto patternCount = static_cast<size_t>(highestPattern) + 1u;
+    const auto sampleDataOffset = headerSize + patternCount * 1024u;
+    if (sampleDataOffset > size)
+        return juce::Result::fail("Paula MOD pattern data extends past end of file: " + file.getFileName());
+
+    struct ModSampleHeader
+    {
+        juce::String name;
+        size_t length = 0u;
+        size_t loopStart = 0u;
+        size_t loopLength = 0u;
+    };
+
+    std::array<ModSampleHeader, sampleCount> headers;
+    for (size_t i = 0; i < sampleCount; ++i)
+    {
+        const auto headerOffset = sampleHeaderOffset + i * sampleHeaderSize;
+        headers[i].name = fixedAsciiString(bytes + headerOffset, 22u);
+        headers[i].length = static_cast<size_t>(readBigEndian16(bytes + headerOffset + 22u)) * 2u;
+        headers[i].loopStart = static_cast<size_t>(readBigEndian16(bytes + headerOffset + 26u)) * 2u;
+        headers[i].loopLength = static_cast<size_t>(readBigEndian16(bytes + headerOffset + 28u)) * 2u;
+    }
+
+    auto sampleOffset = sampleDataOffset;
+    constexpr size_t maxImportedSamples = 262144u;
+    for (size_t i = 0; i < sampleCount; ++i)
+    {
+        const auto declaredLength = headers[i].length;
+        if (sampleOffset > size)
+            break;
+
+        const auto available = size - sampleOffset;
+        const auto sourceLength = std::min(declaredLength, available);
+        if (sourceLength > 0u)
+        {
+            const auto importedLength = std::min(sourceLength, maxImportedSamples);
+            ChipperAudioProcessor::DmcSampleSlot slot;
+            const auto label = headers[i].name.isNotEmpty()
+                ? headers[i].name
+                : ("Sample " + juce::String(static_cast<int>(i + 1)).paddedLeft('0', 2));
+            slot.name = file.getFileNameWithoutExtension() + " #" + juce::String(static_cast<int>(i + 1)).paddedLeft('0', 2) + " " + label;
+            slot.path = file.getFullPathName();
+            slot.encoding = chipper::ExternalSampleEncoding::signedPcm8;
+            slot.sourceSampleIndex = static_cast<int>(i);
+            slot.bytes.resize(importedLength);
+            for (size_t sample = 0; sample < importedLength; ++sample)
+                slot.bytes[sample] = static_cast<uint8_t>(static_cast<int>(static_cast<int8_t>(bytes[sampleOffset + sample])) + 128);
+
+            if (headers[i].loopLength > 2u && headers[i].loopStart < importedLength)
+            {
+                slot.hasLoop = true;
+                slot.loopStart = std::min(headers[i].loopStart, importedLength - 1u);
+                slot.loopEnd = std::min(importedLength, headers[i].loopStart + headers[i].loopLength);
+                if (slot.loopEnd <= slot.loopStart + 1u)
+                    slot.hasLoop = false;
+            }
+
+            slots.push_back(std::move(slot));
+        }
+
+        sampleOffset += declaredLength;
+    }
+
+    if (slots.empty())
+        return juce::Result::fail("Paula MOD file has no extractable sample data: " + file.getFileName());
+
+    return juce::Result::ok();
+}
+
 juce::Result readSpc700BrrSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
 {
     if (! file.existsAsFile())
@@ -789,7 +908,20 @@ juce::Result readPaulaSampleFile(const juce::File& file, ChipperAudioProcessor::
     if (fileLooksLikeIff8svxImport(file))
         return readIff8svxSampleFile(file, slot);
 
-    return readPcm8SampleFile(file, slot, "Paula", "MOD");
+    return readPcm8SampleFile(file, slot, "Paula", "compressed 8SVX/full tracker playback");
+}
+
+juce::Result readPaulaSampleFileSlots(const juce::File& file, std::vector<ChipperAudioProcessor::DmcSampleSlot>& slots)
+{
+    if (fileLooksLikeModImport(file))
+        return readProTrackerModSampleFile(file, slots);
+
+    ChipperAudioProcessor::DmcSampleSlot slot;
+    if (auto result = readPaulaSampleFile(file, slot); result.failed())
+        return result;
+
+    slots.push_back(std::move(slot));
+    return juce::Result::ok();
 }
 }
 
@@ -932,14 +1064,15 @@ juce::Result ChipperAudioProcessor::loadSpc700BrrSampleDirectory(const juce::Fil
 
 juce::Result ChipperAudioProcessor::loadPaulaSampleFile(const juce::File& file)
 {
-    DmcSampleSlot slot;
-    if (auto result = readPaulaSampleFile(file, slot); result.failed())
+    std::vector<DmcSampleSlot> slots;
+    if (auto result = readPaulaSampleFileSlots(file, slots); result.failed())
         return result;
 
     {
         const std::lock_guard<std::mutex> lock(paulaSampleMutex);
-        paulaSampleBank.clear();
-        paulaSampleBank.push_back(std::move(slot));
+        paulaSampleBank = std::move(slots);
+        for (size_t i = 0; i < paulaSampleBank.size(); ++i)
+            paulaSampleBank[i].included = i < 32u;
         paulaSample = paulaSampleBank.front();
         ++paulaSampleBankRevision;
     }
@@ -958,7 +1091,7 @@ juce::Result ChipperAudioProcessor::loadPaulaSampleDirectory(const juce::File& d
         return juce::Result::fail("Paula sample directory does not exist: " + directory.getFullPathName());
 
     juce::Array<juce::File> files;
-    directory.findChildFiles(files, juce::File::findFiles, false, "*.wav;*.aif;*.aiff;*.8svx;*.iff");
+    directory.findChildFiles(files, juce::File::findFiles, false, "*.wav;*.aif;*.aiff;*.8svx;*.iff;*.mod");
     files.sort();
 
     std::vector<DmcSampleSlot> loaded;
@@ -968,16 +1101,22 @@ juce::Result ChipperAudioProcessor::loadPaulaSampleDirectory(const juce::File& d
         if (loaded.size() >= 128u)
             break;
 
-        DmcSampleSlot slot;
-        if (readPaulaSampleFile(file, slot).wasOk())
+        std::vector<DmcSampleSlot> fileSlots;
+        if (readPaulaSampleFileSlots(file, fileSlots).wasOk())
         {
-            slot.included = loaded.size() < 32u;
-            loaded.push_back(std::move(slot));
+            for (auto& slot : fileSlots)
+            {
+                if (loaded.size() >= 128u)
+                    break;
+
+                slot.included = loaded.size() < 32u;
+                loaded.push_back(std::move(slot));
+            }
         }
     }
 
     if (loaded.empty())
-        return juce::Result::fail("No readable WAV/AIFF/8SVX files found in: " + directory.getFullPathName());
+        return juce::Result::fail("No readable WAV/AIFF/8SVX/MOD files found in: " + directory.getFullPathName());
 
     {
         const std::lock_guard<std::mutex> lock(paulaSampleMutex);
@@ -1223,7 +1362,8 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::paulaSampleInf
 
     for (int i = 0; i < static_cast<int>(activeSlots.size()); ++i)
     {
-        if (activeSlots[static_cast<size_t>(i)]->path == paulaSample.path)
+        if (activeSlots[static_cast<size_t>(i)]->path == paulaSample.path
+            && activeSlots[static_cast<size_t>(i)]->sourceSampleIndex == paulaSample.sourceSampleIndex)
         {
             safeSlot = i;
             break;
@@ -2721,6 +2861,8 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
                 auto* sample = new juce::XmlElement(paulaSampleStateTag);
                 sample->setAttribute("path", slot.path);
                 sample->setAttribute("included", slot.included ? 1 : 0);
+                if (slot.sourceSampleIndex >= 0)
+                    sample->setAttribute("sourceSampleIndex", slot.sourceSampleIndex);
                 paulaBankState->addChildElement(sample);
             }
 
@@ -2821,11 +2963,31 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
             if (child == nullptr || ! child->hasTagName(paulaSampleStateTag))
                 continue;
 
-            DmcSampleSlot slot;
-            if (readPaulaSampleFile(resolvePresetSamplePath(*child, presetDirectory), slot).wasOk())
+            std::vector<DmcSampleSlot> slots;
+            if (readPaulaSampleFileSlots(resolvePresetSamplePath(*child, presetDirectory), slots).wasOk())
             {
-                slot.included = child->getBoolAttribute("included", true);
-                restoredPaulaBank.push_back(std::move(slot));
+                const auto sourceSampleIndex = child->getIntAttribute("sourceSampleIndex", -1);
+                const auto included = child->getBoolAttribute("included", true);
+                if (sourceSampleIndex >= 0)
+                {
+                    for (auto& slot : slots)
+                    {
+                        if (slot.sourceSampleIndex == sourceSampleIndex)
+                        {
+                            slot.included = included;
+                            restoredPaulaBank.push_back(std::move(slot));
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    for (auto& slot : slots)
+                    {
+                        slot.included = included;
+                        restoredPaulaBank.push_back(std::move(slot));
+                    }
+                }
             }
         }
         if (! restoredPaulaBank.empty())
@@ -3084,7 +3246,8 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
                 auto resolvedSlot = playbackMode != 0 && activePaulaSampleSlot >= 0 ? activePaulaSampleSlot : selectedSlot;
                 for (int i = 0; i < static_cast<int>(activeSlots.size()); ++i)
                 {
-                    if (activeSlots[static_cast<size_t>(i)]->path == paulaSample.path)
+                    if (activeSlots[static_cast<size_t>(i)]->path == paulaSample.path
+                        && activeSlots[static_cast<size_t>(i)]->sourceSampleIndex == paulaSample.sourceSampleIndex)
                     {
                         resolvedSlot = i;
                         break;

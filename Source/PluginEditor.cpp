@@ -591,7 +591,7 @@ public:
         addAndMakeVisible(title);
 
         helper.setText(paulaMode
-                           ? "Checked WAV/AIFF/8SVX files feed the 32-slot Paula-style sample bank and note map. Folder contents stay local."
+                           ? "Checked WAV/AIFF/8SVX/MOD samples feed the 32-slot Paula-style sample bank and note map. Folder contents stay local."
                            : spc700Mode
                            ? "Checked BRR/WAV/AIFF files feed the 32-slot playable bank and note map. Folder contents stay local."
                            : "Checked files feed the 32-slot CC117 bank. Folder contents stay local and are not copied into the repo.",
@@ -11240,11 +11240,11 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
     dmcSampleLabel.setText("Paula Sample", juce::dontSendNotification);
     const auto mapRoot = std::clamp(static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcMapRoot))), 0, 127);
     const auto playbackMode = static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcPlaybackMode)));
-    dmcSampleLabel.setTooltip(withMidiCcForRole("Load one user-provided WAV/AIFF/8SVX sample or a folder. CC117 selects the manual Paula sample slot; Sample Playback chooses whether MIDI notes browse the loaded bank.", chipper::ChipParameterRole::nesDmcSampleSlot));
+    dmcSampleLabel.setTooltip(withMidiCcForRole("Load one user-provided WAV/AIFF/8SVX/MOD sample source or a folder. MOD files expand ProTracker instruments into sample slots. CC117 selects the manual Paula sample slot; Sample Playback chooses whether MIDI notes browse the loaded bank.", chipper::ChipParameterRole::nesDmcSampleSlot));
     dmcSampleFileButton.setButtonText("File");
-    dmcSampleFileButton.setTooltip("Load one user-provided WAV/AIFF or uncompressed IFF/8SVX into the Paula-style 8-bit sample voice model.");
+    dmcSampleFileButton.setTooltip("Load one user-provided WAV/AIFF, uncompressed IFF/8SVX, or ProTracker MOD sample source into the Paula-style 8-bit sample voice model.");
     dmcSampleFolderButton.setButtonText("Folder");
-    dmcSampleFolderButton.setTooltip("Load a folder of user-provided WAV/AIFF/8SVX files. Checked entries become up to 32 playable slots and note-mapped sample choices.");
+    dmcSampleFolderButton.setTooltip("Load a folder of user-provided WAV/AIFF/8SVX/MOD files. Checked entries become up to 32 playable slots and note-mapped sample choices.");
     dmcSampleBankButton.setButtonText("Bank");
     dmcSampleBankButton.setTooltip("Open the Paula sample checklist. Checked files become the playable 32-slot dropdown and note map.");
 
@@ -11310,7 +11310,7 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
 
     auto tooltip = info.statusLine
-        + "\nWAV/AIFF and uncompressed IFF/8SVX files are imported into Paula-style 8-bit sample memory. Folder loads keep up to 32 user-provided files addressable by the dropdown and CC117.";
+        + "\nWAV/AIFF, uncompressed IFF/8SVX, and ProTracker MOD sample instruments are imported into Paula-style 8-bit sample memory. Folder loads keep up to 32 user-provided slots addressable by the dropdown and CC117.";
     if (playbackMode == 0)
         tooltip += "\nSample Playback is Manual Slot: each MIDI note uses the selected dropdown sample.";
     else if (playbackMode == 2)
@@ -11328,7 +11328,7 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
             + "; notes outside this span are silent.";
     if (info.loaded)
         tooltip += "\nPath: " + info.path;
-    tooltip += "\nWAV smpl, AIFF MARK/INST, and uncompressed 8SVX loop metadata are imported when present. Compressed 8SVX, MOD import, and exact Paula DMA timing remain planned.";
+    tooltip += "\nWAV smpl, AIFF MARK/INST, uncompressed 8SVX, and ProTracker MOD sample loop metadata are imported when present. Compressed 8SVX, full MOD playback/effects, and exact Paula DMA timing remain planned.";
     dmcSampleStatusLabel.setTooltip(withMidiCcForRole(tooltip, chipper::ChipParameterRole::nesDmcSampleSlot));
     updateSampleWaveformPreview(chipper::ChipMode::paula);
 }
@@ -11447,7 +11447,7 @@ void ChipperAudioProcessorEditor::choosePaulaSampleFile()
 {
     dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose an Amiga Paula sample",
                                                            juce::File {},
-                                                           "*.wav;*.aif;*.aiff;*.8svx;*.iff");
+                                                           "*.wav;*.aif;*.aiff;*.8svx;*.iff;*.mod");
     dmcSampleChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
                                   [this](const juce::FileChooser& chooser)
                                   {
@@ -11463,7 +11463,7 @@ void ChipperAudioProcessorEditor::choosePaulaSampleDirectory()
 {
     dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose a folder of Amiga Paula samples",
                                                            juce::File {},
-                                                           "*.wav;*.aif;*.aiff;*.8svx;*.iff");
+                                                           "*.wav;*.aif;*.aiff;*.8svx;*.iff;*.mod");
     dmcSampleChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
                                   [this](const juce::FileChooser& chooser)
                                   {
@@ -12041,7 +12041,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     else if (mode == chipper::ChipMode::paula)
     {
         controlValueLabels[4].setText("Paula sample import", juce::dontSendNotification);
-        controlValueLabels[4].setTooltip("Loads WAV/AIFF or uncompressed IFF/8SVX into the Paula-style 8-bit sample voice path.");
+        controlValueLabels[4].setTooltip("Loads WAV/AIFF, uncompressed IFF/8SVX, or ProTracker MOD sample sources into the Paula-style 8-bit sample voice path.");
         updatePaulaSampleControls();
     }
     else
