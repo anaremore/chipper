@@ -466,6 +466,116 @@ bool readWavSmplLoopMetadata(const juce::File& file, size_t sampleCount, size_t&
     return false;
 }
 
+bool readAiffInstLoopMetadata(const juce::File& file, size_t sampleCount, size_t& loopStart, size_t& loopEnd)
+{
+    loopStart = 0u;
+    loopEnd = 0u;
+    if (sampleCount <= 1u || ! file.hasFileExtension(".aif;.aiff"))
+        return false;
+
+    juce::MemoryBlock block;
+    if (! file.loadFileAsData(block))
+        return false;
+
+    const auto* bytes = static_cast<const uint8_t*>(block.getData());
+    const auto size = block.getSize();
+    if (size < 12u || std::memcmp(bytes, "FORM", 4u) != 0)
+        return false;
+
+    const auto isAiff = std::memcmp(bytes + 8u, "AIFF", 4u) == 0 || std::memcmp(bytes + 8u, "AIFC", 4u) == 0;
+    if (! isAiff)
+        return false;
+
+    struct MarkerPosition
+    {
+        uint16_t id = 0u;
+        size_t position = 0u;
+    };
+
+    std::vector<MarkerPosition> markers;
+    auto sustainPlayMode = uint16_t { 0u };
+    auto sustainBeginMarker = uint16_t { 0u };
+    auto sustainEndMarker = uint16_t { 0u };
+    auto sawInstrumentChunk = false;
+    const auto formSize = static_cast<size_t>(readBigEndian32(bytes + 4u));
+    const auto formEnd = std::min(size, static_cast<size_t>(8u + formSize));
+    auto offset = static_cast<size_t>(12u);
+    while (offset + 8u <= formEnd)
+    {
+        const auto* chunkId = bytes + offset;
+        const auto chunkSize = static_cast<size_t>(readBigEndian32(bytes + offset + 4u));
+        const auto chunkDataOffset = offset + 8u;
+        if (chunkDataOffset + chunkSize > size)
+            return false;
+
+        if (std::memcmp(chunkId, "MARK", 4u) == 0)
+        {
+            if (chunkSize < 2u)
+                return false;
+
+            const auto markerCount = readBigEndian16(bytes + chunkDataOffset);
+            auto markerOffset = chunkDataOffset + 2u;
+            const auto markerEnd = chunkDataOffset + chunkSize;
+            markers.reserve(static_cast<size_t>(markerCount));
+            for (uint16_t i = 0; i < markerCount && markerOffset + 7u <= markerEnd; ++i)
+            {
+                const auto markerId = readBigEndian16(bytes + markerOffset);
+                const auto markerPosition = static_cast<size_t>(readBigEndian32(bytes + markerOffset + 2u));
+                const auto nameLength = static_cast<size_t>(bytes[markerOffset + 6u]);
+                auto nameFieldSize = static_cast<size_t>(1u) + nameLength;
+                if ((nameFieldSize & 1u) != 0u)
+                    ++nameFieldSize;
+
+                if (markerOffset + 6u + nameFieldSize > markerEnd)
+                    return false;
+
+                markers.push_back({ markerId, markerPosition });
+                markerOffset += 6u + nameFieldSize;
+            }
+        }
+        else if (std::memcmp(chunkId, "INST", 4u) == 0)
+        {
+            if (chunkSize < 20u)
+                return false;
+
+            sawInstrumentChunk = true;
+            sustainPlayMode = readBigEndian16(bytes + chunkDataOffset + 8u);
+            sustainBeginMarker = readBigEndian16(bytes + chunkDataOffset + 10u);
+            sustainEndMarker = readBigEndian16(bytes + chunkDataOffset + 12u);
+        }
+
+        offset = chunkDataOffset + chunkSize + (chunkSize & 1u);
+    }
+
+    if (! sawInstrumentChunk || sustainPlayMode != 1u || sustainBeginMarker == 0u || sustainEndMarker == 0u)
+        return false;
+
+    const auto markerPositionForId = [&markers](uint16_t markerId, size_t& position)
+    {
+        for (const auto& marker : markers)
+        {
+            if (marker.id == markerId)
+            {
+                position = marker.position;
+                return true;
+            }
+        }
+        return false;
+    };
+
+    size_t markerStart = 0u;
+    size_t markerEnd = 0u;
+    if (! markerPositionForId(sustainBeginMarker, markerStart) || ! markerPositionForId(sustainEndMarker, markerEnd))
+        return false;
+
+    if (markerStart >= markerEnd || markerStart >= sampleCount)
+        return false;
+
+    loopStart = std::min(markerStart, sampleCount - 1u);
+    loopEnd = std::min(markerEnd, sampleCount);
+    return loopEnd > loopStart + 1u;
+}
+
 juce::File resolvePresetSamplePath(const juce::XmlElement& sampleState, const juce::File& presetDirectory)
 {
     const auto relativePath = sampleState.getStringAttribute("relativePath").trim();
@@ -549,7 +659,8 @@ juce::Result readPcm8SampleFile(const juce::File& file,
 
     size_t loopStart = 0u;
     size_t loopEnd = 0u;
-    if (readWavSmplLoopMetadata(file, slot.bytes.size(), loopStart, loopEnd))
+    if (readWavSmplLoopMetadata(file, slot.bytes.size(), loopStart, loopEnd)
+        || readAiffInstLoopMetadata(file, slot.bytes.size(), loopStart, loopEnd))
     {
         slot.hasLoop = true;
         slot.loopStart = loopStart;

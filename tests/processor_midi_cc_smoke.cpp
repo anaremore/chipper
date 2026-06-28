@@ -336,6 +336,85 @@ void appendAscii(std::vector<uint8_t>& bytes, const char* text)
         bytes.push_back(static_cast<uint8_t>(*text++));
 }
 
+bool writeAiffFixture(const juce::File& file, float frequency)
+{
+    juce::AudioBuffer<float> audio(1, 256);
+    for (int i = 0; i < audio.getNumSamples(); ++i)
+    {
+        const auto phase = static_cast<float>(i) * frequency / 48000.0f;
+        audio.setSample(0, i, std::sin(phase * juce::MathConstants<float>::twoPi) * 0.75f);
+    }
+
+    if (auto stream = std::unique_ptr<juce::FileOutputStream>(file.createOutputStream()))
+    {
+        juce::AiffAudioFormat format;
+        if (auto writer = std::unique_ptr<juce::AudioFormatWriter>(format.createWriterFor(stream.get(), 48000.0, 1, 16, {}, 0)))
+        {
+            stream.release();
+            return writer->writeFromAudioSampleBuffer(audio, 0, audio.getNumSamples());
+        }
+    }
+
+    return false;
+}
+
+bool writeLoopedAiffFixture(const juce::File& file, float frequency, uint32_t loopStart, uint32_t loopEnd)
+{
+    if (! writeAiffFixture(file, frequency))
+        return false;
+
+    juce::MemoryBlock block;
+    if (! file.loadFileAsData(block) || block.getSize() < 12u)
+        return false;
+
+    std::vector<uint8_t> data(static_cast<const uint8_t*>(block.getData()),
+                              static_cast<const uint8_t*>(block.getData()) + block.getSize());
+    if (std::memcmp(data.data(), "FORM", 4u) != 0
+        || (std::memcmp(data.data() + 8u, "AIFF", 4u) != 0 && std::memcmp(data.data() + 8u, "AIFC", 4u) != 0))
+        return false;
+
+    std::vector<uint8_t> mark;
+    mark.reserve(8u + 2u + 16u);
+    appendAscii(mark, "MARK");
+    appendBigEndian32(mark, 18u);
+    appendBigEndian16(mark, 2u);
+    appendBigEndian16(mark, 1u);
+    appendBigEndian32(mark, loopStart);
+    mark.push_back(0u);
+    mark.push_back(0u);
+    appendBigEndian16(mark, 2u);
+    appendBigEndian32(mark, loopEnd);
+    mark.push_back(0u);
+    mark.push_back(0u);
+    data.insert(data.end(), mark.begin(), mark.end());
+
+    std::vector<uint8_t> inst;
+    inst.reserve(8u + 20u);
+    appendAscii(inst, "INST");
+    appendBigEndian32(inst, 20u);
+    inst.push_back(60u);
+    inst.push_back(0u);
+    inst.push_back(0u);
+    inst.push_back(127u);
+    inst.push_back(1u);
+    inst.push_back(127u);
+    appendBigEndian16(inst, 0u);
+    appendBigEndian16(inst, 1u);
+    appendBigEndian16(inst, 1u);
+    appendBigEndian16(inst, 2u);
+    appendBigEndian16(inst, 0u);
+    appendBigEndian16(inst, 0u);
+    appendBigEndian16(inst, 0u);
+    data.insert(data.end(), inst.begin(), inst.end());
+
+    const auto formSize = static_cast<uint32_t>(data.size() - 8u);
+    data[4] = static_cast<uint8_t>((formSize >> 24u) & 0xffu);
+    data[5] = static_cast<uint8_t>((formSize >> 16u) & 0xffu);
+    data[6] = static_cast<uint8_t>((formSize >> 8u) & 0xffu);
+    data[7] = static_cast<uint8_t>(formSize & 0xffu);
+    return file.replaceWithData(data.data(), data.size());
+}
+
 bool write8svxFixture(const juce::File& file, uint8_t seed, uint32_t oneShotSamples = 256u, uint32_t repeatSamples = 0u)
 {
     std::vector<uint8_t> body;
@@ -1243,18 +1322,22 @@ int main()
     }
     ok &= expect(write8svxFixture(paulaDir.getChildFile("zz-paula-native.8svx"), 0x20u, 64u, 128u),
                  "Should write temporary Paula 8SVX fixture");
+    ok &= expect(writeLoopedAiffFixture(paulaDir.getChildFile("paula-04.aiff"), 440.0f, 48u, 176u),
+                 "Should write temporary Paula AIFF fixture with loop markers");
 
     ok &= expect(processor.loadPaulaSampleDirectory(paulaDir).wasOk(), "Should load Paula sample directory");
     auto paulaNames = processor.paulaSampleNames();
-    ok &= expect(paulaNames.size() == 5 && paulaNames[0] == "paula-00.wav" && paulaNames[3] == "paula-03.wav" && paulaNames[4] == "zz-paula-native.8svx",
-                 "Paula folder should expose sorted WAV and 8SVX samples as playable slots");
+    ok &= expect(paulaNames.size() == 6 && paulaNames[0] == "paula-00.wav" && paulaNames[3] == "paula-03.wav"
+                     && paulaNames[4] == "paula-04.aiff" && paulaNames[5] == "zz-paula-native.8svx",
+                 "Paula folder should expose sorted WAV, AIFF, and 8SVX samples as playable slots");
     auto paulaEntries = processor.paulaSampleEntryInfo();
-    ok &= expect(paulaEntries.size() == 5u && paulaEntries[0].activeSlot && paulaEntries[4].activeSlot,
-                 "Paula bank editor should expose checked WAV and 8SVX files as active playable slots");
+    ok &= expect(paulaEntries.size() == 6u && paulaEntries[0].activeSlot && paulaEntries[5].activeSlot,
+                 "Paula bank editor should expose checked WAV, AIFF, and 8SVX files as active playable slots");
     processor.setPaulaSampleIncluded(2, false);
     paulaNames = processor.paulaSampleNames();
     paulaEntries = processor.paulaSampleEntryInfo();
-    ok &= expect(paulaNames.size() == 4 && paulaNames[2] == "paula-03.wav" && paulaNames[3] == "zz-paula-native.8svx",
+    ok &= expect(paulaNames.size() == 5 && paulaNames[2] == "paula-03.wav"
+                     && paulaNames[3] == "paula-04.aiff" && paulaNames[4] == "zz-paula-native.8svx",
                  "Unchecking a Paula sample should remove it from the playable bank and close gaps");
     ok &= expect(! paulaEntries[2].included && ! paulaEntries[2].activeSlot,
                  "Unchecked Paula entries should report inactive");
@@ -1283,13 +1366,32 @@ int main()
                  "Paula core debug state should retain imported WAV loop metadata for the selected bank slot");
     sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 4));
     paulaInfo = processor.paulaSampleInfo();
+    ok &= expect(paulaInfo.loaded && paulaInfo.sampleName == "paula-04.aiff" && paulaInfo.byteCount == 256,
+                 "CC117 should select an imported Paula AIFF sample bank slot");
+    ok &= expect(paulaInfo.hasLoop && paulaInfo.loopStartSample == 48 && paulaInfo.loopEndSample == 176
+                     && paulaInfo.statusLine.contains("Loop 48-176"),
+                 "Paula AIFF import should expose INST/MARK loop metadata in status");
+    const auto paulaAiffLoopPreview = processor.sampleWaveformSnapshot(chipper::ChipMode::paula);
+    ok &= expect(paulaAiffLoopPreview.loaded && paulaAiffLoopPreview.hasLoop && paulaAiffLoopPreview.selectedSlot == 4,
+                 "Paula waveform preview should expose loop metadata for the selected AIFF sample");
+    ok &= expectNear(paulaAiffLoopPreview.loopStart, 48.0f / 255.0f, 0.002f,
+                     "Paula waveform preview should normalize imported AIFF loop start");
+    ok &= expectNear(paulaAiffLoopPreview.loopEnd, 176.0f / 255.0f, 0.002f,
+                     "Paula waveform preview should normalize imported AIFF loop end");
+    const auto paulaAiffLoopDebug = processor.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(paulaAiffLoopDebug, "externalSampleLoopMetadataSelected") == 1
+                     && jsonIntValue(paulaAiffLoopDebug, "externalSampleLoopStartSelected") == 48
+                     && jsonIntValue(paulaAiffLoopDebug, "externalSampleLoopEndSelected") == 176,
+                 "Paula core debug state should retain imported AIFF loop metadata for the selected bank slot");
+    sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 5));
+    paulaInfo = processor.paulaSampleInfo();
     ok &= expect(paulaInfo.loaded && paulaInfo.sampleName == "zz-paula-native.8svx" && paulaInfo.byteCount == 256,
                  "CC117 should select an imported Paula 8SVX sample bank slot");
     ok &= expect(paulaInfo.hasLoop && paulaInfo.loopStartSample == 64 && paulaInfo.loopEndSample == 192
                      && paulaInfo.statusLine.contains("Loop 64-192"),
                  "Paula 8SVX import should expose VHDR loop metadata in status");
     const auto paulaLoopPreview = processor.sampleWaveformSnapshot(chipper::ChipMode::paula);
-    ok &= expect(paulaLoopPreview.loaded && paulaLoopPreview.hasLoop && paulaLoopPreview.selectedSlot == 4,
+    ok &= expect(paulaLoopPreview.loaded && paulaLoopPreview.hasLoop && paulaLoopPreview.selectedSlot == 5,
                  "Paula waveform preview should expose loop metadata for the selected 8SVX sample");
     ok &= expectNear(paulaLoopPreview.loopStart, 64.0f / 255.0f, 0.002f,
                      "Paula waveform preview should normalize imported 8SVX loop start");
@@ -1316,9 +1418,9 @@ int main()
                  "Paula note map should leave notes above the loaded sample span silent instead of clamping to the last slot");
     ok &= expect(paulaOutOfRangeMappedInfo.selectedSlot == -1 && paulaOutOfRangeMappedInfo.statusLine.contains("No mapped Paula sample"),
                  "Paula note map status should report no mapped sample after an out-of-range note");
-    ok &= expect(paulaOutOfRangeMappedInfo.bankCount == 5 && paulaOutOfRangeMappedInfo.bankByteCount == 1280,
+    ok &= expect(paulaOutOfRangeMappedInfo.bankCount == 6 && paulaOutOfRangeMappedInfo.bankByteCount == 1536,
                  "Paula out-of-range note-map status should retain loaded sample bank counts");
-    ok &= expect(paulaOutOfRangeMappedInfo.mapRootNote == 36 && paulaOutOfRangeMappedInfo.mapHighNote == 40,
+    ok &= expect(paulaOutOfRangeMappedInfo.mapRootNote == 36 && paulaOutOfRangeMappedInfo.mapHighNote == 41,
                  "Paula out-of-range note-map status should retain the visible mapped key span");
     const auto paulaInRangeMappedPeak = renderNoteOnPeak(paulaMapAuditionProcessor, 39);
     ok &= expect(paulaInRangeMappedPeak > 0.0001f,
@@ -1357,7 +1459,7 @@ int main()
     processEmptyBlock(restoredPaulaProcessor);
     auto restoredPaulaNames = restoredPaulaProcessor.paulaSampleNames();
     auto restoredPaulaInfo = restoredPaulaProcessor.paulaSampleInfo();
-    ok &= expect(restoredPaulaNames.size() == 5, "Paula state restore should reload staged WAV and 8SVX sample paths");
+    ok &= expect(restoredPaulaNames.size() == 6, "Paula state restore should reload staged WAV, AIFF, and 8SVX sample paths");
     ok &= expect(restoredPaulaInfo.loaded && restoredPaulaInfo.sampleName == "paula-03.wav",
                  "Paula state restore should preserve the selected slot after processing resumes");
     ok &= expect(restoredPaulaInfo.hasLoop && restoredPaulaInfo.loopStartSample == 32 && restoredPaulaInfo.loopEndSample == 160,

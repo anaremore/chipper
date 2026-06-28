@@ -174,7 +174,7 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
    - Confidence: 7/10. Register readouts are now straightforward; the remaining work is a clearer cross-channel pairing visual without crowding the deck.
 
 7. Paula tracker import depth
-   - Issue: channel-local generated shapes, loaded sample-slot pins, imported uncompressed 8SVX and WAV `smpl` loop metadata, waveform loop preview, matching renderer flags, a protected Sample Bank waveform, and non-overlapping macro/sample layout are in place. MOD sample extraction, AIFF/MOD loop metadata, 14-bit/channel-pair options, and clearer tracker-style retrigger workflows remain planned.
+   - Issue: channel-local generated shapes, loaded sample-slot pins, imported uncompressed 8SVX, WAV `smpl`, and AIFF `MARK`/`INST` loop metadata, waveform loop preview, matching renderer flags, a protected Sample Bank waveform, and non-overlapping macro/sample layout are in place. MOD sample extraction/loop metadata, 14-bit/channel-pair options, and clearer tracker-style retrigger workflows remain planned.
    - User value: medium-high. Makes Paula feel more like a four-channel tracker sampler for real module-style workflows.
    - Confidence: 6/10. The UI and runtime bank model are usable; the remaining work needs file-format parsing and stricter validation.
 
