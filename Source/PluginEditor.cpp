@@ -387,6 +387,30 @@ chipper::ChipParameterRole macroControlRole(size_t index)
     return roles[std::min(index, roles.size() - 1u)];
 }
 
+chipper::ChipParameterRole fmOperatorLevelRole(size_t index)
+{
+    static constexpr std::array<chipper::ChipParameterRole, 4> roles {
+        chipper::ChipParameterRole::fmOperator1Level,
+        chipper::ChipParameterRole::fmOperator2Level,
+        chipper::ChipParameterRole::fmOperator3Level,
+        chipper::ChipParameterRole::fmOperator4Level
+    };
+
+    return roles[std::min(index, roles.size() - 1u)];
+}
+
+const char* fmOperatorLevelParameterId(size_t index)
+{
+    static constexpr std::array<const char*, 4> ids {
+        chipper::parameters::id::fmOperator1Level,
+        chipper::parameters::id::fmOperator2Level,
+        chipper::parameters::id::fmOperator3Level,
+        chipper::parameters::id::fmOperator4Level
+    };
+
+    return ids[std::min(index, ids.size() - 1u)];
+}
+
 chipper::ChipParameterRole sourceRole(size_t index)
 {
     static constexpr std::array<chipper::ChipParameterRole, 9> roles {
@@ -2618,6 +2642,28 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(valueLabel);
     }
 
+    for (size_t i = 0; i < fmOperatorLevelSliders.size(); ++i)
+    {
+        auto& valueLabel = fmOperatorLevelValueLabels[i];
+        valueLabel.setJustificationType(juce::Justification::centredRight);
+        valueLabel.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+        valueLabel.setFont(juce::FontOptions(9.5f, juce::Font::bold));
+        valueLabel.setMinimumHorizontalScale(0.60f);
+        valueLabel.setVisible(false);
+        addAndMakeVisible(valueLabel);
+
+        auto& slider = fmOperatorLevelSliders[i];
+        slider.setSliderStyle(juce::Slider::LinearHorizontal);
+        slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        slider.setColour(juce::Slider::trackColourId, juce::Colour(0xfff7d85a));
+        slider.setColour(juce::Slider::thumbColourId, juce::Colour(0xff56c7d8));
+        slider.setNumDecimalPlacesToDisplay(2);
+        slider.setTooltip(withMidiCcForRole("FM per-operator level trim.", fmOperatorLevelRole(i)));
+        slider.setVisible(false);
+        addAndMakeVisible(slider);
+        fmOperatorLevelAttachments[i] = std::make_unique<SliderAttachment>(state, fmOperatorLevelParameterId(i), slider);
+    }
+
     const std::array<const char*, 4> ids {
         chipper::parameters::id::macroControl1,
         chipper::parameters::id::macroControl2,
@@ -3417,6 +3463,8 @@ void ChipperAudioProcessorEditor::applyChipTheme()
         label.setColour(juce::Label::textColourId, theme.accent);
     for (auto& label : fmOperatorValueLabels)
         label.setColour(juce::Label::textColourId, theme.mutedText);
+    for (auto& label : fmOperatorLevelValueLabels)
+        label.setColour(juce::Label::textColourId, theme.mutedText);
     for (auto& label : sourceLevelLabels)
         label.setColour(juce::Label::textColourId, theme.accent);
     for (auto& label : sourceLevelValueLabels)
@@ -3431,6 +3479,8 @@ void ChipperAudioProcessorEditor::applyChipTheme()
     }
 
     for (auto& slider : sourceLevelSliders)
+        styleSlider(slider);
+    for (auto& slider : fmOperatorLevelSliders)
         styleSlider(slider);
     for (auto& slider : sidVoicePulseWidthSliders)
         styleSlider(slider);
@@ -5360,9 +5410,9 @@ void ChipperAudioProcessorEditor::placeFmOperatorEditSurface(chipper::ChipMode m
         return;
     }
 
-    const auto controlWidth = std::clamp(bounds.getWidth() / 2, 230, 310);
+    const auto controlWidth = std::clamp(bounds.getWidth() / 3, 220, 250);
     auto controlPanel = bounds.removeFromLeft(std::min(controlWidth, bounds.getWidth()));
-    bounds.removeFromLeft(std::min(10, bounds.getWidth()));
+    bounds.removeFromLeft(std::min(8, bounds.getWidth()));
 
     nativeGroupLabels[2].setBounds({});
     nativeGroupLabels[3].setBounds({});
@@ -5394,6 +5444,8 @@ void ChipperAudioProcessorEditor::placeFmOperatorRegisterSurface(chipper::ChipMo
         {
             fmOperatorNameLabels[i].setBounds({});
             fmOperatorValueLabels[i].setBounds({});
+            fmOperatorLevelValueLabels[i].setBounds({});
+            fmOperatorLevelSliders[i].setBounds({});
             continue;
         }
 
@@ -5401,6 +5453,33 @@ void ChipperAudioProcessorEditor::placeFmOperatorRegisterSurface(chipper::ChipMo
         const auto nameWidth = isFourOperatorFmMode(mode) ? 46 : 42;
         fmOperatorNameLabels[i].setBounds(row.removeFromLeft(std::min(nameWidth, row.getWidth())));
         row.removeFromLeft(std::min(6, row.getWidth()));
+
+        if (isFourOperatorFmMode(mode))
+        {
+            const auto readoutMinWidth = 140;
+            const auto valueWidth = row.getWidth() >= readoutMinWidth + 116 ? 42 : 34;
+            fmOperatorLevelValueLabels[i].setBounds(row.removeFromLeft(std::min(valueWidth, row.getWidth())));
+            row.removeFromLeft(std::min(4, row.getWidth()));
+
+            const auto maxSliderWidth = std::max(0, row.getWidth() - readoutMinWidth - 6);
+            const auto desiredSliderWidth = std::clamp(row.getWidth() / 3, 70, 96);
+            const auto sliderWidth = std::min(desiredSliderWidth, maxSliderWidth);
+            if (sliderWidth >= 56)
+            {
+                fmOperatorLevelSliders[i].setBounds(row.removeFromLeft(std::min(sliderWidth, row.getWidth())).reduced(0, 1));
+                row.removeFromLeft(std::min(6, row.getWidth()));
+            }
+            else
+            {
+                fmOperatorLevelSliders[i].setBounds({});
+            }
+        }
+        else
+        {
+            fmOperatorLevelValueLabels[i].setBounds({});
+            fmOperatorLevelSliders[i].setBounds({});
+        }
+
         fmOperatorValueLabels[i].setBounds(row.reduced(3, 0));
         bounds.removeFromTop(std::min(rowGap, bounds.getHeight()));
     }
@@ -8371,6 +8450,17 @@ juce::String ChipperAudioProcessorEditor::fmOperatorRegisterReadout(chipper::Chi
         + " | SL/RR $" + byteHex(envelope.sustainRelease);
 }
 
+juce::String ChipperAudioProcessorEditor::fmOperatorLevelReadout(chipper::ChipMode mode,
+                                                                 const chipper::PatchConfig& patch,
+                                                                 size_t op) const
+{
+    const auto safeOp = std::min(op, patch.fmOperatorLevels.size() - 1u);
+    const auto level = std::clamp(patch.fmOperatorLevels[safeOp], 0.0f, 1.0f);
+    const auto percent = static_cast<int>(std::round(level * 100.0f));
+    const auto totalLevel = static_cast<int>(chipper::fmOperatorTotalLevelForPatch(mode, patch, safeOp));
+    return juce::String(percent) + "% | TL " + juce::String(totalLevel);
+}
+
 juce::String ChipperAudioProcessorEditor::fmOperatorRegisterTooltip(chipper::ChipMode mode, size_t op) const
 {
     if (mode == chipper::ChipMode::opl3)
@@ -10264,6 +10354,7 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
             || mode == chipper::ChipMode::opl3
             || mode == chipper::ChipMode::ym2151);
     const auto visibleRows = mode == chipper::ChipMode::opl3 ? 3u : fmOperatorReadoutRows;
+    const auto hasOperatorLevelControls = active && isFourOperatorFmMode(mode);
 
     static constexpr std::array<const char*, fmOperatorReadoutRows> fmNames { "OP1", "OP2", "OP3", "OP4" };
     static constexpr std::array<const char*, fmOperatorReadoutRows> oplNames { "Pair", "Mod", "Car", "" };
@@ -10271,8 +10362,11 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
     for (size_t i = 0; i < fmOperatorReadoutRows; ++i)
     {
         const auto visible = active && i < visibleRows;
+        const auto levelVisible = visible && hasOperatorLevelControls;
         fmOperatorNameLabels[i].setVisible(visible);
         fmOperatorValueLabels[i].setVisible(visible);
+        fmOperatorLevelValueLabels[i].setVisible(levelVisible);
+        fmOperatorLevelSliders[i].setVisible(levelVisible);
         if (! visible)
             continue;
 
@@ -10289,6 +10383,21 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
         tooltip += "\n" + readout;
         fmOperatorNameLabels[i].setTooltip(tooltip);
         fmOperatorValueLabels[i].setTooltip(tooltip);
+
+        if (levelVisible)
+        {
+            const auto levelReadout = fmOperatorLevelReadout(mode, patch, i);
+            const auto percentText = levelReadout.upToFirstOccurrenceOf("|", false, false).trim();
+            const auto* levelSpec = chipper::parameterSpecFor(mode, fmOperatorLevelRole(i));
+            auto levelTooltip = juce::String(levelSpec != nullptr ? levelSpec->help : "FM per-operator level trim.")
+                + "\n" + fmOperatorRoleDescription(mode, patch, i)
+                + "\n" + levelReadout
+                + "\n" + readout;
+            levelTooltip = withMidiCcForRole(levelTooltip, fmOperatorLevelRole(i));
+            fmOperatorLevelValueLabels[i].setText(percentText, juce::dontSendNotification);
+            fmOperatorLevelValueLabels[i].setTooltip(levelTooltip);
+            fmOperatorLevelSliders[i].setTooltip(levelTooltip);
+        }
     }
 }
 

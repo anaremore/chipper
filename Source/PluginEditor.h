@@ -210,6 +210,14 @@ public:
     {
         return index < fmOperatorValueLabels.size() ? fmOperatorValueLabels[index].getBounds() : juce::Rectangle<int> {};
     }
+    juce::Rectangle<int> getFmOperatorLevelSliderBoundsForLayoutTest(size_t index) const
+    {
+        return index < fmOperatorLevelSliders.size() ? fmOperatorLevelSliders[index].getBounds() : juce::Rectangle<int> {};
+    }
+    juce::Rectangle<int> getFmOperatorLevelValueBoundsForLayoutTest(size_t index) const
+    {
+        return index < fmOperatorLevelValueLabels.size() ? fmOperatorLevelValueLabels[index].getBounds() : juce::Rectangle<int> {};
+    }
     juce::String getFmOperatorNameTextForLayoutTest(size_t index) const
     {
         return index < fmOperatorNameLabels.size() ? fmOperatorNameLabels[index].getText() : juce::String {};
@@ -217,6 +225,10 @@ public:
     juce::String getFmOperatorValueTextForLayoutTest(size_t index) const
     {
         return index < fmOperatorValueLabels.size() ? fmOperatorValueLabels[index].getText() : juce::String {};
+    }
+    juce::String getFmOperatorLevelValueTextForLayoutTest(size_t index) const
+    {
+        return index < fmOperatorLevelValueLabels.size() ? fmOperatorLevelValueLabels[index].getText() : juce::String {};
     }
     juce::Rectangle<int> getModuleBoundsForLayoutTest(size_t module) const
     {
@@ -407,6 +419,7 @@ private:
     juce::String fmChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String fmFeedbackReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;
     juce::String fmOperatorRegisterReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t op) const;
+    juce::String fmOperatorLevelReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t op) const;
     juce::String fmOperatorRegisterTooltip(chipper::ChipMode mode, size_t op) const;
     juce::String ym2612DacModeReadout(const chipper::PatchConfig& patch) const;
     juce::String fmSourceRegisterReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const;
@@ -546,6 +559,8 @@ private:
     std::array<juce::Slider, sidAdsrOverrideCount> sidAdsrSliders;
     std::array<juce::Label, fmOperatorReadoutRows> fmOperatorNameLabels;
     std::array<juce::Label, fmOperatorReadoutRows> fmOperatorValueLabels;
+    std::array<juce::Label, fmOperatorReadoutRows> fmOperatorLevelValueLabels;
+    std::array<juce::Slider, fmOperatorReadoutRows> fmOperatorLevelSliders;
     juce::Label waveShapeLabel;
     juce::Label waveShapeValueLabel;
     juce::Label pulse2DutyLabel;
@@ -672,6 +687,7 @@ private:
     std::unique_ptr<ComboBoxAttachment> sidFilterRoutingAttachment;
     std::unique_ptr<SliderAttachment> envelopeDecayAttachment;
     std::array<std::unique_ptr<SliderAttachment>, 4> nativeAttachments;
+    std::array<std::unique_ptr<SliderAttachment>, fmOperatorReadoutRows> fmOperatorLevelAttachments;
     std::array<std::unique_ptr<SliderAttachment>, sidVoiceWaveCount> sidVoicePulseWidthAttachments;
     std::array<std::unique_ptr<SliderAttachment>, sourceChannelCount> sourceLevelAttachments;
     std::array<std::unique_ptr<ButtonAttachment>, sourceChannelCount> sourceEnableAttachments;

@@ -635,56 +635,96 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
     {
         const auto nameBounds = editor.getFmOperatorNameBoundsForLayoutTest(op);
         const auto valueBounds = editor.getFmOperatorValueBoundsForLayoutTest(op);
+        const auto levelSliderBounds = editor.getFmOperatorLevelSliderBoundsForLayoutTest(op);
+        const auto levelValueBounds = editor.getFmOperatorLevelValueBoundsForLayoutTest(op);
         const auto nameText = editor.getFmOperatorNameTextForLayoutTest(op);
         const auto valueText = editor.getFmOperatorValueTextForLayoutTest(op);
+        const auto levelValueText = editor.getFmOperatorLevelValueTextForLayoutTest(op);
 
-        if (nameBounds.isEmpty() || valueBounds.isEmpty())
+        if (nameBounds.isEmpty() || valueBounds.isEmpty()
+            || levelSliderBounds.isEmpty() || levelValueBounds.isEmpty())
         {
             std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
-                      << " is missing from the FM readout surface\n";
+                      << " is missing from the FM readout/control surface: name "
+                      << nameBounds.toString() << " level readout "
+                      << levelValueBounds.toString() << " slider "
+                      << levelSliderBounds.toString() << " value "
+                      << valueBounds.toString() << '\n';
             ok = false;
             continue;
         }
 
         if (! envelopeModuleBounds.expanded(2).contains(nameBounds)
+            || ! envelopeModuleBounds.expanded(2).contains(levelValueBounds)
+            || ! envelopeModuleBounds.expanded(2).contains(levelSliderBounds)
             || ! envelopeModuleBounds.expanded(2).contains(valueBounds))
         {
             std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " escaped the envelope/FM module: module " << envelopeModuleBounds.toString()
                       << " name " << nameBounds.toString()
+                      << " level readout " << levelValueBounds.toString()
+                      << " slider " << levelSliderBounds.toString()
                       << " value " << valueBounds.toString() << '\n';
             ok = false;
         }
 
         if (nameBounds.getWidth() < 40 || nameBounds.getHeight() < 12
+            || levelValueBounds.getWidth() < 30 || levelValueBounds.getHeight() < 12
+            || levelSliderBounds.getWidth() < 56 || levelSliderBounds.getHeight() < 12
             || valueBounds.getWidth() < 140 || valueBounds.getHeight() < 12)
         {
             std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " is below readable size: name " << nameBounds.toString()
+                      << " level readout " << levelValueBounds.toString()
+                      << " slider " << levelSliderBounds.toString()
                       << " value " << valueBounds.toString() << '\n';
             ok = false;
         }
 
         if (nameBounds.intersects(operatorToneBounds)
             || valueBounds.intersects(operatorToneBounds)
+            || levelValueBounds.intersects(operatorToneBounds)
+            || levelSliderBounds.intersects(operatorToneBounds)
             || nameBounds.intersects(fmLevelBounds)
-            || valueBounds.intersects(fmLevelBounds))
+            || valueBounds.intersects(fmLevelBounds)
+            || levelValueBounds.intersects(fmLevelBounds)
+            || levelSliderBounds.intersects(fmLevelBounds))
         {
             std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " overlaps editable operator controls: name " << nameBounds.toString()
+                      << " level readout " << levelValueBounds.toString()
+                      << " slider " << levelSliderBounds.toString()
                       << " value " << valueBounds.toString()
                       << " tone " << operatorToneBounds.toString()
                       << " level " << fmLevelBounds.toString() << '\n';
             ok = false;
         }
 
-        if (nameBounds.getY() < lastBottom - 1 || valueBounds.getY() < lastBottom - 1)
+        if (nameBounds.intersects(levelValueBounds)
+            || nameBounds.intersects(levelSliderBounds)
+            || nameBounds.intersects(valueBounds)
+            || levelValueBounds.intersects(levelSliderBounds)
+            || levelValueBounds.intersects(valueBounds)
+            || levelSliderBounds.intersects(valueBounds))
+        {
+            std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
+                      << " has overlapping row controls: name " << nameBounds.toString()
+                      << " level readout " << levelValueBounds.toString()
+                      << " slider " << levelSliderBounds.toString()
+                      << " value " << valueBounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (nameBounds.getY() < lastBottom - 1
+            || valueBounds.getY() < lastBottom - 1
+            || levelValueBounds.getY() < lastBottom - 1
+            || levelSliderBounds.getY() < lastBottom - 1)
         {
             std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " overlaps the previous operator row\n";
             ok = false;
         }
-        lastBottom = std::max(nameBounds.getBottom(), valueBounds.getBottom());
+        lastBottom = std::max({ nameBounds.getBottom(), levelValueBounds.getBottom(), levelSliderBounds.getBottom(), valueBounds.getBottom() });
 
         const auto expectedPrefix = juce::String("OP") + juce::String(static_cast<int>(op + 1u));
         if (! nameText.startsWith(expectedPrefix) || (! nameText.endsWith(" C") && ! nameText.endsWith(" M")))
@@ -705,6 +745,14 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
             std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " should expose resolved register fields, got "
                       << valueText.toStdString() << '\n';
+            ok = false;
+        }
+
+        if (! levelValueText.contains("%"))
+        {
+            std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
+                      << " should expose operator level percent, got "
+                      << levelValueText.toStdString() << '\n';
             ok = false;
         }
     }
