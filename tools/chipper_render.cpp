@@ -2925,6 +2925,12 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
         if (wroteTarget)
             out << ",\n";
 
+        const auto presetCount = static_cast<int>(std::count_if(presets.begin(), presets.end(), [&target](const auto& preset)
+        {
+            return preset.chip == target.chip;
+        }));
+        const auto missingPresetCount = std::max(0, target.minimumPresetCount - presetCount);
+
         std::vector<std::string> missingRoles;
         for (const auto& role : target.requiredRoles)
         {
@@ -2961,6 +2967,9 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
             << "        \"source\": ";
         writeJsonString(out, "Furnace-informed clean-room coverage target");
         out << ",\n"
+            << "        \"minimumPresetCount\": " << target.minimumPresetCount << ",\n"
+            << "        \"coveredPresetCount\": " << presetCount << ",\n"
+            << "        \"missingPresetCount\": " << missingPresetCount << ",\n"
             << "        \"requiredRoles\": ";
         writeJsonStringArray(out, target.requiredRoles, "          ");
         out << ",\n"

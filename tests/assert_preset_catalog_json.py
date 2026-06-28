@@ -81,8 +81,8 @@ def tag_token(text: str) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Assert factory preset catalog metadata quality.")
     parser.add_argument("path")
-    parser.add_argument("--min-presets", type=int, default=80)
-    parser.add_argument("--min-per-chip", type=int, default=6)
+    parser.add_argument("--min-presets", type=int, default=150)
+    parser.add_argument("--min-per-chip", type=int, default=10)
     parser.add_argument("--min-core-roles-per-chip", type=int, default=len(CORE_ROLE_COVERAGE))
     parser.add_argument("--only-chip", help="Assert that every preset belongs to this chip key.")
     args = parser.parse_args()
@@ -241,6 +241,26 @@ def main() -> int:
         if "Furnace-informed" not in source:
             failures.append(f"{chip}: quality target source should name the Furnace-informed clean-room policy")
 
+        chip_presets = by_chip.get(chip, [])
+        chip_preset_count = len(chip_presets)
+        minimum_preset_count = target.get("minimumPresetCount")
+        if not isinstance(minimum_preset_count, int) or isinstance(minimum_preset_count, bool) or minimum_preset_count <= 0:
+            failures.append(f"{chip}: quality target minimumPresetCount must be a positive integer, got {minimum_preset_count!r}")
+            minimum_preset_count = 0
+
+        expected_missing_preset_count = max(0, minimum_preset_count - chip_preset_count)
+        covered_preset_count = target.get("coveredPresetCount")
+        missing_preset_count = target.get("missingPresetCount")
+        if covered_preset_count != chip_preset_count:
+            failures.append(f"{chip}: quality target coveredPresetCount expected {chip_preset_count}, got {covered_preset_count!r}")
+        if missing_preset_count != expected_missing_preset_count:
+            failures.append(f"{chip}: quality target missingPresetCount expected {expected_missing_preset_count}, got {missing_preset_count!r}")
+        if expected_missing_preset_count:
+            failures.append(
+                f"{chip}: quality target requires at least {minimum_preset_count} presets, "
+                f"got {chip_preset_count}"
+            )
+
         required_roles = target.get("requiredRoles", [])
         if not isinstance(required_roles, list) or not required_roles:
             failures.append(f"{chip}: quality target requiredRoles must be a non-empty list")
@@ -259,7 +279,7 @@ def main() -> int:
             if not tag or tag != tag_token(tag):
                 failures.append(f"{chip}: quality target reference tag {tag!r} is not normalized")
 
-        chip_roles = {str(preset.get("role", "")) for preset in by_chip.get(chip, [])}
+        chip_roles = {str(preset.get("role", "")) for preset in chip_presets}
         expected_missing_roles = sorted(role for role in required_roles if role not in chip_roles)
         declared_missing_roles = sorted(str(role) for role in target.get("missingRoles", []))
         if declared_missing_roles != expected_missing_roles:
@@ -277,7 +297,7 @@ def main() -> int:
                 f"got {covered_role_count!r}"
             )
 
-        chip_tags = {str(tag) for preset in by_chip.get(chip, []) for tag in preset.get("tags", [])}
+        chip_tags = {str(tag) for preset in chip_presets for tag in preset.get("tags", [])}
         expected_missing_reference_tags = sorted(tag for tag in reference_tags if tag not in chip_tags)
         declared_missing_reference_tags = sorted(str(tag) for tag in target.get("missingReferenceTags", []))
         if declared_missing_reference_tags != expected_missing_reference_tags:

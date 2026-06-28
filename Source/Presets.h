@@ -59,6 +59,7 @@ struct PresetQualityTarget
     std::vector<std::string> requiredRoles;
     std::vector<std::string> referenceTags;
     std::string note;
+    int minimumPresetCount = 10;
 };
 
 const std::vector<PresetInfo>& presetCatalog();

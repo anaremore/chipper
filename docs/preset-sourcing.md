@@ -52,7 +52,7 @@ A factory preset is not ready just because it has a good name. It should pass th
 
 Furnace is the benchmark for breadth, chip vocabulary, and tracker-style workflow coverage. Chipper may use it to define coverage targets, but not as a source of copied patch data, wave tables, modules, or samples.
 
-`presetQualityTargets()` owns the shippable matrix. Each implemented chip must cover the core musical roles `Bass`, `Lead`, `Arp`, `Keys / Pad`, `Drums`, and `SFX`, plus chip-family reference tags such as `fm`, `sampler`, `wavetable`, `noise`, `tracker`, or `dmc`. `chipper_render --list-presets` exports this matrix under `summary.qualityTargets`, and `assert_preset_catalog_json.py` fails when any required role or reference tag is missing.
+`presetQualityTargets()` owns the shippable matrix. Each implemented chip must cover at least ten chip-local factory presets, the core musical roles `Bass`, `Lead`, `Arp`, `Keys / Pad`, `Drums`, and `SFX`, plus chip-family reference tags such as `fm`, `sampler`, `wavetable`, `noise`, `tracker`, or `dmc`. `chipper_render --list-presets` exports this matrix under `summary.qualityTargets`, and `assert_preset_catalog_json.py` fails when the minimum preset count, any required role, or any reference tag is missing.
 
 ## Required QA Loop
 
