@@ -40,6 +40,21 @@ When doing a planning-only cleanup, keep this checklist small and mechanical:
 - Do not re-audit the whole product when this queue already contains a concrete user-reported issue. Execute the highest-ranked known issue first, verify the affected chip plus one neighboring layout family, then return here only if the next slice is unclear.
 - Preserve the DAW-fit fixed editor contract: most modes use 1240 x 820, SID currently uses 1240 x 880 for readable per-voice ADSR, and every mode keeps the 1180 px compact-width floor. If a page feels too cramped, rebalance sections, compact secondary macros, or add a deliberate secondary view instead of making the default VST taller or collapsing controls into unreadable strips.
 
+## Furnace-Informed VST Priority Queue
+
+Furnace is most useful to Chipper as a product/reference map, not as code or patch data to import. Its strongest lesson for this VST is workflow depth: fast sound selection, chip-local instruments, sample/wave/operator editing, and tracker-style motion should be first-class without breaking host automation, flat preset files, or the fixed DAW-fit editor contract.
+
+Use this implementation order when no current regression is blocking release:
+
+1. **Preset browser metadata and filtering.** Add role, engine, tag, favorite, and search affordances around the existing factory/user preset model. The first slice is metadata/export/test coverage; the next slice is the visible VST filter UI while keeping user presets as portable `.chipperpreset` files.
+2. **One sample/wave vertical slice.** Pick SPC700, Paula, or a wavetable family and complete the workflow: loaded asset state, lane/voice assignment, loop/root behavior, waveform preview, missing-file state, state recall, and renderer coverage.
+3. **OPN2 FM operator editor slice.** Start with YM2612 because ymfm is already vendored and six lanes are visible. Add editable operator/algorithm controls only where APVTS parameters, MIDI CCs, presets, renderer JSON, and held-tail checks can move together.
+4. **Tracker motion and SFX gestures.** Add chip-aware arps, slides, vibrato, retrigger, and one-shot gestures as native-looking register changes. Keep the UI musical, but make tooltips/debug JSON show the resolved register path.
+5. **Drum/percussion workflows.** Tighten NES DMC, SPC700 drum maps, Paula tracker maps, OPL/OPLL rhythm, YM/PSG noise kits, and POKEY percussion around playable banks instead of generic oscillator macros.
+6. **Multi-output and source mixing.** Expose per-source routing/metering only after source-card ownership and level lanes are stable for the affected chip family.
+7. **Strictness and reference QA.** Make Inspired/Hybrid/Authentic behavior choices explicit in engine/UI code, while verification claims stay in footer text, renderer metadata, and accuracy docs.
+8. **Release finish.** Keep build/install scripts, VST3 packaging, screenshots, host scan notes, and preset QA in sync as the product surface stabilizes.
+
 ## Next Code Slices To Prefer
 
 When there is no fresh P0 regression, use this order for the next development slice:

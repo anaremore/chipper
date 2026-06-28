@@ -18,6 +18,49 @@ std::string presetKey(std::string_view text)
     return key;
 }
 
+std::string presetCorpus(const PresetInfo& preset)
+{
+    return presetKey(preset.id + " " + preset.category + " " + preset.name + " " + preset.note);
+}
+
+bool presetCorpusContains(const std::string& corpus, std::string_view token)
+{
+    return corpus.find(presetKey(token)) != std::string::npos;
+}
+
+std::string presetTag(std::string_view text)
+{
+    std::string tag;
+    bool needsSeparator = false;
+    for (const auto c : text)
+    {
+        const auto uc = static_cast<unsigned char>(c);
+        if (std::isalnum(uc))
+        {
+            if (needsSeparator && ! tag.empty())
+                tag += '-';
+            tag += static_cast<char>(std::tolower(uc));
+            needsSeparator = false;
+        }
+        else
+        {
+            needsSeparator = ! tag.empty();
+        }
+    }
+
+    return tag;
+}
+
+void addPresetTag(std::vector<std::string>& tags, std::string_view text)
+{
+    auto tag = presetTag(text);
+    if (tag.empty())
+        return;
+
+    if (std::find(tags.begin(), tags.end(), tag) == tags.end())
+        tags.push_back(std::move(tag));
+}
+
 PresetInfo withSourceLevels(PresetInfo preset, float source1, float source2, float source3, float source4)
 {
     preset.source1Level = source1;
@@ -3554,6 +3597,129 @@ std::vector<const PresetInfo*> presetsForChip(ChipMode chip)
 std::vector<const PresetInfo*> presetBrowserCatalog(ChipMode preferredChip)
 {
     return presetsForChip(preferredChip);
+}
+
+std::string presetRoleFor(const PresetInfo& preset)
+{
+    const auto corpus = presetCorpus(preset);
+    if (presetCorpusContains(corpus, "drum") || presetCorpusContains(corpus, "kick")
+        || presetCorpusContains(corpus, "snare") || presetCorpusContains(corpus, "hat")
+        || presetCorpusContains(corpus, "perc") || presetCorpusContains(corpus, "tom"))
+        return "Drums";
+
+    if (presetCorpusContains(corpus, "bass"))
+        return "Bass";
+
+    if (presetCorpusContains(corpus, "arp") || presetCorpusContains(corpus, "arpeggio"))
+        return "Arp";
+
+    if (presetCorpusContains(corpus, "lead"))
+        return "Lead";
+
+    if (presetCorpusContains(corpus, "pad") || presetCorpusContains(corpus, "keys")
+        || presetCorpusContains(corpus, "bell") || presetCorpusContains(corpus, "chime")
+        || presetCorpusContains(corpus, "organ") || presetCorpusContains(corpus, "piano"))
+        return "Keys / Pad";
+
+    if (presetCorpusContains(corpus, "coin") || presetCorpusContains(corpus, "hit")
+        || presetCorpusContains(corpus, "laser") || presetCorpusContains(corpus, "jump")
+        || presetCorpusContains(corpus, "rise") || presetCorpusContains(corpus, "zap")
+        || presetCorpusContains(corpus, "alarm") || presetCorpusContains(corpus, "impact")
+        || presetCorpusContains(corpus, "fx"))
+        return "SFX";
+
+    switch (preset.macro)
+    {
+        case MacroKind::bass: return "Bass";
+        case MacroKind::lead: return "Lead";
+        case MacroKind::arp: return "Arp";
+        case MacroKind::drum: return "Drums";
+        case MacroKind::hit:
+        case MacroKind::coin:
+        case MacroKind::laser:
+        case MacroKind::jump:
+        case MacroKind::powerUp: return "SFX";
+        case MacroKind::manual: break;
+    }
+
+    return "Patch";
+}
+
+std::string presetEngineFor(const PresetInfo& preset)
+{
+    switch (preset.chip)
+    {
+        case ChipMode::nes: return "RP2A03 APU";
+        case ChipMode::dmg: return "DMG APU";
+        case ChipMode::sid: return "MOS SID";
+        case ChipMode::ym2149: return "AY/YM PSG";
+        case ChipMode::sn76489: return "SN76489 PSG";
+        case ChipMode::ym2612: return "YM2612 OPN2 FM";
+        case ChipMode::opl3: return "OPL2/OPL3 FM";
+        case ChipMode::spc700: return "SPC700-style sampler";
+        case ChipMode::pokey: return "Atari POKEY";
+        case ChipMode::paula: return "Amiga Paula sampler";
+        case ChipMode::huc6280: return "HuC6280 wavetable";
+        case ChipMode::namcoWsg: return "Namco WSG wavetable";
+        case ChipMode::ym2151: return "YM2151 OPM FM";
+        case ChipMode::ym2413: return "YM2413 OPLL FM";
+        case ChipMode::scc: return "Konami SCC wavetable";
+    }
+
+    return "Chip engine";
+}
+
+std::vector<std::string> presetTagsFor(const PresetInfo& preset)
+{
+    std::vector<std::string> tags;
+    addPresetTag(tags, "factory");
+    addPresetTag(tags, toString(preset.chip));
+    addPresetTag(tags, toString(preset.macro));
+    addPresetTag(tags, presetRoleFor(preset));
+    addPresetTag(tags, presetEngineFor(preset));
+
+    switch (preset.chip)
+    {
+        case ChipMode::nes:
+        case ChipMode::dmg:
+            addPresetTag(tags, "apu");
+            break;
+        case ChipMode::ym2149:
+        case ChipMode::sn76489:
+            addPresetTag(tags, "psg");
+            break;
+        case ChipMode::ym2612:
+        case ChipMode::opl3:
+        case ChipMode::ym2151:
+        case ChipMode::ym2413:
+            addPresetTag(tags, "fm");
+            addPresetTag(tags, "operator");
+            break;
+        case ChipMode::spc700:
+        case ChipMode::paula:
+            addPresetTag(tags, "sampler");
+            break;
+        case ChipMode::huc6280:
+        case ChipMode::namcoWsg:
+        case ChipMode::scc:
+            addPresetTag(tags, "wavetable");
+            break;
+        case ChipMode::sid:
+            addPresetTag(tags, "sid");
+            break;
+        case ChipMode::pokey:
+            addPresetTag(tags, "pokey");
+            break;
+    }
+
+    const auto corpus = presetCorpus(preset);
+    for (const auto token : { "pulse", "wave", "noise", "filter", "pwm", "sync", "ring", "dmc", "dac", "echo", "loop", "tracker", "rhythm", "chord", "bell", "pad", "rise", "alarm" })
+    {
+        if (presetCorpusContains(corpus, token))
+            addPresetTag(tags, token);
+    }
+
+    return tags;
 }
 
 PresetInfo initPresetForChip(ChipMode chip)

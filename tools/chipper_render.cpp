@@ -2829,7 +2829,30 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
         size_t count = 0u;
     };
 
+    struct NamedPresetCount
+    {
+        std::string name;
+        size_t count = 0u;
+    };
+
+    const auto bumpNamedCount = [](std::vector<NamedPresetCount>& counts, std::string name)
+    {
+        const auto iter = std::find_if(counts.begin(), counts.end(), [&name](const auto& entry)
+        {
+            return entry.name == name;
+        });
+        if (iter != counts.end())
+        {
+            ++iter->count;
+            return;
+        }
+
+        counts.push_back({ std::move(name), 1u });
+    };
+
     std::vector<ChipPresetCount> chipCounts;
+    std::vector<NamedPresetCount> roleCounts;
+    std::vector<NamedPresetCount> engineCounts;
     chipCounts.reserve(modes.size());
     size_t totalPresetCount = 0u;
     for (const auto mode : modes)
@@ -2848,6 +2871,15 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
         }
     }
 
+    for (const auto& preset : presets)
+    {
+        if (! includesMode(modes, preset.chip))
+            continue;
+
+        bumpNamedCount(roleCounts, chipper::presetRoleFor(preset));
+        bumpNamedCount(engineCounts, chipper::presetEngineFor(preset));
+    }
+
     out << "  \"summary\": {\n"
         << "    \"totalPresetCount\": " << totalPresetCount << ",\n"
         << "    \"chipCounts\": [\n";
@@ -2860,6 +2892,26 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
         writeJsonString(out, chipper::toString(entry.mode));
         out << ", \"presetCount\": " << entry.count << " }"
             << (i + 1u == chipCounts.size() ? "\n" : ",\n");
+    }
+    out << "    ],\n"
+        << "    \"roleCounts\": [\n";
+    for (size_t i = 0; i < roleCounts.size(); ++i)
+    {
+        const auto& entry = roleCounts[i];
+        out << "      { \"role\": ";
+        writeJsonString(out, entry.name);
+        out << ", \"presetCount\": " << entry.count << " }"
+            << (i + 1u == roleCounts.size() ? "\n" : ",\n");
+    }
+    out << "    ],\n"
+        << "    \"engineCounts\": [\n";
+    for (size_t i = 0; i < engineCounts.size(); ++i)
+    {
+        const auto& entry = engineCounts[i];
+        out << "      { \"engine\": ";
+        writeJsonString(out, entry.name);
+        out << ", \"presetCount\": " << entry.count << " }"
+            << (i + 1u == engineCounts.size() ? "\n" : ",\n");
     }
     out << "    ]\n"
         << "  },\n"
@@ -2882,6 +2934,15 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
         out << ",\n"
             << "      \"name\": ";
         writeJsonString(out, preset.name);
+        out << ",\n"
+            << "      \"role\": ";
+        writeJsonString(out, chipper::presetRoleFor(preset));
+        out << ",\n"
+            << "      \"engine\": ";
+        writeJsonString(out, chipper::presetEngineFor(preset));
+        out << ",\n"
+            << "      \"tags\": ";
+        writeJsonStringArray(out, chipper::presetTagsFor(preset), "        ");
         out << ",\n"
             << "      \"note\": ";
         writeJsonString(out, preset.note);

@@ -51,6 +51,30 @@ EXPECTED_CATEGORY_PREFIXES = {
     "scc": ("Konami", "Arcade", "Classic"),
 }
 
+EXPECTED_ROLES = {
+    "Arp",
+    "Bass",
+    "Drums",
+    "Keys / Pad",
+    "Lead",
+    "Patch",
+    "SFX",
+}
+
+
+def tag_token(text: str) -> str:
+    output: list[str] = []
+    needs_separator = False
+    for char in text.lower():
+        if char.isalnum():
+            if needs_separator and output:
+                output.append("-")
+            output.append(char)
+            needs_separator = False
+        else:
+            needs_separator = bool(output)
+    return "".join(output)
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Assert factory preset catalog metadata quality.")
@@ -89,12 +113,17 @@ def main() -> int:
             failures.append(f"missing required preset categories: {', '.join(missing_categories)}")
 
     by_chip: dict[str, list[dict]] = defaultdict(list)
+    role_counts: Counter[str] = Counter()
+    engine_counts: Counter[str] = Counter()
     for preset in presets:
         preset_id = str(preset.get("id", ""))
         chip = str(preset.get("chipKey", ""))
         category = str(preset.get("category", ""))
         name = str(preset.get("name", ""))
         note = str(preset.get("note", ""))
+        role = str(preset.get("role", ""))
+        engine = str(preset.get("engine", ""))
+        tags = preset.get("tags", [])
 
         if not preset_id:
             failures.append(f"preset missing id: {preset!r}")
@@ -104,6 +133,28 @@ def main() -> int:
             failures.append(f"{preset_id}: preset category is empty")
         if len(note.strip()) < 12:
             failures.append(f"{preset_id}: preset note is too short or empty")
+        if role not in EXPECTED_ROLES:
+            failures.append(f"{preset_id}: preset role {role!r} is not one of {sorted(EXPECTED_ROLES)!r}")
+        if not engine:
+            failures.append(f"{preset_id}: preset engine is empty")
+        if not isinstance(tags, list) or not tags:
+            failures.append(f"{preset_id}: preset tags must be a non-empty list")
+            tags = []
+        else:
+            normalized_tags = [str(tag) for tag in tags]
+            if len(set(normalized_tags)) != len(normalized_tags):
+                failures.append(f"{preset_id}: preset tags contain duplicates")
+            for tag in normalized_tags:
+                if not tag or tag != tag_token(tag):
+                    failures.append(f"{preset_id}: preset tag {tag!r} is not normalized")
+            if "factory" not in normalized_tags:
+                failures.append(f"{preset_id}: preset tags should include factory")
+            role_tag = tag_token(role)
+            if role_tag and role_tag not in normalized_tags:
+                failures.append(f"{preset_id}: preset tags should include role tag {role_tag!r}")
+
+        role_counts[role] += 1
+        engine_counts[engine] += 1
 
         if chip:
             by_chip[chip].append(preset)
@@ -157,6 +208,39 @@ def main() -> int:
     actual_chip_counts = {chip: len(values) for chip, values in by_chip.items()}
     if declared_chip_counts != actual_chip_counts:
         failures.append(f"summary chipCounts expected {actual_chip_counts!r}, got {declared_chip_counts!r}")
+
+    def read_named_counts(field: str, name_key: str) -> dict[str, int]:
+        items = summary.get(field, [])
+        if not isinstance(items, list):
+            failures.append(f"summary {field} must be a list")
+            return {}
+        declared: dict[str, int] = {}
+        for item in items:
+            if not isinstance(item, dict):
+                failures.append(f"summary {field} entry must be an object: {item!r}")
+                continue
+            name = str(item.get(name_key, ""))
+            count = item.get("presetCount")
+            if not name:
+                failures.append(f"summary {field} entry missing {name_key}: {item!r}")
+                continue
+            if not isinstance(count, int):
+                failures.append(f"summary {field} {name}: presetCount must be an integer, got {count!r}")
+                continue
+            if name in declared:
+                failures.append(f"summary {field} duplicates {name_key} {name}")
+            declared[name] = count
+        return declared
+
+    declared_role_counts = read_named_counts("roleCounts", "role")
+    actual_role_counts = dict(role_counts)
+    if declared_role_counts != actual_role_counts:
+        failures.append(f"summary roleCounts expected {actual_role_counts!r}, got {declared_role_counts!r}")
+
+    declared_engine_counts = read_named_counts("engineCounts", "engine")
+    actual_engine_counts = dict(engine_counts)
+    if declared_engine_counts != actual_engine_counts:
+        failures.append(f"summary engineCounts expected {actual_engine_counts!r}, got {declared_engine_counts!r}")
 
     if not args.only_chip:
         planned_chips_with_presets = sorted(set(by_chip) - IMPLEMENTED_CHIPS)
