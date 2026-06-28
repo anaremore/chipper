@@ -495,6 +495,12 @@ add_test(NAME chipper_render_preset_huc_lfo_chord_arp_smoke
 add_test(NAME chipper_render_preset_huc_lfo_noise_hit_smoke
     COMMAND chipper_render --preset huc-lfo-noise-hit --rate 48000 --seconds 0.05 --note 48 --out preset-huc-lfo-noise-hit.wav --debug preset-huc-lfo-noise-hit.json
 )
+add_test(NAME chipper_render_preset_paula_dac_noise_kit_smoke
+    COMMAND chipper_render --preset paula-dac-noise-kit --rate 48000 --seconds 0.05 --note 48 --out preset-paula-dac-noise-kit.wav --debug preset-paula-dac-noise-kit.json
+)
+add_test(NAME chipper_render_preset_paula_dac_noise_burst_smoke
+    COMMAND chipper_render --preset paula-dac-noise-burst --rate 48000 --seconds 0.05 --note 48 --out preset-paula-dac-noise-burst.wav --debug preset-paula-dac-noise-burst.json
+)
 add_test(NAME chipper_render_preset_sid_filtered_noise_sweep_smoke
     COMMAND chipper_render --preset sid-filtered-noise-sweep --rate 48000 --seconds 0.04 --note 69 --out preset-sid-filtered-noise-sweep-smoke.wav --debug preset-sid-filtered-noise-sweep-smoke.json
 )
@@ -965,7 +971,7 @@ if (Python3_Interpreter_FOUND)
     )
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=15 --preset-count dmg=15 --preset-count sid=19 --preset-count ym2149=15 --preset-count sn76489=15 --preset-count ym2612=18 --preset-count opl3=15 --preset-count spc700=14 --preset-count pokey=13 --preset-count paula=13 --preset-count huc6280=15 --preset-count namcoWsg=14 --preset-count ym2151=15 --preset-count ym2413=15 --preset-count scc=15
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=15 --preset-count dmg=15 --preset-count sid=19 --preset-count ym2149=15 --preset-count sn76489=15 --preset-count ym2612=18 --preset-count opl3=15 --preset-count spc700=14 --preset-count pokey=13 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=14 --preset-count ym2151=15 --preset-count ym2413=15 --preset-count scc=15
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1020,7 +1026,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_ym2612_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_paula_descriptor_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip paula --implemented paula=1 --verification-badge "paula=Verified partial" --verification-cycle paula=0 --verification-hardware paula=0 --param-kind paula:waveShape=chipRegister --param-surface paula:waveShape=segmentedChoice --param-choices paula:waveShape=5 --param-midi-cc paula:waveShape=89 --param-kind paula:macroControl3=chipRegister --param-surface paula:macroControl3=slider --param-midi-cc paula:macroControl3=78 --param-kind paula:macroControl4=chipRegister --param-surface paula:macroControl4=slider --param-midi-cc paula:macroControl4=79 --param-surface paula:stereoSpread=slider --param-midi-cc paula:stereoSpread=93 --macro-label "paula:Arp=Paula Tracker Arp" --macro-source paula:Drum=0011 --preset paula-tracker-bass --preset paula-noise-tick
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip paula --implemented paula=1 --verification-badge "paula=Verified partial" --verification-cycle paula=0 --verification-hardware paula=0 --param-kind paula:waveShape=chipRegister --param-surface paula:waveShape=segmentedChoice --param-choices paula:waveShape=5 --param-midi-cc paula:waveShape=89 --param-kind paula:macroControl3=chipRegister --param-surface paula:macroControl3=slider --param-midi-cc paula:macroControl3=78 --param-kind paula:macroControl4=chipRegister --param-surface paula:macroControl4=slider --param-midi-cc paula:macroControl4=79 --param-surface paula:stereoSpread=slider --param-midi-cc paula:stereoSpread=93 --macro-label "paula:Arp=Paula Tracker Arp" --macro-source paula:Drum=0011 --preset paula-tracker-bass --preset paula-noise-tick --preset paula-dac-noise-kit --preset paula-dac-noise-burst
     )
     set_tests_properties(chipper_render_list_paula_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
     add_test(NAME chipper_render_list_paula_output_filter_descriptor_assert
@@ -1596,6 +1602,14 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/paula-raw-left-smoke.json --implemented-contains partial --macro Lead --min-left-rms 0.01 --max-right-rms 0.001 --register-writes 0 --note-events 0 --core-min outputFilterMode=1 --core-max outputFilterMode=1 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0
     )
     set_tests_properties(chipper_render_paula_raw_left_assert PROPERTIES DEPENDS chipper_render_paula_raw_left_smoke)
+    add_test(NAME chipper_render_preset_paula_dac_noise_kit_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-paula-dac-noise-kit.json --implemented-contains partial --preset paula-dac-noise-kit --macro Drum --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.01 --min-zero-crossings 35 --core-min outputFilterMode=1 --core-max outputFilterMode=1 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min waveShapeChoice0=4 --core-max waveShapeChoice0=4 --core-min waveShapeChoice1=4 --core-max waveShapeChoice1=4 --core-min waveShapeChoice2=4 --core-max waveShapeChoice2=4 --core-min waveShapeChoice3=4 --core-max waveShapeChoice3=4 --core-min internalChannelCount=4 --core-max internalChannelCount=4
+    )
+    set_tests_properties(chipper_render_preset_paula_dac_noise_kit_assert PROPERTIES DEPENDS chipper_render_preset_paula_dac_noise_kit_smoke)
+    add_test(NAME chipper_render_preset_paula_dac_noise_burst_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-paula-dac-noise-burst.json --implemented-contains partial --preset paula-dac-noise-burst --macro Hit --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.01 --min-zero-crossings 35 --core-min outputFilterMode=1 --core-max outputFilterMode=1 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min waveShapeChoice0=4 --core-max waveShapeChoice0=4 --core-min waveShapeChoice1=4 --core-max waveShapeChoice1=4 --core-min waveShapeChoice2=4 --core-max waveShapeChoice2=4 --core-min waveShapeChoice3=4 --core-max waveShapeChoice3=4 --core-min internalChannelCount=4 --core-max internalChannelCount=4
+    )
+    set_tests_properties(chipper_render_preset_paula_dac_noise_burst_assert PROPERTIES DEPENDS chipper_render_preset_paula_dac_noise_burst_smoke)
 
     add_test(NAME chipper_render_huc6280_json_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/huc6280-smoke.json --implemented-contains partial --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.05 --min-rms 0.02 --register-writes 0 --note-events 0 --core-min internalChannelCount=6 --core-max internalChannelCount=6 --core-min chipPolyPlayableChannels=6 --core-max chipPolyPlayableChannels=6 --core-min uiExposesSixChannels=1 --core-max uiExposesSixChannels=1 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1 --core-min sourceEnabled5=1 --core-max sourceEnabled5=1 --core-min sourceLevel4=1 --core-max sourceLevel4=1 --core-min sourceLevel5=1 --core-max sourceLevel5=1 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min frequency0=338 --core-max frequency0=340 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Ch 1 Wave" --descriptor-param-choices waveShape=5
