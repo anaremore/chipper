@@ -1371,14 +1371,14 @@ bool checkPresetRoleFilterLayout()
         const auto bounds = chipEditor.getPresetFilterBoundsForLayoutTest();
         if (bounds.getWidth() < 86 || bounds.getHeight() < 28)
         {
-            std::cerr << "editor_size_smoke: preset role filter below readable size at compact width: "
+            std::cerr << "editor_size_smoke: preset metadata filter below readable size at compact width: "
                       << bounds.toString() << '\n';
             ok = false;
         }
 
         if (chipEditor.getPresetFilterTextForLayoutTest().isEmpty())
         {
-            std::cerr << "editor_size_smoke: preset role filter should default to All\n";
+            std::cerr << "editor_size_smoke: preset metadata filter should default to All\n";
             ok = false;
         }
 
@@ -1398,6 +1398,27 @@ bool checkPresetRoleFilterLayout()
 
         if (chipMode == 0)
         {
+            const auto unfilteredPresetCount = chipEditor.getDisplayedFactoryPresetCountForLayoutTest();
+            if (! chipEditor.selectPresetFilterForLayoutTest("tag", "noise"))
+            {
+                std::cerr << "editor_size_smoke: preset metadata filter should expose the NES noise tag\n";
+                ok = false;
+            }
+            const auto noiseTagCount = chipEditor.getDisplayedFactoryPresetCountForLayoutTest();
+            const auto noiseTagName = chipEditor.getFirstDisplayedFactoryPresetNameForLayoutTest();
+            if (noiseTagCount <= 0 || noiseTagCount >= unfilteredPresetCount || ! noiseTagName.containsIgnoreCase("noise"))
+            {
+                std::cerr << "editor_size_smoke: preset tag filter should narrow NES presets to noise entries, got count "
+                          << noiseTagCount << " first " << noiseTagName.toStdString() << '\n';
+                ok = false;
+            }
+
+            if (! chipEditor.selectPresetFilterForLayoutTest("all", ""))
+            {
+                std::cerr << "editor_size_smoke: preset metadata filter should return to All\n";
+                ok = false;
+            }
+
             chipEditor.setPresetSearchTextForLayoutTest("organ");
             const auto organSearchCount = chipEditor.getDisplayedFactoryPresetCountForLayoutTest();
             const auto organSearchName = chipEditor.getFirstDisplayedFactoryPresetNameForLayoutTest();

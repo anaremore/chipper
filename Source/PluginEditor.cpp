@@ -2079,7 +2079,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     playModeBox.addItemList(chipper::parameters::playModeChoices(), 1);
     chipModeBox.setTooltip(withMidiCc("Selects the named chip engine. Each mode shows its current verification status in the footer.", chipper::parameters::id::chipMode));
     accuracyBox.setTooltip(withMidiCc("Selects requested behavior strictness. Authentic favors chip limits, Hybrid keeps labeled musical helpers, and Inspired permits looser conveniences. The footer verification badge is the implementation claim.", chipper::parameters::id::accuracy));
-    presetFilterBox.setTooltip("Filter factory presets by musical role. User presets remain listed as a portable flat-file bank.");
+    presetFilterBox.setTooltip("Filter factory presets by role, engine, or chip-feature tag. User presets remain listed as a portable flat-file bank.");
     presetSearchBox.setTooltip("Search factory and user presets by name, category, chip role, engine, tags, or note text.");
     presetBox.setTooltip("Browse factory and user presets for the selected chip mode. Choosing one applies the sound immediately.");
     macroBox.setTooltip(withMidiCc("Internal preset recipe. Factory/user presets set this automatically for chip-native defaults.", chipper::parameters::id::macro));
@@ -4924,6 +4924,43 @@ juce::String ChipperAudioProcessorEditor::getFirstDisplayedFactoryPresetNameForL
         : juce::String(displayedPresets.front()->name);
 }
 
+bool ChipperAudioProcessorEditor::selectPresetFilterForLayoutTest(const juce::String& kind, const juce::String& value)
+{
+    const auto normalizedKind = kind.trim().toLowerCase();
+    if (normalizedKind == "all")
+    {
+        presetFilterBox.setSelectedId(1, juce::dontSendNotification);
+        updatePresetChoices(displayedMode);
+        return true;
+    }
+
+    const auto kindMatches = [&normalizedKind](PresetFilterKind filterKind)
+    {
+        switch (filterKind)
+        {
+            case PresetFilterKind::role: return normalizedKind == "role";
+            case PresetFilterKind::engine: return normalizedKind == "engine";
+            case PresetFilterKind::tag: return normalizedKind == "tag";
+            case PresetFilterKind::all: break;
+        }
+
+        return false;
+    };
+
+    for (size_t i = 0; i < presetFilterChoices.size(); ++i)
+    {
+        const auto& filter = presetFilterChoices[i];
+        if (kindMatches(filter.kind) && filter.value.equalsIgnoreCase(value))
+        {
+            presetFilterBox.setSelectedId(static_cast<int>(i + 2u), juce::dontSendNotification);
+            updatePresetChoices(displayedMode);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 juce::Rectangle<int> ChipperAudioProcessorEditor::getSidAdsrContentBoundsForLayoutTest() const
 {
     juce::Rectangle<int> content;
@@ -5686,20 +5723,31 @@ void ChipperAudioProcessorEditor::updateMacroChoices(chipper::ChipMode mode)
     macroBox.setSelectedItemIndex(selected, juce::dontSendNotification);
 }
 
-void ChipperAudioProcessorEditor::updatePresetFilterChoices(chipper::ChipMode)
+void ChipperAudioProcessorEditor::updatePresetFilterChoices(chipper::ChipMode mode)
 {
-    std::vector<juce::String> roles;
-    const auto appendRole = [&roles](juce::String role)
+    struct PendingFilter
     {
-        if (role.isEmpty())
+        PresetFilterKind kind = PresetFilterKind::all;
+        juce::String value;
+        juce::String label;
+        int count = 0;
+    };
+
+    const auto appendUnique = [](std::vector<PendingFilter>& filters, PresetFilterKind kind, juce::String value, juce::String label, int count)
+    {
+        if (value.isEmpty() || count <= 0)
             return;
 
-        if (std::find_if(roles.begin(), roles.end(), [&role](const juce::String& existing)
+        if (std::find_if(filters.begin(), filters.end(), [kind, &value](const PendingFilter& existing)
             {
-                return existing == role;
-            }) == roles.end())
-            roles.push_back(std::move(role));
+                return existing.kind == kind && existing.value == value;
+            }) == filters.end())
+            filters.push_back({ kind, std::move(value), std::move(label), count });
     };
+
+    std::vector<PendingFilter> roles;
+    std::vector<PendingFilter> engines;
+    std::vector<PendingFilter> tags;
 
     constexpr std::array roleOrder {
         "Bass",
@@ -5713,49 +5761,157 @@ void ChipperAudioProcessorEditor::updatePresetFilterChoices(chipper::ChipMode)
 
     for (const auto role : roleOrder)
     {
-        const auto hasRole = std::any_of(allDisplayedPresets.begin(),
+        const auto count = std::count_if(allDisplayedPresets.begin(),
                                          allDisplayedPresets.end(),
                                          [role](const chipper::PresetInfo* preset)
                                          {
                                              return preset != nullptr && chipper::presetRoleFor(*preset) == role;
                                          });
-        if (hasRole)
-            appendRole(role);
+        const auto displayRole = juce::String(role) == "Keys / Pad" ? juce::String("Keys") : juce::String(role);
+        appendUnique(roles, PresetFilterKind::role, role, displayRole, static_cast<int>(count));
     }
 
-    const auto previousFilter = activePresetFilterRole();
-    const auto keepPrevious = previousFilter == "All"
-        || std::find_if(roles.begin(), roles.end(), [&previousFilter](const juce::String& role)
+    std::vector<juce::String> engineOrder;
+    for (const auto* preset : allDisplayedPresets)
+    {
+        if (preset == nullptr)
+            continue;
+
+        const auto engine = juce::String(chipper::presetEngineFor(*preset));
+        if (std::find(engineOrder.begin(), engineOrder.end(), engine) == engineOrder.end())
+            engineOrder.push_back(engine);
+    }
+    std::sort(engineOrder.begin(), engineOrder.end());
+    const auto displayEngine = [](const juce::String& engine)
+    {
+        if (engine.containsIgnoreCase("apu")) return juce::String("APU");
+        if (engine.containsIgnoreCase("psg")) return juce::String("PSG");
+        if (engine.containsIgnoreCase("sid")) return juce::String("SID");
+        if (engine.containsIgnoreCase("fm")) return juce::String("FM");
+        if (engine.containsIgnoreCase("sampler")) return juce::String("Sampler");
+        if (engine.containsIgnoreCase("wavetable")) return juce::String("Wave");
+        if (engine.containsIgnoreCase("pokey")) return juce::String("POKEY");
+
+        return engine;
+    };
+    for (const auto& engine : engineOrder)
+    {
+        const auto count = std::count_if(allDisplayedPresets.begin(),
+                                         allDisplayedPresets.end(),
+                                         [&engine](const chipper::PresetInfo* preset)
+                                         {
+                                             return preset != nullptr && engine == juce::String(chipper::presetEngineFor(*preset));
+                                         });
+        appendUnique(engines, PresetFilterKind::engine, engine, displayEngine(engine), static_cast<int>(count));
+    }
+
+    const auto displayTag = [](const juce::String& tag)
+    {
+        if (tag == "apu") return juce::String("APU");
+        if (tag == "psg") return juce::String("PSG");
+        if (tag == "fm") return juce::String("FM");
+        if (tag == "sid") return juce::String("SID");
+        if (tag == "dmc") return juce::String("DMC");
+        if (tag == "dac") return juce::String("DAC");
+        if (tag == "pwm") return juce::String("PWM");
+
+        juce::String label;
+        auto capitalizeNext = true;
+        for (auto i = 0; i < tag.length(); ++i)
         {
-            return role == previousFilter;
-        }) != roles.end();
+            const auto ch = tag[i];
+            if (ch == '-')
+            {
+                label << " ";
+                capitalizeNext = true;
+                continue;
+            }
+
+            label << juce::String::charToString(capitalizeNext ? juce::CharacterFunctions::toUpperCase(ch) : ch);
+            capitalizeNext = false;
+        }
+
+        return label;
+    };
+
+    std::vector<juce::String> tagOrder;
+    if (const auto* target = chipper::presetQualityTargetForChip(mode))
+    {
+        for (const auto& tag : target->referenceTags)
+            tagOrder.push_back(juce::String(tag));
+    }
+
+    for (const auto tag : { "apu", "psg", "fm", "operator", "sampler", "wavetable", "sid", "pokey",
+                            "pulse", "wave", "noise", "filter", "pwm", "sync", "ring", "dmc", "dac",
+                            "echo", "loop", "tracker", "rhythm", "chord", "bell", "pad", "rise", "alarm" })
+    {
+        const auto tagText = juce::String(tag);
+        if (std::find(tagOrder.begin(), tagOrder.end(), tagText) == tagOrder.end())
+            tagOrder.push_back(tagText);
+    }
+
+    for (const auto& tag : tagOrder)
+    {
+        const auto count = std::count_if(allDisplayedPresets.begin(),
+                                         allDisplayedPresets.end(),
+                                         [&tag](const chipper::PresetInfo* preset)
+                                         {
+                                             if (preset == nullptr)
+                                                 return false;
+
+                                             const auto presetTags = chipper::presetTagsFor(*preset);
+                                             return std::find_if(presetTags.begin(), presetTags.end(), [&tag](const std::string& presetTag)
+                                             {
+                                                 return tag == juce::String(presetTag);
+                                             }) != presetTags.end();
+                                         });
+        appendUnique(tags, PresetFilterKind::tag, tag, displayTag(tag), static_cast<int>(count));
+    }
+
+    const auto previousFilter = activePresetFilterChoice();
+    std::vector<PresetFilterChoice> nextFilters;
+    nextFilters.reserve(roles.size() + engines.size() + tags.size());
+    const auto appendChoices = [&nextFilters](const std::vector<PendingFilter>& filters)
+    {
+        for (const auto& filter : filters)
+            nextFilters.push_back({ filter.kind, filter.value });
+    };
+    appendChoices(roles);
+    appendChoices(engines);
+    appendChoices(tags);
+
+    const auto keepPrevious = previousFilter.kind == PresetFilterKind::all
+        || std::find_if(nextFilters.begin(), nextFilters.end(), [&previousFilter](const PresetFilterChoice& filter)
+        {
+            return filter.kind == previousFilter.kind && filter.value == previousFilter.value;
+        }) != nextFilters.end();
 
     const juce::ScopedValueSetter<bool> suppressFilter(suppressPresetFilterChange, true);
-    presetFilterRoles = roles;
+    presetFilterChoices = nextFilters;
     presetFilterBox.clear(juce::dontSendNotification);
     presetFilterBox.addItem("All", 1);
 
-    for (size_t i = 0; i < roles.size(); ++i)
+    auto nextId = 2;
+    const auto addFilterGroup = [this, &nextId](const char* heading, const std::vector<PendingFilter>& filters)
     {
-        const auto& role = roles[i];
-        const auto displayRole = role == "Keys / Pad" ? juce::String("Keys") : role;
-        const auto count = std::count_if(allDisplayedPresets.begin(),
-                                         allDisplayedPresets.end(),
-                                         [&role](const chipper::PresetInfo* preset)
-                                         {
-                                             return preset != nullptr && chipper::presetRoleFor(*preset) == role;
-                                         });
-        presetFilterBox.addItem(displayRole + " (" + juce::String(static_cast<int>(count)) + ")",
-                                static_cast<int>(i + 2u));
-    }
+        if (filters.empty())
+            return;
 
-    if (keepPrevious && previousFilter != "All")
+        presetFilterBox.addSectionHeading(heading);
+        for (const auto& filter : filters)
+            presetFilterBox.addItem(filter.label + " (" + juce::String(filter.count) + ")", nextId++);
+    };
+    addFilterGroup("Roles", roles);
+    addFilterGroup("Engines", engines);
+    addFilterGroup("Tags", tags);
+
+    if (keepPrevious && previousFilter.kind != PresetFilterKind::all)
     {
-        const auto index = std::find_if(roles.begin(), roles.end(), [&previousFilter](const juce::String& role)
+        const auto index = std::find_if(nextFilters.begin(), nextFilters.end(), [&previousFilter](const PresetFilterChoice& filter)
         {
-            return role == previousFilter;
+            return filter.kind == previousFilter.kind && filter.value == previousFilter.value;
         });
-        presetFilterBox.setSelectedId(static_cast<int>(std::distance(roles.begin(), index)) + 2,
+        presetFilterBox.setSelectedId(static_cast<int>(std::distance(nextFilters.begin(), index)) + 2,
                                       juce::dontSendNotification);
     }
     else
@@ -5763,22 +5919,35 @@ void ChipperAudioProcessorEditor::updatePresetFilterChoices(chipper::ChipMode)
         presetFilterBox.setSelectedId(1, juce::dontSendNotification);
     }
 
-    const auto selectedRole = activePresetFilterRole();
-    presetFilterBox.setTooltip("Filter factory presets by musical role. "
-                               + juce::String("Current role: ")
-                               + (selectedRole.isNotEmpty() ? selectedRole : juce::String("All"))
+    presetFilterBox.setTooltip("Filter factory presets by role, engine, or chip-feature tag. "
+                               + juce::String("Current filter: ")
+                               + activePresetFilterDescription()
                                + ". User presets remain listed as a portable flat-file bank.");
 }
 
-juce::String ChipperAudioProcessorEditor::activePresetFilterRole() const
+ChipperAudioProcessorEditor::PresetFilterChoice ChipperAudioProcessorEditor::activePresetFilterChoice() const
 {
     const auto selectedId = presetFilterBox.getSelectedId();
     if (selectedId <= 1)
-        return "All";
+        return {};
 
     const auto index = selectedId - 2;
-    if (index >= 0 && static_cast<size_t>(index) < presetFilterRoles.size())
-        return presetFilterRoles[static_cast<size_t>(index)];
+    if (index >= 0 && static_cast<size_t>(index) < presetFilterChoices.size())
+        return presetFilterChoices[static_cast<size_t>(index)];
+
+    return {};
+}
+
+juce::String ChipperAudioProcessorEditor::activePresetFilterDescription() const
+{
+    const auto filter = activePresetFilterChoice();
+    switch (filter.kind)
+    {
+        case PresetFilterKind::role: return "Role: " + filter.value;
+        case PresetFilterKind::engine: return "Engine: " + filter.value;
+        case PresetFilterKind::tag: return "Tag: " + filter.value;
+        case PresetFilterKind::all: break;
+    }
 
     return "All";
 }
@@ -5790,9 +5959,30 @@ juce::String ChipperAudioProcessorEditor::activePresetSearchText() const
 
 bool ChipperAudioProcessorEditor::factoryPresetMatchesActiveFilter(const chipper::PresetInfo& preset) const
 {
-    const auto selectedRole = activePresetFilterRole();
-    return (selectedRole.isEmpty() || selectedRole == "All" || selectedRole == juce::String(chipper::presetRoleFor(preset)))
-        && factoryPresetMatchesActiveSearch(preset);
+    const auto filter = activePresetFilterChoice();
+    auto metadataMatches = true;
+    switch (filter.kind)
+    {
+        case PresetFilterKind::role:
+            metadataMatches = filter.value == juce::String(chipper::presetRoleFor(preset));
+            break;
+        case PresetFilterKind::engine:
+            metadataMatches = filter.value == juce::String(chipper::presetEngineFor(preset));
+            break;
+        case PresetFilterKind::tag:
+        {
+            const auto tags = chipper::presetTagsFor(preset);
+            metadataMatches = std::find_if(tags.begin(), tags.end(), [&filter](const std::string& tag)
+            {
+                return filter.value == juce::String(tag);
+            }) != tags.end();
+            break;
+        }
+        case PresetFilterKind::all:
+            break;
+    }
+
+    return metadataMatches && factoryPresetMatchesActiveSearch(preset);
 }
 
 bool ChipperAudioProcessorEditor::factoryPresetMatchesActiveSearch(const chipper::PresetInfo& preset) const
@@ -5824,23 +6014,23 @@ bool ChipperAudioProcessorEditor::userPresetMatchesActiveSearch(const UserPreset
 
 void ChipperAudioProcessorEditor::refreshPresetBrowserReadout(chipper::ChipMode mode)
 {
-    const auto selectedFilterRole = activePresetFilterRole();
+    const auto selectedFilter = activePresetFilterChoice();
     const auto searchText = activePresetSearchText();
     const auto allPresetCount = static_cast<int>(allDisplayedPresets.size() + allDisplayedUserPresets.size());
     const auto presetCount = static_cast<int>(displayedPresets.size() + displayedUserPresets.size());
-    const auto roleFilterActive = selectedFilterRole.isNotEmpty() && selectedFilterRole != "All";
+    const auto metadataFilterActive = selectedFilter.kind != PresetFilterKind::all;
     const auto searchActive = searchText.isNotEmpty();
-    const auto anyFilterActive = roleFilterActive || searchActive;
+    const auto anyFilterActive = metadataFilterActive || searchActive;
 
     if (presetCount == 0)
     {
         headerControlLabels[0].setText(anyFilterActive ? juce::String("Preset (0/") + juce::String(allPresetCount) + ")" : juce::String("Preset"),
                                        juce::dontSendNotification);
-        presetBox.setTextWhenNothingSelected(searchActive ? "No search matches" : (roleFilterActive ? "No role matches" : "Init Patch"));
+        presetBox.setTextWhenNothingSelected(searchActive ? "No search matches" : (metadataFilterActive ? "No filter matches" : "Init Patch"));
         presetBox.setTooltip(anyFilterActive
                                  ? "No presets match the current browser filters for "
                                        + juce::String(chipper::toString(mode))
-                                       + ". Change the search text or role filter, or use Init Patch."
+                                       + ". Change the search text or metadata filter, or use Init Patch."
                                  : "Use Init Patch for a neutral chip-local starting point. No factory or user presets are active for this chip mode yet.");
     }
     else
@@ -5855,7 +6045,7 @@ void ChipperAudioProcessorEditor::refreshPresetBrowserReadout(chipper::ChipMode 
         presetBox.setTextWhenNothingSelected(juce::String(presetCount) + " presets - " + firstName);
         presetBox.setTooltip("Browse " + juce::String(presetCount) + " factory/user presets for "
                              + juce::String(chipper::toString(mode))
-                             + ". Factory sounds are grouped by musical category and can be filtered by role or search text; choosing one applies an audible chip-specific sound immediately.");
+                             + ". Factory sounds are grouped by musical category and can be filtered by metadata or search text; choosing one applies an audible chip-specific sound immediately.");
     }
 
     presetSearchBox.setTooltip(searchActive

@@ -161,6 +161,7 @@ public:
     juce::String getPresetFilterTextForLayoutTest() const { return presetFilterBox.getText(); }
     juce::Rectangle<int> getPresetSearchBoundsForLayoutTest() const { return presetSearchBox.getBounds(); }
     juce::String getPresetSearchTextForLayoutTest() const { return presetSearchBox.getText(); }
+    bool selectPresetFilterForLayoutTest(const juce::String& kind, const juce::String& value);
     void setPresetSearchTextForLayoutTest(const juce::String& text)
     {
         presetSearchBox.setText(text, false);
@@ -299,7 +300,20 @@ private:
     void updateMacroChoices(chipper::ChipMode mode);
     void updatePresetChoices(chipper::ChipMode mode);
     void updatePresetFilterChoices(chipper::ChipMode mode);
-    juce::String activePresetFilterRole() const;
+    enum class PresetFilterKind
+    {
+        all,
+        role,
+        engine,
+        tag
+    };
+    struct PresetFilterChoice
+    {
+        PresetFilterKind kind = PresetFilterKind::all;
+        juce::String value;
+    };
+    PresetFilterChoice activePresetFilterChoice() const;
+    juce::String activePresetFilterDescription() const;
     juce::String activePresetSearchText() const;
     bool factoryPresetMatchesActiveFilter(const chipper::PresetInfo& preset) const;
     bool factoryPresetMatchesActiveSearch(const chipper::PresetInfo& preset) const;
@@ -637,7 +651,7 @@ private:
     std::vector<const chipper::PresetInfo*> displayedPresets;
     std::vector<UserPresetFile> allDisplayedUserPresets;
     std::vector<UserPresetFile> displayedUserPresets;
-    std::vector<juce::String> presetFilterRoles;
+    std::vector<PresetFilterChoice> presetFilterChoices;
     std::vector<ChipSettingsSnapshot> chipSettingsSnapshots;
     bool descriptorTextInitialized = false;
     int displayedDmcSampleCount = -1;
