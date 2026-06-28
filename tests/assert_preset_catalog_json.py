@@ -81,8 +81,8 @@ def tag_token(text: str) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Assert factory preset catalog metadata quality.")
     parser.add_argument("path")
-    parser.add_argument("--min-presets", type=int, default=150)
-    parser.add_argument("--min-per-chip", type=int, default=10)
+    parser.add_argument("--min-presets", type=int, default=180)
+    parser.add_argument("--min-per-chip", type=int, default=12)
     parser.add_argument("--min-core-roles-per-chip", type=int, default=len(CORE_ROLE_COVERAGE))
     parser.add_argument("--only-chip", help="Assert that every preset belongs to this chip key.")
     args = parser.parse_args()

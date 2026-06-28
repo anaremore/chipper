@@ -4,8 +4,8 @@ param(
     [string] $Renderer = "",
     [string] $Python = "python",
     [string] $WorkDir = "",
-    [int] $MinPresets = 150,
-    [int] $MinPerChip = 10,
+    [int] $MinPresets = 180,
+    [int] $MinPerChip = 12,
     [double] $Seconds = 0.05,
     [double] $MinPeak = 0.005,
     [double] $MaxPeak = 0.98
