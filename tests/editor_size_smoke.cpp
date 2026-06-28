@@ -529,14 +529,15 @@ bool checkYm2612DacModeLayout()
     return ok;
 }
 
-bool checkYm2612OperatorSurfaceLayout()
+bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
 {
-    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::ym2612);
+    const auto chipChoice = chipModeChoiceFor(mode);
     if (chipChoice < 0)
     {
-        std::cerr << "editor_size_smoke: YM2612 chip mode choice unavailable\n";
+        std::cerr << "editor_size_smoke: four-operator FM chip mode choice unavailable\n";
         return false;
     }
+    const auto modeLabel = chipper::parameters::chipModeChoices()[chipChoice].toStdString();
 
     ChipperAudioProcessor processor;
     auto ok = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
@@ -549,9 +550,82 @@ bool checkYm2612OperatorSurfaceLayout()
     const auto envelopeModuleBounds = editor.getModuleBoundsForLayoutTest(3);
     if (envelopeModuleBounds.isEmpty())
     {
-        std::cerr << "editor_size_smoke: YM2612 operator surface module is missing\n";
+        std::cerr << "editor_size_smoke: " << modeLabel
+                  << " operator surface module is missing\n";
         return false;
     }
+
+    const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+    const auto checkOperatorControl = [&](size_t sliderIndex, const char* controlName)
+    {
+        auto controlOk = true;
+        const auto sliderBounds = editor.getNativeSliderBoundsForLayoutTest(sliderIndex);
+        const auto groupBounds = editor.getNativeGroupLabelBoundsForLayoutTest(sliderIndex);
+        const auto labelBounds = editor.getNativeLabelBoundsForLayoutTest(sliderIndex);
+        const auto valueBounds = editor.getNativeValueLabelBoundsForLayoutTest(sliderIndex);
+
+        if (! groupBounds.isEmpty())
+        {
+            std::cerr << "editor_size_smoke: " << modeLabel << ' ' << controlName
+                      << " should use compact Operator EG ownership without a macro group label: "
+                      << groupBounds.toString() << '\n';
+            controlOk = false;
+        }
+
+        if (sliderBounds.isEmpty() || labelBounds.isEmpty() || valueBounds.isEmpty())
+        {
+            std::cerr << "editor_size_smoke: " << modeLabel << ' ' << controlName
+                      << " operator control is missing from Operator EG: slider "
+                      << sliderBounds.toString() << " label " << labelBounds.toString()
+                      << " readout " << valueBounds.toString() << '\n';
+            return false;
+        }
+
+        if (! envelopeModuleBounds.expanded(2).contains(sliderBounds)
+            || ! envelopeModuleBounds.expanded(2).contains(labelBounds)
+            || ! envelopeModuleBounds.expanded(2).contains(valueBounds))
+        {
+            std::cerr << "editor_size_smoke: " << modeLabel << ' ' << controlName
+                      << " operator control escaped Operator EG: slider "
+                      << sliderBounds.toString() << " label " << labelBounds.toString()
+                      << " readout " << valueBounds.toString()
+                      << " module " << envelopeModuleBounds.toString() << '\n';
+            controlOk = false;
+        }
+
+        if (! performanceBounds.isEmpty()
+            && (sliderBounds.intersects(performanceBounds)
+                || labelBounds.intersects(performanceBounds)
+                || valueBounds.intersects(performanceBounds)))
+        {
+            std::cerr << "editor_size_smoke: " << modeLabel << ' ' << controlName
+                      << " operator control still occupies Performance Macros: slider "
+                      << sliderBounds.toString() << " performance "
+                      << performanceBounds.toString() << '\n';
+            controlOk = false;
+        }
+
+        if (sliderBounds.getWidth() < 160 || sliderBounds.getHeight() < 18
+            || labelBounds.getWidth() < 72 || labelBounds.getHeight() < 12
+            || valueBounds.getWidth() < 58 || valueBounds.getHeight() < 12
+            || sliderBounds.intersects(labelBounds)
+            || sliderBounds.intersects(valueBounds))
+        {
+            std::cerr << "editor_size_smoke: " << modeLabel << ' ' << controlName
+                      << " operator control is not readable: slider "
+                      << sliderBounds.toString() << " label " << labelBounds.toString()
+                      << " readout " << valueBounds.toString() << '\n';
+            controlOk = false;
+        }
+
+        return controlOk;
+    };
+
+    ok &= checkOperatorControl(2, "Operator Tone");
+    ok &= checkOperatorControl(3, "FM Level");
+
+    const auto operatorToneBounds = editor.getNativeSliderBoundsForLayoutTest(2);
+    const auto fmLevelBounds = editor.getNativeSliderBoundsForLayoutTest(3);
 
     auto carrierCount = 0;
     auto modulatorCount = 0;
@@ -566,7 +640,7 @@ bool checkYm2612OperatorSurfaceLayout()
 
         if (nameBounds.isEmpty() || valueBounds.isEmpty())
         {
-            std::cerr << "editor_size_smoke: YM2612 operator row " << op
+            std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " is missing from the FM readout surface\n";
             ok = false;
             continue;
@@ -575,7 +649,7 @@ bool checkYm2612OperatorSurfaceLayout()
         if (! envelopeModuleBounds.expanded(2).contains(nameBounds)
             || ! envelopeModuleBounds.expanded(2).contains(valueBounds))
         {
-            std::cerr << "editor_size_smoke: YM2612 operator row " << op
+            std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " escaped the envelope/FM module: module " << envelopeModuleBounds.toString()
                       << " name " << nameBounds.toString()
                       << " value " << valueBounds.toString() << '\n';
@@ -585,15 +659,28 @@ bool checkYm2612OperatorSurfaceLayout()
         if (nameBounds.getWidth() < 40 || nameBounds.getHeight() < 12
             || valueBounds.getWidth() < 140 || valueBounds.getHeight() < 12)
         {
-            std::cerr << "editor_size_smoke: YM2612 operator row " << op
+            std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " is below readable size: name " << nameBounds.toString()
                       << " value " << valueBounds.toString() << '\n';
             ok = false;
         }
 
+        if (nameBounds.intersects(operatorToneBounds)
+            || valueBounds.intersects(operatorToneBounds)
+            || nameBounds.intersects(fmLevelBounds)
+            || valueBounds.intersects(fmLevelBounds))
+        {
+            std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
+                      << " overlaps editable operator controls: name " << nameBounds.toString()
+                      << " value " << valueBounds.toString()
+                      << " tone " << operatorToneBounds.toString()
+                      << " level " << fmLevelBounds.toString() << '\n';
+            ok = false;
+        }
+
         if (nameBounds.getY() < lastBottom - 1 || valueBounds.getY() < lastBottom - 1)
         {
-            std::cerr << "editor_size_smoke: YM2612 operator row " << op
+            std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " overlaps the previous operator row\n";
             ok = false;
         }
@@ -602,7 +689,7 @@ bool checkYm2612OperatorSurfaceLayout()
         const auto expectedPrefix = juce::String("OP") + juce::String(static_cast<int>(op + 1u));
         if (! nameText.startsWith(expectedPrefix) || (! nameText.endsWith(" C") && ! nameText.endsWith(" M")))
         {
-            std::cerr << "editor_size_smoke: YM2612 operator row " << op
+            std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " should expose OP number and carrier/modulator role, got "
                       << nameText.toStdString() << '\n';
             ok = false;
@@ -615,7 +702,7 @@ bool checkYm2612OperatorSurfaceLayout()
 
         if (! valueText.contains("MULT") || ! valueText.contains("TL") || ! valueText.contains("AR"))
         {
-            std::cerr << "editor_size_smoke: YM2612 operator row " << op
+            std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " should expose resolved register fields, got "
                       << valueText.toStdString() << '\n';
             ok = false;
@@ -624,7 +711,8 @@ bool checkYm2612OperatorSurfaceLayout()
 
     if (carrierCount == 0 || modulatorCount == 0)
     {
-        std::cerr << "editor_size_smoke: YM2612 mixed algorithm should show both carriers and modulators, got C="
+        std::cerr << "editor_size_smoke: " << modeLabel
+                  << " mixed algorithm should show both carriers and modulators, got C="
                   << carrierCount << " M=" << modulatorCount << '\n';
         ok = false;
     }
@@ -1185,6 +1273,8 @@ bool checkPerformanceMacroSliderLayout()
                 expectedMacroSliders = { 0, 2, 3 };
                 break;
             case chipper::ChipMode::ym2149:
+            case chipper::ChipMode::ym2612:
+            case chipper::ChipMode::ym2151:
                 expectedMacroSliders = { 0, 1 };
                 break;
             default:
@@ -1610,7 +1700,8 @@ int main()
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::sn76489);
     ok &= checkYm2149ToneNoiseMixLayout();
     ok &= checkYm2612DacModeLayout();
-    ok &= checkYm2612OperatorSurfaceLayout();
+    ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2612);
+    ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2151);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::huc6280);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::namcoWsg);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::scc);

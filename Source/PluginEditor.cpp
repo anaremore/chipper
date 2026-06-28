@@ -3611,12 +3611,13 @@ void ChipperAudioProcessorEditor::resized()
     const auto sn76489Layout = displayedMode == chipper::ChipMode::sn76489;
     const auto ym2149Layout = displayedMode == chipper::ChipMode::ym2149;
     const auto huc6280Layout = displayedMode == chipper::ChipMode::huc6280;
+    const auto fourOperatorFmLayout = isFourOperatorFmMode(displayedMode);
     const auto sampleLayout = spc700Layout || paulaLayout;
     const auto wavetableLayout = huc6280Layout
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc;
-    const auto performanceStripHeight = sidLayout ? 124 : (nesLayout ? 236 : (spc700Layout ? 124 : (paulaLayout ? 124 : (wavetableLayout ? 132 : 196))));
-    const auto maxModulesHeight = sidLayout ? 666 : (nesLayout ? 436 : (spc700Layout ? 548 : (paulaLayout ? 580 : (huc6280Layout ? 478 : (wavetableLayout ? 416 : 492)))));
+    const auto performanceStripHeight = sidLayout ? 124 : (nesLayout ? 236 : (spc700Layout ? 124 : (paulaLayout ? 124 : (fourOperatorFmLayout ? 124 : (wavetableLayout ? 132 : 196)))));
+    const auto maxModulesHeight = sidLayout ? 666 : (nesLayout ? 436 : (spc700Layout ? 548 : (paulaLayout ? 580 : (fourOperatorFmLayout ? 564 : (huc6280Layout ? 478 : (wavetableLayout ? 416 : 492))))));
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
     auto modules = area.removeFromTop(modulesHeight);
@@ -4449,7 +4450,7 @@ void ChipperAudioProcessorEditor::resized()
         auto shapeArea = envelopeDecayPanel.removeFromTop(std::min(41, envelopeDecayPanel.getHeight()));
         placeYmEnvelopeShapeSegment(shapeArea);
         envelopeDecayPanel.removeFromTop(std::min(3, envelopeDecayPanel.getHeight()));
-        placeFmOperatorRegisterSurface(displayedMode, envelopeDecayPanel);
+        placeFmOperatorEditSurface(displayedMode, envelopeDecayPanel);
         ymEnvelopePreview.setBounds({});
     }
     else if (usesFmOperatorRegisterSurface)
@@ -4687,14 +4688,23 @@ void ChipperAudioProcessorEditor::resized()
         placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlValueLabels[0], controlCells[0]);
         placePulseDutySegment(controlCells[0]);
         placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[1]);
-        if (displayedMode != chipper::ChipMode::sid && displayedMode != chipper::ChipMode::ym2149)
+        const auto fourOperatorFmControlsMoved = isFourOperatorFmMode(displayedMode);
+        if (displayedMode != chipper::ChipMode::sid
+            && displayedMode != chipper::ChipMode::ym2149
+            && ! fourOperatorFmControlsMoved)
+        {
             placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[2]);
+        }
 
         const auto sustainCell = displayedMode == chipper::ChipMode::sid ? controlCells[2] : controlCells[3];
         if (displayedMode == chipper::ChipMode::ym2149)
         {
             nativeGroupLabels[3].setBounds({});
             nativeSliders[3].setBounds({});
+        }
+        else if (fourOperatorFmControlsMoved)
+        {
+            nativeGroupLabels[3].setBounds({});
         }
         else
         {
@@ -4998,14 +5008,15 @@ void ChipperAudioProcessorEditor::resized()
     auto outputCell = displayedMode == chipper::ChipMode::sid
         ? controlCells[4].getUnion(controlCells[5])
         : controlCells[5];
-    auto outputHeader = outputCell.removeFromTop(18);
-    outputLabel.setBounds(outputHeader.removeFromLeft(96));
+    const auto compactOutputCell = outputCell.getHeight() < 46;
+    auto outputHeader = outputCell.removeFromTop(std::min(compactOutputCell ? 14 : 18, outputCell.getHeight()));
+    outputLabel.setBounds(outputHeader.removeFromLeft(std::min(compactOutputCell ? 82 : 96, outputHeader.getWidth())));
     controlValueLabels[5].setJustificationType(juce::Justification::centredRight);
     controlValueLabels[5].setBounds(outputHeader);
-    outputCell.removeFromTop(3);
-    outputSlider.setBounds(outputCell.removeFromTop(20).reduced(0, 1));
-    outputCell.removeFromTop(4);
-    outputScopePreview.setBounds(outputCell.reduced(0, 1));
+    outputCell.removeFromTop(std::min(compactOutputCell ? 1 : 3, outputCell.getHeight()));
+    outputSlider.setBounds(outputCell.removeFromTop(std::min(20, outputCell.getHeight())).reduced(0, compactOutputCell ? 0 : 1));
+    outputCell.removeFromTop(std::min(compactOutputCell ? 0 : 4, outputCell.getHeight()));
+    outputScopePreview.setBounds(compactOutputCell ? juce::Rectangle<int> {} : outputCell.reduced(0, 1));
 
     auto footer = getLocalBounds().reduced(16).removeFromBottom(44);
     buildLabel.setBounds(footer.removeFromRight(190));
@@ -5304,6 +5315,55 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
             sidAdsrBoxes[index].setBounds({});
         }
     }
+}
+
+void ChipperAudioProcessorEditor::placeCompactFmOperatorSlider(juce::Slider& slider,
+                                                               juce::Label& label,
+                                                               juce::Label& valueLabel,
+                                                               juce::Rectangle<int> bounds)
+{
+    label.setMinimumHorizontalScale(0.62f);
+    valueLabel.setJustificationType(juce::Justification::centredRight);
+    valueLabel.setMinimumHorizontalScale(0.55f);
+
+    if (bounds.isEmpty())
+    {
+        label.setBounds({});
+        slider.setBounds({});
+        valueLabel.setBounds({});
+        return;
+    }
+
+    auto header = bounds.removeFromTop(std::min(14, bounds.getHeight()));
+    label.setBounds(header.removeFromLeft(std::min(112, header.getWidth())));
+    valueLabel.setBounds(header.getWidth() >= 58 ? header : juce::Rectangle<int> {});
+    bounds.removeFromTop(std::min(1, bounds.getHeight()));
+    slider.setBounds(bounds.reduced(0, 1));
+}
+
+void ChipperAudioProcessorEditor::placeFmOperatorEditSurface(chipper::ChipMode mode, juce::Rectangle<int> bounds)
+{
+    if (! isFourOperatorFmMode(mode))
+    {
+        placeFmOperatorRegisterSurface(mode, bounds);
+        return;
+    }
+
+    const auto controlWidth = std::clamp(bounds.getWidth() / 2, 230, 310);
+    auto controlPanel = bounds.removeFromLeft(std::min(controlWidth, bounds.getWidth()));
+    bounds.removeFromLeft(std::min(10, bounds.getWidth()));
+
+    nativeGroupLabels[2].setBounds({});
+    nativeGroupLabels[3].setBounds({});
+
+    const auto controlGap = std::min(4, std::max(0, controlPanel.getHeight() - 56));
+    const auto rowHeight = std::max(0, (controlPanel.getHeight() - controlGap) / 2);
+    auto toneRow = controlPanel.removeFromTop(std::min(rowHeight, controlPanel.getHeight()));
+    controlPanel.removeFromTop(std::min(controlGap, controlPanel.getHeight()));
+    placeCompactFmOperatorSlider(nativeSliders[2], nativeLabels[2], controlValueLabels[2], toneRow);
+    placeCompactFmOperatorSlider(nativeSliders[3], nativeLabels[3], controlValueLabels[3], controlPanel);
+
+    placeFmOperatorRegisterSurface(mode, bounds);
 }
 
 void ChipperAudioProcessorEditor::placeFmOperatorRegisterSurface(chipper::ChipMode mode, juce::Rectangle<int> bounds)

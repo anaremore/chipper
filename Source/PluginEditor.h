@@ -298,6 +298,8 @@ private:
                             juce::Rectangle<int> bounds);
     void placeLabeledSliderWithReadout(juce::Slider& slider, juce::Label& label, juce::Label& valueLabel, juce::Rectangle<int> bounds);
     void placeSidAdsrControls(juce::Rectangle<int> bounds);
+    void placeCompactFmOperatorSlider(juce::Slider& slider, juce::Label& label, juce::Label& valueLabel, juce::Rectangle<int> bounds);
+    void placeFmOperatorEditSurface(chipper::ChipMode mode, juce::Rectangle<int> bounds);
     void placeFmOperatorRegisterSurface(chipper::ChipMode mode, juce::Rectangle<int> bounds);
     void placePulseDutySegment(juce::Rectangle<int> bounds);
     void placePulse2DutySegment(juce::Rectangle<int> bounds);
