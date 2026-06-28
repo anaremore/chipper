@@ -82,7 +82,7 @@ Planning-only cleanup should not become its own backlog. If no current build rep
    - User value: high. Fifteen chips need browsing by musical intent, not only chip name.
    - Scope: chip, category, musical role, active lanes, macro destinations, native feature use, Strictness behavior, sample usage, tracker motion usage, mono/poly/drum/SFX flags, favorites, and init patches.
    - Preset files should remain portable flat files and should store recipe metadata as well as parameter state.
-   - Sourcing rule: high-quality factory presets should be original Chipper sound design derived from documented chip behavior and verified by audition or renderer metadata. Do not source presets by copying game patches, tracker instruments, ROM tables, commercial sample banks, or copyrighted audio unless the license and provenance are explicitly compatible and documented.
+   - Sourcing rule: high-quality factory presets should be original Chipper sound design derived from documented chip behavior and verified by audition or renderer metadata. Furnace can guide the coverage matrix and audition vocabulary, but do not source presets by copying Furnace data, game patches, tracker instruments, ROM tables, commercial sample banks, or copyrighted audio unless the license and provenance are explicitly compatible and documented.
 
 7. **Enforceable Authentic / Hybrid / Inspired Behavior**
    - User value: high. Strictness choices should change what controls are allowed and how honestly the UI describes them.

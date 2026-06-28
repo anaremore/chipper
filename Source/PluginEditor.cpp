@@ -2329,7 +2329,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     sampleLoopStartAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::spc700LoopStart, sampleLoopStartSlider);
     sampleLoopEndAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::spc700LoopEnd, sampleLoopEndSlider);
 
-    sampleWaveformPreview.setTooltip("Selected sample waveform. SPC700 mode also shades the active loop range.");
+    sampleWaveformPreview.setTooltip("Selected sample waveform. Sample modes shade the active loop range when loop metadata or loop controls are available.");
     sampleWaveformPreview.setVisible(false);
     addAndMakeVisible(sampleWaveformPreview);
 

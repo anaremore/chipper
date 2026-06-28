@@ -37,6 +37,9 @@ public:
         juce::String path;
         std::vector<uint8_t> bytes;
         chipper::ExternalSampleEncoding encoding = chipper::ExternalSampleEncoding::rawBytes;
+        bool hasLoop = false;
+        size_t loopStart = 0;
+        size_t loopEnd = 0;
         bool included = true;
     };
 
@@ -84,7 +87,10 @@ public:
         int playbackMode = 0;
         int mapRootNote = 36;
         int mapHighNote = 36;
+        int loopStartSample = 0;
+        int loopEndSample = 0;
         bool loaded = false;
+        bool hasLoop = false;
         bool nearAramBudget = false;
         bool exceedsAramBudget = false;
     };

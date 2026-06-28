@@ -184,6 +184,22 @@ float normalizedLoopStart(size_t loopStart, size_t sampleCount)
     return std::clamp(static_cast<float>(loopStart) / static_cast<float>(sampleCount - 1u), 0.0f, 1.0f);
 }
 
+float normalizedLoopEnd(size_t loopEnd, size_t sampleCount)
+{
+    if (sampleCount <= 1u)
+        return 1.0f;
+
+    return std::clamp(static_cast<float>(loopEnd) / static_cast<float>(sampleCount - 1u), 0.0f, 1.0f);
+}
+
+bool sampleSlotHasValidLoop(const ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    return slot.hasLoop
+        && slot.bytes.size() > 1u
+        && slot.loopStart < slot.loopEnd
+        && slot.loopEnd <= slot.bytes.size();
+}
+
 bool sourceLevelsMatch(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
 {
     constexpr auto tolerance = 0.0001f;
@@ -491,6 +507,8 @@ juce::Result readIff8svxSampleFile(const juce::File& file, ChipperAudioProcessor
     auto offset = static_cast<size_t>(12u);
     bool sawVhdr = false;
     bool isCompressed = false;
+    uint32_t oneShotSamples = 0;
+    uint32_t repeatSamples = 0;
     const uint8_t* body = nullptr;
     size_t bodySize = 0u;
 
@@ -508,6 +526,8 @@ juce::Result readIff8svxSampleFile(const juce::File& file, ChipperAudioProcessor
                 return juce::Result::fail("Paula 8SVX VHDR chunk is too short: " + file.getFileName());
 
             sawVhdr = true;
+            oneShotSamples = readBigEndian32(bytes + chunkDataOffset);
+            repeatSamples = readBigEndian32(bytes + chunkDataOffset + 4u);
             const auto sampleRate = readBigEndian16(bytes + chunkDataOffset + 12u);
             const auto compression = bytes[chunkDataOffset + 15u];
             if (sampleRate == 0u)
@@ -539,6 +559,14 @@ juce::Result readIff8svxSampleFile(const juce::File& file, ChipperAudioProcessor
     slot.path = file.getFullPathName();
     slot.encoding = chipper::ExternalSampleEncoding::signedPcm8;
     slot.bytes.resize(sampleCount);
+    if (repeatSamples > 1u && oneShotSamples < sampleCount)
+    {
+        slot.hasLoop = true;
+        slot.loopStart = static_cast<size_t>(std::min<uint32_t>(oneShotSamples, static_cast<uint32_t>(sampleCount - 1u)));
+        slot.loopEnd = std::min(sampleCount, static_cast<size_t>(oneShotSamples) + static_cast<size_t>(repeatSamples));
+        if (slot.loopEnd <= slot.loopStart + 1u)
+            slot.hasLoop = false;
+    }
     for (size_t i = 0; i < sampleCount; ++i)
         slot.bytes[i] = static_cast<uint8_t>(static_cast<int>(static_cast<int8_t>(body[i])) + 128);
 
@@ -1045,8 +1073,16 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::paulaSampleInf
     info.playbackMode = playbackMode;
     info.mapRootNote = mapRootNote;
     info.mapHighNote = std::clamp(mapRootNote + std::max(0, bankCount - 1), 0, 127);
+    if (sampleSlotHasValidLoop(selected))
+    {
+        info.hasLoop = true;
+        info.loopStartSample = static_cast<int>(selected.loopStart);
+        info.loopEndSample = static_cast<int>(selected.loopEnd);
+    }
     info.statusLine = "Slot " + juce::String(safeSlot + 1) + "/" + juce::String(bankCount)
         + ": " + info.sampleName + " (" + juce::String(info.byteCount) + " 8-bit samples)";
+    if (info.hasLoop)
+        info.statusLine += " | Loop " + juce::String(info.loopStartSample) + "-" + juce::String(info.loopEndSample);
     return info;
 }
 
@@ -2085,7 +2121,7 @@ void ChipperAudioProcessor::applyPaulaSampleToCore()
     if (core == nullptr || activeMode != chipper::ChipMode::paula)
         return;
 
-    std::vector<std::vector<uint8_t>> sampleBank;
+    std::vector<chipper::ExternalSampleData> sampleBank;
     uint64_t revision = 0;
     auto resolvedSlot = -1;
     const auto playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
@@ -2116,13 +2152,27 @@ void ChipperAudioProcessor::applyPaulaSampleToCore()
                 paulaSample = *activeSlots[static_cast<size_t>(resolvedSlot)];
                 sampleBank.reserve(activeSlots.size());
                 for (const auto* slot : activeSlots)
-                    sampleBank.push_back(slot->bytes);
+                {
+                    sampleBank.push_back({
+                        slot->bytes,
+                        slot->encoding,
+                        sampleSlotHasValidLoop(*slot),
+                        slot->loopStart,
+                        slot->loopEnd
+                    });
+                }
             }
         }
         else if (! paulaSample.bytes.empty())
         {
             resolvedSlot = 0;
-            sampleBank.push_back(paulaSample.bytes);
+            sampleBank.push_back({
+                paulaSample.bytes,
+                paulaSample.encoding,
+                sampleSlotHasValidLoop(paulaSample),
+                paulaSample.loopStart,
+                paulaSample.loopEnd
+            });
         }
     }
 
@@ -2864,6 +2914,14 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
                 snapshot.label = "Paula " + juce::String(static_cast<int>(safeSlot + 1u)) + ": " + slot.name;
                 snapshot.selectedSlot = static_cast<int>(safeSlot);
                 snapshot.loaded = ! decoded.empty();
+                if (sampleSlotHasValidLoop(slot))
+                {
+                    snapshot.hasLoop = true;
+                    snapshot.loopStart = normalizedLoopStart(slot.loopStart, decoded.size());
+                    snapshot.loopEnd = normalizedLoopEnd(slot.loopEnd, decoded.size());
+                    if (snapshot.loopEnd <= snapshot.loopStart)
+                        snapshot.loopEnd = std::min(1.0f, snapshot.loopStart + 0.01f);
+                }
             }
         }
 

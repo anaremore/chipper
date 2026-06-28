@@ -278,7 +278,7 @@ void appendAscii(std::vector<uint8_t>& bytes, const char* text)
         bytes.push_back(static_cast<uint8_t>(*text++));
 }
 
-bool write8svxFixture(const juce::File& file, uint8_t seed)
+bool write8svxFixture(const juce::File& file, uint8_t seed, uint32_t oneShotSamples = 256u, uint32_t repeatSamples = 0u)
 {
     std::vector<uint8_t> body;
     body.reserve(256u);
@@ -292,9 +292,9 @@ bool write8svxFixture(const juce::File& file, uint8_t seed)
     appendAscii(data, "8SVX");
     appendAscii(data, "VHDR");
     appendBigEndian32(data, 20u);
-    appendBigEndian32(data, static_cast<uint32_t>(body.size()));
-    appendBigEndian32(data, 0u);
-    appendBigEndian32(data, 0u);
+    appendBigEndian32(data, oneShotSamples);
+    appendBigEndian32(data, repeatSamples);
+    appendBigEndian32(data, repeatSamples);
     appendBigEndian16(data, 8363u);
     data.push_back(1u);
     data.push_back(0u);
@@ -1180,7 +1180,7 @@ int main()
         ok &= expect(writeWavFixture(paulaDir.getChildFile(name), 220.0f + static_cast<float>(i) * 55.0f),
                      "Should write temporary Paula WAV fixture " + name.toStdString());
     }
-    ok &= expect(write8svxFixture(paulaDir.getChildFile("zz-paula-native.8svx"), 0x20u),
+    ok &= expect(write8svxFixture(paulaDir.getChildFile("zz-paula-native.8svx"), 0x20u, 64u, 128u),
                  "Should write temporary Paula 8SVX fixture");
 
     ok &= expect(processor.loadPaulaSampleDirectory(paulaDir).wasOk(), "Should load Paula sample directory");
@@ -1198,6 +1198,7 @@ int main()
     ok &= expect(! paulaEntries[2].included && ! paulaEntries[2].activeSlot,
                  "Unchecked Paula entries should report inactive");
     processor.setPaulaSampleIncluded(2, true);
+    setPlainFromHost(processor, chipper::parameters::id::spc700Voice1SampleSlot, 0.0f);
     sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 3));
     auto paulaInfo = processor.paulaSampleInfo();
     ok &= expect(paulaInfo.loaded && paulaInfo.sampleName == "paula-03.wav" && paulaInfo.byteCount == 256,
@@ -1208,6 +1209,24 @@ int main()
     paulaInfo = processor.paulaSampleInfo();
     ok &= expect(paulaInfo.loaded && paulaInfo.sampleName == "zz-paula-native.8svx" && paulaInfo.byteCount == 256,
                  "CC117 should select an imported Paula 8SVX sample bank slot");
+    ok &= expect(paulaInfo.hasLoop && paulaInfo.loopStartSample == 64 && paulaInfo.loopEndSample == 192
+                     && paulaInfo.statusLine.contains("Loop 64-192"),
+                 "Paula 8SVX import should expose VHDR loop metadata in status");
+    const auto paulaLoopPreview = processor.sampleWaveformSnapshot(chipper::ChipMode::paula);
+    ok &= expect(paulaLoopPreview.loaded && paulaLoopPreview.hasLoop && paulaLoopPreview.selectedSlot == 4,
+                 "Paula waveform preview should expose loop metadata for the selected 8SVX sample");
+    ok &= expectNear(paulaLoopPreview.loopStart, 64.0f / 255.0f, 0.002f,
+                     "Paula waveform preview should normalize imported 8SVX loop start");
+    ok &= expectNear(paulaLoopPreview.loopEnd, 192.0f / 255.0f, 0.002f,
+                     "Paula waveform preview should normalize imported 8SVX loop end");
+    const auto paulaLoopDebug = processor.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(paulaLoopDebug, "externalSampleLoopMetadataSelected") == 1
+                     && jsonIntValue(paulaLoopDebug, "externalSampleLoopStartSelected") == 64
+                     && jsonIntValue(paulaLoopDebug, "externalSampleLoopEndSelected") == 192,
+                 "Paula core debug state should retain imported 8SVX loop metadata for the selected bank slot");
+    ok &= expect(jsonIntValue(paulaLoopDebug, "sampleLoopStart0") == 64
+                     && jsonIntValue(paulaLoopDebug, "sampleLoopEnd0") == 192,
+                 "Paula core debug state should apply imported 8SVX loop metadata to channel playback");
 
     ChipperAudioProcessor paulaMapAuditionProcessor;
     paulaMapAuditionProcessor.prepareToPlay(48000.0, 256);

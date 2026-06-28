@@ -144,7 +144,7 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
 ## Highest-Value Next Fixes
 
 1. Preset browser and preset sharing
-   - Issue: the top dropdown now groups the current chip's presets by category, includes a chip-local Init Patch, and can filter factory sounds by role or search text. The next browser pass should add engine/tag filters, favorites, and richer user-preset affordances. User presets should remain simple flat files that are easy to share.
+   - Issue: the top dropdown now groups the current chip's presets by category, includes a chip-local Init Patch, and can filter factory sounds by role or search text. The next browser pass should add a Furnace-inspired coverage matrix, engine/tag filters, favorites, and richer user-preset affordances. Furnace may guide quality targets and vocabulary, but factory presets must be original Chipper parameter snapshots with clean provenance. User presets should remain simple flat files that are easy to share.
    - User value: very high. Most musicians will browse for "arcade bass" or "Game Boy lead" before they know which chip engine they want.
    - Confidence: 7/10. Preset data already exists; browser UX and save/load polish are the main work. Confidence improves with a preset QA pass that checks audibility, loudness, visible-control recall, and clean provenance for every factory preset.
 
@@ -174,7 +174,7 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
    - Confidence: 7/10. Register readouts are now straightforward; the remaining work is a clearer cross-channel pairing visual without crowding the deck.
 
 7. Paula tracker import depth
-   - Issue: channel-local generated shapes, loaded sample-slot pins, matching renderer flags, a protected Sample Bank waveform, and non-overlapping macro/sample layout are in place. MOD sample extraction, imported loop metadata, 14-bit/channel-pair options, and clearer tracker-style retrigger workflows remain planned.
+   - Issue: channel-local generated shapes, loaded sample-slot pins, imported 8SVX loop metadata, waveform loop preview, matching renderer flags, a protected Sample Bank waveform, and non-overlapping macro/sample layout are in place. MOD sample extraction, WAV/AIFF/MOD loop metadata, 14-bit/channel-pair options, and clearer tracker-style retrigger workflows remain planned.
    - User value: medium-high. Makes Paula feel more like a four-channel tracker sampler for real module-style workflows.
    - Confidence: 6/10. The UI and runtime bank model are usable; the remaining work needs file-format parsing and stricter validation.
 

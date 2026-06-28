@@ -140,6 +140,9 @@ struct ExternalSampleData
 {
     std::vector<uint8_t> bytes;
     ExternalSampleEncoding encoding = ExternalSampleEncoding::rawBytes;
+    bool hasLoop = false;
+    size_t loopStart = 0;
+    size_t loopEnd = 0;
 };
 
 struct RenderStats

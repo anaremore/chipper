@@ -9791,17 +9791,42 @@ public:
 
     void setExternalSampleBank(std::vector<std::vector<uint8_t>> bank, int selectedSlot) override
     {
+        std::vector<ExternalSampleData> typedBank;
+        typedBank.reserve(bank.size());
+        for (auto& bytes : bank)
+            typedBank.push_back({ std::move(bytes), ExternalSampleEncoding::signedPcm8 });
+
+        setExternalSampleBank(std::move(typedBank), selectedSlot);
+    }
+
+    void setExternalSampleBank(std::vector<ExternalSampleData> bank, int selectedSlot) override
+    {
         externalSampleBank.clear();
         externalSampleBank.reserve(bank.size());
-        for (const auto& bytes : bank)
+        for (const auto& source : bank)
         {
-            std::vector<double> decoded;
-            decoded.reserve(bytes.size());
-            for (const auto byte : bytes)
-                decoded.push_back((static_cast<double>(byte) - 128.0) / 128.0);
+            ExternalPaulaSample sample;
+            sample.data.reserve(source.bytes.size());
+            for (const auto byte : source.bytes)
+                sample.data.push_back((static_cast<double>(byte) - 128.0) / 128.0);
 
-            if (! decoded.empty())
-                externalSampleBank.push_back(std::move(decoded));
+            if (sample.data.empty())
+                continue;
+
+            const auto sampleLength = sample.data.size();
+            if (source.hasLoop && source.loopStart + 1u < source.loopEnd && source.loopEnd <= sampleLength)
+            {
+                sample.hasLoop = true;
+                sample.loopStart = source.loopStart;
+                sample.loopEnd = source.loopEnd;
+            }
+            else
+            {
+                sample.loopStart = 0u;
+                sample.loopEnd = sampleLength;
+            }
+
+            externalSampleBank.push_back(std::move(sample));
         }
 
         setExternalSampleSlot(selectedSlot);
@@ -9953,11 +9978,16 @@ public:
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
-        return "Four Paula-inspired 8-bit sample channels, period, volume, enable/loop control, classic hard-panned channel layout, generated tracker sample templates, and plugin/renderer-loaded WAV/AIFF/uncompressed IFF-8SVX sample banks are modeled; DMA pointer timing, exact PAL/NTSC video timing, compressed 8SVX, MOD import, loop-point metadata, mod playback effects, CIA timing, analog output path, and hardware validation are not complete.";
+        return "Four Paula-inspired 8-bit sample channels, period, volume, enable/loop control, classic hard-panned channel layout, generated tracker sample templates, plugin/renderer-loaded WAV/AIFF/uncompressed IFF-8SVX sample banks, and imported 8SVX loop metadata are modeled; DMA pointer timing, exact PAL/NTSC video timing, compressed 8SVX, MOD import, WAV/AIFF/MOD loop-point metadata, mod playback effects, CIA timing, analog output path, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
     {
+        const auto hasSelectedExternalSample = externalSampleSlot >= 0
+            && externalSampleSlot < static_cast<int>(externalSampleBank.size());
+        const auto selectedExternalSampleIndex = hasSelectedExternalSample
+            ? static_cast<size_t>(externalSampleSlot)
+            : size_t { 0 };
         std::ostringstream json;
         json << "{"
              << "\"mode\":\"Amiga Paula\","
@@ -9989,9 +10019,14 @@ public:
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
              << "\"sourceEnabled3\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
              << "\"sampleLength0\":" << sampleRam[0].size() << ","
+             << "\"sampleLoopStart0\":" << sampleLoopStarts[0] << ","
+             << "\"sampleLoopEnd0\":" << sampleLoopEnds[0] << ","
              << "\"externalSampleLoaded\":" << (externalSampleBank.empty() ? 0 : 1) << ","
              << "\"externalSampleBankCount\":" << externalSampleBank.size() << ","
              << "\"externalSampleSlot\":" << externalSampleSlot << ","
+             << "\"externalSampleLoopStartSelected\":" << (hasSelectedExternalSample ? externalSampleBank[selectedExternalSampleIndex].loopStart : 0u) << ","
+             << "\"externalSampleLoopEndSelected\":" << (hasSelectedExternalSample ? externalSampleBank[selectedExternalSampleIndex].loopEnd : 0u) << ","
+             << "\"externalSampleLoopMetadataSelected\":" << (hasSelectedExternalSample && externalSampleBank[selectedExternalSampleIndex].hasLoop ? 1 : 0) << ","
              << "\"voiceSampleSlot0\":" << patch.spc700VoiceSampleSlots[0] << ","
              << "\"voiceSampleSlot1\":" << patch.spc700VoiceSampleSlots[1] << ","
              << "\"voiceSampleSlot2\":" << patch.spc700VoiceSampleSlots[2] << ","
@@ -10053,12 +10088,21 @@ private:
 
             if (selectedSlot >= 0 && selectedSlot < static_cast<int>(externalSampleBank.size()))
             {
-                sampleRam[channel] = externalSampleBank[static_cast<size_t>(selectedSlot)];
+                const auto& sample = externalSampleBank[static_cast<size_t>(selectedSlot)];
+                sampleRam[channel] = sample.data;
+                sampleLoopStarts[channel] = sample.hasLoop ? sample.loopStart : 0u;
+                sampleLoopEnds[channel] = sample.loopEnd > sampleLoopStarts[channel]
+                    ? sample.loopEnd
+                    : sampleRam[channel].size();
                 if (channel < resolvedExternalSampleSlot.size())
                     resolvedExternalSampleSlot[channel] = selectedSlot;
             }
             else
+            {
                 sampleRam[channel].clear();
+                sampleLoopStarts[channel] = 0u;
+                sampleLoopEnds[channel] = 0u;
+            }
             return;
         }
 
@@ -10085,6 +10129,8 @@ private:
             data[i] = std::clamp(std::round(sample * 127.0) / 127.0, -1.0, 1.0);
         }
         sampleRam[channel] = std::move(data);
+        sampleLoopStarts[channel] = 0u;
+        sampleLoopEnds[channel] = sampleRam[channel].size();
     }
 
     void triggerChannel(size_t channel, int midiNote, float velocity, bool shouldEnable)
@@ -10101,18 +10147,37 @@ private:
         if ((control[channel] & 0x01u) == 0 || sampleRam[channel].empty() || volume[channel] == 0)
             return 0.0;
 
-        const auto index = static_cast<size_t>(position[channel]) % sampleRam[channel].size();
+        const auto loopEnabled = (control[channel] & 0x02u) != 0;
+        const auto sampleLength = sampleRam[channel].size();
+        const auto loopStart = std::min(sampleLoopStarts[channel], sampleLength - 1u);
+        const auto loopEnd = std::clamp(sampleLoopEnds[channel], loopStart + 1u, sampleLength);
+        auto wrapPositionIfNeeded = [&]()
+        {
+            const auto end = static_cast<double>(loopEnabled ? loopEnd : sampleLength);
+            if (position[channel] < end)
+                return true;
+
+            if (loopEnabled)
+            {
+                const auto start = static_cast<double>(loopStart);
+                const auto length = std::max(1.0, static_cast<double>(loopEnd - loopStart));
+                position[channel] = start + std::fmod(std::max(0.0, position[channel] - start), length);
+                return true;
+            }
+
+            control[channel] &= static_cast<uint8_t>(~0x01u);
+            return false;
+        };
+
+        if (! wrapPositionIfNeeded())
+            return 0.0;
+
+        const auto index = std::min(static_cast<size_t>(position[channel]), sampleLength - 1u);
         const auto sample = sampleRam[channel][index] * (static_cast<double>(volume[channel]) / 64.0);
         const auto playbackHz = clock / (2.0 * static_cast<double>(std::max<uint16_t>(113, period[channel])));
-        position[channel] += (playbackHz * static_cast<double>(sampleRam[channel].size())) / sampleRate;
+        position[channel] += (playbackHz * static_cast<double>(sampleLength)) / sampleRate;
 
-        if (position[channel] >= static_cast<double>(sampleRam[channel].size()))
-        {
-            if ((control[channel] & 0x02u) != 0)
-                position[channel] = std::fmod(position[channel], static_cast<double>(sampleRam[channel].size()));
-            else
-                control[channel] &= static_cast<uint8_t>(~0x01u);
-        }
+        (void) wrapPositionIfNeeded();
 
         return sample;
     }
@@ -10228,8 +10293,18 @@ private:
     std::array<uint8_t, 4> volume {};
     std::array<uint8_t, 4> control {};
     std::array<uint8_t, 4> sampleTemplate {};
+    struct ExternalPaulaSample
+    {
+        std::vector<double> data;
+        bool hasLoop = false;
+        size_t loopStart = 0;
+        size_t loopEnd = 0;
+    };
+
     std::array<std::vector<double>, 4> sampleRam {};
-    std::vector<std::vector<double>> externalSampleBank;
+    std::array<size_t, 4> sampleLoopStarts {};
+    std::array<size_t, 4> sampleLoopEnds {};
+    std::vector<ExternalPaulaSample> externalSampleBank;
     int externalSampleSlot = -1;
     std::array<int, 4> resolvedExternalSampleSlot { -1, -1, -1, -1 };
     std::array<double, 4> position {};
