@@ -84,6 +84,7 @@ def main() -> int:
     parser.add_argument("--min-presets", type=int, default=180)
     parser.add_argument("--min-per-chip", type=int, default=12)
     parser.add_argument("--min-core-roles-per-chip", type=int, default=len(CORE_ROLE_COVERAGE))
+    parser.add_argument("--min-role-density-per-chip", type=int, default=2)
     parser.add_argument("--only-chip", help="Assert that every preset belongs to this chip key.")
     args = parser.parse_args()
 
@@ -194,6 +195,18 @@ def main() -> int:
                 f"{chip}: expected at least {args.min_core_roles_per_chip} core preset roles, "
                 f"got {len(chip_core_roles)}; missing {', '.join(missing_roles)}"
             )
+        if args.min_role_density_per_chip > 0:
+            role_counts_for_chip = Counter(str(preset.get("role", "")) for preset in chip_presets)
+            underfilled_roles = [
+                f"{role}={role_counts_for_chip.get(role, 0)}"
+                for role in sorted(CORE_ROLE_COVERAGE)
+                if role_counts_for_chip.get(role, 0) < args.min_role_density_per_chip
+            ]
+            if underfilled_roles:
+                failures.append(
+                    f"{chip}: expected at least {args.min_role_density_per_chip} presets for each core role; "
+                    f"underfilled {', '.join(underfilled_roles)}"
+                )
 
     summary_chip_counts = summary.get("chipCounts", [])
     if not isinstance(summary_chip_counts, list):
