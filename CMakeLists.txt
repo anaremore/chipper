@@ -789,6 +789,15 @@ add_test(NAME chipper_render_ym2612_dac_smoke
 add_test(NAME chipper_render_preset_opn2_dac_kick_smoke
     COMMAND chipper_render --preset opn2-dac-kick --rate 48000 --seconds 0.03 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2612-dac-events.txt --out preset-opn2-dac-kick.wav --debug preset-opn2-dac-kick.json
 )
+add_test(NAME chipper_render_preset_opn2_dac_snare_smoke
+    COMMAND chipper_render --preset opn2-dac-snare --rate 48000 --seconds 0.03 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2612-dac-events.txt --out preset-opn2-dac-snare.wav --debug preset-opn2-dac-snare.json
+)
+add_test(NAME chipper_render_preset_opn2_envelope_bell_smoke
+    COMMAND chipper_render --preset opn2-envelope-bell --rate 48000 --seconds 0.08 --note 76 --out preset-opn2-envelope-bell.wav --debug preset-opn2-envelope-bell.json
+)
+add_test(NAME chipper_render_preset_opn2_chord_pad_smoke
+    COMMAND chipper_render --preset opn2-chord-pad --rate 48000 --seconds 0.12 --note 60 --out preset-opn2-chord-pad.wav --debug preset-opn2-chord-pad.json
+)
 add_test(NAME chipper_render_preset_opn2_feedback_bass_held_smoke
     COMMAND chipper_render --preset opn2-feedback-bass --rate 48000 --seconds 0.50 --note 48 --out preset-opn2-feedback-bass-held.wav --debug preset-opn2-feedback-bass-held.json
 )
@@ -944,7 +953,7 @@ if (Python3_Interpreter_FOUND)
     )
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=15 --preset-count dmg=13 --preset-count sid=19 --preset-count ym2149=15 --preset-count sn76489=15 --preset-count ym2612=15 --preset-count opl3=15 --preset-count spc700=14 --preset-count pokey=13 --preset-count paula=13 --preset-count huc6280=13 --preset-count namcoWsg=14 --preset-count ym2151=15 --preset-count ym2413=15 --preset-count scc=15
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=15 --preset-count dmg=13 --preset-count sid=19 --preset-count ym2149=15 --preset-count sn76489=15 --preset-count ym2612=18 --preset-count opl3=15 --preset-count spc700=14 --preset-count pokey=13 --preset-count paula=13 --preset-count huc6280=13 --preset-count namcoWsg=14 --preset-count ym2151=15 --preset-count ym2413=15 --preset-count scc=15
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -994,7 +1003,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_spc700_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_ym2612_descriptor_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip ym2612 --implemented ym2612=1 --verification-badge "ym2612=Verified partial" --verification-cycle ym2612=0 --verification-hardware ym2612=0 --param-kind ym2612:waveShape=chipRegister --param-surface ym2612:waveShape=menu --param-choices ym2612:waveShape=9 --param-midi-cc ym2612:waveShape=89 --param-kind ym2612:dmgStereoRoute=chipRegister --param-surface ym2612:dmgStereoRoute=segmentedChoice --param-choices ym2612:dmgStereoRoute=5 --param-midi-cc ym2612:dmgStereoRoute=94 --param-kind ym2612:ymEnvelopeShape=chipRegister --param-surface ym2612:ymEnvelopeShape=segmentedChoice --param-choices ym2612:ymEnvelopeShape=5 --param-midi-cc ym2612:ymEnvelopeShape=90 --param-kind ym2612:macroControl2=chipRegister --param-surface ym2612:macroControl2=slider --param-midi-cc ym2612:macroControl2=77 --macro-label "ym2612:Bass=OPN2 Feedback Bass" --preset opn2-feedback-bass --preset opn2-dac-kick
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip ym2612 --implemented ym2612=1 --verification-badge "ym2612=Verified partial" --verification-cycle ym2612=0 --verification-hardware ym2612=0 --param-kind ym2612:waveShape=chipRegister --param-surface ym2612:waveShape=menu --param-choices ym2612:waveShape=9 --param-midi-cc ym2612:waveShape=89 --param-kind ym2612:dmgStereoRoute=chipRegister --param-surface ym2612:dmgStereoRoute=segmentedChoice --param-choices ym2612:dmgStereoRoute=5 --param-midi-cc ym2612:dmgStereoRoute=94 --param-kind ym2612:ymEnvelopeShape=chipRegister --param-surface ym2612:ymEnvelopeShape=segmentedChoice --param-choices ym2612:ymEnvelopeShape=5 --param-midi-cc ym2612:ymEnvelopeShape=90 --param-kind ym2612:macroControl2=chipRegister --param-surface ym2612:macroControl2=slider --param-midi-cc ym2612:macroControl2=77 --macro-label "ym2612:Bass=OPN2 Feedback Bass" --preset opn2-feedback-bass --preset opn2-dac-kick --preset opn2-dac-snare --preset opn2-envelope-bell --preset opn2-chord-pad
     )
     set_tests_properties(chipper_render_list_ym2612_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1691,6 +1700,18 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-dac-kick.json --implemented-contains ymfm --preset opn2-dac-kick --macro Drum --play-mode "Big Mono" --output-db -10.5 --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=512 --core-max dacSampleBytes=512 --core-min keyOnMask=32 --core-max keyOnMask=32 --core-min sourceEnabled5=1 --core-max sourceEnabled5=1
     )
     set_tests_properties(chipper_render_preset_opn2_dac_kick_assert PROPERTIES DEPENDS chipper_render_preset_opn2_dac_kick_smoke)
+    add_test(NAME chipper_render_preset_opn2_dac_snare_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-dac-snare.json --implemented-contains ymfm --preset opn2-dac-snare --macro Drum --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=512 --core-max dacSampleBytes=512 --core-min keyOnMask=32 --core-max keyOnMask=32 --core-min envelopeShape=4 --core-max envelopeShape=4 --core-min fmOperatorLevel0=0.62 --core-max fmOperatorLevel0=0.62 --core-min fmOperatorLevel1=0.44 --core-max fmOperatorLevel1=0.44 --core-min fmOperatorLevel2=0.56 --core-max fmOperatorLevel2=0.56 --core-min fmOperatorLevel3=0.92 --core-max fmOperatorLevel3=0.92
+    )
+    set_tests_properties(chipper_render_preset_opn2_dac_snare_assert PROPERTIES DEPENDS chipper_render_preset_opn2_dac_snare_smoke)
+    add_test(NAME chipper_render_preset_opn2_envelope_bell_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-envelope-bell.json --implemented-contains ymfm --preset opn2-envelope-bell --macro Lead --play-mode "Big Mono" --output-db -9.5 --register-writes 0 --note-events 0 --min-peak 0.05 --core-min envelopeShape=1 --core-max envelopeShape=1 --core-min fmOperatorLevel0=0.38 --core-max fmOperatorLevel0=0.38 --core-min fmOperatorLevel1=0.84 --core-max fmOperatorLevel1=0.84 --core-min fmOperatorLevel2=0.46 --core-max fmOperatorLevel2=0.46 --core-min fmOperatorLevel3=0.78 --core-max fmOperatorLevel3=0.78 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535
+    )
+    set_tests_properties(chipper_render_preset_opn2_envelope_bell_assert PROPERTIES DEPENDS chipper_render_preset_opn2_envelope_bell_smoke)
+    add_test(NAME chipper_render_preset_opn2_chord_pad_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-chord-pad.json --implemented-contains ymfm --preset opn2-chord-pad --macro Lead --play-mode "Chip Poly" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.01 --core-min envelopeShape=3 --core-max envelopeShape=3 --core-min fmOperatorLevel0=0.34 --core-max fmOperatorLevel0=0.34 --core-min fmOperatorLevel1=0.66 --core-max fmOperatorLevel1=0.66 --core-min fmOperatorLevel2=0.38 --core-max fmOperatorLevel2=0.38 --core-min fmOperatorLevel3=0.64 --core-max fmOperatorLevel3=0.64 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535
+    )
+    set_tests_properties(chipper_render_preset_opn2_chord_pad_assert PROPERTIES DEPENDS chipper_render_preset_opn2_chord_pad_smoke)
 
     add_test(NAME chipper_render_preset_opn2_feedback_bass_held_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-feedback-bass-held.json --implemented-contains ymfm --preset opn2-feedback-bass --macro Bass --min-peak 0.01 --min-tail-rms 0.03 --core-min fmOperatorLevel0=0.58 --core-max fmOperatorLevel0=0.58 --core-min fmOperatorLevel1=0.66 --core-max fmOperatorLevel1=0.66 --core-min fmOperatorLevel2=0.46 --core-max fmOperatorLevel2=0.46 --core-min fmOperatorLevel3=0.62 --core-max fmOperatorLevel3=0.62 --core-min operatorTotalLevel0=43 --core-max operatorTotalLevel0=43 --core-min operatorTotalLevel3=0 --core-max operatorTotalLevel3=0 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535

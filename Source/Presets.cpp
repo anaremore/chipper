@@ -4531,6 +4531,60 @@ const std::vector<PresetInfo>& presetCatalog()
             7670454.0
         },
         {
+            "opn2-envelope-bell",
+            "YM2612 / OPN2",
+            "OPN2 Envelope Bell",
+            "Four-operator Genesis FM bell with a crisp operator-envelope decay and soft feedback tail.",
+            ChipMode::ym2612,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.40f, 0.54f, 0.32f, 0.64f },
+            { true, true, true, false },
+            0.42f,
+            8,
+            1,
+            0,
+            -9.5f,
+            7670454.0
+        },
+        {
+            "opn2-chord-pad",
+            "YM2612 / OPN2",
+            "OPN2 Chord Pad",
+            "Soft Genesis FM chord pad using parallel carriers, gentle feedback, and a slower operator envelope.",
+            ChipMode::ym2612,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::chipPoly,
+            { 0.72f, 0.24f, 0.18f, 0.58f },
+            { true, true, true, true },
+            0.34f,
+            8,
+            3,
+            0,
+            -10.0f,
+            7670454.0
+        },
+        {
+            "opn2-dac-snare",
+            "YM2612 / OPN2",
+            "OPN2 DAC Snare",
+            "Short YM2612 DAC snare hit with a bright FM click layered around the channel-6 DAC path.",
+            ChipMode::ym2612,
+            AccuracyMode::hybrid,
+            MacroKind::drum,
+            PlayMode::stack,
+            { 0.22f, 0.64f, 0.66f, 0.90f },
+            { true, false, false, true },
+            0.34f,
+            2,
+            4,
+            2,
+            -11.0f,
+            7670454.0
+        },
+        {
             "opn2-neutral-patch",
             "YM2612 / OPN2",
             "OPN2 Neutral Patch",
@@ -4850,6 +4904,12 @@ std::array<float, 4> fmOperatorLevelsForPreset(const PresetInfo& preset)
             return { 0.68f, 0.46f, 0.74f, 0.86f };
         if (preset.id == "opn2-pluck-arp")
             return { 0.48f, 0.68f, 0.44f, 0.78f };
+        if (preset.id == "opn2-envelope-bell")
+            return { 0.38f, 0.84f, 0.46f, 0.78f };
+        if (preset.id == "opn2-chord-pad")
+            return { 0.34f, 0.66f, 0.38f, 0.64f };
+        if (preset.id == "opn2-dac-snare")
+            return { 0.62f, 0.44f, 0.56f, 0.92f };
     }
     else if (preset.chip == ChipMode::ym2151)
     {
