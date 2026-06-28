@@ -1082,6 +1082,35 @@ juce::String byteHex(uint8_t value)
     return juce::String::toHexString(static_cast<int>(value)).paddedLeft('0', 2).toUpperCase();
 }
 
+bool isFourOperatorFmMode(chipper::ChipMode mode)
+{
+    return mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151;
+}
+
+uint8_t fourOperatorAlgorithmForPatch(chipper::ChipMode mode, const chipper::PatchConfig& patch)
+{
+    return mode == chipper::ChipMode::ym2151 ? chipper::ym2151AlgorithmForPatch(patch)
+                                             : chipper::ym2612AlgorithmForPatch(patch);
+}
+
+bool fmOperatorIsCarrierForPatch(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t op)
+{
+    return isFourOperatorFmMode(mode) && chipper::fmOperatorIsCarrierForAlgorithm(fourOperatorAlgorithmForPatch(mode, patch), op);
+}
+
+juce::String fmOperatorRoleShortLabel(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t op)
+{
+    return fmOperatorIsCarrierForPatch(mode, patch, op) ? "C" : "M";
+}
+
+juce::String fmOperatorRoleDescription(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t op)
+{
+    const auto algorithm = static_cast<int>(fourOperatorAlgorithmForPatch(mode, patch));
+    return fmOperatorIsCarrierForPatch(mode, patch, op)
+        ? juce::String("Carrier in algorithm ") + juce::String(algorithm) + ": reaches the output bus."
+        : juce::String("Modulator in algorithm ") + juce::String(algorithm) + ": shapes another operator.";
+}
+
 const char* sidWaveNameForControlBits(uint8_t bits)
 {
     switch (bits)
@@ -4417,9 +4446,9 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (usesFmEnvelopeShapePanel)
     {
-        auto shapeArea = envelopeDecayPanel.removeFromTop(std::min(46, envelopeDecayPanel.getHeight()));
+        auto shapeArea = envelopeDecayPanel.removeFromTop(std::min(41, envelopeDecayPanel.getHeight()));
         placeYmEnvelopeShapeSegment(shapeArea);
-        envelopeDecayPanel.removeFromTop(std::min(6, envelopeDecayPanel.getHeight()));
+        envelopeDecayPanel.removeFromTop(std::min(3, envelopeDecayPanel.getHeight()));
         placeFmOperatorRegisterSurface(displayedMode, envelopeDecayPanel);
         ymEnvelopePreview.setBounds({});
     }
@@ -5280,10 +5309,12 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
 void ChipperAudioProcessorEditor::placeFmOperatorRegisterSurface(chipper::ChipMode mode, juce::Rectangle<int> bounds)
 {
     const auto rowCount = mode == chipper::ChipMode::opl3 ? 3u : fmOperatorReadoutRows;
-    const auto rowGap = 4;
+    const auto compactRows = rowCount >= fmOperatorReadoutRows && bounds.getHeight() < 64;
+    const auto rowGap = compactRows ? 2 : 4;
+    const auto minRowHeight = compactRows ? 12 : 13;
     const auto availableRows = static_cast<int>(rowCount);
     const auto rowHeight = availableRows > 0
-        ? std::clamp((bounds.getHeight() - (rowGap * (availableRows - 1))) / availableRows, 13, 20)
+        ? std::clamp((bounds.getHeight() - (rowGap * (availableRows - 1))) / availableRows, minRowHeight, 20)
         : 0;
 
     for (size_t i = 0; i < fmOperatorNameLabels.size(); ++i)
@@ -5296,7 +5327,7 @@ void ChipperAudioProcessorEditor::placeFmOperatorRegisterSurface(chipper::ChipMo
         }
 
         auto row = bounds.removeFromTop(std::min(rowHeight, bounds.getHeight()));
-        const auto nameWidth = mode == chipper::ChipMode::opl3 ? 42 : 36;
+        const auto nameWidth = isFourOperatorFmMode(mode) ? 46 : 42;
         fmOperatorNameLabels[i].setBounds(row.removeFromLeft(std::min(nameWidth, row.getWidth())));
         row.removeFromLeft(std::min(6, row.getWidth()));
         fmOperatorValueLabels[i].setBounds(row.reduced(3, 0));
@@ -10151,10 +10182,17 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
         if (! visible)
             continue;
 
-        fmOperatorNameLabels[i].setText(mode == chipper::ChipMode::opl3 ? oplNames[i] : fmNames[i], juce::dontSendNotification);
-        fmOperatorValueLabels[i].setText(fmOperatorRegisterReadout(mode, patch, i), juce::dontSendNotification);
+        const auto readout = fmOperatorRegisterReadout(mode, patch, i);
+        const auto nameText = mode == chipper::ChipMode::opl3
+            ? juce::String(oplNames[i])
+            : juce::String(fmNames[i]) + " " + fmOperatorRoleShortLabel(mode, patch, i);
+        fmOperatorNameLabels[i].setText(nameText, juce::dontSendNotification);
+        fmOperatorValueLabels[i].setText(readout, juce::dontSendNotification);
 
-        const auto tooltip = fmOperatorRegisterTooltip(mode, i) + "\n" + fmOperatorRegisterReadout(mode, patch, i);
+        auto tooltip = fmOperatorRegisterTooltip(mode, i);
+        if (isFourOperatorFmMode(mode))
+            tooltip += "\n" + fmOperatorRoleDescription(mode, patch, i);
+        tooltip += "\n" + readout;
         fmOperatorNameLabels[i].setTooltip(tooltip);
         fmOperatorValueLabels[i].setTooltip(tooltip);
     }

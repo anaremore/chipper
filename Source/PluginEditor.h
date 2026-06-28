@@ -198,6 +198,22 @@ public:
         return ! ymEnvelopeShapeSegmentBounds.isEmpty() ? ymEnvelopeShapeSegmentBounds : sidFilterModeBox.getBounds();
     }
     juce::Rectangle<int> getYmEnvelopePreviewBoundsForLayoutTest() const { return ymEnvelopePreview.getBounds(); }
+    juce::Rectangle<int> getFmOperatorNameBoundsForLayoutTest(size_t index) const
+    {
+        return index < fmOperatorNameLabels.size() ? fmOperatorNameLabels[index].getBounds() : juce::Rectangle<int> {};
+    }
+    juce::Rectangle<int> getFmOperatorValueBoundsForLayoutTest(size_t index) const
+    {
+        return index < fmOperatorValueLabels.size() ? fmOperatorValueLabels[index].getBounds() : juce::Rectangle<int> {};
+    }
+    juce::String getFmOperatorNameTextForLayoutTest(size_t index) const
+    {
+        return index < fmOperatorNameLabels.size() ? fmOperatorNameLabels[index].getText() : juce::String {};
+    }
+    juce::String getFmOperatorValueTextForLayoutTest(size_t index) const
+    {
+        return index < fmOperatorValueLabels.size() ? fmOperatorValueLabels[index].getText() : juce::String {};
+    }
     juce::Rectangle<int> getModuleBoundsForLayoutTest(size_t module) const
     {
         return module < moduleBounds.size() ? moduleBounds[module] : juce::Rectangle<int> {};

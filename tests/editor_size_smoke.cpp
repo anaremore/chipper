@@ -528,6 +528,110 @@ bool checkYm2612DacModeLayout()
 
     return ok;
 }
+
+bool checkYm2612OperatorSurfaceLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::ym2612);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: YM2612 chip mode choice unavailable\n";
+        return false;
+    }
+
+    ChipperAudioProcessor processor;
+    auto ok = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+    ok &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 5);
+
+    ChipperAudioProcessorEditor editor(processor);
+    editor.setSize(1240, expectedHeightForChipMode(chipChoice));
+    editor.runEditorUpdateForLayoutTest();
+
+    const auto envelopeModuleBounds = editor.getModuleBoundsForLayoutTest(3);
+    if (envelopeModuleBounds.isEmpty())
+    {
+        std::cerr << "editor_size_smoke: YM2612 operator surface module is missing\n";
+        return false;
+    }
+
+    auto carrierCount = 0;
+    auto modulatorCount = 0;
+    auto lastBottom = envelopeModuleBounds.getY();
+
+    for (size_t op = 0; op < 4; ++op)
+    {
+        const auto nameBounds = editor.getFmOperatorNameBoundsForLayoutTest(op);
+        const auto valueBounds = editor.getFmOperatorValueBoundsForLayoutTest(op);
+        const auto nameText = editor.getFmOperatorNameTextForLayoutTest(op);
+        const auto valueText = editor.getFmOperatorValueTextForLayoutTest(op);
+
+        if (nameBounds.isEmpty() || valueBounds.isEmpty())
+        {
+            std::cerr << "editor_size_smoke: YM2612 operator row " << op
+                      << " is missing from the FM readout surface\n";
+            ok = false;
+            continue;
+        }
+
+        if (! envelopeModuleBounds.expanded(2).contains(nameBounds)
+            || ! envelopeModuleBounds.expanded(2).contains(valueBounds))
+        {
+            std::cerr << "editor_size_smoke: YM2612 operator row " << op
+                      << " escaped the envelope/FM module: module " << envelopeModuleBounds.toString()
+                      << " name " << nameBounds.toString()
+                      << " value " << valueBounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (nameBounds.getWidth() < 40 || nameBounds.getHeight() < 12
+            || valueBounds.getWidth() < 140 || valueBounds.getHeight() < 12)
+        {
+            std::cerr << "editor_size_smoke: YM2612 operator row " << op
+                      << " is below readable size: name " << nameBounds.toString()
+                      << " value " << valueBounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (nameBounds.getY() < lastBottom - 1 || valueBounds.getY() < lastBottom - 1)
+        {
+            std::cerr << "editor_size_smoke: YM2612 operator row " << op
+                      << " overlaps the previous operator row\n";
+            ok = false;
+        }
+        lastBottom = std::max(nameBounds.getBottom(), valueBounds.getBottom());
+
+        const auto expectedPrefix = juce::String("OP") + juce::String(static_cast<int>(op + 1u));
+        if (! nameText.startsWith(expectedPrefix) || (! nameText.endsWith(" C") && ! nameText.endsWith(" M")))
+        {
+            std::cerr << "editor_size_smoke: YM2612 operator row " << op
+                      << " should expose OP number and carrier/modulator role, got "
+                      << nameText.toStdString() << '\n';
+            ok = false;
+        }
+
+        if (nameText.endsWith(" C"))
+            ++carrierCount;
+        if (nameText.endsWith(" M"))
+            ++modulatorCount;
+
+        if (! valueText.contains("MULT") || ! valueText.contains("TL") || ! valueText.contains("AR"))
+        {
+            std::cerr << "editor_size_smoke: YM2612 operator row " << op
+                      << " should expose resolved register fields, got "
+                      << valueText.toStdString() << '\n';
+            ok = false;
+        }
+    }
+
+    if (carrierCount == 0 || modulatorCount == 0)
+    {
+        std::cerr << "editor_size_smoke: YM2612 mixed algorithm should show both carriers and modulators, got C="
+                  << carrierCount << " M=" << modulatorCount << '\n';
+        ok = false;
+    }
+
+    return ok;
+}
+
 bool checkWavetableSourceDeck(chipper::ChipMode mode)
 {
     const auto chipChoice = chipModeChoiceFor(mode);
@@ -1506,6 +1610,7 @@ int main()
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::sn76489);
     ok &= checkYm2149ToneNoiseMixLayout();
     ok &= checkYm2612DacModeLayout();
+    ok &= checkYm2612OperatorSurfaceLayout();
     ok &= checkWavetableSourceDeck(chipper::ChipMode::huc6280);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::namcoWsg);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::scc);
