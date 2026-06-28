@@ -878,21 +878,21 @@ add_test(NAME chipper_render_list_presets_smoke
     COMMAND chipper_render --list-presets --debug chipper-presets.json
 )
 set(CHIPPER_PRESET_CHIP_MINIMUMS
-    nes:12
-    dmg:11
-    sid:18
-    ym2149:12
-    sn76489:12
-    ym2612:11
-    opl3:11
-    ym2151:12
-    spc700:11
-    pokey:11
-    paula:11
-    huc6280:11
-    namcoWsg:11
-    ym2413:11
-    scc:12
+    nes:13
+    dmg:12
+    sid:19
+    ym2149:13
+    sn76489:13
+    ym2612:12
+    opl3:12
+    ym2151:13
+    spc700:12
+    pokey:12
+    paula:12
+    huc6280:12
+    namcoWsg:12
+    ym2413:12
+    scc:13
 )
 foreach(chipper_preset_chip_minimum IN LISTS CHIPPER_PRESET_CHIP_MINIMUMS)
     string(REPLACE ":" ";" chipper_preset_chip_parts "${chipper_preset_chip_minimum}")
@@ -922,7 +922,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_preset_catalog_metadata_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=12 --preset-count dmg=11 --preset-count sid=18 --preset-count ym2149=12 --preset-count sn76489=12 --preset-count ym2612=11 --preset-count opl3=11 --preset-count spc700=11 --preset-count pokey=11 --preset-count paula=11 --preset-count huc6280=11 --preset-count namcoWsg=11 --preset-count ym2151=12 --preset-count ym2413=11 --preset-count scc=12
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=13 --preset-count dmg=12 --preset-count sid=19 --preset-count ym2149=13 --preset-count sn76489=13 --preset-count ym2612=12 --preset-count opl3=12 --preset-count spc700=12 --preset-count pokey=12 --preset-count paula=12 --preset-count huc6280=12 --preset-count namcoWsg=12 --preset-count ym2151=13 --preset-count ym2413=12 --preset-count scc=13
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
