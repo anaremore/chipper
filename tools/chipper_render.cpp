@@ -3207,35 +3207,46 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
         if (wroteTarget)
             out << ",\n";
 
-        const auto presetCount = static_cast<int>(std::count_if(presets.begin(), presets.end(), [&target](const auto& preset)
+        std::vector<const chipper::PresetInfo*> targetPresets;
+        for (const auto& preset : presets)
         {
-            return preset.chip == target.chip;
-        }));
+            if (preset.chip == target.chip)
+                targetPresets.push_back(&preset);
+        }
+
+        const auto presetCount = static_cast<int>(targetPresets.size());
         const auto missingPresetCount = std::max(0, target.minimumPresetCount - presetCount);
 
+        std::vector<NamedPresetCount> targetRoleCounts;
         std::vector<std::string> missingRoles;
         for (const auto& role : target.requiredRoles)
         {
-            const auto hasRole = std::any_of(presets.begin(), presets.end(), [&target, &role](const auto& preset)
+            const auto roleCount = static_cast<size_t>(std::count_if(targetPresets.begin(), targetPresets.end(), [&role](const auto* preset)
             {
-                return preset.chip == target.chip && chipper::presetRoleFor(preset) == role;
-            });
-            if (! hasRole)
+                return preset != nullptr && chipper::presetRoleFor(*preset) == role;
+            }));
+            targetRoleCounts.push_back({ role, roleCount });
+            if (roleCount == 0u)
                 missingRoles.push_back(role);
         }
 
+        std::vector<NamedPresetCount> targetReferenceTagCounts;
         std::vector<std::string> missingReferenceTags;
         for (const auto& tag : target.referenceTags)
         {
-            const auto hasTag = std::any_of(presets.begin(), presets.end(), [&target, &tag](const auto& preset)
+            size_t tagCount = 0u;
+            for (const auto* preset : targetPresets)
             {
-                if (preset.chip != target.chip)
-                    return false;
+                if (preset == nullptr)
+                    continue;
 
-                const auto tags = chipper::presetTagsFor(preset);
-                return std::find(tags.begin(), tags.end(), tag) != tags.end();
-            });
-            if (! hasTag)
+                const auto tags = chipper::presetTagsFor(*preset);
+                if (std::find(tags.begin(), tags.end(), tag) != tags.end())
+                    ++tagCount;
+            }
+
+            targetReferenceTagCounts.push_back({ tag, tagCount });
+            if (tagCount == 0u)
                 missingReferenceTags.push_back(tag);
         }
 
@@ -3263,11 +3274,31 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
         out << ",\n"
             << "        \"targetRoleCount\": " << target.requiredRoles.size() << ",\n"
             << "        \"coveredRoleCount\": " << (target.requiredRoles.size() - missingRoles.size()) << ",\n"
+            << "        \"roleCounts\": [\n";
+        for (size_t i = 0; i < targetRoleCounts.size(); ++i)
+        {
+            const auto& entry = targetRoleCounts[i];
+            out << "          { \"role\": ";
+            writeJsonString(out, entry.name);
+            out << ", \"presetCount\": " << entry.count << " }"
+                << (i + 1u == targetRoleCounts.size() ? "\n" : ",\n");
+        }
+        out << "        ],\n"
             << "        \"missingRoles\": ";
         writeJsonStringArray(out, missingRoles, "          ");
         out << ",\n"
             << "        \"targetReferenceTagCount\": " << target.referenceTags.size() << ",\n"
             << "        \"coveredReferenceTagCount\": " << (target.referenceTags.size() - missingReferenceTags.size()) << ",\n"
+            << "        \"referenceTagCounts\": [\n";
+        for (size_t i = 0; i < targetReferenceTagCounts.size(); ++i)
+        {
+            const auto& entry = targetReferenceTagCounts[i];
+            out << "          { \"tag\": ";
+            writeJsonString(out, entry.name);
+            out << ", \"presetCount\": " << entry.count << " }"
+                << (i + 1u == targetReferenceTagCounts.size() ? "\n" : ",\n");
+        }
+        out << "        ],\n"
             << "        \"missingReferenceTags\": ";
         writeJsonStringArray(out, missingReferenceTags, "          ");
         out << "\n"

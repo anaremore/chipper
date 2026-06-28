@@ -298,7 +298,39 @@ def main() -> int:
             if not tag or tag != tag_token(tag):
                 failures.append(f"{chip}: quality target reference tag {tag!r} is not normalized")
 
+        def read_target_counts(field: str, name_key: str) -> dict[str, int]:
+            items = target.get(field, [])
+            if not isinstance(items, list):
+                failures.append(f"{chip}: quality target {field} must be a list")
+                return {}
+
+            declared: dict[str, int] = {}
+            for item in items:
+                if not isinstance(item, dict):
+                    failures.append(f"{chip}: quality target {field} entry must be an object: {item!r}")
+                    continue
+                name = str(item.get(name_key, ""))
+                count = item.get("presetCount")
+                if not name:
+                    failures.append(f"{chip}: quality target {field} entry missing {name_key}: {item!r}")
+                    continue
+                if not isinstance(count, int):
+                    failures.append(f"{chip}: quality target {field} {name}: presetCount must be an integer, got {count!r}")
+                    continue
+                if name in declared:
+                    failures.append(f"{chip}: quality target {field} duplicates {name_key} {name}")
+                declared[name] = count
+            return declared
+
         chip_roles = {str(preset.get("role", "")) for preset in chip_presets}
+        expected_role_counts = {
+            role: sum(1 for preset in chip_presets if str(preset.get("role", "")) == role)
+            for role in required_roles
+        }
+        declared_role_counts = read_target_counts("roleCounts", "role")
+        if declared_role_counts != expected_role_counts:
+            failures.append(f"{chip}: quality target roleCounts expected {expected_role_counts!r}, got {declared_role_counts!r}")
+
         expected_missing_roles = sorted(role for role in required_roles if role not in chip_roles)
         declared_missing_roles = sorted(str(role) for role in target.get("missingRoles", []))
         if declared_missing_roles != expected_missing_roles:
@@ -317,6 +349,17 @@ def main() -> int:
             )
 
         chip_tags = {str(tag) for preset in chip_presets for tag in preset.get("tags", [])}
+        expected_reference_tag_counts = {
+            tag: sum(1 for preset in chip_presets if tag in [str(item) for item in preset.get("tags", [])])
+            for tag in reference_tags
+        }
+        declared_reference_tag_counts = read_target_counts("referenceTagCounts", "tag")
+        if declared_reference_tag_counts != expected_reference_tag_counts:
+            failures.append(
+                f"{chip}: quality target referenceTagCounts expected {expected_reference_tag_counts!r}, "
+                f"got {declared_reference_tag_counts!r}"
+            )
+
         expected_missing_reference_tags = sorted(tag for tag in reference_tags if tag not in chip_tags)
         declared_missing_reference_tags = sorted(str(tag) for tag in target.get("missingReferenceTags", []))
         if declared_missing_reference_tags != expected_missing_reference_tags:
