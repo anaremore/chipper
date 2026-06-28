@@ -831,6 +831,9 @@ add_test(NAME chipper_render_ym2151_noise_high_smoke
 add_test(NAME chipper_render_preset_opm_arcade_bass_held_smoke
     COMMAND chipper_render --preset opm-arcade-bass --rate 48000 --seconds 0.50 --note 48 --out preset-opm-arcade-bass-held.wav --debug preset-opm-arcade-bass-held.json
 )
+add_test(NAME chipper_render_preset_opm_hollow_pad_smoke
+    COMMAND chipper_render --preset opm-hollow-pad --rate 48000 --seconds 0.12 --note 60 --out preset-opm-hollow-pad.wav --debug preset-opm-hollow-pad.json
+)
 add_test(NAME chipper_render_ym2612_held_tail_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro bass --wave-shape 1 --clock 7670454 --rate 48000 --seconds 0.50 --note 48 --out ym2612-held-tail-smoke.wav --debug ym2612-held-tail-smoke.json
 )
@@ -1679,7 +1682,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_preset_opn2_dac_kick_assert PROPERTIES DEPENDS chipper_render_preset_opn2_dac_kick_smoke)
 
     add_test(NAME chipper_render_preset_opn2_feedback_bass_held_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-feedback-bass-held.json --implemented-contains ymfm --preset opn2-feedback-bass --macro Bass --min-peak 0.01 --min-tail-rms 0.03 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-feedback-bass-held.json --implemented-contains ymfm --preset opn2-feedback-bass --macro Bass --min-peak 0.01 --min-tail-rms 0.03 --core-min fmOperatorLevel0=0.58 --core-max fmOperatorLevel0=0.58 --core-min fmOperatorLevel1=0.66 --core-max fmOperatorLevel1=0.66 --core-min fmOperatorLevel2=0.46 --core-max fmOperatorLevel2=0.46 --core-min fmOperatorLevel3=0.62 --core-max fmOperatorLevel3=0.62 --core-min operatorTotalLevel0=43 --core-max operatorTotalLevel0=43 --core-min operatorTotalLevel3=0 --core-max operatorTotalLevel3=0 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535
     )
     set_tests_properties(chipper_render_preset_opn2_feedback_bass_held_assert PROPERTIES DEPENDS chipper_render_preset_opn2_feedback_bass_held_smoke)
 
@@ -1729,9 +1732,14 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_ym2151_noise_high_assert PROPERTIES DEPENDS chipper_render_ym2151_noise_high_smoke)
 
     add_test(NAME chipper_render_preset_opm_arcade_bass_held_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opm-arcade-bass-held.json --implemented-contains ymfm --preset opm-arcade-bass --macro Bass --min-peak 0.01 --min-tail-rms 0.03 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opm-arcade-bass-held.json --implemented-contains ymfm --preset opm-arcade-bass --macro Bass --min-peak 0.01 --min-tail-rms 0.03 --core-min fmOperatorLevel0=0.56 --core-max fmOperatorLevel0=0.56 --core-min fmOperatorLevel1=0.66 --core-max fmOperatorLevel1=0.66 --core-min fmOperatorLevel2=0.46 --core-max fmOperatorLevel2=0.46 --core-min fmOperatorLevel3=0.62 --core-max fmOperatorLevel3=0.62 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535
     )
     set_tests_properties(chipper_render_preset_opm_arcade_bass_held_assert PROPERTIES DEPENDS chipper_render_preset_opm_arcade_bass_held_smoke)
+
+    add_test(NAME chipper_render_preset_opm_hollow_pad_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opm-hollow-pad.json --implemented-contains ymfm --preset opm-hollow-pad --macro Lead --min-peak 0.01 --core-min fmOperatorLevel0=0.38 --core-max fmOperatorLevel0=0.38 --core-min fmOperatorLevel1=0.7 --core-max fmOperatorLevel1=0.7 --core-min fmOperatorLevel2=0.42 --core-max fmOperatorLevel2=0.42 --core-min fmOperatorLevel3=0.68 --core-max fmOperatorLevel3=0.68 --core-min operatorTotalLevel0=52 --core-max operatorTotalLevel0=52 --core-min operatorTotalLevel1=0 --core-max operatorTotalLevel1=0 --core-min operatorTotalLevel2=14 --core-max operatorTotalLevel2=14 --core-min operatorTotalLevel3=1 --core-max operatorTotalLevel3=1
+    )
+    set_tests_properties(chipper_render_preset_opm_hollow_pad_assert PROPERTIES DEPENDS chipper_render_preset_opm_hollow_pad_smoke)
 
     add_test(NAME chipper_render_ym2151_chip_poly_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-chip-poly-smoke.json --implemented-contains ymfm --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 8 --min-peak 0.01 --core-min activeChannels=8 --core-max activeChannels=8 --core-min assignedNote0=48 --core-max assignedNote0=48 --core-min assignedNote1=52 --core-max assignedNote1=52 --core-min assignedNote2=55 --core-max assignedNote2=55 --core-min assignedNote3=60 --core-max assignedNote3=60 --core-min assignedNote4=64 --core-max assignedNote4=64 --core-min assignedNote5=67 --core-max assignedNote5=67 --core-min assignedNote6=72 --core-max assignedNote6=72 --core-min assignedNote7=76 --core-max assignedNote7=76 --core-min keyOnMask=255 --core-max keyOnMask=255

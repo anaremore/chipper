@@ -4820,7 +4820,71 @@ const PresetInfo* presetById(std::string_view idOrName)
 
 std::array<float, 4> fmOperatorLevelsForPreset(const PresetInfo& preset)
 {
-    (void) preset;
+    if (preset.chip == ChipMode::ym2612)
+    {
+        if (preset.id == "opn2-feedback-bass")
+            return { 0.58f, 0.66f, 0.46f, 0.62f };
+        if (preset.id == "opn2-metallic-lead")
+            return { 0.70f, 0.56f, 0.64f, 0.74f };
+        if (preset.id == "opn2-fake-chord-arp")
+            return { 0.54f, 0.58f, 0.48f, 0.68f };
+        if (preset.id == "opn2-ui-chime")
+            return { 0.42f, 0.78f, 0.46f, 0.82f };
+        if (preset.id == "opn2-damage-hit")
+            return { 0.72f, 0.44f, 0.64f, 0.88f };
+        if (preset.id == "opn2-pitch-laser")
+            return { 0.66f, 0.42f, 0.76f, 0.70f };
+        if (preset.id == "opn2-power-rise")
+            return { 0.58f, 0.60f, 0.52f, 0.82f };
+        if (preset.id == "opn2-rubber-bass")
+            return { 0.50f, 0.70f, 0.44f, 0.60f };
+        if (preset.id == "opn2-brass-stack")
+            return { 0.62f, 0.58f, 0.56f, 0.78f };
+        if (preset.id == "opn2-dac-kick")
+            return { 0.46f, 0.52f, 0.42f, 0.90f };
+        if (preset.id == "opn2-electric-keys")
+            return { 0.46f, 0.72f, 0.44f, 0.80f };
+        if (preset.id == "opn2-glass-keys")
+            return { 0.40f, 0.82f, 0.46f, 0.76f };
+        if (preset.id == "opn2-tom-stack")
+            return { 0.68f, 0.46f, 0.74f, 0.86f };
+        if (preset.id == "opn2-pluck-arp")
+            return { 0.48f, 0.68f, 0.44f, 0.78f };
+    }
+    else if (preset.chip == ChipMode::ym2151)
+    {
+        if (preset.id == "opm-arcade-bass")
+            return { 0.56f, 0.66f, 0.46f, 0.62f };
+        if (preset.id == "opm-metallic-lead")
+            return { 0.72f, 0.54f, 0.68f, 0.76f };
+        if (preset.id == "opm-arcade-arp")
+            return { 0.52f, 0.62f, 0.48f, 0.72f };
+        if (preset.id == "opm-ui-chime")
+            return { 0.48f, 0.74f, 0.42f, 0.84f };
+        if (preset.id == "opm-damage-hit")
+            return { 0.72f, 0.44f, 0.68f, 0.88f };
+        if (preset.id == "opm-laser-sweep")
+            return { 0.66f, 0.42f, 0.78f, 0.72f };
+        if (preset.id == "opm-power-sweep")
+            return { 0.58f, 0.60f, 0.54f, 0.82f };
+        if (preset.id == "opm-glass-keys")
+            return { 0.42f, 0.78f, 0.44f, 0.80f };
+        if (preset.id == "opm-warning-stab")
+            return { 0.68f, 0.48f, 0.70f, 0.84f };
+        if (preset.id == "opm-hollow-pad")
+            return { 0.38f, 0.70f, 0.42f, 0.68f };
+        if (preset.id == "opm-noise-zap")
+            return { 0.60f, 0.44f, 0.76f, 0.86f };
+        if (preset.id == "opm-bell-mallet")
+            return { 0.44f, 0.82f, 0.48f, 0.78f };
+        if (preset.id == "opm-fm-drum-kit")
+            return { 0.70f, 0.46f, 0.78f, 0.90f };
+        if (preset.id == "opm-city-bass")
+            return { 0.52f, 0.72f, 0.46f, 0.64f };
+        if (preset.id == "opm-bright-lead")
+            return { 0.64f, 0.58f, 0.58f, 0.78f };
+    }
+
     return { 0.5f, 0.5f, 0.5f, 0.5f };
 }
 

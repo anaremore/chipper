@@ -652,6 +652,27 @@ bool expectFmRegisterHelpers()
     opn2Trimmed.fmOperatorLevels = { 0.0f, 0.5f, 0.5f, 1.0f };
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Trimmed, 0) == 62u, "YM2612 operator 1 level trim should attenuate total level around neutral");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Trimmed, 3) == 0u, "YM2612 operator 4 level trim should boost total level around neutral");
+    if (const auto* preset = chipper::presetById("opn2-feedback-bass"))
+    {
+        const auto levels = chipper::fmOperatorLevelsForPreset(*preset);
+        ok &= expect(levels == std::array<float, 4> { 0.58f, 0.66f, 0.46f, 0.62f },
+                     "OPN2 Feedback Bass should carry curated operator-level trims");
+        ok &= expect(chipper::patchConfigForPreset(*preset).fmOperatorLevels == levels,
+                     "OPN2 preset patch config should apply curated operator-level trims");
+    }
+    else
+    {
+        ok &= expect(false, "OPN2 Feedback Bass preset should exist");
+    }
+    if (const auto* preset = chipper::presetById("opn2-neutral-patch"))
+    {
+        ok &= expect(chipper::fmOperatorLevelsForPreset(*preset) == std::array<float, 4> { 0.5f, 0.5f, 0.5f, 0.5f },
+                     "OPN2 Neutral Patch should keep neutral operator-level trims");
+    }
+    else
+    {
+        ok &= expect(false, "OPN2 Neutral Patch preset should exist");
+    }
     ok &= expect(chipper::ym2612PanBitsForPatch(opn2Lead, 0) == 0xc0u, "YM2612 lead macro should resolve to centered pan bits");
     ok &= expect(chipper::ym2612DacModeForPatch(opn2Lead) == 1u, "YM2612 lead macro should keep channel 6 in FM mode");
     const auto opn2LeadModulatorEnvelope = chipper::ym2612EnvelopeRegistersForPatch(opn2Lead, 0);
@@ -675,6 +696,18 @@ bool expectFmRegisterHelpers()
     opmTrimmed.fmOperatorLevels = { 1.0f, 0.5f, 0.5f, 0.0f };
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2151, opmTrimmed, 0) == 0u, "YM2151 operator 1 level trim should boost total level around neutral");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2151, opmTrimmed, 3) == 31u, "YM2151 operator 4 level trim should attenuate total level around neutral");
+    if (const auto* preset = chipper::presetById("opm-hollow-pad"))
+    {
+        const auto levels = chipper::fmOperatorLevelsForPreset(*preset);
+        ok &= expect(levels == std::array<float, 4> { 0.38f, 0.70f, 0.42f, 0.68f },
+                     "OPM Hollow Pad should carry curated operator-level trims");
+        ok &= expect(chipper::patchConfigForPreset(*preset).fmOperatorLevels == levels,
+                     "OPM preset patch config should apply curated operator-level trims");
+    }
+    else
+    {
+        ok &= expect(false, "OPM Hollow Pad preset should exist");
+    }
     const auto opmArpEnvelope = chipper::ym2612EnvelopeRegistersForPatch(opmArp, 0);
     ok &= expect(opmArpEnvelope.sustainRate == 0x00u, "YM2151 shared FM envelope helper should hold sustained arp notes");
 
