@@ -10696,13 +10696,15 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
 
     const auto info = audioProcessor.spc700BrrSampleInfo();
     auto visibleStatus = info.loaded
-        ? "Slot " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
-            + ": " + compactSampleName(info.sampleName)
+        ? (info.selectedSlot >= 0
+               ? "Slot " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
+                   + ": " + compactSampleName(info.sampleName)
+               : info.statusLine)
         : "Generated " + waveShapeReadout(chipper::ChipMode::spc700, playbackPatch.waveShape);
-    if (info.loaded && info.bankCount > 1 && playbackMode != 0)
+    if (info.loaded && info.selectedSlot >= 0 && info.bankCount > 1 && playbackMode != 0)
         visibleStatus += " | Map " + chipper::parameters::midiNoteChoices()[info.mapRootNote]
             + "-" + chipper::parameters::midiNoteChoices()[info.mapHighNote];
-    else if (info.loaded && info.bankCount > 1)
+    else if (info.loaded && info.selectedSlot >= 0 && info.bankCount > 1)
         visibleStatus += " | Manual";
     visibleStatus += " | " + bankModeLabel + " | " + lifetimeLabel;
     if (info.loaded)
@@ -10820,13 +10822,15 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
 
     const auto info = audioProcessor.paulaSampleInfo();
     auto visibleStatus = info.loaded
-        ? "Slot " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
-            + ": " + compactSampleName(info.sampleName)
+        ? (info.selectedSlot >= 0
+               ? "Slot " + juce::String(info.selectedSlot + 1) + "/" + juce::String(info.bankCount)
+                   + ": " + compactSampleName(info.sampleName)
+               : info.statusLine)
         : info.statusLine;
-    if (info.loaded && info.bankCount > 1 && playbackMode != 0)
+    if (info.loaded && info.selectedSlot >= 0 && info.bankCount > 1 && playbackMode != 0)
         visibleStatus += " | Map " + chipper::parameters::midiNoteChoices()[info.mapRootNote]
             + "-" + chipper::parameters::midiNoteChoices()[info.mapHighNote];
-    else if (info.loaded && info.bankCount > 1)
+    else if (info.loaded && info.selectedSlot >= 0 && info.bankCount > 1)
         visibleStatus += " | Manual";
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
 

@@ -84,6 +84,7 @@ Checked 2026-06-07:
    - Done first pass: loaded SPC700 banks expose per-voice sample-slot selectors in the voice cards; slots are host-automatable/MIDI-addressable so users can build multi-sample eight-voice patches without duplicating global settings.
    - Done first pass: renderer debug JSON exposes selected bank slot length and loop-start metadata so sample-map behavior can be regression tested without bundling third-party samples.
    - Done first pass: renderer `--spc700-map-root` covers note-to-slot selection with inline BRR banks, keeping factory tests asset-free.
+   - Done first pass: out-of-range note-map states keep the loaded bank count, mapped key span, and memory budget visible while reporting `No mapped SPC700 sample`, so silent notes remain explainable instead of looking like an invalid slot selection.
 
 4. **S-DSP Voice Behavior**
    - Add ADSR/GAIN envelope tests.

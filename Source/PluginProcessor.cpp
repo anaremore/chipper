@@ -936,9 +936,14 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
     if (playbackMode != 0 && activeSpc700BrrSampleSlot < 0)
     {
         info.selectedSlot = -1;
+        info.bankByteCount = bankByteCount;
+        info.bankBrrBlockCount = bankBrrBlockCount;
+        info.bankCount = bankCount;
         info.playbackMode = playbackMode;
         info.mapRootNote = mapRootNote;
         info.mapHighNote = std::clamp(mapRootNote + std::max(0, bankCount - 1), 0, 127);
+        info.nearAramBudget = info.bankByteCount >= static_cast<int>(static_cast<double>(info.aramBudgetBytes) * 0.75);
+        info.exceedsAramBudget = info.bankByteCount > info.aramBudgetBytes;
         info.statusLine = "No mapped SPC700 sample | Map " + midiNoteName(info.mapRootNote) + "-" + midiNoteName(info.mapHighNote);
         return info;
     }
@@ -1002,6 +1007,10 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::paulaSampleInf
 
     const auto bankCount = static_cast<int>(activeSlots.size());
     auto safeSlot = std::clamp(selectedSlot, 0, std::max(0, bankCount - 1));
+    auto bankByteCount = 0;
+    for (const auto* slot : activeSlots)
+        bankByteCount += static_cast<int>(slot->bytes.size());
+
     for (int i = 0; i < static_cast<int>(activeSlots.size()); ++i)
     {
         if (activeSlots[static_cast<size_t>(i)]->path == paulaSample.path)
@@ -1016,6 +1025,8 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::paulaSampleInf
     if (playbackMode != 0 && activePaulaSampleSlot < 0)
     {
         info.selectedSlot = -1;
+        info.bankByteCount = bankByteCount;
+        info.bankCount = bankCount;
         info.playbackMode = playbackMode;
         info.mapRootNote = mapRootNote;
         info.mapHighNote = std::clamp(mapRootNote + std::max(0, bankCount - 1), 0, 127);
@@ -1028,6 +1039,7 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::paulaSampleInf
     info.path = selected.path;
     info.byteCount = static_cast<int>(selected.bytes.size());
     info.blockCount = 0;
+    info.bankByteCount = bankByteCount;
     info.bankCount = bankCount;
     info.selectedSlot = safeSlot;
     info.playbackMode = playbackMode;

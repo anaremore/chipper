@@ -1034,6 +1034,10 @@ int main()
                  "SPC700 note map should leave notes above the loaded BRR bank span silent instead of clamping to the last slot");
     ok &= expect(outOfRangeMappedInfo.selectedSlot == -1 && outOfRangeMappedInfo.statusLine.contains("No mapped SPC700 sample"),
                  "SPC700 note map status should report no mapped sample after an out-of-range note");
+    ok &= expect(outOfRangeMappedInfo.bankCount == 3 && outOfRangeMappedInfo.bankByteCount == 27 && outOfRangeMappedInfo.bankBrrBlockCount == 3,
+                 "SPC700 out-of-range note-map status should retain loaded BRR bank counts");
+    ok &= expect(outOfRangeMappedInfo.mapRootNote == 36 && outOfRangeMappedInfo.mapHighNote == 38,
+                 "SPC700 out-of-range note-map status should retain the visible mapped key span");
     const auto inRangeMappedPeak = renderNoteOnPeak(spcMapAuditionProcessor, 38);
     ok &= expect(inRangeMappedPeak > 0.0001f,
                  "SPC700 note map should produce audio for notes inside the loaded BRR bank span");
@@ -1114,6 +1118,10 @@ int main()
                  "SPC700 WAV note map should leave notes above the loaded sample bank span silent instead of clamping to the last slot");
     ok &= expect(spcWavOutOfRangeInfo.selectedSlot == -1 && spcWavOutOfRangeInfo.statusLine.contains("No mapped SPC700 sample"),
                  "SPC700 WAV note map status should report no mapped sample after an out-of-range note");
+    ok &= expect(spcWavOutOfRangeInfo.bankCount == 3 && spcWavOutOfRangeInfo.bankByteCount == 768 && spcWavOutOfRangeInfo.bankBrrBlockCount == 0,
+                 "SPC700 WAV out-of-range note-map status should retain loaded sample bank counts");
+    ok &= expect(spcWavOutOfRangeInfo.mapRootNote == 36 && spcWavOutOfRangeInfo.mapHighNote == 38,
+                 "SPC700 WAV out-of-range note-map status should retain the visible mapped key span");
     const auto spcWavInRangePeak = renderNoteOnPeak(spcWavMapAuditionProcessor, 38);
     ok &= expect(spcWavInRangePeak > 0.0001f,
                  "SPC700 WAV note map should produce audio for notes inside the loaded sample bank span");
@@ -1213,6 +1221,10 @@ int main()
                  "Paula note map should leave notes above the loaded sample span silent instead of clamping to the last slot");
     ok &= expect(paulaOutOfRangeMappedInfo.selectedSlot == -1 && paulaOutOfRangeMappedInfo.statusLine.contains("No mapped Paula sample"),
                  "Paula note map status should report no mapped sample after an out-of-range note");
+    ok &= expect(paulaOutOfRangeMappedInfo.bankCount == 5 && paulaOutOfRangeMappedInfo.bankByteCount == 1280,
+                 "Paula out-of-range note-map status should retain loaded sample bank counts");
+    ok &= expect(paulaOutOfRangeMappedInfo.mapRootNote == 36 && paulaOutOfRangeMappedInfo.mapHighNote == 40,
+                 "Paula out-of-range note-map status should retain the visible mapped key span");
     const auto paulaInRangeMappedPeak = renderNoteOnPeak(paulaMapAuditionProcessor, 39);
     ok &= expect(paulaInRangeMappedPeak > 0.0001f,
                  "Paula note map should produce audio for notes inside the loaded sample bank span");
