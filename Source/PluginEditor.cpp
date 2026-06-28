@@ -5843,7 +5843,7 @@ void ChipperAudioProcessorEditor::updatePresetFilterChoices(chipper::ChipMode mo
 
     for (const auto tag : { "apu", "psg", "fm", "operator", "sampler", "wavetable", "sid", "pokey",
                             "pulse", "wave", "noise", "filter", "pwm", "sync", "ring", "dmc", "dac",
-                            "echo", "loop", "tracker", "rhythm", "chord", "bell", "pad", "rise", "alarm" })
+                            "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm" })
     {
         const auto tagText = juce::String(tag);
         if (std::find(tagOrder.begin(), tagOrder.end(), tagText) == tagOrder.end())

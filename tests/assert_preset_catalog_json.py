@@ -254,7 +254,8 @@ def main() -> int:
         if not isinstance(reference_tags, list) or not reference_tags:
             failures.append(f"{chip}: quality target referenceTags must be a non-empty list")
             reference_tags = []
-        for tag in [str(item) for item in reference_tags]:
+        reference_tags = [str(item) for item in reference_tags]
+        for tag in reference_tags:
             if not tag or tag != tag_token(tag):
                 failures.append(f"{chip}: quality target reference tag {tag!r} is not normalized")
 
@@ -274,6 +275,30 @@ def main() -> int:
             failures.append(
                 f"{chip}: quality target coveredRoleCount expected {len(required_roles) - len(expected_missing_roles)}, "
                 f"got {covered_role_count!r}"
+            )
+
+        chip_tags = {str(tag) for preset in by_chip.get(chip, []) for tag in preset.get("tags", [])}
+        expected_missing_reference_tags = sorted(tag for tag in reference_tags if tag not in chip_tags)
+        declared_missing_reference_tags = sorted(str(tag) for tag in target.get("missingReferenceTags", []))
+        if declared_missing_reference_tags != expected_missing_reference_tags:
+            failures.append(
+                f"{chip}: quality target missingReferenceTags expected {expected_missing_reference_tags!r}, "
+                f"got {declared_missing_reference_tags!r}"
+            )
+        if declared_missing_reference_tags:
+            failures.append(f"{chip}: quality target is missing reference tags: {', '.join(declared_missing_reference_tags)}")
+
+        target_reference_tag_count = target.get("targetReferenceTagCount")
+        covered_reference_tag_count = target.get("coveredReferenceTagCount")
+        if target_reference_tag_count != len(reference_tags):
+            failures.append(
+                f"{chip}: quality target targetReferenceTagCount expected {len(reference_tags)}, "
+                f"got {target_reference_tag_count!r}"
+            )
+        if covered_reference_tag_count != len(reference_tags) - len(expected_missing_reference_tags):
+            failures.append(
+                f"{chip}: quality target coveredReferenceTagCount expected {len(reference_tags) - len(expected_missing_reference_tags)}, "
+                f"got {covered_reference_tag_count!r}"
             )
 
         note = str(target.get("note", ""))

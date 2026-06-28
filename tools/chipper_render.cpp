@@ -2936,6 +2936,21 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
                 missingRoles.push_back(role);
         }
 
+        std::vector<std::string> missingReferenceTags;
+        for (const auto& tag : target.referenceTags)
+        {
+            const auto hasTag = std::any_of(presets.begin(), presets.end(), [&target, &tag](const auto& preset)
+            {
+                if (preset.chip != target.chip)
+                    return false;
+
+                const auto tags = chipper::presetTagsFor(preset);
+                return std::find(tags.begin(), tags.end(), tag) != tags.end();
+            });
+            if (! hasTag)
+                missingReferenceTags.push_back(tag);
+        }
+
         out << "      {\n"
             << "        \"chipKey\": ";
         writeJsonString(out, chipModeKey(target.chip));
@@ -2959,6 +2974,11 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
             << "        \"coveredRoleCount\": " << (target.requiredRoles.size() - missingRoles.size()) << ",\n"
             << "        \"missingRoles\": ";
         writeJsonStringArray(out, missingRoles, "          ");
+        out << ",\n"
+            << "        \"targetReferenceTagCount\": " << target.referenceTags.size() << ",\n"
+            << "        \"coveredReferenceTagCount\": " << (target.referenceTags.size() - missingReferenceTags.size()) << ",\n"
+            << "        \"missingReferenceTags\": ";
+        writeJsonStringArray(out, missingReferenceTags, "          ");
         out << "\n"
             << "      }";
         wroteTarget = true;

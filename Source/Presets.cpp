@@ -3942,8 +3942,27 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
             break;
     }
 
+    if (preset.chip == ChipMode::nes && preset.nesDmcDirectLevel > 0.0001f)
+    {
+        addPresetTag(tags, "dmc");
+        addPresetTag(tags, "dac");
+    }
+
+    if (preset.chip == ChipMode::ym2149 && (preset.ymEnvelopeShape > 0 || preset.envelopeDecay > 0.0001f))
+        addPresetTag(tags, "envelope");
+
+    if (preset.chip == ChipMode::spc700
+        && preset.macro != MacroKind::drum
+        && preset.macro != MacroKind::hit)
+        addPresetTag(tags, "loop");
+
+    if (preset.chip == ChipMode::pokey
+        && (preset.waveShape >= 3 || preset.macro == MacroKind::drum
+            || preset.macro == MacroKind::hit || preset.macro == MacroKind::laser))
+        addPresetTag(tags, "noise");
+
     const auto corpus = presetCorpus(preset);
-    for (const auto token : { "pulse", "wave", "noise", "filter", "pwm", "sync", "ring", "dmc", "dac", "echo", "loop", "tracker", "rhythm", "chord", "bell", "pad", "rise", "alarm" })
+    for (const auto token : { "pulse", "wave", "noise", "filter", "pwm", "sync", "ring", "dmc", "dac", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm" })
     {
         if (presetCorpusContains(corpus, token))
             addPresetTag(tags, token);
