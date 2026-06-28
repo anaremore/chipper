@@ -733,6 +733,7 @@ bool checkWavetableSourceDeck(chipper::ChipMode mode)
     auto ok = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
     ChipperAudioProcessorEditor editor(processor);
     editor.setSize(1240, expectedHeightForChipMode(chipChoice));
+    editor.runEditorUpdateForLayoutTest();
 
     const auto sourceDeckBounds = editor.getModuleBoundsForLayoutTest(1);
     if (sourceDeckBounds.getHeight() > 264)
@@ -743,6 +744,19 @@ bool checkWavetableSourceDeck(chipper::ChipMode mode)
     }
 
     const auto visibleSources = chipper::visibleSourceCountForMode(mode);
+    const auto expectedFourthWaveChoice = mode == chipper::ChipMode::huc6280 ? juce::String("Square") : juce::String("Pulse");
+    const auto expectedFifthWaveChoice = mode == chipper::ChipMode::huc6280 ? juce::String("Noise") : juce::String("Steps");
+    const auto actualFourthWaveChoice = editor.getSourceWaveSelectorItemTextForLayoutTest(0, 3);
+    const auto actualFifthWaveChoice = editor.getSourceWaveSelectorItemTextForLayoutTest(0, 4);
+    if (actualFourthWaveChoice != expectedFourthWaveChoice || actualFifthWaveChoice != expectedFifthWaveChoice)
+    {
+        std::cerr << "editor_size_smoke: wavetable selector labels do not match chip vocabulary for "
+                  << chipper::toString(mode) << ": got "
+                  << actualFourthWaveChoice << "/" << actualFifthWaveChoice
+                  << ", expected " << expectedFourthWaveChoice << "/" << expectedFifthWaveChoice << '\n';
+        ok = false;
+    }
+
     for (size_t channel = 0; channel < visibleSources; ++channel)
     {
         const auto sourceBounds = editor.getSourceChannelBoundsForLayoutTest(channel);

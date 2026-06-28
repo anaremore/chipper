@@ -484,6 +484,17 @@ bool usesChannelLocalWaveDeck(chipper::ChipMode mode)
         || mode == chipper::ChipMode::paula;
 }
 
+juce::StringArray wavetableWaveChoiceLabels(chipper::ChipMode mode)
+{
+    if (mode == chipper::ChipMode::huc6280)
+        return { "Preset", "Ramp", "Tri", "Square", "Noise" };
+
+    if (mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
+        return { "Preset", "Ramp", "Tri", "Pulse", "Steps" };
+
+    return { "Preset", "Ramp", "Tri", "Pulse", "Noise" };
+}
+
 chipper::ChipParameterRole spc700VoiceSampleRole(size_t index)
 {
     static constexpr std::array<chipper::ChipParameterRole, 8> roles {
@@ -2871,7 +2882,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(label);
 
         auto& box = hucVoiceWaveBoxes[i];
-        box.addItemList({ "Preset", "Ramp", "Tri", "Pulse", "Noise" }, 1);
+        box.addItemList(wavetableWaveChoiceLabels(chipper::ChipMode::huc6280), 1);
         box.setVisible(false);
         box.setTooltip(withMidiCcForRole("HuC6280 per-channel wave RAM shape.", hucVoiceWaveRole(i)));
         box.onChange = [this, i]()
@@ -10719,15 +10730,17 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
         }
         else
         {
-            const auto needsPaulaItems = isPaula && box.getItemText(3) != "Sine";
-            const auto needsWavetableItems = ! isPaula && box.getItemText(3) != "Pulse";
-            if (needsPaulaItems || needsWavetableItems)
+            const auto desiredItems = isPaula
+                ? juce::StringArray { "Preset", "Ramp", "Tri", "Sine", "Noise" }
+                : wavetableWaveChoiceLabels(mode);
+            auto needsItems = box.getNumItems() != desiredItems.size();
+            for (int item = 0; ! needsItems && item < desiredItems.size(); ++item)
+                needsItems = box.getItemText(item) != desiredItems[item];
+
+            if (needsItems)
             {
                 box.clear(juce::dontSendNotification);
-                box.addItemList(isPaula
-                                    ? juce::StringArray { "Preset", "Ramp", "Tri", "Sine", "Noise" }
-                                    : juce::StringArray { "Preset", "Ramp", "Tri", "Pulse", "Noise" },
-                                1);
+                box.addItemList(desiredItems, 1);
             }
         }
 

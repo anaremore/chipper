@@ -157,6 +157,10 @@ public:
     {
         return channel < hucVoiceWaveBoxes.size() ? hucVoiceWaveBoxes[channel].getBounds() : juce::Rectangle<int> {};
     }
+    juce::String getSourceWaveSelectorItemTextForLayoutTest(size_t channel, int itemIndex) const
+    {
+        return channel < hucVoiceWaveBoxes.size() ? hucVoiceWaveBoxes[channel].getItemText(itemIndex) : juce::String {};
+    }
     juce::Rectangle<int> getPresetFilterBoundsForLayoutTest() const { return presetFilterBox.getBounds(); }
     juce::String getPresetFilterTextForLayoutTest() const { return presetFilterBox.getText(); }
     juce::Rectangle<int> getPresetSearchBoundsForLayoutTest() const { return presetSearchBox.getBounds(); }
