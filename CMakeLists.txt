@@ -483,6 +483,12 @@ add_test(NAME chipper_render_preset_dmg_noise_kick_smoke
 add_test(NAME chipper_render_preset_dmg_split_chord_smoke
     COMMAND chipper_render --preset dmg-split-chord --rate 48000 --seconds 0.04 --note 60 --out preset-dmg-split-chord-smoke.wav --debug preset-dmg-split-chord-smoke.json
 )
+add_test(NAME chipper_render_preset_dmg_stereo_sweep_lead_smoke
+    COMMAND chipper_render --preset dmg-stereo-sweep-lead --rate 48000 --seconds 0.05 --note 72 --out preset-dmg-stereo-sweep-lead.wav --debug preset-dmg-stereo-sweep-lead.json
+)
+add_test(NAME chipper_render_preset_dmg_duty_noise_pop_smoke
+    COMMAND chipper_render --preset dmg-duty-noise-pop --rate 48000 --seconds 0.04 --note 60 --out preset-dmg-duty-noise-pop.wav --debug preset-dmg-duty-noise-pop.json
+)
 add_test(NAME chipper_render_preset_sid_filtered_noise_sweep_smoke
     COMMAND chipper_render --preset sid-filtered-noise-sweep --rate 48000 --seconds 0.04 --note 69 --out preset-sid-filtered-noise-sweep-smoke.wav --debug preset-sid-filtered-noise-sweep-smoke.json
 )
@@ -953,7 +959,7 @@ if (Python3_Interpreter_FOUND)
     )
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=15 --preset-count dmg=13 --preset-count sid=19 --preset-count ym2149=15 --preset-count sn76489=15 --preset-count ym2612=18 --preset-count opl3=15 --preset-count spc700=14 --preset-count pokey=13 --preset-count paula=13 --preset-count huc6280=13 --preset-count namcoWsg=14 --preset-count ym2151=15 --preset-count ym2413=15 --preset-count scc=15
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=15 --preset-count dmg=15 --preset-count sid=19 --preset-count ym2149=15 --preset-count sn76489=15 --preset-count ym2612=18 --preset-count opl3=15 --preset-count spc700=14 --preset-count pokey=13 --preset-count paula=13 --preset-count huc6280=13 --preset-count namcoWsg=14 --preset-count ym2151=15 --preset-count ym2413=15 --preset-count scc=15
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -2097,6 +2103,14 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-dmg-split-chord-smoke.json --implemented-contains partial --preset dmg-split-chord --macro Arp --play-mode "Chip Poly" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.01 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min waveShape=4 --core-max waveShape=4 --core-min nr51=90 --core-max nr51=90
     )
     set_tests_properties(chipper_render_preset_dmg_split_chord_assert PROPERTIES DEPENDS chipper_render_preset_dmg_split_chord_smoke)
+    add_test(NAME chipper_render_preset_dmg_stereo_sweep_lead_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-dmg-stereo-sweep-lead.json --implemented-contains partial --preset dmg-stereo-sweep-lead --macro Lead --play-mode "Big Mono" --output-db -9.5 --register-writes 0 --note-events 0 --min-peak 0.02 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min dmgStereoRoute=4 --core-max dmgStereoRoute=4 --core-min dmgStereoRouteRegister=90 --core-max dmgStereoRouteRegister=90 --core-min nr51=90 --core-max nr51=90 --core-min dmgWaveLevel=3 --core-max dmgWaveLevel=3 --core-min nr32=64 --core-max nr32=64 --core-min sweepShift=6 --core-max sweepShift=6
+    )
+    set_tests_properties(chipper_render_preset_dmg_stereo_sweep_lead_assert PROPERTIES DEPENDS chipper_render_preset_dmg_stereo_sweep_lead_smoke)
+    add_test(NAME chipper_render_preset_dmg_duty_noise_pop_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-dmg-duty-noise-pop.json --implemented-contains partial --preset dmg-duty-noise-pop --macro Drum --play-mode "Big Mono" --output-db -11.5 --register-writes 0 --note-events 0 --min-peak 0.01 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1 --core-min enabledNoise=1 --core-max enabledNoise=1 --core-min noiseModeChoice=2 --core-max noiseModeChoice=2 --core-min noiseWidth7=1 --core-max noiseWidth7=1 --core-min dmgStereoRoute=4 --core-max dmgStereoRoute=4 --core-min dmgStereoRouteRegister=90 --core-max dmgStereoRouteRegister=90 --core-min pulseDuty1=0 --core-max pulseDuty1=0
+    )
+    set_tests_properties(chipper_render_preset_dmg_duty_noise_pop_assert PROPERTIES DEPENDS chipper_render_preset_dmg_duty_noise_pop_smoke)
 
     add_test(NAME chipper_render_preset_sid_filtered_noise_sweep_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sid-filtered-noise-sweep-smoke.json --implemented-contains partial --preset sid-filtered-noise-sweep --macro Laser --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.01 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceLevel1=0.2 --core-max sourceLevel1=0.2 --core-min sourceLevel2=0.55 --core-max sourceLevel2=0.55 --core-min sourceLevel3=0.82 --core-max sourceLevel3=0.82 --core-min waveformChoice0=4 --core-max waveformChoice0=4 --core-min waveformChoice1=2 --core-max waveformChoice1=2 --core-min waveformChoice2=4 --core-max waveformChoice2=4 --core-min filterModeChoice=2 --core-max filterModeChoice=2 --core-min modModeChoice=2 --core-max modModeChoice=2 --core-min filterRoutingChoice=4 --core-max filterRoutingChoice=4 --core-min filterRoutingBits=4 --core-max filterRoutingBits=4
