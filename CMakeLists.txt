@@ -915,6 +915,12 @@ add_test(NAME chipper_render_ym2413_rhythm_smoke
 add_test(NAME chipper_render_preset_opll_preset_bass_held_smoke
     COMMAND chipper_render --preset opll-preset-bass --rate 48000 --seconds 0.50 --note 48 --out preset-opll-preset-bass-held.wav --debug preset-opll-preset-bass-held.json
 )
+add_test(NAME chipper_render_preset_opll_envelope_bell_smoke
+    COMMAND chipper_render --preset opll-envelope-bell --rate 48000 --seconds 0.08 --note 76 --out preset-opll-envelope-bell.wav --debug preset-opll-envelope-bell.json
+)
+add_test(NAME chipper_render_preset_opll_alarm_pulse_smoke
+    COMMAND chipper_render --preset opll-alarm-pulse --rate 48000 --seconds 0.08 --note 69 --out preset-opll-alarm-pulse.wav --debug preset-opll-alarm-pulse.json
+)
 add_test(NAME chipper_render_list_descriptors_smoke
     COMMAND chipper_render --list-descriptors --debug chipper-descriptors.json
 )
@@ -971,7 +977,7 @@ if (Python3_Interpreter_FOUND)
     )
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=15 --preset-count dmg=15 --preset-count sid=19 --preset-count ym2149=15 --preset-count sn76489=15 --preset-count ym2612=18 --preset-count opl3=15 --preset-count spc700=14 --preset-count pokey=13 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=14 --preset-count ym2151=15 --preset-count ym2413=15 --preset-count scc=15
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=15 --preset-count dmg=15 --preset-count sid=19 --preset-count ym2149=15 --preset-count sn76489=15 --preset-count ym2612=18 --preset-count opl3=15 --preset-count spc700=14 --preset-count pokey=13 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=14 --preset-count ym2151=15 --preset-count ym2413=17 --preset-count scc=15
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1050,7 +1056,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_namco_wsg_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_ym2413_descriptor_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip ym2413 --source-lanes ym2413=9/9 --implemented ym2413=1 --verification-badge "ym2413=Verified partial" --verification-cycle ym2413=0 --verification-hardware ym2413=0 --param-kind ym2413:waveShape=chipRegister --param-surface ym2413:waveShape=menu --param-choices ym2413:waveShape=16 --param-midi-cc ym2413:waveShape=89 --param-kind ym2413:ymEnvelopeShape=chipRegister --param-surface ym2413:ymEnvelopeShape=segmentedChoice --param-choices ym2413:ymEnvelopeShape=3 --param-midi-cc ym2413:ymEnvelopeShape=90 --param-kind ym2413:macroControl1=chipRegister --param-surface ym2413:macroControl1=slider --param-midi-cc ym2413:macroControl1=76 --param-kind ym2413:macroControl4=chipRegister --param-surface ym2413:macroControl4=slider --param-midi-cc ym2413:macroControl4=79 --param-kind ym2413:source9Enabled=booleanToggle --param-surface ym2413:source9Enabled=sourceCards --param-midi-cc ym2413:source9Enabled=56 --param-kind ym2413:source9Level=continuous --param-surface ym2413:source9Level=slider --param-midi-cc ym2413:source9Level=57 --macro-label "ym2413:Coin=OPLL UI Chime" --macro-source ym2413:Bass=1100 --preset opll-ui-chime --preset opll-preset-bass --preset opll-organ-arp
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip ym2413 --source-lanes ym2413=9/9 --implemented ym2413=1 --verification-badge "ym2413=Verified partial" --verification-cycle ym2413=0 --verification-hardware ym2413=0 --param-kind ym2413:waveShape=chipRegister --param-surface ym2413:waveShape=menu --param-choices ym2413:waveShape=16 --param-midi-cc ym2413:waveShape=89 --param-kind ym2413:ymEnvelopeShape=chipRegister --param-surface ym2413:ymEnvelopeShape=segmentedChoice --param-choices ym2413:ymEnvelopeShape=3 --param-midi-cc ym2413:ymEnvelopeShape=90 --param-kind ym2413:macroControl1=chipRegister --param-surface ym2413:macroControl1=slider --param-midi-cc ym2413:macroControl1=76 --param-kind ym2413:macroControl4=chipRegister --param-surface ym2413:macroControl4=slider --param-midi-cc ym2413:macroControl4=79 --param-kind ym2413:source9Enabled=booleanToggle --param-surface ym2413:source9Enabled=sourceCards --param-midi-cc ym2413:source9Enabled=56 --param-kind ym2413:source9Level=continuous --param-surface ym2413:source9Level=slider --param-midi-cc ym2413:source9Level=57 --macro-label "ym2413:Coin=OPLL UI Chime" --macro-source ym2413:Bass=1100 --preset opll-ui-chime --preset opll-preset-bass --preset opll-organ-arp --preset opll-envelope-bell --preset opll-alarm-pulse
     )
     set_tests_properties(chipper_render_list_ym2413_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1903,6 +1909,14 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opll-preset-bass-held.json --implemented-contains emu2413 --preset opll-preset-bass --macro Bass --min-peak 0.01 --min-tail-rms 0.003 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535
     )
     set_tests_properties(chipper_render_preset_opll_preset_bass_held_assert PROPERTIES DEPENDS chipper_render_preset_opll_preset_bass_held_smoke)
+    add_test(NAME chipper_render_preset_opll_envelope_bell_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opll-envelope-bell.json --implemented-contains emu2413 --preset opll-envelope-bell --macro Lead --play-mode "Big Mono" --output-db -10.5 --register-writes 0 --note-events 0 --min-peak 0.01 --core-min instrumentChoice=12 --core-max instrumentChoice=12 --core-min instrument0=12 --core-max instrument0=12 --core-min rhythmModeChoice=1 --core-max rhythmModeChoice=1 --core-min rhythmMode=0 --core-max rhythmMode=0 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min keyOnMask=0 --core-max keyOnMask=0
+    )
+    set_tests_properties(chipper_render_preset_opll_envelope_bell_assert PROPERTIES DEPENDS chipper_render_preset_opll_envelope_bell_smoke)
+    add_test(NAME chipper_render_preset_opll_alarm_pulse_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opll-alarm-pulse.json --implemented-contains emu2413 --preset opll-alarm-pulse --macro Laser --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 0 --min-peak 0.01 --core-min instrumentChoice=10 --core-max instrumentChoice=10 --core-min instrument0=10 --core-max instrument0=10 --core-min rhythmModeChoice=1 --core-max rhythmModeChoice=1 --core-min rhythmMode=0 --core-max rhythmMode=0 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min keyOnMask=0 --core-max keyOnMask=0
+    )
+    set_tests_properties(chipper_render_preset_opll_alarm_pulse_assert PROPERTIES DEPENDS chipper_render_preset_opll_alarm_pulse_smoke)
 
     add_test(NAME chipper_render_preset_nes_hero_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-hero-smoke.json --implemented-contains partial --preset nes-hero-pulse --macro Lead --play-mode "Big Mono" --output-db -9 --register-writes 0 --note-events 0 --min-peak 0.1 --core-min pulseDuty1=2 --core-max pulseDuty1=2 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0
