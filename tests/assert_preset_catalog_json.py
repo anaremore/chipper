@@ -85,6 +85,7 @@ def main() -> int:
     parser.add_argument("--min-per-chip", type=int, default=12)
     parser.add_argument("--min-core-roles-per-chip", type=int, default=len(CORE_ROLE_COVERAGE))
     parser.add_argument("--min-role-density-per-chip", type=int, default=2)
+    parser.add_argument("--min-reference-tags-per-target", type=int, default=5)
     parser.add_argument("--only-chip", help="Assert that every preset belongs to this chip key.")
     args = parser.parse_args()
 
@@ -288,6 +289,11 @@ def main() -> int:
             failures.append(f"{chip}: quality target referenceTags must be a non-empty list")
             reference_tags = []
         reference_tags = [str(item) for item in reference_tags]
+        if len(reference_tags) < args.min_reference_tags_per_target:
+            failures.append(
+                f"{chip}: quality target expected at least {args.min_reference_tags_per_target} reference tags, "
+                f"got {len(reference_tags)}"
+            )
         for tag in reference_tags:
             if not tag or tag != tag_token(tag):
                 failures.append(f"{chip}: quality target reference tag {tag!r} is not normalized")

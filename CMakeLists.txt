@@ -894,6 +894,7 @@ add_test(NAME chipper_render_list_descriptors_smoke
 add_test(NAME chipper_render_list_presets_smoke
     COMMAND chipper_render --list-presets --debug chipper-presets.json
 )
+set_tests_properties(chipper_render_list_presets_smoke PROPERTIES FIXTURES_SETUP chipper_preset_catalog)
 set(CHIPPER_PRESET_CHIP_MINIMUMS
     nes:15
     dmg:13
@@ -917,6 +918,7 @@ foreach(chipper_preset_chip_minimum IN LISTS CHIPPER_PRESET_CHIP_MINIMUMS)
     add_test(NAME chipper_render_list_${chipper_preset_chip}_presets_smoke
         COMMAND chipper_render --list-presets --chip ${chipper_preset_chip} --debug chipper-${chipper_preset_chip}-presets.json
     )
+    set_tests_properties(chipper_render_list_${chipper_preset_chip}_presets_smoke PROPERTIES FIXTURES_SETUP chipper_${chipper_preset_chip}_preset_catalog)
 endforeach()
 add_test(NAME chipper_render_describe_nes_smoke
     COMMAND chipper_render --describe-chip nes --debug nes-descriptor.json
@@ -936,7 +938,10 @@ if (Python3_Interpreter_FOUND)
     add_test(NAME chipper_render_preset_catalog_metadata_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_preset_catalog_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-presets.json --min-presets 180 --min-per-chip 12
     )
-    set_tests_properties(chipper_render_preset_catalog_metadata_assert PROPERTIES DEPENDS chipper_render_list_presets_smoke)
+    set_tests_properties(chipper_render_preset_catalog_metadata_assert PROPERTIES
+        DEPENDS chipper_render_list_presets_smoke
+        FIXTURES_REQUIRED chipper_preset_catalog
+    )
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=15 --preset-count dmg=13 --preset-count sid=19 --preset-count ym2149=15 --preset-count sn76489=15 --preset-count ym2612=15 --preset-count opl3=15 --preset-count spc700=14 --preset-count pokey=13 --preset-count paula=13 --preset-count huc6280=13 --preset-count namcoWsg=14 --preset-count ym2151=15 --preset-count ym2413=15 --preset-count scc=15
@@ -946,7 +951,10 @@ if (Python3_Interpreter_FOUND)
     add_test(NAME chipper_render_list_presets_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_preset_catalog_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-presets.json --min-presets 180 --min-per-chip 12
     )
-    set_tests_properties(chipper_render_list_presets_assert PROPERTIES DEPENDS chipper_render_list_presets_smoke)
+    set_tests_properties(chipper_render_list_presets_assert PROPERTIES
+        DEPENDS chipper_render_list_presets_smoke
+        FIXTURES_REQUIRED chipper_preset_catalog
+    )
 
     foreach(chipper_preset_chip_minimum IN LISTS CHIPPER_PRESET_CHIP_MINIMUMS)
         string(REPLACE ":" ";" chipper_preset_chip_parts "${chipper_preset_chip_minimum}")
@@ -955,7 +963,10 @@ if (Python3_Interpreter_FOUND)
         add_test(NAME chipper_render_list_${chipper_preset_chip}_presets_assert
             COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_preset_catalog_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-${chipper_preset_chip}-presets.json --only-chip ${chipper_preset_chip} --min-presets ${chipper_preset_minimum} --min-per-chip ${chipper_preset_minimum}
         )
-        set_tests_properties(chipper_render_list_${chipper_preset_chip}_presets_assert PROPERTIES DEPENDS chipper_render_list_${chipper_preset_chip}_presets_smoke)
+        set_tests_properties(chipper_render_list_${chipper_preset_chip}_presets_assert PROPERTIES
+            DEPENDS chipper_render_list_${chipper_preset_chip}_presets_smoke
+            FIXTURES_REQUIRED chipper_${chipper_preset_chip}_preset_catalog
+        )
     endforeach()
 
     add_test(NAME chipper_render_list_macro_catalog_assert

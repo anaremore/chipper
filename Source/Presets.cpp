@@ -4571,21 +4571,21 @@ const std::vector<PresetQualityTarget>& presetQualityTargets()
 {
     const auto roles = presetCoreRoleTargets();
     static const std::vector<PresetQualityTarget> targets {
-        { ChipMode::nes, roles, { "apu", "pulse", "noise", "dmc" }, "Furnace-informed RP2A03 coverage: melodic pulse/triangle, DMC/noise percussion, UI and game SFX." },
-        { ChipMode::dmg, roles, { "apu", "pulse", "wave", "noise" }, "Furnace-informed DMG coverage: pulse leads, wave bass/keys, noise drums, handheld SFX." },
-        { ChipMode::sid, roles, { "sid", "filter", "pwm", "sync" }, "Furnace-informed SID coverage: bass, PWM leads, filter keys, oscillator interaction, and noise hits." },
-        { ChipMode::ym2149, roles, { "psg", "noise", "envelope" }, "Furnace-informed AY/YM coverage: tone stacks, envelope tricks, fake chords, and noise percussion." },
-        { ChipMode::sn76489, roles, { "psg", "noise" }, "Furnace-informed Sega PSG coverage: tone stacks, periodic/noise percussion, zaps, and arcade UI sounds." },
-        { ChipMode::ym2612, roles, { "fm", "operator", "dac" }, "Furnace-informed OPN2 coverage: operator bass/leads/keys plus rhythm, DAC, and SFX recipes." },
-        { ChipMode::opl3, roles, { "fm", "operator", "rhythm" }, "Furnace-informed OPL coverage: two-op melodic voices, rhythm mode, bells, basses, and DOS-style SFX." },
-        { ChipMode::spc700, roles, { "sampler", "loop", "noise" }, "Furnace-informed SPC700-style coverage: looped sample voices, drum maps, pitch motion, and noise colors." },
-        { ChipMode::pokey, roles, { "pokey", "noise" }, "Furnace-informed POKEY coverage: polynomial bass/leads, paired-channel tones, percussion, and harsh SFX." },
-        { ChipMode::paula, roles, { "sampler", "tracker", "loop" }, "Furnace-informed Paula coverage: tracker sample roles, looped instruments, drums, and retrigger-style SFX." },
-        { ChipMode::huc6280, roles, { "wavetable", "wave", "noise" }, "Furnace-informed HuC6280 coverage: wave-RAM bass/leads/keys, noise drums, and PC Engine SFX." },
-        { ChipMode::namcoWsg, roles, { "wavetable", "wave" }, "Furnace-informed Namco WSG coverage: arcade wavetable stacks, basses, leads, arps, drums, and SFX." },
-        { ChipMode::ym2151, roles, { "fm", "operator", "noise" }, "Furnace-informed OPM coverage: arcade FM leads, basses, keys, noise hits, and fast motion." },
-        { ChipMode::ym2413, roles, { "fm", "operator", "rhythm" }, "Furnace-informed OPLL coverage: ROM instrument bass/leads/keys, rhythm slots, and compact SFX." },
-        { ChipMode::scc, roles, { "wavetable", "wave" }, "Furnace-informed SCC coverage: five-lane wavetable basses, leads, keys, arps, drums, and arcade SFX." }
+        { ChipMode::nes, roles, { "apu", "pulse", "triangle", "noise", "dmc", "dac", "tracker" }, "Furnace-informed RP2A03 coverage: melodic pulse/triangle, DMC/noise percussion, UI and game SFX." },
+        { ChipMode::dmg, roles, { "apu", "pulse", "wave", "noise", "duty", "stereo", "sweep" }, "Furnace-informed DMG coverage: pulse leads, wave bass/keys, noise drums, handheld SFX." },
+        { ChipMode::sid, roles, { "sid", "filter", "pwm", "sync", "ring", "noise", "pulse" }, "Furnace-informed SID coverage: bass, PWM leads, filter keys, oscillator interaction, and noise hits." },
+        { ChipMode::ym2149, roles, { "psg", "noise", "envelope", "chord", "tracker" }, "Furnace-informed AY/YM coverage: tone stacks, envelope tricks, fake chords, and noise percussion." },
+        { ChipMode::sn76489, roles, { "psg", "tone", "noise", "periodic", "alarm" }, "Furnace-informed Sega PSG coverage: tone stacks, periodic/noise percussion, zaps, and arcade UI sounds." },
+        { ChipMode::ym2612, roles, { "fm", "operator", "dac", "feedback", "envelope", "chord" }, "Furnace-informed OPN2 coverage: operator bass/leads/keys plus rhythm, DAC, and SFX recipes." },
+        { ChipMode::opl3, roles, { "fm", "operator", "rhythm", "wave", "bell" }, "Furnace-informed OPL coverage: two-op melodic voices, rhythm mode, bells, basses, and DOS-style SFX." },
+        { ChipMode::spc700, roles, { "sampler", "loop", "noise", "echo", "tracker" }, "Furnace-informed SPC700-style coverage: looped sample voices, drum maps, pitch motion, and noise colors." },
+        { ChipMode::pokey, roles, { "pokey", "noise", "filter", "polynomial", "distortion" }, "Furnace-informed POKEY coverage: polynomial bass/leads, paired-channel tones, percussion, and harsh SFX." },
+        { ChipMode::paula, roles, { "sampler", "tracker", "loop", "dac", "noise" }, "Furnace-informed Paula coverage: tracker sample roles, looped instruments, drums, and retrigger-style SFX." },
+        { ChipMode::huc6280, roles, { "wavetable", "wave", "noise", "lfo", "chord" }, "Furnace-informed HuC6280 coverage: wave-RAM bass/leads/keys, noise drums, and PC Engine SFX." },
+        { ChipMode::namcoWsg, roles, { "wavetable", "wave", "tracker", "coin", "arcade" }, "Furnace-informed Namco WSG coverage: arcade wavetable stacks, basses, leads, arps, drums, and SFX." },
+        { ChipMode::ym2151, roles, { "fm", "operator", "noise", "envelope", "arcade" }, "Furnace-informed OPM coverage: arcade FM leads, basses, keys, noise hits, and fast motion." },
+        { ChipMode::ym2413, roles, { "fm", "operator", "rhythm", "envelope", "alarm" }, "Furnace-informed OPLL coverage: ROM instrument bass/leads/keys, rhythm slots, and compact SFX." },
+        { ChipMode::scc, roles, { "wavetable", "wave", "noise", "echo", "chord" }, "Furnace-informed SCC coverage: five-lane wavetable basses, leads, keys, arps, drums, and arcade SFX." }
     };
 
     return targets;
@@ -4752,7 +4752,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
         addPresetTag(tags, "noise");
 
     const auto corpus = presetCorpus(preset);
-    for (const auto token : { "pulse", "wave", "noise", "filter", "pwm", "sync", "ring", "dmc", "dac", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm" })
+    for (const auto token : { "pulse", "triangle", "duty", "stereo", "sweep", "wave", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade" })
     {
         if (presetCorpusContains(corpus, token))
             addPresetTag(tags, token);
