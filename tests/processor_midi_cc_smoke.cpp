@@ -214,6 +214,26 @@ int jsonIntValue(const std::string& json, const std::string& key, int fallback =
     }
 }
 
+bool expectFourOperatorCarrierRoleDebug(int chipChoice, const char* label)
+{
+    ChipperAudioProcessor processor;
+    processor.prepareToPlay(48000.0, 256);
+    sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, chipChoice));
+    setPlainFromHost(processor, chipper::parameters::id::waveShape, 5.0f);
+    sendNoteOn(processor, 60);
+
+    const auto debug = processor.currentCoreDebugStateJson();
+    auto ok = true;
+    ok &= expect(jsonIntValue(debug, "algorithm0") == 4,
+                 std::string(label) + " explicit algorithm choice should resolve algorithm 4 in core debug JSON");
+    ok &= expect(jsonIntValue(debug, "operatorCarrier0") == 0
+                     && jsonIntValue(debug, "operatorCarrier1") == 1
+                     && jsonIntValue(debug, "operatorCarrier2") == 0
+                     && jsonIntValue(debug, "operatorCarrier3") == 1,
+                 std::string(label) + " algorithm 4 debug JSON should expose M/C/M/C operator roles");
+    return ok;
+}
+
 bool writeDmcFixture(const juce::File& file, uint8_t seed)
 {
     const std::array<uint8_t, 4> bytes { seed, static_cast<uint8_t>(seed ^ 0x55u), 0xf0u, 0x0fu };
@@ -710,6 +730,8 @@ int main()
         ok &= expect(duplicateNotePeak > 0.002f,
                      std::string(label) + " should keep a retriggered duplicate note audible after the first matching note-off");
     }
+    ok &= expectFourOperatorCarrierRoleDebug(5, "OPN2");
+    ok &= expectFourOperatorCarrierRoleDebug(12, "OPM");
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 7));
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 5));

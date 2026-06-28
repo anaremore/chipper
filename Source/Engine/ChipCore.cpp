@@ -8149,6 +8149,11 @@ public:
 
     std::string debugStateJson() const override
     {
+        const auto operatorCarrier = [this](size_t op)
+        {
+            return fmOperatorIsCarrierForAlgorithm(currentAlgorithm[0], op) ? 1 : 0;
+        };
+
         std::ostringstream json;
         json << "{"
              << "\"mode\":\"YM2612 / Genesis FM\","
@@ -8167,6 +8172,10 @@ public:
              << "\"algorithm0\":" << static_cast<int>(currentAlgorithm[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
              << "\"algorithmFeedbackRegister0\":" << static_cast<int>(regs[0xb0]) << ","
+             << "\"operatorCarrier0\":" << operatorCarrier(0) << ","
+             << "\"operatorCarrier1\":" << operatorCarrier(1) << ","
+             << "\"operatorCarrier2\":" << operatorCarrier(2) << ","
+             << "\"operatorCarrier3\":" << operatorCarrier(3) << ","
              << "\"panBits0\":" << static_cast<int>(currentPanBits[0]) << ","
              << "\"panBits1\":" << static_cast<int>(currentPanBits[1]) << ","
              << "\"dacMode\":" << static_cast<int>(ym2612DacModeForPatch(patch)) << ","
@@ -9403,6 +9412,11 @@ public:
 
     std::string debugStateJson() const override
     {
+        const auto operatorCarrier = [this](size_t op)
+        {
+            return fmOperatorIsCarrierForAlgorithm(currentAlgorithm[0], op) ? 1 : 0;
+        };
+
         std::ostringstream json;
         json << "{"
              << "\"mode\":\"YM2151 arcade/X68000 FM\","
@@ -9419,6 +9433,10 @@ public:
              << "\"exposedChannelCount\":8,"
              << "\"algorithm0\":" << static_cast<int>(currentAlgorithm[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
+             << "\"operatorCarrier0\":" << operatorCarrier(0) << ","
+             << "\"operatorCarrier1\":" << operatorCarrier(1) << ","
+             << "\"operatorCarrier2\":" << operatorCarrier(2) << ","
+             << "\"operatorCarrier3\":" << operatorCarrier(3) << ","
              << "\"panBits0\":" << static_cast<int>(currentPanBits[0]) << ","
              << "\"panBits1\":" << static_cast<int>(currentPanBits[1]) << ","
              << "\"noiseRegister\":" << static_cast<int>(currentNoiseRegister) << ","
