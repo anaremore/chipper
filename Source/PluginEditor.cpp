@@ -6911,10 +6911,18 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
         chipper::parameters::id::source8Level,
         chipper::parameters::id::source9Level
     };
+    const std::array<const char*, 4> fmOperatorLevelIds {
+        chipper::parameters::id::fmOperator1Level,
+        chipper::parameters::id::fmOperator2Level,
+        chipper::parameters::id::fmOperator3Level,
+        chipper::parameters::id::fmOperator4Level
+    };
 
     const juce::ScopedValueSetter<bool> suppress(suppressMacroTemplateApply, true);
     for (size_t i = 0; i < ids.size(); ++i)
         setParameterValueFromUi(ids[i], templ.controls[i]);
+    for (const auto* id : fmOperatorLevelIds)
+        setParameterValueFromUi(id, 0.5f);
     for (size_t i = 0; i < sourceIds.size(); ++i)
     {
         const auto anyTemplateSourceEnabled = std::any_of(templ.sourceEnabled.begin(), templ.sourceEnabled.end(), [](bool value) { return value; });
@@ -7060,6 +7068,12 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
         chipper::parameters::id::source8Level,
         chipper::parameters::id::source9Level
     };
+    const std::array<const char*, 4> fmOperatorLevelIds {
+        chipper::parameters::id::fmOperator1Level,
+        chipper::parameters::id::fmOperator2Level,
+        chipper::parameters::id::fmOperator3Level,
+        chipper::parameters::id::fmOperator4Level
+    };
 
     const juce::ScopedValueSetter<bool> suppressMacro(suppressMacroTemplateApply, true);
     const juce::ScopedValueSetter<bool> applyingPreset(applyingFactoryPreset, true);
@@ -7072,6 +7086,9 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
 
     for (size_t i = 0; i < controlIds.size(); ++i)
         setParameterValueFromUi(controlIds[i], preset.controls[i]);
+    const auto fmOperatorLevels = chipper::fmOperatorLevelsForPreset(preset);
+    for (size_t i = 0; i < fmOperatorLevelIds.size(); ++i)
+        setParameterValueFromUi(fmOperatorLevelIds[i], fmOperatorLevels[i]);
 
     for (size_t i = 0; i < sourceIds.size(); ++i)
     {
@@ -7253,6 +7270,12 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::spc700Voice6SampleSlot))),
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::spc700Voice7SampleSlot))),
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::spc700Voice8SampleSlot)))
+        },
+        {
+            parameterValue(chipper::parameters::id::fmOperator1Level),
+            parameterValue(chipper::parameters::id::fmOperator2Level),
+            parameterValue(chipper::parameters::id::fmOperator3Level),
+            parameterValue(chipper::parameters::id::fmOperator4Level)
         });
 }
 

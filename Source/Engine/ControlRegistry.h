@@ -82,6 +82,10 @@ inline constexpr auto spc700Voice5SampleSlot = "spc700Voice5SampleSlot";
 inline constexpr auto spc700Voice6SampleSlot = "spc700Voice6SampleSlot";
 inline constexpr auto spc700Voice7SampleSlot = "spc700Voice7SampleSlot";
 inline constexpr auto spc700Voice8SampleSlot = "spc700Voice8SampleSlot";
+inline constexpr auto fmOperator1Level = "fmOperator1Level";
+inline constexpr auto fmOperator2Level = "fmOperator2Level";
+inline constexpr auto fmOperator3Level = "fmOperator3Level";
+inline constexpr auto fmOperator4Level = "fmOperator4Level";
 }
 
 struct MidiCcMapping
@@ -91,7 +95,7 @@ struct MidiCcMapping
     const char* label = nullptr;
 };
 
-inline constexpr auto midiCcMappingCount = 72u;
+inline constexpr auto midiCcMappingCount = 76u;
 using MidiCcMappingList = std::array<MidiCcMapping, midiCcMappingCount>;
 
 const MidiCcMappingList& midiCcMappings();

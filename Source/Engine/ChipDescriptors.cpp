@@ -687,6 +687,34 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
                    "Controls audible carrier level through native OPN2 total-level registers.",
                    ParameterKind::chipRegister,
                    0.70f),
+        sliderSpec(ChipParameterRole::fmOperator1Level,
+                   "ym2612.op1.level",
+                   "OP1 Level",
+                   "Operators",
+                   "Offsets the YM2612 operator 1 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator2Level,
+                   "ym2612.op2.level",
+                   "OP2 Level",
+                   "Operators",
+                   "Offsets the YM2612 operator 2 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator3Level,
+                   "ym2612.op3.level",
+                   "OP3 Level",
+                   "Operators",
+                   "Offsets the YM2612 operator 3 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator4Level,
+                   "ym2612.op4.level",
+                   "OP4 Level",
+                   "Operators",
+                   "Offsets the YM2612 operator 4 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
         { ChipParameterRole::waveShape,
           "ym2612.algorithm",
           "Algorithm",
@@ -787,6 +815,34 @@ std::vector<ChipParameterSpec> ym2151ParameterSpecs()
                    "Controls audible carrier level through native OPM total-level registers.",
                    ParameterKind::chipRegister,
                    0.72f),
+        sliderSpec(ChipParameterRole::fmOperator1Level,
+                   "ym2151.op1.level",
+                   "OP1 Level",
+                   "Operators",
+                   "Offsets the YM2151 operator 1 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator2Level,
+                   "ym2151.op2.level",
+                   "OP2 Level",
+                   "Operators",
+                   "Offsets the YM2151 operator 2 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator3Level,
+                   "ym2151.op3.level",
+                   "OP3 Level",
+                   "Operators",
+                   "Offsets the YM2151 operator 3 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator4Level,
+                   "ym2151.op4.level",
+                   "OP4 Level",
+                   "Operators",
+                   "Offsets the YM2151 operator 4 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
         { ChipParameterRole::waveShape,
           "ym2151.algorithm",
           "Algorithm",
@@ -2814,7 +2870,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             bool nesDmcOnly,
                             float spc700LoopStart,
                             float spc700LoopEnd,
-                            std::array<int, 8> spc700VoiceSampleSlots)
+                            std::array<int, 8> spc700VoiceSampleSlots,
+                            std::array<float, 4> fmOperatorLevels)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
@@ -2884,6 +2941,12 @@ PatchConfig makePatchConfig(ChipMode mode,
             std::clamp(spc700VoiceSampleSlots[5], 0, 32),
             std::clamp(spc700VoiceSampleSlots[6], 0, 32),
             std::clamp(spc700VoiceSampleSlots[7], 0, 32)
+        },
+        {
+            clampControl(fmOperatorLevels[0]),
+            clampControl(fmOperatorLevels[1]),
+            clampControl(fmOperatorLevels[2]),
+            clampControl(fmOperatorLevels[3])
         }
     };
 }
@@ -3879,6 +3942,14 @@ bool fmOperatorIsCarrierForAlgorithm(uint8_t algorithm, size_t op)
     return carriers[algorithm & 0x07u][std::min(op, size_t { 3u })];
 }
 
+uint8_t fmOperatorLevelAdjustedTotalLevel(const PatchConfig& patch, size_t op, int baseTotalLevel)
+{
+    const auto safeOp = std::min(op, size_t { 3u });
+    const auto level = clampControl(patch.fmOperatorLevels[safeOp]);
+    const auto trim = static_cast<int>(std::round((0.5f - level) * 48.0f));
+    return static_cast<uint8_t>(std::clamp(baseTotalLevel + trim, 0, 127));
+}
+
 uint8_t fmOperatorTotalLevelForPatch(ChipMode mode, const PatchConfig& patch, size_t op, float velocity)
 {
     const auto level = clampControl(velocity) * clampControl(patch.control4);
@@ -3886,12 +3957,12 @@ uint8_t fmOperatorTotalLevelForPatch(ChipMode mode, const PatchConfig& patch, si
     {
         const auto carrier = static_cast<int>(std::round((1.0f - level) * 24.0f));
         const auto modulator = static_cast<int>(std::round(16.0f + (1.0f - clampControl(patch.control3)) * 52.0f));
-        return static_cast<uint8_t>(std::clamp(fmOperatorIsCarrierForAlgorithm(ym2151AlgorithmForPatch(patch), op) ? carrier : modulator, 0, 127));
+        return fmOperatorLevelAdjustedTotalLevel(patch, op, fmOperatorIsCarrierForAlgorithm(ym2151AlgorithmForPatch(patch), op) ? carrier : modulator);
     }
 
     const auto carrier = static_cast<int>(std::round((1.0f - level) * 28.0f));
     const auto modulator = static_cast<int>(std::round(18.0f + (1.0f - clampControl(patch.control3)) * 40.0f));
-    return static_cast<uint8_t>(std::clamp(fmOperatorIsCarrierForAlgorithm(ym2612AlgorithmForPatch(patch), op) ? carrier : modulator, 0, 127));
+    return fmOperatorLevelAdjustedTotalLevel(patch, op, fmOperatorIsCarrierForAlgorithm(ym2612AlgorithmForPatch(patch), op) ? carrier : modulator);
 }
 
 uint8_t oplWaveformForPatch(const PatchConfig& patch)

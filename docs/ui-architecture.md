@@ -44,6 +44,8 @@ Use these contracts when deciding whether a UI change is ready to ship:
 
 Descriptor smoke tests are the fast guardrail for source-card ownership and truthful helper-envelope wording. When a visible source-card control is added or moved, update `ControlSurface::sourceCards`, APVTS/CC mapping, presets, renderer/debug metadata, and tests together. When a chip lacks native ADSR, its module copy must stay explicit about Chipper amp/gate helpers rather than borrowing NES decay or synth ADSR language.
 
+YM2612/OPN2 and YM2151/OPM now have four stable FM Operator Level trims in APVTS, MIDI CC, preset metadata, renderer flags, descriptor metadata, and debug JSON. The current UI can reflect their resolved total-level effect through Operator EG readouts; the next visual step is a deliberate operator-grid/editor surface that gives those trims a proper home without inventing unbacked FM controls.
+
 ## Stable Shell
 
 Every chip mode uses the same outer workflow, but the visible sections are unnumbered and may expand, merge, or hide according to the selected chip. The stable shell is:

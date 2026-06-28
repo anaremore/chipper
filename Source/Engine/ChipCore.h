@@ -106,6 +106,7 @@ struct PatchConfig
     float spc700LoopStart = 0.0f;
     float spc700LoopEnd = 1.0f;
     std::array<int, 8> spc700VoiceSampleSlots { 0, 0, 0, 0, 0, 0, 0, 0 };
+    std::array<float, 4> fmOperatorLevels { 0.5f, 0.5f, 0.5f, 0.5f };
 };
 
 struct StereoFrame

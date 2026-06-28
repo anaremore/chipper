@@ -8176,6 +8176,14 @@ public:
              << "\"operatorCarrier1\":" << operatorCarrier(1) << ","
              << "\"operatorCarrier2\":" << operatorCarrier(2) << ","
              << "\"operatorCarrier3\":" << operatorCarrier(3) << ","
+             << "\"fmOperatorLevel0\":" << patch.fmOperatorLevels[0] << ","
+             << "\"fmOperatorLevel1\":" << patch.fmOperatorLevels[1] << ","
+             << "\"fmOperatorLevel2\":" << patch.fmOperatorLevels[2] << ","
+             << "\"fmOperatorLevel3\":" << patch.fmOperatorLevels[3] << ","
+             << "\"operatorTotalLevel0\":" << static_cast<int>(regs[opRegForChannel(0x40, 0, 0)]) << ","
+             << "\"operatorTotalLevel1\":" << static_cast<int>(regs[opRegForChannel(0x40, 0, 1)]) << ","
+             << "\"operatorTotalLevel2\":" << static_cast<int>(regs[opRegForChannel(0x40, 0, 2)]) << ","
+             << "\"operatorTotalLevel3\":" << static_cast<int>(regs[opRegForChannel(0x40, 0, 3)]) << ","
              << "\"panBits0\":" << static_cast<int>(currentPanBits[0]) << ","
              << "\"panBits1\":" << static_cast<int>(currentPanBits[1]) << ","
              << "\"dacMode\":" << static_cast<int>(ym2612DacModeForPatch(patch)) << ","
@@ -8340,10 +8348,8 @@ private:
 
     uint8_t totalLevelForOperator(size_t op, float velocity, uint8_t algorithm) const
     {
-        const auto level = clamp01(velocity) * clamp01(patch.control4);
-        const auto carrierLevel = static_cast<int>(std::round((1.0 - level) * 28.0));
-        const auto modulatorLevel = static_cast<int>(std::round(18.0 + (1.0 - clamp01(patch.control3)) * 40.0));
-        return static_cast<uint8_t>(std::clamp(fmOperatorIsCarrierForAlgorithm(algorithm, op) ? carrierLevel : modulatorLevel, 0, 127));
+        (void) algorithm;
+        return fmOperatorTotalLevelForPatch(ChipMode::ym2612, patch, op, velocity);
     }
 
     bool channelEnabled(size_t channel) const
@@ -9437,6 +9443,14 @@ public:
              << "\"operatorCarrier1\":" << operatorCarrier(1) << ","
              << "\"operatorCarrier2\":" << operatorCarrier(2) << ","
              << "\"operatorCarrier3\":" << operatorCarrier(3) << ","
+             << "\"fmOperatorLevel0\":" << patch.fmOperatorLevels[0] << ","
+             << "\"fmOperatorLevel1\":" << patch.fmOperatorLevels[1] << ","
+             << "\"fmOperatorLevel2\":" << patch.fmOperatorLevels[2] << ","
+             << "\"fmOperatorLevel3\":" << patch.fmOperatorLevels[3] << ","
+             << "\"operatorTotalLevel0\":" << static_cast<int>(regs[static_cast<uint8_t>(0x60 + opOffset(0, 0))]) << ","
+             << "\"operatorTotalLevel1\":" << static_cast<int>(regs[static_cast<uint8_t>(0x60 + opOffset(0, 1))]) << ","
+             << "\"operatorTotalLevel2\":" << static_cast<int>(regs[static_cast<uint8_t>(0x60 + opOffset(0, 2))]) << ","
+             << "\"operatorTotalLevel3\":" << static_cast<int>(regs[static_cast<uint8_t>(0x60 + opOffset(0, 3))]) << ","
              << "\"panBits0\":" << static_cast<int>(currentPanBits[0]) << ","
              << "\"panBits1\":" << static_cast<int>(currentPanBits[1]) << ","
              << "\"noiseRegister\":" << static_cast<int>(currentNoiseRegister) << ","
@@ -9544,10 +9558,8 @@ private:
 
     uint8_t totalLevelForOperator(size_t op, float velocity, uint8_t algorithm) const
     {
-        const auto level = clamp01(velocity) * clamp01(patch.control4);
-        const auto carrier = static_cast<int>(std::round((1.0 - level) * 24.0));
-        const auto modulator = static_cast<int>(std::round(16.0 + (1.0 - clamp01(patch.control3)) * 52.0));
-        return static_cast<uint8_t>(std::clamp(fmOperatorIsCarrierForAlgorithm(algorithm, op) ? carrier : modulator, 0, 127));
+        (void) algorithm;
+        return fmOperatorTotalLevelForPatch(ChipMode::ym2151, patch, op, velocity);
     }
 
     void applyChannelPatch(size_t channel, float velocity)

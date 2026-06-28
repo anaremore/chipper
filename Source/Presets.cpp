@@ -4818,6 +4818,12 @@ const PresetInfo* presetById(std::string_view idOrName)
     return iter != presets.end() ? &*iter : nullptr;
 }
 
+std::array<float, 4> fmOperatorLevelsForPreset(const PresetInfo& preset)
+{
+    (void) preset;
+    return { 0.5f, 0.5f, 0.5f, 0.5f };
+}
+
 PatchConfig patchConfigForPreset(const PresetInfo& preset)
 {
     const auto anySourceEnabled = std::any_of(preset.sourceEnabled.begin(), preset.sourceEnabled.end(), [](bool enabled) { return enabled; });
@@ -4874,7 +4880,14 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                            preset.sidFilterRouting,
                            preset.controls[0],
                            preset.controls[0],
-                           preset.nesDmcDirectLevel);
+                           preset.nesDmcDirectLevel,
+                           15,
+                           false,
+                           false,
+                           0.0f,
+                           1.0f,
+                           { 0, 0, 0, 0, 0, 0, 0, 0 },
+                           fmOperatorLevelsForPreset(preset));
 }
 
 } // namespace chipper

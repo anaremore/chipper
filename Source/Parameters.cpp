@@ -282,6 +282,30 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
         0.5f));
 
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::fmOperator1Level, 1 },
+        "FM Operator 1 Level",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        0.5f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::fmOperator2Level, 1 },
+        "FM Operator 2 Level",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        0.5f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::fmOperator3Level, 1 },
+        "FM Operator 3 Level",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        0.5f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { id::fmOperator4Level, 1 },
+        "FM Operator 4 Level",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
+        0.5f));
+
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         juce::ParameterID { id::source1Enabled, 1 },
         "Source 1 Enabled",

@@ -77,7 +77,11 @@ const MidiCcMappingList& midiCcMappings()
         { 52, parameter_ids::spc700Voice5SampleSlot, "Sample Voice 5 Slot" },
         { 53, parameter_ids::spc700Voice6SampleSlot, "Sample Voice 6 Slot" },
         { 54, parameter_ids::spc700Voice7SampleSlot, "Sample Voice 7 Slot" },
-        { 55, parameter_ids::spc700Voice8SampleSlot, "Sample Voice 8 Slot" }
+        { 55, parameter_ids::spc700Voice8SampleSlot, "Sample Voice 8 Slot" },
+        { 40, parameter_ids::fmOperator1Level, "FM Operator 1 Level" },
+        { 41, parameter_ids::fmOperator2Level, "FM Operator 2 Level" },
+        { 42, parameter_ids::fmOperator3Level, "FM Operator 3 Level" },
+        { 43, parameter_ids::fmOperator4Level, "FM Operator 4 Level" }
     }};
 
     return mappings;
@@ -175,6 +179,10 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::spc700Voice6SampleSlot: return parameter_ids::spc700Voice6SampleSlot;
         case ChipParameterRole::spc700Voice7SampleSlot: return parameter_ids::spc700Voice7SampleSlot;
         case ChipParameterRole::spc700Voice8SampleSlot: return parameter_ids::spc700Voice8SampleSlot;
+        case ChipParameterRole::fmOperator1Level: return parameter_ids::fmOperator1Level;
+        case ChipParameterRole::fmOperator2Level: return parameter_ids::fmOperator2Level;
+        case ChipParameterRole::fmOperator3Level: return parameter_ids::fmOperator3Level;
+        case ChipParameterRole::fmOperator4Level: return parameter_ids::fmOperator4Level;
         case ChipParameterRole::clockHz: return parameter_ids::clockHz;
         case ChipParameterRole::outputDb: return parameter_ids::outputDb;
     }

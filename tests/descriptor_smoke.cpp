@@ -648,6 +648,10 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 0) == 38u, "YM2612 helper should resolve modulator total level");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 1) == 6u, "YM2612 algorithm 4 should treat operator 2 as a carrier");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 3) == 6u, "YM2612 helper should resolve carrier total level");
+    auto opn2Trimmed = opn2Lead;
+    opn2Trimmed.fmOperatorLevels = { 0.0f, 0.5f, 0.5f, 1.0f };
+    ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Trimmed, 0) == 62u, "YM2612 operator 1 level trim should attenuate total level around neutral");
+    ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Trimmed, 3) == 0u, "YM2612 operator 4 level trim should boost total level around neutral");
     ok &= expect(chipper::ym2612PanBitsForPatch(opn2Lead, 0) == 0xc0u, "YM2612 lead macro should resolve to centered pan bits");
     ok &= expect(chipper::ym2612DacModeForPatch(opn2Lead) == 1u, "YM2612 lead macro should keep channel 6 in FM mode");
     const auto opn2LeadModulatorEnvelope = chipper::ym2612EnvelopeRegistersForPatch(opn2Lead, 0);
@@ -667,6 +671,10 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2151, opmArp, 3) == 13u, "YM2151 helper should resolve operator 4 multiple");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2151, opmArp, 0) == 7u, "YM2151 algorithm 7 should treat operator 1 as a carrier");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2151, opmArp, 3) == 7u, "YM2151 helper should resolve carrier total level");
+    auto opmTrimmed = opmArp;
+    opmTrimmed.fmOperatorLevels = { 1.0f, 0.5f, 0.5f, 0.0f };
+    ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2151, opmTrimmed, 0) == 0u, "YM2151 operator 1 level trim should boost total level around neutral");
+    ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2151, opmTrimmed, 3) == 31u, "YM2151 operator 4 level trim should attenuate total level around neutral");
     const auto opmArpEnvelope = chipper::ym2612EnvelopeRegistersForPatch(opmArp, 0);
     ok &= expect(opmArpEnvelope.sustainRate == 0x00u, "YM2151 shared FM envelope helper should hold sustained arp notes");
 
@@ -1205,6 +1213,9 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source6Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "FM Ch 6");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "FM Ch 5 Level");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source6Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "FM Ch 6 Level");
+    ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::fmOperator1Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP1 Level");
+    ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::fmOperator4Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP4 Level");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2612, chipper::ChipParameterRole::fmOperator1Level, "Operators");
     ok &= expectMacroLabel(chipper::ChipMode::opl3, chipper::MacroKind::drum, "OPL2 Rhythm Kit");
     ok &= expectMacroLabel(chipper::ChipMode::spc700, chipper::MacroKind::drum, "SPC700 Drum Map");
     ok &= expectPreset(chipper::ChipMode::spc700, "spc700-stage-clear");
@@ -1307,6 +1318,9 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Feedback");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Operator Tone");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "FM Level");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::fmOperator1Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP1 Level");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::fmOperator4Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP4 Level");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2151, chipper::ChipParameterRole::fmOperator1Level, "Operators");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Envelope Shape");
     ok &= expectSpecGroup(chipper::ChipMode::ym2151, chipper::ChipParameterRole::ymEnvelopeShape, "Envelope");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Preset");

@@ -568,6 +568,14 @@ int main()
     sendController(processor, 77, 127);
     sendController(processor, 78, 0);
     sendController(processor, 79, 0);
+    sendController(processor, 40, 127);
+    sendController(processor, 41, 0);
+    sendController(processor, 42, 96);
+    sendController(processor, 43, 32);
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator1Level), 1.0f, 0.0001f,
+                     "CC40 should control FM Operator 1 Level");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator2Level), 0.0f, 0.0001f,
+                     "CC41 should control FM Operator 2 Level");
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 5));
 
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl1), 0.40f, 0.001f,
@@ -594,6 +602,14 @@ int main()
                      "CC74 NES Drum macro should keep DMG Stereo Routing at Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::stereoSpread), 0.0f, 0.0001f,
                      "CC74 NES Drum macro should reset stereo/spread role to the chip macro template");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator1Level), 0.5f, 0.0001f,
+                     "CC74 macro change should reset FM Operator 1 Level to neutral");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator2Level), 0.5f, 0.0001f,
+                     "CC74 macro change should reset FM Operator 2 Level to neutral");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator3Level), 0.5f, 0.0001f,
+                     "CC74 macro change should reset FM Operator 3 Level to neutral");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator4Level), 0.5f, 0.0001f,
+                     "CC74 macro change should reset FM Operator 4 Level to neutral");
 
     {
         ChipperAudioProcessor nesPulse2Processor;

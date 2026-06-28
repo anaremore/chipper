@@ -48,6 +48,8 @@ struct Options
     float control3 = 0.5f;
     float control4 = 0.5f;
     std::array<bool, 4> controlProvided {};
+    std::array<float, 4> fmOperatorLevels { 0.5f, 0.5f, 0.5f, 0.5f };
+    std::array<bool, 4> fmOperatorLevelProvided {};
     std::array<bool, 9> sourceEnabled { true, true, true, true, true, true, true, true, true };
     std::array<bool, 9> sourceProvided {};
     std::array<float, 9> sourceLevels { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
@@ -219,6 +221,35 @@ bool spc700VoiceSampleSlotIndexForArg(const std::string& arg, size_t& index)
 
     index = static_cast<size_t>(voice - 1u);
     return true;
+}
+
+bool fmOperatorLevelIndexForArg(const std::string& arg, size_t& index)
+{
+    const std::array<const char*, 3> prefixes {
+        "--fm-op",
+        "--opn2-op",
+        "--opm-op"
+    };
+
+    for (const auto* prefix : prefixes)
+    {
+        if (arg.rfind(prefix, 0) != 0)
+            continue;
+
+        const auto suffix = arg.substr(std::strlen(prefix));
+        const auto marker = suffix.find("-level");
+        if (marker == std::string::npos || marker == 0 || marker + std::strlen("-level") != suffix.size())
+            return false;
+
+        uint32_t op = 0;
+        if (! parseNumber(suffix.substr(0, marker), op) || op < 1u || op > 4u)
+            return false;
+
+        index = static_cast<size_t>(op - 1u);
+        return true;
+    }
+
+    return false;
 }
 
 bool parseWaveShape(const std::string& text, int& out)
@@ -1078,7 +1109,7 @@ void printUsage()
         << "       Metadata: chipper_render --list-presets [--chip sid] --debug presets.json\n"
         << "                 chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --spc700-brr-sample path.brr --spc700-brr-hex 017f... --spc700-brr-bank-hex 017f... --spc700-sample-slot 0..31 --spc700-sample-slot1..8 0..32 --spc700-map-root 60 --spc700-loop-start 0..1 --spc700-loop-end 0..1 --paula-sample path.wav|path.8svx|raw --paula-shape1..4 follow|ramp|tri|sine|noise --paula-sample-slot1..4 0..32 --spc700-envelope follow|pluck|lead|pad|perc --spc700-noise follow|off|low|mid|high --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --huc-wave1..6 follow|ramp|tri|square|noise --scc-wave1..5 follow|ramp|tri|pulse|steps --namco-wave1..8 follow|ramp|tri|pulse|steps --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --huc-lfo follow|off|light|deep|fast --pokey-audctl follow|off|1+2|3+4|both --pokey-filter follow|off|1<-3|2<-4|both --paula-output-filter follow|raw|a500|led|both --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opm-pan follow|both|left|right|alt --opm-noise follow|off|low|mid|high --opn2-envelope follow|pluck|lead|pad|perc --opm-envelope follow|pluck|lead|pad|perc --fm-envelope follow|pluck|lead|pad|perc --opn2-dac follow|fm|dac --opl-rhythm follow|melodic|rhythm --opll-rhythm follow|melodic|rhythm --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --fm-op1-level 0..1 --fm-op2-level 0..1 --fm-op3-level 0..1 --fm-op4-level 0..1 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --spc700-brr-sample path.brr --spc700-brr-hex 017f... --spc700-brr-bank-hex 017f... --spc700-sample-slot 0..31 --spc700-sample-slot1..8 0..32 --spc700-map-root 60 --spc700-loop-start 0..1 --spc700-loop-end 0..1 --paula-sample path.wav|path.8svx|raw --paula-shape1..4 follow|ramp|tri|sine|noise --paula-sample-slot1..4 0..32 --spc700-envelope follow|pluck|lead|pad|perc --spc700-noise follow|off|low|mid|high --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --huc-wave1..6 follow|ramp|tri|square|noise --scc-wave1..5 follow|ramp|tri|pulse|steps --namco-wave1..8 follow|ramp|tri|pulse|steps --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --huc-lfo follow|off|light|deep|fast --pokey-audctl follow|off|1+2|3+4|both --pokey-filter follow|off|1<-3|2<-4|both --paula-output-filter follow|raw|a500|led|both --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opm-pan follow|both|left|right|alt --opm-noise follow|off|low|mid|high --opn2-envelope follow|pluck|lead|pad|perc --opm-envelope follow|pluck|lead|pad|perc --fm-envelope follow|pluck|lead|pad|perc --opn2-dac follow|fm|dac --opl-rhythm follow|melodic|rhythm --opll-rhythm follow|melodic|rhythm --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -1098,7 +1129,9 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.control2 = preset.controls[1];
     options.control3 = preset.controls[2];
     options.control4 = preset.controls[3];
+    options.fmOperatorLevels = chipper::fmOperatorLevelsForPreset(preset);
     options.controlProvided = { true, true, true, true };
+    options.fmOperatorLevelProvided = { true, true, true, true };
     const auto anySourceEnabled = std::any_of(preset.sourceEnabled.begin(), preset.sourceEnabled.end(), [](bool enabled) { return enabled; });
     const auto nativeSourceCount = chipper::nativeSourceCountForMode(preset.chip);
     const auto useSource5 = anySourceEnabled && nativeSourceCount >= 5u;
@@ -1301,6 +1334,17 @@ bool parseArgs(int argc, char** argv, Options& options)
             if (value == nullptr || ! parseNumber(std::string(value), parsed))
                 return false;
             options.voiceSampleSlots[spc700SlotIndex] = std::clamp(parsed, 0, 32);
+            continue;
+        }
+
+        if (size_t fmOperatorIndex = 0; fmOperatorLevelIndexForArg(arg, fmOperatorIndex))
+        {
+            const auto* value = requireValue(arg.c_str());
+            float parsed = 0.0f;
+            if (value == nullptr || ! parseNumber(std::string(value), parsed))
+                return false;
+            options.fmOperatorLevels[fmOperatorIndex] = std::clamp(parsed, 0.0f, 1.0f);
+            options.fmOperatorLevelProvided[fmOperatorIndex] = true;
             continue;
         }
 
@@ -2132,6 +2176,8 @@ void applyMacroTemplateDefaults(Options& options)
     {
         if (! options.controlProvided[i])
             *controls[i] = templ.controls[i];
+        if (! options.fmOperatorLevelProvided[i])
+            options.fmOperatorLevels[i] = 0.5f;
         if (! options.sourceProvided[i])
             options.sourceEnabled[i] = templ.sourceEnabled[i];
         if (! options.sourceLevelProvided[i])
@@ -2861,6 +2907,18 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::nesDmcLoop: return "nesDmcLoop";
         case chipper::ChipParameterRole::spc700LoopStart: return "spc700LoopStart";
         case chipper::ChipParameterRole::spc700LoopEnd: return "spc700LoopEnd";
+        case chipper::ChipParameterRole::spc700Voice1SampleSlot: return "spc700Voice1SampleSlot";
+        case chipper::ChipParameterRole::spc700Voice2SampleSlot: return "spc700Voice2SampleSlot";
+        case chipper::ChipParameterRole::spc700Voice3SampleSlot: return "spc700Voice3SampleSlot";
+        case chipper::ChipParameterRole::spc700Voice4SampleSlot: return "spc700Voice4SampleSlot";
+        case chipper::ChipParameterRole::spc700Voice5SampleSlot: return "spc700Voice5SampleSlot";
+        case chipper::ChipParameterRole::spc700Voice6SampleSlot: return "spc700Voice6SampleSlot";
+        case chipper::ChipParameterRole::spc700Voice7SampleSlot: return "spc700Voice7SampleSlot";
+        case chipper::ChipParameterRole::spc700Voice8SampleSlot: return "spc700Voice8SampleSlot";
+        case chipper::ChipParameterRole::fmOperator1Level: return "fmOperator1Level";
+        case chipper::ChipParameterRole::fmOperator2Level: return "fmOperator2Level";
+        case chipper::ChipParameterRole::fmOperator3Level: return "fmOperator3Level";
+        case chipper::ChipParameterRole::fmOperator4Level: return "fmOperator4Level";
         case chipper::ChipParameterRole::clockHz: return "clockHz";
         case chipper::ChipParameterRole::outputDb: return "outputDb";
     }
@@ -3229,6 +3287,8 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
         if (wrotePreset)
             out << ",\n";
 
+        const auto fmOperatorLevels = chipper::fmOperatorLevelsForPreset(preset);
+
         out << "    {\n"
             << "      \"id\": ";
         writeJsonString(out, preset.id);
@@ -3270,6 +3330,10 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
             << preset.controls[1] << ", "
             << preset.controls[2] << ", "
             << preset.controls[3] << "],\n"
+            << "      \"fmOperatorLevels\": [" << fmOperatorLevels[0] << ", "
+            << fmOperatorLevels[1] << ", "
+            << fmOperatorLevels[2] << ", "
+            << fmOperatorLevels[3] << "],\n"
             << "      \"sourceEnabled\": ["
             << (preset.sourceEnabled[0] ? "true" : "false") << ", "
             << (preset.sourceEnabled[1] ? "true" : "false") << ", "
@@ -3411,6 +3475,10 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"outputGain\": " << decibelsToGain(options.outputDb) << ",\n"
         << "  \"stereoSpread\": " << patch.stereoSpread << ",\n"
         << "  \"sidFilterRouting\": " << patch.sidFilterRouting << ",\n"
+        << "  \"fmOperatorLevels\": [" << patch.fmOperatorLevels[0] << ", "
+        << patch.fmOperatorLevels[1] << ", "
+        << patch.fmOperatorLevels[2] << ", "
+        << patch.fmOperatorLevels[3] << "],\n"
         << "  \"sidVoice2PulseWidth\": " << patch.sidVoice2PulseWidth << ",\n"
         << "  \"sidVoice3PulseWidth\": " << patch.sidVoice3PulseWidth << ",\n"
         << "  \"pulse2Duty\": " << patch.pulse2Duty << ",\n"
@@ -3565,7 +3633,8 @@ int main(int argc, char** argv)
                                                     options.nesDmcOnly,
                                                     options.spc700LoopStart,
                                                     options.spc700LoopEnd,
-                                                    options.voiceSampleSlots);
+                                                    options.voiceSampleSlots,
+                                                    options.fmOperatorLevels);
         core->setPatch(patch);
         const auto events = loadEvents(options.eventFile);
         const auto registerWriteCount = static_cast<size_t>(std::count_if(events.begin(), events.end(), [](const auto& event) { return event.type == EventType::write; }));
