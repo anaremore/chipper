@@ -3684,6 +3684,24 @@ const std::vector<PresetInfo>& presetCatalog()
             -11.0f,
             3579545.0
         },
+        {
+            "sn-periodic-alarm",
+            "Classic Game SFX",
+            "PSG Periodic Alarm",
+            "SN76489 periodic-noise alarm pulse with two bright tone lanes.",
+            ChipMode::sn76489,
+            AccuracyMode::hybrid,
+            MacroKind::jump,
+            PlayMode::stack,
+            { 0.62f, 0.78f, 0.36f, 0.74f },
+            { true, true, false, true },
+            0.0f,
+            0,
+            0,
+            2,
+            -11.0f,
+            3579545.0
+        },
         withSourceLevels(
             {
                 "sn-periodic-bass-click",
