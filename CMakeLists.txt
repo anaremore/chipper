@@ -705,6 +705,14 @@ if (Python3_EXECUTABLE)
         COMMAND chipper_render --chip paula --accuracy authentic --macro lead --paula-sample ${CMAKE_CURRENT_BINARY_DIR}/generated-paula-sample.8svx --source1 1 --source2 0 --source3 0 --source4 0 --clock 3546895 --rate 48000 --seconds 0.06 --note 60 --out paula-8svx-sample-smoke.wav --debug paula-8svx-sample-smoke.json
     )
     set_tests_properties(chipper_render_paula_8svx_sample_smoke PROPERTIES DEPENDS chipper_generate_paula_8svx_fixture FIXTURES_REQUIRED paula_8svx_fixture)
+    add_test(NAME chipper_generate_paula_wav_smpl_fixture
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/write_binary_fixture.py ${CMAKE_CURRENT_BINARY_DIR}/generated-paula-sample-loop.wav "52 49 46 46 78 00 00 00 57 41 56 45 66 6d 74 20 10 00 00 00 01 00 01 00 40 1f 00 00 40 1f 00 00 01 00 08 00 64 61 74 61 10 00 00 00 80 90 a0 b0 c0 d0 e0 f0 70 60 50 40 30 20 10 00 73 6d 70 6c 3c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 3c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 04 00 00 00 0b 00 00 00 00 00 00 00 00 00 00 00"
+    )
+    set_tests_properties(chipper_generate_paula_wav_smpl_fixture PROPERTIES FIXTURES_SETUP paula_wav_smpl_fixture)
+    add_test(NAME chipper_render_paula_wav_smpl_sample_smoke
+        COMMAND chipper_render --chip paula --accuracy authentic --macro lead --paula-sample ${CMAKE_CURRENT_BINARY_DIR}/generated-paula-sample-loop.wav --source1 1 --source2 0 --source3 0 --source4 0 --clock 3546895 --rate 48000 --seconds 0.06 --note 60 --out paula-wav-smpl-sample-smoke.wav --debug paula-wav-smpl-sample-smoke.json
+    )
+    set_tests_properties(chipper_render_paula_wav_smpl_sample_smoke PROPERTIES DEPENDS chipper_generate_paula_wav_smpl_fixture FIXTURES_REQUIRED paula_wav_smpl_fixture)
 endif()
 add_test(NAME chipper_render_huc6280_smoke
     COMMAND chipper_render --chip huc6280 --accuracy authentic --macro lead --wave-shape 1 --clock 3579545 --rate 48000 --seconds 0.05 --note 64 --out huc6280-smoke.wav --debug huc6280-smoke.json
@@ -1508,6 +1516,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/paula-8svx-sample-smoke.json --implemented-contains partial --macro Lead --min-peak 0.01 --register-writes 0 --note-events 0 --core-min externalSampleLoaded=1 --core-max externalSampleLoaded=1 --core-min externalSampleBankCount=1 --core-max externalSampleBankCount=1 --core-min externalSampleSlot=0 --core-max externalSampleSlot=0 --core-min sampleLength0=16 --core-max sampleLength0=16
     )
     set_tests_properties(chipper_render_paula_8svx_sample_assert PROPERTIES DEPENDS chipper_render_paula_8svx_sample_smoke)
+
+    add_test(NAME chipper_render_paula_wav_smpl_sample_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/paula-wav-smpl-sample-smoke.json --implemented-contains partial --macro Lead --min-peak 0.01 --register-writes 0 --note-events 0 --core-min externalSampleLoaded=1 --core-max externalSampleLoaded=1 --core-min externalSampleBankCount=1 --core-max externalSampleBankCount=1 --core-min externalSampleSlot=0 --core-max externalSampleSlot=0 --core-min sampleLength0=16 --core-max sampleLength0=16 --core-min sampleLoopStart0=4 --core-max sampleLoopStart0=4 --core-min sampleLoopEnd0=12 --core-max sampleLoopEnd0=12 --core-min externalSampleLoopMetadataSelected=1 --core-max externalSampleLoopMetadataSelected=1 --core-min externalSampleLoopStartSelected=4 --core-max externalSampleLoopStartSelected=4 --core-min externalSampleLoopEndSelected=12 --core-max externalSampleLoopEndSelected=12
+    )
+    set_tests_properties(chipper_render_paula_wav_smpl_sample_assert PROPERTIES DEPENDS chipper_render_paula_wav_smpl_sample_smoke)
 
     add_test(NAME chipper_render_paula_noise_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/paula-noise-smoke.json --implemented-contains partial --macro Drum --min-peak 0.02 --register-writes 0 --note-events 0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min waveShapeChoice=4 --core-max waveShapeChoice=4 --core-min internalChannelCount=4 --core-max internalChannelCount=4

@@ -396,12 +396,74 @@ uint16_t readBigEndian16(const uint8_t* data)
     return static_cast<uint16_t>((static_cast<uint16_t>(data[0]) << 8u) | static_cast<uint16_t>(data[1]));
 }
 
+uint32_t readLittleEndian32(const uint8_t* data)
+{
+    return static_cast<uint32_t>(data[0])
+        | (static_cast<uint32_t>(data[1]) << 8u)
+        | (static_cast<uint32_t>(data[2]) << 16u)
+        | (static_cast<uint32_t>(data[3]) << 24u);
+}
+
 uint32_t readBigEndian32(const uint8_t* data)
 {
     return (static_cast<uint32_t>(data[0]) << 24u)
         | (static_cast<uint32_t>(data[1]) << 16u)
         | (static_cast<uint32_t>(data[2]) << 8u)
         | static_cast<uint32_t>(data[3]);
+}
+
+bool readWavSmplLoopMetadata(const juce::File& file, size_t sampleCount, size_t& loopStart, size_t& loopEnd)
+{
+    loopStart = 0u;
+    loopEnd = 0u;
+    if (sampleCount <= 1u || ! file.hasFileExtension(".wav"))
+        return false;
+
+    juce::MemoryBlock block;
+    if (! file.loadFileAsData(block))
+        return false;
+
+    const auto* bytes = static_cast<const uint8_t*>(block.getData());
+    const auto size = block.getSize();
+    if (size < 12u || std::memcmp(bytes, "RIFF", 4u) != 0 || std::memcmp(bytes + 8u, "WAVE", 4u) != 0)
+        return false;
+
+    auto offset = static_cast<size_t>(12u);
+    while (offset + 8u <= size)
+    {
+        const auto* chunkId = bytes + offset;
+        const auto chunkSize = static_cast<size_t>(readLittleEndian32(bytes + offset + 4u));
+        const auto chunkDataOffset = offset + 8u;
+        if (chunkDataOffset + chunkSize > size)
+            return false;
+
+        if (std::memcmp(chunkId, "smpl", 4u) == 0)
+        {
+            if (chunkSize < 36u)
+                return false;
+
+            const auto loopCount = readLittleEndian32(bytes + chunkDataOffset + 28u);
+            auto loopOffset = chunkDataOffset + 36u;
+            for (uint32_t i = 0; i < loopCount && loopOffset + 24u <= chunkDataOffset + chunkSize; ++i, loopOffset += 24u)
+            {
+                const auto type = readLittleEndian32(bytes + loopOffset + 4u);
+                const auto start = static_cast<size_t>(readLittleEndian32(bytes + loopOffset + 8u));
+                const auto inclusiveEnd = static_cast<size_t>(readLittleEndian32(bytes + loopOffset + 12u));
+                if (type == 0u && start < inclusiveEnd && start < sampleCount)
+                {
+                    loopStart = std::min(start, sampleCount - 1u);
+                    loopEnd = std::min(sampleCount, inclusiveEnd + 1u);
+                    return loopEnd > loopStart + 1u;
+                }
+            }
+
+            return false;
+        }
+
+        offset = chunkDataOffset + chunkSize + (chunkSize & 1u);
+    }
+
+    return false;
 }
 
 juce::File resolvePresetSamplePath(const juce::XmlElement& sampleState, const juce::File& presetDirectory)
@@ -484,6 +546,15 @@ juce::Result readPcm8SampleFile(const juce::File& file,
 
     if (slot.bytes.empty())
         return juce::Result::fail(label + " sample import produced no usable sample bytes: " + file.getFileName());
+
+    size_t loopStart = 0u;
+    size_t loopEnd = 0u;
+    if (readWavSmplLoopMetadata(file, slot.bytes.size(), loopStart, loopEnd))
+    {
+        slot.hasLoop = true;
+        slot.loopStart = loopStart;
+        slot.loopEnd = loopEnd;
+    }
 
     return juce::Result::ok();
 }

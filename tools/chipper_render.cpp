@@ -1064,7 +1064,7 @@ void printUsage()
         << "       Metadata: chipper_render --list-presets [--chip sid] --debug presets.json\n"
         << "                 chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --spc700-brr-sample path.brr --spc700-brr-hex 017f... --spc700-brr-bank-hex 017f... --spc700-sample-slot 0..31 --spc700-map-root 60 --spc700-loop-start 0..1 --spc700-loop-end 0..1 --paula-sample path.8svx|raw --paula-shape1..4 follow|ramp|tri|sine|noise --paula-sample-slot1..4 0..32 --spc700-envelope follow|pluck|lead|pad|perc --spc700-noise follow|off|low|mid|high --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --huc-wave1..6 follow|ramp|tri|square|noise --scc-wave1..5 follow|ramp|tri|pulse|steps --namco-wave1..8 follow|ramp|tri|pulse|steps --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --huc-lfo follow|off|light|deep|fast --pokey-audctl follow|off|1+2|3+4|both --pokey-filter follow|off|1<-3|2<-4|both --paula-output-filter follow|raw|a500|led|both --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opm-pan follow|both|left|right|alt --opm-noise follow|off|low|mid|high --opn2-envelope follow|pluck|lead|pad|perc --opm-envelope follow|pluck|lead|pad|perc --fm-envelope follow|pluck|lead|pad|perc --opn2-dac follow|fm|dac --opl-rhythm follow|melodic|rhythm --opll-rhythm follow|melodic|rhythm --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --spc700-brr-sample path.brr --spc700-brr-hex 017f... --spc700-brr-bank-hex 017f... --spc700-sample-slot 0..31 --spc700-map-root 60 --spc700-loop-start 0..1 --spc700-loop-end 0..1 --paula-sample path.wav|path.8svx|raw --paula-shape1..4 follow|ramp|tri|sine|noise --paula-sample-slot1..4 0..32 --spc700-envelope follow|pluck|lead|pad|perc --spc700-noise follow|off|low|mid|high --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --huc-wave1..6 follow|ramp|tri|square|noise --scc-wave1..5 follow|ramp|tri|pulse|steps --namco-wave1..8 follow|ramp|tri|pulse|steps --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --huc-lfo follow|off|light|deep|fast --pokey-audctl follow|off|1+2|3+4|both --pokey-filter follow|off|1<-3|2<-4|both --paula-output-filter follow|raw|a500|led|both --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opm-pan follow|both|left|right|alt --opm-noise follow|off|low|mid|high --opn2-envelope follow|pluck|lead|pad|perc --opm-envelope follow|pluck|lead|pad|perc --fm-envelope follow|pluck|lead|pad|perc --opn2-dac follow|fm|dac --opl-rhythm follow|melodic|rhythm --opll-rhythm follow|melodic|rhythm --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -2305,6 +2305,19 @@ uint16_t readBigEndian16(const uint8_t* data)
     return static_cast<uint16_t>((static_cast<uint16_t>(data[0]) << 8u) | static_cast<uint16_t>(data[1]));
 }
 
+uint16_t readLittleEndian16(const uint8_t* data)
+{
+    return static_cast<uint16_t>(static_cast<uint16_t>(data[0]) | (static_cast<uint16_t>(data[1]) << 8u));
+}
+
+uint32_t readLittleEndian32(const uint8_t* data)
+{
+    return static_cast<uint32_t>(data[0])
+        | (static_cast<uint32_t>(data[1]) << 8u)
+        | (static_cast<uint32_t>(data[2]) << 16u)
+        | (static_cast<uint32_t>(data[3]) << 24u);
+}
+
 uint32_t readBigEndian32(const uint8_t* data)
 {
     return (static_cast<uint32_t>(data[0]) << 24u)
@@ -2322,11 +2335,181 @@ std::vector<uint8_t> signedPcm8ToPaulaBytes(const uint8_t* data, size_t size)
     return converted;
 }
 
-std::vector<uint8_t> loadPaulaSampleFile(const std::filesystem::path& path)
+bool readWavSmplLoopMetadata(const std::vector<uint8_t>& data, size_t sampleCount, size_t& loopStart, size_t& loopEnd)
+{
+    loopStart = 0u;
+    loopEnd = 0u;
+    if (sampleCount <= 1u || data.size() < 12u || std::memcmp(data.data(), "RIFF", 4u) != 0 || std::memcmp(data.data() + 8u, "WAVE", 4u) != 0)
+        return false;
+
+    auto offset = static_cast<size_t>(12u);
+    while (offset + 8u <= data.size())
+    {
+        const auto* chunkId = data.data() + offset;
+        const auto chunkSize = static_cast<size_t>(readLittleEndian32(data.data() + offset + 4u));
+        const auto chunkDataOffset = offset + 8u;
+        if (chunkDataOffset + chunkSize > data.size())
+            return false;
+
+        if (std::memcmp(chunkId, "smpl", 4u) == 0)
+        {
+            if (chunkSize < 36u)
+                return false;
+
+            const auto loopCount = readLittleEndian32(data.data() + chunkDataOffset + 28u);
+            auto loopOffset = chunkDataOffset + 36u;
+            for (uint32_t i = 0; i < loopCount && loopOffset + 24u <= chunkDataOffset + chunkSize; ++i, loopOffset += 24u)
+            {
+                const auto type = readLittleEndian32(data.data() + loopOffset + 4u);
+                const auto start = static_cast<size_t>(readLittleEndian32(data.data() + loopOffset + 8u));
+                const auto inclusiveEnd = static_cast<size_t>(readLittleEndian32(data.data() + loopOffset + 12u));
+                if (type == 0u && start < inclusiveEnd && start < sampleCount)
+                {
+                    loopStart = std::min(start, sampleCount - 1u);
+                    loopEnd = std::min(sampleCount, inclusiveEnd + 1u);
+                    return loopEnd > loopStart + 1u;
+                }
+            }
+
+            return false;
+        }
+
+        offset = chunkDataOffset + chunkSize + (chunkSize & 1u);
+    }
+
+    return false;
+}
+
+struct WavPcmFormat
+{
+    uint16_t audioFormat = 0;
+    uint16_t channels = 0;
+    uint16_t blockAlign = 0;
+    uint16_t bitsPerSample = 0;
+};
+
+int32_t readSignedLittleEndian24(const uint8_t* data)
+{
+    auto value = static_cast<int32_t>(data[0])
+        | (static_cast<int32_t>(data[1]) << 8)
+        | (static_cast<int32_t>(data[2]) << 16);
+    if ((value & 0x00800000) != 0)
+        value |= static_cast<int32_t>(0xff000000);
+    return value;
+}
+
+double readWavSampleAsNormalizedDouble(const uint8_t* frame, uint16_t bitsPerSample, uint16_t audioFormat)
+{
+    if (audioFormat == 1u)
+    {
+        if (bitsPerSample == 8u)
+            return (static_cast<double>(frame[0]) - 128.0) / 128.0;
+        if (bitsPerSample == 16u)
+            return static_cast<double>(static_cast<int16_t>(readLittleEndian16(frame))) / 32768.0;
+        if (bitsPerSample == 24u)
+            return static_cast<double>(readSignedLittleEndian24(frame)) / 8388608.0;
+        if (bitsPerSample == 32u)
+            return static_cast<double>(static_cast<int32_t>(readLittleEndian32(frame))) / 2147483648.0;
+    }
+    else if (audioFormat == 3u && bitsPerSample == 32u)
+    {
+        float value = 0.0f;
+        std::memcpy(&value, frame, sizeof(value));
+        return static_cast<double>(value);
+    }
+
+    throw std::runtime_error("Paula WAV renderer import supports PCM 8/16/24/32-bit and float 32-bit files");
+}
+
+chipper::ExternalSampleData loadWavPaulaSampleFile(const std::filesystem::path& path, const std::vector<uint8_t>& data)
+{
+    if (data.size() < 12u || std::memcmp(data.data(), "RIFF", 4u) != 0 || std::memcmp(data.data() + 8u, "WAVE", 4u) != 0)
+        throw std::runtime_error("Paula WAV file is not a RIFF/WAVE file: " + path.string());
+
+    WavPcmFormat format;
+    const uint8_t* pcmData = nullptr;
+    size_t pcmDataSize = 0u;
+    auto offset = static_cast<size_t>(12u);
+    while (offset + 8u <= data.size())
+    {
+        const auto* chunkId = data.data() + offset;
+        const auto chunkSize = static_cast<size_t>(readLittleEndian32(data.data() + offset + 4u));
+        const auto chunkDataOffset = offset + 8u;
+        if (chunkDataOffset + chunkSize > data.size())
+            throw std::runtime_error("Paula WAV chunk extends past end of file: " + path.string());
+
+        if (std::memcmp(chunkId, "fmt ", 4u) == 0)
+        {
+            if (chunkSize < 16u)
+                throw std::runtime_error("Paula WAV fmt chunk is too short: " + path.string());
+
+            format.audioFormat = readLittleEndian16(data.data() + chunkDataOffset);
+            format.channels = readLittleEndian16(data.data() + chunkDataOffset + 2u);
+            format.blockAlign = readLittleEndian16(data.data() + chunkDataOffset + 12u);
+            format.bitsPerSample = readLittleEndian16(data.data() + chunkDataOffset + 14u);
+        }
+        else if (std::memcmp(chunkId, "data", 4u) == 0)
+        {
+            pcmData = data.data() + chunkDataOffset;
+            pcmDataSize = chunkSize;
+        }
+
+        offset = chunkDataOffset + chunkSize + (chunkSize & 1u);
+    }
+
+    if (format.channels == 0u || format.blockAlign == 0u || format.bitsPerSample == 0u)
+        throw std::runtime_error("Paula WAV file is missing usable fmt metadata: " + path.string());
+
+    if (pcmData == nullptr || pcmDataSize == 0u)
+        throw std::runtime_error("Paula WAV file has no sample data: " + path.string());
+
+    const auto bytesPerSample = static_cast<size_t>((format.bitsPerSample + 7u) / 8u);
+    const auto minimumBlockAlign = bytesPerSample * static_cast<size_t>(format.channels);
+    if (bytesPerSample == 0u || format.blockAlign < minimumBlockAlign)
+        throw std::runtime_error("Paula WAV block alignment is invalid: " + path.string());
+
+    constexpr size_t maxImportedSamples = 262144u;
+    const auto frameCount = std::min(pcmDataSize / format.blockAlign, maxImportedSamples);
+    chipper::ExternalSampleData sample;
+    sample.encoding = chipper::ExternalSampleEncoding::signedPcm8;
+    sample.bytes.resize(frameCount);
+
+    for (size_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
+    {
+        const auto* frame = pcmData + frameIndex * format.blockAlign;
+        auto mixed = 0.0;
+        for (uint16_t channel = 0; channel < format.channels; ++channel)
+            mixed += readWavSampleAsNormalizedDouble(frame + static_cast<size_t>(channel) * bytesPerSample,
+                                                     format.bitsPerSample,
+                                                     format.audioFormat);
+
+        mixed /= static_cast<double>(format.channels);
+        const auto quantized = std::clamp(static_cast<int>(std::round(std::clamp(mixed, -1.0, 1.0) * 127.0)), -128, 127);
+        sample.bytes[frameIndex] = static_cast<uint8_t>(quantized + 128);
+    }
+
+    size_t loopStart = 0u;
+    size_t loopEnd = 0u;
+    if (readWavSmplLoopMetadata(data, sample.bytes.size(), loopStart, loopEnd))
+    {
+        sample.hasLoop = true;
+        sample.loopStart = loopStart;
+        sample.loopEnd = loopEnd;
+    }
+
+    return sample;
+}
+
+chipper::ExternalSampleData loadPaulaSampleFile(const std::filesystem::path& path)
 {
     auto data = loadBinaryFile(path);
+    chipper::ExternalSampleData sample;
+    sample.encoding = chipper::ExternalSampleEncoding::signedPcm8;
     if (data.empty())
-        return {};
+        return sample;
+
+    if (data.size() >= 12u && std::memcmp(data.data(), "RIFF", 4u) == 0 && std::memcmp(data.data() + 8u, "WAVE", 4u) == 0)
+        return loadWavPaulaSampleFile(path, data);
 
     if (data.size() >= 12u && std::memcmp(data.data(), "FORM", 4u) == 0 && std::memcmp(data.data() + 8u, "8SVX", 4u) == 0)
     {
@@ -2335,6 +2518,8 @@ std::vector<uint8_t> loadPaulaSampleFile(const std::filesystem::path& path)
         auto offset = static_cast<size_t>(12u);
         bool sawVhdr = false;
         bool isCompressed = false;
+        uint32_t oneShotSamples = 0;
+        uint32_t repeatSamples = 0;
         const uint8_t* body = nullptr;
         size_t bodySize = 0u;
 
@@ -2352,6 +2537,8 @@ std::vector<uint8_t> loadPaulaSampleFile(const std::filesystem::path& path)
                     throw std::runtime_error("Paula 8SVX VHDR chunk is too short: " + path.string());
 
                 sawVhdr = true;
+                oneShotSamples = readBigEndian32(data.data() + chunkDataOffset);
+                repeatSamples = readBigEndian32(data.data() + chunkDataOffset + 4u);
                 const auto sampleRate = readBigEndian16(data.data() + chunkDataOffset + 12u);
                 const auto compression = data[chunkDataOffset + 15u];
                 if (sampleRate == 0u)
@@ -2377,10 +2564,21 @@ std::vector<uint8_t> loadPaulaSampleFile(const std::filesystem::path& path)
         if (body == nullptr || bodySize == 0u)
             throw std::runtime_error("Paula 8SVX file has no BODY sample data: " + path.string());
 
-        return signedPcm8ToPaulaBytes(body, bodySize);
+        sample.bytes = signedPcm8ToPaulaBytes(body, bodySize);
+        const auto sampleCount = sample.bytes.size();
+        if (repeatSamples > 1u && oneShotSamples < sampleCount)
+        {
+            sample.hasLoop = true;
+            sample.loopStart = static_cast<size_t>(std::min<uint32_t>(oneShotSamples, static_cast<uint32_t>(sampleCount - 1u)));
+            sample.loopEnd = std::min(sampleCount, static_cast<size_t>(oneShotSamples) + static_cast<size_t>(repeatSamples));
+            if (sample.loopEnd <= sample.loopStart + 1u)
+                sample.hasLoop = false;
+        }
+        return sample;
     }
 
-    return signedPcm8ToPaulaBytes(data.data(), data.size());
+    sample.bytes = signedPcm8ToPaulaBytes(data.data(), data.size());
+    return sample;
 }
 
 std::vector<uint8_t> parseHexBytes(std::string text)
@@ -3275,7 +3473,11 @@ int main(int argc, char** argv)
         if (! options.nesDmcSamplePath.empty())
             core->setExternalSampleData(loadBinaryFile(options.nesDmcSamplePath));
         if (! options.paulaSamplePath.empty())
-            core->setExternalSampleData(loadPaulaSampleFile(options.paulaSamplePath));
+        {
+            std::vector<chipper::ExternalSampleData> bank;
+            bank.push_back(loadPaulaSampleFile(options.paulaSamplePath));
+            core->setExternalSampleBank(std::move(bank), 0);
+        }
         if (! options.spc700BrrBankHex.empty())
         {
             std::vector<std::vector<uint8_t>> bank;

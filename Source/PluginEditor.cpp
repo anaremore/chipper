@@ -11328,7 +11328,7 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
             + "; notes outside this span are silent.";
     if (info.loaded)
         tooltip += "\nPath: " + info.path;
-    tooltip += "\nCompressed 8SVX, MOD import, loop metadata, and exact Paula DMA timing remain planned.";
+    tooltip += "\nWAV smpl and uncompressed 8SVX loop metadata are imported when present. Compressed 8SVX, MOD import, AIFF loop metadata, and exact Paula DMA timing remain planned.";
     dmcSampleStatusLabel.setTooltip(withMidiCcForRole(tooltip, chipper::ChipParameterRole::nesDmcSampleSlot));
     updateSampleWaveformPreview(chipper::ChipMode::paula);
 }

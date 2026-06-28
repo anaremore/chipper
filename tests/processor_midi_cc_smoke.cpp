@@ -258,6 +258,64 @@ bool writeWavFixture(const juce::File& file, float frequency)
     return false;
 }
 
+void appendLittleEndian32(std::vector<uint8_t>& bytes, uint32_t value)
+{
+    bytes.push_back(static_cast<uint8_t>(value & 0xffu));
+    bytes.push_back(static_cast<uint8_t>((value >> 8u) & 0xffu));
+    bytes.push_back(static_cast<uint8_t>((value >> 16u) & 0xffu));
+    bytes.push_back(static_cast<uint8_t>((value >> 24u) & 0xffu));
+}
+
+bool writeLoopedWavFixture(const juce::File& file, float frequency, uint32_t loopStart, uint32_t loopEndExclusive)
+{
+    if (! writeWavFixture(file, frequency))
+        return false;
+
+    juce::MemoryBlock block;
+    if (! file.loadFileAsData(block) || block.getSize() < 12u)
+        return false;
+
+    std::vector<uint8_t> data(static_cast<const uint8_t*>(block.getData()),
+                              static_cast<const uint8_t*>(block.getData()) + block.getSize());
+    if (std::memcmp(data.data(), "RIFF", 4u) != 0 || std::memcmp(data.data() + 8u, "WAVE", 4u) != 0)
+        return false;
+
+    const auto loopEndInclusive = loopEndExclusive > 0u ? loopEndExclusive - 1u : 0u;
+    const auto appendText = [](std::vector<uint8_t>& bytes, const char* text)
+    {
+        while (*text != '\0')
+            bytes.push_back(static_cast<uint8_t>(*text++));
+    };
+
+    std::vector<uint8_t> smpl;
+    smpl.reserve(8u + 36u + 24u);
+    appendText(smpl, "smpl");
+    appendLittleEndian32(smpl, 36u + 24u);
+    appendLittleEndian32(smpl, 0u);
+    appendLittleEndian32(smpl, 0u);
+    appendLittleEndian32(smpl, 0u);
+    appendLittleEndian32(smpl, 60u);
+    appendLittleEndian32(smpl, 0u);
+    appendLittleEndian32(smpl, 0u);
+    appendLittleEndian32(smpl, 0u);
+    appendLittleEndian32(smpl, 1u);
+    appendLittleEndian32(smpl, 0u);
+    appendLittleEndian32(smpl, 1u);
+    appendLittleEndian32(smpl, 0u);
+    appendLittleEndian32(smpl, loopStart);
+    appendLittleEndian32(smpl, loopEndInclusive);
+    appendLittleEndian32(smpl, 0u);
+    appendLittleEndian32(smpl, 0u);
+    data.insert(data.end(), smpl.begin(), smpl.end());
+
+    const auto riffSize = static_cast<uint32_t>(data.size() - 8u);
+    data[4] = static_cast<uint8_t>(riffSize & 0xffu);
+    data[5] = static_cast<uint8_t>((riffSize >> 8u) & 0xffu);
+    data[6] = static_cast<uint8_t>((riffSize >> 16u) & 0xffu);
+    data[7] = static_cast<uint8_t>((riffSize >> 24u) & 0xffu);
+    return file.replaceWithData(data.data(), data.size());
+}
+
 void appendBigEndian16(std::vector<uint8_t>& bytes, uint16_t value)
 {
     bytes.push_back(static_cast<uint8_t>((value >> 8u) & 0xffu));
@@ -1177,7 +1235,10 @@ int main()
     for (int i = 0; i < 4; ++i)
     {
         const auto name = "paula-" + juce::String(i).paddedLeft('0', 2) + ".wav";
-        ok &= expect(writeWavFixture(paulaDir.getChildFile(name), 220.0f + static_cast<float>(i) * 55.0f),
+        const auto wroteFixture = i == 3
+            ? writeLoopedWavFixture(paulaDir.getChildFile(name), 220.0f + static_cast<float>(i) * 55.0f, 32u, 160u)
+            : writeWavFixture(paulaDir.getChildFile(name), 220.0f + static_cast<float>(i) * 55.0f);
+        ok &= expect(wroteFixture,
                      "Should write temporary Paula WAV fixture " + name.toStdString());
     }
     ok &= expect(write8svxFixture(paulaDir.getChildFile("zz-paula-native.8svx"), 0x20u, 64u, 128u),
@@ -1203,8 +1264,23 @@ int main()
     auto paulaInfo = processor.paulaSampleInfo();
     ok &= expect(paulaInfo.loaded && paulaInfo.sampleName == "paula-03.wav" && paulaInfo.byteCount == 256,
                  "CC117 should select the active Paula sample bank slot");
+    ok &= expect(paulaInfo.hasLoop && paulaInfo.loopStartSample == 32 && paulaInfo.loopEndSample == 160
+                     && paulaInfo.statusLine.contains("Loop 32-160"),
+                 "Paula WAV import should expose smpl loop metadata in status");
     ok &= expect(paulaInfo.statusLine.contains("8-bit samples"),
                  "Paula status should report imported 8-bit sample count");
+    const auto paulaWavLoopPreview = processor.sampleWaveformSnapshot(chipper::ChipMode::paula);
+    ok &= expect(paulaWavLoopPreview.loaded && paulaWavLoopPreview.hasLoop && paulaWavLoopPreview.selectedSlot == 3,
+                 "Paula waveform preview should expose loop metadata for the selected WAV sample");
+    ok &= expectNear(paulaWavLoopPreview.loopStart, 32.0f / 255.0f, 0.002f,
+                     "Paula waveform preview should normalize imported WAV loop start");
+    ok &= expectNear(paulaWavLoopPreview.loopEnd, 160.0f / 255.0f, 0.002f,
+                     "Paula waveform preview should normalize imported WAV loop end");
+    const auto paulaWavLoopDebug = processor.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(paulaWavLoopDebug, "externalSampleLoopMetadataSelected") == 1
+                     && jsonIntValue(paulaWavLoopDebug, "externalSampleLoopStartSelected") == 32
+                     && jsonIntValue(paulaWavLoopDebug, "externalSampleLoopEndSelected") == 160,
+                 "Paula core debug state should retain imported WAV loop metadata for the selected bank slot");
     sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 4));
     paulaInfo = processor.paulaSampleInfo();
     ok &= expect(paulaInfo.loaded && paulaInfo.sampleName == "zz-paula-native.8svx" && paulaInfo.byteCount == 256,
@@ -1284,6 +1360,8 @@ int main()
     ok &= expect(restoredPaulaNames.size() == 5, "Paula state restore should reload staged WAV and 8SVX sample paths");
     ok &= expect(restoredPaulaInfo.loaded && restoredPaulaInfo.sampleName == "paula-03.wav",
                  "Paula state restore should preserve the selected slot after processing resumes");
+    ok &= expect(restoredPaulaInfo.hasLoop && restoredPaulaInfo.loopStartSample == 32 && restoredPaulaInfo.loopEndSample == 160,
+                 "Paula state restore should preserve imported WAV smpl loop metadata after reloading paths");
 
     auto portablePaulaPresetDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-portable-paula-preset-test");
     portablePaulaPresetDir.deleteRecursively();
