@@ -61,6 +61,8 @@ EXPECTED_ROLES = {
     "SFX",
 }
 
+CORE_ROLE_COVERAGE = EXPECTED_ROLES - {"Patch"}
+
 
 def tag_token(text: str) -> str:
     output: list[str] = []
@@ -81,6 +83,7 @@ def main() -> int:
     parser.add_argument("path")
     parser.add_argument("--min-presets", type=int, default=80)
     parser.add_argument("--min-per-chip", type=int, default=6)
+    parser.add_argument("--min-core-roles-per-chip", type=int, default=len(CORE_ROLE_COVERAGE))
     parser.add_argument("--only-chip", help="Assert that every preset belongs to this chip key.")
     args = parser.parse_args()
 
@@ -180,9 +183,17 @@ def main() -> int:
 
     chips_to_check = [args.only_chip] if args.only_chip else sorted(IMPLEMENTED_CHIPS)
     for chip in chips_to_check:
-        count = len(by_chip.get(chip, []))
+        chip_presets = by_chip.get(chip, [])
+        count = len(chip_presets)
         if count < args.min_per_chip:
             failures.append(f"{chip}: expected at least {args.min_per_chip} presets, got {count}")
+        chip_core_roles = {str(preset.get("role", "")) for preset in chip_presets} & CORE_ROLE_COVERAGE
+        if len(chip_core_roles) < args.min_core_roles_per_chip:
+            missing_roles = sorted(CORE_ROLE_COVERAGE - chip_core_roles)
+            failures.append(
+                f"{chip}: expected at least {args.min_core_roles_per_chip} core preset roles, "
+                f"got {len(chip_core_roles)}; missing {', '.join(missing_roles)}"
+            )
 
     summary_chip_counts = summary.get("chipCounts", [])
     if not isinstance(summary_chip_counts, list):
