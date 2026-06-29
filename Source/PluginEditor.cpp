@@ -435,6 +435,35 @@ const char* fmOperatorMultiplierParameterId(size_t index)
     return ids[std::min(index, ids.size() - 1u)];
 }
 
+chipper::ChipParameterRole fmOperatorAttackRateRole(size_t index)
+{
+    static constexpr std::array<chipper::ChipParameterRole, 4> roles {
+        chipper::ChipParameterRole::fmOperator1AttackRate,
+        chipper::ChipParameterRole::fmOperator2AttackRate,
+        chipper::ChipParameterRole::fmOperator3AttackRate,
+        chipper::ChipParameterRole::fmOperator4AttackRate
+    };
+
+    return roles[std::min(index, roles.size() - 1u)];
+}
+
+const char* fmOperatorAttackRateParameterId(size_t index)
+{
+    static constexpr std::array<const char*, 4> ids {
+        chipper::parameters::id::fmOperator1AttackRate,
+        chipper::parameters::id::fmOperator2AttackRate,
+        chipper::parameters::id::fmOperator3AttackRate,
+        chipper::parameters::id::fmOperator4AttackRate
+    };
+
+    return ids[std::min(index, ids.size() - 1u)];
+}
+
+juce::String fmOperatorAttackRateButtonText(int choice)
+{
+    return choice <= 0 ? juce::String("AR F") : juce::String("AR ") + juce::String(choice - 1);
+}
+
 chipper::ChipParameterRole sourceRole(size_t index)
 {
     static constexpr std::array<chipper::ChipParameterRole, 9> roles {
@@ -2794,6 +2823,33 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         };
         multiplierButton.setVisible(false);
         addAndMakeVisible(multiplierButton);
+
+        auto& attackButton = fmOperatorAttackRateButtons[i];
+        attackButton.setButtonText("AR F");
+        attackButton.setClickingTogglesState(false);
+        attackButton.setTooltip(withMidiCcForRole("FM per-operator attack-rate override.", fmOperatorAttackRateRole(i)));
+        attackButton.onClick = [this, i]()
+        {
+            juce::PopupMenu menu;
+            const auto choices = chipper::parameters::fmOperatorAttackRateChoices();
+            const auto selected = std::clamp(static_cast<int>(std::round(parameterValue(fmOperatorAttackRateParameterId(i)))),
+                                             0,
+                                             choices.size() - 1);
+            for (int choice = 0; choice < choices.size(); ++choice)
+                menu.addItem(choice + 1, choice == 0 ? juce::String("Follow") : juce::String("AR ") + choices[choice], true, choice == selected);
+
+            auto options = juce::PopupMenu::Options().withTargetComponent(&fmOperatorAttackRateButtons[i]);
+            menu.showMenuAsync(options, [this, i](int result)
+            {
+                if (result <= 0)
+                    return;
+
+                setChoiceParameterFromUi(fmOperatorAttackRateParameterId(i), result - 1);
+                updateLiveControlReadouts();
+            });
+        };
+        attackButton.setVisible(false);
+        addAndMakeVisible(attackButton);
     }
 
     const std::array<const char*, 4> ids {
@@ -3650,6 +3706,8 @@ void ChipperAudioProcessorEditor::applyChipTheme()
     }
     styleButton(dmcSampleBankButton);
     for (auto& button : fmOperatorMultiplierButtons)
+        styleButton(button);
+    for (auto& button : fmOperatorAttackRateButtons)
         styleButton(button);
 
     for (auto& button : sourceChannelButtons)
@@ -5604,6 +5662,7 @@ void ChipperAudioProcessorEditor::placeFmOperatorRegisterSurface(chipper::ChipMo
             fmOperatorLevelValueLabels[i].setBounds({});
             fmOperatorLevelSliders[i].setBounds({});
             fmOperatorMultiplierButtons[i].setBounds({});
+            fmOperatorAttackRateButtons[i].setBounds({});
             continue;
         }
 
@@ -5614,33 +5673,37 @@ void ChipperAudioProcessorEditor::placeFmOperatorRegisterSurface(chipper::ChipMo
 
         if (isFourOperatorFmMode(mode))
         {
-            const auto readoutMinWidth = 120;
-            const auto desiredMultiplierWidth = 52;
-            const auto valueWidth = row.getWidth() >= readoutMinWidth + 108 ? 36 : 32;
+            const auto readoutMinWidth = 96;
+            const auto desiredMultiplierWidth = 46;
+            const auto desiredAttackWidth = 42;
+            const auto valueWidth = row.getWidth() >= readoutMinWidth + 138 ? 34 : 30;
             fmOperatorLevelValueLabels[i].setBounds(row.removeFromLeft(std::min(valueWidth, row.getWidth())));
             row.removeFromLeft(std::min(4, row.getWidth()));
 
-            const auto maxSliderWidth = std::max(0, row.getWidth() - readoutMinWidth - desiredMultiplierWidth - 6);
-            const auto desiredSliderWidth = std::clamp(row.getWidth() / 4, 60, 78);
+            const auto maxSliderWidth = std::max(0, row.getWidth() - readoutMinWidth - desiredMultiplierWidth - desiredAttackWidth - 10);
+            const auto desiredSliderWidth = std::clamp(row.getWidth() / 5, 56, 70);
             const auto sliderWidth = std::min(desiredSliderWidth, maxSliderWidth);
             if (sliderWidth >= 56)
             {
                 fmOperatorLevelSliders[i].setBounds(row.removeFromLeft(std::min(sliderWidth, row.getWidth())).reduced(0, 1));
-                row.removeFromLeft(std::min(6, row.getWidth()));
+                row.removeFromLeft(std::min(4, row.getWidth()));
             }
             else
             {
                 fmOperatorLevelSliders[i].setBounds({});
             }
 
-            if (row.getWidth() >= readoutMinWidth + desiredMultiplierWidth + 6)
+            if (row.getWidth() >= readoutMinWidth + desiredMultiplierWidth + desiredAttackWidth + 8)
             {
                 fmOperatorMultiplierButtons[i].setBounds(row.removeFromLeft(std::min(desiredMultiplierWidth, row.getWidth())));
-                row.removeFromLeft(std::min(6, row.getWidth()));
+                row.removeFromLeft(std::min(4, row.getWidth()));
+                fmOperatorAttackRateButtons[i].setBounds(row.removeFromLeft(std::min(desiredAttackWidth, row.getWidth())));
+                row.removeFromLeft(std::min(4, row.getWidth()));
             }
             else
             {
                 fmOperatorMultiplierButtons[i].setBounds({});
+                fmOperatorAttackRateButtons[i].setBounds({});
             }
         }
         else
@@ -5648,6 +5711,7 @@ void ChipperAudioProcessorEditor::placeFmOperatorRegisterSurface(chipper::ChipMo
             fmOperatorLevelValueLabels[i].setBounds({});
             fmOperatorLevelSliders[i].setBounds({});
             fmOperatorMultiplierButtons[i].setBounds({});
+            fmOperatorAttackRateButtons[i].setBounds({});
         }
 
         fmOperatorValueLabels[i].setBounds(row.reduced(3, 0));
@@ -7391,6 +7455,12 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
         chipper::parameters::id::fmOperator3Multiplier,
         chipper::parameters::id::fmOperator4Multiplier
     };
+    const std::array<const char*, 4> fmOperatorAttackRateIds {
+        chipper::parameters::id::fmOperator1AttackRate,
+        chipper::parameters::id::fmOperator2AttackRate,
+        chipper::parameters::id::fmOperator3AttackRate,
+        chipper::parameters::id::fmOperator4AttackRate
+    };
 
     const juce::ScopedValueSetter<bool> suppress(suppressMacroTemplateApply, true);
     for (size_t i = 0; i < ids.size(); ++i)
@@ -7398,6 +7468,8 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
     for (const auto* id : fmOperatorLevelIds)
         setParameterValueFromUi(id, 0.5f);
     for (const auto* id : fmOperatorMultiplierIds)
+        setChoiceParameterFromUi(id, 0);
+    for (const auto* id : fmOperatorAttackRateIds)
         setChoiceParameterFromUi(id, 0);
     for (size_t i = 0; i < sourceIds.size(); ++i)
     {
@@ -7557,6 +7629,12 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
         chipper::parameters::id::fmOperator3Multiplier,
         chipper::parameters::id::fmOperator4Multiplier
     };
+    const std::array<const char*, 4> fmOperatorAttackRateIds {
+        chipper::parameters::id::fmOperator1AttackRate,
+        chipper::parameters::id::fmOperator2AttackRate,
+        chipper::parameters::id::fmOperator3AttackRate,
+        chipper::parameters::id::fmOperator4AttackRate
+    };
 
     const juce::ScopedValueSetter<bool> suppressMacro(suppressMacroTemplateApply, true);
     const juce::ScopedValueSetter<bool> applyingPreset(applyingFactoryPreset, true);
@@ -7573,6 +7651,8 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
     for (size_t i = 0; i < fmOperatorLevelIds.size(); ++i)
         setParameterValueFromUi(fmOperatorLevelIds[i], fmOperatorLevels[i]);
     for (const auto* id : fmOperatorMultiplierIds)
+        setChoiceParameterFromUi(id, 0);
+    for (const auto* id : fmOperatorAttackRateIds)
         setChoiceParameterFromUi(id, 0);
 
     for (size_t i = 0; i < sourceIds.size(); ++i)
@@ -7768,6 +7848,12 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator2Multiplier))),
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator3Multiplier))),
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator4Multiplier)))
+        },
+        {
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator1AttackRate))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator2AttackRate))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator3AttackRate))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator4AttackRate)))
         });
 }
 
@@ -10782,6 +10868,7 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
         fmOperatorLevelValueLabels[i].setVisible(levelVisible);
         fmOperatorLevelSliders[i].setVisible(levelVisible);
         fmOperatorMultiplierButtons[i].setVisible(levelVisible);
+        fmOperatorAttackRateButtons[i].setVisible(levelVisible);
         if (! visible)
             continue;
 
@@ -10824,6 +10911,17 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
                                                      choices.size() - 1);
             fmOperatorMultiplierButtons[i].setButtonText(choices[multiplierChoice]);
             fmOperatorMultiplierButtons[i].setTooltip(multiplierTooltip);
+
+            const auto* attackSpec = chipper::parameterSpecFor(mode, fmOperatorAttackRateRole(i));
+            auto attackTooltip = juce::String(attackSpec != nullptr ? attackSpec->help : "FM per-operator attack-rate override.")
+                + "\n" + fmOperatorRoleDescription(mode, patch, i)
+                + "\n" + readout;
+            attackTooltip = withMidiCcForRole(attackTooltip, fmOperatorAttackRateRole(i));
+            const auto attackChoice = std::clamp(static_cast<int>(std::round(parameterValue(fmOperatorAttackRateParameterId(i)))),
+                                                 0,
+                                                 chipper::parameters::fmOperatorAttackRateChoices().size() - 1);
+            fmOperatorAttackRateButtons[i].setButtonText(fmOperatorAttackRateButtonText(attackChoice));
+            fmOperatorAttackRateButtons[i].setTooltip(attackTooltip);
         }
     }
 }

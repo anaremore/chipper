@@ -90,6 +90,10 @@ inline constexpr auto fmOperator1Multiplier = "fmOperator1Multiplier";
 inline constexpr auto fmOperator2Multiplier = "fmOperator2Multiplier";
 inline constexpr auto fmOperator3Multiplier = "fmOperator3Multiplier";
 inline constexpr auto fmOperator4Multiplier = "fmOperator4Multiplier";
+inline constexpr auto fmOperator1AttackRate = "fmOperator1AttackRate";
+inline constexpr auto fmOperator2AttackRate = "fmOperator2AttackRate";
+inline constexpr auto fmOperator3AttackRate = "fmOperator3AttackRate";
+inline constexpr auto fmOperator4AttackRate = "fmOperator4AttackRate";
 }
 
 struct MidiCcMapping
@@ -99,7 +103,7 @@ struct MidiCcMapping
     const char* label = nullptr;
 };
 
-inline constexpr auto midiCcMappingCount = 80u;
+inline constexpr auto midiCcMappingCount = 84u;
 using MidiCcMappingList = std::array<MidiCcMapping, midiCcMappingCount>;
 
 const MidiCcMappingList& midiCcMappings();

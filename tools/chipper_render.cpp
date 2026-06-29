@@ -52,6 +52,8 @@ struct Options
     std::array<bool, 4> fmOperatorLevelProvided {};
     std::array<int, 4> fmOperatorMultipliers { 0, 0, 0, 0 };
     std::array<bool, 4> fmOperatorMultiplierProvided {};
+    std::array<int, 4> fmOperatorAttackRates { 0, 0, 0, 0 };
+    std::array<bool, 4> fmOperatorAttackRateProvided {};
     std::array<bool, 9> sourceEnabled { true, true, true, true, true, true, true, true, true };
     std::array<bool, 9> sourceProvided {};
     std::array<float, 9> sourceLevels { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
@@ -283,6 +285,35 @@ bool fmOperatorMultiplierIndexForArg(const std::string& arg, size_t& index)
     return false;
 }
 
+bool fmOperatorAttackRateIndexForArg(const std::string& arg, size_t& index)
+{
+    const std::array<const char*, 3> prefixes {
+        "--fm-op",
+        "--opn2-op",
+        "--opm-op"
+    };
+
+    for (const auto* prefix : prefixes)
+    {
+        if (arg.rfind(prefix, 0) != 0)
+            continue;
+
+        const auto suffix = arg.substr(std::strlen(prefix));
+        const auto marker = suffix.find("-attack-rate");
+        if (marker == std::string::npos || marker == 0 || marker + std::strlen("-attack-rate") != suffix.size())
+            return false;
+
+        uint32_t op = 0;
+        if (! parseNumber(suffix.substr(0, marker), op) || op < 1u || op > 4u)
+            return false;
+
+        index = static_cast<size_t>(op - 1u);
+        return true;
+    }
+
+    return false;
+}
+
 bool parseFmOperatorMultiplierChoice(const std::string& text, int& out)
 {
     const auto key = normalizedToken(text);
@@ -307,6 +338,23 @@ bool parseFmOperatorMultiplierChoice(const std::string& text, int& out)
         return false;
 
     out = multiple + 1;
+    return true;
+}
+
+bool parseFmOperatorAttackRateChoice(const std::string& text, int& out)
+{
+    const auto key = normalizedToken(text);
+    if (key == "follow" || key == "preset" || key == "macro" || key == "auto" || key == "default" || key == "f")
+    {
+        out = 0;
+        return true;
+    }
+
+    int rate = 0;
+    if (! parseNumber(key, rate) || rate < 0 || rate > 31)
+        return false;
+
+    out = rate + 1;
     return true;
 }
 
@@ -1167,7 +1215,7 @@ void printUsage()
         << "       Metadata: chipper_render --list-presets [--chip sid] --debug presets.json\n"
         << "                 chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --fm-op1-level 0..1 --fm-op2-level 0..1 --fm-op3-level 0..1 --fm-op4-level 0..1 --fm-op1-multiplier follow|0.5|1..15 --fm-op2-multiplier follow|0.5|1..15 --fm-op3-multiplier follow|0.5|1..15 --fm-op4-multiplier follow|0.5|1..15 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --spc700-brr-sample path.brr --spc700-brr-hex 017f... --spc700-brr-bank-hex 017f... --spc700-sample-slot 0..31 --spc700-sample-slot1..8 0..32 --spc700-map-root 60 --spc700-loop-start 0..1 --spc700-loop-end 0..1 --paula-sample path.wav|path.8svx|raw (repeat for bank) --paula-shape1..4 follow|ramp|tri|sine|noise --paula-sample-slot1..4 0..32 --spc700-envelope follow|pluck|lead|pad|perc --spc700-noise follow|off|low|mid|high --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --huc-wave1..6 follow|ramp|tri|square|noise --scc-wave1..5 follow|ramp|tri|pulse|steps --namco-wave1..8 follow|ramp|tri|pulse|steps --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --huc-lfo follow|off|light|deep|fast --pokey-audctl follow|off|1+2|3+4|both --pokey-filter follow|off|1<-3|2<-4|both --paula-output-filter follow|raw|a500|led|both --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opm-pan follow|both|left|right|alt --opm-noise follow|off|low|mid|high --opn2-envelope follow|pluck|lead|pad|perc --opm-envelope follow|pluck|lead|pad|perc --fm-envelope follow|pluck|lead|pad|perc --opn2-dac follow|fm|dac --opl-rhythm follow|melodic|rhythm --opll-rhythm follow|melodic|rhythm --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --control3 0.1 --control4 0.5 --fm-op1-level 0..1 --fm-op2-level 0..1 --fm-op3-level 0..1 --fm-op4-level 0..1 --fm-op1-multiplier follow|0.5|1..15 --fm-op2-multiplier follow|0.5|1..15 --fm-op3-multiplier follow|0.5|1..15 --fm-op4-multiplier follow|0.5|1..15 --fm-op1-attack-rate follow|0..31 --fm-op2-attack-rate follow|0..31 --fm-op3-attack-rate follow|0..31 --fm-op4-attack-rate follow|0..31 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --spc700-brr-sample path.brr --spc700-brr-hex 017f... --spc700-brr-bank-hex 017f... --spc700-sample-slot 0..31 --spc700-sample-slot1..8 0..32 --spc700-map-root 60 --spc700-loop-start 0..1 --spc700-loop-end 0..1 --paula-sample path.wav|path.8svx|raw (repeat for bank) --paula-shape1..4 follow|ramp|tri|sine|noise --paula-sample-slot1..4 0..32 --spc700-envelope follow|pluck|lead|pad|perc --spc700-noise follow|off|low|mid|high --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --huc-wave1..6 follow|ramp|tri|square|noise --scc-wave1..5 follow|ramp|tri|pulse|steps --namco-wave1..8 follow|ramp|tri|pulse|steps --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --huc-lfo follow|off|light|deep|fast --pokey-audctl follow|off|1+2|3+4|both --pokey-filter follow|off|1<-3|2<-4|both --paula-output-filter follow|raw|a500|led|both --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opm-pan follow|both|left|right|alt --opm-noise follow|off|low|mid|high --opn2-envelope follow|pluck|lead|pad|perc --opm-envelope follow|pluck|lead|pad|perc --fm-envelope follow|pluck|lead|pad|perc --opn2-dac follow|fm|dac --opl-rhythm follow|melodic|rhythm --opll-rhythm follow|melodic|rhythm --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "\nEvent file lines:\n"
         << "  write <sample> <address> <value>\n"
         << "  note_on <sample> <note> <velocity>\n"
@@ -1414,6 +1462,17 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.fmOperatorMultipliers[fmOperatorIndex] = std::clamp(parsed, 0, 16);
             options.fmOperatorMultiplierProvided[fmOperatorIndex] = true;
+            continue;
+        }
+
+        if (size_t fmOperatorIndex = 0; fmOperatorAttackRateIndexForArg(arg, fmOperatorIndex))
+        {
+            const auto* value = requireValue(arg.c_str());
+            int parsed = 0;
+            if (value == nullptr || ! parseFmOperatorAttackRateChoice(std::string(value), parsed))
+                return false;
+            options.fmOperatorAttackRates[fmOperatorIndex] = std::clamp(parsed, 0, 32);
+            options.fmOperatorAttackRateProvided[fmOperatorIndex] = true;
             continue;
         }
 
@@ -2249,6 +2308,8 @@ void applyMacroTemplateDefaults(Options& options)
             options.fmOperatorLevels[i] = 0.5f;
         if (! options.fmOperatorMultiplierProvided[i])
             options.fmOperatorMultipliers[i] = 0;
+        if (! options.fmOperatorAttackRateProvided[i])
+            options.fmOperatorAttackRates[i] = 0;
         if (! options.sourceProvided[i])
             options.sourceEnabled[i] = templ.sourceEnabled[i];
         if (! options.sourceLevelProvided[i])
@@ -2994,6 +3055,10 @@ const char* toJsonString(chipper::ChipParameterRole role)
         case chipper::ChipParameterRole::fmOperator2Multiplier: return "fmOperator2Multiplier";
         case chipper::ChipParameterRole::fmOperator3Multiplier: return "fmOperator3Multiplier";
         case chipper::ChipParameterRole::fmOperator4Multiplier: return "fmOperator4Multiplier";
+        case chipper::ChipParameterRole::fmOperator1AttackRate: return "fmOperator1AttackRate";
+        case chipper::ChipParameterRole::fmOperator2AttackRate: return "fmOperator2AttackRate";
+        case chipper::ChipParameterRole::fmOperator3AttackRate: return "fmOperator3AttackRate";
+        case chipper::ChipParameterRole::fmOperator4AttackRate: return "fmOperator4AttackRate";
         case chipper::ChipParameterRole::clockHz: return "clockHz";
         case chipper::ChipParameterRole::outputDb: return "outputDb";
     }
@@ -3589,6 +3654,10 @@ void writeDebugJson(const std::filesystem::path& path,
         << patch.fmOperatorMultipliers[1] << ", "
         << patch.fmOperatorMultipliers[2] << ", "
         << patch.fmOperatorMultipliers[3] << "],\n"
+        << "  \"fmOperatorAttackRates\": [" << patch.fmOperatorAttackRates[0] << ", "
+        << patch.fmOperatorAttackRates[1] << ", "
+        << patch.fmOperatorAttackRates[2] << ", "
+        << patch.fmOperatorAttackRates[3] << "],\n"
         << "  \"sidVoice2PulseWidth\": " << patch.sidVoice2PulseWidth << ",\n"
         << "  \"sidVoice3PulseWidth\": " << patch.sidVoice3PulseWidth << ",\n"
         << "  \"pulse2Duty\": " << patch.pulse2Duty << ",\n"
@@ -3747,7 +3816,8 @@ int main(int argc, char** argv)
                                                     options.spc700LoopEnd,
                                                     options.voiceSampleSlots,
                                                     options.fmOperatorLevels,
-                                                    options.fmOperatorMultipliers);
+                                                    options.fmOperatorMultipliers,
+                                                    options.fmOperatorAttackRates);
         core->setPatch(patch);
         const auto events = loadEvents(options.eventFile);
         const auto registerWriteCount = static_cast<size_t>(std::count_if(events.begin(), events.end(), [](const auto& event) { return event.type == EventType::write; }));

@@ -517,6 +517,41 @@ ChipParameterSpec fmOperatorMultiplierSpec(ChipParameterRole role, std::string i
              0.0f };
 }
 
+std::vector<ParameterChoiceSpec> fmOperatorAttackRateChoices(std::string chipName, std::string operatorName)
+{
+    std::vector<ParameterChoiceSpec> choices;
+    choices.reserve(33);
+    choices.push_back(choice("Follow",
+                             "Resolve " + operatorName + " attack rate from Envelope Shape and the selected " + chipName + " preset recipe.",
+                             0.0f,
+                             0));
+    for (int rate = 0; rate <= 31; ++rate)
+    {
+        const auto normalized = static_cast<float>(rate + 1) / 32.0f;
+        choices.push_back(choice(std::to_string(rate),
+                                 "Write native " + chipName + " attack-rate value " + std::to_string(rate) + " for " + operatorName + ".",
+                                 normalized,
+                                 rate + 1));
+    }
+    return choices;
+}
+
+ChipParameterSpec fmOperatorAttackRateSpec(ChipParameterRole role, std::string id, std::string label, std::string chipName, size_t op)
+{
+    const auto operatorName = "operator " + std::to_string(op + 1u);
+    return { role,
+             std::move(id),
+             std::move(label),
+             "Operators",
+             "Overrides the " + chipName + " " + operatorName + " native attack-rate field. Follow preserves the current Envelope Shape.",
+             ParameterKind::chipRegister,
+             ControlSurface::menu,
+             fmOperatorAttackRateChoices(std::move(chipName), operatorName),
+             0.0f,
+             1.0f,
+             0.0f };
+}
+
 std::vector<ParameterChoiceSpec> ymChannelMixChoices(std::string channelName)
 {
     return {
@@ -758,6 +793,10 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
         fmOperatorMultiplierSpec(ChipParameterRole::fmOperator2Multiplier, "ym2612.op2.multiplier", "OP2 Mult", "YM2612", 1),
         fmOperatorMultiplierSpec(ChipParameterRole::fmOperator3Multiplier, "ym2612.op3.multiplier", "OP3 Mult", "YM2612", 2),
         fmOperatorMultiplierSpec(ChipParameterRole::fmOperator4Multiplier, "ym2612.op4.multiplier", "OP4 Mult", "YM2612", 3),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator1AttackRate, "ym2612.op1.attackRate", "OP1 Attack", "YM2612", 0),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator2AttackRate, "ym2612.op2.attackRate", "OP2 Attack", "YM2612", 1),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator3AttackRate, "ym2612.op3.attackRate", "OP3 Attack", "YM2612", 2),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator4AttackRate, "ym2612.op4.attackRate", "OP4 Attack", "YM2612", 3),
         { ChipParameterRole::waveShape,
           "ym2612.algorithm",
           "Algorithm",
@@ -890,6 +929,10 @@ std::vector<ChipParameterSpec> ym2151ParameterSpecs()
         fmOperatorMultiplierSpec(ChipParameterRole::fmOperator2Multiplier, "ym2151.op2.multiplier", "OP2 Mult", "YM2151", 1),
         fmOperatorMultiplierSpec(ChipParameterRole::fmOperator3Multiplier, "ym2151.op3.multiplier", "OP3 Mult", "YM2151", 2),
         fmOperatorMultiplierSpec(ChipParameterRole::fmOperator4Multiplier, "ym2151.op4.multiplier", "OP4 Mult", "YM2151", 3),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator1AttackRate, "ym2151.op1.attackRate", "OP1 Attack", "YM2151", 0),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator2AttackRate, "ym2151.op2.attackRate", "OP2 Attack", "YM2151", 1),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator3AttackRate, "ym2151.op3.attackRate", "OP3 Attack", "YM2151", 2),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator4AttackRate, "ym2151.op4.attackRate", "OP4 Attack", "YM2151", 3),
         { ChipParameterRole::waveShape,
           "ym2151.algorithm",
           "Algorithm",
@@ -2204,7 +2247,7 @@ std::array<ModuleDescriptor, 6> ym2612Modules()
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "YM2612/OPN2 core is backed by audited BSD-licensed ymfm.", { "YM2612 model", "NTSC Genesis clock", "Hybrid default", "Verified partial" }),
         makeModule("sources", "FM Voices", "All six YM2612 melodic channels are exposed as playable source lanes.", { "FM Ch 1", "FM Ch 2", "FM Ch 3", "FM Ch 4-6" }),
-        makeModule("tone", "Operators", "Musical controls write native OPN2 algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
+        makeModule("tone", "Operators", "Musical controls write native OPN2 algorithm, feedback, multiplier, attack-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPN2 attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
         makeModule("motion", "Motion", "Genesis-style preset recipes map to register-backed FM patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
         makeModule("output", "Output", "ymfm stereo OPN2 output follows native channel pan bits plus output trim.", { "Stereo core", "Pan bits", "DAC drum", "Verified partial" })
@@ -2228,7 +2271,7 @@ std::array<ModuleDescriptor, 6> ym2151Modules()
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "YM2151/OPM core is backed by audited BSD-licensed ymfm.", { "YM2151 core", "Arcade clock", "Hybrid default", "Verified partial" }),
         makeModule("sources", "FM Voices", "All eight OPM melodic channels are exposed as playable lanes.", { "Ch 1-4", "Ch 5-8", "Chip Poly", "Per-lane trims" }),
-        makeModule("tone", "Operators", "Musical controls write native OPM algorithm, feedback, multiplier, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
+        makeModule("tone", "Operators", "Musical controls write native OPM algorithm, feedback, multiplier, attack-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPM attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
         makeModule("motion", "Motion", "Arcade FM preset recipes map to register-backed OPM patches.", { "Chime", "Arcade bass", "Metal lead", "Laser" }),
         makeModule("output", "Output", "ymfm stereo OPM output is rendered with left/right pan enabled per active lane.", { "Stereo core", "$0F noise", "Output gain", "Verified partial" })
@@ -2405,7 +2448,7 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2612/OPN2 synthesis core.",
-                    "Renderer notes and preset recipes write OPN2 algorithm, feedback, operator multiplier/total-level, f-number/block, left/right pan bits, and key-on registers across all six melodic channels.",
+                    "Renderer notes and preset recipes write OPN2 algorithm, feedback, operator multiplier/attack-rate/total-level, f-number/block, left/right pan bits, and key-on registers across all six melodic channels.",
                     "Channel-6 DAC Drum mode enables $2B and streams generated 8-bit drum bytes through $2A via the ymfm core.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, DAC Drum, and Chip Poly regression tests cover the first playable adapter, including six visible source lanes and six-channel note allocation."
                 },
@@ -2630,7 +2673,7 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2151/OPM synthesis core.",
-                    "Renderer notes and preset recipes write OPM algorithm, feedback, operator multiplier/total-level/envelope seed, key-code/key-fraction, pan, $0F channel-8 noise, and key-on registers.",
+                    "Renderer notes and preset recipes write OPM algorithm, feedback, operator multiplier/attack-rate/total-level/envelope seed, key-code/key-fraction, pan, $0F channel-8 noise, and key-on registers.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover all eight exposed melodic lanes."
                 },
                 {
@@ -2919,7 +2962,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float spc700LoopEnd,
                             std::array<int, 8> spc700VoiceSampleSlots,
                             std::array<float, 4> fmOperatorLevels,
-                            std::array<int, 4> fmOperatorMultipliers)
+                            std::array<int, 4> fmOperatorMultipliers,
+                            std::array<int, 4> fmOperatorAttackRates)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
@@ -3001,6 +3045,12 @@ PatchConfig makePatchConfig(ChipMode mode,
             std::clamp(fmOperatorMultipliers[1], 0, 16),
             std::clamp(fmOperatorMultipliers[2], 0, 16),
             std::clamp(fmOperatorMultipliers[3], 0, 16)
+        },
+        {
+            std::clamp(fmOperatorAttackRates[0], 0, 32),
+            std::clamp(fmOperatorAttackRates[1], 0, 32),
+            std::clamp(fmOperatorAttackRates[2], 0, 32),
+            std::clamp(fmOperatorAttackRates[3], 0, 32)
         }
     };
 }
@@ -3934,6 +3984,11 @@ FmEnvelopeRegisters ym2612EnvelopeRegistersForPatch(const PatchConfig& patch, si
         envelope.sustainRelease = static_cast<uint8_t>(std::min(0xff, static_cast<int>(envelope.sustainRelease) + 0x10));
         envelope.decayRate = static_cast<uint8_t>(std::max(0, static_cast<int>(envelope.decayRate) - 2));
     }
+
+    const auto safeOp = std::min(op, size_t { 3u });
+    const auto attackChoice = std::clamp(patch.fmOperatorAttackRates[safeOp], 0, 32);
+    if (attackChoice > 0)
+        envelope.attackRate = static_cast<uint8_t>(attackChoice - 1);
 
     return envelope;
 }

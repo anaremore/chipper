@@ -108,6 +108,7 @@ struct PatchConfig
     std::array<int, 8> spc700VoiceSampleSlots { 0, 0, 0, 0, 0, 0, 0, 0 };
     std::array<float, 4> fmOperatorLevels { 0.5f, 0.5f, 0.5f, 0.5f };
     std::array<int, 4> fmOperatorMultipliers { 0, 0, 0, 0 };
+    std::array<int, 4> fmOperatorAttackRates { 0, 0, 0, 0 };
 };
 
 struct StereoFrame
