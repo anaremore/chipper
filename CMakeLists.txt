@@ -945,6 +945,9 @@ add_test(NAME chipper_render_ym2413_sources_off_smoke
 add_test(NAME chipper_render_ym2413_rhythm_smoke
     COMMAND chipper_render --chip ym2413 --accuracy authentic --macro drum --opll-rhythm rhythm --clock 3579545 --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2413-rhythm-events.txt --out ym2413-rhythm-smoke.wav --debug ym2413-rhythm-smoke.json
 )
+add_test(NAME chipper_render_preset_opll_rhythm_alarm_kit_smoke
+    COMMAND chipper_render --preset opll-rhythm-alarm-kit --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2413-rhythm-events.txt --out preset-opll-rhythm-alarm-kit.wav --debug preset-opll-rhythm-alarm-kit.json
+)
 add_test(NAME chipper_render_preset_opll_preset_bass_held_smoke
     COMMAND chipper_render --preset opll-preset-bass --rate 48000 --seconds 0.50 --note 48 --out preset-opll-preset-bass-held.wav --debug preset-opll-preset-bass-held.json
 )
@@ -975,7 +978,7 @@ set(CHIPPER_PRESET_CHIP_MINIMUMS
     paula:13
     huc6280:13
     namcoWsg:15
-    ym2413:15
+    ym2413:18
     scc:15
 )
 foreach(chipper_preset_chip_minimum IN LISTS CHIPPER_PRESET_CHIP_MINIMUMS)
@@ -1010,7 +1013,7 @@ if (Python3_Interpreter_FOUND)
     )
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=16 --preset-count dmg=16 --preset-count sid=19 --preset-count ym2149=16 --preset-count sn76489=16 --preset-count ym2612=18 --preset-count opl3=16 --preset-count spc700=15 --preset-count pokey=15 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=15 --preset-count ym2151=16 --preset-count ym2413=17 --preset-count scc=16
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=16 --preset-count dmg=16 --preset-count sid=19 --preset-count ym2149=16 --preset-count sn76489=16 --preset-count ym2612=18 --preset-count opl3=16 --preset-count spc700=15 --preset-count pokey=15 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=15 --preset-count ym2151=16 --preset-count ym2413=18 --preset-count scc=16
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1089,7 +1092,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_namco_wsg_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_ym2413_descriptor_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip ym2413 --source-lanes ym2413=9/9 --implemented ym2413=1 --verification-badge "ym2413=Verified partial" --verification-cycle ym2413=0 --verification-hardware ym2413=0 --param-kind ym2413:waveShape=chipRegister --param-surface ym2413:waveShape=menu --param-choices ym2413:waveShape=16 --param-midi-cc ym2413:waveShape=89 --param-kind ym2413:ymEnvelopeShape=chipRegister --param-surface ym2413:ymEnvelopeShape=segmentedChoice --param-choices ym2413:ymEnvelopeShape=3 --param-midi-cc ym2413:ymEnvelopeShape=90 --param-kind ym2413:macroControl1=chipRegister --param-surface ym2413:macroControl1=slider --param-midi-cc ym2413:macroControl1=76 --param-kind ym2413:macroControl4=chipRegister --param-surface ym2413:macroControl4=slider --param-midi-cc ym2413:macroControl4=79 --param-kind ym2413:source9Enabled=booleanToggle --param-surface ym2413:source9Enabled=sourceCards --param-midi-cc ym2413:source9Enabled=56 --param-kind ym2413:source9Level=continuous --param-surface ym2413:source9Level=slider --param-midi-cc ym2413:source9Level=57 --macro-label "ym2413:Coin=OPLL UI Chime" --macro-source ym2413:Bass=1100 --preset opll-ui-chime --preset opll-preset-bass --preset opll-organ-arp --preset opll-envelope-bell --preset opll-alarm-pulse
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip ym2413 --source-lanes ym2413=9/9 --implemented ym2413=1 --verification-badge "ym2413=Verified partial" --verification-cycle ym2413=0 --verification-hardware ym2413=0 --param-kind ym2413:waveShape=chipRegister --param-surface ym2413:waveShape=menu --param-choices ym2413:waveShape=16 --param-midi-cc ym2413:waveShape=89 --param-kind ym2413:ymEnvelopeShape=chipRegister --param-surface ym2413:ymEnvelopeShape=segmentedChoice --param-choices ym2413:ymEnvelopeShape=3 --param-midi-cc ym2413:ymEnvelopeShape=90 --param-kind ym2413:macroControl1=chipRegister --param-surface ym2413:macroControl1=slider --param-midi-cc ym2413:macroControl1=76 --param-kind ym2413:macroControl4=chipRegister --param-surface ym2413:macroControl4=slider --param-midi-cc ym2413:macroControl4=79 --param-kind ym2413:source9Enabled=booleanToggle --param-surface ym2413:source9Enabled=sourceCards --param-midi-cc ym2413:source9Enabled=56 --param-kind ym2413:source9Level=continuous --param-surface ym2413:source9Level=slider --param-midi-cc ym2413:source9Level=57 --macro-label "ym2413:Coin=OPLL UI Chime" --macro-source ym2413:Bass=1100 --preset opll-ui-chime --preset opll-preset-bass --preset opll-organ-arp --preset opll-envelope-bell --preset opll-alarm-pulse --preset opll-rhythm-alarm-kit
     )
     set_tests_properties(chipper_render_list_ym2413_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1970,6 +1973,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2413-rhythm-smoke.json --implemented-contains emu2413 --macro Drum --register-writes 0 --note-events 1 --min-peak 0.01 --core-min rhythmMode=1 --core-max rhythmMode=1 --core-min rhythmModeChoice=2 --core-max rhythmModeChoice=2 --core-min rhythmRegister=63 --core-max rhythmRegister=63 --core-min rhythmKeyBits=31 --core-max rhythmKeyBits=31 --core-min rhythmBdVolume=4 --core-max rhythmBdVolume=4 --core-min rhythmHatVolume=4 --core-max rhythmHatVolume=4 --core-min rhythmSnareVolume=4 --core-max rhythmSnareVolume=4 --core-min rhythmTomVolume=4 --core-max rhythmTomVolume=4 --core-min rhythmCymVolume=4 --core-max rhythmCymVolume=4 --core-min keyOnMask=448 --core-max keyOnMask=448 --descriptor-param-kind ymEnvelopeShape=chipRegister --descriptor-param-surface ymEnvelopeShape=segmentedChoice --descriptor-param-label "ymEnvelopeShape=Rhythm Mode" --descriptor-param-choices ymEnvelopeShape=3
     )
     set_tests_properties(chipper_render_ym2413_rhythm_assert PROPERTIES DEPENDS chipper_render_ym2413_rhythm_smoke)
+
+    add_test(NAME chipper_render_preset_opll_rhythm_alarm_kit_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opll-rhythm-alarm-kit.json --implemented-contains emu2413 --preset opll-rhythm-alarm-kit --macro Drum --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 1 --min-peak 0.01 --core-min rhythmMode=1 --core-max rhythmMode=1 --core-min rhythmModeChoice=2 --core-max rhythmModeChoice=2 --core-min rhythmRegister=63 --core-max rhythmRegister=63 --core-min rhythmKeyBits=31 --core-max rhythmKeyBits=31 --core-min rhythmBdVolume=3 --core-max rhythmBdVolume=3 --core-min rhythmHatVolume=3 --core-max rhythmHatVolume=3 --core-min rhythmSnareVolume=3 --core-max rhythmSnareVolume=3 --core-min rhythmTomVolume=3 --core-max rhythmTomVolume=3 --core-min rhythmCymVolume=3 --core-max rhythmCymVolume=3 --core-min keyOnMask=448 --core-max keyOnMask=448 --core-min sourceEnabled6=1 --core-max sourceEnabled6=1 --core-min sourceEnabled7=1 --core-max sourceEnabled7=1 --core-min sourceEnabled8=1 --core-max sourceEnabled8=1
+    )
+    set_tests_properties(chipper_render_preset_opll_rhythm_alarm_kit_assert PROPERTIES DEPENDS chipper_render_preset_opll_rhythm_alarm_kit_smoke)
 
     add_test(NAME chipper_render_preset_opll_preset_bass_held_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opll-preset-bass-held.json --implemented-contains emu2413 --preset opll-preset-bass --macro Bass --min-peak 0.01 --min-tail-rms 0.003 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535

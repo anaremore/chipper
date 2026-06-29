@@ -1996,6 +1996,25 @@ const std::vector<PresetInfo>& presetCatalog()
             3579545.0,
             0.0f
         },
+        {
+            "opll-rhythm-alarm-kit",
+            "YM2413 / OPLL",
+            "OPLL Rhythm Alarm Kit",
+            "Urgent YM2413 rhythm-mode alarm kit with bass drum, snare, tom, cymbal, and hat bits active.",
+            ChipMode::ym2413,
+            AccuracyMode::hybrid,
+            MacroKind::drum,
+            PlayMode::stack,
+            { 0.82f, 0.58f, 0.88f, 0.78f },
+            { true, true, true, true },
+            0.50f,
+            0,
+            2,
+            0,
+            -11.0f,
+            3579545.0,
+            0.0f
+        },
         withSourceLevels(
             {
                 "spc700-soft-bass",
