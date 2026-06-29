@@ -29,6 +29,7 @@ namespace chipper
 namespace
 {
 constexpr double twoPi = 6.28318530717958647692;
+constexpr size_t opnaAdpcmARomSize = 0x2000;
 
 double clamp01(double value)
 {
@@ -62,6 +63,114 @@ std::string jsonEscape(std::string_view text)
             out << c;
     }
     return out.str();
+}
+
+int opnaAdpcmASignedAccumulator(int accumulator)
+{
+    accumulator &= 0x0fff;
+    return (accumulator & 0x0800) != 0 ? accumulator - 0x1000 : accumulator;
+}
+
+double opnaGeneratedNoise(size_t index, uint32_t seed)
+{
+    auto value = static_cast<uint32_t>(index) ^ seed;
+    value ^= value << 13u;
+    value ^= value >> 17u;
+    value ^= value << 5u;
+    return (static_cast<double>(value & 0xffffu) / 32767.5) - 1.0;
+}
+
+double opnaGeneratedAdpcmTarget(size_t instrument, size_t nibble, size_t totalNibbles)
+{
+    const auto t = totalNibbles > 1 ? static_cast<double>(nibble) / static_cast<double>(totalNibbles - 1u) : 0.0;
+    const auto tail = std::max(0.0, 1.0 - t);
+    switch (instrument)
+    {
+        case 0: // Bass drum.
+            return std::sin(twoPi * (3.0 * t + 1.8 * t * t)) * std::pow(tail, 1.65) * 1800.0;
+        case 1: // Snare.
+            return (opnaGeneratedNoise(nibble, 0x6d2bu) * 0.82 + std::sin(twoPi * 28.0 * t) * 0.18) * std::pow(tail, 1.1) * 1500.0;
+        case 2: // Top cymbal.
+            return (opnaGeneratedNoise(nibble * 3u, 0xa671u) * 0.72 + std::sin(twoPi * (92.0 * t + 9.0 * t * t)) * 0.28)
+                   * std::pow(tail, 0.55) * 1250.0;
+        case 3: // High hat.
+            return (opnaGeneratedNoise(nibble * 5u, 0x41c6u) * 0.9 + std::sin(twoPi * 110.0 * t) * 0.1) * std::pow(tail, 2.4) * 1400.0;
+        case 4: // Tom.
+            return std::sin(twoPi * (7.0 * t + 2.8 * t * t)) * std::pow(tail, 1.45) * 1600.0;
+        case 5: // Rim shot.
+            return (std::sin(twoPi * 36.0 * t) * 0.55 + opnaGeneratedNoise(nibble, 0xd31fu) * 0.45) * std::pow(tail, 3.2) * 1700.0;
+        default:
+            break;
+    }
+    return 0.0;
+}
+
+uint8_t encodeOpnaAdpcmANibble(double target, int& accumulator, int& stepIndex)
+{
+    static constexpr std::array<uint16_t, 49> steps {
+        16, 17, 19, 21, 23, 25, 28,
+        31, 34, 37, 41, 45, 50, 55,
+        60, 66, 73, 80, 88, 97, 107,
+        118, 130, 143, 157, 173, 190, 209,
+        230, 253, 279, 307, 337, 371, 408,
+        449, 494, 544, 598, 658, 724, 796,
+        876, 963, 1060, 1166, 1282, 1411, 1552
+    };
+    static constexpr std::array<int8_t, 8> stepInc { -1, -1, -1, -1, 2, 5, 7, 9 };
+
+    auto bestNibble = 0;
+    auto bestAccumulator = accumulator;
+    auto bestError = std::numeric_limits<double>::max();
+    for (auto nibble = 0; nibble < 16; ++nibble)
+    {
+        auto delta = (2 * (nibble & 0x07) + 1) * static_cast<int>(steps[static_cast<size_t>(stepIndex)]) / 8;
+        if ((nibble & 0x08) != 0)
+            delta = -delta;
+        const auto nextAccumulator = (accumulator + delta) & 0x0fff;
+        const auto error = std::abs(static_cast<double>(opnaAdpcmASignedAccumulator(nextAccumulator)) - target);
+        if (error < bestError)
+        {
+            bestError = error;
+            bestNibble = nibble;
+            bestAccumulator = nextAccumulator;
+        }
+    }
+
+    accumulator = bestAccumulator;
+    stepIndex = std::clamp(stepIndex + static_cast<int>(stepInc[static_cast<size_t>(bestNibble & 0x07)]), 0, 48);
+    return static_cast<uint8_t>(bestNibble);
+}
+
+void fillGeneratedOpnaAdpcmAInstrument(std::array<uint8_t, opnaAdpcmARomSize>& rom, size_t instrument, size_t start, size_t endInclusive)
+{
+    if (start >= rom.size() || endInclusive >= rom.size() || start > endInclusive)
+        return;
+
+    auto accumulator = 0;
+    auto stepIndex = 0;
+    const auto totalNibbles = (endInclusive - start + 1u) * 2u;
+    for (size_t nibble = 0; nibble < totalNibbles; ++nibble)
+    {
+        const auto target = opnaGeneratedAdpcmTarget(instrument, nibble, totalNibbles);
+        const auto encoded = encodeOpnaAdpcmANibble(target, accumulator, stepIndex);
+        const auto byteIndex = start + nibble / 2u;
+        if ((nibble & 1u) == 0)
+            rom[byteIndex] = static_cast<uint8_t>(encoded << 4u);
+        else
+            rom[byteIndex] = static_cast<uint8_t>(rom[byteIndex] | encoded);
+    }
+}
+
+std::array<uint8_t, opnaAdpcmARomSize> makeGeneratedOpnaAdpcmARom()
+{
+    std::array<uint8_t, opnaAdpcmARomSize> rom {};
+    fillGeneratedOpnaAdpcmAInstrument(rom, 0, 0x0000, 0x01bf);
+    fillGeneratedOpnaAdpcmAInstrument(rom, 1, 0x01c0, 0x043f);
+    fillGeneratedOpnaAdpcmAInstrument(rom, 2, 0x0440, 0x1b7f);
+    fillGeneratedOpnaAdpcmAInstrument(rom, 3, 0x1b80, 0x1cff);
+    fillGeneratedOpnaAdpcmAInstrument(rom, 4, 0x1d00, 0x1f7f);
+    fillGeneratedOpnaAdpcmAInstrument(rom, 5, 0x1f80, 0x1fff);
+    return rom;
 }
 
 enum class NesPulseDuty : uint8_t
@@ -11443,6 +11552,7 @@ public:
         chip = std::make_unique<ymfm::ym2608>(host);
         chip->set_fidelity(ymfm::OPN_FIDELITY_MED);
         chip->reset();
+        host.resetAdpcmCounters();
         chipSampleRate = static_cast<double>(chip->sample_rate(static_cast<uint32_t>(std::round(clock))));
         sampleAccumulator = 0.0;
         regs.fill(0);
@@ -11457,6 +11567,7 @@ public:
         currentSustainRelease.fill(0x46u);
         currentSsgPeriod.fill(1);
         currentSsgVolume.fill(0);
+        currentOpnaRhythmLevels.fill(0);
         channelNotes.fill(-1);
         channelVelocity.fill(0.0f);
         channelStamp.fill(0);
@@ -11464,6 +11575,8 @@ public:
         heldNote = -1;
         keyOnMask = 0;
         ssgGateMask = 0;
+        opnaRhythmKeyBits = 0;
+        opnaRhythmTotalLevel = 0x3fu;
         lastNativeLeft = 0;
         lastNativeRight = 0;
         lastSsg = 0;
@@ -11473,10 +11586,14 @@ public:
 
     void setPatch(const PatchConfig& nextPatch) override
     {
-        if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled)
+        if (nextPatch.playMode != patch.playMode
+            || nextPatch.sourceEnabled != patch.sourceEnabled
+            || opnaRhythmEnabledForMacro(nextPatch.macro) != opnaRhythmEnabledForMacro(patch.macro))
             clearChipPolyState();
 
         patch = nextPatch;
+        if (! opnaRhythmEnabledForPatch())
+            keyOffOpnaRhythm();
         applyPatchToAllChannels(true);
     }
 
@@ -11528,6 +11645,9 @@ public:
 
         for (size_t channel = 0; channel < sourceChannelCount; ++channel)
             triggerChannel(channel, notes[channel], baseVelocity, channelEnabled(channel));
+
+        if (opnaRhythmEnabledForPatch())
+            triggerOpnaRhythm(heldNote, baseVelocity);
     }
 
     void noteOff(int midiNote) override
@@ -11548,6 +11668,7 @@ public:
                 channelVelocity[channel] = 0.0f;
                 channelStamp[channel] = 0;
             }
+            keyOffOpnaRhythm();
         }
     }
 
@@ -11616,7 +11737,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPNA FM+SSG register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2608/OPNA synthesis core. Chipper currently maps musical controls and notes to six OPNA FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2608 low/high address-data ports. OPNA rhythm, ADPCM-A, ADPCM-B, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2608/OPNA synthesis core. Chipper currently maps musical controls and notes to six OPNA FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2608 low/high address-data ports. Drum and Hit macros also write native OPNA ADPCM-A rhythm key, total-level, pan, and instrument-level registers, using original Chipper-generated in-memory percussion bytes instead of the copyrighted PC-98 rhythm ROM. ADPCM-B/user ADPCM sample import, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -11643,9 +11764,24 @@ public:
              << "\"fmChannelCount\":6,"
              << "\"ssgChannelCount\":3,"
              << "\"ssgIntegrated\":1,"
-             << "\"rhythmImplemented\":0,"
-             << "\"adpcmAImplemented\":0,"
+             << "\"rhythmImplemented\":1,"
+             << "\"adpcmAImplemented\":1,"
              << "\"adpcmBImplemented\":0,"
+             << "\"opnaRhythmOverlay\":" << (opnaRhythmEnabledForPatch() ? 1 : 0) << ","
+             << "\"opnaRhythmRegister\":" << static_cast<int>(regs[0x10]) << ","
+             << "\"opnaRhythmKeyBits\":" << static_cast<int>(opnaRhythmKeyBits) << ","
+             << "\"opnaRhythmTotalLevel\":" << static_cast<int>(opnaRhythmTotalLevel) << ","
+             << "\"opnaRhythmBassLevel\":" << static_cast<int>(currentOpnaRhythmLevels[0]) << ","
+             << "\"opnaRhythmSnareLevel\":" << static_cast<int>(currentOpnaRhythmLevels[1]) << ","
+             << "\"opnaRhythmTopCymLevel\":" << static_cast<int>(currentOpnaRhythmLevels[2]) << ","
+             << "\"opnaRhythmHatLevel\":" << static_cast<int>(currentOpnaRhythmLevels[3]) << ","
+             << "\"opnaRhythmTomLevel\":" << static_cast<int>(currentOpnaRhythmLevels[4]) << ","
+             << "\"opnaRhythmRimLevel\":" << static_cast<int>(currentOpnaRhythmLevels[5]) << ","
+             << "\"opnaAdpcmAGeneratedRom\":1,"
+             << "\"opnaAdpcmARomBytes\":" << opnaAdpcmARomSize << ","
+             << "\"opnaAdpcmAReadCount\":" << host.adpcmAReads() << ","
+             << "\"opnaAdpcmALastReadAddress\":" << host.lastAdpcmAReadAddress() << ","
+             << "\"opnaAdpcmBReadCount\":" << host.adpcmBReads() << ","
              << "\"algorithm0\":" << static_cast<int>(currentAlgorithm[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
              << "\"algorithmFeedbackRegister0\":" << static_cast<int>(regs[0xb0]) << ","
@@ -11775,6 +11911,48 @@ public:
 private:
     class Host final : public ymfm::ymfm_interface
     {
+    public:
+        Host()
+            : adpcmARom(makeGeneratedOpnaAdpcmARom())
+        {
+        }
+
+        uint8_t ymfm_external_read(ymfm::access_class type, uint32_t address) override
+        {
+            if (type == ymfm::ACCESS_ADPCM_A)
+            {
+                ++adpcmAReadCount;
+                lastAdpcmAAddress = address & static_cast<uint32_t>(adpcmARom.size() - 1u);
+                return adpcmARom[static_cast<size_t>(lastAdpcmAAddress)];
+            }
+
+            if (type == ymfm::ACCESS_ADPCM_B)
+            {
+                ++adpcmBReadCount;
+                lastAdpcmBAddress = address;
+            }
+            return 0;
+        }
+
+        void resetAdpcmCounters()
+        {
+            adpcmAReadCount = 0;
+            adpcmBReadCount = 0;
+            lastAdpcmAAddress = 0;
+            lastAdpcmBAddress = 0;
+        }
+
+        uint64_t adpcmAReads() const { return adpcmAReadCount; }
+        uint64_t adpcmBReads() const { return adpcmBReadCount; }
+        uint32_t lastAdpcmAReadAddress() const { return lastAdpcmAAddress; }
+        uint32_t lastAdpcmBReadAddress() const { return lastAdpcmBAddress; }
+
+    private:
+        std::array<uint8_t, opnaAdpcmARomSize> adpcmARom {};
+        uint64_t adpcmAReadCount = 0;
+        uint64_t adpcmBReadCount = 0;
+        uint32_t lastAdpcmAAddress = 0;
+        uint32_t lastAdpcmBAddress = 0;
     };
 
     struct OPNAPitch
@@ -11885,6 +12063,70 @@ private:
         return false;
     }
 
+    static bool opnaRhythmEnabledForMacro(MacroKind macro)
+    {
+        return macro == MacroKind::drum || macro == MacroKind::hit;
+    }
+
+    bool opnaRhythmEnabledForPatch() const
+    {
+        return opnaRhythmEnabledForMacro(patch.macro);
+    }
+
+    uint8_t opnaRhythmInstrumentLevel(size_t rhythmChannel, float velocity) const
+    {
+        const auto source = std::min(rhythmChannel, fmChannelCount - static_cast<size_t>(1));
+        const auto level = clamp01(velocity) * clamp01(patch.control4) * sourceLevel(patch, source);
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(level * 31.0)), 0, 31));
+    }
+
+    uint8_t opnaRhythmKeyBitsForPatch(float velocity) const
+    {
+        if (! opnaRhythmEnabledForPatch() || ! anyAudibleSourceEnabled())
+            return 0;
+
+        uint8_t keyBits = 0;
+        for (size_t rhythm = 0; rhythm < currentOpnaRhythmLevels.size(); ++rhythm)
+        {
+            if (channelEnabled(rhythm) && opnaRhythmInstrumentLevel(rhythm, velocity) > 0)
+                keyBits = static_cast<uint8_t>(keyBits | (1u << rhythm));
+        }
+        return keyBits;
+    }
+
+    void keyOffOpnaRhythm()
+    {
+        const auto shouldWriteDump = opnaRhythmKeyBits != 0 || (regs[0x10] & 0x3fu) != 0;
+        opnaRhythmKeyBits = 0;
+        currentOpnaRhythmLevels.fill(0);
+        if (chip && shouldWriteDump)
+            writeYmRegister(0x10u, 0xbfu);
+    }
+
+    void triggerOpnaRhythm(int midiNote, float velocity)
+    {
+        (void) midiNote;
+        if (! chip || ! opnaRhythmEnabledForPatch())
+            return;
+
+        const auto keyBits = opnaRhythmKeyBitsForPatch(velocity);
+        keyOffOpnaRhythm();
+        opnaRhythmTotalLevel = 0x3fu;
+        writeYmRegister(0x11u, opnaRhythmTotalLevel);
+
+        for (size_t rhythm = 0; rhythm < currentOpnaRhythmLevels.size(); ++rhythm)
+        {
+            const auto level = opnaRhythmInstrumentLevel(rhythm, velocity);
+            currentOpnaRhythmLevels[rhythm] = level;
+            const auto pan = ym2612PanBitsForPatch(patch, rhythm);
+            writeYmRegister(static_cast<uint16_t>(0x18u + rhythm), static_cast<uint8_t>(pan | level));
+        }
+
+        opnaRhythmKeyBits = keyBits;
+        if (keyBits != 0)
+            writeYmRegister(0x10u, keyBits);
+    }
+
     void applyChannelPatch(size_t channel, float velocity)
     {
         if (channel >= fmChannelCount)
@@ -11985,6 +12227,7 @@ private:
     {
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
             keyOffChannel(channel);
+        keyOffOpnaRhythm();
         channelNotes.fill(-1);
         channelVelocity.fill(0.0f);
         channelStamp.fill(0);
@@ -12039,6 +12282,8 @@ private:
         channelVelocity[index] = static_cast<float>(clamp01(velocity));
         channelStamp[index] = ++noteStamp;
         triggerChannel(index, midiNote, velocity, true);
+        if (opnaRhythmEnabledForPatch())
+            triggerOpnaRhythm(midiNote, velocity);
     }
 
     void noteOffChipPoly(int midiNote)
@@ -12053,6 +12298,8 @@ private:
             channelStamp[channel] = 0;
             keyOffChannel(channel);
         }
+        if (opnaRhythmEnabledForPatch())
+            keyOffOpnaRhythm();
     }
 
     void applyLaserDrift()
@@ -12210,6 +12457,7 @@ private:
     std::array<uint8_t, 6> currentSustainRelease {};
     std::array<uint16_t, 3> currentSsgPeriod {};
     std::array<uint8_t, 3> currentSsgVolume {};
+    std::array<uint8_t, 6> currentOpnaRhythmLevels {};
     std::array<int, 9> channelNotes {};
     std::array<float, 9> channelVelocity {};
     std::array<uint64_t, 9> channelStamp {};
@@ -12217,6 +12465,8 @@ private:
     int heldNote = -1;
     uint16_t keyOnMask = 0;
     uint16_t ssgGateMask = 0;
+    uint8_t opnaRhythmKeyBits = 0;
+    uint8_t opnaRhythmTotalLevel = 0x3f;
     double laserPhase = 0.0;
     int32_t lastNativeLeft = 0;
     int32_t lastNativeRight = 0;

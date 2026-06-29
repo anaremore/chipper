@@ -82,7 +82,7 @@ std::vector<MacroTemplate> ym2608Macros()
         { MacroKind::bass, "OPNA Feedback Bass", "Dark PC-98-style bass using serial FM with a restrained SSG octave.", { 0.00f, 0.82f, 0.28f, 0.90f }, { true, true, false, true }, 0.08f, 1 },
         { MacroKind::lead, "OPNA Metallic Lead", "Forward OPNA lead with six FM lanes and embedded SSG support.", { 0.58f, 0.46f, 0.62f, 0.84f }, { true, true, true, true }, 0.10f, 5 },
         { MacroKind::arp, "OPNA Nine-Voice Arp", "Six OPNA FM channels plus three SSG lanes arranged for quick fake chords and arpeggios.", { 0.72f, 0.32f, 0.50f, 0.80f }, { true, true, true, true }, 0.08f, 6 },
-        { MacroKind::drum, "OPNA SSG Perc", "Short OPNA operator percussion with SSG click layers while native rhythm remains planned.", { 0.14f, 0.72f, 0.66f, 0.92f }, { true, false, true, true }, 0.30f, 2, 4 },
+        { MacroKind::drum, "OPNA Rhythm Perc", "Short OPNA operator percussion with SSG click layers and generated ADPCM-A rhythm overlay.", { 0.14f, 0.72f, 0.66f, 0.92f }, { true, false, true, true }, 0.30f, 2, 4 },
         { MacroKind::hit, "OPNA Impact Hit", "Aggressive stacked OPNA FM and SSG impact.", { 0.22f, 0.90f, 0.74f, 0.80f }, { true, false, true, true }, 0.52f, 2 },
         { MacroKind::laser, "OPNA Pitch Laser", "YM2608 pitch sweep SFX through FM and SSG voices.", { 0.30f, 0.72f, 0.88f, 0.82f }, { true, true, false, true }, 0.28f, 3 },
         { MacroKind::jump, "OPNA Jump Blip", "Quick upward OPNA FM/SSG game gesture.", { 1.00f, 0.22f, 0.64f, 0.78f }, { true, false, false, true }, 0.18f, 8 },
@@ -4291,7 +4291,7 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2608,
             "YM2608 / OPNA",
-            "Six YM2608/OPNA FM lanes plus three embedded SSG tone/noise/envelope lanes write native registers into the audited ymfm core.",
+            "Six YM2608/OPNA FM lanes plus three embedded SSG tone/noise/envelope lanes write native registers into the audited ymfm core; Drum and Hit macros also trigger generated ADPCM-A rhythm.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2608 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2608 feedback bits for the active OPNA FM voices." },
@@ -4308,10 +4308,11 @@ const std::vector<ChipDescriptor>& descriptors()
                     "BSD-3-Clause ymfm is vendored and linked as the YM2608/OPNA synthesis core.",
                     "Renderer notes and preset recipes write OPNA algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, key-on, and pan registers across all six FM channels.",
                     "Embedded YM2608 SSG tone period, noise period, mixer, amplitude, and envelope registers are written for SSG A-C and mixed from the ymfm OPNA SSG output bus.",
+                    "Drum and Hit macros write native OPNA ADPCM-A rhythm key, total-level, pan, and instrument-level registers using deterministic original Chipper-generated percussion bytes.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the nine-lane FM plus SSG adapter."
                 },
                 {
-                    "Native OPNA rhythm, ADPCM-A, ADPCM-B, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
+                    "ADPCM-B/user ADPCM sample import, original PC-98 rhythm ROM loading, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
                     "Prescaler controls, timers, CSM, LFO/AMS/PMS, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
                 })
         },

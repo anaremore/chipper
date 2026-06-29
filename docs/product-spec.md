@@ -18,7 +18,7 @@ The plugin must not use generic retro oscillators with famous chip labels. Each 
 - **ZX Spectrum Beeper:** one-bit ULA port `0xFE` beeper output, EAR/MIC bit behavior, border-bit metadata, MIC-click SFX, one beeper source lane, and Spectrum-style chirps/rasps.
 - **YM2612/OPN2:** six-channel FM, operators, algorithms, feedback, LFO, DAC behavior, stereo.
 - **YM2203/OPN:** three-channel FM plus three embedded SSG tone/noise/envelope lanes backed by `ymfm`, shared OPN operator controls, algorithm/feedback, source-card mixing, and PC-88/arcade-style presets.
-- **YM2608/OPNA:** six-channel FM plus three embedded SSG tone/noise/envelope lanes backed by `ymfm`, shared OPN-family operator controls, algorithm/feedback, pan, source-card mixing, and PC-98-style presets. Native rhythm, ADPCM-A, and ADPCM-B remain follow-ups.
+- **YM2608/OPNA:** six-channel FM plus three embedded SSG tone/noise/envelope lanes backed by `ymfm`, shared OPN-family operator controls, algorithm/feedback, pan, source-card mixing, PC-98-style presets, and generated native ADPCM-A rhythm overlay for Drum/Hit macros. ADPCM-B, user ADPCM samples, and original rhythm ROM loading remain follow-ups.
 - **YM2610/OPNB:** four-channel FM plus three embedded SSG tone/noise/envelope lanes backed by `ymfm`, shared OPN-family operator controls, algorithm/feedback, pan, source-card mixing, and Neo Geo-style presets. External ADPCM-A/B and YM2610B/OPNB2 six-FM behavior remain follow-ups.
 - **OPL2/OPL3:** two-operator FM, rhythm mode, waveform variants, envelopes, stereo for OPL3.
 - **Expansion:** SPC700-style sample playback, Paula, HuC6280 wavetable, Namco WSG, YM2151, YM2413/OPLL, NES expansion chips, Philips SAA1099, PC Speaker, ZX Spectrum Beeper, Konami SCC, and additional Yamaha FM families. SPC700-style, POKEY, Paula, HuC6280, Namco WSG, SAA1099, PC Speaker, ZX Spectrum Beeper, YM2151, YM2203/OPN, YM2608/OPNA, YM2610/OPNB, YM2413/OPLL, NES + VRC6/FDS/Sunsoft 5B/MMC5/VRC7, and SCC have started as audible partial expansion cores; YM2151, YM2203, YM2608, and YM2610 are backed by vendored BSD-3-Clause `ymfm`, and YM2413/OPLL plus NES + VRC7 use vendored MIT emu2413.
@@ -233,7 +233,7 @@ Every shipped factory preset must appear in that catalog, include chip/category/
 - OPNA Power Arp
 - OPNA Electric Keys
 - OPNA Glass Pad
-- OPNA SSG Perc Drum
+- OPNA Rhythm Perc Drum
 - OPNA Impact Drum
 - OPNA Pitch Laser
 - OPNA Jump FX

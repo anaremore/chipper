@@ -5657,8 +5657,8 @@ const std::vector<PresetInfo>& presetCatalog()
         {
             "opna-ssg-perc-drum",
             "YM2608 / OPNA Drums",
-            "OPNA SSG Perc Drum",
-            "Short YM2608 FM percussion drum with SSG tone clicks while native OPNA rhythm remains a planned follow-up.",
+            "OPNA Rhythm Perc Drum",
+            "Short YM2608 FM percussion drum with SSG tone clicks and a generated native ADPCM-A rhythm overlay.",
             ChipMode::ym2608,
             AccuracyMode::hybrid,
             MacroKind::drum,
@@ -7753,7 +7753,7 @@ const std::vector<PresetQualityTarget>& presetQualityTargets()
         { ChipMode::ym2413, roles, { "fm", "operator", "rhythm", "envelope", "alarm" }, "Furnace-informed OPLL coverage: ROM instrument bass/leads/keys, rhythm slots, and compact SFX." },
         { ChipMode::scc, roles, { "wavetable", "wave", "noise", "echo", "chord" }, "Furnace-informed SCC coverage: five-lane wavetable basses, leads, keys, arps, drums, and arcade SFX." },
         { ChipMode::ym2203, roles, { "fm", "ssg", "operator", "feedback", "envelope", "bell" }, "Furnace-informed OPN coverage: YM2203 FM plus embedded SSG basses, leads, keys, arps, percussion, and SFX." },
-        { ChipMode::ym2608, roles, { "fm", "opna", "ssg", "operator", "feedback", "envelope", "chord" }, "Furnace-informed OPNA coverage: YM2608 six-FM PC-98 basses/leads/keys/arps plus embedded SSG percussion and SFX; rhythm/ADPCM remain planned." },
+        { ChipMode::ym2608, roles, { "fm", "opna", "ssg", "operator", "feedback", "envelope", "rhythm", "adpcm", "chord" }, "Furnace-informed OPNA coverage: YM2608 six-FM PC-98 basses/leads/keys/arps plus embedded SSG percussion, generated ADPCM-A rhythm overlay, and SFX; ADPCM-B/user samples remain planned." },
         { ChipMode::ym2610, roles, { "fm", "opnb", "ssg", "operator", "feedback", "envelope", "neo" }, "Furnace-informed OPNB coverage: YM2610 four-FM Neo Geo-style basses/leads/keys/arps plus embedded SSG percussion and SFX; ADPCM remains planned." }
     };
 
@@ -8013,7 +8013,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
         addPresetTag(tags, "noise");
 
     const auto corpus = presetCorpus(preset);
-    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "wavetable", "mod", "modulation", "fds", "sunsoft", "5b", "mmc5", "pcm", "square", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "ssg", "psg", "saa1099", "pc", "speaker", "beeper", "pit", "zx", "spectrum", "ula", "ear", "mic", "click", "gate", "sfx", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade", "neo" })
+    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "wavetable", "mod", "modulation", "fds", "sunsoft", "5b", "mmc5", "pcm", "adpcm", "square", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "ssg", "psg", "saa1099", "pc", "speaker", "beeper", "pit", "zx", "spectrum", "ula", "ear", "mic", "click", "gate", "sfx", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade", "neo" })
     {
         if (presetCorpusContains(corpus, token))
             addPresetTag(tags, token);

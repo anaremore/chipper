@@ -8342,7 +8342,7 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
         return label + " -> " + fmChipReadout(mode, patch) + " | " + opnSsgMixerReadout(patch) + " | " + opnSsgEnvelopeReadout(patch) + laneText;
 
     if (mode == chipper::ChipMode::ym2608)
-        return label + " -> " + fmChipReadout(mode, patch) + " | " + opnSsgMixerReadout(patch) + " | OPNA rhythm/ADPCM planned | " + opnSsgEnvelopeReadout(patch) + laneText;
+        return label + " -> " + fmChipReadout(mode, patch) + " | " + opnSsgMixerReadout(patch) + " | OPNA generated ADPCM-A rhythm | ADPCM-B planned | " + opnSsgEnvelopeReadout(patch) + laneText;
 
     if (mode == chipper::ChipMode::ym2610)
         return label + " -> " + fmChipReadout(mode, patch) + " | " + opnSsgMixerReadout(patch) + " | OPNB ADPCM planned | " + opnSsgEnvelopeReadout(patch) + laneText;
