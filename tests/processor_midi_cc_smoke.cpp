@@ -508,6 +508,16 @@ bool write8svxFixture(const juce::File& file, uint8_t seed, uint32_t oneShotSamp
     return file.replaceWithData(data.data(), data.size());
 }
 
+bool writeBinaryFixture(const juce::File& file, size_t byteCount)
+{
+    std::vector<uint8_t> data;
+    data.reserve(byteCount);
+    for (size_t i = 0; i < byteCount; ++i)
+        data.push_back(static_cast<uint8_t>(i & 0xffu));
+
+    return file.replaceWithData(data.data(), data.size());
+}
+
 void rewritePresetSamplePaths(juce::XmlElement& xml, const juce::String& sampleTagName, const juce::String& fileName)
 {
     if (xml.hasTagName(sampleTagName))
@@ -832,6 +842,55 @@ int main()
     }
     ok &= expectFourOperatorCarrierRoleDebug(5, "OPN2");
     ok &= expectFourOperatorCarrierRoleDebug(12, "OPM");
+
+    {
+        auto opnaRomFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                               .getChildFile("chipper-opna-rhythm-rom-test.bin");
+        opnaRomFile.deleteFile();
+        ok &= expect(writeBinaryFixture(opnaRomFile, 9000u),
+                     "Should write temporary OPNA rhythm ROM fixture");
+
+        ChipperAudioProcessor opnaProcessor;
+        opnaProcessor.prepareToPlay(48000.0, 64);
+        setPlainFromHost(opnaProcessor, chipper::parameters::id::chipMode, 17.0f);
+        processEmptyBlock(opnaProcessor);
+        ok &= expect(opnaProcessor.loadOpnaRhythmRomFile(opnaRomFile).wasOk(),
+                     "OPNA rhythm ROM file load should succeed");
+
+        auto opnaInfo = opnaProcessor.opnaRhythmRomInfo();
+        ok &= expect(opnaInfo.loaded && opnaInfo.byteCount == 9000u
+                         && opnaInfo.copiedByteCount == 8192u
+                         && opnaInfo.truncated,
+                     "OPNA rhythm ROM info should report user bytes and 8 KB copy window");
+
+        const auto opnaDebug = opnaProcessor.currentCoreDebugStateJson();
+        ok &= expect(jsonIntValue(opnaDebug, "opnaAdpcmAUserRomLoaded") == 1
+                         && jsonIntValue(opnaDebug, "opnaAdpcmARomProvidedBytes") == 9000
+                         && jsonIntValue(opnaDebug, "opnaAdpcmARomCopiedBytes") == 8192,
+                     "OPNA core debug state should expose loaded user rhythm ROM bytes");
+
+        auto opnaStateXml = opnaProcessor.createStateXml();
+        ok &= expect(opnaStateXml != nullptr, "OPNA state XML should save loaded rhythm ROM path");
+
+        ChipperAudioProcessor restoredOpnaProcessor;
+        restoredOpnaProcessor.prepareToPlay(48000.0, 64);
+        if (opnaStateXml != nullptr)
+            ok &= expect(restoredOpnaProcessor.restoreStateXml(*opnaStateXml).wasOk(),
+                         "OPNA rhythm ROM state restore should succeed");
+
+        processEmptyBlock(restoredOpnaProcessor);
+        auto restoredOpnaInfo = restoredOpnaProcessor.opnaRhythmRomInfo();
+        ok &= expect(restoredOpnaInfo.loaded && restoredOpnaInfo.byteCount == 9000u
+                         && restoredOpnaInfo.copiedByteCount == 8192u,
+                     "OPNA rhythm ROM state restore should reload the user ROM path");
+
+        const auto restoredOpnaDebug = restoredOpnaProcessor.currentCoreDebugStateJson();
+        ok &= expect(jsonIntValue(restoredOpnaDebug, "opnaAdpcmAUserRomLoaded") == 1
+                         && jsonIntValue(restoredOpnaDebug, "opnaAdpcmARomCopiedBytes") == 8192,
+                     "Restored OPNA core should receive the user rhythm ROM bytes");
+
+        opnaRomFile.deleteFile();
+    }
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 7));
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 5));

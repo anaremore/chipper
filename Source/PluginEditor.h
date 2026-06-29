@@ -537,6 +537,7 @@ private:
     void updateDmcSampleControls();
     void updateSpc700BrrSampleControls();
     void updatePaulaSampleControls();
+    void updateOpnaRhythmRomControls();
     void updateSampleWaveformPreview(chipper::ChipMode mode);
     void updateSamplePlaybackModeChoices(chipper::ChipMode mode);
     void chooseDmcSampleFile();
@@ -545,6 +546,7 @@ private:
     void chooseSpc700BrrSampleDirectory();
     void choosePaulaSampleFile();
     void choosePaulaSampleDirectory();
+    void chooseOpnaRhythmRomFile();
     void showDmcSampleBankEditor();
     void handleDmcSampleLoadResult(const juce::Result& result);
     juce::String envelopeDecayReadout(chipper::ChipMode mode, float value) const;

@@ -96,6 +96,18 @@ public:
         bool exceedsAramBudget = false;
     };
 
+    struct OpnaRhythmRomInfo
+    {
+        juce::String statusLine;
+        juce::String sampleName;
+        juce::String path;
+        int byteCount = 0;
+        int copiedByteCount = 0;
+        int romByteCount = 8192;
+        bool loaded = false;
+        bool truncated = false;
+    };
+
     ChipperAudioProcessor();
     ~ChipperAudioProcessor() override = default;
 
@@ -140,10 +152,12 @@ public:
     juce::Result loadSpc700BrrSampleDirectory(const juce::File& directory);
     juce::Result loadPaulaSampleFile(const juce::File& file);
     juce::Result loadPaulaSampleDirectory(const juce::File& directory);
+    juce::Result loadOpnaRhythmRomFile(const juce::File& file);
     juce::String nesDmcSampleBankStatus() const;
     DmcSamplePlaybackInfo nesDmcSamplePlaybackInfo() const;
     Spc700BrrSampleInfo spc700BrrSampleInfo() const;
     Spc700BrrSampleInfo paulaSampleInfo() const;
+    OpnaRhythmRomInfo opnaRhythmRomInfo() const;
     juce::StringArray nesDmcSampleNames() const;
     juce::StringArray spc700BrrSampleNames() const;
     juce::StringArray paulaSampleNames() const;
@@ -189,6 +203,7 @@ private:
     void applyPaulaSampleToCore();
     void applyPaulaSampleSlotToCore(int requestedSlot);
     void applyMappedPaulaSampleForMidiNote(int midiNote);
+    void applyOpnaRhythmRomToCore();
     void handleMidiMessage(const juce::MidiMessage& message);
     bool handleMidiController(const juce::MidiMessage& message);
     bool setParameterFromMidiCc(const char* parameterId, int controllerValue);
@@ -227,6 +242,11 @@ private:
     uint64_t activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
     int activePaulaSampleSlot = -1;
     int activePaulaManualSlot = -1;
+    mutable std::mutex opnaRhythmRomMutex;
+    DmcSampleSlot opnaRhythmRom;
+    juce::String opnaRhythmRomRestoreWarning;
+    uint64_t opnaRhythmRomRevision = 0;
+    uint64_t activeOpnaRhythmRomRevision = std::numeric_limits<uint64_t>::max();
     chipper::PatchConfig activePatch;
     std::vector<chipper::RegisterWrite> pendingRegisterState;
     chipper::PatchConfig lastObservedMacroPatch;

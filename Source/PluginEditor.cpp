@@ -2602,7 +2602,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     dmcSampleFileButton.setTooltip("Load one user-provided .dmc file as a one-slot bank.");
     dmcSampleFileButton.onClick = [this]
     {
-        if (displayedMode == chipper::ChipMode::paula)
+        if (displayedMode == chipper::ChipMode::ym2608)
+            chooseOpnaRhythmRomFile();
+        else if (displayedMode == chipper::ChipMode::paula)
             choosePaulaSampleFile();
         else if (displayedMode == chipper::ChipMode::spc700)
             chooseSpc700BrrSampleFile();
@@ -4934,6 +4936,7 @@ void ChipperAudioProcessorEditor::resized()
         ymEnvelopePreview.setBounds({});
     }
 
+    juce::Rectangle<int> opnaRhythmRomCell;
     auto outputPanel = sampleLayout ? juce::Rectangle<int> {} : moduleBounds[5].reduced(12, 9);
     if (! sampleLayout)
     {
@@ -4942,6 +4945,12 @@ void ChipperAudioProcessorEditor::resized()
             outputPanel.removeFromTop(30);
         outputPanel.removeFromTop(4);
         outputPanel.removeFromBottom(6);
+    }
+    if (displayedMode == chipper::ChipMode::ym2608 && outputPanel.getWidth() >= 620)
+    {
+        const auto romWidth = std::clamp(outputPanel.getWidth() / 2, 300, 520);
+        opnaRhythmRomCell = outputPanel.removeFromRight(std::min(romWidth, outputPanel.getWidth()));
+        outputPanel.removeFromRight(std::min(12, outputPanel.getWidth()));
     }
     auto outputTonePanel = outputPanel;
     auto outputRoutePanel = outputPanel;
@@ -5436,6 +5445,52 @@ void ChipperAudioProcessorEditor::resized()
         else
         {
             sampleWaveformPreview.setBounds(waveformBounds);
+        }
+    }
+    else if (displayedMode == chipper::ChipMode::ym2608)
+    {
+        clockSlider.setBounds({});
+        clockLabel.setBounds({});
+        controlValueLabels[4].setBounds({});
+        dmcDirectSlider.setBounds({});
+        dmcDirectLabel.setBounds({});
+        dmcRateLabel.setBounds({});
+        dmcRateBox.setBounds({});
+        dmcPlaybackModeLabel.setBounds({});
+        dmcMapRootLabel.setBounds({});
+        dmcSampleFolderButton.setBounds({});
+        dmcSampleBankButton.setBounds({});
+        dmcSampleSlotBox.setBounds({});
+        dmcPlaybackModeBox.setBounds({});
+        dmcMapRootBox.setBounds({});
+        dmcLoopButton.setBounds({});
+        spc700LoopModeButton.setBounds({});
+        sampleLoopStartLabel.setBounds({});
+        sampleLoopEndLabel.setBounds({});
+        sampleLoopStartValueLabel.setBounds({});
+        sampleLoopEndValueLabel.setBounds({});
+        sampleLoopStartSlider.setBounds({});
+        sampleLoopEndSlider.setBounds({});
+
+        auto romCell = opnaRhythmRomCell.isEmpty() ? utilityCell : opnaRhythmRomCell;
+        if (romCell.getHeight() <= 0 || romCell.getWidth() <= 0)
+        {
+            dmcSampleLabel.setBounds({});
+            dmcSampleStatusLabel.setBounds({});
+            dmcSampleFileButton.setBounds({});
+            sampleWaveformPreview.setBounds({});
+        }
+        else
+        {
+            constexpr int standardRomControlHeight = 30;
+            auto header = romCell.removeFromTop(std::min(standardRomControlHeight, romCell.getHeight()));
+            dmcSampleFileButton.setBounds(header.removeFromRight(std::min(72, header.getWidth())).reduced(0, 1));
+            header.removeFromRight(std::min(8, header.getWidth()));
+            dmcSampleLabel.setBounds(header);
+            romCell.removeFromTop(std::min(6, romCell.getHeight()));
+            dmcSampleStatusLabel.setBounds(romCell.removeFromTop(std::min(18, romCell.getHeight())).reduced(0, 1));
+            romCell.removeFromTop(std::min(6, romCell.getHeight()));
+            sampleWaveformPreview.setBounds(romCell.reduced(0, 1));
         }
     }
     else
@@ -13073,11 +13128,50 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
     updateSampleWaveformPreview(chipper::ChipMode::paula);
 }
 
+void ChipperAudioProcessorEditor::updateOpnaRhythmRomControls()
+{
+    dmcSampleLabel.setText("OPNA Rhythm ROM", juce::dontSendNotification);
+    dmcSampleLabel.setTooltip("Load a user-owned YM2608 ADPCM-A rhythm ROM byte image for the native OPNA drum registers. Without a file, Chipper uses its generated rhythm bytes.");
+    dmcSampleFileButton.setButtonText("File");
+    dmcSampleFileButton.setTooltip("Load one user-owned OPNA ADPCM-A rhythm ROM byte image. The first 8192 bytes fill the YM2608 rhythm ROM address window.");
+    dmcSampleFolderButton.setButtonText("Folder");
+    dmcSampleBankButton.setButtonText("Bank");
+    dmcSampleSlotBox.setEnabled(false);
+    dmcSampleSlotBox.setSelectedId(0, juce::dontSendNotification);
+    dmcSampleSlotBox.setTextWhenNothingSelected("Single ROM");
+
+    const auto info = audioProcessor.opnaRhythmRomInfo();
+    auto visibleStatus = info.loaded
+        ? compactSampleName(info.sampleName, 34) + " | " + juce::String(info.copiedByteCount) + "/"
+            + juce::String(info.romByteCount) + " bytes"
+        : "Generated rhythm bytes";
+    if (info.truncated)
+        visibleStatus += " | truncated";
+    dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
+
+    auto tooltip = info.statusLine
+        + "\nThe loaded file is referenced by path in Chipper state and presets; bytes are copied into the 8 KB OPNA ADPCM-A rhythm ROM window at playback time.";
+    if (info.loaded)
+    {
+        tooltip += "\nPath: " + info.path;
+        if (info.truncated)
+            tooltip += "\nOnly the first 8192 bytes are used by the YM2608 rhythm address window.";
+    }
+    else
+    {
+        tooltip += "\nGenerated ROM remains active until a user-owned file is loaded.";
+    }
+    tooltip += "\nADPCM-B/user sample import is still a separate planned workflow.";
+    dmcSampleStatusLabel.setTooltip(tooltip);
+    updateSampleWaveformPreview(chipper::ChipMode::ym2608);
+}
+
 void ChipperAudioProcessorEditor::updateSampleWaveformPreview(chipper::ChipMode mode)
 {
     const auto showSamplePreview = (isNesFamily(mode) && mode != chipper::ChipMode::nesVrc7)
         || mode == chipper::ChipMode::spc700
-        || mode == chipper::ChipMode::paula;
+        || mode == chipper::ChipMode::paula
+        || mode == chipper::ChipMode::ym2608;
 
     if (! showSamplePreview)
     {
@@ -13215,6 +13309,22 @@ void ChipperAudioProcessorEditor::choosePaulaSampleDirectory()
                                   });
 }
 
+void ChipperAudioProcessorEditor::chooseOpnaRhythmRomFile()
+{
+    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose an OPNA ADPCM-A rhythm ROM",
+                                                           juce::File {},
+                                                           "*.bin;*.rom;*.dat;*.adpcm;*.*");
+    dmcSampleChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                                  [this](const juce::FileChooser& chooser)
+                                  {
+                                      const auto file = chooser.getResult();
+                                      if (file == juce::File {})
+                                          return;
+
+                                      handleDmcSampleLoadResult(audioProcessor.loadOpnaRhythmRomFile(file));
+                                  });
+}
+
 void ChipperAudioProcessorEditor::chooseDmcSampleDirectory()
 {
     dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose a folder of NES DMC samples",
@@ -13263,7 +13373,9 @@ void ChipperAudioProcessorEditor::handleDmcSampleLoadResult(const juce::Result& 
 
     displayedDmcSampleCount = -1;
     displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();
-    if (displayedMode == chipper::ChipMode::paula)
+    if (displayedMode == chipper::ChipMode::ym2608)
+        updateOpnaRhythmRomControls();
+    else if (displayedMode == chipper::ChipMode::paula)
         updatePaulaSampleControls();
     else if (displayedMode == chipper::ChipMode::spc700)
         updateSpc700BrrSampleControls();
@@ -13347,15 +13459,17 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto showNesDmcSampleControls = showNesDmcControls;
     const auto showSpc700BrrControls = hasLiveCore && mode == chipper::ChipMode::spc700;
     const auto showPaulaSampleControls = hasLiveCore && mode == chipper::ChipMode::paula;
+    const auto showOpnaRhythmRomControls = hasLiveCore && mode == chipper::ChipMode::ym2608;
     const auto showSampleBankControls = showNesDmcSampleControls || showSpc700BrrControls || showPaulaSampleControls;
-    const auto showSampleFileControls = showSampleBankControls;
+    const auto showSampleFileControls = showSampleBankControls || showOpnaRhythmRomControls;
+    const auto showSampleFolderControls = showSampleBankControls;
     const auto showSampleBankLabels = showSpc700BrrControls || showPaulaSampleControls;
     dmcSampleLabel.setVisible(showSampleFileControls);
     dmcSampleStatusLabel.setVisible(showSampleFileControls);
     dmcPlaybackModeLabel.setVisible(showSampleBankLabels);
     dmcMapRootLabel.setVisible(showSampleBankLabels);
     dmcSampleFileButton.setVisible(showSampleFileControls);
-    dmcSampleFolderButton.setVisible(showSampleFileControls);
+    dmcSampleFolderButton.setVisible(showSampleFolderControls);
     dmcSampleBankButton.setVisible(showSampleBankControls);
     dmcSampleSlotBox.setVisible(showSampleBankControls);
     dmcPlaybackModeBox.setVisible(showSampleBankControls);
@@ -13374,7 +13488,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcPlaybackModeLabel.setEnabled(showSampleBankLabels);
     dmcMapRootLabel.setEnabled(showSampleBankLabels);
     dmcSampleFileButton.setEnabled(showSampleFileControls);
-    dmcSampleFolderButton.setEnabled(showSampleFileControls);
+    dmcSampleFolderButton.setEnabled(showSampleFolderControls);
     dmcSampleBankButton.setEnabled(showSampleBankControls);
     dmcSampleSlotBox.setEnabled(showSampleBankControls);
     dmcPlaybackModeBox.setEnabled(showSampleBankControls);
@@ -13393,7 +13507,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcPlaybackModeLabel.setAlpha(showSampleBankLabels ? 1.0f : 0.55f);
     dmcMapRootLabel.setAlpha(showSampleBankLabels ? 1.0f : 0.55f);
     dmcSampleFileButton.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
-    dmcSampleFolderButton.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
+    dmcSampleFolderButton.setAlpha(showSampleFolderControls ? 1.0f : 0.55f);
     dmcSampleBankButton.setAlpha(showSampleBankControls ? 1.0f : 0.55f);
     dmcPlaybackModeBox.setAlpha(showSampleBankControls ? 1.0f : 0.55f);
     dmcMapRootBox.setAlpha(showSampleBankControls ? 1.0f : 0.55f);
@@ -13406,8 +13520,8 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     sampleLoopEndValueLabel.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
     sampleLoopStartSlider.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
     sampleLoopEndSlider.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
-    clockLabel.setVisible(! isNesFamily(mode) && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula);
-    clockSlider.setVisible(! isNesFamily(mode) && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula);
+    clockLabel.setVisible(! isNesFamily(mode) && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula && mode != chipper::ChipMode::ym2608);
+    clockSlider.setVisible(! isNesFamily(mode) && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula && mode != chipper::ChipMode::ym2608);
 
     for (size_t i = 0; i < moduleTitleLabels.size(); ++i)
     {
@@ -13826,6 +13940,12 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[4].setText("Paula sample import", juce::dontSendNotification);
         controlValueLabels[4].setTooltip("Loads WAV/AIFF, uncompressed IFF/8SVX, or ProTracker MOD sample sources into the Paula-style 8-bit sample voice path.");
         updatePaulaSampleControls();
+    }
+    else if (mode == chipper::ChipMode::ym2608)
+    {
+        controlValueLabels[4].setText("OPNA rhythm ROM", juce::dontSendNotification);
+        controlValueLabels[4].setTooltip("Loads user-owned ADPCM-A rhythm ROM bytes for YM2608 Drum/Hit macros; generated Chipper bytes remain the default.");
+        updateOpnaRhythmRomControls();
     }
     else
     {

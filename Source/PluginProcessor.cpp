@@ -20,7 +20,9 @@ constexpr auto spc700BrrBankStateTag = "CHIPPER_SPC700_BRR_BANK";
 constexpr auto spc700BrrSampleStateTag = "BRR_SAMPLE";
 constexpr auto paulaSampleBankStateTag = "CHIPPER_PAULA_SAMPLE_BANK";
 constexpr auto paulaSampleStateTag = "PAULA_SAMPLE";
+constexpr auto opnaRhythmRomStateTag = "CHIPPER_OPNA_RHYTHM_ROM";
 constexpr auto unmappedDmcSampleSlot = -2;
+constexpr auto opnaRhythmRomBytes = 8192;
 
 juce::String midiNoteName(int note)
 {
@@ -390,6 +392,27 @@ juce::Result readDmcSampleFile(const juce::File& file, ChipperAudioProcessor::Dm
     slot.encoding = chipper::ExternalSampleEncoding::rawBytes;
     slot.bytes.resize(block.getSize());
     std::memcpy(slot.bytes.data(), block.getData(), block.getSize());
+    return juce::Result::ok();
+}
+
+juce::Result readOpnaRhythmRomFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    if (! file.existsAsFile())
+        return juce::Result::fail("OPNA rhythm ROM file does not exist: " + file.getFullPathName());
+
+    juce::MemoryBlock block;
+    if (! file.loadFileAsData(block))
+        return juce::Result::fail("Could not read OPNA rhythm ROM file: " + file.getFullPathName());
+
+    if (block.getSize() == 0u)
+        return juce::Result::fail("OPNA rhythm ROM file is empty: " + file.getFullPathName());
+
+    slot.name = file.getFileName();
+    slot.path = file.getFullPathName();
+    slot.encoding = chipper::ExternalSampleEncoding::rawBytes;
+    slot.bytes.resize(block.getSize());
+    std::memcpy(slot.bytes.data(), block.getData(), block.getSize());
+    slot.included = true;
     return juce::Result::ok();
 }
 
@@ -1178,6 +1201,24 @@ juce::Result ChipperAudioProcessor::loadPaulaSampleDirectory(const juce::File& d
     return juce::Result::ok();
 }
 
+juce::Result ChipperAudioProcessor::loadOpnaRhythmRomFile(const juce::File& file)
+{
+    DmcSampleSlot slot;
+    if (auto result = readOpnaRhythmRomFile(file, slot); result.failed())
+        return result;
+
+    {
+        const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
+        opnaRhythmRom = std::move(slot);
+        opnaRhythmRomRestoreWarning = {};
+        ++opnaRhythmRomRevision;
+    }
+
+    activeOpnaRhythmRomRevision = std::numeric_limits<uint64_t>::max();
+    applyOpnaRhythmRomToCore();
+    return juce::Result::ok();
+}
+
 ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSamplePlaybackInfo() const
 {
     static constexpr std::array<int, 16> ntscDmcPeriods {
@@ -1463,6 +1504,34 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::paulaSampleInf
         + ": " + info.sampleName + " (" + juce::String(info.byteCount) + " 8-bit samples)";
     if (info.hasLoop)
         info.statusLine += " | Loop " + juce::String(info.loopStartSample) + "-" + juce::String(info.loopEndSample);
+    appendRestoreWarning(info.statusLine, restoreWarning);
+    return info;
+}
+
+ChipperAudioProcessor::OpnaRhythmRomInfo ChipperAudioProcessor::opnaRhythmRomInfo() const
+{
+    OpnaRhythmRomInfo info;
+    info.romByteCount = opnaRhythmRomBytes;
+    const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
+    const auto restoreWarning = opnaRhythmRomRestoreWarning;
+    if (opnaRhythmRom.bytes.empty())
+    {
+        info.statusLine = "Generated OPNA ADPCM-A rhythm ROM active";
+        appendRestoreWarning(info.statusLine, restoreWarning);
+        return info;
+    }
+
+    info.loaded = true;
+    info.sampleName = opnaRhythmRom.name;
+    info.path = opnaRhythmRom.path;
+    info.byteCount = static_cast<int>(opnaRhythmRom.bytes.size());
+    info.copiedByteCount = std::min(info.byteCount, info.romByteCount);
+    info.truncated = info.byteCount > info.romByteCount;
+    info.statusLine = juce::String("User rhythm ROM: ") + info.sampleName + " ("
+        + juce::String(info.byteCount) + " bytes";
+    if (info.truncated)
+        info.statusLine += ", first " + juce::String(info.copiedByteCount) + " copied";
+    info.statusLine += ")";
     appendRestoreWarning(info.statusLine, restoreWarning);
     return info;
 }
@@ -2261,6 +2330,7 @@ void ChipperAudioProcessor::ensureCore()
         applySelectedDmcSampleToCore();
         applySpc700BrrSampleToCore();
         applyPaulaSampleToCore();
+        applyOpnaRhythmRomToCore();
         return;
     }
 
@@ -2277,9 +2347,11 @@ void ChipperAudioProcessor::ensureCore()
     activeSpc700BrrSampleSlot = -1;
     activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
     activePaulaSampleSlot = -1;
+    activeOpnaRhythmRomRevision = std::numeric_limits<uint64_t>::max();
     applySelectedDmcSampleToCore();
     applySpc700BrrSampleToCore();
     applyPaulaSampleToCore();
+    applyOpnaRhythmRomToCore();
     replayPendingRegisterState();
     replayHeldNotes();
 }
@@ -2731,6 +2803,26 @@ void ChipperAudioProcessor::applyMappedPaulaSampleForMidiNote(int midiNote)
     applyPaulaSampleSlotToCore(mappedSlot);
 }
 
+void ChipperAudioProcessor::applyOpnaRhythmRomToCore()
+{
+    if (core == nullptr || activeMode != chipper::ChipMode::ym2608)
+        return;
+
+    std::vector<uint8_t> selectedBytes;
+    uint64_t revision = 0;
+    {
+        const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
+        revision = opnaRhythmRomRevision;
+        selectedBytes = opnaRhythmRom.bytes;
+    }
+
+    if (revision == activeOpnaRhythmRomRevision)
+        return;
+
+    activeOpnaRhythmRomRevision = revision;
+    core->setExternalSampleData(std::move(selectedBytes));
+}
+
 chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
 {
     const auto modeChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::chipMode)->load()));
@@ -2931,6 +3023,8 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
         xml->removeChildElement(existingSpcBrrBankState, true);
     while (auto* existingPaulaSampleBankState = xml->getChildByName(paulaSampleBankStateTag))
         xml->removeChildElement(existingPaulaSampleBankState, true);
+    while (auto* existingOpnaRhythmRomState = xml->getChildByName(opnaRhythmRomStateTag))
+        xml->removeChildElement(existingOpnaRhythmRomState, true);
 
     if (core != nullptr)
     {
@@ -3013,6 +3107,16 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
         }
     }
 
+    {
+        const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
+        if (! opnaRhythmRom.bytes.empty())
+        {
+            auto* rhythmRomState = new juce::XmlElement(opnaRhythmRomStateTag);
+            rhythmRomState->setAttribute("path", opnaRhythmRom.path);
+            xml->addChildElement(rhythmRomState);
+        }
+    }
+
     return xml;
 }
 
@@ -3033,9 +3137,11 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     std::vector<DmcSampleSlot> restoredSpcBrrBank;
     DmcSampleSlot restoredPaulaSample;
     std::vector<DmcSampleSlot> restoredPaulaBank;
+    DmcSampleSlot restoredOpnaRhythmRom;
     juce::StringArray dmcSampleRestoreIssues;
     juce::StringArray spc700SampleRestoreIssues;
     juce::StringArray paulaSampleRestoreIssues;
+    juce::StringArray opnaRhythmRomRestoreIssues;
     if (auto* coreState = xml->getChildByName(coreStateTag))
     {
         for (const auto* child : coreState->getChildIterator())
@@ -3158,6 +3264,13 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
         xml->removeChildElement(paulaBankState, true);
     }
 
+    if (auto* opnaRhythmRomState = xml->getChildByName(opnaRhythmRomStateTag))
+    {
+        if (auto result = readOpnaRhythmRomFile(resolvePresetSamplePath(*opnaRhythmRomState, presetDirectory), restoredOpnaRhythmRom); result.failed())
+            opnaRhythmRomRestoreIssues.add(result.getErrorMessage());
+        xml->removeChildElement(opnaRhythmRomState, true);
+    }
+
     apvts.replaceState(juce::ValueTree::fromXml(*xml));
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
@@ -3179,6 +3292,12 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
         paulaSampleRestoreWarning = restoreWarningLine("Paula", paulaSampleRestoreIssues);
         ++paulaSampleBankRevision;
     }
+    {
+        const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
+        opnaRhythmRom = std::move(restoredOpnaRhythmRom);
+        opnaRhythmRomRestoreWarning = restoreWarningLine("OPNA rhythm ROM", opnaRhythmRomRestoreIssues);
+        ++opnaRhythmRomRevision;
+    }
     activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
     activeDmcSampleSlot = -1;
     activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
@@ -3187,6 +3306,7 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
     activePaulaSampleSlot = -1;
     activePaulaManualSlot = -1;
+    activeOpnaRhythmRomRevision = std::numeric_limits<uint64_t>::max();
     core.reset();
     hasObservedMacroSnapshot = false;
 
@@ -3465,6 +3585,22 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
         }
 
         snapshot.sourceSampleCount = static_cast<int>(decoded.size());
+    }
+    else if (mode == chipper::ChipMode::ym2608)
+    {
+        const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
+        if (opnaRhythmRom.bytes.empty())
+        {
+            snapshot.label = "Generated OPNA ADPCM-A rhythm ROM";
+            appendRestoreWarning(snapshot.label, opnaRhythmRomRestoreWarning);
+            return snapshot;
+        }
+
+        decoded = decodePcm8Preview(opnaRhythmRom.bytes);
+        snapshot.label = "OPNA rhythm ROM: " + opnaRhythmRom.name;
+        snapshot.sourceSampleCount = static_cast<int>(decoded.size());
+        snapshot.loaded = ! decoded.empty();
+        appendRestoreWarning(snapshot.label, opnaRhythmRomRestoreWarning);
     }
 
     snapshot.samples = waveformPreviewFromSamples(decoded);

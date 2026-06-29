@@ -4308,11 +4308,11 @@ const std::vector<ChipDescriptor>& descriptors()
                     "BSD-3-Clause ymfm is vendored and linked as the YM2608/OPNA synthesis core.",
                     "Renderer notes and preset recipes write OPNA algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, key-on, and pan registers across all six FM channels.",
                     "Embedded YM2608 SSG tone period, noise period, mixer, amplitude, and envelope registers are written for SSG A-C and mixed from the ymfm OPNA SSG output bus.",
-                    "Drum and Hit macros write native OPNA ADPCM-A rhythm key, total-level, pan, and instrument-level registers using deterministic original Chipper-generated percussion bytes by default, with renderer support for user-owned rhythm ROM bytes.",
+                    "Drum and Hit macros write native OPNA ADPCM-A rhythm key, total-level, pan, and instrument-level registers using deterministic original Chipper-generated percussion bytes by default, with renderer and VST support for user-owned rhythm ROM bytes.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the nine-lane FM plus SSG adapter."
                 },
                 {
-                    "ADPCM-B/user ADPCM sample import, polished plugin UI for user-owned rhythm ROM loading, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
+                    "ADPCM-B/user ADPCM sample import, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
                     "Prescaler controls, timers, CSM, LFO/AMS/PMS, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
                 })
         },
