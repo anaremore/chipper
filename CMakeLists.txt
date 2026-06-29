@@ -1035,7 +1035,7 @@ if (Python3_Interpreter_FOUND)
     )
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=16 --preset-count dmg=16 --preset-count sid=19 --preset-count ym2149=17 --preset-count sn76489=17 --preset-count ym2612=19 --preset-count opl3=16 --preset-count spc700=16 --preset-count pokey=15 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=16 --preset-count ym2151=16 --preset-count ym2413=18 --preset-count scc=17
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=16 --preset-count dmg=16 --preset-count sid=19 --preset-count ym2149=17 --preset-count sn76489=17 --preset-count ym2612=19 --preset-count opl3=16 --preset-count spc700=16 --preset-count pokey=16 --preset-count paula=16 --preset-count huc6280=16 --preset-count namcoWsg=16 --preset-count ym2151=16 --preset-count ym2413=18 --preset-count scc=17
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 

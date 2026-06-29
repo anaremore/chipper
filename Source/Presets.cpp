@@ -695,6 +695,26 @@ const std::vector<PresetInfo>& presetCatalog()
             1789790.0,
             0.34f
         },
+        {
+            "pokey-data-zap",
+            "Classic Game SFX",
+            "POKEY Data Zap",
+            "Short POKEY Poly17 zap with polynomial distortion through both filter paths.",
+            ChipMode::pokey,
+            AccuracyMode::hybrid,
+            MacroKind::hit,
+            PlayMode::stack,
+            { 0.18f, 0.84f, 0.74f, 0.88f },
+            { true, true, true, true },
+            0.46f,
+            4,
+            4,
+            0,
+            -11.5f,
+            1789790.0,
+            0.24f,
+            4
+        },
         withSourceLevels(
             {
                 "pokey-distortion-filter-perc",
@@ -2265,6 +2285,30 @@ const std::vector<PresetInfo>& presetCatalog()
             1.0f),
         withSourceLevels(
             {
+                "paula-round-loop-bass",
+                "Amiga Paula",
+                "Paula Round Loop Bass",
+                "Warm looped tracker-sample bass with rounded 8-bit triangle body.",
+                ChipMode::paula,
+                AccuracyMode::hybrid,
+                MacroKind::bass,
+                PlayMode::stack,
+                { 0.28f, 0.24f, 0.44f, 0.82f },
+                { true, true, false, false },
+                0.10f,
+                2,
+                0,
+                3,
+                -8.5f,
+                3546895.0,
+                0.50f
+            },
+            1.0f,
+            0.56f,
+            1.0f,
+            1.0f),
+        withSourceLevels(
+            {
                 "paula-raw-ripper-lead",
                 "Amiga Paula",
                 "Paula Raw Ripper Lead",
@@ -2730,6 +2774,29 @@ const std::vector<PresetInfo>& presetCatalog()
             4,
             4,
             4,
+            0
+        },
+        {
+            "huc-lfo-zap",
+            "Classic Game SFX",
+            "HuC6280 LFO Zap",
+            "Fast PC Engine LFO zap with wavetable snap and high-lane noise.",
+            ChipMode::huc6280,
+            AccuracyMode::hybrid,
+            MacroKind::laser,
+            PlayMode::stack,
+            { 0.24f, 0.94f, 0.82f, 0.80f },
+            { true, true, false, true },
+            0.46f,
+            4,
+            0,
+            4,
+            -12.0f,
+            3579545.0,
+            0.28f,
+            4,
+            4,
+            3,
             0
         },
         withSourceLevels(
