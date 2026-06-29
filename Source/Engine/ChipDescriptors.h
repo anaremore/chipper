@@ -355,6 +355,14 @@ FmEnvelopeRegisters ym2612EnvelopeRegistersForPatch(const PatchConfig& patch, si
 uint8_t ym2151AlgorithmForPatch(const PatchConfig& patch);
 uint8_t ym2151PanBitsForPatch(const PatchConfig& patch, size_t channel);
 uint8_t ym2151NoiseRegisterForPatch(const PatchConfig& patch);
+uint8_t ym2151LfoRateForPatch(const PatchConfig& patch);
+uint8_t ym2151LfoAmDepthForPatch(const PatchConfig& patch);
+uint8_t ym2151LfoPmDepthForPatch(const PatchConfig& patch);
+uint8_t ym2151LfoWaveformForPatch(const PatchConfig& patch);
+uint8_t ym2151LfoPmSensitivityForPatch(const PatchConfig& patch);
+uint8_t ym2151LfoAmSensitivityForPatch(const PatchConfig& patch);
+uint8_t ym2151LfoChannelRegisterForPatch(const PatchConfig& patch);
+bool ym2151OperatorAmEnabledForPatch(const PatchConfig& patch, size_t op);
 uint8_t fmFeedbackForPatch(const PatchConfig& patch);
 uint8_t fmOperatorMultipleForPatch(ChipMode mode, const PatchConfig& patch, size_t op);
 bool fmOperatorIsCarrierForAlgorithm(uint8_t algorithm, size_t op);

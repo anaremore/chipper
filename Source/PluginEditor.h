@@ -453,6 +453,7 @@ private:
     juce::String spc700SamplePlaybackReadout(const chipper::PatchConfig& patch) const;
     juce::String spc700NoiseReadout(const chipper::PatchConfig& patch) const;
     juce::String ym2151NoiseReadout(const chipper::PatchConfig& patch) const;
+    juce::String ym2151LfoReadout(const chipper::PatchConfig& patch) const;
     juce::String opnSsgEnvelopeReadout(const chipper::PatchConfig& patch) const;
     juce::String opnSsgMixerReadout(const chipper::PatchConfig& patch) const;
     juce::String ym2612PanReadout(const chipper::PatchConfig& patch) const;
@@ -513,7 +514,7 @@ private:
     void setFmOperatorRegisterSurfaceVisible(chipper::ChipMode mode, bool shouldBeVisible);
     void updateSourceChannelButtons(chipper::ChipMode mode);
     void updateSourcePreviewScope(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index, bool shouldBeVisible);
-    void updateStereoSpreadReadout(chipper::ChipMode mode);
+    void updateStereoSpreadReadout(chipper::ChipMode mode, const chipper::PatchConfig* patch = nullptr);
     void updatePulseDutyButtons(float value, bool shouldBeVisible);
     void updatePulse2DutyButtons(const chipper::PatchConfig& patch, bool shouldBeVisible);
     void updateWaveShapeButtons(int choice, bool shouldBeVisible);

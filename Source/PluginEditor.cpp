@@ -9971,6 +9971,26 @@ juce::String ChipperAudioProcessorEditor::ym2151NoiseReadout(const chipper::Patc
     return patch.snNoiseMode == 0 ? juce::String("Preset -> ") + resolvedText : resolvedText;
 }
 
+juce::String ChipperAudioProcessorEditor::ym2151LfoReadout(const chipper::PatchConfig& patch) const
+{
+    const auto rate = chipper::ym2151LfoRateForPatch(patch);
+    const auto amDepth = chipper::ym2151LfoAmDepthForPatch(patch);
+    const auto pmDepth = chipper::ym2151LfoPmDepthForPatch(patch);
+    const auto waveform = chipper::ym2151LfoWaveformForPatch(patch);
+    const auto channelRegister = chipper::ym2151LfoChannelRegisterForPatch(patch);
+
+    if (rate == 0u && amDepth == 0u && pmDepth == 0u)
+        return "LFO off, $38 PM/AM 0";
+
+    static constexpr std::array<const char*, 4> waveLabels { "saw", "square", "tri", "noise" };
+    return juce::String("$18 ")
+        + juce::String(static_cast<int>(rate))
+        + ", PM" + juce::String(static_cast<int>(pmDepth))
+        + " AM" + juce::String(static_cast<int>(amDepth))
+        + ", $38=0x" + juce::String::toHexString(static_cast<int>(channelRegister)).paddedLeft('0', 2).toUpperCase()
+        + " " + waveLabels[waveform & 0x03u];
+}
+
 juce::String ChipperAudioProcessorEditor::ym2612PanReadout(const chipper::PatchConfig& patch) const
 {
     const auto pan0 = chipper::ym2612PanBitsForPatch(patch, 0);
@@ -12054,8 +12074,22 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
     }
 }
 
-void ChipperAudioProcessorEditor::updateStereoSpreadReadout(chipper::ChipMode mode)
+void ChipperAudioProcessorEditor::updateStereoSpreadReadout(chipper::ChipMode mode, const chipper::PatchConfig* patch)
 {
+    if (mode == chipper::ChipMode::ym2151)
+    {
+        if (patch != nullptr)
+        {
+            stereoSpreadValueLabel.setText(ym2151LfoReadout(*patch), juce::dontSendNotification);
+            return;
+        }
+
+        chipper::PatchConfig fallback;
+        fallback.stereoSpread = parameterValue(chipper::parameters::id::stereoSpread);
+        stereoSpreadValueLabel.setText(ym2151LfoReadout(fallback), juce::dontSendNotification);
+        return;
+    }
+
     stereoSpreadValueLabel.setText(stereoSpreadReadout(mode, parameterValue(chipper::parameters::id::stereoSpread)), juce::dontSendNotification);
 }
 
@@ -14060,7 +14094,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
                                             || mode == chipper::ChipMode::ym2203
                                             || mode == chipper::ChipMode::ym2608
                                             || isOpnbMode(mode)));
-    updateStereoSpreadReadout(mode);
+    updateStereoSpreadReadout(mode, &patch);
 
     const auto macroReadout = [this, mode](size_t index, juce::String text)
     {

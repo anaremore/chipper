@@ -1847,11 +1847,11 @@ std::vector<ChipParameterSpec> ym2151ParameterSpecs()
                       ym2151NoiseChoices(),
                       ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::stereoSpread,
-                   "ym2151.stereoSpread",
-                   "Stereo Spread",
-                   "Output",
-                   "Modern output width trim after native OPM pan bits; set Pan for register-accurate left/right routing.",
-                   ParameterKind::continuous)
+                   "ym2151.lfoDepth",
+                   "LFO Depth",
+                   "Motion",
+                   "Writes native YM2151 LFO rate/depth registers $18/$19/$1B, per-channel PM/AM sensitivity in $38+n, and AM-enable bits on audible carrier operators. Zero leaves the OPM LFO off.",
+                   ParameterKind::chipRegister)
     };
 }
 
@@ -3672,8 +3672,8 @@ std::array<ModuleDescriptor, 6> ym2151Modules()
         makeModule("sources", "FM Voices", "All eight OPM melodic channels are exposed as playable lanes.", { "Ch 1-4", "Ch 5-8", "Chip Poly", "Per-lane trims" }),
         makeModule("tone", "Operators", "Musical controls write native OPM algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPM attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
-        makeModule("motion", "Motion", "Arcade FM preset recipes map to register-backed OPM patches.", { "Chime", "Arcade bass", "Metal lead", "Laser" }),
-        makeModule("output", "Output", "ymfm stereo OPM output is rendered with left/right pan enabled per active lane.", { "Stereo core", "$0F noise", "Output gain", "Verified partial" })
+        makeModule("motion", "Motion", "Arcade FM preset recipes map to register-backed OPM patches with native LFO PM/AM depth and channel-8 noise options.", { "LFO PM/AM", "$38 sensitivity", "$0F noise", "Laser" }),
+        makeModule("output", "Output", "ymfm stereo OPM output is rendered with left/right pan enabled per active lane.", { "Stereo core", "Native pan", "Output gain", "Verified partial" })
     };
 }
 
@@ -4302,11 +4302,11 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2151/OPM synthesis core.",
-                    "Renderer notes and preset recipes write OPM algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level/envelope seed, key-code/key-fraction, pan, $0F channel-8 noise, and key-on registers.",
-                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover all eight exposed melodic lanes."
+                    "Renderer notes and preset recipes write OPM algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level/envelope seed, key-code/key-fraction, pan, LFO PM/AM, $0F channel-8 noise, and key-on registers.",
+                    "Descriptor, MIDI CC, renderer smoke, LFO-depth JSON, source gating, and Chip Poly regression tests cover all eight exposed melodic lanes."
                 },
                 {
-                    "LFO PM/AM, exact OPM noise timing/hardware comparison, timers, CSM, deep per-operator ADSR UI, golden emulator comparison, and hardware capture comparison are not complete.",
+                    "Deeper LFO waveform/sensitivity UI, DT1/DT2 detune controls, exact OPM noise timing/hardware comparison, timers, CSM, deep per-operator ADSR UI, golden emulator comparison, and hardware capture comparison are not complete.",
                     "Cycle accuracy is not claimed."
                 })
         },
@@ -5815,6 +5815,80 @@ uint8_t ym2151NoiseRegisterForPatch(const PatchConfig& patch)
     }
 }
 
+uint8_t ym2151LfoRateForPatch(const PatchConfig& patch)
+{
+    const auto amount = clampControl(patch.stereoSpread);
+    if (amount <= 0.001f)
+        return 0;
+
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(32.0f + amount * 160.0f)), 0, 255));
+}
+
+uint8_t ym2151LfoAmDepthForPatch(const PatchConfig& patch)
+{
+    const auto amount = clampControl(patch.stereoSpread);
+    if (amount <= 0.001f)
+        return 0;
+
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(amount * 56.0f)), 0, 127));
+}
+
+uint8_t ym2151LfoPmDepthForPatch(const PatchConfig& patch)
+{
+    const auto amount = clampControl(patch.stereoSpread);
+    if (amount <= 0.001f)
+        return 0;
+
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(amount * 96.0f)), 0, 127));
+}
+
+uint8_t ym2151LfoWaveformForPatch(const PatchConfig& patch)
+{
+    if (clampControl(patch.stereoSpread) <= 0.001f)
+        return 0;
+
+    switch (patch.macro)
+    {
+        case MacroKind::drum:
+        case MacroKind::hit:
+        case MacroKind::coin:
+        case MacroKind::jump:
+            return 1;
+        case MacroKind::laser:
+        case MacroKind::powerUp:
+            return 0;
+        case MacroKind::manual:
+        case MacroKind::bass:
+        case MacroKind::lead:
+        case MacroKind::arp:
+        default:
+            return 2;
+    }
+}
+
+uint8_t ym2151LfoPmSensitivityForPatch(const PatchConfig& patch)
+{
+    const auto amount = clampControl(patch.stereoSpread);
+    if (amount <= 0.001f)
+        return 0;
+
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(amount * 7.0f)), 1, 7));
+}
+
+uint8_t ym2151LfoAmSensitivityForPatch(const PatchConfig& patch)
+{
+    const auto amount = clampControl(patch.stereoSpread);
+    if (amount <= 0.001f)
+        return 0;
+
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(amount * 3.0f)), 1, 3));
+}
+
+uint8_t ym2151LfoChannelRegisterForPatch(const PatchConfig& patch)
+{
+    return static_cast<uint8_t>((ym2151LfoPmSensitivityForPatch(patch) << 4u) | ym2151LfoAmSensitivityForPatch(patch));
+}
+
 FmEnvelopeRegisters ym2612EnvelopeRegistersForPatch(const PatchConfig& patch, size_t op)
 {
     auto choiceValue = std::clamp(patch.ymEnvelopeShape, 0, 4);
@@ -5949,6 +6023,13 @@ bool fmOperatorIsCarrierForAlgorithm(uint8_t algorithm, size_t op)
     }};
 
     return carriers[algorithm & 0x07u][std::min(op, size_t { 3u })];
+}
+
+bool ym2151OperatorAmEnabledForPatch(const PatchConfig& patch, size_t op)
+{
+    return ym2151LfoAmDepthForPatch(patch) > 0
+        && ym2151LfoAmSensitivityForPatch(patch) > 0
+        && fmOperatorIsCarrierForAlgorithm(ym2151AlgorithmForPatch(patch), op);
 }
 
 uint8_t fmOperatorLevelAdjustedTotalLevel(const PatchConfig& patch, size_t op, int baseTotalLevel)

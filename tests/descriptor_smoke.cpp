@@ -857,6 +857,28 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2151, opmArp, 3) == 13u, "YM2151 helper should resolve operator 4 multiple");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2151, opmArp, 0) == 7u, "YM2151 algorithm 7 should treat operator 1 as a carrier");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2151, opmArp, 3) == 7u, "YM2151 helper should resolve carrier total level");
+    auto opmLfo = opmArp;
+    opmLfo.macro = chipper::MacroKind::lead;
+    opmLfo.waveShape = 5;
+    opmLfo.stereoSpread = 0.65f;
+    ok &= expect(chipper::ym2151LfoRateForPatch(opmLfo) == 136u, "YM2151 LFO depth should resolve to native LFO rate register");
+    ok &= expect(chipper::ym2151LfoAmDepthForPatch(opmLfo) == 36u, "YM2151 LFO depth should resolve to native AM depth");
+    ok &= expect(chipper::ym2151LfoPmDepthForPatch(opmLfo) == 62u, "YM2151 LFO depth should resolve to native PM depth");
+    ok &= expect(chipper::ym2151LfoWaveformForPatch(opmLfo) == 2u, "YM2151 lead LFO should use a triangle waveform");
+    ok &= expect(chipper::ym2151LfoPmSensitivityForPatch(opmLfo) == 5u, "YM2151 LFO depth should resolve PM sensitivity");
+    ok &= expect(chipper::ym2151LfoAmSensitivityForPatch(opmLfo) == 2u, "YM2151 LFO depth should resolve AM sensitivity");
+    ok &= expect(chipper::ym2151LfoChannelRegisterForPatch(opmLfo) == 0x52u, "YM2151 LFO sensitivity should pack to $38+n");
+    ok &= expect(! chipper::ym2151OperatorAmEnabledForPatch(opmLfo, 0)
+                 && chipper::ym2151OperatorAmEnabledForPatch(opmLfo, 1)
+                 && ! chipper::ym2151OperatorAmEnabledForPatch(opmLfo, 2)
+                 && chipper::ym2151OperatorAmEnabledForPatch(opmLfo, 3),
+                 "YM2151 LFO AM should enable audible carriers for algorithm 4");
+    opmLfo.stereoSpread = 0.0f;
+    ok &= expect(chipper::ym2151LfoRateForPatch(opmLfo) == 0u
+                 && chipper::ym2151LfoAmDepthForPatch(opmLfo) == 0u
+                 && chipper::ym2151LfoPmDepthForPatch(opmLfo) == 0u
+                 && chipper::ym2151LfoChannelRegisterForPatch(opmLfo) == 0u,
+                 "YM2151 zero LFO depth should leave native LFO registers off");
     auto opmTrimmed = opmArp;
     opmTrimmed.fmOperatorLevels = { 1.0f, 0.5f, 0.5f, 0.0f };
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2151, opmTrimmed, 0) == 0u, "YM2151 operator 1 level trim should boost total level around neutral");
@@ -1341,6 +1363,8 @@ int main()
     ok &= expectControlGroup(chipper::ChipMode::ym2413, "core", "Provenance");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2151).implemented, "YM2151 descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2151).supportsChipPoly, "YM2151 should support Chip Poly across exposed melodic channels");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::stereoSpread, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "LFO Depth");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2151, chipper::ChipParameterRole::stereoSpread, "Motion");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).implemented, "SCC descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).supportsChipPoly, "SCC should support Chip Poly across exposed wavetable channels");
     ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl1, 4, "12.5%");

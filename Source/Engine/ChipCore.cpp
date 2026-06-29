@@ -15239,6 +15239,12 @@ public:
         currentFeedback.fill(0);
         currentPanBits.fill(0xc0u);
         currentNoiseRegister = 0;
+        currentLfoRate = 0;
+        currentLfoAmDepth = 0;
+        currentLfoPmDepth = 0;
+        currentLfoWaveform = 0;
+        currentLfoPmSensitivity = 0;
+        currentLfoAmSensitivity = 0;
         currentAttackRate.fill(0);
         currentDecayRate.fill(0);
         currentSustainRate.fill(0);
@@ -15362,7 +15368,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPM register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2151/OPM synthesis core. Chipper currently maps musical controls and notes to OPM operator, algorithm, feedback, key-code/key-fraction, pan, $0F channel-8 noise, and key-on registers for all eight melodic lanes. LFO PM/AM controls, exact OPM noise timing/hardware comparison, timers, CSM behavior, deep per-operator ADSR UI, golden comparisons, and hardware validation are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2151/OPM synthesis core. Chipper currently maps musical controls and notes to OPM operator, algorithm, feedback, key-code/key-fraction, pan, $0F channel-8 noise, LFO PM/AM depth and sensitivity, and key-on registers for all eight melodic lanes. Exact OPM noise timing/hardware comparison, timers, CSM behavior, DT1/DT2 detune controls, deep per-operator ADSR UI, golden comparisons, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -15445,6 +15451,22 @@ public:
              << "\"noiseRegister\":" << static_cast<int>(currentNoiseRegister) << ","
              << "\"noiseEnabled\":" << (((currentNoiseRegister & 0x80u) != 0u) ? 1 : 0) << ","
              << "\"noiseFrequency\":" << static_cast<int>(currentNoiseRegister & 0x1fu) << ","
+             << "\"lfoDepthControl\":" << patch.stereoSpread << ","
+             << "\"lfoRate\":" << static_cast<int>(currentLfoRate) << ","
+             << "\"lfoAmDepth\":" << static_cast<int>(currentLfoAmDepth) << ","
+             << "\"lfoPmDepth\":" << static_cast<int>(currentLfoPmDepth) << ","
+             << "\"lfoWaveform\":" << static_cast<int>(currentLfoWaveform) << ","
+             << "\"lfoPmSensitivity\":" << static_cast<int>(currentLfoPmSensitivity) << ","
+             << "\"lfoAmSensitivity\":" << static_cast<int>(currentLfoAmSensitivity) << ","
+             << "\"lfoRegister18\":" << static_cast<int>(regs[0x18]) << ","
+             << "\"lfoRegister19\":" << static_cast<int>(regs[0x19]) << ","
+             << "\"lfoRegister1A\":" << static_cast<int>(regs[0x1a]) << ","
+             << "\"lfoRegister1B\":" << static_cast<int>(regs[0x1b]) << ","
+             << "\"lfoChannelRegister0\":" << static_cast<int>(regs[0x38]) << ","
+             << "\"operatorAmEnable0\":" << (((regs[static_cast<uint8_t>(0xa0 + opOffset(0, 0))] & 0x80u) != 0u) ? 1 : 0) << ","
+             << "\"operatorAmEnable1\":" << (((regs[static_cast<uint8_t>(0xa0 + opOffset(0, 1))] & 0x80u) != 0u) ? 1 : 0) << ","
+             << "\"operatorAmEnable2\":" << (((regs[static_cast<uint8_t>(0xa0 + opOffset(0, 2))] & 0x80u) != 0u) ? 1 : 0) << ","
+             << "\"operatorAmEnable3\":" << (((regs[static_cast<uint8_t>(0xa0 + opOffset(0, 3))] & 0x80u) != 0u) ? 1 : 0) << ","
              << "\"envelopeShape\":" << patch.ymEnvelopeShape << ","
              << "\"attackRate0\":" << static_cast<int>(currentAttackRate[0]) << ","
              << "\"decayRate0\":" << static_cast<int>(currentDecayRate[0]) << ","
@@ -15549,6 +15571,22 @@ private:
         return fmOperatorTotalLevelForPatch(ChipMode::ym2151, patch, op, velocity);
     }
 
+    void applyLfoPatch()
+    {
+        currentLfoRate = ym2151LfoRateForPatch(patch);
+        currentLfoAmDepth = ym2151LfoAmDepthForPatch(patch);
+        currentLfoPmDepth = ym2151LfoPmDepthForPatch(patch);
+        currentLfoWaveform = ym2151LfoWaveformForPatch(patch);
+        currentLfoPmSensitivity = ym2151LfoPmSensitivityForPatch(patch);
+        currentLfoAmSensitivity = ym2151LfoAmSensitivityForPatch(patch);
+
+        writeOpmRegister(0x18, currentLfoRate);
+        writeOpmRegister(0x19, static_cast<uint8_t>(0x80u | currentLfoPmDepth));
+        regs[0x1a] = currentLfoPmDepth;
+        writeOpmRegister(0x19, currentLfoAmDepth);
+        writeOpmRegister(0x1b, static_cast<uint8_t>(currentLfoWaveform & 0x03u));
+    }
+
     void applyChannelPatch(size_t channel, float velocity)
     {
         if (channel >= 8)
@@ -15574,17 +15612,19 @@ private:
             writeOpmRegister(static_cast<uint8_t>(0x40 + offs), multipleForOperator(op));
             writeOpmRegister(static_cast<uint8_t>(0x60 + offs), totalLevelForOperator(op, velocity, algorithm));
             writeOpmRegister(static_cast<uint8_t>(0x80 + offs), envelope.attackRate);
-            writeOpmRegister(static_cast<uint8_t>(0xa0 + offs), envelope.decayRate);
+            const auto decayRate = static_cast<uint8_t>(envelope.decayRate | (ym2151OperatorAmEnabledForPatch(patch, op) ? 0x80u : 0x00u));
+            writeOpmRegister(static_cast<uint8_t>(0xa0 + offs), decayRate);
             writeOpmRegister(static_cast<uint8_t>(0xc0 + offs), envelope.sustainRate);
             writeOpmRegister(static_cast<uint8_t>(0xe0 + offs), envelope.sustainRelease);
         }
 
         writeOpmRegister(static_cast<uint8_t>(0x20 + channel), static_cast<uint8_t>(currentPanBits[channel] | (feedback << 3u) | algorithm));
-        writeOpmRegister(static_cast<uint8_t>(0x38 + channel), 0x00u);
+        writeOpmRegister(static_cast<uint8_t>(0x38 + channel), ym2151LfoChannelRegisterForPatch(patch));
     }
 
     void applyPatchToAllChannels(bool preserveKeys)
     {
+        applyLfoPatch();
         currentNoiseRegister = ym2151NoiseRegisterForPatch(patch);
         writeOpmRegister(0x0f, currentNoiseRegister);
 
@@ -15730,6 +15770,12 @@ private:
     std::array<uint8_t, 8> currentFeedback {};
     std::array<uint8_t, 8> currentPanBits {};
     uint8_t currentNoiseRegister = 0;
+    uint8_t currentLfoRate = 0;
+    uint8_t currentLfoAmDepth = 0;
+    uint8_t currentLfoPmDepth = 0;
+    uint8_t currentLfoWaveform = 0;
+    uint8_t currentLfoPmSensitivity = 0;
+    uint8_t currentLfoAmSensitivity = 0;
     std::array<uint8_t, 8> currentAttackRate {};
     std::array<uint8_t, 8> currentDecayRate {};
     std::array<uint8_t, 8> currentSustainRate {};
