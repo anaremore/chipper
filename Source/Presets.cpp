@@ -7021,7 +7021,235 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             -12.0f,
             1789773.0
-        }, 0.08f, 0.08f, 0.0f, 1.0f)
+        }, 0.08f, 0.08f, 0.0f, 1.0f),
+        withSourceLevels({
+            "saa-square-bass",
+            "SAA1099 Bass",
+            "SAA Square Bass",
+            "Low six-channel PSG bass stack with stereo amplitude width.",
+            ChipMode::saa1099,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::stack,
+            { 0.34f, 0.22f, 0.10f, 0.86f },
+            { true, true, true, false },
+            0.08f,
+            0,
+            0,
+            1,
+            -10.5f,
+            8000000.0,
+            0.45f
+        }, 1.0f, 0.82f, 0.72f, 0.42f),
+        withSourceLevels({
+            "saa-octave-bass",
+            "SAA1099 Bass",
+            "SAA Octave Bass",
+            "Chip-poly-ready octave bass using all six SAA1099 tone lanes.",
+            ChipMode::saa1099,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::chipPoly,
+            { 0.42f, 0.24f, 0.12f, 0.90f },
+            { true, true, true, true },
+            0.08f,
+            0,
+            0,
+            1,
+            -11.0f,
+            8000000.0,
+            0.55f
+        }, 1.0f, 0.86f, 0.76f, 0.70f),
+        withSourceLevels({
+            "saa-stereo-lead",
+            "SAA1099 Leads",
+            "SAA Stereo Lead",
+            "Forward SAA1099 square lead with wide left/right amplitude nibbles.",
+            ChipMode::saa1099,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.54f, 0.42f, 0.18f, 0.82f },
+            { true, true, true, true },
+            0.10f,
+            0,
+            0,
+            1,
+            -11.0f,
+            8000000.0,
+            0.78f
+        }, 1.0f, 0.82f, 0.74f, 0.86f),
+        withSourceLevels({
+            "saa-bright-lead",
+            "SAA1099 Leads",
+            "SAA Bright Lead",
+            "Brighter six-lane PSG lead with a light shared-noise edge available from the preset.",
+            ChipMode::saa1099,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::chipPoly,
+            { 0.68f, 0.50f, 0.88f, 0.84f },
+            { true, true, true, true },
+            0.12f,
+            0,
+            0,
+            3,
+            -11.5f,
+            8000000.0,
+            0.82f
+        }, 1.0f, 0.86f, 0.82f, 0.88f),
+        withSourceLevels({
+            "saa-six-voice-arp",
+            "SAA1099 Arps",
+            "SAA Six-Voice Arp",
+            "Six square lanes arranged for fast fake-chord arps.",
+            ChipMode::saa1099,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.72f, 0.70f, 0.18f, 0.78f },
+            { true, true, true, true },
+            0.08f,
+            0,
+            0,
+            1,
+            -11.0f,
+            8000000.0,
+            0.84f
+        }, 1.0f, 0.88f, 0.82f, 0.90f),
+        withSourceLevels({
+            "saa-power-arp",
+            "SAA1099 Arps",
+            "SAA Power Arp",
+            "Rising six-channel PSG arp for optimistic game gestures.",
+            ChipMode::saa1099,
+            AccuracyMode::hybrid,
+            MacroKind::powerUp,
+            PlayMode::stack,
+            { 0.80f, 0.90f, 0.24f, 0.82f },
+            { true, true, true, true },
+            0.18f,
+            0,
+            2,
+            1,
+            -11.0f,
+            8000000.0,
+            0.84f
+        }, 1.0f, 0.84f, 0.78f, 0.86f),
+        withSourceLevels({
+            "saa-stereo-keys",
+            "SAA1099 Keys",
+            "SAA Stereo Keys",
+            "Soft square-key stack with moderate SAA1099 stereo width.",
+            ChipMode::saa1099,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.42f, 0.34f, 0.12f, 0.66f },
+            { true, true, true, true },
+            0.26f,
+            0,
+            4,
+            1,
+            -10.0f,
+            8000000.0,
+            0.62f
+        }, 0.88f, 0.82f, 0.76f, 0.82f),
+        withSourceLevels({
+            "saa-envelope-bell",
+            "SAA1099 Keys",
+            "SAA Envelope Bell",
+            "Short envelope-shaped PSG bell using both SAA1099 envelope groups.",
+            ChipMode::saa1099,
+            AccuracyMode::hybrid,
+            MacroKind::coin,
+            PlayMode::stack,
+            { 0.22f, 0.80f, 0.18f, 0.78f },
+            { true, true, false, true },
+            0.36f,
+            0,
+            1,
+            1,
+            -12.0f,
+            8000000.0,
+            0.70f
+        }, 0.92f, 0.74f, 0.0f, 0.88f),
+        withSourceLevels({
+            "saa-dual-noise-perc",
+            "SAA1099 Drums",
+            "SAA Dual Noise Perc",
+            "Two shared SAA1099 noise generators mixed through the six channel lanes for percussion.",
+            ChipMode::saa1099,
+            AccuracyMode::hybrid,
+            MacroKind::drum,
+            PlayMode::stack,
+            { 0.28f, 0.18f, 0.88f, 0.78f },
+            { true, false, true, true },
+            0.78f,
+            0,
+            4,
+            4,
+            -11.5f,
+            8000000.0,
+            0.62f
+        }, 0.72f, 0.0f, 0.86f, 0.72f),
+        withSourceLevels({
+            "saa-noise-drum",
+            "SAA1099 Drums",
+            "SAA Noise Drum",
+            "Short high-noise PSG drum with tone thump from the channel groups.",
+            ChipMode::saa1099,
+            AccuracyMode::hybrid,
+            MacroKind::drum,
+            PlayMode::stack,
+            { 0.22f, 0.16f, 0.96f, 0.86f },
+            { true, false, true, true },
+            0.88f,
+            0,
+            4,
+            4,
+            -12.0f,
+            8000000.0,
+            0.58f
+        }, 0.76f, 0.0f, 0.90f, 0.78f),
+        withSourceLevels({
+            "saa-coin-ping",
+            "Classic Game SFX",
+            "SAA Coin Ping",
+            "Bright short stereo PSG ping for menu confirms and pickups.",
+            ChipMode::saa1099,
+            AccuracyMode::hybrid,
+            MacroKind::coin,
+            PlayMode::stack,
+            { 0.18f, 0.86f, 0.18f, 0.82f },
+            { true, false, false, true },
+            0.24f,
+            0,
+            1,
+            1,
+            -12.0f,
+            8000000.0,
+            0.76f
+        }, 0.94f, 0.0f, 0.0f, 0.86f),
+        withSourceLevels({
+            "saa-pitch-laser",
+            "Classic Game SFX",
+            "SAA Pitch Laser",
+            "Falling SAA1099 square sweep with a narrow high-noise edge.",
+            ChipMode::saa1099,
+            AccuracyMode::hybrid,
+            MacroKind::laser,
+            PlayMode::stack,
+            { 0.24f, 0.96f, 0.64f, 0.82f },
+            { true, true, false, true },
+            0.34f,
+            0,
+            3,
+            4,
+            -12.0f,
+            8000000.0,
+            0.78f
+        }, 0.86f, 0.70f, 0.0f, 0.82f)
     };
 
     return presets;
@@ -7055,6 +7283,7 @@ const std::vector<PresetQualityTarget>& presetQualityTargets()
         { ChipMode::sid, roles, { "sid", "filter", "pwm", "sync", "ring", "noise", "pulse" }, "Furnace-informed SID coverage: bass, PWM leads, filter keys, oscillator interaction, and noise hits." },
         { ChipMode::ym2149, roles, { "psg", "noise", "envelope", "chord", "tracker" }, "Furnace-informed AY/YM coverage: tone stacks, envelope tricks, fake chords, and noise percussion." },
         { ChipMode::sn76489, roles, { "psg", "tone", "noise", "periodic", "alarm" }, "Furnace-informed Sega PSG coverage: tone stacks, periodic/noise percussion, zaps, and arcade UI sounds." },
+        { ChipMode::saa1099, roles, { "saa1099", "psg", "tone", "noise", "envelope", "stereo", "chord" }, "Furnace-informed SAA1099 coverage: six-channel stereo PSG basses, leads, arps, keys, dual-noise percussion, and SFX." },
         { ChipMode::ym2612, roles, { "fm", "operator", "dac", "feedback", "envelope", "chord" }, "Furnace-informed OPN2 coverage: operator bass/leads/keys plus rhythm, DAC, and SFX recipes." },
         { ChipMode::opl3, roles, { "fm", "operator", "rhythm", "wave", "bell" }, "Furnace-informed OPL coverage: two-op melodic voices, rhythm mode, bells, basses, and DOS-style SFX." },
         { ChipMode::spc700, roles, { "sampler", "loop", "noise", "echo", "tracker" }, "Furnace-informed SPC700-style coverage: looped sample voices, drum maps, pitch motion, and noise colors." },
@@ -7161,6 +7390,7 @@ std::string presetEngineFor(const PresetInfo& preset)
         case ChipMode::sid: return "MOS SID";
         case ChipMode::ym2149: return "AY/YM PSG";
         case ChipMode::sn76489: return "SN76489 PSG";
+        case ChipMode::saa1099: return "Philips SAA1099 PSG";
         case ChipMode::ym2612: return "YM2612 OPN2 FM";
         case ChipMode::ym2203: return "YM2203 OPN FM+SSG";
         case ChipMode::ym2608: return "YM2608 OPNA FM+SSG";
@@ -7237,7 +7467,14 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
             break;
         case ChipMode::ym2149:
         case ChipMode::sn76489:
+        case ChipMode::saa1099:
             addPresetTag(tags, "psg");
+            if (preset.chip == ChipMode::saa1099)
+            {
+                addPresetTag(tags, "saa1099");
+                addPresetTag(tags, "stereo");
+                addPresetTag(tags, "envelope");
+            }
             break;
         case ChipMode::ym2612:
         case ChipMode::opl3:
@@ -7302,7 +7539,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
         addPresetTag(tags, "noise");
 
     const auto corpus = presetCorpus(preset);
-    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "wavetable", "mod", "modulation", "fds", "sunsoft", "5b", "mmc5", "pcm", "square", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "ssg", "psg", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade", "neo" })
+    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "wavetable", "mod", "modulation", "fds", "sunsoft", "5b", "mmc5", "pcm", "square", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "ssg", "psg", "saa1099", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade", "neo" })
     {
         if (presetCorpusContains(corpus, token))
             addPresetTag(tags, token);

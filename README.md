@@ -95,6 +95,7 @@ Implemented depth varies by chip. See [docs/emulation-accuracy.md](docs/emulatio
 | SID / C64 | Partial clean-room SID-style voice model with 3 voices, per-voice waves/PW/ADSR, sync/ring bits, filter modes, routing, and model color |
 | YM2149 / AY | Verified-partial MIT `emu2149` PSG adapter |
 | SN76489 / Sega PSG | Verified-partial MIT `emu76489` PSG adapter |
+| Philips SAA1099 | Partial clean-room stereo PSG model with six tone lanes, dual shared noise generators, envelope groups, source strips, Chip Poly allocation, and original SAA1099 presets |
 | YM2612 / Genesis FM | Verified-partial BSD-3-Clause `ymfm` OPN2 adapter with partial channel-6 DAC drum playback |
 | YM2203 / OPN | Verified-partial BSD-3-Clause `ymfm` OPN adapter with three FM lanes plus three embedded SSG tone lanes |
 | YM2608 / OPNA | Verified-partial BSD-3-Clause `ymfm` OPNA adapter with six FM lanes plus three embedded SSG tone lanes; rhythm and ADPCM are planned |

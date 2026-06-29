@@ -27,6 +27,11 @@ REQUIRED_CATEGORIES = {
     "SID FX",
     "SID PWM Leads",
     "SN76489 / Sega PSG",
+    "SAA1099 Bass",
+    "SAA1099 Leads",
+    "SAA1099 Arps",
+    "SAA1099 Keys",
+    "SAA1099 Drums",
     "Atari POKEY",
     "YM Arps",
     "YM Beeps",
@@ -39,7 +44,7 @@ REQUIRED_CATEGORIES = {
     "YM2151 / OPM",
 }
 
-IMPLEMENTED_CHIPS = {"nes", "nesVrc6", "nesFds", "nesSunsoft5b", "nesMmc5", "nesVrc7", "dmg", "sid", "ym2149", "sn76489", "ym2612", "ym2203", "ym2608", "ym2610", "opl3", "ym2151", "spc700", "pokey", "paula", "huc6280", "namcoWsg", "ym2413", "scc"}
+IMPLEMENTED_CHIPS = {"nes", "nesVrc6", "nesFds", "nesSunsoft5b", "nesMmc5", "nesVrc7", "dmg", "sid", "ym2149", "sn76489", "saa1099", "ym2612", "ym2203", "ym2608", "ym2610", "opl3", "ym2151", "spc700", "pokey", "paula", "huc6280", "namcoWsg", "ym2413", "scc"}
 
 EXPECTED_CATEGORY_PREFIXES = {
     "nes": ("NES", "Arcade", "Classic"),
@@ -52,6 +57,7 @@ EXPECTED_CATEGORY_PREFIXES = {
     "sid": ("SID", "Modern", "Classic"),
     "ym2149": ("YM", "Arcade", "Classic"),
     "sn76489": ("SN76489", "Arcade", "Classic"),
+    "saa1099": ("SAA1099", "Arcade", "Classic"),
     "spc700": ("SNES", "Classic"),
     "pokey": ("Atari", "Arcade", "Classic"),
     "paula": ("Amiga", "Tracker", "Classic"),

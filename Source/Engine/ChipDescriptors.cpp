@@ -482,6 +482,22 @@ std::vector<MacroTemplate> sn76489Macros()
     };
 }
 
+std::vector<MacroTemplate> saa1099Macros()
+{
+    return {
+        { MacroKind::manual, "SAA1099 Manual", "Neutral six-channel SAA1099 square/noise mapping.", { 0.50f, 0.35f, 0.35f, 0.72f }, { true, true, true, true }, 0.0f, 0, 0, 1, 0, 0.55f },
+        { MacroKind::coin, "SAA Coin Ping", "Bright short stereo PSG ping using the SAA1099 octave/frequency channels.", { 0.18f, 0.84f, 0.18f, 0.82f }, { true, false, false, false }, 0.20f, 0, 1, 1, 0, 0.40f },
+        { MacroKind::bass, "SAA Square Bass", "Low square-channel stack with two octave supports.", { 0.36f, 0.24f, 0.10f, 0.86f }, { true, true, true, false }, 0.08f, 0, 0, 1, 0, 0.35f },
+        { MacroKind::lead, "SAA Stereo Lead", "Forward six-channel PSG lead with wide native left/right amplitude nibbles.", { 0.54f, 0.44f, 0.20f, 0.80f }, { true, true, true, true }, 0.10f, 0, 0, 1, 0, 0.72f },
+        { MacroKind::arp, "SAA Six-Voice Arp", "Six SAA1099 channels arranged for fake chords and fast arps.", { 0.72f, 0.70f, 0.22f, 0.78f }, { true, true, true, true }, 0.08f, 0, 0, 1, 0, 0.78f },
+        { MacroKind::drum, "SAA Dual Noise Perc", "Two shared SAA1099 noise generators mixed through all six channel lanes.", { 0.28f, 0.18f, 0.88f, 0.78f }, { true, false, true, true }, 0.78f, 0, 4, 4, 0, 0.55f },
+        { MacroKind::hit, "SAA Impact Hit", "Noisy stereo PSG impact with alternating tone accents.", { 0.38f, 0.30f, 0.76f, 0.84f }, { true, false, true, true }, 0.66f, 0, 4, 3, 0, 0.70f },
+        { MacroKind::laser, "SAA Pitch Laser", "Pitch-drop SAA1099 SFX with a high shared-noise edge.", { 0.24f, 0.96f, 0.64f, 0.78f }, { true, true, false, true }, 0.34f, 0, 3, 4, 0, 0.72f },
+        { MacroKind::jump, "SAA Jump Blip", "Quick rising stereo square blip.", { 0.22f, 0.72f, 0.10f, 0.76f }, { true, false, false, false }, 0.22f, 0, 2, 1, 0, 0.45f },
+        { MacroKind::powerUp, "SAA Power Rise", "Wide six-channel optimistic PSG rise.", { 0.78f, 0.90f, 0.22f, 0.82f }, { true, true, true, true }, 0.18f, 0, 2, 1, 0, 0.84f },
+    };
+}
+
 std::vector<MacroTemplate> sidMacros()
 {
     return {
@@ -2368,6 +2384,75 @@ std::vector<ChipParameterSpec> sn76489ParameterSpecs()
     };
 }
 
+std::vector<ChipParameterSpec> saa1099ParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "saa1099.channelSpread",
+                   "Channel Spread",
+                   "Channels",
+                   "Sets interval spread across the six SAA1099 square-tone channels."),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "saa1099.pitchMotion",
+                   "Pitch Motion",
+                   "Pitch",
+                   "Offsets musical pitch gestures and stack intervals across the frequency/octave register pairs."),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "saa1099.noiseClock",
+                   "Noise Clock",
+                   "Noise",
+                   "Biases the two SAA1099 noise generator clock selectors when Noise Mode is Preset.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "saa1099.channelLevel",
+                   "Channel Level",
+                   "Mixer",
+                   "Maps to the SAA1099 per-channel left/right 4-bit amplitude nibbles.",
+                   ParameterKind::chipRegister,
+                   0.72f),
+        sourceSpec(ChipParameterRole::source1Enabled, "saa1099.channel1.enabled", "Channel 1", "Enable SAA1099 channel 1 tone/noise lane."),
+        sourceSpec(ChipParameterRole::source2Enabled, "saa1099.channel2.enabled", "Channel 2", "Enable SAA1099 channel 2 tone/noise lane."),
+        sourceSpec(ChipParameterRole::source3Enabled, "saa1099.channel3.enabled", "Channel 3", "Enable SAA1099 channel 3 tone/noise lane."),
+        sourceSpec(ChipParameterRole::source4Enabled, "saa1099.channel4.enabled", "Channel 4", "Enable SAA1099 channel 4 tone/noise lane."),
+        sourceSpec(ChipParameterRole::source5Enabled, "saa1099.channel5.enabled", "Channel 5", "Enable SAA1099 channel 5 tone/noise lane."),
+        sourceSpec(ChipParameterRole::source6Enabled, "saa1099.channel6.enabled", "Channel 6", "Enable SAA1099 channel 6 tone/noise lane."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "saa1099.channel1.level", "Channel 1 Level", "Modern trim before SAA1099 channel 1 amplitude nibbles are written."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "saa1099.channel2.level", "Channel 2 Level", "Modern trim before SAA1099 channel 2 amplitude nibbles are written."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "saa1099.channel3.level", "Channel 3 Level", "Modern trim before SAA1099 channel 3 amplitude nibbles are written."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "saa1099.channel4.level", "Channel 4 Level", "Modern trim before SAA1099 channel 4 amplitude nibbles are written."),
+        sourceLevelSpec(ChipParameterRole::source5Level, "saa1099.channel5.level", "Channel 5 Level", "Modern trim before SAA1099 channel 5 amplitude nibbles are written."),
+        sourceLevelSpec(ChipParameterRole::source6Level, "saa1099.channel6.level", "Channel 6 Level", "Modern trim before SAA1099 channel 6 amplitude nibbles are written."),
+        stereoSpreadSpec("saa1099.stereoSpread", "Modern stereo helper that writes different left/right SAA1099 amplitude nibbles across the six channels; zero preserves centered output."),
+        envelopeSpec("saa1099.envelopeSpeed", "Envelope Speed", "Applies simplified SAA1099 envelope-generator timing over each three-channel group while keeping native envelope-control metadata visible."),
+        segmentedSpec(ChipParameterRole::ymEnvelopeShape,
+                      "saa1099.envelopeShape",
+                      "Envelope Shape",
+                      "Envelope",
+                      "Selects the simplified SAA1099 envelope-control shape for the two three-channel groups. Preset resolves from the active recipe.",
+                      {
+                          choice("Preset", "Resolve envelope behavior from the selected SAA1099 recipe.", 0.0f, 0),
+                          choice("Fall", "Falling envelope contour for plucks and coin pings.", 0.25f, 1),
+                          choice("Rise", "Rising envelope contour for power-up gestures.", 0.5f, 2),
+                          choice("Saw", "Repeating falling saw envelope.", 0.75f, 3),
+                          choice("Tri", "Repeating triangle envelope.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister),
+        segmentedSpec(ChipParameterRole::snNoiseMode,
+                      "saa1099.noiseMode",
+                      "Noise Mode",
+                      "Noise",
+                      "Controls how the two SAA1099 noise generators are mixed through the six channel lanes.",
+                      {
+                          choice("Preset", "Resolve noise generator mix and clock selectors from the selected recipe.", 0.0f, 0),
+                          choice("Off", "Keep all six lanes tone-only.", 0.25f, 1),
+                          choice("Low", "Use slower shared noise on the upper channel of each group.", 0.5f, 2),
+                          choice("Mid", "Mix mid-speed shared noise into alternating lanes.", 0.75f, 3),
+                          choice("High", "Mix faster shared noise into all six lanes.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister)
+    };
+}
+
 std::vector<ChipParameterSpec> pokeyParameterSpecs()
 {
     return {
@@ -3560,6 +3645,39 @@ const std::vector<ChipDescriptor>& descriptors()
                 })
         },
         {
+            ChipMode::saa1099,
+            "Philips SAA1099",
+            "Partial clean-room six-channel stereo PSG model with two shared noise generators.",
+            {
+                { "channels", "Six Channels", "Sources", "Six tone/noise lanes with frequency and octave register state." },
+                { "noise", "Dual Noise", "Noise", "Two shared noise generators mixed through channel-group masks." },
+                { "stereo", "Stereo Amplitude", "Mixer", "Per-channel left/right 4-bit amplitude nibbles plus source trims." },
+                { "envelope", "Envelope Groups", "Envelope", "Simplified two-generator SAA1099-style envelope metadata and timing." },
+            },
+            {
+                makeModule("profile", "Profile", "Philips SAA1099 clean-room PSG groundwork.", { "SAM Coupe family", "8 MHz default", "Hybrid default", "Authentic still partial" }),
+                makeModule("sources", "Channels", "All six SAA1099 channels are exposed as playable tone/noise lanes.", { "Channels 1-3", "Channels 4-6", "Six-note Chip Poly", "Source trims" }),
+                makeModule("tone", "Tone / Noise", "Frequency offsets, octave nibbles, and two shared noise generators.", { "8-bit frequency", "3-bit octave", "Tone mask", "Noise mask" }),
+                makeModule("envelope", "Envelope Groups", "Two simplified SAA1099 envelope generators control channel groups 1-3 and 4-6.", { "Fall", "Rise", "Saw", "Triangle" }),
+                makeModule("motion", "Motion", "Stereo PSG SFX gestures mapped to pitch, noise, and envelope state.", { "Coin ping", "Six-voice arp", "Dual-noise perc", "Pitch laser" }),
+                makeModule("output", "Output", "Native-style stereo amplitude nibbles with a modern spread helper.", { "Left/right nibbles", "Output gain", "Source levels", "Verified partial" })
+            },
+            saa1099Macros(),
+            true,
+            true,
+            saa1099ParameterSpecs(),
+            verifiedPartial(
+                {
+                    "Six square-tone channels render from frequency and octave register state with per-channel source-card enables and levels.",
+                    "Two shared noise generators, tone/noise mixer masks, left/right amplitude nibbles, simplified envelope-control metadata, and Chip Poly allocation across all six channels are covered by renderer-facing debug JSON.",
+                    "No third-party SAA1099 source code is vendored in this clean-room partial model."
+                },
+                {
+                    "Exact SAA1099 envelope edge behavior, external noise clocking, amplitude DAC curve, bus timing, and SAM Coupe board output coloration are not implemented.",
+                    "Trusted-emulator spectral comparison and hardware capture comparison remain required before any cycle-accurate or hardware-validated claim."
+                })
+        },
+        {
             ChipMode::ym2612,
             "YM2612 / Genesis FM",
             "Six exposed lanes write YM2612/OPN2 registers into the audited ymfm core for Genesis-style FM tones, with optional native channel-6 DAC drum playback.",
@@ -4018,6 +4136,7 @@ EnvelopeModel envelopeModelFor(ChipMode mode)
         case ChipMode::nesVrc7:
         case ChipMode::dmg:
         case ChipMode::ym2149:
+        case ChipMode::saa1099:
             return EnvelopeModel::nativeNonAdsr;
 
         case ChipMode::sn76489:
@@ -4090,6 +4209,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
         return 9u;
     if (mode == ChipMode::ym2610)
         return 7u;
+    if (mode == ChipMode::saa1099)
+        return 6u;
     if (mode == ChipMode::nesVrc6)
         return 7u;
     if (mode == ChipMode::nesFds)
@@ -4119,6 +4240,7 @@ size_t nativeSourceCountForMode(ChipMode mode)
         case ChipMode::ym2203: return 6u;
         case ChipMode::ym2608: return 9u;
         case ChipMode::ym2610: return 7u;
+        case ChipMode::saa1099: return 6u;
         case ChipMode::nesVrc6: return 7u;
         case ChipMode::nesFds: return 5u;
         case ChipMode::nesSunsoft5b: return 7u;
@@ -4211,7 +4333,7 @@ PatchConfig makePatchConfig(ChipMode mode,
                             std::array<int, 4> fmOperatorReleaseRates)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
-    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608 || mode == ChipMode::ym2610) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
+    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608 || mode == ChipMode::ym2610 || mode == ChipMode::saa1099) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
     const auto maxWaveShape = (mode == ChipMode::ym2413 || mode == ChipMode::nesVrc7)
         ? 15
         : ((mode == ChipMode::sid || mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608 || mode == ChipMode::ym2610) ? 8 : 4);

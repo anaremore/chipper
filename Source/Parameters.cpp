@@ -28,7 +28,8 @@ juce::StringArray chipModeChoices()
         "NES + FDS",
         "NES + Sunsoft 5B",
         "NES + MMC5",
-        "NES + VRC7"
+        "NES + VRC7",
+        "Philips SAA1099"
     };
 }
 
@@ -859,6 +860,7 @@ ChipMode chipModeFromChoice(int choice)
         case 20: return ChipMode::nesSunsoft5b;
         case 21: return ChipMode::nesMmc5;
         case 22: return ChipMode::nesVrc7;
+        case 23: return ChipMode::saa1099;
         default: return ChipMode::nes;
     }
 }
@@ -930,6 +932,7 @@ double defaultClockForMode(ChipMode mode)
         case ChipMode::ym2203: return 3993600.0;
         case ChipMode::ym2608: return 7987200.0;
         case ChipMode::ym2610: return 8000000.0;
+        case ChipMode::saa1099: return 8000000.0;
     }
 
     return 3579545.0;

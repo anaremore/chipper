@@ -205,6 +205,7 @@ ChipUiTheme chipThemeFor(chipper::ChipMode mode)
                      juce::Colour(0xff111111), 3.0f, 12 };
         case chipper::ChipMode::ym2149:
         case chipper::ChipMode::sn76489:
+        case chipper::ChipMode::saa1099:
             return { juce::Colour(0xff101317), juce::Colour(0xff182027), juce::Colour(0xff151b20),
                      juce::Colour(0xff364858), juce::Colour(0xff202a32), juce::Colour(0xff5fd3ff),
                      juce::Colour(0xffffd24d), juce::Colour(0xffe1e8ec), juce::Colour(0xffabb9c0),
@@ -380,6 +381,7 @@ int chipModeChoiceIndex(chipper::ChipMode mode)
         case chipper::ChipMode::nesSunsoft5b: return 20;
         case chipper::ChipMode::nesMmc5: return 21;
         case chipper::ChipMode::nesVrc7: return 22;
+        case chipper::ChipMode::saa1099: return 23;
     }
 
     return 0;
@@ -8295,6 +8297,9 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
     if (mode == chipper::ChipMode::sn76489)
         return label + " -> " + snStackReadout(patch.control1) + " | " + snNoiseModeReadout(patch) + " | " + snLevelReadout(patch.control4) + laneText;
 
+    if (mode == chipper::ChipMode::saa1099)
+        return label + " -> six stereo PSG lanes | " + snNoiseModeReadout(patch) + " | Env " + ymEnvelopeShapeReadout(patch.ymEnvelopeShape) + laneText;
+
     if (mode == chipper::ChipMode::sid)
         return label + " -> " + sidModelReadout(patch) + " | " + sidVoiceWaveSummary(patch) + " | " + sidFilterModeReadout(patch) + " | " + sidModModeReadout(patch) + laneText;
 
@@ -8356,6 +8361,12 @@ juce::String ChipperAudioProcessorEditor::performanceMacroDestination(chipper::C
         case chipper::ChipMode::sn76489:
         {
             static constexpr std::array<const char*, 4> labels { "Tone stack", "Tone period", "Reg E noise", "Noise atten." };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::saa1099:
+        {
+            static constexpr std::array<const char*, 4> labels { "Ch spread", "Freq/octave", "Dual noise", "L/R level" };
             return labels[std::min(index, labels.size() - 1u)];
         }
 
@@ -9501,6 +9512,10 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
 
         return ym2149ResolvedChannelMixLabel(patch, index);
     }
+
+    if (mode == chipper::ChipMode::saa1099)
+        return "Ch " + number
+            + " | stereo PSG V" + juce::String(static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f)));
 
     if (mode == chipper::ChipMode::spc700)
         return sampleSourceCardLabel(mode, patch, index);
@@ -10868,6 +10883,28 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 8 | hidden",
         "Source 9 | hidden"
     };
+    static const std::array<const char*, sourceChannelCount> saaBigMonoLabels {
+        "Ch 1 | stereo square",
+        "Ch 2 | chord tone",
+        "Ch 3 | tone/noise",
+        "Ch 4 | stereo square",
+        "Ch 5 | chord tone",
+        "Ch 6 | tone/noise",
+        "Source 7 | hidden",
+        "Source 8 | hidden",
+        "Source 9 | hidden"
+    };
+    static const std::array<const char*, sourceChannelCount> saaChipPolyLabels {
+        "Ch 1 | note 1",
+        "Ch 2 | note 2",
+        "Ch 3 | note 3",
+        "Ch 4 | note 4",
+        "Ch 5 | note 5",
+        "Ch 6 | note 6",
+        "Source 7 | hidden",
+        "Source 8 | hidden",
+        "Source 9 | hidden"
+    };
     static const std::array<const char*, sourceChannelCount> sidBigMonoLabels {
         "Voice 1 | lead",
         "Voice 2 | detune",
@@ -10999,6 +11036,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         labels = playMode == chipper::PlayMode::chipPoly ? &ymChipPolyLabels : &ymBigMonoLabels;
     else if (mode == chipper::ChipMode::sn76489)
         labels = playMode == chipper::PlayMode::chipPoly ? &snChipPolyLabels : &snBigMonoLabels;
+    else if (mode == chipper::ChipMode::saa1099)
+        labels = playMode == chipper::PlayMode::chipPoly ? &saaChipPolyLabels : &saaBigMonoLabels;
     else if (mode == chipper::ChipMode::sid)
         labels = playMode == chipper::PlayMode::chipPoly ? &sidChipPolyLabels : &sidBigMonoLabels;
     else if (mode == chipper::ChipMode::pokey)
@@ -11257,6 +11296,20 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
             shape = ChipWaveformPreviewShape::noise;
             tooltip = "SN76489 noise channel: " + snNoiseModeReadout(patch);
         }
+    }
+    else if (mode == chipper::ChipMode::saa1099)
+    {
+        const auto noiseActive = std::clamp(patch.snNoiseMode, 0, 4) >= 2
+            || patch.macro == chipper::MacroKind::drum
+            || patch.macro == chipper::MacroKind::hit
+            || (patch.macro == chipper::MacroKind::laser && (index == 0 || index == 5));
+        const auto toneActive = patch.macro != chipper::MacroKind::drum || index == 0 || index == 3;
+        shape = noiseActive && toneActive ? ChipWaveformPreviewShape::toneNoise
+            : (noiseActive ? ChipWaveformPreviewShape::noise : ChipWaveformPreviewShape::pulse);
+        tooltip = juce::String("SAA1099 channel ") + juce::String(static_cast<int>(index + 1u))
+            + ": frequency/octave tone lane with stereo amplitude nibbles."
+            + "\nNoise: " + snNoiseModeReadout(patch)
+            + "\nEnvelope: " + ymEnvelopeShapeReadout(patch.ymEnvelopeShape);
     }
     else if (mode == chipper::ChipMode::pokey)
     {

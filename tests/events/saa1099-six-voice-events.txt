@@ -1,0 +1,7 @@
+# Six overlapping notes should allocate across all SAA1099 tone lanes.
+note_on 0 60 1.0
+note_on 5 64 0.95
+note_on 10 67 0.9
+note_on 15 72 0.85
+note_on 20 76 0.8
+note_on 25 79 0.75
