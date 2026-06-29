@@ -2926,6 +2926,24 @@ const std::vector<PresetInfo>& presetCatalog()
             1789773.0
         },
         {
+            "nes-tracker-noise-tick",
+            "NES Drums",
+            "NES Tracker Noise Tick",
+            "Short tracker noise tick with a triangle transient for 8-bit pattern accents.",
+            ChipMode::nes,
+            AccuracyMode::hybrid,
+            MacroKind::drum,
+            PlayMode::stack,
+            { 0.40f, 0.12f, 0.72f, 0.62f },
+            { false, false, true, true },
+            0.76f,
+            0,
+            0,
+            2,
+            -11.0f,
+            1789773.0
+        },
+        {
             "nes-menu-confirm",
             "Arcade UI",
             "NES Menu Confirm",

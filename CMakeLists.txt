@@ -363,6 +363,9 @@ add_test(NAME chipper_render_preset_nes_triangle_bass_smoke
 add_test(NAME chipper_render_preset_nes_noise_snare_smoke
     COMMAND chipper_render --preset nes-noise-snare --rate 48000 --seconds 0.04 --note 60 --out preset-nes-noise-snare-smoke.wav --debug preset-nes-noise-snare-smoke.json
 )
+add_test(NAME chipper_render_preset_nes_tracker_noise_tick_smoke
+    COMMAND chipper_render --preset nes-tracker-noise-tick --rate 48000 --seconds 0.04 --note 60 --out preset-nes-tracker-noise-tick.wav --debug preset-nes-tracker-noise-tick.json
+)
 add_test(NAME chipper_render_preset_nes_coin_blip_smoke
     COMMAND chipper_render --preset nes-coin-blip --rate 48000 --seconds 0.04 --note 76 --out preset-nes-coin-blip-smoke.wav --debug preset-nes-coin-blip-smoke.json
 )
@@ -950,7 +953,7 @@ add_test(NAME chipper_render_list_presets_smoke
 )
 set_tests_properties(chipper_render_list_presets_smoke PROPERTIES FIXTURES_SETUP chipper_preset_catalog)
 set(CHIPPER_PRESET_CHIP_MINIMUMS
-    nes:15
+    nes:16
     dmg:16
     sid:19
     ym2149:15
@@ -998,7 +1001,7 @@ if (Python3_Interpreter_FOUND)
     )
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=15 --preset-count dmg=16 --preset-count sid=19 --preset-count ym2149=16 --preset-count sn76489=16 --preset-count ym2612=18 --preset-count opl3=15 --preset-count spc700=15 --preset-count pokey=14 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=15 --preset-count ym2151=15 --preset-count ym2413=17 --preset-count scc=16
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=16 --preset-count dmg=16 --preset-count sid=19 --preset-count ym2149=16 --preset-count sn76489=16 --preset-count ym2612=18 --preset-count opl3=15 --preset-count spc700=15 --preset-count pokey=14 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=15 --preset-count ym2151=15 --preset-count ym2413=17 --preset-count scc=16
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1972,6 +1975,10 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-noise-snare-smoke.json --implemented-contains partial --preset nes-noise-snare --macro Drum --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.04 --min-zero-crossings 100 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1 --core-min dmcDirectControl=0.34 --core-max dmcDirectControl=0.34 --core-min dmcLevel=43 --core-max dmcLevel=43
     )
     set_tests_properties(chipper_render_preset_nes_noise_snare_assert PROPERTIES DEPENDS chipper_render_preset_nes_noise_snare_smoke)
+    add_test(NAME chipper_render_preset_nes_tracker_noise_tick_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-tracker-noise-tick.json --implemented-contains partial --preset nes-tracker-noise-tick --macro Drum --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 0 --min-peak 0.02 --min-zero-crossings 80 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=1 --core-max sourceEnabled4=1 --core-min enabled2=1 --core-max enabled2=1 --core-min enabled3=1 --core-max enabled3=1 --core-min triangleActive=1 --core-max triangleActive=1 --core-min noiseModeChoice=2 --core-max noiseModeChoice=2 --core-min noiseShortMode=1 --core-max noiseShortMode=1 --core-min noiseRegister=132 --core-max noiseRegister=132 --core-min noisePeriod=4 --core-max noisePeriod=4 --core-min dmcDirectControl=0 --core-max dmcDirectControl=0 --core-min dmcLevel=0 --core-max dmcLevel=0
+    )
+    set_tests_properties(chipper_render_preset_nes_tracker_noise_tick_assert PROPERTIES DEPENDS chipper_render_preset_nes_tracker_noise_tick_smoke)
 
     add_test(NAME chipper_render_preset_nes_coin_blip_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-coin-blip-smoke.json --implemented-contains partial --preset nes-coin-blip --macro Coin --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 0 --min-peak 0.03 --min-zero-crossings 40 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min pulseDuty1=0 --core-max pulseDuty1=0
