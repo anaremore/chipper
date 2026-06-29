@@ -3221,6 +3221,10 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
         if (activeSlots.empty() || (playbackMode != 0 && activeDmcSampleSlot == unmappedDmcSampleSlot))
         {
             snapshot.label = activeSlots.empty() ? "No DMC samples loaded" : "No mapped DMC sample";
+            if (activeSlots.empty() && dmcSampleRestoreWarning.isNotEmpty())
+                snapshot.label = dmcSampleRestoreWarning;
+            else
+                appendRestoreWarning(snapshot.label, dmcSampleRestoreWarning);
             return snapshot;
         }
 
@@ -3235,6 +3239,7 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
         snapshot.hasLoop = loopEnabled && snapshot.loaded;
         snapshot.loopStart = 0.0f;
         snapshot.loopEnd = 1.0f;
+        appendRestoreWarning(snapshot.label, dmcSampleRestoreWarning);
     }
     else if (mode == chipper::ChipMode::spc700)
     {
@@ -3242,8 +3247,10 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
         const auto playbackMode = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load())), 0, 2);
         const auto loopStartControl = apvts.getRawParameterValue(chipper::parameters::id::spc700LoopStart)->load();
         const auto loopEndControl = apvts.getRawParameterValue(chipper::parameters::id::spc700LoopEnd)->load();
+        juce::String restoreWarning;
         {
             const std::lock_guard<std::mutex> lock(spc700SampleMutex);
+            restoreWarning = spc700SampleRestoreWarning;
             std::vector<const DmcSampleSlot*> activeSlots;
             activeSlots.reserve(32u);
             if (! spc700BrrSampleBank.empty())
@@ -3283,6 +3290,7 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
                 snapshot.loaded = ! decoded.empty();
             }
         }
+        appendRestoreWarning(snapshot.label, restoreWarning);
 
         if (decoded.empty())
         {
@@ -3292,6 +3300,7 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
                 return chipper::generatedSampleValueForPatch(chipper::ChipMode::spc700, patch, 0u, i);
             });
             snapshot.label = "Generated SPC700 sample";
+            appendRestoreWarning(snapshot.label, restoreWarning);
             snapshot.loaded = ! decoded.empty();
         }
 
@@ -3308,8 +3317,10 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
     {
         const auto selectedSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
         const auto playbackMode = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load())), 0, 2);
+        juce::String restoreWarning;
         {
             const std::lock_guard<std::mutex> lock(paulaSampleMutex);
+            restoreWarning = paulaSampleRestoreWarning;
             std::vector<const DmcSampleSlot*> activeSlots;
             activeSlots.reserve(32u);
             if (! paulaSampleBank.empty())
@@ -3355,6 +3366,7 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
                 }
             }
         }
+        appendRestoreWarning(snapshot.label, restoreWarning);
 
         if (decoded.empty())
         {
@@ -3364,6 +3376,7 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
                 return chipper::generatedSampleValueForPatch(chipper::ChipMode::paula, patch, 0u, i);
             });
             snapshot.label = "Generated Paula sample";
+            appendRestoreWarning(snapshot.label, restoreWarning);
             snapshot.loaded = ! decoded.empty();
         }
 

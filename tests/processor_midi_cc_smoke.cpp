@@ -1207,6 +1207,10 @@ int main()
         ok &= expect(missingDmcInfo.statusLine.contains("DMC sample restore issue")
                          && missingDmcInfo.statusLine.contains("missing-dmc.dmc"),
                      "DMC preset restore should expose missing sample references in the sample status line");
+        const auto missingDmcPreview = missingDmcPresetProcessor.sampleWaveformSnapshot(chipper::ChipMode::nes);
+        ok &= expect(missingDmcPreview.label.contains("DMC sample restore issue")
+                         && missingDmcPreview.label.contains("missing-dmc.dmc"),
+                     "DMC waveform preview should expose missing sample references in its label");
         ok &= expect(missingDmcPresetProcessor.loadNesDmcSampleFile(dmcDir.getChildFile("sample-00.dmc")).wasOk(),
                      "DMC manual sample load should succeed after a missing-reference restore warning");
         missingDmcInfo = missingDmcPresetProcessor.nesDmcSamplePlaybackInfo();
@@ -1354,6 +1358,10 @@ int main()
         ok &= expect(missingSpcInfo.statusLine.contains("SPC700 sample restore issue")
                          && missingSpcInfo.statusLine.contains("missing-spc.brr"),
                      "SPC700 preset restore should expose missing sample references in the sample status line");
+        const auto missingSpcPreview = missingSpcPresetProcessor.sampleWaveformSnapshot(chipper::ChipMode::spc700);
+        ok &= expect(missingSpcPreview.label.contains("SPC700 sample restore issue")
+                         && missingSpcPreview.label.contains("missing-spc.brr"),
+                     "SPC700 waveform preview should expose missing sample references in its label");
         ok &= expect(missingSpcPresetProcessor.loadSpc700BrrSampleFile(brrDir.getChildFile("brr-00.brr")).wasOk(),
                      "SPC700 manual sample load should succeed after a missing-reference restore warning");
         missingSpcInfo = missingSpcPresetProcessor.spc700BrrSampleInfo();
@@ -1652,6 +1660,10 @@ int main()
         ok &= expect(missingPaulaInfo.statusLine.contains("Paula sample restore issue")
                          && missingPaulaInfo.statusLine.contains("missing-paula.wav"),
                      "Paula preset restore should expose missing sample references in the sample status line");
+        const auto missingPaulaPreview = missingPaulaPresetProcessor.sampleWaveformSnapshot(chipper::ChipMode::paula);
+        ok &= expect(missingPaulaPreview.label.contains("Paula sample restore issue")
+                         && missingPaulaPreview.label.contains("missing-paula.wav"),
+                     "Paula waveform preview should expose missing sample references in its label");
         ok &= expect(missingPaulaPresetProcessor.loadPaulaSampleFile(paulaDir.getChildFile("paula-00.wav")).wasOk(),
                      "Paula manual sample load should succeed after a missing-reference restore warning");
         missingPaulaInfo = missingPaulaPresetProcessor.paulaSampleInfo();
