@@ -695,6 +695,30 @@ const std::vector<PresetInfo>& presetCatalog()
             1789790.0,
             0.34f
         },
+        withSourceLevels(
+            {
+                "pokey-distortion-filter-perc",
+                "Atari POKEY",
+                "POKEY Distortion Filter Perc",
+                "Short POKEY percussion using Poly5 AUDC distortion through both AUDCTL filter paths.",
+                ChipMode::pokey,
+                AccuracyMode::hybrid,
+                MacroKind::drum,
+                PlayMode::stack,
+                { 0.34f, 0.62f, 0.78f, 0.84f },
+                { true, true, true, true },
+                0.62f,
+                3,
+                4,
+                0,
+                -11.0f,
+                1789790.0,
+                0.28f
+            },
+            0.80f,
+            0.58f,
+            0.78f,
+            0.72f),
         {
             "huc-glass-lead",
             "PC Engine HuC6280",

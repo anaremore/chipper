@@ -528,6 +528,9 @@ add_test(NAME chipper_render_preset_sn_periodic_bass_click_smoke
 add_test(NAME chipper_render_preset_pokey_distortion_lead_smoke
     COMMAND chipper_render --preset pokey-distortion-lead --rate 48000 --seconds 0.04 --note 69 --out preset-pokey-distortion-lead-smoke.wav --debug preset-pokey-distortion-lead-smoke.json
 )
+add_test(NAME chipper_render_preset_pokey_distortion_filter_perc_smoke
+    COMMAND chipper_render --preset pokey-distortion-filter-perc --rate 48000 --seconds 0.04 --note 60 --out preset-pokey-distortion-filter-perc-smoke.wav --debug preset-pokey-distortion-filter-perc-smoke.json
+)
 add_test(NAME chipper_render_preset_scc_noise_click_drum_smoke
     COMMAND chipper_render --preset scc-noise-click-drum --rate 48000 --seconds 0.05 --note 48 --out preset-scc-noise-click-drum.wav --debug preset-scc-noise-click-drum.json
 )
@@ -965,7 +968,7 @@ set(CHIPPER_PRESET_CHIP_MINIMUMS
     opl3:16
     ym2151:15
     spc700:15
-    pokey:13
+    pokey:15
     paula:13
     huc6280:13
     namcoWsg:15
@@ -1004,7 +1007,7 @@ if (Python3_Interpreter_FOUND)
     )
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=16 --preset-count dmg=16 --preset-count sid=19 --preset-count ym2149=16 --preset-count sn76489=16 --preset-count ym2612=18 --preset-count opl3=16 --preset-count spc700=15 --preset-count pokey=14 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=15 --preset-count ym2151=15 --preset-count ym2413=17 --preset-count scc=16
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=16 --preset-count dmg=16 --preset-count sid=19 --preset-count ym2149=16 --preset-count sn76489=16 --preset-count ym2612=18 --preset-count opl3=16 --preset-count spc700=15 --preset-count pokey=15 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=15 --preset-count ym2151=15 --preset-count ym2413=17 --preset-count scc=16
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1044,7 +1047,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_sid_voice_waves_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_pokey_descriptor_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip pokey --implemented pokey=1 --verification-badge "pokey=Verified partial" --verification-cycle pokey=0 --verification-hardware pokey=0 --param-kind pokey:waveShape=chipRegister --param-surface pokey:waveShape=segmentedChoice --param-choices pokey:waveShape=5 --param-midi-cc pokey:waveShape=89 --param-kind pokey:ymEnvelopeShape=chipRegister --param-surface pokey:ymEnvelopeShape=segmentedChoice --param-choices pokey:ymEnvelopeShape=5 --param-midi-cc pokey:ymEnvelopeShape=90 --param-kind pokey:dmgStereoRoute=chipRegister --param-surface pokey:dmgStereoRoute=segmentedChoice --param-choices pokey:dmgStereoRoute=5 --param-midi-cc pokey:dmgStereoRoute=94 --param-kind pokey:macroControl3=chipRegister --param-surface pokey:macroControl3=slider --param-midi-cc pokey:macroControl3=78 --param-kind pokey:macroControl4=chipRegister --param-surface pokey:macroControl4=slider --param-midi-cc pokey:macroControl4=79 --param-surface pokey:stereoSpread=slider --param-midi-cc pokey:stereoSpread=93 --macro-label "pokey:Lead=POKEY Buzzy Lead" --macro-source pokey:Drum=0011 --preset pokey-buzzy-lead --preset pokey-distortion-lead --preset pokey-poly-perc --preset pokey-filter-bass --preset pokey-filter-scream
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip pokey --implemented pokey=1 --verification-badge "pokey=Verified partial" --verification-cycle pokey=0 --verification-hardware pokey=0 --param-kind pokey:waveShape=chipRegister --param-surface pokey:waveShape=segmentedChoice --param-choices pokey:waveShape=5 --param-midi-cc pokey:waveShape=89 --param-kind pokey:ymEnvelopeShape=chipRegister --param-surface pokey:ymEnvelopeShape=segmentedChoice --param-choices pokey:ymEnvelopeShape=5 --param-midi-cc pokey:ymEnvelopeShape=90 --param-kind pokey:dmgStereoRoute=chipRegister --param-surface pokey:dmgStereoRoute=segmentedChoice --param-choices pokey:dmgStereoRoute=5 --param-midi-cc pokey:dmgStereoRoute=94 --param-kind pokey:macroControl3=chipRegister --param-surface pokey:macroControl3=slider --param-midi-cc pokey:macroControl3=78 --param-kind pokey:macroControl4=chipRegister --param-surface pokey:macroControl4=slider --param-midi-cc pokey:macroControl4=79 --param-surface pokey:stereoSpread=slider --param-midi-cc pokey:stereoSpread=93 --macro-label "pokey:Lead=POKEY Buzzy Lead" --macro-source pokey:Drum=0011 --preset pokey-buzzy-lead --preset pokey-distortion-lead --preset pokey-poly-perc --preset pokey-filter-bass --preset pokey-filter-scream --preset pokey-distortion-filter-perc
     )
     set_tests_properties(chipper_render_list_pokey_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1507,6 +1510,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-pokey-distortion-lead-smoke.json --implemented-contains partial --preset pokey-distortion-lead --macro Lead --play-mode "Big Mono" --output-db -9.5 --register-writes 0 --note-events 0 --min-peak 0.02 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceLevel0=1 --core-max sourceLevel0=1 --core-min sourceLevel1=0.82 --core-max sourceLevel1=0.82 --core-min sourceLevel2=0.62 --core-max sourceLevel2=0.62 --core-min distortionChoice=3 --core-max distortionChoice=3 --core-min distortionCode=64 --core-max distortionCode=64
     )
     set_tests_properties(chipper_render_preset_pokey_distortion_lead_assert PROPERTIES DEPENDS chipper_render_preset_pokey_distortion_lead_smoke)
+
+    add_test(NAME chipper_render_preset_pokey_distortion_filter_perc_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-pokey-distortion-filter-perc-smoke.json --implemented-contains partial --preset pokey-distortion-filter-perc --macro Drum --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 0 --min-peak 0.005 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceLevel0=0.8 --core-max sourceLevel0=0.8 --core-min sourceLevel1=0.58 --core-max sourceLevel1=0.58 --core-min sourceLevel2=0.78 --core-max sourceLevel2=0.78 --core-min sourceLevel3=0.72 --core-max sourceLevel3=0.72 --core-min distortionChoice=3 --core-max distortionChoice=3 --core-min distortionCode=64 --core-max distortionCode=64 --core-min filterChoice=4 --core-max filterChoice=4 --core-min filterBits=6 --core-max filterBits=6 --core-min filterCh1ByCh3=1 --core-max filterCh1ByCh3=1 --core-min filterCh2ByCh4=1 --core-max filterCh2ByCh4=1 --core-min audctl=6 --core-max audctl=6
+    )
+    set_tests_properties(chipper_render_preset_pokey_distortion_filter_perc_assert PROPERTIES DEPENDS chipper_render_preset_pokey_distortion_filter_perc_smoke)
 
     add_test(NAME chipper_render_spc700_json_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/spc700-smoke.json --implemented-contains partial --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.05 --min-rms 0.02 --register-writes 0 --note-events 0 --core-min internalChannelCount=8 --core-max internalChannelCount=8 --core-min uiExposesAllEightVoices=1 --core-max uiExposesAllEightVoices=1 --core-min gaussianStyleInterpolation=1 --core-max gaussianStyleInterpolation=1 --core-min interpolationTaps=4 --core-max interpolationTaps=4 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min noiseModeResolved=1 --core-max noiseModeResolved=1 --core-min noiseEnabledMask=0 --core-max noiseEnabledMask=0 --core-min pitch0=674 --core-max pitch0=676 --core-min volume0=100 --core-max volume0=102 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Sample Shape" --descriptor-param-choices waveShape=5 --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=Noise Source" --descriptor-param-choices snNoiseMode=5 --descriptor-param-kind ymEnvelopeShape=chipRegister --descriptor-param-surface ymEnvelopeShape=segmentedChoice --descriptor-param-label "ymEnvelopeShape=Envelope Shape" --descriptor-param-choices ymEnvelopeShape=5
