@@ -14,7 +14,7 @@ The plugin must not use generic retro oscillators with famous chip labels. Each 
 - **YM2149/AY:** three square tone channels backed by `emu2149`, shared noise, mixer bits, hardware envelope shapes, buzzy arcade/computer character.
 - **SN76489:** three tone channels, noise modes, attenuation, Sega PSG behavior. The current partial core is backed by vendored MIT emu76489.
 - **YM2612/OPN2:** six-channel FM, operators, algorithms, feedback, LFO, DAC behavior, stereo.
-- **YM2203/OPN:** three-channel FM backed by `ymfm`, shared OPN operator controls, algorithm/feedback, and PC-88/arcade-style presets. The embedded SSG is planned as a follow-up and is not mixed in the first slice.
+- **YM2203/OPN:** three-channel FM plus three embedded SSG tone lanes backed by `ymfm`, shared OPN operator controls, algorithm/feedback, source-card mixing, and PC-88/arcade-style presets. SSG noise/envelope controls remain a follow-up.
 - **OPL2/OPL3:** two-operator FM, rhythm mode, waveform variants, envelopes, stereo for OPL3.
 - **Expansion:** SPC700-style sample playback, Paula, HuC6280 wavetable, Namco WSG, YM2151, YM2413/OPLL, Konami SCC, and additional Yamaha FM families. SPC700-style, POKEY, Paula, HuC6280, Namco WSG, YM2151, YM2203/OPN, YM2413/OPLL, and SCC have started as audible partial expansion cores; YM2151 and YM2203 are backed by vendored BSD-3-Clause `ymfm`, and YM2413/OPLL is backed by vendored MIT emu2413.
 

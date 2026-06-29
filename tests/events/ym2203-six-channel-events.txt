@@ -1,0 +1,7 @@
+# Six overlapping notes should allocate across every YM2203/OPN FM and SSG lane.
+note_on 0 48 1.0
+note_on 10 52 0.95
+note_on 20 55 0.9
+note_on 30 60 0.85
+note_on 40 64 0.8
+note_on 50 67 0.75

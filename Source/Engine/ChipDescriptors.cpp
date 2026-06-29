@@ -61,16 +61,16 @@ std::vector<MacroTemplate> ym2612Macros()
 std::vector<MacroTemplate> ym2203Macros()
 {
     return {
-        { MacroKind::manual, "OPN Manual", "Neutral YM2203 three-channel FM mapping using the ymfm OPN core.", { 0.50f, 0.35f, 0.45f, 0.70f }, { true, true, true, false }, 0.0f, 0 },
-        { MacroKind::coin, "OPN PC-88 Chime", "Short bright YM2203 UI chime using parallel-carrier FM.", { 1.00f, 0.18f, 0.66f, 0.76f }, { true, false, false, false }, 0.16f, 8 },
-        { MacroKind::bass, "OPN Feedback Bass", "Dark three-channel YM2203 bass using a serial operator algorithm and feedback.", { 0.00f, 0.82f, 0.26f, 0.88f }, { true, true, false, false }, 0.08f, 1 },
-        { MacroKind::lead, "OPN Metallic Lead", "Forward YM2203 lead with parallel carrier bite.", { 0.58f, 0.46f, 0.60f, 0.82f }, { true, true, true, false }, 0.10f, 5 },
-        { MacroKind::arp, "OPN Three-Voice Arp", "Three YM2203 FM channels arranged for quick fake chords and arpeggios.", { 0.72f, 0.32f, 0.48f, 0.78f }, { true, true, true, false }, 0.08f, 6 },
-        { MacroKind::drum, "OPN FM Perc", "Short YM2203 operator percussion without the embedded SSG layer.", { 0.14f, 0.72f, 0.66f, 0.92f }, { true, false, true, false }, 0.30f, 2, 4 },
-        { MacroKind::hit, "OPN Damage Hit", "Aggressive stacked YM2203 operator impact.", { 0.22f, 0.90f, 0.72f, 0.78f }, { true, false, true, false }, 0.52f, 2 },
-        { MacroKind::laser, "OPN Pitch Laser", "YM2203 pitch sweep SFX through three FM voices.", { 0.30f, 0.72f, 0.88f, 0.80f }, { true, true, false, false }, 0.28f, 3 },
-        { MacroKind::jump, "OPN Jump Blip", "Quick upward YM2203 FM game gesture.", { 1.00f, 0.22f, 0.64f, 0.76f }, { true, false, false, false }, 0.18f, 8 },
-        { MacroKind::powerUp, "OPN Power Rise", "Longer bright YM2203 rise over stacked FM channels.", { 0.86f, 0.36f, 0.56f, 0.84f }, { true, true, true, false }, 0.14f, 7 }
+        { MacroKind::manual, "OPN Manual", "Neutral YM2203 FM plus embedded SSG mapping using the ymfm OPN core.", { 0.50f, 0.35f, 0.45f, 0.70f }, { true, true, true, true }, 0.0f, 0 },
+        { MacroKind::coin, "OPN PC-88 Chime", "Short bright YM2203 UI chime using parallel-carrier FM and SSG sparkle.", { 1.00f, 0.18f, 0.66f, 0.76f }, { true, false, false, true }, 0.16f, 8 },
+        { MacroKind::bass, "OPN Feedback Bass", "Dark YM2203 bass using serial-operator FM with a restrained SSG octave.", { 0.00f, 0.82f, 0.26f, 0.88f }, { true, true, false, true }, 0.08f, 1 },
+        { MacroKind::lead, "OPN Metallic Lead", "Forward YM2203 lead with parallel-carrier bite and embedded SSG support.", { 0.58f, 0.46f, 0.60f, 0.82f }, { true, true, true, true }, 0.10f, 5 },
+        { MacroKind::arp, "OPN Three-Voice Arp", "YM2203 FM and SSG lanes arranged for quick fake chords and arpeggios.", { 0.72f, 0.32f, 0.48f, 0.78f }, { true, true, true, true }, 0.08f, 6 },
+        { MacroKind::drum, "OPN SSG Perc", "Short YM2203 operator percussion with embedded SSG click layers.", { 0.14f, 0.72f, 0.66f, 0.92f }, { true, false, true, true }, 0.30f, 2, 4 },
+        { MacroKind::hit, "OPN Damage Hit", "Aggressive stacked YM2203 operator and SSG impact.", { 0.22f, 0.90f, 0.72f, 0.78f }, { true, false, true, true }, 0.52f, 2 },
+        { MacroKind::laser, "OPN Pitch Laser", "YM2203 pitch sweep SFX through FM and SSG voices.", { 0.30f, 0.72f, 0.88f, 0.80f }, { true, true, false, true }, 0.28f, 3 },
+        { MacroKind::jump, "OPN Jump Blip", "Quick upward YM2203 FM/SSG game gesture.", { 1.00f, 0.22f, 0.64f, 0.76f }, { true, false, false, true }, 0.18f, 8 },
+        { MacroKind::powerUp, "OPN Power Rise", "Longer bright YM2203 rise over stacked FM and SSG channels.", { 0.86f, 0.36f, 0.56f, 0.84f }, { true, true, true, true }, 0.14f, 7 }
     };
 }
 
@@ -1011,9 +1011,15 @@ std::vector<ChipParameterSpec> ym2203ParameterSpecs()
         sourceSpec(ChipParameterRole::source1Enabled, "ym2203.ch1.enabled", "OPN Ch 1", "Enable YM2203 FM channel 1."),
         sourceSpec(ChipParameterRole::source2Enabled, "ym2203.ch2.enabled", "OPN Ch 2", "Enable YM2203 FM channel 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "ym2203.ch3.enabled", "OPN Ch 3", "Enable YM2203 FM channel 3."),
+        sourceSpec(ChipParameterRole::source4Enabled, "ym2203.ssgA.enabled", "SSG A", "Enable the embedded YM2203 SSG tone channel A."),
+        sourceSpec(ChipParameterRole::source5Enabled, "ym2203.ssgB.enabled", "SSG B", "Enable the embedded YM2203 SSG tone channel B."),
+        sourceSpec(ChipParameterRole::source6Enabled, "ym2203.ssgC.enabled", "SSG C", "Enable the embedded YM2203 SSG tone channel C."),
         sourceLevelSpec(ChipParameterRole::source1Level, "ym2203.ch1.level", "OPN Ch 1 Level", "Modern trim before writing YM2203 channel 1 carrier levels."),
         sourceLevelSpec(ChipParameterRole::source2Level, "ym2203.ch2.level", "OPN Ch 2 Level", "Modern trim before writing YM2203 channel 2 carrier levels."),
         sourceLevelSpec(ChipParameterRole::source3Level, "ym2203.ch3.level", "OPN Ch 3 Level", "Modern trim before writing YM2203 channel 3 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "ym2203.ssgA.level", "SSG A Level", "Modern trim after the embedded YM2203 SSG channel A output."),
+        sourceLevelSpec(ChipParameterRole::source5Level, "ym2203.ssgB.level", "SSG B Level", "Modern trim after the embedded YM2203 SSG channel B output."),
+        sourceLevelSpec(ChipParameterRole::source6Level, "ym2203.ssgC.level", "SSG C Level", "Modern trim after the embedded YM2203 SSG channel C output."),
         sliderSpec(ChipParameterRole::macroControl1,
                    "ym2203.algorithmBias",
                    "Algorithm Bias",
@@ -1028,10 +1034,10 @@ std::vector<ChipParameterSpec> ym2203ParameterSpecs()
                    "Scales operator multiplier and modulator total-level choices before writing OPN operator registers.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
-                   "ym2203.fmLevel",
-                   "FM Level",
+                   "ym2203.outputLevel",
+                   "FM/SSG Level",
                    "Mixer",
-                   "Controls audible carrier level through native OPN total-level registers.",
+                   "Controls audible carrier level through native OPN total-level registers and the embedded SSG amplitude registers.",
                    ParameterKind::chipRegister,
                    0.70f),
         sliderSpec(ChipParameterRole::fmOperator1Level,
@@ -2529,12 +2535,12 @@ std::array<ModuleDescriptor, 6> ym2612Modules()
 std::array<ModuleDescriptor, 6> ym2203Modules()
 {
     return std::array<ModuleDescriptor, 6> {
-        makeModule("profile", "Profile", "YM2203/OPN FM core is backed by audited BSD-licensed ymfm.", { "YM2203 model", "3.99 MHz clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM Voices", "All three YM2203 FM channels are exposed as playable source lanes.", { "FM Ch 1", "FM Ch 2", "FM Ch 3", "Chip Poly" }),
+        makeModule("profile", "Profile", "YM2203/OPN core is backed by audited BSD-licensed ymfm.", { "YM2203 model", "3.99 MHz clock", "Hybrid default", "Verified partial" }),
+        makeModule("sources", "FM + SSG Voices", "All three YM2203 FM channels and all three embedded SSG tone channels are exposed as playable source lanes.", { "FM Ch 1-3", "SSG A-C", "6-lane Chip Poly", "Source trims" }),
         makeModule("tone", "Operators", "Musical controls write native OPN algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPN attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
-        makeModule("motion", "Motion", "PC-88/arcade-style YM2203 preset recipes map to register-backed FM patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
-        makeModule("output", "Output", "ymfm mono OPN FM output is rendered to plugin stereo; embedded SSG output remains a planned layer.", { "Mono FM core", "Three FM voices", "SSG planned", "Verified partial" })
+        makeModule("motion", "Motion", "PC-88/arcade-style YM2203 preset recipes map to register-backed FM and SSG patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
+        makeModule("output", "Output", "ymfm mono OPN output is rendered to plugin stereo with the embedded SSG tone outputs mixed in.", { "Mono FM core", "Three SSG lanes", "Tone mixer", "Verified partial" })
     };
 }
 
@@ -3035,12 +3041,12 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2203,
             "YM2203 / OPN",
-            "Three YM2203/OPN FM lanes write native registers into the audited ymfm core; embedded SSG support is planned next.",
+            "Three YM2203/OPN FM lanes plus three embedded SSG tone lanes write native registers into the audited ymfm core.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2203 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2203 feedback bits for the active OPN voices." },
                 { "operator", "Operator Tone", "Operators", "Scales operator multipliers and modulator levels." },
-                { "level", "FM Level", "Output", "Controls carrier level through native OPN total-level registers." },
+                { "level", "FM/SSG Level", "Output", "Controls carrier level and embedded SSG amplitude registers." },
             },
             ym2203Modules(),
             ym2203Macros(),
@@ -3051,10 +3057,11 @@ const std::vector<ChipDescriptor>& descriptors()
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2203/OPN synthesis core.",
                     "Renderer notes and preset recipes write OPN algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, and key-on registers across all three FM channels.",
-                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the first three-lane FM adapter."
+                    "Embedded YM2203 SSG tone period, mixer, and amplitude registers are written for SSG A-C and mixed from ymfm output slots.",
+                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the six-lane FM plus SSG adapter."
                 },
                 {
-                    "The embedded YM2203 SSG is not exposed or mixed yet; this first slice is intentionally FM-only.",
+                    "SSG noise/envelope UI is not exposed yet; this slice covers the embedded SSG tone lanes.",
                     "Prescaler controls, timers, LFO/AMS/PMS-style extensions where applicable, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
                 })
         }
@@ -3178,7 +3185,7 @@ size_t visibleSourceCountForMode(ChipMode mode)
     if (mode == ChipMode::scc)
         return 5u;
     if (mode == ChipMode::ym2203)
-        return 3u;
+        return 6u;
     return 4u;
 }
 
@@ -3195,7 +3202,7 @@ size_t nativeSourceCountForMode(ChipMode mode)
         case ChipMode::ym2413: return 9u;
         case ChipMode::opl3: return 9u;
         case ChipMode::scc: return 5u;
-        case ChipMode::ym2203: return 3u;
+        case ChipMode::ym2203: return 6u;
         default: return visibleSourceCountForMode(mode);
     }
 }

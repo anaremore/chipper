@@ -1546,7 +1546,7 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Feedback");
     ok &= expectChoiceRegister(chipper::ChipMode::ym2203, chipper::ChipParameterRole::macroControl2, chipper::ControlSurface::menu, 8, "FB 0");
     ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Operator Tone");
-    ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "FM Level");
+    ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "FM/SSG Level");
     ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::fmOperator1Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP1 Level");
     ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::fmOperator4Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP4 Level");
     ok &= expectSpecGroup(chipper::ChipMode::ym2203, chipper::ChipParameterRole::fmOperator1Level, "Operators");
@@ -1575,6 +1575,12 @@ int main()
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2203, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Preset");
     ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::source3Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPN Ch 3");
     ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::source3Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "OPN Ch 3 Level");
+    ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::source4Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "SSG A");
+    ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "SSG B");
+    ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::source6Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "SSG C");
+    ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::source4Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "SSG A Level");
+    ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "SSG B Level");
+    ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::source6Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "SSG C Level");
     ok &= expectMacroLabel(chipper::ChipMode::ym2413, chipper::MacroKind::coin, "OPLL UI Chime");
     ok &= expectPreset(chipper::ChipMode::ym2413, "opll-soft-keys");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Instrument");
@@ -1624,7 +1630,7 @@ int main()
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2413, 9u, 9u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::scc, 5u, 5u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::paula, 4u, 4u);
-    ok &= expectSourceLaneCounts(chipper::ChipMode::ym2203, 3u, 3u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::ym2203, 6u, 6u);
 
     ok &= expect(chipper::chipHasParameterSurface(chipper::ChipMode::ym2149,
                                                   chipper::ChipParameterRole::source1Enabled,

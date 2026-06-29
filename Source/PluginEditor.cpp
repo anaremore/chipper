@@ -8258,7 +8258,7 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
         return label + " -> " + fmChipReadout(mode, patch) + " | " + ym2612DacModeReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
     if (mode == chipper::ChipMode::ym2203)
-        return label + " -> " + fmChipReadout(mode, patch) + " | FM-only OPN slice | " + waveShapeReadout(mode, patch.waveShape) + laneText;
+        return label + " -> " + fmChipReadout(mode, patch) + " | SSG A-C tone lanes | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
     if (mode == chipper::ChipMode::ym2151)
         return label + " -> " + fmChipReadout(mode, patch) + " | " + ym2151NoiseReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;

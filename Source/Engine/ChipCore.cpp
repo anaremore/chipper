@@ -7999,12 +7999,15 @@ public:
         currentDecayRate.fill(0x08u);
         currentSustainRate.fill(0x00u);
         currentSustainRelease.fill(0x46u);
+        currentSsgPeriod.fill(1);
+        currentSsgVolume.fill(0);
         channelNotes.fill(-1);
         channelVelocity.fill(0.0f);
         channelStamp.fill(0);
         noteStamp = 0;
         heldNote = -1;
         keyOnMask = 0;
+        ssgGateMask = 0;
         lastNativeFm = 0;
         lastSsgA = 0;
         lastSsgB = 0;
@@ -8053,8 +8056,8 @@ public:
             default: break;
         }
 
-        for (size_t channel = 0; channel < notes.size(); ++channel)
-            triggerChannel(channel, notes[channel], baseVelocity, channelEnabled(channel));
+        for (size_t channel = 0; channel < sourceChannelCount; ++channel)
+            triggerChannel(channel, notes[channel % notes.size()], baseVelocity, channelEnabled(channel));
     }
 
     void noteOff(int midiNote) override
@@ -8069,7 +8072,12 @@ public:
         {
             heldNote = -1;
             for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+            {
                 keyOffChannel(channel);
+                channelNotes[channel] = -1;
+                channelVelocity[channel] = 0.0f;
+                channelStamp[channel] = 0;
+            }
         }
     }
 
@@ -8118,7 +8126,9 @@ public:
         }
 
         constexpr auto scale = 1.0 / 32768.0;
-        const auto sample = std::clamp(static_cast<double>(lastNativeFm) * scale, -1.0, 1.0);
+        const auto fmSample = std::clamp(static_cast<double>(lastNativeFm) * scale, -1.0, 1.0);
+        const auto ssgSample = (ssgOutputSample(0) + ssgOutputSample(1) + ssgOutputSample(2)) * 0.33;
+        const auto sample = std::clamp(fmSample + ssgSample, -1.0, 1.0);
         currentOutput = { static_cast<float>(sample), static_cast<float>(sample) };
         return currentOutput;
     }
@@ -8140,7 +8150,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPN FM register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2203/OPN synthesis core. Chipper currently maps musical controls and notes to the three FM channels: operator, algorithm, feedback, f-number/block, and key-on registers are driven through the YM2203 address/data port. The embedded SSG is intentionally not exposed or mixed yet; timers, prescaler controls, SSG tone/noise/envelope UI, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2203/OPN synthesis core. Chipper currently maps musical controls and notes to the three FM channels plus the embedded three-channel SSG: operator, algorithm, feedback, f-number/block, FM key-on, SSG tone period, mixer, and amplitude registers are driven through the YM2203 address/data port. SSG noise/envelope UI, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -8162,9 +8172,11 @@ public:
              << "\"chipSampleRate\":" << chipSampleRate << ","
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
-             << "\"internalChannelCount\":3,"
-             << "\"exposedChannelCount\":3,"
-             << "\"ssgIntegrated\":0,"
+             << "\"internalChannelCount\":6,"
+             << "\"exposedChannelCount\":6,"
+             << "\"fmChannelCount\":3,"
+             << "\"ssgChannelCount\":3,"
+             << "\"ssgIntegrated\":1,"
              << "\"algorithm0\":" << static_cast<int>(currentAlgorithm[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
              << "\"algorithmFeedbackRegister0\":" << static_cast<int>(regs[0xb0]) << ","
@@ -8212,16 +8224,33 @@ public:
              << "\"fnum0\":" << currentFnum[0] << ","
              << "\"block0\":" << static_cast<int>(currentBlock[0]) << ","
              << "\"keyOnMask\":" << static_cast<int>(keyOnMask) << ","
+             << "\"ssgGateMask\":" << static_cast<int>(ssgGateMask) << ","
+             << "\"ssgMixer\":" << static_cast<int>(regs[7]) << ","
+             << "\"ssgTonePeriodA\":" << ssgPeriodRegister(0) << ","
+             << "\"ssgTonePeriodB\":" << ssgPeriodRegister(1) << ","
+             << "\"ssgTonePeriodC\":" << ssgPeriodRegister(2) << ","
+             << "\"ssgVolumeA\":" << static_cast<int>(regs[8] & 0x1fu) << ","
+             << "\"ssgVolumeB\":" << static_cast<int>(regs[9] & 0x1fu) << ","
+             << "\"ssgVolumeC\":" << static_cast<int>(regs[10] & 0x1fu) << ","
              << "\"sourceEnabled0\":" << (channelEnabled(0) ? 1 : 0) << ","
              << "\"sourceEnabled1\":" << (channelEnabled(1) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (channelEnabled(2) ? 1 : 0) << ","
+             << "\"sourceEnabled3\":" << (channelEnabled(3) ? 1 : 0) << ","
+             << "\"sourceEnabled4\":" << (channelEnabled(4) ? 1 : 0) << ","
+             << "\"sourceEnabled5\":" << (channelEnabled(5) ? 1 : 0) << ","
              << "\"sourceLevel0\":" << sourceLevel(patch, 0) << ","
              << "\"sourceLevel1\":" << sourceLevel(patch, 1) << ","
              << "\"sourceLevel2\":" << sourceLevel(patch, 2) << ","
+             << "\"sourceLevel3\":" << sourceLevel(patch, 3) << ","
+             << "\"sourceLevel4\":" << sourceLevel(patch, 4) << ","
+             << "\"sourceLevel5\":" << sourceLevel(patch, 5) << ","
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNote0\":" << channelNotes[0] << ","
              << "\"assignedNote1\":" << channelNotes[1] << ","
              << "\"assignedNote2\":" << channelNotes[2] << ","
+             << "\"assignedNote3\":" << channelNotes[3] << ","
+             << "\"assignedNote4\":" << channelNotes[4] << ","
+             << "\"assignedNote5\":" << channelNotes[5] << ","
              << "\"nativeFm\":" << lastNativeFm << ","
              << "\"ssgA\":" << lastSsgA << ","
              << "\"ssgB\":" << lastSsgB << ","
@@ -8251,6 +8280,15 @@ private:
     {
         static constexpr std::array<uint8_t, 4> opOffsets { 0x00, 0x04, 0x08, 0x0c };
         return regForChannel(static_cast<uint8_t>(base + opOffsets[op]), channel);
+    }
+
+    int ssgPeriodRegister(size_t channel) const
+    {
+        if (channel >= ssgChannelCount)
+            return 0;
+
+        const auto reg = channel * 2u;
+        return std::max(1, static_cast<int>(regs[reg] | ((regs[reg + 1u] & 0x0fu) << 8u)));
     }
 
     void writeYmRegister(uint16_t reg, uint8_t value)
@@ -8307,12 +8345,12 @@ private:
 
     bool channelEnabled(size_t channel) const
     {
-        return channel < channelNotes.size() && sourceEnabled(patch, channel);
+        return channel < sourceChannelCount && sourceEnabled(patch, channel);
     }
 
     bool anyAudibleSourceEnabled() const
     {
-        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        for (size_t channel = 0; channel < sourceChannelCount; ++channel)
         {
             if (channelEnabled(channel))
                 return true;
@@ -8322,7 +8360,7 @@ private:
 
     void applyChannelPatch(size_t channel, float velocity)
     {
-        if (channel >= channelNotes.size())
+        if (channel >= fmChannelCount)
             return;
 
         const auto algorithm = algorithmForPatch();
@@ -8354,26 +8392,34 @@ private:
 
     void applyPatchToAllChannels(bool preserveKeys)
     {
-        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        for (size_t channel = 0; channel < fmChannelCount; ++channel)
             applyChannelPatch(channel, channelVelocity[channel] > 0.0f ? channelVelocity[channel] : 1.0f);
+        updateSsgMixer();
 
         if (! preserveKeys)
             return;
 
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
-            if ((keyOnMask & (1u << channel)) != 0 && channelNotes[channel] >= 0)
+            if (channelGateActive(channel) && channelNotes[channel] >= 0)
                 triggerChannel(channel, channelNotes[channel], channelVelocity[channel], channelEnabled(channel));
         }
     }
 
     void triggerChannel(size_t channel, int midiNote, float velocity, bool shouldEnable)
     {
+        if (channel >= fmChannelCount)
+        {
+            triggerSsgChannel(channel, midiNote, velocity, shouldEnable);
+            return;
+        }
+
         if (channel >= channelNotes.size() || ! chip)
             return;
 
         const auto detune = static_cast<int>(std::round((patch.control2 - 0.5f) * 6.0f));
         const auto pitch = pitchForNote(midiNote + detune);
+        channelNotes[channel] = std::clamp(midiNote, 0, 127);
         channelVelocity[channel] = static_cast<float>(clamp01(velocity) * sourceLevel(patch, channel));
         currentFnum[channel] = pitch.fnum;
         currentBlock[channel] = pitch.block;
@@ -8392,6 +8438,12 @@ private:
 
     void keyOffChannel(size_t channel)
     {
+        if (channel >= fmChannelCount)
+        {
+            keyOffSsgChannel(channel);
+            return;
+        }
+
         if (channel >= channelNotes.size())
             return;
 
@@ -8479,14 +8531,131 @@ private:
         const auto bend = static_cast<int>(std::round(std::sin(twoPi * laserPhase * 7.0) * patch.control3 * 9.0));
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
-            if ((keyOnMask & (1u << channel)) == 0)
+            if (! channelGateActive(channel))
                 continue;
             const auto note = (patch.playMode == PlayMode::chipPoly && channelNotes[channel] >= 0) ? channelNotes[channel] : heldNote;
             triggerChannel(channel, note + bend, channelVelocity[channel] > 0.0f ? channelVelocity[channel] : 1.0f, channelEnabled(channel));
         }
     }
 
+    bool channelGateActive(size_t channel) const
+    {
+        if (channel < fmChannelCount)
+            return (keyOnMask & (1u << channel)) != 0;
+        if (channel < sourceChannelCount)
+            return (ssgGateMask & (1u << channel)) != 0;
+        return false;
+    }
+
+    uint32_t ssgClockHz() const
+    {
+        if (chip)
+            return chip->ssg_effective_clock(static_cast<uint32_t>(std::max(1.0, std::round(clock))));
+        return static_cast<uint32_t>(std::max(1.0, std::round(clock / 4.0)));
+    }
+
+    uint16_t ssgPeriodForNote(int midiNote) const
+    {
+        const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
+        const auto period = static_cast<double>(ssgClockHz()) / (16.0 * hz);
+        return static_cast<uint16_t>(std::clamp(static_cast<int>(std::round(period)), 1, 4095));
+    }
+
+    uint8_t ssgVolumeForVelocity(float velocity) const
+    {
+        const auto base = clamp01(velocity) * clamp01(patch.control4);
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(base * 15.0f)), 0, 15));
+    }
+
+    void writeSsgTone(size_t ssgChannel, int midiNote)
+    {
+        if (ssgChannel >= ssgChannelCount)
+            return;
+
+        const auto period = ssgPeriodForNote(midiNote);
+        currentSsgPeriod[ssgChannel] = period;
+        const auto reg = static_cast<uint8_t>(ssgChannel * 2u);
+        writeYmRegister(reg, static_cast<uint8_t>(period & 0xffu));
+        writeYmRegister(static_cast<uint8_t>(reg + 1u), static_cast<uint8_t>((period >> 8u) & 0x0fu));
+    }
+
+    void writeSsgVolume(size_t ssgChannel, uint8_t volume)
+    {
+        if (ssgChannel >= ssgChannelCount)
+            return;
+
+        const auto clipped = static_cast<uint8_t>(std::min<uint8_t>(volume, 15u));
+        currentSsgVolume[ssgChannel] = clipped;
+        writeYmRegister(static_cast<uint8_t>(0x08u + ssgChannel), clipped);
+    }
+
+    void updateSsgMixer()
+    {
+        auto mixer = static_cast<uint8_t>(regs[7] & 0xc0u);
+        for (size_t ssg = 0; ssg < ssgChannelCount; ++ssg)
+        {
+            const auto source = ssgLaneOffset + ssg;
+            const auto active = channelEnabled(source) && (ssgGateMask & (1u << source)) != 0;
+            if (! active)
+                mixer = static_cast<uint8_t>(mixer | (1u << ssg));
+            mixer = static_cast<uint8_t>(mixer | (1u << (ssg + 3u)));
+        }
+        writeYmRegister(0x07, mixer);
+    }
+
+    void triggerSsgChannel(size_t channel, int midiNote, float velocity, bool shouldEnable)
+    {
+        if (channel < ssgLaneOffset || channel >= sourceChannelCount)
+            return;
+
+        const auto ssg = channel - ssgLaneOffset;
+        channelNotes[channel] = std::clamp(midiNote, 0, 127);
+        channelVelocity[channel] = static_cast<float>(clamp01(velocity));
+        writeSsgTone(ssg, midiNote);
+
+        if (shouldEnable)
+        {
+            ssgGateMask |= static_cast<uint16_t>(1u << channel);
+            writeSsgVolume(ssg, ssgVolumeForVelocity(velocity));
+        }
+        else
+        {
+            ssgGateMask &= static_cast<uint16_t>(~(1u << channel));
+            writeSsgVolume(ssg, 0);
+        }
+
+        updateSsgMixer();
+    }
+
+    void keyOffSsgChannel(size_t channel)
+    {
+        if (channel < ssgLaneOffset || channel >= sourceChannelCount)
+            return;
+
+        ssgGateMask &= static_cast<uint16_t>(~(1u << channel));
+        writeSsgVolume(channel - ssgLaneOffset, 0);
+        updateSsgMixer();
+    }
+
+    double ssgOutputSample(size_t ssgChannel) const
+    {
+        if (ssgChannel >= ssgChannelCount)
+            return 0.0;
+
+        const auto source = ssgLaneOffset + ssgChannel;
+        if (! channelEnabled(source))
+            return 0.0;
+
+        const auto raw = ssgChannel == 0 ? lastSsgA : (ssgChannel == 1 ? lastSsgB : lastSsgC);
+        constexpr auto scale = 1.0 / 32768.0;
+        return std::clamp(static_cast<double>(raw) * scale, -1.0, 1.0) * sourceLevel(patch, source);
+    }
+
     AccuracyMode accuracy;
+    static constexpr size_t fmChannelCount = 3;
+    static constexpr size_t ssgChannelCount = 3;
+    static constexpr size_t ssgLaneOffset = 3;
+    static constexpr size_t sourceChannelCount = 6;
     double sampleRate = 48000.0;
     double clock = 3993600.0;
     double chipSampleRate = 333000.0;
@@ -8503,12 +8672,15 @@ private:
     std::array<uint8_t, 3> currentDecayRate {};
     std::array<uint8_t, 3> currentSustainRate {};
     std::array<uint8_t, 3> currentSustainRelease {};
-    std::array<int, 3> channelNotes {};
-    std::array<float, 3> channelVelocity {};
-    std::array<uint64_t, 3> channelStamp {};
+    std::array<uint16_t, 3> currentSsgPeriod {};
+    std::array<uint8_t, 3> currentSsgVolume {};
+    std::array<int, 6> channelNotes {};
+    std::array<float, 6> channelVelocity {};
+    std::array<uint64_t, 6> channelStamp {};
     uint64_t noteStamp = 0;
     int heldNote = -1;
     uint16_t keyOnMask = 0;
+    uint16_t ssgGateMask = 0;
     double laserPhase = 0.0;
     int32_t lastNativeFm = 0;
     int32_t lastSsgA = 0;
