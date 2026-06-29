@@ -885,6 +885,9 @@ add_test(NAME chipper_render_ym2151_pan_right_smoke
 add_test(NAME chipper_render_ym2151_noise_high_smoke
     COMMAND chipper_render --chip ym2151 --accuracy authentic --macro drum --opm-noise high --clock 3579545 --rate 48000 --seconds 0.08 --note 48 --out ym2151-noise-high-smoke.wav --debug ym2151-noise-high-smoke.json
 )
+add_test(NAME chipper_render_preset_opm_noise_envelope_hit_smoke
+    COMMAND chipper_render --preset opm-noise-envelope-hit --rate 48000 --seconds 0.08 --note 48 --out preset-opm-noise-envelope-hit.wav --debug preset-opm-noise-envelope-hit.json
+)
 add_test(NAME chipper_render_preset_opm_arcade_bass_held_smoke
     COMMAND chipper_render --preset opm-arcade-bass --rate 48000 --seconds 0.50 --note 48 --out preset-opm-arcade-bass-held.wav --debug preset-opm-arcade-bass-held.json
 )
@@ -966,7 +969,7 @@ set(CHIPPER_PRESET_CHIP_MINIMUMS
     sn76489:15
     ym2612:15
     opl3:16
-    ym2151:15
+    ym2151:16
     spc700:15
     pokey:15
     paula:13
@@ -1007,7 +1010,7 @@ if (Python3_Interpreter_FOUND)
     )
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=16 --preset-count dmg=16 --preset-count sid=19 --preset-count ym2149=16 --preset-count sn76489=16 --preset-count ym2612=18 --preset-count opl3=16 --preset-count spc700=15 --preset-count pokey=15 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=15 --preset-count ym2151=15 --preset-count ym2413=17 --preset-count scc=16
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=16 --preset-count dmg=16 --preset-count sid=19 --preset-count ym2149=16 --preset-count sn76489=16 --preset-count ym2612=18 --preset-count opl3=16 --preset-count spc700=15 --preset-count pokey=15 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=15 --preset-count ym2151=16 --preset-count ym2413=17 --preset-count scc=16
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1091,7 +1094,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_ym2413_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_ym2151_descriptor_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip ym2151 --source-lanes ym2151=8/8 --implemented ym2151=1 --verification-badge "ym2151=Verified partial" --verification-cycle ym2151=0 --verification-hardware ym2151=0 --param-kind ym2151:waveShape=chipRegister --param-surface ym2151:waveShape=menu --param-choices ym2151:waveShape=9 --param-midi-cc ym2151:waveShape=89 --param-kind ym2151:dmgStereoRoute=chipRegister --param-surface ym2151:dmgStereoRoute=segmentedChoice --param-choices ym2151:dmgStereoRoute=5 --param-midi-cc ym2151:dmgStereoRoute=94 --param-kind ym2151:snNoiseMode=chipRegister --param-surface ym2151:snNoiseMode=segmentedChoice --param-choices ym2151:snNoiseMode=5 --param-midi-cc ym2151:snNoiseMode=91 --param-kind ym2151:macroControl1=chipRegister --param-surface ym2151:macroControl1=slider --param-midi-cc ym2151:macroControl1=76 --param-kind ym2151:macroControl2=chipRegister --param-surface ym2151:macroControl2=slider --param-midi-cc ym2151:macroControl2=77 --param-kind ym2151:macroControl3=chipRegister --param-surface ym2151:macroControl3=slider --param-midi-cc ym2151:macroControl3=78 --param-kind ym2151:macroControl4=chipRegister --param-surface ym2151:macroControl4=slider --param-midi-cc ym2151:macroControl4=79 --param-midi-cc ym2151:source7Enabled=60 --param-midi-cc ym2151:source8Enabled=61 --param-midi-cc ym2151:source7Level=62 --param-midi-cc ym2151:source8Level=63 --macro-label "ym2151:Lead=OPM Metallic Lead" --macro-label "ym2151:Drum=OPM Noise Perc" --macro-source ym2151:Drum=0011 --preset opm-arcade-bass --preset opm-metallic-lead --preset opm-arcade-arp --preset opm-hollow-pad --preset opm-noise-zap
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip ym2151 --source-lanes ym2151=8/8 --implemented ym2151=1 --verification-badge "ym2151=Verified partial" --verification-cycle ym2151=0 --verification-hardware ym2151=0 --param-kind ym2151:waveShape=chipRegister --param-surface ym2151:waveShape=menu --param-choices ym2151:waveShape=9 --param-midi-cc ym2151:waveShape=89 --param-kind ym2151:dmgStereoRoute=chipRegister --param-surface ym2151:dmgStereoRoute=segmentedChoice --param-choices ym2151:dmgStereoRoute=5 --param-midi-cc ym2151:dmgStereoRoute=94 --param-kind ym2151:snNoiseMode=chipRegister --param-surface ym2151:snNoiseMode=segmentedChoice --param-choices ym2151:snNoiseMode=5 --param-midi-cc ym2151:snNoiseMode=91 --param-kind ym2151:macroControl1=chipRegister --param-surface ym2151:macroControl1=slider --param-midi-cc ym2151:macroControl1=76 --param-kind ym2151:macroControl2=chipRegister --param-surface ym2151:macroControl2=slider --param-midi-cc ym2151:macroControl2=77 --param-kind ym2151:macroControl3=chipRegister --param-surface ym2151:macroControl3=slider --param-midi-cc ym2151:macroControl3=78 --param-kind ym2151:macroControl4=chipRegister --param-surface ym2151:macroControl4=slider --param-midi-cc ym2151:macroControl4=79 --param-midi-cc ym2151:source7Enabled=60 --param-midi-cc ym2151:source8Enabled=61 --param-midi-cc ym2151:source7Level=62 --param-midi-cc ym2151:source8Level=63 --macro-label "ym2151:Lead=OPM Metallic Lead" --macro-label "ym2151:Drum=OPM Noise Perc" --macro-source ym2151:Drum=0011 --preset opm-arcade-bass --preset opm-metallic-lead --preset opm-arcade-arp --preset opm-hollow-pad --preset opm-noise-zap --preset opm-noise-envelope-hit
     )
     set_tests_properties(chipper_render_list_ym2151_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1852,6 +1855,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-noise-high-smoke.json --implemented-contains ymfm --macro Drum --min-peak 0.01 --core-min noiseRegister=159 --core-max noiseRegister=159 --core-min noiseEnabled=1 --core-max noiseEnabled=1 --core-min noiseFrequency=31 --core-max noiseFrequency=31 --descriptor-param-label "snNoiseMode=OPM Noise" --descriptor-param-choices snNoiseMode=5
     )
     set_tests_properties(chipper_render_ym2151_noise_high_assert PROPERTIES DEPENDS chipper_render_ym2151_noise_high_smoke)
+
+    add_test(NAME chipper_render_preset_opm_noise_envelope_hit_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opm-noise-envelope-hit.json --implemented-contains ymfm --preset opm-noise-envelope-hit --macro Drum --play-mode "Big Mono" --output-db -11.5 --min-peak 0.01 --register-writes 0 --note-events 0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled7=1 --core-max sourceEnabled7=1 --core-min algorithm0=2 --core-max algorithm0=2 --core-min feedback0=5 --core-max feedback0=5 --core-min algorithmFeedbackRegister0=234 --core-max algorithmFeedbackRegister0=234 --core-min noiseRegister=159 --core-max noiseRegister=159 --core-min noiseEnabled=1 --core-max noiseEnabled=1 --core-min noiseFrequency=31 --core-max noiseFrequency=31 --core-min envelopeShape=4 --core-max envelopeShape=4 --core-min attackRate0=31 --core-max attackRate0=31 --core-min decayRate0=24 --core-max decayRate0=24 --core-min sustainRate0=14 --core-max sustainRate0=14 --core-min sustainRelease0=63 --core-max sustainRelease0=63 --core-min fmOperatorLevel0=0.68 --core-max fmOperatorLevel0=0.68 --core-min fmOperatorLevel1=0.5 --core-max fmOperatorLevel1=0.5 --core-min fmOperatorLevel2=0.82 --core-max fmOperatorLevel2=0.82 --core-min fmOperatorLevel3=0.92 --core-max fmOperatorLevel3=0.92 --core-min operatorTotalLevel0=11 --core-max operatorTotalLevel0=11 --core-min operatorTotalLevel1=20 --core-max operatorTotalLevel1=20 --core-min operatorTotalLevel2=5 --core-max operatorTotalLevel2=5 --core-min operatorTotalLevel3=4 --core-max operatorTotalLevel3=4
+    )
+    set_tests_properties(chipper_render_preset_opm_noise_envelope_hit_assert PROPERTIES DEPENDS chipper_render_preset_opm_noise_envelope_hit_smoke)
 
     add_test(NAME chipper_render_preset_opm_arcade_bass_held_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opm-arcade-bass-held.json --implemented-contains ymfm --preset opm-arcade-bass --macro Bass --min-peak 0.01 --min-tail-rms 0.03 --core-min fmOperatorLevel0=0.56 --core-max fmOperatorLevel0=0.56 --core-min fmOperatorLevel1=0.66 --core-max fmOperatorLevel1=0.66 --core-min fmOperatorLevel2=0.46 --core-max fmOperatorLevel2=0.46 --core-min fmOperatorLevel3=0.62 --core-max fmOperatorLevel3=0.62 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535

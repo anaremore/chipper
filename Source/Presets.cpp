@@ -1735,6 +1735,30 @@ const std::vector<PresetInfo>& presetCatalog()
             -11.5f,
             3579545.0
         },
+        withSourceLevels(
+            {
+                "opm-noise-envelope-hit",
+                "YM2151 / OPM",
+                "OPM Noise Envelope Hit",
+                "Short arcade percussion hit combining native YM2151 channel-8 noise with a tight operator envelope.",
+                ChipMode::ym2151,
+                AccuracyMode::hybrid,
+                MacroKind::drum,
+                PlayMode::stack,
+                { 0.24f, 0.76f, 0.92f, 0.82f },
+                { false, false, true, true },
+                0.84f,
+                3,
+                4,
+                4,
+                -11.5f,
+                3579545.0,
+                0.16f
+            },
+            0.0f,
+            0.0f,
+            0.78f,
+            0.90f),
         {
             "opll-ui-chime",
             "YM2413 / OPLL",
@@ -5312,6 +5336,8 @@ std::array<float, 4> fmOperatorLevelsForPreset(const PresetInfo& preset)
             return { 0.38f, 0.70f, 0.42f, 0.68f };
         if (preset.id == "opm-noise-zap")
             return { 0.60f, 0.44f, 0.76f, 0.86f };
+        if (preset.id == "opm-noise-envelope-hit")
+            return { 0.68f, 0.50f, 0.82f, 0.92f };
         if (preset.id == "opm-bell-mallet")
             return { 0.44f, 0.82f, 0.48f, 0.78f };
         if (preset.id == "opm-fm-drum-kit")
