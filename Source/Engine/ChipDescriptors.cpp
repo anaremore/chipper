@@ -3521,7 +3521,7 @@ std::array<ModuleDescriptor, 6> ym2608Modules()
         makeModule("tone", "Operators", "Musical controls write native OPNA algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPNA attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
         makeModule("motion", "Motion", "PC-98-style YM2608 preset recipes map to register-backed FM and SSG patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
-        makeModule("output", "Output", "ymfm OPNA stereo FM output is mixed with the embedded mono SSG tone/noise/envelope bus.", { "Stereo FM core", "Mono SSG bus", "Rhythm/ADPCM planned", "Verified partial" })
+        makeModule("output", "Output", "ymfm OPNA stereo FM output is mixed with the embedded mono SSG tone/noise/envelope bus and ADPCM-A rhythm overlay.", { "Stereo FM core", "Mono SSG bus", "Generated/user rhythm ROM", "Verified partial" })
     };
 }
 
@@ -4308,11 +4308,11 @@ const std::vector<ChipDescriptor>& descriptors()
                     "BSD-3-Clause ymfm is vendored and linked as the YM2608/OPNA synthesis core.",
                     "Renderer notes and preset recipes write OPNA algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, key-on, and pan registers across all six FM channels.",
                     "Embedded YM2608 SSG tone period, noise period, mixer, amplitude, and envelope registers are written for SSG A-C and mixed from the ymfm OPNA SSG output bus.",
-                    "Drum and Hit macros write native OPNA ADPCM-A rhythm key, total-level, pan, and instrument-level registers using deterministic original Chipper-generated percussion bytes.",
+                    "Drum and Hit macros write native OPNA ADPCM-A rhythm key, total-level, pan, and instrument-level registers using deterministic original Chipper-generated percussion bytes by default, with renderer support for user-owned rhythm ROM bytes.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the nine-lane FM plus SSG adapter."
                 },
                 {
-                    "ADPCM-B/user ADPCM sample import, original PC-98 rhythm ROM loading, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
+                    "ADPCM-B/user ADPCM sample import, polished plugin UI for user-owned rhythm ROM loading, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
                     "Prescaler controls, timers, CSM, LFO/AMS/PMS, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
                 })
         },

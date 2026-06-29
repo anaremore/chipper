@@ -173,6 +173,17 @@ std::array<uint8_t, opnaAdpcmARomSize> makeGeneratedOpnaAdpcmARom()
     return rom;
 }
 
+uint32_t checksumOpnaAdpcmARom(const std::array<uint8_t, opnaAdpcmARomSize>& rom)
+{
+    auto hash = 2166136261u;
+    for (const auto byte : rom)
+    {
+        hash ^= byte;
+        hash *= 16777619u;
+    }
+    return hash;
+}
+
 enum class NesPulseDuty : uint8_t
 {
     duty12_5 = 0,
@@ -11597,6 +11608,12 @@ public:
         applyPatchToAllChannels(true);
     }
 
+    void setExternalSampleData(std::vector<uint8_t> data) override
+    {
+        host.setAdpcmARom(std::move(data));
+        host.resetAdpcmCounters();
+    }
+
     void writeRegister(uint16_t address, uint8_t value) override
     {
         writeYmRegister(address & 0x1ffu, value);
@@ -11737,7 +11754,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPNA FM+SSG register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2608/OPNA synthesis core. Chipper currently maps musical controls and notes to six OPNA FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2608 low/high address-data ports. Drum and Hit macros also write native OPNA ADPCM-A rhythm key, total-level, pan, and instrument-level registers, using original Chipper-generated in-memory percussion bytes instead of the copyrighted PC-98 rhythm ROM. ADPCM-B/user ADPCM sample import, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2608/OPNA synthesis core. Chipper currently maps musical controls and notes to six OPNA FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2608 low/high address-data ports. Drum and Hit macros also write native OPNA ADPCM-A rhythm key, total-level, pan, and instrument-level registers, using original Chipper-generated in-memory percussion bytes by default with an optional user-owned ADPCM-A rhythm ROM override. ADPCM-B/user ADPCM sample import, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -11777,8 +11794,13 @@ public:
              << "\"opnaRhythmHatLevel\":" << static_cast<int>(currentOpnaRhythmLevels[3]) << ","
              << "\"opnaRhythmTomLevel\":" << static_cast<int>(currentOpnaRhythmLevels[4]) << ","
              << "\"opnaRhythmRimLevel\":" << static_cast<int>(currentOpnaRhythmLevels[5]) << ","
-             << "\"opnaAdpcmAGeneratedRom\":1,"
+             << "\"opnaAdpcmARomSource\":" << (host.usingUserAdpcmARom() ? 1 : 0) << ","
+             << "\"opnaAdpcmAGeneratedRom\":" << (host.usingUserAdpcmARom() ? 0 : 1) << ","
+             << "\"opnaAdpcmAUserRomLoaded\":" << (host.usingUserAdpcmARom() ? 1 : 0) << ","
              << "\"opnaAdpcmARomBytes\":" << opnaAdpcmARomSize << ","
+             << "\"opnaAdpcmARomProvidedBytes\":" << host.adpcmAProvidedBytes() << ","
+             << "\"opnaAdpcmARomCopiedBytes\":" << host.adpcmACopiedBytes() << ","
+             << "\"opnaAdpcmARomChecksum\":" << host.adpcmARomChecksum() << ","
              << "\"opnaAdpcmAReadCount\":" << host.adpcmAReads() << ","
              << "\"opnaAdpcmALastReadAddress\":" << host.lastAdpcmAReadAddress() << ","
              << "\"opnaAdpcmBReadCount\":" << host.adpcmBReads() << ","
@@ -11917,6 +11939,24 @@ private:
         {
         }
 
+        void setAdpcmARom(std::vector<uint8_t> data)
+        {
+            if (data.empty())
+            {
+                adpcmARom = makeGeneratedOpnaAdpcmARom();
+                userAdpcmARom = false;
+                providedAdpcmABytes = 0;
+                copiedAdpcmABytes = 0;
+                return;
+            }
+
+            adpcmARom.fill(0);
+            providedAdpcmABytes = data.size();
+            copiedAdpcmABytes = std::min(data.size(), adpcmARom.size());
+            std::copy_n(data.begin(), copiedAdpcmABytes, adpcmARom.begin());
+            userAdpcmARom = true;
+        }
+
         uint8_t ymfm_external_read(ymfm::access_class type, uint32_t address) override
         {
             if (type == ymfm::ACCESS_ADPCM_A)
@@ -11946,9 +11986,16 @@ private:
         uint64_t adpcmBReads() const { return adpcmBReadCount; }
         uint32_t lastAdpcmAReadAddress() const { return lastAdpcmAAddress; }
         uint32_t lastAdpcmBReadAddress() const { return lastAdpcmBAddress; }
+        bool usingUserAdpcmARom() const { return userAdpcmARom; }
+        size_t adpcmAProvidedBytes() const { return providedAdpcmABytes; }
+        size_t adpcmACopiedBytes() const { return copiedAdpcmABytes; }
+        uint32_t adpcmARomChecksum() const { return checksumOpnaAdpcmARom(adpcmARom); }
 
     private:
         std::array<uint8_t, opnaAdpcmARomSize> adpcmARom {};
+        bool userAdpcmARom = false;
+        size_t providedAdpcmABytes = 0;
+        size_t copiedAdpcmABytes = 0;
         uint64_t adpcmAReadCount = 0;
         uint64_t adpcmBReadCount = 0;
         uint32_t lastAdpcmAAddress = 0;

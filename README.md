@@ -100,7 +100,7 @@ Implemented depth varies by chip. See [docs/emulation-accuracy.md](docs/emulatio
 | ZX Spectrum Beeper | Partial clean-room one-bit ULA port FE beeper model with one source lane, EAR/MIC output-bit behavior, border-bit metadata, MIC-click SFX, and original ZX beeper presets |
 | YM2612 / Genesis FM | Verified-partial BSD-3-Clause `ymfm` OPN2 adapter with partial channel-6 DAC drum playback |
 | YM2203 / OPN | Verified-partial BSD-3-Clause `ymfm` OPN adapter with three FM lanes plus three embedded SSG tone/noise/envelope lanes |
-| YM2608 / OPNA | Verified-partial BSD-3-Clause `ymfm` OPNA adapter with six FM lanes, three embedded SSG tone/noise/envelope lanes, and generated ADPCM-A rhythm overlay for Drum/Hit macros; ADPCM-B/user samples are planned |
+| YM2608 / OPNA | Verified-partial BSD-3-Clause `ymfm` OPNA adapter with six FM lanes, three embedded SSG tone/noise/envelope lanes, and generated ADPCM-A rhythm overlay for Drum/Hit macros with renderer support for user-owned rhythm ROM bytes; ADPCM-B/user samples are planned |
 | YM2610 / OPNB | Verified-partial BSD-3-Clause `ymfm` OPNB adapter with four FM lanes plus three embedded SSG tone/noise/envelope lanes; external ADPCM-A/B and OPNB2 are planned |
 | OPL2 / OPL3 | Verified-partial BSD-3-Clause `ymfm` YMF262/OPL3 adapter with a nine-lane OPL2-compatible surface; full 18-channel/four-op editing planned |
 | SNES SPC700-style | Partial clean-room eight-voice BRR/WAV/AIFF sample-player model with note maps, loop handling, Gaussian-style interpolation, PMON-style pitch modulation, noise, and musical echo helper |

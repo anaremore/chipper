@@ -7753,7 +7753,7 @@ const std::vector<PresetQualityTarget>& presetQualityTargets()
         { ChipMode::ym2413, roles, { "fm", "operator", "rhythm", "envelope", "alarm" }, "Furnace-informed OPLL coverage: ROM instrument bass/leads/keys, rhythm slots, and compact SFX." },
         { ChipMode::scc, roles, { "wavetable", "wave", "noise", "echo", "chord" }, "Furnace-informed SCC coverage: five-lane wavetable basses, leads, keys, arps, drums, and arcade SFX." },
         { ChipMode::ym2203, roles, { "fm", "ssg", "operator", "feedback", "envelope", "bell" }, "Furnace-informed OPN coverage: YM2203 FM plus embedded SSG basses, leads, keys, arps, percussion, and SFX." },
-        { ChipMode::ym2608, roles, { "fm", "opna", "ssg", "operator", "feedback", "envelope", "rhythm", "adpcm", "chord" }, "Furnace-informed OPNA coverage: YM2608 six-FM PC-98 basses/leads/keys/arps plus embedded SSG percussion, generated ADPCM-A rhythm overlay, and SFX; ADPCM-B/user samples remain planned." },
+        { ChipMode::ym2608, roles, { "fm", "opna", "ssg", "operator", "feedback", "envelope", "rhythm", "adpcm", "chord" }, "Furnace-informed OPNA coverage: YM2608 six-FM PC-98 basses/leads/keys/arps plus embedded SSG percussion, generated/default-or-user ADPCM-A rhythm overlay, and SFX; ADPCM-B/user samples remain planned." },
         { ChipMode::ym2610, roles, { "fm", "opnb", "ssg", "operator", "feedback", "envelope", "neo" }, "Furnace-informed OPNB coverage: YM2610 four-FM Neo Geo-style basses/leads/keys/arps plus embedded SSG percussion and SFX; ADPCM remains planned." }
     };
 
