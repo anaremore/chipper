@@ -4297,6 +4297,26 @@ const std::vector<PresetInfo>& presetCatalog()
             4
         }, 3),
         withDmgWaveLevel({
+            "dmg-stereo-sweep-bass",
+            "DMG Pulse",
+            "DMG Stereo Sweep Bass",
+            "Split-stereo pulse bass with a fast sweep bite and quiet Wave RAM body.",
+            ChipMode::dmg,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::stack,
+            { 0.46f, 0.78f, 0.10f, 0.74f },
+            { true, true, true, false },
+            0.10f,
+            2,
+            0,
+            0,
+            -9.0f,
+            4194304.0,
+            0.0f,
+            4
+        }, 2),
+        withDmgWaveLevel({
             "dmg-duty-noise-pop",
             "DMG Drums",
             "DMG Duty Noise Pop",
