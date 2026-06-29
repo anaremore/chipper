@@ -4986,6 +4986,29 @@ const std::vector<PresetInfo>& presetCatalog()
             -10.0f,
             7670454.0
         },
+        withSourceLevels(
+            {
+                "opn2-dac-chord-hit",
+                "YM2612 / OPN2",
+                "OPN2 DAC Chord Hit",
+                "Short Genesis FM chord stab with a channel-6 DAC hit layered under parallel-carrier operators.",
+                ChipMode::ym2612,
+                AccuracyMode::hybrid,
+                MacroKind::drum,
+                PlayMode::stack,
+                { 0.42f, 0.62f, 0.72f, 0.88f },
+                { true, true, true, true },
+                0.42f,
+                8,
+                4,
+                2,
+                -11.0f,
+                7670454.0
+            },
+            0.72f,
+            0.64f,
+            0.58f,
+            0.52f),
         {
             "opn2-dac-snare",
             "YM2612 / OPN2",
@@ -5328,6 +5351,8 @@ std::array<float, 4> fmOperatorLevelsForPreset(const PresetInfo& preset)
             return { 0.38f, 0.84f, 0.46f, 0.78f };
         if (preset.id == "opn2-chord-pad")
             return { 0.34f, 0.66f, 0.38f, 0.64f };
+        if (preset.id == "opn2-dac-chord-hit")
+            return { 0.42f, 0.54f, 0.46f, 0.72f };
         if (preset.id == "opn2-dac-snare")
             return { 0.62f, 0.44f, 0.56f, 0.92f };
     }
