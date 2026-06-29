@@ -10863,7 +10863,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPN FM register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2203/OPN synthesis core. Chipper currently maps musical controls and notes to the three FM channels plus the embedded three-channel SSG: operator, algorithm, feedback, f-number/block, FM key-on, SSG tone period, mixer, and amplitude registers are driven through the YM2203 address/data port. SSG noise/envelope UI, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2203/OPN synthesis core. Chipper currently maps musical controls and notes to the three FM channels plus the embedded three-channel SSG: operator, algorithm, feedback, f-number/block, FM key-on, SSG tone/noise period, mixer, amplitude, and SSG envelope registers are driven through the YM2203 address/data port. Timers, prescaler controls, CSM, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -10939,6 +10939,20 @@ public:
              << "\"keyOnMask\":" << static_cast<int>(keyOnMask) << ","
              << "\"ssgGateMask\":" << static_cast<int>(ssgGateMask) << ","
              << "\"ssgMixer\":" << static_cast<int>(regs[7]) << ","
+             << "\"ssgNoisePeriod\":" << static_cast<int>(regs[6] & 0x1fu) << ","
+             << "\"ssgEnvelopeChoice\":" << opnSsgEnvelopeChoiceForPatch(patch) << ","
+             << "\"ssgEnvelopeEnabled\":" << (opnSsgEnvelopeEnabledForPatch(patch) ? 1 : 0) << ","
+             << "\"ssgEnvelopePeriod\":" << static_cast<int>(regs[11] | (regs[12] << 8u)) << ","
+             << "\"ssgEnvelopeShape\":" << static_cast<int>(regs[13] & 0x0fu) << ","
+             << "\"ssgChannelMixChoiceA\":" << ym2149ChannelMixChoiceForPatch(patch, 0) << ","
+             << "\"ssgChannelMixChoiceB\":" << ym2149ChannelMixChoiceForPatch(patch, 1) << ","
+             << "\"ssgChannelMixChoiceC\":" << ym2149ChannelMixChoiceForPatch(patch, 2) << ","
+             << "\"ssgToneEnabledA\":" << (((regs[7] & 0x01u) == 0) ? 1 : 0) << ","
+             << "\"ssgToneEnabledB\":" << (((regs[7] & 0x02u) == 0) ? 1 : 0) << ","
+             << "\"ssgToneEnabledC\":" << (((regs[7] & 0x04u) == 0) ? 1 : 0) << ","
+             << "\"ssgNoiseEnabledA\":" << (((regs[7] & 0x08u) == 0) ? 1 : 0) << ","
+             << "\"ssgNoiseEnabledB\":" << (((regs[7] & 0x10u) == 0) ? 1 : 0) << ","
+             << "\"ssgNoiseEnabledC\":" << (((regs[7] & 0x20u) == 0) ? 1 : 0) << ","
              << "\"ssgTonePeriodA\":" << ssgPeriodRegister(0) << ","
              << "\"ssgTonePeriodB\":" << ssgPeriodRegister(1) << ","
              << "\"ssgTonePeriodC\":" << ssgPeriodRegister(2) << ","
@@ -11107,6 +11121,7 @@ private:
     {
         for (size_t channel = 0; channel < fmChannelCount; ++channel)
             applyChannelPatch(channel, channelVelocity[channel] > 0.0f ? channelVelocity[channel] : 1.0f);
+        writeSsgSharedRegisters();
         updateSsgMixer();
 
         if (! preserveKeys)
@@ -11299,19 +11314,28 @@ private:
 
         const auto clipped = static_cast<uint8_t>(std::min<uint8_t>(volume, 15u));
         currentSsgVolume[ssgChannel] = clipped;
-        writeYmRegister(static_cast<uint8_t>(0x08u + ssgChannel), clipped);
+        writeYmRegister(static_cast<uint8_t>(0x08u + ssgChannel),
+                        static_cast<uint8_t>(opnSsgEnvelopeEnabledForPatch(patch) && clipped > 0 ? 0x10u : clipped));
+    }
+
+    void writeSsgSharedRegisters()
+    {
+        const auto envelopePeriod = ym2149EnvelopePeriodForControl(patch.envelopeDecay);
+        writeYmRegister(0x06, opnSsgNoisePeriodForPatch(patch));
+        writeYmRegister(0x0b, static_cast<uint8_t>(envelopePeriod & 0xffu));
+        writeYmRegister(0x0c, static_cast<uint8_t>((envelopePeriod >> 8u) & 0xffu));
+        writeYmRegister(0x0d, opnSsgEnvelopeShapeCodeForPatch(patch));
     }
 
     void updateSsgMixer()
     {
-        auto mixer = static_cast<uint8_t>(regs[7] & 0xc0u);
+        auto mixer = static_cast<uint8_t>((regs[7] & 0xc0u) | (opnSsgMixerRegisterForPatch(patch) & 0x3fu));
         for (size_t ssg = 0; ssg < ssgChannelCount; ++ssg)
         {
             const auto source = ssgLaneOffset + ssg;
             const auto active = channelEnabled(source) && (ssgGateMask & (1u << source)) != 0;
             if (! active)
-                mixer = static_cast<uint8_t>(mixer | (1u << ssg));
-            mixer = static_cast<uint8_t>(mixer | (1u << (ssg + 3u)));
+                mixer = static_cast<uint8_t>(mixer | (1u << ssg) | (1u << (ssg + 3u)));
         }
         writeYmRegister(0x07, mixer);
     }
@@ -11324,6 +11348,7 @@ private:
         const auto ssg = channel - ssgLaneOffset;
         channelNotes[channel] = std::clamp(midiNote, 0, 127);
         channelVelocity[channel] = static_cast<float>(clamp01(velocity));
+        writeSsgSharedRegisters();
         writeSsgTone(ssg, midiNote);
 
         if (shouldEnable)
@@ -11591,7 +11616,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPNA FM+SSG register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2608/OPNA synthesis core. Chipper currently maps musical controls and notes to six OPNA FM channels plus the embedded three-channel SSG tone generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone period, mixer, and amplitude registers are driven through the YM2608 low/high address-data ports. OPNA rhythm, ADPCM-A, ADPCM-B, SSG noise/envelope UI, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2608/OPNA synthesis core. Chipper currently maps musical controls and notes to six OPNA FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2608 low/high address-data ports. OPNA rhythm, ADPCM-A, ADPCM-B, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -11691,6 +11716,20 @@ public:
              << "\"keyOnMask\":" << static_cast<int>(keyOnMask) << ","
              << "\"ssgGateMask\":" << static_cast<int>(ssgGateMask) << ","
              << "\"ssgMixer\":" << static_cast<int>(regs[7]) << ","
+             << "\"ssgNoisePeriod\":" << static_cast<int>(regs[6] & 0x1fu) << ","
+             << "\"ssgEnvelopeChoice\":" << opnSsgEnvelopeChoiceForPatch(patch) << ","
+             << "\"ssgEnvelopeEnabled\":" << (opnSsgEnvelopeEnabledForPatch(patch) ? 1 : 0) << ","
+             << "\"ssgEnvelopePeriod\":" << static_cast<int>(regs[11] | (regs[12] << 8u)) << ","
+             << "\"ssgEnvelopeShape\":" << static_cast<int>(regs[13] & 0x0fu) << ","
+             << "\"ssgChannelMixChoiceA\":" << ym2149ChannelMixChoiceForPatch(patch, 0) << ","
+             << "\"ssgChannelMixChoiceB\":" << ym2149ChannelMixChoiceForPatch(patch, 1) << ","
+             << "\"ssgChannelMixChoiceC\":" << ym2149ChannelMixChoiceForPatch(patch, 2) << ","
+             << "\"ssgToneEnabledA\":" << (((regs[7] & 0x01u) == 0) ? 1 : 0) << ","
+             << "\"ssgToneEnabledB\":" << (((regs[7] & 0x02u) == 0) ? 1 : 0) << ","
+             << "\"ssgToneEnabledC\":" << (((regs[7] & 0x04u) == 0) ? 1 : 0) << ","
+             << "\"ssgNoiseEnabledA\":" << (((regs[7] & 0x08u) == 0) ? 1 : 0) << ","
+             << "\"ssgNoiseEnabledB\":" << (((regs[7] & 0x10u) == 0) ? 1 : 0) << ","
+             << "\"ssgNoiseEnabledC\":" << (((regs[7] & 0x20u) == 0) ? 1 : 0) << ","
              << "\"ssgTonePeriodA\":" << ssgPeriodRegister(0) << ","
              << "\"ssgTonePeriodB\":" << ssgPeriodRegister(1) << ","
              << "\"ssgTonePeriodC\":" << ssgPeriodRegister(2) << ","
@@ -11884,6 +11923,7 @@ private:
     {
         for (size_t channel = 0; channel < fmChannelCount; ++channel)
             applyChannelPatch(channel, channelVelocity[channel] > 0.0f ? channelVelocity[channel] : 1.0f);
+        writeSsgSharedRegisters();
         updateSsgMixer();
 
         if (! preserveKeys)
@@ -12076,19 +12116,28 @@ private:
 
         const auto clipped = static_cast<uint8_t>(std::min<uint8_t>(volume, 15u));
         currentSsgVolume[ssgChannel] = clipped;
-        writeYmRegister(static_cast<uint8_t>(0x08u + ssgChannel), clipped);
+        writeYmRegister(static_cast<uint8_t>(0x08u + ssgChannel),
+                        static_cast<uint8_t>(opnSsgEnvelopeEnabledForPatch(patch) && clipped > 0 ? 0x10u : clipped));
+    }
+
+    void writeSsgSharedRegisters()
+    {
+        const auto envelopePeriod = ym2149EnvelopePeriodForControl(patch.envelopeDecay);
+        writeYmRegister(0x06, opnSsgNoisePeriodForPatch(patch));
+        writeYmRegister(0x0b, static_cast<uint8_t>(envelopePeriod & 0xffu));
+        writeYmRegister(0x0c, static_cast<uint8_t>((envelopePeriod >> 8u) & 0xffu));
+        writeYmRegister(0x0d, opnSsgEnvelopeShapeCodeForPatch(patch));
     }
 
     void updateSsgMixer()
     {
-        auto mixer = static_cast<uint8_t>(regs[7] & 0xc0u);
+        auto mixer = static_cast<uint8_t>((regs[7] & 0xc0u) | (opnSsgMixerRegisterForPatch(patch) & 0x3fu));
         for (size_t ssg = 0; ssg < ssgChannelCount; ++ssg)
         {
             const auto source = ssgLaneOffset + ssg;
             const auto active = channelEnabled(source) && (ssgGateMask & (1u << source)) != 0;
             if (! active)
-                mixer = static_cast<uint8_t>(mixer | (1u << ssg));
-            mixer = static_cast<uint8_t>(mixer | (1u << (ssg + 3u)));
+                mixer = static_cast<uint8_t>(mixer | (1u << ssg) | (1u << (ssg + 3u)));
         }
         writeYmRegister(0x07, mixer);
     }
@@ -12101,6 +12150,7 @@ private:
         const auto ssg = channel - ssgLaneOffset;
         channelNotes[channel] = std::clamp(midiNote, 0, 127);
         channelVelocity[channel] = static_cast<float>(clamp01(velocity));
+        writeSsgSharedRegisters();
         writeSsgTone(ssg, midiNote);
 
         if (shouldEnable)
@@ -12359,7 +12409,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPNB FM+SSG register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2610/OPNB synthesis core. Chipper currently maps musical controls and notes to the four exposed OPNB FM channels plus the embedded three-channel SSG tone generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone period, mixer, and amplitude registers are driven through the YM2610 low/high address-data ports. YM2610B/OPNB2 six-FM behavior, external ADPCM-A, external ADPCM-B, SSG noise/envelope UI, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2610/OPNB synthesis core. Chipper currently maps musical controls and notes to the four exposed OPNB FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2610 low/high address-data ports. YM2610B/OPNB2 six-FM behavior, external ADPCM-A, external ADPCM-B, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -12399,6 +12449,20 @@ public:
              << "\"keyOnMask\":" << static_cast<int>(keyOnMask) << ","
              << "\"ssgGateMask\":" << static_cast<int>(ssgGateMask) << ","
              << "\"ssgMixer\":" << static_cast<int>(regs[7]) << ","
+             << "\"ssgNoisePeriod\":" << static_cast<int>(regs[6] & 0x1fu) << ","
+             << "\"ssgEnvelopeChoice\":" << opnSsgEnvelopeChoiceForPatch(patch) << ","
+             << "\"ssgEnvelopeEnabled\":" << (opnSsgEnvelopeEnabledForPatch(patch) ? 1 : 0) << ","
+             << "\"ssgEnvelopePeriod\":" << static_cast<int>(regs[11] | (regs[12] << 8u)) << ","
+             << "\"ssgEnvelopeShape\":" << static_cast<int>(regs[13] & 0x0fu) << ","
+             << "\"ssgChannelMixChoiceA\":" << ym2149ChannelMixChoiceForPatch(patch, 0) << ","
+             << "\"ssgChannelMixChoiceB\":" << ym2149ChannelMixChoiceForPatch(patch, 1) << ","
+             << "\"ssgChannelMixChoiceC\":" << ym2149ChannelMixChoiceForPatch(patch, 2) << ","
+             << "\"ssgToneEnabledA\":" << (((regs[7] & 0x01u) == 0) ? 1 : 0) << ","
+             << "\"ssgToneEnabledB\":" << (((regs[7] & 0x02u) == 0) ? 1 : 0) << ","
+             << "\"ssgToneEnabledC\":" << (((regs[7] & 0x04u) == 0) ? 1 : 0) << ","
+             << "\"ssgNoiseEnabledA\":" << (((regs[7] & 0x08u) == 0) ? 1 : 0) << ","
+             << "\"ssgNoiseEnabledB\":" << (((regs[7] & 0x10u) == 0) ? 1 : 0) << ","
+             << "\"ssgNoiseEnabledC\":" << (((regs[7] & 0x20u) == 0) ? 1 : 0) << ","
              << "\"ssgTonePeriodA\":" << ssgPeriodRegister(0) << ","
              << "\"ssgTonePeriodB\":" << ssgPeriodRegister(1) << ","
              << "\"ssgTonePeriodC\":" << ssgPeriodRegister(2) << ","
@@ -12570,6 +12634,7 @@ private:
     {
         for (size_t channel = 0; channel < fmChannelCount; ++channel)
             applyChannelPatch(channel, channelVelocity[channel] > 0.0f ? channelVelocity[channel] : 1.0f);
+        writeSsgSharedRegisters();
         updateSsgMixer();
 
         if (! preserveKeys)
@@ -12763,19 +12828,28 @@ private:
 
         const auto clipped = static_cast<uint8_t>(std::min<uint8_t>(volume, 15u));
         currentSsgVolume[ssgChannel] = clipped;
-        writeYmRegister(static_cast<uint8_t>(0x08u + ssgChannel), clipped);
+        writeYmRegister(static_cast<uint8_t>(0x08u + ssgChannel),
+                        static_cast<uint8_t>(opnSsgEnvelopeEnabledForPatch(patch) && clipped > 0 ? 0x10u : clipped));
+    }
+
+    void writeSsgSharedRegisters()
+    {
+        const auto envelopePeriod = ym2149EnvelopePeriodForControl(patch.envelopeDecay);
+        writeYmRegister(0x06, opnSsgNoisePeriodForPatch(patch));
+        writeYmRegister(0x0b, static_cast<uint8_t>(envelopePeriod & 0xffu));
+        writeYmRegister(0x0c, static_cast<uint8_t>((envelopePeriod >> 8u) & 0xffu));
+        writeYmRegister(0x0d, opnSsgEnvelopeShapeCodeForPatch(patch));
     }
 
     void updateSsgMixer()
     {
-        auto mixer = static_cast<uint8_t>(regs[7] & 0xc0u);
+        auto mixer = static_cast<uint8_t>((regs[7] & 0xc0u) | (opnSsgMixerRegisterForPatch(patch) & 0x3fu));
         for (size_t ssg = 0; ssg < ssgChannelCount; ++ssg)
         {
             const auto source = ssgLaneOffset + ssg;
             const auto active = channelEnabled(source) && (ssgGateMask & (1u << source)) != 0;
             if (! active)
-                mixer = static_cast<uint8_t>(mixer | (1u << ssg));
-            mixer = static_cast<uint8_t>(mixer | (1u << (ssg + 3u)));
+                mixer = static_cast<uint8_t>(mixer | (1u << ssg) | (1u << (ssg + 3u)));
         }
         writeYmRegister(0x07, mixer);
     }
@@ -12788,6 +12862,7 @@ private:
         const auto ssg = channel - ssgLaneOffset;
         channelNotes[channel] = std::clamp(midiNote, 0, 127);
         channelVelocity[channel] = static_cast<float>(clamp01(velocity));
+        writeSsgSharedRegisters();
         writeSsgTone(ssg, midiNote);
 
         if (shouldEnable)

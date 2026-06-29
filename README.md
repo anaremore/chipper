@@ -99,9 +99,9 @@ Implemented depth varies by chip. See [docs/emulation-accuracy.md](docs/emulatio
 | PC Speaker | Partial clean-room one-bit PIT channel 2 beeper model with one speaker source lane, port 0x61 gate/data behavior, direct-click SFX, and original PC Speaker presets |
 | ZX Spectrum Beeper | Partial clean-room one-bit ULA port FE beeper model with one source lane, EAR/MIC output-bit behavior, border-bit metadata, MIC-click SFX, and original ZX beeper presets |
 | YM2612 / Genesis FM | Verified-partial BSD-3-Clause `ymfm` OPN2 adapter with partial channel-6 DAC drum playback |
-| YM2203 / OPN | Verified-partial BSD-3-Clause `ymfm` OPN adapter with three FM lanes plus three embedded SSG tone lanes |
-| YM2608 / OPNA | Verified-partial BSD-3-Clause `ymfm` OPNA adapter with six FM lanes plus three embedded SSG tone lanes; rhythm and ADPCM are planned |
-| YM2610 / OPNB | Verified-partial BSD-3-Clause `ymfm` OPNB adapter with four FM lanes plus three embedded SSG tone lanes; external ADPCM-A/B and OPNB2 are planned |
+| YM2203 / OPN | Verified-partial BSD-3-Clause `ymfm` OPN adapter with three FM lanes plus three embedded SSG tone/noise/envelope lanes |
+| YM2608 / OPNA | Verified-partial BSD-3-Clause `ymfm` OPNA adapter with six FM lanes plus three embedded SSG tone/noise/envelope lanes; rhythm and ADPCM are planned |
+| YM2610 / OPNB | Verified-partial BSD-3-Clause `ymfm` OPNB adapter with four FM lanes plus three embedded SSG tone/noise/envelope lanes; external ADPCM-A/B and OPNB2 are planned |
 | OPL2 / OPL3 | Verified-partial BSD-3-Clause `ymfm` YMF262/OPL3 adapter with a nine-lane OPL2-compatible surface; full 18-channel/four-op editing planned |
 | SNES SPC700-style | Partial clean-room eight-voice BRR/WAV/AIFF sample-player model with note maps, loop handling, Gaussian-style interpolation, PMON-style pitch modulation, noise, and musical echo helper |
 | Atari POKEY | Partial clean-room polynomial/timer model |

@@ -56,7 +56,7 @@ int main()
     std::set<std::string> hostParameterIds;
 
     auto ok = true;
-    ok &= expect(chipModes.size() == 24, "Chip Mode dropdown should only expose the 24 named chip targets");
+    ok &= expect(chipModes.size() == 26, "Chip Mode dropdown should only expose the 26 named chip targets");
     for (const auto& chipMode : chipModes)
     {
         ok &= expect(chipMode != "Arcade Hybrid", "Generic Arcade Hybrid chip mode should not be exposed");

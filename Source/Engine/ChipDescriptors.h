@@ -334,6 +334,11 @@ uint8_t ym2149MixerRegisterWithChannelOverrides(const PatchConfig& patch, uint8_
 int ym2149ChannelMixChoiceForPatch(const PatchConfig& patch, size_t channel);
 uint8_t ym2149EnvelopeShapeCodeForChoice(int shapeChoice);
 uint16_t ym2149EnvelopePeriodForControl(float envelopeControl);
+uint8_t opnSsgNoisePeriodForPatch(const PatchConfig& patch);
+uint8_t opnSsgMixerRegisterForPatch(const PatchConfig& patch);
+int opnSsgEnvelopeChoiceForPatch(const PatchConfig& patch);
+bool opnSsgEnvelopeEnabledForPatch(const PatchConfig& patch);
+uint8_t opnSsgEnvelopeShapeCodeForPatch(const PatchConfig& patch);
 uint8_t sn76489NoiseAttenuationForControl(float noiseLevelControl);
 uint8_t sn76489NoiseControlForPatch(const PatchConfig& patch);
 uint8_t spc700NoiseModeForPatch(const PatchConfig& patch);

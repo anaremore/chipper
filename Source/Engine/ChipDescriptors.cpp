@@ -894,6 +894,58 @@ ChipParameterSpec ymChannelMixSpec(ChipParameterRole role, std::string id, std::
              0.0f };
 }
 
+std::vector<ParameterChoiceSpec> opnSsgChannelMixChoices(std::string channelName)
+{
+    return {
+        choice("Follow", "Follow the OPN-family SSG preset mixer for channel " + channelName + ".", 0.0f, 0),
+        choice("Tone", "Enable the embedded SSG square tone and disable shared noise for channel " + channelName + ".", 0.25f, 1),
+        choice("Noise", "Disable square tone and enable the embedded shared SSG noise generator for channel " + channelName + ".", 0.5f, 2),
+        choice("Both", "Enable SSG square tone and shared noise together for channel " + channelName + ".", 0.75f, 3),
+        choice("Off", "Disable both SSG tone and shared noise for channel " + channelName + ".", 1.0f, 4)
+    };
+}
+
+ChipParameterSpec opnSsgChannelMixSpec(ChipParameterRole role, std::string id, std::string label, std::string chipName, std::string channelName)
+{
+    return { role,
+             id,
+             label,
+             "SSG Mixer",
+             "Overrides " + chipName + " SSG register 7 tone/noise enable bits for channel " + channelName + ". Follow uses the selected OPN-family preset mixer.",
+             ParameterKind::chipRegister,
+             ControlSurface::menu,
+             opnSsgChannelMixChoices(channelName),
+             0.0f,
+             1.0f,
+             0.0f };
+}
+
+std::vector<ParameterChoiceSpec> opnSsgEnvelopeChoices(std::string chipName)
+{
+    return {
+        choice("Preset", "Resolve the embedded " + chipName + " SSG envelope shape from the selected preset recipe.", 0.0f, 0),
+        choice("Fall", "Use SSG envelope shape 0x09: fall then hold low.", 0.25f, 1),
+        choice("Rise", "Use SSG envelope shape 0x0D: rise then hold high.", 0.5f, 2),
+        choice("Saw", "Use SSG envelope shape 0x08: repeating saw down.", 0.75f, 3),
+        choice("Tri", "Use SSG envelope shape 0x0E: repeating triangle.", 1.0f, 4)
+    };
+}
+
+ChipParameterSpec opnSsgEnvelopeSpec(std::string id, std::string chipName)
+{
+    return { ChipParameterRole::snNoiseMode,
+             std::move(id),
+             "SSG Envelope",
+             "SSG Envelope",
+             "Controls the embedded " + chipName + " SSG envelope shape. Preset keeps most melodic patches fixed-volume and enables hardware envelope gestures for SSG-forward recipes.",
+             ParameterKind::chipRegister,
+             ControlSurface::segmentedChoice,
+             opnSsgEnvelopeChoices(chipName),
+             0.0f,
+             1.0f,
+             0.0f };
+}
+
 std::vector<ParameterChoiceSpec> pulseDutyChoices(std::string thinHelp, std::string narrowHelp, std::string squareHelp, std::string wideHelp)
 {
     return {
@@ -1252,15 +1304,18 @@ std::vector<ChipParameterSpec> ym2203ParameterSpecs()
         sourceSpec(ChipParameterRole::source1Enabled, "ym2203.ch1.enabled", "OPN Ch 1", "Enable YM2203 FM channel 1."),
         sourceSpec(ChipParameterRole::source2Enabled, "ym2203.ch2.enabled", "OPN Ch 2", "Enable YM2203 FM channel 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "ym2203.ch3.enabled", "OPN Ch 3", "Enable YM2203 FM channel 3."),
-        sourceSpec(ChipParameterRole::source4Enabled, "ym2203.ssgA.enabled", "SSG A", "Enable the embedded YM2203 SSG tone channel A."),
-        sourceSpec(ChipParameterRole::source5Enabled, "ym2203.ssgB.enabled", "SSG B", "Enable the embedded YM2203 SSG tone channel B."),
-        sourceSpec(ChipParameterRole::source6Enabled, "ym2203.ssgC.enabled", "SSG C", "Enable the embedded YM2203 SSG tone channel C."),
+        sourceSpec(ChipParameterRole::source4Enabled, "ym2203.ssgA.enabled", "SSG A", "Enable the embedded YM2203 SSG channel A."),
+        sourceSpec(ChipParameterRole::source5Enabled, "ym2203.ssgB.enabled", "SSG B", "Enable the embedded YM2203 SSG channel B."),
+        sourceSpec(ChipParameterRole::source6Enabled, "ym2203.ssgC.enabled", "SSG C", "Enable the embedded YM2203 SSG channel C."),
         sourceLevelSpec(ChipParameterRole::source1Level, "ym2203.ch1.level", "OPN Ch 1 Level", "Modern trim before writing YM2203 channel 1 carrier levels."),
         sourceLevelSpec(ChipParameterRole::source2Level, "ym2203.ch2.level", "OPN Ch 2 Level", "Modern trim before writing YM2203 channel 2 carrier levels."),
         sourceLevelSpec(ChipParameterRole::source3Level, "ym2203.ch3.level", "OPN Ch 3 Level", "Modern trim before writing YM2203 channel 3 carrier levels."),
         sourceLevelSpec(ChipParameterRole::source4Level, "ym2203.ssgA.level", "SSG A Level", "Modern trim after the embedded YM2203 SSG channel A output."),
         sourceLevelSpec(ChipParameterRole::source5Level, "ym2203.ssgB.level", "SSG B Level", "Modern trim after the embedded YM2203 SSG channel B output."),
         sourceLevelSpec(ChipParameterRole::source6Level, "ym2203.ssgC.level", "SSG C Level", "Modern trim after the embedded YM2203 SSG channel C output."),
+        opnSsgChannelMixSpec(ChipParameterRole::ymChannelAMix, "ym2203.ssgA.mix", "SSG A Mix", "YM2203", "A"),
+        opnSsgChannelMixSpec(ChipParameterRole::ymChannelBMix, "ym2203.ssgB.mix", "SSG B Mix", "YM2203", "B"),
+        opnSsgChannelMixSpec(ChipParameterRole::ymChannelCMix, "ym2203.ssgC.mix", "SSG C Mix", "YM2203", "C"),
         sliderSpec(ChipParameterRole::macroControl1,
                    "ym2203.algorithmBias",
                    "Algorithm Bias",
@@ -1269,10 +1324,10 @@ std::vector<ChipParameterSpec> ym2203ParameterSpecs()
                    ParameterKind::chipRegister),
         fmFeedbackSpec(ChipParameterRole::macroControl2, "ym2203.feedback", "YM2203", "$B0"),
         sliderSpec(ChipParameterRole::macroControl3,
-                   "ym2203.operatorTone",
-                   "Operator Tone",
+                   "ym2203.operatorSsgTone",
+                   "Operator/SSG Tone",
                    "Operators",
-                   "Scales operator multiplier and modulator total-level choices before writing OPN operator registers.",
+                   "Scales operator multiplier/modulator total-level choices and writes the embedded SSG noise-period register 6.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "ym2203.outputLevel",
@@ -1346,7 +1401,8 @@ std::vector<ChipParameterSpec> ym2203ParameterSpecs()
                       "Envelope",
                       "Writes OPN operator attack, decay, sustain-rate, sustain-level, and release fields for the current musical envelope shape.",
                       ym2612EnvelopeShapeChoices(),
-                      ParameterKind::chipRegister)
+                      ParameterKind::chipRegister),
+        opnSsgEnvelopeSpec("ym2203.ssgEnvelope", "YM2203")
     };
 }
 
@@ -1359,9 +1415,9 @@ std::vector<ChipParameterSpec> ym2608ParameterSpecs()
         sourceSpec(ChipParameterRole::source4Enabled, "ym2608.ch4.enabled", "OPNA FM 4", "Enable YM2608 FM channel 4."),
         sourceSpec(ChipParameterRole::source5Enabled, "ym2608.ch5.enabled", "OPNA FM 5", "Enable YM2608 FM channel 5."),
         sourceSpec(ChipParameterRole::source6Enabled, "ym2608.ch6.enabled", "OPNA FM 6", "Enable YM2608 FM channel 6."),
-        sourceSpec(ChipParameterRole::source7Enabled, "ym2608.ssgA.enabled", "OPNA SSG A", "Enable the embedded YM2608 SSG tone channel A."),
-        sourceSpec(ChipParameterRole::source8Enabled, "ym2608.ssgB.enabled", "OPNA SSG B", "Enable the embedded YM2608 SSG tone channel B."),
-        sourceSpec(ChipParameterRole::source9Enabled, "ym2608.ssgC.enabled", "OPNA SSG C", "Enable the embedded YM2608 SSG tone channel C."),
+        sourceSpec(ChipParameterRole::source7Enabled, "ym2608.ssgA.enabled", "OPNA SSG A", "Enable the embedded YM2608 SSG channel A."),
+        sourceSpec(ChipParameterRole::source8Enabled, "ym2608.ssgB.enabled", "OPNA SSG B", "Enable the embedded YM2608 SSG channel B."),
+        sourceSpec(ChipParameterRole::source9Enabled, "ym2608.ssgC.enabled", "OPNA SSG C", "Enable the embedded YM2608 SSG channel C."),
         sourceLevelSpec(ChipParameterRole::source1Level, "ym2608.ch1.level", "OPNA FM 1 Level", "Modern trim before writing YM2608 channel 1 carrier levels."),
         sourceLevelSpec(ChipParameterRole::source2Level, "ym2608.ch2.level", "OPNA FM 2 Level", "Modern trim before writing YM2608 channel 2 carrier levels."),
         sourceLevelSpec(ChipParameterRole::source3Level, "ym2608.ch3.level", "OPNA FM 3 Level", "Modern trim before writing YM2608 channel 3 carrier levels."),
@@ -1371,6 +1427,9 @@ std::vector<ChipParameterSpec> ym2608ParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source7Level, "ym2608.ssgA.level", "OPNA SSG A Level", "Modern trim after the embedded YM2608 SSG channel A output."),
         sourceLevelSpec(ChipParameterRole::source8Level, "ym2608.ssgB.level", "OPNA SSG B Level", "Modern trim after the embedded YM2608 SSG channel B output."),
         sourceLevelSpec(ChipParameterRole::source9Level, "ym2608.ssgC.level", "OPNA SSG C Level", "Modern trim after the embedded YM2608 SSG channel C output."),
+        opnSsgChannelMixSpec(ChipParameterRole::ymChannelAMix, "ym2608.ssgA.mix", "SSG A Mix", "YM2608", "A"),
+        opnSsgChannelMixSpec(ChipParameterRole::ymChannelBMix, "ym2608.ssgB.mix", "SSG B Mix", "YM2608", "B"),
+        opnSsgChannelMixSpec(ChipParameterRole::ymChannelCMix, "ym2608.ssgC.mix", "SSG C Mix", "YM2608", "C"),
         sliderSpec(ChipParameterRole::macroControl1,
                    "ym2608.algorithmBias",
                    "Algorithm Bias",
@@ -1379,10 +1438,10 @@ std::vector<ChipParameterSpec> ym2608ParameterSpecs()
                    ParameterKind::chipRegister),
         fmFeedbackSpec(ChipParameterRole::macroControl2, "ym2608.feedback", "YM2608", "$B0"),
         sliderSpec(ChipParameterRole::macroControl3,
-                   "ym2608.operatorTone",
-                   "Operator Tone",
+                   "ym2608.operatorSsgTone",
+                   "Operator/SSG Tone",
                    "Operators",
-                   "Scales operator multiplier and modulator total-level choices before writing OPNA operator registers.",
+                   "Scales operator multiplier/modulator total-level choices and writes the embedded SSG noise-period register 6.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "ym2608.outputLevel",
@@ -1464,6 +1523,7 @@ std::vector<ChipParameterSpec> ym2608ParameterSpecs()
                       "Writes OPNA operator attack, decay, sustain-rate, sustain-level, and release fields for the current musical envelope shape.",
                       ym2612EnvelopeShapeChoices(),
                       ParameterKind::chipRegister),
+        opnSsgEnvelopeSpec("ym2608.ssgEnvelope", "YM2608"),
         sliderSpec(ChipParameterRole::stereoSpread,
                    "ym2608.stereoSpread",
                    "Stereo Spread",
@@ -1480,9 +1540,9 @@ std::vector<ChipParameterSpec> ym2610ParameterSpecs()
         sourceSpec(ChipParameterRole::source2Enabled, "ym2610.ch2.enabled", "OPNB FM 2", "Enable YM2610 FM lane 2."),
         sourceSpec(ChipParameterRole::source3Enabled, "ym2610.ch3.enabled", "OPNB FM 3", "Enable YM2610 FM lane 3."),
         sourceSpec(ChipParameterRole::source4Enabled, "ym2610.ch4.enabled", "OPNB FM 4", "Enable YM2610 FM lane 4."),
-        sourceSpec(ChipParameterRole::source5Enabled, "ym2610.ssgA.enabled", "OPNB SSG A", "Enable the embedded YM2610 SSG tone channel A."),
-        sourceSpec(ChipParameterRole::source6Enabled, "ym2610.ssgB.enabled", "OPNB SSG B", "Enable the embedded YM2610 SSG tone channel B."),
-        sourceSpec(ChipParameterRole::source7Enabled, "ym2610.ssgC.enabled", "OPNB SSG C", "Enable the embedded YM2610 SSG tone channel C."),
+        sourceSpec(ChipParameterRole::source5Enabled, "ym2610.ssgA.enabled", "OPNB SSG A", "Enable the embedded YM2610 SSG channel A."),
+        sourceSpec(ChipParameterRole::source6Enabled, "ym2610.ssgB.enabled", "OPNB SSG B", "Enable the embedded YM2610 SSG channel B."),
+        sourceSpec(ChipParameterRole::source7Enabled, "ym2610.ssgC.enabled", "OPNB SSG C", "Enable the embedded YM2610 SSG channel C."),
         sourceLevelSpec(ChipParameterRole::source1Level, "ym2610.ch1.level", "OPNB FM 1 Level", "Modern trim before writing YM2610 FM lane 1 carrier levels."),
         sourceLevelSpec(ChipParameterRole::source2Level, "ym2610.ch2.level", "OPNB FM 2 Level", "Modern trim before writing YM2610 FM lane 2 carrier levels."),
         sourceLevelSpec(ChipParameterRole::source3Level, "ym2610.ch3.level", "OPNB FM 3 Level", "Modern trim before writing YM2610 FM lane 3 carrier levels."),
@@ -1490,6 +1550,9 @@ std::vector<ChipParameterSpec> ym2610ParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source5Level, "ym2610.ssgA.level", "OPNB SSG A Level", "Modern trim after the embedded YM2610 SSG channel A output."),
         sourceLevelSpec(ChipParameterRole::source6Level, "ym2610.ssgB.level", "OPNB SSG B Level", "Modern trim after the embedded YM2610 SSG channel B output."),
         sourceLevelSpec(ChipParameterRole::source7Level, "ym2610.ssgC.level", "OPNB SSG C Level", "Modern trim after the embedded YM2610 SSG channel C output."),
+        opnSsgChannelMixSpec(ChipParameterRole::ymChannelAMix, "ym2610.ssgA.mix", "SSG A Mix", "YM2610", "A"),
+        opnSsgChannelMixSpec(ChipParameterRole::ymChannelBMix, "ym2610.ssgB.mix", "SSG B Mix", "YM2610", "B"),
+        opnSsgChannelMixSpec(ChipParameterRole::ymChannelCMix, "ym2610.ssgC.mix", "SSG C Mix", "YM2610", "C"),
         sliderSpec(ChipParameterRole::macroControl1,
                    "ym2610.algorithmBias",
                    "Algorithm Bias",
@@ -1498,10 +1561,10 @@ std::vector<ChipParameterSpec> ym2610ParameterSpecs()
                    ParameterKind::chipRegister),
         fmFeedbackSpec(ChipParameterRole::macroControl2, "ym2610.feedback", "YM2610", "$B0"),
         sliderSpec(ChipParameterRole::macroControl3,
-                   "ym2610.operatorTone",
-                   "Operator Tone",
+                   "ym2610.operatorSsgTone",
+                   "Operator/SSG Tone",
                    "Operators",
-                   "Scales operator multiplier and modulator total-level choices before writing OPNB operator registers.",
+                   "Scales operator multiplier/modulator total-level choices and writes the embedded SSG noise-period register 6.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "ym2610.outputLevel",
@@ -1583,6 +1646,7 @@ std::vector<ChipParameterSpec> ym2610ParameterSpecs()
                       "Writes OPNB operator attack, decay, sustain-rate, sustain-level, and release fields for the current musical envelope shape.",
                       ym2612EnvelopeShapeChoices(),
                       ParameterKind::chipRegister),
+        opnSsgEnvelopeSpec("ym2610.ssgEnvelope", "YM2610"),
         sliderSpec(ChipParameterRole::stereoSpread,
                    "ym2610.stereoSpread",
                    "Stereo Spread",
@@ -3441,11 +3505,11 @@ std::array<ModuleDescriptor, 6> ym2203Modules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "YM2203/OPN core is backed by audited BSD-licensed ymfm.", { "YM2203 model", "3.99 MHz clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM + SSG Voices", "All three YM2203 FM channels and all three embedded SSG tone channels are exposed as playable source lanes.", { "FM Ch 1-3", "SSG A-C", "6-lane Chip Poly", "Source trims" }),
+        makeModule("sources", "FM + SSG Voices", "All three YM2203 FM channels and all three embedded SSG tone/noise/envelope channels are exposed as playable source lanes.", { "FM Ch 1-3", "SSG A-C", "6-lane Chip Poly", "Source trims" }),
         makeModule("tone", "Operators", "Musical controls write native OPN algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPN attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
         makeModule("motion", "Motion", "PC-88/arcade-style YM2203 preset recipes map to register-backed FM and SSG patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
-        makeModule("output", "Output", "ymfm mono OPN output is rendered to plugin stereo with the embedded SSG tone outputs mixed in.", { "Mono FM core", "Three SSG lanes", "Tone mixer", "Verified partial" })
+        makeModule("output", "Output", "ymfm mono OPN output is rendered to plugin stereo with the embedded SSG mixer/envelope path mixed in.", { "Mono FM core", "Three SSG lanes", "SSG mixer", "Verified partial" })
     };
 }
 
@@ -3453,11 +3517,11 @@ std::array<ModuleDescriptor, 6> ym2608Modules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "YM2608/OPNA core is backed by audited BSD-licensed ymfm.", { "YM2608 model", "7.99 MHz PC-98 clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM + SSG Voices", "All six YM2608 FM channels and all three embedded SSG tone channels are exposed as playable source lanes.", { "FM Ch 1-6", "SSG A-C", "9-lane Chip Poly", "Source trims" }),
+        makeModule("sources", "FM + SSG Voices", "All six YM2608 FM channels and all three embedded SSG tone/noise/envelope channels are exposed as playable source lanes.", { "FM Ch 1-6", "SSG A-C", "9-lane Chip Poly", "Source trims" }),
         makeModule("tone", "Operators", "Musical controls write native OPNA algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPNA attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
         makeModule("motion", "Motion", "PC-98-style YM2608 preset recipes map to register-backed FM and SSG patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
-        makeModule("output", "Output", "ymfm OPNA stereo FM output is mixed with the embedded mono SSG tone bus.", { "Stereo FM core", "Mono SSG bus", "Rhythm/ADPCM planned", "Verified partial" })
+        makeModule("output", "Output", "ymfm OPNA stereo FM output is mixed with the embedded mono SSG tone/noise/envelope bus.", { "Stereo FM core", "Mono SSG bus", "Rhythm/ADPCM planned", "Verified partial" })
     };
 }
 
@@ -3477,11 +3541,11 @@ std::array<ModuleDescriptor, 6> ym2610Modules()
 {
     return {
         makeModule("profile", "Profile", "YM2610/OPNB core is backed by audited BSD-licensed ymfm.", { "YM2610 model", "8.00 MHz Neo Geo clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM + SSG Voices", "Four YM2610 FM channels and all three embedded SSG tone channels are exposed as playable source lanes.", { "FM lanes 1-4", "SSG A-C", "7-lane Chip Poly", "Source trims" }),
+        makeModule("sources", "FM + SSG Voices", "Four YM2610 FM channels and all three embedded SSG tone/noise/envelope channels are exposed as playable source lanes.", { "FM lanes 1-4", "SSG A-C", "7-lane Chip Poly", "Source trims" }),
         makeModule("tone", "Operators", "Musical controls write native OPNB algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPNB attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
         makeModule("motion", "Motion", "Neo Geo-style YM2610 preset recipes map to register-backed FM and SSG patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
-        makeModule("output", "Output", "ymfm OPNB stereo FM output is mixed with the embedded mono SSG tone bus.", { "Stereo FM core", "Mono SSG bus", "ADPCM planned", "Verified partial" })
+        makeModule("output", "Output", "ymfm OPNB stereo FM output is mixed with the embedded mono SSG tone/noise/envelope bus.", { "Stereo FM core", "Mono SSG bus", "ADPCM planned", "Verified partial" })
     };
 }
 
@@ -4200,11 +4264,11 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2203,
             "YM2203 / OPN",
-            "Three YM2203/OPN FM lanes plus three embedded SSG tone lanes write native registers into the audited ymfm core.",
+            "Three YM2203/OPN FM lanes plus three embedded SSG tone/noise/envelope lanes write native registers into the audited ymfm core.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2203 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2203 feedback bits for the active OPN voices." },
-                { "operator", "Operator Tone", "Operators", "Scales operator multipliers and modulator levels." },
+                { "operator", "Operator/SSG Tone", "Operators", "Scales operator multipliers/modulator levels and the embedded SSG noise period." },
                 { "level", "FM/SSG Level", "Output", "Controls carrier level and embedded SSG amplitude registers." },
             },
             ym2203Modules(),
@@ -4216,22 +4280,22 @@ const std::vector<ChipDescriptor>& descriptors()
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2203/OPN synthesis core.",
                     "Renderer notes and preset recipes write OPN algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, and key-on registers across all three FM channels.",
-                    "Embedded YM2203 SSG tone period, mixer, and amplitude registers are written for SSG A-C and mixed from ymfm output slots.",
+                    "Embedded YM2203 SSG tone period, noise period, mixer, amplitude, and envelope registers are written for SSG A-C and mixed from ymfm output slots.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the six-lane FM plus SSG adapter."
                 },
                 {
-                    "SSG noise/envelope UI is not exposed yet; this slice covers the embedded SSG tone lanes.",
+                    "Timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
                     "Prescaler controls, timers, LFO/AMS/PMS-style extensions where applicable, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
                 })
         },
         {
             ChipMode::ym2608,
             "YM2608 / OPNA",
-            "Six YM2608/OPNA FM lanes plus three embedded SSG tone lanes write native registers into the audited ymfm core.",
+            "Six YM2608/OPNA FM lanes plus three embedded SSG tone/noise/envelope lanes write native registers into the audited ymfm core.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2608 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2608 feedback bits for the active OPNA FM voices." },
-                { "operator", "Operator Tone", "Operators", "Scales operator multipliers and modulator levels." },
+                { "operator", "Operator/SSG Tone", "Operators", "Scales operator multipliers/modulator levels and the embedded SSG noise period." },
                 { "level", "FM/SSG Level", "Output", "Controls carrier level and embedded SSG amplitude registers." },
             },
             ym2608Modules(),
@@ -4243,22 +4307,22 @@ const std::vector<ChipDescriptor>& descriptors()
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2608/OPNA synthesis core.",
                     "Renderer notes and preset recipes write OPNA algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, key-on, and pan registers across all six FM channels.",
-                    "Embedded YM2608 SSG tone period, mixer, and amplitude registers are written for SSG A-C and mixed from the ymfm OPNA SSG output bus.",
+                    "Embedded YM2608 SSG tone period, noise period, mixer, amplitude, and envelope registers are written for SSG A-C and mixed from the ymfm OPNA SSG output bus.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the nine-lane FM plus SSG adapter."
                 },
                 {
-                    "Native OPNA rhythm, ADPCM-A, ADPCM-B, and SSG noise/envelope UI are not exposed yet; this slice covers six FM lanes plus embedded SSG tone lanes.",
+                    "Native OPNA rhythm, ADPCM-A, ADPCM-B, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
                     "Prescaler controls, timers, CSM, LFO/AMS/PMS, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
                 })
         },
         {
             ChipMode::ym2610,
             "YM2610 / OPNB",
-            "Four YM2610/OPNB FM lanes plus three embedded SSG tone lanes write native registers into the audited ymfm core; external ADPCM remains planned.",
+            "Four YM2610/OPNB FM lanes plus three embedded SSG tone/noise/envelope lanes write native registers into the audited ymfm core; external ADPCM remains planned.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2610 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2610 feedback bits for the active OPNB FM voices." },
-                { "operator", "Operator Tone", "Operators", "Scales operator multipliers and modulator levels." },
+                { "operator", "Operator/SSG Tone", "Operators", "Scales operator multipliers/modulator levels and the embedded SSG noise period." },
                 { "level", "FM/SSG Level", "Output", "Controls carrier level and embedded SSG amplitude registers." },
             },
             ym2610Modules(),
@@ -4270,11 +4334,11 @@ const std::vector<ChipDescriptor>& descriptors()
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2610/OPNB synthesis core.",
                     "Renderer notes and preset recipes write OPNB algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, key-on, and pan registers across the four YM2610 FM channels.",
-                    "Embedded YM2610 SSG tone period, mixer, and amplitude registers are written for SSG A-C and mixed from the ymfm OPNB SSG output bus.",
+                    "Embedded YM2610 SSG tone period, noise period, mixer, amplitude, and envelope registers are written for SSG A-C and mixed from the ymfm OPNB SSG output bus.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the seven-lane FM plus SSG adapter."
                 },
                 {
-                    "External ADPCM-A, external ADPCM-B, YM2610B/OPNB2 six-FM behavior, and SSG noise/envelope UI are not exposed yet; this slice covers four FM lanes plus embedded SSG tone lanes.",
+                    "External ADPCM-A, external ADPCM-B, YM2610B/OPNB2 six-FM behavior, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
                     "Prescaler controls, timers, CSM, LFO/AMS/PMS, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
                 })
         }
@@ -5247,6 +5311,75 @@ uint8_t ym2149EnvelopeShapeCodeForChoice(int shapeChoice)
         default:
             return 0x09u;
     }
+}
+
+uint8_t opnSsgNoisePeriodForPatch(const PatchConfig& patch)
+{
+    return ym2149NoisePeriodForControl(patch.control3);
+}
+
+uint8_t opnSsgMixerRegisterForPatch(const PatchConfig& patch)
+{
+    auto presetMixer = uint8_t { 0x38u }; // Tone enabled, shared noise disabled.
+    switch (patch.macro)
+    {
+        case MacroKind::drum:
+            presetMixer = 0x07u; // Noise only.
+            break;
+        case MacroKind::hit:
+            presetMixer = 0x00u; // Tone plus noise.
+            break;
+        case MacroKind::laser:
+            presetMixer = patch.control3 > 0.55f ? 0x00u : 0x38u;
+            break;
+        case MacroKind::manual:
+        case MacroKind::coin:
+        case MacroKind::bass:
+        case MacroKind::lead:
+        case MacroKind::arp:
+        case MacroKind::jump:
+        case MacroKind::powerUp:
+        default:
+            break;
+    }
+
+    return ym2149MixerRegisterWithChannelOverrides(patch, presetMixer);
+}
+
+int opnSsgEnvelopeChoiceForPatch(const PatchConfig& patch)
+{
+    const auto explicitChoice = std::clamp(patch.snNoiseMode, 0, 4);
+    if (explicitChoice > 0)
+        return explicitChoice;
+
+    switch (patch.macro)
+    {
+        case MacroKind::coin:
+        case MacroKind::drum:
+        case MacroKind::hit:
+        case MacroKind::jump:
+            return 1; // Fall.
+        case MacroKind::powerUp:
+            return 2; // Rise.
+        case MacroKind::arp:
+        case MacroKind::laser:
+            return 3; // Saw.
+        case MacroKind::manual:
+        case MacroKind::bass:
+        case MacroKind::lead:
+        default:
+            return 0; // Fixed volume.
+    }
+}
+
+bool opnSsgEnvelopeEnabledForPatch(const PatchConfig& patch)
+{
+    return opnSsgEnvelopeChoiceForPatch(patch) > 0;
+}
+
+uint8_t opnSsgEnvelopeShapeCodeForPatch(const PatchConfig& patch)
+{
+    return ym2149EnvelopeShapeCodeForChoice(opnSsgEnvelopeChoiceForPatch(patch));
 }
 
 uint8_t sn76489NoiseAttenuationForControl(float noiseLevelControl)

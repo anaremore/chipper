@@ -801,6 +801,27 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::ym2612AlgorithmForPatch(opnLead) == 4u, "YM2203 lead macro should reuse OPN algorithm helper");
     ok &= expect(chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2203, opnLead, 0) == 8u, "YM2203 helper should resolve operator 1 multiple");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2203, opnLead, 1) == 6u, "YM2203 algorithm 4 should treat operator 2 as a carrier");
+
+    const auto opnDrum = chipper::makePatchConfig(chipper::ChipMode::ym2203,
+                                                  chipper::MacroKind::drum,
+                                                  0.1f,
+                                                  0.6f,
+                                                  0.2f,
+                                                  0.8f);
+    ok &= expect(chipper::opnSsgNoisePeriodForPatch(opnDrum) == 25u, "OPN SSG noise period should reuse the AY/YM noise-period range");
+    ok &= expect(chipper::opnSsgMixerRegisterForPatch(opnDrum) == 0x07u, "OPN SSG drum preset should resolve to noise-only mixer bits");
+    ok &= expect(chipper::opnSsgEnvelopeChoiceForPatch(opnDrum) == 1, "OPN SSG drum preset should resolve to a falling envelope");
+    ok &= expect(chipper::opnSsgEnvelopeEnabledForPatch(opnDrum), "OPN SSG drum preset should enable hardware envelope volume");
+    ok &= expect(chipper::opnSsgEnvelopeShapeCodeForPatch(opnDrum) == 0x09u, "OPN SSG falling envelope should write shape 0x09");
+
+    auto opnSsgOverride = opnDrum;
+    opnSsgOverride.ymChannelAMix = 2;
+    opnSsgOverride.ymChannelBMix = 3;
+    opnSsgOverride.ymChannelCMix = 4;
+    opnSsgOverride.snNoiseMode = 4;
+    ok &= expect(chipper::opnSsgMixerRegisterForPatch(opnSsgOverride) == 0x25u, "OPN SSG channel mix overrides should write register 7 tone/noise bits");
+    ok &= expect(chipper::opnSsgEnvelopeChoiceForPatch(opnSsgOverride) == 4, "OPN SSG explicit envelope should override preset envelope");
+    ok &= expect(chipper::opnSsgEnvelopeShapeCodeForPatch(opnSsgOverride) == 0x0eu, "OPN SSG triangle envelope should write shape 0x0E");
     if (const auto* preset = chipper::presetById("opn-crystal-lead"))
     {
         const auto patch = chipper::patchConfigForPreset(*preset);
@@ -1712,8 +1733,14 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Algorithm Bias");
     ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Feedback");
     ok &= expectChoiceRegister(chipper::ChipMode::ym2203, chipper::ChipParameterRole::macroControl2, chipper::ControlSurface::menu, 8, "FB 0");
-    ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Operator Tone");
+    ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Operator/SSG Tone");
     ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "FM/SSG Level");
+    ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::snNoiseMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "SSG Envelope");
+    ok &= expectSegmentedRegister(chipper::ChipMode::ym2203, chipper::ChipParameterRole::snNoiseMode, 5, "Preset");
+    ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::ymChannelAMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "SSG A Mix");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2203, chipper::ChipParameterRole::ymChannelAMix, chipper::ControlSurface::menu, 5, "Follow");
+    ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::ymChannelBMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "SSG B Mix");
+    ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::ymChannelCMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "SSG C Mix");
     ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::fmOperator1Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP1 Level");
     ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::fmOperator4Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP4 Level");
     ok &= expectSpecGroup(chipper::ChipMode::ym2203, chipper::ChipParameterRole::fmOperator1Level, "Operators");
@@ -1760,8 +1787,14 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2608, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Algorithm Bias");
     ok &= expectSpec(chipper::ChipMode::ym2608, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Feedback");
     ok &= expectChoiceRegister(chipper::ChipMode::ym2608, chipper::ChipParameterRole::macroControl2, chipper::ControlSurface::menu, 8, "FB 0");
-    ok &= expectSpec(chipper::ChipMode::ym2608, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Operator Tone");
+    ok &= expectSpec(chipper::ChipMode::ym2608, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Operator/SSG Tone");
     ok &= expectSpec(chipper::ChipMode::ym2608, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "FM/SSG Level");
+    ok &= expectSpec(chipper::ChipMode::ym2608, chipper::ChipParameterRole::snNoiseMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "SSG Envelope");
+    ok &= expectSegmentedRegister(chipper::ChipMode::ym2608, chipper::ChipParameterRole::snNoiseMode, 5, "Preset");
+    ok &= expectSpec(chipper::ChipMode::ym2608, chipper::ChipParameterRole::ymChannelAMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "SSG A Mix");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2608, chipper::ChipParameterRole::ymChannelAMix, chipper::ControlSurface::menu, 5, "Follow");
+    ok &= expectSpec(chipper::ChipMode::ym2608, chipper::ChipParameterRole::ymChannelBMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "SSG B Mix");
+    ok &= expectSpec(chipper::ChipMode::ym2608, chipper::ChipParameterRole::ymChannelCMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "SSG C Mix");
     ok &= expectSpec(chipper::ChipMode::ym2608, chipper::ChipParameterRole::fmOperator1Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP1 Level");
     ok &= expectSpec(chipper::ChipMode::ym2608, chipper::ChipParameterRole::fmOperator4Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP4 Level");
     ok &= expectSpecGroup(chipper::ChipMode::ym2608, chipper::ChipParameterRole::fmOperator1Level, "Operators");
@@ -1809,8 +1842,14 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Algorithm Bias");
     ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Feedback");
     ok &= expectChoiceRegister(chipper::ChipMode::ym2610, chipper::ChipParameterRole::macroControl2, chipper::ControlSurface::menu, 8, "FB 0");
-    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Operator Tone");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Operator/SSG Tone");
     ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "FM/SSG Level");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::snNoiseMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "SSG Envelope");
+    ok &= expectSegmentedRegister(chipper::ChipMode::ym2610, chipper::ChipParameterRole::snNoiseMode, 5, "Preset");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::ymChannelAMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "SSG A Mix");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2610, chipper::ChipParameterRole::ymChannelAMix, chipper::ControlSurface::menu, 5, "Follow");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::ymChannelBMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "SSG B Mix");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::ymChannelCMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "SSG C Mix");
     ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP1 Level");
     ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator4Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP4 Level");
     ok &= expectSpecGroup(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1Level, "Operators");

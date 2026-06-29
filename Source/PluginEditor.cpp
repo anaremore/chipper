@@ -4851,6 +4851,13 @@ void ChipperAudioProcessorEditor::resized()
 
         placeSnNoiseModeSegment(noiseModePanel);
     }
+    if ((displayedMode == chipper::ChipMode::ym2203
+         || displayedMode == chipper::ChipMode::ym2608
+         || displayedMode == chipper::ChipMode::ym2610)
+        && usesYmChannelMixControls(displayedMode))
+    {
+        placeYmChannelMixControls(motionPanel);
+    }
 
     auto envelopePanel = moduleBounds[3].reduced(12, 9);
     envelopePanel.removeFromTop(20);
@@ -7319,9 +7326,12 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
         sidFilterRoutingValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
     }
 
-    ymChannelMixLabel.setText("Channel Mix", juce::dontSendNotification);
-    ymChannelMixLabel.setTooltip("Per-channel AY mixer overrides. Preset uses the global Tone/Noise Mix control.");
-    ymChannelMixValueLabel.setTooltip("Resolved YM/AY channel mixer choices.");
+    const auto isOpnSsg = mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610;
+    ymChannelMixLabel.setText(isOpnSsg ? "SSG Mix" : "Channel Mix", juce::dontSendNotification);
+    ymChannelMixLabel.setTooltip(isOpnSsg
+                                     ? "Per-channel embedded OPN SSG mixer overrides. Preset follows the selected OPN-family recipe."
+                                     : "Per-channel AY mixer overrides. Preset uses the global Tone/Noise Mix control.");
+    ymChannelMixValueLabel.setTooltip(isOpnSsg ? "Resolved OPN SSG mixer choices." : "Resolved YM/AY channel mixer choices.");
     for (size_t i = 0; i < ymChannelMixBoxes.size(); ++i)
     {
         if (const auto* spec = chipper::parameterSpecFor(mode, ymChannelMixRole(i)))
@@ -8329,13 +8339,13 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
         return label + " -> " + fmChipReadout(mode, patch) + " | " + ym2612DacModeReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
     if (mode == chipper::ChipMode::ym2203)
-        return label + " -> " + fmChipReadout(mode, patch) + " | SSG A-C tone lanes | " + waveShapeReadout(mode, patch.waveShape) + laneText;
+        return label + " -> " + fmChipReadout(mode, patch) + " | " + opnSsgMixerReadout(patch) + " | " + opnSsgEnvelopeReadout(patch) + laneText;
 
     if (mode == chipper::ChipMode::ym2608)
-        return label + " -> " + fmChipReadout(mode, patch) + " | SSG A-C tone lanes | OPNA rhythm/ADPCM planned | " + waveShapeReadout(mode, patch.waveShape) + laneText;
+        return label + " -> " + fmChipReadout(mode, patch) + " | " + opnSsgMixerReadout(patch) + " | OPNA rhythm/ADPCM planned | " + opnSsgEnvelopeReadout(patch) + laneText;
 
     if (mode == chipper::ChipMode::ym2610)
-        return label + " -> " + fmChipReadout(mode, patch) + " | SSG A-C tone lanes | OPNB ADPCM planned | " + waveShapeReadout(mode, patch.waveShape) + laneText;
+        return label + " -> " + fmChipReadout(mode, patch) + " | " + opnSsgMixerReadout(patch) + " | OPNB ADPCM planned | " + opnSsgEnvelopeReadout(patch) + laneText;
 
     if (mode == chipper::ChipMode::ym2151)
         return label + " -> " + fmChipReadout(mode, patch) + " | " + ym2151NoiseReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
@@ -8442,19 +8452,19 @@ juce::String ChipperAudioProcessorEditor::performanceMacroDestination(chipper::C
 
         case chipper::ChipMode::ym2203:
         {
-            static constexpr std::array<const char*, 4> labels { "Algorithm", "$B0 feedback", "Operator tone", "FM level" };
+            static constexpr std::array<const char*, 4> labels { "Algorithm", "$B0 feedback", "Operator/SSG tone", "FM/SSG level" };
             return labels[std::min(index, labels.size() - 1u)];
         }
 
         case chipper::ChipMode::ym2608:
         {
-            static constexpr std::array<const char*, 4> labels { "Algorithm", "$B0 feedback", "Operator tone", "FM/SSG level" };
+            static constexpr std::array<const char*, 4> labels { "Algorithm", "$B0 feedback", "Operator/SSG tone", "FM/SSG level" };
             return labels[std::min(index, labels.size() - 1u)];
         }
 
         case chipper::ChipMode::ym2610:
         {
-            static constexpr std::array<const char*, 4> labels { "Algorithm", "$B0 feedback", "Operator tone", "FM/SSG level" };
+            static constexpr std::array<const char*, 4> labels { "Algorithm", "$B0 feedback", "Operator/SSG tone", "FM/SSG level" };
             return labels[std::min(index, labels.size() - 1u)];
         }
 
@@ -9466,6 +9476,24 @@ juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipM
             + " | car TL " + juce::String(carrierLevel);
     }
 
+    if (mode == chipper::ChipMode::ym2203 && index >= 3u)
+    {
+        static constexpr std::array<const char*, 3> ssgNames { "A", "B", "C" };
+        const auto ssgIndex = std::min(index - 3u, size_t { 2u });
+        const auto toneLo = static_cast<uint8_t>(ssgIndex * 2u);
+        const auto toneHi = static_cast<uint8_t>(toneLo + 1u);
+        const auto volumeReg = static_cast<uint8_t>(0x08u + ssgIndex);
+        const auto mixer = chipper::opnSsgMixerRegisterForPatch(patch);
+        const auto toneEnabled = (mixer & static_cast<uint8_t>(1u << ssgIndex)) == 0u;
+        const auto noiseEnabled = (mixer & static_cast<uint8_t>(1u << (ssgIndex + 3u))) == 0u;
+        return "OPN SSG " + juce::String(ssgNames[ssgIndex])
+            + " | tone regs $" + byteHex(toneLo) + "/$" + byteHex(toneHi)
+            + " | mixer $07 " + (toneEnabled ? juce::String("T") : juce::String("-")) + (noiseEnabled ? juce::String("N") : juce::String("-"))
+            + " | noise p" + juce::String(static_cast<int>(chipper::opnSsgNoisePeriodForPatch(patch))).paddedLeft('0', 2)
+            + " | volume $" + byteHex(volumeReg)
+            + (chipper::opnSsgEnvelopeEnabledForPatch(patch) ? juce::String(" env") : juce::String());
+    }
+
     if (mode == chipper::ChipMode::ym2608 && index >= 6u)
     {
         static constexpr std::array<const char*, 3> ssgNames { "A", "B", "C" };
@@ -9473,10 +9501,15 @@ juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipM
         const auto toneLo = static_cast<uint8_t>(ssgIndex * 2u);
         const auto toneHi = static_cast<uint8_t>(toneLo + 1u);
         const auto volumeReg = static_cast<uint8_t>(0x08u + ssgIndex);
+        const auto mixer = chipper::opnSsgMixerRegisterForPatch(patch);
+        const auto toneEnabled = (mixer & static_cast<uint8_t>(1u << ssgIndex)) == 0u;
+        const auto noiseEnabled = (mixer & static_cast<uint8_t>(1u << (ssgIndex + 3u))) == 0u;
         return "OPNA SSG " + juce::String(ssgNames[ssgIndex])
             + " | tone regs $" + byteHex(toneLo) + "/$" + byteHex(toneHi)
-            + " | mixer $07"
-            + " | volume $" + byteHex(volumeReg);
+            + " | mixer $07 " + (toneEnabled ? juce::String("T") : juce::String("-")) + (noiseEnabled ? juce::String("N") : juce::String("-"))
+            + " | noise p" + juce::String(static_cast<int>(chipper::opnSsgNoisePeriodForPatch(patch))).paddedLeft('0', 2)
+            + " | volume $" + byteHex(volumeReg)
+            + (chipper::opnSsgEnvelopeEnabledForPatch(patch) ? juce::String(" env") : juce::String());
     }
 
     if (mode == chipper::ChipMode::ym2610 && index >= 4u)
@@ -9486,10 +9519,15 @@ juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipM
         const auto toneLo = static_cast<uint8_t>(ssgIndex * 2u);
         const auto toneHi = static_cast<uint8_t>(toneLo + 1u);
         const auto volumeReg = static_cast<uint8_t>(0x08u + ssgIndex);
+        const auto mixer = chipper::opnSsgMixerRegisterForPatch(patch);
+        const auto toneEnabled = (mixer & static_cast<uint8_t>(1u << ssgIndex)) == 0u;
+        const auto noiseEnabled = (mixer & static_cast<uint8_t>(1u << (ssgIndex + 3u))) == 0u;
         return "OPNB SSG " + juce::String(ssgNames[ssgIndex])
             + " | tone regs $" + byteHex(toneLo) + "/$" + byteHex(toneHi)
-            + " | mixer $07"
-            + " | volume $" + byteHex(volumeReg);
+            + " | mixer $07 " + (toneEnabled ? juce::String("T") : juce::String("-")) + (noiseEnabled ? juce::String("N") : juce::String("-"))
+            + " | noise p" + juce::String(static_cast<int>(chipper::opnSsgNoisePeriodForPatch(patch))).paddedLeft('0', 2)
+            + " | volume $" + byteHex(volumeReg)
+            + (chipper::opnSsgEnvelopeEnabledForPatch(patch) ? juce::String(" env") : juce::String());
     }
 
     const auto algorithm = static_cast<int>(mode == chipper::ChipMode::ym2151
@@ -9628,18 +9666,46 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
         const auto algorithm = static_cast<int>(mode == chipper::ChipMode::ym2151
                                                     ? chipper::ym2151AlgorithmForPatch(patch)
                                                     : chipper::ym2612AlgorithmForPatch(patch));
+        if (mode == chipper::ChipMode::ym2203 && index >= 3u)
+        {
+            static constexpr std::array<const char*, 3> ssgNames { "A", "B", "C" };
+            const auto ssgIndex = std::min(index - 3u, size_t { 2u });
+            const auto mixer = chipper::opnSsgMixerRegisterForPatch(patch);
+            const auto toneEnabled = (mixer & static_cast<uint8_t>(1u << ssgIndex)) == 0u;
+            const auto noiseEnabled = (mixer & static_cast<uint8_t>(1u << (ssgIndex + 3u))) == 0u;
+            auto modeText = toneEnabled && noiseEnabled ? juce::String("T+N") : (toneEnabled ? juce::String("Tone") : (noiseEnabled ? juce::String("Noise") : juce::String("Off")));
+            if (chipper::opnSsgEnvelopeEnabledForPatch(patch))
+                modeText += " Env";
+            return juce::String("OPN SSG ") + ssgNames[ssgIndex]
+                + " | " + modeText
+                + " V" + juce::String(static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f)));
+        }
         if (mode == chipper::ChipMode::ym2608 && index >= 6u)
         {
             static constexpr std::array<const char*, 3> ssgNames { "A", "B", "C" };
-            return juce::String("OPNA SSG ") + ssgNames[std::min(index - 6u, size_t { 2u })]
-                + " | tone"
+            const auto ssgIndex = std::min(index - 6u, size_t { 2u });
+            const auto mixer = chipper::opnSsgMixerRegisterForPatch(patch);
+            const auto toneEnabled = (mixer & static_cast<uint8_t>(1u << ssgIndex)) == 0u;
+            const auto noiseEnabled = (mixer & static_cast<uint8_t>(1u << (ssgIndex + 3u))) == 0u;
+            auto modeText = toneEnabled && noiseEnabled ? juce::String("T+N") : (toneEnabled ? juce::String("Tone") : (noiseEnabled ? juce::String("Noise") : juce::String("Off")));
+            if (chipper::opnSsgEnvelopeEnabledForPatch(patch))
+                modeText += " Env";
+            return juce::String("OPNA SSG ") + ssgNames[ssgIndex]
+                + " | " + modeText
                 + " V" + juce::String(static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f)));
         }
         if (mode == chipper::ChipMode::ym2610 && index >= 4u)
         {
             static constexpr std::array<const char*, 3> ssgNames { "A", "B", "C" };
-            return juce::String("OPNB SSG ") + ssgNames[std::min(index - 4u, size_t { 2u })]
-                + " | tone"
+            const auto ssgIndex = std::min(index - 4u, size_t { 2u });
+            const auto mixer = chipper::opnSsgMixerRegisterForPatch(patch);
+            const auto toneEnabled = (mixer & static_cast<uint8_t>(1u << ssgIndex)) == 0u;
+            const auto noiseEnabled = (mixer & static_cast<uint8_t>(1u << (ssgIndex + 3u))) == 0u;
+            auto modeText = toneEnabled && noiseEnabled ? juce::String("T+N") : (toneEnabled ? juce::String("Tone") : (noiseEnabled ? juce::String("Noise") : juce::String("Off")));
+            if (chipper::opnSsgEnvelopeEnabledForPatch(patch))
+                modeText += " Env";
+            return juce::String("OPNB SSG ") + ssgNames[ssgIndex]
+                + " | " + modeText
                 + " V" + juce::String(static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f)));
         }
 
@@ -9972,6 +10038,9 @@ juce::String ChipperAudioProcessorEditor::noiseModeReadout(chipper::ChipMode mod
     if (mode == chipper::ChipMode::ym2151)
         return ym2151NoiseReadout(patch);
 
+    if (mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610)
+        return opnSsgEnvelopeReadout(patch);
+
     if (mode == chipper::ChipMode::paula)
         return paulaOutputFilterReadout(patch);
 
@@ -10008,6 +10077,54 @@ juce::String ChipperAudioProcessorEditor::snNoiseModeReadout(const chipper::Patc
     const auto registerText = juce::String("Reg E=0x") + juce::String::toHexString(static_cast<int>(noiseControl)).toUpperCase();
     const auto resolvedText = registerText + ", " + snNoiseRegisterLabel(noiseControl);
     return patch.snNoiseMode == 0 ? juce::String("Preset -> ") + resolvedText : resolvedText;
+}
+
+juce::String ChipperAudioProcessorEditor::opnSsgEnvelopeReadout(const chipper::PatchConfig& patch) const
+{
+    const auto choice = chipper::opnSsgEnvelopeChoiceForPatch(patch);
+    if (choice <= 0)
+        return patch.snNoiseMode == 0 ? "Preset -> SSG fixed volume" : "SSG fixed volume";
+
+    juce::String shapeName;
+    switch (choice)
+    {
+        case 1: shapeName = "Fall"; break;
+        case 2: shapeName = "Rise"; break;
+        case 3: shapeName = "Saw"; break;
+        case 4: shapeName = "Tri"; break;
+        default: shapeName = "Env"; break;
+    }
+
+    const auto shape = chipper::opnSsgEnvelopeShapeCodeForPatch(patch);
+    const auto period = chipper::ym2149EnvelopePeriodForControl(patch.envelopeDecay);
+    auto text = juce::String("SSG ") + shapeName
+        + " env $0D=0x" + juce::String::toHexString(static_cast<int>(shape)).toUpperCase()
+        + " p" + juce::String(static_cast<int>(period));
+    return patch.snNoiseMode == 0 ? juce::String("Preset -> ") + text : text;
+}
+
+juce::String ChipperAudioProcessorEditor::opnSsgMixerReadout(const chipper::PatchConfig& patch) const
+{
+    static constexpr std::array<const char*, 5> choiceLabels { "Preset", "Tone", "Noise", "Both", "Off" };
+    const auto mixer = chipper::opnSsgMixerRegisterForPatch(patch);
+    juce::String text = "SSG $07=0x";
+    text += juce::String::toHexString(static_cast<int>(mixer)).paddedLeft('0', 2).toUpperCase();
+    text += " ";
+
+    for (size_t channel = 0; channel < ymChannelMixCount; ++channel)
+    {
+        if (channel > 0)
+            text += " | ";
+
+        const auto choice = static_cast<size_t>(std::clamp(chipper::ym2149ChannelMixChoiceForPatch(patch, channel), 0, 4));
+        text += juce::String::charToString(static_cast<juce_wchar>('A' + channel));
+        text += ":";
+        text += choiceLabels[choice];
+    }
+
+    text += " | noise p";
+    text += juce::String(static_cast<int>(chipper::opnSsgNoisePeriodForPatch(patch))).paddedLeft('0', 2);
+    return text;
 }
 
 juce::String ChipperAudioProcessorEditor::stereoSpreadReadout(chipper::ChipMode mode, float value) const
@@ -11499,6 +11616,26 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
     }
     else if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610)
     {
+        const auto opnSsgLaneOffset = mode == chipper::ChipMode::ym2203 ? size_t { 3u }
+            : (mode == chipper::ChipMode::ym2608 ? size_t { 6u }
+            : (mode == chipper::ChipMode::ym2610 ? size_t { 4u } : size_t { 99u }));
+        if (index >= opnSsgLaneOffset && opnSsgLaneOffset < 9u)
+        {
+            const auto ssgIndex = std::min(index - opnSsgLaneOffset, size_t { 2u });
+            const auto mixer = chipper::opnSsgMixerRegisterForPatch(patch);
+            const auto toneEnabled = (mixer & static_cast<uint8_t>(1u << ssgIndex)) == 0u;
+            const auto noiseEnabled = (mixer & static_cast<uint8_t>(1u << (ssgIndex + 3u))) == 0u;
+            shape = toneEnabled && noiseEnabled ? ChipWaveformPreviewShape::toneNoise
+                : (noiseEnabled ? ChipWaveformPreviewShape::noise : (toneEnabled ? ChipWaveformPreviewShape::pulse : ChipWaveformPreviewShape::off));
+            tooltip = juce::String(chipper::toString(mode)) + " embedded SSG lane "
+                + juce::String(static_cast<int>(ssgIndex + 1u))
+                + ": square tone, shared noise, and hardware envelope register path."
+                + "\n" + opnSsgMixerReadout(patch)
+                + "\n" + opnSsgEnvelopeReadout(patch)
+                + "\n" + fmSourceRegisterReadout(mode, patch, index);
+        }
+        else
+        {
         const auto opmNoiseActive = mode == chipper::ChipMode::ym2151
             && index == 7u
             && (chipper::ym2151NoiseRegisterForPatch(patch) & 0x80u) != 0u;
@@ -11525,6 +11662,7 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
             + "\n" + fmSourceRegisterReadout(mode, patch, index);
         if (mode == chipper::ChipMode::ym2151 && index == 7u)
             tooltip += "\nOPM Noise: " + ym2151NoiseReadout(patch);
+        }
     }
 
     scope.setShape(shape, duty, sourceIsEnabled && shape != ChipWaveformPreviewShape::off);
@@ -12531,7 +12669,7 @@ void ChipperAudioProcessorEditor::updateYmChannelMixControls(bool shouldBeVisibl
         return;
 
     const auto patch = currentUiPatch(
-        chipper::ChipMode::ym2149,
+        displayedMode,
         parameterValue(chipper::parameters::id::macroControl1),
         parameterValue(chipper::parameters::id::macroControl2),
         parameterValue(chipper::parameters::id::macroControl3),
@@ -12542,7 +12680,10 @@ void ChipperAudioProcessorEditor::updateYmChannelMixControls(bool shouldBeVisibl
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::ymEnvelopeShape))),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
         parameterValue(chipper::parameters::id::stereoSpread));
-    ymChannelMixValueLabel.setText(ymChannelMixReadout(patch), juce::dontSendNotification);
+    const auto isOpnSsg = displayedMode == chipper::ChipMode::ym2203
+        || displayedMode == chipper::ChipMode::ym2608
+        || displayedMode == chipper::ChipMode::ym2610;
+    ymChannelMixValueLabel.setText(isOpnSsg ? opnSsgMixerReadout(patch) : ymChannelMixReadout(patch), juce::dontSendNotification);
 }
 
 void ChipperAudioProcessorEditor::updateSnNoiseModeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible)
@@ -13409,7 +13550,10 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
             || hasFmOperatorRegisterSurface);
     for (auto& itemLabel : moduleItemLabels[3])
         itemLabel.setVisible(! hasCustomEnvelopeSurface && ! itemLabel.getText().isEmpty());
-    const auto hasCustomMotionSurface = hasLiveCore && mode == chipper::ChipMode::sid && usesSnNoiseModeSegment(mode);
+    const auto hasOpnSsgMixSurface = hasLiveCore
+        && (mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610)
+        && usesYmChannelMixControls(mode);
+    const auto hasCustomMotionSurface = hasLiveCore && ((mode == chipper::ChipMode::sid && usesSnNoiseModeSegment(mode)) || hasOpnSsgMixSurface);
     for (auto& itemLabel : moduleItemLabels[4])
         itemLabel.setVisible(! hasCustomMotionSurface && mode == chipper::ChipMode::sid && ! itemLabel.getText().isEmpty());
     const auto hasSampleBankPanel = mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula;
@@ -13646,9 +13790,13 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[2].setText(macroReadout(2,
                                                    mode == chipper::ChipMode::ym2612
                                                        ? ym2612DacModeReadout(patch)
-                                                       : (mode == chipper::ChipMode::ym2151 ? ym2151NoiseReadout(patch) : waveShapeReadout(mode, patch.waveShape))),
+                                                       : (mode == chipper::ChipMode::ym2151 ? ym2151NoiseReadout(patch) : ((mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610) ? opnSsgEnvelopeReadout(patch) : waveShapeReadout(mode, patch.waveShape)))),
                                       juce::dontSendNotification);
-        controlValueLabels[3].setText(macroReadout(3, "FM output level " + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15"), juce::dontSendNotification);
+        controlValueLabels[3].setText(macroReadout(3,
+                                                   (mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610)
+                                                       ? opnSsgMixerReadout(patch)
+                                                       : juce::String("FM output level ") + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15"),
+                                      juce::dontSendNotification);
         if (hasFmFeedbackControl)
             updateFmFeedbackControl(mode, patch, true);
         updateSourceChannelButtons(mode);

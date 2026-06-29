@@ -453,6 +453,8 @@ private:
     juce::String spc700SamplePlaybackReadout(const chipper::PatchConfig& patch) const;
     juce::String spc700NoiseReadout(const chipper::PatchConfig& patch) const;
     juce::String ym2151NoiseReadout(const chipper::PatchConfig& patch) const;
+    juce::String opnSsgEnvelopeReadout(const chipper::PatchConfig& patch) const;
+    juce::String opnSsgMixerReadout(const chipper::PatchConfig& patch) const;
     juce::String ym2612PanReadout(const chipper::PatchConfig& patch) const;
     juce::String ym2151PanReadout(const chipper::PatchConfig& patch) const;
     juce::String sidModelReadout(const chipper::PatchConfig& patch) const;
