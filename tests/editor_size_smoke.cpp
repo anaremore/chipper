@@ -1652,9 +1652,45 @@ bool checkPresetRoleFilterLayout()
             ok = false;
         }
 
+        const auto favoriteBounds = chipEditor.getPresetFavoriteBoundsForLayoutTest();
+        if (favoriteBounds.getWidth() < 32 || favoriteBounds.getHeight() < 28)
+        {
+            std::cerr << "editor_size_smoke: preset favorite button below readable size at compact width: "
+                      << favoriteBounds.toString() << '\n';
+            ok = false;
+        }
+
+        if (chipEditor.getPresetFavoriteToggleStateForLayoutTest())
+        {
+            std::cerr << "editor_size_smoke: preset favorite button should default to untoggled\n";
+            ok = false;
+        }
+
         if (chipMode == 0)
         {
+            chipEditor.clearPresetFavoritesForLayoutTest();
             const auto unfilteredPresetCount = chipEditor.getDisplayedFactoryPresetCountForLayoutTest();
+            if (! chipEditor.setFactoryPresetFavoriteForLayoutTest("nes-hero-pulse", true)
+                || ! chipEditor.selectPresetFilterForLayoutTest("favorite", "favorites"))
+            {
+                std::cerr << "editor_size_smoke: preset metadata filter should expose in-memory Favorites\n";
+                ok = false;
+            }
+            const auto favoriteCount = chipEditor.getDisplayedFactoryPresetCountForLayoutTest();
+            const auto favoriteName = chipEditor.getFirstDisplayedFactoryPresetNameForLayoutTest();
+            if (favoriteCount != 1 || favoriteName != "NES Hero Pulse")
+            {
+                std::cerr << "editor_size_smoke: Favorites filter should narrow NES presets to the marked favorite, got count "
+                          << favoriteCount << " first " << favoriteName.toStdString() << '\n';
+                ok = false;
+            }
+
+            if (! chipEditor.selectPresetFilterForLayoutTest("all", ""))
+            {
+                std::cerr << "editor_size_smoke: preset metadata filter should return to All after Favorites\n";
+                ok = false;
+            }
+
             if (! chipEditor.selectPresetFilterForLayoutTest("tag", "noise"))
             {
                 std::cerr << "editor_size_smoke: preset metadata filter should expose the NES noise tag\n";

@@ -925,6 +925,51 @@ juce::File defaultUserPresetDirectory()
         .getChildFile("Chipper Presets");
 }
 
+juce::File presetFavoritesFile()
+{
+    return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+        .getChildFile("Chipper")
+        .getChildFile("preset-favorites.xml");
+}
+
+juce::String normalizedFavoritePath(const juce::File& file)
+{
+    return file.getFullPathName().replaceCharacter('\\', '/');
+}
+
+bool favoriteListContains(const juce::StringArray& list, const juce::String& value)
+{
+    for (const auto& item : list)
+    {
+        if (item.equalsIgnoreCase(value))
+            return true;
+    }
+
+    return false;
+}
+
+void setFavoriteListContains(juce::StringArray& list, juce::String value, bool shouldContain)
+{
+    value = value.trim();
+    if (value.isEmpty())
+        return;
+
+    for (int i = list.size(); --i >= 0;)
+    {
+        if (list[i].equalsIgnoreCase(value))
+            list.remove(i);
+    }
+
+    if (shouldContain)
+        list.add(value);
+}
+
+bool xmlFavoriteAttribute(const juce::XmlElement& root)
+{
+    const auto value = root.getStringAttribute("favorite").trim().toLowerCase();
+    return value == "1" || value == "true" || value == "yes";
+}
+
 juce::String safePresetFileStem(juce::String text)
 {
     auto safe = text.retainCharacters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_").trim();
@@ -1001,6 +1046,17 @@ juce::String userPresetAttributeFromXml(const juce::XmlElement& root, const char
         return userPresetAttributeFromXml(*child, attributeName);
 
     return {};
+}
+
+bool userPresetFavoriteFromXml(const juce::XmlElement& root)
+{
+    if (root.hasAttribute("favorite"))
+        return xmlFavoriteAttribute(root);
+
+    if (const auto* child = root.getChildByName("ChipperPreset"))
+        return userPresetFavoriteFromXml(*child);
+
+    return false;
 }
 
 juce::StringArray splitUserPresetTags(juce::String text)
@@ -2146,6 +2202,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     setResizeLimits(editorMinWidth, initialEditorHeight, editorMaxWidth, initialEditorHeight);
     setSize(editorDefaultWidth, initialEditorHeight);
     chipSettingsSnapshots.resize(static_cast<size_t>(chipper::parameters::chipModeChoices().size()));
+    loadPresetFavorites();
 
     const auto blockLogo = []()
     {
@@ -2212,7 +2269,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     playModeBox.addItemList(chipper::parameters::playModeChoices(), 1);
     chipModeBox.setTooltip(withMidiCc("Selects the named chip engine. Each mode shows its current verification status in the footer.", chipper::parameters::id::chipMode));
     accuracyBox.setTooltip(withMidiCc("Selects requested behavior strictness. Authentic favors chip limits, Hybrid keeps labeled musical helpers, and Inspired permits looser conveniences. The footer verification badge is the implementation claim.", chipper::parameters::id::accuracy));
-    presetFilterBox.setTooltip("Filter factory presets and metadata-bearing user presets by role, engine, or chip-feature tag.");
+    presetFilterBox.setTooltip("Filter factory presets and metadata-bearing user presets by favorites, role, engine, or chip-feature tag.");
     presetSearchBox.setTooltip("Search factory and user presets by name, category, chip role, engine, tags, or note text.");
     presetBox.setTooltip("Browse factory and user presets for the selected chip mode. Choosing one applies the sound immediately.");
     macroBox.setTooltip(withMidiCc("Internal preset recipe. Factory/user presets set this automatically for chip-native defaults.", chipper::parameters::id::macro));
@@ -2231,6 +2288,14 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addAndMakeVisible(presetFilterBox);
     addAndMakeVisible(presetSearchBox);
     addAndMakeVisible(presetBox);
+    presetFavoriteButton.setButtonText("Fav");
+    presetFavoriteButton.setClickingTogglesState(false);
+    presetFavoriteButton.setTooltip("Favorite the selected factory or user preset for faster browsing.");
+    presetFavoriteButton.onClick = [this]
+    {
+        setSelectedPresetFavorite(! selectedPresetIsFavorite());
+    };
+    addAndMakeVisible(presetFavoriteButton);
     userPresetLoadButton.setButtonText("Load");
     userPresetLoadButton.setTooltip("Import a shareable .chipperpreset file from any folder.");
     userPresetLoadButton.onClick = [this] { chooseUserPresetToLoad(); };
@@ -3510,8 +3575,8 @@ void ChipperAudioProcessorEditor::applyChipTheme()
     styleCombo(oplWaveformBox);
     styleCombo(opllInstrumentBox);
 
-    for (auto* button : std::array<juce::TextButton*, 5> {
-             &userPresetLoadButton, &userPresetSaveButton, &userPresetSaveAsButton,
+    for (auto* button : std::array<juce::TextButton*, 6> {
+             &presetFavoriteButton, &userPresetLoadButton, &userPresetSaveButton, &userPresetSaveAsButton,
              &dmcSampleFileButton, &dmcSampleFolderButton })
     {
         styleButton(*button);
@@ -3618,6 +3683,7 @@ void ChipperAudioProcessorEditor::resized()
 
     constexpr auto headerGap = 8;
     constexpr auto compactGap = 4;
+    constexpr auto favoriteButtonWidth = 42;
     constexpr auto loadButtonWidth = 46;
     constexpr auto saveButtonWidth = 56;
     constexpr auto saveAsButtonWidth = 72;
@@ -3627,7 +3693,8 @@ void ChipperAudioProcessorEditor::resized()
     constexpr auto presetMinWidth = 148;
     constexpr auto presetMaxWidth = 330;
 
-    const auto fixedHeaderWidth = compactGap + loadButtonWidth
+    const auto fixedHeaderWidth = compactGap + favoriteButtonWidth
+        + compactGap + loadButtonWidth
         + compactGap + saveButtonWidth
         + compactGap + saveAsButtonWidth
         + headerGap + chipModeWidth
@@ -3647,6 +3714,8 @@ void ChipperAudioProcessorEditor::resized()
         presetRow.removeFromLeft(compactGap);
         presetBox.setBounds(presetRow);
     }
+    top.removeFromLeft(4);
+    presetFavoriteButton.setBounds(top.removeFromLeft(favoriteButtonWidth).withTrimmedTop(20).reduced(0, 4));
     top.removeFromLeft(4);
     userPresetLoadButton.setBounds(top.removeFromLeft(loadButtonWidth).withTrimmedTop(20).reduced(0, 4));
     top.removeFromLeft(4);
@@ -5111,6 +5180,7 @@ bool ChipperAudioProcessorEditor::selectPresetFilterForLayoutTest(const juce::St
             case PresetFilterKind::role: return normalizedKind == "role";
             case PresetFilterKind::engine: return normalizedKind == "engine";
             case PresetFilterKind::tag: return normalizedKind == "tag";
+            case PresetFilterKind::favorite: return normalizedKind == "favorite" || normalizedKind == "favorites";
             case PresetFilterKind::all: break;
         }
 
@@ -5129,6 +5199,24 @@ bool ChipperAudioProcessorEditor::selectPresetFilterForLayoutTest(const juce::St
     }
 
     return false;
+}
+
+void ChipperAudioProcessorEditor::clearPresetFavoritesForLayoutTest()
+{
+    favoriteFactoryPresetIds.clear();
+    favoriteUserPresetPaths.clear();
+    updatePresetChoices(displayedMode);
+}
+
+bool ChipperAudioProcessorEditor::setFactoryPresetFavoriteForLayoutTest(const juce::String& presetId, bool shouldBeFavorite)
+{
+    const auto* preset = chipper::presetById(presetId.toStdString());
+    if (preset == nullptr)
+        return false;
+
+    setFavoriteListContains(favoriteFactoryPresetIds, presetId, shouldBeFavorite);
+    updatePresetChoices(displayedMode);
+    return true;
 }
 
 bool ChipperAudioProcessorEditor::userPresetMetadataMatchesFilterForLayoutTest(const juce::String& kind,
@@ -6019,6 +6107,21 @@ void ChipperAudioProcessorEditor::updatePresetFilterChoices(chipper::ChipMode mo
     std::vector<PendingFilter> roles;
     std::vector<PendingFilter> engines;
     std::vector<PendingFilter> tags;
+    std::vector<PendingFilter> favorites;
+
+    const auto favoriteCount = std::count_if(allDisplayedPresets.begin(),
+                                             allDisplayedPresets.end(),
+                                             [this](const chipper::PresetInfo* preset)
+                                             {
+                                                 return preset != nullptr && isFactoryPresetFavorite(*preset);
+                                             })
+        + std::count_if(allDisplayedUserPresets.begin(),
+                        allDisplayedUserPresets.end(),
+                        [this](const UserPresetFile& preset)
+                        {
+                            return isUserPresetFavorite(preset);
+                        });
+    appendUnique(favorites, PresetFilterKind::favorite, "favorites", "Favorites", static_cast<int>(favoriteCount));
 
     constexpr std::array roleOrder {
         "Bass",
@@ -6172,12 +6275,13 @@ void ChipperAudioProcessorEditor::updatePresetFilterChoices(chipper::ChipMode mo
 
     const auto previousFilter = activePresetFilterChoice();
     std::vector<PresetFilterChoice> nextFilters;
-    nextFilters.reserve(roles.size() + engines.size() + tags.size());
+    nextFilters.reserve(favorites.size() + roles.size() + engines.size() + tags.size());
     const auto appendChoices = [&nextFilters](const std::vector<PendingFilter>& filters)
     {
         for (const auto& filter : filters)
             nextFilters.push_back({ filter.kind, filter.value });
     };
+    appendChoices(favorites);
     appendChoices(roles);
     appendChoices(engines);
     appendChoices(tags);
@@ -6203,6 +6307,7 @@ void ChipperAudioProcessorEditor::updatePresetFilterChoices(chipper::ChipMode mo
         for (const auto& filter : filters)
             presetFilterBox.addItem(filter.label + " (" + juce::String(filter.count) + ")", nextId++);
     };
+    addFilterGroup("Favorites", favorites);
     addFilterGroup("Roles", roles);
     addFilterGroup("Engines", engines);
     addFilterGroup("Tags", tags);
@@ -6221,7 +6326,7 @@ void ChipperAudioProcessorEditor::updatePresetFilterChoices(chipper::ChipMode mo
         presetFilterBox.setSelectedId(1, juce::dontSendNotification);
     }
 
-    presetFilterBox.setTooltip("Filter factory presets and metadata-bearing user presets by role, engine, or chip-feature tag. "
+    presetFilterBox.setTooltip("Filter factory presets and metadata-bearing user presets by favorites, role, engine, or chip-feature tag. "
                                + juce::String("Current filter: ")
                                + activePresetFilterDescription()
                                + ". User presets remain portable .chipperpreset files.");
@@ -6245,6 +6350,7 @@ juce::String ChipperAudioProcessorEditor::activePresetFilterDescription() const
     const auto filter = activePresetFilterChoice();
     switch (filter.kind)
     {
+        case PresetFilterKind::favorite: return "Favorites";
         case PresetFilterKind::role: return "Role: " + filter.value;
         case PresetFilterKind::engine: return "Engine: " + filter.value;
         case PresetFilterKind::tag: return "Tag: " + filter.value;
@@ -6265,6 +6371,9 @@ bool ChipperAudioProcessorEditor::factoryPresetMatchesActiveFilter(const chipper
     auto metadataMatches = true;
     switch (filter.kind)
     {
+        case PresetFilterKind::favorite:
+            metadataMatches = isFactoryPresetFavorite(preset);
+            break;
         case PresetFilterKind::role:
             metadataMatches = filter.value == juce::String(chipper::presetRoleFor(preset));
             break;
@@ -6327,6 +6436,9 @@ bool ChipperAudioProcessorEditor::userPresetMatchesActiveFilter(const UserPreset
     auto metadataMatches = true;
     switch (filter.kind)
     {
+        case PresetFilterKind::favorite:
+            metadataMatches = isUserPresetFavorite(preset);
+            break;
         case PresetFilterKind::role:
             metadataMatches = preset.role == filter.value;
             break;
@@ -6382,6 +6494,7 @@ void ChipperAudioProcessorEditor::refreshPresetBrowserReadout(chipper::ChipMode 
     presetSearchBox.setTooltip(searchActive
                                    ? "Searching presets for: " + searchText
                                    : "Search factory and user presets by name, category, chip role, engine, tags, or note text.");
+    updatePresetFavoriteButton();
 }
 
 void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
@@ -6448,6 +6561,163 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
     refreshPresetBrowserReadout(mode);
 }
 
+void ChipperAudioProcessorEditor::loadPresetFavorites()
+{
+    favoriteFactoryPresetIds.clear();
+    favoriteUserPresetPaths.clear();
+
+    const std::unique_ptr<juce::XmlElement> root(juce::XmlDocument::parse(presetFavoritesFile()));
+    if (root == nullptr || ! root->hasTagName("ChipperPresetFavorites"))
+        return;
+
+    for (const auto* child : root->getChildIterator())
+    {
+        if (child == nullptr)
+            continue;
+
+        if (child->hasTagName("Factory"))
+            setFavoriteListContains(favoriteFactoryPresetIds, child->getStringAttribute("id"), true);
+        else if (child->hasTagName("User"))
+            setFavoriteListContains(favoriteUserPresetPaths, child->getStringAttribute("path"), true);
+    }
+}
+
+void ChipperAudioProcessorEditor::savePresetFavorites() const
+{
+    juce::XmlElement root("ChipperPresetFavorites");
+    root.setAttribute("formatVersion", 1);
+
+    for (const auto& id : favoriteFactoryPresetIds)
+    {
+        auto* child = root.createNewChildElement("Factory");
+        child->setAttribute("id", id);
+    }
+
+    for (const auto& path : favoriteUserPresetPaths)
+    {
+        auto* child = root.createNewChildElement("User");
+        child->setAttribute("path", path);
+    }
+
+    const auto file = presetFavoritesFile();
+    if (file.getParentDirectory().createDirectory().failed())
+        return;
+
+    file.replaceWithText(root.toString(), true, false);
+}
+
+bool ChipperAudioProcessorEditor::isFactoryPresetFavorite(const chipper::PresetInfo& preset) const
+{
+    return favoriteListContains(favoriteFactoryPresetIds, juce::String(preset.id));
+}
+
+bool ChipperAudioProcessorEditor::isUserPresetFavorite(const UserPresetFile& preset) const
+{
+    return preset.favorite || favoriteListContains(favoriteUserPresetPaths, normalizedFavoritePath(preset.file));
+}
+
+bool ChipperAudioProcessorEditor::selectedPresetCanBeFavorited() const
+{
+    const auto selectedId = presetBox.getSelectedId();
+    const auto selectedFactoryPreset = selectedId - 1;
+    if (selectedFactoryPreset >= 0 && static_cast<size_t>(selectedFactoryPreset) < displayedPresets.size())
+        return displayedPresets[static_cast<size_t>(selectedFactoryPreset)] != nullptr;
+
+    const auto selectedUserPreset = selectedId - userPresetItemIdBase;
+    return selectedUserPreset >= 0 && static_cast<size_t>(selectedUserPreset) < displayedUserPresets.size();
+}
+
+bool ChipperAudioProcessorEditor::selectedPresetIsFavorite() const
+{
+    const auto selectedId = presetBox.getSelectedId();
+    const auto selectedFactoryPreset = selectedId - 1;
+    if (selectedFactoryPreset >= 0 && static_cast<size_t>(selectedFactoryPreset) < displayedPresets.size())
+    {
+        const auto* preset = displayedPresets[static_cast<size_t>(selectedFactoryPreset)];
+        return preset != nullptr && isFactoryPresetFavorite(*preset);
+    }
+
+    const auto selectedUserPreset = selectedId - userPresetItemIdBase;
+    if (selectedUserPreset >= 0 && static_cast<size_t>(selectedUserPreset) < displayedUserPresets.size())
+        return isUserPresetFavorite(displayedUserPresets[static_cast<size_t>(selectedUserPreset)]);
+
+    return false;
+}
+
+void ChipperAudioProcessorEditor::setSelectedPresetFavorite(bool shouldBeFavorite)
+{
+    const auto selectedId = presetBox.getSelectedId();
+    const auto selectedFactoryPreset = selectedId - 1;
+    juce::String selectedFactoryId;
+    juce::File selectedUserFile;
+    if (selectedFactoryPreset >= 0 && static_cast<size_t>(selectedFactoryPreset) < displayedPresets.size())
+    {
+        if (const auto* preset = displayedPresets[static_cast<size_t>(selectedFactoryPreset)])
+        {
+            selectedFactoryId = juce::String(preset->id);
+            setFavoriteListContains(favoriteFactoryPresetIds, juce::String(preset->id), shouldBeFavorite);
+        }
+    }
+    else
+    {
+        const auto selectedUserPreset = selectedId - userPresetItemIdBase;
+        if (selectedUserPreset < 0 || static_cast<size_t>(selectedUserPreset) >= displayedUserPresets.size())
+        {
+            updatePresetFavoriteButton();
+            return;
+        }
+
+        auto& preset = displayedUserPresets[static_cast<size_t>(selectedUserPreset)];
+        selectedUserFile = preset.file;
+        preset.favorite = shouldBeFavorite;
+        setFavoriteListContains(favoriteUserPresetPaths, normalizedFavoritePath(preset.file), shouldBeFavorite);
+    }
+
+    savePresetFavorites();
+    updatePresetChoices(displayedMode);
+    {
+        const juce::ScopedValueSetter<bool> suppress(suppressPresetApply, true);
+        if (selectedFactoryId.isNotEmpty())
+        {
+            for (size_t i = 0; i < displayedPresets.size(); ++i)
+            {
+                if (displayedPresets[i] != nullptr && juce::String(displayedPresets[i]->id) == selectedFactoryId)
+                {
+                    presetBox.setSelectedId(static_cast<int>(i + 1u), juce::dontSendNotification);
+                    break;
+                }
+            }
+        }
+        else if (selectedUserFile != juce::File {})
+        {
+            for (size_t i = 0; i < displayedUserPresets.size(); ++i)
+            {
+                if (displayedUserPresets[i].file == selectedUserFile)
+                {
+                    presetBox.setSelectedId(userPresetItemIdBase + static_cast<int>(i), juce::dontSendNotification);
+                    break;
+                }
+            }
+        }
+    }
+    updatePresetFavoriteButton();
+    updateLiveControlReadouts();
+}
+
+void ChipperAudioProcessorEditor::updatePresetFavoriteButton()
+{
+    const auto canFavorite = selectedPresetCanBeFavorited();
+    const auto isFavorite = canFavorite && selectedPresetIsFavorite();
+    presetFavoriteButton.setEnabled(canFavorite);
+    presetFavoriteButton.setAlpha(canFavorite ? 1.0f : 0.55f);
+    presetFavoriteButton.setToggleState(isFavorite, juce::dontSendNotification);
+    presetFavoriteButton.setTooltip(canFavorite
+                                        ? (isFavorite
+                                               ? "Remove the selected preset from Favorites."
+                                               : "Add the selected preset to Favorites for faster browsing.")
+                                        : "Select a factory or user preset before using Favorites.");
+}
+
 void ChipperAudioProcessorEditor::reloadUserPresetFiles(chipper::ChipMode mode)
 {
     allDisplayedUserPresets.clear();
@@ -6479,7 +6749,8 @@ void ChipperAudioProcessorEditor::reloadUserPresetFiles(chipper::ChipMode mode)
                                                 userPresetAttributeFromXml(*root, "engine"),
                                                 userPresetTagsFromXml(*root),
                                                 userPresetAttributeFromXml(*root, "note"),
-                                                userPresetAttributeFromXml(*root, "source") });
+                                                userPresetAttributeFromXml(*root, "source"),
+                                                userPresetFavoriteFromXml(*root) });
     };
 
     const auto directory = defaultUserPresetDirectory();
@@ -6787,6 +7058,7 @@ void ChipperAudioProcessorEditor::loadUserPresetFile(const juce::File& file)
         }
     }
     updateLiveControlReadouts();
+    updatePresetFavoriteButton();
     macroSummaryLabel.setText("Loaded user preset: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
     macroSummaryLabel.setTooltip("Loaded from " + file.getFullPathName());
 }
@@ -6852,6 +7124,10 @@ void ChipperAudioProcessorEditor::saveUserPresetFile(const juce::File& file)
     presetXml.setAttribute("pluginVersion", chipperPluginVersionString);
     presetXml.setAttribute("name", presetName);
     presetXml.setAttribute("chip", chipper::toString(displayedMode));
+    const auto savedPresetIsFavorite = selectedPresetIsFavorite()
+        || (currentUserPresetFile != juce::File {}
+            && favoriteListContains(favoriteUserPresetPaths, normalizedFavoritePath(currentUserPresetFile)))
+        || favoriteListContains(favoriteUserPresetPaths, normalizedFavoritePath(file));
     if (metadataPreset != nullptr)
     {
         const auto role = chipper::presetRoleFor(*metadataPreset);
@@ -6862,6 +7138,7 @@ void ChipperAudioProcessorEditor::saveUserPresetFile(const juce::File& file)
         presetXml.setAttribute("tags", tags);
         presetXml.setAttribute("note", juce::String(metadataPreset->note));
         presetXml.setAttribute("source", metadataSource);
+        presetXml.setAttribute("favorite", savedPresetIsFavorite ? "true" : "false");
         if (metadataSource.contains("factory preset: "))
             presetXml.setAttribute("factoryPresetId", juce::String(metadataPreset->id));
     }
@@ -6885,6 +7162,8 @@ void ChipperAudioProcessorEditor::saveUserPresetFile(const juce::File& file)
     }
 
     currentUserPresetFile = file;
+    setFavoriteListContains(favoriteUserPresetPaths, normalizedFavoritePath(file), savedPresetIsFavorite);
+    savePresetFavorites();
     userPresetSaveButton.setTooltip("Save changes back to " + file.getFileName()
                                     + "\nUser presets are portable .chipperpreset files.");
     reloadUserPresetFiles(displayedMode);
@@ -7112,6 +7391,7 @@ void ChipperAudioProcessorEditor::applyInitPreset()
         presetBox.setSelectedId(initPresetItemId, juce::dontSendNotification);
     }
     presetBox.setTooltip("Init Patch: neutral chip-local starting point for " + juce::String(chipper::toString(displayedMode)) + ".");
+    updatePresetFavoriteButton();
     macroSummaryLabel.setText("Init Patch: neutral " + juce::String(chipper::toString(displayedMode)) + " starting point",
                               juce::dontSendNotification);
     macroSummaryLabel.setTooltip("Init Patch resets the current chip's sound controls while preserving the current Strictness and supported Play Mode.");
@@ -7252,6 +7532,7 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
     }
 
     presetBox.setTooltip(juce::String(preset.name) + ": " + juce::String(preset.note));
+    updatePresetFavoriteButton();
     updateLiveControlReadouts();
 }
 
@@ -11819,6 +12100,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     presetFilterBox.setEnabled(hasLiveCore);
     presetSearchBox.setEnabled(hasLiveCore);
     presetBox.setEnabled(hasLiveCore);
+    presetFavoriteButton.setEnabled(hasLiveCore && selectedPresetCanBeFavorited());
     headerControlLabels[3].setVisible(false);
     macroBox.setVisible(false);
     macroBox.setEnabled(false);
@@ -11832,6 +12114,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     clockSlider.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     presetFilterBox.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     presetSearchBox.setAlpha(hasLiveCore ? 1.0f : 0.55f);
+    updatePresetFavoriteButton();
     dmcDirectLabel.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);
     dmcDirectSlider.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);
     dmcRateLabel.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);

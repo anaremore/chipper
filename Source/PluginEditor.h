@@ -165,7 +165,11 @@ public:
     juce::String getPresetFilterTextForLayoutTest() const { return presetFilterBox.getText(); }
     juce::Rectangle<int> getPresetSearchBoundsForLayoutTest() const { return presetSearchBox.getBounds(); }
     juce::String getPresetSearchTextForLayoutTest() const { return presetSearchBox.getText(); }
+    juce::Rectangle<int> getPresetFavoriteBoundsForLayoutTest() const { return presetFavoriteButton.getBounds(); }
+    bool getPresetFavoriteToggleStateForLayoutTest() const { return presetFavoriteButton.getToggleState(); }
     bool selectPresetFilterForLayoutTest(const juce::String& kind, const juce::String& value);
+    void clearPresetFavoritesForLayoutTest();
+    bool setFactoryPresetFavoriteForLayoutTest(const juce::String& presetId, bool shouldBeFavorite);
     void setPresetSearchTextForLayoutTest(const juce::String& text)
     {
         presetSearchBox.setText(text, false);
@@ -342,6 +346,7 @@ private:
     enum class PresetFilterKind
     {
         all,
+        favorite,
         role,
         engine,
         tag
@@ -359,6 +364,14 @@ private:
     bool userPresetMatchesActiveFilter(const UserPresetFile& preset) const;
     bool userPresetMatchesActiveSearch(const UserPresetFile& preset) const;
     void refreshPresetBrowserReadout(chipper::ChipMode mode);
+    void loadPresetFavorites();
+    void savePresetFavorites() const;
+    bool isFactoryPresetFavorite(const chipper::PresetInfo& preset) const;
+    bool isUserPresetFavorite(const UserPresetFile& preset) const;
+    bool selectedPresetCanBeFavorited() const;
+    bool selectedPresetIsFavorite() const;
+    void setSelectedPresetFavorite(bool shouldBeFavorite);
+    void updatePresetFavoriteButton();
     void reloadUserPresetFiles(chipper::ChipMode mode);
     void updateSegmentedControlSpecs(chipper::ChipMode mode);
     void storeChipSettingsSnapshot(chipper::ChipMode mode);
@@ -621,6 +634,7 @@ private:
     juce::ComboBox presetFilterBox;
     juce::TextEditor presetSearchBox;
     juce::ComboBox presetBox;
+    juce::TextButton presetFavoriteButton;
     juce::TextButton userPresetLoadButton;
     juce::TextButton userPresetSaveButton;
     juce::TextButton userPresetSaveAsButton;
@@ -636,6 +650,7 @@ private:
         juce::StringArray tags;
         juce::String note;
         juce::String source;
+        bool favorite = false;
     };
 
     struct ChipSettingsSnapshot
@@ -701,6 +716,8 @@ private:
     std::vector<UserPresetFile> allDisplayedUserPresets;
     std::vector<UserPresetFile> displayedUserPresets;
     std::vector<PresetFilterChoice> presetFilterChoices;
+    juce::StringArray favoriteFactoryPresetIds;
+    juce::StringArray favoriteUserPresetPaths;
     std::vector<ChipSettingsSnapshot> chipSettingsSnapshots;
     bool descriptorTextInitialized = false;
     int displayedDmcSampleCount = -1;

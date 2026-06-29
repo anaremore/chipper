@@ -222,7 +222,7 @@ Roadmap preset targets, kept as product direction until their chip cores exist:
 
 Current single-screen shell:
 
-- **Header:** ASCII logo, preset browser, Load/Save/Save As, Chip Mode, Strictness, and Play Mode.
+- **Header:** ASCII logo, preset browser with search/filter/favorites, Load/Save/Save As, Chip Mode, Strictness, and Play Mode.
 - **Chip summary:** one concise implementation/status sentence for the active chip.
 - **Sources:** chip-native channels, voices, lanes, operators, or sample slots with their owned controls.
 - **Chip edit workspace:** tone, shape, filter, operator, envelope, sample-bank, loop, routing, and chip-specific utility controls.
