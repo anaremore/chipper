@@ -620,8 +620,8 @@ bool expectEnvelopeModels()
                  "SPC700 envelope module should expose native S-DSP ADSR/GAIN wording");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2612).modules[3].title == "Operator EG",
                  "YM2612 envelope module should expose native operator EG wording");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2413).modules[3].title == "ROM Envelope",
-                 "YM2413 envelope module should expose ROM envelope wording until custom patch EG exists");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2413).modules[3].title == "ROM / User EG",
+                 "YM2413 envelope module should expose ROM and user patch EG wording");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::pokey).modules[3].title == "AUDV Gate",
                  "POKEY envelope module should name the AUDV helper path and avoid ADSR wording");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::paula).modules[3].title == "Tracker Amp Env",
@@ -1051,6 +1051,29 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::ym2413InstrumentForPatch(opllExplicitBell) == 12u, "YM2413 explicit Vibes choice should resolve to OPLL instrument 12");
     ok &= expect(chipper::ym2413VolumeNibbleForPatch(opllExplicitBell, 1) == 11u, "YM2413 helper should include source trim in volume nibble");
 
+    auto opllCustom = chipper::makePatchConfig(chipper::ChipMode::ym2413,
+                                               chipper::MacroKind::lead,
+                                               0.0f,
+                                               0.0f,
+                                               0.42f,
+                                               0.72f);
+    opllCustom.fmOperatorLevels = { 0.72f, 0.68f, 0.5f, 0.5f };
+    opllCustom.fmOperatorMultipliers = { 4, 2, 0, 0 };
+    opllCustom.fmOperatorAttackRates = { 16, 15, 0, 0 };
+    opllCustom.fmOperatorDecayRates = { 8, 6, 0, 0 };
+    opllCustom.fmOperatorSustainRates = { 5, 6, 0, 0 };
+    opllCustom.fmOperatorReleaseRates = { 7, 5, 0, 0 };
+    const auto opllCustomBytes = chipper::opllCustomPatchBytesForPatch(opllCustom);
+    ok &= expect(chipper::opllCustomPatchEnabledForPatch(opllCustom), "OPLL custom patch helper should activate slot 0 when operator controls move");
+    ok &= expect(chipper::ym2413InstrumentForPatch(opllCustom) == 0u, "YM2413 custom patch should resolve to user instrument slot 0");
+    ok &= expect(chipper::vrc7InstrumentForPatch(opllCustom) == 0u, "VRC7 custom patch should resolve to user instrument slot 0");
+    ok &= expect(chipper::ym2413VolumeNibbleForPatch(opllCustom, 0) == 2u, "YM2413 custom carrier trim should affect volume nibble");
+    ok &= expect(chipper::vrc7VolumeNibbleForPatch(opllCustom, 0) == 2u, "VRC7 custom carrier trim should affect volume nibble");
+    ok &= expect(opllCustomBytes[0] == 35u && opllCustomBytes[1] == 33u && opllCustomBytes[2] == 12u && opllCustomBytes[3] == 4u,
+                 "OPLL custom patch helper should pack multiple, total-level, and feedback bytes");
+    ok &= expect(opllCustomBytes[4] == 247u && opllCustomBytes[5] == 229u && opllCustomBytes[6] == 70u && opllCustomBytes[7] == 84u,
+                 "OPLL custom patch helper should pack AR/DR/SL/RR bytes");
+
     return ok;
 }
 
@@ -1397,7 +1420,7 @@ int main()
     ok &= expectSegmentedRegister(chipper::ChipMode::nesVrc7, chipper::ChipParameterRole::pulse2Duty, 5, "Preset");
     ok &= expectSpec(chipper::ChipMode::nesVrc7, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Instrument Bias");
     ok &= expectSpec(chipper::ChipMode::nesVrc7, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Instrument");
-    ok &= expectChoiceRegister(chipper::ChipMode::nesVrc7, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 16, "Preset");
+    ok &= expectChoiceRegister(chipper::ChipMode::nesVrc7, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 16, "Preset/Custom");
     ok &= expectSpec(chipper::ChipMode::nesVrc7, chipper::ChipParameterRole::source4Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "VRC7 Ch 1");
     ok &= expectSpec(chipper::ChipMode::nesVrc7, chipper::ChipParameterRole::source9Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "VRC7 Ch 6");
     ok &= expectSpec(chipper::ChipMode::nesVrc7, chipper::ChipParameterRole::source4Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "VRC7 Ch 1 Level");
@@ -1931,8 +1954,13 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2610b, chipper::ChipParameterRole::source9Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "OPNB2 SSG C Level");
     ok &= expectMacroLabel(chipper::ChipMode::ym2413, chipper::MacroKind::coin, "OPLL UI Chime");
     ok &= expectPreset(chipper::ChipMode::ym2413, "opll-soft-keys");
+    ok &= expectPreset(chipper::ChipMode::ym2413, "opll-custom-bass");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Instrument");
-    ok &= expectChoiceRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 16, "Preset");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 16, "Preset/Custom");
+    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::fmOperator1Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Mod Level");
+    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::fmOperator2Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Car Level");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::fmOperator1Multiplier, chipper::ControlSurface::menu, 17, "Follow");
+    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::fmOperator2AttackRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Car Attack");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Rhythm Mode");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::ymEnvelopeShape, 3, "Preset");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPLL Ch 9");

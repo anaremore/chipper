@@ -110,7 +110,7 @@ Implemented depth varies by chip. See [docs/emulation-accuracy.md](docs/emulatio
 | PC Engine HuC6280 | Partial clean-room wavetable/noise model with six lanes and partial Ch 1/2 FM-LFO pairing |
 | Namco arcade WSG | Partial clean-room wavetable model |
 | YM2151 / OPM | Verified-partial BSD-3-Clause `ymfm` OPM adapter with eight lanes, pan, and first channel-8 noise control |
-| YM2413 / OPLL | Verified-partial MIT `emu2413` preset-FM adapter |
+| YM2413 / OPLL | Verified-partial MIT `emu2413` preset/custom-FM adapter with editable user patch slot 0, native rhythm mode, and original OPLL presets |
 | Konami SCC | Verified-partial MIT `emu2212` wavetable adapter |
 
 ## Build

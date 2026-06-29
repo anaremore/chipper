@@ -64,7 +64,7 @@ Planning-only cleanup should not become its own backlog. If no current build rep
 
 3. **FM Operator Editor**
    - User value: very high for FM users. Macros are useful starts, but serious FM patches require operator access.
-   - Chips: YM2612/OPN2, YM2151/OPM, OPL2/OPL3, YM2413/OPLL custom patch.
+   - Chips: YM2612/OPN2, YM2151/OPM, OPL2/OPL3, and YM2413/OPLL user-patch/rhythm refinement.
    - Scope: algorithm, feedback, operator enable/mute, level, ratio/multiple, detune, attack, decay, sustain/level, release, key scale, velocity response, and clear output-operator highlighting.
    - Non-goal: do not treat the old held-note fade-out as open design work unless it reproduces. FM editor slices must keep held-tail tests green while adding depth.
 

@@ -2255,6 +2255,8 @@ public:
 
         if (hasFds())
             refreshFdsWaveRam();
+        if (hasVrc7())
+            applyVrc7CustomPatchIfNeeded();
     }
 
     void setExternalSampleData(std::vector<uint8_t> data) override
@@ -2591,7 +2593,7 @@ public:
         if (hasMmc5())
             return "Base RP2A03 pulse, triangle, noise, DMC, nonlinear mixer, and output filters use the existing partial clean-room NES model. The MMC5 expansion lanes are clean-room extra pulse oscillators plus a conservative PCM/DAC thump lane with source-card gating, Chip Poly allocation across pitched lanes, pseudo-register export for $5000-$5007 and $5011, and conservative expansion mixing; exact MMC5 mapper timing, PCM read mode, IRQ behavior, expansion mixing resistor values, and hardware validation are not complete.";
         if (hasVrc7())
-            return "Base RP2A03 pulse and triangle lanes use the existing partial clean-room NES model while the six VRC7 expansion melodic lanes use the vendored MIT emu2413 OPLL core with the VRC7 patch table. This first slice exposes nine source-card lanes, source gating, Chip Poly allocation across pulse 1, pulse 2, triangle, and six VRC7 melodic lanes, pseudo-register export through $9010/$9030, and conservative expansion mixing. NES noise/DMC lanes, VRC7 custom patch editing, exact mapper bus timing, native expansion mixer calibration, golden emulator comparison, and hardware validation are not complete.";
+            return "Base RP2A03 pulse and triangle lanes use the existing partial clean-room NES model while the six VRC7 expansion melodic lanes use the vendored MIT emu2413 OPLL core with the VRC7 patch table and editable user-patch slot 0. This first slice exposes nine source-card lanes, source gating, Chip Poly allocation across pulse 1, pulse 2, triangle, and six VRC7 melodic lanes, pseudo-register export through $9010/$9030, and conservative expansion mixing. NES noise/DMC lanes, VRC7 rhythm behavior, exact mapper bus timing, native expansion mixer calibration, golden emulator comparison, and hardware validation are not complete.";
         return "Pulse, triangle, noise, timers, duty including explicit pulse 2 duty override, enable bits, simple envelopes, length counters, triangle linear counter, DMC direct DAC level, external DPCM byte stepping, basic pulse sweep updates/muting, $4017 frame-counter mode/inhibit behavior, nonlinear mixer, the documented NES output filter chain, and pulse/triangle allocation for Chip Poly play mode are approximated; exact DMC DMA/address/IRQ timing, exact frame sequencer cycle timing, advanced sweep edge cases, and hardware validation are not complete.";
     }
 
@@ -2715,6 +2717,19 @@ public:
                  << "\"sourceLevel9\":" << sourceLevel(patch, 8) << ","
                  << "\"vrc7ClockHz\":" << vrc7ClockHz() << ","
                  << "\"vrc7InstrumentChoice\":" << std::clamp(patch.waveShape, 0, 15) << ","
+                 << "\"vrc7CustomPatchEnabled\":" << (opllCustomPatchEnabledForPatch(patch) ? 1 : 0) << ","
+                 << "\"vrc7CustomPatchByte0\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[0]) << ","
+                 << "\"vrc7CustomPatchByte1\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[1]) << ","
+                 << "\"vrc7CustomPatchByte2\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[2]) << ","
+                 << "\"vrc7CustomPatchByte3\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[3]) << ","
+                 << "\"vrc7CustomPatchByte4\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[4]) << ","
+                 << "\"vrc7CustomPatchByte5\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[5]) << ","
+                 << "\"vrc7CustomPatchByte6\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[6]) << ","
+                 << "\"vrc7CustomPatchByte7\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[7]) << ","
+                 << "\"vrc7CustomModulatorMultiple\":" << static_cast<int>(opllOperatorMultipleForPatch(patch, 0)) << ","
+                 << "\"vrc7CustomCarrierMultiple\":" << static_cast<int>(opllOperatorMultipleForPatch(patch, 1)) << ","
+                 << "\"vrc7CustomModulatorTotalLevel\":" << static_cast<int>(opllModulatorTotalLevelForPatch(patch)) << ","
+                 << "\"vrc7CustomFeedback\":" << static_cast<int>(opllFeedbackForPatch(patch)) << ","
                  << "\"vrc7Instrument0\":" << static_cast<int>(vrc7CurrentPatch[0]) << ","
                  << "\"vrc7Instrument5\":" << static_cast<int>(vrc7CurrentPatch[5]) << ","
                  << "\"vrc7Fnum0\":" << vrc7CurrentFnum[0] << ","
@@ -3985,30 +4000,16 @@ private:
 
     uint8_t vrc7InstrumentForPatch() const
     {
-        if (patch.waveShape > 0)
-            return static_cast<uint8_t>(std::clamp(patch.waveShape, 1, 15));
-
-        switch (patch.macro)
-        {
-            case MacroKind::coin: return 1;
-            case MacroKind::bass: return 13;
-            case MacroKind::lead: return 7;
-            case MacroKind::arp: return 8;
-            case MacroKind::drum: return 15;
-            case MacroKind::hit: return 10;
-            case MacroKind::laser: return 10;
-            case MacroKind::jump: return 1;
-            case MacroKind::powerUp: return 4;
-            case MacroKind::manual:
-            default: break;
-        }
-        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clamp01(patch.control3) * 14.0)) + 1, 1, 15));
+        return ::chipper::vrc7InstrumentForPatch(patch);
     }
 
     uint8_t vrc7VolumeForChannel(size_t channel, float velocity) const
     {
         const auto sourceIndex = 3u + channel;
-        const auto musicalLevel = clamp01(patch.control4) * clamp01(velocity) * sourceLevel(patch, sourceIndex);
+        const auto carrierTrim = opllCustomPatchEnabledForPatch(patch)
+            ? std::clamp(0.5f + static_cast<float>(clamp01(patch.fmOperatorLevels[1])), 0.25f, 1.5f)
+            : 1.0f;
+        const auto musicalLevel = std::clamp(static_cast<float>(clamp01(patch.control4) * clamp01(velocity) * sourceLevel(patch, sourceIndex) * carrierTrim), 0.0f, 1.0f);
         return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0 - musicalLevel) * 15.0)), 0, 15));
     }
 
@@ -4020,6 +4021,16 @@ private:
             OPLL_writeReg(vrc7Opll, clippedReg, value);
     }
 
+    void applyVrc7CustomPatchIfNeeded()
+    {
+        if (! hasVrc7() || ! opllCustomPatchEnabledForPatch(patch))
+            return;
+
+        const auto bytes = opllCustomPatchBytesForPatch(patch);
+        for (size_t reg = 0; reg < bytes.size(); ++reg)
+            writeVrc7Register(static_cast<uint8_t>(reg), bytes[reg]);
+    }
+
     void triggerVrc7Channel(size_t channel, int midiNote, float velocity, bool shouldEnable)
     {
         if (! hasVrc7() || channel >= 6u || vrc7Opll == nullptr)
@@ -4028,6 +4039,7 @@ private:
         const auto sourceIndex = 3u + channel;
         const auto detune = static_cast<int>(std::round((patch.control2 - 0.5f) * 12.0f));
         const auto pitch = vrc7PitchForNote(midiNote + detune);
+        applyVrc7CustomPatchIfNeeded();
         const auto instrument = vrc7InstrumentForPatch();
         const auto volume = vrc7VolumeForChannel(channel, velocity);
         const auto keyBit = shouldEnable && sourceEnabled(patch, sourceIndex) && volume < 15 ? 0x10u : 0x00u;
@@ -10389,6 +10401,7 @@ public:
             || ym2413RhythmModeForPatch(nextPatch) != ym2413RhythmModeForPatch(patch))
             clearChipPolyState();
         patch = nextPatch;
+        applyCustomPatchIfNeeded();
         if (! rhythmModeActive())
             writeRhythmRegister(0);
     }
@@ -10487,7 +10500,7 @@ public:
     std::string implementedAccuracy() const override { return "verified partial emu2413 register-level"; }
     std::string limitations() const override
     {
-        return "MIT-licensed emu2413 provides the OPLL synthesis core for melodic and rhythm output; Chipper currently maps musical controls to preset-instrument, f-number/block, key-on, volume, and $0E rhythm registers. Deep rhythm-kit editing, custom user patches, VRC7/YMF281 variants, and hardware comparison are not complete.";
+        return "MIT-licensed emu2413 provides the OPLL synthesis core for melodic and rhythm output; Chipper maps musical controls to preset-instrument, user-patch slot 0, f-number/block, key-on, volume, and $0E rhythm registers. Deep rhythm-kit editing, VRC7/YMF281 variants, and hardware comparison are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -10506,6 +10519,19 @@ public:
              << "\"internalChannelCount\":9,"
              << "\"exposedChannelCount\":9,"
              << "\"instrumentChoice\":" << std::clamp(patch.waveShape, 0, 15) << ","
+             << "\"customPatchEnabled\":" << (opllCustomPatchEnabledForPatch(patch) ? 1 : 0) << ","
+             << "\"customPatchByte0\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[0]) << ","
+             << "\"customPatchByte1\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[1]) << ","
+             << "\"customPatchByte2\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[2]) << ","
+             << "\"customPatchByte3\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[3]) << ","
+             << "\"customPatchByte4\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[4]) << ","
+             << "\"customPatchByte5\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[5]) << ","
+             << "\"customPatchByte6\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[6]) << ","
+             << "\"customPatchByte7\":" << static_cast<int>(opllCustomPatchBytesForPatch(patch)[7]) << ","
+             << "\"customModulatorMultiple\":" << static_cast<int>(opllOperatorMultipleForPatch(patch, 0)) << ","
+             << "\"customCarrierMultiple\":" << static_cast<int>(opllOperatorMultipleForPatch(patch, 1)) << ","
+             << "\"customModulatorTotalLevel\":" << static_cast<int>(opllModulatorTotalLevelForPatch(patch)) << ","
+             << "\"customFeedback\":" << static_cast<int>(opllFeedbackForPatch(patch)) << ","
              << "\"rhythmModeChoice\":" << std::clamp(patch.ymEnvelopeShape, 0, 2) << ","
              << "\"rhythmMode\":" << (rhythmModeActive() ? 1 : 0) << ","
              << "\"rhythmRegister\":" << static_cast<int>(regs[0x0e]) << ","
@@ -10591,7 +10617,10 @@ private:
     uint8_t volumeForChannel(size_t channel, float velocity) const
     {
         const auto trim = sourceLevel(patch, channel);
-        const auto musicalLevel = clamp01(patch.control4) * clamp01(velocity) * trim;
+        const auto carrierTrim = opllCustomPatchEnabledForPatch(patch)
+            ? std::clamp(0.5f + static_cast<float>(clamp01(patch.fmOperatorLevels[1])), 0.25f, 1.5f)
+            : 1.0f;
+        const auto musicalLevel = std::clamp(static_cast<float>(clamp01(patch.control4) * clamp01(velocity) * trim * carrierTrim), 0.0f, 1.0f);
         return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0 - musicalLevel) * 15.0)), 0, 15));
     }
 
@@ -10604,6 +10633,16 @@ private:
         OPLL_writeReg(opll, reg & 0x3fu, value);
     }
 
+    void applyCustomPatchIfNeeded()
+    {
+        if (! opllCustomPatchEnabledForPatch(patch))
+            return;
+
+        const auto bytes = opllCustomPatchBytesForPatch(patch);
+        for (size_t reg = 0; reg < bytes.size(); ++reg)
+            writeOpllRegister(static_cast<uint8_t>(reg), bytes[reg]);
+    }
+
     void triggerChannel(size_t channel, int midiNote, float velocity, bool shouldEnable)
     {
         if (channel >= 9 || opll == nullptr)
@@ -10611,6 +10650,7 @@ private:
 
         const auto detune = static_cast<int>(std::round((patch.control2 - 0.5f) * 12.0f));
         const auto pitch = pitchForNote(midiNote + detune);
+        applyCustomPatchIfNeeded();
         const auto instrument = instrumentForPatch();
         const auto volume = volumeForChannel(channel, velocity);
         const auto channelReg = static_cast<uint8_t>(channel);

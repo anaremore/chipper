@@ -998,7 +998,7 @@ std::vector<ParameterChoiceSpec> pulse2DutyChoices(std::string presetHelp)
 std::vector<ParameterChoiceSpec> ym2413InstrumentChoices()
 {
     static constexpr std::array<const char*, 16> labels {
-        "Preset",
+        "Preset/Custom",
         "Violin",
         "Guitar",
         "Piano",
@@ -1018,7 +1018,7 @@ std::vector<ParameterChoiceSpec> ym2413InstrumentChoices()
 
     std::vector<ParameterChoiceSpec> choices;
     choices.reserve(labels.size());
-    choices.push_back(choice(labels[0], "Resolve the YM2413 preset instrument from the selected OPLL preset recipe.", 0.0f, 0));
+    choices.push_back(choice(labels[0], "Resolve the YM2413 preset instrument from the selected OPLL recipe; if operator overrides are changed, use editable user patch slot 0.", 0.0f, 0));
 
     for (size_t instrument = 1; instrument < labels.size(); ++instrument)
     {
@@ -1034,7 +1034,7 @@ std::vector<ParameterChoiceSpec> ym2413InstrumentChoices()
 std::vector<ParameterChoiceSpec> vrc7InstrumentChoices()
 {
     static constexpr std::array<const char*, 16> labels {
-        "Preset",
+        "Preset/Custom",
         "Bell",
         "Guitar",
         "Piano",
@@ -1054,7 +1054,7 @@ std::vector<ParameterChoiceSpec> vrc7InstrumentChoices()
 
     std::vector<ParameterChoiceSpec> choices;
     choices.reserve(labels.size());
-    choices.push_back(choice(labels[0], "Resolve the VRC7 patch-table instrument from the selected NES expansion recipe.", 0.0f, 0));
+    choices.push_back(choice(labels[0], "Resolve the VRC7 patch-table instrument from the selected NES expansion recipe; if operator overrides are changed, use editable user patch slot 0.", 0.0f, 0));
 
     for (size_t instrument = 1; instrument < labels.size(); ++instrument)
     {
@@ -1951,7 +1951,7 @@ std::vector<ChipParameterSpec> ym2413ParameterSpecs()
                    "ym2413.motion",
                    "Motion",
                    "Motion",
-                   "Scales musical pitch-motion presets. Native OPLL LFO/custom patch controls are planned separately.",
+                   "Scales musical pitch-motion presets. User patch slot 0 is shaped by the Operator controls when Instrument is Preset/Custom.",
                    ParameterKind::macro),
         sliderSpec(ChipParameterRole::macroControl4,
                    "ym2413.channelVolume",
@@ -1964,13 +1964,37 @@ std::vector<ChipParameterSpec> ym2413ParameterSpecs()
           "ym2413.instrument",
           "Instrument",
           "Preset FM",
-          "Chooses a YM2413 ROM preset instrument. Preset lets the selected recipe choose the instrument.",
+          "Chooses a YM2413 ROM preset instrument. Preset/Custom lets the selected recipe choose the instrument until an operator override activates user patch slot 0.",
           ParameterKind::chipRegister,
           ControlSurface::menu,
           ym2413InstrumentChoices(),
           0.0f,
           1.0f,
           0.0f },
+        sliderSpec(ChipParameterRole::fmOperator1Level,
+                   "ym2413.custom.modulatorLevel",
+                   "Mod Level",
+                   "Operators",
+                   "Offsets the YM2413 user-patch modulator total-level field in register $02. 50% is neutral; higher is louder. Active when Instrument is Preset/Custom and an operator override is changed.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator2Level,
+                   "ym2413.custom.carrierLevel",
+                   "Car Level",
+                   "Operators",
+                   "Offsets the YM2413 carrier output by trimming channel volume registers $30-$38 when the editable user patch is active. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator1Multiplier, "ym2413.custom.modulatorMultiplier", "Mod Mult", "YM2413", 0),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator2Multiplier, "ym2413.custom.carrierMultiplier", "Car Mult", "YM2413", 1),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator1AttackRate, "ym2413.custom.modulatorAttack", "Mod Attack", "YM2413", 0),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator2AttackRate, "ym2413.custom.carrierAttack", "Car Attack", "YM2413", 1),
+        fmOperatorDecayRateSpec(ChipParameterRole::fmOperator1DecayRate, "ym2413.custom.modulatorDecay", "Mod Decay", "YM2413", 0),
+        fmOperatorDecayRateSpec(ChipParameterRole::fmOperator2DecayRate, "ym2413.custom.carrierDecay", "Car Decay", "YM2413", 1),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator1SustainRate, "ym2413.custom.modulatorSustain", "Mod Sustain", "YM2413", 0),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator2SustainRate, "ym2413.custom.carrierSustain", "Car Sustain", "YM2413", 1),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator1ReleaseRate, "ym2413.custom.modulatorRelease", "Mod Release", "YM2413", 0),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator2ReleaseRate, "ym2413.custom.carrierRelease", "Car Release", "YM2413", 1),
         segmentedSpec(ChipParameterRole::ymEnvelopeShape,
                       "ym2413.rhythmMode",
                       "Rhythm Mode",
@@ -2290,13 +2314,37 @@ std::vector<ChipParameterSpec> nesVrc7ParameterSpecs()
           "nes.vrc7.instrument",
           "Instrument",
           "Preset FM",
-          "Chooses a VRC7 patch-table instrument. Preset lets the selected recipe choose the instrument.",
+          "Chooses a VRC7 patch-table instrument. Preset/Custom lets the selected recipe choose the instrument until an operator override activates user patch slot 0.",
           ParameterKind::chipRegister,
           ControlSurface::menu,
           vrc7InstrumentChoices(),
           0.0f,
           1.0f,
           0.0f },
+        sliderSpec(ChipParameterRole::fmOperator1Level,
+                   "nes.vrc7.custom.modulatorLevel",
+                   "Mod Level",
+                   "Operators",
+                   "Offsets the VRC7 user-patch modulator total-level field in register $02. 50% is neutral; higher is louder. Active when Instrument is Preset/Custom and an operator override is changed.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator2Level,
+                   "nes.vrc7.custom.carrierLevel",
+                   "Car Level",
+                   "Operators",
+                   "Offsets VRC7 carrier output by trimming expansion channel volume registers $30-$35 when the editable user patch is active. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator1Multiplier, "nes.vrc7.custom.modulatorMultiplier", "Mod Mult", "VRC7", 0),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator2Multiplier, "nes.vrc7.custom.carrierMultiplier", "Car Mult", "VRC7", 1),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator1AttackRate, "nes.vrc7.custom.modulatorAttack", "Mod Attack", "VRC7", 0),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator2AttackRate, "nes.vrc7.custom.carrierAttack", "Car Attack", "VRC7", 1),
+        fmOperatorDecayRateSpec(ChipParameterRole::fmOperator1DecayRate, "nes.vrc7.custom.modulatorDecay", "Mod Decay", "VRC7", 0),
+        fmOperatorDecayRateSpec(ChipParameterRole::fmOperator2DecayRate, "nes.vrc7.custom.carrierDecay", "Car Decay", "VRC7", 1),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator1SustainRate, "nes.vrc7.custom.modulatorSustain", "Mod Sustain", "VRC7", 0),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator2SustainRate, "nes.vrc7.custom.carrierSustain", "Car Sustain", "VRC7", 1),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator1ReleaseRate, "nes.vrc7.custom.modulatorRelease", "Mod Release", "VRC7", 0),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator2ReleaseRate, "nes.vrc7.custom.carrierRelease", "Car Release", "VRC7", 1),
         sourceSpec(ChipParameterRole::source1Enabled, "nes.vrc7.pulse1.enabled", "Pulse 1", "Enable the first RP2A03 pulse source."),
         sourceSpec(ChipParameterRole::source2Enabled, "nes.vrc7.pulse2.enabled", "Pulse 2", "Enable the second RP2A03 pulse source."),
         sourceSpec(ChipParameterRole::source3Enabled, "nes.vrc7.triangle.enabled", "Triangle", "Enable the RP2A03 triangle source."),
@@ -3796,11 +3844,11 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::nesVrc7,
             "NES + VRC7",
-            "Base RP2A03 pulse/triangle lanes plus six Konami VRC7 OPLL preset-FM expansion lanes.",
+            "Base RP2A03 pulse/triangle lanes plus six Konami VRC7 OPLL preset/custom-FM expansion lanes.",
             {
                 { "duty", "Pulse Duty", "Channels", "Chooses the base pulse duty family while VRC7 lanes add preset-FM expansion color." },
                 { "detune", "FM Detune", "Pitch", "Offsets VRC7 f-number/block note mapping around the NES APU stack." },
-                { "instrument", "Instrument", "Preset FM", "Chooses VRC7 patch-table instruments for the six expansion FM lanes." },
+                { "instrument", "Instrument", "Preset/Custom FM", "Chooses VRC7 patch-table instruments or editable user-patch slot 0 for the six expansion FM lanes." },
                 { "mix", "FM Level", "Mixer", "Balances base APU focus and VRC7 expansion volume nibbles." },
             },
             nesVrc7Modules(),
@@ -3811,13 +3859,13 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "Base RP2A03 behavior is shared with the tested NES mode for pulse 1, pulse 2, and triangle lanes.",
-                    "VRC7 channels 1-6 render through the vendored MIT emu2413 core using the VRC7 patch table with source-card enables, source levels, f-number/block/key-on writes, debug JSON, and pseudo-register export through $9010/$9030.",
+                    "VRC7 channels 1-6 render through the vendored MIT emu2413 core using the VRC7 patch table or editable user-patch slot 0 with source-card enables, source levels, f-number/block/key-on writes, debug JSON, and pseudo-register export through $9010/$9030.",
                     "Chip Poly allocates across nine exposed lanes: pulse 1, pulse 2, triangle, and six VRC7 melodic expansion channels.",
                     "Renderer smoke, source gating, descriptor metadata, presets, and MIDI CC metadata cover the first playable VRC7 expansion slice."
                 },
                 {
                     "NES Noise/DMC lanes are not exposed in this first VRC7 mode because the current VST source-card surface is capped at nine lanes.",
-                    "VRC7 custom patch editing, rhythm behavior, exact mapper bus timing, native expansion mixer calibration, golden emulator comparison, and hardware capture comparison are not complete.",
+                    "VRC7 rhythm behavior, exact mapper bus timing, native expansion mixer calibration, golden emulator comparison, and hardware capture comparison are not complete.",
                     "The VRC7 implementation is a musical NES expansion instrument slice, not a cycle-accurate NES mapper emulator."
                 })
         },
@@ -4265,19 +4313,19 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2413,
             "YM2413 / OPLL",
-            "MIT emu2413-backed partial YM2413/OPLL preset-FM mode with melodic channels and native rhythm slots.",
+            "MIT emu2413-backed partial YM2413/OPLL preset/custom-FM mode with melodic channels and native rhythm slots.",
             {
-                { "instrument", "Instrument", "Preset FM", "YM2413 ROM preset instrument selection for melodic channels." },
+                { "instrument", "Instrument", "Preset/Custom FM", "YM2413 ROM preset instrument selection plus editable user-patch slot 0 for melodic channels." },
                 { "pitch", "F-Number / Block", "Pitch", "MIDI notes map to native f-number and block register writes." },
                 { "rhythm", "Rhythm Mode", "OPLL", "Register $0E switches channels 7-9 into BD/HH/SD/TOM/CYM rhythm slots." },
                 { "volume", "Channel Volume", "Mixer", "Source trims map to channel volume nibbles." },
                 { "core", "emu2413 Core", "Provenance", "MIT-licensed OPLL synthesis core by Mitsutaka Okazaki." },
             },
             {
-                makeModule("profile", "Profile", "YM2413/OPLL preset-FM groundwork backed by emu2413.", { "YM2413 family", "3.58 MHz default", "MIT emu2413 core", "Authentic still partial" }),
-                makeModule("sources", "Preset FM Voices", "All nine OPLL melodic channels are exposed as playable lanes; rhythm mode repurposes 7-9.", { "Ch 1-6 melodic", "Ch 7-9 melodic/rhythm", "BD HH SD TOM CYM", "Chip Poly" }),
-                makeModule("instrument", "ROM Instrument / Rhythm", "Preset instrument, rhythm-mode, f-number, block, and key-on register writes.", { "ROM preset instruments", "$0E rhythm mode", "F-number/block", "Key-on" }),
-                makeModule("envelope", "ROM Envelope", "Native preset and rhythm patch envelopes come from the OPLL core; editable EG belongs to future custom patch mode.", { "ROM patch EG", "Volume nibbles", "$0E rhythm bits", "Preset patch core" }),
+                makeModule("profile", "Profile", "YM2413/OPLL preset-FM plus user patch slot 0 backed by emu2413.", { "YM2413 family", "3.58 MHz default", "MIT emu2413 core", "Authentic still partial" }),
+                makeModule("sources", "OPLL Voices", "All nine OPLL melodic channels are exposed as playable lanes; rhythm mode repurposes 7-9.", { "Ch 1-6 melodic", "Ch 7-9 melodic/rhythm", "BD HH SD TOM CYM", "Chip Poly" }),
+                makeModule("instrument", "ROM Instrument / User Patch", "Preset instrument, user patch slot 0, rhythm-mode, f-number, block, and key-on register writes.", { "ROM preset instruments", "User $00-$07", "$0E rhythm mode", "Key-on" }),
+                makeModule("envelope", "ROM / User EG", "Native preset and rhythm patch envelopes come from the OPLL core; user patch slot 0 exposes ML/TL/feedback and AR/DR/SL/RR fields.", { "ROM patch EG", "User slot 0 EG", "Volume nibbles", "$0E rhythm bits" }),
                 makeModule("motion", "Motion", "Musical OPLL preset recipes mapped to melodic-channel registers.", { "UI chime", "Organ arp", "Sweep zap", "Power organ" }),
                 makeModule("output", "Output", "Mono/stereo render through emu2413 with modern output trim.", { "Channel volume", "Output gain", "emu2413 core", "Verified partial" })
             },
@@ -4288,11 +4336,11 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "MIT-licensed emu2413 is vendored as the OPLL synthesis core and driven through YM2413 register writes.",
-                    "Preset instrument, channel volume, f-number, block, key-on, and $0E rhythm-mode registers render audible melodic and rhythm output.",
+                    "Preset instrument, editable user-patch slot 0, channel volume, f-number, block, key-on, and $0E rhythm-mode registers render audible melodic and rhythm output.",
                     "Descriptor metadata, MIDI CC mappings, renderer debug JSON, chip-poly allocation, presets, and smoke output are covered by automated tests."
                 },
                 {
-                    "Deep rhythm-kit editing, custom user patch editing, VRC7/YMF281 patch-set selection, stereo/pan extensions, and golden reference comparison are not complete.",
+                    "Deep rhythm-kit editing, VRC7/YMF281 patch-set selection, stereo/pan extensions, and golden reference comparison are not complete.",
                     "Hardware validation and trusted-emulator spectral/timing comparisons are not complete, so this mode is not labeled cycle-accurate."
                 })
         },
@@ -5986,11 +6034,196 @@ bool opl18ChannelLayerForPatch(const PatchConfig& patch)
     return std::clamp(patch.ymEnvelopeShape, 0, 3) == 3;
 }
 
+bool opllCustomPatchEnabledForPatch(const PatchConfig& patch)
+{
+    if (patch.waveShape != 0)
+        return false;
+
+    for (size_t op = 0; op < 2u; ++op)
+    {
+        if (std::abs(clampControl(patch.fmOperatorLevels[op]) - 0.5f) > 0.001f
+            || patch.fmOperatorMultipliers[op] != 0
+            || patch.fmOperatorAttackRates[op] != 0
+            || patch.fmOperatorDecayRates[op] != 0
+            || patch.fmOperatorSustainRates[op] != 0
+            || patch.fmOperatorReleaseRates[op] != 0)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+uint8_t opllOperatorMultipleForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto safeOp = std::min(op, size_t { 1u });
+    const auto overrideChoice = std::clamp(patch.fmOperatorMultipliers[safeOp], 0, 16);
+    if (overrideChoice > 0)
+        return static_cast<uint8_t>(overrideChoice - 1);
+
+    const auto tone = std::clamp(static_cast<int>(std::round(clampControl(patch.control3) * 10.0f)) + 1, 1, 15);
+    const auto offset = safeOp == 0u ? 0 : 1;
+
+    switch (patch.macro)
+    {
+        case MacroKind::bass: return safeOp == 0u ? 1u : 1u;
+        case MacroKind::lead: return safeOp == 0u ? 2u : 1u;
+        case MacroKind::arp: return safeOp == 0u ? 3u : 1u;
+        case MacroKind::coin:
+        case MacroKind::jump: return safeOp == 0u ? 7u : 1u;
+        case MacroKind::drum:
+        case MacroKind::hit: return safeOp == 0u ? 5u : 1u;
+        case MacroKind::laser: return safeOp == 0u ? 8u : 2u;
+        case MacroKind::powerUp: return safeOp == 0u ? 4u : 1u;
+        case MacroKind::manual:
+        default: break;
+    }
+
+    return static_cast<uint8_t>(std::clamp(tone + offset, 1, 15));
+}
+
+uint8_t opllModulatorTotalLevelForPatch(const PatchConfig& patch)
+{
+    auto base = std::clamp(static_cast<int>(std::round((1.0f - clampControl(patch.control3)) * 42.0f)) + 10, 0, 63);
+    switch (patch.macro)
+    {
+        case MacroKind::bass: base = 22; break;
+        case MacroKind::lead: base = 18; break;
+        case MacroKind::arp: base = 24; break;
+        case MacroKind::coin:
+        case MacroKind::jump: base = 14; break;
+        case MacroKind::drum:
+        case MacroKind::hit: base = 8; break;
+        case MacroKind::laser: base = 12; break;
+        case MacroKind::powerUp: base = 20; break;
+        case MacroKind::manual:
+        default: break;
+    }
+
+    const auto trim = static_cast<int>(std::round((0.5f - clampControl(patch.fmOperatorLevels[0])) * 28.0f));
+    return static_cast<uint8_t>(std::clamp(base + trim, 0, 63));
+}
+
+uint8_t opllFeedbackForPatch(const PatchConfig& patch)
+{
+    switch (patch.macro)
+    {
+        case MacroKind::bass: return 5u;
+        case MacroKind::lead: return 4u;
+        case MacroKind::arp: return 3u;
+        case MacroKind::coin:
+        case MacroKind::jump: return 6u;
+        case MacroKind::drum:
+        case MacroKind::hit: return 7u;
+        case MacroKind::laser: return 6u;
+        case MacroKind::powerUp: return 4u;
+        case MacroKind::manual:
+        default: break;
+    }
+
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control3) * 7.0f)), 0, 7));
+}
+
+namespace
+{
+struct OpllOperatorEnvelope
+{
+    uint8_t attackRate = 15;
+    uint8_t decayRate = 5;
+    uint8_t sustainLevel = 4;
+    uint8_t releaseRate = 6;
+};
+
+OpllOperatorEnvelope defaultOpllEnvelopeForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto modulator = op == 0u;
+    switch (patch.macro)
+    {
+        case MacroKind::bass: return modulator ? OpllOperatorEnvelope { 12, 4, 4, 6 } : OpllOperatorEnvelope { 15, 5, 6, 5 };
+        case MacroKind::lead: return modulator ? OpllOperatorEnvelope { 15, 5, 3, 5 } : OpllOperatorEnvelope { 15, 4, 4, 4 };
+        case MacroKind::arp: return modulator ? OpllOperatorEnvelope { 15, 8, 3, 4 } : OpllOperatorEnvelope { 15, 7, 4, 4 };
+        case MacroKind::coin:
+        case MacroKind::jump: return modulator ? OpllOperatorEnvelope { 15, 10, 2, 3 } : OpllOperatorEnvelope { 15, 9, 3, 3 };
+        case MacroKind::drum:
+        case MacroKind::hit: return modulator ? OpllOperatorEnvelope { 15, 12, 1, 3 } : OpllOperatorEnvelope { 15, 11, 1, 3 };
+        case MacroKind::laser: return modulator ? OpllOperatorEnvelope { 15, 6, 0, 5 } : OpllOperatorEnvelope { 15, 4, 2, 5 };
+        case MacroKind::powerUp: return modulator ? OpllOperatorEnvelope { 14, 5, 4, 6 } : OpllOperatorEnvelope { 15, 5, 5, 5 };
+        case MacroKind::manual:
+        default: break;
+    }
+
+    return modulator ? OpllOperatorEnvelope { 15, 5, 4, 6 } : OpllOperatorEnvelope { 15, 5, 5, 5 };
+}
+
+uint8_t opllRateChoice(int choice, uint8_t fallback)
+{
+    return choice > 0 ? static_cast<uint8_t>(std::clamp(choice - 1, 0, 15)) : fallback;
+}
+} // namespace
+
+uint8_t opllOperatorAttackRateForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto safeOp = std::min(op, size_t { 1u });
+    return opllRateChoice(std::clamp(patch.fmOperatorAttackRates[safeOp], 0, 32),
+                          defaultOpllEnvelopeForPatch(patch, safeOp).attackRate);
+}
+
+uint8_t opllOperatorDecayRateForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto safeOp = std::min(op, size_t { 1u });
+    return opllRateChoice(std::clamp(patch.fmOperatorDecayRates[safeOp], 0, 32),
+                          defaultOpllEnvelopeForPatch(patch, safeOp).decayRate);
+}
+
+uint8_t opllOperatorSustainLevelForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto safeOp = std::min(op, size_t { 1u });
+    return opllRateChoice(std::clamp(patch.fmOperatorSustainRates[safeOp], 0, 32),
+                          defaultOpllEnvelopeForPatch(patch, safeOp).sustainLevel);
+}
+
+uint8_t opllOperatorReleaseRateForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto safeOp = std::min(op, size_t { 1u });
+    return opllRateChoice(std::clamp(patch.fmOperatorReleaseRates[safeOp], 0, 16),
+                          defaultOpllEnvelopeForPatch(patch, safeOp).releaseRate);
+}
+
+std::array<uint8_t, 8> opllCustomPatchBytesForPatch(const PatchConfig& patch)
+{
+    const auto modMultiple = opllOperatorMultipleForPatch(patch, 0);
+    const auto carMultiple = opllOperatorMultipleForPatch(patch, 1);
+    const auto modTotalLevel = opllModulatorTotalLevelForPatch(patch);
+    const auto feedback = opllFeedbackForPatch(patch);
+    const auto modAttack = opllOperatorAttackRateForPatch(patch, 0);
+    const auto carAttack = opllOperatorAttackRateForPatch(patch, 1);
+    const auto modDecay = opllOperatorDecayRateForPatch(patch, 0);
+    const auto carDecay = opllOperatorDecayRateForPatch(patch, 1);
+    const auto modSustain = opllOperatorSustainLevelForPatch(patch, 0);
+    const auto carSustain = opllOperatorSustainLevelForPatch(patch, 1);
+    const auto modRelease = opllOperatorReleaseRateForPatch(patch, 0);
+    const auto carRelease = opllOperatorReleaseRateForPatch(patch, 1);
+
+    return {
+        static_cast<uint8_t>(0x20u | (modMultiple & 0x0fu)),
+        static_cast<uint8_t>(0x20u | (carMultiple & 0x0fu)),
+        static_cast<uint8_t>(0x00u | (modTotalLevel & 0x3fu)),
+        static_cast<uint8_t>(0x00u | (feedback & 0x07u)),
+        static_cast<uint8_t>(((modAttack & 0x0fu) << 4u) | (modDecay & 0x0fu)),
+        static_cast<uint8_t>(((carAttack & 0x0fu) << 4u) | (carDecay & 0x0fu)),
+        static_cast<uint8_t>(((modSustain & 0x0fu) << 4u) | (modRelease & 0x0fu)),
+        static_cast<uint8_t>(((carSustain & 0x0fu) << 4u) | (carRelease & 0x0fu))
+    };
+}
+
 uint8_t ym2413InstrumentForPatch(const PatchConfig& patch)
 {
     const auto explicitChoice = std::clamp(patch.waveShape, 0, 15);
     if (explicitChoice > 0)
         return static_cast<uint8_t>(explicitChoice);
+    if (opllCustomPatchEnabledForPatch(patch))
+        return 0;
 
     switch (patch.macro)
     {
@@ -6022,7 +6255,10 @@ uint8_t ym2413RhythmModeForPatch(const PatchConfig& patch)
 uint8_t ym2413VolumeNibbleForPatch(const PatchConfig& patch, size_t channel, float velocity)
 {
     const auto trim = channel < patch.sourceLevels.size() ? clampControl(patch.sourceLevels[channel]) : 1.0f;
-    const auto musicalLevel = clampControl(patch.control4) * clampControl(velocity) * trim;
+    const auto carrierTrim = opllCustomPatchEnabledForPatch(patch)
+        ? std::clamp(0.5f + clampControl(patch.fmOperatorLevels[1]), 0.25f, 1.5f)
+        : 1.0f;
+    const auto musicalLevel = std::clamp(clampControl(patch.control4) * clampControl(velocity) * trim * carrierTrim, 0.0f, 1.0f);
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - musicalLevel) * 15.0f)), 0, 15));
 }
 
@@ -6031,6 +6267,8 @@ uint8_t vrc7InstrumentForPatch(const PatchConfig& patch)
     const auto explicitChoice = std::clamp(patch.waveShape, 0, 15);
     if (explicitChoice > 0)
         return static_cast<uint8_t>(explicitChoice);
+    if (opllCustomPatchEnabledForPatch(patch))
+        return 0;
 
     switch (patch.macro)
     {
@@ -6054,7 +6292,10 @@ uint8_t vrc7VolumeNibbleForPatch(const PatchConfig& patch, size_t channel, float
 {
     const auto sourceIndex = std::min<size_t>(3u + channel, patch.sourceLevels.size() - 1u);
     const auto trim = clampControl(patch.sourceLevels[sourceIndex]);
-    const auto musicalLevel = clampControl(patch.control4) * clampControl(velocity) * trim;
+    const auto carrierTrim = opllCustomPatchEnabledForPatch(patch)
+        ? std::clamp(0.5f + clampControl(patch.fmOperatorLevels[1]), 0.25f, 1.5f)
+        : 1.0f;
+    const auto musicalLevel = std::clamp(clampControl(patch.control4) * clampControl(velocity) * trim * carrierTrim, 0.0f, 1.0f);
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - musicalLevel) * 15.0f)), 0, 15));
 }
 

@@ -1375,6 +1375,16 @@ bool isFourOperatorFmMode(chipper::ChipMode mode)
     return mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610 || mode == chipper::ChipMode::ym2610b;
 }
 
+bool isOpllOperatorEditMode(chipper::ChipMode mode)
+{
+    return mode == chipper::ChipMode::ym2413 || mode == chipper::ChipMode::nesVrc7;
+}
+
+bool hasEditableFmOperatorRows(chipper::ChipMode mode)
+{
+    return isFourOperatorFmMode(mode) || isOpllOperatorEditMode(mode);
+}
+
 bool isOpnbMode(chipper::ChipMode mode)
 {
     return mode == chipper::ChipMode::ym2610 || mode == chipper::ChipMode::ym2610b;
@@ -1393,6 +1403,9 @@ uint8_t fourOperatorAlgorithmForPatch(chipper::ChipMode mode, const chipper::Pat
 
 bool fmOperatorIsCarrierForPatch(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t op)
 {
+    if (isOpllOperatorEditMode(mode))
+        return op == 1u;
+
     return isFourOperatorFmMode(mode) && chipper::fmOperatorIsCarrierForAlgorithm(fourOperatorAlgorithmForPatch(mode, patch), op);
 }
 
@@ -1403,6 +1416,14 @@ juce::String fmOperatorRoleShortLabel(chipper::ChipMode mode, const chipper::Pat
 
 juce::String fmOperatorRoleDescription(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t op)
 {
+    if (isOpllOperatorEditMode(mode))
+    {
+        const auto family = mode == chipper::ChipMode::nesVrc7 ? juce::String("VRC7") : juce::String("YM2413");
+        return op == 0u
+            ? "Modulator in the " + family + " user patch slot: shapes the carrier tone."
+            : "Carrier in the " + family + " user patch slot: reaches the channel volume nibble.";
+    }
+
     const auto algorithm = static_cast<int>(fourOperatorAlgorithmForPatch(mode, patch));
     return fmOperatorIsCarrierForPatch(mode, patch, op)
         ? juce::String("Carrier in algorithm ") + juce::String(algorithm) + ": reaches the output bus."
@@ -4669,8 +4690,10 @@ void ChipperAudioProcessorEditor::resized()
     auto secondaryTonePanel = tonePanel;
     auto tertiaryTonePanel = tonePanel;
     const auto usesFmToneStack = displayedMode == chipper::ChipMode::ym2612
+        || displayedMode == chipper::ChipMode::nesVrc7
         || displayedMode == chipper::ChipMode::opl3
         || displayedMode == chipper::ChipMode::ym2151
+        || displayedMode == chipper::ChipMode::ym2413
         || displayedMode == chipper::ChipMode::ym2203
         || displayedMode == chipper::ChipMode::ym2608
         || isOpnbMode(displayedMode);
@@ -4680,8 +4703,10 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::ym2608
         || isOpnbMode(displayedMode);
     const auto usesFmOperatorRegisterSurface = displayedMode == chipper::ChipMode::ym2612
+        || displayedMode == chipper::ChipMode::nesVrc7
         || displayedMode == chipper::ChipMode::opl3
         || displayedMode == chipper::ChipMode::ym2151
+        || displayedMode == chipper::ChipMode::ym2413
         || displayedMode == chipper::ChipMode::ym2203
         || displayedMode == chipper::ChipMode::ym2608
         || isOpnbMode(displayedMode);
@@ -5930,7 +5955,7 @@ void ChipperAudioProcessorEditor::placeFmOperatorEditSurface(chipper::ChipMode m
 
 void ChipperAudioProcessorEditor::placeFmOperatorRegisterSurface(chipper::ChipMode mode, juce::Rectangle<int> bounds)
 {
-    const auto rowCount = mode == chipper::ChipMode::opl3 ? 3u : fmOperatorReadoutRows;
+    const auto rowCount = mode == chipper::ChipMode::opl3 ? 3u : (isOpllOperatorEditMode(mode) ? 2u : fmOperatorReadoutRows);
     const auto compactRows = rowCount >= fmOperatorReadoutRows && bounds.getHeight() < 64;
     const auto rowGap = compactRows ? 2 : 4;
     const auto minRowHeight = compactRows ? 12 : 13;
@@ -5953,11 +5978,11 @@ void ChipperAudioProcessorEditor::placeFmOperatorRegisterSurface(chipper::ChipMo
         }
 
         auto row = bounds.removeFromTop(std::min(rowHeight, bounds.getHeight()));
-        const auto nameWidth = isFourOperatorFmMode(mode) ? 46 : 42;
+        const auto nameWidth = hasEditableFmOperatorRows(mode) ? 46 : 42;
         fmOperatorNameLabels[i].setBounds(row.removeFromLeft(std::min(nameWidth, row.getWidth())));
         row.removeFromLeft(std::min(6, row.getWidth()));
 
-        if (isFourOperatorFmMode(mode))
+        if (hasEditableFmOperatorRows(mode))
         {
             const auto readoutMinWidth = 96;
             const auto desiredMultiplierWidth = 46;
@@ -8372,7 +8397,12 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
         return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | MMC5 twin pulses + DAC | " + nesFocusReadout(patch.control4) + laneText;
 
     if (mode == chipper::ChipMode::nesVrc7)
-        return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | VRC7 I" + juce::String(static_cast<int>(chipper::vrc7InstrumentForPatch(patch))) + " six FM lanes | " + nesFocusReadout(patch.control4) + laneText;
+    {
+        const auto voice = chipper::opllCustomPatchEnabledForPatch(patch)
+            ? juce::String("VRC7 User0")
+            : juce::String("VRC7 I") + juce::String(static_cast<int>(chipper::vrc7InstrumentForPatch(patch)));
+        return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | " + voice + " six FM lanes | " + nesFocusReadout(patch.control4) + laneText;
+    }
 
     if (isNesFamily(mode))
         return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | " + nesNoiseModeReadout(patch) + " | " + nesFocusReadout(patch.control4) + laneText;
@@ -8427,7 +8457,15 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
     if (mode == chipper::ChipMode::ym2151)
         return label + " -> " + fmChipReadout(mode, patch) + " | " + ym2151NoiseReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
-    if (mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2413)
+    if (mode == chipper::ChipMode::ym2413)
+    {
+        const auto voice = chipper::opllCustomPatchEnabledForPatch(patch)
+            ? juce::String("OPLL User0")
+            : juce::String("OPLL I") + juce::String(static_cast<int>(chipper::ym2413InstrumentForPatch(patch)));
+        return label + " -> " + fmChipReadout(mode, patch) + " | " + voice + laneText;
+    }
+
+    if (mode == chipper::ChipMode::opl3)
         return label + " -> " + fmChipReadout(mode, patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
 
     return label + ": " + juce::String(templ.help) + laneText;
@@ -9378,6 +9416,14 @@ juce::String ChipperAudioProcessorEditor::fmChipReadout(chipper::ChipMode mode, 
 
     if (mode == chipper::ChipMode::ym2413)
     {
+        if (chipper::opllCustomPatchEnabledForPatch(patch))
+        {
+            return "OPLL custom slot 0"
+                + juce::String(" | TL ") + juce::String(static_cast<int>(chipper::opllModulatorTotalLevelForPatch(patch)))
+                + " FB " + juce::String(static_cast<int>(chipper::opllFeedbackForPatch(patch)))
+                + " | volume " + juce::String(level) + "/15";
+        }
+
         const auto instrument = static_cast<int>(chipper::ym2413InstrumentForPatch(patch));
         return "OPLL instrument " + juce::String(instrument) + " | volume " + juce::String(level) + "/15";
     }
@@ -9462,6 +9508,40 @@ juce::String ChipperAudioProcessorEditor::fmOperatorRegisterReadout(chipper::Chi
             + " | SR $" + byteHex(static_cast<uint8_t>(sustainRelease));
     }
 
+    if (isOpllOperatorEditMode(mode))
+    {
+        const auto custom = chipper::opllCustomPatchEnabledForPatch(patch);
+        const auto family = mode == chipper::ChipMode::nesVrc7 ? juce::String("VRC7") : juce::String("YM2413");
+        const auto multiple = static_cast<int>(chipper::opllOperatorMultipleForPatch(patch, op));
+        const auto multipleText = multiple == 0 ? juce::String("0.5") : juce::String(multiple);
+        const auto attack = static_cast<int>(chipper::opllOperatorAttackRateForPatch(patch, op));
+        const auto decay = static_cast<int>(chipper::opllOperatorDecayRateForPatch(patch, op));
+        const auto sustain = static_cast<int>(chipper::opllOperatorSustainLevelForPatch(patch, op));
+        const auto release = static_cast<int>(chipper::opllOperatorReleaseRateForPatch(patch, op));
+        const auto volumeNibble = static_cast<int>(mode == chipper::ChipMode::nesVrc7
+                                                       ? chipper::vrc7VolumeNibbleForPatch(patch, 0)
+                                                       : chipper::ym2413VolumeNibbleForPatch(patch, 0));
+
+        if (op == 0u)
+        {
+            return juce::String(custom ? "User $00-$07 | " : "Preset/Custom idle | ")
+                + "ML " + multipleText
+                + " | TL " + juce::String(static_cast<int>(chipper::opllModulatorTotalLevelForPatch(patch)))
+                + " | FB " + juce::String(static_cast<int>(chipper::opllFeedbackForPatch(patch)))
+                + " | AR " + juce::String(attack)
+                + " DR " + juce::String(decay)
+                + " SL/RR $" + byteHex(static_cast<uint8_t>(((sustain & 0x0f) << 4) | (release & 0x0f)));
+        }
+
+        return juce::String(custom ? "User carrier | " : "ROM carrier | ")
+            + "ML " + multipleText
+            + " | Vol " + juce::String(volumeNibble)
+            + " | AR " + juce::String(attack)
+            + " DR " + juce::String(decay)
+            + " SL/RR $" + byteHex(static_cast<uint8_t>(((sustain & 0x0f) << 4) | (release & 0x0f)))
+            + " | " + family;
+    }
+
     const auto envelope = chipper::ym2612EnvelopeRegistersForPatch(patch, op);
     const auto multiple = static_cast<int>(chipper::fmOperatorMultipleForPatch(mode, patch, op));
     const auto totalLevel = static_cast<int>(chipper::fmOperatorTotalLevelForPatch(mode, patch, op));
@@ -9481,6 +9561,17 @@ juce::String ChipperAudioProcessorEditor::fmOperatorLevelReadout(chipper::ChipMo
     const auto safeOp = std::min(op, patch.fmOperatorLevels.size() - 1u);
     const auto level = std::clamp(patch.fmOperatorLevels[safeOp], 0.0f, 1.0f);
     const auto percent = static_cast<int>(std::round(level * 100.0f));
+    if (isOpllOperatorEditMode(mode))
+    {
+        if (safeOp == 0u)
+            return juce::String(percent) + "% | TL " + juce::String(static_cast<int>(chipper::opllModulatorTotalLevelForPatch(patch)));
+
+        const auto volumeNibble = static_cast<int>(mode == chipper::ChipMode::nesVrc7
+                                                       ? chipper::vrc7VolumeNibbleForPatch(patch, 0)
+                                                       : chipper::ym2413VolumeNibbleForPatch(patch, 0));
+        return juce::String(percent) + "% | Vol " + juce::String(volumeNibble);
+    }
+
     const auto totalLevel = static_cast<int>(chipper::fmOperatorTotalLevelForPatch(mode, patch, safeOp));
     return juce::String(percent) + "% | TL " + juce::String(totalLevel);
 }
@@ -9494,6 +9585,13 @@ juce::String ChipperAudioProcessorEditor::fmOperatorRegisterTooltip(chipper::Chi
 
         return juce::String(op == 1u ? "OPL2 modulator operator. " : "OPL2 carrier operator. ")
             + "This readout follows the current preset and shows the register-backed two-operator state; full editable OPL ADSR remains planned.";
+    }
+
+    if (isOpllOperatorEditMode(mode))
+    {
+        const auto family = mode == chipper::ChipMode::nesVrc7 ? juce::String("VRC7") : juce::String("YM2413");
+        return family + juce::String(op == 0u ? " custom-patch modulator. " : " custom-patch carrier. ")
+            + "Instrument Preset/Custom uses ROM instruments until an operator override is changed, then writes user patch slot 0 through registers $00-$07.";
     }
 
     const auto family = mode == chipper::ChipMode::ym2151
@@ -9519,11 +9617,13 @@ juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipM
 
     if (mode == chipper::ChipMode::ym2413)
     {
+        const auto custom = chipper::opllCustomPatchEnabledForPatch(patch);
         const auto instrument = static_cast<int>(chipper::ym2413InstrumentForPatch(patch));
         const auto volumeNibble = static_cast<int>(chipper::ym2413VolumeNibbleForPatch(patch, index));
+        const auto instrumentText = custom ? juce::String("custom slot 0") : juce::String("inst ") + juce::String(instrument);
         return "OPLL Ch " + juce::String(channel)
             + " | Reg $" + byteHex(static_cast<uint8_t>(0x30u + std::min(index, size_t { 8u })))
-            + " inst " + juce::String(instrument)
+            + " " + instrumentText
             + " volume nibble " + juce::String(volumeNibble) + "/15"
             + " | $20 key/block/fnum-hi, $10 fnum-lo";
     }
@@ -9727,14 +9827,22 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
     if (mode == chipper::ChipMode::nesVrc7 && index >= 3u && index <= 8u)
     {
         const auto channel = index - 3u;
+        const auto instrumentText = chipper::opllCustomPatchEnabledForPatch(patch)
+            ? juce::String("User0")
+            : juce::String("I") + juce::String(static_cast<int>(chipper::vrc7InstrumentForPatch(patch)));
         return "VRC7 Ch " + juce::String(static_cast<int>(channel + 1u))
-            + " | I" + juce::String(static_cast<int>(chipper::vrc7InstrumentForPatch(patch)))
+            + " | " + instrumentText
             + " V" + juce::String(static_cast<int>(chipper::vrc7VolumeNibbleForPatch(patch, channel)));
     }
 
     if (mode == chipper::ChipMode::ym2413)
-        return "OPLL " + number + " | I" + juce::String(static_cast<int>(chipper::ym2413InstrumentForPatch(patch)))
+    {
+        const auto instrumentText = chipper::opllCustomPatchEnabledForPatch(patch)
+            ? juce::String("User0")
+            : juce::String("I") + juce::String(static_cast<int>(chipper::ym2413InstrumentForPatch(patch)));
+        return "OPLL " + number + " | " + instrumentText
             + " V" + juce::String(static_cast<int>(chipper::ym2413VolumeNibbleForPatch(patch, index)));
+    }
 
     if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || isOpnbMode(mode))
     {
@@ -10863,9 +10971,11 @@ void ChipperAudioProcessorEditor::setEnvelopeDecayControlVisible(chipper::ChipMo
 {
     const auto active = shouldBeVisible && usesEnvelopeDecayControl(mode);
     setSidAdsrControlsVisible(active && mode == chipper::ChipMode::sid);
+    const auto showOperatorSurface = shouldBeVisible || (isOpllOperatorEditMode(mode) && chipper::descriptorFor(mode).implemented);
     setFmOperatorRegisterSurfaceVisible(mode,
-        shouldBeVisible
+        showOperatorSurface
             && (mode == chipper::ChipMode::ym2612
+                || isOpllOperatorEditMode(mode)
                 || mode == chipper::ChipMode::opl3
                 || mode == chipper::ChipMode::ym2151
                 || mode == chipper::ChipMode::ym2203
@@ -10930,6 +11040,7 @@ void ChipperAudioProcessorEditor::setFmOperatorRegisterSurfaceVisible(chipper::C
     const auto active = shouldBeVisible
         && chipper::descriptorFor(mode).implemented
         && (mode == chipper::ChipMode::ym2612
+            || isOpllOperatorEditMode(mode)
             || mode == chipper::ChipMode::opl3
             || mode == chipper::ChipMode::ym2151
             || mode == chipper::ChipMode::ym2203
@@ -11843,16 +11954,18 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
     const auto active = shouldBeVisible
         && chipper::descriptorFor(mode).implemented
         && (mode == chipper::ChipMode::ym2612
+            || isOpllOperatorEditMode(mode)
             || mode == chipper::ChipMode::opl3
             || mode == chipper::ChipMode::ym2151
             || mode == chipper::ChipMode::ym2203
             || mode == chipper::ChipMode::ym2608
             || isOpnbMode(mode));
-    const auto visibleRows = mode == chipper::ChipMode::opl3 ? 3u : fmOperatorReadoutRows;
-    const auto hasOperatorLevelControls = active && isFourOperatorFmMode(mode);
+    const auto visibleRows = mode == chipper::ChipMode::opl3 ? 3u : (isOpllOperatorEditMode(mode) ? 2u : fmOperatorReadoutRows);
+    const auto hasOperatorLevelControls = active && hasEditableFmOperatorRows(mode);
 
     static constexpr std::array<const char*, fmOperatorReadoutRows> fmNames { "OP1", "OP2", "OP3", "OP4" };
     static constexpr std::array<const char*, fmOperatorReadoutRows> oplNames { "Pair", "Mod", "Car", "" };
+    static constexpr std::array<const char*, fmOperatorReadoutRows> opllNames { "Mod", "Car", "", "" };
 
     for (size_t i = 0; i < fmOperatorReadoutRows; ++i)
     {
@@ -11870,12 +11983,14 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
         const auto readout = fmOperatorRegisterReadout(mode, patch, i);
         const auto nameText = mode == chipper::ChipMode::opl3
             ? juce::String(oplNames[i])
-            : juce::String(fmNames[i]) + " " + fmOperatorRoleShortLabel(mode, patch, i);
+            : (isOpllOperatorEditMode(mode)
+                   ? juce::String(opllNames[i])
+                   : juce::String(fmNames[i]) + " " + fmOperatorRoleShortLabel(mode, patch, i));
         fmOperatorNameLabels[i].setText(nameText, juce::dontSendNotification);
         fmOperatorValueLabels[i].setText(readout, juce::dontSendNotification);
 
         auto tooltip = fmOperatorRegisterTooltip(mode, i);
-        if (isFourOperatorFmMode(mode))
+        if (hasEditableFmOperatorRows(mode))
             tooltip += "\n" + fmOperatorRoleDescription(mode, patch, i);
         tooltip += "\n" + readout;
         fmOperatorNameLabels[i].setTooltip(tooltip);
@@ -12332,12 +12447,15 @@ void ChipperAudioProcessorEditor::updateOpllInstrumentControl(chipper::ChipMode 
         parameterValue(chipper::parameters::id::stereoSpread));
 
     const auto isVrc7 = mode == chipper::ChipMode::nesVrc7;
+    const auto custom = chipper::opllCustomPatchEnabledForPatch(patch);
     const auto resolvedInstrument = static_cast<int>(isVrc7 ? chipper::vrc7InstrumentForPatch(patch) : chipper::ym2413InstrumentForPatch(patch));
     const auto volumeNibble = static_cast<int>(isVrc7 ? chipper::vrc7VolumeNibbleForPatch(patch, 0) : chipper::ym2413VolumeNibbleForPatch(patch, 0));
     const auto followsTemplate = safeChoice == 0;
-    const auto valueText = followsTemplate
-        ? juce::String("Preset -> I") + juce::String(resolvedInstrument)
-        : juce::String("I") + juce::String(resolvedInstrument);
+    const auto valueText = custom
+        ? juce::String("Custom slot 0")
+        : (followsTemplate
+               ? juce::String("Preset -> I") + juce::String(resolvedInstrument)
+               : juce::String("I") + juce::String(resolvedInstrument));
     const auto registerText = juce::String(isVrc7 ? "$9010/$9030 ch1 instrument=" : "$30 instrument=")
         + juce::String(resolvedInstrument)
         + ", volume nibble=" + juce::String(volumeNibble) + "/15";
@@ -13778,6 +13896,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     setSidFilterRoutingControlVisible(hasSidFilterRoutingControl);
     const auto hasFmEnvelopeShapeSurface = mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || isOpnbMode(mode);
     const auto hasFmOperatorRegisterSurface = mode == chipper::ChipMode::ym2612
+        || isOpllOperatorEditMode(mode)
         || mode == chipper::ChipMode::opl3
         || mode == chipper::ChipMode::ym2151
         || mode == chipper::ChipMode::ym2203
@@ -13935,6 +14054,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
                                     patch,
                                     chipper::descriptorFor(mode).implemented
                                         && (mode == chipper::ChipMode::ym2612
+                                            || isOpllOperatorEditMode(mode)
                                             || mode == chipper::ChipMode::opl3
                                             || mode == chipper::ChipMode::ym2151
                                             || mode == chipper::ChipMode::ym2203
@@ -13958,7 +14078,9 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[1].setText(macroReadout(1, nesSweepReadout(patch.control2)), juce::dontSendNotification);
         controlValueLabels[2].setText(macroReadout(2,
                                                    mode == chipper::ChipMode::nesVrc7
-                                                       ? juce::String("VRC7 I") + juce::String(static_cast<int>(chipper::vrc7InstrumentForPatch(patch)))
+                                                       ? (chipper::opllCustomPatchEnabledForPatch(patch)
+                                                              ? juce::String("VRC7 User0")
+                                                              : juce::String("VRC7 I") + juce::String(static_cast<int>(chipper::vrc7InstrumentForPatch(patch))))
                                                        : nesNoiseReadout(patch.control3)),
                                       juce::dontSendNotification);
         controlValueLabels[3].setText(macroReadout(3, nesFocusReadout(patch.control4)), juce::dontSendNotification);

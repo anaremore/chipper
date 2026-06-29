@@ -1887,6 +1887,29 @@ const std::vector<PresetInfo>& presetCatalog()
             0.55f,
             1.0f,
             1.0f),
+        withSourceLevels(
+            {
+                "opll-custom-bass",
+                "YM2413 / OPLL",
+                "OPLL Custom Bass",
+                "Editable user-patch slot 0 bass using OPLL operator level and EG controls.",
+                ChipMode::ym2413,
+                AccuracyMode::hybrid,
+                MacroKind::bass,
+                PlayMode::stack,
+                { 0.62f, 0.18f, 0.26f, 0.78f },
+                { true, true, false, false },
+                0.10f,
+                0,
+                0,
+                0,
+                -8.5f,
+                3579545.0
+            },
+            1.0f,
+            0.45f,
+            1.0f,
+            1.0f),
         {
             "opll-brass-lead",
             "YM2413 / OPLL",
@@ -7989,7 +8012,7 @@ const std::vector<PresetQualityTarget>& presetQualityTargets()
         { ChipMode::huc6280, roles, { "wavetable", "wave", "noise", "lfo", "chord" }, "Furnace-informed HuC6280 coverage: wave-RAM bass/leads/keys, noise drums, and PC Engine SFX." },
         { ChipMode::namcoWsg, roles, { "wavetable", "wave", "tracker", "coin", "arcade" }, "Furnace-informed Namco WSG coverage: arcade wavetable stacks, basses, leads, arps, drums, and SFX." },
         { ChipMode::ym2151, roles, { "fm", "operator", "noise", "envelope", "arcade" }, "Furnace-informed OPM coverage: arcade FM leads, basses, keys, noise hits, and fast motion." },
-        { ChipMode::ym2413, roles, { "fm", "operator", "rhythm", "envelope", "alarm" }, "Furnace-informed OPLL coverage: ROM instrument bass/leads/keys, rhythm slots, and compact SFX." },
+        { ChipMode::ym2413, roles, { "fm", "operator", "custom", "rhythm", "envelope", "alarm" }, "Furnace-informed OPLL coverage: ROM instrument bass/leads/keys, editable user-patch slot 0, rhythm slots, and compact SFX." },
         { ChipMode::scc, roles, { "wavetable", "wave", "noise", "echo", "chord" }, "Furnace-informed SCC coverage: five-lane wavetable basses, leads, keys, arps, drums, and arcade SFX." },
         { ChipMode::ym2203, roles, { "fm", "ssg", "operator", "feedback", "envelope", "bell" }, "Furnace-informed OPN coverage: YM2203 FM plus embedded SSG basses, leads, keys, arps, percussion, and SFX." },
         { ChipMode::ym2608, roles, { "fm", "opna", "ssg", "operator", "feedback", "envelope", "rhythm", "adpcm", "chord" }, "Furnace-informed OPNA coverage: YM2608 six-FM PC-98 basses/leads/keys/arps plus embedded SSG percussion, generated/default-or-user ADPCM-A rhythm overlay, first-pass encoded ADPCM-B sample memory, and SFX; ADPCM-B conversion/editing remains planned." },
@@ -8261,7 +8284,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
         addPresetTag(tags, "noise");
 
     const auto corpus = presetCorpus(preset);
-    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "wavetable", "mod", "modulation", "fds", "sunsoft", "5b", "mmc5", "pcm", "adpcm", "square", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "opnb2", "ssg", "psg", "saa1099", "pc", "speaker", "beeper", "pit", "zx", "spectrum", "ula", "ear", "mic", "click", "gate", "sfx", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade", "neo" })
+    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "wavetable", "mod", "modulation", "fds", "sunsoft", "5b", "mmc5", "pcm", "adpcm", "square", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "opnb2", "ssg", "psg", "saa1099", "pc", "speaker", "beeper", "pit", "zx", "spectrum", "ula", "ear", "mic", "click", "gate", "sfx", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "custom", "polynomial", "distortion", "lfo", "arcade", "neo" })
     {
         if (presetCorpusContains(corpus, token))
             addPresetTag(tags, token);
@@ -8519,6 +8542,11 @@ std::array<float, 4> fmOperatorLevelsForPreset(const PresetInfo& preset)
         if (preset.id == "opm-slow-motion-pad")
             return { 0.38f, 0.72f, 0.42f, 0.68f };
     }
+    else if (preset.chip == ChipMode::ym2413)
+    {
+        if (preset.id == "opll-custom-bass")
+            return { 0.68f, 0.62f, 0.5f, 0.5f };
+    }
 
     return { 0.5f, 0.5f, 0.5f, 0.5f };
 }
@@ -8555,6 +8583,8 @@ std::array<int, 4> fmOperatorAttackRatesForPreset(const PresetInfo& preset)
         return { 32, 32, 30, 32 };
     if (preset.id == "opm-slow-motion-pad")
         return { 13, 17, 11, 15 };
+    if (preset.id == "opll-custom-bass")
+        return { 13, 16, 0, 0 };
 
     return { 0, 0, 0, 0 };
 }
@@ -8591,6 +8621,8 @@ std::array<int, 4> fmOperatorDecayRatesForPreset(const PresetInfo& preset)
         return { 10, 18, 8, 13 };
     if (preset.id == "opm-slow-motion-pad")
         return { 6, 8, 5, 6 };
+    if (preset.id == "opll-custom-bass")
+        return { 5, 6, 0, 0 };
 
     return { 0, 0, 0, 0 };
 }
@@ -8627,6 +8659,8 @@ std::array<int, 4> fmOperatorSustainRatesForPreset(const PresetInfo& preset)
         return { 4, 10, 4, 7 };
     if (preset.id == "opm-slow-motion-pad")
         return { 1, 1, 1, 1 };
+    if (preset.id == "opll-custom-bass")
+        return { 5, 7, 0, 0 };
 
     return { 0, 0, 0, 0 };
 }
@@ -8663,6 +8697,8 @@ std::array<int, 4> fmOperatorReleaseRatesForPreset(const PresetInfo& preset)
         return { 5, 8, 5, 7 };
     if (preset.id == "opm-slow-motion-pad")
         return { 8, 9, 8, 9 };
+    if (preset.id == "opll-custom-bass")
+        return { 7, 6, 0, 0 };
 
     return { 0, 0, 0, 0 };
 }
