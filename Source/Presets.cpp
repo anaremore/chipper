@@ -1010,6 +1010,25 @@ const std::vector<PresetInfo>& presetCatalog()
             0.32f
         },
         {
+            "namco-tracker-lead",
+            "Namco WSG",
+            "Namco Tracker Lead",
+            "Fast 4-bit WSG tracker lead with three arcade wavetable lanes.",
+            ChipMode::namcoWsg,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.64f, 0.50f, 0.34f, 0.82f },
+            { true, true, true, false },
+            0.12f,
+            1,
+            0,
+            0,
+            -9.5f,
+            96000.0,
+            0.24f
+        },
+        {
             "namco-wave-tick",
             "Namco WSG",
             "Namco Wave Tick",

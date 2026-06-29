@@ -522,6 +522,9 @@ add_test(NAME chipper_render_preset_pokey_distortion_lead_smoke
 add_test(NAME chipper_render_preset_scc_noise_click_drum_smoke
     COMMAND chipper_render --preset scc-noise-click-drum --rate 48000 --seconds 0.05 --note 48 --out preset-scc-noise-click-drum.wav --debug preset-scc-noise-click-drum.json
 )
+add_test(NAME chipper_render_preset_namco_tracker_lead_smoke
+    COMMAND chipper_render --preset namco-tracker-lead --rate 48000 --seconds 0.05 --note 69 --out preset-namco-tracker-lead.wav --debug preset-namco-tracker-lead.json
+)
 add_test(NAME chipper_render_nes_coin_macro_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --macro coin --clock 1789773 --rate 48000 --seconds 0.10 --note 69 --out nes-coin-smoke.wav --debug nes-coin-smoke.json
 )
@@ -953,7 +956,7 @@ set(CHIPPER_PRESET_CHIP_MINIMUMS
     pokey:13
     paula:13
     huc6280:13
-    namcoWsg:14
+    namcoWsg:15
     ym2413:15
     scc:15
 )
@@ -989,7 +992,7 @@ if (Python3_Interpreter_FOUND)
     )
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=15 --preset-count dmg=15 --preset-count sid=19 --preset-count ym2149=16 --preset-count sn76489=16 --preset-count ym2612=18 --preset-count opl3=15 --preset-count spc700=14 --preset-count pokey=14 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=14 --preset-count ym2151=15 --preset-count ym2413=17 --preset-count scc=16
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=15 --preset-count dmg=15 --preset-count sid=19 --preset-count ym2149=16 --preset-count sn76489=16 --preset-count ym2612=18 --preset-count opl3=15 --preset-count spc700=14 --preset-count pokey=14 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=15 --preset-count ym2151=15 --preset-count ym2413=17 --preset-count scc=16
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1063,7 +1066,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_scc_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_namco_wsg_descriptor_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip namcoWsg --source-lanes namcoWsg=8/8 --implemented namcoWsg=1 --verification-badge "namcoWsg=Verified partial" --verification-cycle namcoWsg=0 --verification-hardware namcoWsg=0 --param-kind namcoWsg:waveShape=chipRegister --param-surface namcoWsg:waveShape=segmentedChoice --param-choices namcoWsg:waveShape=5 --param-midi-cc namcoWsg:waveShape=89 --param-kind namcoWsg:macroControl3=chipRegister --param-surface namcoWsg:macroControl3=slider --param-midi-cc namcoWsg:macroControl3=78 --param-kind namcoWsg:macroControl4=chipRegister --param-surface namcoWsg:macroControl4=slider --param-midi-cc namcoWsg:macroControl4=79 --param-surface namcoWsg:stereoSpread=slider --param-midi-cc namcoWsg:stereoSpread=93 --param-kind namcoWsg:source8Enabled=booleanToggle --param-surface namcoWsg:source8Enabled=sourceCards --param-midi-cc namcoWsg:source8Enabled=61 --param-kind namcoWsg:source8Level=continuous --param-surface namcoWsg:source8Level=slider --param-midi-cc namcoWsg:source8Level=63 --macro-label "namcoWsg:Lead=Namco Arcade Lead" --macro-source namcoWsg:Drum=0011 --preset namco-arcade-lead --preset namco-wave-tick
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip namcoWsg --source-lanes namcoWsg=8/8 --implemented namcoWsg=1 --verification-badge "namcoWsg=Verified partial" --verification-cycle namcoWsg=0 --verification-hardware namcoWsg=0 --param-kind namcoWsg:waveShape=chipRegister --param-surface namcoWsg:waveShape=segmentedChoice --param-choices namcoWsg:waveShape=5 --param-midi-cc namcoWsg:waveShape=89 --param-kind namcoWsg:macroControl3=chipRegister --param-surface namcoWsg:macroControl3=slider --param-midi-cc namcoWsg:macroControl3=78 --param-kind namcoWsg:macroControl4=chipRegister --param-surface namcoWsg:macroControl4=slider --param-midi-cc namcoWsg:macroControl4=79 --param-surface namcoWsg:stereoSpread=slider --param-midi-cc namcoWsg:stereoSpread=93 --param-kind namcoWsg:source8Enabled=booleanToggle --param-surface namcoWsg:source8Enabled=sourceCards --param-midi-cc namcoWsg:source8Enabled=61 --param-kind namcoWsg:source8Level=continuous --param-surface namcoWsg:source8Level=slider --param-midi-cc namcoWsg:source8Level=63 --macro-label "namcoWsg:Lead=Namco Arcade Lead" --macro-source namcoWsg:Drum=0011 --preset namco-arcade-lead --preset namco-tracker-lead --preset namco-wave-tick
     )
     set_tests_properties(chipper_render_list_namco_wsg_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1698,6 +1701,11 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/namco-wsg-steps-smoke.json --implemented-contains partial --macro Drum --min-peak 0.05 --register-writes 0 --note-events 0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min waveShapeChoice=4 --core-max waveShapeChoice=4 --core-min internalChannelCount=8 --core-max internalChannelCount=8 --core-min enableMask=0 --core-max enableMask=0
     )
     set_tests_properties(chipper_render_namco_wsg_steps_assert PROPERTIES DEPENDS chipper_render_namco_wsg_steps_smoke)
+
+    add_test(NAME chipper_render_preset_namco_tracker_lead_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-namco-tracker-lead.json --implemented-contains partial --preset namco-tracker-lead --macro Lead --play-mode "Big Mono" --output-db -9.5 --register-writes 0 --note-events 0 --min-peak 0.02 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min internalChannelCount=8 --core-max internalChannelCount=8 --core-min exposedChannelCount=8 --core-max exposedChannelCount=8 --core-min enableMask=0 --core-max enableMask=0
+    )
+    set_tests_properties(chipper_render_preset_namco_tracker_lead_assert PROPERTIES DEPENDS chipper_render_preset_namco_tracker_lead_smoke)
 
     add_test(NAME chipper_render_namco_wsg_chip_poly_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/namco-wsg-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 8 --min-peak 0.05 --core-min activeChannels=8 --core-max activeChannels=8 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min assignedNote4=76 --core-max assignedNote4=76 --core-min assignedNote5=79 --core-max assignedNote5=79 --core-min assignedNote6=83 --core-max assignedNote6=83 --core-min assignedNote7=86 --core-max assignedNote7=86 --core-min internalChannelCount=8 --core-max internalChannelCount=8 --core-min exposedChannelCount=8 --core-max exposedChannelCount=8 --core-min enableMask=255 --core-max enableMask=255
