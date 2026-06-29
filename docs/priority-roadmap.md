@@ -57,45 +57,80 @@ Use this implementation order when no current regression is blocking release:
 
 ## Next Candidate Chip Priority List
 
-Confidence is scored 1-10 and means "confidence this is a good next Chipper implementation investment," not a cycle-accuracy claim. Furnace may guide feature coverage, role vocabulary, and audition targets, but Chipper should not import Furnace code, patches, instruments, wavetables, or samples without a separate source/license audit.
+Confidence is scored 1-10 and means "confidence this is a good next Chipper implementation investment," not a cycle-accuracy claim. Furnace may guide feature coverage, role vocabulary, and audition targets, but Chipper should not import Furnace code, patches, instruments, wavetables, or samples without a separate source/license audit. Furnace itself is GPLv2-or-later/GPLv3 depending on build options, so the safe default is reference-only behavior study plus original Chipper code and presets.
 
-| Rank | Candidate | Confidence | Chipper Fit |
-| ---: | --- | ---: | --- |
-| 1 | NES expansion audio pack: VRC6, FDS, MMC5, Sunsoft 5B, Namco 163 | 8 | Builds directly on existing NES controls and preset vocabulary; present as NES Expansion choices instead of unrelated one-off chips. |
-| 2 | YM2608 / OPNA | 8 | Natural YM2203 superset with PC-98 identity; high value now that a smaller OPN FM+SSG slice exists, but ADPCM/rhythm scope needs a careful vertical slice. |
-| 3 | YM2610 / OPNB and YM2610B | 8 | Strong Neo Geo/arcade value and close to OPNA concepts; ADPCM-A/B bank workflow makes it a second-phase FM/sample hybrid. |
-| 4 | VRC7 / Family Noraebang OPLL | 8 | Fits because YM2413/OPLL already exists; implement after OPLL patch/rhythm polish so preset FM stays honest. |
-| 5 | SAA1099 | 8 | Compact PSG-style win with stereo, dual noise, and envelopes; likely a clean vertical slice with useful computer/arcade presets. |
-| 6 | PC Speaker / ZX beeper | 8 | Very Chipper-friendly as tiny SFX and bit-bang engines with gesture presets, as long as they are not oversold as broad synths. |
-| 7 | YM3526 / YM3812 / Y8950 depth | 8 | Improve the OPL2 family before adding more labels; Y8950 ADPCM becomes valuable after sample flow is stronger. |
-| 8 | YM2203 / OPN SSG noise/envelope polish | 8 | FM plus SSG tone lanes are implemented; next OPN-local value is honest SSG noise/envelope controls without muddying the FM operator surface. |
-| 9 | YMF262 / OPL3 full 4-op | 7 | High musical value, but it should follow a real OPL operator-pair editor so 4-op mode is not a fake checkbox. |
-| 10 | AY8930 | 7 | Easy AY-family extension with moderate payoff; lower pull than NES expansion, OPNA/OPNB, or SAA1099. |
-| 11 | SegaPCM | 7 | Strong arcade/sample payoff and clear 16-channel identity; wait for sampler-bank workflow hardening. |
-| 12 | Ricoh RF5C68 | 7 | Good Sega CD/FM Towns identity; best after sample/wavetable state recall and bank UI mature. |
-| 13 | OKI MSM6295 / MSM6258 | 7 | Great drum/SFX chips; best as one-shot ADPCM lanes once sample-chip workflow is clean. |
-| 14 | SNES depth | 7 | Already present as SPC700-style; deepen BRR/sample/echo behavior instead of adding a separate SNES label. |
-| 15 | Amiga depth | 7 | Paula already exists; deepen tracker sample workflow, loops, maps, and MOD behavior before new Amiga labels. |
-| 16 | SID, POKEY, Game Boy, HuC6280, SCC depth | 8 | Not new modes, but still high-return because cores/UI already exist and presets can prove the value quickly. |
-| 17 | Capcom QSound | 6 | Strong name and spatial identity, but needs a larger sample/banking/mixing surface. |
-| 18 | Yamaha YMZ280B | 6 | Useful PCM chip, but less immediate product identity than SegaPCM, RF5C68, or OKI. |
-| 19 | Konami K007232 / K053260 | 6 | Good arcade color; better after generic arcade sample-chip patterns exist. |
-| 20 | Irem GA20 | 6 | Reasonable sample-chip target with lower user recognition and preset payoff. |
-| 21 | Namco C140 / C219 | 6 | Good follow-up once Namco WSG and sample-chip architecture are deeper. |
-| 22 | WonderSwan | 6 | Nice handheld wavetable identity; lower near-term pull than NES expansion or implemented wavetable depth. |
-| 23 | Seta/Allumer X1-010 | 6 | Interesting wavetable/sample hybrid; better after the wavetable editor pattern settles. |
-| 24 | Namco WSG/C15/C30 variants | 6 | Fold into the existing Namco WSG roadmap rather than making separate headline modes too early. |
-| 25 | Game Boy Advance DMA sound | 6 | Useful, but starts becoming a console audio subsystem rather than one chip instrument. |
-| 26 | YM2414 / OPZ | 6 | Attractive TX81Z-style four-op FM target; wait until OPN/OPM operator UI and detune controls are stronger. |
-| 27 | YMF278 / OPL4 | 5 | Needs both OPL3 depth and sample architecture; later milestone, not the next step. |
-| 28 | ESS ESFM | 5 | Good after solid OPL3 support; not worth leading with before OPL3 4-op is first-class. |
-| 29 | Virtual Boy | 5 | Fits wavetable philosophy, but lower demand and preset payoff than higher-ranked handheld/console targets. |
-| 30 | Bubble System WSG | 5 | Historically interesting but narrow; later Konami wavetable flavor after SCC. |
-| 31 | VIC, TED, PET, Casio PV-1000, TIA, Pokemon Mini, Watara Supervision, Tiger Game.com SM8521 | 4-6 | Viable later as small character chips, but niche enough to follow stronger families unless a specific user story appears. |
-| 32 | Nintendo DS | 4 | Too broad and modern for the current instrument scope; defer until sampler engines and bank state are much stronger. |
-| 33 | SFX-like, QuadTone, MinMod software driver, TIunA | 3-5 | Useful as gesture/preset inspiration, but these are software engines or drivers rather than clean chip modes. Translate the behavior into Chipper motion tools. |
+Current philosophy filter:
 
-The next best broader feature target is NES expansion audio. The next best full new chips are YM2608/OPNA and YM2610/OPNB if we want to stay in Yamaha FM, or SAA1099 and PC Speaker/ZX beeper for smaller-scope wins. The next YM2203-local follow-up is SSG noise/envelope polish. The next big sample-chip targets are SegaPCM, RF5C68, and OKI after sampler-bank workflow hardening.
+- Prefer one playable vertical slice over a large label dump: source-card lanes, presets, renderer JSON, tests, docs, and install verification.
+- Extend existing Chipper families before adding near-duplicate modes. If the chip is already represented, deepen the surface instead of duplicating the mode.
+- Keep expansions attached to their host identity, such as NES + VRC6 or NES + FDS, unless the chip naturally stands alone in a VST workflow.
+- Add sample-heavy chips only after sample-bank, loop, note-map, missing-file, and preset provenance workflows are strong enough to make them useful.
+- Treat software drivers and tracker engines as motion/preset inspiration, not as chip modes.
+
+| Priority | Candidate | Confidence | Decision | Rationale |
+| ---: | --- | ---: | --- | --- |
+| 1 | NES + VRC6 | 9 | Implement now | Best first expansion slice: two pulses plus saw, strong musical identity, small UI/test surface, and no sample-bank dependency. |
+| 2 | YM2608 / OPNA | 8 | Implement next FM-family mode | Natural YM2203 superset with PC-98 value; start FM+SSG/rhythm as a vertical slice and defer full ADPCM depth until sample workflows are stronger. |
+| 3 | YM2610 / OPNB and YM2610B / OPNB2 | 8 | Implement after OPNA planning | Strong Neo Geo identity and close to OPNA concepts; ADPCM-A/B bank handling makes it a second FM/sample hybrid milestone. |
+| 4 | NES + Famicom Disk System | 8 | Implement after VRC6 | Single expressive wavetable/modulation expansion that fits the existing NES page and future wave editor direction. |
+| 5 | NES + Sunsoft 5B | 8 | Implement after VRC6/FDS | AY-style expansion is a good fit because Chipper already has YM2149/AY vocabulary and source-card patterns. |
+| 6 | NES + MMC5 | 8 | Implement after VRC6/FDS | Extra pulse channels and PCM are a clear NES expansion win with modest new UI complexity. |
+| 7 | NES + VRC7 / Family Noraebang OPLL | 8 | Implement after OPLL polish | OPLL is already present; NES context and limited patch behavior can share the YM2413 path once custom patch/rhythm behavior is clearer. |
+| 8 | SAA1099 | 8 | Implement as compact PSG win | Distinct stereo PSG with envelopes and dual noise; likely a clean core, source-card, preset, and renderer slice. |
+| 9 | PC Speaker | 8 | Implement as SFX/beeper instrument | Tiny scope, excellent gesture/preset payoff, and a natural fit for Chipper's honest "small limitation, playable result" rule. |
+| 10 | ZX Spectrum beeper | 8 | Implement with PC Speaker or next | Strong SFX and arpeggio identity; should be framed as beeper engines and gestures rather than a broad synth. |
+| 11 | YM2203 / OPN SSG noise and envelope polish | 8 | Deepen existing mode | FM plus SSG tone lanes are in place; next value is honest SSG noise/envelope UI and presets. |
+| 12 | YM3526 / OPL and YM3812 / OPL2 | 8 | Deepen existing OPL surface | Already covered through the OPL2/OPL3 adapter; improve operator-pair editing, rhythm behavior, and presets before adding more OPL labels. |
+| 13 | YM2413 / OPLL | 8 | Deepen existing mode | Add custom patch, rhythm, and pitchable drum clarity before using OPLL as an NES expansion layer. |
+| 14 | YM2151 / OPM | 8 | Deepen existing mode | High-value arcade/X68000 mode already exists; next value is better operator UI, LFO, noise, and presets. |
+| 15 | YM2612 / OPN2 | 8 | Deepen existing mode | Keep improving DAC, operator envelopes, algorithm feedback, detune, and Genesis presets rather than adding a duplicate chip. |
+| 16 | SID 6581/8580 | 8 | Deepen existing mode | Strong Chipper fit; keep expanding PWM/filter/sync/ring presets and model honesty. |
+| 17 | Game Boy / DMG, including zombie envelopes | 8 | Deepen existing mode | Existing APU is valuable; software-envelope/zombie behavior belongs as truthful advanced DMG controls and presets. |
+| 18 | POKEY | 8 | Deepen existing mode | Add AUDCTL pairing, high-pass, distortion validation, and Atari-specific preset coverage. |
+| 19 | HuC6280 | 8 | Deepen existing mode | Existing six-lane wavetable core needs wave editing, noise/LFO clarity, and PC Engine presets. |
+| 20 | Konami SCC/SCC+ | 8 | Deepen existing mode | Existing SCC adapter should gain wave editing, SCC+ distinction, key/volume masks, and Konami presets. |
+| 21 | SNES / SPC700-style | 8 | Deepen existing mode | Avoid a second SNES label; deepen BRR, loop, ADSR/GAIN, echo/FIR, and sample-bank behavior. |
+| 22 | Amiga / Paula | 8 | Deepen existing mode | Avoid a second Amiga label; deepen sample loops, tracker maps, MOD behavior, and drum kits. |
+| 23 | YMF262 / OPL3 full 4-op | 7 | Implement after OPL editor depth | High value, but it should arrive with real operator-pair/four-op editing instead of a superficial mode switch. |
+| 24 | AY8930 | 7 | Implement after PSG wins | Reasonable AY-family extension with lower pull than Sunsoft 5B, SAA1099, and existing AY polish. |
+| 25 | NES + Namco 163 | 7 | Implement after wave editor groundwork | Great expansion identity, but multi-wavetable memory and voice-count tradeoffs want better wave editing first. |
+| 26 | SegaPCM | 7 | Implement after sampler-bank hardening | Clear 16-channel arcade identity and good preset payoff once sample slots, loops, and missing-file states are fully comfortable. |
+| 27 | Ricoh RF5C68 | 7 | Implement after sampler-bank hardening | Good Sega CD/FM Towns value; needs banked sample memory and loop behavior to feel first-class. |
+| 28 | OKI MSM6258 and MSM6295 | 7 | Implement after one-shot sample workflow | Excellent drums/SFX chips, especially once ADPCM lanes, kits, and one-shot audition are strong. |
+| 29 | Namco WSG/C15/C30 variants | 7 | Fold into existing Namco WSG depth | Keep as variant behavior and presets under the current Namco WSG roadmap instead of separate early headline modes. |
+| 30 | WonderSwan | 6 | Implement later | Nice handheld wavetable identity, but lower near-term payoff than NES expansion and existing wavetable depth. |
+| 31 | Seta/Allumer X1-010 | 6 | Implement later | Interesting wavetable/sample hybrid; best after the wave/sample editor pattern settles. |
+| 32 | Yamaha Y8950 | 6 | Implement after OPL and ADPCM depth | OPL plus ADPCM is useful, but depends on both OPL operator depth and sample/ADPCM workflow. |
+| 33 | Yamaha YMZ280B / PCMD8 | 6 | Implement after stronger sample-chip pattern | Useful PCM target, but less immediate identity than SegaPCM, RF5C68, and OKI. |
+| 34 | Konami K007232 | 6 | Implement after arcade sample pattern | Good arcade color; wait until generic sample-chip lane conventions are proven. |
+| 35 | Konami K053260 | 6 | Implement after arcade sample pattern | Good follow-up to K007232 or SegaPCM once banks/loops/mixing are established. |
+| 36 | Irem GA20 | 6 | Implement after arcade sample pattern | Viable sample chip with moderate recognition and lower preset pull. |
+| 37 | Namco C140 | 6 | Implement after sample-chip foundation | Strong arcade follow-up once Namco/sample-chip architecture is deeper. |
+| 38 | Namco C219 | 6 | Implement after C140/sample foundation | Similar family value, best treated as a later variant/follow-up. |
+| 39 | Capcom QSound | 6 | Implement later | High recognition and spatial identity, but needs a broader sample/banking/mixing surface. |
+| 40 | OKI MSM5232 | 6 | Implement later | Distinct arcade tone chip, but lower near-term demand than SAA1099 or NES/OPN work. |
+| 41 | Mikey / Atari Lynx | 6 | Implement later | Good handheld identity; useful once wavetable/sample lanes and presets are deeper. |
+| 42 | TIA / Atari 2600 | 6 | Implement later as SFX-focused | Strong character and TIunA-style pitch ideas, but should be framed as constrained SFX/tuning behavior. |
+| 43 | Game Boy Advance DMA two-channel mode | 6 | Implement later | Useful sample-channel identity, but starts to feel like a console subsystem unless tightly scoped. |
+| 44 | YM2414 / OPZ | 6 | Implement later | Attractive TX81Z-style four-op FM target; wait until OPN/OPM operator UI and detune are stronger. |
+| 45 | Commodore VIC | 5 | Defer | Characterful but niche; follow stronger PSG/beeper and C64/SID work. |
+| 46 | TED / Commodore Plus/4 | 5 | Defer | Useful Commodore flavor, but lower pull than SID depth or compact PSG wins. |
+| 47 | Virtual Boy | 5 | Defer | Fits wavetable philosophy, but lower demand and preset payoff than other handhelds. |
+| 48 | Konami Bubble System WSG | 5 | Defer | Historically interesting; better as later Konami wavetable flavor after SCC. |
+| 49 | YMF278 / OPL4 | 5 | Defer | Requires both full OPL3 depth and sample-channel architecture; not a near-term slice. |
+| 50 | ESS ESFM | 5 | Defer | Good after solid OPL3 support, but not before first-class OPL3 four-op. |
+| 51 | Ensoniq ES5506 | 5 | Defer | Powerful but larger/less chip-instrument-shaped; needs mature sample voice architecture. |
+| 52 | Commodore PET | 4 | Defer | Small historical flavor, low immediate VST payoff. |
+| 53 | Casio PV-1000 | 4 | Defer | Niche enough to wait for a specific user story. |
+| 54 | Pokemon Mini | 4 | Defer | Fun but narrow; not a better investment than current chip families. |
+| 55 | Sharp SM8521 / Tiger Game.com | 4 | Defer | Low recognition and low near-term preset value. |
+| 56 | Watara Supervision | 4 | Defer | Low demand compared with other handheld and PSG targets. |
+| 57 | Nintendo DS | 4 | Defer | Too broad for the current single-instrument chip-mode scope until sampler engines and bank state are much stronger. |
+| 58 | SFX-like engine and QuadTone engine | 5 | Translate into motion tools | Good behavior inspiration for beeper presets, arps, and one-shot gestures; not a clean hardware chip mode. |
+| 59 | TIunA software tuning engine | 4 | Translate into motion tools | Useful for TIA pitch/tuning ideas, but should not become a standalone chip. |
+| 60 | MinMod software driver | 4 | Translate into sampler/tracker tools | Useful GBA tracker-driver reference, not a chip implementation target. |
+
+The next concrete implementation slice stays **NES + VRC6**. After that, choose either **YM2608/OPNA** if we want another high-value Yamaha family chip, **FDS/Sunsoft 5B/MMC5** if we want to keep building the NES expansion pack, or **SAA1099/PC Speaker/ZX beeper** if we want smaller-scope, high-confidence wins. The next sample-chip targets are **SegaPCM**, **RF5C68**, and **OKI MSM6258/MSM6295**, but only after the sample-bank workflow feels boringly reliable.
 
 ## Next Code Slices To Prefer
 
