@@ -59,6 +59,8 @@ Use this implementation order when no current regression is blocking release:
 
 Confidence is scored 1-10 and means "confidence this is a good next Chipper implementation investment," not a cycle-accuracy claim. Furnace may guide feature coverage, role vocabulary, and audition targets, but Chipper should not import Furnace code, patches, instruments, wavetables, or samples without a separate source/license audit. Furnace itself is GPLv2-or-later/GPLv3 depending on build options, so the safe default is reference-only behavior study plus original Chipper code and presets.
 
+Latest Furnace planning check: upstream `tildearrow/furnace` `master` HEAD was `ebb8a9d806226fc389cc8f6d4e1bb3b28446f22b` on 2026-06-29. Its README still presents the same useful reference shape for Chipper: very broad FM/PSG/sample/wavetable/console chip coverage, chip-aware presets and macros, sample/wavetable editing, per-chip/channel export, and a GPL-family license posture. That keeps the decision unchanged: use Furnace as a coverage, UX, and audition map only; do not copy code, tracker instruments, patch dumps, ROM data, samples, or wavetables into Chipper without a separate file-level audit.
+
 Current philosophy filter:
 
 - Prefer one playable vertical slice over a large label dump: source-card lanes, presets, renderer JSON, tests, docs, and install verification.
@@ -134,23 +136,31 @@ The current implementation wave has landed **NES + VRC6**, **YM2608/OPNA**, the 
 
 ## Current Next-Best Priority List
 
-| Rank | Candidate | Confidence | Why this is next-best for Chipper |
-| ---: | --- | ---: | --- |
-| 1 | OPNA rhythm plus ADPCM-A/B | 7 | YM2608 is already in the ymfm family and PC-98 rhythm/ADPCM would unlock a very recognizable preset layer, but it needs careful sample/one-shot workflow and honest rhythm controls. |
-| 2 | OPNB ADPCM-A/B plus OPNB2 behavior | 7 | YM2610 already has FM plus SSG lanes; Neo Geo identity wants ADPCM, but external sample provenance, banking, and YM2610B six-FM behavior need a tidy vertical slice. |
-| 3 | OPL3 full 4-op/operator-pair polish | 7 | The YMF262 core is already present; the missing value is a real OPL3 editing surface with 2-op/4-op pairing, stereo lanes, and rhythm clarity. |
-| 4 | YM2413/OPLL custom patch and rhythm polish | 8 | emu2413 is already vendored and OPLL/VRC7 share product vocabulary; a single shared custom patch editor and clearer rhythm surface fit the VST philosophy. |
-| 5 | YM2151/OPM LFO, detune, noise, and operator depth | 8 | OPM is implemented and musically important; LFO/AMS/PMS, DT1/DT2, and channel-8 noise polish are high-value without adding a new chip label. |
-| 6 | YM2612/OPN2 DAC, LFO, detune, and deeper operator presets | 8 | Genesis FM is a flagship mode, and further DAC/operator polish improves existing presets more than another near-duplicate FM chip would. |
-| 7 | SID PWM/filter/sync/ring preset depth and model validation | 8 | The SID surface already matches Chipper’s chip-native philosophy; better original presets and validation raise quality without major new architecture. |
-| 8 | Game Boy zombie envelopes and sweep/noise polish | 8 | DMG is already implemented, and advanced envelope/sweep behavior can be exposed as truthful, compact controls instead of a full tracker engine. |
-| 9 | POKEY AUDCTL/high-pass/distortion validation | 8 | Existing POKEY support can become much more Atari-specific with focused register controls and validation. |
-| 10 | HuC6280, SCC/SCC+, and Namco WSG wave-editor depth | 8 | Existing wavetable chips need a shared wave editing pattern before more wavetable expansions are added. |
-| 11 | SPC700 BRR loop, ADSR/GAIN, echo/FIR, and sample-bank polish | 8 | Current sample-chip value rises sharply once imported/sample-bank behavior is boringly reliable and testable. |
-| 12 | Amiga/Paula sample-loop and tracker-map polish | 8 | Paula is already a good sampler workflow proving ground; deeper loop and kit behavior helps every later sample chip. |
-| 13 | NES + Namco 163 | 7 | Best next new chip once wave editing exists; the voice-count/wave-RAM tradeoff should be first-class rather than bolted onto the NES page. |
-| 14 | SegaPCM and RF5C68 | 7 | Strong arcade/Sega sample identities; implement after sample-bank slots, loops, and missing-file states are sturdy. |
-| 15 | OKI MSM6258/MSM6295 | 7 | Excellent one-shot drum/SFX payoff, but ADPCM import, audition, and kit workflows should be established first. |
+This is the active implementation order after NES expansion modes, SAA1099, PC Speaker, ZX Spectrum beeper, and OPN/OPNA/OPNB SSG noise/envelope polish. The broader table above is still the all-candidate Furnace evaluation; this list is the order to execute when no P0 regression is blocking release.
+
+| Rank | Candidate | Confidence | First shippable slice | Why this fits Chipper now |
+| ---: | --- | ---: | --- | --- |
+| 1 | YM2608 / OPNA rhythm + ADPCM-A/B | 7 | Add native OPNA rhythm/ADPCM-A controls, renderer/debug evidence, and legal sample/provenance handling; keep ADPCM-B scoped if the sample workflow is not ready. | YM2608 already rides the vendored ymfm path and PC-98 rhythm is a strong identity layer. Confidence is capped by sample ROM/provenance questions and the current nine-source-lane VST surface. |
+| 2 | YM2610 / OPNB ADPCM-A/B + OPNB2 | 7 | Add external ADPCM-A/B workflow and then YM2610B six-FM behavior. | Neo Geo identity is incomplete without ADPCM, but it needs banked samples, one-shots, loops, and truthful user-owned asset handling. |
+| 3 | YMF262 / OPL3 full 4-op + 18-channel depth | 7 | Expose OPL3 new-mode voice layout, 2-op/4-op pairing, stereo routing, and rhythm clarity. | The core is already present; the missing product value is real OPL3 editing rather than another OPL label. |
+| 4 | YM2413 / OPLL custom patch + rhythm polish | 8 | Add a shared custom-patch editor for OPLL/VRC7 and make rhythm/drum behavior clearer. | emu2413 is already vendored, and custom OPLL/VRC7 editing is high musical value with contained scope. |
+| 5 | YM2151 / OPM LFO, detune, noise, and operator depth | 8 | Add LFO PM/AM, DT1/DT2-oriented controls, better channel-8 noise controls, and deeper original presets. | OPM is already implemented, distinctive, and important for arcade/X68000 sounds. |
+| 6 | YM2612 / OPN2 DAC, LFO, detune, and operator preset depth | 8 | Deepen channel-6 DAC drums, LFO/AMS/PMS, detune, and original Genesis presets. | Genesis FM is a flagship mode; improving its existing workflow beats adding another near-duplicate FM chip. |
+| 7 | SID 6581/8580 PWM/filter/sync/ring depth | 8 | Expand original presets, validate filter/model behavior, and sharpen voice-3/sync/ring workflows. | The SID surface already matches Chipper's chip-native philosophy and has high user payoff. |
+| 8 | Game Boy / DMG zombie envelope, sweep, and noise polish | 8 | Add truthful advanced envelope/sweep/noise behavior and presets without pretending to be a full tracker. | DMG is already implemented; these features make existing lanes more authentic and playable. |
+| 9 | POKEY AUDCTL/high-pass/distortion validation | 8 | Deepen AUDCTL pairing/high-pass/distortion controls, traces, and Atari-specific presets. | POKEY already has a clear partial model, and register-oriented polish makes it feel less generic. |
+| 10 | Shared wave editor for HuC6280, SCC/SCC+, and Namco WSG | 8 | Build one reusable wave-RAM edit/preview/copy/paste/recall pattern and apply it to the existing wavetable chips. | This unlocks multiple implemented chips and should happen before adding more wavetable modes. |
+| 11 | SPC700 BRR loop, ADSR/GAIN, echo/FIR, and sample-bank polish | 8 | Make BRR loops, per-voice envelope state, echo/FIR helpers, note maps, and missing-file states boringly reliable. | Sample-chip quality rises sharply once asset handling and recall are dependable. |
+| 12 | Amiga / Paula sample-loop, tracker-map, and MOD polish | 8 | Improve loop metadata, kit mapping, retrigger behavior, and next MOD/sample-bank coverage. | Paula is the best proving ground for later sample-chip workflow because it is already useful and compact. |
+| 13 | NES + Namco 163 | 7 | Add a NES-attached N163 vertical slice after the shared wave editor exists. | It is the best next new chip, but voice-count/wave-RAM tradeoffs should be first-class instead of bolted on. |
+| 14 | SegaPCM | 7 | Add a focused arcade sample-lane slice after sample-bank hardening. | The 16-channel identity is strong, but it depends on robust sample slots, loops, and missing-file behavior. |
+| 15 | Ricoh RF5C68 | 7 | Add banked sample playback, loop behavior, and Sega CD/FM Towns presets after the sampler pattern is proven. | High musical value, same workflow dependency as SegaPCM. |
+| 16 | OKI MSM6258/MSM6295 | 7 | Add one-shot ADPCM drum/SFX lanes after ADPCM audition/import conventions are settled. | Excellent drums/SFX payoff, but quality depends on kit and provenance workflow. |
+| 17 | AY8930 and OKI MSM5232 | 6 | Treat as compact PSG/tone-chip follow-ups after AY/SAA1099 validation. | Both fit Chipper, but they are not better than deepening the existing PSG and beeper families first. |
+| 18 | Capcom QSound, YMZ280B, Konami K007232/K053260, Irem GA20, Namco C140/C219, and Ensoniq ES5506 | 6 | Queue as arcade sample-chip follow-ups after SegaPCM/RF5C68/OKI prove the lane and bank model. | Valuable later, but all want mature sample memory, mixing, loop, and preset infrastructure. |
+| 19 | WonderSwan, X1-010, Mikey, Virtual Boy, and GBA DMA | 6 | Queue as handheld/wavetable/sample follow-ups after the shared wave and sample editors exist. | Good character, lower immediate pull than the implemented families and N163. |
+| 20 | OPZ, OPL4, Y8950, and ESS ESFM | 5 | Queue after OPN/OPM/OPL editor depth and ADPCM/sample workflows are stable. | They are attractive, but each depends on groundwork we should finish first. |
+| 21 | TIA, VIC, TED, PET, PV-1000, Pokemon Mini, Tiger Game.com, Watara Supervision, Nintendo DS, and software engines such as SFX-like, QuadTone, TIunA, and MinMod | 4 | Defer or translate into motion/SFX/preset tools rather than standalone chip modes for now. | Interesting references, but lower VST payoff or too broad for Chipper's current chip-instrument scope. |
 
 ## Next Code Slices To Prefer
 
