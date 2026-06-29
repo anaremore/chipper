@@ -3327,6 +3327,7 @@ const char* chipModeKey(chipper::ChipMode mode)
         case chipper::ChipMode::ym2610: return "ym2610";
         case chipper::ChipMode::nesFds: return "nesFds";
         case chipper::ChipMode::nesSunsoft5b: return "nesSunsoft5b";
+        case chipper::ChipMode::nesMmc5: return "nesMmc5";
     }
 
     return "nes";
@@ -4090,7 +4091,8 @@ int main(int argc, char** argv)
         const auto hasAudibleDmcDirect = (options.chip == chipper::ChipMode::nes
             || options.chip == chipper::ChipMode::nesVrc6
             || options.chip == chipper::ChipMode::nesFds
-            || options.chip == chipper::ChipMode::nesSunsoft5b)
+            || options.chip == chipper::ChipMode::nesSunsoft5b
+            || options.chip == chipper::ChipMode::nesMmc5)
             && options.nesDmcDirectLevel > 0.0f;
         if (noteEventCount == 0 && (hasEnabledSource || hasAudibleDmcDirect))
             core->noteOn(options.note, 1.0f);

@@ -2055,6 +2055,14 @@ public:
         sunsoft5bVolume.fill(0);
         sunsoft5bEnabled.fill(false);
         sunsoft5bMixer = 0x38;
+        mmc5Phase.fill(0.0);
+        mmc5PulseTimer.fill(1);
+        mmc5PulseVolume.fill(0);
+        mmc5PulseDuty.fill(0);
+        mmc5PulseEnabled.fill(false);
+        mmc5PcmLevel = 64;
+        mmc5PcmEnvelope = 0.0;
+        mmc5PcmEnabled = false;
         noteStamp = 0;
         dmcActive = false;
         dmcSampleCompleted = false;
@@ -2265,6 +2273,8 @@ public:
             triggerFdsStack(p1Note, p2Note, triNote);
         if (hasSunsoft5b())
             triggerSunsoft5bStack(p1Note, p2Note, triNote);
+        if (hasMmc5())
+            triggerMmc5Stack(p1Note, p2Note, triNote);
         updateTimers();
     }
 
@@ -2308,7 +2318,7 @@ public:
         const auto tndOut = tndSum <= 0.0 ? 0.0 : 159.79 / ((1.0 / tndSum) + 100.0);
         const auto expansionOut = hasVrc6()
             ? renderVrc6Mix()
-            : (hasFds() ? renderFdsWave() : (hasSunsoft5b() ? renderSunsoft5bMix() : 0.0));
+            : (hasFds() ? renderFdsWave() : (hasSunsoft5b() ? renderSunsoft5bMix() : (hasMmc5() ? renderMmc5Mix() : 0.0)));
         const auto mixed = static_cast<float>(applyOutputFilters(pulseOut + tndOut + (expansionOut * 0.04)) * 2.0);
         const auto outputGate = (dmcActive && noteVelocity <= 0.0f) ? 1.0f : noteVelocity;
         const auto scaled = mixed * outputGate;
@@ -2318,7 +2328,7 @@ public:
     std::vector<RegisterWrite> exportRegisterState() const override
     {
         std::vector<RegisterWrite> writes;
-        writes.reserve(regs.size() + (hasVrc6() ? 9u : 0u) + (hasFds() ? 72u : 0u) + (hasSunsoft5b() ? 20u : 0u));
+        writes.reserve(regs.size() + (hasVrc6() ? 9u : 0u) + (hasFds() ? 72u : 0u) + (hasSunsoft5b() ? 20u : 0u) + (hasMmc5() ? 8u : 0u));
         for (size_t i = 0; i < regs.size(); ++i)
             writes.push_back({ 0, static_cast<uint16_t>(0x4000 + i), regs[i] });
         if (hasVrc6())
@@ -2366,12 +2376,24 @@ public:
             pushSunsoftReg(9, static_cast<uint8_t>(sunsoft5bVolume[1] & 0x0fu));
             pushSunsoftReg(10, static_cast<uint8_t>(sunsoft5bVolume[2] & 0x0fu));
         }
+        if (hasMmc5())
+        {
+            for (size_t ch = 0; ch < 2; ++ch)
+            {
+                const auto base = static_cast<uint16_t>(ch == 0 ? 0x5000 : 0x5004);
+                writes.push_back({ 0, base, static_cast<uint8_t>(((mmc5PulseDuty[ch] & 0x03u) << 6u) | 0x30u | (mmc5PulseVolume[ch] & 0x0fu)) });
+                writes.push_back({ 0, static_cast<uint16_t>(base + 2u), static_cast<uint8_t>(mmc5PulseTimer[ch] & 0xffu) });
+                writes.push_back({ 0, static_cast<uint16_t>(base + 3u), static_cast<uint8_t>(((mmc5PulseTimer[ch] >> 8u) & 0x07u) | (mmc5PulseEnabled[ch] ? 0x80u : 0x00u)) });
+            }
+            writes.push_back({ 0, 0x5010, static_cast<uint8_t>(mmc5PcmEnabled ? 0x00u : 0x00u) });
+            writes.push_back({ 0, 0x5011, static_cast<uint8_t>(mmc5PcmLevel & 0x7fu) });
+        }
         return writes;
     }
 
     ChipMode mode() const override { return selectedMode; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
-    std::string modeName() const override { return hasVrc6() ? "NES + VRC6" : (hasFds() ? "NES + FDS" : (hasSunsoft5b() ? "NES + Sunsoft 5B" : "NES / RP2A03")); }
+    std::string modeName() const override { return hasVrc6() ? "NES + VRC6" : (hasFds() ? "NES + FDS" : (hasSunsoft5b() ? "NES + Sunsoft 5B" : (hasMmc5() ? "NES + MMC5" : "NES / RP2A03"))); }
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
@@ -2381,6 +2403,8 @@ public:
             return "Base RP2A03 pulse, triangle, noise, DMC, nonlinear mixer, and output filters use the existing partial clean-room NES model. The Famicom Disk System expansion lane is a clean-room musical 64-step 6-bit wavetable with a compact modulation table, source-card gating, Chip Poly allocation, pseudo-register export, and conservative expansion mixing; exact 2C33 register timing, wave-RAM write timing, modulation unit edge cases, master-volume nonlinearities, disk BIOS behavior, and hardware validation are not complete.";
         if (hasSunsoft5b())
             return "Base RP2A03 pulse, triangle, noise, DMC, nonlinear mixer, and output filters use the existing partial clean-room NES model. The Sunsoft 5B expansion lanes are clean-room AY-style square-tone oscillators with source-card gating, Chip Poly allocation, pseudo-register export through the $C000/$E000 mapper register ports, and conservative expansion mixing; exact Mapper 69 bus timing, PSG noise/envelope behavior, expansion mixing resistor values, and hardware validation are not complete.";
+        if (hasMmc5())
+            return "Base RP2A03 pulse, triangle, noise, DMC, nonlinear mixer, and output filters use the existing partial clean-room NES model. The MMC5 expansion lanes are clean-room extra pulse oscillators plus a conservative PCM/DAC thump lane with source-card gating, Chip Poly allocation across pitched lanes, pseudo-register export for $5000-$5007 and $5011, and conservative expansion mixing; exact MMC5 mapper timing, PCM read mode, IRQ behavior, expansion mixing resistor values, and hardware validation are not complete.";
         return "Pulse, triangle, noise, timers, duty including explicit pulse 2 duty override, enable bits, simple envelopes, length counters, triangle linear counter, DMC direct DAC level, external DPCM byte stepping, basic pulse sweep updates/muting, $4017 frame-counter mode/inhibit behavior, nonlinear mixer, the documented NES output filter chain, and pulse/triangle allocation for Chip Poly play mode are approximated; exact DMC DMA/address/IRQ timing, exact frame sequencer cycle timing, advanced sweep edge cases, and hardware validation are not complete.";
     }
 
@@ -2391,7 +2415,7 @@ public:
              << "\"mode\":\"" << modeName() << "\","
              << "\"implementedAccuracy\":\"partial clean-room register-level\","
              << "\"clockHz\":" << clock << ","
-             << "\"expansion\":\"" << (hasVrc6() ? "VRC6" : (hasFds() ? "FDS" : (hasSunsoft5b() ? "Sunsoft 5B" : "none"))) << "\","
+             << "\"expansion\":\"" << (hasVrc6() ? "VRC6" : (hasFds() ? "FDS" : (hasSunsoft5b() ? "Sunsoft 5B" : (hasMmc5() ? "MMC5" : "none")))) << "\","
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"pulseTimer1\":" << timer[0] << ","
@@ -2467,6 +2491,26 @@ public:
                  << "\"assignedNoteSunsoft5bA\":" << channelNotes[3] << ","
                  << "\"assignedNoteSunsoft5bB\":" << channelNotes[4] << ","
                  << "\"assignedNoteSunsoft5bC\":" << channelNotes[5] << ",";
+        }
+        if (hasMmc5())
+        {
+            json << "\"sourceEnabled5\":" << (sourceEnabled(patch, 4) ? 1 : 0) << ","
+                 << "\"sourceEnabled6\":" << (sourceEnabled(patch, 5) ? 1 : 0) << ","
+                 << "\"sourceEnabled7\":" << (sourceEnabled(patch, 6) ? 1 : 0) << ","
+                 << "\"sourceLevel5\":" << sourceLevel(patch, 4) << ","
+                 << "\"sourceLevel6\":" << sourceLevel(patch, 5) << ","
+                 << "\"sourceLevel7\":" << sourceLevel(patch, 6) << ","
+                 << "\"mmc5Pulse1Timer\":" << mmc5PulseTimer[0] << ","
+                 << "\"mmc5Pulse2Timer\":" << mmc5PulseTimer[1] << ","
+                 << "\"mmc5Pulse1Volume\":" << static_cast<int>(mmc5PulseVolume[0]) << ","
+                 << "\"mmc5Pulse2Volume\":" << static_cast<int>(mmc5PulseVolume[1]) << ","
+                 << "\"mmc5Pulse1Duty\":" << static_cast<int>(mmc5PulseDuty[0]) << ","
+                 << "\"mmc5Pulse2Duty\":" << static_cast<int>(mmc5PulseDuty[1]) << ","
+                 << "\"mmc5PcmLevel\":" << static_cast<int>(mmc5PcmLevel) << ","
+                 << "\"mmc5PcmEnvelope\":" << mmc5PcmEnvelope << ","
+                 << "\"mmc5ActiveMask\":" << mmc5ActiveMask() << ","
+                 << "\"assignedNoteMmc5Pulse1\":" << channelNotes[3] << ","
+                 << "\"assignedNoteMmc5Pulse2\":" << channelNotes[4] << ",";
         }
         json
              << "\"dmcDirectControl\":" << patch.nesDmcDirectLevel << ","
@@ -3030,10 +3074,17 @@ private:
         return selectedMode == ChipMode::nesSunsoft5b;
     }
 
+    bool hasMmc5() const
+    {
+        return selectedMode == ChipMode::nesMmc5;
+    }
+
     size_t chipPolyVoiceCount() const
     {
         if (hasVrc6() || hasSunsoft5b())
             return 6u;
+        if (hasMmc5())
+            return 5u;
         if (hasFds())
             return 4u;
         return 3u;
@@ -3044,6 +3095,9 @@ private:
         static constexpr std::array<size_t, 6> vrc6Sources { 0u, 1u, 2u, 4u, 5u, 6u };
         if (hasVrc6() || hasSunsoft5b())
             return voice < vrc6Sources.size() ? vrc6Sources[voice] : voice;
+        static constexpr std::array<size_t, 5> mmc5Sources { 0u, 1u, 2u, 4u, 5u };
+        if (hasMmc5())
+            return voice < mmc5Sources.size() ? mmc5Sources[voice] : voice;
         if (hasFds() && voice == 3u)
             return 4u;
         return voice;
@@ -3537,6 +3591,139 @@ private:
         writeSunsoft5bTone(voice, midiNote, level);
     }
 
+    uint16_t mmc5PulseTimerForNote(int midiNote) const
+    {
+        const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
+        const auto timerValue = static_cast<int>(std::max(1.0, std::round(clock / (16.0 * hz) - 1.0)));
+        return static_cast<uint16_t>(std::clamp(timerValue, 1, 0x07ff));
+    }
+
+    uint8_t mmc5ExpansionMaskOrRecipe(uint8_t recipeMask) const
+    {
+        const auto requestedMask = sourceEnableMask(patch);
+        if (requestedMask != 0u)
+            return static_cast<uint8_t>(((requestedMask >> 4u) & 0x07u) & recipeMask);
+
+        return recipeMask;
+    }
+
+    void writeMmc5Pulse(size_t channel, NesPulseDuty duty, unsigned volume, int midiNote)
+    {
+        if (! hasMmc5() || channel >= mmc5PulseEnabled.size())
+            return;
+
+        const auto sourceIndex = 4u + channel;
+        mmc5PulseDuty[channel] = static_cast<uint8_t>(duty);
+        mmc5PulseTimer[channel] = mmc5PulseTimerForNote(midiNote);
+        mmc5PulseVolume[channel] = sourceEnabled(patch, sourceIndex)
+            ? static_cast<uint8_t>(std::clamp<unsigned>(volume, 0u, 15u))
+            : uint8_t { 0u };
+        mmc5PulseEnabled[channel] = mmc5PulseVolume[channel] > 0u
+            && sourceEnabled(patch, sourceIndex)
+            && ! patch.nesDmcOnly;
+        if (mmc5PulseEnabled[channel])
+            mmc5Phase[channel] = 0.0;
+    }
+
+    void writeMmc5Pcm(unsigned level)
+    {
+        if (! hasMmc5())
+            return;
+
+        const auto enabledPcm = sourceEnabled(patch, 6) && ! patch.nesDmcOnly && level > 0u;
+        mmc5PcmLevel = enabledPcm
+            ? static_cast<uint8_t>(std::clamp<unsigned>(level, 0u, 127u))
+            : uint8_t { 64u };
+        mmc5PcmEnvelope = enabledPcm ? 1.0 : 0.0;
+        mmc5PcmEnabled = enabledPcm;
+    }
+
+    void triggerMmc5Stack(int p1Note, int p2Note, int triNote)
+    {
+        if (! hasMmc5() || patch.nesDmcOnly)
+        {
+            mmc5PulseEnabled.fill(false);
+            writeMmc5Pcm(0u);
+            return;
+        }
+
+        auto recipeMask = uint8_t { 0x03u };
+        auto mmc5P1Note = p1Note + 12;
+        auto mmc5P2Note = p2Note + 12;
+        auto p1Vol = static_cast<unsigned>(std::round(8.0f + patch.control4 * 7.0f));
+        auto p2Vol = static_cast<unsigned>(std::round(6.0f + patch.control4 * 6.0f));
+        auto pcmLevel = 0u;
+
+        switch (patch.macro)
+        {
+            case MacroKind::coin:
+                mmc5P1Note = p1Note + 19;
+                mmc5P2Note = p1Note + 24;
+                p2Vol = 4u;
+                pcmLevel = 100u;
+                recipeMask = 0x07u;
+                break;
+            case MacroKind::bass:
+                mmc5P1Note = p1Note;
+                mmc5P2Note = triNote + 12;
+                p1Vol = 9u;
+                p2Vol = 4u;
+                recipeMask = 0x03u;
+                break;
+            case MacroKind::arp:
+                mmc5P1Note = p1Note + 7;
+                mmc5P2Note = p1Note + 12;
+                recipeMask = 0x03u;
+                break;
+            case MacroKind::drum:
+                mmc5P1Note = p1Note - 12;
+                p1Vol = 5u;
+                p2Vol = 0u;
+                pcmLevel = 122u;
+                recipeMask = 0x05u;
+                break;
+            case MacroKind::hit:
+                mmc5P1Note = p1Note + 7;
+                p2Vol = 0u;
+                pcmLevel = 116u;
+                recipeMask = 0x05u;
+                break;
+            case MacroKind::laser:
+                mmc5P1Note = p1Note + 12;
+                mmc5P2Note = p2Note + 7;
+                pcmLevel = 88u;
+                recipeMask = 0x07u;
+                break;
+            case MacroKind::jump:
+                mmc5P1Note = p1Note + 12;
+                p2Vol = 0u;
+                recipeMask = 0x01u;
+                break;
+            case MacroKind::powerUp:
+                mmc5P1Note = p1Note + 5;
+                mmc5P2Note = p1Note + 12;
+                recipeMask = 0x03u;
+                break;
+            case MacroKind::lead:
+            case MacroKind::manual:
+            default:
+                break;
+        }
+
+        const auto mask = mmc5ExpansionMaskOrRecipe(recipeMask);
+        const auto duty = nesPulseDutyFromControl(patch.control1);
+        writeMmc5Pulse(0, duty, (mask & 0x01u) != 0u ? p1Vol : 0u, mmc5P1Note);
+        writeMmc5Pulse(1, duty, (mask & 0x02u) != 0u ? p2Vol : 0u, mmc5P2Note);
+        writeMmc5Pcm((mask & 0x04u) != 0u ? pcmLevel : 0u);
+    }
+
+    void triggerMmc5Voice(size_t voice, int midiNote, float velocity)
+    {
+        const auto level = static_cast<unsigned>(std::clamp(static_cast<int>(std::round(clamp01(velocity) * 15.0)), 0, 15));
+        const auto duty = voice == 0 ? nesPulseDutyFromControl(patch.control1) : nesPulse2DutyForPatch(patch, nesPulseDutyFromControl(patch.control1), false);
+        writeMmc5Pulse(voice, duty, level, midiNote);
+    }
+
     int selectChipPolyChannel(int midiNote) const
     {
         const auto voiceCount = chipPolyVoiceCount();
@@ -3599,6 +3786,9 @@ private:
         vrc6Enabled.fill(false);
         fdsEnabled = false;
         sunsoft5bEnabled.fill(false);
+        mmc5PulseEnabled.fill(false);
+        mmc5PcmEnabled = false;
+        mmc5PcmEnvelope = 0.0;
         refreshSunsoft5bMixer();
         linearCounter = 0;
         linearReloadFlag = false;
@@ -3649,6 +3839,8 @@ private:
                 triggerVrc6Voice(static_cast<size_t>(channel - 3), channelNotes[index], channelVelocity[index]);
             else if (hasSunsoft5b())
                 triggerSunsoft5bVoice(static_cast<size_t>(channel - 3), channelNotes[index], channelVelocity[index]);
+            else if (hasMmc5())
+                triggerMmc5Voice(static_cast<size_t>(channel - 3), channelNotes[index], channelVelocity[index]);
             else if (hasFds() && channel == 3)
                 triggerFdsVoice(channelNotes[index], channelVelocity[index]);
         }
@@ -3675,6 +3867,8 @@ private:
                 sunsoft5bEnabled[channel - 3u] = false;
                 refreshSunsoft5bMixer();
             }
+            if (hasMmc5() && channel - 3u < mmc5PulseEnabled.size())
+                mmc5PulseEnabled[channel - 3u] = false;
             if (hasFds() && channel == 3u)
                 fdsEnabled = false;
             if (channel == 2)
@@ -3704,6 +3898,13 @@ private:
                 if (channelNotes[4] >= 0)
                     vrc6PulseDuty[1] = vrc6DutyFromNesDuty(pulse1Duty, 1);
             }
+            if (hasMmc5())
+            {
+                if (channelNotes[3] >= 0)
+                    mmc5PulseDuty[0] = static_cast<uint8_t>(pulse1Duty);
+                if (channelNotes[4] >= 0)
+                    mmc5PulseDuty[1] = static_cast<uint8_t>(nesPulse2DutyForPatch(patch, pulse1Duty, false));
+            }
             return;
         }
 
@@ -3718,6 +3919,11 @@ private:
         {
             vrc6PulseDuty[0] = vrc6DutyFromNesDuty(pulse1Duty, 0);
             vrc6PulseDuty[1] = vrc6DutyFromNesDuty(pulse1Duty, 1);
+        }
+        if (hasMmc5())
+        {
+            mmc5PulseDuty[0] = static_cast<uint8_t>(pulse1Duty);
+            mmc5PulseDuty[1] = static_cast<uint8_t>(nesPulse2DutyForPatch(patch, pulse1Duty, true));
         }
         if (hasFds())
             refreshFdsWaveRam();
@@ -3900,6 +4106,49 @@ private:
         return renderSunsoft5bTone(0) + renderSunsoft5bTone(1) + renderSunsoft5bTone(2);
     }
 
+    int mmc5ActiveMask() const
+    {
+        return (mmc5PulseEnabled[0] ? 0x01 : 0)
+            | (mmc5PulseEnabled[1] ? 0x02 : 0)
+            | (mmc5PcmEnabled && mmc5PcmEnvelope > 0.001 ? 0x04 : 0);
+    }
+
+    double renderMmc5Pulse(size_t channel)
+    {
+        if (! hasMmc5() || channel >= mmc5PulseEnabled.size() || ! mmc5PulseEnabled[channel] || ! sourceEnabled(patch, 4u + channel) || sampleRate <= 0.0)
+            return 0.0;
+
+        const auto period = static_cast<double>(std::max<uint16_t>(1u, static_cast<uint16_t>(mmc5PulseTimer[channel] + 1u)));
+        const auto hz = clock / (16.0 * period);
+        mmc5Phase[channel] = wrapPhase(mmc5Phase[channel] + hz / sampleRate);
+        static constexpr std::array<double, 4> duties { 0.125, 0.25, 0.5, 0.75 };
+        const auto duty = duties[std::clamp<size_t>(mmc5PulseDuty[channel], 0u, duties.size() - 1u)];
+        const auto amp = static_cast<double>(mmc5PulseVolume[channel]) / 15.0;
+        return (mmc5Phase[channel] < duty ? 1.0 : -1.0) * amp * sourceLevel(patch, 4u + channel);
+    }
+
+    double renderMmc5Pcm()
+    {
+        if (! hasMmc5() || ! mmc5PcmEnabled || ! sourceEnabled(patch, 6) || sampleRate <= 0.0)
+            return 0.0;
+
+        const auto level = (static_cast<double>(mmc5PcmLevel) / 63.5) - 1.0;
+        const auto value = level * mmc5PcmEnvelope * sourceLevel(patch, 6);
+        const auto decaySamples = std::max(1.0, sampleRate * (0.030 + 0.090 * static_cast<double>(patch.envelopeDecay)));
+        mmc5PcmEnvelope = std::max(0.0, mmc5PcmEnvelope - (1.0 / decaySamples));
+        if (mmc5PcmEnvelope <= 0.001)
+        {
+            mmc5PcmEnvelope = 0.0;
+            mmc5PcmEnabled = false;
+        }
+        return value;
+    }
+
+    double renderMmc5Mix()
+    {
+        return renderMmc5Pulse(0) + renderMmc5Pulse(1) + renderMmc5Pcm();
+    }
+
     AccuracyMode accuracy;
     ChipMode selectedMode = ChipMode::nes;
     double sampleRate = 48000.0;
@@ -3958,6 +4207,14 @@ private:
     std::array<uint8_t, 3> sunsoft5bVolume {};
     std::array<bool, 3> sunsoft5bEnabled {};
     uint8_t sunsoft5bMixer = 0x38;
+    std::array<double, 2> mmc5Phase {};
+    std::array<uint16_t, 2> mmc5PulseTimer { 1, 1 };
+    std::array<uint8_t, 2> mmc5PulseVolume {};
+    std::array<uint8_t, 2> mmc5PulseDuty {};
+    std::array<bool, 2> mmc5PulseEnabled {};
+    uint8_t mmc5PcmLevel = 64;
+    double mmc5PcmEnvelope = 0.0;
+    bool mmc5PcmEnabled = false;
     uint64_t noteStamp = 0;
     std::vector<uint8_t> dmcSample;
     bool dmcActive = false;
@@ -13474,6 +13731,7 @@ std::unique_ptr<ChipCore> createChipCore(ChipMode mode, AccuracyMode accuracy)
         case ChipMode::nesVrc6: return std::make_unique<NesApuCore>(accuracy, ChipMode::nesVrc6);
         case ChipMode::nesFds: return std::make_unique<NesApuCore>(accuracy, ChipMode::nesFds);
         case ChipMode::nesSunsoft5b: return std::make_unique<NesApuCore>(accuracy, ChipMode::nesSunsoft5b);
+        case ChipMode::nesMmc5: return std::make_unique<NesApuCore>(accuracy, ChipMode::nesMmc5);
         case ChipMode::dmg: return std::make_unique<DmgApuCore>(accuracy);
         case ChipMode::sid: return std::make_unique<SidCore>(accuracy);
         case ChipMode::ym2149: return std::make_unique<Ym2149Core>(accuracy);
@@ -13502,6 +13760,7 @@ std::optional<ChipMode> parseChipMode(std::string_view text)
     if (key == "nesvrc6" || key == "nes+vrc6" || key == "vrc6" || key == "famicomvrc6" || key == "famicom+vrc6") return ChipMode::nesVrc6;
     if (key == "nesfds" || key == "nes+fds" || key == "fds" || key == "famicomfds" || key == "famicom+fds" || key == "famicomdisksystem") return ChipMode::nesFds;
     if (key == "nessunsoft5b" || key == "nes+sunsoft5b" || key == "sunsoft5b" || key == "5b" || key == "sunsoft" || key == "fme7" || key == "sunsoftfme7" || key == "nesfme7") return ChipMode::nesSunsoft5b;
+    if (key == "nesmmc5" || key == "nes+mmc5" || key == "mmc5" || key == "famicommmc5" || key == "famicom+mmc5") return ChipMode::nesMmc5;
     if (key == "dmg" || key == "gameboy" || key == "gameboydmg") return ChipMode::dmg;
     if (key == "sid" || key == "c64" || key == "commodore64") return ChipMode::sid;
     if (key == "ym2149" || key == "ay" || key == "ay38910" || key == "ay38910") return ChipMode::ym2149;
@@ -13565,6 +13824,7 @@ std::string toString(ChipMode mode)
         case ChipMode::nesVrc6: return "NES + VRC6";
         case ChipMode::nesFds: return "NES + FDS";
         case ChipMode::nesSunsoft5b: return "NES + Sunsoft 5B";
+        case ChipMode::nesMmc5: return "NES + MMC5";
         case ChipMode::dmg: return "Game Boy / DMG APU";
         case ChipMode::sid: return "SID / C64";
         case ChipMode::ym2149: return "YM2149 / AY";

@@ -388,6 +388,29 @@ std::vector<MacroTemplate> nesSunsoft5bMacros()
     return macros;
 }
 
+std::vector<MacroTemplate> nesMmc5Macros()
+{
+    auto macros = nesMacros();
+    for (auto& macro : macros)
+    {
+        switch (macro.macro)
+        {
+            case MacroKind::manual: macro.label = "MMC5 Manual"; break;
+            case MacroKind::coin: macro.label = "MMC5 Coin Tick"; break;
+            case MacroKind::bass: macro.label = "MMC5 Pulse Bass"; break;
+            case MacroKind::lead: macro.label = "MMC5 Twin Pulse Lead"; break;
+            case MacroKind::arp: macro.label = "MMC5 Expansion Arp"; break;
+            case MacroKind::drum: macro.label = "MMC5 DAC Drum"; break;
+            case MacroKind::hit: macro.label = "MMC5 Impact Hit"; break;
+            case MacroKind::laser: macro.label = "MMC5 Laser Sweep"; break;
+            case MacroKind::jump: macro.label = "MMC5 Jump Blip"; break;
+            case MacroKind::powerUp: macro.label = "MMC5 Power Arp"; break;
+        }
+    }
+
+    return macros;
+}
+
 std::vector<MacroTemplate> dmgMacros()
 {
     return {
@@ -1969,6 +1992,36 @@ std::vector<ChipParameterSpec> nesSunsoft5bParameterSpecs()
     return specs;
 }
 
+std::vector<ChipParameterSpec> nesMmc5ParameterSpecs()
+{
+    auto specs = nesParameterSpecs();
+    specs.push_back(sourceSpec(ChipParameterRole::source5Enabled,
+                               "nes.mmc5Pulse1.enabled",
+                               "MMC5 Pulse 1",
+                               "Enable the first MMC5 expansion pulse lane."));
+    specs.push_back(sourceSpec(ChipParameterRole::source6Enabled,
+                               "nes.mmc5Pulse2.enabled",
+                               "MMC5 Pulse 2",
+                               "Enable the second MMC5 expansion pulse lane."));
+    specs.push_back(sourceSpec(ChipParameterRole::source7Enabled,
+                               "nes.mmc5Pcm.enabled",
+                               "MMC5 PCM",
+                               "Enable the conservative MMC5 PCM/DAC thump lane for percussion and SFX recipes."));
+    specs.push_back(sourceLevelSpec(ChipParameterRole::source5Level,
+                                    "nes.mmc5Pulse1.level",
+                                    "MMC5 Pulse 1 Level",
+                                    "Modern trim for the first MMC5 pulse expansion lane."));
+    specs.push_back(sourceLevelSpec(ChipParameterRole::source6Level,
+                                    "nes.mmc5Pulse2.level",
+                                    "MMC5 Pulse 2 Level",
+                                    "Modern trim for the second MMC5 pulse expansion lane."));
+    specs.push_back(sourceLevelSpec(ChipParameterRole::source7Level,
+                                    "nes.mmc5Pcm.level",
+                                    "MMC5 PCM Level",
+                                    "Modern trim for the MMC5 PCM/DAC thump lane."));
+    return specs;
+}
+
 std::vector<ChipParameterSpec> dmgParameterSpecs()
 {
     return {
@@ -2936,6 +2989,18 @@ std::array<ModuleDescriptor, 6> nesSunsoft5bModules()
     };
 }
 
+std::array<ModuleDescriptor, 6> nesMmc5Modules()
+{
+    return std::array<ModuleDescriptor, 6> {
+        makeModule("profile", "Profile", "RP2A03 APU plus MMC5 clean-room expansion model.", { "2A03 + MMC5", "NTSC clock default", "Hybrid default", "Authentic still partial" }),
+        makeModule("sources", "Channels", "Base NES lanes plus two MMC5 pulse lanes and one PCM/DAC lane.", { "Pulse 1/2", "Triangle", "Noise / DMC", "MMC5 pulse + PCM" }),
+        makeModule("tone", "Pulse / DAC", "NES pulse/noise controls plus first-pass MMC5 pulse periods and a PCM thump lane.", { "Pulse duty", "MMC5 periods", "PCM DAC level", "Nonlinear APU mixer" }),
+        makeModule("envelope", "APU / MMC5 Level", "Base APU envelope with MMC5 pulse volume and short DAC decay behavior.", { "APU decay", "MMC5 volume", "DAC thump", "Chip Poly pulses" }),
+        makeModule("motion", "Motion", "Musical gestures write NES and MMC5-style pulse/PCM recipes.", { "Twin pulse lead", "Pulse bass", "DAC drum", "Laser sweep" }),
+        makeModule("output", "DMC Sample", "NES DMC file/bank playback stays available while MMC5 lanes add pulse and DAC color.", { "DMC bank", "MMC5 mix", "Output gain", "Verified partial" })
+    };
+}
+
 std::array<ModuleDescriptor, 6> dmgModules()
 {
     return std::array<ModuleDescriptor, 6> {
@@ -3203,6 +3268,33 @@ const std::vector<ChipDescriptor>& descriptors()
                 {
                     "Exact Mapper 69 bus timing, PSG noise/envelope behavior, expansion-audio resistor mixing, and hardware capture comparison are not complete.",
                     "The Sunsoft 5B implementation is a musical NES expansion instrument slice, not a cycle-accurate NES mapper emulator."
+                })
+        },
+        {
+            ChipMode::nesMmc5,
+            "NES + MMC5",
+            "Base RP2A03 lanes plus two MMC5 pulse expansion lanes and a conservative PCM/DAC lane.",
+            {
+                { "duty", "Pulse Duty", "Channels", "Chooses the base pulse duty family while MMC5 pulse lanes add extra square tone color." },
+                { "motion", "Sweep / DAC Motion", "Pitch", "Scales macro pitch rise/drop behavior across NES and MMC5 lanes." },
+                { "noise", "Noise Period", "Noise", "Maps musical noise color to the RP2A03 $400E period nibble; MMC5 PCM is a first-pass DAC thump lane." },
+                { "mix", "Channel Focus", "Mixer", "Balances base APU focus and MMC5 expansion levels." },
+            },
+            nesMmc5Modules(),
+            nesMmc5Macros(),
+            true,
+            true,
+            nesMmc5ParameterSpecs(),
+            verifiedPartial(
+                {
+                    "Base RP2A03 behavior is shared with the tested NES mode.",
+                    "MMC5 Pulse 1 and Pulse 2 render as clean-room expansion square lanes with source-card enables, source levels, pseudo-register export for $5000-$5007, debug JSON, and five-tone Chip Poly allocation that skips Noise/DMC and the PCM lane.",
+                    "The MMC5 PCM source renders as a conservative DAC thump lane with $5011-style debug/export state for percussion and SFX recipes.",
+                    "Renderer smoke, source gating, descriptor metadata, presets, and MIDI CC metadata cover the first playable MMC5 expansion slice."
+                },
+                {
+                    "Exact MMC5 mapper bus timing, PCM read mode, IRQ behavior, multiplier/register side effects, expansion-audio resistor mixing, and hardware capture comparison are not complete.",
+                    "The MMC5 implementation is a musical NES expansion instrument slice, not a cycle-accurate NES mapper emulator."
                 })
         },
         {
@@ -3753,6 +3845,7 @@ EnvelopeModel envelopeModelFor(ChipMode mode)
         case ChipMode::nesVrc6:
         case ChipMode::nesFds:
         case ChipMode::nesSunsoft5b:
+        case ChipMode::nesMmc5:
         case ChipMode::dmg:
         case ChipMode::ym2149:
             return EnvelopeModel::nativeNonAdsr;
@@ -3833,6 +3926,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
         return 5u;
     if (mode == ChipMode::nesSunsoft5b)
         return 7u;
+    if (mode == ChipMode::nesMmc5)
+        return 7u;
     return 4u;
 }
 
@@ -3855,6 +3950,7 @@ size_t nativeSourceCountForMode(ChipMode mode)
         case ChipMode::nesVrc6: return 7u;
         case ChipMode::nesFds: return 5u;
         case ChipMode::nesSunsoft5b: return 7u;
+        case ChipMode::nesMmc5: return 7u;
         default: return visibleSourceCountForMode(mode);
     }
 }

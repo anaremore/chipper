@@ -189,6 +189,7 @@ bool expectChipCatalogIsProductReady()
         chipper::ChipMode::nesVrc6,
         chipper::ChipMode::nesFds,
         chipper::ChipMode::nesSunsoft5b,
+        chipper::ChipMode::nesMmc5,
         chipper::ChipMode::dmg,
         chipper::ChipMode::sid,
         chipper::ChipMode::ym2149,
@@ -321,6 +322,7 @@ bool expectLiveSourceLevelSpecs()
         chipper::ChipMode::nesVrc6,
         chipper::ChipMode::nesFds,
         chipper::ChipMode::nesSunsoft5b,
+        chipper::ChipMode::nesMmc5,
         chipper::ChipMode::dmg,
         chipper::ChipMode::sid,
         chipper::ChipMode::ym2149,
@@ -391,6 +393,7 @@ bool expectLiveSourceCardSpecs()
         chipper::ChipMode::nesVrc6,
         chipper::ChipMode::nesFds,
         chipper::ChipMode::nesSunsoft5b,
+        chipper::ChipMode::nesMmc5,
         chipper::ChipMode::dmg,
         chipper::ChipMode::sid,
         chipper::ChipMode::ym2149,
@@ -502,6 +505,7 @@ bool expectVerificationDisclosure()
         chipper::ChipMode::nesVrc6,
         chipper::ChipMode::nesFds,
         chipper::ChipMode::nesSunsoft5b,
+        chipper::ChipMode::nesMmc5,
         chipper::ChipMode::dmg,
         chipper::ChipMode::sid,
         chipper::ChipMode::ym2149,
@@ -559,6 +563,7 @@ bool expectEnvelopeModels()
                              chipper::ChipMode::nesVrc6,
                              chipper::ChipMode::nesFds,
                              chipper::ChipMode::nesSunsoft5b,
+                             chipper::ChipMode::nesMmc5,
                              chipper::ChipMode::dmg,
                              chipper::ChipMode::ym2149 })
     {
@@ -1215,6 +1220,8 @@ int main()
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::nesFds).supportsChipPoly, "NES + FDS should support Chip Poly across APU melodic and FDS wave lanes");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::nesSunsoft5b).implemented, "NES + Sunsoft 5B descriptor should be implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::nesSunsoft5b).supportsChipPoly, "NES + Sunsoft 5B should support Chip Poly across APU melodic and 5B tone lanes");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::nesMmc5).implemented, "NES + MMC5 descriptor should be implemented");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::nesMmc5).supportsChipPoly, "NES + MMC5 should support Chip Poly across APU melodic and MMC5 pulse lanes");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::sid).implemented, "SID descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::spc700).implemented, "SPC700 descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::spc700).supportsChipPoly, "SPC700 should support Chip Poly across exposed sample voices");
@@ -1298,6 +1305,14 @@ int main()
     ok &= expectSpec(chipper::ChipMode::nesSunsoft5b, chipper::ChipParameterRole::source7Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "5B Tone C");
     ok &= expectSpec(chipper::ChipMode::nesSunsoft5b, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "5B Tone A Level");
     ok &= expectSpec(chipper::ChipMode::nesSunsoft5b, chipper::ChipParameterRole::source7Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "5B Tone C Level");
+    ok &= expectSegmentedRegister(chipper::ChipMode::nesMmc5, chipper::ChipParameterRole::macroControl1, 4, "12.5%");
+    ok &= expectSegmentedRegister(chipper::ChipMode::nesMmc5, chipper::ChipParameterRole::pulse2Duty, 5, "Preset");
+    ok &= expectSegmentedRegister(chipper::ChipMode::nesMmc5, chipper::ChipParameterRole::snNoiseMode, 3, "Preset");
+    ok &= expectSpec(chipper::ChipMode::nesMmc5, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "MMC5 Pulse 1");
+    ok &= expectSpec(chipper::ChipMode::nesMmc5, chipper::ChipParameterRole::source6Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "MMC5 Pulse 2");
+    ok &= expectSpec(chipper::ChipMode::nesMmc5, chipper::ChipParameterRole::source7Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "MMC5 PCM");
+    ok &= expectSpec(chipper::ChipMode::nesMmc5, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "MMC5 Pulse 1 Level");
+    ok &= expectSpec(chipper::ChipMode::nesMmc5, chipper::ChipParameterRole::source7Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "MMC5 PCM Level");
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Pulse 1 Duty");
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::pulse2Duty, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Pulse 2 Duty");
     ok &= expectSpecHelpContains(chipper::ChipMode::dmg, chipper::ChipParameterRole::pulse2Duty, "NR21", "DMG pulse 2 duty help should mention the independent channel-2 duty register");
@@ -1421,6 +1436,10 @@ int main()
     ok &= expectPreset(chipper::ChipMode::nesSunsoft5b, "5b-psg-bass");
     ok &= expectPreset(chipper::ChipMode::nesSunsoft5b, "5b-square-lead");
     ok &= expectPreset(chipper::ChipMode::nesSunsoft5b, "5b-three-voice-arp");
+    ok &= expectMacroLabel(chipper::ChipMode::nesMmc5, chipper::MacroKind::lead, "MMC5 Twin Pulse Lead");
+    ok &= expectPreset(chipper::ChipMode::nesMmc5, "mmc5-pulse-bass");
+    ok &= expectPreset(chipper::ChipMode::nesMmc5, "mmc5-twin-pulse-lead");
+    ok &= expectPreset(chipper::ChipMode::nesMmc5, "mmc5-expansion-arp");
     ok &= expectMacroLabel(chipper::ChipMode::dmg, chipper::MacroKind::bass, "DMG Wave Bass");
     ok &= expectMacroLabel(chipper::ChipMode::sid, chipper::MacroKind::bass, "SID Dirty Bass");
     ok &= expectMacroLabel(chipper::ChipMode::ym2149, chipper::MacroKind::drum, "YM Noise Perc");
@@ -1770,6 +1789,7 @@ int main()
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::nesVrc6, "vrc6-pulse-lead");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::nesFds, "fds-wave-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::nesSunsoft5b, "5b-psg-bass");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::nesMmc5, "mmc5-pulse-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::dmg, "dmg-wave-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::sid, "sid-dirty-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2149, "ym-three-voice-arp");
@@ -1791,6 +1811,7 @@ int main()
     ok &= expectSourceLaneCounts(chipper::ChipMode::nesVrc6, 7u, 7u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::nesFds, 5u, 5u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::nesSunsoft5b, 7u, 7u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::nesMmc5, 7u, 7u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::sid, 3u, 3u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::spc700, 8u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::huc6280, 6u, 6u);

@@ -33,7 +33,8 @@ enum class ChipMode
     ym2608,
     ym2610,
     nesFds,
-    nesSunsoft5b
+    nesSunsoft5b,
+    nesMmc5
 };
 
 enum class AccuracyMode

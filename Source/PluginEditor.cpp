@@ -137,7 +137,8 @@ bool isNesFamily(chipper::ChipMode mode)
     return mode == chipper::ChipMode::nes
         || mode == chipper::ChipMode::nesVrc6
         || mode == chipper::ChipMode::nesFds
-        || mode == chipper::ChipMode::nesSunsoft5b;
+        || mode == chipper::ChipMode::nesSunsoft5b
+        || mode == chipper::ChipMode::nesMmc5;
 }
 
 ChipUiTheme chipThemeFor(chipper::ChipMode mode)
@@ -163,6 +164,7 @@ ChipUiTheme chipThemeFor(chipper::ChipMode mode)
         case chipper::ChipMode::nesVrc6:
         case chipper::ChipMode::nesFds:
         case chipper::ChipMode::nesSunsoft5b:
+        case chipper::ChipMode::nesMmc5:
             return { juce::Colour(0xff0f1112), juce::Colour(0xff171b1d), juce::Colour(0xff151819),
                      juce::Colour(0xff4f5a60), juce::Colour(0xff202426), juce::Colour(0xffff5a2f),
                      juce::Colour(0xff4fd3dd), juce::Colour(0xffececec), juce::Colour(0xffb9c0c4),
@@ -284,6 +286,7 @@ void drawChipIdentityAccent(juce::Graphics& g, juce::Rectangle<int> bounds, chip
         case chipper::ChipMode::nesVrc6:
         case chipper::ChipMode::nesFds:
         case chipper::ChipMode::nesSunsoft5b:
+        case chipper::ChipMode::nesMmc5:
         {
             g.setColour(theme.primary.withAlpha(0.92f));
             g.fillRect(stripeX, stripeY, stripeW * 0.64f, 4.0f);
@@ -372,6 +375,7 @@ int chipModeChoiceIndex(chipper::ChipMode mode)
         case chipper::ChipMode::ym2610: return 18;
         case chipper::ChipMode::nesFds: return 19;
         case chipper::ChipMode::nesSunsoft5b: return 20;
+        case chipper::ChipMode::nesMmc5: return 21;
     }
 
     return 0;
@@ -8269,6 +8273,9 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
     if (mode == chipper::ChipMode::nesSunsoft5b)
         return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | 5B A/B/C square tones | " + nesFocusReadout(patch.control4) + laneText;
 
+    if (mode == chipper::ChipMode::nesMmc5)
+        return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | MMC5 twin pulses + DAC | " + nesFocusReadout(patch.control4) + laneText;
+
     if (isNesFamily(mode))
         return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | " + nesNoiseModeReadout(patch) + " | " + nesFocusReadout(patch.control4) + laneText;
 
@@ -9490,6 +9497,15 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
             + " | square V" + juce::String(static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f)));
     }
 
+    if (mode == chipper::ChipMode::nesMmc5 && index >= 4u && index <= 6u)
+    {
+        if (index == 6u)
+            return "MMC5 PCM | DAC " + juce::String(static_cast<int>(std::round(64.0f + std::clamp(patch.control4, 0.0f, 1.0f) * 63.0f)));
+
+        return juce::String(index == 4u ? "MMC5 P1" : "MMC5 P2")
+            + " | " + (index == 4u ? pulseDutyReadout(mode, patch.control1) : pulse2DutyReadout(patch));
+    }
+
     if (mode == chipper::ChipMode::ym2413)
         return "OPLL " + number + " | I" + juce::String(static_cast<int>(chipper::ym2413InstrumentForPatch(patch)))
             + " V" + juce::String(static_cast<int>(chipper::ym2413VolumeNibbleForPatch(patch, index)));
@@ -10704,6 +10720,28 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 8 | hidden",
         "Source 9 | hidden"
     };
+    static const std::array<const char*, sourceChannelCount> nesMmc5BigMonoLabels {
+        "Pulse 1  |  duty lead",
+        "Pulse 2  |  stack / sweep",
+        "Triangle | bass body",
+        "Noise/DMC | snare / sample",
+        "MMC5 P1 | expansion",
+        "MMC5 P2 | expansion",
+        "MMC5 PCM | DAC hit",
+        "Source 8 | hidden",
+        "Source 9 | hidden"
+    };
+    static const std::array<const char*, sourceChannelCount> nesMmc5ChipPolyLabels {
+        "Pulse 1  |  note 1",
+        "Pulse 2  |  note 2",
+        "Triangle | note 3 bass",
+        "Noise/DMC | mono SFX",
+        "MMC5 P1 | note 4",
+        "MMC5 P2 | note 5",
+        "MMC5 PCM | DAC hit",
+        "Source 8 | hidden",
+        "Source 9 | hidden"
+    };
     static const std::array<const char*, sourceChannelCount> dmgBigMonoLabels {
         "Pulse 1  |  sweep voice",
         "Pulse 2  |  support pulse",
@@ -10889,6 +10927,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         labels = playMode == chipper::PlayMode::chipPoly ? &nesFdsChipPolyLabels : &nesFdsBigMonoLabels;
     else if (mode == chipper::ChipMode::nesSunsoft5b)
         labels = playMode == chipper::PlayMode::chipPoly ? &nesSunsoft5bChipPolyLabels : &nesSunsoft5bBigMonoLabels;
+    else if (mode == chipper::ChipMode::nesMmc5)
+        labels = playMode == chipper::PlayMode::chipPoly ? &nesMmc5ChipPolyLabels : &nesMmc5BigMonoLabels;
     else if (isNesFamily(mode))
         labels = playMode == chipper::PlayMode::chipPoly ? &nesChipPolyLabels : &nesBigMonoLabels;
     else if (mode == chipper::ChipMode::dmg)
@@ -11060,6 +11100,19 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
             shape = ChipWaveformPreviewShape::pulse;
             duty = 0.5f;
             tooltip = "Sunsoft 5B AY-style square-tone expansion lane.";
+        }
+        else if (mode == chipper::ChipMode::nesMmc5 && (index == 4 || index == 5))
+        {
+            shape = ChipWaveformPreviewShape::pulse;
+            duty = index == 4 ? pulseDutyRatioForControl(patch.control1) : pulseDutyRatioForChoice(nesPulse2DutyChoiceForPatch(patch));
+            tooltip = index == 4
+                ? "MMC5 pulse 1 expansion duty follows the Pulse 1 shape control."
+                : "MMC5 pulse 2 expansion duty follows the Pulse 2 shape control.";
+        }
+        else if (mode == chipper::ChipMode::nesMmc5 && index == 6)
+        {
+            shape = ChipWaveformPreviewShape::stepped;
+            tooltip = "MMC5 PCM/DAC thump lane for percussion and SFX recipes.";
         }
     }
     else if (mode == chipper::ChipMode::dmg)
