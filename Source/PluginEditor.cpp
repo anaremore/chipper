@@ -9432,12 +9432,18 @@ juce::String ChipperAudioProcessorEditor::fmChipReadout(chipper::ChipMode mode, 
     {
         const auto waveform = static_cast<int>(chipper::oplWaveformForPatch(patch));
         const auto connection = chipper::oplConnectionForPatch(patch) != 0 ? juce::String("parallel") : juce::String("serial");
-        const auto rhythm = chipper::oplRhythmModeForPatch(patch) == 2u ? juce::String(" | $BD rhythm") : juce::String(" | melodic");
+        auto modeText = juce::String(" | melodic");
+        if (chipper::oplRhythmModeForPatch(patch) == 2u)
+            modeText = " | $BD rhythm";
+        else if (chipper::opl18ChannelLayerForPatch(patch))
+            modeText = " | 18ch layer";
+        else if (chipper::oplFourOperatorPairForPatch(patch))
+            modeText = " | 4-op $104=$" + byteHex(chipper::oplFourOperatorEnableRegisterForPatch(patch));
         return "OPL wave " + juce::String(waveform)
             + " | " + connection
             + " | feedback " + juce::String(feedback) + "/7"
             + " | level " + juce::String(level) + "/15"
-            + rhythm;
+            + modeText;
     }
 
     const auto algorithm = static_cast<int>(mode == chipper::ChipMode::ym2151
@@ -9454,8 +9460,11 @@ juce::String ChipperAudioProcessorEditor::fmFeedbackReadout(chipper::ChipMode mo
     {
         const auto connection = static_cast<int>(chipper::oplConnectionForPatch(patch));
         const auto registerValue = static_cast<uint8_t>((static_cast<unsigned>(feedback) << 1u) | static_cast<unsigned>(connection));
-        return "FB " + juce::String(feedback) + "/7 | $C0=$" + byteHex(registerValue)
+        auto text = "FB " + juce::String(feedback) + "/7 | $C0=$" + byteHex(registerValue)
             + " | " + (connection != 0 ? juce::String("parallel") : juce::String("serial"));
+        if (chipper::oplFourOperatorPairForPatch(patch))
+            text += " | $104=$" + byteHex(chipper::oplFourOperatorEnableRegisterForPatch(patch));
+        return text;
     }
 
     if (mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || isOpnbMode(mode))
@@ -9495,7 +9504,12 @@ juce::String ChipperAudioProcessorEditor::fmOperatorRegisterReadout(chipper::Chi
         const auto sustainRelease = melodicSustain ? 0x26u : 0xa6u;
 
         if (op == 0u)
-            return "W" + juce::String(wave) + " | " + connection + " | FB " + juce::String(feedback) + "/7";
+        {
+            auto text = "W" + juce::String(wave) + " | " + connection + " | FB " + juce::String(feedback) + "/7";
+            if (chipper::oplFourOperatorPairForPatch(patch))
+                text += " | 4-op $104=$" + byteHex(chipper::oplFourOperatorEnableRegisterForPatch(patch));
+            return text;
+        }
 
         if (op == 1u)
             return "MUL " + juce::String(static_cast<int>(chipper::oplModulatorMultipleForPatch(patch)))
@@ -9658,6 +9672,31 @@ juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipM
         const auto modMultiple = static_cast<int>(chipper::oplModulatorMultipleForPatch(patch));
         const auto modLevel = static_cast<int>(chipper::oplModulatorTotalLevelForPatch(patch));
         const auto carrierLevel = static_cast<int>(chipper::oplCarrierTotalLevelForPatch(patch));
+        if (chipper::oplFourOperatorPairForPatch(patch) && index < 6u)
+        {
+            const auto pairBit = index < 3u ? index : index - 3u;
+            const auto primary = index < 3u ? index + 1u : index - 2u;
+            const auto secondary = primary + 3u;
+            if (index < 3u)
+            {
+                return "OPL 4-op Pair " + juce::String(static_cast<int>(primary))
+                    + "+" + juce::String(static_cast<int>(secondary))
+                    + " | $104 bit " + juce::String(static_cast<int>(pairBit))
+                    + " | key-on Ch " + juce::String(channel)
+                    + " | FB " + juce::String(feedback)
+                    + " CON " + juce::String(connection)
+                    + " | W" + juce::String(waveform)
+                    + " | pair TL " + juce::String(carrierLevel) + "/" + juce::String(modLevel);
+            }
+
+            return "OPL paired operators for Ch " + juce::String(static_cast<int>(primary))
+                + " | $104 bit " + juce::String(static_cast<int>(pairBit))
+                + " | key-on follows Ch " + juce::String(static_cast<int>(primary))
+                + " | W" + juce::String(waveform)
+                + " | mod mult " + juce::String(modMultiple)
+                + " TL " + juce::String(modLevel)
+                + " | car TL " + juce::String(carrierLevel);
+        }
         return "OPL Ch " + juce::String(channel)
             + " | Reg $" + byteHex(static_cast<uint8_t>(0xc0u + std::min(index, size_t { 8u })))
             + " FB " + juce::String(feedback)
@@ -9862,8 +9901,22 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
     if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || isOpnbMode(mode))
     {
         if (mode == chipper::ChipMode::opl3)
+        {
+            if (chipper::oplFourOperatorPairForPatch(patch) && index < 6u)
+            {
+                if (index < 3u)
+                    return "OPL " + juce::String(static_cast<int>(index + 1u))
+                        + "+" + juce::String(static_cast<int>(index + 4u))
+                        + " | 4op W" + juce::String(static_cast<int>(chipper::oplWaveformForPatch(patch)));
+
+                return "OPL " + number + " | ops for "
+                    + juce::String(static_cast<int>(index - 2u))
+                    + " TL" + juce::String(static_cast<int>(chipper::oplCarrierTotalLevelForPatch(patch)));
+            }
+
             return "OPL " + number + " | W" + juce::String(static_cast<int>(chipper::oplWaveformForPatch(patch)))
                 + " TL" + juce::String(static_cast<int>(chipper::oplCarrierTotalLevelForPatch(patch)));
+        }
 
         const auto algorithm = static_cast<int>(mode == chipper::ChipMode::ym2151
                                                     ? chipper::ym2151AlgorithmForPatch(patch)
@@ -10054,12 +10107,13 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
 {
     if (displayedMode == chipper::ChipMode::opl3)
     {
-        const auto clamped = std::clamp(choice, 0, 3);
+        const auto clamped = std::clamp(choice, 0, 4);
         switch (clamped)
         {
             case 1: return "Melodic, all nine OPL2 channels use two-operator voices";
             case 2: return "Rhythm, $BD enables BD/HH/SD/TOM/CYM on channels 7-9";
             case 3: return "18ch Layer, nine cards drive paired low/high OPL3 channels";
+            case 4: return "4-op Pair, $104 pairs channels 1+4, 2+5, and 3+6";
             case 0:
             default:
                 return "Preset recipe, Drum/Hit use native OPL2 rhythm";
@@ -12467,14 +12521,18 @@ void ChipperAudioProcessorEditor::updateOplWaveformControl(chipper::ChipMode mod
     const auto registerText = juce::String("$E0 operator waveform=") + juce::String(resolvedWaveform)
         + ", FB=" + juce::String(static_cast<int>(chipper::fmFeedbackForPatch(patch)))
         + ", CNT=" + juce::String(static_cast<int>(chipper::oplConnectionForPatch(patch)));
+    const auto pairText = chipper::oplFourOperatorPairForPatch(patch)
+        ? juce::String("\n4-op Pair writes $104=$") + byteHex(chipper::oplFourOperatorEnableRegisterForPatch(patch))
+        : juce::String();
 
     waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
     waveShapeValueLabel.setText(valueText, juce::dontSendNotification);
-    waveShapeValueLabel.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + registerText, spec->role));
-    oplWaveformBox.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + registerText, spec->role));
+    waveShapeValueLabel.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + registerText + pairText, spec->role));
+    oplWaveformBox.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + registerText + pairText, spec->role));
     oplWaveformPreview.setTooltip("OPL2/YM3812 operator waveform preview.\n"
                                   + registerText
-                                  + "\nCurrent pass writes the selected waveform to both operators of each two-operator voice.");
+                                  + pairText
+                                  + "\nCurrent pass writes the selected waveform to the visible operator pairs.");
 }
 
 void ChipperAudioProcessorEditor::updateOpllInstrumentControl(chipper::ChipMode mode, int choice, bool shouldBeVisible)

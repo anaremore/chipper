@@ -381,6 +381,8 @@ uint8_t oplModulatorTotalLevelForPatch(const PatchConfig& patch);
 uint8_t oplCarrierTotalLevelForPatch(const PatchConfig& patch, float velocity = 1.0f);
 uint8_t oplRhythmModeForPatch(const PatchConfig& patch);
 bool opl18ChannelLayerForPatch(const PatchConfig& patch);
+bool oplFourOperatorPairForPatch(const PatchConfig& patch);
+uint8_t oplFourOperatorEnableRegisterForPatch(const PatchConfig& patch);
 bool opllCustomPatchEnabledForPatch(const PatchConfig& patch);
 uint8_t opllOperatorMultipleForPatch(const PatchConfig& patch, size_t op);
 uint8_t opllModulatorTotalLevelForPatch(const PatchConfig& patch);

@@ -1,0 +1,7 @@
+# Six overlapping notes should allocate across OPL3 4-op primaries plus channels 7-9.
+note_on 0 48 1.0
+note_on 8 52 0.9
+note_on 16 55 0.85
+note_on 24 60 0.8
+note_on 32 64 0.75
+note_on 40 67 0.7

@@ -1080,9 +1080,10 @@ std::vector<ParameterChoiceSpec> oplRhythmModeChoices()
 {
     return {
         choice("Preset", "Use native OPL rhythm mode for Drum/Hit presets and melodic mode otherwise.", 0.0f, 0),
-        choice("Melodic", "Keep all nine OPL2 channels in melodic two-operator mode.", 1.0f / 3.0f, 1),
-        choice("Rhythm", "Enable OPL2 rhythm mode: channels 7-9 become BD, HH, SD, TOM, and CYM.", 2.0f / 3.0f, 2),
-        choice("18ch Layer", "Use OPL3 high-bank channels 10-18 as paired layers behind the nine visible source cards.", 1.0f, 3)
+        choice("Melodic", "Keep all nine OPL2 channels in melodic two-operator mode.", 0.25f, 1),
+        choice("Rhythm", "Enable OPL2 rhythm mode: channels 7-9 become BD, HH, SD, TOM, and CYM.", 0.5f, 2),
+        choice("18ch Layer", "Use OPL3 high-bank channels 10-18 as paired layers behind the nine visible source cards.", 0.75f, 3),
+        choice("4-op Pair", "Enable OPL3 register $104 bits 0-2 so channels 1+4, 2+5, and 3+6 become native four-operator pairs.", 1.0f, 4)
     };
 }
 
@@ -1909,7 +1910,7 @@ std::vector<ChipParameterSpec> oplParameterSpecs()
                       "opl.rhythmMode",
                       "Rhythm Mode",
                       "Rhythm",
-                      "Controls OPL2 register $BD rhythm mode or enables an OPL3 18-channel paired-layer mode. Preset uses Rhythm for Drum/Hit presets and Melodic otherwise.",
+                      "Controls OPL2 register $BD rhythm mode, OPL3 18-channel paired-layer mode, or OPL3 $104 four-operator pair mode. Preset uses Rhythm for Drum/Hit presets and Melodic otherwise.",
                       oplRhythmModeChoices(),
                       ParameterKind::chipRegister),
         sourceSpec(ChipParameterRole::source1Enabled, "opl.ch1.enabled", "OPL Ch 1 / 10", "Enable OPL2 melodic channel 1; in 18ch Layer mode this also enables OPL3 high-bank channel 10."),
@@ -3633,7 +3634,7 @@ std::array<ModuleDescriptor, 6> oplModules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "OPL2/OPL3 surface is backed by audited BSD-licensed ymfm YMF262 core.", { "YMF262 core", "14.32 MHz clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM Voices", "Nine source cards address OPL2 melodic channels, native rhythm slots, or paired low/high-bank OPL3 channels in 18ch Layer mode.", { "Ch 1-9 cards", "Ch 10-18 layer", "BD HH SD TOM CYM", "Chip Poly" }),
+        makeModule("sources", "FM Voices", "Nine source cards address OPL2 melodic channels, native rhythm slots, paired low/high-bank OPL3 channels in 18ch Layer mode, or $104 4-op pairs 1+4/2+5/3+6.", { "Ch 1-9 cards", "Ch 10-18 layer", "$104 4-op pairs", "Chip Poly" }),
         makeModule("tone", "Operators", "Musical controls write native OPL operator and channel registers.", { "Waveform", "Feedback", "Connection", "Operator tone" }),
         makeModule("envelope", "Operator EG", "Melodic and rhythm presets write native OPL attack/decay and sustain/release bytes.", { "EG type sustain", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
         makeModule("motion", "Motion", "DOS FM preset recipes map to register-backed melodic and rhythm patches.", { "UI bell", "FM bass", "Rhythm hits", "Laser" }),
@@ -4091,7 +4092,7 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::opl3,
             "OPL2/OPL3 / DOS FM",
-            "Nine source cards write OPL-compatible registers into the audited ymfm YMF262/OPL3 core for DOS FM tones, native rhythm mode, and an explicit paired 18-channel OPL3 layer mode.",
+            "Nine source cards write OPL-compatible registers into the audited ymfm YMF262/OPL3 core for DOS FM tones, native rhythm mode, an explicit paired 18-channel OPL3 layer mode, and first-pass $104 four-operator pairs.",
             {
                 { "balance", "Operator Balance", "FM", "Writes the OPL connection bit for two-operator voices." },
                 { "feedback", "Feedback", "FM", "Writes OPL feedback bits." },
@@ -4106,12 +4107,12 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YMF262/OPL3 synthesis core.",
-                    "Renderer notes and preset recipes write OPL-compatible operator waveform, multiple, total-level, envelope, channel feedback/connection/output-select, f-number/block, key-on, OPL3 new-mode, high-bank channel, and $BD rhythm registers.",
-                    "Descriptor, MIDI CC, renderer smoke, YMF262 high-bank/new-mode state, source gating, Rhythm Mode, 18-channel Layer Mode, and Chip Poly regression tests cover the paired nine-card adapter."
+                    "Renderer notes and preset recipes write OPL-compatible operator waveform, multiple, total-level, envelope, channel feedback/connection/output-select, f-number/block, key-on, OPL3 new-mode, high-bank channel, $104 four-operator-pair, and $BD rhythm registers.",
+                    "Descriptor, MIDI CC, renderer smoke, YMF262 high-bank/new-mode state, source gating, Rhythm Mode, 18-channel Layer Mode, 4-op Pair mode, and Chip Poly regression tests cover the paired nine-card adapter."
                 },
                 {
-                    "The OPL2/OPL3 mode exposes 18 native YMF262 melodic channels through paired low/high-bank source cards rather than a dedicated 18-card editor; four-operator pairs and deep rhythm-kit editing are not implemented.",
-                    "Deep per-operator ADSR UI, LFO/tremolo/vibrato controls, rhythm-instrument fine tuning, golden emulator comparison, and hardware capture comparison are not complete.",
+                    "The OPL2/OPL3 mode exposes 18 native YMF262 melodic channels through paired low/high-bank source cards and a first-pass $104 4-op Pair mode through the existing nine-card surface rather than a dedicated 18-card/four-operator editor.",
+                    "Deep per-operator ADSR UI, full four-operator algorithm editing, LFO/tremolo/vibrato controls, rhythm-instrument fine tuning, golden emulator comparison, and hardware capture comparison are not complete.",
                     "Cycle accuracy is not claimed."
                 })
         },
@@ -4763,7 +4764,7 @@ PatchConfig makePatchConfig(ChipMode mode,
         ? 8
         : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608 || mode == ChipMode::ym2610 || mode == ChipMode::ym2610b || mode == ChipMode::saa1099)
                ? 4
-               : (mode == ChipMode::opl3 ? 3 : (mode == ChipMode::ym2413 ? 2 : 20)));
+               : (mode == ChipMode::opl3 ? 4 : (mode == ChipMode::ym2413 ? 2 : 20)));
     const auto maxWaveShape = (mode == ChipMode::ym2413 || mode == ChipMode::nesVrc7)
         ? 15
         : ((mode == ChipMode::sid || mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608 || mode == ChipMode::ym2610 || mode == ChipMode::ym2610b) ? 8 : 4);
@@ -6151,10 +6152,10 @@ uint8_t oplCarrierTotalLevelForPatch(const PatchConfig& patch, float velocity)
 
 uint8_t oplRhythmModeForPatch(const PatchConfig& patch)
 {
-    const auto explicitChoice = std::clamp(patch.ymEnvelopeShape, 0, 3);
+    const auto explicitChoice = std::clamp(patch.ymEnvelopeShape, 0, 4);
     if (explicitChoice > 0 && explicitChoice < 3)
         return static_cast<uint8_t>(explicitChoice);
-    if (explicitChoice == 3)
+    if (explicitChoice == 3 || explicitChoice == 4)
         return 1u;
 
     return (patch.macro == MacroKind::drum || patch.macro == MacroKind::hit) ? 2u : 1u;
@@ -6162,7 +6163,17 @@ uint8_t oplRhythmModeForPatch(const PatchConfig& patch)
 
 bool opl18ChannelLayerForPatch(const PatchConfig& patch)
 {
-    return std::clamp(patch.ymEnvelopeShape, 0, 3) == 3;
+    return std::clamp(patch.ymEnvelopeShape, 0, 4) == 3;
+}
+
+bool oplFourOperatorPairForPatch(const PatchConfig& patch)
+{
+    return std::clamp(patch.ymEnvelopeShape, 0, 4) == 4;
+}
+
+uint8_t oplFourOperatorEnableRegisterForPatch(const PatchConfig& patch)
+{
+    return oplFourOperatorPairForPatch(patch) ? 0x07u : 0x00u;
 }
 
 bool opllCustomPatchEnabledForPatch(const PatchConfig& patch)

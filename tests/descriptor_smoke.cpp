@@ -1068,6 +1068,26 @@ bool expectFmRegisterHelpers()
                                                    3);
     ok &= expect(chipper::oplRhythmModeForPatch(oplLayer) == 1u, "OPL 18ch Layer choice should keep melodic key-on registers");
     ok &= expect(chipper::opl18ChannelLayerForPatch(oplLayer), "OPL 18ch Layer helper should expose high-bank paired mode");
+    const auto oplFourOp = chipper::makePatchConfig(chipper::ChipMode::opl3,
+                                                    chipper::MacroKind::manual,
+                                                    0.5f,
+                                                    0.5f,
+                                                    0.5f,
+                                                    0.75f,
+                                                    chipper::PlayMode::chipPoly,
+                                                    { true, true, true, true },
+                                                    { 1.0f, 1.0f, 1.0f, 1.0f },
+                                                    0.0f,
+                                                    0.0f,
+                                                    0,
+                                                    0,
+                                                    0,
+                                                    0,
+                                                    4);
+    ok &= expect(chipper::oplRhythmModeForPatch(oplFourOp) == 1u, "OPL 4-op Pair choice should keep melodic key-on registers");
+    ok &= expect(! chipper::opl18ChannelLayerForPatch(oplFourOp), "OPL 4-op Pair should stay separate from 18ch Layer mode");
+    ok &= expect(chipper::oplFourOperatorPairForPatch(oplFourOp), "OPL 4-op Pair helper should expose native paired-operator mode");
+    ok &= expect(chipper::oplFourOperatorEnableRegisterForPatch(oplFourOp) == 0x07u, "OPL 4-op Pair helper should write $104 bits 0-2");
 
     const auto opllBass = chipper::makePatchConfig(chipper::ChipMode::ym2413,
                                                    chipper::MacroKind::bass,
@@ -2012,7 +2032,7 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPLL Ch 9");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 9 Level");
     ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Rhythm Mode");
-    ok &= expectSegmentedRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::ymEnvelopeShape, 4, "Preset");
+    ok &= expectSegmentedRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Preset");
     ok &= expectPreset(chipper::ChipMode::opl3, "opl2-rhythm-kit");
     ok &= expectPreset(chipper::ChipMode::opl3, "opl3-layer-arp");
     ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::source9Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPL Ch 9 / 18 / TOM+CYM");

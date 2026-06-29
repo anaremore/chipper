@@ -14589,6 +14589,7 @@ public:
         lastNativeRight = 0;
         currentOutput = {};
         writeOplRegister(0x105, 0x01);
+        writeOplRegister(0x104, 0x00);
         writeOplRegister(0x01, 0x20);
         applyPatchToAllChannels(false);
     }
@@ -14597,7 +14598,8 @@ public:
     {
         if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled
             || oplRhythmModeForPatch(nextPatch) != oplRhythmModeForPatch(patch)
-            || opl18ChannelLayerForPatch(nextPatch) != opl18ChannelLayerForPatch(patch))
+            || opl18ChannelLayerForPatch(nextPatch) != opl18ChannelLayerForPatch(patch)
+            || oplFourOperatorPairForPatch(nextPatch) != oplFourOperatorPairForPatch(patch))
             clearChipPolyState();
         patch = nextPatch;
         if (! rhythmModeActive())
@@ -14637,6 +14639,8 @@ public:
         for (size_t channel = 0; channel < notes.size(); ++channel)
         {
             if (rhythmOnlyTemplate || (rhythmModeActive() && channel >= 6u))
+                continue;
+            if (! channelPlayableForMode(channel))
                 continue;
             triggerChannel(channel, notes[channel], baseVelocity, sourceEnabledForChannel(channel));
             if (layer18ModeActive())
@@ -14724,7 +14728,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPL3/YMF262 register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YMF262/OPL3 synthesis core for this OPL2/OPL3 mode pass. Chipper exposes nine OPL2-compatible two-operator lanes, native $BD rhythm-mode key bits, and an explicit 18-channel OPL3 layer mode that maps each visible source card to a low/high-bank YMF262 channel pair. Dedicated 18-card editing, four-operator pairs, deep per-operator ADSR UI, rhythm-instrument fine tuning, golden comparisons, and hardware validation are not complete.";
+        return "BSD-3-Clause ymfm provides the YMF262/OPL3 synthesis core for this OPL2/OPL3 mode pass. Chipper exposes nine OPL2-compatible two-operator lanes, native $BD rhythm-mode key bits, an explicit 18-channel OPL3 layer mode that maps each visible source card to a low/high-bank YMF262 channel pair, and a first-pass $104 four-operator pair mode for channels 1+4, 2+5, and 3+6. Dedicated 18-card editing, a full four-operator editor, deep per-operator ADSR UI, rhythm-instrument fine tuning, golden comparisons, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -14748,6 +14752,11 @@ public:
              << "\"activeNativeChannelCount\":" << playableChannelCount() << ","
              << "\"opl3EighteenChannelLayer\":" << (layer18ModeActive() ? 1 : 0) << ","
              << "\"pairedHighBankSourceCards\":" << (layer18ModeActive() ? 9 : 0) << ","
+             << "\"opl3FourOperatorPairMode\":" << (fourOperatorModeActive() ? 1 : 0) << ","
+             << "\"opl3FourOperatorRegister\":" << static_cast<int>(regs[0x104]) << ","
+             << "\"opl3FourOperatorPairCount\":" << fourOperatorPairCount() << ","
+             << "\"opl3FourOperatorPlayableChannels\":" << modePlayableChannelCount() << ","
+             << "\"opl3FourOperatorSecondaryMuted\":" << (fourOperatorModeActive() ? 1 : 0) << ","
              << "\"opl3NewFlag\":" << static_cast<int>(regs[0x105] & 0x01u) << ","
              << "\"opl3NewModeRegister\":" << static_cast<int>(regs[0x105]) << ","
              << "\"waveform0\":" << static_cast<int>(currentWaveform[0]) << ","
@@ -14762,7 +14771,7 @@ public:
              << "\"highBankConnectionRegister0\":" << static_cast<int>(regs[0x1c0]) << ","
              << "\"opl3OutputSelect0\":" << static_cast<int>(regs[0xc0] & 0xf0u) << ","
              << "\"opl3HighBankOutputSelect0\":" << static_cast<int>(regs[0x1c0] & 0xf0u) << ","
-             << "\"rhythmModeChoice\":" << std::clamp(patch.ymEnvelopeShape, 0, 3) << ","
+             << "\"rhythmModeChoice\":" << std::clamp(patch.ymEnvelopeShape, 0, 4) << ","
              << "\"rhythmMode\":" << (rhythmModeActive() ? 1 : 0) << ","
              << "\"rhythmRegister\":" << static_cast<int>(regs[0xbd]) << ","
              << "\"rhythmKeyBits\":" << static_cast<int>(rhythmKeyBits) << ","
@@ -14859,9 +14868,50 @@ private:
         return opl18ChannelLayerForPatch(patch);
     }
 
+    bool fourOperatorModeActive() const
+    {
+        return oplFourOperatorPairForPatch(patch);
+    }
+
     size_t playableChannelCount() const
     {
         return layer18ModeActive() ? nativeChannelCount : visibleChannelCount;
+    }
+
+    bool fourOperatorSecondaryChannel(size_t channel) const
+    {
+        if (! fourOperatorModeActive())
+            return false;
+        const auto slot = channelSlot(channel);
+        return slot >= 3u && slot <= 5u;
+    }
+
+    bool channelPlayableForMode(size_t channel) const
+    {
+        return channel < playableChannelCount() && ! fourOperatorSecondaryChannel(channel);
+    }
+
+    size_t modePlayableChannelCount() const
+    {
+        size_t count = 0;
+        for (size_t channel = 0; channel < playableChannelCount(); ++channel)
+        {
+            if (channelPlayableForMode(channel))
+                ++count;
+        }
+        return count;
+    }
+
+    size_t fourOperatorPairCount() const
+    {
+        auto bits = oplFourOperatorEnableRegisterForPatch(patch);
+        size_t count = 0;
+        for (auto bit = 0u; bit < 6u; ++bit)
+        {
+            if ((bits & (1u << bit)) != 0u)
+                ++count;
+        }
+        return count;
     }
 
     bool sourceEnabledForChannel(size_t channel) const
@@ -14996,6 +15046,8 @@ private:
 
     void applyPatchToAllChannels(bool preserveKeys)
     {
+        writeOplRegister(0x104, oplFourOperatorEnableRegisterForPatch(patch));
+
         for (size_t channel = 0; channel < playableChannelCount(); ++channel)
         {
             if (rhythmModeActive() && channel >= 6u)
@@ -15012,6 +15064,8 @@ private:
             {
                 if (rhythmModeActive() && channel >= 6u)
                     continue;
+                if (! channelPlayableForMode(channel))
+                    continue;
                 triggerChannel(channel, channelNotes[channel], channelVelocity[channel], sourceEnabledForChannel(channel));
             }
         }
@@ -15021,12 +15075,26 @@ private:
     {
         if (channel >= channelNotes.size() || ! chip)
             return;
+        if (fourOperatorSecondaryChannel(channel))
+        {
+            keyOffChannel(channel);
+            channelNotes[channel] = -1;
+            channelVelocity[channel] = 0.0f;
+            channelStamp[channel] = 0;
+            return;
+        }
         const auto detune = static_cast<int>(std::round((patch.control2 - 0.5f) * 6.0f));
         const auto pitch = pitchForNote(midiNote + detune);
         channelVelocity[channel] = static_cast<float>(clamp01(velocity));
         currentFnum[channel] = pitch.fnum;
         currentBlock[channel] = pitch.block;
         applyChannelPatch(channel, channelVelocity[channel]);
+        if (fourOperatorModeActive() && channelSlot(channel) < 3u)
+        {
+            const auto pairedOperatorChannel = channel + 3u;
+            if (pairedOperatorChannel < playableChannelCount())
+                applyChannelPatch(pairedOperatorChannel, channelVelocity[channel]);
+        }
         writeOplRegister(channelRegister(channel, 0xa0u), static_cast<uint8_t>(pitch.fnum & 0xffu));
         writeOplRegister(channelRegister(channel, 0xb0u), static_cast<uint8_t>((shouldEnable ? 0x20u : 0x00u) | ((pitch.block & 0x07u) << 2u) | ((pitch.fnum >> 8u) & 0x03u)));
         if (shouldEnable)
@@ -15134,19 +15202,19 @@ private:
     {
         for (size_t channel = 0; channel < playableChannelCount(); ++channel)
         {
-            if (sourceEnabledForChannel(channel) && channelNotes[channel] == midiNote)
+            if (channelPlayableForMode(channel) && sourceEnabledForChannel(channel) && channelNotes[channel] == midiNote)
                 return static_cast<int>(channel);
         }
         for (size_t channel = 0; channel < playableChannelCount(); ++channel)
         {
-            if (sourceEnabledForChannel(channel) && channelNotes[channel] < 0)
+            if (channelPlayableForMode(channel) && sourceEnabledForChannel(channel) && channelNotes[channel] < 0)
                 return static_cast<int>(channel);
         }
         auto oldestChannel = -1;
         auto oldestStamp = std::numeric_limits<uint64_t>::max();
         for (size_t channel = 0; channel < playableChannelCount(); ++channel)
         {
-            if (sourceEnabledForChannel(channel) && channelStamp[channel] < oldestStamp)
+            if (channelPlayableForMode(channel) && sourceEnabledForChannel(channel) && channelStamp[channel] < oldestStamp)
             {
                 oldestStamp = channelStamp[channel];
                 oldestChannel = static_cast<int>(channel);
@@ -15160,7 +15228,7 @@ private:
         auto active = 0;
         for (size_t channel = 0; channel < playableChannelCount(); ++channel)
         {
-            if (sourceEnabledForChannel(channel) && channelNotes[channel] >= 0)
+            if (channelPlayableForMode(channel) && sourceEnabledForChannel(channel) && channelNotes[channel] >= 0)
                 ++active;
         }
         return active;
@@ -15207,6 +15275,8 @@ private:
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
         {
             if (rhythmModeActive() && channel >= 6u)
+                continue;
+            if (! channelPlayableForMode(channel))
                 continue;
             if ((keyOnMask & (1u << channel)) == 0)
                 continue;
