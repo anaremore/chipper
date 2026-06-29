@@ -1037,6 +1037,22 @@ juce::String userPresetNameFromXml(const juce::XmlElement& root, const juce::Fil
     return name.isNotEmpty() ? name : juce::String("User Preset");
 }
 
+juce::String userPresetBankName(const juce::File& file, const juce::File& presetRoot)
+{
+    const auto parent = file.getParentDirectory();
+    if (parent == juce::File {} || parent == presetRoot)
+        return {};
+
+    auto relative = parent.getRelativePathFrom(presetRoot).replaceCharacter('\\', '/');
+    if (relative.startsWith("./"))
+        relative = relative.substring(2);
+    if (relative.startsWith("../") || relative.startsWith(".."))
+        relative = parent.getFileName();
+
+    relative = relative.replace("/", " / ").trim();
+    return relative.isNotEmpty() ? relative : parent.getFileName();
+}
+
 juce::String userPresetAttributeFromXml(const juce::XmlElement& root, const char* attributeName)
 {
     if (root.hasAttribute(attributeName))
@@ -6425,6 +6441,7 @@ bool ChipperAudioProcessorEditor::userPresetMatchesActiveSearch(const UserPreset
                                        + preset.role + " "
                                        + preset.engine + " "
                                        + preset.tags.joinIntoString(" ") + " "
+                                       + preset.bank + " "
                                        + preset.note + " "
                                        + preset.source,
                                    query);
@@ -6552,9 +6569,31 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
 
     if (! displayedUserPresets.empty())
     {
-        presetBox.addSectionHeading("User Presets (" + juce::String(static_cast<int>(displayedUserPresets.size())) + ")");
+        juce::String currentBank;
         for (size_t i = 0; i < displayedUserPresets.size(); ++i)
+        {
+            const auto bank = displayedUserPresets[i].bank.isNotEmpty()
+                ? displayedUserPresets[i].bank
+                : juce::String("User Presets");
+            if (bank != currentBank)
+            {
+                const auto bankCount = std::count_if(displayedUserPresets.begin(),
+                                                     displayedUserPresets.end(),
+                                                     [&bank](const UserPresetFile& candidate)
+                                                     {
+                                                         const auto candidateBank = candidate.bank.isNotEmpty()
+                                                             ? candidate.bank
+                                                             : juce::String("User Presets");
+                                                         return candidateBank == bank;
+                                                     });
+                presetBox.addSectionHeading(bank == "User Presets"
+                                                ? bank + " (" + juce::String(static_cast<int>(bankCount)) + ")"
+                                                : juce::String("User Bank: ") + bank + " (" + juce::String(static_cast<int>(bankCount)) + ")");
+                currentBank = bank;
+            }
+
             presetBox.addItem(displayedUserPresets[i].name, userPresetItemIdBase + static_cast<int>(i));
+        }
     }
 
     presetBox.setSelectedId(0, juce::dontSendNotification);
@@ -6722,8 +6761,9 @@ void ChipperAudioProcessorEditor::reloadUserPresetFiles(chipper::ChipMode mode)
 {
     allDisplayedUserPresets.clear();
     displayedUserPresets.clear();
+    const auto directory = defaultUserPresetDirectory();
 
-    const auto addPresetFileIfMatchesMode = [this, mode](const juce::File& file)
+    const auto addPresetFileIfMatchesMode = [this, mode, &directory](const juce::File& file)
     {
         if (file == juce::File {} || ! file.existsAsFile())
             return;
@@ -6748,16 +6788,16 @@ void ChipperAudioProcessorEditor::reloadUserPresetFiles(chipper::ChipMode mode)
                                                 userPresetAttributeFromXml(*root, "role"),
                                                 userPresetAttributeFromXml(*root, "engine"),
                                                 userPresetTagsFromXml(*root),
+                                                userPresetBankName(file, directory),
                                                 userPresetAttributeFromXml(*root, "note"),
                                                 userPresetAttributeFromXml(*root, "source"),
                                                 userPresetFavoriteFromXml(*root) });
     };
 
-    const auto directory = defaultUserPresetDirectory();
     if (directory.isDirectory())
     {
         juce::Array<juce::File> files;
-        directory.findChildFiles(files, juce::File::findFiles, false, "*.chipperpreset;*.xml");
+        directory.findChildFiles(files, juce::File::findFiles, true, "*.chipperpreset;*.xml");
         files.sort();
 
         for (const auto& file : files)
@@ -6770,6 +6810,10 @@ void ChipperAudioProcessorEditor::reloadUserPresetFiles(chipper::ChipMode mode)
               allDisplayedUserPresets.end(),
               [](const UserPresetFile& left, const UserPresetFile& right)
               {
+                  const auto bankComparison = left.bank.compareIgnoreCase(right.bank);
+                  if (bankComparison != 0)
+                      return bankComparison < 0;
+
                   return left.name.compareIgnoreCase(right.name) < 0;
               });
 }

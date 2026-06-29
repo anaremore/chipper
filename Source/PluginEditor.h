@@ -648,6 +648,7 @@ private:
         juce::String role;
         juce::String engine;
         juce::StringArray tags;
+        juce::String bank;
         juce::String note;
         juce::String source;
         bool favorite = false;
