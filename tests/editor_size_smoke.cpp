@@ -92,6 +92,7 @@ const char* chipModeName(chipper::ChipMode mode)
     case chipper::ChipMode::paula: return "Paula";
     case chipper::ChipMode::ym2203: return "YM2203";
     case chipper::ChipMode::ym2608: return "YM2608";
+    case chipper::ChipMode::ym2610: return "YM2610";
     default: return "chip";
     }
 }
@@ -1419,6 +1420,7 @@ bool checkPerformanceMacroSliderLayout()
             case chipper::ChipMode::ym2151:
             case chipper::ChipMode::ym2203:
             case chipper::ChipMode::ym2608:
+            case chipper::ChipMode::ym2610:
                 expectedMacroSliders = { 0 };
                 break;
             default:
@@ -1441,6 +1443,7 @@ bool checkPerformanceMacroSliderLayout()
                 || mode == chipper::ChipMode::ym2413
                 || mode == chipper::ChipMode::ym2203
                 || mode == chipper::ChipMode::ym2608
+                || mode == chipper::ChipMode::ym2610
                 || mode == chipper::ChipMode::pokey
                 || mode == chipper::ChipMode::huc6280
                 || mode == chipper::ChipMode::namcoWsg
@@ -1530,7 +1533,7 @@ bool checkPerformanceMacroSliderLayout()
             }
         }
 
-        if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608)
+        if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610)
         {
             const auto feedbackBounds = editor.getFmFeedbackBoundsForLayoutTest();
             const auto feedbackSliderBounds = editor.getNativeSliderBoundsForLayoutTest(1);
@@ -1912,6 +1915,7 @@ int main()
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2151);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2203);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2608);
+    ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2610);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::huc6280);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::namcoWsg);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::scc);

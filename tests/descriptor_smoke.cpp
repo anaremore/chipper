@@ -202,7 +202,8 @@ bool expectChipCatalogIsProductReady()
         chipper::ChipMode::ym2413,
         chipper::ChipMode::scc,
         chipper::ChipMode::ym2203,
-        chipper::ChipMode::ym2608
+        chipper::ChipMode::ym2608,
+        chipper::ChipMode::ym2610
     };
 
     const auto modes = chipper::chipModeOrder();
@@ -326,6 +327,7 @@ bool expectLiveSourceLevelSpecs()
         chipper::ChipMode::ym2413,
         chipper::ChipMode::ym2203,
         chipper::ChipMode::ym2608,
+        chipper::ChipMode::ym2610,
         chipper::ChipMode::spc700,
         chipper::ChipMode::pokey,
         chipper::ChipMode::paula,
@@ -393,6 +395,7 @@ bool expectLiveSourceCardSpecs()
         chipper::ChipMode::ym2413,
         chipper::ChipMode::ym2203,
         chipper::ChipMode::ym2608,
+        chipper::ChipMode::ym2610,
         chipper::ChipMode::spc700,
         chipper::ChipMode::pokey,
         chipper::ChipMode::paula,
@@ -503,6 +506,8 @@ bool expectVerificationDisclosure()
         chipper::ChipMode::ym2151,
         chipper::ChipMode::ym2413,
         chipper::ChipMode::ym2203,
+        chipper::ChipMode::ym2608,
+        chipper::ChipMode::ym2610,
         chipper::ChipMode::scc
     };
 
@@ -535,7 +540,8 @@ bool expectEnvelopeModels()
                              chipper::ChipMode::ym2151,
                              chipper::ChipMode::ym2413,
                              chipper::ChipMode::ym2203,
-                             chipper::ChipMode::ym2608 })
+                             chipper::ChipMode::ym2608,
+                             chipper::ChipMode::ym2610 })
     {
         ok &= expect(chipper::envelopeModelFor(mode) == chipper::EnvelopeModel::nativeOperatorEg,
                      "FM chips should be classified as native operator EG");
@@ -1653,6 +1659,55 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2608, chipper::ChipParameterRole::source7Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "OPNA SSG A Level");
     ok &= expectSpec(chipper::ChipMode::ym2608, chipper::ChipParameterRole::source8Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "OPNA SSG B Level");
     ok &= expectSpec(chipper::ChipMode::ym2608, chipper::ChipParameterRole::source9Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "OPNA SSG C Level");
+    ok &= expectMacroLabel(chipper::ChipMode::ym2610, chipper::MacroKind::bass, "OPNB Feedback Bass");
+    ok &= expectPreset(chipper::ChipMode::ym2610, "opnb-feedback-bass");
+    ok &= expectPreset(chipper::ChipMode::ym2610, "opnb-metallic-lead");
+    ok &= expectPreset(chipper::ChipMode::ym2610, "opnb-seven-voice-arp");
+    ok &= expectPreset(chipper::ChipMode::ym2610, "opnb-electric-keys");
+    ok &= expectPreset(chipper::ChipMode::ym2610, "opnb-ssg-perc-drum");
+    ok &= expectPreset(chipper::ChipMode::ym2610, "opnb-pitch-laser");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Algorithm");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2610, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 9, "Preset");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Algorithm Bias");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Feedback");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2610, chipper::ChipParameterRole::macroControl2, chipper::ControlSurface::menu, 8, "FB 0");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Operator Tone");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "FM/SSG Level");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP1 Level");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator4Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP4 Level");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1Level, "Operators");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1Multiplier, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP1 Mult");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator4Multiplier, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP4 Mult");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1Multiplier, chipper::ControlSurface::menu, 17, "Follow");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1Multiplier, "Operators");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1AttackRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP1 Attack");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator4AttackRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP4 Attack");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1AttackRate, chipper::ControlSurface::menu, 33, "Follow");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1AttackRate, "Operators");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1DecayRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP1 Decay");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator4DecayRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP4 Decay");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1DecayRate, chipper::ControlSurface::menu, 33, "Follow");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1DecayRate, "Operators");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1SustainRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP1 Sustain");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator4SustainRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP4 Sustain");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1SustainRate, chipper::ControlSurface::menu, 33, "Follow");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1SustainRate, "Operators");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1ReleaseRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP1 Release");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator4ReleaseRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP4 Release");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1ReleaseRate, chipper::ControlSurface::menu, 17, "Follow");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2610, chipper::ChipParameterRole::fmOperator1ReleaseRate, "Operators");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Pan");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Envelope Shape");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2610, chipper::ChipParameterRole::ymEnvelopeShape, "Envelope");
+    ok &= expectSegmentedRegister(chipper::ChipMode::ym2610, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Preset");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::source4Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPNB FM 4");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPNB SSG A");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::source6Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPNB SSG B");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::source7Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPNB SSG C");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::source4Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "OPNB FM 4 Level");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "OPNB SSG A Level");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::source6Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "OPNB SSG B Level");
+    ok &= expectSpec(chipper::ChipMode::ym2610, chipper::ChipParameterRole::source7Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "OPNB SSG C Level");
     ok &= expectMacroLabel(chipper::ChipMode::ym2413, chipper::MacroKind::coin, "OPLL UI Chime");
     ok &= expectPreset(chipper::ChipMode::ym2413, "opll-soft-keys");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Instrument");
@@ -1693,6 +1748,7 @@ int main()
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::scc, "scc-arcade-lead");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2203, "opn-feedback-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2608, "opna-feedback-bass");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2610, "opnb-feedback-bass");
     ok &= expectSourceLaneCounts(chipper::ChipMode::nes, 4u, 4u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::nesVrc6, 7u, 7u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::sid, 3u, 3u);
@@ -1707,6 +1763,7 @@ int main()
     ok &= expectSourceLaneCounts(chipper::ChipMode::paula, 4u, 4u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2203, 6u, 6u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2608, 9u, 9u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::ym2610, 7u, 7u);
 
     ok &= expect(chipper::chipHasParameterSurface(chipper::ChipMode::ym2149,
                                                   chipper::ChipParameterRole::source1Enabled,

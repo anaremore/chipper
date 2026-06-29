@@ -30,7 +30,8 @@ enum class ChipMode
     scc,
     ym2203,
     nesVrc6,
-    ym2608
+    ym2608,
+    ym2610
 };
 
 enum class AccuracyMode

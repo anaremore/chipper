@@ -23,7 +23,8 @@ juce::StringArray chipModeChoices()
         "Konami SCC",
         "YM2203 / OPN",
         "NES + VRC6",
-        "YM2608 / OPNA"
+        "YM2608 / OPNA",
+        "YM2610 / OPNB"
     };
 }
 
@@ -849,6 +850,7 @@ ChipMode chipModeFromChoice(int choice)
         case 15: return ChipMode::ym2203;
         case 16: return ChipMode::nesVrc6;
         case 17: return ChipMode::ym2608;
+        case 18: return ChipMode::ym2610;
         default: return ChipMode::nes;
     }
 }
@@ -915,6 +917,7 @@ double defaultClockForMode(ChipMode mode)
         case ChipMode::scc: return 3579545.0;
         case ChipMode::ym2203: return 3993600.0;
         case ChipMode::ym2608: return 7987200.0;
+        case ChipMode::ym2610: return 8000000.0;
     }
 
     return 3579545.0;
