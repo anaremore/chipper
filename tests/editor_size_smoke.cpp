@@ -91,6 +91,7 @@ const char* chipModeName(chipper::ChipMode mode)
     case chipper::ChipMode::nesFds: return "NES + FDS";
     case chipper::ChipMode::nesSunsoft5b: return "NES + Sunsoft 5B";
     case chipper::ChipMode::nesMmc5: return "NES + MMC5";
+    case chipper::ChipMode::nesVrc7: return "NES + VRC7";
     case chipper::ChipMode::spc700: return "SPC700";
     case chipper::ChipMode::paula: return "Paula";
     case chipper::ChipMode::ym2203: return "YM2203";
@@ -147,7 +148,8 @@ bool checkPrimaryPanelStack(const ChipperAudioProcessorEditor& editor, chipper::
         || mode == chipper::ChipMode::nesVrc6
         || mode == chipper::ChipMode::nesFds
         || mode == chipper::ChipMode::nesSunsoft5b
-        || mode == chipper::ChipMode::nesMmc5;
+        || mode == chipper::ChipMode::nesMmc5
+        || mode == chipper::ChipMode::nesVrc7;
     if (isNesFamily || mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
         requirePanel(editor.getModuleBoundsForLayoutTest(5), "sample bank", isNesFamily ? 176 : 132);
 
@@ -350,14 +352,17 @@ bool checkChannelOwnedControlLayout(chipper::ChipMode mode)
     case chipper::ChipMode::nesFds:
     case chipper::ChipMode::nesSunsoft5b:
     case chipper::ChipMode::nesMmc5:
+    case chipper::ChipMode::nesVrc7:
         if (mode == chipper::ChipMode::nesVrc6
             || mode == chipper::ChipMode::nesFds
             || mode == chipper::ChipMode::nesSunsoft5b
-            || mode == chipper::ChipMode::nesMmc5)
+            || mode == chipper::ChipMode::nesMmc5
+            || mode == chipper::ChipMode::nesVrc7)
             ok &= expectVisibleSourceCardsInsideDeck(editor, mode);
         ok &= expectControlOwnedBySourceChannel(editor, 0, editor.getPulseDutyBoundsForLayoutTest(), "NES pulse 1 duty");
         ok &= expectControlOwnedBySourceChannel(editor, 1, editor.getPulse2DutyBoundsForLayoutTest(), "NES pulse 2 duty");
-        ok &= expectControlOwnedBySourceChannel(editor, 3, editor.getSnNoiseModeBoundsForLayoutTest(), "NES noise mode");
+        if (mode != chipper::ChipMode::nesVrc7)
+            ok &= expectControlOwnedBySourceChannel(editor, 3, editor.getSnNoiseModeBoundsForLayoutTest(), "NES noise mode");
         break;
 
     case chipper::ChipMode::dmg:
@@ -1419,6 +1424,7 @@ bool checkPerformanceMacroSliderLayout()
             case chipper::ChipMode::nesFds:
             case chipper::ChipMode::nesSunsoft5b:
             case chipper::ChipMode::nesMmc5:
+            case chipper::ChipMode::nesVrc7:
             case chipper::ChipMode::dmg:
                 expectedMacroSliders = { 1, 2, 3 };
                 break;
@@ -1926,6 +1932,7 @@ int main()
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::nesFds);
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::nesSunsoft5b);
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::nesMmc5);
+    ok &= checkChannelOwnedControlLayout(chipper::ChipMode::nesVrc7);
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::dmg);
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::sn76489);
     ok &= checkYm2149ToneNoiseMixLayout();

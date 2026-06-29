@@ -1995,10 +1995,21 @@ public:
     explicit NesApuCore(AccuracyMode selectedAccuracy, ChipMode selectedMode = ChipMode::nes)
         : accuracy(selectedAccuracy), selectedMode(selectedMode) {}
 
+    ~NesApuCore() override
+    {
+        if (vrc7Opll != nullptr)
+            OPLL_delete(vrc7Opll);
+    }
+
     void reset(double outputSampleRate, double chipClockHz) override
     {
         sampleRate = outputSampleRate;
         clock = chipClockHz > 0.0 ? chipClockHz : 1789773.0;
+        if (vrc7Opll != nullptr)
+        {
+            OPLL_delete(vrc7Opll);
+            vrc7Opll = nullptr;
+        }
         regs.fill(0);
         phase.fill(0.0);
         timer.fill(0);
@@ -2063,6 +2074,21 @@ public:
         mmc5PcmLevel = 64;
         mmc5PcmEnvelope = 0.0;
         mmc5PcmEnabled = false;
+        vrc7Regs.fill(0);
+        vrc7CurrentPatch.fill(0);
+        vrc7CurrentFnum.fill(0);
+        vrc7CurrentBlock.fill(0);
+        vrc7KeyOnMask = 0;
+        if (hasVrc7())
+        {
+            vrc7Opll = OPLL_new(static_cast<uint32_t>(std::round(vrc7ClockHz())), static_cast<uint32_t>(std::round(sampleRate)));
+            OPLL_reset(vrc7Opll);
+            OPLL_setChipType(vrc7Opll, 1);
+            OPLL_resetPatch(vrc7Opll, OPLL_VRC7_TONE);
+            OPLL_setMask(vrc7Opll, OPLL_MASK_CH(6) | OPLL_MASK_CH(7) | OPLL_MASK_CH(8) | OPLL_MASK_RHYTHM);
+            for (size_t channel = 0; channel < 6; ++channel)
+                writeVrc7Register(static_cast<uint8_t>(0x30u + channel), 0x0fu);
+        }
         noteStamp = 0;
         dmcActive = false;
         dmcSampleCompleted = false;
@@ -2152,7 +2178,7 @@ public:
 
         heldNote = midiNote;
         noteVelocity = static_cast<float>(clamp01(velocity));
-        if (! suppressDmcRestartOnNoteOn)
+        if (! hasVrc7() && ! suppressDmcRestartOnNoteOn)
             startDmcSample();
         const auto duty = nesPulseDutyFromControl(patch.control1);
         const auto pulse2Duty = nesPulse2DutyForPatch(patch, duty, true);
@@ -2228,7 +2254,18 @@ public:
                 break;
         }
 
-        if (patch.nesDmcOnly)
+        if (hasVrc7())
+        {
+            enable = 0u;
+            if (sourceEnabled(patch, 0))
+                enable = static_cast<unsigned>(enable | 0x01u);
+            if (sourceEnabled(patch, 1))
+                enable = static_cast<unsigned>(enable | 0x02u);
+            if (sourceEnabled(patch, 2))
+                enable = static_cast<unsigned>(enable | 0x04u);
+            noiseVol = 0u;
+        }
+        else if (patch.nesDmcOnly)
         {
             enable = dmcSample.empty() ? 0u : 0x10u;
             noiseVol = 0u;
@@ -2275,6 +2312,8 @@ public:
             triggerSunsoft5bStack(p1Note, p2Note, triNote);
         if (hasMmc5())
             triggerMmc5Stack(p1Note, p2Note, triNote);
+        if (hasVrc7())
+            triggerVrc7Stack(p1Note, p2Note, triNote);
         updateTimers();
     }
 
@@ -2318,7 +2357,7 @@ public:
         const auto tndOut = tndSum <= 0.0 ? 0.0 : 159.79 / ((1.0 / tndSum) + 100.0);
         const auto expansionOut = hasVrc6()
             ? renderVrc6Mix()
-            : (hasFds() ? renderFdsWave() : (hasSunsoft5b() ? renderSunsoft5bMix() : (hasMmc5() ? renderMmc5Mix() : 0.0)));
+            : (hasFds() ? renderFdsWave() : (hasSunsoft5b() ? renderSunsoft5bMix() : (hasMmc5() ? renderMmc5Mix() : (hasVrc7() ? renderVrc7Mix() : 0.0))));
         const auto mixed = static_cast<float>(applyOutputFilters(pulseOut + tndOut + (expansionOut * 0.04)) * 2.0);
         const auto outputGate = (dmcActive && noteVelocity <= 0.0f) ? 1.0f : noteVelocity;
         const auto scaled = mixed * outputGate;
@@ -2328,7 +2367,7 @@ public:
     std::vector<RegisterWrite> exportRegisterState() const override
     {
         std::vector<RegisterWrite> writes;
-        writes.reserve(regs.size() + (hasVrc6() ? 9u : 0u) + (hasFds() ? 72u : 0u) + (hasSunsoft5b() ? 20u : 0u) + (hasMmc5() ? 8u : 0u));
+        writes.reserve(regs.size() + (hasVrc6() ? 9u : 0u) + (hasFds() ? 72u : 0u) + (hasSunsoft5b() ? 20u : 0u) + (hasMmc5() ? 8u : 0u) + (hasVrc7() ? 36u : 0u));
         for (size_t i = 0; i < regs.size(); ++i)
             writes.push_back({ 0, static_cast<uint16_t>(0x4000 + i), regs[i] });
         if (hasVrc6())
@@ -2388,12 +2427,23 @@ public:
             writes.push_back({ 0, 0x5010, static_cast<uint8_t>(mmc5PcmEnabled ? 0x00u : 0x00u) });
             writes.push_back({ 0, 0x5011, static_cast<uint8_t>(mmc5PcmLevel & 0x7fu) });
         }
+        if (hasVrc7())
+        {
+            for (uint8_t reg = 0x10u; reg <= 0x35u; ++reg)
+            {
+                if (vrc7Regs[reg] == 0)
+                    continue;
+
+                writes.push_back({ 0, 0x9010, reg });
+                writes.push_back({ 0, 0x9030, vrc7Regs[reg] });
+            }
+        }
         return writes;
     }
 
     ChipMode mode() const override { return selectedMode; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
-    std::string modeName() const override { return hasVrc6() ? "NES + VRC6" : (hasFds() ? "NES + FDS" : (hasSunsoft5b() ? "NES + Sunsoft 5B" : (hasMmc5() ? "NES + MMC5" : "NES / RP2A03"))); }
+    std::string modeName() const override { return hasVrc6() ? "NES + VRC6" : (hasFds() ? "NES + FDS" : (hasSunsoft5b() ? "NES + Sunsoft 5B" : (hasMmc5() ? "NES + MMC5" : (hasVrc7() ? "NES + VRC7" : "NES / RP2A03")))); }
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
@@ -2405,6 +2455,8 @@ public:
             return "Base RP2A03 pulse, triangle, noise, DMC, nonlinear mixer, and output filters use the existing partial clean-room NES model. The Sunsoft 5B expansion lanes are clean-room AY-style square-tone oscillators with source-card gating, Chip Poly allocation, pseudo-register export through the $C000/$E000 mapper register ports, and conservative expansion mixing; exact Mapper 69 bus timing, PSG noise/envelope behavior, expansion mixing resistor values, and hardware validation are not complete.";
         if (hasMmc5())
             return "Base RP2A03 pulse, triangle, noise, DMC, nonlinear mixer, and output filters use the existing partial clean-room NES model. The MMC5 expansion lanes are clean-room extra pulse oscillators plus a conservative PCM/DAC thump lane with source-card gating, Chip Poly allocation across pitched lanes, pseudo-register export for $5000-$5007 and $5011, and conservative expansion mixing; exact MMC5 mapper timing, PCM read mode, IRQ behavior, expansion mixing resistor values, and hardware validation are not complete.";
+        if (hasVrc7())
+            return "Base RP2A03 pulse and triangle lanes use the existing partial clean-room NES model while the six VRC7 expansion melodic lanes use the vendored MIT emu2413 OPLL core with the VRC7 patch table. This first slice exposes nine source-card lanes, source gating, Chip Poly allocation across pulse 1, pulse 2, triangle, and six VRC7 melodic lanes, pseudo-register export through $9010/$9030, and conservative expansion mixing. NES noise/DMC lanes, VRC7 custom patch editing, exact mapper bus timing, native expansion mixer calibration, golden emulator comparison, and hardware validation are not complete.";
         return "Pulse, triangle, noise, timers, duty including explicit pulse 2 duty override, enable bits, simple envelopes, length counters, triangle linear counter, DMC direct DAC level, external DPCM byte stepping, basic pulse sweep updates/muting, $4017 frame-counter mode/inhibit behavior, nonlinear mixer, the documented NES output filter chain, and pulse/triangle allocation for Chip Poly play mode are approximated; exact DMC DMA/address/IRQ timing, exact frame sequencer cycle timing, advanced sweep edge cases, and hardware validation are not complete.";
     }
 
@@ -2415,7 +2467,7 @@ public:
              << "\"mode\":\"" << modeName() << "\","
              << "\"implementedAccuracy\":\"partial clean-room register-level\","
              << "\"clockHz\":" << clock << ","
-             << "\"expansion\":\"" << (hasVrc6() ? "VRC6" : (hasFds() ? "FDS" : (hasSunsoft5b() ? "Sunsoft 5B" : (hasMmc5() ? "MMC5" : "none")))) << "\","
+             << "\"expansion\":\"" << (hasVrc6() ? "VRC6" : (hasFds() ? "FDS" : (hasSunsoft5b() ? "Sunsoft 5B" : (hasMmc5() ? "MMC5" : (hasVrc7() ? "VRC7" : "none"))))) << "\","
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"pulseTimer1\":" << timer[0] << ","
@@ -2511,6 +2563,35 @@ public:
                  << "\"mmc5ActiveMask\":" << mmc5ActiveMask() << ","
                  << "\"assignedNoteMmc5Pulse1\":" << channelNotes[3] << ","
                  << "\"assignedNoteMmc5Pulse2\":" << channelNotes[4] << ",";
+        }
+        if (hasVrc7())
+        {
+            json << "\"sourceEnabled4\":" << (sourceEnabled(patch, 3) ? 1 : 0) << ","
+                 << "\"sourceEnabled5\":" << (sourceEnabled(patch, 4) ? 1 : 0) << ","
+                 << "\"sourceEnabled6\":" << (sourceEnabled(patch, 5) ? 1 : 0) << ","
+                 << "\"sourceEnabled7\":" << (sourceEnabled(patch, 6) ? 1 : 0) << ","
+                 << "\"sourceEnabled8\":" << (sourceEnabled(patch, 7) ? 1 : 0) << ","
+                 << "\"sourceEnabled9\":" << (sourceEnabled(patch, 8) ? 1 : 0) << ","
+                 << "\"sourceLevel4\":" << sourceLevel(patch, 3) << ","
+                 << "\"sourceLevel5\":" << sourceLevel(patch, 4) << ","
+                 << "\"sourceLevel6\":" << sourceLevel(patch, 5) << ","
+                 << "\"sourceLevel7\":" << sourceLevel(patch, 6) << ","
+                 << "\"sourceLevel8\":" << sourceLevel(patch, 7) << ","
+                 << "\"sourceLevel9\":" << sourceLevel(patch, 8) << ","
+                 << "\"vrc7ClockHz\":" << vrc7ClockHz() << ","
+                 << "\"vrc7InstrumentChoice\":" << std::clamp(patch.waveShape, 0, 15) << ","
+                 << "\"vrc7Instrument0\":" << static_cast<int>(vrc7CurrentPatch[0]) << ","
+                 << "\"vrc7Instrument5\":" << static_cast<int>(vrc7CurrentPatch[5]) << ","
+                 << "\"vrc7Fnum0\":" << vrc7CurrentFnum[0] << ","
+                 << "\"vrc7Block0\":" << static_cast<int>(vrc7CurrentBlock[0]) << ","
+                 << "\"vrc7KeyOnMask\":" << static_cast<int>(vrc7KeyOnMask) << ","
+                 << "\"vrc7ActiveMask\":" << vrc7ActiveMask() << ","
+                 << "\"assignedNoteVrc7Ch1\":" << channelNotes[3] << ","
+                 << "\"assignedNoteVrc7Ch2\":" << channelNotes[4] << ","
+                 << "\"assignedNoteVrc7Ch3\":" << channelNotes[5] << ","
+                 << "\"assignedNoteVrc7Ch4\":" << channelNotes[6] << ","
+                 << "\"assignedNoteVrc7Ch5\":" << channelNotes[7] << ","
+                 << "\"assignedNoteVrc7Ch6\":" << channelNotes[8] << ",";
         }
         json
              << "\"dmcDirectControl\":" << patch.nesDmcDirectLevel << ","
@@ -3079,8 +3160,15 @@ private:
         return selectedMode == ChipMode::nesMmc5;
     }
 
+    bool hasVrc7() const
+    {
+        return selectedMode == ChipMode::nesVrc7;
+    }
+
     size_t chipPolyVoiceCount() const
     {
+        if (hasVrc7())
+            return 9u;
         if (hasVrc6() || hasSunsoft5b())
             return 6u;
         if (hasMmc5())
@@ -3092,6 +3180,8 @@ private:
 
     size_t sourceIndexForChipPolyVoice(size_t voice) const
     {
+        if (hasVrc7())
+            return voice;
         static constexpr std::array<size_t, 6> vrc6Sources { 0u, 1u, 2u, 4u, 5u, 6u };
         if (hasVrc6() || hasSunsoft5b())
             return voice < vrc6Sources.size() ? vrc6Sources[voice] : voice;
@@ -3724,6 +3814,193 @@ private:
         writeMmc5Pulse(voice, duty, level, midiNote);
     }
 
+    struct Vrc7Pitch
+    {
+        uint16_t fnum = 0;
+        uint8_t block = 0;
+    };
+
+    double vrc7ClockHz() const
+    {
+        return clock * 2.0;
+    }
+
+    Vrc7Pitch vrc7PitchForNote(int midiNote) const
+    {
+        const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
+        const auto base = (hz * 524288.0) / (vrc7ClockHz() / 72.0);
+        auto block = 0;
+        auto fnum = base;
+        while (fnum > 511.0 && block < 7)
+        {
+            fnum *= 0.5;
+            ++block;
+        }
+        while (fnum < 256.0 && block > 0)
+        {
+            fnum *= 2.0;
+            --block;
+        }
+
+        return {
+            static_cast<uint16_t>(std::clamp(static_cast<int>(std::round(fnum)), 1, 511)),
+            static_cast<uint8_t>(std::clamp(block, 0, 7))
+        };
+    }
+
+    uint8_t vrc7InstrumentForPatch() const
+    {
+        if (patch.waveShape > 0)
+            return static_cast<uint8_t>(std::clamp(patch.waveShape, 1, 15));
+
+        switch (patch.macro)
+        {
+            case MacroKind::coin: return 1;
+            case MacroKind::bass: return 13;
+            case MacroKind::lead: return 7;
+            case MacroKind::arp: return 8;
+            case MacroKind::drum: return 15;
+            case MacroKind::hit: return 10;
+            case MacroKind::laser: return 10;
+            case MacroKind::jump: return 1;
+            case MacroKind::powerUp: return 4;
+            case MacroKind::manual:
+            default: break;
+        }
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clamp01(patch.control3) * 14.0)) + 1, 1, 15));
+    }
+
+    uint8_t vrc7VolumeForChannel(size_t channel, float velocity) const
+    {
+        const auto sourceIndex = 3u + channel;
+        const auto musicalLevel = clamp01(patch.control4) * clamp01(velocity) * sourceLevel(patch, sourceIndex);
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0 - musicalLevel) * 15.0)), 0, 15));
+    }
+
+    void writeVrc7Register(uint8_t reg, uint8_t value)
+    {
+        const auto clippedReg = static_cast<uint8_t>(reg & 0x3fu);
+        vrc7Regs[clippedReg] = value;
+        if (vrc7Opll != nullptr)
+            OPLL_writeReg(vrc7Opll, clippedReg, value);
+    }
+
+    void triggerVrc7Channel(size_t channel, int midiNote, float velocity, bool shouldEnable)
+    {
+        if (! hasVrc7() || channel >= 6u || vrc7Opll == nullptr)
+            return;
+
+        const auto sourceIndex = 3u + channel;
+        const auto detune = static_cast<int>(std::round((patch.control2 - 0.5f) * 12.0f));
+        const auto pitch = vrc7PitchForNote(midiNote + detune);
+        const auto instrument = vrc7InstrumentForPatch();
+        const auto volume = vrc7VolumeForChannel(channel, velocity);
+        const auto keyBit = shouldEnable && sourceEnabled(patch, sourceIndex) && volume < 15 ? 0x10u : 0x00u;
+        const auto channelReg = static_cast<uint8_t>(channel);
+
+        vrc7CurrentPatch[channel] = instrument;
+        vrc7CurrentFnum[channel] = pitch.fnum;
+        vrc7CurrentBlock[channel] = pitch.block;
+
+        writeVrc7Register(static_cast<uint8_t>(0x30u + channelReg), static_cast<uint8_t>((instrument << 4u) | volume));
+        writeVrc7Register(static_cast<uint8_t>(0x10u + channelReg), static_cast<uint8_t>(pitch.fnum & 0xffu));
+        writeVrc7Register(static_cast<uint8_t>(0x20u + channelReg),
+                          static_cast<uint8_t>(keyBit | ((pitch.block & 0x07u) << 1u) | ((pitch.fnum >> 8u) & 0x01u)));
+
+        if (keyBit != 0)
+            vrc7KeyOnMask = static_cast<uint8_t>(vrc7KeyOnMask | (1u << channel));
+        else
+            vrc7KeyOnMask = static_cast<uint8_t>(vrc7KeyOnMask & ~(1u << channel));
+    }
+
+    void keyOffVrc7Channel(size_t channel)
+    {
+        if (! hasVrc7() || channel >= 6u)
+            return;
+
+        const auto reg = static_cast<uint8_t>(0x20u + channel);
+        writeVrc7Register(reg, static_cast<uint8_t>(vrc7Regs[reg] & static_cast<uint8_t>(~0x10u)));
+        vrc7KeyOnMask = static_cast<uint8_t>(vrc7KeyOnMask & ~(1u << channel));
+    }
+
+    uint8_t vrc7ExpansionMask(uint8_t recipeMask) const
+    {
+        uint8_t mask = 0;
+        for (size_t channel = 0; channel < 6u; ++channel)
+        {
+            if (sourceEnabled(patch, 3u + channel))
+                mask = static_cast<uint8_t>(mask | (1u << channel));
+        }
+        return static_cast<uint8_t>(mask & recipeMask);
+    }
+
+    void triggerVrc7Stack(int p1Note, int p2Note, int triNote)
+    {
+        if (! hasVrc7() || patch.nesDmcOnly)
+        {
+            for (size_t channel = 0; channel < 6u; ++channel)
+                keyOffVrc7Channel(channel);
+            return;
+        }
+
+        auto recipeMask = uint8_t { 0x3fu };
+        std::array<int, 6> notes { p1Note + 12, p2Note + 12, triNote + 24, p1Note + 19, p2Note + 19, triNote + 31 };
+
+        switch (patch.macro)
+        {
+            case MacroKind::coin:
+                notes = { p1Note + 24, p1Note + 31, p1Note + 36, p1Note + 43, p1Note + 48, p1Note + 55 };
+                recipeMask = 0x09u;
+                break;
+            case MacroKind::bass:
+                notes = { p1Note, triNote, p1Note + 12, p1Note + 19, triNote + 12, p1Note + 24 };
+                recipeMask = 0x15u;
+                break;
+            case MacroKind::arp:
+                notes = { p1Note, p1Note + 4, p1Note + 7, p1Note + 12, p1Note + 16, p1Note + 19 };
+                recipeMask = 0x3fu;
+                break;
+            case MacroKind::drum:
+                notes = { p1Note - 12, p1Note - 5, p1Note, p1Note + 7, p1Note + 12, p1Note + 19 };
+                recipeMask = 0x15u;
+                break;
+            case MacroKind::hit:
+                notes = { p1Note - 5, p1Note + 7, p1Note + 12, p1Note + 19, p1Note + 24, p1Note + 31 };
+                recipeMask = 0x0fu;
+                break;
+            case MacroKind::laser:
+                notes = { p1Note + 24, p2Note + 12, p1Note, p2Note - 12, p1Note + 31, p2Note + 19 };
+                recipeMask = 0x33u;
+                break;
+            case MacroKind::jump:
+                notes = { p1Note + 24, p1Note + 31, p1Note + 36, p1Note + 43, p1Note + 48, p1Note + 55 };
+                recipeMask = 0x01u;
+                break;
+            case MacroKind::powerUp:
+                notes = { p1Note, p1Note + 5, p1Note + 12, p1Note + 17, p1Note + 24, p1Note + 29 };
+                recipeMask = 0x3fu;
+                break;
+            case MacroKind::lead:
+            case MacroKind::manual:
+            default:
+                break;
+        }
+
+        const auto mask = vrc7ExpansionMask(recipeMask);
+        for (size_t channel = 0; channel < notes.size(); ++channel)
+            triggerVrc7Channel(channel, notes[channel], noteVelocity, (mask & (1u << channel)) != 0u);
+    }
+
+    void triggerVrc7Voice(size_t voice, int midiNote, float velocity)
+    {
+        triggerVrc7Channel(voice, midiNote, velocity, true);
+    }
+
+    int vrc7ActiveMask() const
+    {
+        return static_cast<int>(vrc7KeyOnMask & 0x3fu);
+    }
+
     int selectChipPolyChannel(int midiNote) const
     {
         const auto voiceCount = chipPolyVoiceCount();
@@ -3789,6 +4066,8 @@ private:
         mmc5PulseEnabled.fill(false);
         mmc5PcmEnabled = false;
         mmc5PcmEnvelope = 0.0;
+        for (size_t channel = 0; channel < 6u; ++channel)
+            keyOffVrc7Channel(channel);
         refreshSunsoft5bMixer();
         linearCounter = 0;
         linearReloadFlag = false;
@@ -3796,8 +4075,16 @@ private:
 
     void noteOnChipPoly(int midiNote, float velocity)
     {
-        auto enable = static_cast<uint8_t>(sourceEnableMask(patch) & 0x0fu);
-        if (! dmcSample.empty() && sourceEnabled(patch, 3))
+        auto enable = uint8_t { 0u };
+        if (sourceEnabled(patch, 0))
+            enable = static_cast<uint8_t>(enable | 0x01u);
+        if (sourceEnabled(patch, 1))
+            enable = static_cast<uint8_t>(enable | 0x02u);
+        if (sourceEnabled(patch, 2))
+            enable = static_cast<uint8_t>(enable | 0x04u);
+        if (! hasVrc7() && sourceEnabled(patch, 3))
+            enable = static_cast<uint8_t>(enable | 0x08u);
+        if (! hasVrc7() && ! dmcSample.empty() && sourceEnabled(patch, 3))
             enable = static_cast<uint8_t>(enable | 0x10u);
         regs[0x10] = static_cast<uint8_t>((regs[0x10] & 0xf0u) | static_cast<uint8_t>(patch.nesDmcRateIndex & 0x0f));
         writeStatusRegister(enable, ! suppressDmcRestartOnNoteOn);
@@ -3841,6 +4128,8 @@ private:
                 triggerSunsoft5bVoice(static_cast<size_t>(channel - 3), channelNotes[index], channelVelocity[index]);
             else if (hasMmc5())
                 triggerMmc5Voice(static_cast<size_t>(channel - 3), channelNotes[index], channelVelocity[index]);
+            else if (hasVrc7())
+                triggerVrc7Voice(static_cast<size_t>(channel - 3), channelNotes[index], channelVelocity[index]);
             else if (hasFds() && channel == 3)
                 triggerFdsVoice(channelNotes[index], channelVelocity[index]);
         }
@@ -3858,17 +4147,19 @@ private:
             channelNotes[channel] = -1;
             channelVelocity[channel] = 0.0f;
             channelStamp[channel] = 0;
-            if (channel < lengthCounter.size())
+            if (channel < 3u)
                 lengthCounter[channel] = 0;
-            else if (channel - 3u < vrc6Enabled.size())
+            if (hasVrc6() && channel >= 3u && channel - 3u < vrc6Enabled.size())
                 vrc6Enabled[channel - 3u] = false;
-            if (hasSunsoft5b() && channel - 3u < sunsoft5bEnabled.size())
+            if (hasSunsoft5b() && channel >= 3u && channel - 3u < sunsoft5bEnabled.size())
             {
                 sunsoft5bEnabled[channel - 3u] = false;
                 refreshSunsoft5bMixer();
             }
-            if (hasMmc5() && channel - 3u < mmc5PulseEnabled.size())
+            if (hasMmc5() && channel >= 3u && channel - 3u < mmc5PulseEnabled.size())
                 mmc5PulseEnabled[channel - 3u] = false;
+            if (hasVrc7() && channel >= 3u && channel - 3u < 6u)
+                keyOffVrc7Channel(channel - 3u);
             if (hasFds() && channel == 3u)
                 fdsEnabled = false;
             if (channel == 2)
@@ -4149,6 +4440,17 @@ private:
         return renderMmc5Pulse(0) + renderMmc5Pulse(1) + renderMmc5Pcm();
     }
 
+    double renderVrc7Mix()
+    {
+        if (! hasVrc7() || vrc7Opll == nullptr)
+            return 0.0;
+
+        int32_t stereo[2] {};
+        OPLL_calcStereo(vrc7Opll, stereo);
+        constexpr auto scale = 1.0 / 8192.0;
+        return std::clamp((static_cast<double>(stereo[0]) + static_cast<double>(stereo[1])) * 0.5 * scale, -1.0, 1.0);
+    }
+
     AccuracyMode accuracy;
     ChipMode selectedMode = ChipMode::nes;
     double sampleRate = 48000.0;
@@ -4178,9 +4480,9 @@ private:
     uint16_t lfsr = 1;
     int heldNote = -1;
     float noteVelocity = 0.0f;
-    std::array<int, 6> channelNotes { -1, -1, -1, -1, -1, -1 };
-    std::array<float, 6> channelVelocity {};
-    std::array<uint64_t, 6> channelStamp {};
+    std::array<int, 9> channelNotes { -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+    std::array<float, 9> channelVelocity {};
+    std::array<uint64_t, 9> channelStamp {};
     std::array<double, 3> vrc6Phase {};
     std::array<uint16_t, 3> vrc6Timer {};
     std::array<bool, 3> vrc6Enabled {};
@@ -4215,6 +4517,12 @@ private:
     uint8_t mmc5PcmLevel = 64;
     double mmc5PcmEnvelope = 0.0;
     bool mmc5PcmEnabled = false;
+    OPLL* vrc7Opll = nullptr;
+    std::array<uint8_t, 0x40> vrc7Regs {};
+    std::array<uint8_t, 6> vrc7CurrentPatch {};
+    std::array<uint16_t, 6> vrc7CurrentFnum {};
+    std::array<uint8_t, 6> vrc7CurrentBlock {};
+    uint8_t vrc7KeyOnMask = 0;
     uint64_t noteStamp = 0;
     std::vector<uint8_t> dmcSample;
     bool dmcActive = false;
@@ -13732,6 +14040,7 @@ std::unique_ptr<ChipCore> createChipCore(ChipMode mode, AccuracyMode accuracy)
         case ChipMode::nesFds: return std::make_unique<NesApuCore>(accuracy, ChipMode::nesFds);
         case ChipMode::nesSunsoft5b: return std::make_unique<NesApuCore>(accuracy, ChipMode::nesSunsoft5b);
         case ChipMode::nesMmc5: return std::make_unique<NesApuCore>(accuracy, ChipMode::nesMmc5);
+        case ChipMode::nesVrc7: return std::make_unique<NesApuCore>(accuracy, ChipMode::nesVrc7);
         case ChipMode::dmg: return std::make_unique<DmgApuCore>(accuracy);
         case ChipMode::sid: return std::make_unique<SidCore>(accuracy);
         case ChipMode::ym2149: return std::make_unique<Ym2149Core>(accuracy);
@@ -13761,6 +14070,7 @@ std::optional<ChipMode> parseChipMode(std::string_view text)
     if (key == "nesfds" || key == "nes+fds" || key == "fds" || key == "famicomfds" || key == "famicom+fds" || key == "famicomdisksystem") return ChipMode::nesFds;
     if (key == "nessunsoft5b" || key == "nes+sunsoft5b" || key == "sunsoft5b" || key == "5b" || key == "sunsoft" || key == "fme7" || key == "sunsoftfme7" || key == "nesfme7") return ChipMode::nesSunsoft5b;
     if (key == "nesmmc5" || key == "nes+mmc5" || key == "mmc5" || key == "famicommmc5" || key == "famicom+mmc5") return ChipMode::nesMmc5;
+    if (key == "nesvrc7" || key == "nes+vrc7" || key == "vrc7" || key == "famicomvrc7" || key == "famicom+vrc7" || key == "familynoraebang" || key == "noraebang" || key == "nesopll") return ChipMode::nesVrc7;
     if (key == "dmg" || key == "gameboy" || key == "gameboydmg") return ChipMode::dmg;
     if (key == "sid" || key == "c64" || key == "commodore64") return ChipMode::sid;
     if (key == "ym2149" || key == "ay" || key == "ay38910" || key == "ay38910") return ChipMode::ym2149;
@@ -13825,6 +14135,7 @@ std::string toString(ChipMode mode)
         case ChipMode::nesFds: return "NES + FDS";
         case ChipMode::nesSunsoft5b: return "NES + Sunsoft 5B";
         case ChipMode::nesMmc5: return "NES + MMC5";
+        case ChipMode::nesVrc7: return "NES + VRC7";
         case ChipMode::dmg: return "Game Boy / DMG APU";
         case ChipMode::sid: return "SID / C64";
         case ChipMode::ym2149: return "YM2149 / AY";

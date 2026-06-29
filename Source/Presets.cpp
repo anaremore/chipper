@@ -6805,7 +6805,223 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             -11.5f,
             1789773.0
-        }, 0.14f, 0.10f, 0.0f, 0.12f)
+        }, 0.14f, 0.10f, 0.0f, 0.12f),
+        withSourceLevels({
+            "vrc7-fm-bass",
+            "NES + VRC7 Bass",
+            "VRC7 FM Bass",
+            "Preset-FM bass with a quiet triangle anchor and six VRC7 lanes available for stack color.",
+            ChipMode::nesVrc7,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::stack,
+            { 0.40f, 0.30f, 0.30f, 0.84f },
+            { false, false, true, true },
+            0.08f,
+            13,
+            0,
+            0,
+            -11.0f,
+            1789773.0
+        }, 0.0f, 0.0f, 0.18f, 1.0f),
+        withSourceLevels({
+            "vrc7-octave-bass",
+            "NES + VRC7 Bass",
+            "VRC7 Octave Bass",
+            "Nine-lane chip-poly bass allocating NES pulse, triangle, and VRC7 FM channels.",
+            ChipMode::nesVrc7,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::chipPoly,
+            { 0.50f, 0.22f, 0.32f, 0.88f },
+            { true, true, true, true },
+            0.08f,
+            13,
+            0,
+            0,
+            -11.0f,
+            1789773.0
+        }, 0.12f, 0.10f, 0.18f, 1.0f),
+        withSourceLevels({
+            "vrc7-brass-lead",
+            "NES + VRC7 Leads",
+            "VRC7 Brass Lead",
+            "Forward VRC7 brass lead over a restrained NES pulse underlay.",
+            ChipMode::nesVrc7,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.62f, 0.46f, 0.44f, 0.82f },
+            { true, true, true, true },
+            0.10f,
+            7,
+            0,
+            0,
+            -11.5f,
+            1789773.0
+        }, 0.12f, 0.10f, 0.08f, 1.0f),
+        withSourceLevels({
+            "vrc7-bright-lead",
+            "NES + VRC7 Leads",
+            "VRC7 Bright Lead",
+            "Bright FM lead with VRC7 trumpet color and enough APU edge to read as NES expansion audio.",
+            ChipMode::nesVrc7,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::chipPoly,
+            { 0.76f, 0.52f, 0.54f, 0.88f },
+            { true, true, true, true },
+            0.12f,
+            10,
+            0,
+            0,
+            -12.0f,
+            1789773.0
+        }, 0.10f, 0.08f, 0.08f, 1.0f),
+        withSourceLevels({
+            "vrc7-six-fm-arp",
+            "NES + VRC7 Arps",
+            "VRC7 Six-FM Arp",
+            "Six VRC7 FM expansion lanes arranged for quick fake-chord arps with light APU support.",
+            ChipMode::nesVrc7,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.54f, 0.70f, 0.48f, 0.82f },
+            { true, true, true, true },
+            0.08f,
+            8,
+            0,
+            0,
+            -11.5f,
+            1789773.0
+        }, 0.10f, 0.08f, 0.08f, 1.0f),
+        withSourceLevels({
+            "vrc7-power-organ",
+            "NES + VRC7 Arps",
+            "VRC7 Power Organ",
+            "Rising VRC7 organ stack for optimistic power-up gestures and held arps.",
+            ChipMode::nesVrc7,
+            AccuracyMode::hybrid,
+            MacroKind::powerUp,
+            PlayMode::stack,
+            { 0.58f, 0.86f, 0.44f, 0.86f },
+            { true, true, true, true },
+            0.14f,
+            4,
+            0,
+            0,
+            -11.5f,
+            1789773.0
+        }, 0.12f, 0.10f, 0.10f, 1.0f),
+        withSourceLevels({
+            "vrc7-chord-keys",
+            "NES + VRC7 Keys",
+            "VRC7 Chord Keys",
+            "Compact preset-FM key patch for nine-lane chip-poly voicings.",
+            ChipMode::nesVrc7,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.42f, 0.42f, 0.34f, 0.72f },
+            { true, true, true, true },
+            0.18f,
+            3,
+            0,
+            0,
+            -12.0f,
+            1789773.0
+        }, 0.08f, 0.08f, 0.08f, 1.0f),
+        withSourceLevels({
+            "vrc7-soft-pad",
+            "NES + VRC7 Keys",
+            "VRC7 Soft Pad",
+            "Soft VRC7 flute/organ pad with the NES APU kept low for expansion-focused chords.",
+            ChipMode::nesVrc7,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.34f, 0.36f, 0.26f, 0.62f },
+            { true, true, true, true },
+            0.34f,
+            4,
+            0,
+            0,
+            -10.0f,
+            1789773.0
+        }, 0.06f, 0.06f, 0.08f, 1.0f),
+        withSourceLevels({
+            "vrc7-fm-perc",
+            "NES + VRC7 Drums",
+            "VRC7 FM Perc",
+            "Short melodic-FM percussion stack using VRC7 patch envelopes instead of NES noise.",
+            ChipMode::nesVrc7,
+            AccuracyMode::hybrid,
+            MacroKind::drum,
+            PlayMode::stack,
+            { 0.28f, 0.22f, 0.70f, 0.82f },
+            { false, false, false, true },
+            0.58f,
+            15,
+            0,
+            0,
+            -10.0f,
+            1789773.0
+        }, 0.0f, 0.0f, 0.0f, 1.0f),
+        withSourceLevels({
+            "vrc7-impact-hit",
+            "NES + VRC7 Drums",
+            "VRC7 Impact Hit",
+            "Dense short VRC7 impact with a bright preset-FM transient.",
+            ChipMode::nesVrc7,
+            AccuracyMode::hybrid,
+            MacroKind::hit,
+            PlayMode::stack,
+            { 0.38f, 0.62f, 0.68f, 0.84f },
+            { true, false, true, true },
+            0.52f,
+            10,
+            0,
+            0,
+            -12.0f,
+            1789773.0
+        }, 0.08f, 0.0f, 0.08f, 1.0f),
+        withSourceLevels({
+            "vrc7-coin-blip",
+            "Classic Game SFX",
+            "VRC7 Coin Blip",
+            "Short VRC7 coin ping for menu confirms and pickup cues.",
+            ChipMode::nesVrc7,
+            AccuracyMode::hybrid,
+            MacroKind::coin,
+            PlayMode::stack,
+            { 0.18f, 0.86f, 0.18f, 0.84f },
+            { false, false, false, true },
+            0.18f,
+            1,
+            0,
+            0,
+            -12.5f,
+            1789773.0
+        }, 0.0f, 0.0f, 0.0f, 1.0f),
+        withSourceLevels({
+            "vrc7-sweep-zap",
+            "Classic Game SFX",
+            "VRC7 Sweep Zap",
+            "Preset-FM pitch sweep with VRC7 synth color and light NES pulse bite.",
+            ChipMode::nesVrc7,
+            AccuracyMode::hybrid,
+            MacroKind::laser,
+            PlayMode::stack,
+            { 0.28f, 0.94f, 0.62f, 0.86f },
+            { true, true, false, true },
+            0.26f,
+            10,
+            0,
+            0,
+            -12.0f,
+            1789773.0
+        }, 0.08f, 0.08f, 0.0f, 1.0f)
     };
 
     return presets;
@@ -6834,6 +7050,7 @@ const std::vector<PresetQualityTarget>& presetQualityTargets()
         { ChipMode::nesFds, roles, { "apu", "fds", "wavetable", "wave", "modulation", "triangle", "noise", "dmc", "expansion" }, "Furnace-informed NES expansion coverage: FDS wavetable/mod leads, basses, arps, keys, percussion, and SFX." },
         { ChipMode::nesSunsoft5b, roles, { "apu", "sunsoft", "5b", "psg", "square", "tone", "expansion", "triangle", "noise", "dmc" }, "Furnace-informed NES expansion coverage: Sunsoft 5B PSG tone leads, basses, arps, keys, percussion, and SFX." },
         { ChipMode::nesMmc5, roles, { "apu", "mmc5", "pulse", "square", "pcm", "dac", "expansion", "triangle", "noise", "dmc" }, "Furnace-informed NES expansion coverage: MMC5 pulse leads, basses, arps, keys, PCM/DAC percussion, and SFX." },
+        { ChipMode::nesVrc7, roles, { "apu", "vrc7", "opll", "fm", "operator", "expansion", "pulse", "triangle" }, "Furnace-informed NES expansion coverage: VRC7 OPLL preset-FM basses, leads, arps, keys, melodic percussion, UI bells, and SFX." },
         { ChipMode::dmg, roles, { "apu", "pulse", "wave", "noise", "duty", "stereo", "sweep" }, "Furnace-informed DMG coverage: pulse leads, wave bass/keys, noise drums, handheld SFX." },
         { ChipMode::sid, roles, { "sid", "filter", "pwm", "sync", "ring", "noise", "pulse" }, "Furnace-informed SID coverage: bass, PWM leads, filter keys, oscillator interaction, and noise hits." },
         { ChipMode::ym2149, roles, { "psg", "noise", "envelope", "chord", "tracker" }, "Furnace-informed AY/YM coverage: tone stacks, envelope tricks, fake chords, and noise percussion." },
@@ -6939,6 +7156,7 @@ std::string presetEngineFor(const PresetInfo& preset)
         case ChipMode::nesFds: return "RP2A03 + FDS";
         case ChipMode::nesSunsoft5b: return "RP2A03 + Sunsoft 5B";
         case ChipMode::nesMmc5: return "RP2A03 + MMC5";
+        case ChipMode::nesVrc7: return "RP2A03 + VRC7";
         case ChipMode::dmg: return "DMG APU";
         case ChipMode::sid: return "MOS SID";
         case ChipMode::ym2149: return "AY/YM PSG";
@@ -6977,6 +7195,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
         case ChipMode::nesFds:
         case ChipMode::nesSunsoft5b:
         case ChipMode::nesMmc5:
+        case ChipMode::nesVrc7:
         case ChipMode::dmg:
             addPresetTag(tags, "apu");
             if (preset.chip == ChipMode::nesVrc6)
@@ -7005,6 +7224,14 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
                 addPresetTag(tags, "square");
                 addPresetTag(tags, "pcm");
                 addPresetTag(tags, "dac");
+                addPresetTag(tags, "expansion");
+            }
+            if (preset.chip == ChipMode::nesVrc7)
+            {
+                addPresetTag(tags, "vrc7");
+                addPresetTag(tags, "opll");
+                addPresetTag(tags, "fm");
+                addPresetTag(tags, "operator");
                 addPresetTag(tags, "expansion");
             }
             break;
@@ -7053,7 +7280,8 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
          || preset.chip == ChipMode::nesVrc6
          || preset.chip == ChipMode::nesFds
          || preset.chip == ChipMode::nesSunsoft5b
-         || preset.chip == ChipMode::nesMmc5)
+         || preset.chip == ChipMode::nesMmc5
+         || preset.chip == ChipMode::nesVrc7)
         && preset.nesDmcDirectLevel > 0.0001f)
     {
         addPresetTag(tags, "dmc");

@@ -90,6 +90,7 @@ Implemented depth varies by chip. See [docs/emulation-accuracy.md](docs/emulatio
 | NES + FDS | Partial clean-room NES expansion mode with one 64-step FDS wavetable/modulation lane, five source strips, Chip Poly allocation, and original FDS presets |
 | NES + Sunsoft 5B | Partial clean-room NES expansion mode with three AY-style 5B tone lanes, seven source strips, Chip Poly allocation, and original 5B presets |
 | NES + MMC5 | Partial clean-room NES expansion mode with two MMC5 pulse lanes, one conservative PCM/DAC lane, seven source strips, Chip Poly pulse allocation, and original MMC5 presets |
+| NES + VRC7 | Verified-partial NES expansion mode with six emu2413-backed VRC7 melodic FM lanes, nine source strips, Chip Poly allocation, and original VRC7 presets |
 | Game Boy / DMG | Partial clean-room APU with pulse, wave RAM helpers, noise, envelope/sweep/stereo routing tests |
 | SID / C64 | Partial clean-room SID-style voice model with 3 voices, per-voice waves/PW/ADSR, sync/ring bits, filter modes, routing, and model color |
 | YM2149 / AY | Verified-partial MIT `emu2149` PSG adapter |

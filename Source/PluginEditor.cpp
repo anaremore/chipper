@@ -138,7 +138,8 @@ bool isNesFamily(chipper::ChipMode mode)
         || mode == chipper::ChipMode::nesVrc6
         || mode == chipper::ChipMode::nesFds
         || mode == chipper::ChipMode::nesSunsoft5b
-        || mode == chipper::ChipMode::nesMmc5;
+        || mode == chipper::ChipMode::nesMmc5
+        || mode == chipper::ChipMode::nesVrc7;
 }
 
 ChipUiTheme chipThemeFor(chipper::ChipMode mode)
@@ -165,6 +166,7 @@ ChipUiTheme chipThemeFor(chipper::ChipMode mode)
         case chipper::ChipMode::nesFds:
         case chipper::ChipMode::nesSunsoft5b:
         case chipper::ChipMode::nesMmc5:
+        case chipper::ChipMode::nesVrc7:
             return { juce::Colour(0xff0f1112), juce::Colour(0xff171b1d), juce::Colour(0xff151819),
                      juce::Colour(0xff4f5a60), juce::Colour(0xff202426), juce::Colour(0xffff5a2f),
                      juce::Colour(0xff4fd3dd), juce::Colour(0xffececec), juce::Colour(0xffb9c0c4),
@@ -287,6 +289,7 @@ void drawChipIdentityAccent(juce::Graphics& g, juce::Rectangle<int> bounds, chip
         case chipper::ChipMode::nesFds:
         case chipper::ChipMode::nesSunsoft5b:
         case chipper::ChipMode::nesMmc5:
+        case chipper::ChipMode::nesVrc7:
         {
             g.setColour(theme.primary.withAlpha(0.92f));
             g.fillRect(stripeX, stripeY, stripeW * 0.64f, 4.0f);
@@ -376,6 +379,7 @@ int chipModeChoiceIndex(chipper::ChipMode mode)
         case chipper::ChipMode::nesFds: return 19;
         case chipper::ChipMode::nesSunsoft5b: return 20;
         case chipper::ChipMode::nesMmc5: return 21;
+        case chipper::ChipMode::nesVrc7: return 22;
     }
 
     return 0;
@@ -4377,7 +4381,7 @@ void ChipperAudioProcessorEditor::resized()
 
     const auto sourceGap = 6;
     const auto wavetableColumns = useWavetableVoiceGrid ? (visibleSourceCards <= 6u ? 3 : 4) : 0;
-    const auto nesExpansionColumns = 4;
+    const auto nesExpansionColumns = displayedMode == chipper::ChipMode::nesVrc7 ? 5 : 4;
     const auto paulaColumns = 2;
     const auto sourceColumns = useSpc700VoiceGrid ? 4 : (usePaulaVoiceGrid ? paulaColumns : (useNesExpansionVoiceGrid ? nesExpansionColumns : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards))));
     const auto sourceRows = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid)
@@ -7235,7 +7239,7 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
             for (size_t i = 0; i < spec->choices.size(); ++i)
                 oplWaveformBox.addItem(juce::String(spec->choices[i].label), static_cast<int>(i) + 1);
         }
-        if (mode == chipper::ChipMode::ym2413)
+        if (mode == chipper::ChipMode::ym2413 || mode == chipper::ChipMode::nesVrc7)
         {
             opllInstrumentBox.clear(juce::dontSendNotification);
             for (size_t i = 0; i < spec->choices.size(); ++i)
@@ -8276,6 +8280,9 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
     if (mode == chipper::ChipMode::nesMmc5)
         return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | MMC5 twin pulses + DAC | " + nesFocusReadout(patch.control4) + laneText;
 
+    if (mode == chipper::ChipMode::nesVrc7)
+        return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | VRC7 I" + juce::String(static_cast<int>(chipper::vrc7InstrumentForPatch(patch))) + " six FM lanes | " + nesFocusReadout(patch.control4) + laneText;
+
     if (isNesFamily(mode))
         return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | " + nesNoiseModeReadout(patch) + " | " + nesFocusReadout(patch.control4) + laneText;
 
@@ -8567,6 +8574,29 @@ juce::String ChipperAudioProcessorEditor::compactPulse2DutyReadout(const chipper
 
 juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mode, int choice) const
 {
+    if (mode == chipper::ChipMode::nesVrc7)
+    {
+        static constexpr std::array<const char*, 16> labels {
+            "Preset VRC7 instrument",
+            "VRC7 patch 1 bell",
+            "VRC7 patch 2 guitar",
+            "VRC7 patch 3 piano",
+            "VRC7 patch 4 flute",
+            "VRC7 patch 5 clarinet",
+            "VRC7 patch 6 oboe",
+            "VRC7 patch 7 trumpet",
+            "VRC7 patch 8 organ",
+            "VRC7 patch 9 horn",
+            "VRC7 patch 10 synth",
+            "VRC7 patch 11 harpsi",
+            "VRC7 patch 12 vibes",
+            "VRC7 patch 13 synth bass",
+            "VRC7 patch 14 acoustic bass",
+            "VRC7 patch 15 electric guitar"
+        };
+        return labels[static_cast<size_t>(std::clamp(choice, 0, 15))];
+    }
+
     if (mode == chipper::ChipMode::sid)
     {
         switch (std::clamp(choice, 0, 4))
@@ -9506,6 +9536,14 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
             + " | " + (index == 4u ? pulseDutyReadout(mode, patch.control1) : pulse2DutyReadout(patch));
     }
 
+    if (mode == chipper::ChipMode::nesVrc7 && index >= 3u && index <= 8u)
+    {
+        const auto channel = index - 3u;
+        return "VRC7 Ch " + juce::String(static_cast<int>(channel + 1u))
+            + " | I" + juce::String(static_cast<int>(chipper::vrc7InstrumentForPatch(patch)))
+            + " V" + juce::String(static_cast<int>(chipper::vrc7VolumeNibbleForPatch(patch, channel)));
+    }
+
     if (mode == chipper::ChipMode::ym2413)
         return "OPLL " + number + " | I" + juce::String(static_cast<int>(chipper::ym2413InstrumentForPatch(patch)))
             + " V" + juce::String(static_cast<int>(chipper::ym2413VolumeNibbleForPatch(patch, index)));
@@ -10329,7 +10367,7 @@ void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode m
     const auto active = shouldBeVisible && usesWaveShapeSegment(mode);
     const auto fmAlgorithmActive = active && isFourOperatorFmMode(mode);
     const auto oplWaveformActive = active && mode == chipper::ChipMode::opl3;
-    const auto opllInstrumentActive = active && mode == chipper::ChipMode::ym2413;
+    const auto opllInstrumentActive = active && (mode == chipper::ChipMode::ym2413 || mode == chipper::ChipMode::nesVrc7);
     const auto embeddedInSourceCard = mode == chipper::ChipMode::dmg;
     waveShapeLabel.setVisible(active);
     waveShapeValueLabel.setVisible(active && ! embeddedInSourceCard);
@@ -10742,6 +10780,28 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 8 | hidden",
         "Source 9 | hidden"
     };
+    static const std::array<const char*, sourceChannelCount> nesVrc7BigMonoLabels {
+        "Pulse 1  |  duty lead",
+        "Pulse 2  |  stack / sweep",
+        "Triangle | bass body",
+        "VRC7 Ch 1 | FM expansion",
+        "VRC7 Ch 2 | FM expansion",
+        "VRC7 Ch 3 | FM expansion",
+        "VRC7 Ch 4 | FM expansion",
+        "VRC7 Ch 5 | FM expansion",
+        "VRC7 Ch 6 | FM expansion"
+    };
+    static const std::array<const char*, sourceChannelCount> nesVrc7ChipPolyLabels {
+        "Pulse 1  |  note 1",
+        "Pulse 2  |  note 2",
+        "Triangle | note 3 bass",
+        "VRC7 Ch 1 | note 4",
+        "VRC7 Ch 2 | note 5",
+        "VRC7 Ch 3 | note 6",
+        "VRC7 Ch 4 | note 7",
+        "VRC7 Ch 5 | note 8",
+        "VRC7 Ch 6 | note 9"
+    };
     static const std::array<const char*, sourceChannelCount> dmgBigMonoLabels {
         "Pulse 1  |  sweep voice",
         "Pulse 2  |  support pulse",
@@ -10929,6 +10989,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         labels = playMode == chipper::PlayMode::chipPoly ? &nesSunsoft5bChipPolyLabels : &nesSunsoft5bBigMonoLabels;
     else if (mode == chipper::ChipMode::nesMmc5)
         labels = playMode == chipper::PlayMode::chipPoly ? &nesMmc5ChipPolyLabels : &nesMmc5BigMonoLabels;
+    else if (mode == chipper::ChipMode::nesVrc7)
+        labels = playMode == chipper::PlayMode::chipPoly ? &nesVrc7ChipPolyLabels : &nesVrc7BigMonoLabels;
     else if (isNesFamily(mode))
         labels = playMode == chipper::PlayMode::chipPoly ? &nesChipPolyLabels : &nesBigMonoLabels;
     else if (mode == chipper::ChipMode::dmg)
@@ -11066,6 +11128,13 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
         {
             shape = ChipWaveformPreviewShape::triangle;
             tooltip = "RP2A03 triangle sequencer preview.";
+        }
+        else if (mode == chipper::ChipMode::nesVrc7 && index >= 3 && index <= 8)
+        {
+            shape = ChipWaveformPreviewShape::combined;
+            tooltip = "VRC7 preset-FM expansion lane: " + waveShapeReadout(mode, patch.waveShape)
+                + "\nInstrument I" + juce::String(static_cast<int>(chipper::vrc7InstrumentForPatch(patch)))
+                + " | volume nibble " + juce::String(static_cast<int>(chipper::vrc7VolumeNibbleForPatch(patch, static_cast<size_t>(index - 3))));
         }
         else if (index == 3)
         {
@@ -11843,7 +11912,7 @@ void ChipperAudioProcessorEditor::updateOplWaveformControl(chipper::ChipMode mod
 void ChipperAudioProcessorEditor::updateOpllInstrumentControl(chipper::ChipMode mode, int choice, bool shouldBeVisible)
 {
     const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::waveShape);
-    const auto visible = shouldBeVisible && mode == chipper::ChipMode::ym2413 && spec != nullptr;
+    const auto visible = shouldBeVisible && (mode == chipper::ChipMode::ym2413 || mode == chipper::ChipMode::nesVrc7) && spec != nullptr;
     waveShapeLabel.setVisible(visible);
     waveShapeValueLabel.setVisible(visible);
     opllInstrumentBox.setVisible(visible);
@@ -11874,13 +11943,15 @@ void ChipperAudioProcessorEditor::updateOpllInstrumentControl(chipper::ChipMode 
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
         parameterValue(chipper::parameters::id::stereoSpread));
 
-    const auto resolvedInstrument = static_cast<int>(chipper::ym2413InstrumentForPatch(patch));
-    const auto volumeNibble = static_cast<int>(chipper::ym2413VolumeNibbleForPatch(patch, 0));
+    const auto isVrc7 = mode == chipper::ChipMode::nesVrc7;
+    const auto resolvedInstrument = static_cast<int>(isVrc7 ? chipper::vrc7InstrumentForPatch(patch) : chipper::ym2413InstrumentForPatch(patch));
+    const auto volumeNibble = static_cast<int>(isVrc7 ? chipper::vrc7VolumeNibbleForPatch(patch, 0) : chipper::ym2413VolumeNibbleForPatch(patch, 0));
     const auto followsTemplate = safeChoice == 0;
     const auto valueText = followsTemplate
         ? juce::String("Preset -> I") + juce::String(resolvedInstrument)
         : juce::String("I") + juce::String(resolvedInstrument);
-    const auto registerText = juce::String("$30 instrument=") + juce::String(resolvedInstrument)
+    const auto registerText = juce::String(isVrc7 ? "$9010/$9030 ch1 instrument=" : "$30 instrument=")
+        + juce::String(resolvedInstrument)
         + ", volume nibble=" + juce::String(volumeNibble) + "/15";
 
     waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
@@ -12696,7 +12767,7 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
 
 void ChipperAudioProcessorEditor::updateSampleWaveformPreview(chipper::ChipMode mode)
 {
-    const auto showSamplePreview = isNesFamily(mode)
+    const auto showSamplePreview = (isNesFamily(mode) && mode != chipper::ChipMode::nesVrc7)
         || mode == chipper::ChipMode::spc700
         || mode == chipper::ChipMode::paula;
 
@@ -12952,10 +13023,11 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     presetFilterBox.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     presetSearchBox.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     updatePresetFavoriteButton();
-    dmcDirectLabel.setVisible(hasLiveCore && isNesFamily(mode));
-    dmcDirectSlider.setVisible(hasLiveCore && isNesFamily(mode));
-    dmcRateLabel.setVisible(hasLiveCore && isNesFamily(mode));
-    dmcRateBox.setVisible(hasLiveCore && isNesFamily(mode));
+    const auto showNesDmcControls = hasLiveCore && isNesFamily(mode) && mode != chipper::ChipMode::nesVrc7;
+    dmcDirectLabel.setVisible(showNesDmcControls);
+    dmcDirectSlider.setVisible(showNesDmcControls);
+    dmcRateLabel.setVisible(showNesDmcControls);
+    dmcRateBox.setVisible(showNesDmcControls);
     dmcDirectLabel.setEnabled(hasLiveCore);
     dmcDirectSlider.setEnabled(hasLiveCore);
     dmcRateLabel.setEnabled(hasLiveCore);
@@ -12964,7 +13036,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcDirectSlider.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     dmcRateLabel.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     dmcRateBox.setAlpha(hasLiveCore ? 1.0f : 0.55f);
-    const auto showNesDmcSampleControls = hasLiveCore && isNesFamily(mode);
+    const auto showNesDmcSampleControls = showNesDmcControls;
     const auto showSpc700BrrControls = hasLiveCore && mode == chipper::ChipMode::spc700;
     const auto showPaulaSampleControls = hasLiveCore && mode == chipper::ChipMode::paula;
     const auto showSampleBankControls = showNesDmcSampleControls || showSpc700BrrControls || showPaulaSampleControls;
@@ -13310,7 +13382,11 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[0].setText(embeddedPulseDuty ? pulseDutyReadout(mode, patch.control1) : macroReadout(0, pulseDutyReadout(mode, patch.control1)),
                                       juce::dontSendNotification);
         controlValueLabels[1].setText(macroReadout(1, nesSweepReadout(patch.control2)), juce::dontSendNotification);
-        controlValueLabels[2].setText(macroReadout(2, nesNoiseReadout(patch.control3)), juce::dontSendNotification);
+        controlValueLabels[2].setText(macroReadout(2,
+                                                   mode == chipper::ChipMode::nesVrc7
+                                                       ? juce::String("VRC7 I") + juce::String(static_cast<int>(chipper::vrc7InstrumentForPatch(patch)))
+                                                       : nesNoiseReadout(patch.control3)),
+                                      juce::dontSendNotification);
         controlValueLabels[3].setText(macroReadout(3, nesFocusReadout(patch.control4)), juce::dontSendNotification);
 
         updateSourceChannelButtons(mode);

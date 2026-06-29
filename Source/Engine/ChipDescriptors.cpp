@@ -411,6 +411,29 @@ std::vector<MacroTemplate> nesMmc5Macros()
     return macros;
 }
 
+std::vector<MacroTemplate> nesVrc7Macros()
+{
+    auto macros = nesMacros();
+    for (auto& macro : macros)
+    {
+        switch (macro.macro)
+        {
+            case MacroKind::manual: macro.label = "VRC7 Manual"; break;
+            case MacroKind::coin: macro.label = "VRC7 Coin Bell"; break;
+            case MacroKind::bass: macro.label = "VRC7 FM Bass"; break;
+            case MacroKind::lead: macro.label = "VRC7 Brass Lead"; break;
+            case MacroKind::arp: macro.label = "VRC7 Six-FM Arp"; break;
+            case MacroKind::drum: macro.label = "VRC7 FM Perc"; break;
+            case MacroKind::hit: macro.label = "VRC7 Impact"; break;
+            case MacroKind::laser: macro.label = "VRC7 Sweep Zap"; break;
+            case MacroKind::jump: macro.label = "VRC7 Jump Bell"; break;
+            case MacroKind::powerUp: macro.label = "VRC7 Power Organ"; break;
+        }
+    }
+
+    return macros;
+}
+
 std::vector<MacroTemplate> dmgMacros()
 {
     return {
@@ -873,6 +896,42 @@ std::vector<ParameterChoiceSpec> ym2413InstrumentChoices()
     {
         choices.push_back(choice(labels[instrument],
                                  "Write YM2413 instrument " + std::to_string(instrument) + " into the high nibble of channel registers $30-$38.",
+                                 static_cast<float>(instrument) / 15.0f,
+                                 static_cast<int>(instrument)));
+    }
+
+    return choices;
+}
+
+std::vector<ParameterChoiceSpec> vrc7InstrumentChoices()
+{
+    static constexpr std::array<const char*, 16> labels {
+        "Preset",
+        "Bell",
+        "Guitar",
+        "Piano",
+        "Flute",
+        "Clarinet",
+        "Oboe",
+        "Trumpet",
+        "Organ",
+        "Horn",
+        "Synth",
+        "Harpsi",
+        "Vibes",
+        "Synth Bass",
+        "Ac Bass",
+        "E.Guitar"
+    };
+
+    std::vector<ParameterChoiceSpec> choices;
+    choices.reserve(labels.size());
+    choices.push_back(choice(labels[0], "Resolve the VRC7 patch-table instrument from the selected NES expansion recipe.", 0.0f, 0));
+
+    for (size_t instrument = 1; instrument < labels.size(); ++instrument)
+    {
+        choices.push_back(choice(labels[instrument],
+                                 "Write VRC7 patch " + std::to_string(instrument) + " into the high nibble of expansion channel registers $30-$35.",
                                  static_cast<float>(instrument) / 15.0f,
                                  static_cast<int>(instrument)));
     }
@@ -2022,6 +2081,76 @@ std::vector<ChipParameterSpec> nesMmc5ParameterSpecs()
     return specs;
 }
 
+std::vector<ChipParameterSpec> nesVrc7ParameterSpecs()
+{
+    return {
+        segmentedSpec(ChipParameterRole::macroControl1,
+                      "nes.vrc7.pulse1Duty",
+                      "Pulse 1 Duty",
+                      "Channels",
+                      "Maps to the RP2A03 pulse 1 duty register field while VRC7 lanes provide the FM expansion color.",
+                      pulseDutyChoices("Thin 1/8 pulse.", "Narrow 1/4 pulse.", "Square 1/2 pulse.", "Wide 3/4 inverted pulse."),
+                      ParameterKind::chipRegister,
+                      2.0f / 3.0f),
+        segmentedSpec(ChipParameterRole::pulse2Duty,
+                      "nes.vrc7.pulse2Duty",
+                      "Pulse 2 Duty",
+                      "Channels",
+                      "Overrides the RP2A03 pulse 2 duty register field. Preset uses the selected NES + VRC7 recipe; explicit choices write $4004 independently.",
+                      pulse2DutyChoices("Use the current preset recipe: stacked Big Mono may offset Pulse 2 by one duty step; explicit choices override $4004 independently."),
+                      ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "nes.vrc7.detune",
+                   "FM Detune",
+                   "Pitch",
+                   "Offsets VRC7 f-number/block note mapping around the NES APU stack.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "nes.vrc7.instrumentBias",
+                   "Instrument Bias",
+                   "Preset FM",
+                   "In Preset instrument mode this chooses the VRC7 patch-table bias for manual recipes; explicit Instrument choices override it.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "nes.vrc7.fmLevel",
+                   "FM Level",
+                   "Mixer",
+                   "Maps to VRC7 channel volume nibbles in registers $30-$35.",
+                   ParameterKind::chipRegister,
+                   0.72f),
+        { ChipParameterRole::waveShape,
+          "nes.vrc7.instrument",
+          "Instrument",
+          "Preset FM",
+          "Chooses a VRC7 patch-table instrument. Preset lets the selected recipe choose the instrument.",
+          ParameterKind::chipRegister,
+          ControlSurface::menu,
+          vrc7InstrumentChoices(),
+          0.0f,
+          1.0f,
+          0.0f },
+        sourceSpec(ChipParameterRole::source1Enabled, "nes.vrc7.pulse1.enabled", "Pulse 1", "Enable the first RP2A03 pulse source."),
+        sourceSpec(ChipParameterRole::source2Enabled, "nes.vrc7.pulse2.enabled", "Pulse 2", "Enable the second RP2A03 pulse source."),
+        sourceSpec(ChipParameterRole::source3Enabled, "nes.vrc7.triangle.enabled", "Triangle", "Enable the RP2A03 triangle source."),
+        sourceSpec(ChipParameterRole::source4Enabled, "nes.vrc7.ch1.enabled", "VRC7 Ch 1", "Enable VRC7 melodic expansion channel 1."),
+        sourceSpec(ChipParameterRole::source5Enabled, "nes.vrc7.ch2.enabled", "VRC7 Ch 2", "Enable VRC7 melodic expansion channel 2."),
+        sourceSpec(ChipParameterRole::source6Enabled, "nes.vrc7.ch3.enabled", "VRC7 Ch 3", "Enable VRC7 melodic expansion channel 3."),
+        sourceSpec(ChipParameterRole::source7Enabled, "nes.vrc7.ch4.enabled", "VRC7 Ch 4", "Enable VRC7 melodic expansion channel 4."),
+        sourceSpec(ChipParameterRole::source8Enabled, "nes.vrc7.ch5.enabled", "VRC7 Ch 5", "Enable VRC7 melodic expansion channel 5."),
+        sourceSpec(ChipParameterRole::source9Enabled, "nes.vrc7.ch6.enabled", "VRC7 Ch 6", "Enable VRC7 melodic expansion channel 6."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "nes.vrc7.pulse1.level", "Pulse 1 Level", "Modern trim for the first pulse source."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "nes.vrc7.pulse2.level", "Pulse 2 Level", "Modern trim for the second pulse source."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "nes.vrc7.triangle.level", "Triangle Level", "Modern trim for the triangle source."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "nes.vrc7.ch1.level", "VRC7 Ch 1 Level", "Modern trim before writing VRC7 channel 1 volume nibble."),
+        sourceLevelSpec(ChipParameterRole::source5Level, "nes.vrc7.ch2.level", "VRC7 Ch 2 Level", "Modern trim before writing VRC7 channel 2 volume nibble."),
+        sourceLevelSpec(ChipParameterRole::source6Level, "nes.vrc7.ch3.level", "VRC7 Ch 3 Level", "Modern trim before writing VRC7 channel 3 volume nibble."),
+        sourceLevelSpec(ChipParameterRole::source7Level, "nes.vrc7.ch4.level", "VRC7 Ch 4 Level", "Modern trim before writing VRC7 channel 4 volume nibble."),
+        sourceLevelSpec(ChipParameterRole::source8Level, "nes.vrc7.ch5.level", "VRC7 Ch 5 Level", "Modern trim before writing VRC7 channel 5 volume nibble."),
+        sourceLevelSpec(ChipParameterRole::source9Level, "nes.vrc7.ch6.level", "VRC7 Ch 6 Level", "Modern trim before writing VRC7 channel 6 volume nibble."),
+        envelopeSpec("nes.vrc7.apuDecay", "APU Decay", "Maps musical decay to RP2A03 pulse envelope period values; VRC7 lanes keep their native patch-table envelopes.")
+    };
+}
+
 std::vector<ChipParameterSpec> dmgParameterSpecs()
 {
     return {
@@ -3001,6 +3130,18 @@ std::array<ModuleDescriptor, 6> nesMmc5Modules()
     };
 }
 
+std::array<ModuleDescriptor, 6> nesVrc7Modules()
+{
+    return std::array<ModuleDescriptor, 6> {
+        makeModule("profile", "Profile", "RP2A03 APU plus Konami VRC7 OPLL expansion model.", { "2A03 + VRC7", "NTSC clock default", "emu2413 VRC7 table", "Authentic still partial" }),
+        makeModule("sources", "Channels", "Base NES melodic lanes plus six VRC7 preset-FM expansion lanes.", { "Pulse 1/2", "Triangle", "VRC7 Ch 1-6", "Nine-card surface" }),
+        makeModule("tone", "Preset FM", "NES pulse controls plus VRC7 patch-table instrument, f-number, block, and key-on writes.", { "Pulse duty", "VRC7 instrument", "$9010/$9030 ports", "F-number/block" }),
+        makeModule("envelope", "APU / VRC7 EG", "Base APU envelope with native VRC7 patch-table envelope behavior.", { "APU decay", "VRC7 volume nibbles", "Native patch EG", "Chip Poly" }),
+        makeModule("motion", "Motion", "Musical gestures write NES and VRC7-style FM stack recipes.", { "FM bass", "Brass lead", "Six-FM arp", "Sweep zap" }),
+        makeModule("output", "Expansion Mix", "VRC7 expansion audio is conservatively mixed beside the partial NES APU model.", { "VRC7 mix", "Source trims", "Debug/export state", "Verified partial" })
+    };
+}
+
 std::array<ModuleDescriptor, 6> dmgModules()
 {
     return std::array<ModuleDescriptor, 6> {
@@ -3295,6 +3436,34 @@ const std::vector<ChipDescriptor>& descriptors()
                 {
                     "Exact MMC5 mapper bus timing, PCM read mode, IRQ behavior, multiplier/register side effects, expansion-audio resistor mixing, and hardware capture comparison are not complete.",
                     "The MMC5 implementation is a musical NES expansion instrument slice, not a cycle-accurate NES mapper emulator."
+                })
+        },
+        {
+            ChipMode::nesVrc7,
+            "NES + VRC7",
+            "Base RP2A03 pulse/triangle lanes plus six Konami VRC7 OPLL preset-FM expansion lanes.",
+            {
+                { "duty", "Pulse Duty", "Channels", "Chooses the base pulse duty family while VRC7 lanes add preset-FM expansion color." },
+                { "detune", "FM Detune", "Pitch", "Offsets VRC7 f-number/block note mapping around the NES APU stack." },
+                { "instrument", "Instrument", "Preset FM", "Chooses VRC7 patch-table instruments for the six expansion FM lanes." },
+                { "mix", "FM Level", "Mixer", "Balances base APU focus and VRC7 expansion volume nibbles." },
+            },
+            nesVrc7Modules(),
+            nesVrc7Macros(),
+            true,
+            true,
+            nesVrc7ParameterSpecs(),
+            verifiedPartial(
+                {
+                    "Base RP2A03 behavior is shared with the tested NES mode for pulse 1, pulse 2, and triangle lanes.",
+                    "VRC7 channels 1-6 render through the vendored MIT emu2413 core using the VRC7 patch table with source-card enables, source levels, f-number/block/key-on writes, debug JSON, and pseudo-register export through $9010/$9030.",
+                    "Chip Poly allocates across nine exposed lanes: pulse 1, pulse 2, triangle, and six VRC7 melodic expansion channels.",
+                    "Renderer smoke, source gating, descriptor metadata, presets, and MIDI CC metadata cover the first playable VRC7 expansion slice."
+                },
+                {
+                    "NES Noise/DMC lanes are not exposed in this first VRC7 mode because the current VST source-card surface is capped at nine lanes.",
+                    "VRC7 custom patch editing, rhythm behavior, exact mapper bus timing, native expansion mixer calibration, golden emulator comparison, and hardware capture comparison are not complete.",
+                    "The VRC7 implementation is a musical NES expansion instrument slice, not a cycle-accurate NES mapper emulator."
                 })
         },
         {
@@ -3846,6 +4015,7 @@ EnvelopeModel envelopeModelFor(ChipMode mode)
         case ChipMode::nesFds:
         case ChipMode::nesSunsoft5b:
         case ChipMode::nesMmc5:
+        case ChipMode::nesVrc7:
         case ChipMode::dmg:
         case ChipMode::ym2149:
             return EnvelopeModel::nativeNonAdsr;
@@ -3928,6 +4098,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
         return 7u;
     if (mode == ChipMode::nesMmc5)
         return 7u;
+    if (mode == ChipMode::nesVrc7)
+        return 9u;
     return 4u;
 }
 
@@ -3951,6 +4123,7 @@ size_t nativeSourceCountForMode(ChipMode mode)
         case ChipMode::nesFds: return 5u;
         case ChipMode::nesSunsoft5b: return 7u;
         case ChipMode::nesMmc5: return 7u;
+        case ChipMode::nesVrc7: return 9u;
         default: return visibleSourceCountForMode(mode);
     }
 }
@@ -4039,7 +4212,7 @@ PatchConfig makePatchConfig(ChipMode mode,
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608 || mode == ChipMode::ym2610) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
-    const auto maxWaveShape = mode == ChipMode::ym2413
+    const auto maxWaveShape = (mode == ChipMode::ym2413 || mode == ChipMode::nesVrc7)
         ? 15
         : ((mode == ChipMode::sid || mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608 || mode == ChipMode::ym2610) ? 8 : 4);
 
@@ -5270,6 +5443,38 @@ uint8_t ym2413RhythmModeForPatch(const PatchConfig& patch)
 uint8_t ym2413VolumeNibbleForPatch(const PatchConfig& patch, size_t channel, float velocity)
 {
     const auto trim = channel < patch.sourceLevels.size() ? clampControl(patch.sourceLevels[channel]) : 1.0f;
+    const auto musicalLevel = clampControl(patch.control4) * clampControl(velocity) * trim;
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - musicalLevel) * 15.0f)), 0, 15));
+}
+
+uint8_t vrc7InstrumentForPatch(const PatchConfig& patch)
+{
+    const auto explicitChoice = std::clamp(patch.waveShape, 0, 15);
+    if (explicitChoice > 0)
+        return static_cast<uint8_t>(explicitChoice);
+
+    switch (patch.macro)
+    {
+        case MacroKind::coin:
+        case MacroKind::jump: return 1;
+        case MacroKind::bass: return 13;
+        case MacroKind::lead: return 7;
+        case MacroKind::arp: return 8;
+        case MacroKind::drum: return 15;
+        case MacroKind::hit:
+        case MacroKind::laser: return 10;
+        case MacroKind::powerUp: return 4;
+        case MacroKind::manual:
+        default: break;
+    }
+
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control3) * 14.0f)) + 1, 1, 15));
+}
+
+uint8_t vrc7VolumeNibbleForPatch(const PatchConfig& patch, size_t channel, float velocity)
+{
+    const auto sourceIndex = std::min<size_t>(3u + channel, patch.sourceLevels.size() - 1u);
+    const auto trim = clampControl(patch.sourceLevels[sourceIndex]);
     const auto musicalLevel = clampControl(patch.control4) * clampControl(velocity) * trim;
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - musicalLevel) * 15.0f)), 0, 15));
 }

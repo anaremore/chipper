@@ -3328,6 +3328,7 @@ const char* chipModeKey(chipper::ChipMode mode)
         case chipper::ChipMode::nesFds: return "nesFds";
         case chipper::ChipMode::nesSunsoft5b: return "nesSunsoft5b";
         case chipper::ChipMode::nesMmc5: return "nesMmc5";
+        case chipper::ChipMode::nesVrc7: return "nesVrc7";
     }
 
     return "nes";

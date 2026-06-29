@@ -363,6 +363,8 @@ uint8_t oplRhythmModeForPatch(const PatchConfig& patch);
 uint8_t ym2413InstrumentForPatch(const PatchConfig& patch);
 uint8_t ym2413RhythmModeForPatch(const PatchConfig& patch);
 uint8_t ym2413VolumeNibbleForPatch(const PatchConfig& patch, size_t channel, float velocity = 1.0f);
+uint8_t vrc7InstrumentForPatch(const PatchConfig& patch);
+uint8_t vrc7VolumeNibbleForPatch(const PatchConfig& patch, size_t channel, float velocity = 1.0f);
 uint8_t huc6280ControlForPatch(const PatchConfig& patch, size_t channel);
 uint8_t wavetableWaveShapeForChannel(ChipMode mode, const PatchConfig& patch, size_t channel);
 uint8_t huc6280WaveShapeForChannel(const PatchConfig& patch, size_t channel);
