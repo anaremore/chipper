@@ -261,7 +261,9 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && a.fmOperatorLevels == b.fmOperatorLevels
         && a.fmOperatorMultipliers == b.fmOperatorMultipliers
         && a.fmOperatorAttackRates == b.fmOperatorAttackRates
-        && a.fmOperatorDecayRates == b.fmOperatorDecayRates;
+        && a.fmOperatorDecayRates == b.fmOperatorDecayRates
+        && a.fmOperatorSustainRates == b.fmOperatorSustainRates
+        && a.fmOperatorReleaseRates == b.fmOperatorReleaseRates;
 }
 
 bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
@@ -312,7 +314,9 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && a.fmOperatorLevels == b.fmOperatorLevels
         && a.fmOperatorMultipliers == b.fmOperatorMultipliers
         && a.fmOperatorAttackRates == b.fmOperatorAttackRates
-        && a.fmOperatorDecayRates == b.fmOperatorDecayRates;
+        && a.fmOperatorDecayRates == b.fmOperatorDecayRates
+        && a.fmOperatorSustainRates == b.fmOperatorSustainRates
+        && a.fmOperatorReleaseRates == b.fmOperatorReleaseRates;
 }
 
 int samplePlaybackModeForMacroTemplate(chipper::ChipMode mode, const chipper::MacroTemplate& templ)
@@ -2128,6 +2132,18 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
         chipper::parameters::id::fmOperator3DecayRate,
         chipper::parameters::id::fmOperator4DecayRate
     };
+    const std::array<const char*, 4> fmOperatorSustainRateIds {
+        chipper::parameters::id::fmOperator1SustainRate,
+        chipper::parameters::id::fmOperator2SustainRate,
+        chipper::parameters::id::fmOperator3SustainRate,
+        chipper::parameters::id::fmOperator4SustainRate
+    };
+    const std::array<const char*, 4> fmOperatorReleaseRateIds {
+        chipper::parameters::id::fmOperator1ReleaseRate,
+        chipper::parameters::id::fmOperator2ReleaseRate,
+        chipper::parameters::id::fmOperator3ReleaseRate,
+        chipper::parameters::id::fmOperator4ReleaseRate
+    };
 
     for (size_t i = 0; i < controlIds.size(); ++i)
         setPlainParameterValue(controlIds[i], templ.controls[i]);
@@ -2142,6 +2158,10 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
     for (const auto* id : fmOperatorAttackRateIds)
         setPlainParameterValue(id, 0.0f);
     for (const auto* id : fmOperatorDecayRateIds)
+        setPlainParameterValue(id, 0.0f);
+    for (const auto* id : fmOperatorSustainRateIds)
+        setPlainParameterValue(id, 0.0f);
+    for (const auto* id : fmOperatorReleaseRateIds)
         setPlainParameterValue(id, 0.0f);
     const auto anyTemplateSourceEnabled = std::any_of(templ.sourceEnabled.begin(), templ.sourceEnabled.end(), [](bool enabled) { return enabled; });
     setPlainParameterValue(chipper::parameters::id::source5Enabled, anyTemplateSourceEnabled && chipper::nativeSourceCountForMode(mode) >= 5u ? 1.0f : 0.0f);
@@ -2822,6 +2842,18 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
             static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::fmOperator2DecayRate)->load())),
             static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::fmOperator3DecayRate)->load())),
             static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::fmOperator4DecayRate)->load()))
+        },
+        {
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::fmOperator1SustainRate)->load())),
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::fmOperator2SustainRate)->load())),
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::fmOperator3SustainRate)->load())),
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::fmOperator4SustainRate)->load()))
+        },
+        {
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::fmOperator1ReleaseRate)->load())),
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::fmOperator2ReleaseRate)->load())),
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::fmOperator3ReleaseRate)->load())),
+            static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::fmOperator4ReleaseRate)->load()))
         });
 }
 

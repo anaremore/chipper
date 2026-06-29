@@ -134,6 +134,14 @@ enum class ChipParameterRole
     fmOperator2DecayRate,
     fmOperator3DecayRate,
     fmOperator4DecayRate,
+    fmOperator1SustainRate,
+    fmOperator2SustainRate,
+    fmOperator3SustainRate,
+    fmOperator4SustainRate,
+    fmOperator1ReleaseRate,
+    fmOperator2ReleaseRate,
+    fmOperator3ReleaseRate,
+    fmOperator4ReleaseRate,
     clockHz,
     outputDb
 };
@@ -283,7 +291,9 @@ PatchConfig makePatchConfig(ChipMode mode,
                             std::array<float, 4> fmOperatorLevels = { 0.5f, 0.5f, 0.5f, 0.5f },
                             std::array<int, 4> fmOperatorMultipliers = { 0, 0, 0, 0 },
                             std::array<int, 4> fmOperatorAttackRates = { 0, 0, 0, 0 },
-                            std::array<int, 4> fmOperatorDecayRates = { 0, 0, 0, 0 });
+                            std::array<int, 4> fmOperatorDecayRates = { 0, 0, 0, 0 },
+                            std::array<int, 4> fmOperatorSustainRates = { 0, 0, 0, 0 },
+                            std::array<int, 4> fmOperatorReleaseRates = { 0, 0, 0, 0 });
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t nesNoisePeriodForControl(float noisePeriodControl);
 uint8_t nesDmcDirectLevelForControl(float levelControl);

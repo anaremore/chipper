@@ -185,6 +185,24 @@ juce::StringArray fmOperatorDecayRateChoices()
     return choices;
 }
 
+juce::StringArray fmOperatorSustainRateChoices()
+{
+    juce::StringArray choices;
+    choices.add("Follow");
+    for (int rate = 0; rate <= 31; ++rate)
+        choices.add(juce::String(rate));
+    return choices;
+}
+
+juce::StringArray fmOperatorReleaseRateChoices()
+{
+    juce::StringArray choices;
+    choices.add("Follow");
+    for (int rate = 0; rate <= 15; ++rate)
+        choices.add(juce::String(rate));
+    return choices;
+}
+
 juce::StringArray nesDmcRateChoices()
 {
     return {
@@ -417,6 +435,54 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::ParameterID { id::fmOperator4DecayRate, 1 },
         "FM Operator 4 Decay Rate",
         fmOperatorDecayRateChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::fmOperator1SustainRate, 1 },
+        "FM Operator 1 Sustain Rate",
+        fmOperatorSustainRateChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::fmOperator2SustainRate, 1 },
+        "FM Operator 2 Sustain Rate",
+        fmOperatorSustainRateChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::fmOperator3SustainRate, 1 },
+        "FM Operator 3 Sustain Rate",
+        fmOperatorSustainRateChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::fmOperator4SustainRate, 1 },
+        "FM Operator 4 Sustain Rate",
+        fmOperatorSustainRateChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::fmOperator1ReleaseRate, 1 },
+        "FM Operator 1 Release Rate",
+        fmOperatorReleaseRateChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::fmOperator2ReleaseRate, 1 },
+        "FM Operator 2 Release Rate",
+        fmOperatorReleaseRateChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::fmOperator3ReleaseRate, 1 },
+        "FM Operator 3 Release Rate",
+        fmOperatorReleaseRateChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::fmOperator4ReleaseRate, 1 },
+        "FM Operator 4 Release Rate",
+        fmOperatorReleaseRateChoices(),
         0));
 
     params.push_back(std::make_unique<juce::AudioParameterBool>(

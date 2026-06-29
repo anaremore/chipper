@@ -483,13 +483,70 @@ const char* fmOperatorDecayRateParameterId(size_t index)
     return ids[std::min(index, ids.size() - 1u)];
 }
 
-juce::String fmOperatorEnvelopeButtonText(int attackChoice, int decayChoice)
+chipper::ChipParameterRole fmOperatorSustainRateRole(size_t index)
 {
-    if (attackChoice <= 0 && decayChoice <= 0)
+    static constexpr std::array<chipper::ChipParameterRole, 4> roles {
+        chipper::ChipParameterRole::fmOperator1SustainRate,
+        chipper::ChipParameterRole::fmOperator2SustainRate,
+        chipper::ChipParameterRole::fmOperator3SustainRate,
+        chipper::ChipParameterRole::fmOperator4SustainRate
+    };
+
+    return roles[std::min(index, roles.size() - 1u)];
+}
+
+const char* fmOperatorSustainRateParameterId(size_t index)
+{
+    static constexpr std::array<const char*, 4> ids {
+        chipper::parameters::id::fmOperator1SustainRate,
+        chipper::parameters::id::fmOperator2SustainRate,
+        chipper::parameters::id::fmOperator3SustainRate,
+        chipper::parameters::id::fmOperator4SustainRate
+    };
+
+    return ids[std::min(index, ids.size() - 1u)];
+}
+
+chipper::ChipParameterRole fmOperatorReleaseRateRole(size_t index)
+{
+    static constexpr std::array<chipper::ChipParameterRole, 4> roles {
+        chipper::ChipParameterRole::fmOperator1ReleaseRate,
+        chipper::ChipParameterRole::fmOperator2ReleaseRate,
+        chipper::ChipParameterRole::fmOperator3ReleaseRate,
+        chipper::ChipParameterRole::fmOperator4ReleaseRate
+    };
+
+    return roles[std::min(index, roles.size() - 1u)];
+}
+
+const char* fmOperatorReleaseRateParameterId(size_t index)
+{
+    static constexpr std::array<const char*, 4> ids {
+        chipper::parameters::id::fmOperator1ReleaseRate,
+        chipper::parameters::id::fmOperator2ReleaseRate,
+        chipper::parameters::id::fmOperator3ReleaseRate,
+        chipper::parameters::id::fmOperator4ReleaseRate
+    };
+
+    return ids[std::min(index, ids.size() - 1u)];
+}
+
+juce::String fmOperatorEnvelopeButtonText(int attackChoice, int decayChoice, int sustainChoice, int releaseChoice)
+{
+    const auto activeCount = (attackChoice > 0 ? 1 : 0)
+        + (decayChoice > 0 ? 1 : 0)
+        + (sustainChoice > 0 ? 1 : 0)
+        + (releaseChoice > 0 ? 1 : 0);
+
+    if (activeCount == 0)
         return "EG F";
-    if (attackChoice > 0 && decayChoice > 0)
+    if (activeCount > 1)
         return "EG *";
-    return attackChoice > 0 ? "EG A" : "EG D";
+    if (attackChoice > 0)
+        return "EG A";
+    if (decayChoice > 0)
+        return "EG D";
+    return sustainChoice > 0 ? "EG S" : "EG R";
 }
 
 chipper::ChipParameterRole sourceRole(size_t index)
@@ -2861,12 +2918,20 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
             juce::PopupMenu menu;
             const auto attackChoices = chipper::parameters::fmOperatorAttackRateChoices();
             const auto decayChoices = chipper::parameters::fmOperatorDecayRateChoices();
+            const auto sustainChoices = chipper::parameters::fmOperatorSustainRateChoices();
+            const auto releaseChoices = chipper::parameters::fmOperatorReleaseRateChoices();
             const auto selectedAttack = std::clamp(static_cast<int>(std::round(parameterValue(fmOperatorAttackRateParameterId(i)))),
                                                    0,
                                                    attackChoices.size() - 1);
             const auto selectedDecay = std::clamp(static_cast<int>(std::round(parameterValue(fmOperatorDecayRateParameterId(i)))),
                                                   0,
                                                   decayChoices.size() - 1);
+            const auto selectedSustain = std::clamp(static_cast<int>(std::round(parameterValue(fmOperatorSustainRateParameterId(i)))),
+                                                    0,
+                                                    sustainChoices.size() - 1);
+            const auto selectedRelease = std::clamp(static_cast<int>(std::round(parameterValue(fmOperatorReleaseRateParameterId(i)))),
+                                                    0,
+                                                    releaseChoices.size() - 1);
             menu.addSectionHeader("Attack Rate");
             for (int choice = 0; choice < attackChoices.size(); ++choice)
                 menu.addItem(choice + 1,
@@ -2882,13 +2947,33 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
                              true,
                              choice == selectedDecay);
 
+            menu.addSeparator();
+            menu.addSectionHeader("Sustain Rate");
+            for (int choice = 0; choice < sustainChoices.size(); ++choice)
+                menu.addItem(201 + choice,
+                             choice == 0 ? juce::String("Follow") : juce::String("D2R ") + sustainChoices[choice],
+                             true,
+                             choice == selectedSustain);
+
+            menu.addSeparator();
+            menu.addSectionHeader("Release Rate");
+            for (int choice = 0; choice < releaseChoices.size(); ++choice)
+                menu.addItem(301 + choice,
+                             choice == 0 ? juce::String("Follow") : juce::String("RR ") + releaseChoices[choice],
+                             true,
+                             choice == selectedRelease);
+
             auto options = juce::PopupMenu::Options().withTargetComponent(&fmOperatorAttackRateButtons[i]);
             menu.showMenuAsync(options, [this, i](int result)
             {
                 if (result <= 0)
                     return;
 
-                if (result >= 101)
+                if (result >= 301)
+                    setChoiceParameterFromUi(fmOperatorReleaseRateParameterId(i), result - 301);
+                else if (result >= 201)
+                    setChoiceParameterFromUi(fmOperatorSustainRateParameterId(i), result - 201);
+                else if (result >= 101)
                     setChoiceParameterFromUi(fmOperatorDecayRateParameterId(i), result - 101);
                 else
                     setChoiceParameterFromUi(fmOperatorAttackRateParameterId(i), result - 1);
@@ -7514,6 +7599,18 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
         chipper::parameters::id::fmOperator3DecayRate,
         chipper::parameters::id::fmOperator4DecayRate
     };
+    const std::array<const char*, 4> fmOperatorSustainRateIds {
+        chipper::parameters::id::fmOperator1SustainRate,
+        chipper::parameters::id::fmOperator2SustainRate,
+        chipper::parameters::id::fmOperator3SustainRate,
+        chipper::parameters::id::fmOperator4SustainRate
+    };
+    const std::array<const char*, 4> fmOperatorReleaseRateIds {
+        chipper::parameters::id::fmOperator1ReleaseRate,
+        chipper::parameters::id::fmOperator2ReleaseRate,
+        chipper::parameters::id::fmOperator3ReleaseRate,
+        chipper::parameters::id::fmOperator4ReleaseRate
+    };
 
     const juce::ScopedValueSetter<bool> suppress(suppressMacroTemplateApply, true);
     for (size_t i = 0; i < ids.size(); ++i)
@@ -7525,6 +7622,10 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
     for (const auto* id : fmOperatorAttackRateIds)
         setChoiceParameterFromUi(id, 0);
     for (const auto* id : fmOperatorDecayRateIds)
+        setChoiceParameterFromUi(id, 0);
+    for (const auto* id : fmOperatorSustainRateIds)
+        setChoiceParameterFromUi(id, 0);
+    for (const auto* id : fmOperatorReleaseRateIds)
         setChoiceParameterFromUi(id, 0);
     for (size_t i = 0; i < sourceIds.size(); ++i)
     {
@@ -7696,6 +7797,18 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
         chipper::parameters::id::fmOperator3DecayRate,
         chipper::parameters::id::fmOperator4DecayRate
     };
+    const std::array<const char*, 4> fmOperatorSustainRateIds {
+        chipper::parameters::id::fmOperator1SustainRate,
+        chipper::parameters::id::fmOperator2SustainRate,
+        chipper::parameters::id::fmOperator3SustainRate,
+        chipper::parameters::id::fmOperator4SustainRate
+    };
+    const std::array<const char*, 4> fmOperatorReleaseRateIds {
+        chipper::parameters::id::fmOperator1ReleaseRate,
+        chipper::parameters::id::fmOperator2ReleaseRate,
+        chipper::parameters::id::fmOperator3ReleaseRate,
+        chipper::parameters::id::fmOperator4ReleaseRate
+    };
 
     const juce::ScopedValueSetter<bool> suppressMacro(suppressMacroTemplateApply, true);
     const juce::ScopedValueSetter<bool> applyingPreset(applyingFactoryPreset, true);
@@ -7716,6 +7829,10 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
     for (const auto* id : fmOperatorAttackRateIds)
         setChoiceParameterFromUi(id, 0);
     for (const auto* id : fmOperatorDecayRateIds)
+        setChoiceParameterFromUi(id, 0);
+    for (const auto* id : fmOperatorSustainRateIds)
+        setChoiceParameterFromUi(id, 0);
+    for (const auto* id : fmOperatorReleaseRateIds)
         setChoiceParameterFromUi(id, 0);
 
     for (size_t i = 0; i < sourceIds.size(); ++i)
@@ -7923,6 +8040,18 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator2DecayRate))),
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator3DecayRate))),
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator4DecayRate)))
+        },
+        {
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator1SustainRate))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator2SustainRate))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator3SustainRate))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator4SustainRate)))
+        },
+        {
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator1ReleaseRate))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator2ReleaseRate))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator3ReleaseRate))),
+            static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator4ReleaseRate)))
         });
 }
 
@@ -10983,19 +11112,31 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
 
             const auto* attackSpec = chipper::parameterSpecFor(mode, fmOperatorAttackRateRole(i));
             const auto* decaySpec = chipper::parameterSpecFor(mode, fmOperatorDecayRateRole(i));
+            const auto* sustainSpec = chipper::parameterSpecFor(mode, fmOperatorSustainRateRole(i));
+            const auto* releaseSpec = chipper::parameterSpecFor(mode, fmOperatorReleaseRateRole(i));
             auto attackTooltip = juce::String(attackSpec != nullptr ? attackSpec->help : "FM per-operator attack-rate override.")
                 + "\n" + juce::String(decaySpec != nullptr ? decaySpec->help : "FM per-operator decay-rate override.")
+                + "\n" + juce::String(sustainSpec != nullptr ? sustainSpec->help : "FM per-operator sustain-rate override.")
+                + "\n" + juce::String(releaseSpec != nullptr ? releaseSpec->help : "FM per-operator release-rate override.")
                 + "\n" + fmOperatorRoleDescription(mode, patch, i)
                 + "\n" + readout;
             attackTooltip = withMidiCcForRole(attackTooltip, fmOperatorAttackRateRole(i));
             attackTooltip = withMidiCcForRole(attackTooltip, fmOperatorDecayRateRole(i));
+            attackTooltip = withMidiCcForRole(attackTooltip, fmOperatorSustainRateRole(i));
+            attackTooltip = withMidiCcForRole(attackTooltip, fmOperatorReleaseRateRole(i));
             const auto attackChoice = std::clamp(static_cast<int>(std::round(parameterValue(fmOperatorAttackRateParameterId(i)))),
                                                  0,
                                                  chipper::parameters::fmOperatorAttackRateChoices().size() - 1);
             const auto decayChoice = std::clamp(static_cast<int>(std::round(parameterValue(fmOperatorDecayRateParameterId(i)))),
                                                 0,
                                                 chipper::parameters::fmOperatorDecayRateChoices().size() - 1);
-            fmOperatorAttackRateButtons[i].setButtonText(fmOperatorEnvelopeButtonText(attackChoice, decayChoice));
+            const auto sustainChoice = std::clamp(static_cast<int>(std::round(parameterValue(fmOperatorSustainRateParameterId(i)))),
+                                                  0,
+                                                  chipper::parameters::fmOperatorSustainRateChoices().size() - 1);
+            const auto releaseChoice = std::clamp(static_cast<int>(std::round(parameterValue(fmOperatorReleaseRateParameterId(i)))),
+                                                  0,
+                                                  chipper::parameters::fmOperatorReleaseRateChoices().size() - 1);
+            fmOperatorAttackRateButtons[i].setButtonText(fmOperatorEnvelopeButtonText(attackChoice, decayChoice, sustainChoice, releaseChoice));
             fmOperatorAttackRateButtons[i].setTooltip(attackTooltip);
         }
     }

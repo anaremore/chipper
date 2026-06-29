@@ -827,7 +827,7 @@ add_test(NAME chipper_render_ym2612_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro lead --wave-shape 5 --clock 7670454 --rate 48000 --seconds 0.08 --note 69 --out ym2612-smoke.wav --debug ym2612-smoke.json
 )
 add_test(NAME chipper_render_ym2612_operator_levels_smoke
-    COMMAND chipper_render --chip ym2612 --accuracy authentic --macro lead --wave-shape 5 --control3 0.5 --control4 0.8 --fm-op1-level 0 --fm-op4-level 1 --fm-op1-multiplier 0.5 --fm-op4-multiplier 15 --fm-op1-attack-rate 0 --fm-op4-attack-rate 31 --fm-op2-decay-rate 0 --fm-op4-decay-rate 31 --clock 7670454 --rate 48000 --seconds 0.08 --note 69 --out ym2612-operator-levels-smoke.wav --debug ym2612-operator-levels-smoke.json
+    COMMAND chipper_render --chip ym2612 --accuracy authentic --macro lead --wave-shape 5 --control3 0.5 --control4 0.8 --fm-op1-level 0 --fm-op4-level 1 --fm-op1-multiplier 0.5 --fm-op4-multiplier 15 --fm-op1-attack-rate 0 --fm-op4-attack-rate 31 --fm-op2-decay-rate 0 --fm-op4-decay-rate 31 --fm-op2-sustain-rate 0 --fm-op4-sustain-rate 31 --fm-op2-release-rate 0 --fm-op4-release-rate 15 --clock 7670454 --rate 48000 --seconds 0.08 --note 69 --out ym2612-operator-levels-smoke.wav --debug ym2612-operator-levels-smoke.json
 )
 add_test(NAME chipper_render_ym2612_chip_poly_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 8 --clock 7670454 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/scc-chip-poly-events.txt --out ym2612-chip-poly-smoke.wav --debug ym2612-chip-poly-smoke.json
@@ -890,7 +890,7 @@ add_test(NAME chipper_render_preset_opl2_bass_held_smoke
     COMMAND chipper_render --preset opl2-bass --rate 48000 --seconds 0.50 --note 48 --out preset-opl2-bass-held.wav --debug preset-opl2-bass-held.json
 )
 add_test(NAME chipper_render_ym2151_smoke
-    COMMAND chipper_render --chip ym2151 --accuracy authentic --macro lead --wave-shape 5 --fm-op2-multiplier 0.5 --fm-op4-multiplier 15 --fm-op2-attack-rate 0 --fm-op4-attack-rate 31 --fm-op2-decay-rate 0 --fm-op4-decay-rate 31 --clock 3579545 --rate 48000 --seconds 0.08 --note 69 --out ym2151-smoke.wav --debug ym2151-smoke.json
+    COMMAND chipper_render --chip ym2151 --accuracy authentic --macro lead --wave-shape 5 --fm-op2-multiplier 0.5 --fm-op4-multiplier 15 --fm-op2-attack-rate 0 --fm-op4-attack-rate 31 --fm-op2-decay-rate 0 --fm-op4-decay-rate 31 --fm-op2-sustain-rate 0 --fm-op4-sustain-rate 31 --fm-op2-release-rate 0 --fm-op4-release-rate 15 --clock 3579545 --rate 48000 --seconds 0.08 --note 69 --out ym2151-smoke.wav --debug ym2151-smoke.json
 )
 add_test(NAME chipper_render_ym2151_chip_poly_smoke
     COMMAND chipper_render --chip ym2151 --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 8 --clock 3579545 --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2151-eight-channel-chip-poly-events.txt --out ym2151-chip-poly-smoke.wav --debug ym2151-chip-poly-smoke.json
@@ -1124,7 +1124,32 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_ym2151_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_fm_operator_descriptor_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip ym2612 --chip ym2151 --param-kind ym2612:fmOperator1Level=chipRegister --param-surface ym2612:fmOperator1Level=slider --param-midi-cc ym2612:fmOperator1Level=40 --param-kind ym2612:fmOperator4Level=chipRegister --param-surface ym2612:fmOperator4Level=slider --param-midi-cc ym2612:fmOperator4Level=43 --param-kind ym2612:fmOperator1Multiplier=chipRegister --param-surface ym2612:fmOperator1Multiplier=menu --param-choices ym2612:fmOperator1Multiplier=17 --param-midi-cc ym2612:fmOperator1Multiplier=44 --param-kind ym2612:fmOperator4Multiplier=chipRegister --param-surface ym2612:fmOperator4Multiplier=menu --param-choices ym2612:fmOperator4Multiplier=17 --param-midi-cc ym2612:fmOperator4Multiplier=47 --param-kind ym2612:fmOperator1AttackRate=chipRegister --param-surface ym2612:fmOperator1AttackRate=menu --param-choices ym2612:fmOperator1AttackRate=33 --param-midi-cc ym2612:fmOperator1AttackRate=36 --param-kind ym2612:fmOperator4AttackRate=chipRegister --param-surface ym2612:fmOperator4AttackRate=menu --param-choices ym2612:fmOperator4AttackRate=33 --param-midi-cc ym2612:fmOperator4AttackRate=39 --param-kind ym2612:fmOperator1DecayRate=chipRegister --param-surface ym2612:fmOperator1DecayRate=menu --param-choices ym2612:fmOperator1DecayRate=33 --param-midi-cc ym2612:fmOperator1DecayRate=32 --param-kind ym2612:fmOperator4DecayRate=chipRegister --param-surface ym2612:fmOperator4DecayRate=menu --param-choices ym2612:fmOperator4DecayRate=33 --param-midi-cc ym2612:fmOperator4DecayRate=35 --param-kind ym2151:fmOperator1Level=chipRegister --param-surface ym2151:fmOperator1Level=slider --param-midi-cc ym2151:fmOperator1Level=40 --param-kind ym2151:fmOperator4Level=chipRegister --param-surface ym2151:fmOperator4Level=slider --param-midi-cc ym2151:fmOperator4Level=43 --param-kind ym2151:fmOperator1Multiplier=chipRegister --param-surface ym2151:fmOperator1Multiplier=menu --param-choices ym2151:fmOperator1Multiplier=17 --param-midi-cc ym2151:fmOperator1Multiplier=44 --param-kind ym2151:fmOperator4Multiplier=chipRegister --param-surface ym2151:fmOperator4Multiplier=menu --param-choices ym2151:fmOperator4Multiplier=17 --param-midi-cc ym2151:fmOperator4Multiplier=47 --param-kind ym2151:fmOperator1AttackRate=chipRegister --param-surface ym2151:fmOperator1AttackRate=menu --param-choices ym2151:fmOperator1AttackRate=33 --param-midi-cc ym2151:fmOperator1AttackRate=36 --param-kind ym2151:fmOperator4AttackRate=chipRegister --param-surface ym2151:fmOperator4AttackRate=menu --param-choices ym2151:fmOperator4AttackRate=33 --param-midi-cc ym2151:fmOperator4AttackRate=39 --param-kind ym2151:fmOperator1DecayRate=chipRegister --param-surface ym2151:fmOperator1DecayRate=menu --param-choices ym2151:fmOperator1DecayRate=33 --param-midi-cc ym2151:fmOperator1DecayRate=32 --param-kind ym2151:fmOperator4DecayRate=chipRegister --param-surface ym2151:fmOperator4DecayRate=menu --param-choices ym2151:fmOperator4DecayRate=33 --param-midi-cc ym2151:fmOperator4DecayRate=35
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json
+            --chip-count 15 --chip ym2612 --chip ym2151
+            --param-kind ym2612:fmOperator1Level=chipRegister --param-surface ym2612:fmOperator1Level=slider --param-midi-cc ym2612:fmOperator1Level=40
+            --param-kind ym2612:fmOperator4Level=chipRegister --param-surface ym2612:fmOperator4Level=slider --param-midi-cc ym2612:fmOperator4Level=43
+            --param-kind ym2612:fmOperator1Multiplier=chipRegister --param-surface ym2612:fmOperator1Multiplier=menu --param-choices ym2612:fmOperator1Multiplier=17 --param-midi-cc ym2612:fmOperator1Multiplier=44
+            --param-kind ym2612:fmOperator4Multiplier=chipRegister --param-surface ym2612:fmOperator4Multiplier=menu --param-choices ym2612:fmOperator4Multiplier=17 --param-midi-cc ym2612:fmOperator4Multiplier=47
+            --param-kind ym2612:fmOperator1AttackRate=chipRegister --param-surface ym2612:fmOperator1AttackRate=menu --param-choices ym2612:fmOperator1AttackRate=33 --param-midi-cc ym2612:fmOperator1AttackRate=36
+            --param-kind ym2612:fmOperator4AttackRate=chipRegister --param-surface ym2612:fmOperator4AttackRate=menu --param-choices ym2612:fmOperator4AttackRate=33 --param-midi-cc ym2612:fmOperator4AttackRate=39
+            --param-kind ym2612:fmOperator1DecayRate=chipRegister --param-surface ym2612:fmOperator1DecayRate=menu --param-choices ym2612:fmOperator1DecayRate=33 --param-midi-cc ym2612:fmOperator1DecayRate=32
+            --param-kind ym2612:fmOperator4DecayRate=chipRegister --param-surface ym2612:fmOperator4DecayRate=menu --param-choices ym2612:fmOperator4DecayRate=33 --param-midi-cc ym2612:fmOperator4DecayRate=35
+            --param-kind ym2612:fmOperator1SustainRate=chipRegister --param-surface ym2612:fmOperator1SustainRate=menu --param-choices ym2612:fmOperator1SustainRate=33 --param-midi-cc ym2612:fmOperator1SustainRate=24
+            --param-kind ym2612:fmOperator4SustainRate=chipRegister --param-surface ym2612:fmOperator4SustainRate=menu --param-choices ym2612:fmOperator4SustainRate=33 --param-midi-cc ym2612:fmOperator4SustainRate=27
+            --param-kind ym2612:fmOperator1ReleaseRate=chipRegister --param-surface ym2612:fmOperator1ReleaseRate=menu --param-choices ym2612:fmOperator1ReleaseRate=17 --param-midi-cc ym2612:fmOperator1ReleaseRate=28
+            --param-kind ym2612:fmOperator4ReleaseRate=chipRegister --param-surface ym2612:fmOperator4ReleaseRate=menu --param-choices ym2612:fmOperator4ReleaseRate=17 --param-midi-cc ym2612:fmOperator4ReleaseRate=31
+            --param-kind ym2151:fmOperator1Level=chipRegister --param-surface ym2151:fmOperator1Level=slider --param-midi-cc ym2151:fmOperator1Level=40
+            --param-kind ym2151:fmOperator4Level=chipRegister --param-surface ym2151:fmOperator4Level=slider --param-midi-cc ym2151:fmOperator4Level=43
+            --param-kind ym2151:fmOperator1Multiplier=chipRegister --param-surface ym2151:fmOperator1Multiplier=menu --param-choices ym2151:fmOperator1Multiplier=17 --param-midi-cc ym2151:fmOperator1Multiplier=44
+            --param-kind ym2151:fmOperator4Multiplier=chipRegister --param-surface ym2151:fmOperator4Multiplier=menu --param-choices ym2151:fmOperator4Multiplier=17 --param-midi-cc ym2151:fmOperator4Multiplier=47
+            --param-kind ym2151:fmOperator1AttackRate=chipRegister --param-surface ym2151:fmOperator1AttackRate=menu --param-choices ym2151:fmOperator1AttackRate=33 --param-midi-cc ym2151:fmOperator1AttackRate=36
+            --param-kind ym2151:fmOperator4AttackRate=chipRegister --param-surface ym2151:fmOperator4AttackRate=menu --param-choices ym2151:fmOperator4AttackRate=33 --param-midi-cc ym2151:fmOperator4AttackRate=39
+            --param-kind ym2151:fmOperator1DecayRate=chipRegister --param-surface ym2151:fmOperator1DecayRate=menu --param-choices ym2151:fmOperator1DecayRate=33 --param-midi-cc ym2151:fmOperator1DecayRate=32
+            --param-kind ym2151:fmOperator4DecayRate=chipRegister --param-surface ym2151:fmOperator4DecayRate=menu --param-choices ym2151:fmOperator4DecayRate=33 --param-midi-cc ym2151:fmOperator4DecayRate=35
+            --param-kind ym2151:fmOperator1SustainRate=chipRegister --param-surface ym2151:fmOperator1SustainRate=menu --param-choices ym2151:fmOperator1SustainRate=33 --param-midi-cc ym2151:fmOperator1SustainRate=24
+            --param-kind ym2151:fmOperator4SustainRate=chipRegister --param-surface ym2151:fmOperator4SustainRate=menu --param-choices ym2151:fmOperator4SustainRate=33 --param-midi-cc ym2151:fmOperator4SustainRate=27
+            --param-kind ym2151:fmOperator1ReleaseRate=chipRegister --param-surface ym2151:fmOperator1ReleaseRate=menu --param-choices ym2151:fmOperator1ReleaseRate=17 --param-midi-cc ym2151:fmOperator1ReleaseRate=28
+            --param-kind ym2151:fmOperator4ReleaseRate=chipRegister --param-surface ym2151:fmOperator4ReleaseRate=menu --param-choices ym2151:fmOperator4ReleaseRate=17 --param-midi-cc ym2151:fmOperator4ReleaseRate=31
     )
     set_tests_properties(chipper_render_list_fm_operator_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1134,7 +1159,96 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_ym_channel_mix_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_cc_map_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --midi-cc-count 88 --midi-cc 32=fmOperator1DecayRate --midi-cc 33=fmOperator2DecayRate --midi-cc 34=fmOperator3DecayRate --midi-cc 35=fmOperator4DecayRate --midi-cc 36=fmOperator1AttackRate --midi-cc 37=fmOperator2AttackRate --midi-cc 38=fmOperator3AttackRate --midi-cc 39=fmOperator4AttackRate --midi-cc 40=fmOperator1Level --midi-cc 41=fmOperator2Level --midi-cc 42=fmOperator3Level --midi-cc 43=fmOperator4Level --midi-cc 44=fmOperator1Multiplier --midi-cc 45=fmOperator2Multiplier --midi-cc 46=fmOperator3Multiplier --midi-cc 47=fmOperator4Multiplier --midi-cc 56=source9Enabled --midi-cc 57=source9Level --midi-cc 58=spc700LoopStart --midi-cc 59=spc700LoopEnd --midi-cc 60=source7Enabled --midi-cc 61=source8Enabled --midi-cc 62=source7Level --midi-cc 63=source8Level --midi-cc 64=source5Enabled --midi-cc 65=source6Enabled --midi-cc 66=source5Level --midi-cc 67=source6Level --midi-cc 70=chipMode --midi-cc 71=accuracy --midi-cc 72=clockHz --midi-cc 73=outputDb --midi-cc 74=macro --midi-cc 75=playMode --midi-cc 76=macroControl1 --midi-cc 77=macroControl2 --midi-cc 78=macroControl3 --midi-cc 79=macroControl4 --midi-cc 80=source1Enabled --midi-cc 81=source2Enabled --midi-cc 82=source3Enabled --midi-cc 83=source4Enabled --midi-cc 84=source1Level --midi-cc 85=source2Level --midi-cc 86=source3Level --midi-cc 87=source4Level --midi-cc 88=envelopeDecay --midi-cc 89=waveShape --midi-cc 90=ymEnvelopeShape --midi-cc 91=snNoiseMode --midi-cc 92=dmgWaveLevel --midi-cc 93=stereoSpread --midi-cc 94=dmgStereoRoute --midi-cc 95=sidVoice2WaveShape --midi-cc 96=sidVoice3WaveShape --midi-cc 97=sidAttack --midi-cc 98=sidRelease --midi-cc 99=sidDecay --midi-cc 100=sidSustain --midi-cc 101=ymChannelAMix --midi-cc 102=ymChannelBMix --midi-cc 103=ymChannelCMix --midi-cc 104=pulse2Duty --midi-cc 105=sidVoice2Attack --midi-cc 106=sidVoice2Decay --midi-cc 107=sidVoice2Sustain --midi-cc 108=sidVoice2Release --midi-cc 109=sidVoice3Attack --midi-cc 110=sidVoice3Decay --midi-cc 111=sidVoice3Sustain --midi-cc 112=sidVoice3Release --midi-cc 113=sidFilterRouting --midi-cc 114=sidVoice2PulseWidth --midi-cc 115=sidVoice3PulseWidth --midi-cc 116=nesDmcDirectLevel --midi-cc 117=nesDmcSampleSlot --midi-cc 118=nesDmcRateIndex --midi-cc 119=nesDmcPlaybackMode --midi-cc 69=nesDmcMapRoot --midi-cc 68=nesDmcLoop
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json
+            --chip-count 15 --midi-cc-count 96
+            --midi-cc 24=fmOperator1SustainRate
+            --midi-cc 25=fmOperator2SustainRate
+            --midi-cc 26=fmOperator3SustainRate
+            --midi-cc 27=fmOperator4SustainRate
+            --midi-cc 28=fmOperator1ReleaseRate
+            --midi-cc 29=fmOperator2ReleaseRate
+            --midi-cc 30=fmOperator3ReleaseRate
+            --midi-cc 31=fmOperator4ReleaseRate
+            --midi-cc 32=fmOperator1DecayRate
+            --midi-cc 33=fmOperator2DecayRate
+            --midi-cc 34=fmOperator3DecayRate
+            --midi-cc 35=fmOperator4DecayRate
+            --midi-cc 36=fmOperator1AttackRate
+            --midi-cc 37=fmOperator2AttackRate
+            --midi-cc 38=fmOperator3AttackRate
+            --midi-cc 39=fmOperator4AttackRate
+            --midi-cc 40=fmOperator1Level
+            --midi-cc 41=fmOperator2Level
+            --midi-cc 42=fmOperator3Level
+            --midi-cc 43=fmOperator4Level
+            --midi-cc 44=fmOperator1Multiplier
+            --midi-cc 45=fmOperator2Multiplier
+            --midi-cc 46=fmOperator3Multiplier
+            --midi-cc 47=fmOperator4Multiplier
+            --midi-cc 56=source9Enabled
+            --midi-cc 57=source9Level
+            --midi-cc 58=spc700LoopStart
+            --midi-cc 59=spc700LoopEnd
+            --midi-cc 60=source7Enabled
+            --midi-cc 61=source8Enabled
+            --midi-cc 62=source7Level
+            --midi-cc 63=source8Level
+            --midi-cc 64=source5Enabled
+            --midi-cc 65=source6Enabled
+            --midi-cc 66=source5Level
+            --midi-cc 67=source6Level
+            --midi-cc 68=nesDmcLoop
+            --midi-cc 69=nesDmcMapRoot
+            --midi-cc 70=chipMode
+            --midi-cc 71=accuracy
+            --midi-cc 72=clockHz
+            --midi-cc 73=outputDb
+            --midi-cc 74=macro
+            --midi-cc 75=playMode
+            --midi-cc 76=macroControl1
+            --midi-cc 77=macroControl2
+            --midi-cc 78=macroControl3
+            --midi-cc 79=macroControl4
+            --midi-cc 80=source1Enabled
+            --midi-cc 81=source2Enabled
+            --midi-cc 82=source3Enabled
+            --midi-cc 83=source4Enabled
+            --midi-cc 84=source1Level
+            --midi-cc 85=source2Level
+            --midi-cc 86=source3Level
+            --midi-cc 87=source4Level
+            --midi-cc 88=envelopeDecay
+            --midi-cc 89=waveShape
+            --midi-cc 90=ymEnvelopeShape
+            --midi-cc 91=snNoiseMode
+            --midi-cc 92=dmgWaveLevel
+            --midi-cc 93=stereoSpread
+            --midi-cc 94=dmgStereoRoute
+            --midi-cc 95=sidVoice2WaveShape
+            --midi-cc 96=sidVoice3WaveShape
+            --midi-cc 97=sidAttack
+            --midi-cc 98=sidRelease
+            --midi-cc 99=sidDecay
+            --midi-cc 100=sidSustain
+            --midi-cc 101=ymChannelAMix
+            --midi-cc 102=ymChannelBMix
+            --midi-cc 103=ymChannelCMix
+            --midi-cc 104=pulse2Duty
+            --midi-cc 105=sidVoice2Attack
+            --midi-cc 106=sidVoice2Decay
+            --midi-cc 107=sidVoice2Sustain
+            --midi-cc 108=sidVoice2Release
+            --midi-cc 109=sidVoice3Attack
+            --midi-cc 110=sidVoice3Decay
+            --midi-cc 111=sidVoice3Sustain
+            --midi-cc 112=sidVoice3Release
+            --midi-cc 113=sidFilterRouting
+            --midi-cc 114=sidVoice2PulseWidth
+            --midi-cc 115=sidVoice3PulseWidth
+            --midi-cc 116=nesDmcDirectLevel
+            --midi-cc 117=nesDmcSampleSlot
+            --midi-cc 118=nesDmcRateIndex
+            --midi-cc 119=nesDmcPlaybackMode
     )
     set_tests_properties(chipper_render_list_cc_map_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1792,7 +1906,44 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_ym2612_json_assert PROPERTIES DEPENDS chipper_render_ym2612_smoke)
 
     add_test(NAME chipper_render_ym2612_operator_levels_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-operator-levels-smoke.json --implemented-contains ymfm --macro Lead --min-peak 0.01 --register-writes 0 --note-events 0 --core-min fmOperatorLevel0=0 --core-max fmOperatorLevel0=0 --core-min fmOperatorLevel3=1 --core-max fmOperatorLevel3=1 --core-min fmOperatorMultiplier0=1 --core-max fmOperatorMultiplier0=1 --core-min fmOperatorMultiplier3=16 --core-max fmOperatorMultiplier3=16 --core-min fmOperatorAttackRate0=1 --core-max fmOperatorAttackRate0=1 --core-min fmOperatorAttackRate3=32 --core-max fmOperatorAttackRate3=32 --core-min fmOperatorDecayRate1=1 --core-max fmOperatorDecayRate1=1 --core-min fmOperatorDecayRate3=32 --core-max fmOperatorDecayRate3=32 --core-min operatorMultiple0=0 --core-max operatorMultiple0=0 --core-min operatorMultiple3=15 --core-max operatorMultiple3=15 --core-min operatorAttackRate0=0 --core-max operatorAttackRate0=0 --core-min operatorAttackRate3=31 --core-max operatorAttackRate3=31 --core-min operatorDecayRate1=0 --core-max operatorDecayRate1=0 --core-min operatorDecayRate3=31 --core-max operatorDecayRate3=31 --core-min operatorTotalLevel0=62 --core-max operatorTotalLevel0=62 --core-min operatorTotalLevel3=0 --core-max operatorTotalLevel3=0 --descriptor-param-kind fmOperator1Level=chipRegister --descriptor-param-surface fmOperator1Level=slider --descriptor-param-label "fmOperator1Level=OP1 Level" --descriptor-param-kind fmOperator4Level=chipRegister --descriptor-param-surface fmOperator4Level=slider --descriptor-param-label "fmOperator4Level=OP4 Level" --descriptor-param-kind fmOperator1Multiplier=chipRegister --descriptor-param-surface fmOperator1Multiplier=menu --descriptor-param-label "fmOperator1Multiplier=OP1 Mult" --descriptor-param-choices fmOperator1Multiplier=17 --descriptor-param-kind fmOperator4Multiplier=chipRegister --descriptor-param-surface fmOperator4Multiplier=menu --descriptor-param-label "fmOperator4Multiplier=OP4 Mult" --descriptor-param-choices fmOperator4Multiplier=17 --descriptor-param-kind fmOperator1AttackRate=chipRegister --descriptor-param-surface fmOperator1AttackRate=menu --descriptor-param-label "fmOperator1AttackRate=OP1 Attack" --descriptor-param-choices fmOperator1AttackRate=33 --descriptor-param-kind fmOperator4AttackRate=chipRegister --descriptor-param-surface fmOperator4AttackRate=menu --descriptor-param-label "fmOperator4AttackRate=OP4 Attack" --descriptor-param-choices fmOperator4AttackRate=33 --descriptor-param-kind fmOperator1DecayRate=chipRegister --descriptor-param-surface fmOperator1DecayRate=menu --descriptor-param-label "fmOperator1DecayRate=OP1 Decay" --descriptor-param-choices fmOperator1DecayRate=33 --descriptor-param-kind fmOperator4DecayRate=chipRegister --descriptor-param-surface fmOperator4DecayRate=menu --descriptor-param-label "fmOperator4DecayRate=OP4 Decay" --descriptor-param-choices fmOperator4DecayRate=33
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-operator-levels-smoke.json
+            --implemented-contains ymfm --macro Lead --min-peak 0.01 --register-writes 0 --note-events 0
+            --core-min fmOperatorLevel0=0 --core-max fmOperatorLevel0=0
+            --core-min fmOperatorLevel3=1 --core-max fmOperatorLevel3=1
+            --core-min fmOperatorMultiplier0=1 --core-max fmOperatorMultiplier0=1
+            --core-min fmOperatorMultiplier3=16 --core-max fmOperatorMultiplier3=16
+            --core-min fmOperatorAttackRate0=1 --core-max fmOperatorAttackRate0=1
+            --core-min fmOperatorAttackRate3=32 --core-max fmOperatorAttackRate3=32
+            --core-min fmOperatorDecayRate1=1 --core-max fmOperatorDecayRate1=1
+            --core-min fmOperatorDecayRate3=32 --core-max fmOperatorDecayRate3=32
+            --core-min fmOperatorSustainRate1=1 --core-max fmOperatorSustainRate1=1
+            --core-min fmOperatorSustainRate3=32 --core-max fmOperatorSustainRate3=32
+            --core-min fmOperatorReleaseRate1=1 --core-max fmOperatorReleaseRate1=1
+            --core-min fmOperatorReleaseRate3=16 --core-max fmOperatorReleaseRate3=16
+            --core-min operatorMultiple0=0 --core-max operatorMultiple0=0
+            --core-min operatorMultiple3=15 --core-max operatorMultiple3=15
+            --core-min operatorAttackRate0=0 --core-max operatorAttackRate0=0
+            --core-min operatorAttackRate3=31 --core-max operatorAttackRate3=31
+            --core-min operatorDecayRate1=0 --core-max operatorDecayRate1=0
+            --core-min operatorDecayRate3=31 --core-max operatorDecayRate3=31
+            --core-min operatorSustainRate1=0 --core-max operatorSustainRate1=0
+            --core-min operatorSustainRate3=31 --core-max operatorSustainRate3=31
+            --core-min operatorReleaseRate1=0 --core-max operatorReleaseRate1=0
+            --core-min operatorReleaseRate3=15 --core-max operatorReleaseRate3=15
+            --core-min operatorTotalLevel0=62 --core-max operatorTotalLevel0=62
+            --core-min operatorTotalLevel3=0 --core-max operatorTotalLevel3=0
+            --descriptor-param-kind fmOperator1Level=chipRegister --descriptor-param-surface fmOperator1Level=slider --descriptor-param-label "fmOperator1Level=OP1 Level"
+            --descriptor-param-kind fmOperator4Level=chipRegister --descriptor-param-surface fmOperator4Level=slider --descriptor-param-label "fmOperator4Level=OP4 Level"
+            --descriptor-param-kind fmOperator1Multiplier=chipRegister --descriptor-param-surface fmOperator1Multiplier=menu --descriptor-param-label "fmOperator1Multiplier=OP1 Mult" --descriptor-param-choices fmOperator1Multiplier=17
+            --descriptor-param-kind fmOperator4Multiplier=chipRegister --descriptor-param-surface fmOperator4Multiplier=menu --descriptor-param-label "fmOperator4Multiplier=OP4 Mult" --descriptor-param-choices fmOperator4Multiplier=17
+            --descriptor-param-kind fmOperator1AttackRate=chipRegister --descriptor-param-surface fmOperator1AttackRate=menu --descriptor-param-label "fmOperator1AttackRate=OP1 Attack" --descriptor-param-choices fmOperator1AttackRate=33
+            --descriptor-param-kind fmOperator4AttackRate=chipRegister --descriptor-param-surface fmOperator4AttackRate=menu --descriptor-param-label "fmOperator4AttackRate=OP4 Attack" --descriptor-param-choices fmOperator4AttackRate=33
+            --descriptor-param-kind fmOperator1DecayRate=chipRegister --descriptor-param-surface fmOperator1DecayRate=menu --descriptor-param-label "fmOperator1DecayRate=OP1 Decay" --descriptor-param-choices fmOperator1DecayRate=33
+            --descriptor-param-kind fmOperator4DecayRate=chipRegister --descriptor-param-surface fmOperator4DecayRate=menu --descriptor-param-label "fmOperator4DecayRate=OP4 Decay" --descriptor-param-choices fmOperator4DecayRate=33
+            --descriptor-param-kind fmOperator1SustainRate=chipRegister --descriptor-param-surface fmOperator1SustainRate=menu --descriptor-param-label "fmOperator1SustainRate=OP1 Sustain" --descriptor-param-choices fmOperator1SustainRate=33
+            --descriptor-param-kind fmOperator4SustainRate=chipRegister --descriptor-param-surface fmOperator4SustainRate=menu --descriptor-param-label "fmOperator4SustainRate=OP4 Sustain" --descriptor-param-choices fmOperator4SustainRate=33
+            --descriptor-param-kind fmOperator1ReleaseRate=chipRegister --descriptor-param-surface fmOperator1ReleaseRate=menu --descriptor-param-label "fmOperator1ReleaseRate=OP1 Release" --descriptor-param-choices fmOperator1ReleaseRate=17
+            --descriptor-param-kind fmOperator4ReleaseRate=chipRegister --descriptor-param-surface fmOperator4ReleaseRate=menu --descriptor-param-label "fmOperator4ReleaseRate=OP4 Release" --descriptor-param-choices fmOperator4ReleaseRate=17
     )
     set_tests_properties(chipper_render_ym2612_operator_levels_assert PROPERTIES DEPENDS chipper_render_ym2612_operator_levels_smoke)
 
@@ -1888,7 +2039,52 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_preset_opl2_bass_held_assert PROPERTIES DEPENDS chipper_render_preset_opl2_bass_held_smoke)
 
     add_test(NAME chipper_render_ym2151_json_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-smoke.json --implemented-contains ymfm --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.01 --min-rms 0.002 --register-writes 0 --note-events 0 --core-min internalChannelCount=8 --core-max internalChannelCount=8 --core-min exposedChannelCount=8 --core-max exposedChannelCount=8 --core-min algorithm0=4 --core-max algorithm0=4 --core-min feedback0=3 --core-max feedback0=3 --core-min fmOperatorMultiplier1=1 --core-max fmOperatorMultiplier1=1 --core-min fmOperatorMultiplier3=16 --core-max fmOperatorMultiplier3=16 --core-min fmOperatorAttackRate1=1 --core-max fmOperatorAttackRate1=1 --core-min fmOperatorAttackRate3=32 --core-max fmOperatorAttackRate3=32 --core-min fmOperatorDecayRate1=1 --core-max fmOperatorDecayRate1=1 --core-min fmOperatorDecayRate3=32 --core-max fmOperatorDecayRate3=32 --core-min operatorMultiple1=0 --core-max operatorMultiple1=0 --core-min operatorMultiple3=15 --core-max operatorMultiple3=15 --core-min operatorAttackRate1=0 --core-max operatorAttackRate1=0 --core-min operatorAttackRate3=31 --core-max operatorAttackRate3=31 --core-min operatorDecayRate1=0 --core-max operatorDecayRate1=0 --core-min operatorDecayRate3=31 --core-max operatorDecayRate3=31 --core-min panBits0=192 --core-max panBits0=192 --core-min panBits1=192 --core-max panBits1=192 --core-min noiseRegister=0 --core-max noiseRegister=0 --core-min noiseEnabled=0 --core-max noiseEnabled=0 --core-min algorithmFeedbackRegister0=220 --core-max algorithmFeedbackRegister0=220 --core-min keyCode0=1 --core-max keyCode0=127 --core-min keyFraction0=0 --core-max keyFraction0=0 --core-min keyOnMask=0 --core-max keyOnMask=0 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=menu --descriptor-param-label "waveShape=Algorithm" --descriptor-param-choices waveShape=9 --descriptor-param-kind dmgStereoRoute=chipRegister --descriptor-param-surface dmgStereoRoute=segmentedChoice --descriptor-param-label "dmgStereoRoute=Pan" --descriptor-param-choices dmgStereoRoute=5 --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=OPM Noise" --descriptor-param-choices snNoiseMode=5 --descriptor-param-kind fmOperator1AttackRate=chipRegister --descriptor-param-surface fmOperator1AttackRate=menu --descriptor-param-label "fmOperator1AttackRate=OP1 Attack" --descriptor-param-choices fmOperator1AttackRate=33 --descriptor-param-kind fmOperator4AttackRate=chipRegister --descriptor-param-surface fmOperator4AttackRate=menu --descriptor-param-label "fmOperator4AttackRate=OP4 Attack" --descriptor-param-choices fmOperator4AttackRate=33 --descriptor-param-kind fmOperator1DecayRate=chipRegister --descriptor-param-surface fmOperator1DecayRate=menu --descriptor-param-label "fmOperator1DecayRate=OP1 Decay" --descriptor-param-choices fmOperator1DecayRate=33 --descriptor-param-kind fmOperator4DecayRate=chipRegister --descriptor-param-surface fmOperator4DecayRate=menu --descriptor-param-label "fmOperator4DecayRate=OP4 Decay" --descriptor-param-choices fmOperator4DecayRate=33
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-smoke.json
+            --implemented-contains ymfm --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead
+            --min-peak 0.01 --min-rms 0.002 --register-writes 0 --note-events 0
+            --core-min internalChannelCount=8 --core-max internalChannelCount=8
+            --core-min exposedChannelCount=8 --core-max exposedChannelCount=8
+            --core-min algorithm0=4 --core-max algorithm0=4
+            --core-min feedback0=3 --core-max feedback0=3
+            --core-min fmOperatorMultiplier1=1 --core-max fmOperatorMultiplier1=1
+            --core-min fmOperatorMultiplier3=16 --core-max fmOperatorMultiplier3=16
+            --core-min fmOperatorAttackRate1=1 --core-max fmOperatorAttackRate1=1
+            --core-min fmOperatorAttackRate3=32 --core-max fmOperatorAttackRate3=32
+            --core-min fmOperatorDecayRate1=1 --core-max fmOperatorDecayRate1=1
+            --core-min fmOperatorDecayRate3=32 --core-max fmOperatorDecayRate3=32
+            --core-min fmOperatorSustainRate1=1 --core-max fmOperatorSustainRate1=1
+            --core-min fmOperatorSustainRate3=32 --core-max fmOperatorSustainRate3=32
+            --core-min fmOperatorReleaseRate1=1 --core-max fmOperatorReleaseRate1=1
+            --core-min fmOperatorReleaseRate3=16 --core-max fmOperatorReleaseRate3=16
+            --core-min operatorMultiple1=0 --core-max operatorMultiple1=0
+            --core-min operatorMultiple3=15 --core-max operatorMultiple3=15
+            --core-min operatorAttackRate1=0 --core-max operatorAttackRate1=0
+            --core-min operatorAttackRate3=31 --core-max operatorAttackRate3=31
+            --core-min operatorDecayRate1=0 --core-max operatorDecayRate1=0
+            --core-min operatorDecayRate3=31 --core-max operatorDecayRate3=31
+            --core-min operatorSustainRate1=0 --core-max operatorSustainRate1=0
+            --core-min operatorSustainRate3=31 --core-max operatorSustainRate3=31
+            --core-min operatorReleaseRate1=0 --core-max operatorReleaseRate1=0
+            --core-min operatorReleaseRate3=15 --core-max operatorReleaseRate3=15
+            --core-min panBits0=192 --core-max panBits0=192
+            --core-min panBits1=192 --core-max panBits1=192
+            --core-min noiseRegister=0 --core-max noiseRegister=0
+            --core-min noiseEnabled=0 --core-max noiseEnabled=0
+            --core-min algorithmFeedbackRegister0=220 --core-max algorithmFeedbackRegister0=220
+            --core-min keyCode0=1 --core-max keyCode0=127
+            --core-min keyFraction0=0 --core-max keyFraction0=0
+            --core-min keyOnMask=0 --core-max keyOnMask=0
+            --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=menu --descriptor-param-label "waveShape=Algorithm" --descriptor-param-choices waveShape=9
+            --descriptor-param-kind dmgStereoRoute=chipRegister --descriptor-param-surface dmgStereoRoute=segmentedChoice --descriptor-param-label "dmgStereoRoute=Pan" --descriptor-param-choices dmgStereoRoute=5
+            --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=OPM Noise" --descriptor-param-choices snNoiseMode=5
+            --descriptor-param-kind fmOperator1AttackRate=chipRegister --descriptor-param-surface fmOperator1AttackRate=menu --descriptor-param-label "fmOperator1AttackRate=OP1 Attack" --descriptor-param-choices fmOperator1AttackRate=33
+            --descriptor-param-kind fmOperator4AttackRate=chipRegister --descriptor-param-surface fmOperator4AttackRate=menu --descriptor-param-label "fmOperator4AttackRate=OP4 Attack" --descriptor-param-choices fmOperator4AttackRate=33
+            --descriptor-param-kind fmOperator1DecayRate=chipRegister --descriptor-param-surface fmOperator1DecayRate=menu --descriptor-param-label "fmOperator1DecayRate=OP1 Decay" --descriptor-param-choices fmOperator1DecayRate=33
+            --descriptor-param-kind fmOperator4DecayRate=chipRegister --descriptor-param-surface fmOperator4DecayRate=menu --descriptor-param-label "fmOperator4DecayRate=OP4 Decay" --descriptor-param-choices fmOperator4DecayRate=33
+            --descriptor-param-kind fmOperator1SustainRate=chipRegister --descriptor-param-surface fmOperator1SustainRate=menu --descriptor-param-label "fmOperator1SustainRate=OP1 Sustain" --descriptor-param-choices fmOperator1SustainRate=33
+            --descriptor-param-kind fmOperator4SustainRate=chipRegister --descriptor-param-surface fmOperator4SustainRate=menu --descriptor-param-label "fmOperator4SustainRate=OP4 Sustain" --descriptor-param-choices fmOperator4SustainRate=33
+            --descriptor-param-kind fmOperator1ReleaseRate=chipRegister --descriptor-param-surface fmOperator1ReleaseRate=menu --descriptor-param-label "fmOperator1ReleaseRate=OP1 Release" --descriptor-param-choices fmOperator1ReleaseRate=17
+            --descriptor-param-kind fmOperator4ReleaseRate=chipRegister --descriptor-param-surface fmOperator4ReleaseRate=menu --descriptor-param-label "fmOperator4ReleaseRate=OP4 Release" --descriptor-param-choices fmOperator4ReleaseRate=17
     )
     set_tests_properties(chipper_render_ym2151_json_assert PROPERTIES DEPENDS chipper_render_ym2151_smoke)
 

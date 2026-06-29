@@ -592,6 +592,10 @@ int main()
     sendController(processor, 33, 0);
     sendController(processor, 36, 127);
     sendController(processor, 37, 0);
+    sendController(processor, 24, 127);
+    sendController(processor, 25, 0);
+    sendController(processor, 28, 127);
+    sendController(processor, 29, 0);
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator1Level), 1.0f, 0.0001f,
                      "CC40 should control FM Operator 1 Level");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator2Level), 0.0f, 0.0001f,
@@ -608,6 +612,14 @@ int main()
                      "CC32 should control FM Operator 1 Decay Rate");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator2DecayRate), 0.0f, 0.0001f,
                      "CC33 should control FM Operator 2 Decay Rate");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator1SustainRate), 32.0f, 0.0001f,
+                     "CC24 should control FM Operator 1 Sustain Rate");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator2SustainRate), 0.0f, 0.0001f,
+                     "CC25 should control FM Operator 2 Sustain Rate");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator1ReleaseRate), 16.0f, 0.0001f,
+                     "CC28 should control FM Operator 1 Release Rate");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator2ReleaseRate), 0.0f, 0.0001f,
+                     "CC29 should control FM Operator 2 Release Rate");
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 5));
 
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::macroControl1), 0.40f, 0.001f,
@@ -666,6 +678,22 @@ int main()
                      "CC74 macro change should reset FM Operator 3 Decay Rate to Follow");
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator4DecayRate), 0.0f, 0.0001f,
                      "CC74 macro change should reset FM Operator 4 Decay Rate to Follow");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator1SustainRate), 0.0f, 0.0001f,
+                     "CC74 macro change should reset FM Operator 1 Sustain Rate to Follow");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator2SustainRate), 0.0f, 0.0001f,
+                     "CC74 macro change should reset FM Operator 2 Sustain Rate to Follow");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator3SustainRate), 0.0f, 0.0001f,
+                     "CC74 macro change should reset FM Operator 3 Sustain Rate to Follow");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator4SustainRate), 0.0f, 0.0001f,
+                     "CC74 macro change should reset FM Operator 4 Sustain Rate to Follow");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator1ReleaseRate), 0.0f, 0.0001f,
+                     "CC74 macro change should reset FM Operator 1 Release Rate to Follow");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator2ReleaseRate), 0.0f, 0.0001f,
+                     "CC74 macro change should reset FM Operator 2 Release Rate to Follow");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator3ReleaseRate), 0.0f, 0.0001f,
+                     "CC74 macro change should reset FM Operator 3 Release Rate to Follow");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::fmOperator4ReleaseRate), 0.0f, 0.0001f,
+                     "CC74 macro change should reset FM Operator 4 Release Rate to Follow");
 
     {
         ChipperAudioProcessor nesPulse2Processor;

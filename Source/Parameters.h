@@ -45,6 +45,8 @@ juce::StringArray snNoiseModeChoices();
 juce::StringArray fmOperatorMultiplierChoices();
 juce::StringArray fmOperatorAttackRateChoices();
 juce::StringArray fmOperatorDecayRateChoices();
+juce::StringArray fmOperatorSustainRateChoices();
+juce::StringArray fmOperatorReleaseRateChoices();
 juce::StringArray nesDmcRateChoices();
 juce::StringArray nesDmcPlaybackModeChoices();
 juce::StringArray samplePlaybackModeChoices(ChipMode mode);

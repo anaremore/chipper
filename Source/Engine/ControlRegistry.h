@@ -98,6 +98,14 @@ inline constexpr auto fmOperator1DecayRate = "fmOperator1DecayRate";
 inline constexpr auto fmOperator2DecayRate = "fmOperator2DecayRate";
 inline constexpr auto fmOperator3DecayRate = "fmOperator3DecayRate";
 inline constexpr auto fmOperator4DecayRate = "fmOperator4DecayRate";
+inline constexpr auto fmOperator1SustainRate = "fmOperator1SustainRate";
+inline constexpr auto fmOperator2SustainRate = "fmOperator2SustainRate";
+inline constexpr auto fmOperator3SustainRate = "fmOperator3SustainRate";
+inline constexpr auto fmOperator4SustainRate = "fmOperator4SustainRate";
+inline constexpr auto fmOperator1ReleaseRate = "fmOperator1ReleaseRate";
+inline constexpr auto fmOperator2ReleaseRate = "fmOperator2ReleaseRate";
+inline constexpr auto fmOperator3ReleaseRate = "fmOperator3ReleaseRate";
+inline constexpr auto fmOperator4ReleaseRate = "fmOperator4ReleaseRate";
 }
 
 struct MidiCcMapping
@@ -107,7 +115,7 @@ struct MidiCcMapping
     const char* label = nullptr;
 };
 
-inline constexpr auto midiCcMappingCount = 88u;
+inline constexpr auto midiCcMappingCount = 96u;
 using MidiCcMappingList = std::array<MidiCcMapping, midiCcMappingCount>;
 
 const MidiCcMappingList& midiCcMappings();

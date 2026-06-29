@@ -555,6 +555,44 @@ std::vector<ParameterChoiceSpec> fmOperatorDecayRateChoices(std::string chipName
     return choices;
 }
 
+std::vector<ParameterChoiceSpec> fmOperatorSustainRateChoices(std::string chipName, std::string operatorName)
+{
+    std::vector<ParameterChoiceSpec> choices;
+    choices.reserve(33);
+    choices.push_back(choice("Follow",
+                             "Resolve " + operatorName + " sustain rate from Envelope Shape and the selected " + chipName + " preset recipe.",
+                             0.0f,
+                             0));
+    for (int rate = 0; rate <= 31; ++rate)
+    {
+        const auto normalized = static_cast<float>(rate + 1) / 32.0f;
+        choices.push_back(choice(std::to_string(rate),
+                                 "Write native " + chipName + " sustain-rate value " + std::to_string(rate) + " for " + operatorName + ".",
+                                 normalized,
+                                 rate + 1));
+    }
+    return choices;
+}
+
+std::vector<ParameterChoiceSpec> fmOperatorReleaseRateChoices(std::string chipName, std::string operatorName)
+{
+    std::vector<ParameterChoiceSpec> choices;
+    choices.reserve(17);
+    choices.push_back(choice("Follow",
+                             "Resolve " + operatorName + " release rate from Envelope Shape and the selected " + chipName + " preset recipe.",
+                             0.0f,
+                             0));
+    for (int rate = 0; rate <= 15; ++rate)
+    {
+        const auto normalized = static_cast<float>(rate + 1) / 16.0f;
+        choices.push_back(choice(std::to_string(rate),
+                                 "Write native " + chipName + " release-rate value " + std::to_string(rate) + " for " + operatorName + ".",
+                                 normalized,
+                                 rate + 1));
+    }
+    return choices;
+}
+
 ChipParameterSpec fmOperatorAttackRateSpec(ChipParameterRole role, std::string id, std::string label, std::string chipName, size_t op)
 {
     const auto operatorName = "operator " + std::to_string(op + 1u);
@@ -582,6 +620,38 @@ ChipParameterSpec fmOperatorDecayRateSpec(ChipParameterRole role, std::string id
              ParameterKind::chipRegister,
              ControlSurface::menu,
              fmOperatorDecayRateChoices(std::move(chipName), operatorName),
+             0.0f,
+             1.0f,
+             0.0f };
+}
+
+ChipParameterSpec fmOperatorSustainRateSpec(ChipParameterRole role, std::string id, std::string label, std::string chipName, size_t op)
+{
+    const auto operatorName = "operator " + std::to_string(op + 1u);
+    return { role,
+             std::move(id),
+             std::move(label),
+             "Operators",
+             "Overrides the " + chipName + " " + operatorName + " native sustain-rate field. Follow preserves the current Envelope Shape.",
+             ParameterKind::chipRegister,
+             ControlSurface::menu,
+             fmOperatorSustainRateChoices(std::move(chipName), operatorName),
+             0.0f,
+             1.0f,
+             0.0f };
+}
+
+ChipParameterSpec fmOperatorReleaseRateSpec(ChipParameterRole role, std::string id, std::string label, std::string chipName, size_t op)
+{
+    const auto operatorName = "operator " + std::to_string(op + 1u);
+    return { role,
+             std::move(id),
+             std::move(label),
+             "Operators",
+             "Overrides the " + chipName + " " + operatorName + " native release-rate field. Follow preserves the current Envelope Shape.",
+             ParameterKind::chipRegister,
+             ControlSurface::menu,
+             fmOperatorReleaseRateChoices(std::move(chipName), operatorName),
              0.0f,
              1.0f,
              0.0f };
@@ -836,6 +906,14 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
         fmOperatorDecayRateSpec(ChipParameterRole::fmOperator2DecayRate, "ym2612.op2.decayRate", "OP2 Decay", "YM2612", 1),
         fmOperatorDecayRateSpec(ChipParameterRole::fmOperator3DecayRate, "ym2612.op3.decayRate", "OP3 Decay", "YM2612", 2),
         fmOperatorDecayRateSpec(ChipParameterRole::fmOperator4DecayRate, "ym2612.op4.decayRate", "OP4 Decay", "YM2612", 3),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator1SustainRate, "ym2612.op1.sustainRate", "OP1 Sustain", "YM2612", 0),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator2SustainRate, "ym2612.op2.sustainRate", "OP2 Sustain", "YM2612", 1),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator3SustainRate, "ym2612.op3.sustainRate", "OP3 Sustain", "YM2612", 2),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator4SustainRate, "ym2612.op4.sustainRate", "OP4 Sustain", "YM2612", 3),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator1ReleaseRate, "ym2612.op1.releaseRate", "OP1 Release", "YM2612", 0),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator2ReleaseRate, "ym2612.op2.releaseRate", "OP2 Release", "YM2612", 1),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator3ReleaseRate, "ym2612.op3.releaseRate", "OP3 Release", "YM2612", 2),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator4ReleaseRate, "ym2612.op4.releaseRate", "OP4 Release", "YM2612", 3),
         { ChipParameterRole::waveShape,
           "ym2612.algorithm",
           "Algorithm",
@@ -976,6 +1054,14 @@ std::vector<ChipParameterSpec> ym2151ParameterSpecs()
         fmOperatorDecayRateSpec(ChipParameterRole::fmOperator2DecayRate, "ym2151.op2.decayRate", "OP2 Decay", "YM2151", 1),
         fmOperatorDecayRateSpec(ChipParameterRole::fmOperator3DecayRate, "ym2151.op3.decayRate", "OP3 Decay", "YM2151", 2),
         fmOperatorDecayRateSpec(ChipParameterRole::fmOperator4DecayRate, "ym2151.op4.decayRate", "OP4 Decay", "YM2151", 3),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator1SustainRate, "ym2151.op1.sustainRate", "OP1 Sustain", "YM2151", 0),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator2SustainRate, "ym2151.op2.sustainRate", "OP2 Sustain", "YM2151", 1),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator3SustainRate, "ym2151.op3.sustainRate", "OP3 Sustain", "YM2151", 2),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator4SustainRate, "ym2151.op4.sustainRate", "OP4 Sustain", "YM2151", 3),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator1ReleaseRate, "ym2151.op1.releaseRate", "OP1 Release", "YM2151", 0),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator2ReleaseRate, "ym2151.op2.releaseRate", "OP2 Release", "YM2151", 1),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator3ReleaseRate, "ym2151.op3.releaseRate", "OP3 Release", "YM2151", 2),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator4ReleaseRate, "ym2151.op4.releaseRate", "OP4 Release", "YM2151", 3),
         { ChipParameterRole::waveShape,
           "ym2151.algorithm",
           "Algorithm",
@@ -2491,7 +2577,7 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2612/OPN2 synthesis core.",
-                    "Renderer notes and preset recipes write OPN2 algorithm, feedback, operator multiplier/attack-rate/decay-rate/total-level, f-number/block, left/right pan bits, and key-on registers across all six melodic channels.",
+                    "Renderer notes and preset recipes write OPN2 algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, left/right pan bits, and key-on registers across all six melodic channels.",
                     "Channel-6 DAC Drum mode enables $2B and streams generated 8-bit drum bytes through $2A via the ymfm core.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, DAC Drum, and Chip Poly regression tests cover the first playable adapter, including six visible source lanes and six-channel note allocation."
                 },
@@ -2716,7 +2802,7 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2151/OPM synthesis core.",
-                    "Renderer notes and preset recipes write OPM algorithm, feedback, operator multiplier/attack-rate/decay-rate/total-level/envelope seed, key-code/key-fraction, pan, $0F channel-8 noise, and key-on registers.",
+                    "Renderer notes and preset recipes write OPM algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level/envelope seed, key-code/key-fraction, pan, $0F channel-8 noise, and key-on registers.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover all eight exposed melodic lanes."
                 },
                 {
@@ -3007,7 +3093,9 @@ PatchConfig makePatchConfig(ChipMode mode,
                             std::array<float, 4> fmOperatorLevels,
                             std::array<int, 4> fmOperatorMultipliers,
                             std::array<int, 4> fmOperatorAttackRates,
-                            std::array<int, 4> fmOperatorDecayRates)
+                            std::array<int, 4> fmOperatorDecayRates,
+                            std::array<int, 4> fmOperatorSustainRates,
+                            std::array<int, 4> fmOperatorReleaseRates)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
@@ -3101,6 +3189,18 @@ PatchConfig makePatchConfig(ChipMode mode,
             std::clamp(fmOperatorDecayRates[1], 0, 32),
             std::clamp(fmOperatorDecayRates[2], 0, 32),
             std::clamp(fmOperatorDecayRates[3], 0, 32)
+        },
+        {
+            std::clamp(fmOperatorSustainRates[0], 0, 32),
+            std::clamp(fmOperatorSustainRates[1], 0, 32),
+            std::clamp(fmOperatorSustainRates[2], 0, 32),
+            std::clamp(fmOperatorSustainRates[3], 0, 32)
+        },
+        {
+            std::clamp(fmOperatorReleaseRates[0], 0, 16),
+            std::clamp(fmOperatorReleaseRates[1], 0, 16),
+            std::clamp(fmOperatorReleaseRates[2], 0, 16),
+            std::clamp(fmOperatorReleaseRates[3], 0, 16)
         }
     };
 }
@@ -4043,6 +4143,14 @@ FmEnvelopeRegisters ym2612EnvelopeRegistersForPatch(const PatchConfig& patch, si
     const auto decayChoice = std::clamp(patch.fmOperatorDecayRates[safeOp], 0, 32);
     if (decayChoice > 0)
         envelope.decayRate = static_cast<uint8_t>(decayChoice - 1);
+
+    const auto sustainChoice = std::clamp(patch.fmOperatorSustainRates[safeOp], 0, 32);
+    if (sustainChoice > 0)
+        envelope.sustainRate = static_cast<uint8_t>(sustainChoice - 1);
+
+    const auto releaseChoice = std::clamp(patch.fmOperatorReleaseRates[safeOp], 0, 16);
+    if (releaseChoice > 0)
+        envelope.sustainRelease = static_cast<uint8_t>((envelope.sustainRelease & 0xf0u) | static_cast<uint8_t>(releaseChoice - 1));
 
     return envelope;
 }

@@ -110,6 +110,8 @@ struct PatchConfig
     std::array<int, 4> fmOperatorMultipliers { 0, 0, 0, 0 };
     std::array<int, 4> fmOperatorAttackRates { 0, 0, 0, 0 };
     std::array<int, 4> fmOperatorDecayRates { 0, 0, 0, 0 };
+    std::array<int, 4> fmOperatorSustainRates { 0, 0, 0, 0 };
+    std::array<int, 4> fmOperatorReleaseRates { 0, 0, 0, 0 };
 };
 
 struct StereoFrame
