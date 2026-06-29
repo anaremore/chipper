@@ -130,6 +130,10 @@ enum class ChipParameterRole
     fmOperator2AttackRate,
     fmOperator3AttackRate,
     fmOperator4AttackRate,
+    fmOperator1DecayRate,
+    fmOperator2DecayRate,
+    fmOperator3DecayRate,
+    fmOperator4DecayRate,
     clockHz,
     outputDb
 };
@@ -278,7 +282,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             std::array<int, 8> spc700VoiceSampleSlots = { 0, 0, 0, 0, 0, 0, 0, 0 },
                             std::array<float, 4> fmOperatorLevels = { 0.5f, 0.5f, 0.5f, 0.5f },
                             std::array<int, 4> fmOperatorMultipliers = { 0, 0, 0, 0 },
-                            std::array<int, 4> fmOperatorAttackRates = { 0, 0, 0, 0 });
+                            std::array<int, 4> fmOperatorAttackRates = { 0, 0, 0, 0 },
+                            std::array<int, 4> fmOperatorDecayRates = { 0, 0, 0, 0 });
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t nesNoisePeriodForControl(float noisePeriodControl);
 uint8_t nesDmcDirectLevelForControl(float levelControl);

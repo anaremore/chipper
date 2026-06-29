@@ -86,6 +86,10 @@ const MidiCcMappingList& midiCcMappings()
         { 45, parameter_ids::fmOperator2Multiplier, "FM Operator 2 Multiplier" },
         { 46, parameter_ids::fmOperator3Multiplier, "FM Operator 3 Multiplier" },
         { 47, parameter_ids::fmOperator4Multiplier, "FM Operator 4 Multiplier" },
+        { 32, parameter_ids::fmOperator1DecayRate, "FM Operator 1 Decay Rate" },
+        { 33, parameter_ids::fmOperator2DecayRate, "FM Operator 2 Decay Rate" },
+        { 34, parameter_ids::fmOperator3DecayRate, "FM Operator 3 Decay Rate" },
+        { 35, parameter_ids::fmOperator4DecayRate, "FM Operator 4 Decay Rate" },
         { 36, parameter_ids::fmOperator1AttackRate, "FM Operator 1 Attack Rate" },
         { 37, parameter_ids::fmOperator2AttackRate, "FM Operator 2 Attack Rate" },
         { 38, parameter_ids::fmOperator3AttackRate, "FM Operator 3 Attack Rate" },
@@ -199,6 +203,10 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::fmOperator2AttackRate: return parameter_ids::fmOperator2AttackRate;
         case ChipParameterRole::fmOperator3AttackRate: return parameter_ids::fmOperator3AttackRate;
         case ChipParameterRole::fmOperator4AttackRate: return parameter_ids::fmOperator4AttackRate;
+        case ChipParameterRole::fmOperator1DecayRate: return parameter_ids::fmOperator1DecayRate;
+        case ChipParameterRole::fmOperator2DecayRate: return parameter_ids::fmOperator2DecayRate;
+        case ChipParameterRole::fmOperator3DecayRate: return parameter_ids::fmOperator3DecayRate;
+        case ChipParameterRole::fmOperator4DecayRate: return parameter_ids::fmOperator4DecayRate;
         case ChipParameterRole::clockHz: return parameter_ids::clockHz;
         case ChipParameterRole::outputDb: return parameter_ids::outputDb;
     }

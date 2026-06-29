@@ -662,6 +662,12 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::ym2612EnvelopeRegistersForPatch(opn2AttackOverride, 0).attackRate == 0u, "YM2612 operator 1 attack override should write native AR 0");
     ok &= expect(chipper::ym2612EnvelopeRegistersForPatch(opn2AttackOverride, 1).attackRate == 31u, "YM2612 operator 2 attack should follow Envelope Shape when not overridden");
     ok &= expect(chipper::ym2612EnvelopeRegistersForPatch(opn2AttackOverride, 3).attackRate == 31u, "YM2612 operator 4 attack override should write native AR 31");
+    auto opn2DecayOverride = opn2Lead;
+    opn2DecayOverride.fmOperatorDecayRates = { 1, 0, 0, 32 };
+    ok &= expect(chipper::ym2612EnvelopeRegistersForPatch(opn2DecayOverride, 0).decayRate == 0u, "YM2612 operator 1 decay override should write native D1R 0");
+    ok &= expect(chipper::ym2612EnvelopeRegistersForPatch(opn2DecayOverride, 1).decayRate == chipper::ym2612EnvelopeRegistersForPatch(opn2Lead, 1).decayRate,
+                 "YM2612 operator 2 decay should follow Envelope Shape when not overridden");
+    ok &= expect(chipper::ym2612EnvelopeRegistersForPatch(opn2DecayOverride, 3).decayRate == 31u, "YM2612 operator 4 decay override should write native D1R 31");
     if (const auto* preset = chipper::presetById("opn2-feedback-bass"))
     {
         const auto levels = chipper::fmOperatorLevelsForPreset(*preset);
@@ -716,6 +722,12 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::ym2612EnvelopeRegistersForPatch(opmAttackOverride, 0).attackRate == 5u, "YM2151 shared helper operator 1 attack override should write native AR 5");
     ok &= expect(chipper::ym2612EnvelopeRegistersForPatch(opmAttackOverride, 1).attackRate == 31u, "YM2151 shared helper operator 2 attack should follow Envelope Shape when not overridden");
     ok &= expect(chipper::ym2612EnvelopeRegistersForPatch(opmAttackOverride, 3).attackRate == 31u, "YM2151 shared helper operator 4 attack override should write native AR 31");
+    auto opmDecayOverride = opmArp;
+    opmDecayOverride.fmOperatorDecayRates = { 6, 0, 0, 32 };
+    ok &= expect(chipper::ym2612EnvelopeRegistersForPatch(opmDecayOverride, 0).decayRate == 5u, "YM2151 shared helper operator 1 decay override should write native D1R 5");
+    ok &= expect(chipper::ym2612EnvelopeRegistersForPatch(opmDecayOverride, 1).decayRate == chipper::ym2612EnvelopeRegistersForPatch(opmArp, 1).decayRate,
+                 "YM2151 shared helper operator 2 decay should follow Envelope Shape when not overridden");
+    ok &= expect(chipper::ym2612EnvelopeRegistersForPatch(opmDecayOverride, 3).decayRate == 31u, "YM2151 shared helper operator 4 decay override should write native D1R 31");
     if (const auto* preset = chipper::presetById("opm-hollow-pad"))
     {
         const auto levels = chipper::fmOperatorLevelsForPreset(*preset);
@@ -1277,6 +1289,10 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::fmOperator4AttackRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP4 Attack");
     ok &= expectChoiceRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::fmOperator1AttackRate, chipper::ControlSurface::menu, 33, "Follow");
     ok &= expectSpecGroup(chipper::ChipMode::ym2612, chipper::ChipParameterRole::fmOperator1AttackRate, "Operators");
+    ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::fmOperator1DecayRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP1 Decay");
+    ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::fmOperator4DecayRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP4 Decay");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::fmOperator1DecayRate, chipper::ControlSurface::menu, 33, "Follow");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2612, chipper::ChipParameterRole::fmOperator1DecayRate, "Operators");
     ok &= expectMacroLabel(chipper::ChipMode::opl3, chipper::MacroKind::drum, "OPL2 Rhythm Kit");
     ok &= expectMacroLabel(chipper::ChipMode::spc700, chipper::MacroKind::drum, "SPC700 Drum Map");
     ok &= expectPreset(chipper::ChipMode::spc700, "spc700-stage-clear");
@@ -1390,6 +1406,10 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::fmOperator4AttackRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP4 Attack");
     ok &= expectChoiceRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::fmOperator1AttackRate, chipper::ControlSurface::menu, 33, "Follow");
     ok &= expectSpecGroup(chipper::ChipMode::ym2151, chipper::ChipParameterRole::fmOperator1AttackRate, "Operators");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::fmOperator1DecayRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP1 Decay");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::fmOperator4DecayRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP4 Decay");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::fmOperator1DecayRate, chipper::ControlSurface::menu, 33, "Follow");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2151, chipper::ChipParameterRole::fmOperator1DecayRate, "Operators");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Envelope Shape");
     ok &= expectSpecGroup(chipper::ChipMode::ym2151, chipper::ChipParameterRole::ymEnvelopeShape, "Envelope");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Preset");
