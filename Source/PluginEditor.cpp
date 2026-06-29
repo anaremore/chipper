@@ -7826,14 +7826,18 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
         setParameterValueFromUi(fmOperatorLevelIds[i], fmOperatorLevels[i]);
     for (const auto* id : fmOperatorMultiplierIds)
         setChoiceParameterFromUi(id, 0);
-    for (const auto* id : fmOperatorAttackRateIds)
-        setChoiceParameterFromUi(id, 0);
-    for (const auto* id : fmOperatorDecayRateIds)
-        setChoiceParameterFromUi(id, 0);
-    for (const auto* id : fmOperatorSustainRateIds)
-        setChoiceParameterFromUi(id, 0);
-    for (const auto* id : fmOperatorReleaseRateIds)
-        setChoiceParameterFromUi(id, 0);
+    const auto fmOperatorAttackRates = chipper::fmOperatorAttackRatesForPreset(preset);
+    const auto fmOperatorDecayRates = chipper::fmOperatorDecayRatesForPreset(preset);
+    const auto fmOperatorSustainRates = chipper::fmOperatorSustainRatesForPreset(preset);
+    const auto fmOperatorReleaseRates = chipper::fmOperatorReleaseRatesForPreset(preset);
+    for (size_t i = 0; i < fmOperatorAttackRateIds.size(); ++i)
+        setChoiceParameterFromUi(fmOperatorAttackRateIds[i], fmOperatorAttackRates[i]);
+    for (size_t i = 0; i < fmOperatorDecayRateIds.size(); ++i)
+        setChoiceParameterFromUi(fmOperatorDecayRateIds[i], fmOperatorDecayRates[i]);
+    for (size_t i = 0; i < fmOperatorSustainRateIds.size(); ++i)
+        setChoiceParameterFromUi(fmOperatorSustainRateIds[i], fmOperatorSustainRates[i]);
+    for (size_t i = 0; i < fmOperatorReleaseRateIds.size(); ++i)
+        setChoiceParameterFromUi(fmOperatorReleaseRateIds[i], fmOperatorReleaseRates[i]);
 
     for (size_t i = 0; i < sourceIds.size(); ++i)
     {

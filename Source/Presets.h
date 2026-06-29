@@ -74,6 +74,10 @@ const PresetQualityTarget* presetQualityTargetForChip(ChipMode chip);
 PresetInfo initPresetForChip(ChipMode chip);
 const PresetInfo* presetById(std::string_view idOrName);
 std::array<float, 4> fmOperatorLevelsForPreset(const PresetInfo& preset);
+std::array<int, 4> fmOperatorAttackRatesForPreset(const PresetInfo& preset);
+std::array<int, 4> fmOperatorDecayRatesForPreset(const PresetInfo& preset);
+std::array<int, 4> fmOperatorSustainRatesForPreset(const PresetInfo& preset);
+std::array<int, 4> fmOperatorReleaseRatesForPreset(const PresetInfo& preset);
 PatchConfig patchConfigForPreset(const PresetInfo& preset);
 
 } // namespace chipper

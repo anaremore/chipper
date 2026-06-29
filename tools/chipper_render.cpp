@@ -1380,8 +1380,16 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.control3 = preset.controls[2];
     options.control4 = preset.controls[3];
     options.fmOperatorLevels = chipper::fmOperatorLevelsForPreset(preset);
+    options.fmOperatorAttackRates = chipper::fmOperatorAttackRatesForPreset(preset);
+    options.fmOperatorDecayRates = chipper::fmOperatorDecayRatesForPreset(preset);
+    options.fmOperatorSustainRates = chipper::fmOperatorSustainRatesForPreset(preset);
+    options.fmOperatorReleaseRates = chipper::fmOperatorReleaseRatesForPreset(preset);
     options.controlProvided = { true, true, true, true };
     options.fmOperatorLevelProvided = { true, true, true, true };
+    options.fmOperatorAttackRateProvided = { true, true, true, true };
+    options.fmOperatorDecayRateProvided = { true, true, true, true };
+    options.fmOperatorSustainRateProvided = { true, true, true, true };
+    options.fmOperatorReleaseRateProvided = { true, true, true, true };
     const auto anySourceEnabled = std::any_of(preset.sourceEnabled.begin(), preset.sourceEnabled.end(), [](bool enabled) { return enabled; });
     const auto nativeSourceCount = chipper::nativeSourceCountForMode(preset.chip);
     const auto useSource5 = anySourceEnabled && nativeSourceCount >= 5u;

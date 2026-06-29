@@ -5090,6 +5090,43 @@ const std::vector<PresetInfo>& presetCatalog()
             3579545.0
         },
         {
+            "opm-marble-bell",
+            "YM2151 / OPM",
+            "OPM Marble Bell",
+            "Original arcade FM bell with fast operator decay and a rounded mallet edge.",
+            ChipMode::ym2151,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.42f, 0.52f, 0.38f, 0.68f },
+            { true, true, true, false },
+            0.38f,
+            8,
+            1,
+            0,
+            -9.5f,
+            3579545.0
+        },
+        {
+            "opm-slow-motion-pad",
+            "YM2151 / OPM",
+            "OPM Slow Motion Pad",
+            "Soft original YM2151 pad with slow operator attacks and a long arcade release.",
+            ChipMode::ym2151,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::chipPoly,
+            { 0.66f, 0.20f, 0.34f, 0.60f },
+            { true, true, true, true },
+            0.22f,
+            6,
+            3,
+            0,
+            -10.5f,
+            3579545.0,
+            0.58f
+        },
+        {
             "opll-organ-arp-run",
             "YM2413 / OPLL",
             "OPLL Organ Arp Run",
@@ -5201,6 +5238,43 @@ const std::vector<PresetInfo>& presetCatalog()
             2,
             -11.0f,
             7670454.0
+        },
+        {
+            "opn2-crystal-pluck",
+            "YM2612 / OPN2",
+            "OPN2 Crystal Pluck",
+            "Original Genesis FM pluck with fast operator decay and a glassy carrier tail.",
+            ChipMode::ym2612,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.48f, 0.46f, 0.34f, 0.74f },
+            { true, true, true, false },
+            0.32f,
+            8,
+            1,
+            0,
+            -9.5f,
+            7670454.0
+        },
+        {
+            "opn2-wide-ep-pad",
+            "YM2612 / OPN2",
+            "OPN2 Wide EP Pad",
+            "Warm original Genesis FM electric-pad stack with slower operator attacks and long release.",
+            ChipMode::ym2612,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::chipPoly,
+            { 0.68f, 0.26f, 0.22f, 0.58f },
+            { true, true, true, true },
+            0.24f,
+            8,
+            3,
+            0,
+            -10.0f,
+            7670454.0,
+            0.48f
         },
         {
             "opn2-neutral-patch",
@@ -5424,7 +5498,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
         addPresetTag(tags, "noise");
 
     const auto corpus = presetCorpus(preset);
-    for (const auto token : { "pulse", "triangle", "duty", "stereo", "sweep", "wave", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade" })
+    for (const auto token : { "pulse", "triangle", "duty", "stereo", "sweep", "wave", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade" })
     {
         if (presetCorpusContains(corpus, token))
             addPresetTag(tags, token);
@@ -5530,6 +5604,10 @@ std::array<float, 4> fmOperatorLevelsForPreset(const PresetInfo& preset)
             return { 0.42f, 0.54f, 0.46f, 0.72f };
         if (preset.id == "opn2-dac-snare")
             return { 0.62f, 0.44f, 0.56f, 0.92f };
+        if (preset.id == "opn2-crystal-pluck")
+            return { 0.42f, 0.82f, 0.44f, 0.78f };
+        if (preset.id == "opn2-wide-ep-pad")
+            return { 0.36f, 0.70f, 0.40f, 0.66f };
     }
     else if (preset.chip == ChipMode::ym2151)
     {
@@ -5565,9 +5643,69 @@ std::array<float, 4> fmOperatorLevelsForPreset(const PresetInfo& preset)
             return { 0.52f, 0.72f, 0.46f, 0.64f };
         if (preset.id == "opm-bright-lead")
             return { 0.64f, 0.58f, 0.58f, 0.78f };
+        if (preset.id == "opm-marble-bell")
+            return { 0.46f, 0.84f, 0.48f, 0.78f };
+        if (preset.id == "opm-slow-motion-pad")
+            return { 0.38f, 0.72f, 0.42f, 0.68f };
     }
 
     return { 0.5f, 0.5f, 0.5f, 0.5f };
+}
+
+std::array<int, 4> fmOperatorAttackRatesForPreset(const PresetInfo& preset)
+{
+    if (preset.id == "opn2-crystal-pluck")
+        return { 32, 32, 31, 32 };
+    if (preset.id == "opn2-wide-ep-pad")
+        return { 15, 18, 12, 16 };
+    if (preset.id == "opm-marble-bell")
+        return { 32, 32, 30, 32 };
+    if (preset.id == "opm-slow-motion-pad")
+        return { 13, 17, 11, 15 };
+
+    return { 0, 0, 0, 0 };
+}
+
+std::array<int, 4> fmOperatorDecayRatesForPreset(const PresetInfo& preset)
+{
+    if (preset.id == "opn2-crystal-pluck")
+        return { 9, 17, 8, 12 };
+    if (preset.id == "opn2-wide-ep-pad")
+        return { 7, 8, 6, 7 };
+    if (preset.id == "opm-marble-bell")
+        return { 10, 18, 8, 13 };
+    if (preset.id == "opm-slow-motion-pad")
+        return { 6, 8, 5, 6 };
+
+    return { 0, 0, 0, 0 };
+}
+
+std::array<int, 4> fmOperatorSustainRatesForPreset(const PresetInfo& preset)
+{
+    if (preset.id == "opn2-crystal-pluck")
+        return { 5, 12, 4, 8 };
+    if (preset.id == "opn2-wide-ep-pad")
+        return { 1, 1, 1, 1 };
+    if (preset.id == "opm-marble-bell")
+        return { 4, 10, 4, 7 };
+    if (preset.id == "opm-slow-motion-pad")
+        return { 1, 1, 1, 1 };
+
+    return { 0, 0, 0, 0 };
+}
+
+std::array<int, 4> fmOperatorReleaseRatesForPreset(const PresetInfo& preset)
+{
+    if (preset.id == "opn2-crystal-pluck")
+        return { 6, 8, 5, 7 };
+    if (preset.id == "opn2-wide-ep-pad")
+        return { 7, 8, 7, 8 };
+    if (preset.id == "opm-marble-bell")
+        return { 5, 8, 5, 7 };
+    if (preset.id == "opm-slow-motion-pad")
+        return { 8, 9, 8, 9 };
+
+    return { 0, 0, 0, 0 };
 }
 
 PatchConfig patchConfigForPreset(const PresetInfo& preset)
@@ -5633,7 +5771,12 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                            0.0f,
                            1.0f,
                            { 0, 0, 0, 0, 0, 0, 0, 0 },
-                           fmOperatorLevelsForPreset(preset));
+                           fmOperatorLevelsForPreset(preset),
+                           { 0, 0, 0, 0 },
+                           fmOperatorAttackRatesForPreset(preset),
+                           fmOperatorDecayRatesForPreset(preset),
+                           fmOperatorSustainRatesForPreset(preset),
+                           fmOperatorReleaseRatesForPreset(preset));
 }
 
 } // namespace chipper

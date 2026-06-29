@@ -166,6 +166,8 @@ Every shipped factory preset must appear in that catalog, include chip/category/
 - OPN2 Rubber Bass
 - OPN2 Brass Stack
 - OPN2 DAC Kick
+- OPN2 Crystal Pluck
+- OPN2 Wide EP Pad
 - OPL2 Bass
 - OPL2 Bright Lead
 - OPL2 Organ Arp
@@ -187,6 +189,8 @@ Every shipped factory preset must appear in that catalog, include chip/category/
 - OPM Warning Stab
 - OPM Hollow Pad
 - OPM Noise Zap
+- OPM Marble Bell
+- OPM Slow Motion Pad
 - OPLL UI Chime
 - OPLL Preset Bass
 - OPLL Brass Lead

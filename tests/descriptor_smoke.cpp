@@ -703,6 +703,24 @@ bool expectFmRegisterHelpers()
     {
         ok &= expect(false, "OPN2 Neutral Patch preset should exist");
     }
+    if (const auto* preset = chipper::presetById("opn2-crystal-pluck"))
+    {
+        const auto patch = chipper::patchConfigForPreset(*preset);
+        ok &= expect(chipper::fmOperatorLevelsForPreset(*preset) == std::array<float, 4> { 0.42f, 0.82f, 0.44f, 0.78f },
+                     "OPN2 Crystal Pluck should carry curated operator-level trims");
+        ok &= expect(patch.fmOperatorAttackRates == std::array<int, 4> { 32, 32, 31, 32 },
+                     "OPN2 Crystal Pluck should carry curated operator attack rates");
+        ok &= expect(patch.fmOperatorDecayRates == std::array<int, 4> { 9, 17, 8, 12 },
+                     "OPN2 Crystal Pluck should carry curated operator decay rates");
+        ok &= expect(patch.fmOperatorSustainRates == std::array<int, 4> { 5, 12, 4, 8 },
+                     "OPN2 Crystal Pluck should carry curated operator sustain rates");
+        ok &= expect(patch.fmOperatorReleaseRates == std::array<int, 4> { 6, 8, 5, 7 },
+                     "OPN2 Crystal Pluck should carry curated operator release rates");
+    }
+    else
+    {
+        ok &= expect(false, "OPN2 Crystal Pluck preset should exist");
+    }
     ok &= expect(chipper::ym2612PanBitsForPatch(opn2Lead, 0) == 0xc0u, "YM2612 lead macro should resolve to centered pan bits");
     ok &= expect(chipper::ym2612DacModeForPatch(opn2Lead) == 1u, "YM2612 lead macro should keep channel 6 in FM mode");
     const auto opn2LeadModulatorEnvelope = chipper::ym2612EnvelopeRegistersForPatch(opn2Lead, 0);
@@ -767,6 +785,24 @@ bool expectFmRegisterHelpers()
     else
     {
         ok &= expect(false, "OPM Hollow Pad preset should exist");
+    }
+    if (const auto* preset = chipper::presetById("opm-marble-bell"))
+    {
+        const auto patch = chipper::patchConfigForPreset(*preset);
+        ok &= expect(chipper::fmOperatorLevelsForPreset(*preset) == std::array<float, 4> { 0.46f, 0.84f, 0.48f, 0.78f },
+                     "OPM Marble Bell should carry curated operator-level trims");
+        ok &= expect(patch.fmOperatorAttackRates == std::array<int, 4> { 32, 32, 30, 32 },
+                     "OPM Marble Bell should carry curated operator attack rates");
+        ok &= expect(patch.fmOperatorDecayRates == std::array<int, 4> { 10, 18, 8, 13 },
+                     "OPM Marble Bell should carry curated operator decay rates");
+        ok &= expect(patch.fmOperatorSustainRates == std::array<int, 4> { 4, 10, 4, 7 },
+                     "OPM Marble Bell should carry curated operator sustain rates");
+        ok &= expect(patch.fmOperatorReleaseRates == std::array<int, 4> { 5, 8, 5, 7 },
+                     "OPM Marble Bell should carry curated operator release rates");
+    }
+    else
+    {
+        ok &= expect(false, "OPM Marble Bell preset should exist");
     }
     const auto opmArpEnvelope = chipper::ym2612EnvelopeRegistersForPatch(opmArp, 0);
     ok &= expect(opmArpEnvelope.sustainRate == 0x00u, "YM2151 shared FM envelope helper should hold sustained arp notes");
