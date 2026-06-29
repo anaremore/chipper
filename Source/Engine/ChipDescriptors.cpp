@@ -498,6 +498,22 @@ std::vector<MacroTemplate> saa1099Macros()
     };
 }
 
+std::vector<MacroTemplate> pcSpeakerMacros()
+{
+    return {
+        { MacroKind::manual, "PC Speaker Manual", "Neutral PIT channel 2 beeper mapping.", { 0.50f, 0.35f, 0.22f, 0.78f }, { true, false, false, false }, 0.0f, 1, 0, 0, 0, 0.0f },
+        { MacroKind::coin, "PC Coin Blip", "Short bright PIT beep for menu confirms and pickups.", { 0.36f, 0.82f, 0.20f, 0.82f }, { true, false, false, false }, 0.72f, 1, 0, 0, 0, 0.0f },
+        { MacroKind::bass, "PC One-Bit Bass", "Low single-lane square bass from the PIT divisor.", { 0.54f, 0.20f, 0.08f, 0.88f }, { true, false, false, false }, 0.12f, 1, 0, 0, 0, 0.0f },
+        { MacroKind::lead, "PC Beep Lead", "Forward one-bit square lead with controllable duty color.", { 0.64f, 0.42f, 0.14f, 0.82f }, { true, false, false, false }, 0.10f, 1, 0, 0, 0, 0.0f },
+        { MacroKind::arp, "PC Rapid Arp", "Fast mono beeper line intended for host arps or tracker-style pitch motion.", { 0.72f, 0.68f, 0.18f, 0.80f }, { true, false, false, false }, 0.12f, 1, 0, 0, 0, 0.0f },
+        { MacroKind::drum, "PC Click Drum", "Direct speaker-data click with short helper decay.", { 0.28f, 0.18f, 0.92f, 0.86f }, { true, false, false, false }, 0.92f, 2, 0, 0, 0, 0.0f },
+        { MacroKind::hit, "PC Gate Hit", "One-bit impact using PIT tone plus direct click grit.", { 0.34f, 0.28f, 0.82f, 0.88f }, { true, false, false, false }, 0.84f, 3, 0, 0, 0, 0.0f },
+        { MacroKind::laser, "PC Pitch Laser", "Falling beeper sweep with direct-click edge.", { 0.30f, 0.96f, 0.66f, 0.86f }, { true, false, false, false }, 0.34f, 3, 0, 0, 0, 0.0f },
+        { MacroKind::jump, "PC Jump Blip", "Rising gate-burst style platformer blip.", { 0.24f, 0.76f, 0.18f, 0.82f }, { true, false, false, false }, 0.42f, 4, 0, 0, 0, 0.0f },
+        { MacroKind::powerUp, "PC Gate Rise", "Optimistic rising beeper gesture with burst timing.", { 0.70f, 0.90f, 0.24f, 0.86f }, { true, false, false, false }, 0.32f, 4, 0, 0, 0, 0.0f },
+    };
+}
+
 std::vector<MacroTemplate> sidMacros()
 {
     return {
@@ -2453,6 +2469,59 @@ std::vector<ChipParameterSpec> saa1099ParameterSpecs()
     };
 }
 
+std::vector<ChipParameterSpec> pcSpeakerParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "pcSpeaker.pulseWidth",
+                   "Pulse Width",
+                   "Speaker",
+                   "Biases the one-bit speaker duty/color used by PIT tone modes."),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "pcSpeaker.pitchMotion",
+                   "Pitch Motion",
+                   "Pitch",
+                   "Offsets beeper gestures such as coin pops, sweeps, jumps, and gate bursts."),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "pcSpeaker.clickGrit",
+                   "Click Grit",
+                   "Speaker",
+                   "Controls direct speaker-data click rate and grit for percussion and SFX.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "pcSpeaker.speakerLevel",
+                   "Speaker Level",
+                   "Output",
+                   "Maps to Chipper's one-bit speaker drive before output gain.",
+                   ParameterKind::chipRegister,
+                   0.78f),
+        sourceSpec(ChipParameterRole::source1Enabled,
+                   "pcSpeaker.enabled",
+                   "Speaker",
+                   "Enable the single PC Speaker output lane."),
+        sourceLevelSpec(ChipParameterRole::source1Level,
+                        "pcSpeaker.level",
+                        "Speaker Level",
+                        "Modern trim for the one-bit PC Speaker lane."),
+        envelopeSpec("pcSpeaker.gateDecay",
+                     "Gate Decay",
+                     "Chipper helper decay for short PC Speaker clicks, hits, and beeper gestures."),
+        segmentedSpec(ChipParameterRole::waveShape,
+                      "pcSpeaker.mode",
+                      "Speaker Mode",
+                      "Speaker",
+                      "Selects how the PIT channel 2 tone and port 0x61 speaker-data bit are combined.",
+                      {
+                          choice("Preset", "Resolve the speaker mode from the selected recipe.", 0.0f, 0),
+                          choice("PIT Tone", "Use PIT channel 2 tone gated through port 0x61.", 0.25f, 1),
+                          choice("Direct Click", "Use direct speaker-data clicks for percussion and UI ticks.", 0.5f, 2),
+                          choice("Tone+Click", "Blend PIT tone with direct click grit.", 0.75f, 3),
+                          choice("Gate Burst", "Use one-bit gated bursts for jump and power-up gestures.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister)
+    };
+}
+
 std::vector<ChipParameterSpec> pokeyParameterSpecs()
 {
     return {
@@ -3678,6 +3747,38 @@ const std::vector<ChipDescriptor>& descriptors()
                 })
         },
         {
+            ChipMode::pcSpeaker,
+            "PC Speaker",
+            "Partial clean-room one-bit PC Speaker model using PIT channel 2 and port 0x61 gate/data behavior.",
+            {
+                { "pit", "PIT Channel 2", "Pitch", "Timer divisor and channel-2 tone output drive the one-bit speaker." },
+                { "speaker", "Port 0x61", "Speaker", "Gate and speaker-data bits select tone, click, and burst behavior." },
+                { "source", "One Output Lane", "Sources", "One mono source lane exposes the hardware speaker path." },
+                { "gesture", "Beeper Gestures", "Motion", "Pitch sweeps, clicks, jumps, and gate bursts are mapped to visible controls." },
+            },
+            {
+                makeModule("profile", "Profile", "PC Speaker clean-room PIT beeper groundwork.", { "PIT channel 2", "1.193182 MHz default", "Hybrid default", "Authentic still partial" }),
+                makeModule("sources", "Speaker Lane", "The single one-bit PC Speaker output path is exposed as one source card.", { "Speaker gate", "Port 0x61", "One mono lane", "Source trim" }),
+                makeModule("tone", "PIT / Click", "PIT divisor tone generation plus direct speaker-data click behavior.", { "PIT divisor", "Pulse width", "Direct click", "Gate burst" }),
+                makeModule("envelope", "Gate Decay", "Chipper helper decay for short beeps, clicks, and one-shot SFX; the PC Speaker has no native ADSR.", { "Helper decay", "One-shot clicks", "Gate tails", "No native ADSR" }),
+                makeModule("motion", "Motion", "PC-style SFX gestures mapped to PIT frequency and speaker-data changes.", { "Coin blip", "Pitch laser", "Jump burst", "Click drum" }),
+                makeModule("output", "Output", "Dry one-bit mono output with source and output trims.", { "Mono speaker", "Source level", "Output gain", "Verified partial" })
+            },
+            pcSpeakerMacros(),
+            true,
+            false,
+            pcSpeakerParameterSpecs(),
+            verifiedPartial(
+                {
+                    "PIT channel 2 divisor, port 0x61 gate/data state, one-bit tone output, direct-click SFX, source enable/level, helper gate decay, presets, and renderer-facing debug JSON are covered by local tests.",
+                    "No third-party PC Speaker emulator source code is vendored in this clean-room partial model."
+                },
+                {
+                    "Exact 8253/8254 mode edge timing, motherboard analog filtering, DMA/sample playback tricks, clone-specific speaker circuits, and hardware capture comparison are not implemented.",
+                    "The first slice is intentionally a one-lane beeper/SFX instrument, not a polyphonic synth or a full DOS audio subsystem."
+                })
+        },
+        {
             ChipMode::ym2612,
             "YM2612 / Genesis FM",
             "Six exposed lanes write YM2612/OPN2 registers into the audited ymfm core for Genesis-style FM tones, with optional native channel-6 DAC drum playback.",
@@ -4140,6 +4241,7 @@ EnvelopeModel envelopeModelFor(ChipMode mode)
             return EnvelopeModel::nativeNonAdsr;
 
         case ChipMode::sn76489:
+        case ChipMode::pcSpeaker:
         case ChipMode::pokey:
         case ChipMode::paula:
         case ChipMode::huc6280:
@@ -4211,6 +4313,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
         return 7u;
     if (mode == ChipMode::saa1099)
         return 6u;
+    if (mode == ChipMode::pcSpeaker)
+        return 1u;
     if (mode == ChipMode::nesVrc6)
         return 7u;
     if (mode == ChipMode::nesFds)
@@ -4241,6 +4345,7 @@ size_t nativeSourceCountForMode(ChipMode mode)
         case ChipMode::ym2608: return 9u;
         case ChipMode::ym2610: return 7u;
         case ChipMode::saa1099: return 6u;
+        case ChipMode::pcSpeaker: return 1u;
         case ChipMode::nesVrc6: return 7u;
         case ChipMode::nesFds: return 5u;
         case ChipMode::nesSunsoft5b: return 7u;

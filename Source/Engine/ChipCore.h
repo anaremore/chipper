@@ -36,7 +36,8 @@ enum class ChipMode
     nesSunsoft5b,
     nesMmc5,
     nesVrc7,
-    saa1099
+    saa1099,
+    pcSpeaker
 };
 
 enum class AccuracyMode

@@ -7249,7 +7249,235 @@ const std::vector<PresetInfo>& presetCatalog()
             -12.0f,
             8000000.0,
             0.78f
-        }, 0.86f, 0.70f, 0.0f, 0.82f)
+        }, 0.86f, 0.70f, 0.0f, 0.82f),
+        withSourceLevels({
+            "pc-speaker-one-bit-bass",
+            "PC Speaker Bass",
+            "PC One-Bit Bass",
+            "Low one-bit PIT bass with a firm speaker gate.",
+            ChipMode::pcSpeaker,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::stack,
+            { 0.52f, 0.20f, 0.08f, 0.88f },
+            { true, false, false, false },
+            0.10f,
+            1,
+            0,
+            0,
+            -10.5f,
+            1193182.0,
+            0.0f
+        }, 1.0f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "pc-speaker-sub-pulse",
+            "PC Speaker Bass",
+            "PC Sub Pulse",
+            "Rounder low-register beeper bass using the PIT tone mode.",
+            ChipMode::pcSpeaker,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::stack,
+            { 0.40f, 0.16f, 0.06f, 0.84f },
+            { true, false, false, false },
+            0.16f,
+            1,
+            0,
+            0,
+            -11.0f,
+            1193182.0,
+            0.0f
+        }, 0.92f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "pc-speaker-beep-lead",
+            "PC Speaker Leads",
+            "PC Beep Lead",
+            "Forward PIT square lead with crisp one-bit edges.",
+            ChipMode::pcSpeaker,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.64f, 0.42f, 0.14f, 0.82f },
+            { true, false, false, false },
+            0.08f,
+            1,
+            0,
+            0,
+            -10.5f,
+            1193182.0,
+            0.0f
+        }, 0.94f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "pc-speaker-duty-lead",
+            "PC Speaker Leads",
+            "PC Duty Lead",
+            "Narrower duty-color lead for tiny DOS-style hooks.",
+            ChipMode::pcSpeaker,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.26f, 0.46f, 0.18f, 0.84f },
+            { true, false, false, false },
+            0.10f,
+            1,
+            0,
+            0,
+            -11.0f,
+            1193182.0,
+            0.0f
+        }, 0.90f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "pc-speaker-rapid-arp",
+            "PC Speaker Arps",
+            "PC Rapid Arp",
+            "Mono beeper arp starter with high pitch-motion headroom.",
+            ChipMode::pcSpeaker,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::stack,
+            { 0.72f, 0.68f, 0.18f, 0.80f },
+            { true, false, false, false },
+            0.10f,
+            1,
+            0,
+            0,
+            -10.5f,
+            1193182.0,
+            0.0f
+        }, 0.96f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "pc-speaker-gate-arp",
+            "PC Speaker Arps",
+            "PC Gate Arp",
+            "Gate-burst beeper arp with visible speaker-mode switching.",
+            ChipMode::pcSpeaker,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::stack,
+            { 0.62f, 0.74f, 0.24f, 0.82f },
+            { true, false, false, false },
+            0.22f,
+            4,
+            0,
+            0,
+            -11.0f,
+            1193182.0,
+            0.0f
+        }, 0.92f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "pc-speaker-click-keys",
+            "PC Speaker Keys",
+            "PC Click Keys",
+            "Short one-bit key blips with direct-click color.",
+            ChipMode::pcSpeaker,
+            AccuracyMode::hybrid,
+            MacroKind::coin,
+            PlayMode::stack,
+            { 0.34f, 0.62f, 0.42f, 0.78f },
+            { true, false, false, false },
+            0.62f,
+            3,
+            0,
+            0,
+            -12.0f,
+            1193182.0,
+            0.0f
+        }, 0.86f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "pc-speaker-pit-pluck",
+            "PC Speaker Keys",
+            "PC PIT Pluck",
+            "Pitched beeper pluck for compact UI melodies.",
+            ChipMode::pcSpeaker,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.48f, 0.36f, 0.10f, 0.76f },
+            { true, false, false, false },
+            0.58f,
+            1,
+            0,
+            0,
+            -11.5f,
+            1193182.0,
+            0.0f
+        }, 0.82f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "pc-speaker-click-drum",
+            "PC Speaker Drums",
+            "PC Click Drum",
+            "Direct speaker-data click percussion with short helper decay.",
+            ChipMode::pcSpeaker,
+            AccuracyMode::hybrid,
+            MacroKind::drum,
+            PlayMode::stack,
+            { 0.28f, 0.18f, 0.92f, 0.86f },
+            { true, false, false, false },
+            0.92f,
+            2,
+            0,
+            0,
+            -11.0f,
+            1193182.0,
+            0.0f
+        }, 0.98f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "pc-speaker-gate-hit",
+            "PC Speaker Drums",
+            "PC Gate Hit",
+            "One-bit PIT plus click impact for tiny game hits.",
+            ChipMode::pcSpeaker,
+            AccuracyMode::hybrid,
+            MacroKind::hit,
+            PlayMode::stack,
+            { 0.34f, 0.28f, 0.82f, 0.88f },
+            { true, false, false, false },
+            0.84f,
+            3,
+            0,
+            0,
+            -11.0f,
+            1193182.0,
+            0.0f
+        }, 1.0f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "pc-speaker-coin-blip",
+            "Classic Game SFX",
+            "PC Coin Blip",
+            "Bright DOS-style PC Speaker pickup ping.",
+            ChipMode::pcSpeaker,
+            AccuracyMode::hybrid,
+            MacroKind::coin,
+            PlayMode::stack,
+            { 0.36f, 0.84f, 0.18f, 0.84f },
+            { true, false, false, false },
+            0.72f,
+            1,
+            0,
+            0,
+            -12.0f,
+            1193182.0,
+            0.0f
+        }, 0.92f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "pc-speaker-pitch-laser",
+            "Classic Game SFX",
+            "PC Pitch Laser",
+            "Falling PIT sweep with direct-click edge.",
+            ChipMode::pcSpeaker,
+            AccuracyMode::hybrid,
+            MacroKind::laser,
+            PlayMode::stack,
+            { 0.30f, 0.96f, 0.66f, 0.86f },
+            { true, false, false, false },
+            0.34f,
+            3,
+            0,
+            0,
+            -12.0f,
+            1193182.0,
+            0.0f
+        }, 0.94f, 0.0f, 0.0f, 0.0f)
     };
 
     return presets;
@@ -7284,6 +7512,7 @@ const std::vector<PresetQualityTarget>& presetQualityTargets()
         { ChipMode::ym2149, roles, { "psg", "noise", "envelope", "chord", "tracker" }, "Furnace-informed AY/YM coverage: tone stacks, envelope tricks, fake chords, and noise percussion." },
         { ChipMode::sn76489, roles, { "psg", "tone", "noise", "periodic", "alarm" }, "Furnace-informed Sega PSG coverage: tone stacks, periodic/noise percussion, zaps, and arcade UI sounds." },
         { ChipMode::saa1099, roles, { "saa1099", "psg", "tone", "noise", "envelope", "stereo", "chord" }, "Furnace-informed SAA1099 coverage: six-channel stereo PSG basses, leads, arps, keys, dual-noise percussion, and SFX." },
+        { ChipMode::pcSpeaker, roles, { "pc", "speaker", "beeper", "pit", "click", "gate", "sfx" }, "Furnace-informed PC Speaker coverage: one-bit PIT beeps, basses, leads, arps, key blips, click percussion, and SFX." },
         { ChipMode::ym2612, roles, { "fm", "operator", "dac", "feedback", "envelope", "chord" }, "Furnace-informed OPN2 coverage: operator bass/leads/keys plus rhythm, DAC, and SFX recipes." },
         { ChipMode::opl3, roles, { "fm", "operator", "rhythm", "wave", "bell" }, "Furnace-informed OPL coverage: two-op melodic voices, rhythm mode, bells, basses, and DOS-style SFX." },
         { ChipMode::spc700, roles, { "sampler", "loop", "noise", "echo", "tracker" }, "Furnace-informed SPC700-style coverage: looped sample voices, drum maps, pitch motion, and noise colors." },
@@ -7391,6 +7620,7 @@ std::string presetEngineFor(const PresetInfo& preset)
         case ChipMode::ym2149: return "AY/YM PSG";
         case ChipMode::sn76489: return "SN76489 PSG";
         case ChipMode::saa1099: return "Philips SAA1099 PSG";
+        case ChipMode::pcSpeaker: return "PC Speaker beeper";
         case ChipMode::ym2612: return "YM2612 OPN2 FM";
         case ChipMode::ym2203: return "YM2203 OPN FM+SSG";
         case ChipMode::ym2608: return "YM2608 OPNA FM+SSG";
@@ -7476,6 +7706,13 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
                 addPresetTag(tags, "envelope");
             }
             break;
+        case ChipMode::pcSpeaker:
+            addPresetTag(tags, "beeper");
+            addPresetTag(tags, "pc");
+            addPresetTag(tags, "speaker");
+            addPresetTag(tags, "pit");
+            addPresetTag(tags, "sfx");
+            break;
         case ChipMode::ym2612:
         case ChipMode::opl3:
         case ChipMode::ym2151:
@@ -7539,7 +7776,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
         addPresetTag(tags, "noise");
 
     const auto corpus = presetCorpus(preset);
-    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "wavetable", "mod", "modulation", "fds", "sunsoft", "5b", "mmc5", "pcm", "square", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "ssg", "psg", "saa1099", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade", "neo" })
+    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "wavetable", "mod", "modulation", "fds", "sunsoft", "5b", "mmc5", "pcm", "square", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "ssg", "psg", "saa1099", "pc", "speaker", "beeper", "pit", "click", "gate", "sfx", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade", "neo" })
     {
         if (presetCorpusContains(corpus, token))
             addPresetTag(tags, token);

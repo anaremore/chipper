@@ -196,6 +196,7 @@ bool expectChipCatalogIsProductReady()
         chipper::ChipMode::ym2149,
         chipper::ChipMode::sn76489,
         chipper::ChipMode::saa1099,
+        chipper::ChipMode::pcSpeaker,
         chipper::ChipMode::ym2612,
         chipper::ChipMode::opl3,
         chipper::ChipMode::spc700,
@@ -331,6 +332,7 @@ bool expectLiveSourceLevelSpecs()
         chipper::ChipMode::ym2149,
         chipper::ChipMode::sn76489,
         chipper::ChipMode::saa1099,
+        chipper::ChipMode::pcSpeaker,
         chipper::ChipMode::ym2612,
         chipper::ChipMode::opl3,
         chipper::ChipMode::ym2151,
@@ -404,6 +406,7 @@ bool expectLiveSourceCardSpecs()
         chipper::ChipMode::ym2149,
         chipper::ChipMode::sn76489,
         chipper::ChipMode::saa1099,
+        chipper::ChipMode::pcSpeaker,
         chipper::ChipMode::ym2612,
         chipper::ChipMode::opl3,
         chipper::ChipMode::ym2151,
@@ -518,6 +521,7 @@ bool expectVerificationDisclosure()
         chipper::ChipMode::ym2149,
         chipper::ChipMode::sn76489,
         chipper::ChipMode::saa1099,
+        chipper::ChipMode::pcSpeaker,
         chipper::ChipMode::pokey,
         chipper::ChipMode::huc6280,
         chipper::ChipMode::namcoWsg,
@@ -582,6 +586,7 @@ bool expectEnvelopeModels()
     }
 
     for (const auto mode : { chipper::ChipMode::sn76489,
+                             chipper::ChipMode::pcSpeaker,
                              chipper::ChipMode::pokey,
                              chipper::ChipMode::paula,
                              chipper::ChipMode::huc6280,
@@ -619,6 +624,8 @@ bool expectEnvelopeModels()
                  "SCC envelope module should identify its shared wave-channel helper");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::saa1099).modules[3].title == "Envelope Groups",
                  "SAA1099 envelope module should identify its two native envelope groups");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::pcSpeaker).modules[3].title == "Gate Decay",
+                 "PC Speaker envelope module should identify its helper gate-decay path");
 
     return ok;
 }
@@ -628,6 +635,7 @@ bool expectHelperEnvelopeModulesStayHonest()
     bool ok = true;
 
     for (const auto mode : { chipper::ChipMode::sn76489,
+                             chipper::ChipMode::pcSpeaker,
                              chipper::ChipMode::pokey,
                              chipper::ChipMode::paula,
                              chipper::ChipMode::huc6280,
@@ -1238,6 +1246,8 @@ int main()
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::nesVrc7).supportsChipPoly, "NES + VRC7 should support Chip Poly across APU melodic and VRC7 FM lanes");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::saa1099).implemented, "SAA1099 descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::saa1099).supportsChipPoly, "SAA1099 should support Chip Poly across six PSG channels");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::pcSpeaker).implemented, "PC Speaker descriptor should be partially implemented");
+    ok &= expect(! chipper::descriptorFor(chipper::ChipMode::pcSpeaker).supportsChipPoly, "PC Speaker should stay a single hardware output path");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::sid).implemented, "SID descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::spc700).implemented, "SPC700 descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::spc700).supportsChipPoly, "SPC700 should support Chip Poly across exposed sample voices");
@@ -1442,6 +1452,12 @@ int main()
     ok &= expectSpec(chipper::ChipMode::saa1099, chipper::ChipParameterRole::source6Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Channel 6 Level");
     ok &= expectSegmentedRegister(chipper::ChipMode::saa1099, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Preset");
     ok &= expectSegmentedRegister(chipper::ChipMode::saa1099, chipper::ChipParameterRole::snNoiseMode, 5, "Preset");
+    ok &= expectSpec(chipper::ChipMode::pcSpeaker, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Pulse Width");
+    ok &= expectSpec(chipper::ChipMode::pcSpeaker, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Click Grit");
+    ok &= expectSpec(chipper::ChipMode::pcSpeaker, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Speaker Level");
+    ok &= expectSpec(chipper::ChipMode::pcSpeaker, chipper::ChipParameterRole::source1Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Speaker");
+    ok &= expectSpec(chipper::ChipMode::pcSpeaker, chipper::ChipParameterRole::source1Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Speaker Level");
+    ok &= expectSegmentedRegister(chipper::ChipMode::pcSpeaker, chipper::ChipParameterRole::waveShape, 5, "Preset");
     ok &= expectSpecHelpContains(chipper::ChipMode::sn76489,
                                  chipper::ChipParameterRole::source3Enabled,
                                  "clock the native noise generator",
@@ -1457,6 +1473,7 @@ int main()
     ok &= expectMacroSourceMask(chipper::ChipMode::ym2149, chipper::MacroKind::drum, { true, false, false, true });
     ok &= expectMacroSourceMask(chipper::ChipMode::sn76489, chipper::MacroKind::drum, { false, false, false, true });
     ok &= expectMacroSourceMask(chipper::ChipMode::saa1099, chipper::MacroKind::drum, { true, false, true, true });
+    ok &= expectMacroSourceMask(chipper::ChipMode::pcSpeaker, chipper::MacroKind::drum, { true, false, false, false });
     ok &= expectMacroLabel(chipper::ChipMode::nes, chipper::MacroKind::coin, "NES Coin Blip");
     ok &= expectMacroLabel(chipper::ChipMode::nesVrc6, chipper::MacroKind::lead, "VRC6 Pulse Lead");
     ok &= expectPreset(chipper::ChipMode::nesVrc6, "vrc6-pulse-lead");
@@ -1485,6 +1502,10 @@ int main()
     ok &= expectPreset(chipper::ChipMode::saa1099, "saa-square-bass");
     ok &= expectPreset(chipper::ChipMode::saa1099, "saa-stereo-lead");
     ok &= expectPreset(chipper::ChipMode::saa1099, "saa-six-voice-arp");
+    ok &= expectMacroLabel(chipper::ChipMode::pcSpeaker, chipper::MacroKind::drum, "PC Click Drum");
+    ok &= expectPreset(chipper::ChipMode::pcSpeaker, "pc-speaker-one-bit-bass");
+    ok &= expectPreset(chipper::ChipMode::pcSpeaker, "pc-speaker-beep-lead");
+    ok &= expectPreset(chipper::ChipMode::pcSpeaker, "pc-speaker-pitch-laser");
     ok &= expectMacroLabel(chipper::ChipMode::ym2612, chipper::MacroKind::bass, "OPN2 Feedback Bass");
     ok &= expectPreset(chipper::ChipMode::ym2612, "opn2-dac-kick");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Feedback");
@@ -1837,6 +1858,7 @@ int main()
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2149, "ym-three-voice-arp");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::sn76489, "sn-psg-lead");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::saa1099, "saa-square-bass");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::pcSpeaker, "pc-speaker-one-bit-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2612, "opn2-feedback-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::opl3, "opl2-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::spc700, "spc700-soft-bass");
@@ -1866,6 +1888,7 @@ int main()
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2413, 9u, 9u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::scc, 5u, 5u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::saa1099, 6u, 6u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::pcSpeaker, 1u, 1u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::paula, 4u, 4u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2203, 6u, 6u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::ym2608, 9u, 9u);
@@ -1883,6 +1906,10 @@ int main()
                                                   chipper::ChipParameterRole::source6Enabled,
                                                   chipper::ControlSurface::sourceCards),
                  "SAA1099 channel 6 should expose source cards");
+    ok &= expect(chipper::chipHasParameterSurface(chipper::ChipMode::pcSpeaker,
+                                                  chipper::ChipParameterRole::source1Enabled,
+                                                  chipper::ControlSurface::sourceCards),
+                 "PC Speaker lane should expose a source card");
     ok &= expect(chipper::chipHasParameterSurface(chipper::ChipMode::sid,
                                                   chipper::ChipParameterRole::source1Enabled,
                                                   chipper::ControlSurface::sourceCards),

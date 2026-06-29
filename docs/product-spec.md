@@ -14,12 +14,13 @@ The plugin must not use generic retro oscillators with famous chip labels. Each 
 - **YM2149/AY:** three square tone channels backed by `emu2149`, shared noise, mixer bits, hardware envelope shapes, buzzy arcade/computer character.
 - **SN76489:** three tone channels, noise modes, attenuation, Sega PSG behavior. The current partial core is backed by vendored MIT emu76489.
 - **Philips SAA1099:** six square tone channels, stereo amplitude nibbles, two shared noise generators, envelope groups, and SAM Coupe-style PSG character.
+- **PC Speaker:** one-bit PIT channel 2 beeper output, port `0x61` gate/data behavior, direct-click SFX, one speaker source lane, and DOS-style beeps.
 - **YM2612/OPN2:** six-channel FM, operators, algorithms, feedback, LFO, DAC behavior, stereo.
 - **YM2203/OPN:** three-channel FM plus three embedded SSG tone lanes backed by `ymfm`, shared OPN operator controls, algorithm/feedback, source-card mixing, and PC-88/arcade-style presets. SSG noise/envelope controls remain a follow-up.
 - **YM2608/OPNA:** six-channel FM plus three embedded SSG tone lanes backed by `ymfm`, shared OPN-family operator controls, algorithm/feedback, pan, source-card mixing, and PC-98-style presets. Native rhythm, ADPCM-A, ADPCM-B, and SSG noise/envelope controls remain follow-ups.
 - **YM2610/OPNB:** four-channel FM plus three embedded SSG tone lanes backed by `ymfm`, shared OPN-family operator controls, algorithm/feedback, pan, source-card mixing, and Neo Geo-style presets. External ADPCM-A/B, YM2610B/OPNB2 six-FM behavior, and SSG noise/envelope controls remain follow-ups.
 - **OPL2/OPL3:** two-operator FM, rhythm mode, waveform variants, envelopes, stereo for OPL3.
-- **Expansion:** SPC700-style sample playback, Paula, HuC6280 wavetable, Namco WSG, YM2151, YM2413/OPLL, NES expansion chips, Philips SAA1099, Konami SCC, and additional Yamaha FM families. SPC700-style, POKEY, Paula, HuC6280, Namco WSG, SAA1099, YM2151, YM2203/OPN, YM2608/OPNA, YM2610/OPNB, YM2413/OPLL, NES + VRC6/FDS/Sunsoft 5B/MMC5/VRC7, and SCC have started as audible partial expansion cores; YM2151, YM2203, YM2608, and YM2610 are backed by vendored BSD-3-Clause `ymfm`, and YM2413/OPLL plus NES + VRC7 use vendored MIT emu2413.
+- **Expansion:** SPC700-style sample playback, Paula, HuC6280 wavetable, Namco WSG, YM2151, YM2413/OPLL, NES expansion chips, Philips SAA1099, PC Speaker, Konami SCC, and additional Yamaha FM families. SPC700-style, POKEY, Paula, HuC6280, Namco WSG, SAA1099, PC Speaker, YM2151, YM2203/OPN, YM2608/OPNA, YM2610/OPNB, YM2413/OPLL, NES + VRC6/FDS/Sunsoft 5B/MMC5/VRC7, and SCC have started as audible partial expansion cores; YM2151, YM2203, YM2608, and YM2610 are backed by vendored BSD-3-Clause `ymfm`, and YM2413/OPLL plus NES + VRC7 use vendored MIT emu2413.
 
 Behavior strictness levels exposed in the instrument:
 
@@ -31,7 +32,7 @@ Verification labels are separate from that control. The footer, renderer debug J
 
 ## Parameter List
 
-- Chip Mode: NES/RP2A03, Game Boy/DMG, SID/C64, YM2149/AY, SN76489, YM2612, OPL2/OPL3, SPC700, POKEY, Paula, HuC6280, Namco WSG, YM2151, YM2413/OPLL, SCC, YM2203/OPN, NES + VRC6, YM2608/OPNA, YM2610/OPNB, NES + FDS, NES + Sunsoft 5B, NES + MMC5, NES + VRC7, Philips SAA1099
+- Chip Mode: NES/RP2A03, Game Boy/DMG, SID/C64, YM2149/AY, SN76489, YM2612, OPL2/OPL3, SPC700, POKEY, Paula, HuC6280, Namco WSG, YM2151, YM2413/OPLL, SCC, YM2203/OPN, NES + VRC6, YM2608/OPNA, YM2610/OPNB, NES + FDS, NES + Sunsoft 5B, NES + MMC5, NES + VRC7, Philips SAA1099, PC Speaker
 - Strictness: Inspired, Hybrid, Authentic. This is a requested behavior mode, not the verification claim; footer badges and renderer debug JSON report what is actually proven. The stable host/MIDI parameter remains named `Behavior Strictness`.
 - Play Mode: Big Mono, Chip Poly where the selected chip has tested finite-channel allocation; Manual and Clone are reserved until tracker routing and hybrid engine cloning are implemented.
 - Output Level
@@ -45,7 +46,7 @@ Verification labels are separate from that control. The footer, renderer debug J
 - Arp, retrigger, pitch motion, vibrato, glide, output trim
 - Debug/validation export controls in the renderer, not the VST audio thread
 
-All current VST parameters have fixed default MIDI CC mappings. Chip-aware controls use the same stable APVTS parameters for UI, host automation, preset recall, and MIDI CC control; register-style choices quantize to legal chip values instead of exposing fake continuous states. Current examples include NES Pulse 2 Duty override bits, DMG Pulse 2 Duty / `NR21` override bits, NES `$4011` DMC Direct Level, shared Sample Slot control for manual DMC/SPC700/Paula bank browsing, per-voice Sample Slot pins for SPC700 and Paula channel banks, NES `$4010` DMC Rate for matching DPCM sample clocking, NES `$4010` DMC Loop for one-shot versus looped playback, shared Sample Playback Mode for Manual Slot, mapped sample-bank playback, and NES Sample Map Only playback, shared Sample Bank Root for choosing the first MIDI note of the sample-bank map, SPC700 Loop Start/End controls for explicit normalized sample-loop ranges, DMG `NR32` Wave Level, the shared CC94 `Chip Choice / Route` slot for mode-specific choices such as DMG `NR51` Stereo Route, SID Model, SPC700/Paula sample lifetime, HuC6280 LFO mode, POKEY AUDCTL pairing, FM pan/routing, or final wavetable lane choices, independent SID 12-bit pulse-width controls for voices 1-3, SID `$D418` Filter Mode choices including combined LP/BP/HP bit outputs, per-voice SID AD/SR attack/decay/sustain/release nibble overrides, SID voice control-register sync/ring Osc Interaction, SID `$D417` Resonance, SID `$D417` voice filter routing, YM2149 register 7 per-channel A/B/C tone/noise mixer overrides, YM2612/YM2151/YM2203/YM2608/YM2610 per-operator Level trims that offset native FM total-level registers around the preset-resolved value, YM2612/YM2151/YM2203/YM2608/YM2610 per-operator Multiplier choices that write legal native multiplier nibbles while `Follow` preserves Operator Tone, YM2612/YM2151/YM2203/YM2608/YM2610 per-operator Attack Rate choices that write legal native AR values while `Follow` preserves the selected Envelope Shape, YM2612/YM2151/YM2203/YM2608/YM2610 per-operator Decay Rate choices that write legal native D1R/decay values while `Follow` preserves the selected Envelope Shape, YM2612/YM2151/YM2203/YM2608/YM2610 per-operator Sustain Rate choices that write legal native D2R values while `Follow` preserves the selected Envelope Shape, YM2612/YM2151/YM2203/YM2608/YM2610 per-operator Release Rate choices that write legal native RR values while preserving the preset-resolved sustain-level nibble, and YM2612/YM2151/YM2203/YM2608/YM2610 feedback menus that write native 0-7 feedback bits. Inherited register choices should be shown as chip-specific follow states such as `Preset` or `Follow`, not `Macro`, so users understand that the patch is following preset-resolved chip state rather than selecting zero/off/none. Envelope UI uses honest chip taxonomy: native ADSR/EG for SID, S-DSP/SPC700, and FM/operator chips; native envelope controls for NES, DMG, and AY/YM2149; and clearly labeled Chipper amp-envelope helpers for attenuation, sample, or wavetable chips that do not own ADSR hardware.
+All current VST parameters have fixed default MIDI CC mappings. Chip-aware controls use the same stable APVTS parameters for UI, host automation, preset recall, and MIDI CC control; register-style choices quantize to legal chip values instead of exposing fake continuous states. Current examples include NES Pulse 2 Duty override bits, DMG Pulse 2 Duty / `NR21` override bits, NES `$4011` DMC Direct Level, shared Sample Slot control for manual DMC/SPC700/Paula bank browsing, per-voice Sample Slot pins for SPC700 and Paula channel banks, NES `$4010` DMC Rate for matching DPCM sample clocking, NES `$4010` DMC Loop for one-shot versus looped playback, shared Sample Playback Mode for Manual Slot, mapped sample-bank playback, and NES Sample Map Only playback, shared Sample Bank Root for choosing the first MIDI note of the sample-bank map, SPC700 Loop Start/End controls for explicit normalized sample-loop ranges, DMG `NR32` Wave Level, the shared CC94 `Chip Choice / Route` slot for mode-specific choices such as DMG `NR51` Stereo Route, SID Model, SPC700/Paula sample lifetime, HuC6280 LFO mode, POKEY AUDCTL pairing, FM pan/routing, or final wavetable lane choices, independent SID 12-bit pulse-width controls for voices 1-3, SID `$D418` Filter Mode choices including combined LP/BP/HP bit outputs, per-voice SID AD/SR attack/decay/sustain/release nibble overrides, SID voice control-register sync/ring Osc Interaction, SID `$D417` Resonance, SID `$D417` voice filter routing, YM2149 register 7 per-channel A/B/C tone/noise mixer overrides, PC Speaker Mode over the shared Wave Shape slot for PIT Tone, Direct Click, Tone+Click, and Gate Burst behavior, YM2612/YM2151/YM2203/YM2608/YM2610 per-operator Level trims that offset native FM total-level registers around the preset-resolved value, YM2612/YM2151/YM2203/YM2608/YM2610 per-operator Multiplier choices that write legal native multiplier nibbles while `Follow` preserves Operator Tone, YM2612/YM2151/YM2203/YM2608/YM2610 per-operator Attack Rate choices that write legal native AR values while `Follow` preserves the selected Envelope Shape, YM2612/YM2151/YM2203/YM2608/YM2610 per-operator Decay Rate choices that write legal native D1R/decay values while `Follow` preserves the selected Envelope Shape, YM2612/YM2151/YM2203/YM2608/YM2610 per-operator Sustain Rate choices that write legal native D2R values while `Follow` preserves the selected Envelope Shape, YM2612/YM2151/YM2203/YM2608/YM2610 per-operator Release Rate choices that write legal native RR values while preserving the preset-resolved sustain-level nibble, and YM2612/YM2151/YM2203/YM2608/YM2610 feedback menus that write native 0-7 feedback bits. Inherited register choices should be shown as chip-specific follow states such as `Preset` or `Follow`, not `Macro`, so users understand that the patch is following preset-resolved chip state rather than selecting zero/off/none. Envelope UI uses honest chip taxonomy: native ADSR/EG for SID, S-DSP/SPC700, and FM/operator chips; native envelope controls for NES, DMG, and AY/YM2149; and clearly labeled Chipper amp-envelope helpers for attenuation, sample, wavetable, and PC Speaker gate-decay helpers that do not own ADSR hardware.
 
 Controls should only become visible when they have an engine mapping, stable parameter identity, preset/save-state behavior, and at least targeted renderer or descriptor coverage. Placeholder prose can describe planned chip work, but fake knobs or empty helper modules are worse than honest absence. Planning docs follow the same rule: active tasks describe the next user-visible capability, while fixed regressions point to their release gate in `docs/release-builds.md`.
 
@@ -69,6 +70,11 @@ Retired or unknown chip IDs are migration fallbacks only. They should never be a
 - SAA1099 Arps
 - SAA1099 Keys
 - SAA1099 Drums
+- PC Speaker Bass
+- PC Speaker Leads
+- PC Speaker Arps
+- PC Speaker Keys
+- PC Speaker Drums
 - SNES SPC700-style
 - Atari POKEY
 - Amiga Paula
@@ -157,6 +163,18 @@ Every shipped factory preset must appear in that catalog, include chip/category/
 - SAA Noise Drum
 - SAA Coin Ping
 - SAA Pitch Laser
+- PC One-Bit Bass
+- PC Sub Pulse
+- PC Beep Lead
+- PC Duty Lead
+- PC Rapid Arp
+- PC Gate Arp
+- PC Click Keys
+- PC PIT Pluck
+- PC Click Drum
+- PC Gate Hit
+- PC Coin Blip
+- PC Pitch Laser
 - SPC700 Soft Bass
 - SPC700 Bell Lead
 - SPC700 Voice Arp

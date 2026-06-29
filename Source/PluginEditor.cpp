@@ -206,6 +206,7 @@ ChipUiTheme chipThemeFor(chipper::ChipMode mode)
         case chipper::ChipMode::ym2149:
         case chipper::ChipMode::sn76489:
         case chipper::ChipMode::saa1099:
+        case chipper::ChipMode::pcSpeaker:
             return { juce::Colour(0xff101317), juce::Colour(0xff182027), juce::Colour(0xff151b20),
                      juce::Colour(0xff364858), juce::Colour(0xff202a32), juce::Colour(0xff5fd3ff),
                      juce::Colour(0xffffd24d), juce::Colour(0xffe1e8ec), juce::Colour(0xffabb9c0),
@@ -382,6 +383,7 @@ int chipModeChoiceIndex(chipper::ChipMode mode)
         case chipper::ChipMode::nesMmc5: return 21;
         case chipper::ChipMode::nesVrc7: return 22;
         case chipper::ChipMode::saa1099: return 23;
+        case chipper::ChipMode::pcSpeaker: return 24;
     }
 
     return 0;
@@ -8300,6 +8302,9 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
     if (mode == chipper::ChipMode::saa1099)
         return label + " -> six stereo PSG lanes | " + snNoiseModeReadout(patch) + " | Env " + ymEnvelopeShapeReadout(patch.ymEnvelopeShape) + laneText;
 
+    if (mode == chipper::ChipMode::pcSpeaker)
+        return label + " -> PIT ch2 beeper | " + waveShapeReadout(mode, patch.waveShape) + " | click grit " + juce::String(patch.control3, 2) + laneText;
+
     if (mode == chipper::ChipMode::sid)
         return label + " -> " + sidModelReadout(patch) + " | " + sidVoiceWaveSummary(patch) + " | " + sidFilterModeReadout(patch) + " | " + sidModModeReadout(patch) + laneText;
 
@@ -8367,6 +8372,12 @@ juce::String ChipperAudioProcessorEditor::performanceMacroDestination(chipper::C
         case chipper::ChipMode::saa1099:
         {
             static constexpr std::array<const char*, 4> labels { "Ch spread", "Freq/octave", "Dual noise", "L/R level" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::pcSpeaker:
+        {
+            static constexpr std::array<const char*, 4> labels { "Pulse width", "PIT sweep", "Click grit", "Gate level" };
             return labels[std::min(index, labels.size() - 1u)];
         }
 
@@ -8606,6 +8617,20 @@ juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mod
             "VRC7 patch 15 electric guitar"
         };
         return labels[static_cast<size_t>(std::clamp(choice, 0, 15))];
+    }
+
+    if (mode == chipper::ChipMode::pcSpeaker)
+    {
+        switch (std::clamp(choice, 0, 4))
+        {
+            case 1: return "PIT channel 2 tone";
+            case 2: return "Direct speaker-data click";
+            case 3: return "PIT tone plus click grit";
+            case 4: return "One-bit gate burst";
+            case 0:
+            default:
+                return "Preset PC Speaker mode";
+        }
     }
 
     if (mode == chipper::ChipMode::sid)
@@ -9516,6 +9541,9 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
     if (mode == chipper::ChipMode::saa1099)
         return "Ch " + number
             + " | stereo PSG V" + juce::String(static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f)));
+
+    if (mode == chipper::ChipMode::pcSpeaker)
+        return "Speaker | PIT";
 
     if (mode == chipper::ChipMode::spc700)
         return sampleSourceCardLabel(mode, patch, index);
@@ -10905,6 +10933,17 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 8 | hidden",
         "Source 9 | hidden"
     };
+    static const std::array<const char*, sourceChannelCount> pcSpeakerLabels {
+        "Speaker | PIT ch2",
+        "Source 2 | hidden",
+        "Source 3 | hidden",
+        "Source 4 | hidden",
+        "Source 5 | hidden",
+        "Source 6 | hidden",
+        "Source 7 | hidden",
+        "Source 8 | hidden",
+        "Source 9 | hidden"
+    };
     static const std::array<const char*, sourceChannelCount> sidBigMonoLabels {
         "Voice 1 | lead",
         "Voice 2 | detune",
@@ -11038,6 +11077,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         labels = playMode == chipper::PlayMode::chipPoly ? &snChipPolyLabels : &snBigMonoLabels;
     else if (mode == chipper::ChipMode::saa1099)
         labels = playMode == chipper::PlayMode::chipPoly ? &saaChipPolyLabels : &saaBigMonoLabels;
+    else if (mode == chipper::ChipMode::pcSpeaker)
+        labels = &pcSpeakerLabels;
     else if (mode == chipper::ChipMode::sid)
         labels = playMode == chipper::PlayMode::chipPoly ? &sidChipPolyLabels : &sidBigMonoLabels;
     else if (mode == chipper::ChipMode::pokey)
@@ -11310,6 +11351,21 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
             + ": frequency/octave tone lane with stereo amplitude nibbles."
             + "\nNoise: " + snNoiseModeReadout(patch)
             + "\nEnvelope: " + ymEnvelopeShapeReadout(patch.ymEnvelopeShape);
+    }
+    else if (mode == chipper::ChipMode::pcSpeaker)
+    {
+        const auto speakerMode = std::clamp(patch.waveShape, 0, 4);
+        if (speakerMode == 2)
+            shape = ChipWaveformPreviewShape::noise;
+        else if (speakerMode == 3 || speakerMode == 4 || patch.macro == chipper::MacroKind::laser || patch.macro == chipper::MacroKind::hit)
+            shape = ChipWaveformPreviewShape::toneNoise;
+        else
+            shape = ChipWaveformPreviewShape::pulse;
+        duty = 0.25f + (std::clamp(patch.control1, 0.0f, 1.0f) * 0.5f);
+        tooltip = juce::String("PC Speaker PIT channel 2 one-bit output.")
+            + "\nMode: " + waveShapeReadout(mode, patch.waveShape)
+            + "\nClick grit " + juce::String(patch.control3, 2)
+            + " | gate level " + juce::String(static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f))) + "/15";
     }
     else if (mode == chipper::ChipMode::pokey)
     {
@@ -13467,6 +13523,14 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[1].setText(macroReadout(1, snMotionReadout(patch.control2)), juce::dontSendNotification);
         controlValueLabels[2].setText(macroReadout(2, snNoiseModeReadout(patch)), juce::dontSendNotification);
         controlValueLabels[3].setText(macroReadout(3, snLevelReadout(patch.control4)), juce::dontSendNotification);
+        updateSourceChannelButtons(mode);
+    }
+    else if (mode == chipper::ChipMode::pcSpeaker)
+    {
+        controlValueLabels[0].setText(macroReadout(0, "Duty " + juce::String(static_cast<int>(std::round((0.25f + patch.control1 * 0.5f) * 100.0f))) + "%"), juce::dontSendNotification);
+        controlValueLabels[1].setText(macroReadout(1, "PIT motion " + juce::String(patch.control2, 2)), juce::dontSendNotification);
+        controlValueLabels[2].setText(macroReadout(2, "Click grit " + juce::String(patch.control3, 2)), juce::dontSendNotification);
+        controlValueLabels[3].setText(macroReadout(3, "Gate level " + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15"), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
     else if (mode == chipper::ChipMode::sid)
