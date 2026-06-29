@@ -892,6 +892,25 @@ const std::vector<PresetInfo>& presetCatalog()
             3579545.0
         },
         {
+            "scc-noise-click-drum",
+            "Konami SCC",
+            "SCC Noise Click Drum",
+            "Short SCC stepped-wave noise click for crunchy Konami percussion.",
+            ChipMode::scc,
+            AccuracyMode::hybrid,
+            MacroKind::drum,
+            PlayMode::stack,
+            { 0.22f, 0.16f, 0.92f, 0.78f },
+            { false, false, true, true },
+            0.74f,
+            4,
+            0,
+            0,
+            -12.0f,
+            3579545.0,
+            0.14f
+        },
+        {
             "scc-shimmer-chord",
             "Konami SCC",
             "SCC Shimmer Chord",
