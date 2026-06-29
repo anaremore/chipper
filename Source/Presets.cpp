@@ -6157,7 +6157,223 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             -12.0f,
             1789773.0
-        }, 0.18f, 0.0f, 0.0f, 0.0f)
+        }, 0.18f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "fds-wave-bass",
+            "NES + FDS Bass",
+            "FDS Wave Bass",
+            "Rounded FDS wavetable bass with a quiet triangle shadow and restrained APU edge.",
+            ChipMode::nesFds,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::stack,
+            { 0.46f, 0.18f, 0.06f, 0.82f },
+            { true, false, true, false },
+            0.0f,
+            2,
+            0,
+            0,
+            -10.5f,
+            1789773.0
+        }, 0.14f, 0.0f, 0.18f, 0.0f),
+        withSourceLevels({
+            "fds-mod-lead",
+            "NES + FDS Leads",
+            "FDS Mod Lead",
+            "Bright FDS wavetable lead with musical modulation over a light NES pulse anchor.",
+            ChipMode::nesFds,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.62f, 0.62f, 0.28f, 0.78f },
+            { true, true, true, false },
+            0.0f,
+            1,
+            0,
+            0,
+            -11.0f,
+            1789773.0
+        }, 0.20f, 0.14f, 0.10f, 0.0f),
+        withSourceLevels({
+            "fds-liquid-arp",
+            "NES + FDS Arps",
+            "FDS Liquid Arp",
+            "Four-voice chip-poly arp allocating pulse, pulse, triangle, and FDS wavetable lanes.",
+            ChipMode::nesFds,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.56f, 0.78f, 0.34f, 0.70f },
+            { true, true, true, false },
+            0.0f,
+            4,
+            0,
+            0,
+            -11.5f,
+            1789773.0
+        }, 0.22f, 0.18f, 0.16f, 0.0f),
+        withSourceLevels({
+            "fds-soft-keys",
+            "NES + FDS Keys",
+            "FDS Soft Keys",
+            "Soft FDS wave keys with low APU support for clean chip-poly chords.",
+            ChipMode::nesFds,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::chipPoly,
+            { 0.50f, 0.38f, 0.18f, 0.62f },
+            { true, true, true, false },
+            0.18f,
+            1,
+            0,
+            0,
+            -11.0f,
+            1789773.0
+        }, 0.12f, 0.10f, 0.12f, 0.0f),
+        withSourceLevels({
+            "fds-coin-pluck",
+            "Arcade UI",
+            "FDS Coin Pluck",
+            "Short FDS pluck for menu confirms and pickups, with a clipped pulse accent.",
+            ChipMode::nesFds,
+            AccuracyMode::hybrid,
+            MacroKind::coin,
+            PlayMode::stack,
+            { 0.18f, 0.90f, 0.18f, 0.78f },
+            { true, false, false, false },
+            0.12f,
+            3,
+            0,
+            0,
+            -12.0f,
+            1789773.0
+        }, 0.16f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "fds-mod-sweep",
+            "NES + FDS Leads",
+            "FDS Mod Lead Sweep",
+            "FDS modulation sweep with a small NES noise bite for classic game transitions.",
+            ChipMode::nesFds,
+            AccuracyMode::hybrid,
+            MacroKind::laser,
+            PlayMode::stack,
+            { 0.28f, 0.96f, 0.64f, 0.88f },
+            { true, true, false, true },
+            0.22f,
+            4,
+            0,
+            0,
+            -11.5f,
+            1789773.0
+        }, 0.16f, 0.10f, 0.0f, 0.12f),
+        withSourceLevels({
+            "fds-power-rise",
+            "NES + FDS Arps",
+            "FDS Power Rise",
+            "Optimistic rising FDS modulation recipe with pulse sparkle and triangle lift.",
+            ChipMode::nesFds,
+            AccuracyMode::hybrid,
+            MacroKind::powerUp,
+            PlayMode::stack,
+            { 0.70f, 0.88f, 0.34f, 0.88f },
+            { true, true, true, false },
+            0.12f,
+            4,
+            0,
+            0,
+            -11.0f,
+            1789773.0
+        }, 0.18f, 0.14f, 0.14f, 0.0f),
+        withSourceLevels({
+            "fds-dream-pad",
+            "NES + FDS Keys",
+            "FDS Dream Pad",
+            "Gentle FDS stepped-wave pad recipe with slow decay and a subtle APU bed.",
+            ChipMode::nesFds,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.38f, 0.36f, 0.22f, 0.56f },
+            { true, true, true, false },
+            0.34f,
+            1,
+            0,
+            0,
+            -12.0f,
+            1789773.0
+        }, 0.08f, 0.08f, 0.10f, 0.0f),
+        withNesDmcDirect({
+            "fds-thump-drum",
+            "NES + FDS Drums",
+            "FDS Thump Drum",
+            "Noise/DMC drum preset with FDS kept available for short tonal thumps in a kit.",
+            ChipMode::nesFds,
+            AccuracyMode::hybrid,
+            MacroKind::drum,
+            PlayMode::stack,
+            { 0.34f, 0.14f, 0.84f, 0.42f },
+            { false, false, true, true },
+            0.78f,
+            1,
+            0,
+            0,
+            -11.0f,
+            1789773.0
+        }, 0.32f),
+        withSourceLevels({
+            "fds-impact-hit",
+            "NES + FDS Drums",
+            "FDS Impact Hit",
+            "Short FDS impact hit with APU noise grit and a tight wave transient.",
+            ChipMode::nesFds,
+            AccuracyMode::hybrid,
+            MacroKind::hit,
+            PlayMode::stack,
+            { 0.42f, 0.40f, 0.72f, 0.76f },
+            { true, false, true, true },
+            0.46f,
+            4,
+            0,
+            0,
+            -11.5f,
+            1789773.0
+        }, 0.18f, 0.0f, 0.14f, 0.16f),
+        withSourceLevels({
+            "fds-wobble-bass",
+            "NES + FDS Bass",
+            "FDS Wobble Bass",
+            "Modulated FDS bass with pulse definition and a softened triangle underpinning.",
+            ChipMode::nesFds,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::chipPoly,
+            { 0.36f, 0.70f, 0.18f, 0.84f },
+            { true, true, true, false },
+            0.0f,
+            2,
+            0,
+            0,
+            -10.5f,
+            1789773.0
+        }, 0.16f, 0.08f, 0.18f, 0.0f),
+        withSourceLevels({
+            "fds-jump-blip",
+            "Arcade UI",
+            "FDS Jump Blip",
+            "Quick upward FDS wave gesture for platformer jumps and motion cues.",
+            ChipMode::nesFds,
+            AccuracyMode::hybrid,
+            MacroKind::jump,
+            PlayMode::stack,
+            { 0.22f, 0.72f, 0.18f, 0.84f },
+            { true, false, false, false },
+            0.12f,
+            3,
+            0,
+            0,
+            -12.0f,
+            1789773.0
+        }, 0.14f, 0.0f, 0.0f, 0.0f)
     };
 
     return presets;
@@ -6183,6 +6399,7 @@ const std::vector<PresetQualityTarget>& presetQualityTargets()
     static const std::vector<PresetQualityTarget> targets {
         { ChipMode::nes, roles, { "apu", "pulse", "triangle", "noise", "dmc", "dac", "tracker" }, "Furnace-informed RP2A03 coverage: melodic pulse/triangle, DMC/noise percussion, UI and game SFX." },
         { ChipMode::nesVrc6, roles, { "apu", "vrc6", "pulse", "saw", "triangle", "noise", "dmc", "expansion" }, "Furnace-informed NES expansion coverage: VRC6 pulse/saw leads, basses, arps, keys, percussion, and SFX." },
+        { ChipMode::nesFds, roles, { "apu", "fds", "wavetable", "wave", "modulation", "triangle", "noise", "dmc", "expansion" }, "Furnace-informed NES expansion coverage: FDS wavetable/mod leads, basses, arps, keys, percussion, and SFX." },
         { ChipMode::dmg, roles, { "apu", "pulse", "wave", "noise", "duty", "stereo", "sweep" }, "Furnace-informed DMG coverage: pulse leads, wave bass/keys, noise drums, handheld SFX." },
         { ChipMode::sid, roles, { "sid", "filter", "pwm", "sync", "ring", "noise", "pulse" }, "Furnace-informed SID coverage: bass, PWM leads, filter keys, oscillator interaction, and noise hits." },
         { ChipMode::ym2149, roles, { "psg", "noise", "envelope", "chord", "tracker" }, "Furnace-informed AY/YM coverage: tone stacks, envelope tricks, fake chords, and noise percussion." },
@@ -6285,6 +6502,7 @@ std::string presetEngineFor(const PresetInfo& preset)
     {
         case ChipMode::nes: return "RP2A03 APU";
         case ChipMode::nesVrc6: return "RP2A03 + VRC6";
+        case ChipMode::nesFds: return "RP2A03 + FDS";
         case ChipMode::dmg: return "DMG APU";
         case ChipMode::sid: return "MOS SID";
         case ChipMode::ym2149: return "AY/YM PSG";
@@ -6320,11 +6538,19 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
     {
         case ChipMode::nes:
         case ChipMode::nesVrc6:
+        case ChipMode::nesFds:
         case ChipMode::dmg:
             addPresetTag(tags, "apu");
             if (preset.chip == ChipMode::nesVrc6)
             {
                 addPresetTag(tags, "vrc6");
+                addPresetTag(tags, "expansion");
+            }
+            if (preset.chip == ChipMode::nesFds)
+            {
+                addPresetTag(tags, "fds");
+                addPresetTag(tags, "wavetable");
+                addPresetTag(tags, "modulation");
                 addPresetTag(tags, "expansion");
             }
             break;
@@ -6369,7 +6595,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
             break;
     }
 
-    if ((preset.chip == ChipMode::nes || preset.chip == ChipMode::nesVrc6) && preset.nesDmcDirectLevel > 0.0001f)
+    if ((preset.chip == ChipMode::nes || preset.chip == ChipMode::nesVrc6 || preset.chip == ChipMode::nesFds) && preset.nesDmcDirectLevel > 0.0001f)
     {
         addPresetTag(tags, "dmc");
         addPresetTag(tags, "dac");
@@ -6389,7 +6615,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
         addPresetTag(tags, "noise");
 
     const auto corpus = presetCorpus(preset);
-    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "ssg", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade", "neo" })
+    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "wavetable", "mod", "modulation", "fds", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "ssg", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade", "neo" })
     {
         if (presetCorpusContains(corpus, token))
             addPresetTag(tags, token);

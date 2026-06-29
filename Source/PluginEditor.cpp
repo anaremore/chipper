@@ -134,7 +134,7 @@ struct ChipUiTheme
 
 bool isNesFamily(chipper::ChipMode mode)
 {
-    return mode == chipper::ChipMode::nes || mode == chipper::ChipMode::nesVrc6;
+    return mode == chipper::ChipMode::nes || mode == chipper::ChipMode::nesVrc6 || mode == chipper::ChipMode::nesFds;
 }
 
 ChipUiTheme chipThemeFor(chipper::ChipMode mode)
@@ -158,6 +158,7 @@ ChipUiTheme chipThemeFor(chipper::ChipMode mode)
     {
         case chipper::ChipMode::nes:
         case chipper::ChipMode::nesVrc6:
+        case chipper::ChipMode::nesFds:
             return { juce::Colour(0xff0f1112), juce::Colour(0xff171b1d), juce::Colour(0xff151819),
                      juce::Colour(0xff4f5a60), juce::Colour(0xff202426), juce::Colour(0xffff5a2f),
                      juce::Colour(0xff4fd3dd), juce::Colour(0xffececec), juce::Colour(0xffb9c0c4),
@@ -277,6 +278,7 @@ void drawChipIdentityAccent(juce::Graphics& g, juce::Rectangle<int> bounds, chip
         }
         case chipper::ChipMode::nes:
         case chipper::ChipMode::nesVrc6:
+        case chipper::ChipMode::nesFds:
         {
             g.setColour(theme.primary.withAlpha(0.92f));
             g.fillRect(stripeX, stripeY, stripeW * 0.64f, 4.0f);
@@ -363,6 +365,7 @@ int chipModeChoiceIndex(chipper::ChipMode mode)
         case chipper::ChipMode::nesVrc6: return 16;
         case chipper::ChipMode::ym2608: return 17;
         case chipper::ChipMode::ym2610: return 18;
+        case chipper::ChipMode::nesFds: return 19;
     }
 
     return 0;
@@ -4028,7 +4031,7 @@ void ChipperAudioProcessorEditor::resized()
 
     constexpr auto footerReserve = 44;
     const auto nesLayout = isNesFamily(displayedMode);
-    const auto nesExpansionLayout = displayedMode == chipper::ChipMode::nesVrc6;
+    const auto nesExpansionLayout = isNesFamily(displayedMode) && chipper::visibleSourceCountForMode(displayedMode) > 4u;
     const auto sidLayout = displayedMode == chipper::ChipMode::sid;
     const auto dmgLayout = displayedMode == chipper::ChipMode::dmg;
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
@@ -4343,7 +4346,7 @@ void ChipperAudioProcessorEditor::resized()
     const auto visibleSourceCards = chipper::visibleSourceCountForMode(displayedMode);
     const auto useSpc700VoiceGrid = displayedMode == chipper::ChipMode::spc700 && visibleSourceCards > 4u;
     const auto usePaulaVoiceGrid = displayedMode == chipper::ChipMode::paula && visibleSourceCards > 2u;
-    const auto useNesExpansionVoiceGrid = displayedMode == chipper::ChipMode::nesVrc6 && visibleSourceCards > 4u;
+    const auto useNesExpansionVoiceGrid = isNesFamily(displayedMode) && visibleSourceCards > 4u;
     const auto useWavetableVoiceGrid = (displayedMode == chipper::ChipMode::huc6280
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
@@ -8254,6 +8257,9 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
     if (! chipper::descriptorFor(mode).implemented)
         return label + ": " + juce::String(templ.help) + " Audio core not integrated yet.";
 
+    if (mode == chipper::ChipMode::nesFds)
+        return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | FDS " + waveShapeReadout(mode, patch.waveShape) + " | " + nesFocusReadout(patch.control4) + laneText;
+
     if (isNesFamily(mode))
         return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | " + nesNoiseModeReadout(patch) + " | " + nesFocusReadout(patch.control4) + laneText;
 
@@ -9465,6 +9471,9 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
     if (mode == chipper::ChipMode::scc)
         return wavetableSourceCardLabel(mode, patch, index);
 
+    if (mode == chipper::ChipMode::nesFds && index == 4u)
+        return "FDS Wave | " + waveShapeReadout(mode, patch.waveShape);
+
     if (mode == chipper::ChipMode::ym2413)
         return "OPLL " + number + " | I" + juce::String(static_cast<int>(chipper::ym2413InstrumentForPatch(patch)))
             + " V" + juce::String(static_cast<int>(chipper::ym2413VolumeNibbleForPatch(patch, index)));
@@ -10635,6 +10644,28 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 8 | hidden",
         "Source 9 | hidden"
     };
+    static const std::array<const char*, sourceChannelCount> nesFdsBigMonoLabels {
+        "Pulse 1  |  duty lead",
+        "Pulse 2  |  stack / sweep",
+        "Triangle | bass body",
+        "Noise/DMC | snare / sample",
+        "FDS Wave | expansion",
+        "Source 6 | hidden",
+        "Source 7 | hidden",
+        "Source 8 | hidden",
+        "Source 9 | hidden"
+    };
+    static const std::array<const char*, sourceChannelCount> nesFdsChipPolyLabels {
+        "Pulse 1  |  note 1",
+        "Pulse 2  |  note 2",
+        "Triangle | note 3 bass",
+        "Noise/DMC | mono SFX",
+        "FDS Wave | note 4",
+        "Source 6 | hidden",
+        "Source 7 | hidden",
+        "Source 8 | hidden",
+        "Source 9 | hidden"
+    };
     static const std::array<const char*, sourceChannelCount> dmgBigMonoLabels {
         "Pulse 1  |  sweep voice",
         "Pulse 2  |  support pulse",
@@ -10816,7 +10847,9 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
     const auto playMode = chipper::parameters::playModeFromChoice(playModeChoice);
     const auto* labels = &nesBigMonoLabels;
 
-    if (isNesFamily(mode))
+    if (mode == chipper::ChipMode::nesFds)
+        labels = playMode == chipper::PlayMode::chipPoly ? &nesFdsChipPolyLabels : &nesFdsBigMonoLabels;
+    else if (isNesFamily(mode))
         labels = playMode == chipper::PlayMode::chipPoly ? &nesChipPolyLabels : &nesBigMonoLabels;
     else if (mode == chipper::ChipMode::dmg)
         labels = playMode == chipper::PlayMode::chipPoly ? &dmgChipPolyLabels : &dmgBigMonoLabels;
@@ -10973,6 +11006,14 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
         {
             shape = ChipWaveformPreviewShape::saw;
             tooltip = "VRC6 saw accumulator preview.";
+        }
+        else if (mode == chipper::ChipMode::nesFds && index == 4)
+        {
+            const auto choice = std::clamp(patch.waveShape, 0, 4);
+            shape = choice == 2 ? ChipWaveformPreviewShape::triangle
+                : (choice == 3 ? ChipWaveformPreviewShape::pulse
+                : (choice == 4 ? ChipWaveformPreviewShape::stepped : ChipWaveformPreviewShape::saw));
+            tooltip = "FDS 64-step wavetable expansion lane: " + waveShapeReadout(mode, patch.waveShape);
         }
     }
     else if (mode == chipper::ChipMode::dmg)

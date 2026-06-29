@@ -342,6 +342,29 @@ std::vector<MacroTemplate> nesVrc6Macros()
     return macros;
 }
 
+std::vector<MacroTemplate> nesFdsMacros()
+{
+    auto macros = nesMacros();
+    for (auto& macro : macros)
+    {
+        switch (macro.macro)
+        {
+            case MacroKind::manual: macro.label = "FDS Manual"; break;
+            case MacroKind::coin: macro.label = "FDS Coin Pluck"; break;
+            case MacroKind::bass: macro.label = "FDS Wave Bass"; break;
+            case MacroKind::lead: macro.label = "FDS Mod Lead"; break;
+            case MacroKind::arp: macro.label = "FDS Wave Arp"; break;
+            case MacroKind::drum: macro.label = "NES Noise Drum"; break;
+            case MacroKind::hit: macro.label = "FDS Impact Hit"; break;
+            case MacroKind::laser: macro.label = "FDS Mod Sweep"; break;
+            case MacroKind::jump: macro.label = "FDS Jump Blip"; break;
+            case MacroKind::powerUp: macro.label = "FDS Power Rise"; break;
+        }
+    }
+
+    return macros;
+}
+
 std::vector<MacroTemplate> dmgMacros()
 {
     return {
@@ -1866,6 +1889,33 @@ std::vector<ChipParameterSpec> nesVrc6ParameterSpecs()
     return specs;
 }
 
+std::vector<ChipParameterSpec> nesFdsParameterSpecs()
+{
+    auto specs = nesParameterSpecs();
+    specs.push_back(sourceSpec(ChipParameterRole::source5Enabled,
+                               "nes.fdsWave.enabled",
+                               "FDS Wave",
+                               "Enable the Famicom Disk System wavetable expansion lane."));
+    specs.push_back(sourceLevelSpec(ChipParameterRole::source5Level,
+                                    "nes.fdsWave.level",
+                                    "FDS Wave Level",
+                                    "Modern trim for the FDS wavetable expansion lane."));
+    specs.push_back(segmentedSpec(ChipParameterRole::waveShape,
+                                  "nes.fdsWave.shape",
+                                  "FDS Wave",
+                                  "Wave",
+                                  "Chooses the clean-room FDS 64-step wave RAM shape. Preset follows the selected macro recipe.",
+                                  {
+                                      choice("Preset", "Use the selected FDS macro recipe to fill the 64-step wave RAM.", 0.0f, 0),
+                                      choice("Sine", "Fill wave RAM with a rounded FDS-style sine table.", 0.25f, 1),
+                                      choice("Tri", "Fill wave RAM with a triangle table.", 0.50f, 2),
+                                      choice("Pulse", "Fill wave RAM with a pulse table; Noise Color changes width.", 0.75f, 3),
+                                      choice("Steps", "Fill wave RAM with a stepped modulation-friendly table.", 1.0f, 4)
+                                  },
+                                  ParameterKind::chipRegister));
+    return specs;
+}
+
 std::vector<ChipParameterSpec> dmgParameterSpecs()
 {
     return {
@@ -2809,6 +2859,18 @@ std::array<ModuleDescriptor, 6> nesVrc6Modules()
     };
 }
 
+std::array<ModuleDescriptor, 6> nesFdsModules()
+{
+    return std::array<ModuleDescriptor, 6> {
+        makeModule("profile", "Profile", "RP2A03 APU plus Famicom Disk System clean-room wavetable model.", { "2A03 + FDS", "NTSC clock default", "Hybrid default", "Authentic still partial" }),
+        makeModule("sources", "Channels", "Base NES lanes plus the FDS wavetable expansion lane.", { "Pulse 1/2", "Triangle", "Noise / DMC", "FDS wave" }),
+        makeModule("tone", "Wave / Mixer", "NES pulse/noise controls plus the FDS 64-step 6-bit wave RAM lane.", { "Pulse duty", "FDS wave RAM", "FDS mod table", "Nonlinear APU mixer" }),
+        makeModule("envelope", "APU / FDS Level", "Base APU envelope with FDS volume and gate behavior.", { "APU decay", "FDS volume", "Triangle linear counter", "Chip Poly" }),
+        makeModule("motion", "Motion", "Musical gestures write NES and FDS-style wave/modulation recipes.", { "FDS mod lead", "Wave bass", "Expansion arp", "Mod sweep" }),
+        makeModule("output", "DMC Sample", "NES DMC file/bank playback stays available while the FDS lane adds wavetable tone color.", { "DMC bank", "FDS mix", "Output gain", "Verified partial" })
+    };
+}
+
 std::array<ModuleDescriptor, 6> dmgModules()
 {
     return std::array<ModuleDescriptor, 6> {
@@ -3024,6 +3086,32 @@ const std::vector<ChipDescriptor>& descriptors()
                 {
                     "Exact VRC6 mapper bus timing, NSF register scheduling, saw accumulator edge timing, expansion-audio resistor mixing, and hardware capture comparison are not complete.",
                     "The VRC6 implementation is a musical expansion instrument slice, not a cycle-accurate NES mapper emulator."
+                })
+        },
+        {
+            ChipMode::nesFds,
+            "NES + FDS",
+            "Base RP2A03 lanes plus the Famicom Disk System 64-step wavetable/modulation expansion lane.",
+            {
+                { "duty", "Pulse Duty", "Channels", "Chooses the base pulse duty family while the FDS lane provides the wavetable color." },
+                { "motion", "Sweep / Mod", "Pitch", "Scales macro pitch rise/drop behavior and FDS modulation depth." },
+                { "noise", "Noise / Wave", "Tone", "Maps musical noise color to the RP2A03 noise period and FDS wave shape bias." },
+                { "mix", "Channel Focus", "Mixer", "Balances base APU focus and FDS expansion level." },
+            },
+            nesFdsModules(),
+            nesFdsMacros(),
+            true,
+            true,
+            nesFdsParameterSpecs(),
+            verifiedPartial(
+                {
+                    "Base RP2A03 behavior is shared with the tested NES mode.",
+                    "The FDS expansion lane renders as a clean-room 64-step 6-bit wavetable with a compact modulation table, source-card enable/level, pseudo-register export, debug JSON, and four-tone Chip Poly allocation that skips Noise/DMC.",
+                    "Renderer smoke, source gating, descriptor metadata, presets, and MIDI CC metadata cover the first playable FDS expansion slice."
+                },
+                {
+                    "Exact FDS 2C33 register timing, wave-RAM write timing, modulation-unit edge cases, master-volume nonlinearities, disk BIOS behavior, and expansion-audio resistor mixing are not complete.",
+                    "The FDS implementation is a musical expansion instrument slice, not a cycle-accurate Famicom Disk System emulator."
                 })
         },
         {
@@ -3572,6 +3660,7 @@ EnvelopeModel envelopeModelFor(ChipMode mode)
 
         case ChipMode::nes:
         case ChipMode::nesVrc6:
+        case ChipMode::nesFds:
         case ChipMode::dmg:
         case ChipMode::ym2149:
             return EnvelopeModel::nativeNonAdsr;
@@ -3648,6 +3737,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
         return 7u;
     if (mode == ChipMode::nesVrc6)
         return 7u;
+    if (mode == ChipMode::nesFds)
+        return 5u;
     return 4u;
 }
 
@@ -3668,6 +3759,7 @@ size_t nativeSourceCountForMode(ChipMode mode)
         case ChipMode::ym2608: return 9u;
         case ChipMode::ym2610: return 7u;
         case ChipMode::nesVrc6: return 7u;
+        case ChipMode::nesFds: return 5u;
         default: return visibleSourceCountForMode(mode);
     }
 }

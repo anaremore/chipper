@@ -2036,6 +2036,20 @@ public:
         vrc6SawAccumulator = 0;
         vrc6SawStep = 0;
         vrc6SawStepPhase = 0.0;
+        fdsWaveRam.fill(32);
+        fdsModTable.fill(0);
+        fdsPhase = 0.0;
+        fdsModPhase = 0.0;
+        fdsFrequency = 0;
+        fdsModFrequency = 0;
+        fdsVolume = 0;
+        fdsMasterVolume = 1;
+        fdsModDepth = 0;
+        fdsModAccumulator = 0;
+        fdsModIndex = 0;
+        fdsEnabled = false;
+        if (hasFds())
+            refreshFdsWaveRam();
         noteStamp = 0;
         dmcActive = false;
         dmcSampleCompleted = false;
@@ -2064,6 +2078,9 @@ public:
         {
             refreshActivePulseDuties();
         }
+
+        if (hasFds())
+            refreshFdsWaveRam();
     }
 
     void setExternalSampleData(std::vector<uint8_t> data) override
@@ -2239,6 +2256,8 @@ public:
         writeStatusRegister(static_cast<uint8_t>(enable), ! suppressDmcRestartOnNoteOn);
         if (hasVrc6())
             triggerVrc6Stack(p1Note, p2Note, triNote);
+        if (hasFds())
+            triggerFdsStack(p1Note, p2Note, triNote);
         updateTimers();
     }
 
@@ -2280,7 +2299,7 @@ public:
         const auto tndSum = tri / 8227.0 + noi / 12241.0 + dmc / 22638.0;
         const auto pulseOut = pulseSum <= 0.0 ? 0.0 : 95.88 / ((8128.0 / pulseSum) + 100.0);
         const auto tndOut = tndSum <= 0.0 ? 0.0 : 159.79 / ((1.0 / tndSum) + 100.0);
-        const auto expansionOut = hasVrc6() ? renderVrc6Mix() : 0.0;
+        const auto expansionOut = hasVrc6() ? renderVrc6Mix() : (hasFds() ? renderFdsWave() : 0.0);
         const auto mixed = static_cast<float>(applyOutputFilters(pulseOut + tndOut + (expansionOut * 0.04)) * 2.0);
         const auto outputGate = (dmcActive && noteVelocity <= 0.0f) ? 1.0f : noteVelocity;
         const auto scaled = mixed * outputGate;
@@ -2290,7 +2309,7 @@ public:
     std::vector<RegisterWrite> exportRegisterState() const override
     {
         std::vector<RegisterWrite> writes;
-        writes.reserve(regs.size() + (hasVrc6() ? 9u : 0u));
+        writes.reserve(regs.size() + (hasVrc6() ? 9u : 0u) + (hasFds() ? 72u : 0u));
         for (size_t i = 0; i < regs.size(); ++i)
             writes.push_back({ 0, static_cast<uint16_t>(0x4000 + i), regs[i] });
         if (hasVrc6())
@@ -2306,17 +2325,32 @@ public:
             writes.push_back({ 0, 0xb001, static_cast<uint8_t>(vrc6Timer[2] & 0xffu) });
             writes.push_back({ 0, 0xb002, static_cast<uint8_t>(((vrc6Timer[2] >> 8u) & 0x0fu) | (vrc6Enabled[2] ? 0x80u : 0x00u)) });
         }
+        if (hasFds())
+        {
+            for (size_t i = 0; i < fdsWaveRam.size(); ++i)
+                writes.push_back({ 0, static_cast<uint16_t>(0x4040u + i), fdsWaveRam[i] });
+            writes.push_back({ 0, 0x4080, static_cast<uint8_t>((fdsEnabled ? 0x80u : 0x00u) | (fdsVolume & 0x3fu)) });
+            writes.push_back({ 0, 0x4082, static_cast<uint8_t>(fdsFrequency & 0xffu) });
+            writes.push_back({ 0, 0x4083, static_cast<uint8_t>(((fdsFrequency >> 8u) & 0x0fu) | (fdsEnabled ? 0x80u : 0x00u)) });
+            writes.push_back({ 0, 0x4084, static_cast<uint8_t>(fdsModDepth & 0x3fu) });
+            writes.push_back({ 0, 0x4086, static_cast<uint8_t>(fdsModFrequency & 0xffu) });
+            writes.push_back({ 0, 0x4087, static_cast<uint8_t>(((fdsModFrequency >> 8u) & 0x0fu) | (fdsEnabled ? 0x80u : 0x00u)) });
+            writes.push_back({ 0, 0x4088, static_cast<uint8_t>(std::clamp<int>(fdsModTable[fdsModIndex] + 4, 0, 7)) });
+            writes.push_back({ 0, 0x4089, static_cast<uint8_t>(0x80u | (fdsMasterVolume & 0x03u)) });
+        }
         return writes;
     }
 
     ChipMode mode() const override { return selectedMode; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
-    std::string modeName() const override { return hasVrc6() ? "NES + VRC6" : "NES / RP2A03"; }
+    std::string modeName() const override { return hasVrc6() ? "NES + VRC6" : (hasFds() ? "NES + FDS" : "NES / RP2A03"); }
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
         if (hasVrc6())
             return "Base RP2A03 pulse, triangle, noise, DMC, nonlinear mixer, and output filters use the existing partial clean-room NES model. VRC6 pulse 1, pulse 2, and saw lanes are clean-room musical expansion oscillators with source-card gating, Chip Poly allocation, pseudo-register export, and conservative expansion mixing; exact mapper bus timing, NSF register sequencing, expansion mixing resistor values, and hardware validation are not complete.";
+        if (hasFds())
+            return "Base RP2A03 pulse, triangle, noise, DMC, nonlinear mixer, and output filters use the existing partial clean-room NES model. The Famicom Disk System expansion lane is a clean-room musical 64-step 6-bit wavetable with a compact modulation table, source-card gating, Chip Poly allocation, pseudo-register export, and conservative expansion mixing; exact 2C33 register timing, wave-RAM write timing, modulation unit edge cases, master-volume nonlinearities, disk BIOS behavior, and hardware validation are not complete.";
         return "Pulse, triangle, noise, timers, duty including explicit pulse 2 duty override, enable bits, simple envelopes, length counters, triangle linear counter, DMC direct DAC level, external DPCM byte stepping, basic pulse sweep updates/muting, $4017 frame-counter mode/inhibit behavior, nonlinear mixer, the documented NES output filter chain, and pulse/triangle allocation for Chip Poly play mode are approximated; exact DMC DMA/address/IRQ timing, exact frame sequencer cycle timing, advanced sweep edge cases, and hardware validation are not complete.";
     }
 
@@ -2327,7 +2361,7 @@ public:
              << "\"mode\":\"" << modeName() << "\","
              << "\"implementedAccuracy\":\"partial clean-room register-level\","
              << "\"clockHz\":" << clock << ","
-             << "\"expansion\":\"" << (hasVrc6() ? "VRC6" : "none") << "\","
+             << "\"expansion\":\"" << (hasVrc6() ? "VRC6" : (hasFds() ? "FDS" : "none")) << "\","
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"pulseTimer1\":" << timer[0] << ","
@@ -2367,6 +2401,22 @@ public:
                  << "\"assignedNoteVrc6Pulse1\":" << channelNotes[3] << ","
                  << "\"assignedNoteVrc6Pulse2\":" << channelNotes[4] << ","
                  << "\"assignedNoteVrc6Saw\":" << channelNotes[5] << ",";
+        }
+        if (hasFds())
+        {
+            json << "\"sourceEnabled5\":" << (sourceEnabled(patch, 4) ? 1 : 0) << ","
+                 << "\"sourceLevel5\":" << sourceLevel(patch, 4) << ","
+                 << "\"fdsWaveEnabled\":" << (fdsEnabled ? 1 : 0) << ","
+                 << "\"fdsFrequency\":" << fdsFrequency << ","
+                 << "\"fdsVolume\":" << static_cast<int>(fdsVolume) << ","
+                 << "\"fdsMasterVolume\":" << static_cast<int>(fdsMasterVolume) << ","
+                 << "\"fdsModDepth\":" << static_cast<int>(fdsModDepth) << ","
+                 << "\"fdsModFrequency\":" << fdsModFrequency << ","
+                 << "\"fdsModAccumulator\":" << fdsModAccumulator << ","
+                 << "\"fdsModIndex\":" << static_cast<int>(fdsModIndex) << ","
+                 << "\"fdsWaveIndex\":" << currentFdsWaveIndex() << ","
+                 << "\"fdsActiveMask\":" << fdsActiveMask() << ","
+                 << "\"assignedNoteFdsWave\":" << channelNotes[3] << ",";
         }
         json
              << "\"dmcDirectControl\":" << patch.nesDmcDirectLevel << ","
@@ -2920,10 +2970,242 @@ private:
         return selectedMode == ChipMode::nesVrc6;
     }
 
-    static size_t sourceIndexForChipPolyVoice(size_t voice)
+    bool hasFds() const
     {
-        static constexpr std::array<size_t, 6> sources { 0u, 1u, 2u, 4u, 5u, 6u };
-        return voice < sources.size() ? sources[voice] : voice;
+        return selectedMode == ChipMode::nesFds;
+    }
+
+    size_t chipPolyVoiceCount() const
+    {
+        if (hasVrc6())
+            return 6u;
+        if (hasFds())
+            return 4u;
+        return 3u;
+    }
+
+    size_t sourceIndexForChipPolyVoice(size_t voice) const
+    {
+        static constexpr std::array<size_t, 6> vrc6Sources { 0u, 1u, 2u, 4u, 5u, 6u };
+        if (hasVrc6())
+            return voice < vrc6Sources.size() ? vrc6Sources[voice] : voice;
+        if (hasFds() && voice == 3u)
+            return 4u;
+        return voice;
+    }
+
+    int fdsWaveShapeChoice() const
+    {
+        const auto explicitChoice = std::clamp(patch.waveShape, 0, 4);
+        if (explicitChoice > 0)
+            return explicitChoice;
+
+        switch (patch.macro)
+        {
+            case MacroKind::bass: return 2;
+            case MacroKind::lead:
+            case MacroKind::coin:
+            case MacroKind::jump: return 3;
+            case MacroKind::arp:
+            case MacroKind::powerUp: return 4;
+            case MacroKind::drum:
+            case MacroKind::hit: return 1;
+            case MacroKind::laser: return patch.control3 > 0.55f ? 4 : 3;
+            case MacroKind::manual:
+            default: return 1;
+        }
+    }
+
+    void refreshFdsWaveRam()
+    {
+        if (! hasFds())
+            return;
+
+        const auto choice = fdsWaveShapeChoice();
+        const auto skew = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
+        for (size_t i = 0; i < fdsWaveRam.size(); ++i)
+        {
+            const auto phaseValue = static_cast<double>(i) / static_cast<double>(fdsWaveRam.size());
+            auto sample = 32;
+            switch (choice)
+            {
+                case 2:
+                    sample = i < 32u
+                        ? static_cast<int>(std::round(63.0 * (static_cast<double>(i) / 31.0)))
+                        : static_cast<int>(std::round(63.0 * (1.0 - static_cast<double>(i - 32u) / 31.0)));
+                    break;
+                case 3:
+                    sample = i < static_cast<size_t>(std::round(8.0 + skew * 48.0)) ? 63 : 0;
+                    break;
+                case 4:
+                    sample = static_cast<int>((static_cast<unsigned>(i) * 9u + static_cast<unsigned>(std::round(skew * 23.0))) & 63u);
+                    break;
+                case 1:
+                default:
+                    sample = static_cast<int>(std::round(31.5 + 31.5 * std::sin(twoPi * phaseValue)));
+                    break;
+            }
+            fdsWaveRam[i] = static_cast<uint8_t>(std::clamp(sample, 0, 63));
+        }
+
+        refreshFdsModTable();
+    }
+
+    void refreshFdsModTable()
+    {
+        for (size_t i = 0; i < fdsModTable.size(); ++i)
+        {
+            auto value = 0;
+            const auto phaseValue = static_cast<double>(i) / static_cast<double>(fdsModTable.size());
+            switch (patch.macro)
+            {
+                case MacroKind::laser:
+                    value = static_cast<int>(std::round(4.0 - phaseValue * 8.0));
+                    break;
+                case MacroKind::powerUp:
+                case MacroKind::jump:
+                    value = static_cast<int>(std::round(-3.0 + phaseValue * 6.0));
+                    break;
+                case MacroKind::arp:
+                    value = (i % 4u) < 2u ? 2 : -2;
+                    break;
+                case MacroKind::hit:
+                case MacroKind::drum:
+                    value = (static_cast<int>(i * 5u) & 7) - 3;
+                    break;
+                case MacroKind::lead:
+                    value = static_cast<int>(std::round(std::sin(twoPi * phaseValue) * 3.0));
+                    break;
+                case MacroKind::coin:
+                    value = i < 8u ? 3 : (i < 16u ? 1 : -1);
+                    break;
+                case MacroKind::bass:
+                case MacroKind::manual:
+                default:
+                    value = static_cast<int>(std::round(std::sin(twoPi * phaseValue) * 1.5));
+                    break;
+            }
+            fdsModTable[i] = static_cast<int8_t>(std::clamp(value, -4, 4));
+        }
+    }
+
+    uint16_t fdsFrequencyForNote(int midiNote) const
+    {
+        const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
+        const auto reg = static_cast<int>(std::round((hz * 4194304.0) / clock));
+        return static_cast<uint16_t>(std::clamp(reg, 1, 0x0fff));
+    }
+
+    double fdsHzFromRegister(uint16_t reg) const
+    {
+        return static_cast<double>(reg) * clock / 4194304.0;
+    }
+
+    void writeFdsWave(int midiNote, float velocity, uint8_t volume, uint8_t modDepth, int modNoteOffset)
+    {
+        if (! hasFds())
+            return;
+
+        refreshFdsWaveRam();
+        fdsVolume = sourceEnabled(patch, 4)
+            ? static_cast<uint8_t>(std::clamp<int>(volume, 0, 63))
+            : uint8_t { 0u };
+        fdsMasterVolume = static_cast<uint8_t>(std::clamp<int>(1 + static_cast<int>(std::round((1.0f - patch.control4) * 2.0f)), 0, 3));
+        fdsModDepth = sourceEnabled(patch, 4)
+            ? static_cast<uint8_t>(std::clamp<int>(modDepth, 0, 63))
+            : uint8_t { 0u };
+        fdsFrequency = fdsFrequencyForNote(midiNote);
+        fdsModFrequency = fdsFrequencyForNote(midiNote + modNoteOffset);
+        fdsEnabled = fdsVolume > 0 && sourceEnabled(patch, 4) && ! patch.nesDmcOnly && velocity > 0.0f;
+        if (fdsEnabled)
+        {
+            fdsPhase = 0.0;
+            fdsModPhase = 0.0;
+            fdsModAccumulator = 0;
+            fdsModIndex = 0;
+        }
+    }
+
+    void triggerFdsStack(int p1Note, int p2Note, int triNote)
+    {
+        if (! hasFds() || patch.nesDmcOnly)
+        {
+            fdsEnabled = false;
+            return;
+        }
+
+        auto fdsNote = p1Note + 12;
+        auto volume = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(32.0f + patch.control4 * 31.0f)), 1, 63));
+        auto depth = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control2 * 40.0f)), 0, 63));
+        auto modOffset = 0;
+        auto shouldEnable = true;
+
+        switch (patch.macro)
+        {
+            case MacroKind::coin:
+                fdsNote = p1Note + 19;
+                volume = 48;
+                depth = 14;
+                modOffset = 12;
+                break;
+            case MacroKind::bass:
+                fdsNote = triNote + 12;
+                volume = 54;
+                depth = 8;
+                modOffset = -12;
+                break;
+            case MacroKind::arp:
+                fdsNote = p2Note + 12;
+                volume = 44;
+                depth = 22;
+                modOffset = 7;
+                break;
+            case MacroKind::drum:
+                shouldEnable = false;
+                break;
+            case MacroKind::hit:
+                fdsNote = p1Note + 7;
+                volume = 42;
+                depth = 30;
+                modOffset = -5;
+                break;
+            case MacroKind::laser:
+                fdsNote = p1Note + 12;
+                volume = 50;
+                depth = 42;
+                modOffset = -12;
+                break;
+            case MacroKind::jump:
+                fdsNote = p1Note + 12;
+                volume = 46;
+                depth = 18;
+                modOffset = 12;
+                break;
+            case MacroKind::powerUp:
+                fdsNote = p2Note + 12;
+                volume = 48;
+                depth = 32;
+                modOffset = 19;
+                break;
+            case MacroKind::lead:
+            case MacroKind::manual:
+            default:
+                break;
+        }
+
+        writeFdsWave(fdsNote, shouldEnable ? noteVelocity : 0.0f, shouldEnable ? volume : 0u, shouldEnable ? depth : 0u, modOffset);
+    }
+
+    void triggerFdsVoice(int midiNote, float velocity)
+    {
+        const auto level = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clamp01(velocity) * 63.0)), 0, 63));
+        const auto depth = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((0.08f + patch.control2 * 0.72f) * 63.0f)), 0, 63));
+        writeFdsWave(midiNote, velocity, level, depth, patch.macro == MacroKind::bass ? -12 : 0);
+    }
+
+    size_t currentFdsWaveIndex() const
+    {
+        return std::clamp(static_cast<size_t>(fdsPhase * static_cast<double>(fdsWaveRam.size())), size_t(0), fdsWaveRam.size() - 1u);
     }
 
     static uint8_t vrc6DutyFromNesDuty(NesPulseDuty duty, int offset)
@@ -3071,7 +3353,7 @@ private:
 
     int selectChipPolyChannel(int midiNote) const
     {
-        const auto voiceCount = hasVrc6() ? channelNotes.size() : size_t { 3u };
+        const auto voiceCount = chipPolyVoiceCount();
         for (size_t channel = 0; channel < voiceCount; ++channel)
         {
             if (! sourceEnabled(patch, sourceIndexForChipPolyVoice(channel)))
@@ -3109,7 +3391,7 @@ private:
 
     int activeChipPolyChannels() const
     {
-        const auto voiceCount = hasVrc6() ? channelNotes.size() : size_t { 3u };
+        const auto voiceCount = chipPolyVoiceCount();
         int active = 0;
         for (size_t channel = 0; channel < voiceCount; ++channel)
         {
@@ -3129,6 +3411,7 @@ private:
         for (auto& length : lengthCounter)
             length = 0;
         vrc6Enabled.fill(false);
+        fdsEnabled = false;
         linearCounter = 0;
         linearReloadFlag = false;
     }
@@ -3174,7 +3457,10 @@ private:
         }
         else
         {
-            triggerVrc6Voice(static_cast<size_t>(channel - 3), channelNotes[index], channelVelocity[index]);
+            if (hasVrc6())
+                triggerVrc6Voice(static_cast<size_t>(channel - 3), channelNotes[index], channelVelocity[index]);
+            else if (hasFds() && channel == 3)
+                triggerFdsVoice(channelNotes[index], channelVelocity[index]);
         }
 
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
@@ -3194,6 +3480,8 @@ private:
                 lengthCounter[channel] = 0;
             else if (channel - 3u < vrc6Enabled.size())
                 vrc6Enabled[channel - 3u] = false;
+            if (hasFds() && channel == 3u)
+                fdsEnabled = false;
             if (channel == 2)
             {
                 linearCounter = 0;
@@ -3236,6 +3524,8 @@ private:
             vrc6PulseDuty[0] = vrc6DutyFromNesDuty(pulse1Duty, 0);
             vrc6PulseDuty[1] = vrc6DutyFromNesDuty(pulse1Duty, 1);
         }
+        if (hasFds())
+            refreshFdsWaveRam();
     }
 
     uint8_t pulseDutyIndex(int index) const
@@ -3360,6 +3650,37 @@ private:
         return renderVrc6Pulse(0) + renderVrc6Pulse(1) + renderVrc6Saw();
     }
 
+    int fdsActiveMask() const
+    {
+        return fdsEnabled ? 0x01 : 0;
+    }
+
+    double renderFdsWave()
+    {
+        if (! hasFds() || ! fdsEnabled || ! sourceEnabled(patch, 4) || sampleRate <= 0.0)
+            return 0.0;
+
+        if (fdsModFrequency > 0 && fdsModDepth > 0)
+        {
+            fdsModPhase = wrapPhase(fdsModPhase + fdsHzFromRegister(fdsModFrequency) / sampleRate);
+            fdsModIndex = static_cast<size_t>(std::clamp(static_cast<int>(std::floor(fdsModPhase * fdsModTable.size())), 0, static_cast<int>(fdsModTable.size() - 1u)));
+            fdsModAccumulator = static_cast<int>(fdsModTable[fdsModIndex]) * static_cast<int>(fdsModDepth);
+        }
+        else
+        {
+            fdsModAccumulator = 0;
+        }
+
+        const auto bendSemitones = std::clamp(static_cast<double>(fdsModAccumulator) / 256.0, -6.0, 6.0);
+        const auto hz = fdsHzFromRegister(fdsFrequency) * std::pow(2.0, bendSemitones / 12.0);
+        fdsPhase = wrapPhase(fdsPhase + hz / sampleRate);
+
+        const auto sample = static_cast<double>(fdsWaveRam[currentFdsWaveIndex()]) / 63.0;
+        const std::array<double, 4> masterScale { 1.0, 0.75, 0.50, 0.37 };
+        const auto volume = static_cast<double>(fdsVolume) / 63.0;
+        return ((sample * 2.0) - 1.0) * volume * masterScale[fdsMasterVolume & 0x03u] * sourceLevel(patch, 4);
+    }
+
     AccuracyMode accuracy;
     ChipMode selectedMode = ChipMode::nes;
     double sampleRate = 48000.0;
@@ -3401,6 +3722,18 @@ private:
     uint16_t vrc6SawAccumulator = 0;
     uint8_t vrc6SawStep = 0;
     double vrc6SawStepPhase = 0.0;
+    std::array<uint8_t, 64> fdsWaveRam {};
+    std::array<int8_t, 32> fdsModTable {};
+    double fdsPhase = 0.0;
+    double fdsModPhase = 0.0;
+    uint16_t fdsFrequency = 0;
+    uint16_t fdsModFrequency = 0;
+    uint8_t fdsVolume = 0;
+    uint8_t fdsMasterVolume = 1;
+    uint8_t fdsModDepth = 0;
+    int fdsModAccumulator = 0;
+    size_t fdsModIndex = 0;
+    bool fdsEnabled = false;
     uint64_t noteStamp = 0;
     std::vector<uint8_t> dmcSample;
     bool dmcActive = false;
@@ -12915,6 +13248,7 @@ std::unique_ptr<ChipCore> createChipCore(ChipMode mode, AccuracyMode accuracy)
     {
         case ChipMode::nes: return std::make_unique<NesApuCore>(accuracy);
         case ChipMode::nesVrc6: return std::make_unique<NesApuCore>(accuracy, ChipMode::nesVrc6);
+        case ChipMode::nesFds: return std::make_unique<NesApuCore>(accuracy, ChipMode::nesFds);
         case ChipMode::dmg: return std::make_unique<DmgApuCore>(accuracy);
         case ChipMode::sid: return std::make_unique<SidCore>(accuracy);
         case ChipMode::ym2149: return std::make_unique<Ym2149Core>(accuracy);
@@ -12941,6 +13275,7 @@ std::optional<ChipMode> parseChipMode(std::string_view text)
     const auto key = lower(text);
     if (key == "nes" || key == "rp2a03") return ChipMode::nes;
     if (key == "nesvrc6" || key == "nes+vrc6" || key == "vrc6" || key == "famicomvrc6" || key == "famicom+vrc6") return ChipMode::nesVrc6;
+    if (key == "nesfds" || key == "nes+fds" || key == "fds" || key == "famicomfds" || key == "famicom+fds" || key == "famicomdisksystem") return ChipMode::nesFds;
     if (key == "dmg" || key == "gameboy" || key == "gameboydmg") return ChipMode::dmg;
     if (key == "sid" || key == "c64" || key == "commodore64") return ChipMode::sid;
     if (key == "ym2149" || key == "ay" || key == "ay38910" || key == "ay38910") return ChipMode::ym2149;
@@ -13002,6 +13337,7 @@ std::string toString(ChipMode mode)
     {
         case ChipMode::nes: return "NES / RP2A03";
         case ChipMode::nesVrc6: return "NES + VRC6";
+        case ChipMode::nesFds: return "NES + FDS";
         case ChipMode::dmg: return "Game Boy / DMG APU";
         case ChipMode::sid: return "SID / C64";
         case ChipMode::ym2149: return "YM2149 / AY";

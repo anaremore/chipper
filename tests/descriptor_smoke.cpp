@@ -187,6 +187,7 @@ bool expectChipCatalogIsProductReady()
     constexpr std::array expectedModes {
         chipper::ChipMode::nes,
         chipper::ChipMode::nesVrc6,
+        chipper::ChipMode::nesFds,
         chipper::ChipMode::dmg,
         chipper::ChipMode::sid,
         chipper::ChipMode::ym2149,
@@ -317,6 +318,7 @@ bool expectLiveSourceLevelSpecs()
     constexpr std::array liveModes {
         chipper::ChipMode::nes,
         chipper::ChipMode::nesVrc6,
+        chipper::ChipMode::nesFds,
         chipper::ChipMode::dmg,
         chipper::ChipMode::sid,
         chipper::ChipMode::ym2149,
@@ -385,6 +387,7 @@ bool expectLiveSourceCardSpecs()
     constexpr std::array liveModes {
         chipper::ChipMode::nes,
         chipper::ChipMode::nesVrc6,
+        chipper::ChipMode::nesFds,
         chipper::ChipMode::dmg,
         chipper::ChipMode::sid,
         chipper::ChipMode::ym2149,
@@ -494,6 +497,7 @@ bool expectVerificationDisclosure()
     constexpr std::array liveModes {
         chipper::ChipMode::nes,
         chipper::ChipMode::nesVrc6,
+        chipper::ChipMode::nesFds,
         chipper::ChipMode::dmg,
         chipper::ChipMode::sid,
         chipper::ChipMode::ym2149,
@@ -549,6 +553,7 @@ bool expectEnvelopeModels()
 
     for (const auto mode : { chipper::ChipMode::nes,
                              chipper::ChipMode::nesVrc6,
+                             chipper::ChipMode::nesFds,
                              chipper::ChipMode::dmg,
                              chipper::ChipMode::ym2149 })
     {
@@ -1201,6 +1206,8 @@ int main()
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::nes).implemented, "NES descriptor should be implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::nesVrc6).implemented, "NES + VRC6 descriptor should be implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::nesVrc6).supportsChipPoly, "NES + VRC6 should support Chip Poly across APU melodic and VRC6 lanes");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::nesFds).implemented, "NES + FDS descriptor should be implemented");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::nesFds).supportsChipPoly, "NES + FDS should support Chip Poly across APU melodic and FDS wave lanes");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::sid).implemented, "SID descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::spc700).implemented, "SPC700 descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::spc700).supportsChipPoly, "SPC700 should support Chip Poly across exposed sample voices");
@@ -1270,6 +1277,12 @@ int main()
     ok &= expectSpec(chipper::ChipMode::nesVrc6, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "VRC6 Pulse 1 Level");
     ok &= expectSpec(chipper::ChipMode::nesVrc6, chipper::ChipParameterRole::source6Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "VRC6 Pulse 2 Level");
     ok &= expectSpec(chipper::ChipMode::nesVrc6, chipper::ChipParameterRole::source7Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "VRC6 Saw Level");
+    ok &= expectSegmentedRegister(chipper::ChipMode::nesFds, chipper::ChipParameterRole::macroControl1, 4, "12.5%");
+    ok &= expectSegmentedRegister(chipper::ChipMode::nesFds, chipper::ChipParameterRole::pulse2Duty, 5, "Preset");
+    ok &= expectSegmentedRegister(chipper::ChipMode::nesFds, chipper::ChipParameterRole::snNoiseMode, 3, "Preset");
+    ok &= expectSegmentedRegister(chipper::ChipMode::nesFds, chipper::ChipParameterRole::waveShape, 5, "Preset");
+    ok &= expectSpec(chipper::ChipMode::nesFds, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "FDS Wave");
+    ok &= expectSpec(chipper::ChipMode::nesFds, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "FDS Wave Level");
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Pulse 1 Duty");
     ok &= expectSpec(chipper::ChipMode::dmg, chipper::ChipParameterRole::pulse2Duty, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Pulse 2 Duty");
     ok &= expectSpecHelpContains(chipper::ChipMode::dmg, chipper::ChipParameterRole::pulse2Duty, "NR21", "DMG pulse 2 duty help should mention the independent channel-2 duty register");
@@ -1385,6 +1398,10 @@ int main()
     ok &= expectMacroLabel(chipper::ChipMode::nesVrc6, chipper::MacroKind::lead, "VRC6 Pulse Lead");
     ok &= expectPreset(chipper::ChipMode::nesVrc6, "vrc6-pulse-lead");
     ok &= expectPreset(chipper::ChipMode::nesVrc6, "vrc6-saw-bass");
+    ok &= expectMacroLabel(chipper::ChipMode::nesFds, chipper::MacroKind::lead, "FDS Mod Lead");
+    ok &= expectPreset(chipper::ChipMode::nesFds, "fds-wave-bass");
+    ok &= expectPreset(chipper::ChipMode::nesFds, "fds-mod-lead");
+    ok &= expectPreset(chipper::ChipMode::nesFds, "fds-liquid-arp");
     ok &= expectMacroLabel(chipper::ChipMode::dmg, chipper::MacroKind::bass, "DMG Wave Bass");
     ok &= expectMacroLabel(chipper::ChipMode::sid, chipper::MacroKind::bass, "SID Dirty Bass");
     ok &= expectMacroLabel(chipper::ChipMode::ym2149, chipper::MacroKind::drum, "YM Noise Perc");
@@ -1732,6 +1749,7 @@ int main()
     ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Channel 5 Level");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::nes, "nes-hero-pulse");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::nesVrc6, "vrc6-pulse-lead");
+    ok &= expectPresetBrowserCatalog(chipper::ChipMode::nesFds, "fds-wave-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::dmg, "dmg-wave-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::sid, "sid-dirty-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2149, "ym-three-voice-arp");
@@ -1751,6 +1769,7 @@ int main()
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2610, "opnb-feedback-bass");
     ok &= expectSourceLaneCounts(chipper::ChipMode::nes, 4u, 4u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::nesVrc6, 7u, 7u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::nesFds, 5u, 5u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::sid, 3u, 3u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::spc700, 8u, 8u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::huc6280, 6u, 6u);
