@@ -144,6 +144,29 @@ juce::StringArray snNoiseModeChoices()
     return { "Follow", "Mode 1", "Mode 2", "Mode 3", "Mode 4" };
 }
 
+juce::StringArray fmOperatorMultiplierChoices()
+{
+    return {
+        "Follow",
+        "0.5x",
+        "1x",
+        "2x",
+        "3x",
+        "4x",
+        "5x",
+        "6x",
+        "7x",
+        "8x",
+        "9x",
+        "10x",
+        "11x",
+        "12x",
+        "13x",
+        "14x",
+        "15x"
+    };
+}
+
 juce::StringArray nesDmcRateChoices()
 {
     return {
@@ -305,6 +328,30 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         "FM Operator 4 Level",
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f },
         0.5f));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::fmOperator1Multiplier, 1 },
+        "FM Operator 1 Multiplier",
+        fmOperatorMultiplierChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::fmOperator2Multiplier, 1 },
+        "FM Operator 2 Multiplier",
+        fmOperatorMultiplierChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::fmOperator3Multiplier, 1 },
+        "FM Operator 3 Multiplier",
+        fmOperatorMultiplierChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::fmOperator4Multiplier, 1 },
+        "FM Operator 4 Multiplier",
+        fmOperatorMultiplierChoices(),
+        0));
 
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         juce::ParameterID { id::source1Enabled, 1 },

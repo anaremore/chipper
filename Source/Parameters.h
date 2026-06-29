@@ -42,6 +42,7 @@ juce::StringArray dmgStereoRouteChoices();
 juce::StringArray ymEnvelopeShapeChoices();
 juce::StringArray ymChannelMixChoices();
 juce::StringArray snNoiseModeChoices();
+juce::StringArray fmOperatorMultiplierChoices();
 juce::StringArray nesDmcRateChoices();
 juce::StringArray nesDmcPlaybackModeChoices();
 juce::StringArray samplePlaybackModeChoices(ChipMode mode);

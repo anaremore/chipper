@@ -81,7 +81,11 @@ const MidiCcMappingList& midiCcMappings()
         { 40, parameter_ids::fmOperator1Level, "FM Operator 1 Level" },
         { 41, parameter_ids::fmOperator2Level, "FM Operator 2 Level" },
         { 42, parameter_ids::fmOperator3Level, "FM Operator 3 Level" },
-        { 43, parameter_ids::fmOperator4Level, "FM Operator 4 Level" }
+        { 43, parameter_ids::fmOperator4Level, "FM Operator 4 Level" },
+        { 44, parameter_ids::fmOperator1Multiplier, "FM Operator 1 Multiplier" },
+        { 45, parameter_ids::fmOperator2Multiplier, "FM Operator 2 Multiplier" },
+        { 46, parameter_ids::fmOperator3Multiplier, "FM Operator 3 Multiplier" },
+        { 47, parameter_ids::fmOperator4Multiplier, "FM Operator 4 Multiplier" }
     }};
 
     return mappings;
@@ -183,6 +187,10 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::fmOperator2Level: return parameter_ids::fmOperator2Level;
         case ChipParameterRole::fmOperator3Level: return parameter_ids::fmOperator3Level;
         case ChipParameterRole::fmOperator4Level: return parameter_ids::fmOperator4Level;
+        case ChipParameterRole::fmOperator1Multiplier: return parameter_ids::fmOperator1Multiplier;
+        case ChipParameterRole::fmOperator2Multiplier: return parameter_ids::fmOperator2Multiplier;
+        case ChipParameterRole::fmOperator3Multiplier: return parameter_ids::fmOperator3Multiplier;
+        case ChipParameterRole::fmOperator4Multiplier: return parameter_ids::fmOperator4Multiplier;
         case ChipParameterRole::clockHz: return parameter_ids::clockHz;
         case ChipParameterRole::outputDb: return parameter_ids::outputDb;
     }

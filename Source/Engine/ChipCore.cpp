@@ -8180,6 +8180,14 @@ public:
              << "\"fmOperatorLevel1\":" << patch.fmOperatorLevels[1] << ","
              << "\"fmOperatorLevel2\":" << patch.fmOperatorLevels[2] << ","
              << "\"fmOperatorLevel3\":" << patch.fmOperatorLevels[3] << ","
+             << "\"fmOperatorMultiplier0\":" << patch.fmOperatorMultipliers[0] << ","
+             << "\"fmOperatorMultiplier1\":" << patch.fmOperatorMultipliers[1] << ","
+             << "\"fmOperatorMultiplier2\":" << patch.fmOperatorMultipliers[2] << ","
+             << "\"fmOperatorMultiplier3\":" << patch.fmOperatorMultipliers[3] << ","
+             << "\"operatorMultiple0\":" << static_cast<int>(regs[opRegForChannel(0x30, 0, 0)] & 0x0fu) << ","
+             << "\"operatorMultiple1\":" << static_cast<int>(regs[opRegForChannel(0x30, 0, 1)] & 0x0fu) << ","
+             << "\"operatorMultiple2\":" << static_cast<int>(regs[opRegForChannel(0x30, 0, 2)] & 0x0fu) << ","
+             << "\"operatorMultiple3\":" << static_cast<int>(regs[opRegForChannel(0x30, 0, 3)] & 0x0fu) << ","
              << "\"operatorTotalLevel0\":" << static_cast<int>(regs[opRegForChannel(0x40, 0, 0)]) << ","
              << "\"operatorTotalLevel1\":" << static_cast<int>(regs[opRegForChannel(0x40, 0, 1)]) << ","
              << "\"operatorTotalLevel2\":" << static_cast<int>(regs[opRegForChannel(0x40, 0, 2)]) << ","
@@ -8341,9 +8349,7 @@ private:
 
     uint8_t multiplierForPatch(size_t op) const
     {
-        const auto tone = std::clamp(static_cast<int>(std::round(patch.control3 * 14.0f)) + 1, 1, 15);
-        static constexpr std::array<int, 4> offsets { 0, 1, 2, 4 };
-        return static_cast<uint8_t>(std::clamp(tone + offsets[op], 1, 15));
+        return fmOperatorMultipleForPatch(ChipMode::ym2612, patch, op);
     }
 
     uint8_t totalLevelForOperator(size_t op, float velocity, uint8_t algorithm) const
@@ -9447,6 +9453,14 @@ public:
              << "\"fmOperatorLevel1\":" << patch.fmOperatorLevels[1] << ","
              << "\"fmOperatorLevel2\":" << patch.fmOperatorLevels[2] << ","
              << "\"fmOperatorLevel3\":" << patch.fmOperatorLevels[3] << ","
+             << "\"fmOperatorMultiplier0\":" << patch.fmOperatorMultipliers[0] << ","
+             << "\"fmOperatorMultiplier1\":" << patch.fmOperatorMultipliers[1] << ","
+             << "\"fmOperatorMultiplier2\":" << patch.fmOperatorMultipliers[2] << ","
+             << "\"fmOperatorMultiplier3\":" << patch.fmOperatorMultipliers[3] << ","
+             << "\"operatorMultiple0\":" << static_cast<int>(regs[static_cast<uint8_t>(0x40 + opOffset(0, 0))] & 0x0fu) << ","
+             << "\"operatorMultiple1\":" << static_cast<int>(regs[static_cast<uint8_t>(0x40 + opOffset(0, 1))] & 0x0fu) << ","
+             << "\"operatorMultiple2\":" << static_cast<int>(regs[static_cast<uint8_t>(0x40 + opOffset(0, 2))] & 0x0fu) << ","
+             << "\"operatorMultiple3\":" << static_cast<int>(regs[static_cast<uint8_t>(0x40 + opOffset(0, 3))] & 0x0fu) << ","
              << "\"operatorTotalLevel0\":" << static_cast<int>(regs[static_cast<uint8_t>(0x60 + opOffset(0, 0))]) << ","
              << "\"operatorTotalLevel1\":" << static_cast<int>(regs[static_cast<uint8_t>(0x60 + opOffset(0, 1))]) << ","
              << "\"operatorTotalLevel2\":" << static_cast<int>(regs[static_cast<uint8_t>(0x60 + opOffset(0, 2))]) << ","
@@ -9551,9 +9565,7 @@ private:
 
     uint8_t multipleForOperator(size_t op) const
     {
-        static constexpr std::array<int, 4> offsets { 0, 1, 3, 5 };
-        const auto base = std::clamp(static_cast<int>(std::round(patch.control3 * 13.0f)) + 1, 1, 15);
-        return static_cast<uint8_t>(std::clamp(base + offsets[op], 1, 15));
+        return fmOperatorMultipleForPatch(ChipMode::ym2151, patch, op);
     }
 
     uint8_t totalLevelForOperator(size_t op, float velocity, uint8_t algorithm) const

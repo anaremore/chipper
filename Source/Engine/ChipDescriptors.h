@@ -122,6 +122,10 @@ enum class ChipParameterRole
     fmOperator2Level,
     fmOperator3Level,
     fmOperator4Level,
+    fmOperator1Multiplier,
+    fmOperator2Multiplier,
+    fmOperator3Multiplier,
+    fmOperator4Multiplier,
     clockHz,
     outputDb
 };
@@ -268,7 +272,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float spc700LoopStart = 0.0f,
                             float spc700LoopEnd = 1.0f,
                             std::array<int, 8> spc700VoiceSampleSlots = { 0, 0, 0, 0, 0, 0, 0, 0 },
-                            std::array<float, 4> fmOperatorLevels = { 0.5f, 0.5f, 0.5f, 0.5f });
+                            std::array<float, 4> fmOperatorLevels = { 0.5f, 0.5f, 0.5f, 0.5f },
+                            std::array<int, 4> fmOperatorMultipliers = { 0, 0, 0, 0 });
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t nesNoisePeriodForControl(float noisePeriodControl);
 uint8_t nesDmcDirectLevelForControl(float levelControl);

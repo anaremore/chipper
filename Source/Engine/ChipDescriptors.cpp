@@ -478,6 +478,45 @@ ChipParameterSpec sidAdsrNibbleSpec(ChipParameterRole role, std::string id, std:
     return { role, id, label, "Envelope", help, ParameterKind::chipRegister, ControlSurface::steppedSlider, sidAdsrNibbleChoices(label), 0.0f, 1.0f, 0.0f };
 }
 
+std::vector<ParameterChoiceSpec> fmOperatorMultiplierChoices(std::string chipName, std::string operatorName)
+{
+    std::vector<ParameterChoiceSpec> choices;
+    choices.reserve(17);
+    choices.push_back(choice("Follow",
+                             "Resolve " + operatorName + " multiplier from Operator Tone and the selected " + chipName + " preset recipe.",
+                             0.0f,
+                             0));
+    choices.push_back(choice("0.5x",
+                             "Write native " + chipName + " multiplier nibble 0 for " + operatorName + ".",
+                             1.0f / 16.0f,
+                             1));
+    for (int multiple = 1; multiple <= 15; ++multiple)
+    {
+        const auto normalized = static_cast<float>(multiple + 1) / 16.0f;
+        choices.push_back(choice(std::to_string(multiple) + "x",
+                                 "Write native " + chipName + " multiplier nibble " + std::to_string(multiple) + " for " + operatorName + ".",
+                                 normalized,
+                                 multiple + 1));
+    }
+    return choices;
+}
+
+ChipParameterSpec fmOperatorMultiplierSpec(ChipParameterRole role, std::string id, std::string label, std::string chipName, size_t op)
+{
+    const auto operatorName = "operator " + std::to_string(op + 1u);
+    return { role,
+             std::move(id),
+             std::move(label),
+             "Operators",
+             "Overrides the " + chipName + " " + operatorName + " multiplier register. Follow preserves the preset-resolved Operator Tone value.",
+             ParameterKind::chipRegister,
+             ControlSurface::menu,
+             fmOperatorMultiplierChoices(std::move(chipName), operatorName),
+             0.0f,
+             1.0f,
+             0.0f };
+}
+
 std::vector<ParameterChoiceSpec> ymChannelMixChoices(std::string channelName)
 {
     return {
@@ -715,6 +754,10 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
                    "Offsets the YM2612 operator 4 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
                    ParameterKind::chipRegister,
                    0.5f),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator1Multiplier, "ym2612.op1.multiplier", "OP1 Mult", "YM2612", 0),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator2Multiplier, "ym2612.op2.multiplier", "OP2 Mult", "YM2612", 1),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator3Multiplier, "ym2612.op3.multiplier", "OP3 Mult", "YM2612", 2),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator4Multiplier, "ym2612.op4.multiplier", "OP4 Mult", "YM2612", 3),
         { ChipParameterRole::waveShape,
           "ym2612.algorithm",
           "Algorithm",
@@ -843,6 +886,10 @@ std::vector<ChipParameterSpec> ym2151ParameterSpecs()
                    "Offsets the YM2151 operator 4 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
                    ParameterKind::chipRegister,
                    0.5f),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator1Multiplier, "ym2151.op1.multiplier", "OP1 Mult", "YM2151", 0),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator2Multiplier, "ym2151.op2.multiplier", "OP2 Mult", "YM2151", 1),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator3Multiplier, "ym2151.op3.multiplier", "OP3 Mult", "YM2151", 2),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator4Multiplier, "ym2151.op4.multiplier", "OP4 Mult", "YM2151", 3),
         { ChipParameterRole::waveShape,
           "ym2151.algorithm",
           "Algorithm",
@@ -2871,7 +2918,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             float spc700LoopStart,
                             float spc700LoopEnd,
                             std::array<int, 8> spc700VoiceSampleSlots,
-                            std::array<float, 4> fmOperatorLevels)
+                            std::array<float, 4> fmOperatorLevels,
+                            std::array<int, 4> fmOperatorMultipliers)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
@@ -2947,6 +2995,12 @@ PatchConfig makePatchConfig(ChipMode mode,
             clampControl(fmOperatorLevels[1]),
             clampControl(fmOperatorLevels[2]),
             clampControl(fmOperatorLevels[3])
+        },
+        {
+            std::clamp(fmOperatorMultipliers[0], 0, 16),
+            std::clamp(fmOperatorMultipliers[1], 0, 16),
+            std::clamp(fmOperatorMultipliers[2], 0, 16),
+            std::clamp(fmOperatorMultipliers[3], 0, 16)
         }
     };
 }
@@ -3914,16 +3968,21 @@ uint8_t fmFeedbackForPatch(const PatchConfig& patch)
 
 uint8_t fmOperatorMultipleForPatch(ChipMode mode, const PatchConfig& patch, size_t op)
 {
+    const auto safeOp = std::min(op, size_t { 3u });
+    const auto overrideChoice = std::clamp(patch.fmOperatorMultipliers[safeOp], 0, 16);
+    if (overrideChoice > 0)
+        return static_cast<uint8_t>(overrideChoice - 1);
+
     if (mode == ChipMode::ym2151)
     {
         static constexpr std::array<int, 4> offsets { 0, 1, 3, 5 };
         const auto base = std::clamp(static_cast<int>(std::round(clampControl(patch.control3) * 13.0f)) + 1, 1, 15);
-        return static_cast<uint8_t>(std::clamp(base + offsets[std::min(op, size_t { 3u })], 1, 15));
+        return static_cast<uint8_t>(std::clamp(base + offsets[safeOp], 1, 15));
     }
 
     static constexpr std::array<int, 4> offsets { 0, 1, 2, 4 };
     const auto tone = std::clamp(static_cast<int>(std::round(clampControl(patch.control3) * 14.0f)) + 1, 1, 15);
-    return static_cast<uint8_t>(std::clamp(tone + offsets[std::min(op, size_t { 3u })], 1, 15));
+    return static_cast<uint8_t>(std::clamp(tone + offsets[safeOp], 1, 15));
 }
 
 bool fmOperatorIsCarrierForAlgorithm(uint8_t algorithm, size_t op)

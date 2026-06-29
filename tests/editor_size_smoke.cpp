@@ -636,19 +636,21 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
         const auto nameBounds = editor.getFmOperatorNameBoundsForLayoutTest(op);
         const auto valueBounds = editor.getFmOperatorValueBoundsForLayoutTest(op);
         const auto levelSliderBounds = editor.getFmOperatorLevelSliderBoundsForLayoutTest(op);
+        const auto multiplierBounds = editor.getFmOperatorMultiplierBoundsForLayoutTest(op);
         const auto levelValueBounds = editor.getFmOperatorLevelValueBoundsForLayoutTest(op);
         const auto nameText = editor.getFmOperatorNameTextForLayoutTest(op);
         const auto valueText = editor.getFmOperatorValueTextForLayoutTest(op);
         const auto levelValueText = editor.getFmOperatorLevelValueTextForLayoutTest(op);
 
         if (nameBounds.isEmpty() || valueBounds.isEmpty()
-            || levelSliderBounds.isEmpty() || levelValueBounds.isEmpty())
+            || levelSliderBounds.isEmpty() || multiplierBounds.isEmpty() || levelValueBounds.isEmpty())
         {
             std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " is missing from the FM readout/control surface: name "
                       << nameBounds.toString() << " level readout "
                       << levelValueBounds.toString() << " slider "
-                      << levelSliderBounds.toString() << " value "
+                      << levelSliderBounds.toString() << " multiplier "
+                      << multiplierBounds.toString() << " value "
                       << valueBounds.toString() << '\n';
             ok = false;
             continue;
@@ -657,6 +659,7 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
         if (! envelopeModuleBounds.expanded(2).contains(nameBounds)
             || ! envelopeModuleBounds.expanded(2).contains(levelValueBounds)
             || ! envelopeModuleBounds.expanded(2).contains(levelSliderBounds)
+            || ! envelopeModuleBounds.expanded(2).contains(multiplierBounds)
             || ! envelopeModuleBounds.expanded(2).contains(valueBounds))
         {
             std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
@@ -664,19 +667,23 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
                       << " name " << nameBounds.toString()
                       << " level readout " << levelValueBounds.toString()
                       << " slider " << levelSliderBounds.toString()
-                      << " value " << valueBounds.toString() << '\n';
+                      << " multiplier " << multiplierBounds.toString()
+                      << " value "
+                      << valueBounds.toString() << '\n';
             ok = false;
         }
 
         if (nameBounds.getWidth() < 40 || nameBounds.getHeight() < 12
             || levelValueBounds.getWidth() < 30 || levelValueBounds.getHeight() < 12
             || levelSliderBounds.getWidth() < 56 || levelSliderBounds.getHeight() < 12
-            || valueBounds.getWidth() < 140 || valueBounds.getHeight() < 12)
+            || multiplierBounds.getWidth() < 50 || multiplierBounds.getHeight() < 12
+            || valueBounds.getWidth() < 120 || valueBounds.getHeight() < 12)
         {
             std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " is below readable size: name " << nameBounds.toString()
                       << " level readout " << levelValueBounds.toString()
                       << " slider " << levelSliderBounds.toString()
+                      << " multiplier " << multiplierBounds.toString()
                       << " value " << valueBounds.toString() << '\n';
             ok = false;
         }
@@ -685,15 +692,18 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
             || valueBounds.intersects(operatorToneBounds)
             || levelValueBounds.intersects(operatorToneBounds)
             || levelSliderBounds.intersects(operatorToneBounds)
+            || multiplierBounds.intersects(operatorToneBounds)
             || nameBounds.intersects(fmLevelBounds)
             || valueBounds.intersects(fmLevelBounds)
             || levelValueBounds.intersects(fmLevelBounds)
-            || levelSliderBounds.intersects(fmLevelBounds))
+            || levelSliderBounds.intersects(fmLevelBounds)
+            || multiplierBounds.intersects(fmLevelBounds))
         {
             std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " overlaps editable operator controls: name " << nameBounds.toString()
                       << " level readout " << levelValueBounds.toString()
                       << " slider " << levelSliderBounds.toString()
+                      << " multiplier " << multiplierBounds.toString()
                       << " value " << valueBounds.toString()
                       << " tone " << operatorToneBounds.toString()
                       << " level " << fmLevelBounds.toString() << '\n';
@@ -702,15 +712,20 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
 
         if (nameBounds.intersects(levelValueBounds)
             || nameBounds.intersects(levelSliderBounds)
+            || nameBounds.intersects(multiplierBounds)
             || nameBounds.intersects(valueBounds)
             || levelValueBounds.intersects(levelSliderBounds)
+            || levelValueBounds.intersects(multiplierBounds)
             || levelValueBounds.intersects(valueBounds)
-            || levelSliderBounds.intersects(valueBounds))
+            || levelSliderBounds.intersects(multiplierBounds)
+            || levelSliderBounds.intersects(valueBounds)
+            || multiplierBounds.intersects(valueBounds))
         {
             std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " has overlapping row controls: name " << nameBounds.toString()
                       << " level readout " << levelValueBounds.toString()
                       << " slider " << levelSliderBounds.toString()
+                      << " multiplier " << multiplierBounds.toString()
                       << " value " << valueBounds.toString() << '\n';
             ok = false;
         }
@@ -718,13 +733,14 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
         if (nameBounds.getY() < lastBottom - 1
             || valueBounds.getY() < lastBottom - 1
             || levelValueBounds.getY() < lastBottom - 1
-            || levelSliderBounds.getY() < lastBottom - 1)
+            || levelSliderBounds.getY() < lastBottom - 1
+            || multiplierBounds.getY() < lastBottom - 1)
         {
             std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " overlaps the previous operator row\n";
             ok = false;
         }
-        lastBottom = std::max({ nameBounds.getBottom(), levelValueBounds.getBottom(), levelSliderBounds.getBottom(), valueBounds.getBottom() });
+        lastBottom = std::max({ nameBounds.getBottom(), levelValueBounds.getBottom(), levelSliderBounds.getBottom(), multiplierBounds.getBottom(), valueBounds.getBottom() });
 
         const auto expectedPrefix = juce::String("OP") + juce::String(static_cast<int>(op + 1u));
         if (! nameText.startsWith(expectedPrefix) || (! nameText.endsWith(" C") && ! nameText.endsWith(" M")))

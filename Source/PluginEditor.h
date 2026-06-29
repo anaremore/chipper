@@ -218,6 +218,10 @@ public:
     {
         return index < fmOperatorLevelSliders.size() ? fmOperatorLevelSliders[index].getBounds() : juce::Rectangle<int> {};
     }
+    juce::Rectangle<int> getFmOperatorMultiplierBoundsForLayoutTest(size_t index) const
+    {
+        return index < fmOperatorMultiplierButtons.size() ? fmOperatorMultiplierButtons[index].getBounds() : juce::Rectangle<int> {};
+    }
     juce::Rectangle<int> getFmOperatorLevelValueBoundsForLayoutTest(size_t index) const
     {
         return index < fmOperatorLevelValueLabels.size() ? fmOperatorLevelValueLabels[index].getBounds() : juce::Rectangle<int> {};
@@ -574,6 +578,7 @@ private:
     std::array<juce::Label, fmOperatorReadoutRows> fmOperatorValueLabels;
     std::array<juce::Label, fmOperatorReadoutRows> fmOperatorLevelValueLabels;
     std::array<juce::Slider, fmOperatorReadoutRows> fmOperatorLevelSliders;
+    std::array<juce::TextButton, fmOperatorReadoutRows> fmOperatorMultiplierButtons;
     juce::Label waveShapeLabel;
     juce::Label waveShapeValueLabel;
     juce::Label pulse2DutyLabel;
