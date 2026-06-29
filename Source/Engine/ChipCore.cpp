@@ -32,6 +32,8 @@ namespace
 constexpr double twoPi = 6.28318530717958647692;
 constexpr size_t opnaAdpcmARomSize = 0x2000;
 constexpr size_t opnaAdpcmBMaxBytes = 0x40000;
+constexpr size_t opnbAdpcmAMaxBytes = 0x100000;
+constexpr size_t opnbAdpcmBMaxBytes = 0x1000000;
 
 double clamp01(double value)
 {
@@ -12686,6 +12688,7 @@ public:
         chip = std::make_unique<ymfm::ym2610>(host);
         chip->set_fidelity(ymfm::OPN_FIDELITY_MED);
         chip->reset();
+        host.resetAdpcmCounters();
         chipSampleRate = static_cast<double>(chip->sample_rate(static_cast<uint32_t>(std::round(clock))));
         sampleAccumulator = 0.0;
         regs.fill(0);
@@ -12696,12 +12699,23 @@ public:
         currentPanBits.fill(0xc0u);
         currentSsgPeriod.fill(1);
         currentSsgVolume.fill(0);
+        currentOpnbAdpcmALevels.fill(0);
+        currentOpnbAdpcmAStartRegisters.fill(0);
+        currentOpnbAdpcmAEndRegisters.fill(0);
         channelNotes.fill(-1);
         channelVelocity.fill(0.0f);
         channelStamp.fill(0);
         noteStamp = 0;
         heldNote = -1;
         keyOnMask = 0;
+        opnbAdpcmAKeyBits = 0;
+        opnbAdpcmATotalLevel = 0x3fu;
+        opnbAdpcmBControlRegister = 0;
+        opnbAdpcmBPanRegister = 0;
+        opnbAdpcmBStartRegister = 0;
+        opnbAdpcmBEndRegister = 0;
+        opnbAdpcmBDeltaNRegister = 0;
+        opnbAdpcmBLevelRegister = 0;
         ssgGateMask = 0;
         lastNativeLeft = 0;
         lastNativeRight = 0;
@@ -12712,11 +12726,27 @@ public:
 
     void setPatch(const PatchConfig& nextPatch) override
     {
-        if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled)
+        if (nextPatch.playMode != patch.playMode
+            || nextPatch.sourceEnabled != patch.sourceEnabled
+            || opnbAdpcmEnabledForMacro(nextPatch.macro) != opnbAdpcmEnabledForMacro(patch.macro))
             clearChipPolyState();
 
         patch = nextPatch;
+        if (! opnbAdpcmEnabledForPatch())
+            keyOffOpnbAdpcm();
         applyPatchToAllChannels(true);
+    }
+
+    void setExternalSampleData(std::vector<uint8_t> data) override
+    {
+        host.setAdpcmAMemory(std::move(data));
+        host.resetAdpcmCounters();
+    }
+
+    void setExternalAdpcmBData(std::vector<uint8_t> data) override
+    {
+        host.setAdpcmBMemory(std::move(data));
+        host.resetAdpcmCounters();
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -12767,6 +12797,9 @@ public:
 
         for (size_t channel = 0; channel < sourceChannelCount; ++channel)
             triggerChannel(channel, notes[channel], baseVelocity, channelEnabled(channel));
+
+        if (opnbAdpcmEnabledForPatch())
+            triggerOpnbAdpcm(heldNote, baseVelocity);
     }
 
     void noteOff(int midiNote) override
@@ -12787,6 +12820,7 @@ public:
                 channelVelocity[channel] = 0.0f;
                 channelStamp[channel] = 0;
             }
+            keyOffOpnbAdpcm();
         }
     }
 
@@ -12855,7 +12889,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPNB FM+SSG register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2610/OPNB synthesis core. Chipper currently maps musical controls and notes to the four exposed OPNB FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2610 low/high address-data ports. YM2610B/OPNB2 six-FM behavior, external ADPCM-A, external ADPCM-B, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2610/OPNB synthesis core. Chipper currently maps musical controls and notes to the four exposed OPNB FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2610 low/high address-data ports. Drum and Hit macros can also write native OPNB ADPCM-A key/start/end/level registers and ADPCM-B start/end/delta/level registers from user-owned encoded byte memory. YM2610B/OPNB2 six-FM behavior, WAV/AIFF ADPCM import or format conversion, sample editing, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -12878,8 +12912,33 @@ public:
              << "\"ssgChannelCount\":3,"
              << "\"ssgIntegrated\":1,"
              << "\"opnb2Implemented\":0,"
-             << "\"adpcmAImplemented\":0,"
-             << "\"adpcmBImplemented\":0,"
+             << "\"adpcmAImplemented\":1,"
+             << "\"adpcmBImplemented\":1,"
+             << "\"opnbAdpcmAOverlay\":" << (opnbAdpcmEnabledForPatch() ? 1 : 0) << ","
+             << "\"opnbAdpcmAKeyBits\":" << static_cast<int>(opnbAdpcmAKeyBits) << ","
+             << "\"opnbAdpcmATotalLevel\":" << static_cast<int>(opnbAdpcmATotalLevel) << ","
+             << "\"opnbAdpcmALoaded\":" << (host.adpcmALoaded() ? 1 : 0) << ","
+             << "\"opnbAdpcmAProvidedBytes\":" << host.adpcmAProvidedBytes() << ","
+             << "\"opnbAdpcmACopiedBytes\":" << host.adpcmACopiedBytes() << ","
+             << "\"opnbAdpcmAChecksum\":" << host.adpcmAChecksum() << ","
+             << "\"opnbAdpcmAReadCount\":" << host.adpcmAReads() << ","
+             << "\"opnbAdpcmALastReadAddress\":" << host.lastAdpcmAReadAddress() << ","
+             << "\"opnbAdpcmAStartRegister0\":" << currentOpnbAdpcmAStartRegisters[0] << ","
+             << "\"opnbAdpcmAEndRegister0\":" << currentOpnbAdpcmAEndRegisters[0] << ","
+             << "\"opnbAdpcmAMaxBytes\":" << opnbAdpcmAMaxBytes << ","
+             << "\"opnbAdpcmBReadCount\":" << host.adpcmBReads() << ","
+             << "\"opnbAdpcmBLoaded\":" << (host.adpcmBLoaded() ? 1 : 0) << ","
+             << "\"opnbAdpcmBProvidedBytes\":" << host.adpcmBProvidedBytes() << ","
+             << "\"opnbAdpcmBCopiedBytes\":" << host.adpcmBCopiedBytes() << ","
+             << "\"opnbAdpcmBChecksum\":" << host.adpcmBChecksum() << ","
+             << "\"opnbAdpcmBLastReadAddress\":" << host.lastAdpcmBReadAddress() << ","
+             << "\"opnbAdpcmBControlRegister\":" << static_cast<int>(opnbAdpcmBControlRegister) << ","
+             << "\"opnbAdpcmBPanRegister\":" << static_cast<int>(opnbAdpcmBPanRegister) << ","
+             << "\"opnbAdpcmBStartRegister\":" << opnbAdpcmBStartRegister << ","
+             << "\"opnbAdpcmBEndRegister\":" << opnbAdpcmBEndRegister << ","
+             << "\"opnbAdpcmBDeltaNRegister\":" << opnbAdpcmBDeltaNRegister << ","
+             << "\"opnbAdpcmBLevelRegister\":" << static_cast<int>(opnbAdpcmBLevelRegister) << ","
+             << "\"opnbAdpcmBMaxBytes\":" << opnbAdpcmBMaxBytes << ","
              << "\"algorithm0\":" << static_cast<int>(currentAlgorithm[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
              << "\"algorithmFeedbackRegister0\":" << static_cast<int>(regs[regForNativeChannel(0xb0, nativeFmChannels[0])]) << ","
@@ -12948,6 +13007,84 @@ public:
 private:
     class Host final : public ymfm::ymfm_interface
     {
+    public:
+        void setAdpcmAMemory(std::vector<uint8_t> data)
+        {
+            setMemory(std::move(data), opnbAdpcmAMaxBytes, adpcmAMemory, providedAdpcmABytes, copiedAdpcmABytes);
+        }
+
+        void setAdpcmBMemory(std::vector<uint8_t> data)
+        {
+            setMemory(std::move(data), opnbAdpcmBMaxBytes, adpcmBMemory, providedAdpcmBBytes, copiedAdpcmBBytes);
+        }
+
+        uint8_t ymfm_external_read(ymfm::access_class type, uint32_t address) override
+        {
+            if (type == ymfm::ACCESS_ADPCM_A)
+            {
+                ++adpcmAReadCount;
+                lastAdpcmAAddress = address;
+                if (! adpcmAMemory.empty())
+                    return adpcmAMemory[static_cast<size_t>(address % static_cast<uint32_t>(adpcmAMemory.size()))];
+            }
+
+            if (type == ymfm::ACCESS_ADPCM_B)
+            {
+                ++adpcmBReadCount;
+                lastAdpcmBAddress = address;
+                if (! adpcmBMemory.empty())
+                    return adpcmBMemory[static_cast<size_t>(address % static_cast<uint32_t>(adpcmBMemory.size()))];
+            }
+            return 0;
+        }
+
+        void resetAdpcmCounters()
+        {
+            adpcmAReadCount = 0;
+            adpcmBReadCount = 0;
+            lastAdpcmAAddress = 0;
+            lastAdpcmBAddress = 0;
+        }
+
+        bool adpcmALoaded() const { return ! adpcmAMemory.empty(); }
+        bool adpcmBLoaded() const { return ! adpcmBMemory.empty(); }
+        size_t adpcmAProvidedBytes() const { return providedAdpcmABytes; }
+        size_t adpcmACopiedBytes() const { return copiedAdpcmABytes; }
+        size_t adpcmBProvidedBytes() const { return providedAdpcmBBytes; }
+        size_t adpcmBCopiedBytes() const { return copiedAdpcmBBytes; }
+        uint32_t adpcmAChecksum() const { return adpcmAMemory.empty() ? 0u : checksumBytes(adpcmAMemory); }
+        uint32_t adpcmBChecksum() const { return adpcmBMemory.empty() ? 0u : checksumBytes(adpcmBMemory); }
+        uint64_t adpcmAReads() const { return adpcmAReadCount; }
+        uint64_t adpcmBReads() const { return adpcmBReadCount; }
+        uint32_t lastAdpcmAReadAddress() const { return lastAdpcmAAddress; }
+        uint32_t lastAdpcmBReadAddress() const { return lastAdpcmBAddress; }
+
+    private:
+        static void setMemory(std::vector<uint8_t> data, size_t maxBytes, std::vector<uint8_t>& memory, size_t& providedBytes, size_t& copiedBytes)
+        {
+            providedBytes = data.size();
+            copiedBytes = std::min(data.size(), maxBytes);
+            memory.clear();
+            memory.reserve(copiedBytes);
+            if (copiedBytes > 0)
+                memory.insert(memory.end(), data.begin(), data.begin() + static_cast<std::ptrdiff_t>(copiedBytes));
+            if (memory.empty())
+            {
+                providedBytes = 0;
+                copiedBytes = 0;
+            }
+        }
+
+        std::vector<uint8_t> adpcmAMemory;
+        std::vector<uint8_t> adpcmBMemory;
+        size_t providedAdpcmABytes = 0;
+        size_t copiedAdpcmABytes = 0;
+        size_t providedAdpcmBBytes = 0;
+        size_t copiedAdpcmBBytes = 0;
+        uint64_t adpcmAReadCount = 0;
+        uint64_t adpcmBReadCount = 0;
+        uint32_t lastAdpcmAAddress = 0;
+        uint32_t lastAdpcmBAddress = 0;
     };
 
     struct OPNBPitch
@@ -12981,6 +13118,178 @@ private:
 
         const auto reg = channel * 2u;
         return std::max(1, static_cast<int>(regs[reg] | ((regs[reg + 1u] & 0x0fu) << 8u)));
+    }
+    static bool opnbAdpcmEnabledForMacro(MacroKind macro)
+    {
+        return macro == MacroKind::drum || macro == MacroKind::hit;
+    }
+
+    bool opnbAdpcmEnabledForPatch() const
+    {
+        return opnbAdpcmEnabledForMacro(patch.macro);
+    }
+
+    uint8_t opnbAdpcmAChannelLevel(size_t channel, float velocity) const
+    {
+        const auto source = std::min(channel, sourceChannelCount - static_cast<size_t>(1));
+        const auto level = clamp01(velocity) * clamp01(patch.control4) * sourceLevel(patch, source);
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(level * 31.0)), 0, 31));
+    }
+
+    uint8_t opnbAdpcmAKeyBitsForPatch(float velocity) const
+    {
+        if (! opnbAdpcmEnabledForPatch() || ! host.adpcmALoaded() || ! anyAudibleSourceEnabled())
+            return 0;
+
+        uint8_t keyBits = 0;
+        for (size_t channel = 0; channel < currentOpnbAdpcmALevels.size(); ++channel)
+        {
+            const auto source = std::min(channel, sourceChannelCount - static_cast<size_t>(1));
+            if (channelEnabled(source) && opnbAdpcmAChannelLevel(channel, velocity) > 0)
+                keyBits = static_cast<uint8_t>(keyBits | (1u << channel));
+        }
+        return keyBits;
+    }
+
+    static uint16_t opnbAdpcmEndRegisterForBytes(size_t copiedBytes)
+    {
+        if (copiedBytes <= 1u)
+            return 0;
+        const auto end = (copiedBytes - 1u) >> 8u;
+        return static_cast<uint16_t>(std::min<size_t>(end, 0xffffu));
+    }
+
+    std::pair<uint16_t, uint16_t> opnbAdpcmAWindowForChannel(size_t channel) const
+    {
+        const auto copiedBytes = host.adpcmACopiedBytes();
+        if (copiedBytes <= 1u)
+            return { 0, 0 };
+
+        const auto segmentBytes = std::max<size_t>(0x100u, copiedBytes / currentOpnbAdpcmALevels.size());
+        const auto startByte = std::min(copiedBytes - 1u, segmentBytes * channel);
+        const auto endByte = std::min(copiedBytes - 1u, startByte + segmentBytes - 1u);
+        return {
+            static_cast<uint16_t>(std::min<size_t>(startByte >> 8u, 0xffffu)),
+            static_cast<uint16_t>(std::min<size_t>(endByte >> 8u, 0xffffu))
+        };
+    }
+
+    uint8_t opnbAdpcmBLevelForPatch(float velocity) const
+    {
+        auto trim = 0.0;
+        for (size_t source = 0; source < sourceChannelCount; ++source)
+        {
+            if (channelEnabled(source))
+                trim = std::max(trim, sourceLevel(patch, source));
+        }
+        const auto level = clamp01(velocity) * clamp01(patch.control4) * trim;
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(level * 255.0)), 0, 255));
+    }
+
+    uint16_t opnbAdpcmBDeltaNForNote(int midiNote) const
+    {
+        const auto semitones = static_cast<double>(std::clamp(midiNote, 0, 127) - 60) / 12.0;
+        const auto macroBoost = patch.macro == MacroKind::hit ? 1.18 : 1.0;
+        const auto delta = std::round(0x1800 * std::pow(2.0, semitones) * macroBoost);
+        return static_cast<uint16_t>(std::clamp(static_cast<int>(delta), 0x0100, 0xffff));
+    }
+
+    void keyOffOpnbAdpcmA()
+    {
+        const auto shouldWriteDump = opnbAdpcmAKeyBits != 0 || (regs[0x100] & 0x3fu) != 0;
+        const auto dumpMask = static_cast<uint8_t>(0x80u | (opnbAdpcmAKeyBits != 0 ? opnbAdpcmAKeyBits : 0x3fu));
+        opnbAdpcmAKeyBits = 0;
+        currentOpnbAdpcmALevels.fill(0);
+        if (chip && shouldWriteDump)
+            writeYmRegister(0x100u, dumpMask);
+    }
+
+    void triggerOpnbAdpcmA(float velocity)
+    {
+        const auto keyBits = opnbAdpcmAKeyBitsForPatch(velocity);
+        keyOffOpnbAdpcmA();
+        if (keyBits == 0)
+            return;
+
+        opnbAdpcmATotalLevel = 0x3fu;
+        writeYmRegister(0x101u, opnbAdpcmATotalLevel);
+        for (size_t channel = 0; channel < currentOpnbAdpcmALevels.size(); ++channel)
+        {
+            const auto level = opnbAdpcmAChannelLevel(channel, velocity);
+            const auto pan = ym2612PanBitsForPatch(patch, channel);
+            const auto [start, end] = opnbAdpcmAWindowForChannel(channel);
+            currentOpnbAdpcmALevels[channel] = level;
+            currentOpnbAdpcmAStartRegisters[channel] = start;
+            currentOpnbAdpcmAEndRegisters[channel] = end;
+            writeYmRegister(static_cast<uint16_t>(0x108u + channel), static_cast<uint8_t>(pan | level));
+            writeYmRegister(static_cast<uint16_t>(0x110u + channel), static_cast<uint8_t>(start & 0xffu));
+            writeYmRegister(static_cast<uint16_t>(0x118u + channel), static_cast<uint8_t>((start >> 8u) & 0xffu));
+            writeYmRegister(static_cast<uint16_t>(0x120u + channel), static_cast<uint8_t>(end & 0xffu));
+            writeYmRegister(static_cast<uint16_t>(0x128u + channel), static_cast<uint8_t>((end >> 8u) & 0xffu));
+        }
+
+        opnbAdpcmAKeyBits = keyBits;
+        writeYmRegister(0x100u, keyBits);
+    }
+
+    void keyOffOpnbAdpcmB()
+    {
+        const auto wasExecuting = (regs[0x10] & 0x80u) != 0u || (opnbAdpcmBControlRegister & 0x80u) != 0u;
+        opnbAdpcmBControlRegister = host.adpcmBLoaded() ? 0x20u : 0x00u;
+        if (chip && wasExecuting)
+            writeYmRegister(0x10u, opnbAdpcmBControlRegister);
+    }
+
+    void triggerOpnbAdpcmB(int midiNote, float velocity)
+    {
+        if (! host.adpcmBLoaded() || ! opnbAdpcmEnabledForPatch() || ! anyAudibleSourceEnabled())
+        {
+            keyOffOpnbAdpcmB();
+            return;
+        }
+
+        const auto level = opnbAdpcmBLevelForPatch(velocity);
+        if (level == 0)
+        {
+            keyOffOpnbAdpcmB();
+            return;
+        }
+
+        const auto end = opnbAdpcmEndRegisterForBytes(host.adpcmBCopiedBytes());
+        const auto delta = opnbAdpcmBDeltaNForNote(midiNote);
+        opnbAdpcmBControlRegister = 0xa0u;
+        opnbAdpcmBPanRegister = 0xc0u;
+        opnbAdpcmBStartRegister = 0;
+        opnbAdpcmBEndRegister = end;
+        opnbAdpcmBDeltaNRegister = delta;
+        opnbAdpcmBLevelRegister = level;
+
+        writeYmRegister(0x10u, 0x01u);
+        writeYmRegister(0x10u, 0x20u);
+        writeYmRegister(0x11u, opnbAdpcmBPanRegister);
+        writeYmRegister(0x12u, 0x00u);
+        writeYmRegister(0x13u, 0x00u);
+        writeYmRegister(0x14u, static_cast<uint8_t>(end & 0xffu));
+        writeYmRegister(0x15u, static_cast<uint8_t>((end >> 8u) & 0xffu));
+        writeYmRegister(0x19u, static_cast<uint8_t>(delta & 0xffu));
+        writeYmRegister(0x1au, static_cast<uint8_t>((delta >> 8u) & 0xffu));
+        writeYmRegister(0x1bu, level);
+        writeYmRegister(0x10u, opnbAdpcmBControlRegister);
+    }
+
+    void keyOffOpnbAdpcm()
+    {
+        keyOffOpnbAdpcmA();
+        keyOffOpnbAdpcmB();
+    }
+
+    void triggerOpnbAdpcm(int midiNote, float velocity)
+    {
+        if (! chip || ! opnbAdpcmEnabledForPatch())
+            return;
+
+        triggerOpnbAdpcmA(velocity);
+        triggerOpnbAdpcmB(midiNote, velocity);
     }
 
     void writeYmRegister(uint16_t reg, uint8_t value)
@@ -13143,6 +13452,7 @@ private:
     {
         for (size_t channel = 0; channel < channelNotes.size(); ++channel)
             keyOffChannel(channel);
+        keyOffOpnbAdpcm();
         channelNotes.fill(-1);
         channelVelocity.fill(0.0f);
         channelStamp.fill(0);
@@ -13197,6 +13507,8 @@ private:
         channelVelocity[index] = static_cast<float>(clamp01(velocity));
         channelStamp[index] = ++noteStamp;
         triggerChannel(index, midiNote, velocity, true);
+        if (opnbAdpcmEnabledForPatch())
+            triggerOpnbAdpcm(midiNote, velocity);
     }
 
     void noteOffChipPoly(int midiNote)
@@ -13211,6 +13523,8 @@ private:
             channelStamp[channel] = 0;
             keyOffChannel(channel);
         }
+        if (opnbAdpcmEnabledForPatch())
+            keyOffOpnbAdpcm();
     }
 
     void applyLaserDrift()
@@ -13366,6 +13680,17 @@ private:
     std::array<uint16_t, 3> currentSsgPeriod {};
     std::array<uint8_t, 3> currentSsgVolume {};
     std::array<int, 7> channelNotes {};
+    std::array<uint8_t, 6> currentOpnbAdpcmALevels {};
+    std::array<uint16_t, 6> currentOpnbAdpcmAStartRegisters {};
+    std::array<uint16_t, 6> currentOpnbAdpcmAEndRegisters {};
+    uint8_t opnbAdpcmAKeyBits = 0;
+    uint8_t opnbAdpcmATotalLevel = 0x3f;
+    uint8_t opnbAdpcmBControlRegister = 0;
+    uint8_t opnbAdpcmBPanRegister = 0;
+    uint16_t opnbAdpcmBStartRegister = 0;
+    uint16_t opnbAdpcmBEndRegister = 0;
+    uint16_t opnbAdpcmBDeltaNRegister = 0;
+    uint8_t opnbAdpcmBLevelRegister = 0;
     std::array<float, 7> channelVelocity {};
     std::array<uint64_t, 7> channelStamp {};
     uint64_t noteStamp = 0;

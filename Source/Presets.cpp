@@ -5874,7 +5874,7 @@ const std::vector<PresetInfo>& presetCatalog()
             "opnb-ssg-perc-drum",
             "YM2610 / OPNB Drums",
             "OPNB SSG Perc Drum",
-            "Short YM2610 FM percussion drum with SSG tone clicks while external OPNB ADPCM remains a planned follow-up.",
+            "Short YM2610 FM percussion drum with SSG tone clicks and optional user-owned OPNB ADPCM sample-memory overlays.",
             ChipMode::ym2610,
             AccuracyMode::hybrid,
             MacroKind::drum,
@@ -7753,8 +7753,8 @@ const std::vector<PresetQualityTarget>& presetQualityTargets()
         { ChipMode::ym2413, roles, { "fm", "operator", "rhythm", "envelope", "alarm" }, "Furnace-informed OPLL coverage: ROM instrument bass/leads/keys, rhythm slots, and compact SFX." },
         { ChipMode::scc, roles, { "wavetable", "wave", "noise", "echo", "chord" }, "Furnace-informed SCC coverage: five-lane wavetable basses, leads, keys, arps, drums, and arcade SFX." },
         { ChipMode::ym2203, roles, { "fm", "ssg", "operator", "feedback", "envelope", "bell" }, "Furnace-informed OPN coverage: YM2203 FM plus embedded SSG basses, leads, keys, arps, percussion, and SFX." },
-        { ChipMode::ym2608, roles, { "fm", "opna", "ssg", "operator", "feedback", "envelope", "rhythm", "adpcm", "chord" }, "Furnace-informed OPNA coverage: YM2608 six-FM PC-98 basses/leads/keys/arps plus embedded SSG percussion, generated/default-or-user ADPCM-A rhythm overlay, and SFX; ADPCM-B/user samples remain planned." },
-        { ChipMode::ym2610, roles, { "fm", "opnb", "ssg", "operator", "feedback", "envelope", "neo" }, "Furnace-informed OPNB coverage: YM2610 four-FM Neo Geo-style basses/leads/keys/arps plus embedded SSG percussion and SFX; ADPCM remains planned." }
+        { ChipMode::ym2608, roles, { "fm", "opna", "ssg", "operator", "feedback", "envelope", "rhythm", "adpcm", "chord" }, "Furnace-informed OPNA coverage: YM2608 six-FM PC-98 basses/leads/keys/arps plus embedded SSG percussion, generated/default-or-user ADPCM-A rhythm overlay, first-pass encoded ADPCM-B sample memory, and SFX; ADPCM-B conversion/editing remains planned." },
+        { ChipMode::ym2610, roles, { "fm", "opnb", "ssg", "operator", "feedback", "envelope", "neo", "adpcm" }, "Furnace-informed OPNB coverage: YM2610 four-FM Neo Geo-style basses/leads/keys/arps plus embedded SSG percussion, optional user-owned ADPCM-A/B sample-memory overlays, and SFX; VST loading/state, conversion/editing, and OPNB2 remain planned." }
     };
 
     return targets;

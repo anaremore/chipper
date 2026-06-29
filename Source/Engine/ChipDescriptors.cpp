@@ -94,11 +94,11 @@ std::vector<MacroTemplate> ym2610Macros()
 {
     return {
         { MacroKind::manual, "OPNB Manual", "Neutral YM2610 four-FM plus embedded SSG mapping using the ymfm OPNB core.", { 0.50f, 0.35f, 0.45f, 0.72f }, { true, true, true, true }, 0.0f, 0 },
-        { MacroKind::coin, "OPNB Neo Chime", "Short bright OPNB UI chime using FM plus SSG sparkle while ADPCM remains planned.", { 1.00f, 0.18f, 0.68f, 0.78f }, { true, false, false, true }, 0.16f, 8 },
+        { MacroKind::coin, "OPNB Neo Chime", "Short bright OPNB UI chime using FM plus SSG sparkle with ADPCM reserved for Drum/Hit gestures.", { 1.00f, 0.18f, 0.68f, 0.78f }, { true, false, false, true }, 0.16f, 8 },
         { MacroKind::bass, "OPNB Feedback Bass", "Dark Neo Geo-style bass using serial FM with a restrained SSG octave.", { 0.00f, 0.82f, 0.28f, 0.90f }, { true, true, false, true }, 0.08f, 1 },
         { MacroKind::lead, "OPNB Metallic Lead", "Forward OPNB lead with four FM lanes and embedded SSG support.", { 0.58f, 0.46f, 0.62f, 0.84f }, { true, true, true, true }, 0.10f, 5 },
         { MacroKind::arp, "OPNB Seven-Voice Arp", "Four OPNB FM channels plus three SSG lanes arranged for quick fake chords and arpeggios.", { 0.72f, 0.32f, 0.50f, 0.80f }, { true, true, true, true }, 0.08f, 6 },
-        { MacroKind::drum, "OPNB SSG Perc", "Short OPNB operator percussion with SSG click layers while external ADPCM remains planned.", { 0.14f, 0.72f, 0.66f, 0.92f }, { true, false, true, true }, 0.30f, 2, 4 },
+        { MacroKind::drum, "OPNB SSG Perc", "Short OPNB operator percussion with SSG click layers and optional user-owned ADPCM-A/B sample-memory overlays.", { 0.14f, 0.72f, 0.66f, 0.92f }, { true, false, true, true }, 0.30f, 2, 4 },
         { MacroKind::hit, "OPNB Impact Hit", "Aggressive stacked OPNB FM and SSG impact.", { 0.22f, 0.90f, 0.74f, 0.80f }, { true, false, true, true }, 0.52f, 2 },
         { MacroKind::laser, "OPNB Pitch Laser", "YM2610 pitch sweep SFX through FM and SSG voices.", { 0.30f, 0.72f, 0.88f, 0.82f }, { true, true, false, true }, 0.28f, 3 },
         { MacroKind::jump, "OPNB Jump Blip", "Quick upward OPNB FM/SSG game gesture.", { 1.00f, 0.22f, 0.64f, 0.78f }, { true, false, false, true }, 0.18f, 8 },
@@ -3545,7 +3545,7 @@ std::array<ModuleDescriptor, 6> ym2610Modules()
         makeModule("tone", "Operators", "Musical controls write native OPNB algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPNB attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
         makeModule("motion", "Motion", "Neo Geo-style YM2610 preset recipes map to register-backed FM and SSG patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
-        makeModule("output", "Output", "ymfm OPNB stereo FM output is mixed with the embedded mono SSG tone/noise/envelope bus.", { "Stereo FM core", "Mono SSG bus", "ADPCM planned", "Verified partial" })
+        makeModule("output", "Output", "ymfm OPNB stereo FM output is mixed with the embedded mono SSG tone/noise/envelope bus and optional encoded ADPCM-A/B sample memory.", { "Stereo FM core", "Mono SSG bus", "ADPCM-A/B memory", "Verified partial" })
     };
 }
 
@@ -4320,7 +4320,7 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2610,
             "YM2610 / OPNB",
-            "Four YM2610/OPNB FM lanes plus three embedded SSG tone/noise/envelope lanes write native registers into the audited ymfm core; external ADPCM remains planned.",
+            "Four YM2610/OPNB FM lanes plus three embedded SSG tone/noise/envelope lanes write native registers into the audited ymfm core; Drum and Hit macros can also trigger optional encoded ADPCM-A/B sample memory.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2610 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2610 feedback bits for the active OPNB FM voices." },
@@ -4337,10 +4337,11 @@ const std::vector<ChipDescriptor>& descriptors()
                     "BSD-3-Clause ymfm is vendored and linked as the YM2610/OPNB synthesis core.",
                     "Renderer notes and preset recipes write OPNB algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, key-on, and pan registers across the four YM2610 FM channels.",
                     "Embedded YM2610 SSG tone period, noise period, mixer, amplitude, and envelope registers are written for SSG A-C and mixed from the ymfm OPNB SSG output bus.",
-                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the seven-lane FM plus SSG adapter."
+                    "Renderer paths can load user-owned encoded ADPCM-A and ADPCM-B bytes into YM2610 sample memory for Drum and Hit macros.",
+                    "Descriptor, MIDI CC, renderer smoke, ADPCM sample-memory smoke, source gating, and Chip Poly regression tests cover the seven-lane FM plus SSG adapter."
                 },
                 {
-                    "External ADPCM-A, external ADPCM-B, YM2610B/OPNB2 six-FM behavior, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
+                    "VST ADPCM-A/B loading and state recall, WAV/AIFF ADPCM import or format conversion, full sample editing, YM2610B/OPNB2 six-FM behavior, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
                     "Prescaler controls, timers, CSM, LFO/AMS/PMS, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
                 })
         }
