@@ -3521,7 +3521,7 @@ std::array<ModuleDescriptor, 6> ym2608Modules()
         makeModule("tone", "Operators", "Musical controls write native OPNA algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPNA attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
         makeModule("motion", "Motion", "PC-98-style YM2608 preset recipes map to register-backed FM and SSG patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
-        makeModule("output", "Output", "ymfm OPNA stereo FM output is mixed with the embedded mono SSG tone/noise/envelope bus and ADPCM-A rhythm overlay.", { "Stereo FM core", "Mono SSG bus", "Generated/user rhythm ROM", "Verified partial" })
+        makeModule("output", "Output", "ymfm OPNA stereo FM output is mixed with the embedded mono SSG tone/noise/envelope bus, ADPCM-A rhythm overlay, and optional encoded ADPCM-B sample memory.", { "Stereo FM core", "Mono SSG bus", "ADPCM-A/B memory", "Verified partial" })
     };
 }
 
@@ -4291,7 +4291,7 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2608,
             "YM2608 / OPNA",
-            "Six YM2608/OPNA FM lanes plus three embedded SSG tone/noise/envelope lanes write native registers into the audited ymfm core; Drum and Hit macros also trigger generated ADPCM-A rhythm.",
+            "Six YM2608/OPNA FM lanes plus three embedded SSG tone/noise/envelope lanes write native registers into the audited ymfm core; Drum and Hit macros also trigger generated/user ADPCM-A rhythm and optional encoded ADPCM-B sample memory.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2608 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2608 feedback bits for the active OPNA FM voices." },
@@ -4309,10 +4309,11 @@ const std::vector<ChipDescriptor>& descriptors()
                     "Renderer notes and preset recipes write OPNA algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, key-on, and pan registers across all six FM channels.",
                     "Embedded YM2608 SSG tone period, noise period, mixer, amplitude, and envelope registers are written for SSG A-C and mixed from the ymfm OPNA SSG output bus.",
                     "Drum and Hit macros write native OPNA ADPCM-A rhythm key, total-level, pan, and instrument-level registers using deterministic original Chipper-generated percussion bytes by default, with renderer and VST support for user-owned rhythm ROM bytes.",
+                    "Renderer and VST paths can load user-owned encoded ADPCM-B bytes into YM2608 ADPCM-B sample memory for Drum and Hit macros.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the nine-lane FM plus SSG adapter."
                 },
                 {
-                    "ADPCM-B/user ADPCM sample import, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
+                    "ADPCM-B WAV/AIFF import or format conversion, full sample editing, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
                     "Prescaler controls, timers, CSM, LFO/AMS/PMS, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
                 })
         },
