@@ -1420,6 +1420,29 @@ const std::vector<PresetInfo>& presetCatalog()
             -10.0f,
             14318180.0
         },
+        withSourceLevels(
+            {
+                "opl3-layer-arp",
+                "OPL2/OPL3 / DOS FM",
+                "OPL3 Layer Arp",
+                "Paired-bank OPL3 arpeggio using the 18ch Layer mode behind the nine source cards.",
+                ChipMode::opl3,
+                AccuracyMode::hybrid,
+                MacroKind::arp,
+                PlayMode::chipPoly,
+                { 0.72f, 0.36f, 0.54f, 0.74f },
+                { true, true, true, true },
+                0.08f,
+                2,
+                3,
+                0,
+                -10.5f,
+                14318180.0
+            },
+            0.92f,
+            0.74f,
+            0.58f,
+            0.86f),
         {
             "opl2-ui-bell",
             "Arcade UI",

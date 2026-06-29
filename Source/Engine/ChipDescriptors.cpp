@@ -1080,8 +1080,9 @@ std::vector<ParameterChoiceSpec> oplRhythmModeChoices()
 {
     return {
         choice("Preset", "Use native OPL rhythm mode for Drum/Hit presets and melodic mode otherwise.", 0.0f, 0),
-        choice("Melodic", "Keep all nine OPL2 channels in melodic two-operator mode.", 0.5f, 1),
-        choice("Rhythm", "Enable OPL2 rhythm mode: channels 7-9 become BD, HH, SD, TOM, and CYM.", 1.0f, 2)
+        choice("Melodic", "Keep all nine OPL2 channels in melodic two-operator mode.", 1.0f / 3.0f, 1),
+        choice("Rhythm", "Enable OPL2 rhythm mode: channels 7-9 become BD, HH, SD, TOM, and CYM.", 2.0f / 3.0f, 2),
+        choice("18ch Layer", "Use OPL3 high-bank channels 10-18 as paired layers behind the nine visible source cards.", 1.0f, 3)
     };
 }
 
@@ -1908,27 +1909,27 @@ std::vector<ChipParameterSpec> oplParameterSpecs()
                       "opl.rhythmMode",
                       "Rhythm Mode",
                       "Rhythm",
-                      "Controls OPL2 register $BD rhythm mode. Preset uses Rhythm for Drum/Hit presets and Melodic otherwise.",
+                      "Controls OPL2 register $BD rhythm mode or enables an OPL3 18-channel paired-layer mode. Preset uses Rhythm for Drum/Hit presets and Melodic otherwise.",
                       oplRhythmModeChoices(),
                       ParameterKind::chipRegister),
-        sourceSpec(ChipParameterRole::source1Enabled, "opl.ch1.enabled", "OPL Ch 1", "Enable OPL2 melodic channel 1."),
-        sourceSpec(ChipParameterRole::source2Enabled, "opl.ch2.enabled", "OPL Ch 2", "Enable OPL2 melodic channel 2."),
-        sourceSpec(ChipParameterRole::source3Enabled, "opl.ch3.enabled", "OPL Ch 3", "Enable OPL2 melodic channel 3."),
-        sourceSpec(ChipParameterRole::source4Enabled, "opl.ch4.enabled", "OPL Ch 4", "Enable OPL2 melodic channel 4."),
-        sourceSpec(ChipParameterRole::source5Enabled, "opl.ch5.enabled", "OPL Ch 5", "Enable OPL2 melodic channel 5."),
-        sourceSpec(ChipParameterRole::source6Enabled, "opl.ch6.enabled", "OPL Ch 6", "Enable OPL2 melodic channel 6."),
-        sourceSpec(ChipParameterRole::source7Enabled, "opl.ch7.enabled", "OPL Ch 7 / BD", "Enable OPL2 melodic channel 7, or Bass Drum in Rhythm Mode."),
-        sourceSpec(ChipParameterRole::source8Enabled, "opl.ch8.enabled", "OPL Ch 8 / HH+SD", "Enable OPL2 melodic channel 8, or Hi-Hat plus Snare in Rhythm Mode."),
-        sourceSpec(ChipParameterRole::source9Enabled, "opl.ch9.enabled", "OPL Ch 9 / TOM+CYM", "Enable OPL2 melodic channel 9, or Tom plus Cymbal in Rhythm Mode."),
-        sourceLevelSpec(ChipParameterRole::source1Level, "opl.ch1.level", "Ch 1 Level", "Modern trim before writing OPL2 channel 1 carrier level."),
-        sourceLevelSpec(ChipParameterRole::source2Level, "opl.ch2.level", "Ch 2 Level", "Modern trim before writing OPL2 channel 2 carrier level."),
-        sourceLevelSpec(ChipParameterRole::source3Level, "opl.ch3.level", "Ch 3 Level", "Modern trim before writing OPL2 channel 3 carrier level."),
-        sourceLevelSpec(ChipParameterRole::source4Level, "opl.ch4.level", "Ch 4 Level", "Modern trim before writing OPL2 channel 4 carrier level."),
-        sourceLevelSpec(ChipParameterRole::source5Level, "opl.ch5.level", "Ch 5 Level", "Modern trim before writing OPL2 channel 5 carrier level."),
-        sourceLevelSpec(ChipParameterRole::source6Level, "opl.ch6.level", "Ch 6 Level", "Modern trim before writing OPL2 channel 6 carrier level."),
-        sourceLevelSpec(ChipParameterRole::source7Level, "opl.ch7.level", "Ch 7 / BD Level", "Modern trim before writing OPL2 channel 7 carrier level, or Bass Drum level in Rhythm Mode."),
-        sourceLevelSpec(ChipParameterRole::source8Level, "opl.ch8.level", "Ch 8 / HH+SD Level", "Modern trim before writing OPL2 channel 8 carrier level, or Hi-Hat/Snare level in Rhythm Mode."),
-        sourceLevelSpec(ChipParameterRole::source9Level, "opl.ch9.level", "Ch 9 / TOM+CYM Level", "Modern trim before writing OPL2 channel 9 carrier level, or Tom/Cymbal level in Rhythm Mode.")
+        sourceSpec(ChipParameterRole::source1Enabled, "opl.ch1.enabled", "OPL Ch 1 / 10", "Enable OPL2 melodic channel 1; in 18ch Layer mode this also enables OPL3 high-bank channel 10."),
+        sourceSpec(ChipParameterRole::source2Enabled, "opl.ch2.enabled", "OPL Ch 2 / 11", "Enable OPL2 melodic channel 2; in 18ch Layer mode this also enables OPL3 high-bank channel 11."),
+        sourceSpec(ChipParameterRole::source3Enabled, "opl.ch3.enabled", "OPL Ch 3 / 12", "Enable OPL2 melodic channel 3; in 18ch Layer mode this also enables OPL3 high-bank channel 12."),
+        sourceSpec(ChipParameterRole::source4Enabled, "opl.ch4.enabled", "OPL Ch 4 / 13", "Enable OPL2 melodic channel 4; in 18ch Layer mode this also enables OPL3 high-bank channel 13."),
+        sourceSpec(ChipParameterRole::source5Enabled, "opl.ch5.enabled", "OPL Ch 5 / 14", "Enable OPL2 melodic channel 5; in 18ch Layer mode this also enables OPL3 high-bank channel 14."),
+        sourceSpec(ChipParameterRole::source6Enabled, "opl.ch6.enabled", "OPL Ch 6 / 15", "Enable OPL2 melodic channel 6; in 18ch Layer mode this also enables OPL3 high-bank channel 15."),
+        sourceSpec(ChipParameterRole::source7Enabled, "opl.ch7.enabled", "OPL Ch 7 / 16 / BD", "Enable OPL2 melodic channel 7, OPL3 high-bank channel 16 in 18ch Layer mode, or Bass Drum in Rhythm Mode."),
+        sourceSpec(ChipParameterRole::source8Enabled, "opl.ch8.enabled", "OPL Ch 8 / 17 / HH+SD", "Enable OPL2 melodic channel 8, OPL3 high-bank channel 17 in 18ch Layer mode, or Hi-Hat plus Snare in Rhythm Mode."),
+        sourceSpec(ChipParameterRole::source9Enabled, "opl.ch9.enabled", "OPL Ch 9 / 18 / TOM+CYM", "Enable OPL2 melodic channel 9, OPL3 high-bank channel 18 in 18ch Layer mode, or Tom plus Cymbal in Rhythm Mode."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "opl.ch1.level", "Ch 1 / 10 Level", "Modern trim before writing OPL channel 1 carrier level and its high-bank pair in 18ch Layer mode."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "opl.ch2.level", "Ch 2 / 11 Level", "Modern trim before writing OPL channel 2 carrier level and its high-bank pair in 18ch Layer mode."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "opl.ch3.level", "Ch 3 / 12 Level", "Modern trim before writing OPL channel 3 carrier level and its high-bank pair in 18ch Layer mode."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "opl.ch4.level", "Ch 4 / 13 Level", "Modern trim before writing OPL channel 4 carrier level and its high-bank pair in 18ch Layer mode."),
+        sourceLevelSpec(ChipParameterRole::source5Level, "opl.ch5.level", "Ch 5 / 14 Level", "Modern trim before writing OPL channel 5 carrier level and its high-bank pair in 18ch Layer mode."),
+        sourceLevelSpec(ChipParameterRole::source6Level, "opl.ch6.level", "Ch 6 / 15 Level", "Modern trim before writing OPL channel 6 carrier level and its high-bank pair in 18ch Layer mode."),
+        sourceLevelSpec(ChipParameterRole::source7Level, "opl.ch7.level", "Ch 7 / 16 / BD Level", "Modern trim before writing OPL channel 7 carrier level and its high-bank pair in 18ch Layer mode, or Bass Drum level in Rhythm Mode."),
+        sourceLevelSpec(ChipParameterRole::source8Level, "opl.ch8.level", "Ch 8 / 17 / HH+SD Level", "Modern trim before writing OPL channel 8 carrier level and its high-bank pair in 18ch Layer mode, or Hi-Hat/Snare level in Rhythm Mode."),
+        sourceLevelSpec(ChipParameterRole::source9Level, "opl.ch9.level", "Ch 9 / 18 / TOM+CYM Level", "Modern trim before writing OPL channel 9 carrier level and its high-bank pair in 18ch Layer mode, or Tom/Cymbal level in Rhythm Mode.")
     };
 }
 
@@ -3583,12 +3584,12 @@ std::array<ModuleDescriptor, 6> ym2608Modules()
 std::array<ModuleDescriptor, 6> oplModules()
 {
     return std::array<ModuleDescriptor, 6> {
-        makeModule("profile", "Profile", "OPL2-compatible surface is backed by audited BSD-licensed ymfm YMF262/OPL3 core.", { "YMF262 core", "14.32 MHz clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM Voices", "All nine OPL2 melodic channels are exposed as playable lanes; rhythm mode repurposes 7-9.", { "Ch 1-6 melodic", "Ch 7-9 melodic/rhythm", "BD HH SD TOM CYM", "Chip Poly" }),
+        makeModule("profile", "Profile", "OPL2/OPL3 surface is backed by audited BSD-licensed ymfm YMF262 core.", { "YMF262 core", "14.32 MHz clock", "Hybrid default", "Verified partial" }),
+        makeModule("sources", "FM Voices", "Nine source cards address OPL2 melodic channels, native rhythm slots, or paired low/high-bank OPL3 channels in 18ch Layer mode.", { "Ch 1-9 cards", "Ch 10-18 layer", "BD HH SD TOM CYM", "Chip Poly" }),
         makeModule("tone", "Operators", "Musical controls write native OPL operator and channel registers.", { "Waveform", "Feedback", "Connection", "Operator tone" }),
         makeModule("envelope", "Operator EG", "Melodic and rhythm presets write native OPL attack/decay and sustain/release bytes.", { "EG type sustain", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
         makeModule("motion", "Motion", "DOS FM preset recipes map to register-backed melodic and rhythm patches.", { "UI bell", "FM bass", "Rhythm hits", "Laser" }),
-        makeModule("output", "Output", "ymfm OPL3 output is routed from the four native YMF262 output buses into plugin stereo.", { "OPL3 core", "$BD rhythm bits", "Output gain", "Verified partial" })
+        makeModule("output", "Output", "ymfm OPL3 output is routed from the four native YMF262 output buses into plugin stereo.", { "OPL3 core", "High bank writes", "$BD rhythm bits", "Verified partial" })
     };
 }
 
@@ -4041,7 +4042,7 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::opl3,
             "OPL2/OPL3 / DOS FM",
-            "Nine exposed lanes write OPL-compatible registers into the audited ymfm YMF262/OPL3 core for DOS FM tones and native rhythm mode.",
+            "Nine source cards write OPL-compatible registers into the audited ymfm YMF262/OPL3 core for DOS FM tones, native rhythm mode, and an explicit paired 18-channel OPL3 layer mode.",
             {
                 { "balance", "Operator Balance", "FM", "Writes the OPL connection bit for two-operator voices." },
                 { "feedback", "Feedback", "FM", "Writes OPL feedback bits." },
@@ -4056,11 +4057,11 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YMF262/OPL3 synthesis core.",
-                    "Renderer notes and preset recipes write OPL-compatible operator waveform, multiple, total-level, envelope, channel feedback/connection/output-select, f-number/block, key-on, OPL3 new-mode, and $BD rhythm registers.",
-                    "Descriptor, MIDI CC, renderer smoke, YMF262 high-bank/new-mode state, source gating, Rhythm Mode, and Chip Poly regression tests cover the nine-lane adapter."
+                    "Renderer notes and preset recipes write OPL-compatible operator waveform, multiple, total-level, envelope, channel feedback/connection/output-select, f-number/block, key-on, OPL3 new-mode, high-bank channel, and $BD rhythm registers.",
+                    "Descriptor, MIDI CC, renderer smoke, YMF262 high-bank/new-mode state, source gating, Rhythm Mode, 18-channel Layer Mode, and Chip Poly regression tests cover the paired nine-card adapter."
                 },
                 {
-                    "The OPL2/OPL3 mode currently exposes nine OPL2-style lanes even though the internal core is YMF262; full 18-channel editing, four-operator pairs, and deep rhythm-kit editing are not implemented.",
+                    "The OPL2/OPL3 mode exposes 18 native YMF262 melodic channels through paired low/high-bank source cards rather than a dedicated 18-card editor; four-operator pairs and deep rhythm-kit editing are not implemented.",
                     "Deep per-operator ADSR UI, LFO/tremolo/vibrato controls, rhythm-instrument fine tuning, golden emulator comparison, and hardware capture comparison are not complete.",
                     "Cycle accuracy is not claimed."
                 })
@@ -4709,7 +4710,11 @@ PatchConfig makePatchConfig(ChipMode mode,
                             std::array<int, 4> fmOperatorReleaseRates)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
-    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608 || mode == ChipMode::ym2610 || mode == ChipMode::ym2610b || mode == ChipMode::saa1099) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
+    const auto maxYmEnvelopeShape = mode == ChipMode::sid
+        ? 8
+        : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608 || mode == ChipMode::ym2610 || mode == ChipMode::ym2610b || mode == ChipMode::saa1099)
+               ? 4
+               : (mode == ChipMode::opl3 ? 3 : (mode == ChipMode::ym2413 ? 2 : 20)));
     const auto maxWaveShape = (mode == ChipMode::ym2413 || mode == ChipMode::nesVrc7)
         ? 15
         : ((mode == ChipMode::sid || mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608 || mode == ChipMode::ym2610 || mode == ChipMode::ym2610b) ? 8 : 4);
@@ -5967,11 +5972,18 @@ uint8_t oplCarrierTotalLevelForPatch(const PatchConfig& patch, float velocity)
 
 uint8_t oplRhythmModeForPatch(const PatchConfig& patch)
 {
-    const auto explicitChoice = std::clamp(patch.ymEnvelopeShape, 0, 2);
-    if (explicitChoice > 0)
+    const auto explicitChoice = std::clamp(patch.ymEnvelopeShape, 0, 3);
+    if (explicitChoice > 0 && explicitChoice < 3)
         return static_cast<uint8_t>(explicitChoice);
+    if (explicitChoice == 3)
+        return 1u;
 
     return (patch.macro == MacroKind::drum || patch.macro == MacroKind::hit) ? 2u : 1u;
+}
+
+bool opl18ChannelLayerForPatch(const PatchConfig& patch)
+{
+    return std::clamp(patch.ymEnvelopeShape, 0, 3) == 3;
 }
 
 uint8_t ym2413InstrumentForPatch(const PatchConfig& patch)

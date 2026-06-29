@@ -9909,11 +9909,12 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
 {
     if (displayedMode == chipper::ChipMode::opl3)
     {
-        const auto clamped = std::clamp(choice, 0, 2);
+        const auto clamped = std::clamp(choice, 0, 3);
         switch (clamped)
         {
             case 1: return "Melodic, all nine OPL2 channels use two-operator voices";
             case 2: return "Rhythm, $BD enables BD/HH/SD/TOM/CYM on channels 7-9";
+            case 3: return "18ch Layer, nine cards drive paired low/high OPL3 channels";
             case 0:
             default:
                 return "Preset recipe, Drum/Hit use native OPL2 rhythm";
