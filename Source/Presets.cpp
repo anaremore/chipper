@@ -532,6 +532,30 @@ const std::vector<PresetInfo>& presetCatalog()
         },
         withSourceLevels(
             {
+                "pokey-distortion-lead",
+                "Atari POKEY",
+                "POKEY Distortion Lead",
+                "Forward Atari lead with explicit Poly5 AUDC distortion on three channels.",
+                ChipMode::pokey,
+                AccuracyMode::hybrid,
+                MacroKind::lead,
+                PlayMode::stack,
+                { 0.66f, 0.46f, 0.54f, 0.74f },
+                { true, true, true, false },
+                0.12f,
+                3,
+                1,
+                0,
+                -9.5f,
+                1789790.0,
+                0.20f
+            },
+            1.0f,
+            0.82f,
+            0.62f,
+            1.0f),
+        withSourceLevels(
+            {
                 "pokey-distortion-bass",
                 "Atari POKEY",
                 "POKEY Distortion Bass",
