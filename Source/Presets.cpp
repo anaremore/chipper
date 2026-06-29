@@ -1476,6 +1476,29 @@ const std::vector<PresetInfo>& presetCatalog()
             0.78f),
         withSourceLevels(
             {
+                "opl2-rhythm-bell-hit",
+                "OPL2/OPL3 / DOS FM",
+                "OPL2 Rhythm Bell Hit",
+                "Native OPL2 rhythm-mode bell hit with metallic cymbal and snare edge.",
+                ChipMode::opl3,
+                AccuracyMode::hybrid,
+                MacroKind::hit,
+                PlayMode::stack,
+                { 0.36f, 0.88f, 0.82f, 0.80f },
+                { true, false, true, true },
+                0.54f,
+                3,
+                2,
+                0,
+                -11.0f,
+                14318180.0
+            },
+            0.52f,
+            0.0f,
+            0.86f,
+            0.82f),
+        withSourceLevels(
+            {
                 "opm-arcade-bass",
                 "YM2151 / OPM",
                 "OPM Arcade Bass",

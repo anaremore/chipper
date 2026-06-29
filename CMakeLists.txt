@@ -858,6 +858,9 @@ add_test(NAME chipper_render_opl3_rhythm_smoke
 add_test(NAME chipper_render_preset_opl2_rhythm_kit_smoke
     COMMAND chipper_render --preset opl2-rhythm-kit --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/opl-rhythm-events.txt --out preset-opl2-rhythm-kit.wav --debug preset-opl2-rhythm-kit.json
 )
+add_test(NAME chipper_render_preset_opl2_rhythm_bell_hit_smoke
+    COMMAND chipper_render --preset opl2-rhythm-bell-hit --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/opl-rhythm-events.txt --out preset-opl2-rhythm-bell-hit.wav --debug preset-opl2-rhythm-bell-hit.json
+)
 add_test(NAME chipper_render_preset_opl2_bass_held_smoke
     COMMAND chipper_render --preset opl2-bass --rate 48000 --seconds 0.50 --note 48 --out preset-opl2-bass-held.wav --debug preset-opl2-bass-held.json
 )
@@ -959,7 +962,7 @@ set(CHIPPER_PRESET_CHIP_MINIMUMS
     ym2149:15
     sn76489:15
     ym2612:15
-    opl3:15
+    opl3:16
     ym2151:15
     spc700:15
     pokey:13
@@ -1001,7 +1004,7 @@ if (Python3_Interpreter_FOUND)
     )
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=16 --preset-count dmg=16 --preset-count sid=19 --preset-count ym2149=16 --preset-count sn76489=16 --preset-count ym2612=18 --preset-count opl3=15 --preset-count spc700=15 --preset-count pokey=14 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=15 --preset-count ym2151=15 --preset-count ym2413=17 --preset-count scc=16
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=16 --preset-count dmg=16 --preset-count sid=19 --preset-count ym2149=16 --preset-count sn76489=16 --preset-count ym2612=18 --preset-count opl3=16 --preset-count spc700=15 --preset-count pokey=14 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=15 --preset-count ym2151=15 --preset-count ym2413=17 --preset-count scc=16
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1817,6 +1820,10 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opl2-rhythm-kit.json --implemented-contains ymfm --macro Drum --play-mode "Chip Poly" --min-peak 0.01 --register-writes 0 --note-events 1 --core-min rhythmMode=1 --core-max rhythmMode=1 --core-min rhythmRegister=32 --core-max rhythmRegister=63 --core-min keyOnMask=448 --core-max keyOnMask=448 --core-min activeChannels=3 --core-max activeChannels=3 --core-min sourceEnabled6=1 --core-max sourceEnabled6=1 --core-min sourceEnabled7=1 --core-max sourceEnabled7=1 --core-min sourceEnabled8=1 --core-max sourceEnabled8=1
     )
     set_tests_properties(chipper_render_preset_opl2_rhythm_kit_assert PROPERTIES DEPENDS chipper_render_preset_opl2_rhythm_kit_smoke)
+    add_test(NAME chipper_render_preset_opl2_rhythm_bell_hit_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opl2-rhythm-bell-hit.json --implemented-contains ymfm --preset opl2-rhythm-bell-hit --macro Hit --play-mode "Big Mono" --output-db -11 --min-peak 0.01 --register-writes 0 --note-events 1 --core-min rhythmModeChoice=2 --core-max rhythmModeChoice=2 --core-min rhythmMode=1 --core-max rhythmMode=1 --core-min rhythmRegister=32 --core-max rhythmRegister=63 --core-min rhythmKeyBits=1 --core-max rhythmKeyBits=31 --core-min keyOnMask=64 --core-max keyOnMask=448 --core-min sourceEnabled6=1 --core-max sourceEnabled6=1 --core-min sourceEnabled7=1 --core-max sourceEnabled7=1 --core-min sourceEnabled8=1 --core-max sourceEnabled8=1
+    )
+    set_tests_properties(chipper_render_preset_opl2_rhythm_bell_hit_assert PROPERTIES DEPENDS chipper_render_preset_opl2_rhythm_bell_hit_smoke)
 
     add_test(NAME chipper_render_preset_opl2_bass_held_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opl2-bass-held.json --implemented-contains ymfm --preset opl2-bass --macro Bass --min-peak 0.01 --min-tail-rms 0.02 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535
