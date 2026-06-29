@@ -207,12 +207,14 @@ private:
     std::vector<HeldMidiNote> heldNotes;
     mutable std::mutex dmcSampleMutex;
     std::vector<DmcSampleSlot> dmcSampleBank;
+    juce::String dmcSampleRestoreWarning;
     uint64_t dmcSampleBankRevision = 0;
     uint64_t activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
     int activeDmcSampleSlot = -1;
     mutable std::mutex spc700SampleMutex;
     DmcSampleSlot spc700BrrSample;
     std::vector<DmcSampleSlot> spc700BrrSampleBank;
+    juce::String spc700SampleRestoreWarning;
     uint64_t spc700BrrSampleBankRevision = 0;
     uint64_t activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
     int activeSpc700BrrSampleSlot = -1;
@@ -220,6 +222,7 @@ private:
     mutable std::mutex paulaSampleMutex;
     DmcSampleSlot paulaSample;
     std::vector<DmcSampleSlot> paulaSampleBank;
+    juce::String paulaSampleRestoreWarning;
     uint64_t paulaSampleBankRevision = 0;
     uint64_t activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
     int activePaulaSampleSlot = -1;

@@ -527,6 +527,20 @@ void rewriteDmcPresetSamplePaths(juce::XmlElement& xml, const juce::String& file
 {
     rewritePresetSamplePaths(xml, "DMC_SAMPLE", fileName);
 }
+
+void addMissingSampleReference(juce::XmlElement& xml,
+                               const juce::String& bankTagName,
+                               const juce::String& sampleTagName,
+                               const juce::File& missingFile)
+{
+    auto* bank = new juce::XmlElement(bankTagName);
+    bank->setAttribute("count", 1);
+
+    auto* sample = new juce::XmlElement(sampleTagName);
+    sample->setAttribute("path", missingFile.getFullPathName());
+    bank->addChildElement(sample);
+    xml.addChildElement(bank);
+}
 }
 
 int main()
@@ -1174,6 +1188,31 @@ int main()
         ok &= expect(portableNames.size() == 1 && portableNames[0] == "portable.dmc",
                      "Portable preset restore should load samples from preset-relative Samples folder");
     }
+
+    ChipperAudioProcessor missingDmcXmlProcessor;
+    missingDmcXmlProcessor.prepareToPlay(48000.0, 64);
+    auto missingDmcPresetXml = missingDmcXmlProcessor.createStateXml();
+    ok &= expect(missingDmcPresetXml != nullptr, "Should create DMC preset XML for missing-sample restore warning");
+    if (missingDmcPresetXml != nullptr)
+    {
+        addMissingSampleReference(*missingDmcPresetXml,
+                                  "CHIPPER_DMC_BANK",
+                                  "DMC_SAMPLE",
+                                  portablePresetDir.getChildFile("missing-dmc.dmc"));
+        ChipperAudioProcessor missingDmcPresetProcessor;
+        missingDmcPresetProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(missingDmcPresetProcessor.restoreStateXml(*missingDmcPresetXml, portablePresetDir).wasOk(),
+                     "DMC preset restore should not fail the whole preset when a sample reference is missing");
+        auto missingDmcInfo = missingDmcPresetProcessor.nesDmcSamplePlaybackInfo();
+        ok &= expect(missingDmcInfo.statusLine.contains("DMC sample restore issue")
+                         && missingDmcInfo.statusLine.contains("missing-dmc.dmc"),
+                     "DMC preset restore should expose missing sample references in the sample status line");
+        ok &= expect(missingDmcPresetProcessor.loadNesDmcSampleFile(dmcDir.getChildFile("sample-00.dmc")).wasOk(),
+                     "DMC manual sample load should succeed after a missing-reference restore warning");
+        missingDmcInfo = missingDmcPresetProcessor.nesDmcSamplePlaybackInfo();
+        ok &= expect(! missingDmcInfo.statusLine.contains("restore issue"),
+                     "DMC manual sample load should clear stale missing-reference restore warnings");
+    }
     portablePresetDir.deleteRecursively();
     dmcDir.deleteRecursively();
 
@@ -1295,6 +1334,31 @@ int main()
         const auto portableSpcNames = restoredPortableSpcPresetProcessor.spc700BrrSampleNames();
         ok &= expect(portableSpcNames.size() == 1 && portableSpcNames[0] == "portable.brr",
                      "Portable preset restore should load SPC700 samples from preset-relative Samples folder");
+    }
+
+    ChipperAudioProcessor missingSpcXmlProcessor;
+    missingSpcXmlProcessor.prepareToPlay(48000.0, 64);
+    auto missingSpcPresetXml = missingSpcXmlProcessor.createStateXml();
+    ok &= expect(missingSpcPresetXml != nullptr, "Should create SPC700 preset XML for missing-sample restore warning");
+    if (missingSpcPresetXml != nullptr)
+    {
+        addMissingSampleReference(*missingSpcPresetXml,
+                                  "CHIPPER_SPC700_BRR_BANK",
+                                  "BRR_SAMPLE",
+                                  portableSpcPresetDir.getChildFile("missing-spc.brr"));
+        ChipperAudioProcessor missingSpcPresetProcessor;
+        missingSpcPresetProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(missingSpcPresetProcessor.restoreStateXml(*missingSpcPresetXml, portableSpcPresetDir).wasOk(),
+                     "SPC700 preset restore should not fail the whole preset when a sample reference is missing");
+        auto missingSpcInfo = missingSpcPresetProcessor.spc700BrrSampleInfo();
+        ok &= expect(missingSpcInfo.statusLine.contains("SPC700 sample restore issue")
+                         && missingSpcInfo.statusLine.contains("missing-spc.brr"),
+                     "SPC700 preset restore should expose missing sample references in the sample status line");
+        ok &= expect(missingSpcPresetProcessor.loadSpc700BrrSampleFile(brrDir.getChildFile("brr-00.brr")).wasOk(),
+                     "SPC700 manual sample load should succeed after a missing-reference restore warning");
+        missingSpcInfo = missingSpcPresetProcessor.spc700BrrSampleInfo();
+        ok &= expect(! missingSpcInfo.statusLine.contains("restore issue"),
+                     "SPC700 manual sample load should clear stale missing-reference restore warnings");
     }
     portableSpcPresetDir.deleteRecursively();
     brrDir.deleteRecursively();
@@ -1568,6 +1632,31 @@ int main()
         const auto portablePaulaNames = restoredPortablePaulaPresetProcessor.paulaSampleNames();
         ok &= expect(portablePaulaNames.size() == 1 && portablePaulaNames[0] == "portable-paula.wav",
                      "Portable preset restore should load Paula samples from preset-relative Samples folder");
+    }
+
+    ChipperAudioProcessor missingPaulaXmlProcessor;
+    missingPaulaXmlProcessor.prepareToPlay(48000.0, 64);
+    auto missingPaulaPresetXml = missingPaulaXmlProcessor.createStateXml();
+    ok &= expect(missingPaulaPresetXml != nullptr, "Should create Paula preset XML for missing-sample restore warning");
+    if (missingPaulaPresetXml != nullptr)
+    {
+        addMissingSampleReference(*missingPaulaPresetXml,
+                                  "CHIPPER_PAULA_SAMPLE_BANK",
+                                  "PAULA_SAMPLE",
+                                  portablePaulaPresetDir.getChildFile("missing-paula.wav"));
+        ChipperAudioProcessor missingPaulaPresetProcessor;
+        missingPaulaPresetProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(missingPaulaPresetProcessor.restoreStateXml(*missingPaulaPresetXml, portablePaulaPresetDir).wasOk(),
+                     "Paula preset restore should not fail the whole preset when a sample reference is missing");
+        auto missingPaulaInfo = missingPaulaPresetProcessor.paulaSampleInfo();
+        ok &= expect(missingPaulaInfo.statusLine.contains("Paula sample restore issue")
+                         && missingPaulaInfo.statusLine.contains("missing-paula.wav"),
+                     "Paula preset restore should expose missing sample references in the sample status line");
+        ok &= expect(missingPaulaPresetProcessor.loadPaulaSampleFile(paulaDir.getChildFile("paula-00.wav")).wasOk(),
+                     "Paula manual sample load should succeed after a missing-reference restore warning");
+        missingPaulaInfo = missingPaulaPresetProcessor.paulaSampleInfo();
+        ok &= expect(! missingPaulaInfo.statusLine.contains("restore issue"),
+                     "Paula manual sample load should clear stale missing-reference restore warnings");
     }
 
     auto paulaModFile = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-paula-mod-sample-test.mod");

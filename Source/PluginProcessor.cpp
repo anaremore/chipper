@@ -619,6 +619,33 @@ juce::File resolvePresetSamplePath(const juce::XmlElement& sampleState, const ju
     return originalFile;
 }
 
+juce::String restoreWarningLine(const juce::String& label, const juce::StringArray& issues)
+{
+    if (issues.isEmpty())
+        return {};
+
+    auto line = label + " sample restore issue";
+    if (issues.size() > 1)
+        line += "s (" + juce::String(issues.size()) + ")";
+
+    line += ": " + issues[0];
+    if (issues.size() > 1)
+        line += " (+" + juce::String(issues.size() - 1) + " more)";
+
+    return line;
+}
+
+void appendRestoreWarning(juce::String& statusLine, const juce::String& warning)
+{
+    if (warning.isEmpty())
+        return;
+
+    if (statusLine.isEmpty())
+        statusLine = warning;
+    else
+        statusLine += " | " + warning;
+}
+
 juce::Result readPcm8SampleFile(const juce::File& file,
                                 ChipperAudioProcessor::DmcSampleSlot& slot,
                                 const juce::String& label,
@@ -958,6 +985,7 @@ juce::Result ChipperAudioProcessor::loadNesDmcSampleFile(const juce::File& file)
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
         dmcSampleBank.clear();
         dmcSampleBank.push_back(std::move(slot));
+        dmcSampleRestoreWarning = {};
         ++dmcSampleBankRevision;
     }
 
@@ -996,6 +1024,7 @@ juce::Result ChipperAudioProcessor::loadNesDmcSampleDirectory(const juce::File& 
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
         dmcSampleBank = std::move(loaded);
+        dmcSampleRestoreWarning = {};
         ++dmcSampleBankRevision;
     }
 
@@ -1015,6 +1044,7 @@ juce::Result ChipperAudioProcessor::loadSpc700BrrSampleFile(const juce::File& fi
         spc700BrrSampleBank.clear();
         spc700BrrSampleBank.push_back(std::move(slot));
         spc700BrrSample = spc700BrrSampleBank.front();
+        spc700SampleRestoreWarning = {};
         ++spc700BrrSampleBankRevision;
     }
 
@@ -1054,6 +1084,7 @@ juce::Result ChipperAudioProcessor::loadSpc700BrrSampleDirectory(const juce::Fil
         const std::lock_guard<std::mutex> lock(spc700SampleMutex);
         spc700BrrSampleBank = std::move(loaded);
         spc700BrrSample = spc700BrrSampleBank.front();
+        spc700SampleRestoreWarning = {};
         ++spc700BrrSampleBankRevision;
     }
 
@@ -1076,6 +1107,7 @@ juce::Result ChipperAudioProcessor::loadPaulaSampleFile(const juce::File& file)
         for (size_t i = 0; i < paulaSampleBank.size(); ++i)
             paulaSampleBank[i].included = i < 32u;
         paulaSample = paulaSampleBank.front();
+        paulaSampleRestoreWarning = {};
         ++paulaSampleBankRevision;
     }
 
@@ -1124,6 +1156,7 @@ juce::Result ChipperAudioProcessor::loadPaulaSampleDirectory(const juce::File& d
         const std::lock_guard<std::mutex> lock(paulaSampleMutex);
         paulaSampleBank = std::move(loaded);
         paulaSample = paulaSampleBank.front();
+        paulaSampleRestoreWarning = {};
         ++paulaSampleBankRevision;
     }
 
@@ -1165,9 +1198,10 @@ ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSample
     info.bitRateHz = selectedClock / static_cast<double>(ntscDmcPeriods[static_cast<size_t>(info.rateIndex)]);
 
     const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+    const auto restoreWarning = dmcSampleRestoreWarning;
     if (dmcSampleBank.empty())
     {
-        info.statusLine = "No DMC samples loaded";
+        info.statusLine = restoreWarning.isNotEmpty() ? restoreWarning : "No DMC samples loaded";
         return info;
     }
 
@@ -1184,6 +1218,7 @@ ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSample
     if (activeSlots.empty())
     {
         info.statusLine = "No DMC samples checked";
+        appendRestoreWarning(info.statusLine, restoreWarning);
         return info;
     }
 
@@ -1193,6 +1228,7 @@ ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSample
     {
         info.activeSlot = -1;
         info.statusLine = "No mapped DMC sample | Map " + midiNoteName(info.mapRootNote) + "-" + midiNoteName(info.mapHighNote);
+        appendRestoreWarning(info.statusLine, restoreWarning);
         return info;
     }
 
@@ -1219,6 +1255,7 @@ ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSample
         + juce::String(info.rateIndex) + ", " + runState + ")";
     if (info.playbackMode != 0)
         info.statusLine += " | Map " + midiNoteName(info.mapRootNote) + "-" + midiNoteName(info.mapHighNote);
+    appendRestoreWarning(info.statusLine, restoreWarning);
     return info;
 }
 
@@ -1231,9 +1268,11 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
 {
     Spc700BrrSampleInfo info;
     const std::lock_guard<std::mutex> lock(spc700SampleMutex);
+    const auto restoreWarning = spc700SampleRestoreWarning;
     if (spc700BrrSample.bytes.empty())
     {
         info.statusLine = "Generated SPC700 template active; load File/Folder for external samples";
+        appendRestoreWarning(info.statusLine, restoreWarning);
         return info;
     }
 
@@ -1260,6 +1299,7 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
     {
         info.loaded = false;
         info.statusLine = "No SPC700 samples checked";
+        appendRestoreWarning(info.statusLine, restoreWarning);
         return info;
     }
 
@@ -1296,6 +1336,7 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
         info.nearAramBudget = info.bankByteCount >= static_cast<int>(static_cast<double>(info.aramBudgetBytes) * 0.75);
         info.exceedsAramBudget = info.bankByteCount > info.aramBudgetBytes;
         info.statusLine = "No mapped SPC700 sample | Map " + midiNoteName(info.mapRootNote) + "-" + midiNoteName(info.mapHighNote);
+        appendRestoreWarning(info.statusLine, restoreWarning);
         return info;
     }
 
@@ -1317,6 +1358,7 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
         + ": " + info.sampleName + (selected.encoding == chipper::ExternalSampleEncoding::spc700Brr
             ? " (" + juce::String(info.byteCount) + " bytes, " + juce::String(info.blockCount) + " BRR blocks)"
             : " (" + juce::String(info.byteCount) + " imported 8-bit samples)");
+    appendRestoreWarning(info.statusLine, restoreWarning);
     return info;
 }
 
@@ -1324,9 +1366,11 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::paulaSampleInf
 {
     Spc700BrrSampleInfo info;
     const std::lock_guard<std::mutex> lock(paulaSampleMutex);
+    const auto restoreWarning = paulaSampleRestoreWarning;
     if (paulaSample.bytes.empty())
     {
         info.statusLine = "No external Paula sample bank loaded";
+        appendRestoreWarning(info.statusLine, restoreWarning);
         return info;
     }
 
@@ -1353,6 +1397,7 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::paulaSampleInf
     {
         info.loaded = false;
         info.statusLine = "No Paula samples checked";
+        appendRestoreWarning(info.statusLine, restoreWarning);
         return info;
     }
 
@@ -1383,6 +1428,7 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::paulaSampleInf
         info.mapRootNote = mapRootNote;
         info.mapHighNote = std::clamp(mapRootNote + std::max(0, bankCount - 1), 0, 127);
         info.statusLine = "No mapped Paula sample | Map " + midiNoteName(info.mapRootNote) + "-" + midiNoteName(info.mapHighNote);
+        appendRestoreWarning(info.statusLine, restoreWarning);
         return info;
     }
 
@@ -1407,6 +1453,7 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::paulaSampleInf
         + ": " + info.sampleName + " (" + juce::String(info.byteCount) + " 8-bit samples)";
     if (info.hasLoop)
         info.statusLine += " | Loop " + juce::String(info.loopStartSample) + "-" + juce::String(info.loopEndSample);
+    appendRestoreWarning(info.statusLine, restoreWarning);
     return info;
 }
 
@@ -2906,6 +2953,9 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     std::vector<DmcSampleSlot> restoredSpcBrrBank;
     DmcSampleSlot restoredPaulaSample;
     std::vector<DmcSampleSlot> restoredPaulaBank;
+    juce::StringArray dmcSampleRestoreIssues;
+    juce::StringArray spc700SampleRestoreIssues;
+    juce::StringArray paulaSampleRestoreIssues;
     if (auto* coreState = xml->getChildByName(coreStateTag))
     {
         for (const auto* child : coreState->getChildIterator())
@@ -2931,10 +2981,14 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
                 continue;
 
             DmcSampleSlot slot;
-            if (readDmcSampleFile(resolvePresetSamplePath(*child, presetDirectory), slot).wasOk())
+            if (auto result = readDmcSampleFile(resolvePresetSamplePath(*child, presetDirectory), slot); result.wasOk())
             {
                 slot.included = child->getBoolAttribute("included", true);
                 restoredDmcBank.push_back(std::move(slot));
+            }
+            else
+            {
+                dmcSampleRestoreIssues.add(result.getErrorMessage());
             }
         }
         xml->removeChildElement(dmcBankState, true);
@@ -2949,10 +3003,14 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
                 continue;
 
             DmcSampleSlot slot;
-            if (readSpc700BrrSampleFile(resolvePresetSamplePath(*child, presetDirectory), slot).wasOk())
+            if (auto result = readSpc700BrrSampleFile(resolvePresetSamplePath(*child, presetDirectory), slot); result.wasOk())
             {
                 slot.included = child->getBoolAttribute("included", true);
                 restoredSpcBrrBank.push_back(std::move(slot));
+            }
+            else
+            {
+                spc700SampleRestoreIssues.add(result.getErrorMessage());
             }
         }
         if (! restoredSpcBrrBank.empty())
@@ -2964,9 +3022,14 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     {
         if (auto* spcBrrState = xml->getChildByName(spc700BrrStateTag))
         {
-            readSpc700BrrSampleFile(resolvePresetSamplePath(*spcBrrState, presetDirectory), restoredSpcBrrSample);
-            if (! restoredSpcBrrSample.bytes.empty())
+            if (auto result = readSpc700BrrSampleFile(resolvePresetSamplePath(*spcBrrState, presetDirectory), restoredSpcBrrSample); result.wasOk())
+            {
                 restoredSpcBrrBank.push_back(restoredSpcBrrSample);
+            }
+            else
+            {
+                spc700SampleRestoreIssues.add(result.getErrorMessage());
+            }
             xml->removeChildElement(spcBrrState, true);
         }
     }
@@ -2980,7 +3043,7 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
                 continue;
 
             std::vector<DmcSampleSlot> slots;
-            if (readPaulaSampleFileSlots(resolvePresetSamplePath(*child, presetDirectory), slots).wasOk())
+            if (auto result = readPaulaSampleFileSlots(resolvePresetSamplePath(*child, presetDirectory), slots); result.wasOk())
             {
                 const auto sourceSampleIndex = child->getIntAttribute("sourceSampleIndex", -1);
                 const auto included = child->getBoolAttribute("included", true);
@@ -3005,6 +3068,10 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
                     }
                 }
             }
+            else
+            {
+                paulaSampleRestoreIssues.add(result.getErrorMessage());
+            }
         }
         if (! restoredPaulaBank.empty())
             restoredPaulaSample = restoredPaulaBank.front();
@@ -3015,18 +3082,21 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
         dmcSampleBank = std::move(restoredDmcBank);
+        dmcSampleRestoreWarning = restoreWarningLine("DMC", dmcSampleRestoreIssues);
         ++dmcSampleBankRevision;
     }
     {
         const std::lock_guard<std::mutex> lock(spc700SampleMutex);
         spc700BrrSampleBank = std::move(restoredSpcBrrBank);
         spc700BrrSample = std::move(restoredSpcBrrSample);
+        spc700SampleRestoreWarning = restoreWarningLine("SPC700", spc700SampleRestoreIssues);
         ++spc700BrrSampleBankRevision;
     }
     {
         const std::lock_guard<std::mutex> lock(paulaSampleMutex);
         paulaSampleBank = std::move(restoredPaulaBank);
         paulaSample = std::move(restoredPaulaSample);
+        paulaSampleRestoreWarning = restoreWarningLine("Paula", paulaSampleRestoreIssues);
         ++paulaSampleBankRevision;
     }
     activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
