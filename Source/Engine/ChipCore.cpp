@@ -1992,7 +1992,8 @@ private:
 class NesApuCore final : public ChipCore
 {
 public:
-    explicit NesApuCore(AccuracyMode selectedAccuracy) : accuracy(selectedAccuracy) {}
+    explicit NesApuCore(AccuracyMode selectedAccuracy, ChipMode selectedMode = ChipMode::nes)
+        : accuracy(selectedAccuracy), selectedMode(selectedMode) {}
 
     void reset(double outputSampleRate, double chipClockHz) override
     {
@@ -2026,6 +2027,15 @@ public:
         channelNotes.fill(-1);
         channelVelocity.fill(0.0f);
         channelStamp.fill(0);
+        vrc6Phase.fill(0.0);
+        vrc6Timer.fill(0);
+        vrc6Enabled.fill(false);
+        vrc6PulseVolume.fill(0);
+        vrc6PulseDuty.fill(0);
+        vrc6SawRate = 0;
+        vrc6SawAccumulator = 0;
+        vrc6SawStep = 0;
+        vrc6SawStepPhase = 0.0;
         noteStamp = 0;
         dmcActive = false;
         dmcSampleCompleted = false;
@@ -2227,6 +2237,8 @@ public:
         writeRegister(0x400f, 0x18);
         regs[0x10] = static_cast<uint8_t>((regs[0x10] & 0xf0u) | static_cast<uint8_t>(patch.nesDmcRateIndex & 0x0f));
         writeStatusRegister(static_cast<uint8_t>(enable), ! suppressDmcRestartOnNoteOn);
+        if (hasVrc6())
+            triggerVrc6Stack(p1Note, p2Note, triNote);
         updateTimers();
     }
 
@@ -2268,7 +2280,8 @@ public:
         const auto tndSum = tri / 8227.0 + noi / 12241.0 + dmc / 22638.0;
         const auto pulseOut = pulseSum <= 0.0 ? 0.0 : 95.88 / ((8128.0 / pulseSum) + 100.0);
         const auto tndOut = tndSum <= 0.0 ? 0.0 : 159.79 / ((1.0 / tndSum) + 100.0);
-        const auto mixed = static_cast<float>(applyOutputFilters(pulseOut + tndOut) * 2.0);
+        const auto expansionOut = hasVrc6() ? renderVrc6Mix() : 0.0;
+        const auto mixed = static_cast<float>(applyOutputFilters(pulseOut + tndOut + (expansionOut * 0.04)) * 2.0);
         const auto outputGate = (dmcActive && noteVelocity <= 0.0f) ? 1.0f : noteVelocity;
         const auto scaled = mixed * outputGate;
         return { scaled, scaled };
@@ -2277,18 +2290,33 @@ public:
     std::vector<RegisterWrite> exportRegisterState() const override
     {
         std::vector<RegisterWrite> writes;
-        writes.reserve(regs.size());
+        writes.reserve(regs.size() + (hasVrc6() ? 9u : 0u));
         for (size_t i = 0; i < regs.size(); ++i)
             writes.push_back({ 0, static_cast<uint16_t>(0x4000 + i), regs[i] });
+        if (hasVrc6())
+        {
+            for (size_t ch = 0; ch < 2; ++ch)
+            {
+                const auto base = static_cast<uint16_t>(ch == 0 ? 0x9000 : 0xa000);
+                writes.push_back({ 0, base, static_cast<uint8_t>((vrc6Enabled[ch] ? 0x80u : 0x00u) | ((vrc6PulseDuty[ch] & 0x07u) << 4u) | (vrc6PulseVolume[ch] & 0x0fu)) });
+                writes.push_back({ 0, static_cast<uint16_t>(base + 1u), static_cast<uint8_t>(vrc6Timer[ch] & 0xffu) });
+                writes.push_back({ 0, static_cast<uint16_t>(base + 2u), static_cast<uint8_t>(((vrc6Timer[ch] >> 8u) & 0x0fu) | (vrc6Enabled[ch] ? 0x80u : 0x00u)) });
+            }
+            writes.push_back({ 0, 0xb000, vrc6SawRate });
+            writes.push_back({ 0, 0xb001, static_cast<uint8_t>(vrc6Timer[2] & 0xffu) });
+            writes.push_back({ 0, 0xb002, static_cast<uint8_t>(((vrc6Timer[2] >> 8u) & 0x0fu) | (vrc6Enabled[2] ? 0x80u : 0x00u)) });
+        }
         return writes;
     }
 
-    ChipMode mode() const override { return ChipMode::nes; }
+    ChipMode mode() const override { return selectedMode; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
-    std::string modeName() const override { return "NES / RP2A03"; }
+    std::string modeName() const override { return hasVrc6() ? "NES + VRC6" : "NES / RP2A03"; }
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
+        if (hasVrc6())
+            return "Base RP2A03 pulse, triangle, noise, DMC, nonlinear mixer, and output filters use the existing partial clean-room NES model. VRC6 pulse 1, pulse 2, and saw lanes are clean-room musical expansion oscillators with source-card gating, Chip Poly allocation, pseudo-register export, and conservative expansion mixing; exact mapper bus timing, NSF register sequencing, expansion mixing resistor values, and hardware validation are not complete.";
         return "Pulse, triangle, noise, timers, duty including explicit pulse 2 duty override, enable bits, simple envelopes, length counters, triangle linear counter, DMC direct DAC level, external DPCM byte stepping, basic pulse sweep updates/muting, $4017 frame-counter mode/inhibit behavior, nonlinear mixer, the documented NES output filter chain, and pulse/triangle allocation for Chip Poly play mode are approximated; exact DMC DMA/address/IRQ timing, exact frame sequencer cycle timing, advanced sweep edge cases, and hardware validation are not complete.";
     }
 
@@ -2296,9 +2324,10 @@ public:
     {
         std::ostringstream json;
         json << "{"
-             << "\"mode\":\"NES / RP2A03\","
+             << "\"mode\":\"" << modeName() << "\","
              << "\"implementedAccuracy\":\"partial clean-room register-level\","
              << "\"clockHz\":" << clock << ","
+             << "\"expansion\":\"" << (hasVrc6() ? "VRC6" : "none") << "\","
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"pulseTimer1\":" << timer[0] << ","
@@ -2318,7 +2347,28 @@ public:
              << "\"sourceLevel1\":" << sourceLevel(patch, 0) << ","
              << "\"sourceLevel2\":" << sourceLevel(patch, 1) << ","
              << "\"sourceLevel3\":" << sourceLevel(patch, 2) << ","
-             << "\"sourceLevel4\":" << sourceLevel(patch, 3) << ","
+             << "\"sourceLevel4\":" << sourceLevel(patch, 3) << ",";
+        if (hasVrc6())
+        {
+            json << "\"sourceEnabled5\":" << (sourceEnabled(patch, 4) ? 1 : 0) << ","
+                 << "\"sourceEnabled6\":" << (sourceEnabled(patch, 5) ? 1 : 0) << ","
+                 << "\"sourceEnabled7\":" << (sourceEnabled(patch, 6) ? 1 : 0) << ","
+                 << "\"sourceLevel5\":" << sourceLevel(patch, 4) << ","
+                 << "\"sourceLevel6\":" << sourceLevel(patch, 5) << ","
+                 << "\"sourceLevel7\":" << sourceLevel(patch, 6) << ","
+                 << "\"vrc6Pulse1Timer\":" << vrc6Timer[0] << ","
+                 << "\"vrc6Pulse2Timer\":" << vrc6Timer[1] << ","
+                 << "\"vrc6SawTimer\":" << vrc6Timer[2] << ","
+                 << "\"vrc6Pulse1Volume\":" << static_cast<int>(vrc6PulseVolume[0]) << ","
+                 << "\"vrc6Pulse2Volume\":" << static_cast<int>(vrc6PulseVolume[1]) << ","
+                 << "\"vrc6SawRate\":" << static_cast<int>(vrc6SawRate) << ","
+                 << "\"vrc6SawAccumulator\":" << static_cast<int>(vrc6SawAccumulator) << ","
+                 << "\"vrc6ActiveMask\":" << vrc6ActiveMask() << ","
+                 << "\"assignedNoteVrc6Pulse1\":" << channelNotes[3] << ","
+                 << "\"assignedNoteVrc6Pulse2\":" << channelNotes[4] << ","
+                 << "\"assignedNoteVrc6Saw\":" << channelNotes[5] << ",";
+        }
+        json
              << "\"dmcDirectControl\":" << patch.nesDmcDirectLevel << ","
              << "\"nesDmcOnly\":" << (patch.nesDmcOnly ? 1 : 0) << ","
              << "\"dmcSampleLoaded\":" << (dmcSample.empty() ? 0 : 1) << ","
@@ -2865,33 +2915,208 @@ private:
         writeRegister(0x400b, static_cast<uint8_t>((triTimer >> 8) & 0x07));
     }
 
+    bool hasVrc6() const
+    {
+        return selectedMode == ChipMode::nesVrc6;
+    }
+
+    static size_t sourceIndexForChipPolyVoice(size_t voice)
+    {
+        static constexpr std::array<size_t, 6> sources { 0u, 1u, 2u, 4u, 5u, 6u };
+        return voice < sources.size() ? sources[voice] : voice;
+    }
+
+    static uint8_t vrc6DutyFromNesDuty(NesPulseDuty duty, int offset)
+    {
+        static constexpr std::array<uint8_t, 4> duties { 1u, 2u, 4u, 6u };
+        return static_cast<uint8_t>(std::clamp<int>(duties[static_cast<size_t>(duty)] + offset, 0, 7));
+    }
+
+    uint16_t vrc6TimerForNote(int midiNote, double divider) const
+    {
+        const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
+        const auto timerValue = static_cast<int>(std::max(1.0, std::round(clock / (divider * hz) - 1.0)));
+        return static_cast<uint16_t>(std::clamp(timerValue, 1, 0x0fff));
+    }
+
+    uint8_t vrc6ExpansionMaskOrRecipe(uint8_t recipeMask) const
+    {
+        const auto requestedMask = sourceEnableMask(patch);
+        if (requestedMask != 0u)
+            return static_cast<uint8_t>(((requestedMask >> 4u) & 0x07u) & recipeMask);
+
+        return recipeMask;
+    }
+
+    void writeVrc6Pulse(size_t channel, NesPulseDuty duty, unsigned volume, int midiNote)
+    {
+        if (! hasVrc6() || channel >= 2)
+            return;
+
+        const auto sourceIndex = 4u + channel;
+        const auto clippedVolume = sourceEnabled(patch, sourceIndex)
+            ? static_cast<uint8_t>(std::clamp<unsigned>(volume, 0u, 15u))
+            : uint8_t { 0u };
+        vrc6PulseDuty[channel] = vrc6DutyFromNesDuty(duty, channel == 0 ? 0 : 1);
+        vrc6PulseVolume[channel] = clippedVolume;
+        vrc6Timer[channel] = vrc6TimerForNote(midiNote, 16.0);
+        vrc6Enabled[channel] = clippedVolume > 0;
+        if (vrc6Enabled[channel])
+            vrc6Phase[channel] = 0.0;
+    }
+
+    void writeVrc6Saw(unsigned rate, int midiNote)
+    {
+        if (! hasVrc6())
+            return;
+
+        const auto clippedRate = sourceEnabled(patch, 6)
+            ? static_cast<uint8_t>(std::clamp<unsigned>(rate, 0u, 42u))
+            : uint8_t { 0u };
+        vrc6SawRate = clippedRate;
+        vrc6Timer[2] = vrc6TimerForNote(midiNote, 14.0);
+        vrc6Enabled[2] = clippedRate > 0;
+        if (vrc6Enabled[2])
+        {
+            vrc6Phase[2] = 0.0;
+            vrc6SawAccumulator = 0;
+            vrc6SawStep = 0;
+            vrc6SawStepPhase = 0.0;
+        }
+    }
+
+    void triggerVrc6Stack(int p1Note, int p2Note, int sawNote)
+    {
+        if (! hasVrc6() || patch.nesDmcOnly)
+        {
+            vrc6Enabled.fill(false);
+            return;
+        }
+
+        auto recipeMask = uint8_t { 0x07u };
+        auto vrc6P1Note = p1Note + 12;
+        auto vrc6P2Note = p2Note + 12;
+        auto vrc6SawNote = sawNote;
+        auto p1Vol = static_cast<unsigned>(std::round(8.0f + patch.control4 * 7.0f));
+        auto p2Vol = static_cast<unsigned>(std::round(6.0f + patch.control4 * 6.0f));
+        auto sawRate = static_cast<unsigned>(std::round(14.0f + patch.control4 * 28.0f));
+
+        switch (patch.macro)
+        {
+            case MacroKind::coin:
+                vrc6P1Note = p1Note + 12;
+                vrc6P2Note = p1Note + 19;
+                vrc6SawNote = p1Note + 24;
+                p2Vol = 4u;
+                sawRate = 18u;
+                recipeMask = 0x03u;
+                break;
+            case MacroKind::bass:
+                vrc6P1Note = p1Note;
+                vrc6P2Note = p1Note + 12;
+                vrc6SawNote = sawNote;
+                p1Vol = 6u;
+                p2Vol = 3u;
+                sawRate = 34u;
+                recipeMask = 0x05u;
+                break;
+            case MacroKind::drum:
+                recipeMask = 0x00u;
+                break;
+            case MacroKind::hit:
+                vrc6P1Note = p1Note + 7;
+                vrc6P2Note = p1Note + 12;
+                sawRate = 26u;
+                recipeMask = 0x03u;
+                break;
+            case MacroKind::laser:
+                vrc6P1Note = p1Note + 12;
+                vrc6P2Note = p2Note + 7;
+                vrc6SawNote = p2Note;
+                sawRate = 30u;
+                recipeMask = 0x07u;
+                break;
+            case MacroKind::jump:
+                vrc6P1Note = p1Note + 12;
+                p2Vol = 0u;
+                sawRate = 0u;
+                recipeMask = 0x01u;
+                break;
+            case MacroKind::powerUp:
+            case MacroKind::arp:
+            case MacroKind::lead:
+            case MacroKind::manual:
+            default:
+                break;
+        }
+
+        const auto mask = vrc6ExpansionMaskOrRecipe(recipeMask);
+        const auto duty = nesPulseDutyFromControl(patch.control1);
+        writeVrc6Pulse(0, duty, (mask & 0x01u) != 0u ? p1Vol : 0u, vrc6P1Note);
+        writeVrc6Pulse(1, duty, (mask & 0x02u) != 0u ? p2Vol : 0u, vrc6P2Note);
+        writeVrc6Saw((mask & 0x04u) != 0u ? sawRate : 0u, vrc6SawNote);
+    }
+
+    void triggerVrc6Voice(size_t voice, int midiNote, float velocity)
+    {
+        const auto level = static_cast<unsigned>(std::clamp(static_cast<int>(std::round(clamp01(velocity) * 15.0)), 0, 15));
+        const auto duty = nesPulseDutyFromControl(patch.control1);
+        if (voice == 0)
+            writeVrc6Pulse(0, duty, level, midiNote);
+        else if (voice == 1)
+            writeVrc6Pulse(1, duty, level, midiNote);
+        else if (voice == 2)
+            writeVrc6Saw(static_cast<unsigned>(std::clamp(static_cast<int>(std::round(clamp01(velocity) * 42.0)), 1, 42)), midiNote);
+    }
+
     int selectChipPolyChannel(int midiNote) const
     {
-        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        const auto voiceCount = hasVrc6() ? channelNotes.size() : size_t { 3u };
+        for (size_t channel = 0; channel < voiceCount; ++channel)
         {
-            if (! sourceEnabled(patch, channel))
+            if (! sourceEnabled(patch, sourceIndexForChipPolyVoice(channel)))
                 continue;
 
             if (channelNotes[channel] == midiNote)
                 return static_cast<int>(channel);
         }
 
-        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        for (size_t channel = 0; channel < voiceCount; ++channel)
         {
-            if (! sourceEnabled(patch, channel))
+            if (! sourceEnabled(patch, sourceIndexForChipPolyVoice(channel)))
                 continue;
 
             if (channelNotes[channel] < 0)
                 return static_cast<int>(channel);
         }
 
-        const auto oldest = std::min_element(channelStamp.begin(), channelStamp.end());
-        return static_cast<int>(std::distance(channelStamp.begin(), oldest));
+        uint64_t oldestStamp = std::numeric_limits<uint64_t>::max();
+        auto oldestVoice = -1;
+        for (size_t channel = 0; channel < voiceCount; ++channel)
+        {
+            if (! sourceEnabled(patch, sourceIndexForChipPolyVoice(channel)))
+                continue;
+
+            if (channelStamp[channel] < oldestStamp)
+            {
+                oldestStamp = channelStamp[channel];
+                oldestVoice = static_cast<int>(channel);
+            }
+        }
+
+        return oldestVoice;
     }
 
     int activeChipPolyChannels() const
     {
-        return static_cast<int>(std::count_if(channelNotes.begin(), channelNotes.end(), [](int note) { return note >= 0; }));
+        const auto voiceCount = hasVrc6() ? channelNotes.size() : size_t { 3u };
+        int active = 0;
+        for (size_t channel = 0; channel < voiceCount; ++channel)
+        {
+            if (sourceEnabled(patch, sourceIndexForChipPolyVoice(channel)) && channelNotes[channel] >= 0)
+                ++active;
+        }
+        return active;
     }
 
     void clearChipPolyState()
@@ -2903,25 +3128,31 @@ private:
         noteVelocity = 0.0f;
         for (auto& length : lengthCounter)
             length = 0;
+        vrc6Enabled.fill(false);
         linearCounter = 0;
         linearReloadFlag = false;
     }
 
     void noteOnChipPoly(int midiNote, float velocity)
     {
+        auto enable = static_cast<uint8_t>(sourceEnableMask(patch) & 0x0fu);
+        if (! dmcSample.empty() && sourceEnabled(patch, 3))
+            enable = static_cast<uint8_t>(enable | 0x10u);
+        regs[0x10] = static_cast<uint8_t>((regs[0x10] & 0xf0u) | static_cast<uint8_t>(patch.nesDmcRateIndex & 0x0f));
+        writeStatusRegister(enable, ! suppressDmcRestartOnNoteOn);
+
         const auto channel = selectChipPolyChannel(midiNote);
         if (channel < 0)
+        {
+            noteVelocity = dmcActive ? static_cast<float>(clamp01(velocity)) : 0.0f;
+            updateTimers();
             return;
+        }
 
         const auto index = static_cast<size_t>(channel);
         channelNotes[index] = std::clamp(midiNote, 0, 127);
         channelVelocity[index] = static_cast<float>(clamp01(velocity));
         channelStamp[index] = ++noteStamp;
-
-        auto enable = static_cast<uint8_t>(sourceEnableMask(patch) & 0x0fu);
-        if (! dmcSample.empty() && sourceEnabled(patch, 3))
-            enable = static_cast<uint8_t>(enable | 0x10u);
-        writeRegister(0x4015, enable);
 
         if (channel == 0)
         {
@@ -2937,9 +3168,13 @@ private:
             writeRegister(0x4005, 0x08);
             writePulseRegisters(0x4004, duty, volume, channelNotes[index]);
         }
-        else
+        else if (channel == 2)
         {
             writeTriangleRegisters(channelNotes[index]);
+        }
+        else
+        {
+            triggerVrc6Voice(static_cast<size_t>(channel - 3), channelNotes[index], channelVelocity[index]);
         }
 
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
@@ -2955,7 +3190,10 @@ private:
             channelNotes[channel] = -1;
             channelVelocity[channel] = 0.0f;
             channelStamp[channel] = 0;
-            lengthCounter[channel] = 0;
+            if (channel < lengthCounter.size())
+                lengthCounter[channel] = 0;
+            else if (channel - 3u < vrc6Enabled.size())
+                vrc6Enabled[channel - 3u] = false;
             if (channel == 2)
             {
                 linearCounter = 0;
@@ -2976,6 +3214,13 @@ private:
                 writePulseDutyRegister(0x4000, pulse1Duty);
             if (channelNotes[1] >= 0)
                 writePulseDutyRegister(0x4004, nesPulse2DutyForPatch(patch, pulse1Duty, false));
+            if (hasVrc6())
+            {
+                if (channelNotes[3] >= 0)
+                    vrc6PulseDuty[0] = vrc6DutyFromNesDuty(pulse1Duty, 0);
+                if (channelNotes[4] >= 0)
+                    vrc6PulseDuty[1] = vrc6DutyFromNesDuty(pulse1Duty, 1);
+            }
             return;
         }
 
@@ -2986,6 +3231,11 @@ private:
             writePulseDutyRegister(0x4000, pulse1Duty);
         if (enabled[1])
             writePulseDutyRegister(0x4004, nesPulse2DutyForPatch(patch, pulse1Duty, true));
+        if (hasVrc6())
+        {
+            vrc6PulseDuty[0] = vrc6DutyFromNesDuty(pulse1Duty, 0);
+            vrc6PulseDuty[1] = vrc6DutyFromNesDuty(pulse1Duty, 1);
+        }
     }
 
     uint8_t pulseDutyIndex(int index) const
@@ -3063,7 +3313,55 @@ private:
         return static_cast<double>(value) * 15.0 * constantVolume(0x0c);
     }
 
+    double renderVrc6Pulse(size_t channel)
+    {
+        if (channel >= 2 || ! vrc6Enabled[channel] || ! sourceEnabled(patch, 4u + channel))
+            return 0.0;
+
+        const auto period = static_cast<double>(std::max<uint16_t>(1u, static_cast<uint16_t>(vrc6Timer[channel] + 1u)));
+        const auto hz = clock / (16.0 * period);
+        vrc6Phase[channel] = wrapPhase(vrc6Phase[channel] + hz / sampleRate);
+        const auto duty = (static_cast<double>(vrc6PulseDuty[channel]) + 1.0) / 16.0;
+        const auto amp = static_cast<double>(vrc6PulseVolume[channel]) / 15.0;
+        return (vrc6Phase[channel] < duty ? 1.0 : -1.0) * amp * sourceLevel(patch, 4u + channel);
+    }
+
+    double renderVrc6Saw()
+    {
+        if (! vrc6Enabled[2] || ! sourceEnabled(patch, 6))
+            return 0.0;
+
+        const auto period = static_cast<double>(std::max<uint16_t>(1u, static_cast<uint16_t>(vrc6Timer[2] + 1u)));
+        const auto hz = clock / (14.0 * period);
+        vrc6SawStepPhase += (hz * 14.0) / sampleRate;
+        while (vrc6SawStepPhase >= 1.0)
+        {
+            vrc6SawStepPhase -= 1.0;
+            vrc6SawStep = static_cast<uint8_t>((vrc6SawStep + 1u) % 14u);
+            if (vrc6SawStep == 0)
+                vrc6SawAccumulator = 0;
+            else if ((vrc6SawStep & 1u) == 0)
+                vrc6SawAccumulator = static_cast<uint16_t>(std::min<int>(255, static_cast<int>(vrc6SawAccumulator) + static_cast<int>(vrc6SawRate)));
+        }
+
+        const auto stepped = static_cast<double>((vrc6SawAccumulator >> 3u) & 0x1fu) / 31.0;
+        return ((stepped * 2.0) - 1.0) * sourceLevel(patch, 6);
+    }
+
+    int vrc6ActiveMask() const
+    {
+        return (vrc6Enabled[0] ? 0x01 : 0)
+            | (vrc6Enabled[1] ? 0x02 : 0)
+            | (vrc6Enabled[2] ? 0x04 : 0);
+    }
+
+    double renderVrc6Mix()
+    {
+        return renderVrc6Pulse(0) + renderVrc6Pulse(1) + renderVrc6Saw();
+    }
+
     AccuracyMode accuracy;
+    ChipMode selectedMode = ChipMode::nes;
     double sampleRate = 48000.0;
     double clock = 1789773.0;
     std::array<uint8_t, 0x18> regs {};
@@ -3091,9 +3389,18 @@ private:
     uint16_t lfsr = 1;
     int heldNote = -1;
     float noteVelocity = 0.0f;
-    std::array<int, 3> channelNotes { -1, -1, -1 };
-    std::array<float, 3> channelVelocity {};
-    std::array<uint64_t, 3> channelStamp {};
+    std::array<int, 6> channelNotes { -1, -1, -1, -1, -1, -1 };
+    std::array<float, 6> channelVelocity {};
+    std::array<uint64_t, 6> channelStamp {};
+    std::array<double, 3> vrc6Phase {};
+    std::array<uint16_t, 3> vrc6Timer {};
+    std::array<bool, 3> vrc6Enabled {};
+    std::array<uint8_t, 2> vrc6PulseVolume {};
+    std::array<uint8_t, 2> vrc6PulseDuty {};
+    uint8_t vrc6SawRate = 0;
+    uint16_t vrc6SawAccumulator = 0;
+    uint8_t vrc6SawStep = 0;
+    double vrc6SawStepPhase = 0.0;
     uint64_t noteStamp = 0;
     std::vector<uint8_t> dmcSample;
     bool dmcActive = false;
@@ -11151,6 +11458,7 @@ std::unique_ptr<ChipCore> createChipCore(ChipMode mode, AccuracyMode accuracy)
     switch (mode)
     {
         case ChipMode::nes: return std::make_unique<NesApuCore>(accuracy);
+        case ChipMode::nesVrc6: return std::make_unique<NesApuCore>(accuracy, ChipMode::nesVrc6);
         case ChipMode::dmg: return std::make_unique<DmgApuCore>(accuracy);
         case ChipMode::sid: return std::make_unique<SidCore>(accuracy);
         case ChipMode::ym2149: return std::make_unique<Ym2149Core>(accuracy);
@@ -11174,6 +11482,7 @@ std::optional<ChipMode> parseChipMode(std::string_view text)
 {
     const auto key = lower(text);
     if (key == "nes" || key == "rp2a03") return ChipMode::nes;
+    if (key == "nesvrc6" || key == "nes+vrc6" || key == "vrc6" || key == "famicomvrc6" || key == "famicom+vrc6") return ChipMode::nesVrc6;
     if (key == "dmg" || key == "gameboy" || key == "gameboydmg") return ChipMode::dmg;
     if (key == "sid" || key == "c64" || key == "commodore64") return ChipMode::sid;
     if (key == "ym2149" || key == "ay" || key == "ay38910" || key == "ay38910") return ChipMode::ym2149;
@@ -11232,6 +11541,7 @@ std::string toString(ChipMode mode)
     switch (mode)
     {
         case ChipMode::nes: return "NES / RP2A03";
+        case ChipMode::nesVrc6: return "NES + VRC6";
         case ChipMode::dmg: return "Game Boy / DMG APU";
         case ChipMode::sid: return "SID / C64";
         case ChipMode::ym2149: return "YM2149 / AY";

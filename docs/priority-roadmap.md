@@ -130,7 +130,7 @@ Current philosophy filter:
 | 59 | TIunA software tuning engine | 4 | Translate into motion tools | Useful for TIA pitch/tuning ideas, but should not become a standalone chip. |
 | 60 | MinMod software driver | 4 | Translate into sampler/tracker tools | Useful GBA tracker-driver reference, not a chip implementation target. |
 
-The next concrete implementation slice stays **NES + VRC6**. After that, choose either **YM2608/OPNA** if we want another high-value Yamaha family chip, **FDS/Sunsoft 5B/MMC5** if we want to keep building the NES expansion pack, or **SAA1099/PC Speaker/ZX beeper** if we want smaller-scope, high-confidence wins. The next sample-chip targets are **SegaPCM**, **RF5C68**, and **OKI MSM6258/MSM6295**, but only after the sample-bank workflow feels boringly reliable.
+The current implementation wave is **NES + VRC6**. After it lands, choose either **YM2608/OPNA** if we want another high-value Yamaha family chip, **FDS/Sunsoft 5B/MMC5** if we want to keep building the NES expansion pack, or **SAA1099/PC Speaker/ZX beeper** if we want smaller-scope, high-confidence wins. The next sample-chip targets are **SegaPCM**, **RF5C68**, and **OKI MSM6258/MSM6295**, but only after the sample-bank workflow feels boringly reliable.
 
 ## Next Code Slices To Prefer
 

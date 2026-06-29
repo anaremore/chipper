@@ -132,6 +132,11 @@ struct ChipUiTheme
     int textureStep = 0;
 };
 
+bool isNesFamily(chipper::ChipMode mode)
+{
+    return mode == chipper::ChipMode::nes || mode == chipper::ChipMode::nesVrc6;
+}
+
 ChipUiTheme chipThemeFor(chipper::ChipMode mode)
 {
     const auto base = ChipUiTheme {
@@ -152,6 +157,7 @@ ChipUiTheme chipThemeFor(chipper::ChipMode mode)
     switch (mode)
     {
         case chipper::ChipMode::nes:
+        case chipper::ChipMode::nesVrc6:
             return { juce::Colour(0xff0f1112), juce::Colour(0xff171b1d), juce::Colour(0xff151819),
                      juce::Colour(0xff4f5a60), juce::Colour(0xff202426), juce::Colour(0xffff5a2f),
                      juce::Colour(0xff4fd3dd), juce::Colour(0xffececec), juce::Colour(0xffb9c0c4),
@@ -268,6 +274,7 @@ void drawChipIdentityAccent(juce::Graphics& g, juce::Rectangle<int> bounds, chip
             break;
         }
         case chipper::ChipMode::nes:
+        case chipper::ChipMode::nesVrc6:
         {
             g.setColour(theme.primary.withAlpha(0.92f));
             g.fillRect(stripeX, stripeY, stripeW * 0.64f, 4.0f);
@@ -349,6 +356,7 @@ int chipModeChoiceIndex(chipper::ChipMode mode)
         case chipper::ChipMode::ym2413: return 13;
         case chipper::ChipMode::scc: return 14;
         case chipper::ChipMode::ym2203: return 15;
+        case chipper::ChipMode::nesVrc6: return 16;
     }
 
     return 0;
@@ -4013,7 +4021,8 @@ void ChipperAudioProcessorEditor::resized()
     area.removeFromTop(8);
 
     constexpr auto footerReserve = 44;
-    const auto nesLayout = displayedMode == chipper::ChipMode::nes;
+    const auto nesLayout = isNesFamily(displayedMode);
+    const auto nesExpansionLayout = displayedMode == chipper::ChipMode::nesVrc6;
     const auto sidLayout = displayedMode == chipper::ChipMode::sid;
     const auto dmgLayout = displayedMode == chipper::ChipMode::dmg;
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
@@ -4073,10 +4082,10 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (nesLayout)
     {
-        constexpr auto minimumSourceHeight = 172;
-        constexpr auto minimumSampleHeight = 184;
-        constexpr auto targetSourceHeight = 186;
-        constexpr auto targetSampleHeight = 236;
+        const auto minimumSourceHeight = nesExpansionLayout ? 232 : 172;
+        const auto minimumSampleHeight = nesExpansionLayout ? 168 : 184;
+        const auto targetSourceHeight = nesExpansionLayout ? 244 : 186;
+        const auto targetSampleHeight = nesExpansionLayout ? 194 : 236;
 
         const auto availableHeight = modules.getHeight();
         auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.47)),
@@ -4328,10 +4337,11 @@ void ChipperAudioProcessorEditor::resized()
     const auto visibleSourceCards = chipper::visibleSourceCountForMode(displayedMode);
     const auto useSpc700VoiceGrid = displayedMode == chipper::ChipMode::spc700 && visibleSourceCards > 4u;
     const auto usePaulaVoiceGrid = displayedMode == chipper::ChipMode::paula && visibleSourceCards > 2u;
+    const auto useNesExpansionVoiceGrid = displayedMode == chipper::ChipMode::nesVrc6 && visibleSourceCards > 4u;
     const auto useWavetableVoiceGrid = (displayedMode == chipper::ChipMode::huc6280
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
-    const auto compactSourceGrid = useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid;
+    const auto compactSourceGrid = useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid;
     if (compactSourceGrid || displayedMode == chipper::ChipMode::sid)
         moduleSummaryLabels[1].setBounds({});
     if (sampleLayout)
@@ -4348,9 +4358,10 @@ void ChipperAudioProcessorEditor::resized()
 
     const auto sourceGap = 6;
     const auto wavetableColumns = useWavetableVoiceGrid ? (visibleSourceCards <= 6u ? 3 : 4) : 0;
+    const auto nesExpansionColumns = 4;
     const auto paulaColumns = 2;
-    const auto sourceColumns = useSpc700VoiceGrid ? 4 : (usePaulaVoiceGrid ? paulaColumns : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards)));
-    const auto sourceRows = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid)
+    const auto sourceColumns = useSpc700VoiceGrid ? 4 : (usePaulaVoiceGrid ? paulaColumns : (useNesExpansionVoiceGrid ? nesExpansionColumns : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards))));
+    const auto sourceRows = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid)
         ? static_cast<int>((visibleSourceCards + static_cast<size_t>(sourceColumns) - 1u) / static_cast<size_t>(sourceColumns))
         : 1;
     const auto sourceCardWidth = sourceColumns > 0
@@ -4395,8 +4406,8 @@ void ChipperAudioProcessorEditor::resized()
             continue;
         }
 
-        const auto sourceColumn = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid) ? static_cast<int>(i % static_cast<size_t>(sourceColumns)) : static_cast<int>(i);
-        const auto sourceRow = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid) ? static_cast<int>(i / static_cast<size_t>(sourceColumns)) : 0;
+        const auto sourceColumn = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid) ? static_cast<int>(i % static_cast<size_t>(sourceColumns)) : static_cast<int>(i);
+        const auto sourceRow = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid) ? static_cast<int>(i / static_cast<size_t>(sourceColumns)) : 0;
         sourceChannelBounds[i] = {
             sourcePanel.getX() + (sourceColumn * (sourceCardWidth + sourceGap)),
             sourcePanel.getY() + (sourceRow * (sourceCardHeight + sourceGap)),
@@ -4404,7 +4415,7 @@ void ChipperAudioProcessorEditor::resized()
             sourceCardHeight
         };
         const auto isSidSourceCard = displayedMode == chipper::ChipMode::sid;
-        const auto isNesSourceCard = displayedMode == chipper::ChipMode::nes;
+        const auto isNesSourceCard = isNesFamily(displayedMode);
         const auto isDmgSourceCard = displayedMode == chipper::ChipMode::dmg;
         const auto isSnSourceCard = displayedMode == chipper::ChipMode::sn76489;
         const auto isYm2149ToneSourceCard = displayedMode == chipper::ChipMode::ym2149 && i < ymChannelMixBoxes.size();
@@ -4666,12 +4677,12 @@ void ChipperAudioProcessorEditor::resized()
         tonePanel.removeFromTop(std::min(6, tonePanel.getHeight()));
         secondaryTonePanel = tonePanel;
     }
-    else if (displayedMode == chipper::ChipMode::nes
+    else if (isNesFamily(displayedMode)
         || displayedMode == chipper::ChipMode::dmg
         || displayedMode == chipper::ChipMode::ym2149
         || displayedMode == chipper::ChipMode::pokey)
     {
-        if (displayedMode == chipper::ChipMode::nes)
+        if (isNesFamily(displayedMode))
         {
             const auto availableHeight = tonePanel.getHeight();
             const auto gapHeight = std::min(8, std::max(0, availableHeight - 1));
@@ -4747,7 +4758,7 @@ void ChipperAudioProcessorEditor::resized()
         placeOplWaveformControl(primaryTonePanel);
     else if (displayedMode == chipper::ChipMode::ym2413)
         placeOpllInstrumentControl(primaryTonePanel);
-    else if (displayedMode == chipper::ChipMode::nes)
+    else if (isNesFamily(displayedMode))
     {
         // NES register controls are owned by the individual source cards.
     }
@@ -4790,7 +4801,7 @@ void ChipperAudioProcessorEditor::resized()
     motionPanel.removeFromTop(30);
     motionPanel.removeFromTop(4);
     if (usesSnNoiseModeSegment(displayedMode)
-        && displayedMode != chipper::ChipMode::nes
+        && ! isNesFamily(displayedMode)
         && displayedMode != chipper::ChipMode::dmg
         && displayedMode != chipper::ChipMode::sn76489
         && displayedMode != chipper::ChipMode::paula)
@@ -4798,7 +4809,7 @@ void ChipperAudioProcessorEditor::resized()
         auto noiseModePanel = primaryTonePanel;
         if (displayedMode == chipper::ChipMode::sid)
             noiseModePanel = motionPanel;
-        else if (displayedMode == chipper::ChipMode::nes || usesSampleToneStack)
+        else if (isNesFamily(displayedMode) || usesSampleToneStack)
             noiseModePanel = secondaryTonePanel;
         else if (usesFmToneStack)
             noiseModePanel = tertiaryTonePanel;
@@ -4981,7 +4992,7 @@ void ChipperAudioProcessorEditor::resized()
             };
         }
     }
-    else if (displayedMode == chipper::ChipMode::nes)
+    else if (isNesFamily(displayedMode))
     {
         constexpr int minNesMacroRowHeight = 60;
         constexpr int maxNesMacroRowHeight = 60;
@@ -5062,7 +5073,7 @@ void ChipperAudioProcessorEditor::resized()
         }
     }
 
-    if (displayedMode == chipper::ChipMode::nes)
+    if (isNesFamily(displayedMode))
     {
         nativeGroupLabels[0].setBounds({});
         nativeLabels[0].setBounds({});
@@ -5129,7 +5140,7 @@ void ChipperAudioProcessorEditor::resized()
     }
 
     auto nesDmcModuleCell = moduleBounds[5].reduced(12, 9);
-    if (displayedMode == chipper::ChipMode::nes)
+    if (isNesFamily(displayedMode))
     {
         nesDmcModuleCell.removeFromTop(20);
         if (moduleSummaryLabels[5].isVisible())
@@ -5148,10 +5159,10 @@ void ChipperAudioProcessorEditor::resized()
 
     const auto utilityCell = displayedMode == chipper::ChipMode::sid
         ? controlCells[3]
-        : (displayedMode == chipper::ChipMode::nes
+        : (isNesFamily(displayedMode)
                ? nesDmcModuleCell
                : (sampleLayout ? sampleModuleCell : controlCells[4]));
-    if (displayedMode == chipper::ChipMode::nes)
+    if (isNesFamily(displayedMode))
     {
         clockSlider.setBounds({});
         clockLabel.setBounds({});
@@ -6294,7 +6305,7 @@ void ChipperAudioProcessorEditor::placeSnNoiseModeSegment(juce::Rectangle<int> b
         || displayedMode == chipper::ChipMode::opl3
         || displayedMode == chipper::ChipMode::ym2151
         || displayedMode == chipper::ChipMode::ym2413;
-    const auto useRegisterSegment = (displayedMode == chipper::ChipMode::nes
+    const auto useRegisterSegment = (isNesFamily(displayedMode)
                                      || displayedMode == chipper::ChipMode::dmg)
                                     && bounds.getHeight() >= 44;
     const auto registerLabelHeight = bounds.getHeight() < 52 ? 12 : 15;
@@ -7288,7 +7299,7 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
         snNoiseModeLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         snNoiseModeValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         applyChoices(snNoiseModeButtons, spec);
-        if (mode == chipper::ChipMode::nes && spec->choices.size() >= 3)
+        if (isNesFamily(mode) && spec->choices.size() >= 3)
         {
             static constexpr std::array<const char*, 3> nesNoiseLabels { "Auto", "Long", "Short" };
             for (size_t i = 0; i < nesNoiseLabels.size(); ++i)
@@ -8074,7 +8085,7 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
         parameterValue(chipper::parameters::id::nesDmcDirectLevel),
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcRateIndex))),
         parameterValue(chipper::parameters::id::nesDmcLoop) >= 0.5f,
-        mode == chipper::ChipMode::nes
+        isNesFamily(mode)
             && samplePlaybackMode == 2,
         parameterValue(chipper::parameters::id::spc700LoopStart),
         parameterValue(chipper::parameters::id::spc700LoopEnd),
@@ -8227,7 +8238,7 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
     if (! chipper::descriptorFor(mode).implemented)
         return label + ": " + juce::String(templ.help) + " Audio core not integrated yet.";
 
-    if (mode == chipper::ChipMode::nes)
+    if (isNesFamily(mode))
         return label + " -> P1 " + pulseDutyReadout(mode, patch.control1) + " | P2 " + pulse2DutyReadout(patch) + " | " + nesNoiseModeReadout(patch) + " | " + nesFocusReadout(patch.control4) + laneText;
 
     if (mode == chipper::ChipMode::dmg)
@@ -8419,7 +8430,7 @@ juce::String ChipperAudioProcessorEditor::performanceMacroReadout(chipper::ChipM
         compact = keepSecond ? first + " | " + second : first;
     }
 
-    const auto maxLength = (mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg)
+    const auto maxLength = (isNesFamily(mode) || mode == chipper::ChipMode::dmg)
         ? 42
         : ((mode == chipper::ChipMode::ym2149 || mode == chipper::ChipMode::sn76489) ? 32 : 38);
     if (compact.length() > maxLength)
@@ -9711,7 +9722,7 @@ juce::String ChipperAudioProcessorEditor::snNoiseRegisterLabel(uint8_t noiseCont
 
 juce::String ChipperAudioProcessorEditor::noiseModeReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
 {
-    if (mode == chipper::ChipMode::nes)
+    if (isNesFamily(mode))
         return nesNoiseModeReadout(patch);
 
     if (mode == chipper::ChipMode::dmg)
@@ -10385,7 +10396,7 @@ void ChipperAudioProcessorEditor::setYmChannelMixControlsVisible(bool shouldBeVi
 void ChipperAudioProcessorEditor::setSnNoiseModeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
     const auto active = shouldBeVisible && usesSnNoiseModeSegment(mode);
-    const auto embeddedInSourceCard = mode == chipper::ChipMode::nes
+    const auto embeddedInSourceCard = isNesFamily(mode)
         || mode == chipper::ChipMode::dmg
         || mode == chipper::ChipMode::sn76489;
     const auto menuActive = active && chipper::chipHasParameterSurface(mode,
@@ -10518,9 +10529,9 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Pulse 2  |  stack / sweep",
         "Triangle | bass body",
         "Noise/DMC | snare / sample",
-        "Source 5 | hidden",
-        "Source 6 | hidden",
-        "Source 7 | hidden",
+        "VRC6 P1 | expansion",
+        "VRC6 P2 | expansion",
+        "VRC6 Saw | expansion",
         "Source 8 | hidden",
         "Source 9 | hidden"
     };
@@ -10529,9 +10540,9 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Pulse 2  |  note 2",
         "Triangle | note 3 bass",
         "Noise/DMC | mono SFX",
-        "Source 5 | hidden",
-        "Source 6 | hidden",
-        "Source 7 | hidden",
+        "VRC6 P1 | note 4",
+        "VRC6 P2 | note 5",
+        "VRC6 Saw | note 6",
         "Source 8 | hidden",
         "Source 9 | hidden"
     };
@@ -10716,7 +10727,7 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
     const auto playMode = chipper::parameters::playModeFromChoice(playModeChoice);
     const auto* labels = &nesBigMonoLabels;
 
-    if (mode == chipper::ChipMode::nes)
+    if (isNesFamily(mode))
         labels = playMode == chipper::PlayMode::chipPoly ? &nesChipPolyLabels : &nesBigMonoLabels;
     else if (mode == chipper::ChipMode::dmg)
         labels = playMode == chipper::PlayMode::chipPoly ? &dmgChipPolyLabels : &dmgBigMonoLabels;
@@ -10835,7 +10846,7 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
     auto duty = 0.5f;
     juce::String tooltip;
 
-    if (mode == chipper::ChipMode::nes)
+    if (isNesFamily(mode))
     {
         if (index == 0)
         {
@@ -10854,12 +10865,25 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
             shape = ChipWaveformPreviewShape::triangle;
             tooltip = "RP2A03 triangle sequencer preview.";
         }
-        else
+        else if (index == 3)
         {
             shape = ChipWaveformPreviewShape::noise;
             tooltip = "RP2A03 noise / DMC lane: " + nesNoiseModeReadout(patch)
                 + "\nDMC Direct " + nesDmcDirectReadout(patch.nesDmcDirectLevel)
                 + "\nExternal .dmc playback is available from the DMC sample bank.";
+        }
+        else if (mode == chipper::ChipMode::nesVrc6 && (index == 4 || index == 5))
+        {
+            shape = ChipWaveformPreviewShape::pulse;
+            duty = index == 4 ? pulseDutyRatioForControl(patch.control1) : pulseDutyRatioForChoice(nesPulse2DutyChoiceForPatch(patch));
+            tooltip = index == 4
+                ? "VRC6 pulse 1 expansion duty follows the Pulse 1 shape control."
+                : "VRC6 pulse 2 expansion duty follows the Pulse 2 shape control.";
+        }
+        else if (mode == chipper::ChipMode::nesVrc6 && index == 6)
+        {
+            shape = ChipWaveformPreviewShape::saw;
+            tooltip = "VRC6 saw accumulator preview.";
         }
     }
     else if (mode == chipper::ChipMode::dmg)
@@ -11308,7 +11332,7 @@ juce::String ChipperAudioProcessorEditor::envelopeDecayReadout(chipper::ChipMode
     if (mode == chipper::ChipMode::spc700)
         return juce::String("S-DSP ADSR/GAIN speed, step ") + juce::String(period) + "/15";
 
-    if (mode == chipper::ChipMode::nes)
+    if (isNesFamily(mode))
         return juce::String("APU envelope decay, period ") + juce::String(period);
     if (mode == chipper::ChipMode::sn76489)
         return juce::String("PSG attenuation gate helper, step ") + juce::String(period) + "/15";
@@ -11349,7 +11373,7 @@ void ChipperAudioProcessorEditor::updatePulse2DutyButtons(const chipper::PatchCo
         pulse2DutyButtons[i].setToggleState(visible && i == selected, juce::dontSendNotification);
     }
 
-    const auto embeddedInSourceCard = displayedMode == chipper::ChipMode::nes
+    const auto embeddedInSourceCard = isNesFamily(displayedMode)
         || displayedMode == chipper::ChipMode::dmg;
     pulse2DutyLabel.setVisible(shouldBeVisible);
     pulse2DutyValueLabel.setVisible(shouldBeVisible);
@@ -11436,7 +11460,7 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
         waveShapeButtons[i].setToggleState(shouldBeVisible && i == selected, juce::dontSendNotification);
     }
 
-    const auto embeddedInSourceCard = mode == chipper::ChipMode::nes
+    const auto embeddedInSourceCard = isNesFamily(mode)
         || mode == chipper::ChipMode::dmg;
     waveShapeLabel.setVisible(shouldBeVisible);
     waveShapeValueLabel.setVisible(shouldBeVisible && ! embeddedInSourceCard);
@@ -12075,8 +12099,8 @@ void ChipperAudioProcessorEditor::updateSnNoiseModeButtons(chipper::ChipMode mod
 
     const auto modeReadout = noiseModeReadout(mode, patch);
     const auto compactFmMode = mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151;
-    const auto embeddedInSourceCard = mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
-    const auto registerSegmentMode = mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg;
+    const auto embeddedInSourceCard = isNesFamily(mode) || mode == chipper::ChipMode::dmg;
+    const auto registerSegmentMode = isNesFamily(mode) || mode == chipper::ChipMode::dmg;
     snNoiseModeLabel.setVisible(shouldBeVisible);
     snNoiseModeValueLabel.setVisible(shouldBeVisible && ! embeddedInSourceCard && ! compactFmMode && ! registerSegmentMode);
     snNoiseModeValueLabel.setText(modeReadout, juce::dontSendNotification);
@@ -12437,7 +12461,7 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
 
 void ChipperAudioProcessorEditor::updateSampleWaveformPreview(chipper::ChipMode mode)
 {
-    const auto showSamplePreview = mode == chipper::ChipMode::nes
+    const auto showSamplePreview = isNesFamily(mode)
         || mode == chipper::ChipMode::spc700
         || mode == chipper::ChipMode::paula;
 
@@ -12693,10 +12717,10 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     presetFilterBox.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     presetSearchBox.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     updatePresetFavoriteButton();
-    dmcDirectLabel.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);
-    dmcDirectSlider.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);
-    dmcRateLabel.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);
-    dmcRateBox.setVisible(hasLiveCore && mode == chipper::ChipMode::nes);
+    dmcDirectLabel.setVisible(hasLiveCore && isNesFamily(mode));
+    dmcDirectSlider.setVisible(hasLiveCore && isNesFamily(mode));
+    dmcRateLabel.setVisible(hasLiveCore && isNesFamily(mode));
+    dmcRateBox.setVisible(hasLiveCore && isNesFamily(mode));
     dmcDirectLabel.setEnabled(hasLiveCore);
     dmcDirectSlider.setEnabled(hasLiveCore);
     dmcRateLabel.setEnabled(hasLiveCore);
@@ -12705,7 +12729,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcDirectSlider.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     dmcRateLabel.setAlpha(hasLiveCore ? 1.0f : 0.55f);
     dmcRateBox.setAlpha(hasLiveCore ? 1.0f : 0.55f);
-    const auto showNesDmcSampleControls = hasLiveCore && mode == chipper::ChipMode::nes;
+    const auto showNesDmcSampleControls = hasLiveCore && isNesFamily(mode);
     const auto showSpc700BrrControls = hasLiveCore && mode == chipper::ChipMode::spc700;
     const auto showPaulaSampleControls = hasLiveCore && mode == chipper::ChipMode::paula;
     const auto showSampleBankControls = showNesDmcSampleControls || showSpc700BrrControls || showPaulaSampleControls;
@@ -12767,8 +12791,8 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     sampleLoopEndValueLabel.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
     sampleLoopStartSlider.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
     sampleLoopEndSlider.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
-    clockLabel.setVisible(mode != chipper::ChipMode::nes && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula);
-    clockSlider.setVisible(mode != chipper::ChipMode::nes && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula);
+    clockLabel.setVisible(! isNesFamily(mode) && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula);
+    clockSlider.setVisible(! isNesFamily(mode) && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula);
 
     for (size_t i = 0; i < moduleTitleLabels.size(); ++i)
     {
@@ -12778,7 +12802,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         const auto& module = descriptor.modules[i];
         moduleTitleLabels[i].setText(module.title, juce::dontSendNotification);
         auto summary = juce::String(module.summary);
-        if (mode == chipper::ChipMode::nes && i == 5)
+        if (isNesFamily(mode) && i == 5)
         {
             moduleTitleLabels[i].setText("DMC Sample", juce::dontSendNotification);
             summary = "Load a DMC file or bank, then browse manually or map slots across notes.";
@@ -12888,7 +12912,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto hasReferenceOnlyProfile = hasLiveCore && ! hasCustomProfileSurface;
     for (auto& itemLabel : moduleItemLabels[0])
         itemLabel.setVisible(! hasReferenceOnlyProfile && ! hasCustomProfileSurface && ! itemLabel.getText().isEmpty());
-    const auto hasEmbeddedSourceRegisterControls = mode == chipper::ChipMode::nes
+    const auto hasEmbeddedSourceRegisterControls = isNesFamily(mode)
         || mode == chipper::ChipMode::dmg
         || usesChannelLocalWaveDeck(mode);
     const auto hasCustomToneSurface = hasLiveCore && mode != chipper::ChipMode::dmg && ! hasEmbeddedSourceRegisterControls && (usesWaveShapeSegment(mode)
@@ -12916,7 +12940,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto hasCustomOutputSurface = hasLiveCore
         && mode != chipper::ChipMode::sid
         && ! hasSampleBankPanel
-        && (mode == chipper::ChipMode::nes || usesStereoSpreadControl(mode) || usesDmgStereoRouteSegment(mode));
+        && (isNesFamily(mode) || usesStereoSpreadControl(mode) || usesDmgStereoRouteSegment(mode));
     moduleSummaryLabels[5].setVisible(! hasSampleBankPanel && ! hasCustomOutputSurface);
     for (auto& itemLabel : moduleItemLabels[5])
         itemLabel.setVisible(! hasSampleBankPanel && ! hasCustomOutputSurface && ! itemLabel.getText().isEmpty());
@@ -13002,7 +13026,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         && chipper::descriptorFor(mode).implemented;
     nativeSliders[0].setVisible(! hasPulseDutySegment);
     nativeSliders[1].setVisible(! hasFmFeedbackControl);
-    const auto embeddedPulseDuty = (mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg) && hasPulseDutySegment;
+    const auto embeddedPulseDuty = (isNesFamily(mode) || mode == chipper::ChipMode::dmg) && hasPulseDutySegment;
     nativeGroupLabels[0].setVisible(! embeddedPulseDuty);
     nativeLabels[0].setVisible(! embeddedPulseDuty || hasPulseDutySegment);
     controlValueLabels[0].setVisible(! embeddedPulseDuty || hasPulseDutySegment);
@@ -13042,7 +13066,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         return performanceMacroReadout(mode, index, std::move(text));
     };
 
-    if (mode == chipper::ChipMode::nes)
+    if (isNesFamily(mode))
     {
         controlValueLabels[0].setText(embeddedPulseDuty ? pulseDutyReadout(mode, patch.control1) : macroReadout(0, pulseDutyReadout(mode, patch.control1)),
                                       juce::dontSendNotification);
@@ -13139,7 +13163,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[3].setText(juce::String(patch.control4, 2), juce::dontSendNotification);
     }
 
-    if (mode == chipper::ChipMode::nes)
+    if (isNesFamily(mode))
     {
         controlValueLabels[4].setText(nesDmcDirectReadout(parameterValue(chipper::parameters::id::nesDmcDirectLevel)), juce::dontSendNotification);
         controlValueLabels[4].setTooltip(withMidiCcForRole("RP2A03 $4011 DMC direct DAC load. Renderer and VST playback can step external .dmc bytes supplied by the user.", chipper::ChipParameterRole::nesDmcDirectLevel));

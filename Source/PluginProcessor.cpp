@@ -3281,7 +3281,7 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
     std::vector<float> decoded;
     auto loopStartSample = size_t { 0 };
 
-    if (mode == chipper::ChipMode::nes)
+    if (mode == chipper::ChipMode::nes || mode == chipper::ChipMode::nesVrc6)
     {
         const auto selectedSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
         const auto playbackMode = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load())), 0, 2);

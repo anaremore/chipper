@@ -5509,7 +5509,223 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             -10.0f,
             3993600.0
-        }
+        },
+        withSourceLevels({
+            "vrc6-pulse-lead",
+            "NES + VRC6 Leads",
+            "VRC6 Pulse Lead",
+            "Original NES expansion lead with VRC6 pulse lanes carrying the top line over a quiet APU body.",
+            ChipMode::nesVrc6,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.68f, 0.42f, 0.10f, 0.78f },
+            { true, true, true, false },
+            0.0f,
+            0,
+            0,
+            0,
+            -10.5f,
+            1789773.0
+        }, 0.35f, 0.28f, 0.20f, 0.0f),
+        withSourceLevels({
+            "vrc6-saw-bass",
+            "NES + VRC6 Bass",
+            "VRC6 Saw Bass",
+            "Focused VRC6 saw bass, trimmed triangle shadow, and subtle pulse edge.",
+            ChipMode::nesVrc6,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::stack,
+            { 0.50f, 0.20f, 0.04f, 0.86f },
+            { true, false, true, false },
+            0.0f,
+            0,
+            0,
+            0,
+            -10.0f,
+            1789773.0
+        }, 0.18f, 0.0f, 0.24f, 0.0f),
+        withSourceLevels({
+            "vrc6-expansion-arp",
+            "NES + VRC6 Arps",
+            "VRC6 Expansion Arp",
+            "Seven-lane NES expansion arp recipe with VRC6 pulses and saw stacked above the base APU lanes.",
+            ChipMode::nesVrc6,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.64f, 0.78f, 0.12f, 0.74f },
+            { true, true, true, false },
+            0.0f,
+            0,
+            0,
+            0,
+            -11.0f,
+            1789773.0
+        }, 0.40f, 0.34f, 0.26f, 0.0f),
+        withSourceLevels({
+            "vrc6-coin-pop",
+            "Arcade UI",
+            "VRC6 Coin Pop",
+            "Short expansion pulse pickup sound with a bright VRC6 interval snap.",
+            ChipMode::nesVrc6,
+            AccuracyMode::hybrid,
+            MacroKind::coin,
+            PlayMode::stack,
+            { 0.18f, 0.92f, 0.04f, 0.86f },
+            { true, false, false, false },
+            0.20f,
+            0,
+            0,
+            0,
+            -12.0f,
+            1789773.0
+        }, 0.20f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "vrc6-saw-keys",
+            "NES + VRC6 Keys",
+            "VRC6 Saw Keys",
+            "Clean expansion saw keys with pulse shimmer and a softened base APU layer.",
+            ChipMode::nesVrc6,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::chipPoly,
+            { 0.54f, 0.30f, 0.08f, 0.66f },
+            { true, true, true, false },
+            0.14f,
+            0,
+            0,
+            0,
+            -10.5f,
+            1789773.0
+        }, 0.16f, 0.12f, 0.18f, 0.0f),
+        withNesDmcDirect({
+            "vrc6-noise-snare",
+            "NES + VRC6 Drums",
+            "VRC6 Noise Snare",
+            "Base NES noise/DMC snare framed for expansion kits while VRC6 lanes stay out of the transient.",
+            ChipMode::nesVrc6,
+            AccuracyMode::hybrid,
+            MacroKind::drum,
+            PlayMode::stack,
+            { 0.36f, 0.16f, 0.86f, 0.44f },
+            { false, false, true, true },
+            0.78f,
+            0,
+            0,
+            0,
+            -11.0f,
+            1789773.0
+        }, 0.32f),
+        withSourceLevels({
+            "vrc6-impact-hit",
+            "NES + VRC6 Drums",
+            "VRC6 Impact Perc",
+            "Short VRC6 percussion impact with NES noise grit and a tight expansion transient.",
+            ChipMode::nesVrc6,
+            AccuracyMode::hybrid,
+            MacroKind::hit,
+            PlayMode::stack,
+            { 0.44f, 0.36f, 0.70f, 0.72f },
+            { true, false, true, true },
+            0.42f,
+            0,
+            0,
+            0,
+            -11.5f,
+            1789773.0
+        }, 0.24f, 0.0f, 0.18f, 0.34f),
+        withSourceLevels({
+            "vrc6-laser-sweep",
+            "NES + VRC6 Leads",
+            "VRC6 Laser Lead",
+            "Pitchy expansion lead sweep with VRC6 pulse bite and a small saw trail.",
+            ChipMode::nesVrc6,
+            AccuracyMode::hybrid,
+            MacroKind::laser,
+            PlayMode::stack,
+            { 0.24f, 0.96f, 0.30f, 0.92f },
+            { true, true, false, true },
+            0.26f,
+            0,
+            0,
+            0,
+            -11.0f,
+            1789773.0
+        }, 0.18f, 0.16f, 0.0f, 0.16f),
+        withSourceLevels({
+            "vrc6-power-rise",
+            "NES + VRC6 Arps",
+            "VRC6 Power Arp Rise",
+            "Optimistic NES expansion arp rise with VRC6 saw lift and stacked pulse sparkle.",
+            ChipMode::nesVrc6,
+            AccuracyMode::hybrid,
+            MacroKind::powerUp,
+            PlayMode::stack,
+            { 0.72f, 0.88f, 0.12f, 0.88f },
+            { true, true, true, false },
+            0.10f,
+            0,
+            0,
+            0,
+            -11.0f,
+            1789773.0
+        }, 0.24f, 0.22f, 0.18f, 0.0f),
+        withSourceLevels({
+            "vrc6-hollow-pad",
+            "NES + VRC6 Keys",
+            "VRC6 Hollow Pad",
+            "Softer expansion pad recipe using chip-poly allocation and restrained base APU support.",
+            ChipMode::nesVrc6,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.42f, 0.28f, 0.06f, 0.58f },
+            { true, true, true, false },
+            0.28f,
+            0,
+            0,
+            0,
+            -11.5f,
+            1789773.0
+        }, 0.10f, 0.10f, 0.12f, 0.0f),
+        withSourceLevels({
+            "vrc6-pulse-bass",
+            "NES + VRC6 Bass",
+            "VRC6 Pulse Bass",
+            "Punchy expansion pulse bass with enough triangle body to keep the NES family identity.",
+            ChipMode::nesVrc6,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::chipPoly,
+            { 0.34f, 0.18f, 0.04f, 0.78f },
+            { true, true, true, false },
+            0.0f,
+            0,
+            0,
+            0,
+            -10.5f,
+            1789773.0
+        }, 0.26f, 0.18f, 0.26f, 0.0f),
+        withSourceLevels({
+            "vrc6-jump-blip",
+            "Arcade UI",
+            "VRC6 Jump Blip",
+            "Quick upward expansion pulse gesture for platformer UI and movement cues.",
+            ChipMode::nesVrc6,
+            AccuracyMode::hybrid,
+            MacroKind::jump,
+            PlayMode::stack,
+            { 0.22f, 0.68f, 0.03f, 0.84f },
+            { true, false, false, false },
+            0.12f,
+            0,
+            0,
+            0,
+            -12.0f,
+            1789773.0
+        }, 0.18f, 0.0f, 0.0f, 0.0f)
     };
 
     return presets;
@@ -5534,6 +5750,7 @@ const std::vector<PresetQualityTarget>& presetQualityTargets()
     const auto roles = presetCoreRoleTargets();
     static const std::vector<PresetQualityTarget> targets {
         { ChipMode::nes, roles, { "apu", "pulse", "triangle", "noise", "dmc", "dac", "tracker" }, "Furnace-informed RP2A03 coverage: melodic pulse/triangle, DMC/noise percussion, UI and game SFX." },
+        { ChipMode::nesVrc6, roles, { "apu", "vrc6", "pulse", "saw", "triangle", "noise", "dmc", "expansion" }, "Furnace-informed NES expansion coverage: VRC6 pulse/saw leads, basses, arps, keys, percussion, and SFX." },
         { ChipMode::dmg, roles, { "apu", "pulse", "wave", "noise", "duty", "stereo", "sweep" }, "Furnace-informed DMG coverage: pulse leads, wave bass/keys, noise drums, handheld SFX." },
         { ChipMode::sid, roles, { "sid", "filter", "pwm", "sync", "ring", "noise", "pulse" }, "Furnace-informed SID coverage: bass, PWM leads, filter keys, oscillator interaction, and noise hits." },
         { ChipMode::ym2149, roles, { "psg", "noise", "envelope", "chord", "tracker" }, "Furnace-informed AY/YM coverage: tone stacks, envelope tricks, fake chords, and noise percussion." },
@@ -5633,6 +5850,7 @@ std::string presetEngineFor(const PresetInfo& preset)
     switch (preset.chip)
     {
         case ChipMode::nes: return "RP2A03 APU";
+        case ChipMode::nesVrc6: return "RP2A03 + VRC6";
         case ChipMode::dmg: return "DMG APU";
         case ChipMode::sid: return "MOS SID";
         case ChipMode::ym2149: return "AY/YM PSG";
@@ -5665,8 +5883,14 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
     switch (preset.chip)
     {
         case ChipMode::nes:
+        case ChipMode::nesVrc6:
         case ChipMode::dmg:
             addPresetTag(tags, "apu");
+            if (preset.chip == ChipMode::nesVrc6)
+            {
+                addPresetTag(tags, "vrc6");
+                addPresetTag(tags, "expansion");
+            }
             break;
         case ChipMode::ym2149:
         case ChipMode::sn76489:
@@ -5699,7 +5923,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
             break;
     }
 
-    if (preset.chip == ChipMode::nes && preset.nesDmcDirectLevel > 0.0001f)
+    if ((preset.chip == ChipMode::nes || preset.chip == ChipMode::nesVrc6) && preset.nesDmcDirectLevel > 0.0001f)
     {
         addPresetTag(tags, "dmc");
         addPresetTag(tags, "dac");
@@ -5719,7 +5943,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
         addPresetTag(tags, "noise");
 
     const auto corpus = presetCorpus(preset);
-    for (const auto token : { "pulse", "triangle", "duty", "stereo", "sweep", "wave", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade" })
+    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade" })
     {
         if (presetCorpusContains(corpus, token))
             addPresetTag(tags, token);

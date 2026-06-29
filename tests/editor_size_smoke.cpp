@@ -87,6 +87,7 @@ const char* chipModeName(chipper::ChipMode mode)
 {
     switch (mode)
     {
+    case chipper::ChipMode::nesVrc6: return "NES + VRC6";
     case chipper::ChipMode::spc700: return "SPC700";
     case chipper::ChipMode::paula: return "Paula";
     case chipper::ChipMode::ym2203: return "YM2203";
@@ -137,11 +138,12 @@ bool checkPrimaryPanelStack(const ChipperAudioProcessorEditor& editor, chipper::
 
     requirePanel(editor.getModuleBoundsForLayoutTest(1), "source/channel", 118);
 
-    if (mode == chipper::ChipMode::nes || mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
-        requirePanel(editor.getModuleBoundsForLayoutTest(5), "sample bank", mode == chipper::ChipMode::nes ? 176 : 132);
+    const auto isNesFamily = mode == chipper::ChipMode::nes || mode == chipper::ChipMode::nesVrc6;
+    if (isNesFamily || mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
+        requirePanel(editor.getModuleBoundsForLayoutTest(5), "sample bank", isNesFamily ? 176 : 132);
 
     const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
-    const auto minimumPerformanceHeight = mode == chipper::ChipMode::nes ? 220 : (mode == chipper::ChipMode::sid ? 96 : ((mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 84 : 108));
+    const auto minimumPerformanceHeight = isNesFamily ? 220 : (mode == chipper::ChipMode::sid ? 96 : ((mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 84 : 108));
     requirePanel(performanceBounds, "performance macros", minimumPerformanceHeight);
     if (performanceBounds.getBottom() > footerTop)
     {
@@ -281,6 +283,43 @@ bool expectControlOwnedBySourceChannel(const ChipperAudioProcessorEditor& editor
     return ok;
 }
 
+bool expectVisibleSourceCardsInsideDeck(const ChipperAudioProcessorEditor& editor,
+                                        chipper::ChipMode mode)
+{
+    const auto sourceDeckBounds = editor.getModuleBoundsForLayoutTest(1);
+    auto ok = true;
+
+    if (sourceDeckBounds.isEmpty())
+    {
+        std::cerr << "editor_size_smoke: missing source deck for visible source-card containment check\n";
+        return false;
+    }
+
+    const auto visibleSources = chipper::visibleSourceCountForMode(mode);
+    for (size_t channel = 0; channel < visibleSources; ++channel)
+    {
+        const auto sourceBounds = editor.getSourceChannelBoundsForLayoutTest(channel);
+        if (sourceBounds.isEmpty())
+        {
+            std::cerr << "editor_size_smoke: missing visible source card " << channel
+                      << " for " << chipper::toString(mode) << '\n';
+            ok = false;
+            continue;
+        }
+
+        if (! sourceDeckBounds.expanded(2).contains(sourceBounds))
+        {
+            std::cerr << "editor_size_smoke: source card " << channel
+                      << " escapes the source deck for " << chipper::toString(mode)
+                      << "; deck " << sourceDeckBounds.toString()
+                      << " card " << sourceBounds.toString() << '\n';
+            ok = false;
+        }
+    }
+
+    return ok;
+}
+
 bool checkChannelOwnedControlLayout(chipper::ChipMode mode)
 {
     const auto chipChoice = chipModeChoiceFor(mode);
@@ -298,6 +337,9 @@ bool checkChannelOwnedControlLayout(chipper::ChipMode mode)
     switch (mode)
     {
     case chipper::ChipMode::nes:
+    case chipper::ChipMode::nesVrc6:
+        if (mode == chipper::ChipMode::nesVrc6)
+            ok &= expectVisibleSourceCardsInsideDeck(editor, mode);
         ok &= expectControlOwnedBySourceChannel(editor, 0, editor.getPulseDutyBoundsForLayoutTest(), "NES pulse 1 duty");
         ok &= expectControlOwnedBySourceChannel(editor, 1, editor.getPulse2DutyBoundsForLayoutTest(), "NES pulse 2 duty");
         ok &= expectControlOwnedBySourceChannel(editor, 3, editor.getSnNoiseModeBoundsForLayoutTest(), "NES noise mode");
@@ -1358,6 +1400,7 @@ bool checkPerformanceMacroSliderLayout()
         switch (mode)
         {
             case chipper::ChipMode::nes:
+            case chipper::ChipMode::nesVrc6:
             case chipper::ChipMode::dmg:
                 expectedMacroSliders = { 1, 2, 3 };
                 break;
@@ -1857,6 +1900,7 @@ int main()
     }
 
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::nes);
+    ok &= checkChannelOwnedControlLayout(chipper::ChipMode::nesVrc6);
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::dmg);
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::sn76489);
     ok &= checkYm2149ToneNoiseMixLayout();

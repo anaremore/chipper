@@ -86,6 +86,7 @@ Implemented depth varies by chip. See [docs/emulation-accuracy.md](docs/emulatio
 | Mode | Current status |
 | --- | --- |
 | NES / RP2A03 | Partial clean-room APU with pulse, triangle, noise, DMC file/folder banks, nonlinear mixer, and frame-counter tests |
+| NES + VRC6 | Partial clean-room NES expansion mode with VRC6 pulse/saw lanes, seven source strips, Chip Poly allocation, and original expansion presets |
 | Game Boy / DMG | Partial clean-room APU with pulse, wave RAM helpers, noise, envelope/sweep/stereo routing tests |
 | SID / C64 | Partial clean-room SID-style voice model with 3 voices, per-voice waves/PW/ADSR, sync/ring bits, filter modes, routing, and model color |
 | YM2149 / AY | Verified-partial MIT `emu2149` PSG adapter |
