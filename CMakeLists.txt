@@ -354,6 +354,9 @@ add_test(NAME chipper_render_preset_spc700_pmon_shimmer_smoke
 add_test(NAME chipper_render_preset_spc700_tracker_lead_smoke
     COMMAND chipper_render --preset spc700-tracker-lead --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/spc700-chip-poly-events.txt --out preset-spc700-tracker-lead.wav --debug preset-spc700-tracker-lead.json
 )
+add_test(NAME chipper_render_preset_spc700_tracker_bass_smoke
+    COMMAND chipper_render --preset spc700-tracker-bass --rate 48000 --seconds 0.08 --note 48 --out preset-spc700-tracker-bass.wav --debug preset-spc700-tracker-bass.json
+)
 add_test(NAME chipper_render_preset_nes_hero_smoke
     COMMAND chipper_render --preset nes-hero-pulse --rate 48000 --seconds 0.04 --note 69 --out preset-nes-hero-smoke.wav --debug preset-nes-hero-smoke.json
 )
@@ -450,6 +453,9 @@ add_test(NAME chipper_render_preset_ym_fast_minor_arp_smoke
 add_test(NAME chipper_render_preset_ym_tracker_lead_smoke
     COMMAND chipper_render --preset ym-tracker-lead --rate 48000 --seconds 0.04 --note 72 --out preset-ym-tracker-lead-smoke.wav --debug preset-ym-tracker-lead-smoke.json
 )
+add_test(NAME chipper_render_preset_ym_tracker_square_arp_smoke
+    COMMAND chipper_render --preset ym-tracker-square-arp --rate 48000 --seconds 0.04 --note 72 --out preset-ym-tracker-square-arp-smoke.wav --debug preset-ym-tracker-square-arp-smoke.json
+)
 add_test(NAME chipper_render_preset_sn_noise_hit_smoke
     COMMAND chipper_render --preset sn-noise-hit --rate 48000 --seconds 0.04 --note 60 --out preset-sn-noise-hit-smoke.wav --debug preset-sn-noise-hit-smoke.json
 )
@@ -476,6 +482,9 @@ add_test(NAME chipper_render_preset_sn_warning_alarm_smoke
 )
 add_test(NAME chipper_render_preset_sn_periodic_alarm_smoke
     COMMAND chipper_render --preset sn-periodic-alarm --rate 48000 --seconds 0.04 --note 72 --out preset-sn-periodic-alarm-smoke.wav --debug preset-sn-periodic-alarm-smoke.json
+)
+add_test(NAME chipper_render_preset_sn_pulse_alarm_smoke
+    COMMAND chipper_render --preset sn-pulse-alarm --rate 48000 --seconds 0.04 --note 72 --out preset-sn-pulse-alarm-smoke.wav --debug preset-sn-pulse-alarm-smoke.json
 )
 add_test(NAME chipper_render_preset_nes_duty_bass_duo_smoke
     COMMAND chipper_render --preset nes-duty-bass-duo --rate 48000 --seconds 0.04 --note 48 --out preset-nes-duty-bass-duo-smoke.wav --debug preset-nes-duty-bass-duo-smoke.json
@@ -534,8 +543,14 @@ add_test(NAME chipper_render_preset_pokey_distortion_filter_perc_smoke
 add_test(NAME chipper_render_preset_scc_noise_click_drum_smoke
     COMMAND chipper_render --preset scc-noise-click-drum --rate 48000 --seconds 0.05 --note 48 --out preset-scc-noise-click-drum.wav --debug preset-scc-noise-click-drum.json
 )
+add_test(NAME chipper_render_preset_scc_noise_burst_smoke
+    COMMAND chipper_render --preset scc-noise-burst --rate 48000 --seconds 0.05 --note 48 --out preset-scc-noise-burst.wav --debug preset-scc-noise-burst.json
+)
 add_test(NAME chipper_render_preset_namco_tracker_lead_smoke
     COMMAND chipper_render --preset namco-tracker-lead --rate 48000 --seconds 0.05 --note 69 --out preset-namco-tracker-lead.wav --debug preset-namco-tracker-lead.json
+)
+add_test(NAME chipper_render_preset_namco_tracker_bass_smoke
+    COMMAND chipper_render --preset namco-tracker-bass --rate 48000 --seconds 0.05 --note 48 --out preset-namco-tracker-bass.wav --debug preset-namco-tracker-bass.json
 )
 add_test(NAME chipper_render_nes_coin_macro_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --macro coin --clock 1789773 --rate 48000 --seconds 0.10 --note 69 --out nes-coin-smoke.wav --debug nes-coin-smoke.json
@@ -971,18 +986,18 @@ set(CHIPPER_PRESET_CHIP_MINIMUMS
     nes:16
     dmg:16
     sid:19
-    ym2149:15
-    sn76489:15
+    ym2149:17
+    sn76489:17
     ym2612:19
     opl3:16
     ym2151:16
-    spc700:15
+    spc700:16
     pokey:15
     paula:13
     huc6280:13
-    namcoWsg:15
+    namcoWsg:16
     ym2413:18
-    scc:15
+    scc:17
 )
 foreach(chipper_preset_chip_minimum IN LISTS CHIPPER_PRESET_CHIP_MINIMUMS)
     string(REPLACE ":" ";" chipper_preset_chip_parts "${chipper_preset_chip_minimum}")
@@ -1003,7 +1018,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_descriptors_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_ym_preset_catalog_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset ym-three-voice-arp --preset ym-menu-beep --preset ym-bright-beep --preset ym-arcade-clang --preset ym-fast-minor-arp --preset ym-triangle-env-keys --preset ym-tracker-lead
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset ym-three-voice-arp --preset ym-menu-beep --preset ym-bright-beep --preset ym-arcade-clang --preset ym-fast-minor-arp --preset ym-triangle-env-keys --preset ym-tracker-lead --preset ym-tracker-square-arp
     )
     set_tests_properties(chipper_render_list_ym_preset_catalog_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1016,7 +1031,7 @@ if (Python3_Interpreter_FOUND)
     )
 
     add_test(NAME chipper_render_descriptor_preset_counts_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=16 --preset-count dmg=16 --preset-count sid=19 --preset-count ym2149=16 --preset-count sn76489=16 --preset-count ym2612=19 --preset-count opl3=16 --preset-count spc700=15 --preset-count pokey=15 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=15 --preset-count ym2151=16 --preset-count ym2413=18 --preset-count scc=16
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --preset-count nes=16 --preset-count dmg=16 --preset-count sid=19 --preset-count ym2149=17 --preset-count sn76489=17 --preset-count ym2612=19 --preset-count opl3=16 --preset-count spc700=16 --preset-count pokey=15 --preset-count paula=15 --preset-count huc6280=15 --preset-count namcoWsg=16 --preset-count ym2151=16 --preset-count ym2413=18 --preset-count scc=17
     )
     set_tests_properties(chipper_render_descriptor_preset_counts_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1061,7 +1076,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_pokey_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_spc700_descriptor_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip spc700 --implemented spc700=1 --verification-badge "spc700=Verified partial" --verification-cycle spc700=0 --verification-hardware spc700=0 --source-lanes spc700=8/8 --param-kind spc700:waveShape=chipRegister --param-surface spc700:waveShape=segmentedChoice --param-choices spc700:waveShape=5 --param-midi-cc spc700:waveShape=89 --param-kind spc700:dmgStereoRoute=chipRegister --param-surface spc700:dmgStereoRoute=menu --param-choices spc700:dmgStereoRoute=3 --param-midi-cc spc700:dmgStereoRoute=94 --param-kind spc700:snNoiseMode=chipRegister --param-surface spc700:snNoiseMode=segmentedChoice --param-choices spc700:snNoiseMode=5 --param-midi-cc spc700:snNoiseMode=91 --param-kind spc700:nesDmcMapRoot=steppedNumeric --param-surface spc700:nesDmcMapRoot=menu --param-midi-cc spc700:nesDmcMapRoot=69 --param-kind spc700:spc700LoopStart=chipRegister --param-surface spc700:spc700LoopStart=slider --param-midi-cc spc700:spc700LoopStart=58 --param-kind spc700:spc700LoopEnd=chipRegister --param-surface spc700:spc700LoopEnd=slider --param-midi-cc spc700:spc700LoopEnd=59 --param-kind spc700:macroControl2=macro --param-surface spc700:macroControl2=slider --param-midi-cc spc700:macroControl2=77 --param-kind spc700:macroControl3=chipRegister --param-surface spc700:macroControl3=slider --param-midi-cc spc700:macroControl3=78 --param-kind spc700:macroControl4=chipRegister --param-surface spc700:macroControl4=slider --param-midi-cc spc700:macroControl4=79 --param-surface spc700:stereoSpread=slider --param-midi-cc spc700:stereoSpread=93 --param-kind spc700:source7Enabled=booleanToggle --param-surface spc700:source7Enabled=sourceCards --param-midi-cc spc700:source7Enabled=60 --param-kind spc700:source8Enabled=booleanToggle --param-surface spc700:source8Enabled=sourceCards --param-midi-cc spc700:source8Enabled=61 --param-kind spc700:source7Level=continuous --param-surface spc700:source7Level=slider --param-midi-cc spc700:source7Level=62 --param-kind spc700:source8Level=continuous --param-surface spc700:source8Level=slider --param-midi-cc spc700:source8Level=63 --macro-label "spc700:Drum=SPC700 Drum Map" --macro-source spc700:Drum=0011 --preset spc700-soft-bass --preset spc700-drum-map --preset spc700-noise-snare --preset spc700-pmon-shimmer --preset spc700-tracker-lead
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip spc700 --implemented spc700=1 --verification-badge "spc700=Verified partial" --verification-cycle spc700=0 --verification-hardware spc700=0 --source-lanes spc700=8/8 --param-kind spc700:waveShape=chipRegister --param-surface spc700:waveShape=segmentedChoice --param-choices spc700:waveShape=5 --param-midi-cc spc700:waveShape=89 --param-kind spc700:dmgStereoRoute=chipRegister --param-surface spc700:dmgStereoRoute=menu --param-choices spc700:dmgStereoRoute=3 --param-midi-cc spc700:dmgStereoRoute=94 --param-kind spc700:snNoiseMode=chipRegister --param-surface spc700:snNoiseMode=segmentedChoice --param-choices spc700:snNoiseMode=5 --param-midi-cc spc700:snNoiseMode=91 --param-kind spc700:nesDmcMapRoot=steppedNumeric --param-surface spc700:nesDmcMapRoot=menu --param-midi-cc spc700:nesDmcMapRoot=69 --param-kind spc700:spc700LoopStart=chipRegister --param-surface spc700:spc700LoopStart=slider --param-midi-cc spc700:spc700LoopStart=58 --param-kind spc700:spc700LoopEnd=chipRegister --param-surface spc700:spc700LoopEnd=slider --param-midi-cc spc700:spc700LoopEnd=59 --param-kind spc700:macroControl2=macro --param-surface spc700:macroControl2=slider --param-midi-cc spc700:macroControl2=77 --param-kind spc700:macroControl3=chipRegister --param-surface spc700:macroControl3=slider --param-midi-cc spc700:macroControl3=78 --param-kind spc700:macroControl4=chipRegister --param-surface spc700:macroControl4=slider --param-midi-cc spc700:macroControl4=79 --param-surface spc700:stereoSpread=slider --param-midi-cc spc700:stereoSpread=93 --param-kind spc700:source7Enabled=booleanToggle --param-surface spc700:source7Enabled=sourceCards --param-midi-cc spc700:source7Enabled=60 --param-kind spc700:source8Enabled=booleanToggle --param-surface spc700:source8Enabled=sourceCards --param-midi-cc spc700:source8Enabled=61 --param-kind spc700:source7Level=continuous --param-surface spc700:source7Level=slider --param-midi-cc spc700:source7Level=62 --param-kind spc700:source8Level=continuous --param-surface spc700:source8Level=slider --param-midi-cc spc700:source8Level=63 --macro-label "spc700:Drum=SPC700 Drum Map" --macro-source spc700:Drum=0011 --preset spc700-soft-bass --preset spc700-drum-map --preset spc700-noise-snare --preset spc700-pmon-shimmer --preset spc700-tracker-lead --preset spc700-tracker-bass
     )
     set_tests_properties(chipper_render_list_spc700_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1085,12 +1100,12 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_list_huc6280_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_scc_descriptor_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip scc --implemented scc=1 --verification-badge "scc=Verified partial" --verification-cycle scc=0 --verification-hardware scc=0 --source-lanes scc=5/5 --param-kind scc:waveShape=chipRegister --param-surface scc:waveShape=segmentedChoice --param-choices scc:waveShape=5 --param-midi-cc scc:waveShape=89 --param-kind scc:macroControl3=chipRegister --param-surface scc:macroControl3=slider --param-midi-cc scc:macroControl3=78 --param-kind scc:macroControl4=chipRegister --param-surface scc:macroControl4=slider --param-midi-cc scc:macroControl4=79 --param-kind scc:source5Enabled=booleanToggle --param-surface scc:source5Enabled=sourceCards --param-midi-cc scc:source5Enabled=64 --param-kind scc:source5Level=continuous --param-surface scc:source5Level=slider --param-midi-cc scc:source5Level=66 --param-surface scc:stereoSpread=slider --param-midi-cc scc:stereoSpread=93 --macro-label "scc:Lead=SCC Arcade Lead" --macro-source scc:Drum=0011 --preset scc-arcade-lead --preset scc-wave-tick --preset scc-noise-click-drum
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip scc --implemented scc=1 --verification-badge "scc=Verified partial" --verification-cycle scc=0 --verification-hardware scc=0 --source-lanes scc=5/5 --param-kind scc:waveShape=chipRegister --param-surface scc:waveShape=segmentedChoice --param-choices scc:waveShape=5 --param-midi-cc scc:waveShape=89 --param-kind scc:macroControl3=chipRegister --param-surface scc:macroControl3=slider --param-midi-cc scc:macroControl3=78 --param-kind scc:macroControl4=chipRegister --param-surface scc:macroControl4=slider --param-midi-cc scc:macroControl4=79 --param-kind scc:source5Enabled=booleanToggle --param-surface scc:source5Enabled=sourceCards --param-midi-cc scc:source5Enabled=64 --param-kind scc:source5Level=continuous --param-surface scc:source5Level=slider --param-midi-cc scc:source5Level=66 --param-surface scc:stereoSpread=slider --param-midi-cc scc:stereoSpread=93 --macro-label "scc:Lead=SCC Arcade Lead" --macro-source scc:Drum=0011 --preset scc-arcade-lead --preset scc-wave-tick --preset scc-noise-click-drum --preset scc-noise-burst
     )
     set_tests_properties(chipper_render_list_scc_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
     add_test(NAME chipper_render_list_namco_wsg_descriptor_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip namcoWsg --source-lanes namcoWsg=8/8 --implemented namcoWsg=1 --verification-badge "namcoWsg=Verified partial" --verification-cycle namcoWsg=0 --verification-hardware namcoWsg=0 --param-kind namcoWsg:waveShape=chipRegister --param-surface namcoWsg:waveShape=segmentedChoice --param-choices namcoWsg:waveShape=5 --param-midi-cc namcoWsg:waveShape=89 --param-kind namcoWsg:macroControl3=chipRegister --param-surface namcoWsg:macroControl3=slider --param-midi-cc namcoWsg:macroControl3=78 --param-kind namcoWsg:macroControl4=chipRegister --param-surface namcoWsg:macroControl4=slider --param-midi-cc namcoWsg:macroControl4=79 --param-surface namcoWsg:stereoSpread=slider --param-midi-cc namcoWsg:stereoSpread=93 --param-kind namcoWsg:source8Enabled=booleanToggle --param-surface namcoWsg:source8Enabled=sourceCards --param-midi-cc namcoWsg:source8Enabled=61 --param-kind namcoWsg:source8Level=continuous --param-surface namcoWsg:source8Level=slider --param-midi-cc namcoWsg:source8Level=63 --macro-label "namcoWsg:Lead=Namco Arcade Lead" --macro-source namcoWsg:Drum=0011 --preset namco-arcade-lead --preset namco-tracker-lead --preset namco-wave-tick
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json --chip-count 15 --chip namcoWsg --source-lanes namcoWsg=8/8 --implemented namcoWsg=1 --verification-badge "namcoWsg=Verified partial" --verification-cycle namcoWsg=0 --verification-hardware namcoWsg=0 --param-kind namcoWsg:waveShape=chipRegister --param-surface namcoWsg:waveShape=segmentedChoice --param-choices namcoWsg:waveShape=5 --param-midi-cc namcoWsg:waveShape=89 --param-kind namcoWsg:macroControl3=chipRegister --param-surface namcoWsg:macroControl3=slider --param-midi-cc namcoWsg:macroControl3=78 --param-kind namcoWsg:macroControl4=chipRegister --param-surface namcoWsg:macroControl4=slider --param-midi-cc namcoWsg:macroControl4=79 --param-surface namcoWsg:stereoSpread=slider --param-midi-cc namcoWsg:stereoSpread=93 --param-kind namcoWsg:source8Enabled=booleanToggle --param-surface namcoWsg:source8Enabled=sourceCards --param-midi-cc namcoWsg:source8Enabled=61 --param-kind namcoWsg:source8Level=continuous --param-surface namcoWsg:source8Level=slider --param-midi-cc namcoWsg:source8Level=63 --macro-label "namcoWsg:Lead=Namco Arcade Lead" --macro-source namcoWsg:Drum=0011 --preset namco-arcade-lead --preset namco-tracker-lead --preset namco-tracker-bass --preset namco-wave-tick
     )
     set_tests_properties(chipper_render_list_namco_wsg_descriptor_assert PROPERTIES DEPENDS chipper_render_list_descriptors_smoke)
 
@@ -1621,6 +1636,10 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-spc700-tracker-lead.json --implemented-contains partial --preset spc700-tracker-lead --macro Lead --play-mode "Chip Poly" --output-db -10 --min-peak 0.02 --register-writes 0 --note-events 4 --core-min pitchMotionDepthCents=500 --core-max pitchMotionDepthCents=530 --core-min pitchModDepthCents=175 --core-max pitchModDepthCents=190 --core-min pitchModEnabledMask=14 --core-max pitchModEnabledMask=14 --core-min activeChannels=4 --core-max activeChannels=4 --core-min samplePlaybackMode=1 --core-max samplePlaybackMode=1 --core-min envelopeShapeChoice=1 --core-max envelopeShapeChoice=1 --core-min envelopeShapeResolved=1 --core-max envelopeShapeResolved=1
     )
     set_tests_properties(chipper_render_preset_spc700_tracker_lead_assert PROPERTIES DEPENDS chipper_render_preset_spc700_tracker_lead_smoke)
+    add_test(NAME chipper_render_preset_spc700_tracker_bass_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-spc700-tracker-bass.json --implemented-contains partial --preset spc700-tracker-bass --macro Bass --play-mode "Big Mono" --output-db -9 --min-peak 0.02 --register-writes 0 --note-events 0 --core-min pitchMotionDepthCents=80 --core-max pitchMotionDepthCents=90 --core-min samplePlaybackMode=1 --core-max samplePlaybackMode=1 --core-min envelopeShapeChoice=1 --core-max envelopeShapeChoice=1 --core-min envelopeShapeResolved=1 --core-max envelopeShapeResolved=1 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceLevel0=1 --core-max sourceLevel0=1 --core-min sourceLevel1=0.62 --core-max sourceLevel1=0.62
+    )
+    set_tests_properties(chipper_render_preset_spc700_tracker_bass_assert PROPERTIES DEPENDS chipper_render_preset_spc700_tracker_bass_smoke)
 
     add_test(NAME chipper_render_paula_json_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/paula-smoke.json --implemented-contains partial --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.05 --min-rms 0.02 --register-writes 0 --note-events 0 --core-min internalChannelCount=4 --core-max internalChannelCount=4 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min period0=5378 --core-max period0=5381 --core-min volume0=50 --core-max volume0=52 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=segmentedChoice --descriptor-param-label "waveShape=Ch 1 Sample" --descriptor-param-choices waveShape=5
@@ -1709,6 +1728,10 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-scc-noise-click-drum.json --implemented-contains emu2212 --preset scc-noise-click-drum --macro Drum --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.02 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min waveShapeChoice=4 --core-max waveShapeChoice=4 --core-min internalChannelCount=5 --core-max internalChannelCount=5 --core-min keyOnMask=0 --core-max keyOnMask=0
     )
     set_tests_properties(chipper_render_preset_scc_noise_click_drum_assert PROPERTIES DEPENDS chipper_render_preset_scc_noise_click_drum_smoke)
+    add_test(NAME chipper_render_preset_scc_noise_burst_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-scc-noise-burst.json --implemented-contains emu2212 --preset scc-noise-burst --macro Hit --play-mode "Big Mono" --output-db -11.5 --register-writes 0 --note-events 0 --min-peak 0.02 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min waveShapeChoice=4 --core-max waveShapeChoice=4 --core-min internalChannelCount=5 --core-max internalChannelCount=5 --core-min keyOnMask=0 --core-max keyOnMask=0
+    )
+    set_tests_properties(chipper_render_preset_scc_noise_burst_assert PROPERTIES DEPENDS chipper_render_preset_scc_noise_burst_smoke)
 
     add_test(NAME chipper_render_scc_chip_poly_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/scc-chip-poly-smoke.json --implemented-contains emu2212 --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 5 --min-peak 0.05 --core-min activeChannels=5 --core-max activeChannels=5 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min assignedNote4=76 --core-max assignedNote4=76 --core-min internalChannelCount=5 --core-max internalChannelCount=5 --core-min keyOnMask=31 --core-max keyOnMask=31
@@ -1739,6 +1762,10 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-namco-tracker-lead.json --implemented-contains partial --preset namco-tracker-lead --macro Lead --play-mode "Big Mono" --output-db -9.5 --register-writes 0 --note-events 0 --min-peak 0.02 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min waveShapeChoice=1 --core-max waveShapeChoice=1 --core-min internalChannelCount=8 --core-max internalChannelCount=8 --core-min exposedChannelCount=8 --core-max exposedChannelCount=8 --core-min enableMask=0 --core-max enableMask=0
     )
     set_tests_properties(chipper_render_preset_namco_tracker_lead_assert PROPERTIES DEPENDS chipper_render_preset_namco_tracker_lead_smoke)
+    add_test(NAME chipper_render_preset_namco_tracker_bass_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-namco-tracker-bass.json --implemented-contains partial --preset namco-tracker-bass --macro Bass --play-mode "Big Mono" --output-db -8.5 --register-writes 0 --note-events 0 --min-peak 0.02 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min volume0=13 --core-max volume0=13 --core-min volume1=8 --core-max volume1=8 --core-min waveShapeChoice=2 --core-max waveShapeChoice=2 --core-min internalChannelCount=8 --core-max internalChannelCount=8 --core-min exposedChannelCount=8 --core-max exposedChannelCount=8 --core-min enableMask=0 --core-max enableMask=0
+    )
+    set_tests_properties(chipper_render_preset_namco_tracker_bass_assert PROPERTIES DEPENDS chipper_render_preset_namco_tracker_bass_smoke)
 
     add_test(NAME chipper_render_namco_wsg_chip_poly_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/namco-wsg-chip-poly-smoke.json --implemented-contains partial --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 8 --min-peak 0.05 --core-min activeChannels=8 --core-max activeChannels=8 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min assignedNote4=76 --core-max assignedNote4=76 --core-min assignedNote5=79 --core-max assignedNote5=79 --core-min assignedNote6=83 --core-max assignedNote6=83 --core-min assignedNote7=86 --core-max assignedNote7=86 --core-min internalChannelCount=8 --core-max internalChannelCount=8 --core-min exposedChannelCount=8 --core-max exposedChannelCount=8 --core-min enableMask=255 --core-max enableMask=255
@@ -2157,6 +2184,10 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-tracker-lead-smoke.json --implemented-contains partial --preset ym-tracker-lead --macro Lead --play-mode "Big Mono" --output-db -9.5 --register-writes 0 --note-events 0 --min-peak 0.02 --core-min envelopeShapeChoice=1 --core-max envelopeShapeChoice=1 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=1 --core-max sourceEnabledB=1 --core-min sourceEnabledC=1 --core-max sourceEnabledC=1 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0 --core-min sourceLevelA=1 --core-max sourceLevelA=1 --core-min sourceLevelB=0.72 --core-max sourceLevelB=0.72 --core-min sourceLevelC=0.52 --core-max sourceLevelC=0.52
     )
     set_tests_properties(chipper_render_preset_ym_tracker_lead_assert PROPERTIES DEPENDS chipper_render_preset_ym_tracker_lead_smoke)
+    add_test(NAME chipper_render_preset_ym_tracker_square_arp_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-ym-tracker-square-arp-smoke.json --implemented-contains partial --preset ym-tracker-square-arp --macro Arp --play-mode "Big Mono" --output-db -10 --register-writes 0 --note-events 0 --min-peak 0.02 --core-min envelopeShapeChoice=4 --core-max envelopeShapeChoice=4 --core-min sourceEnabledA=1 --core-max sourceEnabledA=1 --core-min sourceEnabledB=1 --core-max sourceEnabledB=1 --core-min sourceEnabledC=1 --core-max sourceEnabledC=1 --core-min sourceEnabledNoise=0 --core-max sourceEnabledNoise=0 --core-min sourceLevelA=1 --core-max sourceLevelA=1 --core-min sourceLevelB=0.66 --core-max sourceLevelB=0.66 --core-min sourceLevelC=0.44 --core-max sourceLevelC=0.44
+    )
+    set_tests_properties(chipper_render_preset_ym_tracker_square_arp_assert PROPERTIES DEPENDS chipper_render_preset_ym_tracker_square_arp_smoke)
 
     add_test(NAME chipper_render_preset_sn_noise_hit_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sn-noise-hit-smoke.json --implemented-contains partial --preset sn-noise-hit --macro Drum --play-mode "Big Mono" --output-db -12 --register-writes 0 --note-events 0 --min-peak 0.02 --min-zero-crossings 35 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabledNoise=1 --core-max sourceEnabledNoise=1 --core-min noiseModeChoice=3 --core-max noiseModeChoice=3 --core-min noiseControl=4 --core-max noiseControl=4 --core-min attenuationNoise=2 --core-max attenuationNoise=2
@@ -2202,6 +2233,10 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sn-periodic-alarm-smoke.json --implemented-contains partial --preset sn-periodic-alarm --macro Jump --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 0 --min-peak 0.03 --min-zero-crossings 30 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabledNoise=1 --core-max sourceEnabledNoise=1 --core-min noiseModeChoice=2 --core-max noiseModeChoice=2 --core-min noiseControl=2 --core-max noiseControl=2 --core-min noiseWhite=0 --core-max noiseWhite=0
     )
     set_tests_properties(chipper_render_preset_sn_periodic_alarm_assert PROPERTIES DEPENDS chipper_render_preset_sn_periodic_alarm_smoke)
+    add_test(NAME chipper_render_preset_sn_pulse_alarm_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-sn-pulse-alarm-smoke.json --implemented-contains partial --preset sn-pulse-alarm --macro Jump --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 0 --min-peak 0.03 --min-zero-crossings 30 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabledNoise=1 --core-max sourceEnabledNoise=1 --core-min noiseModeChoice=4 --core-max noiseModeChoice=4 --core-min noiseControl=7 --core-max noiseControl=7
+    )
+    set_tests_properties(chipper_render_preset_sn_pulse_alarm_assert PROPERTIES DEPENDS chipper_render_preset_sn_pulse_alarm_smoke)
 
     add_test(NAME chipper_render_preset_nes_duty_bass_duo_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-nes-duty-bass-duo-smoke.json --implemented-contains partial --preset nes-duty-bass-duo --macro Bass --play-mode "Big Mono" --output-db -9 --register-writes 0 --note-events 0 --min-peak 0.04 --core-min sourceEnabled1=1 --core-max sourceEnabled1=1 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min sourceLevel1=0.52 --core-max sourceLevel1=0.52 --core-min sourceLevel2=0.38 --core-max sourceLevel2=0.38 --core-min sourceLevel3=1 --core-max sourceLevel3=1
