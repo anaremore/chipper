@@ -547,6 +547,7 @@ private:
     void choosePaulaSampleFile();
     void choosePaulaSampleDirectory();
     void chooseOpnaRhythmRomFile();
+    void chooseOpnaAdpcmBSampleFile();
     void showDmcSampleBankEditor();
     void handleDmcSampleLoadResult(const juce::Result& result);
     juce::String envelopeDecayReadout(chipper::ChipMode mode, float value) const;

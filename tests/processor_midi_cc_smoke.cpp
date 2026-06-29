@@ -846,9 +846,14 @@ int main()
     {
         auto opnaRomFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
                                .getChildFile("chipper-opna-rhythm-rom-test.bin");
+        auto opnaAdpcmBFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                  .getChildFile("chipper-opna-adpcm-b-test.bin");
         opnaRomFile.deleteFile();
+        opnaAdpcmBFile.deleteFile();
         ok &= expect(writeBinaryFixture(opnaRomFile, 9000u),
                      "Should write temporary OPNA rhythm ROM fixture");
+        ok &= expect(writeBinaryFixture(opnaAdpcmBFile, 270000u),
+                     "Should write temporary OPNA ADPCM-B fixture");
 
         ChipperAudioProcessor opnaProcessor;
         opnaProcessor.prepareToPlay(48000.0, 64);
@@ -856,6 +861,8 @@ int main()
         processEmptyBlock(opnaProcessor);
         ok &= expect(opnaProcessor.loadOpnaRhythmRomFile(opnaRomFile).wasOk(),
                      "OPNA rhythm ROM file load should succeed");
+        ok &= expect(opnaProcessor.loadOpnaAdpcmBSampleFile(opnaAdpcmBFile).wasOk(),
+                     "OPNA ADPCM-B sample file load should succeed");
 
         auto opnaInfo = opnaProcessor.opnaRhythmRomInfo();
         ok &= expect(opnaInfo.loaded && opnaInfo.byteCount == 9000u
@@ -863,14 +870,24 @@ int main()
                          && opnaInfo.truncated,
                      "OPNA rhythm ROM info should report user bytes and 8 KB copy window");
 
+        auto opnaAdpcmBInfo = opnaProcessor.opnaAdpcmBSampleInfo();
+        ok &= expect(opnaAdpcmBInfo.loaded && opnaAdpcmBInfo.byteCount == 270000u
+                         && opnaAdpcmBInfo.copiedByteCount == 262144u
+                         && opnaAdpcmBInfo.truncated,
+                     "OPNA ADPCM-B info should report user bytes and 256 KiB memory window");
+
         const auto opnaDebug = opnaProcessor.currentCoreDebugStateJson();
         ok &= expect(jsonIntValue(opnaDebug, "opnaAdpcmAUserRomLoaded") == 1
                          && jsonIntValue(opnaDebug, "opnaAdpcmARomProvidedBytes") == 9000
                          && jsonIntValue(opnaDebug, "opnaAdpcmARomCopiedBytes") == 8192,
                      "OPNA core debug state should expose loaded user rhythm ROM bytes");
+        ok &= expect(jsonIntValue(opnaDebug, "opnaAdpcmBLoaded") == 1
+                         && jsonIntValue(opnaDebug, "opnaAdpcmBProvidedBytes") == 270000
+                         && jsonIntValue(opnaDebug, "opnaAdpcmBCopiedBytes") == 262144,
+                     "OPNA core debug state should expose loaded ADPCM-B sample bytes");
 
         auto opnaStateXml = opnaProcessor.createStateXml();
-        ok &= expect(opnaStateXml != nullptr, "OPNA state XML should save loaded rhythm ROM path");
+        ok &= expect(opnaStateXml != nullptr, "OPNA state XML should save loaded ADPCM paths");
 
         ChipperAudioProcessor restoredOpnaProcessor;
         restoredOpnaProcessor.prepareToPlay(48000.0, 64);
@@ -884,12 +901,21 @@ int main()
                          && restoredOpnaInfo.copiedByteCount == 8192u,
                      "OPNA rhythm ROM state restore should reload the user ROM path");
 
+        auto restoredOpnaAdpcmBInfo = restoredOpnaProcessor.opnaAdpcmBSampleInfo();
+        ok &= expect(restoredOpnaAdpcmBInfo.loaded && restoredOpnaAdpcmBInfo.byteCount == 270000u
+                         && restoredOpnaAdpcmBInfo.copiedByteCount == 262144u,
+                     "OPNA ADPCM-B state restore should reload the user sample path");
+
         const auto restoredOpnaDebug = restoredOpnaProcessor.currentCoreDebugStateJson();
         ok &= expect(jsonIntValue(restoredOpnaDebug, "opnaAdpcmAUserRomLoaded") == 1
                          && jsonIntValue(restoredOpnaDebug, "opnaAdpcmARomCopiedBytes") == 8192,
                      "Restored OPNA core should receive the user rhythm ROM bytes");
+        ok &= expect(jsonIntValue(restoredOpnaDebug, "opnaAdpcmBLoaded") == 1
+                         && jsonIntValue(restoredOpnaDebug, "opnaAdpcmBCopiedBytes") == 262144,
+                     "Restored OPNA core should receive the user ADPCM-B sample bytes");
 
         opnaRomFile.deleteFile();
+        opnaAdpcmBFile.deleteFile();
     }
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 7));
