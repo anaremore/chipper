@@ -29,11 +29,12 @@ REQUIRED_CATEGORIES = {
     "YM Noise Percussion",
     "YM2612 / OPN2",
     "YM2203 / OPN",
+    "YM2608 / OPNA Bass",
     "OPL2/OPL3 / DOS FM",
     "YM2151 / OPM",
 }
 
-IMPLEMENTED_CHIPS = {"nes", "nesVrc6", "dmg", "sid", "ym2149", "sn76489", "ym2612", "ym2203", "opl3", "ym2151", "spc700", "pokey", "paula", "huc6280", "namcoWsg", "ym2413", "scc"}
+IMPLEMENTED_CHIPS = {"nes", "nesVrc6", "dmg", "sid", "ym2149", "sn76489", "ym2612", "ym2203", "ym2608", "opl3", "ym2151", "spc700", "pokey", "paula", "huc6280", "namcoWsg", "ym2413", "scc"}
 
 EXPECTED_CATEGORY_PREFIXES = {
     "nes": ("NES", "Arcade", "Classic"),
@@ -49,6 +50,7 @@ EXPECTED_CATEGORY_PREFIXES = {
     "namcoWsg": ("Namco", "Arcade", "Classic"),
     "ym2612": ("OPN2", "YM2612", "Arcade", "Classic", "Modern"),
     "ym2203": ("OPN", "YM2203", "Arcade", "Classic", "Modern"),
+    "ym2608": ("OPNA", "YM2608", "Arcade", "Classic", "Modern"),
     "opl3": ("OPL2", "OPL3", "Arcade", "Classic"),
     "ym2151": ("OPM", "YM2151", "Arcade", "Classic", "Modern"),
     "ym2413": ("OPLL", "YM2413", "Classic"),

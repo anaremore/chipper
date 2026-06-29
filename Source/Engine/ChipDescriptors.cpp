@@ -74,6 +74,22 @@ std::vector<MacroTemplate> ym2203Macros()
     };
 }
 
+std::vector<MacroTemplate> ym2608Macros()
+{
+    return {
+        { MacroKind::manual, "OPNA Manual", "Neutral YM2608 six-FM plus embedded SSG mapping using the ymfm OPNA core.", { 0.50f, 0.35f, 0.45f, 0.72f }, { true, true, true, true }, 0.0f, 0 },
+        { MacroKind::coin, "OPNA PC-98 Chime", "Short bright OPNA UI chime using parallel FM and SSG sparkle.", { 1.00f, 0.18f, 0.68f, 0.78f }, { true, false, false, true }, 0.16f, 8 },
+        { MacroKind::bass, "OPNA Feedback Bass", "Dark PC-98-style bass using serial FM with a restrained SSG octave.", { 0.00f, 0.82f, 0.28f, 0.90f }, { true, true, false, true }, 0.08f, 1 },
+        { MacroKind::lead, "OPNA Metallic Lead", "Forward OPNA lead with six FM lanes and embedded SSG support.", { 0.58f, 0.46f, 0.62f, 0.84f }, { true, true, true, true }, 0.10f, 5 },
+        { MacroKind::arp, "OPNA Nine-Voice Arp", "Six OPNA FM channels plus three SSG lanes arranged for quick fake chords and arpeggios.", { 0.72f, 0.32f, 0.50f, 0.80f }, { true, true, true, true }, 0.08f, 6 },
+        { MacroKind::drum, "OPNA SSG Perc", "Short OPNA operator percussion with SSG click layers while native rhythm remains planned.", { 0.14f, 0.72f, 0.66f, 0.92f }, { true, false, true, true }, 0.30f, 2, 4 },
+        { MacroKind::hit, "OPNA Impact Hit", "Aggressive stacked OPNA FM and SSG impact.", { 0.22f, 0.90f, 0.74f, 0.80f }, { true, false, true, true }, 0.52f, 2 },
+        { MacroKind::laser, "OPNA Pitch Laser", "YM2608 pitch sweep SFX through FM and SSG voices.", { 0.30f, 0.72f, 0.88f, 0.82f }, { true, true, false, true }, 0.28f, 3 },
+        { MacroKind::jump, "OPNA Jump Blip", "Quick upward OPNA FM/SSG game gesture.", { 1.00f, 0.22f, 0.64f, 0.78f }, { true, false, false, true }, 0.18f, 8 },
+        { MacroKind::powerUp, "OPNA Power Rise", "Longer bright OPNA rise over six FM lanes plus SSG lift.", { 0.86f, 0.36f, 0.58f, 0.86f }, { true, true, true, true }, 0.14f, 7 }
+    };
+}
+
 std::vector<MacroTemplate> ym2151Macros()
 {
     return {
@@ -822,6 +838,11 @@ std::vector<ParameterChoiceSpec> ym2203AlgorithmChoices()
     return opnAlgorithmChoices("YM2203", "OPN");
 }
 
+std::vector<ParameterChoiceSpec> ym2608AlgorithmChoices()
+{
+    return opnAlgorithmChoices("YM2608", "OPNA");
+}
+
 std::vector<ParameterChoiceSpec> ym2612PanChoices()
 {
     return {
@@ -1129,6 +1150,129 @@ std::vector<ChipParameterSpec> ym2203ParameterSpecs()
                       "Writes OPN operator attack, decay, sustain-rate, sustain-level, and release fields for the current musical envelope shape.",
                       ym2612EnvelopeShapeChoices(),
                       ParameterKind::chipRegister)
+    };
+}
+
+std::vector<ChipParameterSpec> ym2608ParameterSpecs()
+{
+    return {
+        sourceSpec(ChipParameterRole::source1Enabled, "ym2608.ch1.enabled", "OPNA FM 1", "Enable YM2608 FM channel 1."),
+        sourceSpec(ChipParameterRole::source2Enabled, "ym2608.ch2.enabled", "OPNA FM 2", "Enable YM2608 FM channel 2."),
+        sourceSpec(ChipParameterRole::source3Enabled, "ym2608.ch3.enabled", "OPNA FM 3", "Enable YM2608 FM channel 3."),
+        sourceSpec(ChipParameterRole::source4Enabled, "ym2608.ch4.enabled", "OPNA FM 4", "Enable YM2608 FM channel 4."),
+        sourceSpec(ChipParameterRole::source5Enabled, "ym2608.ch5.enabled", "OPNA FM 5", "Enable YM2608 FM channel 5."),
+        sourceSpec(ChipParameterRole::source6Enabled, "ym2608.ch6.enabled", "OPNA FM 6", "Enable YM2608 FM channel 6."),
+        sourceSpec(ChipParameterRole::source7Enabled, "ym2608.ssgA.enabled", "OPNA SSG A", "Enable the embedded YM2608 SSG tone channel A."),
+        sourceSpec(ChipParameterRole::source8Enabled, "ym2608.ssgB.enabled", "OPNA SSG B", "Enable the embedded YM2608 SSG tone channel B."),
+        sourceSpec(ChipParameterRole::source9Enabled, "ym2608.ssgC.enabled", "OPNA SSG C", "Enable the embedded YM2608 SSG tone channel C."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "ym2608.ch1.level", "OPNA FM 1 Level", "Modern trim before writing YM2608 channel 1 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "ym2608.ch2.level", "OPNA FM 2 Level", "Modern trim before writing YM2608 channel 2 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "ym2608.ch3.level", "OPNA FM 3 Level", "Modern trim before writing YM2608 channel 3 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "ym2608.ch4.level", "OPNA FM 4 Level", "Modern trim before writing YM2608 channel 4 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source5Level, "ym2608.ch5.level", "OPNA FM 5 Level", "Modern trim before writing YM2608 channel 5 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source6Level, "ym2608.ch6.level", "OPNA FM 6 Level", "Modern trim before writing YM2608 channel 6 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source7Level, "ym2608.ssgA.level", "OPNA SSG A Level", "Modern trim after the embedded YM2608 SSG channel A output."),
+        sourceLevelSpec(ChipParameterRole::source8Level, "ym2608.ssgB.level", "OPNA SSG B Level", "Modern trim after the embedded YM2608 SSG channel B output."),
+        sourceLevelSpec(ChipParameterRole::source9Level, "ym2608.ssgC.level", "OPNA SSG C Level", "Modern trim after the embedded YM2608 SSG channel C output."),
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "ym2608.algorithmBias",
+                   "Algorithm Bias",
+                   "FM",
+                   "In Preset mode this chooses among the YM2608 algorithm register values; explicit Algorithm choices override it.",
+                   ParameterKind::chipRegister),
+        fmFeedbackSpec(ChipParameterRole::macroControl2, "ym2608.feedback", "YM2608", "$B0"),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "ym2608.operatorTone",
+                   "Operator Tone",
+                   "Operators",
+                   "Scales operator multiplier and modulator total-level choices before writing OPNA operator registers.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "ym2608.outputLevel",
+                   "FM/SSG Level",
+                   "Mixer",
+                   "Controls audible carrier level through native OPNA total-level registers and the embedded SSG amplitude registers.",
+                   ParameterKind::chipRegister,
+                   0.70f),
+        sliderSpec(ChipParameterRole::fmOperator1Level,
+                   "ym2608.op1.level",
+                   "OP1 Level",
+                   "Operators",
+                   "Offsets the YM2608 operator 1 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator2Level,
+                   "ym2608.op2.level",
+                   "OP2 Level",
+                   "Operators",
+                   "Offsets the YM2608 operator 2 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator3Level,
+                   "ym2608.op3.level",
+                   "OP3 Level",
+                   "Operators",
+                   "Offsets the YM2608 operator 3 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator4Level,
+                   "ym2608.op4.level",
+                   "OP4 Level",
+                   "Operators",
+                   "Offsets the YM2608 operator 4 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator1Multiplier, "ym2608.op1.multiplier", "OP1 Mult", "YM2608", 0),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator2Multiplier, "ym2608.op2.multiplier", "OP2 Mult", "YM2608", 1),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator3Multiplier, "ym2608.op3.multiplier", "OP3 Mult", "YM2608", 2),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator4Multiplier, "ym2608.op4.multiplier", "OP4 Mult", "YM2608", 3),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator1AttackRate, "ym2608.op1.attackRate", "OP1 Attack", "YM2608", 0),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator2AttackRate, "ym2608.op2.attackRate", "OP2 Attack", "YM2608", 1),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator3AttackRate, "ym2608.op3.attackRate", "OP3 Attack", "YM2608", 2),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator4AttackRate, "ym2608.op4.attackRate", "OP4 Attack", "YM2608", 3),
+        fmOperatorDecayRateSpec(ChipParameterRole::fmOperator1DecayRate, "ym2608.op1.decayRate", "OP1 Decay", "YM2608", 0),
+        fmOperatorDecayRateSpec(ChipParameterRole::fmOperator2DecayRate, "ym2608.op2.decayRate", "OP2 Decay", "YM2608", 1),
+        fmOperatorDecayRateSpec(ChipParameterRole::fmOperator3DecayRate, "ym2608.op3.decayRate", "OP3 Decay", "YM2608", 2),
+        fmOperatorDecayRateSpec(ChipParameterRole::fmOperator4DecayRate, "ym2608.op4.decayRate", "OP4 Decay", "YM2608", 3),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator1SustainRate, "ym2608.op1.sustainRate", "OP1 Sustain", "YM2608", 0),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator2SustainRate, "ym2608.op2.sustainRate", "OP2 Sustain", "YM2608", 1),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator3SustainRate, "ym2608.op3.sustainRate", "OP3 Sustain", "YM2608", 2),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator4SustainRate, "ym2608.op4.sustainRate", "OP4 Sustain", "YM2608", 3),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator1ReleaseRate, "ym2608.op1.releaseRate", "OP1 Release", "YM2608", 0),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator2ReleaseRate, "ym2608.op2.releaseRate", "OP2 Release", "YM2608", 1),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator3ReleaseRate, "ym2608.op3.releaseRate", "OP3 Release", "YM2608", 2),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator4ReleaseRate, "ym2608.op4.releaseRate", "OP4 Release", "YM2608", 3),
+        { ChipParameterRole::waveShape,
+          "ym2608.algorithm",
+          "Algorithm",
+          "FM",
+          "Chooses the YM2608 four-operator algorithm. Preset lets the selected recipe choose.",
+          ParameterKind::chipRegister,
+          ControlSurface::menu,
+          ym2608AlgorithmChoices(),
+          0.0f,
+          1.0f,
+          0.0f },
+        segmentedSpec(ChipParameterRole::dmgStereoRoute,
+                      "ym2608.pan",
+                      "Pan",
+                      "Output",
+                      "Writes YM2608 FM channel output enable bits in register $B4: left, right, both, or alternating exposed channels.",
+                      ym2612PanChoices(),
+                      ParameterKind::chipRegister),
+        segmentedSpec(ChipParameterRole::ymEnvelopeShape,
+                      "ym2608.envelopeShape",
+                      "Envelope Shape",
+                      "Envelope",
+                      "Writes OPNA operator attack, decay, sustain-rate, sustain-level, and release fields for the current musical envelope shape.",
+                      ym2612EnvelopeShapeChoices(),
+                      ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::stereoSpread,
+                   "ym2608.stereoSpread",
+                   "Stereo Spread",
+                   "Output",
+                   "Modern output width trim after native OPNA pan bits; set Pan for register-accurate left/right routing.",
+                   ParameterKind::continuous)
     };
 }
 
@@ -2609,6 +2753,18 @@ std::array<ModuleDescriptor, 6> ym2203Modules()
     };
 }
 
+std::array<ModuleDescriptor, 6> ym2608Modules()
+{
+    return std::array<ModuleDescriptor, 6> {
+        makeModule("profile", "Profile", "YM2608/OPNA core is backed by audited BSD-licensed ymfm.", { "YM2608 model", "7.99 MHz PC-98 clock", "Hybrid default", "Verified partial" }),
+        makeModule("sources", "FM + SSG Voices", "All six YM2608 FM channels and all three embedded SSG tone channels are exposed as playable source lanes.", { "FM Ch 1-6", "SSG A-C", "9-lane Chip Poly", "Source trims" }),
+        makeModule("tone", "Operators", "Musical controls write native OPNA algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
+        makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPNA attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
+        makeModule("motion", "Motion", "PC-98-style YM2608 preset recipes map to register-backed FM and SSG patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
+        makeModule("output", "Output", "ymfm OPNA stereo FM output is mixed with the embedded mono SSG tone bus.", { "Stereo FM core", "Mono SSG bus", "Rhythm/ADPCM planned", "Verified partial" })
+    };
+}
+
 std::array<ModuleDescriptor, 6> oplModules()
 {
     return std::array<ModuleDescriptor, 6> {
@@ -3155,6 +3311,33 @@ const std::vector<ChipDescriptor>& descriptors()
                     "SSG noise/envelope UI is not exposed yet; this slice covers the embedded SSG tone lanes.",
                     "Prescaler controls, timers, LFO/AMS/PMS-style extensions where applicable, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
                 })
+        },
+        {
+            ChipMode::ym2608,
+            "YM2608 / OPNA",
+            "Six YM2608/OPNA FM lanes plus three embedded SSG tone lanes write native registers into the audited ymfm core.",
+            {
+                { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2608 algorithm register." },
+                { "feedback", "Feedback", "FM", "Writes YM2608 feedback bits for the active OPNA FM voices." },
+                { "operator", "Operator Tone", "Operators", "Scales operator multipliers and modulator levels." },
+                { "level", "FM/SSG Level", "Output", "Controls carrier level and embedded SSG amplitude registers." },
+            },
+            ym2608Modules(),
+            ym2608Macros(),
+            true,
+            true,
+            ym2608ParameterSpecs(),
+            verifiedPartial(
+                {
+                    "BSD-3-Clause ymfm is vendored and linked as the YM2608/OPNA synthesis core.",
+                    "Renderer notes and preset recipes write OPNA algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, key-on, and pan registers across all six FM channels.",
+                    "Embedded YM2608 SSG tone period, mixer, and amplitude registers are written for SSG A-C and mixed from the ymfm OPNA SSG output bus.",
+                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the nine-lane FM plus SSG adapter."
+                },
+                {
+                    "Native OPNA rhythm, ADPCM-A, ADPCM-B, and SSG noise/envelope UI are not exposed yet; this slice covers six FM lanes plus embedded SSG tone lanes.",
+                    "Prescaler controls, timers, CSM, LFO/AMS/PMS, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
+                })
         }
     };
     return items;
@@ -3204,6 +3387,7 @@ EnvelopeModel envelopeModelFor(ChipMode mode)
         case ChipMode::ym2151:
         case ChipMode::ym2413:
         case ChipMode::ym2203:
+        case ChipMode::ym2608:
             return EnvelopeModel::nativeOperatorEg;
 
         case ChipMode::nes:
@@ -3278,6 +3462,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
         return 5u;
     if (mode == ChipMode::ym2203)
         return 6u;
+    if (mode == ChipMode::ym2608)
+        return 9u;
     if (mode == ChipMode::nesVrc6)
         return 7u;
     return 4u;
@@ -3297,6 +3483,7 @@ size_t nativeSourceCountForMode(ChipMode mode)
         case ChipMode::opl3: return 9u;
         case ChipMode::scc: return 5u;
         case ChipMode::ym2203: return 6u;
+        case ChipMode::ym2608: return 9u;
         case ChipMode::nesVrc6: return 7u;
         default: return visibleSourceCountForMode(mode);
     }
@@ -3385,10 +3572,10 @@ PatchConfig makePatchConfig(ChipMode mode,
                             std::array<int, 4> fmOperatorReleaseRates)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
-    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
+    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
     const auto maxWaveShape = mode == ChipMode::ym2413
         ? 15
-        : ((mode == ChipMode::sid || mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203) ? 8 : 4);
+        : ((mode == ChipMode::sid || mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608) ? 8 : 4);
 
     return {
         macro,

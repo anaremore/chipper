@@ -3323,6 +3323,7 @@ const char* chipModeKey(chipper::ChipMode mode)
         case chipper::ChipMode::ym2413: return "ym2413";
         case chipper::ChipMode::scc: return "scc";
         case chipper::ChipMode::ym2203: return "ym2203";
+        case chipper::ChipMode::ym2608: return "ym2608";
     }
 
     return "nes";
