@@ -4485,6 +4485,25 @@ const std::vector<PresetInfo>& presetCatalog()
             0.58f
         },
         {
+            "spc700-tracker-lead",
+            "SNES SPC700-style",
+            "SPC700 Tracker Lead",
+            "Looped sample tracker lead with quick pitch motion and four-voice spread.",
+            ChipMode::spc700,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::chipPoly,
+            { 0.70f, 0.82f, 0.30f, 0.78f },
+            { true, true, true, true },
+            0.10f,
+            2,
+            1,
+            0,
+            -10.0f,
+            32000.0,
+            0.62f
+        },
+        {
             "paula-snare-slap",
             "Amiga Paula",
             "Paula Snare Slap",
