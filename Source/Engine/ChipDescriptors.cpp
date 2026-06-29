@@ -9,6 +9,19 @@ namespace chipper
 namespace
 {
 
+void replaceAllInPlace(std::string& text, const std::string& from, const std::string& to)
+{
+    if (from.empty())
+        return;
+
+    size_t offset = 0;
+    while ((offset = text.find(from, offset)) != std::string::npos)
+    {
+        text.replace(offset, from.size(), to);
+        offset += to.size();
+    }
+}
+
 std::vector<MacroTemplate> commonMacros()
 {
     return {
@@ -104,6 +117,21 @@ std::vector<MacroTemplate> ym2610Macros()
         { MacroKind::jump, "OPNB Jump Blip", "Quick upward OPNB FM/SSG game gesture.", { 1.00f, 0.22f, 0.64f, 0.78f }, { true, false, false, true }, 0.18f, 8 },
         { MacroKind::powerUp, "OPNB Power Rise", "Longer bright OPNB rise over four FM lanes plus SSG lift.", { 0.86f, 0.36f, 0.58f, 0.86f }, { true, true, true, true }, 0.14f, 7 }
     };
+}
+
+std::vector<MacroTemplate> ym2610bMacros()
+{
+    auto macros = ym2608Macros();
+    for (auto& macro : macros)
+    {
+        replaceAllInPlace(macro.label, "OPNA", "OPNB2");
+        replaceAllInPlace(macro.label, "YM2608", "YM2610B");
+        replaceAllInPlace(macro.help, "OPNA", "OPNB2");
+        replaceAllInPlace(macro.help, "YM2608", "YM2610B");
+        replaceAllInPlace(macro.help, "PC-98", "Neo Geo");
+        replaceAllInPlace(macro.help, "generated ADPCM-A rhythm overlay", "optional user-owned ADPCM-A/B sample-memory overlay");
+    }
+    return macros;
 }
 
 std::vector<MacroTemplate> ym2151Macros()
@@ -1654,6 +1682,33 @@ std::vector<ChipParameterSpec> ym2610ParameterSpecs()
                    "Modern output width trim after native OPNB pan bits; set Pan for register-accurate left/right routing.",
                    ParameterKind::continuous)
     };
+}
+
+std::vector<ChipParameterSpec> ym2610bParameterSpecs()
+{
+    auto specs = ym2608ParameterSpecs();
+    for (auto& spec : specs)
+    {
+        replaceAllInPlace(spec.id, "ym2608", "ym2610b");
+        replaceAllInPlace(spec.label, "OPNA", "OPNB2");
+        replaceAllInPlace(spec.label, "YM2608", "YM2610B");
+        replaceAllInPlace(spec.group, "OPNA", "OPNB2");
+        replaceAllInPlace(spec.group, "YM2608", "YM2610B");
+        replaceAllInPlace(spec.help, "OPNA", "OPNB2");
+        replaceAllInPlace(spec.help, "YM2608", "YM2610B");
+        replaceAllInPlace(spec.help, "YM2608 FM channel", "YM2610B FM channel");
+        replaceAllInPlace(spec.help, "native OPNA", "native OPNB2");
+        replaceAllInPlace(spec.help, "embedded YM2608", "embedded YM2610B");
+
+        for (auto& choice : spec.choices)
+        {
+            replaceAllInPlace(choice.label, "OPNA", "OPNB2");
+            replaceAllInPlace(choice.label, "YM2608", "YM2610B");
+            replaceAllInPlace(choice.help, "OPNA", "OPNB2");
+            replaceAllInPlace(choice.help, "YM2608", "YM2610B");
+        }
+    }
+    return specs;
 }
 
 std::vector<ParameterChoiceSpec> ym2151AlgorithmChoices()
@@ -3549,6 +3604,18 @@ std::array<ModuleDescriptor, 6> ym2610Modules()
     };
 }
 
+std::array<ModuleDescriptor, 6> ym2610bModules()
+{
+    return {
+        makeModule("profile", "Profile", "YM2610B/OPNB2 path is backed by audited BSD-licensed ymfm with the six-FM OPNB2 channel mask.", { "YM2610B-style mask", "8.00 MHz Neo Geo clock", "Hybrid default", "Verified partial" }),
+        makeModule("sources", "FM + SSG Voices", "Six YM2610B FM channels and all three embedded SSG tone/noise/envelope channels are exposed as playable source lanes.", { "FM lanes 1-6", "SSG A-C", "9-lane Chip Poly", "Source trims" }),
+        makeModule("tone", "Operators", "Musical controls write native OPNB2 algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
+        makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPNB2 attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
+        makeModule("motion", "Motion", "YM2610B/OPNB2 preset recipes map to register-backed FM and SSG patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
+        makeModule("output", "Output", "ymfm OPNB2 stereo FM output is mixed with the embedded mono SSG tone/noise/envelope bus and optional encoded ADPCM-A/B sample memory.", { "Stereo FM core", "Mono SSG bus", "ADPCM-A/B memory", "Verified partial" })
+    };
+}
+
 std::array<ModuleDescriptor, 6> ym2151Modules()
 {
     return std::array<ModuleDescriptor, 6> {
@@ -4341,7 +4408,35 @@ const std::vector<ChipDescriptor>& descriptors()
                     "Descriptor, MIDI CC, renderer smoke, ADPCM sample-memory smoke, plugin ADPCM-A/B state restore, source gating, and Chip Poly regression tests cover the seven-lane FM plus SSG adapter."
                 },
                 {
-                    "WAV/AIFF ADPCM import or format conversion, full sample editing, YM2610B/OPNB2 six-FM behavior, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
+                    "WAV/AIFF ADPCM import or format conversion, full sample editing, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
+                    "Prescaler controls, timers, CSM, LFO/AMS/PMS, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
+                })
+        },
+        {
+            ChipMode::ym2610b,
+            "YM2610B / OPNB2",
+            "Six YM2610B/OPNB2 FM lanes plus three embedded SSG tone/noise/envelope lanes write native registers into the audited ymfm OPNB path; Drum and Hit macros can also trigger optional encoded ADPCM-A/B sample memory.",
+            {
+                { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2610B algorithm register." },
+                { "feedback", "Feedback", "FM", "Writes YM2610B feedback bits for the active OPNB2 FM voices." },
+                { "operator", "Operator/SSG Tone", "Operators", "Scales operator multipliers/modulator levels and the embedded SSG noise period." },
+                { "level", "FM/SSG Level", "Output", "Controls carrier level and embedded SSG amplitude registers." },
+            },
+            ym2610bModules(),
+            ym2610bMacros(),
+            true,
+            true,
+            ym2610bParameterSpecs(),
+            verifiedPartial(
+                {
+                    "BSD-3-Clause ymfm is vendored and linked as the YM2610/OPNB synthesis core with the YM2610B/OPNB2 six-FM channel mask.",
+                    "Renderer notes and preset recipes write OPNB2 algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, key-on, and pan registers across all six FM channels.",
+                    "Embedded YM2610B SSG tone period, noise period, mixer, amplitude, and envelope registers are written for SSG A-C and mixed from the ymfm OPNB SSG output bus.",
+                    "Renderer and VST paths can load user-owned encoded ADPCM-A and ADPCM-B bytes into YM2610B-family sample memory for Drum and Hit macros.",
+                    "Descriptor, MIDI CC, renderer smoke, ADPCM sample-memory smoke, source gating, and Chip Poly regression tests cover the nine-lane FM plus SSG adapter."
+                },
+                {
+                    "WAV/AIFF ADPCM import or format conversion, full sample editing, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
                     "Prescaler controls, timers, CSM, LFO/AMS/PMS, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
                 })
         }
@@ -4395,6 +4490,7 @@ EnvelopeModel envelopeModelFor(ChipMode mode)
         case ChipMode::ym2203:
         case ChipMode::ym2608:
         case ChipMode::ym2610:
+        case ChipMode::ym2610b:
             return EnvelopeModel::nativeOperatorEg;
 
         case ChipMode::nes:
@@ -4480,6 +4576,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
         return 9u;
     if (mode == ChipMode::ym2610)
         return 7u;
+    if (mode == ChipMode::ym2610b)
+        return 9u;
     if (mode == ChipMode::saa1099)
         return 6u;
     if (mode == ChipMode::pcSpeaker)
@@ -4515,6 +4613,7 @@ size_t nativeSourceCountForMode(ChipMode mode)
         case ChipMode::ym2203: return 6u;
         case ChipMode::ym2608: return 9u;
         case ChipMode::ym2610: return 7u;
+        case ChipMode::ym2610b: return 9u;
         case ChipMode::saa1099: return 6u;
         case ChipMode::pcSpeaker: return 1u;
         case ChipMode::zxSpectrumBeeper: return 1u;
@@ -4610,10 +4709,10 @@ PatchConfig makePatchConfig(ChipMode mode,
                             std::array<int, 4> fmOperatorReleaseRates)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
-    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608 || mode == ChipMode::ym2610 || mode == ChipMode::saa1099) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
+    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608 || mode == ChipMode::ym2610 || mode == ChipMode::ym2610b || mode == ChipMode::saa1099) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
     const auto maxWaveShape = (mode == ChipMode::ym2413 || mode == ChipMode::nesVrc7)
         ? 15
-        : ((mode == ChipMode::sid || mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608 || mode == ChipMode::ym2610) ? 8 : 4);
+        : ((mode == ChipMode::sid || mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203 || mode == ChipMode::ym2608 || mode == ChipMode::ym2610 || mode == ChipMode::ym2610b) ? 8 : 4);
 
     return {
         macro,

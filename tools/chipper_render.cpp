@@ -3437,6 +3437,7 @@ const char* chipModeKey(chipper::ChipMode mode)
         case chipper::ChipMode::ym2203: return "ym2203";
         case chipper::ChipMode::ym2608: return "ym2608";
         case chipper::ChipMode::ym2610: return "ym2610";
+        case chipper::ChipMode::ym2610b: return "ym2610b";
         case chipper::ChipMode::nesFds: return "nesFds";
         case chipper::ChipMode::nesSunsoft5b: return "nesSunsoft5b";
         case chipper::ChipMode::nesMmc5: return "nesMmc5";
@@ -4135,8 +4136,10 @@ int main(int argc, char** argv)
         if (! options.opnaAdpcmBSamplePath.empty() && ! options.opnaAdpcmBHex.empty())
             throw std::runtime_error("Use either --opna-adpcm-b-sample or --opna-adpcm-b-hex, not both");
         if ((! options.opnbAdpcmASamplePath.empty() || ! options.opnbAdpcmAHex.empty()
-             || ! options.opnbAdpcmBSamplePath.empty() || ! options.opnbAdpcmBHex.empty()) && options.chip != chipper::ChipMode::ym2610)
-            throw std::runtime_error("--opnb-adpcm-a/b sample options are only valid with --chip ym2610");
+             || ! options.opnbAdpcmBSamplePath.empty() || ! options.opnbAdpcmBHex.empty())
+            && options.chip != chipper::ChipMode::ym2610
+            && options.chip != chipper::ChipMode::ym2610b)
+            throw std::runtime_error("--opnb-adpcm-a/b sample options are only valid with --chip ym2610 or ym2610b");
         if (! options.opnbAdpcmASamplePath.empty() && ! options.opnbAdpcmAHex.empty())
             throw std::runtime_error("Use either --opnb-adpcm-a-sample or --opnb-adpcm-a-hex, not both");
         if (! options.opnbAdpcmBSamplePath.empty() && ! options.opnbAdpcmBHex.empty())

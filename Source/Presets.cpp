@@ -5942,6 +5942,222 @@ const std::vector<PresetInfo>& presetCatalog()
             -11.0f,
             8000000.0
         },
+        {
+            "opnb2-six-fm-bass",
+            "YM2610B / OPNB2 Bass",
+            "OPNB2 Six-FM Bass",
+            "Original YM2610B bass with six FM lanes, feedback weight, and a restrained SSG octave.",
+            ChipMode::ym2610b,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::stack,
+            { 0.02f, 0.82f, 0.28f, 0.88f },
+            { true, true, false, true },
+            0.08f,
+            1,
+            2,
+            0,
+            -11.0f,
+            8000000.0
+        },
+        {
+            "opnb2-ssg-bass",
+            "YM2610B / OPNB2 Bass",
+            "OPNB2 SSG Bass",
+            "Tight OPNB2 bass patch with extra FM body, embedded SSG tone support, and clipped arcade edge.",
+            ChipMode::ym2610b,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::chipPoly,
+            { 0.14f, 0.64f, 0.36f, 0.86f },
+            { true, true, true, true },
+            0.10f,
+            1,
+            2,
+            0,
+            -11.5f,
+            8000000.0
+        },
+        {
+            "opnb2-metallic-lead",
+            "YM2610B / OPNB2 Leads",
+            "OPNB2 Metallic Lead",
+            "Bright YM2610B lead using parallel-carrier FM, six-lane support, and embedded SSG sparkle.",
+            ChipMode::ym2610b,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.58f, 0.48f, 0.64f, 0.84f },
+            { true, true, true, true },
+            0.10f,
+            5,
+            2,
+            0,
+            -10.5f,
+            8000000.0
+        },
+        {
+            "opnb2-arcade-lead",
+            "YM2610B / OPNB2 Leads",
+            "OPNB2 Arcade Lead",
+            "Clean YM2610B arcade lead with six FM lanes, quick operator attack, and SSG reinforcement.",
+            ChipMode::ym2610b,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::chipPoly,
+            { 0.50f, 0.42f, 0.46f, 0.76f },
+            { true, true, true, true },
+            0.18f,
+            5,
+            2,
+            0,
+            -11.0f,
+            8000000.0
+        },
+        {
+            "opnb2-nine-voice-arp",
+            "YM2610B / OPNB2 Arps",
+            "OPNB2 Nine-Voice Arp",
+            "Nine-lane YM2610B fake-chord arp layering six FM channels with all three embedded SSG tone lanes.",
+            ChipMode::ym2610b,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.74f, 0.34f, 0.52f, 0.80f },
+            { true, true, true, true },
+            0.08f,
+            6,
+            3,
+            0,
+            -11.0f,
+            8000000.0
+        },
+        {
+            "opnb2-power-arp",
+            "YM2610B / OPNB2 Arps",
+            "OPNB2 Power Arp",
+            "Longer OPNB2 arpeggio gesture with wide FM chord motion, SSG lift, and stereo pan alternation.",
+            ChipMode::ym2610b,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.86f, 0.38f, 0.60f, 0.86f },
+            { true, true, true, true },
+            0.14f,
+            7,
+            3,
+            4,
+            -11.0f,
+            8000000.0
+        },
+        {
+            "opnb2-electric-keys",
+            "YM2610B / OPNB2 Keys",
+            "OPNB2 Electric Keys",
+            "Original YM2610B electric keys patch with soft operator envelopes, parallel carriers, and light SSG support.",
+            ChipMode::ym2610b,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::chipPoly,
+            { 0.66f, 0.28f, 0.30f, 0.64f },
+            { true, true, true, true },
+            0.18f,
+            8,
+            3,
+            0,
+            -11.5f,
+            8000000.0
+        },
+        {
+            "opnb2-glass-pad",
+            "YM2610B / OPNB2 Keys",
+            "OPNB2 Glass Pad",
+            "Smooth OPNB2 pad using a slower operator envelope, six-FM chord support, and subtle SSG brightness.",
+            ChipMode::ym2610b,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::chipPoly,
+            { 0.70f, 0.24f, 0.26f, 0.58f },
+            { true, true, true, true },
+            0.30f,
+            8,
+            3,
+            0,
+            -12.0f,
+            8000000.0
+        },
+        {
+            "opnb2-adpcm-perc-drum",
+            "YM2610B / OPNB2 Drums",
+            "OPNB2 ADPCM Perc Drum",
+            "Short YM2610B FM percussion drum with SSG clicks and optional user-owned OPNB ADPCM sample-memory overlays.",
+            ChipMode::ym2610b,
+            AccuracyMode::hybrid,
+            MacroKind::drum,
+            PlayMode::stack,
+            { 0.14f, 0.72f, 0.68f, 0.92f },
+            { true, false, true, true },
+            0.30f,
+            2,
+            4,
+            0,
+            -12.0f,
+            8000000.0
+        },
+        {
+            "opnb2-impact-drum",
+            "YM2610B / OPNB2 Drums",
+            "OPNB2 Impact Drum",
+            "Aggressive YM2610B stacked FM/SSG drum impact with high feedback and a fast transient envelope.",
+            ChipMode::ym2610b,
+            AccuracyMode::hybrid,
+            MacroKind::hit,
+            PlayMode::stack,
+            { 0.22f, 0.90f, 0.76f, 0.84f },
+            { true, false, true, true },
+            0.50f,
+            2,
+            4,
+            0,
+            -12.0f,
+            8000000.0
+        },
+        {
+            "opnb2-pitch-laser",
+            "YM2610B / OPNB2 SFX",
+            "OPNB2 Pitch Laser",
+            "YM2610B FM/SSG pitch laser with nine-lane bite for arcade game SFX gestures.",
+            ChipMode::ym2610b,
+            AccuracyMode::hybrid,
+            MacroKind::laser,
+            PlayMode::stack,
+            { 0.30f, 0.74f, 0.90f, 0.82f },
+            { true, true, false, true },
+            0.28f,
+            3,
+            2,
+            0,
+            -11.0f,
+            8000000.0
+        },
+        {
+            "opnb2-jump-fx",
+            "YM2610B / OPNB2 SFX",
+            "OPNB2 Jump FX",
+            "Quick upward YM2610B FM/SSG game effect with bright operator motion and SSG tone lift.",
+            ChipMode::ym2610b,
+            AccuracyMode::hybrid,
+            MacroKind::jump,
+            PlayMode::stack,
+            { 1.00f, 0.22f, 0.66f, 0.80f },
+            { true, false, false, true },
+            0.18f,
+            8,
+            1,
+            0,
+            -11.0f,
+            8000000.0
+        },
         withSourceLevels({
             "vrc6-pulse-lead",
             "NES + VRC6 Leads",
@@ -7754,7 +7970,8 @@ const std::vector<PresetQualityTarget>& presetQualityTargets()
         { ChipMode::scc, roles, { "wavetable", "wave", "noise", "echo", "chord" }, "Furnace-informed SCC coverage: five-lane wavetable basses, leads, keys, arps, drums, and arcade SFX." },
         { ChipMode::ym2203, roles, { "fm", "ssg", "operator", "feedback", "envelope", "bell" }, "Furnace-informed OPN coverage: YM2203 FM plus embedded SSG basses, leads, keys, arps, percussion, and SFX." },
         { ChipMode::ym2608, roles, { "fm", "opna", "ssg", "operator", "feedback", "envelope", "rhythm", "adpcm", "chord" }, "Furnace-informed OPNA coverage: YM2608 six-FM PC-98 basses/leads/keys/arps plus embedded SSG percussion, generated/default-or-user ADPCM-A rhythm overlay, first-pass encoded ADPCM-B sample memory, and SFX; ADPCM-B conversion/editing remains planned." },
-        { ChipMode::ym2610, roles, { "fm", "opnb", "ssg", "operator", "feedback", "envelope", "neo", "adpcm" }, "Furnace-informed OPNB coverage: YM2610 four-FM Neo Geo-style basses/leads/keys/arps plus embedded SSG percussion, renderer/VST user-owned ADPCM-A/B sample-memory overlays, and SFX; conversion/editing, stronger validation, and OPNB2 remain planned." }
+        { ChipMode::ym2610, roles, { "fm", "opnb", "ssg", "operator", "feedback", "envelope", "neo", "adpcm" }, "Furnace-informed OPNB coverage: YM2610 four-FM Neo Geo-style basses/leads/keys/arps plus embedded SSG percussion, renderer/VST user-owned ADPCM-A/B sample-memory overlays, and SFX; conversion/editing and stronger validation remain planned." },
+        { ChipMode::ym2610b, roles, { "fm", "opnb2", "opnb", "ssg", "operator", "feedback", "envelope", "neo", "adpcm", "chord" }, "Furnace-informed OPNB2 coverage: YM2610B six-FM Neo Geo-style basses/leads/keys/arps plus embedded SSG percussion, renderer/VST user-owned ADPCM-A/B sample-memory overlays, and SFX; conversion/editing and stronger validation remain planned." }
     };
 
     return targets;
@@ -7855,6 +8072,7 @@ std::string presetEngineFor(const PresetInfo& preset)
         case ChipMode::ym2203: return "YM2203 OPN FM+SSG";
         case ChipMode::ym2608: return "YM2608 OPNA FM+SSG";
         case ChipMode::ym2610: return "YM2610 OPNB FM+SSG";
+        case ChipMode::ym2610b: return "YM2610B OPNB2 FM+SSG";
         case ChipMode::opl3: return "OPL2/OPL3 FM";
         case ChipMode::spc700: return "SPC700-style sampler";
         case ChipMode::pokey: return "Atari POKEY";
@@ -7957,15 +8175,22 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
         case ChipMode::ym2203:
         case ChipMode::ym2608:
         case ChipMode::ym2610:
+        case ChipMode::ym2610b:
             addPresetTag(tags, "fm");
             addPresetTag(tags, "operator");
             addPresetTag(tags, "envelope");
-            if (preset.chip == ChipMode::ym2203 || preset.chip == ChipMode::ym2608 || preset.chip == ChipMode::ym2610)
+            if (preset.chip == ChipMode::ym2203 || preset.chip == ChipMode::ym2608 || preset.chip == ChipMode::ym2610 || preset.chip == ChipMode::ym2610b)
                 addPresetTag(tags, "ssg");
             if (preset.chip == ChipMode::ym2608)
                 addPresetTag(tags, "opna");
             if (preset.chip == ChipMode::ym2610)
             {
+                addPresetTag(tags, "opnb");
+                addPresetTag(tags, "neo");
+            }
+            if (preset.chip == ChipMode::ym2610b)
+            {
+                addPresetTag(tags, "opnb2");
                 addPresetTag(tags, "opnb");
                 addPresetTag(tags, "neo");
             }
@@ -8013,7 +8238,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
         addPresetTag(tags, "noise");
 
     const auto corpus = presetCorpus(preset);
-    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "wavetable", "mod", "modulation", "fds", "sunsoft", "5b", "mmc5", "pcm", "adpcm", "square", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "ssg", "psg", "saa1099", "pc", "speaker", "beeper", "pit", "zx", "spectrum", "ula", "ear", "mic", "click", "gate", "sfx", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade", "neo" })
+    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "wavetable", "mod", "modulation", "fds", "sunsoft", "5b", "mmc5", "pcm", "adpcm", "square", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "opnb2", "ssg", "psg", "saa1099", "pc", "speaker", "beeper", "pit", "zx", "spectrum", "ula", "ear", "mic", "click", "gate", "sfx", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade", "neo" })
     {
         if (presetCorpusContains(corpus, token))
             addPresetTag(tags, token);
@@ -8205,6 +8430,33 @@ std::array<float, 4> fmOperatorLevelsForPreset(const PresetInfo& preset)
         if (preset.id == "opnb-jump-fx")
             return { 0.42f, 0.78f, 0.46f, 0.82f };
     }
+    else if (preset.chip == ChipMode::ym2610b)
+    {
+        if (preset.id == "opnb2-six-fm-bass")
+            return { 0.58f, 0.66f, 0.46f, 0.62f };
+        if (preset.id == "opnb2-ssg-bass")
+            return { 0.50f, 0.70f, 0.44f, 0.60f };
+        if (preset.id == "opnb2-metallic-lead")
+            return { 0.70f, 0.56f, 0.64f, 0.74f };
+        if (preset.id == "opnb2-arcade-lead")
+            return { 0.44f, 0.80f, 0.46f, 0.78f };
+        if (preset.id == "opnb2-nine-voice-arp")
+            return { 0.54f, 0.58f, 0.48f, 0.68f };
+        if (preset.id == "opnb2-power-arp")
+            return { 0.58f, 0.60f, 0.52f, 0.82f };
+        if (preset.id == "opnb2-electric-keys")
+            return { 0.36f, 0.70f, 0.40f, 0.66f };
+        if (preset.id == "opnb2-glass-pad")
+            return { 0.34f, 0.66f, 0.38f, 0.64f };
+        if (preset.id == "opnb2-adpcm-perc-drum")
+            return { 0.66f, 0.46f, 0.72f, 0.88f };
+        if (preset.id == "opnb2-impact-drum")
+            return { 0.72f, 0.44f, 0.64f, 0.88f };
+        if (preset.id == "opnb2-pitch-laser")
+            return { 0.66f, 0.42f, 0.76f, 0.70f };
+        if (preset.id == "opnb2-jump-fx")
+            return { 0.42f, 0.78f, 0.46f, 0.82f };
+    }
     else if (preset.chip == ChipMode::ym2151)
     {
         if (preset.id == "opm-arcade-bass")
@@ -8270,6 +8522,12 @@ std::array<int, 4> fmOperatorAttackRatesForPreset(const PresetInfo& preset)
         return { 16, 19, 14, 18 };
     if (preset.id == "opnb-glass-pad")
         return { 13, 17, 11, 15 };
+    if (preset.id == "opnb2-arcade-lead")
+        return { 32, 32, 31, 32 };
+    if (preset.id == "opnb2-electric-keys")
+        return { 16, 19, 14, 18 };
+    if (preset.id == "opnb2-glass-pad")
+        return { 13, 17, 11, 15 };
     if (preset.id == "opm-marble-bell")
         return { 32, 32, 30, 32 };
     if (preset.id == "opm-slow-motion-pad")
@@ -8299,6 +8557,12 @@ std::array<int, 4> fmOperatorDecayRatesForPreset(const PresetInfo& preset)
     if (preset.id == "opnb-electric-keys")
         return { 7, 8, 6, 7 };
     if (preset.id == "opnb-glass-pad")
+        return { 6, 8, 5, 6 };
+    if (preset.id == "opnb2-arcade-lead")
+        return { 9, 17, 8, 12 };
+    if (preset.id == "opnb2-electric-keys")
+        return { 7, 8, 6, 7 };
+    if (preset.id == "opnb2-glass-pad")
         return { 6, 8, 5, 6 };
     if (preset.id == "opm-marble-bell")
         return { 10, 18, 8, 13 };
@@ -8330,6 +8594,12 @@ std::array<int, 4> fmOperatorSustainRatesForPreset(const PresetInfo& preset)
         return { 1, 1, 1, 1 };
     if (preset.id == "opnb-glass-pad")
         return { 1, 1, 1, 1 };
+    if (preset.id == "opnb2-arcade-lead")
+        return { 5, 12, 4, 8 };
+    if (preset.id == "opnb2-electric-keys")
+        return { 1, 1, 1, 1 };
+    if (preset.id == "opnb2-glass-pad")
+        return { 1, 1, 1, 1 };
     if (preset.id == "opm-marble-bell")
         return { 4, 10, 4, 7 };
     if (preset.id == "opm-slow-motion-pad")
@@ -8359,6 +8629,12 @@ std::array<int, 4> fmOperatorReleaseRatesForPreset(const PresetInfo& preset)
     if (preset.id == "opnb-electric-keys")
         return { 7, 8, 7, 8 };
     if (preset.id == "opnb-glass-pad")
+        return { 8, 9, 8, 9 };
+    if (preset.id == "opnb2-arcade-lead")
+        return { 6, 8, 5, 7 };
+    if (preset.id == "opnb2-electric-keys")
+        return { 7, 8, 7, 8 };
+    if (preset.id == "opnb2-glass-pad")
         return { 8, 9, 8, 9 };
     if (preset.id == "opm-marble-bell")
         return { 5, 8, 5, 7 };

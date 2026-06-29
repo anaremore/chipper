@@ -12675,8 +12675,9 @@ private:
 class Ym2610Core final : public ChipCore
 {
 public:
-    explicit Ym2610Core(AccuracyMode requested)
+    explicit Ym2610Core(AccuracyMode requested, bool ym2610bMode = false)
         : accuracy(requested)
+        , opnb2(ym2610bMode)
     {
         channelNotes.fill(-1);
     }
@@ -12685,7 +12686,7 @@ public:
     {
         sampleRate = outputSampleRate > 0.0 ? outputSampleRate : 48000.0;
         clock = chipClockHz > 0.0 ? chipClockHz : 8000000.0;
-        chip = std::make_unique<ymfm::ym2610>(host);
+        chip = std::make_unique<ymfm::ym2610>(host, opnb2 ? 0x3fu : 0x36u);
         chip->set_fidelity(ymfm::OPN_FIDELITY_MED);
         chip->reset();
         host.resetAdpcmCounters();
@@ -12764,38 +12765,43 @@ public:
 
         heldNote = std::clamp(midiNote, 0, 127);
         const auto baseVelocity = static_cast<float>(clamp01(velocity));
-        auto notes = std::array<int, 7> { heldNote, heldNote + 7, heldNote + 12, heldNote + 19, heldNote, heldNote + 12, heldNote + 19 };
-        switch (patch.macro)
+        auto notes = std::array<int, maxSourceChannelCount> { heldNote, heldNote + 7, heldNote + 12, heldNote + 19, heldNote + 24, heldNote + 31, heldNote, heldNote + 12, heldNote + 19 };
+        if (opnb2)
         {
-            case MacroKind::bass:
-                notes = { heldNote - 24, heldNote - 12, heldNote, heldNote + 7, heldNote - 12, heldNote, heldNote + 7 };
-                break;
-            case MacroKind::lead:
-                notes = { heldNote, heldNote + 7, heldNote + 12, heldNote + 19, heldNote + 12, heldNote + 19, heldNote + 24 };
-                break;
-            case MacroKind::arp:
-                notes = { heldNote, heldNote + 4, heldNote + 7, heldNote + 12, heldNote + 16, heldNote + 19, heldNote + 24 };
-                break;
-            case MacroKind::coin:
-            case MacroKind::jump:
-                notes = { heldNote + 24, heldNote + 31, heldNote + 36, heldNote + 43, heldNote + 31, heldNote + 36, heldNote + 43 };
-                break;
-            case MacroKind::laser:
-                notes = { heldNote + 24, heldNote + 12, heldNote, heldNote - 12, heldNote + 19, heldNote + 7, heldNote - 5 };
-                break;
-            case MacroKind::powerUp:
-                notes = { heldNote, heldNote + 5, heldNote + 12, heldNote + 17, heldNote + 24, heldNote + 29, heldNote + 36 };
-                break;
-            case MacroKind::drum:
-            case MacroKind::hit:
-                notes = { heldNote - 12, heldNote - 5, heldNote, heldNote + 7, heldNote + 12, heldNote + 19, heldNote + 24 };
-                break;
-            case MacroKind::manual:
-            default:
-                break;
+            switch (patch.macro)
+            {
+                case MacroKind::bass: notes = { heldNote - 24, heldNote - 12, heldNote, heldNote + 7, heldNote + 12, heldNote + 19, heldNote - 12, heldNote, heldNote + 7 }; break;
+                case MacroKind::lead: notes = { heldNote, heldNote + 7, heldNote + 12, heldNote + 16, heldNote + 19, heldNote + 24, heldNote + 12, heldNote + 19, heldNote + 24 }; break;
+                case MacroKind::arp: notes = { heldNote, heldNote + 4, heldNote + 7, heldNote + 12, heldNote + 16, heldNote + 19, heldNote + 24, heldNote + 28, heldNote + 31 }; break;
+                case MacroKind::coin:
+                case MacroKind::jump: notes = { heldNote + 24, heldNote + 31, heldNote + 36, heldNote + 43, heldNote + 48, heldNote + 55, heldNote + 31, heldNote + 36, heldNote + 43 }; break;
+                case MacroKind::laser: notes = { heldNote + 24, heldNote + 12, heldNote, heldNote - 12, heldNote - 19, heldNote - 24, heldNote + 19, heldNote + 7, heldNote - 5 }; break;
+                case MacroKind::powerUp: notes = { heldNote, heldNote + 5, heldNote + 12, heldNote + 17, heldNote + 24, heldNote + 29, heldNote + 36, heldNote + 41, heldNote + 48 }; break;
+                case MacroKind::drum:
+                case MacroKind::hit: notes = { heldNote - 12, heldNote - 5, heldNote, heldNote + 7, heldNote + 12, heldNote + 19, heldNote + 24, heldNote + 31, heldNote + 36 }; break;
+                case MacroKind::manual:
+                default: break;
+            }
+        }
+        else
+        {
+            switch (patch.macro)
+            {
+                case MacroKind::bass: notes = { heldNote - 24, heldNote - 12, heldNote, heldNote + 7, heldNote - 12, heldNote, heldNote + 7, heldNote, heldNote }; break;
+                case MacroKind::lead: notes = { heldNote, heldNote + 7, heldNote + 12, heldNote + 19, heldNote + 12, heldNote + 19, heldNote + 24, heldNote, heldNote }; break;
+                case MacroKind::arp: notes = { heldNote, heldNote + 4, heldNote + 7, heldNote + 12, heldNote + 16, heldNote + 19, heldNote + 24, heldNote, heldNote }; break;
+                case MacroKind::coin:
+                case MacroKind::jump: notes = { heldNote + 24, heldNote + 31, heldNote + 36, heldNote + 43, heldNote + 31, heldNote + 36, heldNote + 43, heldNote, heldNote }; break;
+                case MacroKind::laser: notes = { heldNote + 24, heldNote + 12, heldNote, heldNote - 12, heldNote + 19, heldNote + 7, heldNote - 5, heldNote, heldNote }; break;
+                case MacroKind::powerUp: notes = { heldNote, heldNote + 5, heldNote + 12, heldNote + 17, heldNote + 24, heldNote + 29, heldNote + 36, heldNote, heldNote }; break;
+                case MacroKind::drum:
+                case MacroKind::hit: notes = { heldNote - 12, heldNote - 5, heldNote, heldNote + 7, heldNote + 12, heldNote + 19, heldNote + 24, heldNote, heldNote }; break;
+                case MacroKind::manual:
+                default: break;
+            }
         }
 
-        for (size_t channel = 0; channel < sourceChannelCount; ++channel)
+        for (size_t channel = 0; channel < sourceChannelCount(); ++channel)
             triggerChannel(channel, notes[channel], baseVelocity, channelEnabled(channel));
 
         if (opnbAdpcmEnabledForPatch())
@@ -12813,7 +12819,7 @@ public:
         if (midiNote == heldNote)
         {
             heldNote = -1;
-            for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+            for (size_t channel = 0; channel < sourceChannelCount(); ++channel)
             {
                 keyOffChannel(channel);
                 channelNotes[channel] = -1;
@@ -12883,21 +12889,24 @@ public:
         return writes;
     }
 
-    ChipMode mode() const override { return ChipMode::ym2610; }
+    ChipMode mode() const override { return opnb2 ? ChipMode::ym2610b : ChipMode::ym2610; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
-    std::string modeName() const override { return "YM2610 / OPNB"; }
-    std::string implementedAccuracy() const override { return "partial ymfm-backed OPNB FM+SSG register-level"; }
+    std::string modeName() const override { return opnb2 ? "YM2610B / OPNB2" : "YM2610 / OPNB"; }
+    std::string implementedAccuracy() const override { return opnb2 ? "partial ymfm-backed OPNB2 FM+SSG register-level" : "partial ymfm-backed OPNB FM+SSG register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2610/OPNB synthesis core. Chipper currently maps musical controls and notes to the four exposed OPNB FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2610 low/high address-data ports. Drum and Hit macros can also write native OPNB ADPCM-A key/start/end/level registers and ADPCM-B start/end/delta/level registers from user-owned encoded byte memory. YM2610B/OPNB2 six-FM behavior, WAV/AIFF ADPCM import or format conversion, sample editing, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
+        if (opnb2)
+            return "BSD-3-Clause ymfm provides the YM2610B/OPNB2-compatible synthesis path through the YM2610 core's six-FM channel mask. Chipper maps musical controls and notes to all six OPNB2 FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2610 low/high address-data ports. Drum and Hit macros can also write native OPNB ADPCM-A key/start/end/level registers and ADPCM-B start/end/delta/level registers from user-owned encoded byte memory. WAV/AIFF ADPCM import or format conversion, sample editing, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
+
+        return "BSD-3-Clause ymfm provides the YM2610/OPNB synthesis core. Chipper currently maps musical controls and notes to the four exposed OPNB FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2610 low/high address-data ports. Drum and Hit macros can also write native OPNB ADPCM-A key/start/end/level registers and ADPCM-B start/end/delta/level registers from user-owned encoded byte memory. WAV/AIFF ADPCM import or format conversion, sample editing, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
     }
 
     std::string debugStateJson() const override
     {
         std::ostringstream json;
         json << "{"
-             << "\"mode\":\"YM2610 / OPNB\","
-             << "\"implementedAccuracy\":\"partial ymfm-backed OPNB FM+SSG register-level\","
+             << "\"mode\":\"" << modeName() << "\","
+             << "\"implementedAccuracy\":\"" << implementedAccuracy() << "\","
              << "\"vendoredCore\":\"ymfm\","
              << "\"vendoredCoreLicense\":\"BSD-3-Clause\","
              << "\"vendoredCoreCommit\":\"17decfae857b92ab55fbb30ade2287ace095a381\","
@@ -12906,12 +12915,12 @@ public:
              << "\"chipSampleRate\":" << chipSampleRate << ","
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
-             << "\"internalChannelCount\":7,"
-             << "\"exposedChannelCount\":7,"
-             << "\"fmChannelCount\":4,"
+             << "\"internalChannelCount\":" << sourceChannelCount() << ","
+             << "\"exposedChannelCount\":" << sourceChannelCount() << ","
+             << "\"fmChannelCount\":" << fmChannelCount() << ","
              << "\"ssgChannelCount\":3,"
              << "\"ssgIntegrated\":1,"
-             << "\"opnb2Implemented\":0,"
+             << "\"opnb2Implemented\":" << (opnb2 ? 1 : 0) << ","
              << "\"adpcmAImplemented\":1,"
              << "\"adpcmBImplemented\":1,"
              << "\"opnbAdpcmAOverlay\":" << (opnbAdpcmEnabledForPatch() ? 1 : 0) << ","
@@ -12941,10 +12950,11 @@ public:
              << "\"opnbAdpcmBMaxBytes\":" << opnbAdpcmBMaxBytes << ","
              << "\"algorithm0\":" << static_cast<int>(currentAlgorithm[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
-             << "\"algorithmFeedbackRegister0\":" << static_cast<int>(regs[regForNativeChannel(0xb0, nativeFmChannels[0])]) << ","
-             << "\"algorithmFeedbackRegister2\":" << static_cast<int>(regs[regForNativeChannel(0xb0, nativeFmChannels[2])]) << ","
-             << "\"operatorTotalLevel0\":" << static_cast<int>(regs[opRegForNativeChannel(0x40, nativeFmChannels[0], 0)]) << ","
-             << "\"operatorTotalLevel3\":" << static_cast<int>(regs[opRegForNativeChannel(0x40, nativeFmChannels[0], 3)]) << ","
+             << "\"algorithmFeedbackRegister0\":" << static_cast<int>(regs[regForNativeChannel(0xb0, nativeFmChannel(0))]) << ","
+             << "\"algorithmFeedbackRegister2\":" << static_cast<int>(regs[regForNativeChannel(0xb0, nativeFmChannel(2))]) << ","
+             << "\"algorithmFeedbackRegister5\":" << static_cast<int>(fmChannelCount() > 5 ? regs[regForNativeChannel(0xb0, nativeFmChannel(5))] : 0) << ","
+             << "\"operatorTotalLevel0\":" << static_cast<int>(regs[opRegForNativeChannel(0x40, nativeFmChannel(0), 0)]) << ","
+             << "\"operatorTotalLevel3\":" << static_cast<int>(regs[opRegForNativeChannel(0x40, nativeFmChannel(0), 3)]) << ","
              << "\"panBits0\":" << static_cast<int>(currentPanBits[0]) << ","
              << "\"panBits2\":" << static_cast<int>(currentPanBits[2]) << ","
              << "\"fnum0\":" << currentFnum[0] << ","
@@ -12981,6 +12991,8 @@ public:
              << "\"sourceEnabled4\":" << (channelEnabled(4) ? 1 : 0) << ","
              << "\"sourceEnabled5\":" << (channelEnabled(5) ? 1 : 0) << ","
              << "\"sourceEnabled6\":" << (channelEnabled(6) ? 1 : 0) << ","
+             << "\"sourceEnabled7\":" << (channelEnabled(7) ? 1 : 0) << ","
+             << "\"sourceEnabled8\":" << (channelEnabled(8) ? 1 : 0) << ","
              << "\"sourceLevel0\":" << sourceLevel(patch, 0) << ","
              << "\"sourceLevel1\":" << sourceLevel(patch, 1) << ","
              << "\"sourceLevel2\":" << sourceLevel(patch, 2) << ","
@@ -12988,6 +13000,8 @@ public:
              << "\"sourceLevel4\":" << sourceLevel(patch, 4) << ","
              << "\"sourceLevel5\":" << sourceLevel(patch, 5) << ","
              << "\"sourceLevel6\":" << sourceLevel(patch, 6) << ","
+             << "\"sourceLevel7\":" << sourceLevel(patch, 7) << ","
+             << "\"sourceLevel8\":" << sourceLevel(patch, 8) << ","
              << "\"activeChannels\":" << activeChipPolyChannels() << ","
              << "\"assignedNote0\":" << channelNotes[0] << ","
              << "\"assignedNote1\":" << channelNotes[1] << ","
@@ -12996,6 +13010,8 @@ public:
              << "\"assignedNote4\":" << channelNotes[4] << ","
              << "\"assignedNote5\":" << channelNotes[5] << ","
              << "\"assignedNote6\":" << channelNotes[6] << ","
+             << "\"assignedNote7\":" << channelNotes[7] << ","
+             << "\"assignedNote8\":" << channelNotes[8] << ","
              << "\"nativeLeft\":" << lastNativeLeft << ","
              << "\"nativeRight\":" << lastNativeRight << ","
              << "\"ssgMono\":" << lastSsg << ","
@@ -13111,6 +13127,34 @@ private:
         return static_cast<uint16_t>(regForNativeChannel(static_cast<uint8_t>(base + opOffsets[op]), nativeChannel));
     }
 
+    size_t fmChannelCount() const
+    {
+        return opnb2 ? maxFmChannelCount : opnbFmChannelCount;
+    }
+
+    size_t ssgLaneOffset() const
+    {
+        return fmChannelCount();
+    }
+
+    size_t sourceChannelCount() const
+    {
+        return fmChannelCount() + ssgChannelCount;
+    }
+
+    size_t nativeFmChannel(size_t channel) const
+    {
+        return opnb2 ? std::min(channel, maxFmChannelCount - static_cast<size_t>(1)) : opnbNativeFmChannels[std::min(channel, opnbNativeFmChannels.size() - static_cast<size_t>(1))];
+    }
+
+    uint16_t ssgLaneMask() const
+    {
+        uint16_t mask = 0;
+        for (size_t ssg = 0; ssg < ssgChannelCount; ++ssg)
+            mask = static_cast<uint16_t>(mask | (1u << (ssgLaneOffset() + ssg)));
+        return mask;
+    }
+
     int ssgPeriodRegister(size_t channel) const
     {
         if (channel >= ssgChannelCount)
@@ -13131,7 +13175,7 @@ private:
 
     uint8_t opnbAdpcmAChannelLevel(size_t channel, float velocity) const
     {
-        const auto source = std::min(channel, sourceChannelCount - static_cast<size_t>(1));
+        const auto source = std::min(channel, sourceChannelCount() - static_cast<size_t>(1));
         const auto level = clamp01(velocity) * clamp01(patch.control4) * sourceLevel(patch, source);
         return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(level * 31.0)), 0, 31));
     }
@@ -13144,7 +13188,7 @@ private:
         uint8_t keyBits = 0;
         for (size_t channel = 0; channel < currentOpnbAdpcmALevels.size(); ++channel)
         {
-            const auto source = std::min(channel, sourceChannelCount - static_cast<size_t>(1));
+            const auto source = std::min(channel, sourceChannelCount() - static_cast<size_t>(1));
             if (channelEnabled(source) && opnbAdpcmAChannelLevel(channel, velocity) > 0)
                 keyBits = static_cast<uint8_t>(keyBits | (1u << channel));
         }
@@ -13177,7 +13221,7 @@ private:
     uint8_t opnbAdpcmBLevelForPatch(float velocity) const
     {
         auto trim = 0.0;
-        for (size_t source = 0; source < sourceChannelCount; ++source)
+        for (size_t source = 0; source < sourceChannelCount(); ++source)
         {
             if (channelEnabled(source))
                 trim = std::max(trim, sourceLevel(patch, source));
@@ -13344,12 +13388,12 @@ private:
 
     bool channelEnabled(size_t channel) const
     {
-        return channel < sourceChannelCount && sourceEnabled(patch, channel);
+        return channel < sourceChannelCount() && sourceEnabled(patch, channel);
     }
 
     bool anyAudibleSourceEnabled() const
     {
-        for (size_t channel = 0; channel < sourceChannelCount; ++channel)
+        for (size_t channel = 0; channel < sourceChannelCount(); ++channel)
         {
             if (channelEnabled(channel))
                 return true;
@@ -13359,10 +13403,10 @@ private:
 
     void applyChannelPatch(size_t channel, float velocity)
     {
-        if (channel >= fmChannelCount)
+        if (channel >= fmChannelCount())
             return;
 
-        const auto nativeChannel = nativeFmChannels[channel];
+        const auto nativeChannel = nativeFmChannel(channel);
         const auto algorithm = algorithmForPatch();
         const auto feedback = feedbackForPatch();
         currentAlgorithm[channel] = algorithm;
@@ -13387,7 +13431,7 @@ private:
 
     void applyPatchToAllChannels(bool preserveKeys)
     {
-        for (size_t channel = 0; channel < fmChannelCount; ++channel)
+        for (size_t channel = 0; channel < fmChannelCount(); ++channel)
             applyChannelPatch(channel, channelVelocity[channel] > 0.0f ? channelVelocity[channel] : 1.0f);
         writeSsgSharedRegisters();
         updateSsgMixer();
@@ -13395,7 +13439,7 @@ private:
         if (! preserveKeys)
             return;
 
-        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        for (size_t channel = 0; channel < sourceChannelCount(); ++channel)
         {
             if (channelGateActive(channel) && channelNotes[channel] >= 0)
                 triggerChannel(channel, channelNotes[channel], channelVelocity[channel], channelEnabled(channel));
@@ -13404,7 +13448,7 @@ private:
 
     void triggerChannel(size_t channel, int midiNote, float velocity, bool shouldEnable)
     {
-        if (channel >= fmChannelCount)
+        if (channel >= fmChannelCount())
         {
             triggerSsgChannel(channel, midiNote, velocity, shouldEnable);
             return;
@@ -13415,7 +13459,7 @@ private:
 
         const auto detune = static_cast<int>(std::round((patch.control2 - 0.5f) * 8.0f));
         const auto pitch = pitchForNote(midiNote + detune);
-        const auto nativeChannel = nativeFmChannels[channel];
+        const auto nativeChannel = nativeFmChannel(channel);
         channelNotes[channel] = std::clamp(midiNote, 0, 127);
         channelVelocity[channel] = static_cast<float>(clamp01(velocity) * sourceLevel(patch, channel));
         currentFnum[channel] = pitch.fnum;
@@ -13435,7 +13479,7 @@ private:
 
     void keyOffChannel(size_t channel)
     {
-        if (channel >= fmChannelCount)
+        if (channel >= fmChannelCount())
         {
             keyOffSsgChannel(channel);
             return;
@@ -13444,13 +13488,13 @@ private:
         if (channel >= channelNotes.size())
             return;
 
-        writeYmRegister(0x28, keyCodeForNativeChannel(nativeFmChannels[channel]));
+        writeYmRegister(0x28, keyCodeForNativeChannel(nativeFmChannel(channel)));
         keyOnMask &= static_cast<uint16_t>(~(1u << channel));
     }
 
     void clearChipPolyState()
     {
-        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        for (size_t channel = 0; channel < sourceChannelCount(); ++channel)
             keyOffChannel(channel);
         keyOffOpnbAdpcm();
         channelNotes.fill(-1);
@@ -13461,12 +13505,12 @@ private:
 
     int selectChipPolyChannel(int midiNote) const
     {
-        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        for (size_t channel = 0; channel < sourceChannelCount(); ++channel)
         {
             if (channelEnabled(channel) && channelNotes[channel] == midiNote)
                 return static_cast<int>(channel);
         }
-        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        for (size_t channel = 0; channel < sourceChannelCount(); ++channel)
         {
             if (channelEnabled(channel) && channelNotes[channel] < 0)
                 return static_cast<int>(channel);
@@ -13474,7 +13518,7 @@ private:
 
         auto oldestChannel = -1;
         auto oldestStamp = std::numeric_limits<uint64_t>::max();
-        for (size_t channel = 0; channel < channelStamp.size(); ++channel)
+        for (size_t channel = 0; channel < sourceChannelCount(); ++channel)
         {
             if (channelEnabled(channel) && channelStamp[channel] < oldestStamp)
             {
@@ -13488,7 +13532,7 @@ private:
     int activeChipPolyChannels() const
     {
         auto active = 0;
-        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        for (size_t channel = 0; channel < sourceChannelCount(); ++channel)
         {
             if (channelEnabled(channel) && channelNotes[channel] >= 0)
                 ++active;
@@ -13513,7 +13557,7 @@ private:
 
     void noteOffChipPoly(int midiNote)
     {
-        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        for (size_t channel = 0; channel < sourceChannelCount(); ++channel)
         {
             if (channelNotes[channel] != midiNote)
                 continue;
@@ -13531,7 +13575,7 @@ private:
     {
         laserPhase += 1.0 / sampleRate;
         const auto bend = static_cast<int>(std::round(std::sin(twoPi * laserPhase * 8.0) * patch.control3 * 10.0));
-        for (size_t channel = 0; channel < channelNotes.size(); ++channel)
+        for (size_t channel = 0; channel < sourceChannelCount(); ++channel)
         {
             if (! channelGateActive(channel))
                 continue;
@@ -13542,9 +13586,9 @@ private:
 
     bool channelGateActive(size_t channel) const
     {
-        if (channel < fmChannelCount)
+        if (channel < fmChannelCount())
             return (keyOnMask & (1u << channel)) != 0;
-        if (channel < sourceChannelCount)
+        if (channel < sourceChannelCount())
             return (ssgGateMask & (1u << channel)) != 0;
         return false;
     }
@@ -13606,7 +13650,7 @@ private:
         auto mixer = static_cast<uint8_t>((regs[7] & 0xc0u) | (opnSsgMixerRegisterForPatch(patch) & 0x3fu));
         for (size_t ssg = 0; ssg < ssgChannelCount; ++ssg)
         {
-            const auto source = ssgLaneOffset + ssg;
+            const auto source = ssgLaneOffset() + ssg;
             const auto active = channelEnabled(source) && (ssgGateMask & (1u << source)) != 0;
             if (! active)
                 mixer = static_cast<uint8_t>(mixer | (1u << ssg) | (1u << (ssg + 3u)));
@@ -13616,10 +13660,10 @@ private:
 
     void triggerSsgChannel(size_t channel, int midiNote, float velocity, bool shouldEnable)
     {
-        if (channel < ssgLaneOffset || channel >= sourceChannelCount)
+        if (channel < ssgLaneOffset() || channel >= sourceChannelCount())
             return;
 
-        const auto ssg = channel - ssgLaneOffset;
+        const auto ssg = channel - ssgLaneOffset();
         channelNotes[channel] = std::clamp(midiNote, 0, 127);
         channelVelocity[channel] = static_cast<float>(clamp01(velocity));
         writeSsgSharedRegisters();
@@ -13641,17 +13685,17 @@ private:
 
     void keyOffSsgChannel(size_t channel)
     {
-        if (channel < ssgLaneOffset || channel >= sourceChannelCount)
+        if (channel < ssgLaneOffset() || channel >= sourceChannelCount())
             return;
 
         ssgGateMask &= static_cast<uint16_t>(~(1u << channel));
-        writeSsgVolume(channel - ssgLaneOffset, 0);
+        writeSsgVolume(channel - ssgLaneOffset(), 0);
         updateSsgMixer();
     }
 
     double ssgOutputSample() const
     {
-        if ((ssgGateMask & 0x0070u) == 0)
+        if ((ssgGateMask & ssgLaneMask()) == 0)
             return 0.0;
 
         constexpr auto scale = 1.0 / 32768.0;
@@ -13659,11 +13703,12 @@ private:
     }
 
     AccuracyMode accuracy;
-    static constexpr size_t fmChannelCount = 4;
+    bool opnb2 = false;
+    static constexpr size_t opnbFmChannelCount = 4;
+    static constexpr size_t maxFmChannelCount = 6;
     static constexpr size_t ssgChannelCount = 3;
-    static constexpr size_t ssgLaneOffset = 4;
-    static constexpr size_t sourceChannelCount = 7;
-    static constexpr std::array<size_t, 4> nativeFmChannels { 1u, 2u, 4u, 5u };
+    static constexpr size_t maxSourceChannelCount = maxFmChannelCount + ssgChannelCount;
+    static constexpr std::array<size_t, 4> opnbNativeFmChannels { 1u, 2u, 4u, 5u };
     double sampleRate = 48000.0;
     double clock = 8000000.0;
     double chipSampleRate = 55555.0;
@@ -13672,14 +13717,14 @@ private:
     std::unique_ptr<ymfm::ym2610> chip;
     PatchConfig patch;
     std::array<uint8_t, 0x200> regs {};
-    std::array<uint16_t, 4> currentFnum {};
-    std::array<uint8_t, 4> currentBlock {};
-    std::array<uint8_t, 4> currentAlgorithm {};
-    std::array<uint8_t, 4> currentFeedback {};
-    std::array<uint8_t, 4> currentPanBits {};
+    std::array<uint16_t, maxFmChannelCount> currentFnum {};
+    std::array<uint8_t, maxFmChannelCount> currentBlock {};
+    std::array<uint8_t, maxFmChannelCount> currentAlgorithm {};
+    std::array<uint8_t, maxFmChannelCount> currentFeedback {};
+    std::array<uint8_t, maxFmChannelCount> currentPanBits {};
     std::array<uint16_t, 3> currentSsgPeriod {};
     std::array<uint8_t, 3> currentSsgVolume {};
-    std::array<int, 7> channelNotes {};
+    std::array<int, maxSourceChannelCount> channelNotes {};
     std::array<uint8_t, 6> currentOpnbAdpcmALevels {};
     std::array<uint16_t, 6> currentOpnbAdpcmAStartRegisters {};
     std::array<uint16_t, 6> currentOpnbAdpcmAEndRegisters {};
@@ -13691,8 +13736,8 @@ private:
     uint16_t opnbAdpcmBEndRegister = 0;
     uint16_t opnbAdpcmBDeltaNRegister = 0;
     uint8_t opnbAdpcmBLevelRegister = 0;
-    std::array<float, 7> channelVelocity {};
-    std::array<uint64_t, 7> channelStamp {};
+    std::array<float, maxSourceChannelCount> channelVelocity {};
+    std::array<uint64_t, maxSourceChannelCount> channelStamp {};
     uint64_t noteStamp = 0;
     int heldNote = -1;
     uint16_t keyOnMask = 0;
@@ -16188,6 +16233,7 @@ std::unique_ptr<ChipCore> createChipCore(ChipMode mode, AccuracyMode accuracy)
         case ChipMode::ym2203: return std::make_unique<Ym2203Core>(accuracy);
         case ChipMode::ym2608: return std::make_unique<Ym2608Core>(accuracy);
         case ChipMode::ym2610: return std::make_unique<Ym2610Core>(accuracy);
+        case ChipMode::ym2610b: return std::make_unique<Ym2610Core>(accuracy, true);
         case ChipMode::saa1099: return std::make_unique<Saa1099Core>(accuracy);
         case ChipMode::pcSpeaker: return std::make_unique<PcSpeakerCore>(accuracy);
         case ChipMode::zxSpectrumBeeper: return std::make_unique<ZxSpectrumBeeperCore>(accuracy);
@@ -16221,6 +16267,7 @@ std::optional<ChipMode> parseChipMode(std::string_view text)
     if (key == "ym2203" || key == "opn" || key == "pc88" || key == "pc8801") return ChipMode::ym2203;
     if (key == "ym2608" || key == "opna" || key == "pc98" || key == "pc9801") return ChipMode::ym2608;
     if (key == "ym2610" || key == "opnb" || key == "neogeo") return ChipMode::ym2610;
+    if (key == "ym2610b" || key == "opnb2" || key == "neogeomvs2") return ChipMode::ym2610b;
     if (key == "saa1099" || key == "saa" || key == "samcoupe" || key == "philipspsg") return ChipMode::saa1099;
     if (key == "pcspeaker" || key == "pcspkr" || key == "speaker" || key == "pit" || key == "beeper") return ChipMode::pcSpeaker;
     if (key == "zxspectrum" || key == "zxspectrumbeeper" || key == "zx" || key == "zx48" || key == "zxbeeper" || key == "spectrumbeeper") return ChipMode::zxSpectrumBeeper;
@@ -16289,6 +16336,7 @@ std::string toString(ChipMode mode)
         case ChipMode::ym2203: return "YM2203 / OPN";
         case ChipMode::ym2608: return "YM2608 / OPNA";
         case ChipMode::ym2610: return "YM2610 / OPNB";
+        case ChipMode::ym2610b: return "YM2610B / OPNB2";
         case ChipMode::saa1099: return "Philips SAA1099";
         case ChipMode::pcSpeaker: return "PC Speaker";
         case ChipMode::zxSpectrumBeeper: return "ZX Spectrum Beeper";

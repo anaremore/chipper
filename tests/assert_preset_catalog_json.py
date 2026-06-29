@@ -45,11 +45,12 @@ REQUIRED_CATEGORIES = {
     "YM2203 / OPN",
     "YM2608 / OPNA Bass",
     "YM2610 / OPNB Bass",
+    "YM2610B / OPNB2 Bass",
     "OPL2/OPL3 / DOS FM",
     "YM2151 / OPM",
 }
 
-IMPLEMENTED_CHIPS = {"nes", "nesVrc6", "nesFds", "nesSunsoft5b", "nesMmc5", "nesVrc7", "dmg", "sid", "ym2149", "sn76489", "saa1099", "pcSpeaker", "zxSpectrumBeeper", "ym2612", "ym2203", "ym2608", "ym2610", "opl3", "ym2151", "spc700", "pokey", "paula", "huc6280", "namcoWsg", "ym2413", "scc"}
+IMPLEMENTED_CHIPS = {"nes", "nesVrc6", "nesFds", "nesSunsoft5b", "nesMmc5", "nesVrc7", "dmg", "sid", "ym2149", "sn76489", "saa1099", "pcSpeaker", "zxSpectrumBeeper", "ym2612", "ym2203", "ym2608", "ym2610", "ym2610b", "opl3", "ym2151", "spc700", "pokey", "paula", "huc6280", "namcoWsg", "ym2413", "scc"}
 
 EXPECTED_CATEGORY_PREFIXES = {
     "nes": ("NES", "Arcade", "Classic"),
@@ -74,6 +75,7 @@ EXPECTED_CATEGORY_PREFIXES = {
     "ym2203": ("OPN", "YM2203", "Arcade", "Classic", "Modern"),
     "ym2608": ("OPNA", "YM2608", "Arcade", "Classic", "Modern"),
     "ym2610": ("OPNB", "YM2610", "Neo", "Arcade", "Classic", "Modern"),
+    "ym2610b": ("OPNB2", "YM2610B", "Neo", "Arcade", "Classic", "Modern"),
     "opl3": ("OPL2", "OPL3", "Arcade", "Classic"),
     "ym2151": ("OPM", "YM2151", "Arcade", "Classic", "Modern"),
     "ym2413": ("OPLL", "YM2413", "Classic"),

@@ -3052,7 +3052,7 @@ void ChipperAudioProcessor::applyOpnaAdpcmBSampleToCore()
 
 void ChipperAudioProcessor::applyOpnbAdpcmASampleToCore()
 {
-    if (core == nullptr || activeMode != chipper::ChipMode::ym2610)
+    if (core == nullptr || (activeMode != chipper::ChipMode::ym2610 && activeMode != chipper::ChipMode::ym2610b))
         return;
 
     std::vector<uint8_t> selectedBytes;
@@ -3072,7 +3072,7 @@ void ChipperAudioProcessor::applyOpnbAdpcmASampleToCore()
 
 void ChipperAudioProcessor::applyOpnbAdpcmBSampleToCore()
 {
-    if (core == nullptr || activeMode != chipper::ChipMode::ym2610)
+    if (core == nullptr || (activeMode != chipper::ChipMode::ym2610 && activeMode != chipper::ChipMode::ym2610b))
         return;
 
     std::vector<uint8_t> selectedBytes;
@@ -3962,7 +3962,7 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
             appendRestoreWarning(snapshot.label, opnaRhythmRomRestoreWarning);
         }
     }
-    else if (mode == chipper::ChipMode::ym2610)
+    else if (mode == chipper::ChipMode::ym2610 || mode == chipper::ChipMode::ym2610b)
     {
         {
             const std::lock_guard<std::mutex> lock(opnbAdpcmBSampleMutex);

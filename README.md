@@ -101,7 +101,8 @@ Implemented depth varies by chip. See [docs/emulation-accuracy.md](docs/emulatio
 | YM2612 / Genesis FM | Verified-partial BSD-3-Clause `ymfm` OPN2 adapter with partial channel-6 DAC drum playback |
 | YM2203 / OPN | Verified-partial BSD-3-Clause `ymfm` OPN adapter with three FM lanes plus three embedded SSG tone/noise/envelope lanes |
 | YM2608 / OPNA | Verified-partial BSD-3-Clause `ymfm` OPNA adapter with six FM lanes, three embedded SSG tone/noise/envelope lanes, generated/user-owned ADPCM-A rhythm ROM support, and first-pass encoded ADPCM-B sample memory for Drum/Hit macros; WAV/AIFF conversion and sample editing remain planned |
-| YM2610 / OPNB | Verified-partial BSD-3-Clause `ymfm` OPNB adapter with four FM lanes, three embedded SSG tone/noise/envelope lanes, and first-pass renderer/VST encoded ADPCM-A/B sample memory for Drum/Hit macros; conversion/editing, stronger validation, and OPNB2 remain planned |
+| YM2610 / OPNB | Verified-partial BSD-3-Clause `ymfm` OPNB adapter with four FM lanes, three embedded SSG tone/noise/envelope lanes, and first-pass renderer/VST encoded ADPCM-A/B sample memory for Drum/Hit macros; conversion/editing and stronger validation remain planned |
+| YM2610B / OPNB2 | Verified-partial BSD-3-Clause `ymfm` OPNB2 adapter using the YM2610 six-FM channel mask, three embedded SSG tone/noise/envelope lanes, and first-pass renderer/VST encoded ADPCM-A/B sample memory for Drum/Hit macros; conversion/editing and stronger validation remain planned |
 | OPL2 / OPL3 | Verified-partial BSD-3-Clause `ymfm` YMF262/OPL3 adapter with a nine-lane OPL2-compatible surface; full 18-channel/four-op editing planned |
 | SNES SPC700-style | Partial clean-room eight-voice BRR/WAV/AIFF sample-player model with note maps, loop handling, Gaussian-style interpolation, PMON-style pitch modulation, noise, and musical echo helper |
 | Atari POKEY | Partial clean-room polynomial/timer model |
