@@ -826,6 +826,35 @@ std::vector<ParameterChoiceSpec> ym2612DacModeChoices()
     };
 }
 
+std::vector<ParameterChoiceSpec> fmFeedbackChoices(std::string chipName, std::string registerName)
+{
+    std::vector<ParameterChoiceSpec> choices;
+    choices.reserve(8);
+    for (int feedback = 0; feedback <= 7; ++feedback)
+    {
+        choices.push_back(choice("FB " + std::to_string(feedback),
+                                 "Write native " + chipName + " " + registerName + " feedback field " + std::to_string(feedback) + "/7.",
+                                 static_cast<float>(feedback) / 7.0f,
+                                 feedback));
+    }
+    return choices;
+}
+
+ChipParameterSpec fmFeedbackSpec(ChipParameterRole role, std::string id, std::string chipName, std::string registerName)
+{
+    return { role,
+             std::move(id),
+             "Feedback",
+             "FM",
+             "Writes the native " + chipName + " feedback bits in the channel algorithm/feedback register. MIDI CC77 and the existing macroControl2 automation lane map directly to this 0-7 field.",
+             ParameterKind::chipRegister,
+             ControlSurface::menu,
+             fmFeedbackChoices(std::move(chipName), std::move(registerName)),
+             0.0f,
+             1.0f,
+             0.5f };
+}
+
 std::vector<ChipParameterSpec> ym2612ParameterSpecs()
 {
     return {
@@ -847,12 +876,7 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
                    "FM",
                    "In Preset mode this chooses among the YM2612 algorithm register values; explicit Algorithm choices override it.",
                    ParameterKind::chipRegister),
-        sliderSpec(ChipParameterRole::macroControl2,
-                   "ym2612.feedback",
-                   "Feedback",
-                   "FM",
-                   "Maps to YM2612 feedback bits in the channel algorithm/feedback register.",
-                   ParameterKind::chipRegister),
+        fmFeedbackSpec(ChipParameterRole::macroControl2, "ym2612.feedback", "YM2612", "$B0"),
         sliderSpec(ChipParameterRole::macroControl3,
                    "ym2612.operatorTone",
                    "Operator Tone",
@@ -995,12 +1019,7 @@ std::vector<ChipParameterSpec> ym2151ParameterSpecs()
                    "FM",
                    "In Preset mode this chooses among the YM2151 algorithm register values; explicit Algorithm choices override it.",
                    ParameterKind::chipRegister),
-        sliderSpec(ChipParameterRole::macroControl2,
-                   "ym2151.feedback",
-                   "Feedback",
-                   "FM",
-                   "Maps to YM2151 feedback bits in the channel algorithm/feedback register.",
-                   ParameterKind::chipRegister),
+        fmFeedbackSpec(ChipParameterRole::macroControl2, "ym2151.feedback", "YM2151", "$20+n"),
         sliderSpec(ChipParameterRole::macroControl3,
                    "ym2151.operatorTone",
                    "Operator Tone",

@@ -1329,6 +1329,8 @@ int main()
     ok &= expectMacroLabel(chipper::ChipMode::sn76489, chipper::MacroKind::drum, "PSG Drum");
     ok &= expectMacroLabel(chipper::ChipMode::ym2612, chipper::MacroKind::bass, "OPN2 Feedback Bass");
     ok &= expectPreset(chipper::ChipMode::ym2612, "opn2-dac-kick");
+    ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Feedback");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::macroControl2, chipper::ControlSurface::menu, 8, "FB 0");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Pan");
     ok &= expectSpecGroup(chipper::ChipMode::ym2612, chipper::ChipParameterRole::dmgStereoRoute, "Output");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::dmgStereoRoute, 5, "Preset");
@@ -1464,7 +1466,8 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Algorithm");
     ok &= expectChoiceRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 9, "Preset");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Algorithm Bias");
-    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Feedback");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Feedback");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl2, chipper::ControlSurface::menu, 8, "FB 0");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Operator Tone");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "FM Level");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::fmOperator1Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP1 Level");

@@ -3142,6 +3142,23 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     fmAlgorithmPreview.setTooltip("Four-operator FM algorithm signal flow. Cyan operators modulate, yellow operators reach output.");
     addAndMakeVisible(fmAlgorithmPreview);
 
+    fmFeedbackBox.setVisible(false);
+    fmFeedbackBox.setTooltip(withMidiCcForRole("FM feedback register choice.", chipper::ChipParameterRole::macroControl2));
+    fmFeedbackBox.onChange = [this]()
+    {
+        if (suppressManualChoiceCallbacks)
+            return;
+
+        const auto selected = fmFeedbackBox.getSelectedId() - 1;
+        if (selected >= 0)
+        {
+            setParameterValueFromUi(chipper::parameters::id::macroControl2,
+                                    static_cast<float>(std::clamp(selected, 0, 7)) / 7.0f);
+            updateLiveControlReadouts();
+        }
+    };
+    addAndMakeVisible(fmFeedbackBox);
+
     oplWaveformBox.setVisible(false);
     oplWaveformBox.setTooltip(withMidiCcForRole("OPL2 operator waveform register choice.", chipper::ChipParameterRole::waveShape));
     oplWaveformBox.onChange = [this]()
@@ -3827,6 +3844,7 @@ void ChipperAudioProcessorEditor::applyChipTheme()
     for (auto& box : ymChannelMixBoxes)
         styleCombo(box);
     styleCombo(fmAlgorithmBox);
+    styleCombo(fmFeedbackBox);
     styleCombo(oplWaveformBox);
     styleCombo(opllInstrumentBox);
 
@@ -5076,8 +5094,11 @@ void ChipperAudioProcessorEditor::resized()
     {
         placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlValueLabels[0], controlCells[0]);
         placePulseDutySegment(controlCells[0]);
-        placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[1]);
         const auto fourOperatorFmControlsMoved = isFourOperatorFmMode(displayedMode);
+        if (fourOperatorFmControlsMoved)
+            placeFmFeedbackControl(controlCells[1]);
+        else
+            placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[1]);
         if (displayedMode != chipper::ChipMode::sid
             && displayedMode != chipper::ChipMode::ym2149
             && ! fourOperatorFmControlsMoved)
@@ -5937,6 +5958,36 @@ void ChipperAudioProcessorEditor::placeFmAlgorithmControl(juce::Rectangle<int> b
     waveShapeSegmentBounds = {};
     for (auto& button : waveShapeButtons)
         button.setBounds({});
+}
+
+void ChipperAudioProcessorEditor::placeFmFeedbackControl(juce::Rectangle<int> bounds)
+{
+    if (bounds.isEmpty())
+    {
+        nativeGroupLabels[1].setBounds({});
+        nativeLabels[1].setBounds({});
+        nativeSliders[1].setBounds({});
+        controlValueLabels[1].setBounds({});
+        fmFeedbackBox.setBounds({});
+        return;
+    }
+
+    const auto compact = bounds.getHeight() <= 44;
+    const auto groupHeight = compact ? 0 : 13;
+    const auto comboHeight = std::min(28, bounds.getHeight());
+    const auto headerHeight = compact ? std::max(0, bounds.getHeight() - comboHeight) : 17;
+
+    nativeGroupLabels[1].setBounds(groupHeight > 0 ? bounds.removeFromTop(std::min(groupHeight, bounds.getHeight()))
+                                                    : juce::Rectangle<int> {});
+    auto header = bounds.removeFromTop(std::min(headerHeight, bounds.getHeight()));
+    nativeLabels[1].setBounds(header.removeFromLeft(std::min(118, header.getWidth())));
+    controlValueLabels[1].setJustificationType(juce::Justification::centredRight);
+    controlValueLabels[1].setMinimumHorizontalScale(0.55f);
+    controlValueLabels[1].setBounds(header.getWidth() >= 72 ? header : juce::Rectangle<int> {});
+    if (! compact)
+        bounds.removeFromTop(std::min(2, bounds.getHeight()));
+    fmFeedbackBox.setBounds(bounds.removeFromTop(std::min(comboHeight, bounds.getHeight())));
+    nativeSliders[1].setBounds({});
 }
 
 void ChipperAudioProcessorEditor::placeOplWaveformControl(juce::Rectangle<int> bounds)
@@ -7102,6 +7153,16 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
     applyChoices(pulseDutyButtons, chipper::parameterSpecFor(mode, chipper::ChipParameterRole::macroControl1));
     applyChoices(pulse2DutyButtons, chipper::parameterSpecFor(mode, chipper::ChipParameterRole::pulse2Duty));
     applyChoices(toneNoiseMixButtons, chipper::parameterSpecFor(mode, chipper::ChipParameterRole::macroControl4));
+
+    if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::macroControl2))
+    {
+        if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151)
+        {
+            fmFeedbackBox.clear(juce::dontSendNotification);
+            for (size_t i = 0; i < spec->choices.size(); ++i)
+                fmFeedbackBox.addItem(juce::String(spec->choices[i].label), static_cast<int>(i) + 1);
+        }
+    }
 
     if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::pulse2Duty))
     {
@@ -11360,6 +11421,35 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
     waveShapeValueLabel.setText(waveShapeReadout(mode, static_cast<int>(selected)), juce::dontSendNotification);
 }
 
+void ChipperAudioProcessorEditor::updateFmFeedbackControl(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible)
+{
+    const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::macroControl2);
+    const auto visible = shouldBeVisible && isFourOperatorFmMode(mode) && spec != nullptr;
+    fmFeedbackBox.setVisible(visible);
+
+    if (! visible)
+        return;
+
+    const auto feedback = static_cast<int>(chipper::fmFeedbackForPatch(patch));
+    {
+        const juce::ScopedValueSetter<bool> suppressChoices(suppressManualChoiceCallbacks, true);
+        fmFeedbackBox.setSelectedId(feedback + 1, juce::dontSendNotification);
+    }
+
+    const auto algorithm = static_cast<int>(fourOperatorAlgorithmForPatch(mode, patch));
+    const auto registerValue = static_cast<uint8_t>(mode == chipper::ChipMode::ym2151
+                                                        ? (0xc0u | (static_cast<unsigned>(feedback) << 3u) | static_cast<unsigned>(algorithm))
+                                                        : ((static_cast<unsigned>(feedback) << 3u) | static_cast<unsigned>(algorithm)));
+    const auto registerText = juce::String(mode == chipper::ChipMode::ym2151 ? "$20=$" : "$B0=$")
+        + byteHex(registerValue)
+        + " | Alg " + juce::String(algorithm)
+        + " | FB " + juce::String(feedback) + "/7";
+    const auto tooltip = withMidiCcForRole(juce::String(spec->help) + "\n" + registerText, spec->role);
+    nativeLabels[1].setTooltip(tooltip);
+    controlValueLabels[1].setTooltip(tooltip);
+    fmFeedbackBox.setTooltip(tooltip);
+}
+
 void ChipperAudioProcessorEditor::updateFmAlgorithmControl(chipper::ChipMode mode, int choice, bool shouldBeVisible)
 {
     const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::waveShape);
@@ -12882,7 +12972,11 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto hasYmChannelMixControls = usesYmChannelMixControls(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasSnNoiseModeSegment = usesSnNoiseModeSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasToneNoiseMixSegment = usesToneNoiseMixSegment(mode) && chipper::descriptorFor(mode).implemented;
+    const auto hasFmFeedbackControl = isFourOperatorFmMode(mode)
+        && chipper::parameterSpecFor(mode, chipper::ChipParameterRole::macroControl2) != nullptr
+        && chipper::descriptorFor(mode).implemented;
     nativeSliders[0].setVisible(! hasPulseDutySegment);
+    nativeSliders[1].setVisible(! hasFmFeedbackControl);
     const auto embeddedPulseDuty = (mode == chipper::ChipMode::nes || mode == chipper::ChipMode::dmg) && hasPulseDutySegment;
     nativeGroupLabels[0].setVisible(! embeddedPulseDuty);
     nativeLabels[0].setVisible(! embeddedPulseDuty || hasPulseDutySegment);
@@ -12902,6 +12996,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     updateSidFilterRoutingControl(hasSidFilterRoutingControl);
     updateYmChannelMixControls(hasYmChannelMixControls);
     updateSnNoiseModeButtons(mode, patch, hasSnNoiseModeSegment);
+    updateFmFeedbackControl(mode, patch, hasFmFeedbackControl);
     updateEnvelopeDecayReadout(mode);
     updateSidAdsrControls(mode == chipper::ChipMode::sid && usesEnvelopeDecayControl(mode) && chipper::descriptorFor(mode).implemented);
     updateFmOperatorRegisterSurface(mode,
@@ -13006,6 +13101,8 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
                                                        : (mode == chipper::ChipMode::ym2151 ? ym2151NoiseReadout(patch) : waveShapeReadout(mode, patch.waveShape))),
                                       juce::dontSendNotification);
         controlValueLabels[3].setText(macroReadout(3, "FM output level " + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15"), juce::dontSendNotification);
+        if (hasFmFeedbackControl)
+            updateFmFeedbackControl(mode, patch, true);
         updateSourceChannelButtons(mode);
     }
     else

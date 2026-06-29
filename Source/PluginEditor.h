@@ -278,6 +278,7 @@ public:
     {
         return index < controlValueLabels.size() ? controlValueLabels[index].getBounds() : juce::Rectangle<int> {};
     }
+    juce::Rectangle<int> getFmFeedbackBoundsForLayoutTest() const { return fmFeedbackBox.getBounds(); }
     juce::Rectangle<int> getSidAdsrContentBoundsForLayoutTest() const;
     juce::Rectangle<int> getSidAdsrSliderBoundsForLayoutTest(size_t index) const
     {
@@ -333,6 +334,7 @@ private:
     void placePulse2DutySegment(juce::Rectangle<int> bounds);
     void placeWaveShapeSegment(juce::Rectangle<int> bounds);
     void placeFmAlgorithmControl(juce::Rectangle<int> bounds);
+    void placeFmFeedbackControl(juce::Rectangle<int> bounds);
     void placeOplWaveformControl(juce::Rectangle<int> bounds);
     void placeOpllInstrumentControl(juce::Rectangle<int> bounds);
     void placeSidVoiceWaveControls(juce::Rectangle<int> bounds);
@@ -382,6 +384,7 @@ private:
     void updatePresetFavoriteButton();
     void reloadUserPresetFiles(chipper::ChipMode mode);
     void updateSegmentedControlSpecs(chipper::ChipMode mode);
+    void updateFmFeedbackControl(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
     void storeChipSettingsSnapshot(chipper::ChipMode mode);
     bool restoreChipSettingsSnapshot(chipper::ChipMode mode);
     void chooseUserPresetToLoad();
@@ -620,6 +623,7 @@ private:
     std::array<juce::TextButton, waveShapeCount> waveShapeButtons;
     juce::ComboBox fmAlgorithmBox;
     FmAlgorithmPreview fmAlgorithmPreview;
+    juce::ComboBox fmFeedbackBox;
     juce::ComboBox oplWaveformBox;
     OplWaveformPreview oplWaveformPreview;
     juce::ComboBox opllInstrumentBox;

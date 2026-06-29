@@ -1368,9 +1368,11 @@ bool checkPerformanceMacroSliderLayout()
                 expectedMacroSliders = { 0, 2, 3 };
                 break;
             case chipper::ChipMode::ym2149:
+                expectedMacroSliders = { 0, 1 };
+                break;
             case chipper::ChipMode::ym2612:
             case chipper::ChipMode::ym2151:
-                expectedMacroSliders = { 0, 1 };
+                expectedMacroSliders = { 0 };
                 break;
             default:
                 expectedMacroSliders = { 0, 1, 2, 3 };
@@ -1475,6 +1477,31 @@ bool checkPerformanceMacroSliderLayout()
                           << ": readout " << valueBounds.toString()
                           << " slider " << sliderBounds.toString()
                           << " performance " << performanceBounds.toString() << '\n';
+                ok = false;
+            }
+        }
+
+        if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151)
+        {
+            const auto feedbackBounds = editor.getFmFeedbackBoundsForLayoutTest();
+            const auto feedbackSliderBounds = editor.getNativeSliderBoundsForLayoutTest(1);
+            if (feedbackBounds.isEmpty()
+                || ! performanceBounds.expanded(2).contains(feedbackBounds)
+                || feedbackBounds.getWidth() < 96
+                || feedbackBounds.getHeight() < 20)
+            {
+                std::cerr << "editor_size_smoke: FM feedback menu is not readable/owned by performance strip for mode "
+                          << chipper::parameters::chipModeChoices()[chipMode]
+                          << ": feedback " << feedbackBounds.toString()
+                          << " performance " << performanceBounds.toString() << '\n';
+                ok = false;
+            }
+
+            if (! feedbackSliderBounds.isEmpty())
+            {
+                std::cerr << "editor_size_smoke: FM feedback should use the native feedback menu, not macro slider 1, for mode "
+                          << chipper::parameters::chipModeChoices()[chipMode]
+                          << ": slider " << feedbackSliderBounds.toString() << '\n';
                 ok = false;
             }
         }
