@@ -910,6 +910,9 @@ add_test(NAME chipper_render_ym2612_feedback7_smoke
 add_test(NAME chipper_render_ym2612_operator_levels_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro lead --wave-shape 5 --control3 0.5 --control4 0.8 --fm-op1-level 0 --fm-op4-level 1 --fm-op1-multiplier 0.5 --fm-op4-multiplier 15 --fm-op1-attack-rate 0 --fm-op4-attack-rate 31 --fm-op2-decay-rate 0 --fm-op4-decay-rate 31 --fm-op2-sustain-rate 0 --fm-op4-sustain-rate 31 --fm-op2-release-rate 0 --fm-op4-release-rate 15 --clock 7670454 --rate 48000 --seconds 0.08 --note 69 --out ym2612-operator-levels-smoke.wav --debug ym2612-operator-levels-smoke.json
 )
+add_test(NAME chipper_render_ym2612_lfo_depth_smoke
+    COMMAND chipper_render --chip ym2612 --accuracy authentic --macro lead --wave-shape 5 --opn2-lfo-depth 0.65 --clock 7670454 --rate 48000 --seconds 0.12 --note 69 --out ym2612-lfo-depth-smoke.wav --debug ym2612-lfo-depth-smoke.json
+)
 add_test(NAME chipper_render_ym2612_chip_poly_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 8 --clock 7670454 --rate 48000 --seconds 0.05 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/scc-chip-poly-events.txt --out ym2612-chip-poly-smoke.wav --debug ym2612-chip-poly-smoke.json
 )
@@ -2337,7 +2340,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_namco_wsg_per_lane_waves_assert PROPERTIES DEPENDS chipper_render_namco_wsg_per_lane_waves_smoke)
 
     add_test(NAME chipper_render_ym2612_json_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-smoke.json --implemented-contains ymfm --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.01 --min-rms 0.002 --register-writes 0 --note-events 0 --core-min internalChannelCount=6 --core-max internalChannelCount=6 --core-min uiExposesAllSixVoices=1 --core-max uiExposesAllSixVoices=1 --core-min algorithm0=4 --core-max algorithm0=4 --core-min feedback0=3 --core-max feedback0=3 --core-min algorithmFeedbackRegister0=28 --core-max algorithmFeedbackRegister0=28 --core-min fnum0=1 --core-max fnum0=2047 --core-min block0=0 --core-max block0=7 --core-min keyOnMask=0 --core-max keyOnMask=0 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=menu --descriptor-param-label "waveShape=Algorithm" --descriptor-param-choices waveShape=9
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-smoke.json --implemented-contains ymfm --verification-badge "Verified partial" --cycle-accurate 0 --macro Lead --min-peak 0.01 --min-rms 0.002 --register-writes 0 --note-events 0 --core-min internalChannelCount=6 --core-max internalChannelCount=6 --core-min uiExposesAllSixVoices=1 --core-max uiExposesAllSixVoices=1 --core-min algorithm0=4 --core-max algorithm0=4 --core-min feedback0=3 --core-max feedback0=3 --core-min algorithmFeedbackRegister0=28 --core-max algorithmFeedbackRegister0=28 --core-min fnum0=1 --core-max fnum0=2047 --core-min block0=0 --core-max block0=7 --core-min keyOnMask=0 --core-max keyOnMask=0 --core-min lfoRegister22=0 --core-max lfoRegister22=0 --core-min lfoEnabled=0 --core-max lfoEnabled=0 --core-min lfoChannelBits=0 --core-max lfoChannelBits=0 --core-min channelControlRegister0=192 --core-max channelControlRegister0=192 --descriptor-param-kind waveShape=chipRegister --descriptor-param-surface waveShape=menu --descriptor-param-label "waveShape=Algorithm" --descriptor-param-choices waveShape=9 --descriptor-param-kind stereoSpread=chipRegister --descriptor-param-surface stereoSpread=slider --descriptor-param-label "stereoSpread=LFO Depth"
     )
     set_tests_properties(chipper_render_ym2612_json_assert PROPERTIES DEPENDS chipper_render_ym2612_smoke)
 
@@ -2395,6 +2398,28 @@ if (Python3_Interpreter_FOUND)
             --descriptor-param-kind fmOperator4ReleaseRate=chipRegister --descriptor-param-surface fmOperator4ReleaseRate=menu --descriptor-param-label "fmOperator4ReleaseRate=OP4 Release" --descriptor-param-choices fmOperator4ReleaseRate=17
     )
     set_tests_properties(chipper_render_ym2612_operator_levels_assert PROPERTIES DEPENDS chipper_render_ym2612_operator_levels_smoke)
+
+    add_test(NAME chipper_render_ym2612_lfo_depth_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-lfo-depth-smoke.json
+            --implemented-contains ymfm --macro Lead --min-peak 0.01 --register-writes 0 --note-events 0
+            --core-min lfoDepthControl=0.64 --core-max lfoDepthControl=0.66
+            --core-min lfoRegister22=13 --core-max lfoRegister22=13
+            --core-min lfoEnabled=1 --core-max lfoEnabled=1
+            --core-min lfoRate=5 --core-max lfoRate=5
+            --core-min lfoAmSensitivity=2 --core-max lfoAmSensitivity=2
+            --core-min lfoPmSensitivity=5 --core-max lfoPmSensitivity=5
+            --core-min lfoChannelBits=37 --core-max lfoChannelBits=37
+            --core-min channelControlRegister0=229 --core-max channelControlRegister0=229
+            --core-min panBits0=192 --core-max panBits0=192
+            --core-min operatorAmEnable0=0 --core-max operatorAmEnable0=0
+            --core-min operatorAmEnable1=1 --core-max operatorAmEnable1=1
+            --core-min operatorAmEnable2=0 --core-max operatorAmEnable2=0
+            --core-min operatorAmEnable3=1 --core-max operatorAmEnable3=1
+            --descriptor-param-kind stereoSpread=chipRegister
+            --descriptor-param-surface stereoSpread=slider
+            --descriptor-param-label "stereoSpread=LFO Depth"
+    )
+    set_tests_properties(chipper_render_ym2612_lfo_depth_assert PROPERTIES DEPENDS chipper_render_ym2612_lfo_depth_smoke)
 
     add_test(NAME chipper_render_ym2612_chip_poly_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-chip-poly-smoke.json --implemented-contains ymfm --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 4 --min-peak 0.01 --core-min activeChannels=4 --core-max activeChannels=4 --core-min assignedNote0=60 --core-max assignedNote0=60 --core-min assignedNote1=64 --core-max assignedNote1=64 --core-min assignedNote2=67 --core-max assignedNote2=67 --core-min assignedNote3=72 --core-max assignedNote3=72 --core-min keyOnMask=15 --core-max keyOnMask=15

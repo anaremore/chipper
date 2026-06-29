@@ -446,6 +446,7 @@ private:
     juce::String fmOperatorLevelReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t op) const;
     juce::String fmOperatorRegisterTooltip(chipper::ChipMode mode, size_t op) const;
     juce::String ym2612DacModeReadout(const chipper::PatchConfig& patch) const;
+    juce::String ym2612LfoReadout(const chipper::PatchConfig& patch) const;
     juce::String fmSourceRegisterReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const;
     juce::String sourceCardNativeLabel(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index, juce::String fallback) const;
     juce::String dmgWaveLevelReadout(const chipper::PatchConfig& patch) const;

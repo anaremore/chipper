@@ -1319,11 +1319,11 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
                       ym2612DacModeChoices(),
                       ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::stereoSpread,
-                   "ym2612.stereoSpread",
-                   "Stereo Spread",
-                   "Output",
-                   "Modern output width trim after native OPN2 pan bits; set Pan for register-accurate left/right routing.",
-                   ParameterKind::continuous)
+                   "ym2612.lfoDepth",
+                   "LFO Depth",
+                   "Motion",
+                   "Writes native YM2612 LFO enable/rate in $22, per-channel AMS/PMS in $B4+n, and AM-enable bits on audible carrier operators. Zero leaves the OPN2 LFO off.",
+                   ParameterKind::chipRegister)
     };
 }
 
@@ -3600,8 +3600,8 @@ std::array<ModuleDescriptor, 6> ym2612Modules()
         makeModule("sources", "FM Voices", "All six YM2612 melodic channels are exposed as playable source lanes.", { "FM Ch 1", "FM Ch 2", "FM Ch 3", "FM Ch 4-6" }),
         makeModule("tone", "Operators", "Musical controls write native OPN2 algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPN2 attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
-        makeModule("motion", "Motion", "Genesis-style preset recipes map to register-backed FM patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
-        makeModule("output", "Output", "ymfm stereo OPN2 output follows native channel pan bits plus output trim.", { "Stereo core", "Pan bits", "DAC drum", "Verified partial" })
+        makeModule("motion", "Motion", "Genesis-style preset recipes map to register-backed FM patches with first-pass native LFO depth.", { "$22 LFO", "AMS/PMS", "Carrier AM", "Pitch laser" }),
+        makeModule("output", "Output", "ymfm stereo OPN2 output follows native channel pan bits plus output trim.", { "Stereo core", "$B4 pan", "DAC drum", "Verified partial" })
     };
 }
 
@@ -4066,6 +4066,7 @@ const std::vector<ChipDescriptor>& descriptors()
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2612 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2612 feedback bits for the active FM voices." },
+                { "lfo", "LFO Depth", "Motion", "Writes native $22 LFO rate plus $B4 AMS/PMS and carrier AM-enable bits." },
                 { "operator", "Operator Tone", "Operators", "Scales operator multipliers and modulator levels." },
                 { "level", "FM / DAC Level", "Output", "Controls carrier level and channel-6 DAC mode through native registers." },
             },
@@ -4077,13 +4078,13 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2612/OPN2 synthesis core.",
-                    "Renderer notes and preset recipes write OPN2 algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, left/right pan bits, and key-on registers across all six melodic channels.",
+                    "Renderer notes and preset recipes write OPN2 algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, left/right pan bits, LFO enable/rate, AMS/PMS, carrier AM-enable bits, and key-on registers across all six melodic channels.",
                     "Channel-6 DAC Drum mode enables $2B and streams generated 8-bit drum bytes through $2A via the ymfm core.",
-                    "Descriptor, MIDI CC, renderer smoke, source gating, DAC Drum, and Chip Poly regression tests cover the first playable adapter, including six visible source lanes and six-channel note allocation."
+                    "Descriptor, MIDI CC, renderer smoke, source gating, LFO Depth JSON, DAC Drum, and Chip Poly regression tests cover the first playable adapter, including six visible source lanes and six-channel note allocation."
                 },
                 {
                     "The six-lane UI is still a compact generic source-card layout rather than a dedicated operator grid.",
-                    "User PCM import for OPN2 DAC playback, LFO/AMS/PMS, full per-operator ADSR UI, SSG-EG quirks, timers, and hardware capture comparison are not complete.",
+                    "User PCM import for OPN2 DAC playback, deeper LFO waveform/modulation UI, DT1/SSG-EG quirks, timers, and hardware capture comparison are not complete.",
                     "Cycle accuracy is not claimed."
                 })
         },
@@ -5770,6 +5771,55 @@ uint8_t ym2612PanBitsForPatch(const PatchConfig& patch, size_t channel)
         default:
             return 0xc0u;
     }
+}
+
+uint8_t ym2612LfoRateForPatch(const PatchConfig& patch)
+{
+    const auto amount = clampControl(patch.stereoSpread);
+    if (amount <= 0.001f)
+        return 0;
+
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(amount * 7.0f)), 1, 7));
+}
+
+uint8_t ym2612LfoRegisterForPatch(const PatchConfig& patch)
+{
+    const auto rate = ym2612LfoRateForPatch(patch);
+    return rate == 0u ? 0u : static_cast<uint8_t>(0x08u | rate);
+}
+
+uint8_t ym2612LfoAmSensitivityForPatch(const PatchConfig& patch)
+{
+    const auto amount = clampControl(patch.stereoSpread);
+    if (amount <= 0.001f)
+        return 0;
+
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(amount * 3.0f)), 1, 3));
+}
+
+uint8_t ym2612LfoPmSensitivityForPatch(const PatchConfig& patch)
+{
+    const auto amount = clampControl(patch.stereoSpread);
+    if (amount <= 0.001f)
+        return 0;
+
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(amount * 7.0f)), 1, 7));
+}
+
+uint8_t ym2612LfoChannelBitsForPatch(const PatchConfig& patch)
+{
+    return static_cast<uint8_t>((ym2612LfoAmSensitivityForPatch(patch) << 4u) | ym2612LfoPmSensitivityForPatch(patch));
+}
+
+uint8_t ym2612ChannelControlForPatch(const PatchConfig& patch, size_t channel)
+{
+    return static_cast<uint8_t>(ym2612PanBitsForPatch(patch, channel) | ym2612LfoChannelBitsForPatch(patch));
+}
+
+bool ym2612OperatorAmEnabledForPatch(const PatchConfig& patch, size_t op)
+{
+    return ym2612LfoAmSensitivityForPatch(patch) > 0
+        && fmOperatorIsCarrierForAlgorithm(ym2612AlgorithmForPatch(patch), op);
 }
 
 uint8_t ym2151PanBitsForPatch(const PatchConfig& patch, size_t channel)

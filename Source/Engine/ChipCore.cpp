@@ -13819,6 +13819,11 @@ public:
         currentDecayRate.fill(0x08u);
         currentSustainRate.fill(0x00u);
         currentSustainRelease.fill(0x46u);
+        currentLfoRegister = 0;
+        currentLfoRate = 0;
+        currentLfoAmSensitivity = 0;
+        currentLfoPmSensitivity = 0;
+        currentLfoChannelBits = 0;
         dacSample.clear();
         dacPhase = 0.0;
         dacStep = 1.0;
@@ -13961,7 +13966,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPN2 register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator, algorithm, feedback, f-number/block, $B4 left/right pan bits, key-on registers for all six melodic channels, and optional channel-6 DAC Drum playback through $2B/$2A, with all six source lanes exposed for play and mix control. User PCM import for the DAC, a dedicated operator-grid UI, LFO/AMS/PMS controls, SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator, algorithm, feedback, f-number/block, $B4 left/right pan plus AMS/PMS bits, $22 LFO enable/rate, carrier AM-enable bits, key-on registers for all six melodic channels, and optional channel-6 DAC Drum playback through $2B/$2A, with all six source lanes exposed for play and mix control. User PCM import for the DAC, a dedicated operator-grid UI, DT1/SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -14029,6 +14034,10 @@ public:
              << "\"operatorDecayRate1\":" << static_cast<int>(regs[opRegForChannel(0x60, 0, 1)]) << ","
              << "\"operatorDecayRate2\":" << static_cast<int>(regs[opRegForChannel(0x60, 0, 2)]) << ","
              << "\"operatorDecayRate3\":" << static_cast<int>(regs[opRegForChannel(0x60, 0, 3)]) << ","
+             << "\"operatorAmEnable0\":" << static_cast<int>((regs[opRegForChannel(0x60, 0, 0)] >> 7u) & 0x01u) << ","
+             << "\"operatorAmEnable1\":" << static_cast<int>((regs[opRegForChannel(0x60, 0, 1)] >> 7u) & 0x01u) << ","
+             << "\"operatorAmEnable2\":" << static_cast<int>((regs[opRegForChannel(0x60, 0, 2)] >> 7u) & 0x01u) << ","
+             << "\"operatorAmEnable3\":" << static_cast<int>((regs[opRegForChannel(0x60, 0, 3)] >> 7u) & 0x01u) << ","
              << "\"operatorSustainRate0\":" << static_cast<int>(regs[opRegForChannel(0x70, 0, 0)]) << ","
              << "\"operatorSustainRate1\":" << static_cast<int>(regs[opRegForChannel(0x70, 0, 1)]) << ","
              << "\"operatorSustainRate2\":" << static_cast<int>(regs[opRegForChannel(0x70, 0, 2)]) << ","
@@ -14043,6 +14052,14 @@ public:
              << "\"operatorTotalLevel3\":" << static_cast<int>(regs[opRegForChannel(0x40, 0, 3)]) << ","
              << "\"panBits0\":" << static_cast<int>(currentPanBits[0]) << ","
              << "\"panBits1\":" << static_cast<int>(currentPanBits[1]) << ","
+             << "\"lfoDepthControl\":" << patch.stereoSpread << ","
+             << "\"lfoRegister22\":" << static_cast<int>(currentLfoRegister) << ","
+             << "\"lfoEnabled\":" << ((currentLfoRegister & 0x08u) != 0u ? 1 : 0) << ","
+             << "\"lfoRate\":" << static_cast<int>(currentLfoRate) << ","
+             << "\"lfoAmSensitivity\":" << static_cast<int>(currentLfoAmSensitivity) << ","
+             << "\"lfoPmSensitivity\":" << static_cast<int>(currentLfoPmSensitivity) << ","
+             << "\"lfoChannelBits\":" << static_cast<int>(currentLfoChannelBits) << ","
+             << "\"channelControlRegister0\":" << static_cast<int>(regs[0xb4]) << ","
              << "\"dacMode\":" << static_cast<int>(ym2612DacModeForPatch(patch)) << ","
              << "\"dacEnabled\":" << (dacEnabled ? 1 : 0) << ","
              << "\"dacActive\":" << (dacActive ? 1 : 0) << ","
@@ -14225,6 +14242,16 @@ private:
         return false;
     }
 
+    void applyLfoPatch()
+    {
+        currentLfoRegister = ym2612LfoRegisterForPatch(patch);
+        currentLfoRate = ym2612LfoRateForPatch(patch);
+        currentLfoAmSensitivity = ym2612LfoAmSensitivityForPatch(patch);
+        currentLfoPmSensitivity = ym2612LfoPmSensitivityForPatch(patch);
+        currentLfoChannelBits = ym2612LfoChannelBitsForPatch(patch);
+        writeYmRegister(0x22, currentLfoRegister);
+    }
+
     void applyChannelPatch(size_t channel, float velocity)
     {
         if (channel >= 6)
@@ -14242,7 +14269,8 @@ private:
             writeYmRegister(opRegForChannel(0x30, channel, op), multiplierForPatch(op));
             writeYmRegister(opRegForChannel(0x40, channel, op), totalLevelForOperator(op, velocity, algorithm));
             writeYmRegister(opRegForChannel(0x50, channel, op), envelope.attackRate);
-            writeYmRegister(opRegForChannel(0x60, channel, op), envelope.decayRate);
+            const auto decayRate = static_cast<uint8_t>(envelope.decayRate | (ym2612OperatorAmEnabledForPatch(patch, op) ? 0x80u : 0x00u));
+            writeYmRegister(opRegForChannel(0x60, channel, op), decayRate);
             writeYmRegister(opRegForChannel(0x70, channel, op), envelope.sustainRate);
             writeYmRegister(opRegForChannel(0x80, channel, op), envelope.sustainRelease);
             writeYmRegister(opRegForChannel(0x90, channel, op), 0x00u);
@@ -14256,11 +14284,13 @@ private:
         }
 
         writeYmRegister(regForChannel(0xb0, channel), static_cast<uint8_t>((feedback << 3u) | algorithm));
-        writeYmRegister(regForChannel(0xb4, channel), currentPanBits[channel]);
+        writeYmRegister(regForChannel(0xb4, channel), ym2612ChannelControlForPatch(patch, channel));
     }
 
     void applyPatchToAllChannels(bool preserveKeys)
     {
+        applyLfoPatch();
+
         for (size_t channel = 0; channel < 6; ++channel)
             applyChannelPatch(channel, channel < channelVelocity.size() && channelVelocity[channel] > 0.0f ? channelVelocity[channel] : 1.0f);
 
@@ -14321,7 +14351,7 @@ private:
     {
         channelVelocity[5] = static_cast<float>(clamp01(velocity) * sourceLevel(patch, 5));
         currentPanBits[5] = ym2612PanBitsForPatch(patch, 5);
-        writeYmRegister(regForChannel(0xb4, 5), currentPanBits[5]);
+        writeYmRegister(regForChannel(0xb4, 5), ym2612ChannelControlForPatch(patch, 5));
 
         if (! shouldEnable || channelVelocity[5] <= 0.0f)
         {
@@ -14504,6 +14534,11 @@ private:
     std::array<uint8_t, 6> currentDecayRate {};
     std::array<uint8_t, 6> currentSustainRate {};
     std::array<uint8_t, 6> currentSustainRelease {};
+    uint8_t currentLfoRegister = 0;
+    uint8_t currentLfoRate = 0;
+    uint8_t currentLfoAmSensitivity = 0;
+    uint8_t currentLfoPmSensitivity = 0;
+    uint8_t currentLfoChannelBits = 0;
     std::array<int, 6> channelNotes {};
     std::array<float, 6> channelVelocity {};
     std::array<uint64_t, 6> channelStamp {};

@@ -791,6 +791,26 @@ bool expectFmRegisterHelpers()
     }
     ok &= expect(chipper::ym2612PanBitsForPatch(opn2Lead, 0) == 0xc0u, "YM2612 lead macro should resolve to centered pan bits");
     ok &= expect(chipper::ym2612DacModeForPatch(opn2Lead) == 1u, "YM2612 lead macro should keep channel 6 in FM mode");
+    auto opn2Lfo = opn2Lead;
+    opn2Lfo.waveShape = 5;
+    opn2Lfo.stereoSpread = 0.65f;
+    ok &= expect(chipper::ym2612LfoRateForPatch(opn2Lfo) == 5u, "YM2612 LFO depth should resolve to native LFO rate");
+    ok &= expect(chipper::ym2612LfoRegisterForPatch(opn2Lfo) == 0x0du, "YM2612 LFO depth should enable $22 and write rate bits");
+    ok &= expect(chipper::ym2612LfoAmSensitivityForPatch(opn2Lfo) == 2u, "YM2612 LFO depth should resolve AM sensitivity");
+    ok &= expect(chipper::ym2612LfoPmSensitivityForPatch(opn2Lfo) == 5u, "YM2612 LFO depth should resolve PM sensitivity");
+    ok &= expect(chipper::ym2612LfoChannelBitsForPatch(opn2Lfo) == 0x25u, "YM2612 LFO sensitivity should pack AMS/PMS into $B4+n");
+    ok &= expect(chipper::ym2612ChannelControlForPatch(opn2Lfo, 0) == 0xe5u, "YM2612 channel control should combine pan with AMS/PMS");
+    ok &= expect(! chipper::ym2612OperatorAmEnabledForPatch(opn2Lfo, 0)
+                 && chipper::ym2612OperatorAmEnabledForPatch(opn2Lfo, 1)
+                 && ! chipper::ym2612OperatorAmEnabledForPatch(opn2Lfo, 2)
+                 && chipper::ym2612OperatorAmEnabledForPatch(opn2Lfo, 3),
+                 "YM2612 LFO AM should enable audible carriers for algorithm 4");
+    opn2Lfo.stereoSpread = 0.0f;
+    ok &= expect(chipper::ym2612LfoRateForPatch(opn2Lfo) == 0u
+                 && chipper::ym2612LfoRegisterForPatch(opn2Lfo) == 0u
+                 && chipper::ym2612LfoChannelBitsForPatch(opn2Lfo) == 0u
+                 && chipper::ym2612ChannelControlForPatch(opn2Lfo, 0) == 0xc0u,
+                 "YM2612 zero LFO depth should leave native LFO bits off while preserving pan");
     const auto opn2LeadModulatorEnvelope = chipper::ym2612EnvelopeRegistersForPatch(opn2Lead, 0);
     ok &= expect(opn2LeadModulatorEnvelope.attackRate == 0x1fu, "YM2612 lead envelope should use fast modulator attack");
     ok &= expect(opn2LeadModulatorEnvelope.decayRate == 0x04u, "YM2612 lead modulator decay should keep sustained FM notes playable");
@@ -1631,6 +1651,8 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::snNoiseMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "DAC Mode");
     ok &= expectSpecGroup(chipper::ChipMode::ym2612, chipper::ChipParameterRole::snNoiseMode, "Output");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2612, chipper::ChipParameterRole::snNoiseMode, 3, "Preset");
+    ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::stereoSpread, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "LFO Depth");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2612, chipper::ChipParameterRole::stereoSpread, "Motion");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "FM Ch 5");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source6Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "FM Ch 6");
     ok &= expectSpec(chipper::ChipMode::ym2612, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "FM Ch 5 Level");

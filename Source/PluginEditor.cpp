@@ -9610,6 +9610,20 @@ juce::String ChipperAudioProcessorEditor::ym2612DacModeReadout(const chipper::Pa
     return patch.snNoiseMode == 0 ? juce::String("Preset -> ") + resolved : resolved;
 }
 
+juce::String ChipperAudioProcessorEditor::ym2612LfoReadout(const chipper::PatchConfig& patch) const
+{
+    const auto lfoRegister = chipper::ym2612LfoRegisterForPatch(patch);
+    const auto channelBits = chipper::ym2612LfoChannelBitsForPatch(patch);
+    if ((lfoRegister & 0x08u) == 0u || channelBits == 0u)
+        return "LFO off, $22=0x00, AMS0 PMS0";
+
+    return juce::String("$22=0x")
+        + juce::String::toHexString(static_cast<int>(lfoRegister)).paddedLeft('0', 2).toUpperCase()
+        + ", AMS" + juce::String(static_cast<int>(chipper::ym2612LfoAmSensitivityForPatch(patch)))
+        + " PMS" + juce::String(static_cast<int>(chipper::ym2612LfoPmSensitivityForPatch(patch)))
+        + ", $B4 bits 0x" + juce::String::toHexString(static_cast<int>(channelBits)).paddedLeft('0', 2).toUpperCase();
+}
+
 juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const
 {
     const auto channel = static_cast<int>(index + 1u);
@@ -9742,7 +9756,8 @@ juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipM
     if (mode == chipper::ChipMode::ym2612 && index == 5u && chipper::ym2612DacModeForPatch(patch) == 2u)
     {
         return "OPN2 Ch 6 DAC | $2B enable bit 7 | $2A 8-bit DAC stream | Pan $"
-            + byteHex(chipper::ym2612PanBitsForPatch(patch, index));
+            + byteHex(chipper::ym2612PanBitsForPatch(patch, index))
+            + " | $B4 $" + byteHex(chipper::ym2612ChannelControlForPatch(patch, index));
     }
 
     const auto op1Multiple = static_cast<int>(chipper::fmOperatorMultipleForPatch(mode, patch, 0));
@@ -9900,7 +9915,9 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
         auto label = (mode == chipper::ChipMode::ym2151 ? "OPM " : (mode == chipper::ChipMode::ym2203 ? "OPN " : (mode == chipper::ChipMode::ym2608 ? "OPNA " : (mode == chipper::ChipMode::ym2610b ? "OPNB2 " : (mode == chipper::ChipMode::ym2610 ? "OPNB " : "OPN2 "))))) + number
             + " | A" + juce::String(algorithm)
             + " TL" + juce::String(static_cast<int>(chipper::fmOperatorTotalLevelForPatch(mode, patch, 3)));
-        if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2608 || isOpnbMode(mode))
+        if (mode == chipper::ChipMode::ym2612)
+            label += " $B4 $" + byteHex(chipper::ym2612ChannelControlForPatch(patch, index));
+        else if (mode == chipper::ChipMode::ym2608 || isOpnbMode(mode))
             label += " Pan $" + byteHex(chipper::ym2612PanBitsForPatch(patch, index));
         return label;
     }
@@ -12076,6 +12093,20 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
 
 void ChipperAudioProcessorEditor::updateStereoSpreadReadout(chipper::ChipMode mode, const chipper::PatchConfig* patch)
 {
+    if (mode == chipper::ChipMode::ym2612)
+    {
+        if (patch != nullptr)
+        {
+            stereoSpreadValueLabel.setText(ym2612LfoReadout(*patch), juce::dontSendNotification);
+            return;
+        }
+
+        chipper::PatchConfig fallback;
+        fallback.stereoSpread = parameterValue(chipper::parameters::id::stereoSpread);
+        stereoSpreadValueLabel.setText(ym2612LfoReadout(fallback), juce::dontSendNotification);
+        return;
+    }
+
     if (mode == chipper::ChipMode::ym2151)
     {
         if (patch != nullptr)

@@ -8004,7 +8004,7 @@ const std::vector<PresetQualityTarget>& presetQualityTargets()
         { ChipMode::saa1099, roles, { "saa1099", "psg", "tone", "noise", "envelope", "stereo", "chord" }, "Furnace-informed SAA1099 coverage: six-channel stereo PSG basses, leads, arps, keys, dual-noise percussion, and SFX." },
         { ChipMode::pcSpeaker, roles, { "pc", "speaker", "beeper", "pit", "click", "gate", "sfx" }, "Furnace-informed PC Speaker coverage: one-bit PIT beeps, basses, leads, arps, key blips, click percussion, and SFX." },
         { ChipMode::zxSpectrumBeeper, roles, { "zx", "spectrum", "beeper", "ula", "ear", "mic", "click", "sfx" }, "Furnace-informed ZX Spectrum beeper coverage: one-bit ULA beeps, basses, leads, arps, key blips, MIC-click percussion, and SFX." },
-        { ChipMode::ym2612, roles, { "fm", "operator", "dac", "feedback", "envelope", "chord" }, "Furnace-informed OPN2 coverage: operator bass/leads/keys plus rhythm, DAC, and SFX recipes." },
+        { ChipMode::ym2612, roles, { "fm", "operator", "dac", "feedback", "envelope", "lfo", "chord" }, "Furnace-informed OPN2 coverage: operator bass/leads/keys plus rhythm, DAC, native LFO motion, and SFX recipes." },
         { ChipMode::opl3, roles, { "fm", "operator", "rhythm", "wave", "bell" }, "Furnace-informed OPL coverage: two-op melodic voices, rhythm mode, bells, basses, and DOS-style SFX." },
         { ChipMode::spc700, roles, { "sampler", "loop", "noise", "echo", "tracker" }, "Furnace-informed SPC700-style coverage: looped sample voices, drum maps, pitch motion, and noise colors." },
         { ChipMode::pokey, roles, { "pokey", "noise", "filter", "polynomial", "distortion" }, "Furnace-informed POKEY coverage: polynomial bass/leads, paired-channel tones, percussion, and harsh SFX." },
