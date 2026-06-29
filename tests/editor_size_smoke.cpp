@@ -89,6 +89,7 @@ const char* chipModeName(chipper::ChipMode mode)
     {
     case chipper::ChipMode::spc700: return "SPC700";
     case chipper::ChipMode::paula: return "Paula";
+    case chipper::ChipMode::ym2203: return "YM2203";
     default: return "chip";
     }
 }
@@ -1372,6 +1373,7 @@ bool checkPerformanceMacroSliderLayout()
                 break;
             case chipper::ChipMode::ym2612:
             case chipper::ChipMode::ym2151:
+            case chipper::ChipMode::ym2203:
                 expectedMacroSliders = { 0 };
                 break;
             default:
@@ -1392,6 +1394,7 @@ bool checkPerformanceMacroSliderLayout()
                 || mode == chipper::ChipMode::opl3
                 || mode == chipper::ChipMode::ym2151
                 || mode == chipper::ChipMode::ym2413
+                || mode == chipper::ChipMode::ym2203
                 || mode == chipper::ChipMode::pokey
                 || mode == chipper::ChipMode::huc6280
                 || mode == chipper::ChipMode::namcoWsg
@@ -1481,7 +1484,7 @@ bool checkPerformanceMacroSliderLayout()
             }
         }
 
-        if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151)
+        if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203)
         {
             const auto feedbackBounds = editor.getFmFeedbackBoundsForLayoutTest();
             const auto feedbackSliderBounds = editor.getNativeSliderBoundsForLayoutTest(1);
@@ -1860,6 +1863,7 @@ int main()
     ok &= checkYm2612DacModeLayout();
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2612);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2151);
+    ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2203);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::huc6280);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::namcoWsg);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::scc);

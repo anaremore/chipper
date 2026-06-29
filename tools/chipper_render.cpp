@@ -235,9 +235,11 @@ bool spc700VoiceSampleSlotIndexForArg(const std::string& arg, size_t& index)
 
 bool fmOperatorLevelIndexForArg(const std::string& arg, size_t& index)
 {
-    const std::array<const char*, 3> prefixes {
+    const std::array<const char*, 5> prefixes {
         "--fm-op",
         "--opn2-op",
+        "--opn-op",
+        "--ym2203-op",
         "--opm-op"
     };
 
@@ -264,9 +266,11 @@ bool fmOperatorLevelIndexForArg(const std::string& arg, size_t& index)
 
 bool fmOperatorMultiplierIndexForArg(const std::string& arg, size_t& index)
 {
-    const std::array<const char*, 3> prefixes {
+    const std::array<const char*, 5> prefixes {
         "--fm-op",
         "--opn2-op",
+        "--opn-op",
+        "--ym2203-op",
         "--opm-op"
     };
 
@@ -293,9 +297,11 @@ bool fmOperatorMultiplierIndexForArg(const std::string& arg, size_t& index)
 
 bool fmOperatorAttackRateIndexForArg(const std::string& arg, size_t& index)
 {
-    const std::array<const char*, 3> prefixes {
+    const std::array<const char*, 5> prefixes {
         "--fm-op",
         "--opn2-op",
+        "--opn-op",
+        "--ym2203-op",
         "--opm-op"
     };
 
@@ -322,9 +328,11 @@ bool fmOperatorAttackRateIndexForArg(const std::string& arg, size_t& index)
 
 bool fmOperatorDecayRateIndexForArg(const std::string& arg, size_t& index)
 {
-    const std::array<const char*, 3> prefixes {
+    const std::array<const char*, 5> prefixes {
         "--fm-op",
         "--opn2-op",
+        "--opn-op",
+        "--ym2203-op",
         "--opm-op"
     };
 
@@ -351,9 +359,11 @@ bool fmOperatorDecayRateIndexForArg(const std::string& arg, size_t& index)
 
 bool fmOperatorSustainRateIndexForArg(const std::string& arg, size_t& index)
 {
-    const std::array<const char*, 3> prefixes {
+    const std::array<const char*, 5> prefixes {
         "--fm-op",
         "--opn2-op",
+        "--opn-op",
+        "--ym2203-op",
         "--opm-op"
     };
 
@@ -380,9 +390,11 @@ bool fmOperatorSustainRateIndexForArg(const std::string& arg, size_t& index)
 
 bool fmOperatorReleaseRateIndexForArg(const std::string& arg, size_t& index)
 {
-    const std::array<const char*, 3> prefixes {
+    const std::array<const char*, 5> prefixes {
         "--fm-op",
         "--opn2-op",
+        "--opn-op",
+        "--ym2203-op",
         "--opm-op"
     };
 
@@ -1782,7 +1794,7 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.controlProvided[1] = true;
         }
-        else if (arg == "--fm-feedback" || arg == "--opn2-feedback" || arg == "--ym2612-feedback" || arg == "--opm-feedback" || arg == "--ym2151-feedback")
+        else if (arg == "--fm-feedback" || arg == "--opn2-feedback" || arg == "--ym2612-feedback" || arg == "--opn-feedback" || arg == "--ym2203-feedback" || arg == "--opm-feedback" || arg == "--ym2151-feedback")
         {
             const auto* value = requireValue(arg.c_str());
             if (value == nullptr || ! parseFmFeedbackChoice(std::string(value), options.control2))
@@ -3309,6 +3321,7 @@ const char* chipModeKey(chipper::ChipMode mode)
         case chipper::ChipMode::ym2151: return "ym2151";
         case chipper::ChipMode::ym2413: return "ym2413";
         case chipper::ChipMode::scc: return "scc";
+        case chipper::ChipMode::ym2203: return "ym2203";
     }
 
     return "nes";

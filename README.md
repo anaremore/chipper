@@ -91,6 +91,7 @@ Implemented depth varies by chip. See [docs/emulation-accuracy.md](docs/emulatio
 | YM2149 / AY | Verified-partial MIT `emu2149` PSG adapter |
 | SN76489 / Sega PSG | Verified-partial MIT `emu76489` PSG adapter |
 | YM2612 / Genesis FM | Verified-partial BSD-3-Clause `ymfm` OPN2 adapter with partial channel-6 DAC drum playback |
+| YM2203 / OPN | Verified-partial BSD-3-Clause `ymfm` OPN FM adapter with three FM lanes; embedded SSG planned next |
 | OPL2 / OPL3 | Verified-partial BSD-3-Clause `ymfm` YMF262/OPL3 adapter with a nine-lane OPL2-compatible surface; full 18-channel/four-op editing planned |
 | SNES SPC700-style | Partial clean-room eight-voice BRR/WAV/AIFF sample-player model with note maps, loop handling, Gaussian-style interpolation, PMON-style pitch modulation, noise, and musical echo helper |
 | Atari POKEY | Partial clean-room polynomial/timer model |

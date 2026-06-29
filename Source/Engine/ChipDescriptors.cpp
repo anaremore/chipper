@@ -58,6 +58,22 @@ std::vector<MacroTemplate> ym2612Macros()
     };
 }
 
+std::vector<MacroTemplate> ym2203Macros()
+{
+    return {
+        { MacroKind::manual, "OPN Manual", "Neutral YM2203 three-channel FM mapping using the ymfm OPN core.", { 0.50f, 0.35f, 0.45f, 0.70f }, { true, true, true, false }, 0.0f, 0 },
+        { MacroKind::coin, "OPN PC-88 Chime", "Short bright YM2203 UI chime using parallel-carrier FM.", { 1.00f, 0.18f, 0.66f, 0.76f }, { true, false, false, false }, 0.16f, 8 },
+        { MacroKind::bass, "OPN Feedback Bass", "Dark three-channel YM2203 bass using a serial operator algorithm and feedback.", { 0.00f, 0.82f, 0.26f, 0.88f }, { true, true, false, false }, 0.08f, 1 },
+        { MacroKind::lead, "OPN Metallic Lead", "Forward YM2203 lead with parallel carrier bite.", { 0.58f, 0.46f, 0.60f, 0.82f }, { true, true, true, false }, 0.10f, 5 },
+        { MacroKind::arp, "OPN Three-Voice Arp", "Three YM2203 FM channels arranged for quick fake chords and arpeggios.", { 0.72f, 0.32f, 0.48f, 0.78f }, { true, true, true, false }, 0.08f, 6 },
+        { MacroKind::drum, "OPN FM Perc", "Short YM2203 operator percussion without the embedded SSG layer.", { 0.14f, 0.72f, 0.66f, 0.92f }, { true, false, true, false }, 0.30f, 2, 4 },
+        { MacroKind::hit, "OPN Damage Hit", "Aggressive stacked YM2203 operator impact.", { 0.22f, 0.90f, 0.72f, 0.78f }, { true, false, true, false }, 0.52f, 2 },
+        { MacroKind::laser, "OPN Pitch Laser", "YM2203 pitch sweep SFX through three FM voices.", { 0.30f, 0.72f, 0.88f, 0.80f }, { true, true, false, false }, 0.28f, 3 },
+        { MacroKind::jump, "OPN Jump Blip", "Quick upward YM2203 FM game gesture.", { 1.00f, 0.22f, 0.64f, 0.76f }, { true, false, false, false }, 0.18f, 8 },
+        { MacroKind::powerUp, "OPN Power Rise", "Longer bright YM2203 rise over stacked FM channels.", { 0.86f, 0.36f, 0.56f, 0.84f }, { true, true, true, false }, 0.14f, 7 }
+    };
+}
+
 std::vector<MacroTemplate> ym2151Macros()
 {
     return {
@@ -758,19 +774,29 @@ std::vector<ParameterChoiceSpec> oplRhythmModeChoices()
     };
 }
 
-std::vector<ParameterChoiceSpec> ym2612AlgorithmChoices()
+std::vector<ParameterChoiceSpec> opnAlgorithmChoices(std::string chipName, std::string recipeName)
 {
     return {
-        choice("Preset", "Resolve the YM2612 algorithm from the selected OPN2 preset recipe.", 0.0f, 0),
-        choice("Alg 0", "Use YM2612 algorithm 0: serial modulation for strong classic FM bass.", 1.0f / 8.0f, 1),
-        choice("Alg 1", "Use YM2612 algorithm 1: serial pair with parallel modulation.", 2.0f / 8.0f, 2),
-        choice("Alg 2", "Use YM2612 algorithm 2: feedback-oriented branching texture.", 3.0f / 8.0f, 3),
-        choice("Alg 3", "Use YM2612 algorithm 3: mixed serial and parallel operators.", 4.0f / 8.0f, 4),
-        choice("Alg 4", "Use YM2612 algorithm 4: two carrier stacks for bright leads.", 5.0f / 8.0f, 5),
-        choice("Alg 5", "Use YM2612 algorithm 5: one modulator feeding three carriers.", 6.0f / 8.0f, 6),
-        choice("Alg 6", "Use YM2612 algorithm 6: two modulators with two carriers.", 7.0f / 8.0f, 7),
-        choice("Alg 7", "Use YM2612 algorithm 7: four parallel carriers for organ/chime tones.", 1.0f, 8)
+        choice("Preset", "Resolve the " + chipName + " algorithm from the selected " + recipeName + " preset recipe.", 0.0f, 0),
+        choice("Alg 0", "Use " + chipName + " algorithm 0: serial modulation for strong classic FM bass.", 1.0f / 8.0f, 1),
+        choice("Alg 1", "Use " + chipName + " algorithm 1: serial pair with parallel modulation.", 2.0f / 8.0f, 2),
+        choice("Alg 2", "Use " + chipName + " algorithm 2: feedback-oriented branching texture.", 3.0f / 8.0f, 3),
+        choice("Alg 3", "Use " + chipName + " algorithm 3: mixed serial and parallel operators.", 4.0f / 8.0f, 4),
+        choice("Alg 4", "Use " + chipName + " algorithm 4: two carrier stacks for bright leads.", 5.0f / 8.0f, 5),
+        choice("Alg 5", "Use " + chipName + " algorithm 5: one modulator feeding three carriers.", 6.0f / 8.0f, 6),
+        choice("Alg 6", "Use " + chipName + " algorithm 6: two modulators with two carriers.", 7.0f / 8.0f, 7),
+        choice("Alg 7", "Use " + chipName + " algorithm 7: four parallel carriers for organ/chime tones.", 1.0f, 8)
     };
+}
+
+std::vector<ParameterChoiceSpec> ym2612AlgorithmChoices()
+{
+    return opnAlgorithmChoices("YM2612", "OPN2");
+}
+
+std::vector<ParameterChoiceSpec> ym2203AlgorithmChoices()
+{
+    return opnAlgorithmChoices("YM2203", "OPN");
 }
 
 std::vector<ParameterChoiceSpec> ym2612PanChoices()
@@ -976,6 +1002,104 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
                    "Output",
                    "Modern output width trim after native OPN2 pan bits; set Pan for register-accurate left/right routing.",
                    ParameterKind::continuous)
+    };
+}
+
+std::vector<ChipParameterSpec> ym2203ParameterSpecs()
+{
+    return {
+        sourceSpec(ChipParameterRole::source1Enabled, "ym2203.ch1.enabled", "OPN Ch 1", "Enable YM2203 FM channel 1."),
+        sourceSpec(ChipParameterRole::source2Enabled, "ym2203.ch2.enabled", "OPN Ch 2", "Enable YM2203 FM channel 2."),
+        sourceSpec(ChipParameterRole::source3Enabled, "ym2203.ch3.enabled", "OPN Ch 3", "Enable YM2203 FM channel 3."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "ym2203.ch1.level", "OPN Ch 1 Level", "Modern trim before writing YM2203 channel 1 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "ym2203.ch2.level", "OPN Ch 2 Level", "Modern trim before writing YM2203 channel 2 carrier levels."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "ym2203.ch3.level", "OPN Ch 3 Level", "Modern trim before writing YM2203 channel 3 carrier levels."),
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "ym2203.algorithmBias",
+                   "Algorithm Bias",
+                   "FM",
+                   "In Preset mode this chooses among the YM2203 algorithm register values; explicit Algorithm choices override it.",
+                   ParameterKind::chipRegister),
+        fmFeedbackSpec(ChipParameterRole::macroControl2, "ym2203.feedback", "YM2203", "$B0"),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "ym2203.operatorTone",
+                   "Operator Tone",
+                   "Operators",
+                   "Scales operator multiplier and modulator total-level choices before writing OPN operator registers.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "ym2203.fmLevel",
+                   "FM Level",
+                   "Mixer",
+                   "Controls audible carrier level through native OPN total-level registers.",
+                   ParameterKind::chipRegister,
+                   0.70f),
+        sliderSpec(ChipParameterRole::fmOperator1Level,
+                   "ym2203.op1.level",
+                   "OP1 Level",
+                   "Operators",
+                   "Offsets the YM2203 operator 1 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator2Level,
+                   "ym2203.op2.level",
+                   "OP2 Level",
+                   "Operators",
+                   "Offsets the YM2203 operator 2 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator3Level,
+                   "ym2203.op3.level",
+                   "OP3 Level",
+                   "Operators",
+                   "Offsets the YM2203 operator 3 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator4Level,
+                   "ym2203.op4.level",
+                   "OP4 Level",
+                   "Operators",
+                   "Offsets the YM2203 operator 4 total-level register around the preset-resolved value. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator1Multiplier, "ym2203.op1.multiplier", "OP1 Mult", "YM2203", 0),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator2Multiplier, "ym2203.op2.multiplier", "OP2 Mult", "YM2203", 1),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator3Multiplier, "ym2203.op3.multiplier", "OP3 Mult", "YM2203", 2),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator4Multiplier, "ym2203.op4.multiplier", "OP4 Mult", "YM2203", 3),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator1AttackRate, "ym2203.op1.attackRate", "OP1 Attack", "YM2203", 0),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator2AttackRate, "ym2203.op2.attackRate", "OP2 Attack", "YM2203", 1),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator3AttackRate, "ym2203.op3.attackRate", "OP3 Attack", "YM2203", 2),
+        fmOperatorAttackRateSpec(ChipParameterRole::fmOperator4AttackRate, "ym2203.op4.attackRate", "OP4 Attack", "YM2203", 3),
+        fmOperatorDecayRateSpec(ChipParameterRole::fmOperator1DecayRate, "ym2203.op1.decayRate", "OP1 Decay", "YM2203", 0),
+        fmOperatorDecayRateSpec(ChipParameterRole::fmOperator2DecayRate, "ym2203.op2.decayRate", "OP2 Decay", "YM2203", 1),
+        fmOperatorDecayRateSpec(ChipParameterRole::fmOperator3DecayRate, "ym2203.op3.decayRate", "OP3 Decay", "YM2203", 2),
+        fmOperatorDecayRateSpec(ChipParameterRole::fmOperator4DecayRate, "ym2203.op4.decayRate", "OP4 Decay", "YM2203", 3),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator1SustainRate, "ym2203.op1.sustainRate", "OP1 Sustain", "YM2203", 0),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator2SustainRate, "ym2203.op2.sustainRate", "OP2 Sustain", "YM2203", 1),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator3SustainRate, "ym2203.op3.sustainRate", "OP3 Sustain", "YM2203", 2),
+        fmOperatorSustainRateSpec(ChipParameterRole::fmOperator4SustainRate, "ym2203.op4.sustainRate", "OP4 Sustain", "YM2203", 3),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator1ReleaseRate, "ym2203.op1.releaseRate", "OP1 Release", "YM2203", 0),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator2ReleaseRate, "ym2203.op2.releaseRate", "OP2 Release", "YM2203", 1),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator3ReleaseRate, "ym2203.op3.releaseRate", "OP3 Release", "YM2203", 2),
+        fmOperatorReleaseRateSpec(ChipParameterRole::fmOperator4ReleaseRate, "ym2203.op4.releaseRate", "OP4 Release", "YM2203", 3),
+        { ChipParameterRole::waveShape,
+          "ym2203.algorithm",
+          "Algorithm",
+          "FM",
+          "Chooses the YM2203 four-operator algorithm. Preset lets the selected recipe choose.",
+          ParameterKind::chipRegister,
+          ControlSurface::menu,
+          ym2203AlgorithmChoices(),
+          0.0f,
+          1.0f,
+          0.0f },
+        segmentedSpec(ChipParameterRole::ymEnvelopeShape,
+                      "ym2203.envelopeShape",
+                      "Envelope Shape",
+                      "Envelope",
+                      "Writes OPN operator attack, decay, sustain-rate, sustain-level, and release fields for the current musical envelope shape.",
+                      ym2612EnvelopeShapeChoices(),
+                      ParameterKind::chipRegister)
     };
 }
 
@@ -2402,6 +2526,18 @@ std::array<ModuleDescriptor, 6> ym2612Modules()
     };
 }
 
+std::array<ModuleDescriptor, 6> ym2203Modules()
+{
+    return std::array<ModuleDescriptor, 6> {
+        makeModule("profile", "Profile", "YM2203/OPN FM core is backed by audited BSD-licensed ymfm.", { "YM2203 model", "3.99 MHz clock", "Hybrid default", "Verified partial" }),
+        makeModule("sources", "FM Voices", "All three YM2203 FM channels are exposed as playable source lanes.", { "FM Ch 1", "FM Ch 2", "FM Ch 3", "Chip Poly" }),
+        makeModule("tone", "Operators", "Musical controls write native OPN algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
+        makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPN attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
+        makeModule("motion", "Motion", "PC-88/arcade-style YM2203 preset recipes map to register-backed FM patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
+        makeModule("output", "Output", "ymfm mono OPN FM output is rendered to plugin stereo; embedded SSG output remains a planned layer.", { "Mono FM core", "Three FM voices", "SSG planned", "Verified partial" })
+    };
+}
+
 std::array<ModuleDescriptor, 6> oplModules()
 {
     return std::array<ModuleDescriptor, 6> {
@@ -2895,6 +3031,32 @@ const std::vector<ChipDescriptor>& descriptors()
                     "Exact SCC cartridge mapper/bank behavior, SCC vs SCC+ mode differences, channel D/E shared-wave quirks, exact DAC/output curve, timing edge cases, and hardware validation are not complete.",
                     "Golden emulator and hardware spectral/timing comparisons are not complete, so this mode is not labeled cycle-accurate."
                 })
+        },
+        {
+            ChipMode::ym2203,
+            "YM2203 / OPN",
+            "Three YM2203/OPN FM lanes write native registers into the audited ymfm core; embedded SSG support is planned next.",
+            {
+                { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2203 algorithm register." },
+                { "feedback", "Feedback", "FM", "Writes YM2203 feedback bits for the active OPN voices." },
+                { "operator", "Operator Tone", "Operators", "Scales operator multipliers and modulator levels." },
+                { "level", "FM Level", "Output", "Controls carrier level through native OPN total-level registers." },
+            },
+            ym2203Modules(),
+            ym2203Macros(),
+            true,
+            true,
+            ym2203ParameterSpecs(),
+            verifiedPartial(
+                {
+                    "BSD-3-Clause ymfm is vendored and linked as the YM2203/OPN synthesis core.",
+                    "Renderer notes and preset recipes write OPN algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, and key-on registers across all three FM channels.",
+                    "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the first three-lane FM adapter."
+                },
+                {
+                    "The embedded YM2203 SSG is not exposed or mixed yet; this first slice is intentionally FM-only.",
+                    "Prescaler controls, timers, LFO/AMS/PMS-style extensions where applicable, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
+                })
         }
     };
     return items;
@@ -2943,6 +3105,7 @@ EnvelopeModel envelopeModelFor(ChipMode mode)
         case ChipMode::opl3:
         case ChipMode::ym2151:
         case ChipMode::ym2413:
+        case ChipMode::ym2203:
             return EnvelopeModel::nativeOperatorEg;
 
         case ChipMode::nes:
@@ -3014,6 +3177,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
         return 8u;
     if (mode == ChipMode::scc)
         return 5u;
+    if (mode == ChipMode::ym2203)
+        return 3u;
     return 4u;
 }
 
@@ -3030,6 +3195,7 @@ size_t nativeSourceCountForMode(ChipMode mode)
         case ChipMode::ym2413: return 9u;
         case ChipMode::opl3: return 9u;
         case ChipMode::scc: return 5u;
+        case ChipMode::ym2203: return 3u;
         default: return visibleSourceCountForMode(mode);
     }
 }
@@ -3117,10 +3283,10 @@ PatchConfig makePatchConfig(ChipMode mode,
                             std::array<int, 4> fmOperatorReleaseRates)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
-    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
+    const auto maxYmEnvelopeShape = mode == ChipMode::sid ? 8 : ((mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203) ? 4 : ((mode == ChipMode::ym2413 || mode == ChipMode::opl3) ? 2 : 20));
     const auto maxWaveShape = mode == ChipMode::ym2413
         ? 15
-        : ((mode == ChipMode::sid || mode == ChipMode::ym2612 || mode == ChipMode::ym2151) ? 8 : 4);
+        : ((mode == ChipMode::sid || mode == ChipMode::ym2612 || mode == ChipMode::ym2151 || mode == ChipMode::ym2203) ? 8 : 4);
 
     return {
         macro,

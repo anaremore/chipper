@@ -20,7 +20,8 @@ juce::StringArray chipModeChoices()
         "Namco arcade WSG",
         "YM2151 arcade FM",
         "YM2413 / OPLL",
-        "Konami SCC"
+        "Konami SCC",
+        "YM2203 / OPN"
     };
 }
 
@@ -843,6 +844,7 @@ ChipMode chipModeFromChoice(int choice)
         case 12: return ChipMode::ym2151;
         case 13: return ChipMode::ym2413;
         case 14: return ChipMode::scc;
+        case 15: return ChipMode::ym2203;
         default: return ChipMode::nes;
     }
 }
@@ -905,6 +907,7 @@ double defaultClockForMode(ChipMode mode)
         case ChipMode::ym2151: return 3579545.0;
         case ChipMode::ym2413: return 3579545.0;
         case ChipMode::scc: return 3579545.0;
+        case ChipMode::ym2203: return 3993600.0;
     }
 
     return 3579545.0;

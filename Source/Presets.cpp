@@ -5293,6 +5293,222 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             -10.5f,
             7670450.0
+        },
+        {
+            "opn-feedback-bass",
+            "YM2203 / OPN",
+            "OPN Feedback Bass",
+            "Original YM2203 serial-operator bass with strong native feedback and a tight PC-88 body.",
+            ChipMode::ym2203,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::stack,
+            { 0.00f, 0.82f, 0.24f, 0.88f },
+            { true, true, false, false },
+            0.08f,
+            1,
+            2,
+            0,
+            -10.0f,
+            3993600.0
+        },
+        {
+            "opn-rubber-bass",
+            "YM2203 / OPN",
+            "OPN Rubber Bass",
+            "Round YM2203 bass patch with slower operator bite and a springy two-channel stack.",
+            ChipMode::ym2203,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::chipPoly,
+            { 0.18f, 0.64f, 0.30f, 0.82f },
+            { true, true, true, false },
+            0.10f,
+            1,
+            2,
+            0,
+            -10.5f,
+            3993600.0
+        },
+        {
+            "opn-metallic-lead",
+            "YM2203 / OPN",
+            "OPN Metallic Lead",
+            "Bright three-voice YM2203 lead using a parallel-carrier algorithm and lively operator ratios.",
+            ChipMode::ym2203,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.58f, 0.46f, 0.62f, 0.82f },
+            { true, true, true, false },
+            0.10f,
+            5,
+            2,
+            0,
+            -9.5f,
+            3993600.0
+        },
+        {
+            "opn-crystal-lead",
+            "YM2203 / OPN",
+            "OPN Crystal Lead",
+            "Glassier YM2203 pluck-lead with fast operator attack and a clean carrier tail.",
+            ChipMode::ym2203,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::chipPoly,
+            { 0.48f, 0.42f, 0.34f, 0.74f },
+            { true, true, true, false },
+            0.28f,
+            8,
+            1,
+            0,
+            -10.0f,
+            3993600.0
+        },
+        {
+            "opn-three-voice-arp",
+            "YM2203 / OPN",
+            "OPN Three-Voice Arp",
+            "YM2203 fake-chord arpeggio tuned for the three native FM channels.",
+            ChipMode::ym2203,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::stack,
+            { 0.72f, 0.32f, 0.50f, 0.78f },
+            { true, true, true, false },
+            0.08f,
+            6,
+            2,
+            0,
+            -10.0f,
+            3993600.0
+        },
+        {
+            "opn-fast-minor-arp",
+            "YM2203 / OPN",
+            "OPN Fast Minor Arp",
+            "Sharper YM2203 arp recipe with a minor-stack feel and brighter operator multipliers.",
+            ChipMode::ym2203,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.78f, 0.36f, 0.62f, 0.76f },
+            { true, true, true, false },
+            0.08f,
+            6,
+            1,
+            0,
+            -10.0f,
+            3993600.0
+        },
+        {
+            "opn-electric-keys",
+            "YM2203 / OPN",
+            "OPN Electric Keys",
+            "Original YM2203 electric-keys patch with parallel carriers and a soft operator envelope.",
+            ChipMode::ym2203,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::chipPoly,
+            { 0.66f, 0.26f, 0.28f, 0.62f },
+            { true, true, true, false },
+            0.18f,
+            8,
+            3,
+            0,
+            -10.5f,
+            3993600.0
+        },
+        {
+            "opn-pc88-bell",
+            "YM2203 / OPN",
+            "OPN PC-88 Bell",
+            "Short YM2203 bell/chime patch for menu cues and bright FM keys.",
+            ChipMode::ym2203,
+            AccuracyMode::hybrid,
+            MacroKind::coin,
+            PlayMode::stack,
+            { 1.00f, 0.18f, 0.70f, 0.78f },
+            { true, false, false, false },
+            0.18f,
+            8,
+            1,
+            0,
+            -10.0f,
+            3993600.0
+        },
+        {
+            "opn-fm-perc",
+            "YM2203 / OPN",
+            "OPN FM Perc",
+            "Short YM2203 FM percussion hit built from fast operator envelopes, without the planned SSG layer.",
+            ChipMode::ym2203,
+            AccuracyMode::hybrid,
+            MacroKind::drum,
+            PlayMode::stack,
+            { 0.14f, 0.72f, 0.66f, 0.92f },
+            { true, false, true, false },
+            0.30f,
+            2,
+            4,
+            0,
+            -11.0f,
+            3993600.0
+        },
+        {
+            "opn-impact-hit",
+            "YM2203 / OPN",
+            "OPN Impact Hit",
+            "Aggressive YM2203 stacked FM hit with high feedback and a fast transient envelope.",
+            ChipMode::ym2203,
+            AccuracyMode::hybrid,
+            MacroKind::hit,
+            PlayMode::stack,
+            { 0.22f, 0.90f, 0.74f, 0.82f },
+            { true, false, true, false },
+            0.50f,
+            2,
+            4,
+            0,
+            -11.0f,
+            3993600.0
+        },
+        {
+            "opn-pitch-laser",
+            "YM2203 / OPN",
+            "OPN Pitch Laser",
+            "YM2203 FM pitch sweep with three-channel bite for retro SFX gestures.",
+            ChipMode::ym2203,
+            AccuracyMode::hybrid,
+            MacroKind::laser,
+            PlayMode::stack,
+            { 0.30f, 0.72f, 0.88f, 0.80f },
+            { true, true, false, false },
+            0.28f,
+            3,
+            2,
+            0,
+            -10.0f,
+            3993600.0
+        },
+        {
+            "opn-power-rise",
+            "YM2203 / OPN",
+            "OPN Power Rise",
+            "Longer YM2203 FM rise that layers the three OPN channels into a bright game gesture.",
+            ChipMode::ym2203,
+            AccuracyMode::hybrid,
+            MacroKind::powerUp,
+            PlayMode::stack,
+            { 0.86f, 0.36f, 0.56f, 0.84f },
+            { true, true, true, false },
+            0.14f,
+            7,
+            3,
+            0,
+            -10.0f,
+            3993600.0
         }
     };
 
@@ -5331,7 +5547,8 @@ const std::vector<PresetQualityTarget>& presetQualityTargets()
         { ChipMode::namcoWsg, roles, { "wavetable", "wave", "tracker", "coin", "arcade" }, "Furnace-informed Namco WSG coverage: arcade wavetable stacks, basses, leads, arps, drums, and SFX." },
         { ChipMode::ym2151, roles, { "fm", "operator", "noise", "envelope", "arcade" }, "Furnace-informed OPM coverage: arcade FM leads, basses, keys, noise hits, and fast motion." },
         { ChipMode::ym2413, roles, { "fm", "operator", "rhythm", "envelope", "alarm" }, "Furnace-informed OPLL coverage: ROM instrument bass/leads/keys, rhythm slots, and compact SFX." },
-        { ChipMode::scc, roles, { "wavetable", "wave", "noise", "echo", "chord" }, "Furnace-informed SCC coverage: five-lane wavetable basses, leads, keys, arps, drums, and arcade SFX." }
+        { ChipMode::scc, roles, { "wavetable", "wave", "noise", "echo", "chord" }, "Furnace-informed SCC coverage: five-lane wavetable basses, leads, keys, arps, drums, and arcade SFX." },
+        { ChipMode::ym2203, roles, { "fm", "operator", "feedback", "envelope", "bell" }, "Furnace-informed OPN coverage: three-channel YM2203 FM basses, leads, keys, arps, FM percussion, and SFX." }
     };
 
     return targets;
@@ -5421,6 +5638,7 @@ std::string presetEngineFor(const PresetInfo& preset)
         case ChipMode::ym2149: return "AY/YM PSG";
         case ChipMode::sn76489: return "SN76489 PSG";
         case ChipMode::ym2612: return "YM2612 OPN2 FM";
+        case ChipMode::ym2203: return "YM2203 OPN FM";
         case ChipMode::opl3: return "OPL2/OPL3 FM";
         case ChipMode::spc700: return "SPC700-style sampler";
         case ChipMode::pokey: return "Atari POKEY";
@@ -5458,6 +5676,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
         case ChipMode::opl3:
         case ChipMode::ym2151:
         case ChipMode::ym2413:
+        case ChipMode::ym2203:
             addPresetTag(tags, "fm");
             addPresetTag(tags, "operator");
             break;
@@ -5609,6 +5828,33 @@ std::array<float, 4> fmOperatorLevelsForPreset(const PresetInfo& preset)
         if (preset.id == "opn2-wide-ep-pad")
             return { 0.36f, 0.70f, 0.40f, 0.66f };
     }
+    else if (preset.chip == ChipMode::ym2203)
+    {
+        if (preset.id == "opn-feedback-bass")
+            return { 0.58f, 0.66f, 0.46f, 0.62f };
+        if (preset.id == "opn-rubber-bass")
+            return { 0.50f, 0.70f, 0.44f, 0.60f };
+        if (preset.id == "opn-metallic-lead")
+            return { 0.70f, 0.56f, 0.64f, 0.74f };
+        if (preset.id == "opn-crystal-lead")
+            return { 0.42f, 0.82f, 0.44f, 0.78f };
+        if (preset.id == "opn-three-voice-arp")
+            return { 0.54f, 0.58f, 0.48f, 0.68f };
+        if (preset.id == "opn-fast-minor-arp")
+            return { 0.48f, 0.68f, 0.44f, 0.78f };
+        if (preset.id == "opn-electric-keys")
+            return { 0.36f, 0.70f, 0.40f, 0.66f };
+        if (preset.id == "opn-pc88-bell")
+            return { 0.42f, 0.78f, 0.46f, 0.82f };
+        if (preset.id == "opn-fm-perc")
+            return { 0.66f, 0.46f, 0.72f, 0.88f };
+        if (preset.id == "opn-impact-hit")
+            return { 0.72f, 0.44f, 0.64f, 0.88f };
+        if (preset.id == "opn-pitch-laser")
+            return { 0.66f, 0.42f, 0.76f, 0.70f };
+        if (preset.id == "opn-power-rise")
+            return { 0.58f, 0.60f, 0.52f, 0.82f };
+    }
     else if (preset.chip == ChipMode::ym2151)
     {
         if (preset.id == "opm-arcade-bass")
@@ -5658,6 +5904,10 @@ std::array<int, 4> fmOperatorAttackRatesForPreset(const PresetInfo& preset)
         return { 32, 32, 31, 32 };
     if (preset.id == "opn2-wide-ep-pad")
         return { 15, 18, 12, 16 };
+    if (preset.id == "opn-crystal-lead")
+        return { 32, 32, 31, 32 };
+    if (preset.id == "opn-electric-keys")
+        return { 16, 19, 14, 18 };
     if (preset.id == "opm-marble-bell")
         return { 32, 32, 30, 32 };
     if (preset.id == "opm-slow-motion-pad")
@@ -5671,6 +5921,10 @@ std::array<int, 4> fmOperatorDecayRatesForPreset(const PresetInfo& preset)
     if (preset.id == "opn2-crystal-pluck")
         return { 9, 17, 8, 12 };
     if (preset.id == "opn2-wide-ep-pad")
+        return { 7, 8, 6, 7 };
+    if (preset.id == "opn-crystal-lead")
+        return { 9, 17, 8, 12 };
+    if (preset.id == "opn-electric-keys")
         return { 7, 8, 6, 7 };
     if (preset.id == "opm-marble-bell")
         return { 10, 18, 8, 13 };
@@ -5686,6 +5940,10 @@ std::array<int, 4> fmOperatorSustainRatesForPreset(const PresetInfo& preset)
         return { 5, 12, 4, 8 };
     if (preset.id == "opn2-wide-ep-pad")
         return { 1, 1, 1, 1 };
+    if (preset.id == "opn-crystal-lead")
+        return { 5, 12, 4, 8 };
+    if (preset.id == "opn-electric-keys")
+        return { 1, 1, 1, 1 };
     if (preset.id == "opm-marble-bell")
         return { 4, 10, 4, 7 };
     if (preset.id == "opm-slow-motion-pad")
@@ -5699,6 +5957,10 @@ std::array<int, 4> fmOperatorReleaseRatesForPreset(const PresetInfo& preset)
     if (preset.id == "opn2-crystal-pluck")
         return { 6, 8, 5, 7 };
     if (preset.id == "opn2-wide-ep-pad")
+        return { 7, 8, 7, 8 };
+    if (preset.id == "opn-crystal-lead")
+        return { 6, 8, 5, 7 };
+    if (preset.id == "opn-electric-keys")
         return { 7, 8, 7, 8 };
     if (preset.id == "opm-marble-bell")
         return { 5, 8, 5, 7 };
