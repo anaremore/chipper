@@ -183,6 +183,7 @@ public:
     virtual void reset(double outputSampleRate, double chipClockHz) = 0;
     virtual void setPatch(const PatchConfig& patch) = 0;
     virtual void setExternalSampleData(std::vector<uint8_t> data) { (void) data; }
+    virtual void setExternalAdpcmBData(std::vector<uint8_t> data) { (void) data; }
     virtual void setExternalSampleBank(std::vector<std::vector<uint8_t>> bank, int selectedSlot)
     {
         (void) bank;

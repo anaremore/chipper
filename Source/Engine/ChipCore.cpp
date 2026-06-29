@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
 #include <cmath>
 #include <iomanip>
 #include <iterator>
@@ -30,6 +31,7 @@ namespace
 {
 constexpr double twoPi = 6.28318530717958647692;
 constexpr size_t opnaAdpcmARomSize = 0x2000;
+constexpr size_t opnaAdpcmBMaxBytes = 0x40000;
 
 double clamp01(double value)
 {
@@ -177,6 +179,17 @@ uint32_t checksumOpnaAdpcmARom(const std::array<uint8_t, opnaAdpcmARomSize>& rom
 {
     auto hash = 2166136261u;
     for (const auto byte : rom)
+    {
+        hash ^= byte;
+        hash *= 16777619u;
+    }
+    return hash;
+}
+
+uint32_t checksumBytes(const std::vector<uint8_t>& bytes)
+{
+    auto hash = 2166136261u;
+    for (const auto byte : bytes)
     {
         hash ^= byte;
         hash *= 16777619u;
@@ -11588,6 +11601,13 @@ public:
         ssgGateMask = 0;
         opnaRhythmKeyBits = 0;
         opnaRhythmTotalLevel = 0x3fu;
+        opnaAdpcmBControlRegister = 0;
+        opnaAdpcmBPanRegister = 0;
+        opnaAdpcmBStartRegister = 0;
+        opnaAdpcmBEndRegister = 0;
+        opnaAdpcmBLimitRegister = 0;
+        opnaAdpcmBDeltaNRegister = 0;
+        opnaAdpcmBLevelRegister = 0;
         lastNativeLeft = 0;
         lastNativeRight = 0;
         lastSsg = 0;
@@ -11611,6 +11631,12 @@ public:
     void setExternalSampleData(std::vector<uint8_t> data) override
     {
         host.setAdpcmARom(std::move(data));
+        host.resetAdpcmCounters();
+    }
+
+    void setExternalAdpcmBData(std::vector<uint8_t> data) override
+    {
+        host.setAdpcmBMemory(std::move(data));
         host.resetAdpcmCounters();
     }
 
@@ -11754,7 +11780,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPNA FM+SSG register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2608/OPNA synthesis core. Chipper currently maps musical controls and notes to six OPNA FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2608 low/high address-data ports. Drum and Hit macros also write native OPNA ADPCM-A rhythm key, total-level, pan, and instrument-level registers, using original Chipper-generated in-memory percussion bytes by default with an optional user-owned ADPCM-A rhythm ROM override. ADPCM-B/user ADPCM sample import, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2608/OPNA synthesis core. Chipper currently maps musical controls and notes to six OPNA FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2608 low/high address-data ports. Drum and Hit macros also write native OPNA ADPCM-A rhythm key, total-level, pan, and instrument-level registers, using original Chipper-generated in-memory percussion bytes by default with an optional user-owned ADPCM-A rhythm ROM override. A first-pass ADPCM-B byte-memory path can layer user-owned encoded ADPCM-B samples onto Drum and Hit macros. ADPCM-B WAV/AIFF import or format conversion, full sample editing, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -11783,7 +11809,7 @@ public:
              << "\"ssgIntegrated\":1,"
              << "\"rhythmImplemented\":1,"
              << "\"adpcmAImplemented\":1,"
-             << "\"adpcmBImplemented\":0,"
+             << "\"adpcmBImplemented\":1,"
              << "\"opnaRhythmOverlay\":" << (opnaRhythmEnabledForPatch() ? 1 : 0) << ","
              << "\"opnaRhythmRegister\":" << static_cast<int>(regs[0x10]) << ","
              << "\"opnaRhythmKeyBits\":" << static_cast<int>(opnaRhythmKeyBits) << ","
@@ -11804,6 +11830,19 @@ public:
              << "\"opnaAdpcmAReadCount\":" << host.adpcmAReads() << ","
              << "\"opnaAdpcmALastReadAddress\":" << host.lastAdpcmAReadAddress() << ","
              << "\"opnaAdpcmBReadCount\":" << host.adpcmBReads() << ","
+             << "\"opnaAdpcmBLoaded\":" << (host.adpcmBLoaded() ? 1 : 0) << ","
+             << "\"opnaAdpcmBProvidedBytes\":" << host.adpcmBProvidedBytes() << ","
+             << "\"opnaAdpcmBCopiedBytes\":" << host.adpcmBCopiedBytes() << ","
+             << "\"opnaAdpcmBChecksum\":" << host.adpcmBChecksum() << ","
+             << "\"opnaAdpcmBLastReadAddress\":" << host.lastAdpcmBReadAddress() << ","
+             << "\"opnaAdpcmBControlRegister\":" << static_cast<int>(opnaAdpcmBControlRegister) << ","
+             << "\"opnaAdpcmBPanRegister\":" << static_cast<int>(opnaAdpcmBPanRegister) << ","
+             << "\"opnaAdpcmBStartRegister\":" << opnaAdpcmBStartRegister << ","
+             << "\"opnaAdpcmBEndRegister\":" << opnaAdpcmBEndRegister << ","
+             << "\"opnaAdpcmBLimitRegister\":" << opnaAdpcmBLimitRegister << ","
+             << "\"opnaAdpcmBDeltaNRegister\":" << opnaAdpcmBDeltaNRegister << ","
+             << "\"opnaAdpcmBLevelRegister\":" << static_cast<int>(opnaAdpcmBLevelRegister) << ","
+             << "\"opnaAdpcmBMaxBytes\":" << opnaAdpcmBMaxBytes << ","
              << "\"algorithm0\":" << static_cast<int>(currentAlgorithm[0]) << ","
              << "\"feedback0\":" << static_cast<int>(currentFeedback[0]) << ","
              << "\"algorithmFeedbackRegister0\":" << static_cast<int>(regs[0xb0]) << ","
@@ -11957,6 +11996,21 @@ private:
             userAdpcmARom = true;
         }
 
+        void setAdpcmBMemory(std::vector<uint8_t> data)
+        {
+            providedAdpcmBBytes = data.size();
+            copiedAdpcmBBytes = std::min(data.size(), opnaAdpcmBMaxBytes);
+            adpcmBMemory.clear();
+            adpcmBMemory.reserve(copiedAdpcmBBytes);
+            if (copiedAdpcmBBytes > 0)
+                adpcmBMemory.insert(adpcmBMemory.end(), data.begin(), data.begin() + static_cast<std::ptrdiff_t>(copiedAdpcmBBytes));
+            if (adpcmBMemory.empty())
+            {
+                providedAdpcmBBytes = 0;
+                copiedAdpcmBBytes = 0;
+            }
+        }
+
         uint8_t ymfm_external_read(ymfm::access_class type, uint32_t address) override
         {
             if (type == ymfm::ACCESS_ADPCM_A)
@@ -11970,6 +12024,8 @@ private:
             {
                 ++adpcmBReadCount;
                 lastAdpcmBAddress = address;
+                if (! adpcmBMemory.empty())
+                    return adpcmBMemory[static_cast<size_t>(address % static_cast<uint32_t>(adpcmBMemory.size()))];
             }
             return 0;
         }
@@ -11989,9 +12045,17 @@ private:
         bool usingUserAdpcmARom() const { return userAdpcmARom; }
         size_t adpcmAProvidedBytes() const { return providedAdpcmABytes; }
         size_t adpcmACopiedBytes() const { return copiedAdpcmABytes; }
+        bool adpcmBLoaded() const { return ! adpcmBMemory.empty(); }
+        size_t adpcmBProvidedBytes() const { return providedAdpcmBBytes; }
+        size_t adpcmBCopiedBytes() const { return copiedAdpcmBBytes; }
+        uint32_t adpcmBChecksum() const { return adpcmBMemory.empty() ? 0u : checksumBytes(adpcmBMemory); }
+
         uint32_t adpcmARomChecksum() const { return checksumOpnaAdpcmARom(adpcmARom); }
 
     private:
+        std::vector<uint8_t> adpcmBMemory;
+        size_t providedAdpcmBBytes = 0;
+        size_t copiedAdpcmBBytes = 0;
         std::array<uint8_t, opnaAdpcmARomSize> adpcmARom {};
         bool userAdpcmARom = false;
         size_t providedAdpcmABytes = 0;
@@ -12141,10 +12205,88 @@ private:
         return keyBits;
     }
 
+    uint8_t opnaAdpcmBLevelForPatch(float velocity) const
+    {
+        auto rhythmTrim = 0.0;
+        for (size_t rhythm = 0; rhythm < currentOpnaRhythmLevels.size(); ++rhythm)
+        {
+            if (channelEnabled(rhythm))
+                rhythmTrim = std::max(rhythmTrim, sourceLevel(patch, rhythm));
+        }
+        const auto level = clamp01(velocity) * clamp01(patch.control4) * rhythmTrim;
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(level * 255.0)), 0, 255));
+    }
+
+    uint16_t opnaAdpcmBEndForLoadedSample() const
+    {
+        const auto copiedBytes = host.adpcmBCopiedBytes();
+        if (copiedBytes <= 1u)
+            return 0;
+        const auto end = (copiedBytes - 1u) >> 2u;
+        return static_cast<uint16_t>(std::min<size_t>(end, 0xffffu));
+    }
+
+    uint16_t opnaAdpcmBDeltaNForNote(int midiNote) const
+    {
+        const auto semitones = static_cast<double>(std::clamp(midiNote, 0, 127) - 60) / 12.0;
+        const auto macroBoost = patch.macro == MacroKind::hit ? 1.18 : 1.0;
+        const auto delta = std::round(0x1800 * std::pow(2.0, semitones) * macroBoost);
+        return static_cast<uint16_t>(std::clamp(static_cast<int>(delta), 0x0100, 0xffff));
+    }
+
+    void keyOffOpnaAdpcmB()
+    {
+        const auto wasExecuting = (regs[0x100] & 0x80u) != 0u || (opnaAdpcmBControlRegister & 0x80u) != 0u;
+        opnaAdpcmBControlRegister = host.adpcmBLoaded() ? 0x20u : 0x00u;
+        if (chip && wasExecuting)
+            writeYmRegister(0x100u, opnaAdpcmBControlRegister);
+    }
+
+    void triggerOpnaAdpcmB(int midiNote, float velocity, uint8_t keyBits)
+    {
+        if (! host.adpcmBLoaded() || keyBits == 0)
+        {
+            keyOffOpnaAdpcmB();
+            return;
+        }
+
+        const auto level = opnaAdpcmBLevelForPatch(velocity);
+        if (level == 0)
+        {
+            keyOffOpnaAdpcmB();
+            return;
+        }
+
+        const auto end = opnaAdpcmBEndForLoadedSample();
+        const auto delta = opnaAdpcmBDeltaNForNote(midiNote);
+        opnaAdpcmBControlRegister = 0xa0u;
+        opnaAdpcmBPanRegister = 0xc0u;
+        opnaAdpcmBStartRegister = 0;
+        opnaAdpcmBEndRegister = end;
+        opnaAdpcmBLimitRegister = end;
+        opnaAdpcmBDeltaNRegister = delta;
+        opnaAdpcmBLevelRegister = level;
+
+        writeYmRegister(0x100u, 0x01u);
+        writeYmRegister(0x100u, 0x20u);
+        writeYmRegister(0x101u, opnaAdpcmBPanRegister);
+        writeYmRegister(0x102u, 0x00u);
+        writeYmRegister(0x103u, 0x00u);
+        writeYmRegister(0x104u, static_cast<uint8_t>(end & 0xffu));
+        writeYmRegister(0x105u, static_cast<uint8_t>((end >> 8u) & 0xffu));
+        writeYmRegister(0x109u, static_cast<uint8_t>(delta & 0xffu));
+        writeYmRegister(0x10au, static_cast<uint8_t>((delta >> 8u) & 0xffu));
+        writeYmRegister(0x10bu, level);
+        writeYmRegister(0x10cu, static_cast<uint8_t>(end & 0xffu));
+        writeYmRegister(0x10du, static_cast<uint8_t>((end >> 8u) & 0xffu));
+        writeYmRegister(0x100u, opnaAdpcmBControlRegister);
+    }
+
     void keyOffOpnaRhythm()
     {
         const auto shouldWriteDump = opnaRhythmKeyBits != 0 || (regs[0x10] & 0x3fu) != 0;
         opnaRhythmKeyBits = 0;
+        keyOffOpnaAdpcmB();
         currentOpnaRhythmLevels.fill(0);
         if (chip && shouldWriteDump)
             writeYmRegister(0x10u, 0xbfu);
@@ -12152,7 +12294,6 @@ private:
 
     void triggerOpnaRhythm(int midiNote, float velocity)
     {
-        (void) midiNote;
         if (! chip || ! opnaRhythmEnabledForPatch())
             return;
 
@@ -12170,6 +12311,7 @@ private:
         }
 
         opnaRhythmKeyBits = keyBits;
+        triggerOpnaAdpcmB(midiNote, velocity, keyBits);
         if (keyBits != 0)
             writeYmRegister(0x10u, keyBits);
     }
@@ -12514,6 +12656,13 @@ private:
     uint16_t ssgGateMask = 0;
     uint8_t opnaRhythmKeyBits = 0;
     uint8_t opnaRhythmTotalLevel = 0x3f;
+    uint8_t opnaAdpcmBControlRegister = 0;
+    uint8_t opnaAdpcmBPanRegister = 0;
+    uint16_t opnaAdpcmBStartRegister = 0;
+    uint16_t opnaAdpcmBEndRegister = 0;
+    uint16_t opnaAdpcmBLimitRegister = 0;
+    uint16_t opnaAdpcmBDeltaNRegister = 0;
+    uint8_t opnaAdpcmBLevelRegister = 0;
     double laserPhase = 0.0;
     int32_t lastNativeLeft = 0;
     int32_t lastNativeRight = 0;
