@@ -32,6 +32,11 @@ REQUIRED_CATEGORIES = {
     "SAA1099 Arps",
     "SAA1099 Keys",
     "SAA1099 Drums",
+    "ZX Beeper Bass",
+    "ZX Beeper Leads",
+    "ZX Beeper Arps",
+    "ZX Beeper Keys",
+    "ZX Beeper Drums",
     "Atari POKEY",
     "YM Arps",
     "YM Beeps",
@@ -44,7 +49,7 @@ REQUIRED_CATEGORIES = {
     "YM2151 / OPM",
 }
 
-IMPLEMENTED_CHIPS = {"nes", "nesVrc6", "nesFds", "nesSunsoft5b", "nesMmc5", "nesVrc7", "dmg", "sid", "ym2149", "sn76489", "saa1099", "pcSpeaker", "ym2612", "ym2203", "ym2608", "ym2610", "opl3", "ym2151", "spc700", "pokey", "paula", "huc6280", "namcoWsg", "ym2413", "scc"}
+IMPLEMENTED_CHIPS = {"nes", "nesVrc6", "nesFds", "nesSunsoft5b", "nesMmc5", "nesVrc7", "dmg", "sid", "ym2149", "sn76489", "saa1099", "pcSpeaker", "zxSpectrumBeeper", "ym2612", "ym2203", "ym2608", "ym2610", "opl3", "ym2151", "spc700", "pokey", "paula", "huc6280", "namcoWsg", "ym2413", "scc"}
 
 EXPECTED_CATEGORY_PREFIXES = {
     "nes": ("NES", "Arcade", "Classic"),
@@ -59,6 +64,7 @@ EXPECTED_CATEGORY_PREFIXES = {
     "sn76489": ("SN76489", "Arcade", "Classic"),
     "saa1099": ("SAA1099", "Arcade", "Classic"),
     "pcSpeaker": ("PC Speaker", "Classic"),
+    "zxSpectrumBeeper": ("ZX Beeper", "Classic"),
     "spc700": ("SNES", "Classic"),
     "pokey": ("Atari", "Arcade", "Classic"),
     "paula": ("Amiga", "Tracker", "Classic"),

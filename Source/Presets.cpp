@@ -7477,6 +7477,234 @@ const std::vector<PresetInfo>& presetCatalog()
             -12.0f,
             1193182.0,
             0.0f
+        }, 0.94f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "zx-beeper-ula-bass",
+            "ZX Beeper Bass",
+            "ZX ULA Bass",
+            "Low one-bit Spectrum bass with a firm EAR-bit edge.",
+            ChipMode::zxSpectrumBeeper,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::stack,
+            { 0.52f, 0.20f, 0.08f, 0.88f },
+            { true, false, false, false },
+            0.10f,
+            1,
+            0,
+            0,
+            -10.5f,
+            3500000.0,
+            0.0f
+        }, 1.0f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "zx-beeper-square-bass",
+            "ZX Beeper Bass",
+            "ZX Square Bass",
+            "Rounder low-register beeper bass from generated ULA toggles.",
+            ChipMode::zxSpectrumBeeper,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::stack,
+            { 0.42f, 0.16f, 0.06f, 0.84f },
+            { true, false, false, false },
+            0.16f,
+            1,
+            0,
+            0,
+            -11.0f,
+            3500000.0,
+            0.0f
+        }, 0.92f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "zx-beeper-ear-lead",
+            "ZX Beeper Leads",
+            "ZX Ear Lead",
+            "Forward EAR-bit square lead for compact Spectrum hooks.",
+            ChipMode::zxSpectrumBeeper,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.62f, 0.44f, 0.14f, 0.82f },
+            { true, false, false, false },
+            0.08f,
+            1,
+            0,
+            0,
+            -10.5f,
+            3500000.0,
+            0.0f
+        }, 0.94f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "zx-beeper-rasp-lead",
+            "ZX Beeper Leads",
+            "ZX Rasp Lead",
+            "EAR tone blended with MIC grit for buzzy one-bit melodies.",
+            ChipMode::zxSpectrumBeeper,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.36f, 0.48f, 0.48f, 0.84f },
+            { true, false, false, false },
+            0.12f,
+            3,
+            0,
+            0,
+            -11.0f,
+            3500000.0,
+            0.0f
+        }, 0.90f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "zx-beeper-rapid-arp",
+            "ZX Beeper Arps",
+            "ZX Rapid Arp",
+            "Mono Spectrum beeper arp starter with high loop-motion headroom.",
+            ChipMode::zxSpectrumBeeper,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::stack,
+            { 0.70f, 0.70f, 0.18f, 0.80f },
+            { true, false, false, false },
+            0.14f,
+            4,
+            0,
+            0,
+            -10.5f,
+            3500000.0,
+            0.0f
+        }, 0.96f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "zx-beeper-pwm-arp",
+            "ZX Beeper Arps",
+            "ZX PWM Arp",
+            "Narrow pulse-train arp with visible ULA beeper-mode switching.",
+            ChipMode::zxSpectrumBeeper,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::stack,
+            { 0.22f, 0.76f, 0.24f, 0.82f },
+            { true, false, false, false },
+            0.24f,
+            4,
+            0,
+            0,
+            -11.0f,
+            3500000.0,
+            0.0f
+        }, 0.92f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "zx-beeper-key-click",
+            "ZX Beeper Keys",
+            "ZX Key Click",
+            "Short ULA blip with MIC-bit click color.",
+            ChipMode::zxSpectrumBeeper,
+            AccuracyMode::hybrid,
+            MacroKind::coin,
+            PlayMode::stack,
+            { 0.34f, 0.62f, 0.42f, 0.78f },
+            { true, false, false, false },
+            0.62f,
+            3,
+            0,
+            0,
+            -12.0f,
+            3500000.0,
+            0.0f
+        }, 0.86f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "zx-beeper-tape-pluck",
+            "ZX Beeper Keys",
+            "ZX Tape Pluck",
+            "Pitched one-bit pluck inspired by Spectrum tape-edge timbres.",
+            ChipMode::zxSpectrumBeeper,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.48f, 0.36f, 0.18f, 0.76f },
+            { true, false, false, false },
+            0.58f,
+            1,
+            0,
+            0,
+            -11.5f,
+            3500000.0,
+            0.0f
+        }, 0.82f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "zx-beeper-click-drum",
+            "ZX Beeper Drums",
+            "ZX MIC Tick Drum",
+            "MIC-bit click percussion with short helper decay.",
+            ChipMode::zxSpectrumBeeper,
+            AccuracyMode::hybrid,
+            MacroKind::drum,
+            PlayMode::stack,
+            { 0.28f, 0.18f, 0.92f, 0.86f },
+            { true, false, false, false },
+            0.92f,
+            2,
+            0,
+            0,
+            -11.0f,
+            3500000.0,
+            0.0f
+        }, 0.98f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "zx-beeper-mic-hit",
+            "ZX Beeper Drums",
+            "ZX MIC Hit",
+            "One-bit EAR plus MIC impact for small game hits.",
+            ChipMode::zxSpectrumBeeper,
+            AccuracyMode::hybrid,
+            MacroKind::hit,
+            PlayMode::stack,
+            { 0.34f, 0.28f, 0.82f, 0.88f },
+            { true, false, false, false },
+            0.84f,
+            3,
+            0,
+            0,
+            -11.0f,
+            3500000.0,
+            0.0f
+        }, 1.0f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "zx-chirp-pop",
+            "Classic Game SFX",
+            "ZX Chirp Pop",
+            "Bright Spectrum-style pickup chirp through the EAR bit.",
+            ChipMode::zxSpectrumBeeper,
+            AccuracyMode::hybrid,
+            MacroKind::coin,
+            PlayMode::stack,
+            { 0.38f, 0.86f, 0.18f, 0.84f },
+            { true, false, false, false },
+            0.72f,
+            1,
+            0,
+            0,
+            -12.0f,
+            3500000.0,
+            0.0f
+        }, 0.92f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "zx-beeper-pitch-laser",
+            "Classic Game SFX",
+            "ZX Raster Laser",
+            "Falling one-bit Spectrum sweep with MIC-bit rasp.",
+            ChipMode::zxSpectrumBeeper,
+            AccuracyMode::hybrid,
+            MacroKind::laser,
+            PlayMode::stack,
+            { 0.30f, 0.96f, 0.68f, 0.86f },
+            { true, false, false, false },
+            0.34f,
+            3,
+            0,
+            0,
+            -12.0f,
+            3500000.0,
+            0.0f
         }, 0.94f, 0.0f, 0.0f, 0.0f)
     };
 
@@ -7513,6 +7741,7 @@ const std::vector<PresetQualityTarget>& presetQualityTargets()
         { ChipMode::sn76489, roles, { "psg", "tone", "noise", "periodic", "alarm" }, "Furnace-informed Sega PSG coverage: tone stacks, periodic/noise percussion, zaps, and arcade UI sounds." },
         { ChipMode::saa1099, roles, { "saa1099", "psg", "tone", "noise", "envelope", "stereo", "chord" }, "Furnace-informed SAA1099 coverage: six-channel stereo PSG basses, leads, arps, keys, dual-noise percussion, and SFX." },
         { ChipMode::pcSpeaker, roles, { "pc", "speaker", "beeper", "pit", "click", "gate", "sfx" }, "Furnace-informed PC Speaker coverage: one-bit PIT beeps, basses, leads, arps, key blips, click percussion, and SFX." },
+        { ChipMode::zxSpectrumBeeper, roles, { "zx", "spectrum", "beeper", "ula", "ear", "mic", "click", "sfx" }, "Furnace-informed ZX Spectrum beeper coverage: one-bit ULA beeps, basses, leads, arps, key blips, MIC-click percussion, and SFX." },
         { ChipMode::ym2612, roles, { "fm", "operator", "dac", "feedback", "envelope", "chord" }, "Furnace-informed OPN2 coverage: operator bass/leads/keys plus rhythm, DAC, and SFX recipes." },
         { ChipMode::opl3, roles, { "fm", "operator", "rhythm", "wave", "bell" }, "Furnace-informed OPL coverage: two-op melodic voices, rhythm mode, bells, basses, and DOS-style SFX." },
         { ChipMode::spc700, roles, { "sampler", "loop", "noise", "echo", "tracker" }, "Furnace-informed SPC700-style coverage: looped sample voices, drum maps, pitch motion, and noise colors." },
@@ -7621,6 +7850,7 @@ std::string presetEngineFor(const PresetInfo& preset)
         case ChipMode::sn76489: return "SN76489 PSG";
         case ChipMode::saa1099: return "Philips SAA1099 PSG";
         case ChipMode::pcSpeaker: return "PC Speaker beeper";
+        case ChipMode::zxSpectrumBeeper: return "ZX Spectrum ULA beeper";
         case ChipMode::ym2612: return "YM2612 OPN2 FM";
         case ChipMode::ym2203: return "YM2203 OPN FM+SSG";
         case ChipMode::ym2608: return "YM2608 OPNA FM+SSG";
@@ -7713,6 +7943,13 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
             addPresetTag(tags, "pit");
             addPresetTag(tags, "sfx");
             break;
+        case ChipMode::zxSpectrumBeeper:
+            addPresetTag(tags, "beeper");
+            addPresetTag(tags, "zx");
+            addPresetTag(tags, "spectrum");
+            addPresetTag(tags, "ula");
+            addPresetTag(tags, "sfx");
+            break;
         case ChipMode::ym2612:
         case ChipMode::opl3:
         case ChipMode::ym2151:
@@ -7776,7 +8013,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
         addPresetTag(tags, "noise");
 
     const auto corpus = presetCorpus(preset);
-    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "wavetable", "mod", "modulation", "fds", "sunsoft", "5b", "mmc5", "pcm", "square", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "ssg", "psg", "saa1099", "pc", "speaker", "beeper", "pit", "click", "gate", "sfx", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade", "neo" })
+    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "wavetable", "mod", "modulation", "fds", "sunsoft", "5b", "mmc5", "pcm", "square", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "ssg", "psg", "saa1099", "pc", "speaker", "beeper", "pit", "zx", "spectrum", "ula", "ear", "mic", "click", "gate", "sfx", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade", "neo" })
     {
         if (presetCorpusContains(corpus, token))
             addPresetTag(tags, token);

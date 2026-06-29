@@ -3331,6 +3331,7 @@ const char* chipModeKey(chipper::ChipMode mode)
         case chipper::ChipMode::nesVrc7: return "nesVrc7";
         case chipper::ChipMode::saa1099: return "saa1099";
         case chipper::ChipMode::pcSpeaker: return "pcSpeaker";
+        case chipper::ChipMode::zxSpectrumBeeper: return "zxSpectrumBeeper";
     }
 
     return "nes";

@@ -207,6 +207,7 @@ ChipUiTheme chipThemeFor(chipper::ChipMode mode)
         case chipper::ChipMode::sn76489:
         case chipper::ChipMode::saa1099:
         case chipper::ChipMode::pcSpeaker:
+        case chipper::ChipMode::zxSpectrumBeeper:
             return { juce::Colour(0xff101317), juce::Colour(0xff182027), juce::Colour(0xff151b20),
                      juce::Colour(0xff364858), juce::Colour(0xff202a32), juce::Colour(0xff5fd3ff),
                      juce::Colour(0xffffd24d), juce::Colour(0xffe1e8ec), juce::Colour(0xffabb9c0),
@@ -384,6 +385,7 @@ int chipModeChoiceIndex(chipper::ChipMode mode)
         case chipper::ChipMode::nesVrc7: return 22;
         case chipper::ChipMode::saa1099: return 23;
         case chipper::ChipMode::pcSpeaker: return 24;
+        case chipper::ChipMode::zxSpectrumBeeper: return 25;
     }
 
     return 0;
@@ -8305,6 +8307,9 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
     if (mode == chipper::ChipMode::pcSpeaker)
         return label + " -> PIT ch2 beeper | " + waveShapeReadout(mode, patch.waveShape) + " | click grit " + juce::String(patch.control3, 2) + laneText;
 
+    if (mode == chipper::ChipMode::zxSpectrumBeeper)
+        return label + " -> ULA port FE beeper | " + waveShapeReadout(mode, patch.waveShape) + " | MIC grit " + juce::String(patch.control3, 2) + laneText;
+
     if (mode == chipper::ChipMode::sid)
         return label + " -> " + sidModelReadout(patch) + " | " + sidVoiceWaveSummary(patch) + " | " + sidFilterModeReadout(patch) + " | " + sidModModeReadout(patch) + laneText;
 
@@ -8378,6 +8383,12 @@ juce::String ChipperAudioProcessorEditor::performanceMacroDestination(chipper::C
         case chipper::ChipMode::pcSpeaker:
         {
             static constexpr std::array<const char*, 4> labels { "Pulse width", "PIT sweep", "Click grit", "Gate level" };
+            return labels[std::min(index, labels.size() - 1u)];
+        }
+
+        case chipper::ChipMode::zxSpectrumBeeper:
+        {
+            static constexpr std::array<const char*, 4> labels { "Border/duty", "Loop motion", "MIC grit", "Beeper level" };
             return labels[std::min(index, labels.size() - 1u)];
         }
 
@@ -8630,6 +8641,20 @@ juce::String ChipperAudioProcessorEditor::waveShapeReadout(chipper::ChipMode mod
             case 0:
             default:
                 return "Preset PC Speaker mode";
+        }
+    }
+
+    if (mode == chipper::ChipMode::zxSpectrumBeeper)
+    {
+        switch (std::clamp(choice, 0, 4))
+        {
+            case 1: return "ULA EAR-bit tone";
+            case 2: return "ULA MIC-bit click";
+            case 3: return "EAR tone plus MIC grit";
+            case 4: return "Narrow pulse train";
+            case 0:
+            default:
+                return "Preset ZX beeper mode";
         }
     }
 
@@ -9544,6 +9569,9 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
 
     if (mode == chipper::ChipMode::pcSpeaker)
         return "Speaker | PIT";
+
+    if (mode == chipper::ChipMode::zxSpectrumBeeper)
+        return "Beeper | ULA FE";
 
     if (mode == chipper::ChipMode::spc700)
         return sampleSourceCardLabel(mode, patch, index);
@@ -10944,6 +10972,17 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Source 8 | hidden",
         "Source 9 | hidden"
     };
+    static const std::array<const char*, sourceChannelCount> zxSpectrumBeeperLabels {
+        "Beeper | ULA $FE",
+        "Source 2 | hidden",
+        "Source 3 | hidden",
+        "Source 4 | hidden",
+        "Source 5 | hidden",
+        "Source 6 | hidden",
+        "Source 7 | hidden",
+        "Source 8 | hidden",
+        "Source 9 | hidden"
+    };
     static const std::array<const char*, sourceChannelCount> sidBigMonoLabels {
         "Voice 1 | lead",
         "Voice 2 | detune",
@@ -11079,6 +11118,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         labels = playMode == chipper::PlayMode::chipPoly ? &saaChipPolyLabels : &saaBigMonoLabels;
     else if (mode == chipper::ChipMode::pcSpeaker)
         labels = &pcSpeakerLabels;
+    else if (mode == chipper::ChipMode::zxSpectrumBeeper)
+        labels = &zxSpectrumBeeperLabels;
     else if (mode == chipper::ChipMode::sid)
         labels = playMode == chipper::PlayMode::chipPoly ? &sidChipPolyLabels : &sidBigMonoLabels;
     else if (mode == chipper::ChipMode::pokey)
@@ -11366,6 +11407,23 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
             + "\nMode: " + waveShapeReadout(mode, patch.waveShape)
             + "\nClick grit " + juce::String(patch.control3, 2)
             + " | gate level " + juce::String(static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f))) + "/15";
+    }
+    else if (mode == chipper::ChipMode::zxSpectrumBeeper)
+    {
+        const auto beeperMode = std::clamp(patch.waveShape, 0, 4);
+        if (beeperMode == 2)
+            shape = ChipWaveformPreviewShape::noise;
+        else if (beeperMode == 3 || beeperMode == 4 || patch.macro == chipper::MacroKind::laser || patch.macro == chipper::MacroKind::hit)
+            shape = ChipWaveformPreviewShape::toneNoise;
+        else
+            shape = ChipWaveformPreviewShape::pulse;
+        duty = beeperMode == 4
+            ? 0.08f + (std::clamp(patch.control1, 0.0f, 1.0f) * 0.28f)
+            : 0.27f + (std::clamp(patch.control1, 0.0f, 1.0f) * 0.46f);
+        tooltip = juce::String("ZX Spectrum ULA port FE one-bit beeper.")
+            + "\nMode: " + waveShapeReadout(mode, patch.waveShape)
+            + "\nMIC grit " + juce::String(patch.control3, 2)
+            + " | beeper level " + juce::String(static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f))) + "/15";
     }
     else if (mode == chipper::ChipMode::pokey)
     {
@@ -13531,6 +13589,14 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[1].setText(macroReadout(1, "PIT motion " + juce::String(patch.control2, 2)), juce::dontSendNotification);
         controlValueLabels[2].setText(macroReadout(2, "Click grit " + juce::String(patch.control3, 2)), juce::dontSendNotification);
         controlValueLabels[3].setText(macroReadout(3, "Gate level " + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15"), juce::dontSendNotification);
+        updateSourceChannelButtons(mode);
+    }
+    else if (mode == chipper::ChipMode::zxSpectrumBeeper)
+    {
+        controlValueLabels[0].setText(macroReadout(0, "Border " + juce::String(static_cast<int>(std::round(patch.control1 * 7.0f))) + " | duty"), juce::dontSendNotification);
+        controlValueLabels[1].setText(macroReadout(1, "Loop motion " + juce::String(patch.control2, 2)), juce::dontSendNotification);
+        controlValueLabels[2].setText(macroReadout(2, "MIC grit " + juce::String(patch.control3, 2)), juce::dontSendNotification);
+        controlValueLabels[3].setText(macroReadout(3, "Beeper level " + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15"), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
     else if (mode == chipper::ChipMode::sid)

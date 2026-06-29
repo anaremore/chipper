@@ -97,6 +97,7 @@ Implemented depth varies by chip. See [docs/emulation-accuracy.md](docs/emulatio
 | SN76489 / Sega PSG | Verified-partial MIT `emu76489` PSG adapter |
 | Philips SAA1099 | Partial clean-room stereo PSG model with six tone lanes, dual shared noise generators, envelope groups, source strips, Chip Poly allocation, and original SAA1099 presets |
 | PC Speaker | Partial clean-room one-bit PIT channel 2 beeper model with one speaker source lane, port 0x61 gate/data behavior, direct-click SFX, and original PC Speaker presets |
+| ZX Spectrum Beeper | Partial clean-room one-bit ULA port FE beeper model with one source lane, EAR/MIC output-bit behavior, border-bit metadata, MIC-click SFX, and original ZX beeper presets |
 | YM2612 / Genesis FM | Verified-partial BSD-3-Clause `ymfm` OPN2 adapter with partial channel-6 DAC drum playback |
 | YM2203 / OPN | Verified-partial BSD-3-Clause `ymfm` OPN adapter with three FM lanes plus three embedded SSG tone lanes |
 | YM2608 / OPNA | Verified-partial BSD-3-Clause `ymfm` OPNA adapter with six FM lanes plus three embedded SSG tone lanes; rhythm and ADPCM are planned |

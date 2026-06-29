@@ -37,7 +37,8 @@ enum class ChipMode
     nesMmc5,
     nesVrc7,
     saa1099,
-    pcSpeaker
+    pcSpeaker,
+    zxSpectrumBeeper
 };
 
 enum class AccuracyMode

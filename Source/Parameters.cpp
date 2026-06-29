@@ -30,7 +30,8 @@ juce::StringArray chipModeChoices()
         "NES + MMC5",
         "NES + VRC7",
         "Philips SAA1099",
-        "PC Speaker"
+        "PC Speaker",
+        "ZX Spectrum Beeper"
     };
 }
 
@@ -863,6 +864,7 @@ ChipMode chipModeFromChoice(int choice)
         case 22: return ChipMode::nesVrc7;
         case 23: return ChipMode::saa1099;
         case 24: return ChipMode::pcSpeaker;
+        case 25: return ChipMode::zxSpectrumBeeper;
         default: return ChipMode::nes;
     }
 }
@@ -936,6 +938,7 @@ double defaultClockForMode(ChipMode mode)
         case ChipMode::ym2610: return 8000000.0;
         case ChipMode::saa1099: return 8000000.0;
         case ChipMode::pcSpeaker: return 1193182.0;
+        case ChipMode::zxSpectrumBeeper: return 3500000.0;
     }
 
     return 3579545.0;

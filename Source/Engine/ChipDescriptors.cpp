@@ -514,6 +514,22 @@ std::vector<MacroTemplate> pcSpeakerMacros()
     };
 }
 
+std::vector<MacroTemplate> zxSpectrumBeeperMacros()
+{
+    return {
+        { MacroKind::manual, "ZX Beeper Manual", "Neutral ULA port FE beeper mapping.", { 0.50f, 0.36f, 0.20f, 0.78f }, { true, false, false, false }, 0.0f, 1, 0, 0, 0, 0.0f },
+        { MacroKind::coin, "ZX Coin Chirp", "Short bright Spectrum-style UI chirp through the EAR bit.", { 0.38f, 0.84f, 0.20f, 0.82f }, { true, false, false, false }, 0.70f, 1, 0, 0, 0, 0.0f },
+        { MacroKind::bass, "ZX ULA Bass", "Low single-bit square bass from generated ULA port toggles.", { 0.52f, 0.20f, 0.08f, 0.88f }, { true, false, false, false }, 0.12f, 1, 0, 0, 0, 0.0f },
+        { MacroKind::lead, "ZX Ear Lead", "Forward one-bit Spectrum lead with tight duty color.", { 0.62f, 0.44f, 0.14f, 0.82f }, { true, false, false, false }, 0.10f, 1, 0, 0, 0, 0.0f },
+        { MacroKind::arp, "ZX Pulse Train Arp", "Fast beeper arp using narrow ULA pulse-train gestures.", { 0.70f, 0.70f, 0.18f, 0.80f }, { true, false, false, false }, 0.16f, 4, 0, 0, 0, 0.0f },
+        { MacroKind::drum, "ZX MIC Tick Drum", "MIC-bit click percussion with short helper decay.", { 0.28f, 0.18f, 0.92f, 0.86f }, { true, false, false, false }, 0.92f, 2, 0, 0, 0, 0.0f },
+        { MacroKind::hit, "ZX Border Hit", "One-bit impact using MIC grit and visible border-bit metadata.", { 0.34f, 0.28f, 0.82f, 0.88f }, { true, false, false, false }, 0.84f, 3, 0, 0, 0, 0.0f },
+        { MacroKind::laser, "ZX Raster Laser", "Falling beeper sweep with MIC-bit rasp.", { 0.30f, 0.96f, 0.68f, 0.86f }, { true, false, false, false }, 0.34f, 3, 0, 0, 0, 0.0f },
+        { MacroKind::jump, "ZX Jump Blip", "Rising narrow-pulse platformer blip.", { 0.24f, 0.76f, 0.18f, 0.82f }, { true, false, false, false }, 0.42f, 4, 0, 0, 0, 0.0f },
+        { MacroKind::powerUp, "ZX Pulse Rise", "Optimistic rising beeper gesture with pulse-train timing.", { 0.70f, 0.90f, 0.24f, 0.86f }, { true, false, false, false }, 0.32f, 4, 0, 0, 0, 0.0f },
+    };
+}
+
 std::vector<MacroTemplate> sidMacros()
 {
     return {
@@ -2522,6 +2538,59 @@ std::vector<ChipParameterSpec> pcSpeakerParameterSpecs()
     };
 }
 
+std::vector<ChipParameterSpec> zxSpectrumBeeperParameterSpecs()
+{
+    return {
+        sliderSpec(ChipParameterRole::macroControl1,
+                   "zxSpectrum.borderDuty",
+                   "Border / Duty",
+                   "ULA Port",
+                   "Biases the generated one-bit duty color and the low three ULA border bits reported in debug metadata."),
+        sliderSpec(ChipParameterRole::macroControl2,
+                   "zxSpectrum.pitchMotion",
+                   "Pitch Motion",
+                   "Pitch",
+                   "Offsets Spectrum-style beeper gestures such as chirps, rasps, jumps, and pulse trains."),
+        sliderSpec(ChipParameterRole::macroControl3,
+                   "zxSpectrum.micGrit",
+                   "MIC Grit",
+                   "ULA Port",
+                   "Controls MIC-bit click rate and rasp for percussion and one-bit SFX.",
+                   ParameterKind::chipRegister),
+        sliderSpec(ChipParameterRole::macroControl4,
+                   "zxSpectrum.beeperLevel",
+                   "Beeper Level",
+                   "Output",
+                   "Maps to Chipper's one-bit ULA beeper drive before output gain.",
+                   ParameterKind::chipRegister,
+                   0.78f),
+        sourceSpec(ChipParameterRole::source1Enabled,
+                   "zxSpectrum.enabled",
+                   "Beeper",
+                   "Enable the single ZX Spectrum ULA beeper output lane."),
+        sourceLevelSpec(ChipParameterRole::source1Level,
+                        "zxSpectrum.level",
+                        "Beeper Level",
+                        "Modern trim for the one-bit ZX Spectrum beeper lane."),
+        envelopeSpec("zxSpectrum.gateDecay",
+                     "Gate Decay",
+                     "Chipper helper decay for short ZX beeps, clicks, hits, and beeper gestures."),
+        segmentedSpec(ChipParameterRole::waveShape,
+                      "zxSpectrum.mode",
+                      "Beeper Mode",
+                      "ULA Port",
+                      "Selects how generated EAR-bit tone and MIC-bit click behavior are combined for the ULA port FE beeper.",
+                      {
+                          choice("Preset", "Resolve the beeper mode from the selected recipe.", 0.0f, 0),
+                          choice("EAR Tone", "Generate one-bit EAR output through ULA port FE bit 4.", 0.25f, 1),
+                          choice("MIC Click", "Use MIC-bit click/rasp behavior through ULA port FE bit 3.", 0.5f, 2),
+                          choice("EAR+MIC", "Blend EAR tone with MIC-bit grit.", 0.75f, 3),
+                          choice("Pulse Train", "Use narrow one-bit pulse trains for arps, jumps, and power-up gestures.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister)
+    };
+}
+
 std::vector<ChipParameterSpec> pokeyParameterSpecs()
 {
     return {
@@ -3779,6 +3848,38 @@ const std::vector<ChipDescriptor>& descriptors()
                 })
         },
         {
+            ChipMode::zxSpectrumBeeper,
+            "ZX Spectrum Beeper",
+            "Partial clean-room one-bit ZX Spectrum beeper model using ULA port FE EAR/MIC output bits.",
+            {
+                { "ula", "ULA Port FE", "ULA Port", "EAR, MIC, and border bits describe the one-bit Spectrum speaker path." },
+                { "ear", "EAR Tone", "Pitch", "Generated one-bit delay-loop gestures drive the EAR output bit." },
+                { "mic", "MIC Grit", "Motion", "MIC-bit click and rasp behavior adds Spectrum-style SFX edge." },
+                { "source", "One Output Lane", "Sources", "One mono source lane exposes the hardware beeper path." },
+            },
+            {
+                makeModule("profile", "Profile", "ZX Spectrum clean-room ULA beeper groundwork.", { "ULA port FE", "3.5 MHz default", "Hybrid default", "Authentic still partial" }),
+                makeModule("sources", "Beeper Lane", "The single one-bit ZX Spectrum beeper output path is exposed as one source card.", { "EAR bit", "MIC bit", "One mono lane", "Source trim" }),
+                makeModule("tone", "EAR / MIC", "Generated delay-loop style tone plus MIC-bit click behavior.", { "EAR tone", "MIC click", "Border bits", "Pulse train" }),
+                makeModule("envelope", "Gate Decay", "Chipper helper decay for short beeps, clicks, and one-shot SFX; the ZX beeper has no native ADSR.", { "Helper decay", "One-shot clicks", "Gate tails", "No native ADSR" }),
+                makeModule("motion", "Motion", "Spectrum-style SFX gestures mapped to beeper frequency, MIC grit, and ULA port state.", { "Coin chirp", "Raster laser", "Jump pulse", "MIC tick" }),
+                makeModule("output", "Output", "Dry one-bit mono output with source and output trims.", { "Mono beeper", "Source level", "Output gain", "Verified partial" })
+            },
+            zxSpectrumBeeperMacros(),
+            true,
+            false,
+            zxSpectrumBeeperParameterSpecs(),
+            verifiedPartial(
+                {
+                    "ULA port FE EAR/MIC output bits, border-bit metadata, generated one-bit tone, MIC click/rasp SFX, source enable/level, helper gate decay, presets, and renderer-facing debug JSON are covered by local tests.",
+                    "No third-party ZX Spectrum emulator source code is vendored in this clean-room partial model."
+                },
+                {
+                    "CPU cycle-exact delay loops, ULA contention timing, analog tape/speaker filtering, 128K AY hardware, trusted-emulator spectral comparison, and hardware capture comparison are not implemented.",
+                    "The first slice is intentionally a one-lane beeper/SFX instrument, not a full Spectrum machine or a polyphonic synth."
+                })
+        },
+        {
             ChipMode::ym2612,
             "YM2612 / Genesis FM",
             "Six exposed lanes write YM2612/OPN2 registers into the audited ymfm core for Genesis-style FM tones, with optional native channel-6 DAC drum playback.",
@@ -4242,6 +4343,7 @@ EnvelopeModel envelopeModelFor(ChipMode mode)
 
         case ChipMode::sn76489:
         case ChipMode::pcSpeaker:
+        case ChipMode::zxSpectrumBeeper:
         case ChipMode::pokey:
         case ChipMode::paula:
         case ChipMode::huc6280:
@@ -4315,6 +4417,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
         return 6u;
     if (mode == ChipMode::pcSpeaker)
         return 1u;
+    if (mode == ChipMode::zxSpectrumBeeper)
+        return 1u;
     if (mode == ChipMode::nesVrc6)
         return 7u;
     if (mode == ChipMode::nesFds)
@@ -4346,6 +4450,7 @@ size_t nativeSourceCountForMode(ChipMode mode)
         case ChipMode::ym2610: return 7u;
         case ChipMode::saa1099: return 6u;
         case ChipMode::pcSpeaker: return 1u;
+        case ChipMode::zxSpectrumBeeper: return 1u;
         case ChipMode::nesVrc6: return 7u;
         case ChipMode::nesFds: return 5u;
         case ChipMode::nesSunsoft5b: return 7u;
