@@ -9416,6 +9416,14 @@ juce::String ChipperAudioProcessorEditor::fmChipReadout(chipper::ChipMode mode, 
 
     if (mode == chipper::ChipMode::ym2413)
     {
+        if (chipper::ym2413RhythmModeForPatch(patch) == 2u)
+        {
+            const auto rhythmRegister = static_cast<uint8_t>(0x20u | chipper::ym2413RhythmKeyBitsForPatch(patch));
+            return "OPLL $0E rhythm $" + byteHex(rhythmRegister)
+                + " | BD/HH+SD/TOM+CYM"
+                + " | volume " + juce::String(level) + "/15";
+        }
+
         if (chipper::opllCustomPatchEnabledForPatch(patch))
         {
             return "OPLL custom slot 0"
@@ -9645,6 +9653,32 @@ juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipM
 
     if (mode == chipper::ChipMode::ym2413)
     {
+        if (chipper::ym2413RhythmModeForPatch(patch) == 2u && index >= 6u && index <= 8u)
+        {
+            if (index == 6u)
+            {
+                return "OPLL Rhythm BD"
+                    + juce::String(" | $36 volume nibble ")
+                    + juce::String(static_cast<int>(chipper::ym2413RhythmBassDrumVolumeForPatch(patch))) + "/15"
+                    + " | $0E key bit 4";
+            }
+
+            if (index == 7u)
+            {
+                return "OPLL Rhythm HH+SD"
+                    + juce::String(" | $37 HH/SD nibbles ")
+                    + juce::String(static_cast<int>(chipper::ym2413RhythmHatVolumeForPatch(patch)))
+                    + "/" + juce::String(static_cast<int>(chipper::ym2413RhythmSnareVolumeForPatch(patch)))
+                    + " | $0E key bits 0+3";
+            }
+
+            return "OPLL Rhythm TOM+CYM"
+                + juce::String(" | $38 TOM/CYM nibbles ")
+                + juce::String(static_cast<int>(chipper::ym2413RhythmTomVolumeForPatch(patch)))
+                + "/" + juce::String(static_cast<int>(chipper::ym2413RhythmCymVolumeForPatch(patch)))
+                + " | $0E key bits 2+1";
+        }
+
         const auto custom = chipper::opllCustomPatchEnabledForPatch(patch);
         const auto instrument = static_cast<int>(chipper::ym2413InstrumentForPatch(patch));
         const auto volumeNibble = static_cast<int>(chipper::ym2413VolumeNibbleForPatch(patch, index));
@@ -9891,6 +9925,19 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
 
     if (mode == chipper::ChipMode::ym2413)
     {
+        if (chipper::ym2413RhythmModeForPatch(patch) == 2u && index >= 6u && index <= 8u)
+        {
+            if (index == 6u)
+                return "OPLL BD | V" + juce::String(static_cast<int>(chipper::ym2413RhythmBassDrumVolumeForPatch(patch)));
+            if (index == 7u)
+                return "OPLL HH+SD | V"
+                    + juce::String(static_cast<int>(chipper::ym2413RhythmHatVolumeForPatch(patch)))
+                    + "/" + juce::String(static_cast<int>(chipper::ym2413RhythmSnareVolumeForPatch(patch)));
+            return "OPLL TOM+CYM | V"
+                + juce::String(static_cast<int>(chipper::ym2413RhythmTomVolumeForPatch(patch)))
+                + "/" + juce::String(static_cast<int>(chipper::ym2413RhythmCymVolumeForPatch(patch)));
+        }
+
         const auto instrumentText = chipper::opllCustomPatchEnabledForPatch(patch)
             ? juce::String("User0")
             : juce::String("I") + juce::String(static_cast<int>(chipper::ym2413InstrumentForPatch(patch)));
@@ -10126,7 +10173,7 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
         switch (clamped)
         {
             case 1: return "Melodic, all nine OPLL channels use preset instruments";
-            case 2: return "Rhythm, $0E enables BD/HH/SD/TOM/CYM on channels 7-9";
+            case 2: return "Rhythm, $0E maps source cards 7-9 to BD, HH+SD, and TOM+CYM";
             case 0:
             default:
                 return "Preset recipe, Drum/Hit use native OPLL rhythm";

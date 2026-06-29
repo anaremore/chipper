@@ -10500,7 +10500,7 @@ public:
     std::string implementedAccuracy() const override { return "verified partial emu2413 register-level"; }
     std::string limitations() const override
     {
-        return "MIT-licensed emu2413 provides the OPLL synthesis core for melodic and rhythm output; Chipper maps musical controls to preset-instrument, user-patch slot 0, f-number/block, key-on, volume, and $0E rhythm registers. Deep rhythm-kit editing, VRC7/YMF281 variants, and hardware comparison are not complete.";
+        return "MIT-licensed emu2413 provides the OPLL synthesis core for melodic and rhythm output; Chipper maps musical controls to preset-instrument, user-patch slot 0, f-number/block, key-on, channel volume, source-card rhythm trims for BD/HH+SD/TOM+CYM, and $0E rhythm registers. Split HH/SD and TOM/CYM fine tuning, VRC7/YMF281 variants, and hardware comparison are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -10536,6 +10536,17 @@ public:
              << "\"rhythmMode\":" << (rhythmModeActive() ? 1 : 0) << ","
              << "\"rhythmRegister\":" << static_cast<int>(regs[0x0e]) << ","
              << "\"rhythmKeyBits\":" << static_cast<int>(rhythmKeyBits) << ","
+             << "\"rhythmSourceKeyBits\":" << static_cast<int>(ym2413RhythmKeyBitsForPatch(patch)) << ","
+             << "\"rhythmSlotCount\":5,"
+             << "\"rhythmMixerSlots\":3,"
+             << "\"rhythmBdSource\":6,"
+             << "\"rhythmHatSnareSource\":7,"
+             << "\"rhythmTomCymSource\":8,"
+             << "\"rhythmBdKeyBit\":16,"
+             << "\"rhythmHatKeyBit\":1,"
+             << "\"rhythmSnareKeyBit\":8,"
+             << "\"rhythmTomKeyBit\":4,"
+             << "\"rhythmCymKeyBit\":2,"
              << "\"rhythmBdVolume\":" << static_cast<int>(regs[0x36] & 0x0fu) << ","
              << "\"rhythmHatVolume\":" << static_cast<int>((regs[0x37] >> 4u) & 0x0fu) << ","
              << "\"rhythmSnareVolume\":" << static_cast<int>(regs[0x37] & 0x0fu) << ","
@@ -10705,22 +10716,16 @@ private:
         currentPatchNumber[7] = 17;
         currentPatchNumber[8] = 18;
 
-        const auto bdVolume = volumeForChannel(6, velocity);
-        const auto hhVolume = volumeForChannel(7, velocity);
-        const auto sdVolume = volumeForChannel(7, velocity);
-        const auto tomVolume = volumeForChannel(8, velocity);
-        const auto cymVolume = volumeForChannel(8, velocity);
+        const auto bdVolume = ym2413RhythmBassDrumVolumeForPatch(patch, velocity);
+        const auto hhVolume = ym2413RhythmHatVolumeForPatch(patch, velocity);
+        const auto sdVolume = ym2413RhythmSnareVolumeForPatch(patch, velocity);
+        const auto tomVolume = ym2413RhythmTomVolumeForPatch(patch, velocity);
+        const auto cymVolume = ym2413RhythmCymVolumeForPatch(patch, velocity);
         writeOpllRegister(0x36u, bdVolume);
         writeOpllRegister(0x37u, static_cast<uint8_t>((hhVolume << 4u) | sdVolume));
         writeOpllRegister(0x38u, static_cast<uint8_t>((tomVolume << 4u) | cymVolume));
 
-        uint8_t keyBits = 0;
-        if (sourceEnabled(patch, 6))
-            keyBits = static_cast<uint8_t>(keyBits | 0x10u); // BD
-        if (sourceEnabled(patch, 7))
-            keyBits = static_cast<uint8_t>(keyBits | 0x09u); // HH + SD
-        if (sourceEnabled(patch, 8))
-            keyBits = static_cast<uint8_t>(keyBits | 0x06u); // TOM + CYM
+        const auto keyBits = ym2413RhythmKeyBitsForPatch(patch);
 
         writeRhythmRegister(keyBits);
         if ((keyBits & 0x10u) != 0)

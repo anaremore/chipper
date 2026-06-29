@@ -1098,6 +1098,23 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::ym2413InstrumentForPatch(opllBass) == 13u, "YM2413 bass macro should resolve to Synth Bass OPLL instrument 13");
     ok &= expect(chipper::ym2413VolumeNibbleForPatch(opllBass, 0) == 6u, "YM2413 helper should resolve volume nibble from output level");
 
+    auto opllRhythm = chipper::makePatchConfig(chipper::ChipMode::ym2413,
+                                               chipper::MacroKind::drum,
+                                               0.0f,
+                                               0.0f,
+                                               0.0f,
+                                               0.72f);
+    opllRhythm.ymEnvelopeShape = 2;
+    ok &= expect(chipper::ym2413RhythmKeyBitsForPatch(opllRhythm) == 0x1fu, "YM2413 rhythm helper should key BD, HH, SD, TOM, and CYM when source cards 7-9 are enabled");
+    ok &= expect(chipper::ym2413RhythmBassDrumVolumeForPatch(opllRhythm) == chipper::ym2413VolumeNibbleForPatch(opllRhythm, 6), "YM2413 BD rhythm volume should follow source card 7");
+    ok &= expect(chipper::ym2413RhythmHatVolumeForPatch(opllRhythm) == chipper::ym2413VolumeNibbleForPatch(opllRhythm, 7), "YM2413 HH rhythm volume should follow source card 8");
+    ok &= expect(chipper::ym2413RhythmSnareVolumeForPatch(opllRhythm) == chipper::ym2413VolumeNibbleForPatch(opllRhythm, 7), "YM2413 SD rhythm volume should follow source card 8");
+    ok &= expect(chipper::ym2413RhythmTomVolumeForPatch(opllRhythm) == chipper::ym2413VolumeNibbleForPatch(opllRhythm, 8), "YM2413 TOM rhythm volume should follow source card 9");
+    ok &= expect(chipper::ym2413RhythmCymVolumeForPatch(opllRhythm) == chipper::ym2413VolumeNibbleForPatch(opllRhythm, 8), "YM2413 CYM rhythm volume should follow source card 9");
+    auto opllRhythmNoHatSnare = opllRhythm;
+    opllRhythmNoHatSnare.sourceEnabled[7] = false;
+    ok &= expect(chipper::ym2413RhythmKeyBitsForPatch(opllRhythmNoHatSnare) == 0x16u, "YM2413 rhythm helper should clear HH+SD key bits when source card 8 is disabled");
+
     const auto opllExplicitBell = chipper::makePatchConfig(chipper::ChipMode::ym2413,
                                                            chipper::MacroKind::manual,
                                                            0.0f,
@@ -2029,8 +2046,12 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::fmOperator2AttackRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Car Attack");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Rhythm Mode");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::ymEnvelopeShape, 3, "Preset");
-    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPLL Ch 9");
-    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 9 Level");
+    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source7Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPLL Ch 7 / BD");
+    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source8Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPLL Ch 8 / HH+SD");
+    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPLL Ch 9 / TOM+CYM");
+    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source7Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 7 / BD Level");
+    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source8Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 8 / HH+SD Level");
+    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 9 / TOM+CYM Level");
     ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Rhythm Mode");
     ok &= expectSegmentedRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Preset");
     ok &= expectPreset(chipper::ChipMode::opl3, "opl2-rhythm-kit");

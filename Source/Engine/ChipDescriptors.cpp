@@ -2009,18 +2009,18 @@ std::vector<ChipParameterSpec> ym2413ParameterSpecs()
         sourceSpec(ChipParameterRole::source4Enabled, "ym2413.ch4.enabled", "OPLL Ch 4", "Enable YM2413 melodic channel 4."),
         sourceSpec(ChipParameterRole::source5Enabled, "ym2413.ch5.enabled", "OPLL Ch 5", "Enable YM2413 melodic channel 5."),
         sourceSpec(ChipParameterRole::source6Enabled, "ym2413.ch6.enabled", "OPLL Ch 6", "Enable YM2413 melodic channel 6."),
-        sourceSpec(ChipParameterRole::source7Enabled, "ym2413.ch7.enabled", "OPLL Ch 7", "Enable YM2413 melodic channel 7."),
-        sourceSpec(ChipParameterRole::source8Enabled, "ym2413.ch8.enabled", "OPLL Ch 8", "Enable YM2413 melodic channel 8."),
-        sourceSpec(ChipParameterRole::source9Enabled, "ym2413.ch9.enabled", "OPLL Ch 9", "Enable YM2413 melodic channel 9."),
+        sourceSpec(ChipParameterRole::source7Enabled, "ym2413.ch7.enabled", "OPLL Ch 7 / BD", "Enable YM2413 melodic channel 7, or Bass Drum when Rhythm Mode turns channels 7-9 into native OPLL rhythm slots."),
+        sourceSpec(ChipParameterRole::source8Enabled, "ym2413.ch8.enabled", "OPLL Ch 8 / HH+SD", "Enable YM2413 melodic channel 8, or Hi-Hat plus Snare when Rhythm Mode turns channels 7-9 into native OPLL rhythm slots."),
+        sourceSpec(ChipParameterRole::source9Enabled, "ym2413.ch9.enabled", "OPLL Ch 9 / TOM+CYM", "Enable YM2413 melodic channel 9, or Tom plus Cymbal when Rhythm Mode turns channels 7-9 into native OPLL rhythm slots."),
         sourceLevelSpec(ChipParameterRole::source1Level, "ym2413.ch1.level", "Ch 1 Level", "Modern trim before writing the YM2413 channel volume nibble."),
         sourceLevelSpec(ChipParameterRole::source2Level, "ym2413.ch2.level", "Ch 2 Level", "Modern trim before writing the YM2413 channel volume nibble."),
         sourceLevelSpec(ChipParameterRole::source3Level, "ym2413.ch3.level", "Ch 3 Level", "Modern trim before writing the YM2413 channel volume nibble."),
         sourceLevelSpec(ChipParameterRole::source4Level, "ym2413.ch4.level", "Ch 4 Level", "Modern trim before writing the YM2413 channel volume nibble."),
         sourceLevelSpec(ChipParameterRole::source5Level, "ym2413.ch5.level", "Ch 5 Level", "Modern trim before writing the YM2413 channel volume nibble."),
         sourceLevelSpec(ChipParameterRole::source6Level, "ym2413.ch6.level", "Ch 6 Level", "Modern trim before writing the YM2413 channel volume nibble."),
-        sourceLevelSpec(ChipParameterRole::source7Level, "ym2413.ch7.level", "Ch 7 Level", "Modern trim before writing the YM2413 channel volume nibble."),
-        sourceLevelSpec(ChipParameterRole::source8Level, "ym2413.ch8.level", "Ch 8 Level", "Modern trim before writing the YM2413 channel volume nibble."),
-        sourceLevelSpec(ChipParameterRole::source9Level, "ym2413.ch9.level", "Ch 9 Level", "Modern trim before writing the YM2413 channel volume nibble.")
+        sourceLevelSpec(ChipParameterRole::source7Level, "ym2413.ch7.level", "Ch 7 / BD Level", "Modern trim before writing the YM2413 channel volume nibble, or register $36 Bass Drum level in Rhythm Mode."),
+        sourceLevelSpec(ChipParameterRole::source8Level, "ym2413.ch8.level", "Ch 8 / HH+SD Level", "Modern trim before writing the YM2413 channel volume nibble, or register $37 Hi-Hat/Snare nibbles in Rhythm Mode."),
+        sourceLevelSpec(ChipParameterRole::source9Level, "ym2413.ch9.level", "Ch 9 / TOM+CYM Level", "Modern trim before writing the YM2413 channel volume nibble, or register $38 Tom/Cymbal nibbles in Rhythm Mode.")
     };
 }
 
@@ -4315,17 +4315,17 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2413,
             "YM2413 / OPLL",
-            "MIT emu2413-backed partial YM2413/OPLL preset/custom-FM mode with melodic channels and native rhythm slots.",
+            "MIT emu2413-backed partial YM2413/OPLL preset/custom-FM mode with melodic channels, native rhythm slots, and source-card rhythm mixer labels.",
             {
                 { "instrument", "Instrument", "Preset/Custom FM", "YM2413 ROM preset instrument selection plus editable user-patch slot 0 for melodic channels." },
                 { "pitch", "F-Number / Block", "Pitch", "MIDI notes map to native f-number and block register writes." },
-                { "rhythm", "Rhythm Mode", "OPLL", "Register $0E switches channels 7-9 into BD/HH/SD/TOM/CYM rhythm slots." },
-                { "volume", "Channel Volume", "Mixer", "Source trims map to channel volume nibbles." },
+                { "rhythm", "Rhythm Mode", "OPLL", "Register $0E switches source cards 7-9 into BD, HH+SD, and TOM+CYM rhythm slots." },
+                { "volume", "Channel Volume", "Mixer", "Source trims map to channel volume nibbles and OPLL rhythm registers $36-$38." },
                 { "core", "emu2413 Core", "Provenance", "MIT-licensed OPLL synthesis core by Mitsutaka Okazaki." },
             },
             {
                 makeModule("profile", "Profile", "YM2413/OPLL preset-FM plus user patch slot 0 backed by emu2413.", { "YM2413 family", "3.58 MHz default", "MIT emu2413 core", "Authentic still partial" }),
-                makeModule("sources", "OPLL Voices", "All nine OPLL melodic channels are exposed as playable lanes; rhythm mode repurposes 7-9.", { "Ch 1-6 melodic", "Ch 7-9 melodic/rhythm", "BD HH SD TOM CYM", "Chip Poly" }),
+                makeModule("sources", "OPLL Voices", "All nine OPLL melodic channels are exposed as playable lanes; rhythm mode repurposes source cards 7-9 as BD, HH+SD, and TOM+CYM mixer slots.", { "Ch 1-6 melodic", "Ch 7 / BD", "Ch 8 / HH+SD", "Ch 9 / TOM+CYM", "Chip Poly" }),
                 makeModule("instrument", "ROM Instrument / User Patch", "Preset instrument, user patch slot 0, rhythm-mode, f-number, block, and key-on register writes.", { "ROM preset instruments", "User $00-$07", "$0E rhythm mode", "Key-on" }),
                 makeModule("envelope", "ROM / User EG", "Native preset and rhythm patch envelopes come from the OPLL core; user patch slot 0 exposes ML/TL/feedback and AR/DR/SL/RR fields.", { "ROM patch EG", "User slot 0 EG", "Volume nibbles", "$0E rhythm bits" }),
                 makeModule("motion", "Motion", "Musical OPLL preset recipes mapped to melodic-channel registers.", { "UI chime", "Organ arp", "Sweep zap", "Power organ" }),
@@ -4338,11 +4338,11 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "MIT-licensed emu2413 is vendored as the OPLL synthesis core and driven through YM2413 register writes.",
-                    "Preset instrument, editable user-patch slot 0, channel volume, f-number, block, key-on, and $0E rhythm-mode registers render audible melodic and rhythm output.",
-                    "Descriptor metadata, MIDI CC mappings, renderer debug JSON, chip-poly allocation, presets, and smoke output are covered by automated tests."
+                    "Preset instrument, editable user-patch slot 0, channel volume, f-number, block, key-on, $0E rhythm-mode, and $36-$38 rhythm volume registers render audible melodic and rhythm output.",
+                    "Descriptor metadata, MIDI CC mappings, renderer debug JSON, source-card rhythm gating, chip-poly allocation, presets, and smoke output are covered by automated tests."
                 },
                 {
-                    "Deep rhythm-kit editing, VRC7/YMF281 patch-set selection, stereo/pan extensions, and golden reference comparison are not complete.",
+                    "Split HH/SD and TOM/CYM fine tuning, deeper rhythm-kit editing, VRC7/YMF281 patch-set selection, stereo/pan extensions, and golden reference comparison are not complete.",
                     "Hardware validation and trusted-emulator spectral/timing comparisons are not complete, so this mode is not labeled cycle-accurate."
                 })
         },
@@ -6402,6 +6402,48 @@ uint8_t ym2413VolumeNibbleForPatch(const PatchConfig& patch, size_t channel, flo
         : 1.0f;
     const auto musicalLevel = std::clamp(clampControl(patch.control4) * clampControl(velocity) * trim * carrierTrim, 0.0f, 1.0f);
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - musicalLevel) * 15.0f)), 0, 15));
+}
+
+uint8_t ym2413RhythmKeyBitsForPatch(const PatchConfig& patch)
+{
+    const auto enabled = [&](size_t index)
+    {
+        return index < patch.sourceEnabled.size() && patch.sourceEnabled[index];
+    };
+
+    uint8_t keyBits = 0;
+    if (enabled(6))
+        keyBits = static_cast<uint8_t>(keyBits | 0x10u); // BD
+    if (enabled(7))
+        keyBits = static_cast<uint8_t>(keyBits | 0x09u); // HH + SD
+    if (enabled(8))
+        keyBits = static_cast<uint8_t>(keyBits | 0x06u); // TOM + CYM
+    return keyBits;
+}
+
+uint8_t ym2413RhythmBassDrumVolumeForPatch(const PatchConfig& patch, float velocity)
+{
+    return ym2413VolumeNibbleForPatch(patch, 6, velocity);
+}
+
+uint8_t ym2413RhythmHatVolumeForPatch(const PatchConfig& patch, float velocity)
+{
+    return ym2413VolumeNibbleForPatch(patch, 7, velocity);
+}
+
+uint8_t ym2413RhythmSnareVolumeForPatch(const PatchConfig& patch, float velocity)
+{
+    return ym2413VolumeNibbleForPatch(patch, 7, velocity);
+}
+
+uint8_t ym2413RhythmTomVolumeForPatch(const PatchConfig& patch, float velocity)
+{
+    return ym2413VolumeNibbleForPatch(patch, 8, velocity);
+}
+
+uint8_t ym2413RhythmCymVolumeForPatch(const PatchConfig& patch, float velocity)
+{
+    return ym2413VolumeNibbleForPatch(patch, 8, velocity);
 }
 
 uint8_t vrc7InstrumentForPatch(const PatchConfig& patch)
