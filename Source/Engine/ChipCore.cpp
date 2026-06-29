@@ -2050,6 +2050,11 @@ public:
         fdsEnabled = false;
         if (hasFds())
             refreshFdsWaveRam();
+        sunsoft5bPhase.fill(0.0);
+        sunsoft5bTonePeriod.fill(1);
+        sunsoft5bVolume.fill(0);
+        sunsoft5bEnabled.fill(false);
+        sunsoft5bMixer = 0x38;
         noteStamp = 0;
         dmcActive = false;
         dmcSampleCompleted = false;
@@ -2258,6 +2263,8 @@ public:
             triggerVrc6Stack(p1Note, p2Note, triNote);
         if (hasFds())
             triggerFdsStack(p1Note, p2Note, triNote);
+        if (hasSunsoft5b())
+            triggerSunsoft5bStack(p1Note, p2Note, triNote);
         updateTimers();
     }
 
@@ -2299,7 +2306,9 @@ public:
         const auto tndSum = tri / 8227.0 + noi / 12241.0 + dmc / 22638.0;
         const auto pulseOut = pulseSum <= 0.0 ? 0.0 : 95.88 / ((8128.0 / pulseSum) + 100.0);
         const auto tndOut = tndSum <= 0.0 ? 0.0 : 159.79 / ((1.0 / tndSum) + 100.0);
-        const auto expansionOut = hasVrc6() ? renderVrc6Mix() : (hasFds() ? renderFdsWave() : 0.0);
+        const auto expansionOut = hasVrc6()
+            ? renderVrc6Mix()
+            : (hasFds() ? renderFdsWave() : (hasSunsoft5b() ? renderSunsoft5bMix() : 0.0));
         const auto mixed = static_cast<float>(applyOutputFilters(pulseOut + tndOut + (expansionOut * 0.04)) * 2.0);
         const auto outputGate = (dmcActive && noteVelocity <= 0.0f) ? 1.0f : noteVelocity;
         const auto scaled = mixed * outputGate;
@@ -2309,7 +2318,7 @@ public:
     std::vector<RegisterWrite> exportRegisterState() const override
     {
         std::vector<RegisterWrite> writes;
-        writes.reserve(regs.size() + (hasVrc6() ? 9u : 0u) + (hasFds() ? 72u : 0u));
+        writes.reserve(regs.size() + (hasVrc6() ? 9u : 0u) + (hasFds() ? 72u : 0u) + (hasSunsoft5b() ? 20u : 0u));
         for (size_t i = 0; i < regs.size(); ++i)
             writes.push_back({ 0, static_cast<uint16_t>(0x4000 + i), regs[i] });
         if (hasVrc6())
@@ -2338,12 +2347,31 @@ public:
             writes.push_back({ 0, 0x4088, static_cast<uint8_t>(std::clamp<int>(fdsModTable[fdsModIndex] + 4, 0, 7)) });
             writes.push_back({ 0, 0x4089, static_cast<uint8_t>(0x80u | (fdsMasterVolume & 0x03u)) });
         }
+        if (hasSunsoft5b())
+        {
+            const auto pushSunsoftReg = [&writes](uint8_t reg, uint8_t value)
+            {
+                writes.push_back({ 0, 0xc000, reg });
+                writes.push_back({ 0, 0xe000, value });
+            };
+
+            for (uint8_t channel = 0; channel < 3; ++channel)
+            {
+                const auto period = sunsoft5bTonePeriod[channel] & 0x0fffu;
+                pushSunsoftReg(static_cast<uint8_t>(channel * 2u), static_cast<uint8_t>(period & 0xffu));
+                pushSunsoftReg(static_cast<uint8_t>(channel * 2u + 1u), static_cast<uint8_t>((period >> 8u) & 0x0fu));
+            }
+            pushSunsoftReg(7, sunsoft5bMixer);
+            pushSunsoftReg(8, static_cast<uint8_t>(sunsoft5bVolume[0] & 0x0fu));
+            pushSunsoftReg(9, static_cast<uint8_t>(sunsoft5bVolume[1] & 0x0fu));
+            pushSunsoftReg(10, static_cast<uint8_t>(sunsoft5bVolume[2] & 0x0fu));
+        }
         return writes;
     }
 
     ChipMode mode() const override { return selectedMode; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
-    std::string modeName() const override { return hasVrc6() ? "NES + VRC6" : (hasFds() ? "NES + FDS" : "NES / RP2A03"); }
+    std::string modeName() const override { return hasVrc6() ? "NES + VRC6" : (hasFds() ? "NES + FDS" : (hasSunsoft5b() ? "NES + Sunsoft 5B" : "NES / RP2A03")); }
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
     {
@@ -2351,6 +2379,8 @@ public:
             return "Base RP2A03 pulse, triangle, noise, DMC, nonlinear mixer, and output filters use the existing partial clean-room NES model. VRC6 pulse 1, pulse 2, and saw lanes are clean-room musical expansion oscillators with source-card gating, Chip Poly allocation, pseudo-register export, and conservative expansion mixing; exact mapper bus timing, NSF register sequencing, expansion mixing resistor values, and hardware validation are not complete.";
         if (hasFds())
             return "Base RP2A03 pulse, triangle, noise, DMC, nonlinear mixer, and output filters use the existing partial clean-room NES model. The Famicom Disk System expansion lane is a clean-room musical 64-step 6-bit wavetable with a compact modulation table, source-card gating, Chip Poly allocation, pseudo-register export, and conservative expansion mixing; exact 2C33 register timing, wave-RAM write timing, modulation unit edge cases, master-volume nonlinearities, disk BIOS behavior, and hardware validation are not complete.";
+        if (hasSunsoft5b())
+            return "Base RP2A03 pulse, triangle, noise, DMC, nonlinear mixer, and output filters use the existing partial clean-room NES model. The Sunsoft 5B expansion lanes are clean-room AY-style square-tone oscillators with source-card gating, Chip Poly allocation, pseudo-register export through the $C000/$E000 mapper register ports, and conservative expansion mixing; exact Mapper 69 bus timing, PSG noise/envelope behavior, expansion mixing resistor values, and hardware validation are not complete.";
         return "Pulse, triangle, noise, timers, duty including explicit pulse 2 duty override, enable bits, simple envelopes, length counters, triangle linear counter, DMC direct DAC level, external DPCM byte stepping, basic pulse sweep updates/muting, $4017 frame-counter mode/inhibit behavior, nonlinear mixer, the documented NES output filter chain, and pulse/triangle allocation for Chip Poly play mode are approximated; exact DMC DMA/address/IRQ timing, exact frame sequencer cycle timing, advanced sweep edge cases, and hardware validation are not complete.";
     }
 
@@ -2361,7 +2391,7 @@ public:
              << "\"mode\":\"" << modeName() << "\","
              << "\"implementedAccuracy\":\"partial clean-room register-level\","
              << "\"clockHz\":" << clock << ","
-             << "\"expansion\":\"" << (hasVrc6() ? "VRC6" : (hasFds() ? "FDS" : "none")) << "\","
+             << "\"expansion\":\"" << (hasVrc6() ? "VRC6" : (hasFds() ? "FDS" : (hasSunsoft5b() ? "Sunsoft 5B" : "none"))) << "\","
              << "\"macro\":\"" << toString(patch.macro) << "\","
              << "\"playMode\":\"" << toString(patch.playMode) << "\","
              << "\"pulseTimer1\":" << timer[0] << ","
@@ -2417,6 +2447,26 @@ public:
                  << "\"fdsWaveIndex\":" << currentFdsWaveIndex() << ","
                  << "\"fdsActiveMask\":" << fdsActiveMask() << ","
                  << "\"assignedNoteFdsWave\":" << channelNotes[3] << ",";
+        }
+        if (hasSunsoft5b())
+        {
+            json << "\"sourceEnabled5\":" << (sourceEnabled(patch, 4) ? 1 : 0) << ","
+                 << "\"sourceEnabled6\":" << (sourceEnabled(patch, 5) ? 1 : 0) << ","
+                 << "\"sourceEnabled7\":" << (sourceEnabled(patch, 6) ? 1 : 0) << ","
+                 << "\"sourceLevel5\":" << sourceLevel(patch, 4) << ","
+                 << "\"sourceLevel6\":" << sourceLevel(patch, 5) << ","
+                 << "\"sourceLevel7\":" << sourceLevel(patch, 6) << ","
+                 << "\"sunsoft5bToneAPeriod\":" << sunsoft5bTonePeriod[0] << ","
+                 << "\"sunsoft5bToneBPeriod\":" << sunsoft5bTonePeriod[1] << ","
+                 << "\"sunsoft5bToneCPeriod\":" << sunsoft5bTonePeriod[2] << ","
+                 << "\"sunsoft5bVolumeA\":" << static_cast<int>(sunsoft5bVolume[0]) << ","
+                 << "\"sunsoft5bVolumeB\":" << static_cast<int>(sunsoft5bVolume[1]) << ","
+                 << "\"sunsoft5bVolumeC\":" << static_cast<int>(sunsoft5bVolume[2]) << ","
+                 << "\"sunsoft5bMixer\":" << static_cast<int>(sunsoft5bMixer) << ","
+                 << "\"sunsoft5bActiveMask\":" << sunsoft5bActiveMask() << ","
+                 << "\"assignedNoteSunsoft5bA\":" << channelNotes[3] << ","
+                 << "\"assignedNoteSunsoft5bB\":" << channelNotes[4] << ","
+                 << "\"assignedNoteSunsoft5bC\":" << channelNotes[5] << ",";
         }
         json
              << "\"dmcDirectControl\":" << patch.nesDmcDirectLevel << ","
@@ -2975,9 +3025,14 @@ private:
         return selectedMode == ChipMode::nesFds;
     }
 
+    bool hasSunsoft5b() const
+    {
+        return selectedMode == ChipMode::nesSunsoft5b;
+    }
+
     size_t chipPolyVoiceCount() const
     {
-        if (hasVrc6())
+        if (hasVrc6() || hasSunsoft5b())
             return 6u;
         if (hasFds())
             return 4u;
@@ -2987,7 +3042,7 @@ private:
     size_t sourceIndexForChipPolyVoice(size_t voice) const
     {
         static constexpr std::array<size_t, 6> vrc6Sources { 0u, 1u, 2u, 4u, 5u, 6u };
-        if (hasVrc6())
+        if (hasVrc6() || hasSunsoft5b())
             return voice < vrc6Sources.size() ? vrc6Sources[voice] : voice;
         if (hasFds() && voice == 3u)
             return 4u;
@@ -3351,6 +3406,137 @@ private:
             writeVrc6Saw(static_cast<unsigned>(std::clamp(static_cast<int>(std::round(clamp01(velocity) * 42.0)), 1, 42)), midiNote);
     }
 
+    uint16_t sunsoft5bTonePeriodForNote(int midiNote) const
+    {
+        const auto hz = midiNoteToHz(std::clamp(midiNote, 0, 127));
+        const auto period = static_cast<int>(std::round(clock / (16.0 * hz)));
+        return static_cast<uint16_t>(std::clamp(period, 1, 0x0fff));
+    }
+
+    uint8_t sunsoft5bExpansionMaskOrRecipe(uint8_t recipeMask) const
+    {
+        const auto requestedMask = sourceEnableMask(patch);
+        if (requestedMask != 0u)
+            return static_cast<uint8_t>(((requestedMask >> 4u) & 0x07u) & recipeMask);
+
+        return recipeMask;
+    }
+
+    void refreshSunsoft5bMixer()
+    {
+        sunsoft5bMixer = 0x38;
+        for (uint8_t channel = 0; channel < 3; ++channel)
+        {
+            if (! sunsoft5bEnabled[channel])
+                sunsoft5bMixer = static_cast<uint8_t>(sunsoft5bMixer | (1u << channel));
+        }
+    }
+
+    void writeSunsoft5bTone(size_t channel, int midiNote, unsigned volume)
+    {
+        if (! hasSunsoft5b() || channel >= sunsoft5bEnabled.size())
+            return;
+
+        const auto sourceIndex = 4u + channel;
+        sunsoft5bTonePeriod[channel] = sunsoft5bTonePeriodForNote(midiNote);
+        sunsoft5bVolume[channel] = sourceEnabled(patch, sourceIndex)
+            ? static_cast<uint8_t>(std::clamp<unsigned>(volume, 0u, 15u))
+            : uint8_t { 0u };
+        sunsoft5bEnabled[channel] = sunsoft5bVolume[channel] > 0u
+            && sourceEnabled(patch, sourceIndex)
+            && ! patch.nesDmcOnly;
+        if (sunsoft5bEnabled[channel])
+            sunsoft5bPhase[channel] = 0.0;
+        refreshSunsoft5bMixer();
+    }
+
+    void triggerSunsoft5bStack(int p1Note, int p2Note, int triNote)
+    {
+        if (! hasSunsoft5b() || patch.nesDmcOnly)
+        {
+            sunsoft5bEnabled.fill(false);
+            refreshSunsoft5bMixer();
+            return;
+        }
+
+        auto recipeMask = uint8_t { 0x07u };
+        auto noteA = p1Note + 12;
+        auto noteB = p2Note + 12;
+        auto noteC = triNote + 12;
+        auto volA = static_cast<unsigned>(std::round(8.0f + patch.control4 * 7.0f));
+        auto volB = static_cast<unsigned>(std::round(6.0f + patch.control4 * 6.0f));
+        auto volC = static_cast<unsigned>(std::round(5.0f + patch.control4 * 6.0f));
+
+        switch (patch.macro)
+        {
+            case MacroKind::coin:
+                noteA = p1Note + 19;
+                noteB = p1Note + 24;
+                noteC = p1Note + 31;
+                volB = 5u;
+                volC = 0u;
+                recipeMask = 0x03u;
+                break;
+            case MacroKind::bass:
+                noteA = p1Note;
+                noteB = p1Note + 12;
+                noteC = triNote;
+                volA = 8u;
+                volB = 4u;
+                volC = 6u;
+                recipeMask = 0x05u;
+                break;
+            case MacroKind::arp:
+                noteA = p1Note;
+                noteB = p1Note + 7;
+                noteC = p1Note + 12;
+                recipeMask = 0x07u;
+                break;
+            case MacroKind::drum:
+                recipeMask = 0x00u;
+                break;
+            case MacroKind::hit:
+                noteA = p1Note + 7;
+                noteB = p1Note + 12;
+                volC = 0u;
+                recipeMask = 0x03u;
+                break;
+            case MacroKind::laser:
+                noteA = p1Note + 12;
+                noteB = p2Note + 7;
+                noteC = p2Note;
+                recipeMask = 0x07u;
+                break;
+            case MacroKind::jump:
+                noteA = p1Note + 12;
+                volB = 0u;
+                volC = 0u;
+                recipeMask = 0x01u;
+                break;
+            case MacroKind::powerUp:
+                noteA = p1Note;
+                noteB = p1Note + 5;
+                noteC = p1Note + 12;
+                recipeMask = 0x07u;
+                break;
+            case MacroKind::lead:
+            case MacroKind::manual:
+            default:
+                break;
+        }
+
+        const auto mask = sunsoft5bExpansionMaskOrRecipe(recipeMask);
+        writeSunsoft5bTone(0, noteA, (mask & 0x01u) != 0u ? volA : 0u);
+        writeSunsoft5bTone(1, noteB, (mask & 0x02u) != 0u ? volB : 0u);
+        writeSunsoft5bTone(2, noteC, (mask & 0x04u) != 0u ? volC : 0u);
+    }
+
+    void triggerSunsoft5bVoice(size_t voice, int midiNote, float velocity)
+    {
+        const auto level = static_cast<unsigned>(std::clamp(static_cast<int>(std::round(clamp01(velocity) * 15.0)), 0, 15));
+        writeSunsoft5bTone(voice, midiNote, level);
+    }
+
     int selectChipPolyChannel(int midiNote) const
     {
         const auto voiceCount = chipPolyVoiceCount();
@@ -3412,6 +3598,8 @@ private:
             length = 0;
         vrc6Enabled.fill(false);
         fdsEnabled = false;
+        sunsoft5bEnabled.fill(false);
+        refreshSunsoft5bMixer();
         linearCounter = 0;
         linearReloadFlag = false;
     }
@@ -3459,6 +3647,8 @@ private:
         {
             if (hasVrc6())
                 triggerVrc6Voice(static_cast<size_t>(channel - 3), channelNotes[index], channelVelocity[index]);
+            else if (hasSunsoft5b())
+                triggerSunsoft5bVoice(static_cast<size_t>(channel - 3), channelNotes[index], channelVelocity[index]);
             else if (hasFds() && channel == 3)
                 triggerFdsVoice(channelNotes[index], channelVelocity[index]);
         }
@@ -3480,6 +3670,11 @@ private:
                 lengthCounter[channel] = 0;
             else if (channel - 3u < vrc6Enabled.size())
                 vrc6Enabled[channel - 3u] = false;
+            if (hasSunsoft5b() && channel - 3u < sunsoft5bEnabled.size())
+            {
+                sunsoft5bEnabled[channel - 3u] = false;
+                refreshSunsoft5bMixer();
+            }
             if (hasFds() && channel == 3u)
                 fdsEnabled = false;
             if (channel == 2)
@@ -3681,6 +3876,30 @@ private:
         return ((sample * 2.0) - 1.0) * volume * masterScale[fdsMasterVolume & 0x03u] * sourceLevel(patch, 4);
     }
 
+    int sunsoft5bActiveMask() const
+    {
+        return (sunsoft5bEnabled[0] ? 0x01 : 0)
+            | (sunsoft5bEnabled[1] ? 0x02 : 0)
+            | (sunsoft5bEnabled[2] ? 0x04 : 0);
+    }
+
+    double renderSunsoft5bTone(size_t channel)
+    {
+        if (! hasSunsoft5b() || channel >= sunsoft5bEnabled.size() || ! sunsoft5bEnabled[channel] || ! sourceEnabled(patch, 4u + channel) || sampleRate <= 0.0)
+            return 0.0;
+
+        const auto period = static_cast<double>(std::max<uint16_t>(1u, sunsoft5bTonePeriod[channel]));
+        const auto hz = clock / (16.0 * period);
+        sunsoft5bPhase[channel] = wrapPhase(sunsoft5bPhase[channel] + hz / sampleRate);
+        const auto amplitude = static_cast<double>(sunsoft5bVolume[channel]) / 15.0;
+        return (sunsoft5bPhase[channel] < 0.5 ? 1.0 : -1.0) * amplitude * sourceLevel(patch, 4u + channel);
+    }
+
+    double renderSunsoft5bMix()
+    {
+        return renderSunsoft5bTone(0) + renderSunsoft5bTone(1) + renderSunsoft5bTone(2);
+    }
+
     AccuracyMode accuracy;
     ChipMode selectedMode = ChipMode::nes;
     double sampleRate = 48000.0;
@@ -3734,6 +3953,11 @@ private:
     int fdsModAccumulator = 0;
     size_t fdsModIndex = 0;
     bool fdsEnabled = false;
+    std::array<double, 3> sunsoft5bPhase {};
+    std::array<uint16_t, 3> sunsoft5bTonePeriod { 1, 1, 1 };
+    std::array<uint8_t, 3> sunsoft5bVolume {};
+    std::array<bool, 3> sunsoft5bEnabled {};
+    uint8_t sunsoft5bMixer = 0x38;
     uint64_t noteStamp = 0;
     std::vector<uint8_t> dmcSample;
     bool dmcActive = false;
@@ -13249,6 +13473,7 @@ std::unique_ptr<ChipCore> createChipCore(ChipMode mode, AccuracyMode accuracy)
         case ChipMode::nes: return std::make_unique<NesApuCore>(accuracy);
         case ChipMode::nesVrc6: return std::make_unique<NesApuCore>(accuracy, ChipMode::nesVrc6);
         case ChipMode::nesFds: return std::make_unique<NesApuCore>(accuracy, ChipMode::nesFds);
+        case ChipMode::nesSunsoft5b: return std::make_unique<NesApuCore>(accuracy, ChipMode::nesSunsoft5b);
         case ChipMode::dmg: return std::make_unique<DmgApuCore>(accuracy);
         case ChipMode::sid: return std::make_unique<SidCore>(accuracy);
         case ChipMode::ym2149: return std::make_unique<Ym2149Core>(accuracy);
@@ -13276,6 +13501,7 @@ std::optional<ChipMode> parseChipMode(std::string_view text)
     if (key == "nes" || key == "rp2a03") return ChipMode::nes;
     if (key == "nesvrc6" || key == "nes+vrc6" || key == "vrc6" || key == "famicomvrc6" || key == "famicom+vrc6") return ChipMode::nesVrc6;
     if (key == "nesfds" || key == "nes+fds" || key == "fds" || key == "famicomfds" || key == "famicom+fds" || key == "famicomdisksystem") return ChipMode::nesFds;
+    if (key == "nessunsoft5b" || key == "nes+sunsoft5b" || key == "sunsoft5b" || key == "5b" || key == "sunsoft" || key == "fme7" || key == "sunsoftfme7" || key == "nesfme7") return ChipMode::nesSunsoft5b;
     if (key == "dmg" || key == "gameboy" || key == "gameboydmg") return ChipMode::dmg;
     if (key == "sid" || key == "c64" || key == "commodore64") return ChipMode::sid;
     if (key == "ym2149" || key == "ay" || key == "ay38910" || key == "ay38910") return ChipMode::ym2149;
@@ -13338,6 +13564,7 @@ std::string toString(ChipMode mode)
         case ChipMode::nes: return "NES / RP2A03";
         case ChipMode::nesVrc6: return "NES + VRC6";
         case ChipMode::nesFds: return "NES + FDS";
+        case ChipMode::nesSunsoft5b: return "NES + Sunsoft 5B";
         case ChipMode::dmg: return "Game Boy / DMG APU";
         case ChipMode::sid: return "SID / C64";
         case ChipMode::ym2149: return "YM2149 / AY";

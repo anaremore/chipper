@@ -25,7 +25,8 @@ juce::StringArray chipModeChoices()
         "NES + VRC6",
         "YM2608 / OPNA",
         "YM2610 / OPNB",
-        "NES + FDS"
+        "NES + FDS",
+        "NES + Sunsoft 5B"
     };
 }
 
@@ -853,6 +854,7 @@ ChipMode chipModeFromChoice(int choice)
         case 17: return ChipMode::ym2608;
         case 18: return ChipMode::ym2610;
         case 19: return ChipMode::nesFds;
+        case 20: return ChipMode::nesSunsoft5b;
         default: return ChipMode::nes;
     }
 }
@@ -903,6 +905,7 @@ double defaultClockForMode(ChipMode mode)
         case ChipMode::nes:
         case ChipMode::nesVrc6:
         case ChipMode::nesFds:
+        case ChipMode::nesSunsoft5b:
             return 1789773.0;
         case ChipMode::dmg: return 4194304.0;
         case ChipMode::sid: return 985248.0;

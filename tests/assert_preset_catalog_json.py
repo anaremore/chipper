@@ -15,6 +15,7 @@ REQUIRED_CATEGORIES = {
     "NES Leads",
     "NES + VRC6 Leads",
     "NES + FDS Leads",
+    "NES + 5B Leads",
     "PC Engine HuC6280",
     "Konami SCC",
     "Namco WSG",
@@ -36,12 +37,13 @@ REQUIRED_CATEGORIES = {
     "YM2151 / OPM",
 }
 
-IMPLEMENTED_CHIPS = {"nes", "nesVrc6", "nesFds", "dmg", "sid", "ym2149", "sn76489", "ym2612", "ym2203", "ym2608", "ym2610", "opl3", "ym2151", "spc700", "pokey", "paula", "huc6280", "namcoWsg", "ym2413", "scc"}
+IMPLEMENTED_CHIPS = {"nes", "nesVrc6", "nesFds", "nesSunsoft5b", "dmg", "sid", "ym2149", "sn76489", "ym2612", "ym2203", "ym2608", "ym2610", "opl3", "ym2151", "spc700", "pokey", "paula", "huc6280", "namcoWsg", "ym2413", "scc"}
 
 EXPECTED_CATEGORY_PREFIXES = {
     "nes": ("NES", "Arcade", "Classic"),
     "nesVrc6": ("NES + VRC6", "Arcade", "Classic"),
     "nesFds": ("NES + FDS", "Arcade", "Classic"),
+    "nesSunsoft5b": ("NES + 5B", "Arcade", "Classic"),
     "dmg": ("DMG", "Arcade", "Classic"),
     "sid": ("SID", "Modern", "Classic"),
     "ym2149": ("YM", "Arcade", "Classic"),

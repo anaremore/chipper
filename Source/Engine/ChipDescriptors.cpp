@@ -365,6 +365,29 @@ std::vector<MacroTemplate> nesFdsMacros()
     return macros;
 }
 
+std::vector<MacroTemplate> nesSunsoft5bMacros()
+{
+    auto macros = nesMacros();
+    for (auto& macro : macros)
+    {
+        switch (macro.macro)
+        {
+            case MacroKind::manual: macro.label = "5B Manual"; break;
+            case MacroKind::coin: macro.label = "5B Coin Ping"; break;
+            case MacroKind::bass: macro.label = "5B PSG Bass"; break;
+            case MacroKind::lead: macro.label = "5B Square Lead"; break;
+            case MacroKind::arp: macro.label = "5B Three-Voice Arp"; break;
+            case MacroKind::drum: macro.label = "NES Noise Drum"; break;
+            case MacroKind::hit: macro.label = "5B Impact Hit"; break;
+            case MacroKind::laser: macro.label = "5B Laser Sweep"; break;
+            case MacroKind::jump: macro.label = "5B Jump Blip"; break;
+            case MacroKind::powerUp: macro.label = "5B Power Arp"; break;
+        }
+    }
+
+    return macros;
+}
+
 std::vector<MacroTemplate> dmgMacros()
 {
     return {
@@ -1916,6 +1939,36 @@ std::vector<ChipParameterSpec> nesFdsParameterSpecs()
     return specs;
 }
 
+std::vector<ChipParameterSpec> nesSunsoft5bParameterSpecs()
+{
+    auto specs = nesParameterSpecs();
+    specs.push_back(sourceSpec(ChipParameterRole::source5Enabled,
+                               "nes.sunsoft5b.toneA.enabled",
+                               "5B Tone A",
+                               "Enable the first Sunsoft 5B AY-style square-tone expansion lane."));
+    specs.push_back(sourceSpec(ChipParameterRole::source6Enabled,
+                               "nes.sunsoft5b.toneB.enabled",
+                               "5B Tone B",
+                               "Enable the second Sunsoft 5B AY-style square-tone expansion lane."));
+    specs.push_back(sourceSpec(ChipParameterRole::source7Enabled,
+                               "nes.sunsoft5b.toneC.enabled",
+                               "5B Tone C",
+                               "Enable the third Sunsoft 5B AY-style square-tone expansion lane."));
+    specs.push_back(sourceLevelSpec(ChipParameterRole::source5Level,
+                                    "nes.sunsoft5b.toneA.level",
+                                    "5B Tone A Level",
+                                    "Modern trim for the first Sunsoft 5B tone expansion lane."));
+    specs.push_back(sourceLevelSpec(ChipParameterRole::source6Level,
+                                    "nes.sunsoft5b.toneB.level",
+                                    "5B Tone B Level",
+                                    "Modern trim for the second Sunsoft 5B tone expansion lane."));
+    specs.push_back(sourceLevelSpec(ChipParameterRole::source7Level,
+                                    "nes.sunsoft5b.toneC.level",
+                                    "5B Tone C Level",
+                                    "Modern trim for the third Sunsoft 5B tone expansion lane."));
+    return specs;
+}
+
 std::vector<ChipParameterSpec> dmgParameterSpecs()
 {
     return {
@@ -2871,6 +2924,18 @@ std::array<ModuleDescriptor, 6> nesFdsModules()
     };
 }
 
+std::array<ModuleDescriptor, 6> nesSunsoft5bModules()
+{
+    return std::array<ModuleDescriptor, 6> {
+        makeModule("profile", "Profile", "RP2A03 APU plus Sunsoft 5B clean-room PSG expansion model.", { "2A03 + Sunsoft 5B", "NTSC clock default", "Hybrid default", "Authentic still partial" }),
+        makeModule("sources", "Channels", "Base NES lanes plus three AY-style Sunsoft 5B square-tone lanes.", { "Pulse 1/2", "Triangle", "Noise / DMC", "5B Tone A/B/C" }),
+        makeModule("tone", "PSG / Mixer", "NES pulse/noise controls plus first-pass Sunsoft 5B square-tone periods and volumes.", { "Pulse duty", "5B tone periods", "5B volume nibbles", "PSG noise/envelope planned" }),
+        makeModule("envelope", "APU / 5B Level", "Base APU envelope with 5B tone volume and gate behavior.", { "APU decay", "5B volume", "Triangle linear counter", "Chip Poly" }),
+        makeModule("motion", "Motion", "Musical gestures write NES and 5B-style tone-stack recipes.", { "5B lead", "PSG bass", "Three-voice arp", "Laser sweep" }),
+        makeModule("output", "DMC Sample", "NES DMC file/bank playback stays available while 5B lanes add PSG tone color.", { "DMC bank", "5B mix", "Output gain", "Verified partial" })
+    };
+}
+
 std::array<ModuleDescriptor, 6> dmgModules()
 {
     return std::array<ModuleDescriptor, 6> {
@@ -3112,6 +3177,32 @@ const std::vector<ChipDescriptor>& descriptors()
                 {
                     "Exact FDS 2C33 register timing, wave-RAM write timing, modulation-unit edge cases, master-volume nonlinearities, disk BIOS behavior, and expansion-audio resistor mixing are not complete.",
                     "The FDS implementation is a musical expansion instrument slice, not a cycle-accurate Famicom Disk System emulator."
+                })
+        },
+        {
+            ChipMode::nesSunsoft5b,
+            "NES + Sunsoft 5B",
+            "Base RP2A03 lanes plus three AY-style Sunsoft 5B square-tone expansion lanes.",
+            {
+                { "duty", "Pulse Duty", "Channels", "Chooses the base pulse duty family while 5B lanes provide PSG square tone color." },
+                { "motion", "Sweep / PSG Motion", "Pitch", "Scales macro pitch rise/drop behavior across NES and 5B lanes." },
+                { "noise", "Noise Period", "Noise", "Maps musical noise color to the RP2A03 $400E period nibble; 5B noise is planned." },
+                { "mix", "Channel Focus", "Mixer", "Balances base APU focus and 5B expansion levels." },
+            },
+            nesSunsoft5bModules(),
+            nesSunsoft5bMacros(),
+            true,
+            true,
+            nesSunsoft5bParameterSpecs(),
+            verifiedPartial(
+                {
+                    "Base RP2A03 behavior is shared with the tested NES mode.",
+                    "Sunsoft 5B Tone A, Tone B, and Tone C render as clean-room AY-style square-tone expansion lanes with source-card enables, source levels, pseudo-register export through the $C000/$E000 mapper register ports, debug JSON, and six-tone Chip Poly allocation that skips Noise/DMC.",
+                    "Renderer smoke, source gating, descriptor metadata, presets, and MIDI CC metadata cover the first playable Sunsoft 5B expansion slice."
+                },
+                {
+                    "Exact Mapper 69 bus timing, PSG noise/envelope behavior, expansion-audio resistor mixing, and hardware capture comparison are not complete.",
+                    "The Sunsoft 5B implementation is a musical NES expansion instrument slice, not a cycle-accurate NES mapper emulator."
                 })
         },
         {
@@ -3661,6 +3752,7 @@ EnvelopeModel envelopeModelFor(ChipMode mode)
         case ChipMode::nes:
         case ChipMode::nesVrc6:
         case ChipMode::nesFds:
+        case ChipMode::nesSunsoft5b:
         case ChipMode::dmg:
         case ChipMode::ym2149:
             return EnvelopeModel::nativeNonAdsr;
@@ -3739,6 +3831,8 @@ size_t visibleSourceCountForMode(ChipMode mode)
         return 7u;
     if (mode == ChipMode::nesFds)
         return 5u;
+    if (mode == ChipMode::nesSunsoft5b)
+        return 7u;
     return 4u;
 }
 
@@ -3760,6 +3854,7 @@ size_t nativeSourceCountForMode(ChipMode mode)
         case ChipMode::ym2610: return 7u;
         case ChipMode::nesVrc6: return 7u;
         case ChipMode::nesFds: return 5u;
+        case ChipMode::nesSunsoft5b: return 7u;
         default: return visibleSourceCountForMode(mode);
     }
 }

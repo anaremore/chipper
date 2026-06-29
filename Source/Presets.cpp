@@ -6373,7 +6373,223 @@ const std::vector<PresetInfo>& presetCatalog()
             0,
             -12.0f,
             1789773.0
-        }, 0.14f, 0.0f, 0.0f, 0.0f)
+        }, 0.14f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "5b-psg-bass",
+            "NES + 5B Bass",
+            "5B PSG Bass",
+            "Sunsoft 5B square-tone bass with a restrained triangle body and light APU edge.",
+            ChipMode::nesSunsoft5b,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::stack,
+            { 0.42f, 0.24f, 0.10f, 0.54f },
+            { true, false, true, false },
+            0.0f,
+            0,
+            0,
+            0,
+            -10.5f,
+            1789773.0
+        }, 0.12f, 0.0f, 0.20f, 0.0f),
+        withSourceLevels({
+            "5b-octave-bass",
+            "NES + 5B Bass",
+            "5B Octave Bass",
+            "Octave-stacked 5B bass recipe with NES pulse definition and a low triangle anchor.",
+            ChipMode::nesSunsoft5b,
+            AccuracyMode::hybrid,
+            MacroKind::bass,
+            PlayMode::chipPoly,
+            { 0.50f, 0.30f, 0.14f, 0.62f },
+            { true, true, true, false },
+            0.0f,
+            0,
+            0,
+            0,
+            -10.5f,
+            1789773.0
+        }, 0.14f, 0.08f, 0.18f, 0.0f),
+        withSourceLevels({
+            "5b-square-lead",
+            "NES + 5B Leads",
+            "5B Square Lead",
+            "Bright Sunsoft 5B lead stack over a quiet two-pulse NES support layer.",
+            ChipMode::nesSunsoft5b,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::stack,
+            { 0.66f, 0.56f, 0.22f, 0.76f },
+            { true, true, true, false },
+            0.0f,
+            0,
+            0,
+            0,
+            -11.0f,
+            1789773.0
+        }, 0.16f, 0.12f, 0.10f, 0.0f),
+        withSourceLevels({
+            "5b-bright-lead",
+            "NES + 5B Leads",
+            "5B Bright Lead",
+            "Forward PSG lead with crisp 5B square tones and a lean APU underlay.",
+            ChipMode::nesSunsoft5b,
+            AccuracyMode::hybrid,
+            MacroKind::lead,
+            PlayMode::chipPoly,
+            { 0.72f, 0.64f, 0.20f, 0.84f },
+            { true, true, true, false },
+            0.12f,
+            0,
+            0,
+            0,
+            -11.5f,
+            1789773.0
+        }, 0.12f, 0.10f, 0.08f, 0.0f),
+        withSourceLevels({
+            "5b-three-voice-arp",
+            "NES + 5B Arps",
+            "5B Three-Voice Arp",
+            "Six-lane chip-poly arp allocating pulse, pulse, triangle, and all three 5B tone lanes.",
+            ChipMode::nesSunsoft5b,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.56f, 0.76f, 0.28f, 0.72f },
+            { true, true, true, false },
+            0.0f,
+            0,
+            0,
+            0,
+            -11.5f,
+            1789773.0
+        }, 0.14f, 0.12f, 0.10f, 0.0f),
+        withSourceLevels({
+            "5b-power-arp",
+            "NES + 5B Arps",
+            "5B Power Arp",
+            "Rising 5B tone-stack arp with small NES pulse spark and triangle lift.",
+            ChipMode::nesSunsoft5b,
+            AccuracyMode::hybrid,
+            MacroKind::powerUp,
+            PlayMode::stack,
+            { 0.68f, 0.86f, 0.30f, 0.88f },
+            { true, true, true, false },
+            0.12f,
+            0,
+            0,
+            0,
+            -11.0f,
+            1789773.0
+        }, 0.16f, 0.12f, 0.12f, 0.0f),
+        withSourceLevels({
+            "5b-chord-keys",
+            "NES + 5B Keys",
+            "5B Chord Keys",
+            "Clean 5B square chord key preset with light APU support for compact voicings.",
+            ChipMode::nesSunsoft5b,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.42f, 0.50f, 0.18f, 0.58f },
+            { true, true, true, false },
+            0.20f,
+            0,
+            0,
+            0,
+            -11.5f,
+            1789773.0
+        }, 0.10f, 0.10f, 0.08f, 0.0f),
+        withSourceLevels({
+            "5b-soft-pad",
+            "NES + 5B Keys",
+            "5B Soft Pad",
+            "Soft PSG pad recipe with longer helper decay and a subtle NES triangle floor.",
+            ChipMode::nesSunsoft5b,
+            AccuracyMode::hybrid,
+            MacroKind::arp,
+            PlayMode::chipPoly,
+            { 0.36f, 0.42f, 0.14f, 0.50f },
+            { true, true, true, false },
+            0.34f,
+            0,
+            0,
+            0,
+            -12.0f,
+            1789773.0
+        }, 0.08f, 0.08f, 0.08f, 0.0f),
+        withNesDmcDirect({
+            "5b-noise-drum",
+            "NES + 5B Drums",
+            "5B Noise Drum",
+            "NES noise/DMC drum preset framed for a Sunsoft 5B kit while PSG lanes stay out of the transient.",
+            ChipMode::nesSunsoft5b,
+            AccuracyMode::hybrid,
+            MacroKind::drum,
+            PlayMode::stack,
+            { 0.34f, 0.14f, 0.82f, 0.42f },
+            { false, false, true, true },
+            0.78f,
+            0,
+            0,
+            0,
+            -11.0f,
+            1789773.0
+        }, 0.32f),
+        withSourceLevels({
+            "5b-impact-perc",
+            "NES + 5B Drums",
+            "5B Impact Perc",
+            "Short PSG impact with APU noise grit and a tight square-tone transient.",
+            ChipMode::nesSunsoft5b,
+            AccuracyMode::hybrid,
+            MacroKind::hit,
+            PlayMode::stack,
+            { 0.44f, 0.44f, 0.68f, 0.72f },
+            { true, false, true, true },
+            0.46f,
+            0,
+            0,
+            0,
+            -11.5f,
+            1789773.0
+        }, 0.16f, 0.0f, 0.12f, 0.14f),
+        withSourceLevels({
+            "5b-coin-ping",
+            "Arcade UI",
+            "5B Coin Ping",
+            "Short 5B square ping for menu confirms and pickup cues.",
+            ChipMode::nesSunsoft5b,
+            AccuracyMode::hybrid,
+            MacroKind::coin,
+            PlayMode::stack,
+            { 0.20f, 0.88f, 0.12f, 0.80f },
+            { true, false, false, false },
+            0.10f,
+            0,
+            0,
+            0,
+            -12.0f,
+            1789773.0
+        }, 0.12f, 0.0f, 0.0f, 0.0f),
+        withSourceLevels({
+            "5b-laser-sweep",
+            "Classic Game SFX",
+            "5B Laser Sweep",
+            "Pitchy Sunsoft 5B square-tone sweep with a small NES noise bite.",
+            ChipMode::nesSunsoft5b,
+            AccuracyMode::hybrid,
+            MacroKind::laser,
+            PlayMode::stack,
+            { 0.30f, 0.94f, 0.58f, 0.86f },
+            { true, true, false, true },
+            0.22f,
+            0,
+            0,
+            0,
+            -11.5f,
+            1789773.0
+        }, 0.14f, 0.10f, 0.0f, 0.12f)
     };
 
     return presets;
@@ -6400,6 +6616,7 @@ const std::vector<PresetQualityTarget>& presetQualityTargets()
         { ChipMode::nes, roles, { "apu", "pulse", "triangle", "noise", "dmc", "dac", "tracker" }, "Furnace-informed RP2A03 coverage: melodic pulse/triangle, DMC/noise percussion, UI and game SFX." },
         { ChipMode::nesVrc6, roles, { "apu", "vrc6", "pulse", "saw", "triangle", "noise", "dmc", "expansion" }, "Furnace-informed NES expansion coverage: VRC6 pulse/saw leads, basses, arps, keys, percussion, and SFX." },
         { ChipMode::nesFds, roles, { "apu", "fds", "wavetable", "wave", "modulation", "triangle", "noise", "dmc", "expansion" }, "Furnace-informed NES expansion coverage: FDS wavetable/mod leads, basses, arps, keys, percussion, and SFX." },
+        { ChipMode::nesSunsoft5b, roles, { "apu", "sunsoft", "5b", "psg", "square", "tone", "expansion", "triangle", "noise", "dmc" }, "Furnace-informed NES expansion coverage: Sunsoft 5B PSG tone leads, basses, arps, keys, percussion, and SFX." },
         { ChipMode::dmg, roles, { "apu", "pulse", "wave", "noise", "duty", "stereo", "sweep" }, "Furnace-informed DMG coverage: pulse leads, wave bass/keys, noise drums, handheld SFX." },
         { ChipMode::sid, roles, { "sid", "filter", "pwm", "sync", "ring", "noise", "pulse" }, "Furnace-informed SID coverage: bass, PWM leads, filter keys, oscillator interaction, and noise hits." },
         { ChipMode::ym2149, roles, { "psg", "noise", "envelope", "chord", "tracker" }, "Furnace-informed AY/YM coverage: tone stacks, envelope tricks, fake chords, and noise percussion." },
@@ -6503,6 +6720,7 @@ std::string presetEngineFor(const PresetInfo& preset)
         case ChipMode::nes: return "RP2A03 APU";
         case ChipMode::nesVrc6: return "RP2A03 + VRC6";
         case ChipMode::nesFds: return "RP2A03 + FDS";
+        case ChipMode::nesSunsoft5b: return "RP2A03 + Sunsoft 5B";
         case ChipMode::dmg: return "DMG APU";
         case ChipMode::sid: return "MOS SID";
         case ChipMode::ym2149: return "AY/YM PSG";
@@ -6539,6 +6757,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
         case ChipMode::nes:
         case ChipMode::nesVrc6:
         case ChipMode::nesFds:
+        case ChipMode::nesSunsoft5b:
         case ChipMode::dmg:
             addPresetTag(tags, "apu");
             if (preset.chip == ChipMode::nesVrc6)
@@ -6551,6 +6770,14 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
                 addPresetTag(tags, "fds");
                 addPresetTag(tags, "wavetable");
                 addPresetTag(tags, "modulation");
+                addPresetTag(tags, "expansion");
+            }
+            if (preset.chip == ChipMode::nesSunsoft5b)
+            {
+                addPresetTag(tags, "sunsoft");
+                addPresetTag(tags, "5b");
+                addPresetTag(tags, "psg");
+                addPresetTag(tags, "square");
                 addPresetTag(tags, "expansion");
             }
             break;
@@ -6595,7 +6822,11 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
             break;
     }
 
-    if ((preset.chip == ChipMode::nes || preset.chip == ChipMode::nesVrc6 || preset.chip == ChipMode::nesFds) && preset.nesDmcDirectLevel > 0.0001f)
+    if ((preset.chip == ChipMode::nes
+         || preset.chip == ChipMode::nesVrc6
+         || preset.chip == ChipMode::nesFds
+         || preset.chip == ChipMode::nesSunsoft5b)
+        && preset.nesDmcDirectLevel > 0.0001f)
     {
         addPresetTag(tags, "dmc");
         addPresetTag(tags, "dac");
@@ -6615,7 +6846,7 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
         addPresetTag(tags, "noise");
 
     const auto corpus = presetCorpus(preset);
-    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "wavetable", "mod", "modulation", "fds", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "ssg", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade", "neo" })
+    for (const auto token : { "pulse", "saw", "triangle", "duty", "stereo", "sweep", "wave", "wavetable", "mod", "modulation", "fds", "sunsoft", "5b", "square", "tone", "noise", "periodic", "filter", "pwm", "sync", "ring", "dmc", "dac", "fm", "opna", "opnb", "ssg", "psg", "operator", "feedback", "echo", "loop", "tracker", "rhythm", "envelope", "chord", "bell", "pad", "rise", "alarm", "polynomial", "distortion", "lfo", "arcade", "neo" })
     {
         if (presetCorpusContains(corpus, token))
             addPresetTag(tags, token);
