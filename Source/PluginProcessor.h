@@ -120,6 +120,18 @@ public:
         bool truncated = false;
     };
 
+    struct OpnbAdpcmSampleInfo
+    {
+        juce::String statusLine;
+        juce::String sampleName;
+        juce::String path;
+        int byteCount = 0;
+        int copiedByteCount = 0;
+        int memoryByteCount = 1048576;
+        bool loaded = false;
+        bool truncated = false;
+    };
+
     ChipperAudioProcessor();
     ~ChipperAudioProcessor() override = default;
 
@@ -166,12 +178,16 @@ public:
     juce::Result loadPaulaSampleDirectory(const juce::File& directory);
     juce::Result loadOpnaRhythmRomFile(const juce::File& file);
     juce::Result loadOpnaAdpcmBSampleFile(const juce::File& file);
+    juce::Result loadOpnbAdpcmASampleFile(const juce::File& file);
+    juce::Result loadOpnbAdpcmBSampleFile(const juce::File& file);
     juce::String nesDmcSampleBankStatus() const;
     DmcSamplePlaybackInfo nesDmcSamplePlaybackInfo() const;
     Spc700BrrSampleInfo spc700BrrSampleInfo() const;
     Spc700BrrSampleInfo paulaSampleInfo() const;
     OpnaRhythmRomInfo opnaRhythmRomInfo() const;
     OpnaAdpcmBSampleInfo opnaAdpcmBSampleInfo() const;
+    OpnbAdpcmSampleInfo opnbAdpcmASampleInfo() const;
+    OpnbAdpcmSampleInfo opnbAdpcmBSampleInfo() const;
     juce::StringArray nesDmcSampleNames() const;
     juce::StringArray spc700BrrSampleNames() const;
     juce::StringArray paulaSampleNames() const;
@@ -219,6 +235,8 @@ private:
     void applyMappedPaulaSampleForMidiNote(int midiNote);
     void applyOpnaRhythmRomToCore();
     void applyOpnaAdpcmBSampleToCore();
+    void applyOpnbAdpcmASampleToCore();
+    void applyOpnbAdpcmBSampleToCore();
     void handleMidiMessage(const juce::MidiMessage& message);
     bool handleMidiController(const juce::MidiMessage& message);
     bool setParameterFromMidiCc(const char* parameterId, int controllerValue);
@@ -267,6 +285,16 @@ private:
     juce::String opnaAdpcmBSampleRestoreWarning;
     uint64_t opnaAdpcmBSampleRevision = 0;
     uint64_t activeOpnaAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
+    mutable std::mutex opnbAdpcmASampleMutex;
+    DmcSampleSlot opnbAdpcmASample;
+    juce::String opnbAdpcmASampleRestoreWarning;
+    uint64_t opnbAdpcmASampleRevision = 0;
+    uint64_t activeOpnbAdpcmASampleRevision = std::numeric_limits<uint64_t>::max();
+    mutable std::mutex opnbAdpcmBSampleMutex;
+    DmcSampleSlot opnbAdpcmBSample;
+    juce::String opnbAdpcmBSampleRestoreWarning;
+    uint64_t opnbAdpcmBSampleRevision = 0;
+    uint64_t activeOpnbAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
     chipper::PatchConfig activePatch;
     std::vector<chipper::RegisterWrite> pendingRegisterState;
     chipper::PatchConfig lastObservedMacroPatch;

@@ -2604,6 +2604,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     {
         if (displayedMode == chipper::ChipMode::ym2608)
             chooseOpnaRhythmRomFile();
+        else if (displayedMode == chipper::ChipMode::ym2610)
+            chooseOpnbAdpcmASampleFile();
         else if (displayedMode == chipper::ChipMode::paula)
             choosePaulaSampleFile();
         else if (displayedMode == chipper::ChipMode::spc700)
@@ -2619,6 +2621,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     {
         if (displayedMode == chipper::ChipMode::ym2608)
             chooseOpnaAdpcmBSampleFile();
+        else if (displayedMode == chipper::ChipMode::ym2610)
+            chooseOpnbAdpcmBSampleFile();
         else if (displayedMode == chipper::ChipMode::paula)
             choosePaulaSampleDirectory();
         else if (displayedMode == chipper::ChipMode::spc700)
@@ -4948,7 +4952,7 @@ void ChipperAudioProcessorEditor::resized()
         outputPanel.removeFromTop(4);
         outputPanel.removeFromBottom(6);
     }
-    if (displayedMode == chipper::ChipMode::ym2608 && outputPanel.getWidth() >= 620)
+    if ((displayedMode == chipper::ChipMode::ym2608 || displayedMode == chipper::ChipMode::ym2610) && outputPanel.getWidth() >= 620)
     {
         const auto romWidth = std::clamp(outputPanel.getWidth() / 2, 300, 520);
         opnaRhythmRomCell = outputPanel.removeFromRight(std::min(romWidth, outputPanel.getWidth()));
@@ -5449,7 +5453,7 @@ void ChipperAudioProcessorEditor::resized()
             sampleWaveformPreview.setBounds(waveformBounds);
         }
     }
-    else if (displayedMode == chipper::ChipMode::ym2608)
+    else if (displayedMode == chipper::ChipMode::ym2608 || displayedMode == chipper::ChipMode::ym2610)
     {
         clockSlider.setBounds({});
         clockLabel.setBounds({});
@@ -8405,7 +8409,7 @@ juce::String ChipperAudioProcessorEditor::macroTemplateReadout(chipper::ChipMode
         return label + " -> " + fmChipReadout(mode, patch) + " | " + opnSsgMixerReadout(patch) + " | OPNA ADPCM-A rhythm | ADPCM-B sample memory | " + opnSsgEnvelopeReadout(patch) + laneText;
 
     if (mode == chipper::ChipMode::ym2610)
-        return label + " -> " + fmChipReadout(mode, patch) + " | " + opnSsgMixerReadout(patch) + " | OPNB ADPCM planned | " + opnSsgEnvelopeReadout(patch) + laneText;
+        return label + " -> " + fmChipReadout(mode, patch) + " | " + opnSsgMixerReadout(patch) + " | OPNB ADPCM-A/B sample memory | " + opnSsgEnvelopeReadout(patch) + laneText;
 
     if (mode == chipper::ChipMode::ym2151)
         return label + " -> " + fmChipReadout(mode, patch) + " | " + ym2151NoiseReadout(patch) + " | " + waveShapeReadout(mode, patch.waveShape) + laneText;
@@ -13184,12 +13188,60 @@ void ChipperAudioProcessorEditor::updateOpnaRhythmRomControls()
     updateSampleWaveformPreview(chipper::ChipMode::ym2608);
 }
 
+void ChipperAudioProcessorEditor::updateOpnbAdpcmSampleControls()
+{
+    dmcSampleLabel.setText("OPNB ADPCM", juce::dontSendNotification);
+    dmcSampleLabel.setTooltip("Load user-owned YM2610 ADPCM-A and ADPCM-B encoded sample-memory bytes. Without files, both OPNB ADPCM memories stay empty.");
+    dmcSampleFileButton.setButtonText("ADPCM-A");
+    dmcSampleFileButton.setTooltip("Load one user-owned encoded OPNB ADPCM-A byte image. The first 1 MiB fills YM2610 ADPCM-A sample memory.");
+    dmcSampleFolderButton.setButtonText("ADPCM-B");
+    dmcSampleFolderButton.setTooltip("Load one user-owned encoded OPNB ADPCM-B byte image. The first 16 MiB fills YM2610 ADPCM-B sample memory; WAV/AIFF conversion is planned.");
+    dmcSampleBankButton.setButtonText("Bank");
+    dmcSampleSlotBox.setEnabled(false);
+    dmcSampleSlotBox.setSelectedId(0, juce::dontSendNotification);
+    dmcSampleSlotBox.setTextWhenNothingSelected("Single files");
+
+    const auto adpcmAInfo = audioProcessor.opnbAdpcmASampleInfo();
+    const auto adpcmBInfo = audioProcessor.opnbAdpcmBSampleInfo();
+    auto visibleStatus = adpcmAInfo.loaded
+        ? "A " + compactSampleName(adpcmAInfo.sampleName, 18) + " " + juce::String(adpcmAInfo.copiedByteCount) + "/"
+            + juce::String(adpcmAInfo.memoryByteCount)
+        : "A empty";
+    visibleStatus += adpcmBInfo.loaded
+        ? " | B " + compactSampleName(adpcmBInfo.sampleName, 18) + " " + juce::String(adpcmBInfo.copiedByteCount) + "/"
+            + juce::String(adpcmBInfo.memoryByteCount)
+        : " | B empty";
+    if (adpcmAInfo.truncated || adpcmBInfo.truncated)
+        visibleStatus += " | truncated";
+    dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
+
+    auto tooltip = adpcmAInfo.statusLine
+        + "\n" + adpcmBInfo.statusLine
+        + "\nThe loaded files are referenced by path in Chipper state and presets. ADPCM-A bytes fill the first 1 MiB sample-memory window; ADPCM-B bytes fill the first 16 MiB sample-memory window.";
+    if (adpcmAInfo.loaded)
+    {
+        tooltip += "\nADPCM-A sample path: " + adpcmAInfo.path;
+        if (adpcmAInfo.truncated)
+            tooltip += "\nOnly the first 1048576 encoded bytes are used by the YM2610 ADPCM-A memory window.";
+    }
+    if (adpcmBInfo.loaded)
+    {
+        tooltip += "\nADPCM-B sample path: " + adpcmBInfo.path;
+        if (adpcmBInfo.truncated)
+            tooltip += "\nOnly the first 16777216 encoded bytes are used by the YM2610 ADPCM-B memory window.";
+    }
+    tooltip += "\nFiles must already be encoded YM2610 ADPCM bytes; WAV/AIFF import, conversion, sample editing, and OPNB2 behavior remain planned.";
+    dmcSampleStatusLabel.setTooltip(tooltip);
+    updateSampleWaveformPreview(chipper::ChipMode::ym2610);
+}
+
 void ChipperAudioProcessorEditor::updateSampleWaveformPreview(chipper::ChipMode mode)
 {
     const auto showSamplePreview = (isNesFamily(mode) && mode != chipper::ChipMode::nesVrc7)
         || mode == chipper::ChipMode::spc700
         || mode == chipper::ChipMode::paula
-        || mode == chipper::ChipMode::ym2608;
+        || mode == chipper::ChipMode::ym2608
+        || mode == chipper::ChipMode::ym2610;
 
     if (! showSamplePreview)
     {
@@ -13359,6 +13411,38 @@ void ChipperAudioProcessorEditor::chooseOpnaAdpcmBSampleFile()
                                   });
 }
 
+void ChipperAudioProcessorEditor::chooseOpnbAdpcmASampleFile()
+{
+    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose an OPNB ADPCM-A encoded sample",
+                                                           juce::File {},
+                                                           "*.bin;*.dat;*.adpcm;*.adpcma;*.*");
+    dmcSampleChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                                  [this](const juce::FileChooser& chooser)
+                                  {
+                                      const auto file = chooser.getResult();
+                                      if (file == juce::File {})
+                                          return;
+
+                                      handleDmcSampleLoadResult(audioProcessor.loadOpnbAdpcmASampleFile(file));
+                                  });
+}
+
+void ChipperAudioProcessorEditor::chooseOpnbAdpcmBSampleFile()
+{
+    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose an OPNB ADPCM-B encoded sample",
+                                                           juce::File {},
+                                                           "*.bin;*.dat;*.adpcm;*.adpcmb;*.*");
+    dmcSampleChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                                  [this](const juce::FileChooser& chooser)
+                                  {
+                                      const auto file = chooser.getResult();
+                                      if (file == juce::File {})
+                                          return;
+
+                                      handleDmcSampleLoadResult(audioProcessor.loadOpnbAdpcmBSampleFile(file));
+                                  });
+}
+
 void ChipperAudioProcessorEditor::chooseDmcSampleDirectory()
 {
     dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose a folder of NES DMC samples",
@@ -13409,6 +13493,8 @@ void ChipperAudioProcessorEditor::handleDmcSampleLoadResult(const juce::Result& 
     displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();
     if (displayedMode == chipper::ChipMode::ym2608)
         updateOpnaRhythmRomControls();
+    else if (displayedMode == chipper::ChipMode::ym2610)
+        updateOpnbAdpcmSampleControls();
     else if (displayedMode == chipper::ChipMode::paula)
         updatePaulaSampleControls();
     else if (displayedMode == chipper::ChipMode::spc700)
@@ -13494,9 +13580,10 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto showSpc700BrrControls = hasLiveCore && mode == chipper::ChipMode::spc700;
     const auto showPaulaSampleControls = hasLiveCore && mode == chipper::ChipMode::paula;
     const auto showOpnaRhythmRomControls = hasLiveCore && mode == chipper::ChipMode::ym2608;
+    const auto showOpnbAdpcmControls = hasLiveCore && mode == chipper::ChipMode::ym2610;
     const auto showSampleBankControls = showNesDmcSampleControls || showSpc700BrrControls || showPaulaSampleControls;
-    const auto showSampleFileControls = showSampleBankControls || showOpnaRhythmRomControls;
-    const auto showSampleFolderControls = showSampleBankControls || showOpnaRhythmRomControls;
+    const auto showSampleFileControls = showSampleBankControls || showOpnaRhythmRomControls || showOpnbAdpcmControls;
+    const auto showSampleFolderControls = showSampleBankControls || showOpnaRhythmRomControls || showOpnbAdpcmControls;
     const auto showSampleBankLabels = showSpc700BrrControls || showPaulaSampleControls;
     dmcSampleLabel.setVisible(showSampleFileControls);
     dmcSampleStatusLabel.setVisible(showSampleFileControls);
@@ -13554,8 +13641,8 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     sampleLoopEndValueLabel.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
     sampleLoopStartSlider.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
     sampleLoopEndSlider.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
-    clockLabel.setVisible(! isNesFamily(mode) && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula && mode != chipper::ChipMode::ym2608);
-    clockSlider.setVisible(! isNesFamily(mode) && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula && mode != chipper::ChipMode::ym2608);
+    clockLabel.setVisible(! isNesFamily(mode) && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula && mode != chipper::ChipMode::ym2608 && mode != chipper::ChipMode::ym2610);
+    clockSlider.setVisible(! isNesFamily(mode) && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula && mode != chipper::ChipMode::ym2608 && mode != chipper::ChipMode::ym2610);
 
     for (size_t i = 0; i < moduleTitleLabels.size(); ++i)
     {
@@ -13584,6 +13671,11 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         {
             moduleTitleLabels[i].setText("OPNA ADPCM", juce::dontSendNotification);
             summary = "Load ADPCM-A rhythm ROM bytes and encoded ADPCM-B sample memory.";
+        }
+        else if (mode == chipper::ChipMode::ym2610 && i == 5)
+        {
+            moduleTitleLabels[i].setText("OPNB ADPCM", juce::dontSendNotification);
+            summary = "Load encoded ADPCM-A and ADPCM-B sample memory.";
         }
         if (i == 1 && hasLiveCore && usesSourceChannelSurface(mode))
         {
@@ -13985,6 +14077,12 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[4].setText("OPNA ADPCM memory", juce::dontSendNotification);
         controlValueLabels[4].setTooltip("Loads user-owned ADPCM-A rhythm ROM bytes and encoded ADPCM-B sample bytes for YM2608 Drum/Hit macros; generated Chipper rhythm bytes remain the default.");
         updateOpnaRhythmRomControls();
+    }
+    else if (mode == chipper::ChipMode::ym2610)
+    {
+        controlValueLabels[4].setText("OPNB ADPCM memory", juce::dontSendNotification);
+        controlValueLabels[4].setTooltip("Loads user-owned encoded ADPCM-A and ADPCM-B sample bytes for YM2610 Drum/Hit macros; empty memories remain silent until files are loaded.");
+        updateOpnbAdpcmSampleControls();
     }
     else
     {

@@ -918,6 +918,82 @@ int main()
         opnaAdpcmBFile.deleteFile();
     }
 
+    {
+        auto opnbAdpcmAFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                  .getChildFile("chipper-opnb-adpcm-a-test.bin");
+        auto opnbAdpcmBFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                  .getChildFile("chipper-opnb-adpcm-b-test.bin");
+        opnbAdpcmAFile.deleteFile();
+        opnbAdpcmBFile.deleteFile();
+        ok &= expect(writeBinaryFixture(opnbAdpcmAFile, 1050000u),
+                     "Should write temporary OPNB ADPCM-A fixture");
+        ok &= expect(writeBinaryFixture(opnbAdpcmBFile, 8192u),
+                     "Should write temporary OPNB ADPCM-B fixture");
+
+        ChipperAudioProcessor opnbProcessor;
+        opnbProcessor.prepareToPlay(48000.0, 64);
+        setPlainFromHost(opnbProcessor, chipper::parameters::id::chipMode, 18.0f);
+        processEmptyBlock(opnbProcessor);
+        ok &= expect(opnbProcessor.loadOpnbAdpcmASampleFile(opnbAdpcmAFile).wasOk(),
+                     "OPNB ADPCM-A sample file load should succeed");
+        ok &= expect(opnbProcessor.loadOpnbAdpcmBSampleFile(opnbAdpcmBFile).wasOk(),
+                     "OPNB ADPCM-B sample file load should succeed");
+
+        auto opnbAdpcmAInfo = opnbProcessor.opnbAdpcmASampleInfo();
+        ok &= expect(opnbAdpcmAInfo.loaded && opnbAdpcmAInfo.byteCount == 1050000u
+                         && opnbAdpcmAInfo.copiedByteCount == 1048576u
+                         && opnbAdpcmAInfo.truncated,
+                     "OPNB ADPCM-A info should report user bytes and 1 MiB memory window");
+
+        auto opnbAdpcmBInfo = opnbProcessor.opnbAdpcmBSampleInfo();
+        ok &= expect(opnbAdpcmBInfo.loaded && opnbAdpcmBInfo.byteCount == 8192u
+                         && opnbAdpcmBInfo.copiedByteCount == 8192u
+                         && opnbAdpcmBInfo.memoryByteCount == 16777216
+                         && ! opnbAdpcmBInfo.truncated,
+                     "OPNB ADPCM-B info should report user bytes and 16 MiB memory window");
+
+        const auto opnbDebug = opnbProcessor.currentCoreDebugStateJson();
+        ok &= expect(jsonIntValue(opnbDebug, "opnbAdpcmALoaded") == 1
+                         && jsonIntValue(opnbDebug, "opnbAdpcmAProvidedBytes") == 1050000
+                         && jsonIntValue(opnbDebug, "opnbAdpcmACopiedBytes") == 1048576,
+                     "OPNB core debug state should expose loaded ADPCM-A sample bytes");
+        ok &= expect(jsonIntValue(opnbDebug, "opnbAdpcmBLoaded") == 1
+                         && jsonIntValue(opnbDebug, "opnbAdpcmBProvidedBytes") == 8192
+                         && jsonIntValue(opnbDebug, "opnbAdpcmBCopiedBytes") == 8192,
+                     "OPNB core debug state should expose loaded ADPCM-B sample bytes");
+
+        auto opnbStateXml = opnbProcessor.createStateXml();
+        ok &= expect(opnbStateXml != nullptr, "OPNB state XML should save loaded ADPCM paths");
+
+        ChipperAudioProcessor restoredOpnbProcessor;
+        restoredOpnbProcessor.prepareToPlay(48000.0, 64);
+        if (opnbStateXml != nullptr)
+            ok &= expect(restoredOpnbProcessor.restoreStateXml(*opnbStateXml).wasOk(),
+                         "OPNB ADPCM state restore should succeed");
+
+        processEmptyBlock(restoredOpnbProcessor);
+        auto restoredOpnbAdpcmAInfo = restoredOpnbProcessor.opnbAdpcmASampleInfo();
+        ok &= expect(restoredOpnbAdpcmAInfo.loaded && restoredOpnbAdpcmAInfo.byteCount == 1050000u
+                         && restoredOpnbAdpcmAInfo.copiedByteCount == 1048576u,
+                     "OPNB ADPCM-A state restore should reload the user sample path");
+
+        auto restoredOpnbAdpcmBInfo = restoredOpnbProcessor.opnbAdpcmBSampleInfo();
+        ok &= expect(restoredOpnbAdpcmBInfo.loaded && restoredOpnbAdpcmBInfo.byteCount == 8192u
+                         && restoredOpnbAdpcmBInfo.copiedByteCount == 8192u,
+                     "OPNB ADPCM-B state restore should reload the user sample path");
+
+        const auto restoredOpnbDebug = restoredOpnbProcessor.currentCoreDebugStateJson();
+        ok &= expect(jsonIntValue(restoredOpnbDebug, "opnbAdpcmALoaded") == 1
+                         && jsonIntValue(restoredOpnbDebug, "opnbAdpcmACopiedBytes") == 1048576,
+                     "Restored OPNB core should receive the user ADPCM-A sample bytes");
+        ok &= expect(jsonIntValue(restoredOpnbDebug, "opnbAdpcmBLoaded") == 1
+                         && jsonIntValue(restoredOpnbDebug, "opnbAdpcmBCopiedBytes") == 8192,
+                     "Restored OPNB core should receive the user ADPCM-B sample bytes");
+
+        opnbAdpcmAFile.deleteFile();
+        opnbAdpcmBFile.deleteFile();
+    }
+
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 7));
     sendController(processor, 74, controllerValueForChoice(processor, chipper::parameters::id::macro, 5));
     ok &= expectNear(parameterValue(processor, chipper::parameters::id::nesDmcPlaybackMode), 2.0f, 0.0001f,

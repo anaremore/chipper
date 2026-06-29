@@ -22,9 +22,13 @@ constexpr auto paulaSampleBankStateTag = "CHIPPER_PAULA_SAMPLE_BANK";
 constexpr auto paulaSampleStateTag = "PAULA_SAMPLE";
 constexpr auto opnaRhythmRomStateTag = "CHIPPER_OPNA_RHYTHM_ROM";
 constexpr auto opnaAdpcmBSampleStateTag = "CHIPPER_OPNA_ADPCM_B_SAMPLE";
+constexpr auto opnbAdpcmASampleStateTag = "CHIPPER_OPNB_ADPCM_A_SAMPLE";
+constexpr auto opnbAdpcmBSampleStateTag = "CHIPPER_OPNB_ADPCM_B_SAMPLE";
 constexpr auto unmappedDmcSampleSlot = -2;
 constexpr auto opnaRhythmRomBytes = 8192;
 constexpr auto opnaAdpcmBMemoryBytes = 262144;
+constexpr auto opnbAdpcmAMemoryBytes = 1048576;
+constexpr auto opnbAdpcmBMemoryBytes = 16777216;
 
 juce::String midiNoteName(int note)
 {
@@ -437,6 +441,39 @@ juce::Result readOpnaAdpcmBSampleFile(const juce::File& file, ChipperAudioProces
     std::memcpy(slot.bytes.data(), block.getData(), block.getSize());
     slot.included = true;
     return juce::Result::ok();
+}
+
+juce::Result readOpnbAdpcmSampleFile(const juce::File& file,
+                                     ChipperAudioProcessor::DmcSampleSlot& slot,
+                                     const juce::String& label)
+{
+    if (! file.existsAsFile())
+        return juce::Result::fail("OPNB " + label + " sample file does not exist: " + file.getFullPathName());
+
+    juce::MemoryBlock block;
+    if (! file.loadFileAsData(block))
+        return juce::Result::fail("Could not read OPNB " + label + " sample file: " + file.getFullPathName());
+
+    if (block.getSize() == 0u)
+        return juce::Result::fail("OPNB " + label + " sample file is empty: " + file.getFullPathName());
+
+    slot.name = file.getFileName();
+    slot.path = file.getFullPathName();
+    slot.encoding = chipper::ExternalSampleEncoding::rawBytes;
+    slot.bytes.resize(block.getSize());
+    std::memcpy(slot.bytes.data(), block.getData(), block.getSize());
+    slot.included = true;
+    return juce::Result::ok();
+}
+
+juce::Result readOpnbAdpcmASampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    return readOpnbAdpcmSampleFile(file, slot, "ADPCM-A");
+}
+
+juce::Result readOpnbAdpcmBSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    return readOpnbAdpcmSampleFile(file, slot, "ADPCM-B");
 }
 
 bool fileLooksLikePcmImport(const juce::File& file)
@@ -1260,6 +1297,42 @@ juce::Result ChipperAudioProcessor::loadOpnaAdpcmBSampleFile(const juce::File& f
     return juce::Result::ok();
 }
 
+juce::Result ChipperAudioProcessor::loadOpnbAdpcmASampleFile(const juce::File& file)
+{
+    DmcSampleSlot slot;
+    if (auto result = readOpnbAdpcmASampleFile(file, slot); result.failed())
+        return result;
+
+    {
+        const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
+        opnbAdpcmASample = std::move(slot);
+        opnbAdpcmASampleRestoreWarning = {};
+        ++opnbAdpcmASampleRevision;
+    }
+
+    activeOpnbAdpcmASampleRevision = std::numeric_limits<uint64_t>::max();
+    applyOpnbAdpcmASampleToCore();
+    return juce::Result::ok();
+}
+
+juce::Result ChipperAudioProcessor::loadOpnbAdpcmBSampleFile(const juce::File& file)
+{
+    DmcSampleSlot slot;
+    if (auto result = readOpnbAdpcmBSampleFile(file, slot); result.failed())
+        return result;
+
+    {
+        const std::lock_guard<std::mutex> lock(opnbAdpcmBSampleMutex);
+        opnbAdpcmBSample = std::move(slot);
+        opnbAdpcmBSampleRestoreWarning = {};
+        ++opnbAdpcmBSampleRevision;
+    }
+
+    activeOpnbAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
+    applyOpnbAdpcmBSampleToCore();
+    return juce::Result::ok();
+}
+
 ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSamplePlaybackInfo() const
 {
     static constexpr std::array<int, 16> ntscDmcPeriods {
@@ -1594,6 +1667,62 @@ ChipperAudioProcessor::OpnaAdpcmBSampleInfo ChipperAudioProcessor::opnaAdpcmBSam
     info.sampleName = opnaAdpcmBSample.name;
     info.path = opnaAdpcmBSample.path;
     info.byteCount = static_cast<int>(opnaAdpcmBSample.bytes.size());
+    info.copiedByteCount = std::min(info.byteCount, info.memoryByteCount);
+    info.truncated = info.byteCount > info.memoryByteCount;
+    info.statusLine = juce::String("ADPCM-B sample: ") + info.sampleName + " ("
+        + juce::String(info.byteCount) + " encoded bytes";
+    if (info.truncated)
+        info.statusLine += ", first " + juce::String(info.copiedByteCount) + " copied";
+    info.statusLine += ")";
+    appendRestoreWarning(info.statusLine, restoreWarning);
+    return info;
+}
+
+ChipperAudioProcessor::OpnbAdpcmSampleInfo ChipperAudioProcessor::opnbAdpcmASampleInfo() const
+{
+    OpnbAdpcmSampleInfo info;
+    info.memoryByteCount = opnbAdpcmAMemoryBytes;
+    const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
+    const auto restoreWarning = opnbAdpcmASampleRestoreWarning;
+    if (opnbAdpcmASample.bytes.empty())
+    {
+        info.statusLine = "No OPNB ADPCM-A sample loaded";
+        appendRestoreWarning(info.statusLine, restoreWarning);
+        return info;
+    }
+
+    info.loaded = true;
+    info.sampleName = opnbAdpcmASample.name;
+    info.path = opnbAdpcmASample.path;
+    info.byteCount = static_cast<int>(opnbAdpcmASample.bytes.size());
+    info.copiedByteCount = std::min(info.byteCount, info.memoryByteCount);
+    info.truncated = info.byteCount > info.memoryByteCount;
+    info.statusLine = juce::String("ADPCM-A sample: ") + info.sampleName + " ("
+        + juce::String(info.byteCount) + " encoded bytes";
+    if (info.truncated)
+        info.statusLine += ", first " + juce::String(info.copiedByteCount) + " copied";
+    info.statusLine += ")";
+    appendRestoreWarning(info.statusLine, restoreWarning);
+    return info;
+}
+
+ChipperAudioProcessor::OpnbAdpcmSampleInfo ChipperAudioProcessor::opnbAdpcmBSampleInfo() const
+{
+    OpnbAdpcmSampleInfo info;
+    info.memoryByteCount = opnbAdpcmBMemoryBytes;
+    const std::lock_guard<std::mutex> lock(opnbAdpcmBSampleMutex);
+    const auto restoreWarning = opnbAdpcmBSampleRestoreWarning;
+    if (opnbAdpcmBSample.bytes.empty())
+    {
+        info.statusLine = "No OPNB ADPCM-B sample loaded";
+        appendRestoreWarning(info.statusLine, restoreWarning);
+        return info;
+    }
+
+    info.loaded = true;
+    info.sampleName = opnbAdpcmBSample.name;
+    info.path = opnbAdpcmBSample.path;
+    info.byteCount = static_cast<int>(opnbAdpcmBSample.bytes.size());
     info.copiedByteCount = std::min(info.byteCount, info.memoryByteCount);
     info.truncated = info.byteCount > info.memoryByteCount;
     info.statusLine = juce::String("ADPCM-B sample: ") + info.sampleName + " ("
@@ -2401,6 +2530,8 @@ void ChipperAudioProcessor::ensureCore()
         applyPaulaSampleToCore();
         applyOpnaRhythmRomToCore();
         applyOpnaAdpcmBSampleToCore();
+        applyOpnbAdpcmASampleToCore();
+        applyOpnbAdpcmBSampleToCore();
         return;
     }
 
@@ -2419,11 +2550,15 @@ void ChipperAudioProcessor::ensureCore()
     activePaulaSampleSlot = -1;
     activeOpnaRhythmRomRevision = std::numeric_limits<uint64_t>::max();
     activeOpnaAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
+    activeOpnbAdpcmASampleRevision = std::numeric_limits<uint64_t>::max();
+    activeOpnbAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
     applySelectedDmcSampleToCore();
     applySpc700BrrSampleToCore();
     applyPaulaSampleToCore();
     applyOpnaRhythmRomToCore();
     applyOpnaAdpcmBSampleToCore();
+    applyOpnbAdpcmASampleToCore();
+    applyOpnbAdpcmBSampleToCore();
     replayPendingRegisterState();
     replayHeldNotes();
 }
@@ -2915,6 +3050,46 @@ void ChipperAudioProcessor::applyOpnaAdpcmBSampleToCore()
     core->setExternalAdpcmBData(std::move(selectedBytes));
 }
 
+void ChipperAudioProcessor::applyOpnbAdpcmASampleToCore()
+{
+    if (core == nullptr || activeMode != chipper::ChipMode::ym2610)
+        return;
+
+    std::vector<uint8_t> selectedBytes;
+    uint64_t revision = 0;
+    {
+        const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
+        revision = opnbAdpcmASampleRevision;
+        selectedBytes = opnbAdpcmASample.bytes;
+    }
+
+    if (revision == activeOpnbAdpcmASampleRevision)
+        return;
+
+    activeOpnbAdpcmASampleRevision = revision;
+    core->setExternalSampleData(std::move(selectedBytes));
+}
+
+void ChipperAudioProcessor::applyOpnbAdpcmBSampleToCore()
+{
+    if (core == nullptr || activeMode != chipper::ChipMode::ym2610)
+        return;
+
+    std::vector<uint8_t> selectedBytes;
+    uint64_t revision = 0;
+    {
+        const std::lock_guard<std::mutex> lock(opnbAdpcmBSampleMutex);
+        revision = opnbAdpcmBSampleRevision;
+        selectedBytes = opnbAdpcmBSample.bytes;
+    }
+
+    if (revision == activeOpnbAdpcmBSampleRevision)
+        return;
+
+    activeOpnbAdpcmBSampleRevision = revision;
+    core->setExternalAdpcmBData(std::move(selectedBytes));
+}
+
 chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
 {
     const auto modeChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::chipMode)->load()));
@@ -3119,6 +3294,10 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
         xml->removeChildElement(existingOpnaRhythmRomState, true);
     while (auto* existingOpnaAdpcmBState = xml->getChildByName(opnaAdpcmBSampleStateTag))
         xml->removeChildElement(existingOpnaAdpcmBState, true);
+    while (auto* existingOpnbAdpcmAState = xml->getChildByName(opnbAdpcmASampleStateTag))
+        xml->removeChildElement(existingOpnbAdpcmAState, true);
+    while (auto* existingOpnbAdpcmBState = xml->getChildByName(opnbAdpcmBSampleStateTag))
+        xml->removeChildElement(existingOpnbAdpcmBState, true);
 
     if (core != nullptr)
     {
@@ -3219,6 +3398,24 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
             xml->addChildElement(adpcmBState);
         }
     }
+    {
+        const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
+        if (! opnbAdpcmASample.bytes.empty())
+        {
+            auto* adpcmAState = new juce::XmlElement(opnbAdpcmASampleStateTag);
+            adpcmAState->setAttribute("path", opnbAdpcmASample.path);
+            xml->addChildElement(adpcmAState);
+        }
+    }
+    {
+        const std::lock_guard<std::mutex> lock(opnbAdpcmBSampleMutex);
+        if (! opnbAdpcmBSample.bytes.empty())
+        {
+            auto* adpcmBState = new juce::XmlElement(opnbAdpcmBSampleStateTag);
+            adpcmBState->setAttribute("path", opnbAdpcmBSample.path);
+            xml->addChildElement(adpcmBState);
+        }
+    }
 
     return xml;
 }
@@ -3242,11 +3439,15 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     std::vector<DmcSampleSlot> restoredPaulaBank;
     DmcSampleSlot restoredOpnaRhythmRom;
     DmcSampleSlot restoredOpnaAdpcmBSample;
+    DmcSampleSlot restoredOpnbAdpcmASample;
+    DmcSampleSlot restoredOpnbAdpcmBSample;
     juce::StringArray dmcSampleRestoreIssues;
     juce::StringArray spc700SampleRestoreIssues;
     juce::StringArray paulaSampleRestoreIssues;
     juce::StringArray opnaRhythmRomRestoreIssues;
     juce::StringArray opnaAdpcmBSampleRestoreIssues;
+    juce::StringArray opnbAdpcmASampleRestoreIssues;
+    juce::StringArray opnbAdpcmBSampleRestoreIssues;
     if (auto* coreState = xml->getChildByName(coreStateTag))
     {
         for (const auto* child : coreState->getChildIterator())
@@ -3381,6 +3582,18 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
             opnaAdpcmBSampleRestoreIssues.add(result.getErrorMessage());
         xml->removeChildElement(opnaAdpcmBState, true);
     }
+    if (auto* opnbAdpcmAState = xml->getChildByName(opnbAdpcmASampleStateTag))
+    {
+        if (auto result = readOpnbAdpcmASampleFile(resolvePresetSamplePath(*opnbAdpcmAState, presetDirectory), restoredOpnbAdpcmASample); result.failed())
+            opnbAdpcmASampleRestoreIssues.add(result.getErrorMessage());
+        xml->removeChildElement(opnbAdpcmAState, true);
+    }
+    if (auto* opnbAdpcmBState = xml->getChildByName(opnbAdpcmBSampleStateTag))
+    {
+        if (auto result = readOpnbAdpcmBSampleFile(resolvePresetSamplePath(*opnbAdpcmBState, presetDirectory), restoredOpnbAdpcmBSample); result.failed())
+            opnbAdpcmBSampleRestoreIssues.add(result.getErrorMessage());
+        xml->removeChildElement(opnbAdpcmBState, true);
+    }
 
     apvts.replaceState(juce::ValueTree::fromXml(*xml));
     {
@@ -3415,6 +3628,18 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
         opnaAdpcmBSampleRestoreWarning = restoreWarningLine("OPNA ADPCM-B sample", opnaAdpcmBSampleRestoreIssues);
         ++opnaAdpcmBSampleRevision;
     }
+    {
+        const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
+        opnbAdpcmASample = std::move(restoredOpnbAdpcmASample);
+        opnbAdpcmASampleRestoreWarning = restoreWarningLine("OPNB ADPCM-A", opnbAdpcmASampleRestoreIssues);
+        ++opnbAdpcmASampleRevision;
+    }
+    {
+        const std::lock_guard<std::mutex> lock(opnbAdpcmBSampleMutex);
+        opnbAdpcmBSample = std::move(restoredOpnbAdpcmBSample);
+        opnbAdpcmBSampleRestoreWarning = restoreWarningLine("OPNB ADPCM-B", opnbAdpcmBSampleRestoreIssues);
+        ++opnbAdpcmBSampleRevision;
+    }
     activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
     activeDmcSampleSlot = -1;
     activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
@@ -3425,6 +3650,8 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     activePaulaManualSlot = -1;
     activeOpnaRhythmRomRevision = std::numeric_limits<uint64_t>::max();
     activeOpnaAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
+    activeOpnbAdpcmASampleRevision = std::numeric_limits<uint64_t>::max();
+    activeOpnbAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
     core.reset();
     hasObservedMacroSnapshot = false;
 
@@ -3733,6 +3960,38 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
             snapshot.sourceSampleCount = static_cast<int>(decoded.size());
             snapshot.loaded = ! decoded.empty();
             appendRestoreWarning(snapshot.label, opnaRhythmRomRestoreWarning);
+        }
+    }
+    else if (mode == chipper::ChipMode::ym2610)
+    {
+        {
+            const std::lock_guard<std::mutex> lock(opnbAdpcmBSampleMutex);
+            if (! opnbAdpcmBSample.bytes.empty())
+            {
+                decoded = decodePcm8Preview(opnbAdpcmBSample.bytes);
+                snapshot.label = "OPNB ADPCM-B sample: " + opnbAdpcmBSample.name;
+                snapshot.sourceSampleCount = static_cast<int>(decoded.size());
+                snapshot.loaded = ! decoded.empty();
+                appendRestoreWarning(snapshot.label, opnbAdpcmBSampleRestoreWarning);
+            }
+        }
+
+        if (decoded.empty())
+        {
+            const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
+            if (opnbAdpcmASample.bytes.empty())
+            {
+                snapshot.label = "No OPNB ADPCM sample loaded";
+                appendRestoreWarning(snapshot.label, opnbAdpcmASampleRestoreWarning);
+                appendRestoreWarning(snapshot.label, opnbAdpcmBSampleRestoreWarning);
+                return snapshot;
+            }
+
+            decoded = decodePcm8Preview(opnbAdpcmASample.bytes);
+            snapshot.label = "OPNB ADPCM-A sample: " + opnbAdpcmASample.name;
+            snapshot.sourceSampleCount = static_cast<int>(decoded.size());
+            snapshot.loaded = ! decoded.empty();
+            appendRestoreWarning(snapshot.label, opnbAdpcmASampleRestoreWarning);
         }
     }
 

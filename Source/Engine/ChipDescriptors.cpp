@@ -4337,11 +4337,11 @@ const std::vector<ChipDescriptor>& descriptors()
                     "BSD-3-Clause ymfm is vendored and linked as the YM2610/OPNB synthesis core.",
                     "Renderer notes and preset recipes write OPNB algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, key-on, and pan registers across the four YM2610 FM channels.",
                     "Embedded YM2610 SSG tone period, noise period, mixer, amplitude, and envelope registers are written for SSG A-C and mixed from the ymfm OPNB SSG output bus.",
-                    "Renderer paths can load user-owned encoded ADPCM-A and ADPCM-B bytes into YM2610 sample memory for Drum and Hit macros.",
-                    "Descriptor, MIDI CC, renderer smoke, ADPCM sample-memory smoke, source gating, and Chip Poly regression tests cover the seven-lane FM plus SSG adapter."
+                    "Renderer and VST paths can load user-owned encoded ADPCM-A and ADPCM-B bytes into YM2610 sample memory for Drum and Hit macros.",
+                    "Descriptor, MIDI CC, renderer smoke, ADPCM sample-memory smoke, plugin ADPCM-A/B state restore, source gating, and Chip Poly regression tests cover the seven-lane FM plus SSG adapter."
                 },
                 {
-                    "VST ADPCM-A/B loading and state recall, WAV/AIFF ADPCM import or format conversion, full sample editing, YM2610B/OPNB2 six-FM behavior, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
+                    "WAV/AIFF ADPCM import or format conversion, full sample editing, YM2610B/OPNB2 six-FM behavior, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
                     "Prescaler controls, timers, CSM, LFO/AMS/PMS, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
                 })
         }
