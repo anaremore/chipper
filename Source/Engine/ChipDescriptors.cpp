@@ -63,7 +63,7 @@ std::vector<MacroTemplate> ym2612Macros()
         { MacroKind::bass, "OPN2 Feedback Bass", "Dark feedback-heavy FM bass using a serial operator algorithm.", { 0.00f, 0.82f, 0.28f, 0.88f }, { true, true, false, false }, 0.08f, 1 },
         { MacroKind::lead, "OPN2 Metallic Lead", "Forward Genesis lead with parallel carrier bite.", { 0.58f, 0.44f, 0.62f, 0.82f }, { true, true, true, false }, 0.10f, 5 },
         { MacroKind::arp, "OPN2 Fake Chord Arp", "Six YM2612 melodic channels arranged for fake chords and arpeggios.", { 0.72f, 0.32f, 0.50f, 0.78f }, { true, true, true, true }, 0.08f, 6 },
-        { MacroKind::drum, "OPN2 DAC Drum", "Short Genesis channel-6 DAC drum using generated low-rate sample bytes.", { 0.14f, 0.56f, 0.44f, 0.96f }, { false, false, true, true }, 0.24f, 1 },
+        { MacroKind::drum, "OPN2 DAC Drum", "Short Genesis channel-6 DAC drum using generated or renderer-fed unsigned sample bytes.", { 0.14f, 0.56f, 0.44f, 0.96f }, { false, false, true, true }, 0.24f, 1 },
         { MacroKind::hit, "OPN2 Damage Hit", "Aggressive stacked operator impact.", { 0.22f, 0.90f, 0.75f, 0.78f }, { true, false, true, true }, 0.55f, 2 },
         { MacroKind::laser, "OPN2 Pitch Laser", "Genesis FM pitch sweep SFX.", { 0.30f, 0.72f, 0.88f, 0.80f }, { true, true, false, true }, 0.28f, 3 },
         { MacroKind::jump, "OPN2 Jump Blip", "Quick upward FM game gesture.", { 1.00f, 0.22f, 0.66f, 0.76f }, { true, false, false, false }, 0.18f, 8 },
@@ -1171,7 +1171,7 @@ std::vector<ParameterChoiceSpec> ym2612DacModeChoices()
     return {
         choice("Preset", "Use channel-6 DAC for Drum/Hit presets and melodic FM channel 6 otherwise.", 0.0f, 0),
         choice("FM Ch6", "Keep YM2612 channel 6 in normal four-operator FM mode.", 0.5f, 1),
-        choice("DAC Drum", "Enable the YM2612 channel-6 DAC via $2B and stream an 8-bit drum waveform through $2A.", 1.0f, 2)
+        choice("DAC Drum", "Enable the YM2612 channel-6 DAC via $2B and stream generated or renderer-loaded unsigned 8-bit sample bytes through $2A.", 1.0f, 2)
     };
 }
 
@@ -1230,7 +1230,7 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
                    "ym2612.operatorTone",
                    "Operator Tone",
                    "Operators",
-                   "Scales operator multiplier and modulator total-level choices before writing OPN2 operator registers.",
+                   "Scales operator multiplier, native DT1 detune, and modulator total-level choices before writing OPN2 operator registers.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "ym2612.fmLevel",
@@ -1316,7 +1316,7 @@ std::vector<ChipParameterSpec> ym2612ParameterSpecs()
                       "ym2612.dacMode",
                       "DAC Mode",
                       "Output",
-                      "Controls the native YM2612 channel-6 DAC path. DAC Drum enables $2B and writes 8-bit samples to $2A; FM Ch6 keeps the sixth FM channel active.",
+                      "Controls the native YM2612 channel-6 DAC path. DAC Drum enables $2B and writes generated or renderer-loaded unsigned 8-bit samples to $2A; FM Ch6 keeps the sixth FM channel active.",
                       ym2612DacModeChoices(),
                       ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::stereoSpread,
@@ -3599,10 +3599,10 @@ std::array<ModuleDescriptor, 6> ym2612Modules()
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "YM2612/OPN2 core is backed by audited BSD-licensed ymfm.", { "YM2612 model", "NTSC Genesis clock", "Hybrid default", "Verified partial" }),
         makeModule("sources", "FM Voices", "All six YM2612 melodic channels are exposed as playable source lanes.", { "FM Ch 1", "FM Ch 2", "FM Ch 3", "FM Ch 4-6" }),
-        makeModule("tone", "Operators", "Musical controls write native OPN2 algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
+        makeModule("tone", "Operators", "Musical controls write native OPN2 algorithm, feedback, multiplier, DT1 detune, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
         makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPN2 attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
         makeModule("motion", "Motion", "Genesis-style preset recipes map to register-backed FM patches with first-pass native LFO depth.", { "$22 LFO", "AMS/PMS", "Carrier AM", "Pitch laser" }),
-        makeModule("output", "Output", "ymfm stereo OPN2 output follows native channel pan bits plus output trim.", { "Stereo core", "$B4 pan", "DAC drum", "Verified partial" })
+        makeModule("output", "Output", "ymfm stereo OPN2 output follows native channel pan bits plus output trim and optional generated/renderer-loaded DAC drum bytes.", { "Stereo core", "$B4 pan", "DAC drum", "Verified partial" })
     };
 }
 
@@ -4063,12 +4063,12 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2612,
             "YM2612 / Genesis FM",
-            "Six exposed lanes write YM2612/OPN2 registers into the audited ymfm core for Genesis-style FM tones, with optional native channel-6 DAC drum playback.",
+            "Six exposed lanes write YM2612/OPN2 registers into the audited ymfm core for Genesis-style FM tones, with native DT1 detune, LFO, and optional channel-6 DAC drum playback.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2612 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2612 feedback bits for the active FM voices." },
                 { "lfo", "LFO Depth", "Motion", "Writes native $22 LFO rate plus $B4 AMS/PMS and carrier AM-enable bits." },
-                { "operator", "Operator Tone", "Operators", "Scales operator multipliers and modulator levels." },
+                { "operator", "Operator Tone", "Operators", "Scales operator multipliers, DT1 detune, and modulator levels." },
                 { "level", "FM / DAC Level", "Output", "Controls carrier level and channel-6 DAC mode through native registers." },
             },
             ym2612Modules(),
@@ -4079,13 +4079,13 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2612/OPN2 synthesis core.",
-                    "Renderer notes and preset recipes write OPN2 algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, left/right pan bits, LFO enable/rate, AMS/PMS, carrier AM-enable bits, and key-on registers across all six melodic channels.",
-                    "Channel-6 DAC Drum mode enables $2B and streams generated 8-bit drum bytes through $2A via the ymfm core.",
-                    "Descriptor, MIDI CC, renderer smoke, source gating, LFO Depth JSON, DAC Drum, and Chip Poly regression tests cover the first playable adapter, including six visible source lanes and six-channel note allocation."
+                    "Renderer notes and preset recipes write OPN2 algorithm, feedback, operator multiplier/DT1 detune/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, left/right pan bits, LFO enable/rate, AMS/PMS, carrier AM-enable bits, and key-on registers across all six melodic channels.",
+                    "Channel-6 DAC Drum mode enables $2B and streams generated or renderer-loaded unsigned 8-bit drum bytes through $2A via the ymfm core.",
+                    "Descriptor, MIDI CC, renderer smoke, source gating, LFO Depth JSON, DT1 debug JSON, DAC Drum, renderer-fed DAC sample memory, and Chip Poly regression tests cover the first playable adapter, including six visible source lanes and six-channel note allocation."
                 },
                 {
                     "The six-lane UI is still a compact generic source-card layout rather than a dedicated operator grid.",
-                    "User PCM import for OPN2 DAC playback, deeper LFO waveform/modulation UI, DT1/SSG-EG quirks, timers, and hardware capture comparison are not complete.",
+                    "VST file loading/state recall for OPN2 DAC sample paths, exact DAC timing, deeper LFO waveform/modulation UI, SSG-EG quirks, timers, and hardware capture comparison are not complete.",
                     "Cycle accuracy is not claimed."
                 })
         },
@@ -5815,6 +5815,25 @@ uint8_t ym2612LfoChannelBitsForPatch(const PatchConfig& patch)
 uint8_t ym2612ChannelControlForPatch(const PatchConfig& patch, size_t channel)
 {
     return static_cast<uint8_t>(ym2612PanBitsForPatch(patch, channel) | ym2612LfoChannelBitsForPatch(patch));
+}
+
+uint8_t ym2612OperatorDetuneForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto tone = clampControl(patch.control3);
+    const auto offset = tone - 0.5f;
+    if (std::abs(offset) <= 0.035f)
+        return 0;
+
+    const auto amount = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(std::abs(offset) * 7.5f)), 1, 3));
+    const auto alternate = (op % 2u) != 0u;
+    const auto highSide = offset > 0.0f;
+    return static_cast<uint8_t>((highSide != alternate) ? amount : amount + 4u);
+}
+
+uint8_t ym2612OperatorMultipleDetuneRegisterForPatch(const PatchConfig& patch, size_t op)
+{
+    return static_cast<uint8_t>((ym2612OperatorDetuneForPatch(patch, op) << 4u)
+                                | fmOperatorMultipleForPatch(ChipMode::ym2612, patch, op));
 }
 
 bool ym2612OperatorAmEnabledForPatch(const PatchConfig& patch, size_t op)

@@ -357,6 +357,8 @@ uint8_t ym2612LfoAmSensitivityForPatch(const PatchConfig& patch);
 uint8_t ym2612LfoPmSensitivityForPatch(const PatchConfig& patch);
 uint8_t ym2612LfoChannelBitsForPatch(const PatchConfig& patch);
 uint8_t ym2612ChannelControlForPatch(const PatchConfig& patch, size_t channel);
+uint8_t ym2612OperatorDetuneForPatch(const PatchConfig& patch, size_t op);
+uint8_t ym2612OperatorMultipleDetuneRegisterForPatch(const PatchConfig& patch, size_t op);
 bool ym2612OperatorAmEnabledForPatch(const PatchConfig& patch, size_t op);
 FmEnvelopeRegisters ym2612EnvelopeRegistersForPatch(const PatchConfig& patch, size_t op);
 uint8_t ym2151AlgorithmForPatch(const PatchConfig& patch);

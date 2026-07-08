@@ -716,6 +716,15 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 0) == 38u, "YM2612 helper should resolve modulator total level");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 1) == 6u, "YM2612 algorithm 4 should treat operator 2 as a carrier");
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Lead, 3) == 6u, "YM2612 helper should resolve carrier total level");
+    ok &= expect(chipper::ym2612OperatorDetuneForPatch(opn2Lead, 0) == 0u, "YM2612 neutral Operator Tone should leave DT1 off");
+    ok &= expect(chipper::ym2612OperatorMultipleDetuneRegisterForPatch(opn2Lead, 0) == chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2612, opn2Lead, 0),
+                 "YM2612 neutral Operator Tone should preserve the multiplier nibble");
+    auto opn2Detuned = opn2Lead;
+    opn2Detuned.control3 = 0.9f;
+    ok &= expect(chipper::ym2612OperatorDetuneForPatch(opn2Detuned, 0) == 3u, "YM2612 high Operator Tone should write positive DT1 on operator 1");
+    ok &= expect(chipper::ym2612OperatorDetuneForPatch(opn2Detuned, 1) == 7u, "YM2612 high Operator Tone should alternate DT1 direction on operator 2");
+    ok &= expect(chipper::ym2612OperatorMultipleDetuneRegisterForPatch(opn2Detuned, 0) == static_cast<uint8_t>((3u << 4u) | chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2612, opn2Detuned, 0)),
+                 "YM2612 helper should pack operator 1 DT1 and multiple into the native register byte");
     auto opn2Trimmed = opn2Lead;
     opn2Trimmed.fmOperatorLevels = { 0.0f, 0.5f, 0.5f, 1.0f };
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2612, opn2Trimmed, 0) == 62u, "YM2612 operator 1 level trim should attenuate total level around neutral");

@@ -13834,6 +13834,7 @@ public:
         dacStep = 1.0;
         dacActive = false;
         dacEnabled = false;
+        dacUsingExternalSample = false;
         dacLastValue = 0x80u;
         noteStamp = 0;
         heldNote = -1;
@@ -13856,6 +13857,14 @@ public:
     void writeRegister(uint16_t address, uint8_t value) override
     {
         writeYmRegister(address & 0x1ffu, value);
+    }
+
+    void setExternalSampleData(std::vector<uint8_t> data) override
+    {
+        static constexpr size_t maxDacSampleBytes = 0x40000;
+        if (data.size() > maxDacSampleBytes)
+            data.resize(maxDacSampleBytes);
+        externalDacSample = std::move(data);
     }
 
     void noteOn(int midiNote, float velocity) override
@@ -13971,7 +13980,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPN2 register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator, algorithm, feedback, f-number/block, $B4 left/right pan plus AMS/PMS bits, $22 LFO enable/rate, carrier AM-enable bits, key-on registers for all six melodic channels, and optional channel-6 DAC Drum playback through $2B/$2A, with all six source lanes exposed for play and mix control. User PCM import for the DAC, a dedicated operator-grid UI, DT1/SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator multiplier/DT1 detune, algorithm, feedback, f-number/block, $B4 left/right pan plus AMS/PMS bits, $22 LFO enable/rate, carrier AM-enable bits, key-on registers for all six melodic channels, and optional channel-6 DAC Drum playback through $2B/$2A using generated or renderer-supplied unsigned PCM bytes, with all six source lanes exposed for play and mix control. VST file loading/state recall for OPN2 DAC samples, a dedicated operator-grid UI, SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -14027,10 +14036,19 @@ public:
              << "\"fmOperatorReleaseRate1\":" << patch.fmOperatorReleaseRates[1] << ","
              << "\"fmOperatorReleaseRate2\":" << patch.fmOperatorReleaseRates[2] << ","
              << "\"fmOperatorReleaseRate3\":" << patch.fmOperatorReleaseRates[3] << ","
+             << "\"operatorToneControl\":" << patch.control3 << ","
              << "\"operatorMultiple0\":" << static_cast<int>(regs[opRegForChannel(0x30, 0, 0)] & 0x0fu) << ","
              << "\"operatorMultiple1\":" << static_cast<int>(regs[opRegForChannel(0x30, 0, 1)] & 0x0fu) << ","
              << "\"operatorMultiple2\":" << static_cast<int>(regs[opRegForChannel(0x30, 0, 2)] & 0x0fu) << ","
              << "\"operatorMultiple3\":" << static_cast<int>(regs[opRegForChannel(0x30, 0, 3)] & 0x0fu) << ","
+             << "\"operatorDetune0\":" << static_cast<int>((regs[opRegForChannel(0x30, 0, 0)] >> 4u) & 0x07u) << ","
+             << "\"operatorDetune1\":" << static_cast<int>((regs[opRegForChannel(0x30, 0, 1)] >> 4u) & 0x07u) << ","
+             << "\"operatorDetune2\":" << static_cast<int>((regs[opRegForChannel(0x30, 0, 2)] >> 4u) & 0x07u) << ","
+             << "\"operatorDetune3\":" << static_cast<int>((regs[opRegForChannel(0x30, 0, 3)] >> 4u) & 0x07u) << ","
+             << "\"operatorMultipleDetuneRegister0\":" << static_cast<int>(regs[opRegForChannel(0x30, 0, 0)]) << ","
+             << "\"operatorMultipleDetuneRegister1\":" << static_cast<int>(regs[opRegForChannel(0x30, 0, 1)]) << ","
+             << "\"operatorMultipleDetuneRegister2\":" << static_cast<int>(regs[opRegForChannel(0x30, 0, 2)]) << ","
+             << "\"operatorMultipleDetuneRegister3\":" << static_cast<int>(regs[opRegForChannel(0x30, 0, 3)]) << ","
              << "\"operatorAttackRate0\":" << static_cast<int>(regs[opRegForChannel(0x50, 0, 0)]) << ","
              << "\"operatorAttackRate1\":" << static_cast<int>(regs[opRegForChannel(0x50, 0, 1)]) << ","
              << "\"operatorAttackRate2\":" << static_cast<int>(regs[opRegForChannel(0x50, 0, 2)]) << ","
@@ -14071,6 +14089,11 @@ public:
              << "\"dacRegister2A\":" << static_cast<int>(regs[0x2a]) << ","
              << "\"dacRegister2B\":" << static_cast<int>(regs[0x2b]) << ","
              << "\"dacSampleBytes\":" << dacSample.size() << ","
+             << "\"dacExternalSampleLoaded\":" << (! externalDacSample.empty() ? 1 : 0) << ","
+             << "\"dacExternalSampleBytes\":" << externalDacSample.size() << ","
+             << "\"dacExternalSampleChecksum\":" << checksumBytes(externalDacSample) << ","
+             << "\"dacSampleSourceUser\":" << (dacUsingExternalSample ? 1 : 0) << ","
+             << "\"dacPlaybackStep\":" << dacStep << ","
              << "\"envelopeShape\":" << std::clamp(patch.ymEnvelopeShape, 0, 4) << ","
              << "\"attackRate0\":" << static_cast<int>(currentAttackRate[0]) << ","
              << "\"decayRate0\":" << static_cast<int>(currentDecayRate[0]) << ","
@@ -14218,9 +14241,9 @@ private:
             writeYmRegister(0x2a, 0x80u);
     }
 
-    uint8_t multiplierForPatch(size_t op) const
+    uint8_t multipleDetuneRegisterForPatch(size_t op) const
     {
-        return fmOperatorMultipleForPatch(ChipMode::ym2612, patch, op);
+        return ym2612OperatorMultipleDetuneRegisterForPatch(patch, op);
     }
 
     uint8_t totalLevelForOperator(size_t op, float velocity, uint8_t algorithm) const
@@ -14271,7 +14294,7 @@ private:
         for (size_t op = 0; op < 4; ++op)
         {
             const auto envelope = ym2612EnvelopeRegistersForPatch(patch, op);
-            writeYmRegister(opRegForChannel(0x30, channel, op), multiplierForPatch(op));
+            writeYmRegister(opRegForChannel(0x30, channel, op), multipleDetuneRegisterForPatch(op));
             writeYmRegister(opRegForChannel(0x40, channel, op), totalLevelForOperator(op, velocity, algorithm));
             writeYmRegister(opRegForChannel(0x50, channel, op), envelope.attackRate);
             const auto decayRate = static_cast<uint8_t>(envelope.decayRate | (ym2612OperatorAmEnabledForPatch(patch, op) ? 0x80u : 0x00u));
@@ -14346,6 +14369,7 @@ private:
         {
             dacActive = false;
             dacSample.clear();
+            dacUsingExternalSample = false;
             updateDacEnable(false);
         }
         writeYmRegister(0x28, keyCodeForChannel(channel));
@@ -14362,6 +14386,7 @@ private:
         {
             dacActive = false;
             dacSample.clear();
+            dacUsingExternalSample = false;
             updateDacEnable(false);
             keyOnMask &= static_cast<uint16_t>(~(1u << 5u));
             return;
@@ -14371,10 +14396,19 @@ private:
         currentBlock[5] = 0;
         currentAlgorithm[5] = 0;
         currentFeedback[5] = 0;
-        dacSample = makeDacDrumSample(midiNote, channelVelocity[5]);
+        dacUsingExternalSample = ! externalDacSample.empty();
+        dacSample = dacUsingExternalSample ? makeExternalDacSample(channelVelocity[5]) : makeDacDrumSample(midiNote, channelVelocity[5]);
         dacPhase = 0.0;
-        const auto playbackHz = std::clamp(9000.0 * std::pow(2.0, (std::clamp(midiNote, 24, 96) - 60) / 24.0), 3500.0, 22000.0);
-        dacStep = chipSampleRate > 0.0 ? playbackHz / chipSampleRate : 1.0;
+        if (dacUsingExternalSample)
+        {
+            const auto noteRatio = std::pow(2.0, (std::clamp(midiNote, 24, 96) - 60) / 12.0);
+            dacStep = chipSampleRate > 0.0 ? std::clamp(noteRatio, 0.25, 4.0) : 1.0;
+        }
+        else
+        {
+            const auto playbackHz = std::clamp(9000.0 * std::pow(2.0, (std::clamp(midiNote, 24, 96) - 60) / 24.0), 3500.0, 22000.0);
+            dacStep = chipSampleRate > 0.0 ? playbackHz / chipSampleRate : 1.0;
+        }
         dacActive = ! dacSample.empty();
         dacLastValue = dacActive ? dacSample.front() : 0x80u;
         updateDacEnable(dacActive);
@@ -14410,6 +14444,19 @@ private:
         return sample;
     }
 
+    std::vector<uint8_t> makeExternalDacSample(float velocity) const
+    {
+        std::vector<uint8_t> sample;
+        sample.reserve(externalDacSample.size());
+        const auto velocityScale = std::clamp(static_cast<double>(velocity), 0.0, 1.0);
+        for (const auto byte : externalDacSample)
+        {
+            const auto centered = (static_cast<double>(byte) - 128.0) * velocityScale;
+            sample.push_back(static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(128.0 + centered)), 0, 255)));
+        }
+        return sample;
+    }
+
     void advanceDacPlayback()
     {
         if (! dacActive || ! dacEnabled || dacSample.empty())
@@ -14420,6 +14467,7 @@ private:
         {
             dacActive = false;
             dacSample.clear();
+            dacUsingExternalSample = false;
             keyOnMask &= static_cast<uint16_t>(~(1u << 5u));
             writeYmRegister(0x2a, 0x80u);
             return;
@@ -14548,6 +14596,7 @@ private:
     std::array<float, 6> channelVelocity {};
     std::array<uint64_t, 6> channelStamp {};
     std::vector<uint8_t> dacSample;
+    std::vector<uint8_t> externalDacSample;
     uint64_t noteStamp = 0;
     int heldNote = -1;
     uint16_t keyOnMask = 0;
@@ -14556,11 +14605,13 @@ private:
     double dacStep = 1.0;
     bool dacActive = false;
     bool dacEnabled = false;
+    bool dacUsingExternalSample = false;
     uint8_t dacLastValue = 0x80u;
     int32_t lastNativeLeft = 0;
     int32_t lastNativeRight = 0;
     StereoFrame currentOutput {};
 };
+
 
 class Opl3Core final : public ChipCore
 {

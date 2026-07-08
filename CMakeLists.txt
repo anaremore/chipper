@@ -910,6 +910,9 @@ add_test(NAME chipper_render_ym2612_feedback7_smoke
 add_test(NAME chipper_render_ym2612_operator_levels_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro lead --wave-shape 5 --control3 0.5 --control4 0.8 --fm-op1-level 0 --fm-op4-level 1 --fm-op1-multiplier 0.5 --fm-op4-multiplier 15 --fm-op1-attack-rate 0 --fm-op4-attack-rate 31 --fm-op2-decay-rate 0 --fm-op4-decay-rate 31 --fm-op2-sustain-rate 0 --fm-op4-sustain-rate 31 --fm-op2-release-rate 0 --fm-op4-release-rate 15 --clock 7670454 --rate 48000 --seconds 0.08 --note 69 --out ym2612-operator-levels-smoke.wav --debug ym2612-operator-levels-smoke.json
 )
+add_test(NAME chipper_render_ym2612_operator_detune_smoke
+    COMMAND chipper_render --chip ym2612 --accuracy authentic --macro lead --wave-shape 5 --control3 0.9 --clock 7670454 --rate 48000 --seconds 0.08 --note 69 --out ym2612-operator-detune-smoke.wav --debug ym2612-operator-detune-smoke.json
+)
 add_test(NAME chipper_render_ym2612_lfo_depth_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro lead --wave-shape 5 --opn2-lfo-depth 0.65 --clock 7670454 --rate 48000 --seconds 0.12 --note 69 --out ym2612-lfo-depth-smoke.wav --debug ym2612-lfo-depth-smoke.json
 )
@@ -933,6 +936,9 @@ add_test(NAME chipper_render_ym2612_env_pad_smoke
 )
 add_test(NAME chipper_render_ym2612_dac_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro drum --opn2-dac dac --opn2-pan both --clock 7670454 --rate 48000 --seconds 0.03 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2612-dac-events.txt --out ym2612-dac-smoke.wav --debug ym2612-dac-smoke.json
+)
+add_test(NAME chipper_render_ym2612_dac_user_sample_smoke
+    COMMAND chipper_render --chip ym2612 --accuracy authentic --macro drum --opn2-dac dac --opn2-dac-hex 8080c0ff80400020 --opn2-pan both --clock 7670454 --rate 48000 --seconds 0.03 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2612-dac-events.txt --out ym2612-dac-user-sample-smoke.wav --debug ym2612-dac-user-sample-smoke.json
 )
 add_test(NAME chipper_render_preset_opn2_dac_kick_smoke
     COMMAND chipper_render --preset opn2-dac-kick --rate 48000 --seconds 0.03 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2612-dac-events.txt --out preset-opn2-dac-kick.wav --debug preset-opn2-dac-kick.json
@@ -2380,6 +2386,10 @@ if (Python3_Interpreter_FOUND)
             --core-min fmOperatorReleaseRate3=16 --core-max fmOperatorReleaseRate3=16
             --core-min operatorMultiple0=0 --core-max operatorMultiple0=0
             --core-min operatorMultiple3=15 --core-max operatorMultiple3=15
+            --core-min operatorDetune0=0 --core-max operatorDetune0=0
+            --core-min operatorDetune3=0 --core-max operatorDetune3=0
+            --core-min operatorMultipleDetuneRegister0=0 --core-max operatorMultipleDetuneRegister0=0
+            --core-min operatorMultipleDetuneRegister3=15 --core-max operatorMultipleDetuneRegister3=15
             --core-min operatorAttackRate0=0 --core-max operatorAttackRate0=0
             --core-min operatorAttackRate3=31 --core-max operatorAttackRate3=31
             --core-min operatorDecayRate1=0 --core-max operatorDecayRate1=0
@@ -2404,6 +2414,25 @@ if (Python3_Interpreter_FOUND)
             --descriptor-param-kind fmOperator4ReleaseRate=chipRegister --descriptor-param-surface fmOperator4ReleaseRate=menu --descriptor-param-label "fmOperator4ReleaseRate=OP4 Release" --descriptor-param-choices fmOperator4ReleaseRate=17
     )
     set_tests_properties(chipper_render_ym2612_operator_levels_assert PROPERTIES DEPENDS chipper_render_ym2612_operator_levels_smoke)
+    add_test(NAME chipper_render_ym2612_operator_detune_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-operator-detune-smoke.json
+            --implemented-contains ymfm --macro Lead --min-peak 0.01 --register-writes 0 --note-events 0
+            --core-min operatorToneControl=0.89 --core-max operatorToneControl=0.91
+            --core-min operatorMultiple0=14 --core-max operatorMultiple0=14
+            --core-min operatorMultiple1=15 --core-max operatorMultiple1=15
+            --core-min operatorMultiple2=15 --core-max operatorMultiple2=15
+            --core-min operatorMultiple3=15 --core-max operatorMultiple3=15
+            --core-min operatorDetune0=3 --core-max operatorDetune0=3
+            --core-min operatorDetune1=7 --core-max operatorDetune1=7
+            --core-min operatorDetune2=3 --core-max operatorDetune2=3
+            --core-min operatorDetune3=7 --core-max operatorDetune3=7
+            --core-min operatorMultipleDetuneRegister0=62 --core-max operatorMultipleDetuneRegister0=62
+            --core-min operatorMultipleDetuneRegister1=127 --core-max operatorMultipleDetuneRegister1=127
+            --core-min operatorMultipleDetuneRegister2=63 --core-max operatorMultipleDetuneRegister2=63
+            --core-min operatorMultipleDetuneRegister3=127 --core-max operatorMultipleDetuneRegister3=127
+            --descriptor-param-label "macroControl3=Operator Tone"
+    )
+    set_tests_properties(chipper_render_ym2612_operator_detune_assert PROPERTIES DEPENDS chipper_render_ym2612_operator_detune_smoke)
 
     add_test(NAME chipper_render_ym2612_lfo_depth_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-lfo-depth-smoke.json
@@ -2579,19 +2608,23 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_ym2612_env_pad_assert PROPERTIES DEPENDS chipper_render_ym2612_env_pad_smoke)
 
     add_test(NAME chipper_render_ym2612_dac_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-dac-smoke.json --implemented-contains ymfm --macro Drum --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=512 --core-max dacSampleBytes=512 --core-min keyOnMask=32 --core-max keyOnMask=32 --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=DAC Mode" --descriptor-param-choices snNoiseMode=3
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-dac-smoke.json --implemented-contains ymfm --macro Drum --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=512 --core-max dacSampleBytes=512 --core-min dacExternalSampleLoaded=0 --core-max dacExternalSampleLoaded=0 --core-min dacSampleSourceUser=0 --core-max dacSampleSourceUser=0 --core-min keyOnMask=32 --core-max keyOnMask=32 --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=DAC Mode" --descriptor-param-choices snNoiseMode=3
     )
     set_tests_properties(chipper_render_ym2612_dac_assert PROPERTIES DEPENDS chipper_render_ym2612_dac_smoke)
+    add_test(NAME chipper_render_ym2612_dac_user_sample_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-dac-user-sample-smoke.json --implemented-contains ymfm --macro Drum --register-writes 0 --note-events 1 --min-peak 0.0001 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=0 --core-max dacActive=0 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=128 --core-max dacRegister2A=128 --core-min dacSampleBytes=0 --core-max dacSampleBytes=0 --core-min dacExternalSampleLoaded=1 --core-max dacExternalSampleLoaded=1 --core-min dacExternalSampleBytes=8 --core-max dacExternalSampleBytes=8 --core-min dacExternalSampleChecksum=2912425144 --core-max dacExternalSampleChecksum=2912425144 --core-min dacSampleSourceUser=0 --core-max dacSampleSourceUser=0 --core-min dacPlaybackStep=1.49 --core-max dacPlaybackStep=1.51 --core-min keyOnMask=0 --core-max keyOnMask=0 --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=DAC Mode" --descriptor-param-choices snNoiseMode=3
+    )
+    set_tests_properties(chipper_render_ym2612_dac_user_sample_assert PROPERTIES DEPENDS chipper_render_ym2612_dac_user_sample_smoke)
     add_test(NAME chipper_render_preset_opn2_dac_kick_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-dac-kick.json --implemented-contains ymfm --preset opn2-dac-kick --macro Drum --play-mode "Big Mono" --output-db -10.5 --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=512 --core-max dacSampleBytes=512 --core-min keyOnMask=32 --core-max keyOnMask=32 --core-min sourceEnabled5=1 --core-max sourceEnabled5=1
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-dac-kick.json --implemented-contains ymfm --preset opn2-dac-kick --macro Drum --play-mode "Big Mono" --output-db -10.5 --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=512 --core-max dacSampleBytes=512 --core-min dacExternalSampleLoaded=0 --core-max dacExternalSampleLoaded=0 --core-min dacSampleSourceUser=0 --core-max dacSampleSourceUser=0 --core-min keyOnMask=32 --core-max keyOnMask=32 --core-min sourceEnabled5=1 --core-max sourceEnabled5=1
     )
     set_tests_properties(chipper_render_preset_opn2_dac_kick_assert PROPERTIES DEPENDS chipper_render_preset_opn2_dac_kick_smoke)
     add_test(NAME chipper_render_preset_opn2_dac_chord_hit_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-dac-chord-hit.json --implemented-contains ymfm --preset opn2-dac-chord-hit --macro Drum --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=512 --core-max dacSampleBytes=512 --core-min keyOnMask=32 --core-max keyOnMask=32 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled5=1 --core-max sourceEnabled5=1 --core-min algorithm0=7 --core-max algorithm0=7 --core-min feedback0=4 --core-max feedback0=4 --core-min algorithmFeedbackRegister0=39 --core-max algorithmFeedbackRegister0=39 --core-min envelopeShape=4 --core-max envelopeShape=4 --core-min attackRate0=31 --core-max attackRate0=31 --core-min decayRate0=24 --core-max decayRate0=24 --core-min sustainRate0=14 --core-max sustainRate0=14 --core-min sustainRelease0=63 --core-max sustainRelease0=63 --core-min fmOperatorLevel0=0.42 --core-max fmOperatorLevel0=0.42 --core-min fmOperatorLevel1=0.54 --core-max fmOperatorLevel1=0.54 --core-min fmOperatorLevel2=0.46 --core-max fmOperatorLevel2=0.46 --core-min fmOperatorLevel3=0.72 --core-max fmOperatorLevel3=0.72
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-dac-chord-hit.json --implemented-contains ymfm --preset opn2-dac-chord-hit --macro Drum --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=512 --core-max dacSampleBytes=512 --core-min dacExternalSampleLoaded=0 --core-max dacExternalSampleLoaded=0 --core-min dacSampleSourceUser=0 --core-max dacSampleSourceUser=0 --core-min keyOnMask=32 --core-max keyOnMask=32 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled5=1 --core-max sourceEnabled5=1 --core-min algorithm0=7 --core-max algorithm0=7 --core-min feedback0=4 --core-max feedback0=4 --core-min algorithmFeedbackRegister0=39 --core-max algorithmFeedbackRegister0=39 --core-min envelopeShape=4 --core-max envelopeShape=4 --core-min attackRate0=31 --core-max attackRate0=31 --core-min decayRate0=24 --core-max decayRate0=24 --core-min sustainRate0=14 --core-max sustainRate0=14 --core-min sustainRelease0=63 --core-max sustainRelease0=63 --core-min fmOperatorLevel0=0.42 --core-max fmOperatorLevel0=0.42 --core-min fmOperatorLevel1=0.54 --core-max fmOperatorLevel1=0.54 --core-min fmOperatorLevel2=0.46 --core-max fmOperatorLevel2=0.46 --core-min fmOperatorLevel3=0.72 --core-max fmOperatorLevel3=0.72
     )
     set_tests_properties(chipper_render_preset_opn2_dac_chord_hit_assert PROPERTIES DEPENDS chipper_render_preset_opn2_dac_chord_hit_smoke)
     add_test(NAME chipper_render_preset_opn2_dac_snare_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-dac-snare.json --implemented-contains ymfm --preset opn2-dac-snare --macro Drum --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=512 --core-max dacSampleBytes=512 --core-min keyOnMask=32 --core-max keyOnMask=32 --core-min envelopeShape=4 --core-max envelopeShape=4 --core-min fmOperatorLevel0=0.62 --core-max fmOperatorLevel0=0.62 --core-min fmOperatorLevel1=0.44 --core-max fmOperatorLevel1=0.44 --core-min fmOperatorLevel2=0.56 --core-max fmOperatorLevel2=0.56 --core-min fmOperatorLevel3=0.92 --core-max fmOperatorLevel3=0.92
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-dac-snare.json --implemented-contains ymfm --preset opn2-dac-snare --macro Drum --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=512 --core-max dacSampleBytes=512 --core-min dacExternalSampleLoaded=0 --core-max dacExternalSampleLoaded=0 --core-min dacSampleSourceUser=0 --core-max dacSampleSourceUser=0 --core-min keyOnMask=32 --core-max keyOnMask=32 --core-min envelopeShape=4 --core-max envelopeShape=4 --core-min fmOperatorLevel0=0.62 --core-max fmOperatorLevel0=0.62 --core-min fmOperatorLevel1=0.44 --core-max fmOperatorLevel1=0.44 --core-min fmOperatorLevel2=0.56 --core-max fmOperatorLevel2=0.56 --core-min fmOperatorLevel3=0.92 --core-max fmOperatorLevel3=0.92
     )
     set_tests_properties(chipper_render_preset_opn2_dac_snare_assert PROPERTIES DEPENDS chipper_render_preset_opn2_dac_snare_smoke)
     add_test(NAME chipper_render_preset_opn2_envelope_bell_assert

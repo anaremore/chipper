@@ -16,7 +16,7 @@ The plugin must not use generic retro oscillators with famous chip labels. Each 
 - **Philips SAA1099:** six square tone channels, stereo amplitude nibbles, two shared noise generators, envelope groups, and SAM Coupe-style PSG character.
 - **PC Speaker:** one-bit PIT channel 2 beeper output, port `0x61` gate/data behavior, direct-click SFX, one speaker source lane, and DOS-style beeps.
 - **ZX Spectrum Beeper:** one-bit ULA port `0xFE` beeper output, EAR/MIC bit behavior, border-bit metadata, MIC-click SFX, one beeper source lane, and Spectrum-style chirps/rasps.
-- **YM2612/OPN2:** six-channel FM, operators, algorithms, feedback, LFO, DAC behavior, stereo.
+- **YM2612/OPN2:** six-channel FM, operators, algorithms, feedback, native DT1 detune, LFO, channel-6 DAC behavior with generated or renderer-fed unsigned bytes, and stereo.
 - **YM2203/OPN:** three-channel FM plus three embedded SSG tone/noise/envelope lanes backed by `ymfm`, shared OPN operator controls, algorithm/feedback, source-card mixing, and PC-88/arcade-style presets.
 - **YM2608/OPNA:** six-channel FM plus three embedded SSG tone/noise/envelope lanes backed by `ymfm`, shared OPN-family operator controls, algorithm/feedback, pan, source-card mixing, PC-98-style presets, generated native ADPCM-A rhythm overlay for Drum/Hit macros with renderer and VST support for user-owned rhythm ROM bytes, and first-pass encoded ADPCM-B sample memory. ADPCM-B WAV/AIFF conversion/editing and broader validation remain follow-ups.
 - **YM2610/OPNB:** four-channel FM plus three embedded SSG tone/noise/envelope lanes backed by `ymfm`, shared OPN-family operator controls, algorithm/feedback, pan, source-card mixing, Neo Geo-style presets, and renderer/VST loading and state recall for user-owned encoded ADPCM-A/B sample memory. WAV/AIFF ADPCM conversion/editing and stronger validation remain follow-ups.
@@ -42,7 +42,7 @@ Verification labels are separate from that control. The footer, renderer debug J
 - Clock Rate override and model variant where applicable
 - Register-backed channel controls for each implemented chip
 - Duty, noise mode, sweep, length/envelope controls for pulse/noise chips
-- Operator, algorithm, feedback, per-operator level trim/multiplier/attack-rate/decay-rate/sustain-rate/release-rate, LFO, DAC, and stereo controls for FM chips
+- Operator, algorithm, feedback, per-operator level trim/multiplier/detune/attack-rate/decay-rate/sustain-rate/release-rate, LFO, DAC, and stereo controls for FM chips
 - Sample slot, rate, loop, and bit-depth controls for sampler chips
 - Wavetable index, wave RAM/SCC waveform, and channel mix controls for wavetable chips
 - Arp, retrigger, pitch motion, vibrato, glide, output trim

@@ -9568,7 +9568,11 @@ juce::String ChipperAudioProcessorEditor::fmOperatorRegisterReadout(chipper::Chi
     const auto multiple = static_cast<int>(chipper::fmOperatorMultipleForPatch(mode, patch, op));
     const auto totalLevel = static_cast<int>(chipper::fmOperatorTotalLevelForPatch(mode, patch, op));
     const auto multipleText = multiple == 0 ? juce::String("0.5") : juce::String(multiple);
+    const auto detuneText = mode == chipper::ChipMode::ym2612
+        ? (juce::String(" | DT1 ") + juce::String(static_cast<int>(chipper::ym2612OperatorDetuneForPatch(patch, op))))
+        : juce::String();
     return "MULT " + multipleText
+        + detuneText
         + " | TL " + juce::String(totalLevel)
         + " | AR " + juce::String(static_cast<int>(envelope.attackRate))
         + " | D1 " + juce::String(static_cast<int>(envelope.decayRate))
@@ -9620,7 +9624,7 @@ juce::String ChipperAudioProcessorEditor::fmOperatorRegisterTooltip(chipper::Chi
         ? juce::String("YM2151/OPM")
         : (mode == chipper::ChipMode::ym2203 ? juce::String("YM2203/OPN") : (mode == chipper::ChipMode::ym2608 ? juce::String("YM2608/OPNA") : (mode == chipper::ChipMode::ym2610b ? juce::String("YM2610B/OPNB2") : (mode == chipper::ChipMode::ym2610 ? juce::String("YM2610/OPNB") : juce::String("YM2612/OPN2")))));
     return family + " operator " + juce::String(static_cast<int>(op + 1u))
-        + " preset-resolved registers. MULT/TL control the operator ratio and level, while AR/D1/D2/SL-RR are the native envelope registers currently written into the ymfm core.";
+        + " preset-resolved registers. MULT/TL control the operator ratio and level, DT1 appears for OPN2 detune, and AR/D1/D2/SL-RR are the native envelope registers currently written into the ymfm core.";
 }
 
 juce::String ChipperAudioProcessorEditor::ym2612DacModeReadout(const chipper::PatchConfig& patch) const
@@ -9840,14 +9844,21 @@ juce::String ChipperAudioProcessorEditor::fmSourceRegisterReadout(chipper::ChipM
     const auto familyPrefix = mode == chipper::ChipMode::ym2203
         ? juce::String("OPN Ch ")
         : (mode == chipper::ChipMode::ym2608 ? juce::String("OPNA FM ") : (mode == chipper::ChipMode::ym2610b ? juce::String("OPNB2 FM ") : (mode == chipper::ChipMode::ym2610 ? juce::String("OPNB FM ") : juce::String("OPN2 Ch "))));
-    return familyPrefix + juce::String(channel)
+    auto text = familyPrefix + juce::String(channel)
         + " | Port " + juce::String(static_cast<int>(ymPort))
         + " Reg $" + byteHex(static_cast<uint8_t>(0xb0u + ymSlot))
         + " = $" + byteHex(registerValue)
         + " | Alg " + juce::String(algorithm)
         + " FB " + juce::String(feedback)
-        + " | M1/M4 " + juce::String(op1Multiple) + "/" + juce::String(op4Multiple)
-        + " TL " + juce::String(modLevel) + "/" + juce::String(carrierLevel);
+        + " | M1/M4 " + juce::String(op1Multiple) + "/" + juce::String(op4Multiple);
+    if (mode == chipper::ChipMode::ym2612)
+    {
+        text += " DT "
+            + juce::String(static_cast<int>(chipper::ym2612OperatorDetuneForPatch(patch, 0)))
+            + "/"
+            + juce::String(static_cast<int>(chipper::ym2612OperatorDetuneForPatch(patch, 3)));
+    }
+    return text + " TL " + juce::String(modLevel) + "/" + juce::String(carrierLevel);
 }
 
 juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMode mode,

@@ -134,12 +134,14 @@ struct Options
     int note = 69;
     std::filesystem::path eventFile;
     std::filesystem::path nesDmcSamplePath;
+    std::filesystem::path opn2DacSamplePath;
     std::filesystem::path opnaRhythmRomPath;
     std::filesystem::path opnaAdpcmBSamplePath;
     std::filesystem::path opnbAdpcmASamplePath;
     std::filesystem::path opnbAdpcmBSamplePath;
     std::filesystem::path spc700BrrSamplePath;
     std::vector<std::filesystem::path> paulaSamplePaths;
+    std::string opn2DacHex;
     std::string opnaRhythmRomHex;
     std::string opnaAdpcmBHex;
     std::string opnbAdpcmAHex;
@@ -1445,7 +1447,8 @@ void printUsage()
         << "       Metadata: chipper_render --list-presets [--chip sid] --debug presets.json\n"
         << "                 chipper_render --list-descriptors --debug descriptors.json\n"
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
-        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --fm-feedback 0..7 --control3 0.1 --control4 0.5 --fm-op1-level 0..1 --fm-op2-level 0..1 --fm-op3-level 0..1 --fm-op4-level 0..1 --fm-op1-multiplier follow|0.5|1..15 --fm-op2-multiplier follow|0.5|1..15 --fm-op3-multiplier follow|0.5|1..15 --fm-op4-multiplier follow|0.5|1..15 --fm-op1-attack-rate follow|0..31 --fm-op2-attack-rate follow|0..31 --fm-op3-attack-rate follow|0..31 --fm-op4-attack-rate follow|0..31 --fm-op1-decay-rate follow|0..31 --fm-op2-decay-rate follow|0..31 --fm-op3-decay-rate follow|0..31 --fm-op4-decay-rate follow|0..31 --fm-op1-sustain-rate follow|0..31 --fm-op2-sustain-rate follow|0..31 --fm-op3-sustain-rate follow|0..31 --fm-op4-sustain-rate follow|0..31 --fm-op1-release-rate follow|0..15 --fm-op2-release-rate follow|0..15 --fm-op3-release-rate follow|0..15 --fm-op4-release-rate follow|0..15 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --opna-rhythm-rom path.bin --opna-rhythm-rom-hex 017f... --spc700-brr-sample path.brr --spc700-brr-hex 017f... --spc700-brr-bank-hex 017f... --spc700-sample-slot 0..31 --spc700-sample-slot1..8 0..32 --spc700-map-root 60 --spc700-loop-start 0..1 --spc700-loop-end 0..1 --paula-sample path.wav|path.8svx|raw (repeat for bank) --paula-shape1..4 follow|ramp|tri|sine|noise --paula-sample-slot1..4 0..32 --spc700-envelope follow|pluck|lead|pad|perc --spc700-noise follow|off|low|mid|high --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|custom|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --huc-wave1..6 follow|ramp|tri|square|noise --scc-wave1..5 follow|ramp|tri|pulse|steps --namco-wave1..8 follow|ramp|tri|pulse|steps --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --huc-lfo follow|off|light|deep|fast --pokey-audctl follow|off|1+2|3+4|both --pokey-filter follow|off|1<-3|2<-4|both --paula-output-filter follow|raw|a500|led|both --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opm-pan follow|both|left|right|alt --opm-noise follow|off|low|mid|high --opm-lfo-depth 0..1 --opn2-lfo-depth 0..1 --opn-ssg-envelope follow|fall|rise|saw|tri --opn-ssg-a-mix follow|tone|noise|both|off --opn-ssg-b-mix follow|tone|noise|both|off --opn-ssg-c-mix follow|tone|noise|both|off --opn2-envelope follow|pluck|lead|pad|perc --opm-envelope follow|pluck|lead|pad|perc --fm-envelope follow|pluck|lead|pad|perc --opn2-dac follow|fm|dac --opl-rhythm follow|melodic|rhythm|layer|4op --opll-rhythm follow|melodic|rhythm --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --fm-feedback 0..7 --control3 0.1 --control4 0.5 --fm-op1-level 0..1 --fm-op2-level 0..1 --fm-op3-level 0..1 --fm-op4-level 0..1 --fm-op1-multiplier follow|0.5|1..15 --fm-op2-multiplier follow|0.5|1..15 --fm-op3-multiplier follow|0.5|1..15 --fm-op4-multiplier follow|0.5|1..15 --fm-op1-attack-rate follow|0..31 --fm-op2-attack-rate follow|0..31 --fm-op3-attack-rate follow|0..31 --fm-op4-attack-rate follow|0..31 --fm-op1-decay-rate follow|0..31 --fm-op2-decay-rate follow|0..31 --fm-op3-decay-rate follow|0..31 --fm-op4-decay-rate follow|0..31 --fm-op1-sustain-rate follow|0..31 --fm-op2-sustain-rate follow|0..31 --fm-op3-sustain-rate follow|0..31 --fm-op4-sustain-rate follow|0..31 --fm-op1-release-rate follow|0..15 --fm-op2-release-rate follow|0..15 --fm-op3-release-rate follow|0..15 --fm-op4-release-rate follow|0..15 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --opn2-dac-sample path.bin --opn2-dac-hex 8080... --opna-rhythm-rom path.bin --opna-rhythm-rom-hex 017f... --spc700-brr-sample path.brr --spc700-brr-hex 017f... --spc700-brr-bank-hex 017f... --spc700-sample-slot 0..31 --spc700-sample-slot1..8 0..32 --spc700-map-root 60 --spc700-loop-start 0..1 --spc700-loop-end 0..1 --paula-sample path.wav|path.8svx|raw (repeat for bank) --paula-shape1..4 follow|ramp|tri|sine|noise --paula-sample-slot1..4 0..32 --spc700-envelope follow|pluck|lead|pad|perc --spc700-noise follow|off|low|mid|high --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|custom|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --huc-wave1..6 follow|ramp|tri|square|noise --scc-wave1..5 follow|ramp|tri|pulse|steps --namco-wave1..8 follow|ramp|tri|pulse|steps --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --huc-lfo follow|off|light|deep|fast --pokey-audctl follow|off|1+2|3+4|both --pokey-filter follow|off|1<-3|2<-4|both --paula-output-filter follow|raw|a500|led|both --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opm-pan follow|both|left|right|alt --opm-noise follow|off|low|mid|high --opm-lfo-depth 0..1 --opn2-lfo-depth 0..1 --opn-ssg-envelope follow|fall|rise|saw|tri --opn-ssg-a-mix follow|tone|noise|both|off --opn-ssg-b-mix follow|tone|noise|both|off --opn-ssg-c-mix follow|tone|noise|both|off --opn2-envelope follow|pluck|lead|pad|perc --opm-envelope follow|pluck|lead|pad|perc --fm-envelope follow|pluck|lead|pad|perc --opn2-dac follow|fm|dac --opl-rhythm follow|melodic|rhythm|layer|4op --opll-rhythm follow|melodic|rhythm --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
+        << "       OPN2 DAC sample memory: --opn2-dac-sample path.bin --opn2-dac-hex 8080... (unsigned 8-bit YM2612 DAC bytes)\n"
         << "       OPNA sample memory: --opna-adpcm-b-sample path.bin --opna-adpcm-b-hex 017f... (encoded ADPCM-B bytes)\n"
         << "       OPNB sample memory: --opnb-adpcm-a-sample path.bin --opnb-adpcm-a-hex 017f... --opnb-adpcm-b-sample path.bin --opnb-adpcm-b-hex 017f... (encoded YM2610 ADPCM bytes)\n"
         << "\nEvent file lines:\n"
@@ -1662,6 +1665,24 @@ bool parseArgs(int argc, char** argv, Options& options)
                     return false;
             }
         };
+
+        if (arg == "--opn2-dac-sample" || arg == "--ym2612-dac-sample")
+        {
+            const auto* value = requireValue(arg.c_str());
+            if (value == nullptr)
+                return false;
+            options.opn2DacSamplePath = value;
+            continue;
+        }
+
+        if (arg == "--opn2-dac-hex" || arg == "--ym2612-dac-hex")
+        {
+            const auto* value = requireValue(arg.c_str());
+            if (value == nullptr)
+                return false;
+            options.opn2DacHex = value;
+            continue;
+        }
 
         if (arg == "--opna-rhythm-rom")
         {
@@ -2358,6 +2379,7 @@ bool parseArgs(int argc, char** argv, Options& options)
                 return false;
             options.nesDmcSamplePath = value;
         }
+
         else if (arg == "--spc700-brr-sample")
         {
             const auto* value = requireValue("--spc700-brr-sample");
@@ -4066,6 +4088,10 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"nesDmcSamplePath\": ";
     writeJsonString(out, options.nesDmcSamplePath.string());
     out << ",\n"
+        << "  \"opn2DacSamplePath\": ";
+    writeJsonString(out, options.opn2DacSamplePath.string());
+    out << ",\n"
+        << "  \"opn2DacHexBytes\": " << (options.opn2DacHex.empty() ? 0 : static_cast<int>(parseHexBytes(options.opn2DacHex).size())) << ",\n"
         << "  \"opnaRhythmRomPath\": ";
     writeJsonString(out, options.opnaRhythmRomPath.string());
     out << ",\n"
@@ -4153,6 +4179,10 @@ int main(int argc, char** argv)
         applyMacroTemplateDefaults(options);
         auto core = chipper::createChipCore(options.chip, options.accuracy);
         core->reset(options.sampleRate, options.clock);
+        if ((! options.opn2DacSamplePath.empty() || ! options.opn2DacHex.empty()) && options.chip != chipper::ChipMode::ym2612)
+            throw std::runtime_error("--opn2-dac sample options are only valid with --chip ym2612");
+        if (! options.opn2DacSamplePath.empty() && ! options.opn2DacHex.empty())
+            throw std::runtime_error("Use either --opn2-dac-sample or --opn2-dac-hex, not both");
         if ((! options.opnaRhythmRomPath.empty() || ! options.opnaRhythmRomHex.empty()) && options.chip != chipper::ChipMode::ym2608)
             throw std::runtime_error("--opna-rhythm-rom is only valid with --chip ym2608");
         if (! options.opnaRhythmRomPath.empty() && ! options.opnaRhythmRomHex.empty())
@@ -4172,6 +4202,10 @@ int main(int argc, char** argv)
             throw std::runtime_error("Use either --opnb-adpcm-b-sample or --opnb-adpcm-b-hex, not both");
         if (! options.nesDmcSamplePath.empty())
             core->setExternalSampleData(loadBinaryFile(options.nesDmcSamplePath));
+        if (! options.opn2DacSamplePath.empty())
+            core->setExternalSampleData(loadBinaryFile(options.opn2DacSamplePath));
+        else if (! options.opn2DacHex.empty())
+            core->setExternalSampleData(parseHexBytes(options.opn2DacHex));
         if (! options.opnaRhythmRomPath.empty())
             core->setExternalSampleData(loadBinaryFile(options.opnaRhythmRomPath));
         else if (! options.opnaRhythmRomHex.empty())
