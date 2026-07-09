@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 
 #include "PluginProcessor.h"
+#include "UI/ChipperEditorShell.h"
 
 #include <array>
 #include <cstdint>
@@ -664,6 +665,7 @@ private:
     juce::TextButton userPresetSaveAsButton;
     juce::ComboBox macroBox;
     juce::ComboBox playModeBox;
+    ChipperEditorShell editorShell;
 
     struct UserPresetFile
     {

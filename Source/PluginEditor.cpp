@@ -2420,7 +2420,24 @@ void SampleWaveformPreview::paint(juce::Graphics& g)
 
 ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& processor)
     : AudioProcessorEditor(processor),
-      audioProcessor(processor)
+      audioProcessor(processor),
+      editorShell({ titleLabel,
+                    statusLabel,
+                    buildLabel,
+                    midiCcLabel,
+                    chipSummaryLabel,
+                    headerControlLabels,
+                    presetFilterBox,
+                    presetSearchBox,
+                    presetBox,
+                    presetFavoriteButton,
+                    userPresetLoadButton,
+                    userPresetSaveButton,
+                    userPresetSaveAsButton,
+                    chipModeBox,
+                    accuracyBox,
+                    macroBox,
+                    playModeBox })
 {
     setResizable(false, false);
 
@@ -2482,7 +2499,6 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     titleLabel.setJustificationType(juce::Justification::centredLeft);
     titleLabel.setColour(juce::Label::textColourId, juce::Colour(0xfff7d85a));
     titleLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 5.2f, juce::Font::bold));
-    addAndMakeVisible(titleLabel);
 
     chipModeBox.addItemList(chipper::parameters::chipModeChoices(), 1);
     accuracyBox.addItemList(chipper::parameters::accuracyChoices(), 1);
@@ -2510,12 +2526,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         headerControlLabels[i].setJustificationType(juce::Justification::centredLeft);
         headerControlLabels[i].setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
         headerControlLabels[i].setFont(juce::FontOptions(11.0f, juce::Font::bold));
-        addAndMakeVisible(headerControlLabels[i]);
     }
 
-    addAndMakeVisible(presetFilterBox);
-    addAndMakeVisible(presetSearchBox);
-    addAndMakeVisible(presetBox);
     presetFavoriteButton.setButtonText("Fav");
     presetFavoriteButton.setClickingTogglesState(false);
     presetFavoriteButton.setTooltip("Favorite the selected factory or user preset for faster browsing.");
@@ -2523,11 +2535,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     {
         setSelectedPresetFavorite(! selectedPresetIsFavorite());
     };
-    addAndMakeVisible(presetFavoriteButton);
     userPresetLoadButton.setButtonText("Load");
     userPresetLoadButton.setTooltip("Import a shareable .chipperpreset file from any folder.");
     userPresetLoadButton.onClick = [this] { chooseUserPresetToLoad(); };
-    addAndMakeVisible(userPresetLoadButton);
     userPresetSaveButton.setButtonText("Save");
     userPresetSaveButton.setTooltip("Save the current sound as a shareable .chipperpreset file. Loaded user presets overwrite their source file; new sounds ask for a file name.");
     userPresetSaveButton.onClick = [this]
@@ -2537,17 +2547,11 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         else
             chooseUserPresetToSave();
     };
-    addAndMakeVisible(userPresetSaveButton);
     userPresetSaveAsButton.setButtonText("Save As");
     userPresetSaveAsButton.setTooltip("Save a copy of the current sound as a new shareable .chipperpreset file.");
     userPresetSaveAsButton.onClick = [this] { chooseUserPresetToSaveAs(); };
-    addAndMakeVisible(userPresetSaveAsButton);
-    addAndMakeVisible(chipModeBox);
-    addAndMakeVisible(accuracyBox);
-    addAndMakeVisible(macroBox);
     headerControlLabels[3].setVisible(false);
     macroBox.setVisible(false);
-    addAndMakeVisible(playModeBox);
 
     chipModeAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::chipMode, chipModeBox);
     accuracyAttachment = std::make_unique<ComboBoxAttachment>(state, chipper::parameters::id::accuracy, accuracyBox);
@@ -3648,7 +3652,6 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     statusLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff1f2a34));
     statusLabel.setText("Loading chip core...", juce::dontSendNotification);
     statusLabel.setMinimumHorizontalScale(0.70f);
-    addAndMakeVisible(statusLabel);
 
     buildLabel.setFont(juce::FontOptions(11.0f));
     buildLabel.setJustificationType(juce::Justification::centredRight);
@@ -3656,7 +3659,6 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     buildLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff1f2a34));
     buildLabel.setText(juce::String("Build ") + chipper::build::label, juce::dontSendNotification);
     buildLabel.setTooltip(juce::String("Built ") + chipper::build::builtAtUtc + " from " + chipper::build::gitState + " source");
-    addAndMakeVisible(buildLabel);
 
     midiCcLabel.setFont(juce::FontOptions(11.0f, juce::Font::bold));
     midiCcLabel.setJustificationType(juce::Justification::centred);
@@ -3664,13 +3666,11 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     midiCcLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff18252d));
     midiCcLabel.setText(midiCcRangeLabel(), juce::dontSendNotification);
     midiCcLabel.setTooltip(midiCcMapTooltip());
-    addAndMakeVisible(midiCcLabel);
 
     chipSummaryLabel.setFont(juce::FontOptions(14.0f));
     chipSummaryLabel.setJustificationType(juce::Justification::centredLeft);
     chipSummaryLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
     chipSummaryLabel.setMinimumHorizontalScale(0.75f);
-    addAndMakeVisible(chipSummaryLabel);
 
     for (size_t i = 0; i < moduleTitleLabels.size(); ++i)
     {
@@ -3777,6 +3777,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     macroSummaryLabel.setFont(juce::FontOptions(12.0f));
     macroSummaryLabel.setMinimumHorizontalScale(0.60f);
     addAndMakeVisible(macroSummaryLabel);
+
+    addAndMakeVisible(editorShell);
+    editorShell.toBack();
 
     updateDescriptorText();
     updateLiveControlReadouts();
@@ -4028,67 +4031,11 @@ void ChipperAudioProcessorEditor::resized()
         return;
     }
 
+    editorShell.setBounds(getLocalBounds());
     auto area = getLocalBounds().reduced(16);
-
-    auto top = area.removeFromTop(56);
-    const auto placeHeaderCombo = [this](size_t index, juce::ComboBox& comboBox, juce::Rectangle<int> bounds)
-    {
-        headerControlLabels[index].setBounds(bounds.removeFromTop(16));
-        comboBox.setBounds(bounds.reduced(0, 4));
-    };
-
-    titleLabel.setBounds(top.removeFromLeft(230));
-    top.removeFromLeft(8);
-
-    constexpr auto headerGap = 8;
-    constexpr auto compactGap = 4;
-    constexpr auto favoriteButtonWidth = 42;
-    constexpr auto loadButtonWidth = 46;
-    constexpr auto saveButtonWidth = 56;
-    constexpr auto saveAsButtonWidth = 72;
-    constexpr auto chipModeWidth = 184;
-    constexpr auto accuracyWidth = 108;
-    constexpr auto playModeWidth = 122;
-    constexpr auto presetMinWidth = 148;
-    constexpr auto presetMaxWidth = 330;
-
-    const auto fixedHeaderWidth = compactGap + favoriteButtonWidth
-        + compactGap + loadButtonWidth
-        + compactGap + saveButtonWidth
-        + compactGap + saveAsButtonWidth
-        + headerGap + chipModeWidth
-        + headerGap + accuracyWidth
-        + headerGap + playModeWidth;
-    const auto presetWidth = std::clamp(top.getWidth() - fixedHeaderWidth, presetMinWidth, presetMaxWidth);
-
-    {
-        auto presetArea = top.removeFromLeft(presetWidth);
-        headerControlLabels[0].setBounds(presetArea.removeFromTop(16));
-        auto presetRow = presetArea.reduced(0, 4);
-        const auto filterWidth = std::clamp(presetRow.getWidth() / 4, 86, 98);
-        const auto searchWidth = std::clamp(presetRow.getWidth() / 3, 86, 112);
-        presetFilterBox.setBounds(presetRow.removeFromLeft(filterWidth));
-        presetRow.removeFromLeft(compactGap);
-        presetSearchBox.setBounds(presetRow.removeFromLeft(searchWidth));
-        presetRow.removeFromLeft(compactGap);
-        presetBox.setBounds(presetRow);
-    }
-    top.removeFromLeft(4);
-    presetFavoriteButton.setBounds(top.removeFromLeft(favoriteButtonWidth).withTrimmedTop(20).reduced(0, 4));
-    top.removeFromLeft(4);
-    userPresetLoadButton.setBounds(top.removeFromLeft(loadButtonWidth).withTrimmedTop(20).reduced(0, 4));
-    top.removeFromLeft(4);
-    userPresetSaveButton.setBounds(top.removeFromLeft(saveButtonWidth).withTrimmedTop(20).reduced(0, 4));
-    top.removeFromLeft(4);
-    userPresetSaveAsButton.setBounds(top.removeFromLeft(saveAsButtonWidth).withTrimmedTop(20).reduced(0, 4));
-    top.removeFromLeft(8);
-    placeHeaderCombo(1, chipModeBox, top.removeFromLeft(chipModeWidth));
-    top.removeFromLeft(8);
-    placeHeaderCombo(2, accuracyBox, top.removeFromLeft(accuracyWidth));
-    top.removeFromLeft(8);
-    placeHeaderCombo(4, playModeBox, top.removeFromLeft(playModeWidth));
+    area.removeFromTop(56);
     area.removeFromTop(6);
-    chipSummaryLabel.setBounds(area.removeFromTop(28));
+    area.removeFromTop(28);
     area.removeFromTop(8);
 
     constexpr auto footerReserve = 44;
@@ -5586,12 +5533,6 @@ void ChipperAudioProcessorEditor::resized()
     outputCell.removeFromTop(std::min(compactOutputCell ? 0 : 4, outputCell.getHeight()));
     outputScopePreview.setBounds(compactOutputCell ? juce::Rectangle<int> {} : outputCell.reduced(0, 1));
 
-    auto footer = getLocalBounds().reduced(16).removeFromBottom(44);
-    buildLabel.setBounds(footer.removeFromRight(190));
-    footer.removeFromRight(8);
-    midiCcLabel.setBounds(footer.removeFromRight(136));
-    footer.removeFromRight(8);
-    statusLabel.setBounds(footer);
 }
 
 juce::String ChipperAudioProcessorEditor::getFirstDisplayedFactoryPresetNameForLayoutTest() const
