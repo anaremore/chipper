@@ -1,10 +1,12 @@
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
 #include "Parameters.h"
+#include "UI/ChipUiModel.h"
 
 #include <algorithm>
 #include <iostream>
 #include <limits>
+#include <set>
 #include <string>
 #include <typeinfo>
 
@@ -2012,6 +2014,69 @@ bool checkWorkspaceNavigation()
     return ok;
 }
 
+bool checkChipUiProfiles()
+{
+    bool ok = true;
+    std::set<chipper::ChipMode> groupedModes;
+    const auto modeOrder = chipper::chipModeOrder();
+
+    for (const auto group : chipper::ui::browserGroupOrder())
+    {
+        const auto modes = chipper::ui::modesInBrowserGroup(group);
+        if (modes.empty() || chipper::ui::labelFor(group).empty())
+        {
+            std::cerr << "editor_size_smoke: empty chip browser group\n";
+            ok = false;
+        }
+
+        for (const auto mode : modes)
+        {
+            if (! groupedModes.insert(mode).second)
+            {
+                std::cerr << "editor_size_smoke: chip appears in more than one browser group\n";
+                ok = false;
+            }
+        }
+    }
+
+    if (groupedModes.size() != modeOrder.size())
+    {
+        std::cerr << "editor_size_smoke: chip browser groups do not cover every mode\n";
+        ok = false;
+    }
+
+    for (const auto mode : modeOrder)
+    {
+        const auto profile = chipper::ui::profileFor(mode);
+        if (profile.mode != mode
+            || profile.familyLabel.empty()
+            || profile.browserGroupLabel.empty()
+            || profile.visibleSourceCount != chipper::visibleSourceCountForMode(mode)
+            || profile.nativeSourceCount != chipper::nativeSourceCountForMode(mode)
+            || profile.playSourceColumns < 1
+            || profile.playSourceColumns > 5
+            || profile.performanceStripHeight <= 0
+            || profile.maximumModulesHeight <= 0
+            || profile.usesMasterDetailSources != (profile.visibleSourceCount >= 7u))
+        {
+            std::cerr << "editor_size_smoke: invalid shared UI profile for a chip mode\n";
+            ok = false;
+        }
+    }
+
+    const auto vrc7 = chipper::ui::profileFor(chipper::ChipMode::nesVrc7);
+    if (! vrc7.nesFamily
+        || vrc7.family != chipper::ui::ChipUiFamily::consoleApu
+        || vrc7.browserGroup != chipper::ui::ChipBrowserGroup::nesExpansion
+        || ! vrc7.opllOperatorEdit)
+    {
+        std::cerr << "editor_size_smoke: VRC7 profile lost its NES shell or OPLL edit model\n";
+        ok = false;
+    }
+
+    return ok;
+}
+
 }
 
 int main()
@@ -2022,6 +2087,7 @@ int main()
     ChipperAudioProcessorEditor editor(processor);
 
     bool ok = true;
+    ok &= checkChipUiProfiles();
     ok &= expect(editor.getWidth() == 1240, "unexpected default width");
     ok &= expect(editor.getHeight() == expectedHeightForChipMode(0), "unexpected default height");
 

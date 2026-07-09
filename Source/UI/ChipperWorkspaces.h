@@ -5,6 +5,7 @@
 #include "Engine/ChipDescriptors.h"
 #include "Parameters.h"
 #include "PluginProcessor.h"
+#include "UI/ChipUiModel.h"
 #include "UI/ChipperEditorShell.h"
 
 #include <array>

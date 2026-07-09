@@ -195,9 +195,7 @@ void ChipperPlayWorkspace::resized()
     auto sourceArea = sourcePanelBounds.reduced(14, 10);
     sourceSectionLabel.setBounds(sourceArea.removeFromTop(24));
     sourceArea.removeFromTop(6);
-    const auto columns = visibleSourceCount <= 4u
-        ? static_cast<int>(std::max<size_t>(1u, visibleSourceCount))
-        : (visibleSourceCount <= 6u ? 3 : (visibleSourceCount <= 8u ? 4 : 5));
+    const auto columns = chipper::ui::profileFor(displayedMode).playSourceColumns;
     const auto rows = std::max(1, static_cast<int>((visibleSourceCount + static_cast<size_t>(columns) - 1u) / static_cast<size_t>(columns)));
     constexpr auto cardGap = 8;
     const auto cardWidth = (sourceArea.getWidth() - (cardGap * (columns - 1))) / columns;
@@ -259,8 +257,11 @@ void ChipperPlayWorkspace::refresh(chipper::ChipMode mode, const ChipperWorkspac
     displayedMode = mode;
     theme = themeToUse;
     const auto& descriptor = chipper::descriptorFor(mode);
-    visibleSourceCount = std::min(sourceCount, chipper::visibleSourceCountForMode(mode));
-    summaryLabel.setText(juce::String(descriptor.displayName) + " essentials. Open Edit for chip-native detail or Inspect for implementation evidence.",
+    const auto uiProfile = chipper::ui::profileFor(mode);
+    visibleSourceCount = std::min(sourceCount, uiProfile.visibleSourceCount);
+    summaryLabel.setText(juce::String(descriptor.displayName) + " essentials · "
+                             + juce::String(uiProfile.familyLabel.data()) + " · "
+                             + juce::String(static_cast<int>(uiProfile.visibleSourceCount)) + " sources. Open Edit for chip-native detail or Inspect for evidence.",
                          juce::dontSendNotification);
 
     titleLabel.setColour(juce::Label::textColourId, theme.primary);

@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "UI/ChipUiModel.h"
 
 #include "ChipperBuildInfo.h"
 #include "Engine/ChipDescriptors.h"
@@ -179,12 +180,7 @@ bool shouldPersistEditorPreferences()
 
 bool isNesFamily(chipper::ChipMode mode)
 {
-    return mode == chipper::ChipMode::nes
-        || mode == chipper::ChipMode::nesVrc6
-        || mode == chipper::ChipMode::nesFds
-        || mode == chipper::ChipMode::nesSunsoft5b
-        || mode == chipper::ChipMode::nesMmc5
-        || mode == chipper::ChipMode::nesVrc7;
+    return chipper::ui::profileFor(mode).nesFamily;
 }
 
 ChipUiTheme chipThemeFor(chipper::ChipMode mode)
@@ -1417,12 +1413,12 @@ juce::String byteHex(uint8_t value)
 
 bool isFourOperatorFmMode(chipper::ChipMode mode)
 {
-    return mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610 || mode == chipper::ChipMode::ym2610b;
+    return chipper::ui::profileFor(mode).fourOperatorFm;
 }
 
 bool isOpllOperatorEditMode(chipper::ChipMode mode)
 {
-    return mode == chipper::ChipMode::ym2413 || mode == chipper::ChipMode::nesVrc7;
+    return chipper::ui::profileFor(mode).opllOperatorEdit;
 }
 
 bool hasEditableFmOperatorRows(chipper::ChipMode mode)
@@ -1432,12 +1428,12 @@ bool hasEditableFmOperatorRows(chipper::ChipMode mode)
 
 bool isOpnbMode(chipper::ChipMode mode)
 {
-    return mode == chipper::ChipMode::ym2610 || mode == chipper::ChipMode::ym2610b;
+    return chipper::ui::profileFor(mode).opnb;
 }
 
 bool isOpnSsgMode(chipper::ChipMode mode)
 {
-    return mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || isOpnbMode(mode);
+    return chipper::ui::profileFor(mode).opnSsg;
 }
 
 uint8_t fourOperatorAlgorithmForPatch(chipper::ChipMode mode, const chipper::PatchConfig& patch)
@@ -4104,8 +4100,9 @@ void ChipperAudioProcessorEditor::resized()
 
     constexpr auto footerReserve = 44;
     workspaceDeck.setBounds(area.withTrimmedBottom(footerReserve));
-    const auto nesLayout = isNesFamily(displayedMode);
-    const auto nesExpansionLayout = isNesFamily(displayedMode) && chipper::visibleSourceCountForMode(displayedMode) > 4u;
+    const auto uiProfile = chipper::ui::profileFor(displayedMode);
+    const auto nesLayout = uiProfile.nesFamily;
+    const auto nesExpansionLayout = uiProfile.nesFamily && uiProfile.visibleSourceCount > 4u;
     const auto sidLayout = displayedMode == chipper::ChipMode::sid;
     const auto dmgLayout = displayedMode == chipper::ChipMode::dmg;
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
@@ -4113,13 +4110,11 @@ void ChipperAudioProcessorEditor::resized()
     const auto sn76489Layout = displayedMode == chipper::ChipMode::sn76489;
     const auto ym2149Layout = displayedMode == chipper::ChipMode::ym2149;
     const auto huc6280Layout = displayedMode == chipper::ChipMode::huc6280;
-    const auto fourOperatorFmLayout = isFourOperatorFmMode(displayedMode);
-    const auto sampleLayout = spc700Layout || paulaLayout;
-    const auto wavetableLayout = huc6280Layout
-        || displayedMode == chipper::ChipMode::namcoWsg
-        || displayedMode == chipper::ChipMode::scc;
-    const auto performanceStripHeight = sidLayout ? 124 : (nesLayout ? 236 : (spc700Layout ? 124 : (paulaLayout ? 124 : (fourOperatorFmLayout ? 124 : (wavetableLayout ? 132 : 196)))));
-    const auto maxModulesHeight = sidLayout ? 666 : (nesLayout ? 436 : (spc700Layout ? 548 : (paulaLayout ? 580 : (fourOperatorFmLayout ? 564 : (huc6280Layout ? 478 : (wavetableLayout ? 416 : 492))))));
+    const auto fourOperatorFmLayout = uiProfile.fourOperatorFm;
+    const auto sampleLayout = uiProfile.sampler;
+    const auto wavetableLayout = uiProfile.wavetable;
+    const auto performanceStripHeight = uiProfile.performanceStripHeight;
+    const auto maxModulesHeight = uiProfile.maximumModulesHeight;
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
     auto modules = area.removeFromTop(modulesHeight);
