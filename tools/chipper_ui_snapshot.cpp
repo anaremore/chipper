@@ -227,6 +227,9 @@ bool writePng(ChipperAudioProcessorEditor& editor, const juce::File& destination
     if (! image.isValid())
         return false;
 
+    if (destination.existsAsFile() && ! destination.deleteFile())
+        return false;
+
     juce::FileOutputStream stream(destination);
     if (stream.failedToOpen())
         return false;
