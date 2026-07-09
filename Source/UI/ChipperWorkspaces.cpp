@@ -47,6 +47,18 @@ constexpr std::array<chipper::ChipParameterRole, 9> sourceEnableRoles {
     chipper::ChipParameterRole::source9Enabled
 };
 
+constexpr std::array<chipper::ChipParameterRole, 9> sourceLevelRoles {
+    chipper::ChipParameterRole::source1Level,
+    chipper::ChipParameterRole::source2Level,
+    chipper::ChipParameterRole::source3Level,
+    chipper::ChipParameterRole::source4Level,
+    chipper::ChipParameterRole::source5Level,
+    chipper::ChipParameterRole::source6Level,
+    chipper::ChipParameterRole::source7Level,
+    chipper::ChipParameterRole::source8Level,
+    chipper::ChipParameterRole::source9Level
+};
+
 constexpr std::array<chipper::ChipParameterRole, 4> macroRoles {
     chipper::ChipParameterRole::macroControl1,
     chipper::ChipParameterRole::macroControl2,
@@ -86,6 +98,27 @@ juce::String joinedLines(const std::vector<std::string>& values)
     }
     return result;
 }
+
+juce::String sourceDetailSummary(const chipper::ui::ChipUiProfile& profile)
+{
+    switch (profile.family)
+    {
+        case chipper::ui::ChipUiFamily::consoleApu:
+            return "Enable and trim this lane precisely. Chip-owned waveform, register, and expansion controls remain in Edit.";
+        case chipper::ui::ChipUiFamily::psg:
+            return "Enable and trim this channel precisely. Shared tone, noise, and envelope registers remain in Edit.";
+        case chipper::ui::ChipUiFamily::fm:
+            return "Enable and trim this channel precisely. Algorithm and operator settings are shared patch resources in Edit.";
+        case chipper::ui::ChipUiFamily::sampler:
+            return "Enable and trim this voice precisely. Sample assignment, loop, and mapping controls remain in Edit.";
+        case chipper::ui::ChipUiFamily::wavetable:
+            return "Enable and trim this lane precisely. Per-lane Wave RAM shape and shared modulation remain in Edit.";
+        case chipper::ui::ChipUiFamily::oneBit:
+            return "Enable and trim the output lane precisely. Timing and behavior controls remain in Edit.";
+    }
+
+    return "Enable and trim this source precisely. Open Edit for its chip-native controls.";
+}
 }
 
 ChipperPlayWorkspace::ChipperPlayWorkspace(ChipperAudioProcessor& processor)
@@ -112,6 +145,13 @@ ChipperPlayWorkspace::ChipperPlayWorkspace(ChipperAudioProcessor& processor)
     auto& state = audioProcessor.getValueTreeState();
     for (size_t i = 0; i < sourceButtons.size(); ++i)
     {
+        auto& selector = sourceSelectButtons[i];
+        selector.setClickingTogglesState(false);
+        selector.setWantsKeyboardFocus(true);
+        selector.setComponentID("play.source" + juce::String(static_cast<int>(i + 1u)) + ".select");
+        selector.onClick = [this, i]() { selectSource(i); };
+        addAndMakeVisible(selector);
+
         auto& button = sourceButtons[i];
         button.setClickingTogglesState(true);
         button.setWantsKeyboardFocus(true);
@@ -133,6 +173,31 @@ ChipperPlayWorkspace::ChipperPlayWorkspace(ChipperAudioProcessor& processor)
         addAndMakeVisible(slider);
         sourceLevelAttachments[i] = std::make_unique<SliderAttachment>(state, sourceLevelIds[i], slider);
     }
+
+    detailTitleLabel.setJustificationType(juce::Justification::centredLeft);
+    detailTitleLabel.setFont(juce::FontOptions(13.0f, juce::Font::bold));
+    addAndMakeVisible(detailTitleLabel);
+
+    detailSummaryLabel.setJustificationType(juce::Justification::centredLeft);
+    detailSummaryLabel.setFont(juce::FontOptions(11.0f));
+    detailSummaryLabel.setMinimumHorizontalScale(0.72f);
+    addAndMakeVisible(detailSummaryLabel);
+
+    detailEnableButton.setButtonText("Enabled");
+    detailEnableButton.setWantsKeyboardFocus(true);
+    detailEnableButton.setComponentID("play.sourceDetail.enabled");
+    addAndMakeVisible(detailEnableButton);
+
+    detailLevelLabel.setText("Selected level", juce::dontSendNotification);
+    detailLevelLabel.setJustificationType(juce::Justification::centredLeft);
+    detailLevelLabel.setFont(juce::FontOptions(10.0f, juce::Font::bold));
+    addAndMakeVisible(detailLevelLabel);
+
+    detailLevelSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    detailLevelSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 64, 24);
+    detailLevelSlider.setWantsKeyboardFocus(true);
+    detailLevelSlider.setComponentID("play.sourceDetail.level");
+    addAndMakeVisible(detailLevelSlider);
 
     for (size_t i = 0; i < macroSliders.size(); ++i)
     {
@@ -165,13 +230,16 @@ void ChipperPlayWorkspace::paint(juce::Graphics& graphics)
     drawPanel(graphics, sourcePanelBounds, theme);
     drawPanel(graphics, macroPanelBounds, theme);
     drawPanel(graphics, outputPanelBounds, theme);
+    if (usesMasterDetail)
+        drawPanel(graphics, sourceDetailPanelBounds, theme, 4.0f);
 
     for (size_t i = 0; i < visibleSourceCount; ++i)
     {
-        graphics.setColour(theme.sourceCard);
+        const auto selected = usesMasterDetail && i == selectedSourceIndex;
+        graphics.setColour(selected ? theme.primary.withAlpha(0.16f) : theme.sourceCard);
         graphics.fillRoundedRectangle(sourceCardBounds[i].toFloat(), 4.0f);
-        graphics.setColour(theme.outline);
-        graphics.drawRoundedRectangle(sourceCardBounds[i].toFloat().reduced(0.5f), 4.0f, 1.0f);
+        graphics.setColour(selected ? theme.accent : theme.outline);
+        graphics.drawRoundedRectangle(sourceCardBounds[i].toFloat().reduced(0.5f), 4.0f, selected ? 1.5f : 1.0f);
     }
 }
 
@@ -195,6 +263,12 @@ void ChipperPlayWorkspace::resized()
     auto sourceArea = sourcePanelBounds.reduced(14, 10);
     sourceSectionLabel.setBounds(sourceArea.removeFromTop(24));
     sourceArea.removeFromTop(6);
+    sourceDetailPanelBounds = {};
+    if (usesMasterDetail)
+    {
+        sourceDetailPanelBounds = sourceArea.removeFromBottom(std::min(82, sourceArea.getHeight()));
+        sourceArea.removeFromBottom(std::min(8, sourceArea.getHeight()));
+    }
     const auto columns = chipper::ui::profileFor(displayedMode).playSourceColumns;
     const auto rows = std::max(1, static_cast<int>((visibleSourceCount + static_cast<size_t>(columns) - 1u) / static_cast<size_t>(columns)));
     constexpr auto cardGap = 8;
@@ -206,6 +280,7 @@ void ChipperPlayWorkspace::resized()
         {
             sourceCardBounds[i] = {};
             sourceButtons[i].setBounds({});
+            sourceSelectButtons[i].setBounds({});
             sourceLevelLabels[i].setBounds({});
             sourceLevelSliders[i].setBounds({});
             continue;
@@ -220,10 +295,43 @@ void ChipperPlayWorkspace::resized()
             cardHeight
         };
         auto card = sourceCardBounds[i].reduced(8, 7);
-        sourceButtons[i].setBounds(card.removeFromTop(28));
+        if (usesMasterDetail)
+        {
+            auto sourceHeading = card.removeFromTop(28);
+            sourceButtons[i].setBounds(sourceHeading.removeFromRight(std::min(48, sourceHeading.getWidth())));
+            sourceHeading.removeFromRight(std::min(5, sourceHeading.getWidth()));
+            sourceSelectButtons[i].setBounds(sourceHeading);
+        }
+        else
+        {
+            sourceSelectButtons[i].setBounds({});
+            sourceButtons[i].setBounds(card.removeFromTop(28));
+        }
         card.removeFromTop(8);
         sourceLevelLabels[i].setBounds(card.removeFromTop(16));
         sourceLevelSliders[i].setBounds(card.removeFromTop(std::min(28, card.getHeight())).reduced(0, 2));
+    }
+
+    if (usesMasterDetail)
+    {
+        auto detail = sourceDetailPanelBounds.reduced(12, 8);
+        auto actions = detail.removeFromRight(std::min(360, detail.getWidth() / 2));
+        detail.removeFromRight(std::min(12, detail.getWidth()));
+        detailTitleLabel.setBounds(detail.removeFromTop(22));
+        detailSummaryLabel.setBounds(detail);
+
+        detailEnableButton.setBounds(actions.removeFromLeft(std::min(94, actions.getWidth())).reduced(0, 7));
+        actions.removeFromLeft(std::min(10, actions.getWidth()));
+        detailLevelLabel.setBounds(actions.removeFromTop(18));
+        detailLevelSlider.setBounds(actions.removeFromTop(std::min(32, actions.getHeight())).reduced(0, 2));
+    }
+    else
+    {
+        detailTitleLabel.setBounds({});
+        detailSummaryLabel.setBounds({});
+        detailEnableButton.setBounds({});
+        detailLevelLabel.setBounds({});
+        detailLevelSlider.setBounds({});
     }
 
     auto macroArea = macroPanelBounds.reduced(14, 10);
@@ -259,8 +367,13 @@ void ChipperPlayWorkspace::refresh(chipper::ChipMode mode, const ChipperWorkspac
     const auto& descriptor = chipper::descriptorFor(mode);
     const auto uiProfile = chipper::ui::profileFor(mode);
     visibleSourceCount = std::min(sourceCount, uiProfile.visibleSourceCount);
-    summaryLabel.setText(juce::String(descriptor.displayName) + " essentials · "
-                             + juce::String(uiProfile.familyLabel.data()) + " · "
+    usesMasterDetail = uiProfile.usesMasterDetailSources;
+    if (visibleSourceCount == 0u)
+        selectedSourceIndex = 0u;
+    else
+        selectedSourceIndex = std::min(selectedSourceIndex, visibleSourceCount - 1u);
+    summaryLabel.setText(juce::String(descriptor.displayName) + " essentials / "
+                             + juce::String(uiProfile.familyLabel.data()) + " / "
                              + juce::String(static_cast<int>(uiProfile.visibleSourceCount)) + " sources. Open Edit for chip-native detail or Inspect for evidence.",
                          juce::dontSendNotification);
 
@@ -274,7 +387,16 @@ void ChipperPlayWorkspace::refresh(chipper::ChipMode mode, const ChipperWorkspac
         const auto visible = i < visibleSourceCount;
         const auto* spec = visible ? chipper::parameterSpecFor(mode, sourceEnableRoles[i]) : nullptr;
         const auto label = spec != nullptr ? juce::String(spec->label) : "Source " + juce::String(static_cast<int>(i + 1u));
-        sourceButtons[i].setButtonText(label);
+        sourceSelectButtons[i].setButtonText(label);
+        sourceSelectButtons[i].setName("Select " + label);
+        sourceSelectButtons[i].setTooltip("Select " + label + " for precise source editing");
+        sourceSelectButtons[i].setToggleState(usesMasterDetail && i == selectedSourceIndex, juce::dontSendNotification);
+        sourceSelectButtons[i].setVisible(visible && usesMasterDetail);
+        sourceSelectButtons[i].setColour(juce::TextButton::buttonColourId, theme.sourceCard);
+        sourceSelectButtons[i].setColour(juce::TextButton::buttonOnColourId, theme.primary.withAlpha(0.34f));
+        sourceSelectButtons[i].setColour(juce::TextButton::textColourOffId, theme.text);
+        sourceSelectButtons[i].setColour(juce::TextButton::textColourOnId, theme.text);
+        sourceButtons[i].setButtonText(usesMasterDetail ? "ON" : label);
         sourceButtons[i].setName(label + " enabled");
         sourceButtons[i].setTooltip(spec != nullptr ? juce::String(spec->help) : label + " enable");
         sourceButtons[i].setVisible(visible);
@@ -291,6 +413,24 @@ void ChipperPlayWorkspace::refresh(chipper::ChipMode mode, const ChipperWorkspac
         sourceLevelSliders[i].setColour(juce::Slider::thumbColourId, theme.accent);
         sourceLevelSliders[i].setColour(juce::Slider::backgroundColourId, theme.outline.darker(0.35f));
     }
+
+    for (auto* label : { &detailTitleLabel, &detailLevelLabel })
+        label->setColour(juce::Label::textColourId, theme.primary);
+    detailSummaryLabel.setColour(juce::Label::textColourId, theme.mutedText);
+    detailEnableButton.setColour(juce::ToggleButton::textColourId, theme.text);
+    detailEnableButton.setColour(juce::ToggleButton::tickColourId, theme.accent);
+    detailEnableButton.setColour(juce::ToggleButton::tickDisabledColourId, theme.outline);
+    detailLevelSlider.setColour(juce::Slider::trackColourId, theme.primary);
+    detailLevelSlider.setColour(juce::Slider::thumbColourId, theme.accent);
+    detailLevelSlider.setColour(juce::Slider::textBoxTextColourId, theme.text);
+    detailLevelSlider.setColour(juce::Slider::textBoxBackgroundColourId, theme.background);
+    detailLevelSlider.setColour(juce::Slider::textBoxOutlineColourId, theme.outline);
+    detailTitleLabel.setVisible(usesMasterDetail);
+    detailSummaryLabel.setVisible(usesMasterDetail);
+    detailEnableButton.setVisible(usesMasterDetail);
+    detailLevelLabel.setVisible(usesMasterDetail);
+    detailLevelSlider.setVisible(usesMasterDetail);
+    bindSelectedSource();
 
     for (size_t i = 0; i < macroSliders.size(); ++i)
     {
@@ -316,6 +456,44 @@ void ChipperPlayWorkspace::refresh(chipper::ChipMode mode, const ChipperWorkspac
     repaint();
 }
 
+void ChipperPlayWorkspace::selectSource(size_t index)
+{
+    if (! usesMasterDetail || index >= visibleSourceCount || index == selectedSourceIndex)
+        return;
+
+    selectedSourceIndex = index;
+    for (size_t i = 0; i < sourceSelectButtons.size(); ++i)
+        sourceSelectButtons[i].setToggleState(i == selectedSourceIndex, juce::dontSendNotification);
+    bindSelectedSource();
+    repaint();
+}
+
+void ChipperPlayWorkspace::bindSelectedSource()
+{
+    detailEnableAttachment.reset();
+    detailLevelAttachment.reset();
+    if (! usesMasterDetail || selectedSourceIndex >= visibleSourceCount)
+        return;
+
+    const auto* enableSpec = chipper::parameterSpecFor(displayedMode, sourceEnableRoles[selectedSourceIndex]);
+    const auto* levelSpec = chipper::parameterSpecFor(displayedMode, sourceLevelRoles[selectedSourceIndex]);
+    const auto sourceName = enableSpec != nullptr
+        ? juce::String(enableSpec->label)
+        : "Source " + juce::String(static_cast<int>(selectedSourceIndex + 1u));
+    const auto profile = chipper::ui::profileFor(displayedMode);
+
+    detailTitleLabel.setText("Selected: " + sourceName, juce::dontSendNotification);
+    detailSummaryLabel.setText(sourceDetailSummary(profile), juce::dontSendNotification);
+    detailEnableButton.setName(sourceName + " enabled in selected-source editor");
+    detailEnableButton.setTooltip(enableSpec != nullptr ? juce::String(enableSpec->help) : sourceName + " enable");
+    detailLevelSlider.setName(sourceName + " precise level");
+    detailLevelSlider.setTooltip(levelSpec != nullptr ? juce::String(levelSpec->help) : sourceName + " level trim");
+
+    auto& state = audioProcessor.getValueTreeState();
+    detailEnableAttachment = std::make_unique<ButtonAttachment>(state, sourceEnableIds[selectedSourceIndex], detailEnableButton);
+    detailLevelAttachment = std::make_unique<SliderAttachment>(state, sourceLevelIds[selectedSourceIndex], detailLevelSlider);
+}
+
 void ChipperPlayWorkspace::focusInitialControl()
 {
     if (visibleSourceCount > 0)
@@ -326,7 +504,10 @@ void ChipperPlayWorkspace::focusInitialControl()
 
 juce::Rectangle<int> ChipperPlayWorkspace::sourceButtonBoundsForTest(size_t index) const
 {
-    return index < sourceButtons.size() ? sourceButtons[index].getBounds() : juce::Rectangle<int> {};
+    if (index >= sourceButtons.size())
+        return {};
+
+    return usesMasterDetail ? sourceSelectButtons[index].getBounds() : sourceButtons[index].getBounds();
 }
 
 juce::Rectangle<int> ChipperPlayWorkspace::macroSliderBoundsForTest(size_t index) const

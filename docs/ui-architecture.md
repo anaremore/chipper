@@ -71,6 +71,8 @@ HuC6280, Namco WSG, and SCC expose independent wavetable voices. Their UIs shoul
 
 Source-card controls should read in native ownership order: source enable/state, waveform or sample selection, then the channel/lane level trim. Avoid placing the level row at the card's lower edge when there is unused vertical space above it; the level control is part of the voice, not a footer.
 
+Play uses a master-detail source deck once a chip exposes seven or more lanes. Every compact card keeps the source identity, enable state, and level trim visible; selecting the identity opens a larger precision editor for that lane's enable and level without changing the active source or any audio state. The detail copy binds to the same APVTS parameters as the card, so host automation and MIDI remain authoritative. Family-specific controls stay in Edit until they have a shared, descriptor-backed detail component.
+
 Wavetable chips that lack native ADSR should not show empty or generic "envelope" placeholders. HuC6280, Namco WSG, and SCC expose a shared `Shared Amp Env` helper over their native volume paths until per-channel gate controls are implemented. If that helper appears as a standalone module it must reserve enough height for a normal labeled slider/readout; otherwise it belongs in the Performance Macros area rather than a dead-looking placeholder. Per-channel wave and level controls stay inside the source cards. The label must stay explicit that this is a Chipper musical helper layered over native volume registers, not authentic chip ADSR.
 
 ## Slot Scalability

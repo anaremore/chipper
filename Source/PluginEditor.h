@@ -312,6 +312,30 @@ public:
     {
         return workspaceDeck.playWorkspaceForTest().sourceButtonBoundsForTest(index);
     }
+    bool getPlayWorkspaceUsesMasterDetailForLayoutTest() const
+    {
+        return workspaceDeck.playWorkspaceForTest().usesMasterDetailForTest();
+    }
+    size_t getPlayWorkspaceSelectedSourceForLayoutTest() const
+    {
+        return workspaceDeck.playWorkspaceForTest().selectedSourceForTest();
+    }
+    void selectPlayWorkspaceSourceForLayoutTest(size_t index)
+    {
+        workspaceDeck.playWorkspaceForTest().selectSourceForTest(index);
+    }
+    juce::Rectangle<int> getPlayWorkspaceSourceDetailBoundsForLayoutTest() const
+    {
+        return workspaceDeck.playWorkspaceForTest().sourceDetailBoundsForTest();
+    }
+    juce::Rectangle<int> getPlayWorkspaceSourceDetailLevelBoundsForLayoutTest() const
+    {
+        return workspaceDeck.playWorkspaceForTest().sourceDetailLevelBoundsForTest();
+    }
+    juce::String getPlayWorkspaceSourceDetailTitleForLayoutTest() const
+    {
+        return workspaceDeck.playWorkspaceForTest().sourceDetailTitleForTest();
+    }
     juce::Rectangle<int> getPlayWorkspaceMacroBoundsForLayoutTest(size_t index) const
     {
         return workspaceDeck.playWorkspaceForTest().macroSliderBoundsForTest(index);

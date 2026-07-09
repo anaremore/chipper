@@ -36,6 +36,12 @@ public:
 
     size_t visibleSourceCountForTest() const noexcept { return visibleSourceCount; }
     juce::Rectangle<int> sourceButtonBoundsForTest(size_t index) const;
+    bool usesMasterDetailForTest() const noexcept { return usesMasterDetail; }
+    size_t selectedSourceForTest() const noexcept { return selectedSourceIndex; }
+    void selectSourceForTest(size_t index) { selectSource(index); }
+    juce::Rectangle<int> sourceDetailBoundsForTest() const noexcept { return sourceDetailPanelBounds; }
+    juce::Rectangle<int> sourceDetailLevelBoundsForTest() const noexcept { return detailLevelSlider.getBounds(); }
+    juce::String sourceDetailTitleForTest() const { return detailTitleLabel.getText(); }
     juce::Rectangle<int> macroSliderBoundsForTest(size_t index) const;
     juce::Rectangle<int> outputBoundsForTest() const noexcept { return outputSlider.getBounds(); }
 
@@ -45,20 +51,33 @@ private:
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
 
+    void selectSource(size_t index);
+    void bindSelectedSource();
+
     ChipperAudioProcessor& audioProcessor;
     ChipperWorkspaceTheme theme;
     chipper::ChipMode displayedMode = chipper::ChipMode::nes;
     size_t visibleSourceCount = 0;
+    size_t selectedSourceIndex = 0;
+    bool usesMasterDetail = false;
     juce::Label titleLabel;
     juce::Label summaryLabel;
     juce::Label sourceSectionLabel;
     juce::Label macroSectionLabel;
     juce::Label outputSectionLabel;
     std::array<juce::TextButton, sourceCount> sourceButtons;
+    std::array<juce::TextButton, sourceCount> sourceSelectButtons;
     std::array<juce::Label, sourceCount> sourceLevelLabels;
     std::array<juce::Slider, sourceCount> sourceLevelSliders;
     std::array<std::unique_ptr<ButtonAttachment>, sourceCount> sourceButtonAttachments;
     std::array<std::unique_ptr<SliderAttachment>, sourceCount> sourceLevelAttachments;
+    juce::Label detailTitleLabel;
+    juce::Label detailSummaryLabel;
+    juce::ToggleButton detailEnableButton;
+    juce::Label detailLevelLabel;
+    juce::Slider detailLevelSlider;
+    std::unique_ptr<ButtonAttachment> detailEnableAttachment;
+    std::unique_ptr<SliderAttachment> detailLevelAttachment;
     std::array<juce::Label, macroCount> macroLabels;
     std::array<juce::Slider, macroCount> macroSliders;
     std::array<std::unique_ptr<SliderAttachment>, macroCount> macroAttachments;
@@ -66,6 +85,7 @@ private:
     std::unique_ptr<SliderAttachment> outputAttachment;
     std::array<juce::Rectangle<int>, sourceCount> sourceCardBounds;
     juce::Rectangle<int> sourcePanelBounds;
+    juce::Rectangle<int> sourceDetailPanelBounds;
     juce::Rectangle<int> macroPanelBounds;
     juce::Rectangle<int> outputPanelBounds;
 

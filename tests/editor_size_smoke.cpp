@@ -1957,6 +1957,41 @@ bool checkWorkspaceNavigation()
                 ok = false;
             }
         }
+        const auto expectsMasterDetail = expectedSources >= 7u;
+        if (editor.getPlayWorkspaceUsesMasterDetailForLayoutTest() != expectsMasterDetail)
+        {
+            std::cerr << "editor_size_smoke: Play master-detail source policy mismatch for chip choice "
+                      << chipChoice << '\n';
+            ok = false;
+        }
+        if (expectsMasterDetail)
+        {
+            const auto detailBounds = editor.getPlayWorkspaceSourceDetailBoundsForLayoutTest();
+            const auto detailLevelBounds = editor.getPlayWorkspaceSourceDetailLevelBoundsForLayoutTest();
+            if (detailBounds.getWidth() < 600 || detailBounds.getHeight() < 64
+                || detailLevelBounds.getWidth() < 140 || detailLevelBounds.getHeight() < 20)
+            {
+                std::cerr << "editor_size_smoke: Play selected-source detail editor is unreadable for chip choice "
+                          << chipChoice << ": " << detailBounds.toString() << '\n';
+                ok = false;
+            }
+
+            const auto lastSource = expectedSources - 1u;
+            editor.selectPlayWorkspaceSourceForLayoutTest(lastSource);
+            if (editor.getPlayWorkspaceSelectedSourceForLayoutTest() != lastSource
+                || editor.getPlayWorkspaceSourceDetailTitleForLayoutTest().isEmpty())
+            {
+                std::cerr << "editor_size_smoke: Play selected-source detail editor did not follow selection for chip choice "
+                          << chipChoice << '\n';
+                ok = false;
+            }
+        }
+        else if (! editor.getPlayWorkspaceSourceDetailBoundsForLayoutTest().isEmpty())
+        {
+            std::cerr << "editor_size_smoke: compact Play source deck unexpectedly reserved a detail editor for chip choice "
+                      << chipChoice << '\n';
+            ok = false;
+        }
         for (size_t macro = 0; macro < 4u; ++macro)
         {
             const auto bounds = editor.getPlayWorkspaceMacroBoundsForLayoutTest(macro);

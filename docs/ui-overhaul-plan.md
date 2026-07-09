@@ -23,7 +23,8 @@ The overhaul is complete only when all of the following are implemented and veri
 - Complete: stable header/summary/footer layout extracted into `ChipperEditorShell`.
 - Complete: Play, Edit, and Inspect workspace foundation with APVTS-safe switching, UI-only persistence, all-chip layout coverage, and parameter-mutation guards.
 - Complete: shared chip-family classification, browser grouping, density policy, and centralized Edit-layout height rules.
-- In progress: reusable family workspaces and the dedicated global preset/chip browser.
+- Complete: selected-source master-detail editing for every chip with seven or more visible lanes while retaining card-level identity, enable, and level controls.
+- In progress: the dedicated global preset/chip browser.
 
 ## Delivery Order
 
