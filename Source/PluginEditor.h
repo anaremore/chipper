@@ -372,6 +372,14 @@ public:
     {
         return workspaceDeck.playWorkspaceForTest().macroSliderBoundsForTest(index);
     }
+    juce::Rectangle<int> getPlayWorkspaceRelationshipBoundsForLayoutTest() const
+    {
+        return workspaceDeck.playWorkspaceForTest().relationshipBoundsForTest();
+    }
+    juce::String getPlayWorkspaceRelationshipSummaryForLayoutTest() const
+    {
+        return workspaceDeck.playWorkspaceForTest().relationshipSummaryForTest();
+    }
     juce::Rectangle<int> getPlayWorkspaceOutputBoundsForLayoutTest() const
     {
         return workspaceDeck.playWorkspaceForTest().outputBoundsForTest();

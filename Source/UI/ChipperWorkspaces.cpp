@@ -184,6 +184,7 @@ ChipperPlayWorkspace::ChipperPlayWorkspace(ChipperAudioProcessor& processor)
     configureSectionLabel(macroSectionLabel, "Musical controls");
     configureSectionLabel(outputSectionLabel, "Output");
     addAndMakeVisible(sourceSectionLabel);
+    addAndMakeVisible(relationshipMap);
     addAndMakeVisible(macroSectionLabel);
     addAndMakeVisible(outputSectionLabel);
 
@@ -333,7 +334,10 @@ void ChipperPlayWorkspace::resized()
     outputPanelBounds = area;
 
     auto sourceArea = sourcePanelBounds.reduced(14, 10);
-    sourceSectionLabel.setBounds(sourceArea.removeFromTop(24));
+    auto sourceHeader = sourceArea.removeFromTop(24);
+    sourceSectionLabel.setBounds(sourceHeader.removeFromLeft(std::min(92, sourceHeader.getWidth())));
+    sourceHeader.removeFromLeft(std::min(8, sourceHeader.getWidth()));
+    relationshipMap.setBounds(sourceHeader);
     sourceArea.removeFromTop(6);
     sourceDetailPanelBounds = {};
     if (usesMasterDetail)
@@ -482,6 +486,8 @@ void ChipperPlayWorkspace::refresh(chipper::ChipMode mode, const ChipperWorkspac
     summaryLabel.setColour(juce::Label::textColourId, theme.mutedText);
     for (auto* label : { &sourceSectionLabel, &macroSectionLabel, &outputSectionLabel })
         label->setColour(juce::Label::textColourId, theme.primary);
+    relationshipMap.setMode(mode);
+    relationshipMap.setTheme(theme.accent, theme.primary, theme.outline, theme.text, theme.mutedText, theme.background);
 
     for (size_t i = 0; i < sourceButtons.size(); ++i)
     {

@@ -7,6 +7,7 @@
 #include "PluginProcessor.h"
 #include "UI/ChipUiModel.h"
 #include "UI/ChipperEditorShell.h"
+#include "UI/ChipperRelationshipMap.h"
 
 #include <array>
 #include <functional>
@@ -53,6 +54,8 @@ public:
             onOpenEditRequested();
     }
     juce::Rectangle<int> macroSliderBoundsForTest(size_t index) const;
+    juce::Rectangle<int> relationshipBoundsForTest() const { return relationshipMap.getBounds(); }
+    juce::String relationshipSummaryForTest() const { return relationshipMap.summaryForTest(); }
     juce::Rectangle<int> outputBoundsForTest() const noexcept { return outputSlider.getBounds(); }
 
 private:
@@ -75,6 +78,7 @@ private:
     juce::Label titleLabel;
     juce::Label summaryLabel;
     juce::Label sourceSectionLabel;
+    ChipperRelationshipMap relationshipMap;
     juce::Label macroSectionLabel;
     juce::Label outputSectionLabel;
     std::array<juce::TextButton, sourceCount> sourceButtons;

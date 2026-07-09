@@ -1931,6 +1931,25 @@ bool checkWorkspaceNavigation()
                       << chipChoice << '\n';
             ok = false;
         }
+        const auto relationshipBounds = editor.getPlayWorkspaceRelationshipBoundsForLayoutTest();
+        const auto relationshipSummary = editor.getPlayWorkspaceRelationshipSummaryForLayoutTest();
+        if (relationshipBounds.getWidth() < 600 || relationshipBounds.getHeight() < 18
+            || relationshipSummary.isEmpty()
+            || ! relationshipSummary.contains("Chipper"))
+        {
+            std::cerr << "editor_size_smoke: Play relationship/authenticity map is incomplete for chip choice "
+                      << chipChoice << '\n';
+            ok = false;
+        }
+        if ((mode == chipper::ChipMode::sid && ! relationshipSummary.contains("Sync/Ring"))
+            || (mode == chipper::ChipMode::huc6280 && ! relationshipSummary.contains("Channel 2"))
+            || (uiProfile.sampler && ! relationshipSummary.contains("Sample bank"))
+            || (uiProfile.wavetable && ! relationshipSummary.contains("amp envelope")))
+        {
+            std::cerr << "editor_size_smoke: Play relationship map lost chip-family semantics for chip choice "
+                      << chipChoice << ": " << relationshipSummary.toStdString() << '\n';
+            ok = false;
+        }
         for (size_t source = 0; source < expectedSources; ++source)
         {
             const auto bounds = editor.getPlayWorkspaceSourceBoundsForLayoutTest(source);
