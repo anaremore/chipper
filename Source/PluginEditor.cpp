@@ -5895,6 +5895,8 @@ void ChipperAudioProcessorEditor::refreshAccessibleNames()
                 || dynamic_cast<juce::ComboBox*>(child) != nullptr
                 || dynamic_cast<juce::TextEditor*>(child) != nullptr
                 || dynamic_cast<juce::ListBox*>(child) != nullptr;
+            if (interactive)
+                child->setWantsKeyboardFocus(child->isVisible() && ! child->getBounds().isEmpty() && child->isEnabled());
             if (interactive && child->getName().trim().isEmpty())
             {
                 juce::String accessibleName;
