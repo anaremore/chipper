@@ -26,7 +26,7 @@ void printUsage()
     std::cout
         << "Usage: chipper_ui_snapshot [--output <directory>] [--chip <name|all>]\n"
         << "                           [--width <1180|1240|both>]\n"
-        << "                           [--workspace <play|edit|inspect|all>] [--manifest-only]\n";
+        << "                           [--workspace <play|edit|inspect|browser|all>] [--manifest-only]\n";
 }
 
 std::optional<Options> parseOptions(int argc, char** argv)
@@ -80,7 +80,7 @@ std::optional<Options> parseOptions(int argc, char** argv)
         {
             const auto value = nextValue();
             if (! value.has_value()
-                || (*value != "play" && *value != "edit" && *value != "inspect" && *value != "all"))
+                || (*value != "play" && *value != "edit" && *value != "inspect" && *value != "browser" && *value != "all"))
                 return std::nullopt;
 
             options.workspace = *value;
@@ -265,6 +265,7 @@ std::vector<ChipperEditorWorkspace> requestedWorkspaces(const juce::String& requ
     if (requested == "play") return { ChipperEditorWorkspace::play };
     if (requested == "edit") return { ChipperEditorWorkspace::edit };
     if (requested == "inspect") return { ChipperEditorWorkspace::inspect };
+    if (requested == "browser") return { ChipperEditorWorkspace::edit };
     return { ChipperEditorWorkspace::play, ChipperEditorWorkspace::edit, ChipperEditorWorkspace::inspect };
 }
 }
@@ -314,10 +315,13 @@ int main(int argc, char** argv)
                 editor.setSize(width, editor.getHeight());
                 editor.setWorkspaceForLayoutTest(workspace);
                 editor.runEditorUpdateForLayoutTest();
+                const auto browserCapture = options.workspace == "browser";
+                if (browserCapture)
+                    editor.showPresetBrowserForLayoutTest();
                 juce::MessageManager::getInstance()->runDispatchLoopUntil(20);
 
                 const auto displayName = chipper::parameters::chipModeChoices()[choice];
-                const auto workspaceKey = workspaceName(workspace);
+                const auto workspaceKey = browserCapture ? juce::String("browser") : workspaceName(workspace);
                 const auto snapshotKey = juce::String(choice).paddedLeft('0', 2)
                     + "-" + fileKey(displayName)
                     + "-" + workspaceKey

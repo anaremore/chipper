@@ -3552,6 +3552,8 @@ target_sources(Chipper
         Source/PluginEditor.h
         Source/UI/ChipUiModel.cpp
         Source/UI/ChipUiModel.h
+        Source/UI/ChipperPresetBrowser.cpp
+        Source/UI/ChipperPresetBrowser.h
         Source/UI/ChipperEditorShell.cpp
         Source/UI/ChipperEditorShell.h
         Source/UI/ChipperWorkspaces.cpp
@@ -3614,6 +3616,8 @@ add_executable(chipper_processor_midi_cc_smoke
     Source/PluginEditor.h
     Source/UI/ChipUiModel.cpp
     Source/UI/ChipUiModel.h
+    Source/UI/ChipperPresetBrowser.cpp
+    Source/UI/ChipperPresetBrowser.h
     Source/UI/ChipperEditorShell.cpp
     Source/UI/ChipperEditorShell.h
     Source/UI/ChipperWorkspaces.cpp
@@ -3660,6 +3664,8 @@ add_executable(chipper_editor_size_smoke
     Source/PluginEditor.h
     Source/UI/ChipUiModel.cpp
     Source/UI/ChipUiModel.h
+    Source/UI/ChipperPresetBrowser.cpp
+    Source/UI/ChipperPresetBrowser.h
     Source/UI/ChipperEditorShell.cpp
     Source/UI/ChipperEditorShell.h
     Source/UI/ChipperWorkspaces.cpp
@@ -3706,6 +3712,8 @@ add_executable(chipper_ui_snapshot
     Source/PluginEditor.h
     Source/UI/ChipUiModel.cpp
     Source/UI/ChipUiModel.h
+    Source/UI/ChipperPresetBrowser.cpp
+    Source/UI/ChipperPresetBrowser.h
     Source/UI/ChipperEditorShell.cpp
     Source/UI/ChipperEditorShell.h
     Source/UI/ChipperWorkspaces.cpp
@@ -3744,5 +3752,14 @@ target_link_libraries(chipper_ui_snapshot
 add_test(NAME chipper_ui_snapshot_smoke
     COMMAND chipper_ui_snapshot
         --output "${CMAKE_CURRENT_BINARY_DIR}/ui-snapshot-smoke"
+        --manifest-only
+)
+
+add_test(NAME chipper_ui_browser_snapshot_smoke
+    COMMAND chipper_ui_snapshot
+        --output "${CMAKE_CURRENT_BINARY_DIR}/ui-browser-snapshot-smoke"
+        --chip nes
+        --width both
+        --workspace browser
         --manifest-only
 )

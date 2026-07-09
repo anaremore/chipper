@@ -26,6 +26,7 @@ public:
         juce::ComboBox& presetFilter;
         juce::TextEditor& presetSearch;
         juce::ComboBox& preset;
+        juce::TextButton& browser;
         juce::TextButton& favorite;
         juce::TextButton& load;
         juce::TextButton& save;

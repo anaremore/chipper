@@ -1,6 +1,7 @@
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
 #include "Parameters.h"
+#include "Presets.h"
 #include "UI/ChipUiModel.h"
 
 #include <algorithm>
@@ -1763,26 +1764,39 @@ bool checkPresetRoleFilterLayout()
         chipEditor.setSize(expectedEditorMinimumWidth, expectedHeightForChipMode(chipMode));
         chipEditor.runEditorUpdateForLayoutTest();
 
-        const auto bounds = chipEditor.getPresetFilterBoundsForLayoutTest();
-        if (bounds.getWidth() < 86 || bounds.getHeight() < 28)
+        const auto browserButtonBounds = chipEditor.getPresetBrowserButtonBoundsForLayoutTest();
+        if (browserButtonBounds.getWidth() < 64 || browserButtonBounds.getHeight() < 28)
         {
-            std::cerr << "editor_size_smoke: preset metadata filter below readable size at compact width: "
-                      << bounds.toString() << '\n';
+            std::cerr << "editor_size_smoke: global preset browser button below readable size at compact width: "
+                      << browserButtonBounds.toString() << '\n';
             ok = false;
         }
 
-        if (chipEditor.getPresetFilterTextForLayoutTest().isEmpty())
+        if (! chipEditor.getPresetFilterBoundsForLayoutTest().isEmpty()
+            || ! chipEditor.getPresetSearchBoundsForLayoutTest().isEmpty())
         {
-            std::cerr << "editor_size_smoke: preset metadata filter should default to All\n";
+            std::cerr << "editor_size_smoke: legacy preset filters should not crowd the compact header\n";
             ok = false;
         }
 
-        const auto searchBounds = chipEditor.getPresetSearchBoundsForLayoutTest();
-        if (searchBounds.getWidth() < 86 || searchBounds.getHeight() < 28)
+        if (chipMode == 0)
         {
-            std::cerr << "editor_size_smoke: preset search box below readable size at compact width: "
-                      << searchBounds.toString() << '\n';
-            ok = false;
+            chipEditor.showPresetBrowserForLayoutTest();
+            const auto searchBounds = chipEditor.getGlobalPresetBrowserSearchBoundsForLayoutTest();
+            const auto chipListBounds = chipEditor.getGlobalPresetBrowserChipListBoundsForLayoutTest();
+            const auto resultListBounds = chipEditor.getGlobalPresetBrowserResultListBoundsForLayoutTest();
+            const auto detailBounds = chipEditor.getGlobalPresetBrowserDetailBoundsForLayoutTest();
+            if (! chipEditor.isPresetBrowserVisibleForLayoutTest()
+                || searchBounds.getWidth() < 300 || searchBounds.getHeight() < 28
+                || chipListBounds.getWidth() < 180 || chipListBounds.getHeight() < 400
+                || resultListBounds.getWidth() < 300 || resultListBounds.getHeight() < 400
+                || detailBounds.getWidth() < 300 || detailBounds.getHeight() < 400
+                || chipEditor.getGlobalPresetBrowserResultCountForLayoutTest() <= 0)
+            {
+                std::cerr << "editor_size_smoke: global preset browser is incomplete at compact width\n";
+                ok = false;
+            }
+            chipEditor.closePresetBrowserForLayoutTest();
         }
 
         if (chipEditor.getPresetSearchTextForLayoutTest().isNotEmpty())
@@ -1889,6 +1903,53 @@ bool checkPresetRoleFilterLayout()
         }
     }
 
+    return ok;
+}
+
+bool checkGlobalPresetBrowserWorkflow()
+{
+    bool ok = true;
+    ChipperAudioProcessor processor;
+    ChipperAudioProcessorEditor editor(processor);
+    editor.setSize(expectedEditorMinimumWidth, expectedEditorHeight);
+
+    const auto crossChipPreset = std::find_if(chipper::presetCatalog().begin(),
+                                              chipper::presetCatalog().end(),
+                                              [](const chipper::PresetInfo& preset)
+                                              {
+                                                  return preset.chip == chipper::ChipMode::sid;
+                                              });
+    if (crossChipPreset == chipper::presetCatalog().end())
+        return expect(false, "missing SID preset for global browser workflow test");
+
+    editor.showPresetBrowserForLayoutTest();
+    editor.selectAllGlobalPresetBrowserChipsForLayoutTest();
+    editor.setGlobalPresetBrowserSearchForLayoutTest(juce::String(crossChipPreset->name));
+    if (editor.getGlobalPresetBrowserResultCountForLayoutTest() <= 0)
+    {
+        std::cerr << "editor_size_smoke: global browser did not find a cross-chip preset\n";
+        ok = false;
+    }
+    editor.applyFirstGlobalPresetBrowserResultForLayoutTest();
+
+    const auto selectedChip = static_cast<int>(std::round(plainParameterValue(processor, chipper::parameters::id::chipMode)));
+    if (chipper::parameters::chipModeFromChoice(selectedChip) != chipper::ChipMode::sid
+        || editor.isPresetBrowserVisibleForLayoutTest())
+    {
+        std::cerr << "editor_size_smoke: global browser did not explicitly load and close a cross-chip preset\n";
+        ok = false;
+    }
+
+    editor.runEditorUpdateForLayoutTest();
+    editor.showPresetBrowserForLayoutTest();
+    editor.setGlobalPresetBrowserSearchForLayoutTest({});
+    editor.setGlobalPresetBrowserScopeForLayoutTest(3);
+    if (editor.getGlobalPresetBrowserResultCountForLayoutTest() <= 0)
+    {
+        std::cerr << "editor_size_smoke: global browser did not retain explicit preset history\n";
+        ok = false;
+    }
+    editor.closePresetBrowserForLayoutTest();
     return ok;
 }
 
@@ -2181,6 +2242,7 @@ int main()
     ok &= checkSidAdsrLayout();
     ok &= checkCompactChipLayouts();
     ok &= checkPresetRoleFilterLayout();
+    ok &= checkGlobalPresetBrowserWorkflow();
     ok &= checkChipSwitchPreservesEditorSettings();
     ok &= checkWorkspaceNavigation();
 

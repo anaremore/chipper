@@ -13,6 +13,7 @@ ChipperEditorShell::ChipperEditorShell(Controls controlsToUse)
     addAndMakeVisible(controls.presetFilter);
     addAndMakeVisible(controls.presetSearch);
     addAndMakeVisible(controls.preset);
+    addAndMakeVisible(controls.browser);
     addAndMakeVisible(controls.favorite);
     addAndMakeVisible(controls.load);
     addAndMakeVisible(controls.save);
@@ -92,11 +93,9 @@ void ChipperEditorShell::resized()
         auto presetArea = top.removeFromLeft(presetWidth);
         controls.headerLabels[0].setBounds(presetArea.removeFromTop(16));
         auto presetRow = presetArea.reduced(0, 4);
-        const auto filterWidth = std::clamp(presetRow.getWidth() / 4, 86, 98);
-        const auto searchWidth = std::clamp(presetRow.getWidth() / 3, 86, 112);
-        controls.presetFilter.setBounds(presetRow.removeFromLeft(filterWidth));
-        presetRow.removeFromLeft(compactGap);
-        controls.presetSearch.setBounds(presetRow.removeFromLeft(searchWidth));
+        controls.presetFilter.setBounds({});
+        controls.presetSearch.setBounds({});
+        controls.browser.setBounds(presetRow.removeFromLeft(std::min(76, presetRow.getWidth())));
         presetRow.removeFromLeft(compactGap);
         controls.preset.setBounds(presetRow);
     }
@@ -153,6 +152,7 @@ void ChipperEditorShell::attachExternalControlsTo(juce::Component& parent)
     attach(controls.presetFilter);
     attach(controls.presetSearch);
     attach(controls.preset);
+    attach(controls.browser);
     attach(controls.favorite);
     attach(controls.load);
     attach(controls.save);
@@ -176,6 +176,7 @@ bool ChipperEditorShell::isExternalControl(const juce::Component* component) con
         || component == &controls.presetFilter
         || component == &controls.presetSearch
         || component == &controls.preset
+        || component == &controls.browser
         || component == &controls.favorite
         || component == &controls.load
         || component == &controls.save

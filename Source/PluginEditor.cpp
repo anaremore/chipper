@@ -2471,6 +2471,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
                     presetFilterBox,
                     presetSearchBox,
                     presetBox,
+                    presetBrowserButton,
                     presetFavoriteButton,
                     userPresetLoadButton,
                     userPresetSaveButton,
@@ -2551,6 +2552,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     presetSearchBox.setScrollbarsShown(false);
     presetSearchBox.setSelectAllWhenFocused(true);
     presetBox.setTextWhenNothingSelected("Browse Chip Presets");
+    presetFilterBox.setVisible(false);
+    presetSearchBox.setVisible(false);
     macroBox.addItemList(chipper::parameters::macroChoices(), 1);
     playModeBox.addItemList(chipper::parameters::playModeChoices(), 1);
     chipModeBox.setTooltip(withMidiCc("Selects the named chip engine. Each mode shows its current verification status in the footer.", chipper::parameters::id::chipMode));
@@ -2577,6 +2580,10 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     {
         setSelectedPresetFavorite(! selectedPresetIsFavorite());
     };
+    presetBrowserButton.setButtonText("Browse");
+    presetBrowserButton.setTooltip("Open the global sound browser for every chip, role, favorite, recent sound, and user bank.");
+    presetBrowserButton.setWantsKeyboardFocus(true);
+    presetBrowserButton.onClick = [this] { showPresetBrowser(); };
     userPresetLoadButton.setButtonText("Load");
     userPresetLoadButton.setTooltip("Import a shareable .chipperpreset file from any folder.");
     userPresetLoadButton.onClick = [this] { chooseUserPresetToLoad(); };
@@ -3825,6 +3832,36 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     editorShell.attachExternalControlsTo(*this);
     addAndMakeVisible(workspaceDeck);
     workspaceDeck.toFront(false);
+    presetBrowser.setVisible(false);
+    addChildComponent(presetBrowser);
+    presetBrowser.onApply = [this](ChipperPresetBrowser::Entry entry)
+    {
+        recordRecentPresetKey(entry.key);
+        if (entry.kind == ChipperPresetBrowser::EntryKind::factory)
+        {
+            if (const auto* preset = chipper::presetById(entry.factoryPresetId.toStdString()))
+                applyFactoryPreset(*preset);
+        }
+        else if (entry.userFile.existsAsFile())
+        {
+            loadUserPresetFile(entry.userFile);
+        }
+        presetBrowser.close();
+    };
+    presetBrowser.onFavoriteChanged = [this](ChipperPresetBrowser::Entry entry, bool shouldBeFavorite)
+    {
+        if (entry.kind == ChipperPresetBrowser::EntryKind::factory)
+            setFavoriteListContains(favoriteFactoryPresetIds, entry.factoryPresetId, shouldBeFavorite);
+        else if (entry.userFile != juce::File {})
+            setFavoriteListContains(favoriteUserPresetPaths, normalizedFavoritePath(entry.userFile), shouldBeFavorite);
+        savePresetFavorites();
+        updatePresetChoices(displayedMode);
+        updatePresetFavoriteButton();
+    };
+    presetBrowser.onClose = [this]
+    {
+        presetBrowserButton.grabKeyboardFocus();
+    };
     editorShell.onWorkspaceChanged = [this](ChipperEditorWorkspace workspace)
     {
         setEditorWorkspace(workspace, true);
@@ -3991,8 +4028,8 @@ void ChipperAudioProcessorEditor::applyChipTheme()
     styleCombo(oplWaveformBox);
     styleCombo(opllInstrumentBox);
 
-    for (auto* button : std::array<juce::TextButton*, 6> {
-             &presetFavoriteButton, &userPresetLoadButton, &userPresetSaveButton, &userPresetSaveAsButton,
+    for (auto* button : std::array<juce::TextButton*, 7> {
+             &presetBrowserButton, &presetFavoriteButton, &userPresetLoadButton, &userPresetSaveButton, &userPresetSaveAsButton,
              &dmcSampleFileButton, &dmcSampleFolderButton })
     {
         styleButton(*button);
@@ -4026,6 +4063,15 @@ void ChipperAudioProcessorEditor::applyChipTheme()
     spc700LoopModeButton.setColour(juce::ToggleButton::textColourId, theme.text);
     editorShell.setTheme(theme.primary, theme.accent, theme.outline, theme.text, theme.mutedText, theme.darkText);
     workspaceDeck.refresh(displayedMode, workspaceThemeFor(theme));
+    presetBrowser.setTheme({ theme.background,
+                             theme.panel,
+                             theme.sourceCard,
+                             theme.outline,
+                             theme.primary,
+                             theme.accent,
+                             theme.text,
+                             theme.mutedText,
+                             theme.darkText });
     repaint();
 }
 
@@ -4100,6 +4146,9 @@ void ChipperAudioProcessorEditor::resized()
 
     constexpr auto footerReserve = 44;
     workspaceDeck.setBounds(area.withTrimmedBottom(footerReserve));
+    presetBrowser.setBounds(workspaceDeck.getBounds());
+    if (presetBrowser.isVisible())
+        presetBrowser.toFront(false);
     const auto uiProfile = chipper::ui::profileFor(displayedMode);
     const auto nesLayout = uiProfile.nesFamily;
     const auto nesExpansionLayout = uiProfile.nesFamily && uiProfile.visibleSourceCount > 4u;
@@ -5597,6 +5646,8 @@ void ChipperAudioProcessorEditor::resized()
 
 void ChipperAudioProcessorEditor::setEditorWorkspace(ChipperEditorWorkspace workspace, bool persistSelection)
 {
+    if (presetBrowser.isVisible())
+        presetBrowser.close();
     selectedWorkspace = workspace;
     editorShell.setWorkspace(selectedWorkspace);
     workspaceDeck.setWorkspace(selectedWorkspace);
@@ -5645,6 +5696,7 @@ void ChipperAudioProcessorEditor::enforceWorkspaceVisibility()
         if (child != nullptr
             && child != &editorShell
             && child != &workspaceDeck
+            && child != &presetBrowser
             && ! editorShell.isExternalControl(child))
             child->setVisible(false);
     }
@@ -5662,6 +5714,7 @@ void ChipperAudioProcessorEditor::captureEditWorkspaceVisibility()
         if (child != nullptr
             && child != &editorShell
             && child != &workspaceDeck
+            && child != &presetBrowser
             && ! editorShell.isExternalControl(child))
             editWorkspaceVisibility.emplace_back(child, child->isVisible());
     }
@@ -7168,10 +7221,99 @@ void ChipperAudioProcessorEditor::updatePresetChoices(chipper::ChipMode mode)
     refreshPresetBrowserReadout(mode);
 }
 
+std::vector<ChipperPresetBrowser::Entry> ChipperAudioProcessorEditor::globalPresetBrowserEntries() const
+{
+    std::vector<ChipperPresetBrowser::Entry> entries;
+    entries.reserve(chipper::presetCatalog().size() + 32u);
+    for (const auto& preset : chipper::presetCatalog())
+    {
+        ChipperPresetBrowser::Entry entry;
+        entry.kind = ChipperPresetBrowser::EntryKind::factory;
+        entry.mode = preset.chip;
+        entry.key = "factory:" + juce::String(preset.id);
+        entry.factoryPresetId = juce::String(preset.id);
+        entry.name = juce::String(preset.name);
+        entry.category = juce::String(preset.category);
+        entry.role = juce::String(chipper::presetRoleFor(preset));
+        entry.engine = juce::String(chipper::presetEngineFor(preset));
+        for (const auto& tag : chipper::presetTagsFor(preset))
+            entry.tags.add(juce::String(tag));
+        entry.note = juce::String(preset.note);
+        entry.bank = "Factory";
+        entry.favorite = isFactoryPresetFavorite(preset);
+        entry.recentRank = recentPresetKeys.indexOf(entry.key);
+        entries.push_back(std::move(entry));
+    }
+
+    const auto presetRoot = defaultUserPresetDirectory();
+    auto files = presetRoot.findChildFiles(juce::File::findFiles, true, "*.chipperpreset");
+    if (currentUserPresetFile.existsAsFile())
+        files.addIfNotAlreadyThere(currentUserPresetFile);
+    juce::StringArray seenPaths;
+    for (const auto& file : files)
+    {
+        const auto path = normalizedFavoritePath(file);
+        if (seenPaths.contains(path))
+            continue;
+        seenPaths.add(path);
+
+        const std::unique_ptr<juce::XmlElement> root(juce::XmlDocument::parse(file));
+        if (root == nullptr)
+            continue;
+        const auto mode = chipModeFromUserPresetXml(*root);
+        if (! mode.has_value())
+            continue;
+
+        ChipperPresetBrowser::Entry entry;
+        entry.kind = ChipperPresetBrowser::EntryKind::user;
+        entry.mode = *mode;
+        entry.key = "user:" + path;
+        entry.userFile = file;
+        entry.name = userPresetNameFromXml(*root, file);
+        entry.category = "User Preset";
+        entry.role = userPresetAttributeFromXml(*root, "role");
+        entry.engine = userPresetAttributeFromXml(*root, "engine");
+        entry.tags = userPresetTagsFromXml(*root);
+        entry.note = userPresetAttributeFromXml(*root, "note");
+        entry.bank = userPresetBankName(file, presetRoot);
+        if (entry.role.isEmpty())
+            entry.role = "User";
+        if (entry.engine.isEmpty())
+            entry.engine = juce::String(chipper::descriptorFor(*mode).displayName);
+        entry.favorite = favoriteListContains(favoriteUserPresetPaths, path);
+        entry.recentRank = recentPresetKeys.indexOf(entry.key);
+        entries.push_back(std::move(entry));
+    }
+    return entries;
+}
+
+void ChipperAudioProcessorEditor::refreshGlobalPresetBrowser()
+{
+    presetBrowser.setEntries(globalPresetBrowserEntries(), displayedMode);
+}
+
+void ChipperAudioProcessorEditor::showPresetBrowser()
+{
+    refreshGlobalPresetBrowser();
+    presetBrowser.open(displayedMode);
+}
+
+void ChipperAudioProcessorEditor::recordRecentPresetKey(const juce::String& key)
+{
+    if (key.isEmpty())
+        return;
+    recentPresetKeys.removeString(key);
+    recentPresetKeys.insert(0, key);
+    while (recentPresetKeys.size() > 16)
+        recentPresetKeys.remove(recentPresetKeys.size() - 1);
+    savePresetFavorites();
+}
+
 void ChipperAudioProcessorEditor::loadPresetFavorites()
 {
     favoriteFactoryPresetIds.clear();
     favoriteUserPresetPaths.clear();
+    recentPresetKeys.clear();
 
     const std::unique_ptr<juce::XmlElement> root(juce::XmlDocument::parse(presetFavoritesFile()));
     if (root == nullptr || ! root->hasTagName("ChipperPresetFavorites"))
@@ -7186,13 +7328,15 @@ void ChipperAudioProcessorEditor::loadPresetFavorites()
             setFavoriteListContains(favoriteFactoryPresetIds, child->getStringAttribute("id"), true);
         else if (child->hasTagName("User"))
             setFavoriteListContains(favoriteUserPresetPaths, child->getStringAttribute("path"), true);
+        else if (child->hasTagName("Recent"))
+            recentPresetKeys.addIfNotAlreadyThere(child->getStringAttribute("key"));
     }
 }
 
 void ChipperAudioProcessorEditor::savePresetFavorites() const
 {
     juce::XmlElement root("ChipperPresetFavorites");
-    root.setAttribute("formatVersion", 1);
+    root.setAttribute("formatVersion", 2);
 
     for (const auto& id : favoriteFactoryPresetIds)
     {
@@ -7204,6 +7348,12 @@ void ChipperAudioProcessorEditor::savePresetFavorites() const
     {
         auto* child = root.createNewChildElement("User");
         child->setAttribute("path", path);
+    }
+
+    for (const auto& key : recentPresetKeys)
+    {
+        auto* child = root.createNewChildElement("Recent");
+        child->setAttribute("key", key);
     }
 
     const auto file = presetFavoritesFile();
@@ -8028,7 +8178,10 @@ void ChipperAudioProcessorEditor::applySelectedPreset()
     {
         const auto userIndex = selectedId - userPresetItemIdBase;
         if (userIndex >= 0 && static_cast<size_t>(userIndex) < displayedUserPresets.size())
+        {
+            recordRecentPresetKey("user:" + normalizedFavoritePath(displayedUserPresets[static_cast<size_t>(userIndex)].file));
             loadUserPresetFile(displayedUserPresets[static_cast<size_t>(userIndex)].file);
+        }
         return;
     }
 
@@ -8036,7 +8189,9 @@ void ChipperAudioProcessorEditor::applySelectedPreset()
     if (selected < 0 || static_cast<size_t>(selected) >= displayedPresets.size())
         return;
 
-    applyFactoryPreset(*displayedPresets[static_cast<size_t>(selected)]);
+    const auto* preset = displayedPresets[static_cast<size_t>(selected)];
+    recordRecentPresetKey("factory:" + juce::String(preset->id));
+    applyFactoryPreset(*preset);
 }
 
 void ChipperAudioProcessorEditor::applyInitPreset()

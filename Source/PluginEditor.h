@@ -5,6 +5,7 @@
 #include "PluginProcessor.h"
 #include "UI/ChipperEditorShell.h"
 #include "UI/ChipperWorkspaces.h"
+#include "UI/ChipperPresetBrowser.h"
 
 #include <array>
 #include <cstdint>
@@ -168,6 +169,19 @@ public:
     juce::Rectangle<int> getPresetSearchBoundsForLayoutTest() const { return presetSearchBox.getBounds(); }
     juce::String getPresetSearchTextForLayoutTest() const { return presetSearchBox.getText(); }
     juce::Rectangle<int> getPresetFavoriteBoundsForLayoutTest() const { return presetFavoriteButton.getBounds(); }
+    juce::Rectangle<int> getPresetBrowserButtonBoundsForLayoutTest() const { return presetBrowserButton.getBounds(); }
+    bool isPresetBrowserVisibleForLayoutTest() const { return presetBrowser.isVisible(); }
+    void showPresetBrowserForLayoutTest() { showPresetBrowser(); }
+    void closePresetBrowserForLayoutTest() { presetBrowser.close(); }
+    juce::Rectangle<int> getGlobalPresetBrowserSearchBoundsForLayoutTest() const { return presetBrowser.searchBoundsForTest(); }
+    juce::Rectangle<int> getGlobalPresetBrowserChipListBoundsForLayoutTest() const { return presetBrowser.chipListBoundsForTest(); }
+    juce::Rectangle<int> getGlobalPresetBrowserResultListBoundsForLayoutTest() const { return presetBrowser.presetListBoundsForTest(); }
+    juce::Rectangle<int> getGlobalPresetBrowserDetailBoundsForLayoutTest() const { return presetBrowser.detailBoundsForTest(); }
+    int getGlobalPresetBrowserResultCountForLayoutTest() const { return presetBrowser.resultCountForTest(); }
+    void setGlobalPresetBrowserSearchForLayoutTest(const juce::String& text) { presetBrowser.setSearchTextForTest(text); }
+    void setGlobalPresetBrowserScopeForLayoutTest(int scopeId) { presetBrowser.setScopeForTest(scopeId); }
+    void selectAllGlobalPresetBrowserChipsForLayoutTest() { presetBrowser.selectAllChipsForTest(); }
+    void applyFirstGlobalPresetBrowserResultForLayoutTest() { presetBrowser.applyFirstResultForTest(); }
     bool getPresetFavoriteToggleStateForLayoutTest() const { return presetFavoriteButton.getToggleState(); }
     bool selectPresetFilterForLayoutTest(const juce::String& kind, const juce::String& value);
     void clearPresetFavoritesForLayoutTest();
@@ -445,6 +459,10 @@ private:
     bool selectedPresetIsFavorite() const;
     void setSelectedPresetFavorite(bool shouldBeFavorite);
     void updatePresetFavoriteButton();
+    void showPresetBrowser();
+    void refreshGlobalPresetBrowser();
+    std::vector<ChipperPresetBrowser::Entry> globalPresetBrowserEntries() const;
+    void recordRecentPresetKey(const juce::String& key);
     void reloadUserPresetFiles(chipper::ChipMode mode);
     void updateSegmentedControlSpecs(chipper::ChipMode mode);
     void updateFmFeedbackControl(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible);
@@ -725,6 +743,7 @@ private:
     juce::ComboBox presetFilterBox;
     juce::TextEditor presetSearchBox;
     juce::ComboBox presetBox;
+    juce::TextButton presetBrowserButton;
     juce::TextButton presetFavoriteButton;
     juce::TextButton userPresetLoadButton;
     juce::TextButton userPresetSaveButton;
@@ -733,6 +752,7 @@ private:
     juce::ComboBox playModeBox;
     ChipperEditorShell editorShell;
     ChipperWorkspaceDeck workspaceDeck;
+    ChipperPresetBrowser presetBrowser;
     ChipperEditorWorkspace selectedWorkspace = ChipperEditorWorkspace::edit;
 
     struct UserPresetFile
@@ -813,6 +833,7 @@ private:
     std::vector<PresetFilterChoice> presetFilterChoices;
     juce::StringArray favoriteFactoryPresetIds;
     juce::StringArray favoriteUserPresetPaths;
+    juce::StringArray recentPresetKeys;
     std::vector<ChipSettingsSnapshot> chipSettingsSnapshots;
     std::vector<std::pair<juce::Component*, bool>> editWorkspaceVisibility;
     bool descriptorTextInitialized = false;

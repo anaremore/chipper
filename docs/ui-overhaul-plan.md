@@ -24,7 +24,8 @@ The overhaul is complete only when all of the following are implemented and veri
 - Complete: Play, Edit, and Inspect workspace foundation with APVTS-safe switching, UI-only persistence, all-chip layout coverage, and parameter-mutation guards.
 - Complete: shared chip-family classification, browser grouping, density policy, and centralized Edit-layout height rules.
 - Complete: selected-source master-detail editing for every chip with seven or more visible lanes while retaining card-level identity, enable, and level controls.
-- In progress: the dedicated global preset/chip browser.
+- Complete: dedicated global sound browser with grouped chip navigation, role and text filtering, favorites, recents, recursive user-bank discovery, detail copy, and explicit cross-chip loading.
+- In progress: the shared four-operator FM editor.
 
 ## Delivery Order
 
@@ -64,6 +65,12 @@ Generate only the platform-independent structural manifest:
 
 ```powershell
 .\scripts\capture-ui.ps1 -ManifestOnly
+```
+
+Capture the dedicated global sound browser at both supported widths:
+
+```powershell
+.\scripts\capture-ui.ps1 -Chip nes -Workspace browser
 ```
 
 PNG comparisons are reviewed per operating system because font rasterization and graphics backends differ. The JSON manifest is the portable CI evidence for component hierarchy, bounds, visibility, enabled state, and keyboard focusability.
