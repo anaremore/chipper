@@ -219,6 +219,10 @@ juce::String fileKey(juce::String value)
 
 bool writePng(ChipperAudioProcessorEditor& editor, const juce::File& destination)
 {
+    // Prime JUCE's nested-component paint path before the retained capture. On
+    // Windows, the first headless snapshot after a dense component re-layout can
+    // otherwise contain only the children that invalidated themselves.
+    editor.createComponentSnapshot(editor.getLocalBounds(), true, 1.0f);
     auto image = editor.createComponentSnapshot(editor.getLocalBounds(), true, 1.0f);
     if (! image.isValid())
         return false;
@@ -294,31 +298,34 @@ int main(int argc, char** argv)
     juce::Array<juce::var> snapshots;
     const auto chipModeCount = chipper::parameters::chipModeChoices().size();
     const auto workspaces = requestedWorkspaces(options.workspace);
+    ChipperAudioProcessor processor;
+    ChipperAudioProcessorEditor editor(processor);
 
     for (int choice = 0; choice < chipModeCount; ++choice)
     {
         if (selectedChoice.has_value() && choice != *selectedChoice)
             continue;
 
+        if (! setChipMode(processor, choice))
+        {
+            std::cerr << "Could not select chip choice " << choice << '\n';
+            return 1;
+        }
+        editor.runEditorUpdateForLayoutTest();
+        editor.runEditorUpdateForLayoutTest();
+
         for (const auto width : options.widths)
         {
             for (const auto workspace : workspaces)
             {
-                ChipperAudioProcessor processor;
-                if (! setChipMode(processor, choice))
-                {
-                    std::cerr << "Could not select chip choice " << choice << '\n';
-                    return 1;
-                }
-
-                ChipperAudioProcessorEditor editor(processor);
                 editor.setSize(width, editor.getHeight());
                 editor.setWorkspaceForLayoutTest(workspace);
                 editor.runEditorUpdateForLayoutTest();
                 const auto browserCapture = options.workspace == "browser";
                 if (browserCapture)
                     editor.showPresetBrowserForLayoutTest();
-                juce::MessageManager::getInstance()->runDispatchLoopUntil(20);
+                editor.repaint();
+                juce::MessageManager::getInstance()->runDispatchLoopUntil(50);
 
                 const auto displayName = chipper::parameters::chipModeChoices()[choice];
                 const auto workspaceKey = browserCapture ? juce::String("browser") : workspaceName(workspace);

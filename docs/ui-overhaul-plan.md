@@ -25,7 +25,8 @@ The overhaul is complete only when all of the following are implemented and veri
 - Complete: shared chip-family classification, browser grouping, density policy, and centralized Edit-layout height rules.
 - Complete: selected-source master-detail editing for every chip with seven or more visible lanes while retaining card-level identity, enable, and level controls.
 - Complete: dedicated global sound browser with grouped chip navigation, role and text filtering, favorites, recents, recursive user-bank discovery, detail copy, and explicit cross-chip loading.
-- In progress: the shared four-operator FM editor.
+- Complete: shared four-operator FM editor with a 2x2 carrier/modulator grid, per-operator level/multiplier/envelope editing, resolved register readouts, and shared algorithm visualization.
+- In progress: unified sampler and wavetable editing workflows.
 
 ## Delivery Order
 

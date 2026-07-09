@@ -3552,6 +3552,8 @@ target_sources(Chipper
         Source/PluginEditor.h
         Source/UI/ChipUiModel.cpp
         Source/UI/ChipUiModel.h
+        Source/UI/ChipperFmEditor.cpp
+        Source/UI/ChipperFmEditor.h
         Source/UI/ChipperPresetBrowser.cpp
         Source/UI/ChipperPresetBrowser.h
         Source/UI/ChipperEditorShell.cpp
@@ -3616,6 +3618,8 @@ add_executable(chipper_processor_midi_cc_smoke
     Source/PluginEditor.h
     Source/UI/ChipUiModel.cpp
     Source/UI/ChipUiModel.h
+    Source/UI/ChipperFmEditor.cpp
+    Source/UI/ChipperFmEditor.h
     Source/UI/ChipperPresetBrowser.cpp
     Source/UI/ChipperPresetBrowser.h
     Source/UI/ChipperEditorShell.cpp
@@ -3664,6 +3668,8 @@ add_executable(chipper_editor_size_smoke
     Source/PluginEditor.h
     Source/UI/ChipUiModel.cpp
     Source/UI/ChipUiModel.h
+    Source/UI/ChipperFmEditor.cpp
+    Source/UI/ChipperFmEditor.h
     Source/UI/ChipperPresetBrowser.cpp
     Source/UI/ChipperPresetBrowser.h
     Source/UI/ChipperEditorShell.cpp
@@ -3712,6 +3718,8 @@ add_executable(chipper_ui_snapshot
     Source/PluginEditor.h
     Source/UI/ChipUiModel.cpp
     Source/UI/ChipUiModel.h
+    Source/UI/ChipperFmEditor.cpp
+    Source/UI/ChipperFmEditor.h
     Source/UI/ChipperPresetBrowser.cpp
     Source/UI/ChipperPresetBrowser.h
     Source/UI/ChipperEditorShell.cpp

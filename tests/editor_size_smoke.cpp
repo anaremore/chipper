@@ -622,81 +622,23 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
         return false;
     }
 
-    const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
-    const auto checkOperatorControl = [&](size_t sliderIndex, const char* controlName)
+    for (const auto sliderIndex : { 2u, 3u })
     {
-        auto controlOk = true;
         const auto sliderBounds = editor.getNativeSliderBoundsForLayoutTest(sliderIndex);
         const auto groupBounds = editor.getNativeGroupLabelBoundsForLayoutTest(sliderIndex);
         const auto labelBounds = editor.getNativeLabelBoundsForLayoutTest(sliderIndex);
         const auto valueBounds = editor.getNativeValueLabelBoundsForLayoutTest(sliderIndex);
-
-        if (! groupBounds.isEmpty())
+        if (! sliderBounds.isEmpty() || ! groupBounds.isEmpty() || ! labelBounds.isEmpty() || ! valueBounds.isEmpty())
         {
-            std::cerr << "editor_size_smoke: " << modeLabel << ' ' << controlName
-                      << " should use compact Operator EG ownership without a macro group label: "
-                      << groupBounds.toString() << '\n';
-            controlOk = false;
+            std::cerr << "editor_size_smoke: " << modeLabel
+                      << " should keep universal musical macros in Play instead of crowding the native operator grid\n";
+            ok = false;
         }
-
-        if (sliderBounds.isEmpty() || labelBounds.isEmpty() || valueBounds.isEmpty())
-        {
-            std::cerr << "editor_size_smoke: " << modeLabel << ' ' << controlName
-                      << " operator control is missing from Operator EG: slider "
-                      << sliderBounds.toString() << " label " << labelBounds.toString()
-                      << " readout " << valueBounds.toString() << '\n';
-            return false;
-        }
-
-        if (! envelopeModuleBounds.expanded(2).contains(sliderBounds)
-            || ! envelopeModuleBounds.expanded(2).contains(labelBounds)
-            || ! envelopeModuleBounds.expanded(2).contains(valueBounds))
-        {
-            std::cerr << "editor_size_smoke: " << modeLabel << ' ' << controlName
-                      << " operator control escaped Operator EG: slider "
-                      << sliderBounds.toString() << " label " << labelBounds.toString()
-                      << " readout " << valueBounds.toString()
-                      << " module " << envelopeModuleBounds.toString() << '\n';
-            controlOk = false;
-        }
-
-        if (! performanceBounds.isEmpty()
-            && (sliderBounds.intersects(performanceBounds)
-                || labelBounds.intersects(performanceBounds)
-                || valueBounds.intersects(performanceBounds)))
-        {
-            std::cerr << "editor_size_smoke: " << modeLabel << ' ' << controlName
-                      << " operator control still occupies Performance Macros: slider "
-                      << sliderBounds.toString() << " performance "
-                      << performanceBounds.toString() << '\n';
-            controlOk = false;
-        }
-
-        if (sliderBounds.getWidth() < 160 || sliderBounds.getHeight() < 18
-            || labelBounds.getWidth() < 72 || labelBounds.getHeight() < 12
-            || valueBounds.getWidth() < 58 || valueBounds.getHeight() < 12
-            || sliderBounds.intersects(labelBounds)
-            || sliderBounds.intersects(valueBounds))
-        {
-            std::cerr << "editor_size_smoke: " << modeLabel << ' ' << controlName
-                      << " operator control is not readable: slider "
-                      << sliderBounds.toString() << " label " << labelBounds.toString()
-                      << " readout " << valueBounds.toString() << '\n';
-            controlOk = false;
-        }
-
-        return controlOk;
-    };
-
-    ok &= checkOperatorControl(2, "Operator Tone");
-    ok &= checkOperatorControl(3, "FM Level");
-
-    const auto operatorToneBounds = editor.getNativeSliderBoundsForLayoutTest(2);
-    const auto fmLevelBounds = editor.getNativeSliderBoundsForLayoutTest(3);
+    }
 
     auto carrierCount = 0;
     auto modulatorCount = 0;
-    auto lastBottom = envelopeModuleBounds.getY();
+    std::array<juce::Rectangle<int>, 4> operatorCards;
 
     for (size_t op = 0; op < 4; ++op)
     {
@@ -709,6 +651,8 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
         const auto nameText = editor.getFmOperatorNameTextForLayoutTest(op);
         const auto valueText = editor.getFmOperatorValueTextForLayoutTest(op);
         const auto levelValueText = editor.getFmOperatorLevelValueTextForLayoutTest(op);
+        const auto cardBounds = editor.getFmOperatorCardBoundsForLayoutTest(op);
+        operatorCards[op] = cardBounds;
 
         if (nameBounds.isEmpty() || valueBounds.isEmpty()
             || levelSliderBounds.isEmpty() || multiplierBounds.isEmpty()
@@ -727,6 +671,7 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
         }
 
         if (! envelopeModuleBounds.expanded(2).contains(nameBounds)
+            || ! envelopeModuleBounds.expanded(2).contains(cardBounds)
             || ! envelopeModuleBounds.expanded(2).contains(levelValueBounds)
             || ! envelopeModuleBounds.expanded(2).contains(levelSliderBounds)
             || ! envelopeModuleBounds.expanded(2).contains(multiplierBounds)
@@ -745,12 +690,13 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
             ok = false;
         }
 
-        if (nameBounds.getWidth() < 40 || nameBounds.getHeight() < 12
-            || levelValueBounds.getWidth() < 30 || levelValueBounds.getHeight() < 12
-            || levelSliderBounds.getWidth() < 56 || levelSliderBounds.getHeight() < 12
-            || multiplierBounds.getWidth() < 46 || multiplierBounds.getHeight() < 12
-            || attackRateBounds.getWidth() < 38 || attackRateBounds.getHeight() < 12
-            || valueBounds.getWidth() < 92 || valueBounds.getHeight() < 12)
+        if (cardBounds.getWidth() < 250 || cardBounds.getHeight() < 48
+            || nameBounds.getWidth() < 70 || nameBounds.getHeight() < 12
+            || levelValueBounds.getWidth() < 80 || levelValueBounds.getHeight() < 12
+            || levelSliderBounds.getWidth() < 120 || levelSliderBounds.getHeight() < 16
+            || multiplierBounds.getWidth() < 48 || multiplierBounds.getHeight() < 16
+            || attackRateBounds.getWidth() < 40 || attackRateBounds.getHeight() < 16
+            || valueBounds.getWidth() < 200 || valueBounds.getHeight() < 12)
         {
             std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
                       << " is below readable size: name " << nameBounds.toString()
@@ -759,31 +705,6 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
                       << " multiplier " << multiplierBounds.toString()
                       << " attack " << attackRateBounds.toString()
                       << " value " << valueBounds.toString() << '\n';
-            ok = false;
-        }
-
-        if (nameBounds.intersects(operatorToneBounds)
-            || valueBounds.intersects(operatorToneBounds)
-            || levelValueBounds.intersects(operatorToneBounds)
-            || levelSliderBounds.intersects(operatorToneBounds)
-            || multiplierBounds.intersects(operatorToneBounds)
-            || attackRateBounds.intersects(operatorToneBounds)
-            || nameBounds.intersects(fmLevelBounds)
-            || valueBounds.intersects(fmLevelBounds)
-            || levelValueBounds.intersects(fmLevelBounds)
-            || levelSliderBounds.intersects(fmLevelBounds)
-            || multiplierBounds.intersects(fmLevelBounds)
-            || attackRateBounds.intersects(fmLevelBounds))
-        {
-            std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
-                      << " overlaps editable operator controls: name " << nameBounds.toString()
-                      << " level readout " << levelValueBounds.toString()
-                      << " slider " << levelSliderBounds.toString()
-                      << " multiplier " << multiplierBounds.toString()
-                      << " attack " << attackRateBounds.toString()
-                      << " value " << valueBounds.toString()
-                      << " tone " << operatorToneBounds.toString()
-                      << " level " << fmLevelBounds.toString() << '\n';
             ok = false;
         }
 
@@ -813,19 +734,6 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
             ok = false;
         }
 
-        if (nameBounds.getY() < lastBottom - 1
-            || valueBounds.getY() < lastBottom - 1
-            || levelValueBounds.getY() < lastBottom - 1
-            || levelSliderBounds.getY() < lastBottom - 1
-            || multiplierBounds.getY() < lastBottom - 1
-            || attackRateBounds.getY() < lastBottom - 1)
-        {
-            std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
-                      << " overlaps the previous operator row\n";
-            ok = false;
-        }
-        lastBottom = std::max({ nameBounds.getBottom(), levelValueBounds.getBottom(), levelSliderBounds.getBottom(), multiplierBounds.getBottom(), attackRateBounds.getBottom(), valueBounds.getBottom() });
-
         const auto expectedPrefix = juce::String("OP") + juce::String(static_cast<int>(op + 1u));
         if (! nameText.startsWith(expectedPrefix) || (! nameText.endsWith(" C") && ! nameText.endsWith(" M")))
         {
@@ -854,6 +762,19 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
                       << " should expose operator level percent, got "
                       << levelValueText.toStdString() << '\n';
             ok = false;
+        }
+    }
+
+    for (size_t left = 0; left < operatorCards.size(); ++left)
+    {
+        for (size_t right = left + 1u; right < operatorCards.size(); ++right)
+        {
+            if (operatorCards[left].intersects(operatorCards[right]))
+            {
+                std::cerr << "editor_size_smoke: " << modeLabel
+                          << " operator cards overlap in the shared 2x2 editor\n";
+                ok = false;
+            }
         }
     }
 

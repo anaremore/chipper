@@ -2462,6 +2462,12 @@ void SampleWaveformPreview::paint(juce::Graphics& g)
 ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& processor)
     : AudioProcessorEditor(processor),
       audioProcessor(processor),
+      fmEditor({ fmOperatorNameLabels,
+                 fmOperatorValueLabels,
+                 fmOperatorLevelValueLabels,
+                 fmOperatorLevelSliders,
+                 fmOperatorMultiplierButtons,
+                 fmOperatorAttackRateButtons }),
       editorShell({ titleLabel,
                     statusLabel,
                     buildLabel,
@@ -3827,6 +3833,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     macroSummaryLabel.setMinimumHorizontalScale(0.60f);
     addAndMakeVisible(macroSummaryLabel);
 
+    addAndMakeVisible(fmEditor);
+    fmEditor.attachControls();
+    fmEditor.setVisible(false);
     addAndMakeVisible(editorShell);
     editorShell.toBack();
     editorShell.attachExternalControlsTo(*this);
@@ -4062,6 +4071,7 @@ void ChipperAudioProcessorEditor::applyChipTheme()
     dmcLoopButton.setColour(juce::ToggleButton::textColourId, theme.text);
     spc700LoopModeButton.setColour(juce::ToggleButton::textColourId, theme.text);
     editorShell.setTheme(theme.primary, theme.accent, theme.outline, theme.text, theme.mutedText, theme.darkText);
+    fmEditor.setTheme(theme.panel, theme.sourceCard, theme.outline, theme.primary, theme.accent, theme.text, theme.mutedText);
     workspaceDeck.refresh(displayedMode, workspaceThemeFor(theme));
     presetBrowser.setTheme({ theme.background,
                              theme.panel,
@@ -5012,9 +5022,7 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (usesFmEnvelopeShapePanel)
     {
-        auto shapeArea = envelopeDecayPanel.removeFromTop(std::min(41, envelopeDecayPanel.getHeight()));
-        placeYmEnvelopeShapeSegment(shapeArea);
-        envelopeDecayPanel.removeFromTop(std::min(3, envelopeDecayPanel.getHeight()));
+        placeYmEnvelopeShapeSegment({});
         placeFmOperatorEditSurface(displayedMode, envelopeDecayPanel);
         ymEnvelopePreview.setBounds({});
     }
@@ -6049,130 +6057,23 @@ void ChipperAudioProcessorEditor::placeSidAdsrControls(juce::Rectangle<int> boun
     }
 }
 
-void ChipperAudioProcessorEditor::placeCompactFmOperatorSlider(juce::Slider& slider,
-                                                               juce::Label& label,
-                                                               juce::Label& valueLabel,
-                                                               juce::Rectangle<int> bounds)
-{
-    label.setMinimumHorizontalScale(0.62f);
-    valueLabel.setJustificationType(juce::Justification::centredRight);
-    valueLabel.setMinimumHorizontalScale(0.55f);
-
-    if (bounds.isEmpty())
-    {
-        label.setBounds({});
-        slider.setBounds({});
-        valueLabel.setBounds({});
-        return;
-    }
-
-    auto header = bounds.removeFromTop(std::min(14, bounds.getHeight()));
-    label.setBounds(header.removeFromLeft(std::min(112, header.getWidth())));
-    valueLabel.setBounds(header.getWidth() >= 58 ? header : juce::Rectangle<int> {});
-    bounds.removeFromTop(std::min(1, bounds.getHeight()));
-    slider.setBounds(bounds.reduced(0, 1));
-}
-
 void ChipperAudioProcessorEditor::placeFmOperatorEditSurface(chipper::ChipMode mode, juce::Rectangle<int> bounds)
 {
-    if (! isFourOperatorFmMode(mode))
+    for (const auto index : { 2u, 3u })
     {
-        placeFmOperatorRegisterSurface(mode, bounds);
-        return;
+        nativeGroupLabels[index].setBounds({});
+        nativeLabels[index].setBounds({});
+        nativeSliders[index].setBounds({});
+        controlValueLabels[index].setBounds({});
     }
-
-    const auto controlWidth = std::clamp(bounds.getWidth() / 3, 220, 250);
-    auto controlPanel = bounds.removeFromLeft(std::min(controlWidth, bounds.getWidth()));
-    bounds.removeFromLeft(std::min(8, bounds.getWidth()));
-
-    nativeGroupLabels[2].setBounds({});
-    nativeGroupLabels[3].setBounds({});
-
-    const auto controlGap = std::min(4, std::max(0, controlPanel.getHeight() - 56));
-    const auto rowHeight = std::max(0, (controlPanel.getHeight() - controlGap) / 2);
-    auto toneRow = controlPanel.removeFromTop(std::min(rowHeight, controlPanel.getHeight()));
-    controlPanel.removeFromTop(std::min(controlGap, controlPanel.getHeight()));
-    placeCompactFmOperatorSlider(nativeSliders[2], nativeLabels[2], controlValueLabels[2], toneRow);
-    placeCompactFmOperatorSlider(nativeSliders[3], nativeLabels[3], controlValueLabels[3], controlPanel);
-
     placeFmOperatorRegisterSurface(mode, bounds);
 }
 
 void ChipperAudioProcessorEditor::placeFmOperatorRegisterSurface(chipper::ChipMode mode, juce::Rectangle<int> bounds)
 {
     const auto rowCount = mode == chipper::ChipMode::opl3 ? 3u : (isOpllOperatorEditMode(mode) ? 2u : fmOperatorReadoutRows);
-    const auto compactRows = rowCount >= fmOperatorReadoutRows && bounds.getHeight() < 64;
-    const auto rowGap = compactRows ? 2 : 4;
-    const auto minRowHeight = compactRows ? 12 : 13;
-    const auto availableRows = static_cast<int>(rowCount);
-    const auto rowHeight = availableRows > 0
-        ? std::clamp((bounds.getHeight() - (rowGap * (availableRows - 1))) / availableRows, minRowHeight, 20)
-        : 0;
-
-    for (size_t i = 0; i < fmOperatorNameLabels.size(); ++i)
-    {
-        if (i >= rowCount || bounds.getHeight() < 8)
-        {
-            fmOperatorNameLabels[i].setBounds({});
-            fmOperatorValueLabels[i].setBounds({});
-            fmOperatorLevelValueLabels[i].setBounds({});
-            fmOperatorLevelSliders[i].setBounds({});
-            fmOperatorMultiplierButtons[i].setBounds({});
-            fmOperatorAttackRateButtons[i].setBounds({});
-            continue;
-        }
-
-        auto row = bounds.removeFromTop(std::min(rowHeight, bounds.getHeight()));
-        const auto nameWidth = hasEditableFmOperatorRows(mode) ? 46 : 42;
-        fmOperatorNameLabels[i].setBounds(row.removeFromLeft(std::min(nameWidth, row.getWidth())));
-        row.removeFromLeft(std::min(6, row.getWidth()));
-
-        if (hasEditableFmOperatorRows(mode))
-        {
-            const auto readoutMinWidth = 96;
-            const auto desiredMultiplierWidth = 46;
-            const auto desiredAttackWidth = 42;
-            const auto valueWidth = row.getWidth() >= readoutMinWidth + 138 ? 34 : 30;
-            fmOperatorLevelValueLabels[i].setBounds(row.removeFromLeft(std::min(valueWidth, row.getWidth())));
-            row.removeFromLeft(std::min(4, row.getWidth()));
-
-            const auto maxSliderWidth = std::max(0, row.getWidth() - readoutMinWidth - desiredMultiplierWidth - desiredAttackWidth - 10);
-            const auto desiredSliderWidth = std::clamp(row.getWidth() / 5, 56, 70);
-            const auto sliderWidth = std::min(desiredSliderWidth, maxSliderWidth);
-            if (sliderWidth >= 56)
-            {
-                fmOperatorLevelSliders[i].setBounds(row.removeFromLeft(std::min(sliderWidth, row.getWidth())).reduced(0, 1));
-                row.removeFromLeft(std::min(4, row.getWidth()));
-            }
-            else
-            {
-                fmOperatorLevelSliders[i].setBounds({});
-            }
-
-            if (row.getWidth() >= readoutMinWidth + desiredMultiplierWidth + desiredAttackWidth + 8)
-            {
-                fmOperatorMultiplierButtons[i].setBounds(row.removeFromLeft(std::min(desiredMultiplierWidth, row.getWidth())));
-                row.removeFromLeft(std::min(4, row.getWidth()));
-                fmOperatorAttackRateButtons[i].setBounds(row.removeFromLeft(std::min(desiredAttackWidth, row.getWidth())));
-                row.removeFromLeft(std::min(4, row.getWidth()));
-            }
-            else
-            {
-                fmOperatorMultiplierButtons[i].setBounds({});
-                fmOperatorAttackRateButtons[i].setBounds({});
-            }
-        }
-        else
-        {
-            fmOperatorLevelValueLabels[i].setBounds({});
-            fmOperatorLevelSliders[i].setBounds({});
-            fmOperatorMultiplierButtons[i].setBounds({});
-            fmOperatorAttackRateButtons[i].setBounds({});
-        }
-
-        fmOperatorValueLabels[i].setBounds(row.reduced(3, 0));
-        bounds.removeFromTop(std::min(rowGap, bounds.getHeight()));
-    }
+    fmEditor.setBounds(bounds);
+    fmEditor.configure(mode, rowCount, hasEditableFmOperatorRows(mode));
 }
 
 void ChipperAudioProcessorEditor::placePulseDutySegment(juce::Rectangle<int> bounds)
@@ -12358,6 +12259,7 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
             || isOpnbMode(mode));
     const auto visibleRows = mode == chipper::ChipMode::opl3 ? 3u : (isOpllOperatorEditMode(mode) ? 2u : fmOperatorReadoutRows);
     const auto hasOperatorLevelControls = active && hasEditableFmOperatorRows(mode);
+    fmEditor.setVisible(active && selectedWorkspace == ChipperEditorWorkspace::edit);
 
     static constexpr std::array<const char*, fmOperatorReadoutRows> fmNames { "OP1", "OP2", "OP3", "OP4" };
     static constexpr std::array<const char*, fmOperatorReadoutRows> oplNames { "Pair", "Mod", "Car", "" };

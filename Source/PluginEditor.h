@@ -4,6 +4,7 @@
 
 #include "PluginProcessor.h"
 #include "UI/ChipperEditorShell.h"
+#include "UI/ChipperFmEditor.h"
 #include "UI/ChipperWorkspaces.h"
 #include "UI/ChipperPresetBrowser.h"
 
@@ -224,28 +225,29 @@ public:
     juce::Rectangle<int> getYmEnvelopePreviewBoundsForLayoutTest() const { return ymEnvelopePreview.getBounds(); }
     juce::Rectangle<int> getFmOperatorNameBoundsForLayoutTest(size_t index) const
     {
-        return index < fmOperatorNameLabels.size() ? fmOperatorNameLabels[index].getBounds() : juce::Rectangle<int> {};
+        return index < fmOperatorNameLabels.size() ? fmEditor.boundsInParentForTest(fmOperatorNameLabels[index]) : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getFmOperatorValueBoundsForLayoutTest(size_t index) const
     {
-        return index < fmOperatorValueLabels.size() ? fmOperatorValueLabels[index].getBounds() : juce::Rectangle<int> {};
+        return index < fmOperatorValueLabels.size() ? fmEditor.boundsInParentForTest(fmOperatorValueLabels[index]) : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getFmOperatorLevelSliderBoundsForLayoutTest(size_t index) const
     {
-        return index < fmOperatorLevelSliders.size() ? fmOperatorLevelSliders[index].getBounds() : juce::Rectangle<int> {};
+        return index < fmOperatorLevelSliders.size() ? fmEditor.boundsInParentForTest(fmOperatorLevelSliders[index]) : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getFmOperatorMultiplierBoundsForLayoutTest(size_t index) const
     {
-        return index < fmOperatorMultiplierButtons.size() ? fmOperatorMultiplierButtons[index].getBounds() : juce::Rectangle<int> {};
+        return index < fmOperatorMultiplierButtons.size() ? fmEditor.boundsInParentForTest(fmOperatorMultiplierButtons[index]) : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getFmOperatorAttackRateBoundsForLayoutTest(size_t index) const
     {
-        return index < fmOperatorAttackRateButtons.size() ? fmOperatorAttackRateButtons[index].getBounds() : juce::Rectangle<int> {};
+        return index < fmOperatorAttackRateButtons.size() ? fmEditor.boundsInParentForTest(fmOperatorAttackRateButtons[index]) : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getFmOperatorLevelValueBoundsForLayoutTest(size_t index) const
     {
-        return index < fmOperatorLevelValueLabels.size() ? fmOperatorLevelValueLabels[index].getBounds() : juce::Rectangle<int> {};
+        return index < fmOperatorLevelValueLabels.size() ? fmEditor.boundsInParentForTest(fmOperatorLevelValueLabels[index]) : juce::Rectangle<int> {};
     }
+    juce::Rectangle<int> getFmOperatorCardBoundsForLayoutTest(size_t index) const { return fmEditor.cardBoundsForTest(index); }
     juce::String getFmOperatorNameTextForLayoutTest(size_t index) const
     {
         return index < fmOperatorNameLabels.size() ? fmOperatorNameLabels[index].getText() : juce::String {};
@@ -404,7 +406,6 @@ private:
                             juce::Rectangle<int> bounds);
     void placeLabeledSliderWithReadout(juce::Slider& slider, juce::Label& label, juce::Label& valueLabel, juce::Rectangle<int> bounds);
     void placeSidAdsrControls(juce::Rectangle<int> bounds);
-    void placeCompactFmOperatorSlider(juce::Slider& slider, juce::Label& label, juce::Label& valueLabel, juce::Rectangle<int> bounds);
     void placeFmOperatorEditSurface(chipper::ChipMode mode, juce::Rectangle<int> bounds);
     void placeFmOperatorRegisterSurface(chipper::ChipMode mode, juce::Rectangle<int> bounds);
     void placePulseDutySegment(juce::Rectangle<int> bounds);
@@ -682,6 +683,7 @@ private:
     std::array<juce::Slider, fmOperatorReadoutRows> fmOperatorLevelSliders;
     std::array<juce::TextButton, fmOperatorReadoutRows> fmOperatorMultiplierButtons;
     std::array<juce::TextButton, fmOperatorReadoutRows> fmOperatorAttackRateButtons;
+    ChipperFmEditor fmEditor;
     juce::Label waveShapeLabel;
     juce::Label waveShapeValueLabel;
     juce::Label pulse2DutyLabel;
