@@ -5,6 +5,8 @@
 #include <array>
 #include <functional>
 
+#include "ChipperWorkflowBar.h"
+
 enum class ChipperEditorWorkspace
 {
     play,
@@ -35,6 +37,7 @@ public:
         juce::ComboBox& strictness;
         juce::ComboBox& macro;
         juce::ComboBox& playMode;
+        ChipperWorkflowBar& workflow;
     };
 
     explicit ChipperEditorShell(Controls controlsToUse);
@@ -54,6 +57,7 @@ public:
     std::function<void(ChipperEditorWorkspace)> onWorkspaceChanged;
 
     juce::Rectangle<int> workspaceBoundsForTest() const noexcept { return workspaceBounds; }
+    juce::Rectangle<int> workflowBoundsForTest() const noexcept { return controls.workflow.getBounds(); }
     juce::Rectangle<int> workspaceButtonBoundsForTest(ChipperEditorWorkspace workspaceToFind) const;
 
 private:

@@ -164,6 +164,7 @@ public:
 
     juce::AudioProcessorValueTreeState& getValueTreeState() { return apvts; }
     const juce::AudioProcessorValueTreeState& getValueTreeState() const { return apvts; }
+    juce::UndoManager& getUndoManager() noexcept { return undoManager; }
     std::string currentCoreStatus() const;
     std::string currentCoreStatusDetail() const;
     std::string currentCoreDebugStateJson() const;
@@ -246,6 +247,7 @@ private:
     void rememberHeldNote(int note, float velocity);
     int releaseHeldNote(int note);
 
+    juce::UndoManager undoManager;
     juce::AudioProcessorValueTreeState apvts;
     std::unique_ptr<chipper::ChipCore> core;
     chipper::ChipMode activeMode = chipper::ChipMode::nes;

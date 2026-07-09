@@ -1049,7 +1049,8 @@ juce::Result readPaulaSampleFileSlots(const juce::File& file, std::vector<Chippe
 
 ChipperAudioProcessor::ChipperAudioProcessor()
     : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-      apvts(*this, nullptr, "ChipperState", chipper::parameters::createLayout())
+      undoManager(30000, 100),
+      apvts(*this, &undoManager, "ChipperState", chipper::parameters::createLayout())
 {
 }
 

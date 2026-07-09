@@ -29,7 +29,8 @@ The overhaul is complete only when all of the following are implemented and veri
 - Complete: unified sampler/wavetable selected-asset workflow with per-source assignment, loaded/missing status, Wave RAM shape state, precision level, and direct Edit recovery actions.
 - Complete: chip-aware relationship schematics with distinct Native and Chipper affordances for routing, modulation, shared resources, and musical helpers.
 - Complete: shared high-contrast focus outline, explicit cross-surface focus order, accessible control names, browser keyboard behavior, and workspace/global shortcuts.
-- In progress: musician workflow tools and the final all-chip audit.
+- Complete: stable-shell musician workflow bar with grouped APVTS undo/redo, per-chip A/B audition slots, guarded whole-sound copy/paste, section initialization, and bounded macro/source-level variation.
+- In progress: final all-chip visual, test, build-marker, and installation audit.
 
 ## Delivery Order
 

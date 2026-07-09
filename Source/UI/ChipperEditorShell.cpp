@@ -22,6 +22,7 @@ ChipperEditorShell::ChipperEditorShell(Controls controlsToUse)
     addAndMakeVisible(controls.strictness);
     addAndMakeVisible(controls.macro);
     addAndMakeVisible(controls.playMode);
+    addAndMakeVisible(controls.workflow);
     addAndMakeVisible(controls.chipSummary);
     addAndMakeVisible(controls.status);
     addAndMakeVisible(controls.midiCc);
@@ -127,6 +128,9 @@ void ChipperEditorShell::resized()
     auto summaryRow = area.removeFromTop(28);
     workspaceBounds = summaryRow.removeFromRight(std::min(286, summaryRow.getWidth() / 3));
     summaryRow.removeFromRight(8);
+    const auto workflowWidth = std::min(346, std::max(250, summaryRow.getWidth() / 2));
+    controls.workflow.setBounds(summaryRow.removeFromRight(workflowWidth).reduced(0, 2));
+    summaryRow.removeFromRight(8);
     controls.chipSummary.setBounds(summaryRow);
 
     auto workspaceRow = workspaceBounds;
@@ -170,6 +174,7 @@ void ChipperEditorShell::attachExternalControlsTo(juce::Component& parent)
     attach(controls.strictness);
     attach(controls.macro);
     attach(controls.playMode);
+    attach(controls.workflow);
     attach(controls.chipSummary);
     attach(controls.status);
     attach(controls.midiCc);
@@ -194,6 +199,7 @@ bool ChipperEditorShell::isExternalControl(const juce::Component* component) con
         || component == &controls.strictness
         || component == &controls.macro
         || component == &controls.playMode
+        || component == &controls.workflow
         || component == &controls.chipSummary
         || component == &controls.status
         || component == &controls.midiCc

@@ -8,6 +8,7 @@
 #include "UI/ChipperFocusOutline.h"
 #include "UI/ChipperWorkspaces.h"
 #include "UI/ChipperPresetBrowser.h"
+#include "UI/ChipperWorkflowBar.h"
 
 #include <array>
 #include <cstdint>
@@ -323,6 +324,15 @@ public:
         return index < moduleTitleLabels.size() && moduleTitleLabels[index].isVisible();
     }
     juce::Rectangle<int> getWorkspaceSelectorBoundsForLayoutTest() const { return editorShell.workspaceBoundsForTest(); }
+    juce::Rectangle<int> getWorkflowBarBoundsForLayoutTest() const { return editorShell.workflowBoundsForTest(); }
+    juce::Rectangle<int> getWorkflowButtonBoundsForLayoutTest(size_t index) const { return workflowBar.buttonBoundsForTest(index); }
+    void copyWorkflowStateForLayoutTest() { copyWorkflowState(); }
+    void pasteWorkflowStateForLayoutTest() { pasteWorkflowState(); }
+    void switchWorkflowSlotForLayoutTest(int slot) { switchWorkflowSlot(slot); }
+    void initializeWorkflowSectionForLayoutTest(int section) { initializeWorkflowSection(section); }
+    void applySafeVariationForLayoutTest(uint32_t seed) { applySafeVariation(seed); }
+    void undoWorkflowForLayoutTest() { performWorkflowUndo(); }
+    void redoWorkflowForLayoutTest() { performWorkflowRedo(); }
     juce::Rectangle<int> getWorkspaceButtonBoundsForLayoutTest(ChipperEditorWorkspace workspace) const
     {
         return editorShell.workspaceButtonBoundsForTest(workspace);
@@ -657,6 +667,30 @@ private:
     void updateSampleWaveformPreview(chipper::ChipMode mode);
     void updateSamplePlaybackModeChoices(chipper::ChipMode mode);
     void refreshAccessibleNames();
+    struct WorkflowSnapshot
+    {
+        bool valid = false;
+        chipper::ChipMode chip = chipper::ChipMode::nes;
+        std::vector<float> normalizedValues;
+    };
+    struct WorkflowSlotBank
+    {
+        std::array<WorkflowSnapshot, 2> slots;
+        int activeSlot = 0;
+    };
+    void beginWorkflowTransaction(const juce::String& name);
+    WorkflowSnapshot captureWorkflowSnapshot() const;
+    void ensureWorkflowBankInitialized();
+    void applyWorkflowSnapshot(const WorkflowSnapshot& snapshot, const juce::String& transactionName);
+    void switchWorkflowSlot(int slot);
+    void copyWorkflowState();
+    void pasteWorkflowState();
+    void showWorkflowInitMenu();
+    void initializeWorkflowSection(int section);
+    void applySafeVariation(uint32_t seed);
+    void performWorkflowUndo();
+    void performWorkflowRedo();
+    void updateWorkflowBarState();
     void setEditorWorkspace(ChipperEditorWorkspace workspace, bool persistSelection);
     void enforceWorkspaceVisibility();
     void captureEditWorkspaceVisibility();
@@ -784,11 +818,14 @@ private:
     juce::TextButton userPresetSaveAsButton;
     juce::ComboBox macroBox;
     juce::ComboBox playModeBox;
+    ChipperWorkflowBar workflowBar;
     ChipperEditorShell editorShell;
     ChipperWorkspaceDeck workspaceDeck;
     ChipperPresetBrowser presetBrowser;
     ChipperFocusOutline focusOutline;
     ChipperEditorWorkspace selectedWorkspace = ChipperEditorWorkspace::edit;
+    std::vector<WorkflowSlotBank> workflowSlotBanks;
+    WorkflowSnapshot workflowClipboard;
 
     struct UserPresetFile
     {

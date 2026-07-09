@@ -2153,6 +2153,128 @@ bool checkWorkspaceNavigation()
     return ok;
 }
 
+bool checkWorkflowTools()
+{
+    bool ok = true;
+    ChipperAudioProcessor processor;
+    ChipperAudioProcessorEditor editor(processor);
+
+    for (const auto width : { expectedEditorMinimumWidth, 1240 })
+    {
+        editor.setSize(width, expectedEditorHeight);
+        const auto barBounds = editor.getWorkflowBarBoundsForLayoutTest();
+        if (barBounds.getWidth() < 300 || barBounds.getHeight() < 20)
+        {
+            std::cerr << "editor_size_smoke: workflow bar is unreadable at width " << width
+                      << ": " << barBounds.toString() << '\n';
+            ok = false;
+        }
+        for (size_t button = 0; button < 8u; ++button)
+        {
+            const auto bounds = editor.getWorkflowButtonBoundsForLayoutTest(button);
+            if (bounds.getWidth() < 24 || bounds.getHeight() < 20)
+            {
+                std::cerr << "editor_size_smoke: workflow button " << button
+                          << " is unreadable at width " << width << ": " << bounds.toString() << '\n';
+                ok = false;
+            }
+        }
+    }
+    ok &= checkAccessibleFocusContract(editor, "workflow.");
+
+    const auto macro1 = chipper::parameters::id::macroControl1;
+    ok &= setPlainParameter(processor, macro1, 0.2f);
+    editor.copyWorkflowStateForLayoutTest();
+    ok &= setPlainParameter(processor, macro1, 0.8f);
+    editor.pasteWorkflowStateForLayoutTest();
+    ok &= expect(std::abs(plainParameterValue(processor, macro1) - 0.2f) < 0.0001f,
+                 "workflow paste did not restore the copied sound");
+
+    editor.undoWorkflowForLayoutTest();
+    ok &= expect(std::abs(plainParameterValue(processor, macro1) - 0.8f) < 0.0001f,
+                 "workflow undo did not restore the pre-paste sound");
+    editor.redoWorkflowForLayoutTest();
+    ok &= expect(std::abs(plainParameterValue(processor, macro1) - 0.2f) < 0.0001f,
+                 "workflow redo did not reapply the pasted sound");
+
+    editor.switchWorkflowSlotForLayoutTest(1);
+    ok &= expect(std::abs(plainParameterValue(processor, macro1) - 0.5f) < 0.0001f,
+                 "A/B slot B did not begin from the initial sound");
+    ok &= setPlainParameter(processor, macro1, 0.7f);
+    editor.switchWorkflowSlotForLayoutTest(0);
+    ok &= expect(std::abs(plainParameterValue(processor, macro1) - 0.2f) < 0.0001f,
+                 "A/B slot A did not retain its edited sound");
+    editor.switchWorkflowSlotForLayoutTest(1);
+    ok &= expect(std::abs(plainParameterValue(processor, macro1) - 0.7f) < 0.0001f,
+                 "A/B slot B did not retain its edited sound");
+
+    ok &= setChoiceParameter(processor, chipper::parameters::id::accuracy, 2);
+    ok &= setChoiceParameter(processor, chipper::parameters::id::snNoiseMode, 3);
+    ok &= setPlainParameter(processor, macro1, 0.93f);
+    const auto chipBeforeInit = plainParameterValue(processor, chipper::parameters::id::chipMode);
+    const auto accuracyBeforeInit = plainParameterValue(processor, chipper::parameters::id::accuracy);
+    const auto noiseBeforeInit = plainParameterValue(processor, chipper::parameters::id::snNoiseMode);
+    editor.initializeWorkflowSectionForLayoutTest(2);
+    ok &= expect(std::abs(plainParameterValue(processor, macro1) - 0.5f) < 0.0001f,
+                 "musical section init did not reset performance controls");
+    ok &= expect(plainParameterValue(processor, chipper::parameters::id::chipMode) == chipBeforeInit
+                     && plainParameterValue(processor, chipper::parameters::id::accuracy) == accuracyBeforeInit
+                     && plainParameterValue(processor, chipper::parameters::id::snNoiseMode) == noiseBeforeInit,
+                 "musical section init changed protected chip settings");
+
+    const std::array<const char*, 4> macroIds {
+        chipper::parameters::id::macroControl1,
+        chipper::parameters::id::macroControl2,
+        chipper::parameters::id::macroControl3,
+        chipper::parameters::id::macroControl4
+    };
+    std::array<float, 4> macroValues {};
+    for (size_t i = 0; i < macroIds.size(); ++i)
+        macroValues[i] = plainParameterValue(processor, macroIds[i]);
+    const auto sourceEnabledBefore = plainParameterValue(processor, chipper::parameters::id::source1Enabled);
+    const auto clockBefore = plainParameterValue(processor, chipper::parameters::id::clockHz);
+    editor.applySafeVariationForLayoutTest(0x43485052u);
+    auto changedMacro = false;
+    for (size_t i = 0; i < macroIds.size(); ++i)
+    {
+        const auto varied = plainParameterValue(processor, macroIds[i]);
+        changedMacro = changedMacro || std::abs(varied - macroValues[i]) > 0.0001f;
+        if (varied < 0.0f || varied > 1.0f || std::abs(varied - macroValues[i]) > 0.0801f)
+        {
+            std::cerr << "editor_size_smoke: safe variation exceeded its macro bounds\n";
+            ok = false;
+        }
+    }
+    ok &= expect(changedMacro, "safe variation did not change a musical macro");
+    ok &= expect(plainParameterValue(processor, chipper::parameters::id::chipMode) == chipBeforeInit
+                     && plainParameterValue(processor, chipper::parameters::id::accuracy) == accuracyBeforeInit
+                     && plainParameterValue(processor, chipper::parameters::id::snNoiseMode) == noiseBeforeInit
+                     && plainParameterValue(processor, chipper::parameters::id::source1Enabled) == sourceEnabledBefore
+                     && plainParameterValue(processor, chipper::parameters::id::clockHz) == clockBefore,
+                 "safe variation changed protected chip or routing state");
+
+    editor.copyWorkflowStateForLayoutTest();
+    ok &= setChoiceParameter(processor, chipper::parameters::id::chipMode, chipModeChoiceFor(chipper::ChipMode::sid));
+    editor.runEditorUpdateForLayoutTest();
+    ok &= setPlainParameter(processor, macro1, 0.91f);
+    editor.pasteWorkflowStateForLayoutTest();
+    ok &= expect(std::abs(plainParameterValue(processor, macro1) - 0.91f) < 0.0001f,
+                 "workflow paste crossed chip boundaries");
+    editor.switchWorkflowSlotForLayoutTest(1);
+    ok &= expect(chipper::parameters::chipModeFromChoice(static_cast<int>(std::round(
+                     plainParameterValue(processor, chipper::parameters::id::chipMode)))) == chipper::ChipMode::sid,
+                 "A/B switching restored a stale bank from another chip");
+    ok &= setPlainParameter(processor, macro1, 0.77f);
+    editor.switchWorkflowSlotForLayoutTest(0);
+    ok &= expect(std::abs(plainParameterValue(processor, macro1) - 0.91f) < 0.0001f,
+                 "per-chip A/B slot A did not retain the SID sound");
+    editor.switchWorkflowSlotForLayoutTest(1);
+    ok &= expect(std::abs(plainParameterValue(processor, macro1) - 0.77f) < 0.0001f,
+                 "per-chip A/B slot B did not retain the SID sound");
+
+    return ok;
+}
+
 bool checkChipUiProfiles()
 {
     bool ok = true;
@@ -2288,6 +2410,7 @@ int main()
     ok &= checkGlobalPresetBrowserWorkflow();
     ok &= checkChipSwitchPreservesEditorSettings();
     ok &= checkWorkspaceNavigation();
+    ok &= checkWorkflowTools();
 
     return ok ? 0 : 1;
 }

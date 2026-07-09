@@ -2485,7 +2485,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
                     chipModeBox,
                     accuracyBox,
                     macroBox,
-                    playModeBox }),
+                    playModeBox,
+                    workflowBar }),
       workspaceDeck(processor),
       focusOutline(*this)
 {
@@ -3884,6 +3885,17 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     {
         setEditorWorkspace(ChipperEditorWorkspace::edit, true);
     };
+    workflowBar.onUndo = [this] { performWorkflowUndo(); };
+    workflowBar.onRedo = [this] { performWorkflowRedo(); };
+    workflowBar.onSlotA = [this] { switchWorkflowSlot(0); };
+    workflowBar.onSlotB = [this] { switchWorkflowSlot(1); };
+    workflowBar.onCopy = [this] { copyWorkflowState(); };
+    workflowBar.onPaste = [this] { pasteWorkflowState(); };
+    workflowBar.onInit = [this] { showWorkflowInitMenu(); };
+    workflowBar.onVary = [this]
+    {
+        applySafeVariation(static_cast<uint32_t>(juce::Random::getSystemRandom().nextInt()));
+    };
 
     if (shouldPersistEditorPreferences())
     {
@@ -3898,6 +3910,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     refreshAccessibleNames();
     enforceWorkspaceVisibility();
     outputScopePreview.setSamples(audioProcessor.outputScopeSnapshot());
+    workflowSlotBanks.resize(static_cast<size_t>(chipper::parameters::chipModeChoices().size()));
+    ensureWorkflowBankInitialized();
+    updateWorkflowBarState();
     startTimerHz(12);
 }
 
@@ -4081,6 +4096,7 @@ void ChipperAudioProcessorEditor::applyChipTheme()
     dmcLoopButton.setColour(juce::ToggleButton::textColourId, theme.text);
     spc700LoopModeButton.setColour(juce::ToggleButton::textColourId, theme.text);
     editorShell.setTheme(theme.primary, theme.accent, theme.outline, theme.text, theme.mutedText, theme.darkText);
+    workflowBar.setTheme(theme.primary, theme.accent, theme.outline, theme.text, theme.mutedText, theme.darkText);
     fmEditor.setTheme(theme.panel, theme.sourceCard, theme.outline, theme.primary, theme.accent, theme.text, theme.mutedText);
     focusOutline.setColour(theme.accent.contrasting(0.18f));
     workspaceDeck.refresh(displayedMode, workspaceThemeFor(theme));
@@ -5905,6 +5921,307 @@ void ChipperAudioProcessorEditor::refreshAccessibleNames()
     visit(*this);
 }
 
+void ChipperAudioProcessorEditor::beginWorkflowTransaction(const juce::String& name)
+{
+    audioProcessor.getValueTreeState().copyState();
+    audioProcessor.getUndoManager().beginNewTransaction(name);
+}
+
+ChipperAudioProcessorEditor::WorkflowSnapshot ChipperAudioProcessorEditor::captureWorkflowSnapshot() const
+{
+    WorkflowSnapshot snapshot;
+    const auto modeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::chipMode)));
+    snapshot.chip = chipper::parameters::chipModeFromChoice(modeChoice);
+    const auto& parameters = audioProcessor.getParameters();
+    snapshot.normalizedValues.reserve(static_cast<size_t>(parameters.size()));
+    for (const auto* parameter : parameters)
+        snapshot.normalizedValues.push_back(parameter != nullptr ? parameter->getValue() : 0.0f);
+    snapshot.valid = ! snapshot.normalizedValues.empty();
+    return snapshot;
+}
+
+void ChipperAudioProcessorEditor::ensureWorkflowBankInitialized()
+{
+    const auto modeChoice = std::clamp(static_cast<int>(std::round(parameterValue(chipper::parameters::id::chipMode))),
+                                       0,
+                                       static_cast<int>(workflowSlotBanks.size()) - 1);
+    auto& bank = workflowSlotBanks[static_cast<size_t>(modeChoice)];
+    if (bank.slots[0].valid && bank.slots[1].valid)
+        return;
+
+    const auto current = captureWorkflowSnapshot();
+    bank.slots[0] = current;
+    bank.slots[1] = current;
+    bank.activeSlot = 0;
+}
+
+void ChipperAudioProcessorEditor::applyWorkflowSnapshot(const WorkflowSnapshot& snapshot,
+                                                        const juce::String& transactionName)
+{
+    auto& parameters = audioProcessor.getParameters();
+    const auto current = captureWorkflowSnapshot();
+    if (! snapshot.valid
+        || ! current.valid
+        || snapshot.chip != current.chip
+        || snapshot.normalizedValues.size() != static_cast<size_t>(parameters.size()))
+        return;
+
+    beginWorkflowTransaction(transactionName);
+    for (int i = 0; i < parameters.size(); ++i)
+    {
+        auto* parameter = parameters.getUnchecked(i);
+        if (parameter == nullptr)
+            continue;
+
+        const auto value = std::clamp(snapshot.normalizedValues[static_cast<size_t>(i)], 0.0f, 1.0f);
+        if (std::abs(parameter->getValue() - value) <= 0.000001f)
+            continue;
+
+        parameter->beginChangeGesture();
+        parameter->setValueNotifyingHost(value);
+        parameter->endChangeGesture();
+    }
+    audioProcessor.getValueTreeState().copyState();
+    audioProcessor.getUndoManager().beginNewTransaction();
+    timerCallback();
+    updateWorkflowBarState();
+}
+
+void ChipperAudioProcessorEditor::switchWorkflowSlot(int slot)
+{
+    ensureWorkflowBankInitialized();
+    const auto modeChoice = std::clamp(static_cast<int>(std::round(parameterValue(chipper::parameters::id::chipMode))),
+                                       0,
+                                       static_cast<int>(workflowSlotBanks.size()) - 1);
+    auto& bank = workflowSlotBanks[static_cast<size_t>(modeChoice)];
+    if (slot < 0 || slot >= static_cast<int>(bank.slots.size()) || slot == bank.activeSlot)
+        return;
+
+    bank.slots[static_cast<size_t>(bank.activeSlot)] = captureWorkflowSnapshot();
+    if (! bank.slots[static_cast<size_t>(slot)].valid)
+        bank.slots[static_cast<size_t>(slot)] = bank.slots[static_cast<size_t>(bank.activeSlot)];
+
+    bank.activeSlot = slot;
+    applyWorkflowSnapshot(bank.slots[static_cast<size_t>(slot)],
+                          "Audition sound " + juce::String(slot == 0 ? "A" : "B"));
+}
+
+void ChipperAudioProcessorEditor::copyWorkflowState()
+{
+    workflowClipboard = captureWorkflowSnapshot();
+    updateWorkflowBarState();
+}
+
+void ChipperAudioProcessorEditor::pasteWorkflowState()
+{
+    const auto current = captureWorkflowSnapshot();
+    if (! workflowClipboard.valid || ! current.valid || workflowClipboard.chip != current.chip)
+        return;
+
+    applyWorkflowSnapshot(workflowClipboard, "Paste chip sound");
+}
+
+void ChipperAudioProcessorEditor::showWorkflowInitMenu()
+{
+    juce::PopupMenu menu;
+    menu.addSectionHeader("Initialize section");
+    menu.addItem(1, "Sources");
+    menu.addItem(2, "Musical controls");
+    menu.addItem(3, "Output");
+    menu.addSeparator();
+    menu.addItem(4, "Whole chip");
+
+    const juce::Component::SafePointer<ChipperAudioProcessorEditor> safeThis(this);
+    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&workflowBar),
+                       [safeThis](int result)
+                       {
+                           if (safeThis != nullptr && result > 0)
+                               safeThis->initializeWorkflowSection(result);
+                       });
+}
+
+void ChipperAudioProcessorEditor::initializeWorkflowSection(int section)
+{
+    if (section < 1 || section > 4)
+        return;
+
+    static constexpr std::array<const char*, sourceChannelCount> sourceEnableIds {
+        chipper::parameters::id::source1Enabled,
+        chipper::parameters::id::source2Enabled,
+        chipper::parameters::id::source3Enabled,
+        chipper::parameters::id::source4Enabled,
+        chipper::parameters::id::source5Enabled,
+        chipper::parameters::id::source6Enabled,
+        chipper::parameters::id::source7Enabled,
+        chipper::parameters::id::source8Enabled,
+        chipper::parameters::id::source9Enabled
+    };
+    static constexpr std::array<const char*, sourceChannelCount> sourceLevelIds {
+        chipper::parameters::id::source1Level,
+        chipper::parameters::id::source2Level,
+        chipper::parameters::id::source3Level,
+        chipper::parameters::id::source4Level,
+        chipper::parameters::id::source5Level,
+        chipper::parameters::id::source6Level,
+        chipper::parameters::id::source7Level,
+        chipper::parameters::id::source8Level,
+        chipper::parameters::id::source9Level
+    };
+    static constexpr std::array<const char*, 5> musicalIds {
+        chipper::parameters::id::macroControl1,
+        chipper::parameters::id::macroControl2,
+        chipper::parameters::id::macroControl3,
+        chipper::parameters::id::macroControl4,
+        chipper::parameters::id::envelopeDecay
+    };
+    static constexpr std::array<const char*, 2> outputIds {
+        chipper::parameters::id::stereoSpread,
+        chipper::parameters::id::outputDb
+    };
+
+    beginWorkflowTransaction(section == 1 ? "Initialize sources"
+                             : section == 2 ? "Initialize musical controls"
+                             : section == 3 ? "Initialize output"
+                                            : "Initialize whole chip");
+
+    const auto resetToDefault = [this](const char* id)
+    {
+        if (auto* parameter = audioProcessor.getValueTreeState().getParameter(id))
+        {
+            const auto value = parameter->getDefaultValue();
+            if (std::abs(parameter->getValue() - value) <= 0.000001f)
+                return;
+            parameter->beginChangeGesture();
+            parameter->setValueNotifyingHost(value);
+            parameter->endChangeGesture();
+        }
+    };
+
+    if (section == 1)
+    {
+        const auto sourceCount = std::min(sourceChannelCount, chipper::nativeSourceCountForMode(displayedMode));
+        for (size_t i = 0; i < sourceCount; ++i)
+        {
+            resetToDefault(sourceEnableIds[i]);
+            resetToDefault(sourceLevelIds[i]);
+        }
+    }
+    else if (section == 2)
+    {
+        for (const auto* id : musicalIds)
+            resetToDefault(id);
+    }
+    else if (section == 3)
+    {
+        for (const auto* id : outputIds)
+            resetToDefault(id);
+    }
+    else
+    {
+        applyInitPreset();
+    }
+
+    audioProcessor.getValueTreeState().copyState();
+    audioProcessor.getUndoManager().beginNewTransaction();
+    timerCallback();
+    updateWorkflowBarState();
+}
+
+void ChipperAudioProcessorEditor::applySafeVariation(uint32_t seed)
+{
+    static constexpr std::array<const char*, 4> macroIds {
+        chipper::parameters::id::macroControl1,
+        chipper::parameters::id::macroControl2,
+        chipper::parameters::id::macroControl3,
+        chipper::parameters::id::macroControl4
+    };
+    static constexpr std::array<const char*, sourceChannelCount> sourceEnableIds {
+        chipper::parameters::id::source1Enabled,
+        chipper::parameters::id::source2Enabled,
+        chipper::parameters::id::source3Enabled,
+        chipper::parameters::id::source4Enabled,
+        chipper::parameters::id::source5Enabled,
+        chipper::parameters::id::source6Enabled,
+        chipper::parameters::id::source7Enabled,
+        chipper::parameters::id::source8Enabled,
+        chipper::parameters::id::source9Enabled
+    };
+    static constexpr std::array<const char*, sourceChannelCount> sourceLevelIds {
+        chipper::parameters::id::source1Level,
+        chipper::parameters::id::source2Level,
+        chipper::parameters::id::source3Level,
+        chipper::parameters::id::source4Level,
+        chipper::parameters::id::source5Level,
+        chipper::parameters::id::source6Level,
+        chipper::parameters::id::source7Level,
+        chipper::parameters::id::source8Level,
+        chipper::parameters::id::source9Level
+    };
+
+    beginWorkflowTransaction("Create safe variation");
+    juce::Random random(static_cast<juce::int64>(seed));
+    const auto vary = [this, &random](const char* id, float maximumDelta)
+    {
+        if (auto* parameter = audioProcessor.getValueTreeState().getParameter(id))
+        {
+            const auto delta = (random.nextFloat() * 2.0f - 1.0f) * maximumDelta;
+            const auto value = std::clamp(parameter->getValue() + delta, 0.0f, 1.0f);
+            if (std::abs(parameter->getValue() - value) <= 0.000001f)
+                return;
+            parameter->beginChangeGesture();
+            parameter->setValueNotifyingHost(value);
+            parameter->endChangeGesture();
+        }
+    };
+
+    for (const auto* id : macroIds)
+        vary(id, 0.08f);
+
+    const auto sourceCount = std::min(sourceChannelCount, chipper::nativeSourceCountForMode(displayedMode));
+    for (size_t i = 0; i < sourceCount; ++i)
+    {
+        if (parameterValue(sourceEnableIds[i]) >= 0.5f)
+            vary(sourceLevelIds[i], 0.04f);
+    }
+
+    audioProcessor.getValueTreeState().copyState();
+    audioProcessor.getUndoManager().beginNewTransaction();
+    timerCallback();
+    updateWorkflowBarState();
+}
+
+void ChipperAudioProcessorEditor::performWorkflowUndo()
+{
+    audioProcessor.getValueTreeState().copyState();
+    if (audioProcessor.getUndoManager().canUndo())
+        audioProcessor.getUndoManager().undo();
+    audioProcessor.getUndoManager().beginNewTransaction();
+    timerCallback();
+    updateWorkflowBarState();
+}
+
+void ChipperAudioProcessorEditor::performWorkflowRedo()
+{
+    if (audioProcessor.getUndoManager().canRedo())
+        audioProcessor.getUndoManager().redo();
+    audioProcessor.getUndoManager().beginNewTransaction();
+    timerCallback();
+    updateWorkflowBarState();
+}
+
+void ChipperAudioProcessorEditor::updateWorkflowBarState()
+{
+    ensureWorkflowBankInitialized();
+    const auto current = captureWorkflowSnapshot();
+    const auto modeChoice = std::clamp(static_cast<int>(std::round(parameterValue(chipper::parameters::id::chipMode))),
+                                       0,
+                                       static_cast<int>(workflowSlotBanks.size()) - 1);
+    workflowBar.setState(audioProcessor.getUndoManager().canUndo(),
+                         audioProcessor.getUndoManager().canRedo(),
+                         workflowClipboard.valid && current.valid && workflowClipboard.chip == current.chip,
+                         workflowSlotBanks[static_cast<size_t>(modeChoice)].activeSlot);
+}
+
 bool ChipperAudioProcessorEditor::keyPressed(const juce::KeyPress& key)
 {
     if (key == juce::KeyPress::escapeKey && presetBrowser.isVisible())
@@ -5919,6 +6236,19 @@ bool ChipperAudioProcessorEditor::keyPressed(const juce::KeyPress& key)
         if (code == 'B' || code == 'b')
         {
             showPresetBrowser();
+            return true;
+        }
+        if (code == 'Z' || code == 'z')
+        {
+            if (key.getModifiers().isShiftDown())
+                performWorkflowRedo();
+            else
+                performWorkflowUndo();
+            return true;
+        }
+        if (code == 'Y' || code == 'y')
+        {
+            performWorkflowRedo();
             return true;
         }
         if (code >= '1' && code <= '3')
@@ -5958,6 +6288,7 @@ void ChipperAudioProcessorEditor::timerCallback()
     outputScopePreview.setSamples(audioProcessor.outputScopeSnapshot());
     updateSampleWaveformPreview(displayedMode);
     enforceWorkspaceVisibility();
+    updateWorkflowBarState();
 }
 
 void ChipperAudioProcessorEditor::addLabeledSlider(juce::Slider& slider, juce::Label& label, const juce::String& fallbackText)
