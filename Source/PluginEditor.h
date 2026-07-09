@@ -352,6 +352,22 @@ public:
     {
         return workspaceDeck.playWorkspaceForTest().sourceDetailTitleForTest();
     }
+    juce::Rectangle<int> getPlayWorkspaceSourceDetailAssetBoundsForLayoutTest() const
+    {
+        return workspaceDeck.playWorkspaceForTest().sourceDetailAssetBoundsForTest();
+    }
+    juce::String getPlayWorkspaceSourceDetailAssetStatusForLayoutTest() const
+    {
+        return workspaceDeck.playWorkspaceForTest().sourceDetailAssetStatusForTest();
+    }
+    juce::Rectangle<int> getPlayWorkspaceSourceDetailEditButtonBoundsForLayoutTest() const
+    {
+        return workspaceDeck.playWorkspaceForTest().sourceDetailEditButtonBoundsForTest();
+    }
+    void openPlayWorkspaceAssetEditorForLayoutTest()
+    {
+        workspaceDeck.playWorkspaceForTest().requestOpenEditForTest();
+    }
     juce::Rectangle<int> getPlayWorkspaceMacroBoundsForLayoutTest(size_t index) const
     {
         return workspaceDeck.playWorkspaceForTest().macroSliderBoundsForTest(index);

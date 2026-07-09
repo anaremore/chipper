@@ -9,6 +9,7 @@
 #include "UI/ChipperEditorShell.h"
 
 #include <array>
+#include <functional>
 #include <memory>
 
 struct ChipperWorkspaceTheme
@@ -33,6 +34,7 @@ public:
     void resized() override;
     void refresh(chipper::ChipMode mode, const ChipperWorkspaceTheme& themeToUse);
     void focusInitialControl();
+    std::function<void()> onOpenEditRequested;
 
     size_t visibleSourceCountForTest() const noexcept { return visibleSourceCount; }
     juce::Rectangle<int> sourceButtonBoundsForTest(size_t index) const;
@@ -42,6 +44,14 @@ public:
     juce::Rectangle<int> sourceDetailBoundsForTest() const noexcept { return sourceDetailPanelBounds; }
     juce::Rectangle<int> sourceDetailLevelBoundsForTest() const noexcept { return detailLevelSlider.getBounds(); }
     juce::String sourceDetailTitleForTest() const { return detailTitleLabel.getText(); }
+    juce::Rectangle<int> sourceDetailAssetBoundsForTest() const { return detailAssetBox.getBounds(); }
+    juce::String sourceDetailAssetStatusForTest() const { return detailAssetStatusLabel.getText(); }
+    juce::Rectangle<int> sourceDetailEditButtonBoundsForTest() const { return detailOpenEditButton.getBounds(); }
+    void requestOpenEditForTest()
+    {
+        if (onOpenEditRequested)
+            onOpenEditRequested();
+    }
     juce::Rectangle<int> macroSliderBoundsForTest(size_t index) const;
     juce::Rectangle<int> outputBoundsForTest() const noexcept { return outputSlider.getBounds(); }
 
@@ -53,6 +63,7 @@ private:
 
     void selectSource(size_t index);
     void bindSelectedSource();
+    void updateSelectedAssetStatus(float plainValue);
 
     ChipperAudioProcessor& audioProcessor;
     ChipperWorkspaceTheme theme;
@@ -60,6 +71,7 @@ private:
     size_t visibleSourceCount = 0;
     size_t selectedSourceIndex = 0;
     bool usesMasterDetail = false;
+    bool usesAssetDetail = false;
     juce::Label titleLabel;
     juce::Label summaryLabel;
     juce::Label sourceSectionLabel;
@@ -76,8 +88,13 @@ private:
     juce::ToggleButton detailEnableButton;
     juce::Label detailLevelLabel;
     juce::Slider detailLevelSlider;
+    juce::Label detailAssetLabel;
+    juce::ComboBox detailAssetBox;
+    juce::Label detailAssetStatusLabel;
+    juce::TextButton detailOpenEditButton;
     std::unique_ptr<ButtonAttachment> detailEnableAttachment;
     std::unique_ptr<SliderAttachment> detailLevelAttachment;
+    std::unique_ptr<juce::ParameterAttachment> detailAssetAttachment;
     std::array<juce::Label, macroCount> macroLabels;
     std::array<juce::Slider, macroCount> macroSliders;
     std::array<std::unique_ptr<SliderAttachment>, macroCount> macroAttachments;
@@ -136,6 +153,7 @@ public:
     ChipperEditorWorkspace workspace() const noexcept { return selectedWorkspace; }
     void refresh(chipper::ChipMode mode, const ChipperWorkspaceTheme& themeToUse);
     void focusInitialControl();
+    std::function<void()> onOpenEditRequested;
 
     ChipperPlayWorkspace& playWorkspaceForTest() noexcept { return playWorkspace; }
     const ChipperPlayWorkspace& playWorkspaceForTest() const noexcept { return playWorkspace; }

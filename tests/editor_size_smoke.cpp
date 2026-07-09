@@ -1922,7 +1922,9 @@ bool checkWorkspaceNavigation()
             ok = false;
         }
 
-        const auto expectedSources = chipper::visibleSourceCountForMode(chipper::parameters::chipModeFromChoice(chipChoice));
+        const auto mode = chipper::parameters::chipModeFromChoice(chipChoice);
+        const auto uiProfile = chipper::ui::profileFor(mode);
+        const auto expectedSources = chipper::visibleSourceCountForMode(mode);
         if (editor.getPlayWorkspaceSourceCountForLayoutTest() != expectedSources)
         {
             std::cerr << "editor_size_smoke: Play workspace source count mismatch for chip choice "
@@ -1939,7 +1941,7 @@ bool checkWorkspaceNavigation()
                 ok = false;
             }
         }
-        const auto expectsMasterDetail = expectedSources >= 7u;
+        const auto expectsMasterDetail = uiProfile.usesMasterDetailSources;
         if (editor.getPlayWorkspaceUsesMasterDetailForLayoutTest() != expectsMasterDetail)
         {
             std::cerr << "editor_size_smoke: Play master-detail source policy mismatch for chip choice "
@@ -1964,6 +1966,38 @@ bool checkWorkspaceNavigation()
                 || editor.getPlayWorkspaceSourceDetailTitleForLayoutTest().isEmpty())
             {
                 std::cerr << "editor_size_smoke: Play selected-source detail editor did not follow selection for chip choice "
+                          << chipChoice << '\n';
+                ok = false;
+            }
+
+            const auto expectsAssetDetail = uiProfile.sampler || uiProfile.wavetable;
+            const auto assetBounds = editor.getPlayWorkspaceSourceDetailAssetBoundsForLayoutTest();
+            const auto editButtonBounds = editor.getPlayWorkspaceSourceDetailEditButtonBoundsForLayoutTest();
+            if (expectsAssetDetail)
+            {
+                if (detailBounds.getHeight() < 100
+                    || assetBounds.getWidth() < 180 || assetBounds.getHeight() < 24
+                    || editButtonBounds.getWidth() < 120 || editButtonBounds.getHeight() < 22
+                    || editor.getPlayWorkspaceSourceDetailAssetStatusForLayoutTest().isEmpty())
+                {
+                    std::cerr << "editor_size_smoke: sampler/wavetable selected-asset workflow is incomplete for chip choice "
+                              << chipChoice << '\n';
+                    ok = false;
+                }
+
+                editor.openPlayWorkspaceAssetEditorForLayoutTest();
+                if (editor.getWorkspaceForLayoutTest() != ChipperEditorWorkspace::edit)
+                {
+                    std::cerr << "editor_size_smoke: selected-asset recovery action did not open Edit for chip choice "
+                              << chipChoice << '\n';
+                    ok = false;
+                }
+                editor.setWorkspaceForLayoutTest(ChipperEditorWorkspace::play);
+                editor.runEditorUpdateForLayoutTest();
+            }
+            else if (! assetBounds.isEmpty() || ! editButtonBounds.isEmpty())
+            {
+                std::cerr << "editor_size_smoke: non-asset source detail unexpectedly exposed asset controls for chip choice "
                           << chipChoice << '\n';
                 ok = false;
             }
@@ -2074,7 +2108,7 @@ bool checkChipUiProfiles()
             || profile.playSourceColumns > 5
             || profile.performanceStripHeight <= 0
             || profile.maximumModulesHeight <= 0
-            || profile.usesMasterDetailSources != (profile.visibleSourceCount >= 7u))
+            || profile.usesMasterDetailSources != (profile.visibleSourceCount >= 7u || profile.sampler || profile.wavetable))
         {
             std::cerr << "editor_size_smoke: invalid shared UI profile for a chip mode\n";
             ok = false;

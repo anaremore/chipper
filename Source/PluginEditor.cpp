@@ -3875,6 +3875,10 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     {
         setEditorWorkspace(workspace, true);
     };
+    workspaceDeck.onOpenEditRequested = [this]
+    {
+        setEditorWorkspace(ChipperEditorWorkspace::edit, true);
+    };
 
     if (shouldPersistEditorPreferences())
     {

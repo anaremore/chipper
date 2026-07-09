@@ -184,7 +184,7 @@ ChipUiProfile profileFor(ChipMode mode)
     profile.opnSsg = mode == ChipMode::ym2203 || mode == ChipMode::ym2608 || profile.opnb;
     profile.sampler = spc700 || paula;
     profile.wavetable = wavetable;
-    profile.usesMasterDetailSources = visibleSources >= 7u;
+    profile.usesMasterDetailSources = visibleSources >= 7u || profile.sampler || profile.wavetable;
     return profile;
 }
 
