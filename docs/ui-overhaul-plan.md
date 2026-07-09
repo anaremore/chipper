@@ -1,0 +1,60 @@
+# UI Overhaul Execution Plan
+
+This plan turns the current all-controls-at-once editor into a scalable instrument workflow while preserving APVTS parameter identity, MIDI CC mappings, chip-owned control placement, preset recall, and truthful verification language.
+
+## Completion Contract
+
+The overhaul is complete only when all of the following are implemented and verified:
+
+1. Play, Edit, and Inspect workspaces provide progressive disclosure without changing sound or automation state.
+2. The stable shell and chip-family workspaces replace repeated per-chip layout policy where behavior is shared.
+3. Every public chip is covered by repeatable compact/default UI captures plus a machine-readable component manifest.
+4. Preset and chip discovery use a dedicated role-first browser rather than a cramped header-only workflow.
+5. High-source-count chips use a master-detail source workflow while keeping source enable, identity, and level visible in each card.
+6. Four-operator FM chips share a real algorithm/operator editor with chip-specific controls and honest register detail.
+7. Sampler and wavetable chips share clear assignment, waveform, loop, mapping, and missing-asset recovery conventions.
+8. Cross-channel relationships and native-versus-Chipper helper behavior are visible and understandable.
+9. Keyboard traversal, visible focus, accessible names, contrast, and interaction states are verified across workspaces.
+10. Musician workflow tools include A/B comparison, undo/redo, section initialization, copy/paste, and bounded chip-safe variation where supported.
+
+## Delivery Order
+
+### Foundation
+
+- Add PNG capture tooling for human visual review at 1180 and 1240 px.
+- Export a structural component manifest so CI can detect hierarchy, visibility, focusability, and bounds regressions without relying on platform-identical pixels.
+- Add a workspace deck whose switches are presentation-only.
+- Extract the stable shell and family layout policies before adding more one-off chip branches.
+
+### Discovery And Density
+
+- Add the global preset/chip browser with role, chip family, engine, tag, favorites, recents, user banks, and explicit cross-chip loading.
+- Convert dense source decks to compact cards plus a selected-source detail editor.
+
+### Deep Editors
+
+- Build the shared FM algorithm/operator editor.
+- Build shared sampler and wavetable editors with clear asset and mapping state.
+- Add relationship diagrams for pairing, modulation, routing, and shared resources.
+
+### Quality And Workflow
+
+- Complete the accessibility and interaction-state pass.
+- Add musician workflow accelerators and final visual polish.
+- Audit every chip at both supported widths, run the full relevant test suite, install the exact build, and verify the footer marker.
+
+## UI Capture Workflow
+
+Generate PNGs and `manifest.json` for every chip at both supported widths:
+
+```powershell
+.\scripts\capture-ui.ps1
+```
+
+Generate only the platform-independent structural manifest:
+
+```powershell
+.\scripts\capture-ui.ps1 -ManifestOnly
+```
+
+PNG comparisons are reviewed per operating system because font rasterization and graphics backends differ. The JSON manifest is the portable CI evidence for component hierarchy, bounds, visibility, enabled state, and keyboard focusability.

@@ -3679,3 +3679,46 @@ target_link_libraries(chipper_editor_size_smoke
 add_test(NAME chipper_editor_size_smoke
     COMMAND chipper_editor_size_smoke
 )
+
+add_executable(chipper_ui_snapshot
+    tools/chipper_ui_snapshot.cpp
+    Source/Parameters.cpp
+    Source/Parameters.h
+    Source/PluginEditor.cpp
+    Source/PluginEditor.h
+    Source/PluginProcessor.cpp
+    Source/PluginProcessor.h
+)
+
+add_dependencies(chipper_ui_snapshot chipper_build_info)
+
+target_include_directories(chipper_ui_snapshot
+    PRIVATE
+        Source
+        "${CHIPPER_GENERATED_DIR}"
+        "${CMAKE_CURRENT_BINARY_DIR}/Chipper_artefacts/JuceLibraryCode"
+)
+
+target_compile_definitions(chipper_ui_snapshot
+    PUBLIC
+        JUCE_MODAL_LOOPS_PERMITTED=1
+        JUCE_USE_CURL=0
+        JUCE_WEB_BROWSER=0
+        JUCE_VST3_CAN_REPLACE_VST2=0
+        JucePlugin_Name="Chipper"
+)
+
+target_link_libraries(chipper_ui_snapshot
+    PRIVATE
+        chipper_engine
+        juce::juce_audio_utils
+        juce::juce_dsp
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+add_test(NAME chipper_ui_snapshot_smoke
+    COMMAND chipper_ui_snapshot
+        --output "${CMAKE_CURRENT_BINARY_DIR}/ui-snapshot-smoke"
+        --manifest-only
+)
