@@ -2486,9 +2486,11 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
                     accuracyBox,
                     macroBox,
                     playModeBox }),
-      workspaceDeck(processor)
+      workspaceDeck(processor),
+      focusOutline(*this)
 {
     setResizable(false, false);
+    setName("Chipper editor");
 
     auto& state = audioProcessor.getValueTreeState();
     const auto initialModeChoice = static_cast<int>(std::round(state.getRawParameterValue(chipper::parameters::id::chipMode)->load()));
@@ -2587,6 +2589,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         setSelectedPresetFavorite(! selectedPresetIsFavorite());
     };
     presetBrowserButton.setButtonText("Browse");
+    presetBrowserButton.setComponentID("header.browser");
+    presetBrowserButton.setName("Open global sound browser");
     presetBrowserButton.setTooltip("Open the global sound browser for every chip, role, favorite, recent sound, and user bank.");
     presetBrowserButton.setWantsKeyboardFocus(true);
     presetBrowserButton.onClick = [this] { showPresetBrowser(); };
@@ -3871,6 +3875,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     {
         presetBrowserButton.grabKeyboardFocus();
     };
+    addAndMakeVisible(focusOutline);
     editorShell.onWorkspaceChanged = [this](ChipperEditorWorkspace workspace)
     {
         setEditorWorkspace(workspace, true);
@@ -3890,6 +3895,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
     updateDescriptorText();
     updateLiveControlReadouts();
+    refreshAccessibleNames();
     enforceWorkspaceVisibility();
     outputScopePreview.setSamples(audioProcessor.outputScopeSnapshot());
     startTimerHz(12);
@@ -4076,6 +4082,7 @@ void ChipperAudioProcessorEditor::applyChipTheme()
     spc700LoopModeButton.setColour(juce::ToggleButton::textColourId, theme.text);
     editorShell.setTheme(theme.primary, theme.accent, theme.outline, theme.text, theme.mutedText, theme.darkText);
     fmEditor.setTheme(theme.panel, theme.sourceCard, theme.outline, theme.primary, theme.accent, theme.text, theme.mutedText);
+    focusOutline.setColour(theme.accent.contrasting(0.18f));
     workspaceDeck.refresh(displayedMode, workspaceThemeFor(theme));
     presetBrowser.setTheme({ theme.background,
                              theme.panel,
@@ -4163,6 +4170,8 @@ void ChipperAudioProcessorEditor::resized()
     presetBrowser.setBounds(workspaceDeck.getBounds());
     if (presetBrowser.isVisible())
         presetBrowser.toFront(false);
+    focusOutline.setBounds(getLocalBounds());
+    focusOutline.toFront(false);
     const auto uiProfile = chipper::ui::profileFor(displayedMode);
     const auto nesLayout = uiProfile.nesFamily;
     const auto nesExpansionLayout = uiProfile.nesFamily && uiProfile.visibleSourceCount > 4u;
@@ -5709,6 +5718,7 @@ void ChipperAudioProcessorEditor::enforceWorkspaceVisibility()
             && child != &editorShell
             && child != &workspaceDeck
             && child != &presetBrowser
+            && child != &focusOutline
             && ! editorShell.isExternalControl(child))
             child->setVisible(false);
     }
@@ -5727,6 +5737,7 @@ void ChipperAudioProcessorEditor::captureEditWorkspaceVisibility()
             && child != &editorShell
             && child != &workspaceDeck
             && child != &presetBrowser
+            && child != &focusOutline
             && ! editorShell.isExternalControl(child))
             editWorkspaceVisibility.emplace_back(child, child->isVisible());
     }
@@ -5852,6 +5863,73 @@ juce::Rectangle<int> ChipperAudioProcessorEditor::getSidAdsrContentBoundsForLayo
     return content;
 }
 
+void ChipperAudioProcessorEditor::refreshAccessibleNames()
+{
+    std::function<void(juce::Component&)> visit;
+    visit = [&visit](juce::Component& parent)
+    {
+        for (auto childIndex = 0; childIndex < parent.getNumChildComponents(); ++childIndex)
+        {
+            auto* child = parent.getChildComponent(childIndex);
+            if (child == nullptr)
+                continue;
+
+            const auto interactive = dynamic_cast<juce::Button*>(child) != nullptr
+                || dynamic_cast<juce::Slider*>(child) != nullptr
+                || dynamic_cast<juce::ComboBox*>(child) != nullptr
+                || dynamic_cast<juce::TextEditor*>(child) != nullptr
+                || dynamic_cast<juce::ListBox*>(child) != nullptr;
+            if (interactive && child->getName().trim().isEmpty())
+            {
+                juce::String accessibleName;
+                if (const auto* button = dynamic_cast<juce::Button*>(child))
+                    accessibleName = button->getButtonText();
+                else if (auto* tooltipClient = dynamic_cast<juce::TooltipClient*>(child))
+                    accessibleName = tooltipClient->getTooltip().upToFirstOccurrenceOf("\n", false, false);
+
+                if (accessibleName.trim().isEmpty())
+                    accessibleName = child->getComponentID();
+                if (accessibleName.trim().isEmpty())
+                {
+                    if (dynamic_cast<juce::TextEditor*>(child) != nullptr) accessibleName = "Text input";
+                    else if (dynamic_cast<juce::ComboBox*>(child) != nullptr) accessibleName = "Choice control";
+                    else if (dynamic_cast<juce::Slider*>(child) != nullptr) accessibleName = "Value control";
+                    else if (dynamic_cast<juce::ListBox*>(child) != nullptr) accessibleName = "Selection list";
+                    else accessibleName = "Action";
+                }
+                child->setName(accessibleName.trim());
+            }
+            visit(*child);
+        }
+    };
+    visit(*this);
+}
+
+bool ChipperAudioProcessorEditor::keyPressed(const juce::KeyPress& key)
+{
+    if (key == juce::KeyPress::escapeKey && presetBrowser.isVisible())
+    {
+        presetBrowser.close();
+        return true;
+    }
+
+    if (key.getModifiers().isCommandDown())
+    {
+        const auto code = key.getKeyCode();
+        if (code == 'B' || code == 'b')
+        {
+            showPresetBrowser();
+            return true;
+        }
+        if (code >= '1' && code <= '3')
+        {
+            setEditorWorkspace(static_cast<ChipperEditorWorkspace>(code - '1'), true);
+            return true;
+        }
+    }
+    return juce::AudioProcessorEditor::keyPressed(key);
+}
+
 void ChipperAudioProcessorEditor::timerCallback()
 {
     const auto targetHeight = preferredEditorHeightForMode(displayedMode);
@@ -5872,6 +5950,7 @@ void ChipperAudioProcessorEditor::timerCallback()
 
     updateDescriptorText();
     updateLiveControlReadouts();
+    refreshAccessibleNames();
     if (selectedWorkspace == ChipperEditorWorkspace::edit || restoredEditVisibility)
         captureEditWorkspaceVisibility();
     statusLabel.setText(audioProcessor.currentCoreStatus(), juce::dontSendNotification);

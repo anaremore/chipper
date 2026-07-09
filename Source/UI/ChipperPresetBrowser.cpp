@@ -27,6 +27,8 @@ ChipperPresetBrowser::ChipperPresetBrowser()
     setOpaque(true);
     setWantsKeyboardFocus(true);
     setComponentID("presetBrowser.surface");
+    setName("Global sound browser");
+    setExplicitFocusOrder(299);
 
     configureLabel(titleLabel, 18.0f, true);
     titleLabel.setText("SOUND BROWSER", juce::dontSendNotification);
@@ -40,6 +42,7 @@ ChipperPresetBrowser::ChipperPresetBrowser()
     searchBox.setSelectAllWhenFocused(true);
     searchBox.setTextToShowWhenEmpty("Search name, role, engine, tag, or note", juce::Colours::grey);
     searchBox.setComponentID("presetBrowser.search");
+    searchBox.setExplicitFocusOrder(300);
     searchBox.onTextChange = [this] { applyFilters(); };
     addAndMakeVisible(searchBox);
 
@@ -49,27 +52,34 @@ ChipperPresetBrowser::ChipperPresetBrowser()
     scopeBox.addItem("User presets", userScopeId);
     scopeBox.setSelectedId(allScopeId);
     scopeBox.setComponentID("presetBrowser.scope");
+    scopeBox.setExplicitFocusOrder(301);
     scopeBox.onChange = [this] { applyFilters(); };
     addAndMakeVisible(scopeBox);
 
     roleBox.setTextWhenNothingSelected("All roles");
     roleBox.setComponentID("presetBrowser.role");
+    roleBox.setExplicitFocusOrder(302);
     roleBox.onChange = [this] { applyFilters(); };
     addAndMakeVisible(roleBox);
 
     closeButton.setButtonText("Close");
     closeButton.setWantsKeyboardFocus(true);
     closeButton.setComponentID("presetBrowser.close");
+    closeButton.setExplicitFocusOrder(308);
     closeButton.onClick = [this] { close(); };
     addAndMakeVisible(closeButton);
 
     chipList.setRowHeight(26);
     chipList.setOutlineThickness(0);
     chipList.setComponentID("presetBrowser.chips");
+    chipList.setWantsKeyboardFocus(true);
+    chipList.setExplicitFocusOrder(303);
     addAndMakeVisible(chipList);
     presetList.setRowHeight(42);
     presetList.setOutlineThickness(0);
     presetList.setComponentID("presetBrowser.results");
+    presetList.setWantsKeyboardFocus(true);
+    presetList.setExplicitFocusOrder(304);
     addAndMakeVisible(presetList);
 
     configureLabel(detailTitleLabel, 16.0f, true);
@@ -84,11 +94,13 @@ ChipperPresetBrowser::ChipperPresetBrowser()
     detailText.setPopupMenuEnabled(true);
     detailText.setBorder(juce::BorderSize<int>(8));
     detailText.setComponentID("presetBrowser.detail");
+    detailText.setExplicitFocusOrder(305);
     addAndMakeVisible(detailText);
 
     favoriteButton.setButtonText("Favorite");
     favoriteButton.setWantsKeyboardFocus(true);
     favoriteButton.setComponentID("presetBrowser.favorite");
+    favoriteButton.setExplicitFocusOrder(306);
     favoriteButton.onClick = [this]
     {
         if (selectedEntryRow >= 0 && static_cast<size_t>(selectedEntryRow) < filteredEntryIndices.size())
@@ -111,6 +123,7 @@ ChipperPresetBrowser::ChipperPresetBrowser()
     applyButton.setButtonText("Load Sound");
     applyButton.setWantsKeyboardFocus(true);
     applyButton.setComponentID("presetBrowser.apply");
+    applyButton.setExplicitFocusOrder(307);
     applyButton.onClick = [this] { applySelectedPreset(); };
     addAndMakeVisible(applyButton);
 }
@@ -175,6 +188,17 @@ bool ChipperPresetBrowser::keyPressed(const juce::KeyPress& key)
     if (key == juce::KeyPress::escapeKey)
     {
         close();
+        return true;
+    }
+    if (key.getModifiers().isCommandDown() && (key.getKeyCode() == 'F' || key.getKeyCode() == 'f'))
+    {
+        searchBox.grabKeyboardFocus();
+        searchBox.selectAll();
+        return true;
+    }
+    if (key.getKeyCode() == juce::KeyPress::returnKey && presetList.hasKeyboardFocus(true))
+    {
+        applySelectedPreset();
         return true;
     }
     return juce::Component::keyPressed(key);

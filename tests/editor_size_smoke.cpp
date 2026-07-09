@@ -5,6 +5,7 @@
 #include "UI/ChipUiModel.h"
 
 #include <algorithm>
+#include <functional>
 #include <iostream>
 #include <limits>
 #include <set>
@@ -24,6 +25,44 @@ bool expect(bool condition, const char* message)
         std::cerr << "editor_size_smoke: " << message << '\n';
 
     return condition;
+}
+
+bool checkAccessibleFocusContract(juce::Component& root, const juce::String& idPrefix)
+{
+    bool ok = true;
+    int checkedControls = 0;
+    std::function<void(juce::Component&)> visit;
+    visit = [&](juce::Component& parent)
+    {
+        for (auto childIndex = 0; childIndex < parent.getNumChildComponents(); ++childIndex)
+        {
+            auto* child = parent.getChildComponent(childIndex);
+            if (child == nullptr)
+                continue;
+            const auto matches = child->getComponentID().startsWith(idPrefix);
+            if (matches && child->isVisible() && child->isEnabled() && child->getWantsKeyboardFocus())
+            {
+                ++checkedControls;
+                if (child->getName().trim().isEmpty() || child->getExplicitFocusOrder() <= 0)
+                {
+                    std::cerr << "editor_size_smoke: accessible focus contract missing for "
+                              << child->getComponentID().toStdString() << " name="
+                              << child->getName().toStdString() << " order="
+                              << child->getExplicitFocusOrder() << '\n';
+                    ok = false;
+                }
+            }
+            visit(*child);
+        }
+    };
+    visit(root);
+    if (checkedControls == 0)
+    {
+        std::cerr << "editor_size_smoke: no focusable controls found for accessibility prefix "
+                  << idPrefix.toStdString() << '\n';
+        ok = false;
+    }
+    return ok;
 }
 
 bool setChoiceParameter(ChipperAudioProcessor& processor, const juce::String& parameterId, int choice)
@@ -1844,6 +1883,13 @@ bool checkGlobalPresetBrowserWorkflow()
         return expect(false, "missing SID preset for global browser workflow test");
 
     editor.showPresetBrowserForLayoutTest();
+    ok &= checkAccessibleFocusContract(editor, "presetBrowser.");
+    editor.showBrowserSearchFocusOutlineForLayoutTest();
+    if (editor.getFocusOutlineBoundsForLayoutTest().isEmpty())
+    {
+        std::cerr << "editor_size_smoke: global browser search focus has no visible focus outline\n";
+        ok = false;
+    }
     editor.selectAllGlobalPresetBrowserChipsForLayoutTest();
     editor.setGlobalPresetBrowserSearchForLayoutTest(juce::String(crossChipPreset->name));
     if (editor.getGlobalPresetBrowserResultCountForLayoutTest() <= 0)
@@ -1921,6 +1967,7 @@ bool checkWorkspaceNavigation()
                       << chipChoice << '\n';
             ok = false;
         }
+        ok &= checkAccessibleFocusContract(editor, "play.");
 
         const auto mode = chipper::parameters::chipModeFromChoice(chipChoice);
         const auto uiProfile = chipper::ui::profileFor(mode);
@@ -2054,6 +2101,7 @@ bool checkWorkspaceNavigation()
                       << chipChoice << '\n';
             ok = false;
         }
+        ok &= checkAccessibleFocusContract(editor, "inspect.");
 
         editor.setWorkspaceForLayoutTest(ChipperEditorWorkspace::edit);
         editor.runEditorUpdateForLayoutTest();
@@ -2064,6 +2112,27 @@ bool checkWorkspaceNavigation()
             std::cerr << "editor_size_smoke: Edit workspace did not restore chip controls for chip choice "
                       << chipChoice << '\n';
             ok = false;
+        }
+
+        if (chipChoice == 0)
+        {
+            ok &= checkAccessibleFocusContract(editor, "header.");
+            ok &= checkAccessibleFocusContract(editor, "workspace.");
+            const auto command = juce::ModifierKeys(juce::ModifierKeys::commandModifier);
+            editor.keyPressed(juce::KeyPress('1', command, 0));
+            ok &= expect(editor.getWorkspaceForLayoutTest() == ChipperEditorWorkspace::play,
+                         "Ctrl/Cmd+1 did not open Play");
+            editor.keyPressed(juce::KeyPress('3', command, 0));
+            ok &= expect(editor.getWorkspaceForLayoutTest() == ChipperEditorWorkspace::inspect,
+                         "Ctrl/Cmd+3 did not open Inspect");
+            editor.keyPressed(juce::KeyPress('B', command, 0));
+            ok &= expect(editor.isPresetBrowserVisibleForLayoutTest(),
+                         "Ctrl/Cmd+B did not open the global browser");
+            editor.keyPressed(juce::KeyPress(juce::KeyPress::escapeKey));
+            ok &= expect(! editor.isPresetBrowserVisibleForLayoutTest(),
+                         "Escape did not close the global browser");
+            editor.setWorkspaceForLayoutTest(ChipperEditorWorkspace::edit);
+            editor.runEditorUpdateForLayoutTest();
         }
 
         size_t parameterIndex = 0;

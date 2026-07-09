@@ -194,6 +194,7 @@ ChipperPlayWorkspace::ChipperPlayWorkspace(ChipperAudioProcessor& processor)
         auto& selector = sourceSelectButtons[i];
         selector.setClickingTogglesState(false);
         selector.setWantsKeyboardFocus(true);
+        selector.setExplicitFocusOrder(100 + static_cast<int>(i * 3u));
         selector.setComponentID("play.source" + juce::String(static_cast<int>(i + 1u)) + ".select");
         selector.onClick = [this, i]() { selectSource(i); };
         addAndMakeVisible(selector);
@@ -201,6 +202,7 @@ ChipperPlayWorkspace::ChipperPlayWorkspace(ChipperAudioProcessor& processor)
         auto& button = sourceButtons[i];
         button.setClickingTogglesState(true);
         button.setWantsKeyboardFocus(true);
+        button.setExplicitFocusOrder(101 + static_cast<int>(i * 3u));
         button.setComponentID("play.source" + juce::String(static_cast<int>(i + 1u)) + ".enabled");
         addAndMakeVisible(button);
         sourceButtonAttachments[i] = std::make_unique<ButtonAttachment>(state, sourceEnableIds[i], button);
@@ -215,6 +217,7 @@ ChipperPlayWorkspace::ChipperPlayWorkspace(ChipperAudioProcessor& processor)
         slider.setSliderStyle(juce::Slider::LinearHorizontal);
         slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
         slider.setWantsKeyboardFocus(true);
+        slider.setExplicitFocusOrder(102 + static_cast<int>(i * 3u));
         slider.setComponentID("play.source" + juce::String(static_cast<int>(i + 1u)) + ".level");
         addAndMakeVisible(slider);
         sourceLevelAttachments[i] = std::make_unique<SliderAttachment>(state, sourceLevelIds[i], slider);
@@ -232,6 +235,7 @@ ChipperPlayWorkspace::ChipperPlayWorkspace(ChipperAudioProcessor& processor)
     detailEnableButton.setButtonText("Enabled");
     detailEnableButton.setWantsKeyboardFocus(true);
     detailEnableButton.setComponentID("play.sourceDetail.enabled");
+    detailEnableButton.setExplicitFocusOrder(140);
     addAndMakeVisible(detailEnableButton);
 
     detailLevelLabel.setText("Selected level", juce::dontSendNotification);
@@ -243,6 +247,7 @@ ChipperPlayWorkspace::ChipperPlayWorkspace(ChipperAudioProcessor& processor)
     detailLevelSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 64, 24);
     detailLevelSlider.setWantsKeyboardFocus(true);
     detailLevelSlider.setComponentID("play.sourceDetail.level");
+    detailLevelSlider.setExplicitFocusOrder(141);
     addAndMakeVisible(detailLevelSlider);
 
     detailAssetLabel.setJustificationType(juce::Justification::centredLeft);
@@ -251,6 +256,7 @@ ChipperPlayWorkspace::ChipperPlayWorkspace(ChipperAudioProcessor& processor)
 
     detailAssetBox.setWantsKeyboardFocus(true);
     detailAssetBox.setComponentID("play.sourceDetail.asset");
+    detailAssetBox.setExplicitFocusOrder(142);
     detailAssetBox.onChange = [this]
     {
         if (detailAssetAttachment != nullptr && detailAssetBox.getSelectedItemIndex() >= 0)
@@ -265,6 +271,7 @@ ChipperPlayWorkspace::ChipperPlayWorkspace(ChipperAudioProcessor& processor)
 
     detailOpenEditButton.setWantsKeyboardFocus(true);
     detailOpenEditButton.setComponentID("play.sourceDetail.openEdit");
+    detailOpenEditButton.setExplicitFocusOrder(143);
     detailOpenEditButton.onClick = [this]
     {
         if (onOpenEditRequested)
@@ -284,6 +291,7 @@ ChipperPlayWorkspace::ChipperPlayWorkspace(ChipperAudioProcessor& processor)
         slider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 66, 24);
         slider.setWantsKeyboardFocus(true);
         slider.setComponentID("play.macro" + juce::String(static_cast<int>(i + 1u)));
+        slider.setExplicitFocusOrder(150 + static_cast<int>(i));
         addAndMakeVisible(slider);
         macroAttachments[i] = std::make_unique<SliderAttachment>(state, macroIds[i], slider);
     }
@@ -293,6 +301,7 @@ ChipperPlayWorkspace::ChipperPlayWorkspace(ChipperAudioProcessor& processor)
     outputSlider.setTextValueSuffix(" dB");
     outputSlider.setWantsKeyboardFocus(true);
     outputSlider.setComponentID("play.output");
+    outputSlider.setExplicitFocusOrder(160);
     addAndMakeVisible(outputSlider);
     outputAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::outputDb, outputSlider);
 }
@@ -728,6 +737,14 @@ ChipperInspectWorkspace::ChipperInspectWorkspace()
         configureReadOnlyText(*editor);
         addAndMakeVisible(*editor);
     }
+    implementationText.setExplicitFocusOrder(200);
+    implementationText.setComponentID("inspect.implementation");
+    verificationText.setExplicitFocusOrder(201);
+    verificationText.setComponentID("inspect.verification");
+    gapsText.setExplicitFocusOrder(202);
+    gapsText.setComponentID("inspect.gaps");
+    controlsText.setExplicitFocusOrder(203);
+    controlsText.setComponentID("inspect.controls");
 }
 
 void ChipperInspectWorkspace::configureHeading(juce::Label& label, const juce::String& text)

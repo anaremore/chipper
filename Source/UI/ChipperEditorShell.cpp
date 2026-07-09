@@ -34,14 +34,16 @@ ChipperEditorShell::ChipperEditorShell(Controls controlsToUse)
 
     static constexpr std::array<const char*, 3> workspaceNames { "Play", "Edit", "Inspect" };
     static constexpr std::array<const char*, 3> workspaceHelp {
-        "Play workspace: essential sources, musical macros, and output.",
-        "Edit workspace: the full chip-native editor.",
-        "Inspect workspace: verification, implementation evidence, gaps, and control contract."
+        "Play workspace: essential sources, musical macros, and output. Shortcut: Ctrl/Cmd+1.",
+        "Edit workspace: the full chip-native editor. Shortcut: Ctrl/Cmd+2.",
+        "Inspect workspace: verification, implementation evidence, gaps, and control contract. Shortcut: Ctrl/Cmd+3."
     };
     for (size_t i = 0; i < workspaceButtons.size(); ++i)
     {
         auto& button = workspaceButtons[i];
         button.setButtonText(workspaceNames[i]);
+        button.setComponentID("workspace." + juce::String(workspaceNames[i]).toLowerCase());
+        button.setName(juce::String(workspaceNames[i]) + " workspace");
         button.setTooltip(workspaceHelp[i]);
         button.setClickingTogglesState(true);
         button.setRadioGroupId(0x43485052);
@@ -52,6 +54,13 @@ ChipperEditorShell::ChipperEditorShell(Controls controlsToUse)
         };
         addAndMakeVisible(button);
     }
+    int focusOrder = 1;
+    for (auto* component : std::array<juce::Component*, 11> {
+             &controls.browser, &controls.preset, &controls.favorite, &controls.load,
+             &controls.save, &controls.saveAs, &controls.chipMode, &controls.strictness,
+             &controls.playMode, &workspaceButtons[0], &workspaceButtons[1] })
+        component->setExplicitFocusOrder(focusOrder++);
+    workspaceButtons[2].setExplicitFocusOrder(focusOrder);
     setWorkspace(selectedWorkspace);
 }
 

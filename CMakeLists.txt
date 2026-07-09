@@ -3554,6 +3554,8 @@ target_sources(Chipper
         Source/UI/ChipUiModel.h
         Source/UI/ChipperFmEditor.cpp
         Source/UI/ChipperFmEditor.h
+        Source/UI/ChipperFocusOutline.cpp
+        Source/UI/ChipperFocusOutline.h
         Source/UI/ChipperPresetBrowser.cpp
         Source/UI/ChipperPresetBrowser.h
         Source/UI/ChipperRelationshipMap.cpp
@@ -3622,6 +3624,8 @@ add_executable(chipper_processor_midi_cc_smoke
     Source/UI/ChipUiModel.h
     Source/UI/ChipperFmEditor.cpp
     Source/UI/ChipperFmEditor.h
+    Source/UI/ChipperFocusOutline.cpp
+    Source/UI/ChipperFocusOutline.h
     Source/UI/ChipperPresetBrowser.cpp
     Source/UI/ChipperPresetBrowser.h
     Source/UI/ChipperRelationshipMap.cpp
@@ -3674,6 +3678,8 @@ add_executable(chipper_editor_size_smoke
     Source/UI/ChipUiModel.h
     Source/UI/ChipperFmEditor.cpp
     Source/UI/ChipperFmEditor.h
+    Source/UI/ChipperFocusOutline.cpp
+    Source/UI/ChipperFocusOutline.h
     Source/UI/ChipperPresetBrowser.cpp
     Source/UI/ChipperPresetBrowser.h
     Source/UI/ChipperRelationshipMap.cpp
@@ -3726,6 +3732,8 @@ add_executable(chipper_ui_snapshot
     Source/UI/ChipUiModel.h
     Source/UI/ChipperFmEditor.cpp
     Source/UI/ChipperFmEditor.h
+    Source/UI/ChipperFocusOutline.cpp
+    Source/UI/ChipperFocusOutline.h
     Source/UI/ChipperPresetBrowser.cpp
     Source/UI/ChipperPresetBrowser.h
     Source/UI/ChipperRelationshipMap.cpp

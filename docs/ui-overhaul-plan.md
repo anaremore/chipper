@@ -28,7 +28,8 @@ The overhaul is complete only when all of the following are implemented and veri
 - Complete: shared four-operator FM editor with a 2x2 carrier/modulator grid, per-operator level/multiplier/envelope editing, resolved register readouts, and shared algorithm visualization.
 - Complete: unified sampler/wavetable selected-asset workflow with per-source assignment, loaded/missing status, Wave RAM shape state, precision level, and direct Edit recovery actions.
 - Complete: chip-aware relationship schematics with distinct Native and Chipper affordances for routing, modulation, shared resources, and musical helpers.
-- In progress: accessibility, focus, keyboard, and interaction-state verification.
+- Complete: shared high-contrast focus outline, explicit cross-surface focus order, accessible control names, browser keyboard behavior, and workspace/global shortcuts.
+- In progress: musician workflow tools and the final all-chip audit.
 
 ## Delivery Order
 

@@ -5,6 +5,7 @@
 #include "PluginProcessor.h"
 #include "UI/ChipperEditorShell.h"
 #include "UI/ChipperFmEditor.h"
+#include "UI/ChipperFocusOutline.h"
 #include "UI/ChipperWorkspaces.h"
 #include "UI/ChipperPresetBrowser.h"
 
@@ -148,6 +149,7 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
+    bool keyPressed(const juce::KeyPress& key) override;
 
     juce::Rectangle<int> getSourceChannelBoundsForLayoutTest(size_t channel) const
     {
@@ -179,6 +181,11 @@ public:
     juce::Rectangle<int> getGlobalPresetBrowserResultListBoundsForLayoutTest() const { return presetBrowser.presetListBoundsForTest(); }
     juce::Rectangle<int> getGlobalPresetBrowserDetailBoundsForLayoutTest() const { return presetBrowser.detailBoundsForTest(); }
     int getGlobalPresetBrowserResultCountForLayoutTest() const { return presetBrowser.resultCountForTest(); }
+    juce::Rectangle<int> getFocusOutlineBoundsForLayoutTest() const { return focusOutline.focusedBoundsForTest(); }
+    void showBrowserSearchFocusOutlineForLayoutTest()
+    {
+        focusOutline.setFocusedComponentForTest(presetBrowser.searchComponentForTest());
+    }
     void setGlobalPresetBrowserSearchForLayoutTest(const juce::String& text) { presetBrowser.setSearchTextForTest(text); }
     void setGlobalPresetBrowserScopeForLayoutTest(int scopeId) { presetBrowser.setScopeForTest(scopeId); }
     void selectAllGlobalPresetBrowserChipsForLayoutTest() { presetBrowser.selectAllChipsForTest(); }
@@ -649,6 +656,7 @@ private:
     void updateOpnbAdpcmSampleControls();
     void updateSampleWaveformPreview(chipper::ChipMode mode);
     void updateSamplePlaybackModeChoices(chipper::ChipMode mode);
+    void refreshAccessibleNames();
     void setEditorWorkspace(ChipperEditorWorkspace workspace, bool persistSelection);
     void enforceWorkspaceVisibility();
     void captureEditWorkspaceVisibility();
@@ -779,6 +787,7 @@ private:
     ChipperEditorShell editorShell;
     ChipperWorkspaceDeck workspaceDeck;
     ChipperPresetBrowser presetBrowser;
+    ChipperFocusOutline focusOutline;
     ChipperEditorWorkspace selectedWorkspace = ChipperEditorWorkspace::edit;
 
     struct UserPresetFile

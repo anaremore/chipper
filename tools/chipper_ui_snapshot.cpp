@@ -323,7 +323,10 @@ int main(int argc, char** argv)
                 editor.runEditorUpdateForLayoutTest();
                 const auto browserCapture = options.workspace == "browser";
                 if (browserCapture)
+                {
                     editor.showPresetBrowserForLayoutTest();
+                    editor.showBrowserSearchFocusOutlineForLayoutTest();
+                }
                 editor.repaint();
                 juce::MessageManager::getInstance()->runDispatchLoopUntil(50);
 

@@ -83,6 +83,7 @@ public:
             applySelectedPreset();
         }
     }
+    juce::Component& searchComponentForTest() noexcept { return searchBox; }
 
 private:
     struct ChipRow
