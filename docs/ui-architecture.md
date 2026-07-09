@@ -51,10 +51,13 @@ YM2612/OPN2 and YM2151/OPM now have four stable FM Operator Level trims in APVTS
 Every chip mode uses the same outer workflow, but the visible sections are unnumbered and may expand, merge, or hide according to the selected chip. The stable shell is:
 
 - Header: ASCII logo, preset browser, Load/Save/Save As, Chip Mode, Strictness, and Play Mode.
+- Workspace switcher: Play keeps sources, musical controls, and output immediately playable; Edit exposes the full chip-native surface; Inspect shows verification evidence, known gaps, and the control contract.
 - Chip summary: one short truthful sentence about the selected chip model and implementation status.
 - Source/voice deck: native channels, operators, sample voices, or wavetable lanes with channel-owned controls.
 - Chip edit workspace: tone, shape, filter, operator, envelope, sample-bank, and routing controls that belong to the selected chip.
 - Performance and output strip: playable macros, output trim/scope, MIDI/build/status badges, and compact verification text.
+
+Workspace selection is presentation-only. It is stored as a user-interface preference outside APVTS so switching workspaces cannot alter sound, host automation, MIDI CC state, project recall, or shareable user presets. The Edit workspace remains the authoritative full chip surface. Play uses additional APVTS attachments to the same stable universal controls, and only the visible workspace can receive user gestures. Inspect is read-only and descriptor-driven.
 
 The footer/status area should include a subtle generated build label so a tester can match an installed VST3 to the reported source revision. It should also show a compact MIDI CC range badge with a tooltip for the full fixed hardware-control map, keeping MIDI discoverability close to the build/status information without crowding chip controls. Long accuracy caveats belong in tooltips or docs; the visible footer text should stay short enough that build and MIDI badges never cover it.
 

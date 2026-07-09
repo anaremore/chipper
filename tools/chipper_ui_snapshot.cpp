@@ -16,6 +16,7 @@ struct Options
 {
     juce::File outputDirectory;
     juce::String chip = "all";
+    juce::String workspace = "all";
     std::vector<int> widths { compactEditorWidth, defaultEditorWidth };
     bool manifestOnly = false;
 };
@@ -24,7 +25,8 @@ void printUsage()
 {
     std::cout
         << "Usage: chipper_ui_snapshot [--output <directory>] [--chip <name|all>]\n"
-        << "                           [--width <1180|1240|both>] [--manifest-only]\n";
+        << "                           [--width <1180|1240|both>]\n"
+        << "                           [--workspace <play|edit|inspect|all>] [--manifest-only]\n";
 }
 
 std::optional<Options> parseOptions(int argc, char** argv)
@@ -73,6 +75,15 @@ std::optional<Options> parseOptions(int argc, char** argv)
                 options.widths = { compactEditorWidth, defaultEditorWidth };
             else
                 return std::nullopt;
+        }
+        else if (argument == "--workspace")
+        {
+            const auto value = nextValue();
+            if (! value.has_value()
+                || (*value != "play" && *value != "edit" && *value != "inspect" && *value != "all"))
+                return std::nullopt;
+
+            options.workspace = *value;
         }
         else if (argument == "--manifest-only")
         {
@@ -237,6 +248,25 @@ std::optional<int> requestedChipChoice(const juce::String& requested)
 
     return -1;
 }
+
+juce::String workspaceName(ChipperEditorWorkspace workspace)
+{
+    switch (workspace)
+    {
+        case ChipperEditorWorkspace::play: return "play";
+        case ChipperEditorWorkspace::edit: return "edit";
+        case ChipperEditorWorkspace::inspect: return "inspect";
+    }
+    return "edit";
+}
+
+std::vector<ChipperEditorWorkspace> requestedWorkspaces(const juce::String& requested)
+{
+    if (requested == "play") return { ChipperEditorWorkspace::play };
+    if (requested == "edit") return { ChipperEditorWorkspace::edit };
+    if (requested == "inspect") return { ChipperEditorWorkspace::inspect };
+    return { ChipperEditorWorkspace::play, ChipperEditorWorkspace::edit, ChipperEditorWorkspace::inspect };
+}
 }
 
 int main(int argc, char** argv)
@@ -262,6 +292,7 @@ int main(int argc, char** argv)
     juce::ScopedJuceInitialiser_GUI juceInitialiser;
     juce::Array<juce::var> snapshots;
     const auto chipModeCount = chipper::parameters::chipModeChoices().size();
+    const auto workspaces = requestedWorkspaces(options.workspace);
 
     for (int choice = 0; choice < chipModeCount; ++choice)
     {
@@ -270,56 +301,63 @@ int main(int argc, char** argv)
 
         for (const auto width : options.widths)
         {
-            ChipperAudioProcessor processor;
-            if (! setChipMode(processor, choice))
+            for (const auto workspace : workspaces)
             {
-                std::cerr << "Could not select chip choice " << choice << '\n';
-                return 1;
+                ChipperAudioProcessor processor;
+                if (! setChipMode(processor, choice))
+                {
+                    std::cerr << "Could not select chip choice " << choice << '\n';
+                    return 1;
+                }
+
+                ChipperAudioProcessorEditor editor(processor);
+                editor.setSize(width, editor.getHeight());
+                editor.setWorkspaceForLayoutTest(workspace);
+                editor.runEditorUpdateForLayoutTest();
+                juce::MessageManager::getInstance()->runDispatchLoopUntil(20);
+
+                const auto displayName = chipper::parameters::chipModeChoices()[choice];
+                const auto workspaceKey = workspaceName(workspace);
+                const auto snapshotKey = juce::String(choice).paddedLeft('0', 2)
+                    + "-" + fileKey(displayName)
+                    + "-" + workspaceKey
+                    + "-" + juce::String(width);
+                const auto imageName = snapshotKey + ".png";
+
+                if (! options.manifestOnly && ! writePng(editor, options.outputDirectory.getChildFile(imageName)))
+                {
+                    std::cerr << "Could not write " << imageName << '\n';
+                    return 1;
+                }
+
+                int componentCount = 0;
+                int visibleComponentCount = 0;
+                int focusableComponentCount = 0;
+                auto* snapshot = new juce::DynamicObject();
+                snapshot->setProperty("chipChoice", choice);
+                snapshot->setProperty("chip", displayName);
+                snapshot->setProperty("workspace", workspaceKey);
+                snapshot->setProperty("key", snapshotKey);
+                snapshot->setProperty("image", options.manifestOnly ? juce::String() : imageName);
+                snapshot->setProperty("width", editor.getWidth());
+                snapshot->setProperty("height", editor.getHeight());
+                snapshot->setProperty("components",
+                                      componentManifest(editor,
+                                                        {},
+                                                        "editor",
+                                                        componentCount,
+                                                        visibleComponentCount,
+                                                        focusableComponentCount));
+                snapshot->setProperty("componentCount", componentCount);
+                snapshot->setProperty("visibleComponentCount", visibleComponentCount);
+                snapshot->setProperty("focusableComponentCount", focusableComponentCount);
+                snapshots.add(juce::var(snapshot));
             }
-
-            ChipperAudioProcessorEditor editor(processor);
-            editor.setSize(width, editor.getHeight());
-            editor.runEditorUpdateForLayoutTest();
-            juce::MessageManager::getInstance()->runDispatchLoopUntil(20);
-
-            const auto displayName = chipper::parameters::chipModeChoices()[choice];
-            const auto snapshotKey = juce::String(choice).paddedLeft('0', 2)
-                + "-" + fileKey(displayName)
-                + "-" + juce::String(width);
-            const auto imageName = snapshotKey + ".png";
-
-            if (! options.manifestOnly && ! writePng(editor, options.outputDirectory.getChildFile(imageName)))
-            {
-                std::cerr << "Could not write " << imageName << '\n';
-                return 1;
-            }
-
-            int componentCount = 0;
-            int visibleComponentCount = 0;
-            int focusableComponentCount = 0;
-            auto* snapshot = new juce::DynamicObject();
-            snapshot->setProperty("chipChoice", choice);
-            snapshot->setProperty("chip", displayName);
-            snapshot->setProperty("key", snapshotKey);
-            snapshot->setProperty("image", options.manifestOnly ? juce::String() : imageName);
-            snapshot->setProperty("width", editor.getWidth());
-            snapshot->setProperty("height", editor.getHeight());
-            snapshot->setProperty("components",
-                                  componentManifest(editor,
-                                                    {},
-                                                    "editor",
-                                                    componentCount,
-                                                    visibleComponentCount,
-                                                    focusableComponentCount));
-            snapshot->setProperty("componentCount", componentCount);
-            snapshot->setProperty("visibleComponentCount", visibleComponentCount);
-            snapshot->setProperty("focusableComponentCount", focusableComponentCount);
-            snapshots.add(juce::var(snapshot));
         }
     }
 
     auto* manifest = new juce::DynamicObject();
-    manifest->setProperty("schema", "chipper-ui-captures-v1");
+    manifest->setProperty("schema", "chipper-ui-captures-v2");
     manifest->setProperty("manifestOnly", options.manifestOnly);
     manifest->setProperty("snapshotCount", snapshots.size());
     manifest->setProperty("snapshots", juce::var(snapshots));

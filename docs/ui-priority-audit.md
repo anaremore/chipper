@@ -148,10 +148,10 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
    - User value: very high. Most musicians will browse for "arcade bass" or "Game Boy lead" before they know which chip engine they want.
    - Confidence: 7/10. Preset data already exists; browser UX and save/load polish are the main work. Confidence improves with a preset QA pass that checks audibility, loudness, visible-control recall, and clean provenance for every factory preset.
 
-2. Basic / Edit / Expert views
-   - Issue: Play, edit, and register/audit information are currently shown together, which makes the instrument feel powerful but dense.
-   - User value: very high. Keeps the default view musical while preserving honest chip detail for users who want it.
-   - Confidence: 6/10. Needs careful visibility state and host-parameter behavior so no controls disappear from automation unexpectedly.
+2. Play / Edit / Inspect workspaces
+   - Implemented baseline: the stable shell now switches between an APVTS-backed Play surface, the complete existing Edit surface, and a read-only descriptor-driven Inspect surface. Workspace selection is a UI preference outside preset/host parameter state, chip changes recompute the hidden Edit layout before it is restored, and editor smoke tests assert that switching workspaces changes no parameter values across every public chip.
+   - Next value: deepen the family-specific Play cards, FM editor, sampler/wavetable detail views, and relationship diagrams without returning to one all-controls-at-once canvas.
+   - Non-regression rule: workspace switching must not change sound, automation, MIDI state, preset state, chip-local snapshots, source ownership, or the compact/default editor-size contract.
 
 3. SNES SPC700-style sample voices
    - Issue: each voice can now pin a loaded sample slot in its card, but deeper work still needs per-voice loop/envelope/noise controls and clearer visual confirmation of voice-to-sample mapping.

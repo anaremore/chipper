@@ -17,6 +17,13 @@ The overhaul is complete only when all of the following are implemented and veri
 9. Keyboard traversal, visible focus, accessible names, contrast, and interaction states are verified across workspaces.
 10. Musician workflow tools include A/B comparison, undo/redo, section initialization, copy/paste, and bounded chip-safe variation where supported.
 
+## Progress
+
+- Complete: repeatable PNG capture plus a portable structural manifest for every chip, workspace, and supported width.
+- Complete: stable header/summary/footer layout extracted into `ChipperEditorShell`.
+- Complete: Play, Edit, and Inspect workspace foundation with APVTS-safe switching, UI-only persistence, all-chip layout coverage, and parameter-mutation guards.
+- In progress: reusable family workspaces and the dedicated global preset/chip browser.
+
 ## Delivery Order
 
 ### Foundation
@@ -45,7 +52,7 @@ The overhaul is complete only when all of the following are implemented and veri
 
 ## UI Capture Workflow
 
-Generate PNGs and `manifest.json` for every chip at both supported widths:
+Generate PNGs and `manifest.json` for every chip, workspace, and supported width:
 
 ```powershell
 .\scripts\capture-ui.ps1

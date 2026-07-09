@@ -132,6 +132,51 @@ struct ChipUiTheme
     int textureStep = 0;
 };
 
+ChipperWorkspaceTheme workspaceThemeFor(const ChipUiTheme& theme)
+{
+    return {
+        theme.background,
+        theme.panel,
+        theme.sourceCard,
+        theme.outline,
+        theme.primary,
+        theme.accent,
+        theme.text,
+        theme.mutedText,
+        theme.darkText
+    };
+}
+
+juce::PropertiesFile::Options uiPreferenceOptions()
+{
+    juce::PropertiesFile::Options options;
+    options.applicationName = "Chipper";
+    options.filenameSuffix = "settings";
+    options.folderName = "Chipper";
+    options.osxLibrarySubFolder = "Application Support/Chipper";
+    options.storageFormat = juce::PropertiesFile::storeAsXML;
+    options.millisecondsBeforeSaving = 0;
+    return options;
+}
+
+int loadEditorWorkspacePreference()
+{
+    juce::PropertiesFile preferences(uiPreferenceOptions());
+    return preferences.getIntValue("editorWorkspace", 1);
+}
+
+void saveEditorWorkspacePreference(ChipperEditorWorkspace workspace)
+{
+    juce::PropertiesFile preferences(uiPreferenceOptions());
+    preferences.setValue("editorWorkspace", static_cast<int>(workspace));
+    preferences.saveIfNeeded();
+}
+
+bool shouldPersistEditorPreferences()
+{
+    return juce::PluginHostType::getPluginLoadedAs() != juce::AudioProcessor::wrapperType_Undefined;
+}
+
 bool isNesFamily(chipper::ChipMode mode)
 {
     return mode == chipper::ChipMode::nes
@@ -2437,7 +2482,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
                     chipModeBox,
                     accuracyBox,
                     macroBox,
-                    playModeBox })
+                    playModeBox }),
+      workspaceDeck(processor)
 {
     setResizable(false, false);
 
@@ -3780,9 +3826,25 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
     addAndMakeVisible(editorShell);
     editorShell.toBack();
+    editorShell.attachExternalControlsTo(*this);
+    addAndMakeVisible(workspaceDeck);
+    workspaceDeck.toFront(false);
+    editorShell.onWorkspaceChanged = [this](ChipperEditorWorkspace workspace)
+    {
+        setEditorWorkspace(workspace, true);
+    };
+
+    if (shouldPersistEditorPreferences())
+    {
+        const auto savedWorkspace = std::clamp(loadEditorWorkspacePreference(), 0, 2);
+        selectedWorkspace = static_cast<ChipperEditorWorkspace>(savedWorkspace);
+    }
+    editorShell.setWorkspace(selectedWorkspace);
+    workspaceDeck.setWorkspace(selectedWorkspace);
 
     updateDescriptorText();
     updateLiveControlReadouts();
+    enforceWorkspaceVisibility();
     outputScopePreview.setSamples(audioProcessor.outputScopeSnapshot());
     startTimerHz(12);
 }
@@ -3966,6 +4028,8 @@ void ChipperAudioProcessorEditor::applyChipTheme()
 
     dmcLoopButton.setColour(juce::ToggleButton::textColourId, theme.text);
     spc700LoopModeButton.setColour(juce::ToggleButton::textColourId, theme.text);
+    editorShell.setTheme(theme.primary, theme.accent, theme.outline, theme.text, theme.mutedText, theme.darkText);
+    workspaceDeck.refresh(displayedMode, workspaceThemeFor(theme));
     repaint();
 }
 
@@ -4039,6 +4103,7 @@ void ChipperAudioProcessorEditor::resized()
     area.removeFromTop(8);
 
     constexpr auto footerReserve = 44;
+    workspaceDeck.setBounds(area.withTrimmedBottom(footerReserve));
     const auto nesLayout = isNesFamily(displayedMode);
     const auto nesExpansionLayout = isNesFamily(displayedMode) && chipper::visibleSourceCountForMode(displayedMode) > 4u;
     const auto sidLayout = displayedMode == chipper::ChipMode::sid;
@@ -5535,6 +5600,87 @@ void ChipperAudioProcessorEditor::resized()
 
 }
 
+void ChipperAudioProcessorEditor::setEditorWorkspace(ChipperEditorWorkspace workspace, bool persistSelection)
+{
+    selectedWorkspace = workspace;
+    editorShell.setWorkspace(selectedWorkspace);
+    workspaceDeck.setWorkspace(selectedWorkspace);
+    workspaceDeck.toFront(false);
+
+    if (persistSelection && shouldPersistEditorPreferences())
+    {
+        saveEditorWorkspacePreference(selectedWorkspace);
+    }
+
+    if (selectedWorkspace == ChipperEditorWorkspace::edit)
+    {
+        restoreEditWorkspaceVisibility();
+        descriptorTextInitialized = false;
+        updateDescriptorText();
+        updateLiveControlReadouts();
+        captureEditWorkspaceVisibility();
+        if (persistSelection)
+            presetBox.grabKeyboardFocus();
+    }
+    else
+    {
+        enforceWorkspaceVisibility();
+        resized();
+        if (persistSelection)
+            workspaceDeck.focusInitialControl();
+    }
+
+    repaint();
+}
+
+void ChipperAudioProcessorEditor::enforceWorkspaceVisibility()
+{
+    if (selectedWorkspace == ChipperEditorWorkspace::edit)
+    {
+        workspaceDeck.setVisible(false);
+        return;
+    }
+
+    if (editWorkspaceVisibility.empty())
+        captureEditWorkspaceVisibility();
+
+    for (auto childIndex = 0; childIndex < getNumChildComponents(); ++childIndex)
+    {
+        auto* child = getChildComponent(childIndex);
+        if (child != nullptr
+            && child != &editorShell
+            && child != &workspaceDeck
+            && ! editorShell.isExternalControl(child))
+            child->setVisible(false);
+    }
+    workspaceDeck.setVisible(true);
+    workspaceDeck.toFront(false);
+}
+
+void ChipperAudioProcessorEditor::captureEditWorkspaceVisibility()
+{
+    editWorkspaceVisibility.clear();
+    editWorkspaceVisibility.reserve(static_cast<size_t>(getNumChildComponents()));
+    for (auto childIndex = 0; childIndex < getNumChildComponents(); ++childIndex)
+    {
+        auto* child = getChildComponent(childIndex);
+        if (child != nullptr
+            && child != &editorShell
+            && child != &workspaceDeck
+            && ! editorShell.isExternalControl(child))
+            editWorkspaceVisibility.emplace_back(child, child->isVisible());
+    }
+}
+
+void ChipperAudioProcessorEditor::restoreEditWorkspaceVisibility()
+{
+    for (const auto& [component, shouldBeVisible] : editWorkspaceVisibility)
+    {
+        if (component != nullptr)
+            component->setVisible(shouldBeVisible);
+    }
+}
+
 juce::String ChipperAudioProcessorEditor::getFirstDisplayedFactoryPresetNameForLayoutTest() const
 {
     return displayedPresets.empty() || displayedPresets.front() == nullptr
@@ -5657,12 +5803,22 @@ void ChipperAudioProcessorEditor::timerCallback()
         return;
     }
 
+    const auto modeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::chipMode)));
+    const auto pendingMode = chipper::parameters::chipModeFromChoice(modeChoice);
+    const auto restoredEditVisibility = selectedWorkspace != ChipperEditorWorkspace::edit
+        && pendingMode != displayedMode;
+    if (restoredEditVisibility)
+        restoreEditWorkspaceVisibility();
+
     updateDescriptorText();
     updateLiveControlReadouts();
+    if (selectedWorkspace == ChipperEditorWorkspace::edit || restoredEditVisibility)
+        captureEditWorkspaceVisibility();
     statusLabel.setText(audioProcessor.currentCoreStatus(), juce::dontSendNotification);
     statusLabel.setTooltip(audioProcessor.currentCoreStatusDetail());
     outputScopePreview.setSamples(audioProcessor.outputScopeSnapshot());
     updateSampleWaveformPreview(displayedMode);
+    enforceWorkspaceVisibility();
 }
 
 void ChipperAudioProcessorEditor::addLabeledSlider(juce::Slider& slider, juce::Label& label, const juce::String& fallbackText)

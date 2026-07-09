@@ -3552,6 +3552,8 @@ target_sources(Chipper
         Source/PluginEditor.h
         Source/UI/ChipperEditorShell.cpp
         Source/UI/ChipperEditorShell.h
+        Source/UI/ChipperWorkspaces.cpp
+        Source/UI/ChipperWorkspaces.h
         Source/PluginProcessor.cpp
         Source/PluginProcessor.h
 )
@@ -3610,6 +3612,8 @@ add_executable(chipper_processor_midi_cc_smoke
     Source/PluginEditor.h
     Source/UI/ChipperEditorShell.cpp
     Source/UI/ChipperEditorShell.h
+    Source/UI/ChipperWorkspaces.cpp
+    Source/UI/ChipperWorkspaces.h
     Source/PluginProcessor.cpp
     Source/PluginProcessor.h
 )
@@ -3652,6 +3656,8 @@ add_executable(chipper_editor_size_smoke
     Source/PluginEditor.h
     Source/UI/ChipperEditorShell.cpp
     Source/UI/ChipperEditorShell.h
+    Source/UI/ChipperWorkspaces.cpp
+    Source/UI/ChipperWorkspaces.h
     Source/PluginProcessor.cpp
     Source/PluginProcessor.h
 )
@@ -3694,6 +3700,8 @@ add_executable(chipper_ui_snapshot
     Source/PluginEditor.h
     Source/UI/ChipperEditorShell.cpp
     Source/UI/ChipperEditorShell.h
+    Source/UI/ChipperWorkspaces.cpp
+    Source/UI/ChipperWorkspaces.h
     Source/PluginProcessor.cpp
     Source/PluginProcessor.h
 )

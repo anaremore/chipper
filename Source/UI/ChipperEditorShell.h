@@ -3,6 +3,14 @@
 #include <JuceHeader.h>
 
 #include <array>
+#include <functional>
+
+enum class ChipperEditorWorkspace
+{
+    play,
+    edit,
+    inspect
+};
 
 class ChipperEditorShell final : public juce::Component
 {
@@ -31,9 +39,28 @@ public:
     explicit ChipperEditorShell(Controls controlsToUse);
 
     void resized() override;
+    void attachExternalControlsTo(juce::Component& parent);
+    bool isExternalControl(const juce::Component* component) const noexcept;
+    void setWorkspace(ChipperEditorWorkspace workspaceToUse, juce::NotificationType notification = juce::dontSendNotification);
+    ChipperEditorWorkspace workspace() const noexcept { return selectedWorkspace; }
+    void setTheme(juce::Colour primary,
+                  juce::Colour accent,
+                  juce::Colour outline,
+                  juce::Colour text,
+                  juce::Colour mutedText,
+                  juce::Colour darkText);
+
+    std::function<void(ChipperEditorWorkspace)> onWorkspaceChanged;
+
+    juce::Rectangle<int> workspaceBoundsForTest() const noexcept { return workspaceBounds; }
+    juce::Rectangle<int> workspaceButtonBoundsForTest(ChipperEditorWorkspace workspaceToFind) const;
 
 private:
     Controls controls;
+    juce::Label workspaceLabel;
+    std::array<juce::TextButton, 3> workspaceButtons;
+    ChipperEditorWorkspace selectedWorkspace = ChipperEditorWorkspace::edit;
+    juce::Rectangle<int> workspaceBounds;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipperEditorShell)
 };

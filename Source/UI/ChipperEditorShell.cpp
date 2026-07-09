@@ -25,6 +25,33 @@ ChipperEditorShell::ChipperEditorShell(Controls controlsToUse)
     addAndMakeVisible(controls.status);
     addAndMakeVisible(controls.midiCc);
     addAndMakeVisible(controls.build);
+
+    workspaceLabel.setText("Workspace", juce::dontSendNotification);
+    workspaceLabel.setJustificationType(juce::Justification::centredRight);
+    workspaceLabel.setFont(juce::FontOptions(11.0f, juce::Font::bold));
+    addAndMakeVisible(workspaceLabel);
+
+    static constexpr std::array<const char*, 3> workspaceNames { "Play", "Edit", "Inspect" };
+    static constexpr std::array<const char*, 3> workspaceHelp {
+        "Play workspace: essential sources, musical macros, and output.",
+        "Edit workspace: the full chip-native editor.",
+        "Inspect workspace: verification, implementation evidence, gaps, and control contract."
+    };
+    for (size_t i = 0; i < workspaceButtons.size(); ++i)
+    {
+        auto& button = workspaceButtons[i];
+        button.setButtonText(workspaceNames[i]);
+        button.setTooltip(workspaceHelp[i]);
+        button.setClickingTogglesState(true);
+        button.setRadioGroupId(0x43485052);
+        button.setWantsKeyboardFocus(true);
+        button.onClick = [this, i]
+        {
+            setWorkspace(static_cast<ChipperEditorWorkspace>(i), juce::sendNotification);
+        };
+        addAndMakeVisible(button);
+    }
+    setWorkspace(selectedWorkspace);
 }
 
 void ChipperEditorShell::resized()
@@ -89,7 +116,21 @@ void ChipperEditorShell::resized()
     placeHeaderCombo(4, controls.playMode, top.removeFromLeft(playModeWidth));
 
     area.removeFromTop(6);
-    controls.chipSummary.setBounds(area.removeFromTop(28));
+    auto summaryRow = area.removeFromTop(28);
+    workspaceBounds = summaryRow.removeFromRight(std::min(286, summaryRow.getWidth() / 3));
+    summaryRow.removeFromRight(8);
+    controls.chipSummary.setBounds(summaryRow);
+
+    auto workspaceRow = workspaceBounds;
+    workspaceLabel.setBounds(workspaceRow.removeFromLeft(68));
+    workspaceRow.removeFromLeft(6);
+    constexpr auto workspaceGap = 4;
+    const auto buttonWidth = std::max(48, (workspaceRow.getWidth() - (workspaceGap * 2)) / 3);
+    for (auto& button : workspaceButtons)
+    {
+        button.setBounds(workspaceRow.removeFromLeft(std::min(buttonWidth, workspaceRow.getWidth())).reduced(0, 2));
+        workspaceRow.removeFromLeft(std::min(workspaceGap, workspaceRow.getWidth()));
+    }
 
     auto footer = getLocalBounds().reduced(16).removeFromBottom(44);
     controls.build.setBounds(footer.removeFromRight(190));
@@ -97,4 +138,91 @@ void ChipperEditorShell::resized()
     controls.midiCc.setBounds(footer.removeFromRight(136));
     footer.removeFromRight(headerGap);
     controls.status.setBounds(footer);
+}
+
+void ChipperEditorShell::attachExternalControlsTo(juce::Component& parent)
+{
+    const auto attach = [&parent](juce::Component& component)
+    {
+        parent.addChildComponent(&component);
+    };
+
+    attach(controls.title);
+    for (auto& label : controls.headerLabels)
+        attach(label);
+    attach(controls.presetFilter);
+    attach(controls.presetSearch);
+    attach(controls.preset);
+    attach(controls.favorite);
+    attach(controls.load);
+    attach(controls.save);
+    attach(controls.saveAs);
+    attach(controls.chipMode);
+    attach(controls.strictness);
+    attach(controls.macro);
+    attach(controls.playMode);
+    attach(controls.chipSummary);
+    attach(controls.status);
+    attach(controls.midiCc);
+    attach(controls.build);
+}
+
+bool ChipperEditorShell::isExternalControl(const juce::Component* component) const noexcept
+{
+    if (component == nullptr)
+        return false;
+
+    if (component == &controls.title
+        || component == &controls.presetFilter
+        || component == &controls.presetSearch
+        || component == &controls.preset
+        || component == &controls.favorite
+        || component == &controls.load
+        || component == &controls.save
+        || component == &controls.saveAs
+        || component == &controls.chipMode
+        || component == &controls.strictness
+        || component == &controls.macro
+        || component == &controls.playMode
+        || component == &controls.chipSummary
+        || component == &controls.status
+        || component == &controls.midiCc
+        || component == &controls.build)
+        return true;
+
+    return std::any_of(controls.headerLabels.begin(), controls.headerLabels.end(),
+                       [component](const juce::Label& label) { return component == &label; });
+}
+
+void ChipperEditorShell::setWorkspace(ChipperEditorWorkspace workspaceToUse, juce::NotificationType notification)
+{
+    selectedWorkspace = workspaceToUse;
+    for (size_t i = 0; i < workspaceButtons.size(); ++i)
+        workspaceButtons[i].setToggleState(static_cast<size_t>(selectedWorkspace) == i, juce::dontSendNotification);
+
+    if (notification != juce::dontSendNotification && onWorkspaceChanged)
+        onWorkspaceChanged(selectedWorkspace);
+}
+
+void ChipperEditorShell::setTheme(juce::Colour primary,
+                                  juce::Colour accent,
+                                  juce::Colour outline,
+                                  juce::Colour text,
+                                  juce::Colour mutedText,
+                                  juce::Colour darkText)
+{
+    workspaceLabel.setColour(juce::Label::textColourId, mutedText);
+    for (auto& button : workspaceButtons)
+    {
+        button.setColour(juce::TextButton::buttonColourId, outline.darker(0.45f).interpolatedWith(accent, 0.08f));
+        button.setColour(juce::TextButton::buttonOnColourId, primary);
+        button.setColour(juce::TextButton::textColourOffId, text);
+        button.setColour(juce::TextButton::textColourOnId, darkText);
+    }
+}
+
+juce::Rectangle<int> ChipperEditorShell::workspaceButtonBoundsForTest(ChipperEditorWorkspace workspaceToFind) const
+{
+    const auto index = static_cast<size_t>(workspaceToFind);
+    return index < workspaceButtons.size() ? workspaceButtons[index].getBounds() : juce::Rectangle<int> {};
 }

@@ -4,6 +4,7 @@
 
 #include "PluginProcessor.h"
 #include "UI/ChipperEditorShell.h"
+#include "UI/ChipperWorkspaces.h"
 
 #include <array>
 #include <cstdint>
@@ -290,6 +291,43 @@ public:
         return voice < sidEnvelopePreviews.size() ? sidEnvelopePreviews[voice].getBounds() : juce::Rectangle<int> {};
     }
     void runEditorUpdateForLayoutTest() { timerCallback(); }
+    void setWorkspaceForLayoutTest(ChipperEditorWorkspace workspace) { setEditorWorkspace(workspace, false); }
+    ChipperEditorWorkspace getWorkspaceForLayoutTest() const noexcept { return selectedWorkspace; }
+    juce::Rectangle<int> getWorkspaceDeckBoundsForLayoutTest() const { return workspaceDeck.getBounds(); }
+    bool isWorkspaceDeckVisibleForLayoutTest() const { return workspaceDeck.isVisible(); }
+    bool isModuleTitleVisibleForLayoutTest(size_t index) const
+    {
+        return index < moduleTitleLabels.size() && moduleTitleLabels[index].isVisible();
+    }
+    juce::Rectangle<int> getWorkspaceSelectorBoundsForLayoutTest() const { return editorShell.workspaceBoundsForTest(); }
+    juce::Rectangle<int> getWorkspaceButtonBoundsForLayoutTest(ChipperEditorWorkspace workspace) const
+    {
+        return editorShell.workspaceButtonBoundsForTest(workspace);
+    }
+    size_t getPlayWorkspaceSourceCountForLayoutTest() const
+    {
+        return workspaceDeck.playWorkspaceForTest().visibleSourceCountForTest();
+    }
+    juce::Rectangle<int> getPlayWorkspaceSourceBoundsForLayoutTest(size_t index) const
+    {
+        return workspaceDeck.playWorkspaceForTest().sourceButtonBoundsForTest(index);
+    }
+    juce::Rectangle<int> getPlayWorkspaceMacroBoundsForLayoutTest(size_t index) const
+    {
+        return workspaceDeck.playWorkspaceForTest().macroSliderBoundsForTest(index);
+    }
+    juce::Rectangle<int> getPlayWorkspaceOutputBoundsForLayoutTest() const
+    {
+        return workspaceDeck.playWorkspaceForTest().outputBoundsForTest();
+    }
+    juce::String getInspectWorkspaceVerificationForLayoutTest() const
+    {
+        return workspaceDeck.inspectWorkspaceForTest().verificationTextForTest();
+    }
+    juce::String getInspectWorkspaceGapsForLayoutTest() const
+    {
+        return workspaceDeck.inspectWorkspaceForTest().gapsTextForTest();
+    }
 
 private:
     static constexpr size_t uiModuleCount = 6;
@@ -544,6 +582,10 @@ private:
     void updateOpnbAdpcmSampleControls();
     void updateSampleWaveformPreview(chipper::ChipMode mode);
     void updateSamplePlaybackModeChoices(chipper::ChipMode mode);
+    void setEditorWorkspace(ChipperEditorWorkspace workspace, bool persistSelection);
+    void enforceWorkspaceVisibility();
+    void captureEditWorkspaceVisibility();
+    void restoreEditWorkspaceVisibility();
     void chooseDmcSampleFile();
     void chooseDmcSampleDirectory();
     void chooseSpc700BrrSampleFile();
@@ -666,6 +708,8 @@ private:
     juce::ComboBox macroBox;
     juce::ComboBox playModeBox;
     ChipperEditorShell editorShell;
+    ChipperWorkspaceDeck workspaceDeck;
+    ChipperEditorWorkspace selectedWorkspace = ChipperEditorWorkspace::edit;
 
     struct UserPresetFile
     {
@@ -746,6 +790,7 @@ private:
     juce::StringArray favoriteFactoryPresetIds;
     juce::StringArray favoriteUserPresetPaths;
     std::vector<ChipSettingsSnapshot> chipSettingsSnapshots;
+    std::vector<std::pair<juce::Component*, bool>> editWorkspaceVisibility;
     bool descriptorTextInitialized = false;
     int displayedDmcSampleCount = -1;
     uint64_t displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();

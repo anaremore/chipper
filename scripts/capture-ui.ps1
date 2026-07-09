@@ -6,6 +6,8 @@ param(
     [string]$Chip = "all",
     [ValidateSet("1180", "1240", "both")]
     [string]$Width = "both",
+    [ValidateSet("play", "edit", "inspect", "all")]
+    [string]$Workspace = "all",
     [switch]$ManifestOnly
 )
 
@@ -37,7 +39,8 @@ if (-not $snapshotExecutable) {
 $arguments = @(
     "--output", $resolvedOutputDirectory,
     "--chip", $Chip,
-    "--width", $Width
+    "--width", $Width,
+    "--workspace", $Workspace
 )
 if ($ManifestOnly) {
     $arguments += "--manifest-only"
