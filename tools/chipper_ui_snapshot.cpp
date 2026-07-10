@@ -227,6 +227,21 @@ bool writePng(ChipperAudioProcessorEditor& editor, const juce::File& destination
     if (! image.isValid())
         return false;
 
+    auto opaqueSamples = 0;
+    auto totalSamples = 0;
+    constexpr auto sampleStep = 24;
+    for (auto y = 0; y < image.getHeight(); y += sampleStep)
+    {
+        for (auto x = 0; x < image.getWidth(); x += sampleStep)
+        {
+            ++totalSamples;
+            if (image.getPixelAt(x, y).getAlpha() >= 250)
+                ++opaqueSamples;
+        }
+    }
+    if (totalSamples == 0 || opaqueSamples * 10 < totalSamples * 9)
+        return false;
+
     if (destination.existsAsFile() && ! destination.deleteFile())
         return false;
 
@@ -301,28 +316,28 @@ int main(int argc, char** argv)
     juce::Array<juce::var> snapshots;
     const auto chipModeCount = chipper::parameters::chipModeChoices().size();
     const auto workspaces = requestedWorkspaces(options.workspace);
-    ChipperAudioProcessor processor;
-    ChipperAudioProcessorEditor editor(processor);
 
     for (int choice = 0; choice < chipModeCount; ++choice)
     {
         if (selectedChoice.has_value() && choice != *selectedChoice)
             continue;
 
-        if (! setChipMode(processor, choice))
-        {
-            std::cerr << "Could not select chip choice " << choice << '\n';
-            return 1;
-        }
-        editor.runEditorUpdateForLayoutTest();
-        editor.runEditorUpdateForLayoutTest();
-
         for (const auto width : options.widths)
         {
             for (const auto workspace : workspaces)
             {
+                ChipperAudioProcessor processor;
+                if (! setChipMode(processor, choice))
+                {
+                    std::cerr << "Could not select chip choice " << choice << '\n';
+                    return 1;
+                }
+                ChipperAudioProcessorEditor editor(processor);
+                editor.runEditorUpdateForLayoutTest();
+                editor.runEditorUpdateForLayoutTest();
                 editor.setSize(width, editor.getHeight());
                 editor.setWorkspaceForLayoutTest(workspace);
+                editor.runEditorUpdateForLayoutTest();
                 editor.runEditorUpdateForLayoutTest();
                 const auto browserCapture = options.workspace == "browser";
                 if (browserCapture)

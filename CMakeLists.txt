@@ -3795,3 +3795,11 @@ add_test(NAME chipper_ui_browser_snapshot_smoke
         --workspace browser
         --manifest-only
 )
+
+add_test(NAME chipper_ui_png_snapshot_smoke
+    COMMAND chipper_ui_snapshot
+        --output "${CMAKE_CURRENT_BINARY_DIR}/ui-png-snapshot-smoke"
+        --chip sid
+        --width 1180
+        --workspace all
+)
