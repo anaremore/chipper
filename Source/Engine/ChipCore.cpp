@@ -2404,7 +2404,7 @@ public:
         }
         else if (patch.nesDmcOnly)
         {
-            enable = dmcSample.empty() ? 0u : 0x10u;
+            enable = dmcSample.empty() || ! sourceEnabled(patch, dmcSourceIndex()) ? 0u : 0x10u;
             noiseVol = 0u;
         }
         else
@@ -2417,7 +2417,7 @@ public:
                 p2Vol = ensureNesRegisterVolume(p2Vol, std::max(5u, p1Vol));
             if ((enable & 0x08u) != 0u)
                 noiseVol = ensureNesRegisterVolume(noiseVol, static_cast<unsigned>(std::max<int>(8, std::round(patch.control3 * 12.0f))));
-            if (! dmcSample.empty() && sourceEnabled(patch, 3))
+            if (! dmcSample.empty() && sourceEnabled(patch, dmcSourceIndex()))
                 enable |= 0x10u;
         }
 
@@ -2625,6 +2625,8 @@ public:
              << "\"sourceLevel2\":" << sourceLevel(patch, 1) << ","
              << "\"sourceLevel3\":" << sourceLevel(patch, 2) << ","
              << "\"sourceLevel4\":" << sourceLevel(patch, 3) << ",";
+        if (selectedMode == ChipMode::nes)
+            json << "\"sourceEnabled5\":" << (sourceEnabled(patch, 4) ? 1 : 0) << ",";
         if (hasVrc6())
         {
             json << "\"sourceEnabled5\":" << (sourceEnabled(patch, 4) ? 1 : 0) << ","
@@ -2803,6 +2805,14 @@ public:
     }
 
 private:
+    size_t dmcSourceIndex() const noexcept
+    {
+        // The base RP2A03 surface has a dedicated fifth DMC lane. Expansion
+        // modes retain their established source indices so existing projects
+        // and their expansion-lane automation remain compatible.
+        return selectedMode == ChipMode::nes ? 4u : 3u;
+    }
+
     void updateTimers()
     {
         timer[0] = static_cast<uint16_t>(regs[0x02] | ((regs[0x03] & 0x07) << 8));
@@ -4231,7 +4241,7 @@ private:
             enable = static_cast<uint8_t>(enable | 0x04u);
         if (! hasVrc7() && sourceEnabled(patch, 3))
             enable = static_cast<uint8_t>(enable | 0x08u);
-        if (! hasVrc7() && ! dmcSample.empty() && sourceEnabled(patch, 3))
+        if (! hasVrc7() && ! dmcSample.empty() && sourceEnabled(patch, dmcSourceIndex()))
             enable = static_cast<uint8_t>(enable | 0x10u);
         regs[0x10] = static_cast<uint8_t>((regs[0x10] & 0xf0u) | static_cast<uint8_t>(patch.nesDmcRateIndex & 0x0f));
         writeStatusRegister(enable, ! suppressDmcRestartOnNoteOn);

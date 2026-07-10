@@ -370,6 +370,11 @@ bool expectLiveSourceLevelSpecs()
         {
             const auto role = sourceLevelRoles[index];
             const auto* spec = chipper::parameterSpecFor(mode, role);
+            if (mode == chipper::ChipMode::nes && index == 4u)
+            {
+                ok &= expect(spec == nullptr, "NES DMC should use its native 7-bit DAC control instead of a fake source trim");
+                continue;
+            }
             ok &= expect(spec != nullptr, "live chip missing source level spec");
             if (spec == nullptr)
                 continue;
@@ -1453,9 +1458,11 @@ int main()
 
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Sweep Motion");
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::pulse2Duty, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Pulse 2 Duty");
-    ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::source4Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Noise / DMC");
+    ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::source4Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Noise");
+    ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "DMC");
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::source4Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Noise Level");
-    ok &= expectSpecHelpContains(chipper::ChipMode::nes, chipper::ChipParameterRole::source4Enabled, "external DPCM sample lane", "NES source 4 should disclose the DMC sample lane");
+    ok &= expectSpecHelpContains(chipper::ChipMode::nes, chipper::ChipParameterRole::source4Enabled, "noise source", "NES source 4 should identify the native noise lane");
+    ok &= expectSpecHelpContains(chipper::ChipMode::nes, chipper::ChipParameterRole::source5Enabled, "DMC sample lane", "NES source 5 should identify the external DPCM lane");
     ok &= expectSpecHelpContains(chipper::ChipMode::nes, chipper::ChipParameterRole::source4Level, "noise source", "NES source 4 level should stay honest about trimming noise");
     ok &= expectSpec(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcDirectLevel, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "DMC Direct Level");
     ok &= expectSpecGroup(chipper::ChipMode::nes, chipper::ChipParameterRole::nesDmcDirectLevel, "DMC");
@@ -2103,7 +2110,7 @@ int main()
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2608, "opna-feedback-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2610, "opnb-feedback-bass");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::ym2610b, "opnb2-six-fm-bass");
-    ok &= expectSourceLaneCounts(chipper::ChipMode::nes, 4u, 4u);
+    ok &= expectSourceLaneCounts(chipper::ChipMode::nes, 5u, 5u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::nesVrc6, 7u, 7u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::nesFds, 5u, 5u);
     ok &= expectSourceLaneCounts(chipper::ChipMode::nesSunsoft5b, 7u, 7u);

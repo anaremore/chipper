@@ -2055,8 +2055,12 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
         sourceSpec(ChipParameterRole::source3Enabled, "nes.triangle.enabled", "Triangle", "Enable the triangle bass source."),
         sourceSpec(ChipParameterRole::source4Enabled,
                    "nes.noise.enabled",
-                   "Noise / DMC",
-                   "Enable the RP2A03 noise source and the external DPCM sample lane when sample data is supplied."),
+                   "Noise",
+                   "Enable the RP2A03 noise source."),
+        sourceSpec(ChipParameterRole::source5Enabled,
+                   "nes.dmc.enabled",
+                   "DMC",
+                   "Enable the RP2A03 DMC sample lane when external DPCM data is supplied."),
         sourceLevelSpec(ChipParameterRole::source1Level, "nes.pulse1.level", "Pulse 1 Level", "Modern trim for the first pulse source."),
         sourceLevelSpec(ChipParameterRole::source2Level, "nes.pulse2.level", "Pulse 2 Level", "Modern trim for the second pulse source."),
         sourceLevelSpec(ChipParameterRole::source3Level, "nes.triangle.level", "Triangle Level", "Modern trim for the triangle source."),
@@ -2157,9 +2161,19 @@ std::vector<ChipParameterSpec> nesParameterSpecs()
     };
 }
 
-std::vector<ChipParameterSpec> nesVrc6ParameterSpecs()
+std::vector<ChipParameterSpec> nesExpansionBaseParameterSpecs()
 {
     auto specs = nesParameterSpecs();
+    specs.erase(std::remove_if(specs.begin(), specs.end(), [](const ChipParameterSpec& spec)
+    {
+        return spec.role == ChipParameterRole::source5Enabled;
+    }), specs.end());
+    return specs;
+}
+
+std::vector<ChipParameterSpec> nesVrc6ParameterSpecs()
+{
+    auto specs = nesExpansionBaseParameterSpecs();
     specs.push_back(sourceSpec(ChipParameterRole::source5Enabled,
                                "nes.vrc6Pulse1.enabled",
                                "VRC6 Pulse 1",
@@ -2189,7 +2203,7 @@ std::vector<ChipParameterSpec> nesVrc6ParameterSpecs()
 
 std::vector<ChipParameterSpec> nesFdsParameterSpecs()
 {
-    auto specs = nesParameterSpecs();
+    auto specs = nesExpansionBaseParameterSpecs();
     specs.push_back(sourceSpec(ChipParameterRole::source5Enabled,
                                "nes.fdsWave.enabled",
                                "FDS Wave",
@@ -2216,7 +2230,7 @@ std::vector<ChipParameterSpec> nesFdsParameterSpecs()
 
 std::vector<ChipParameterSpec> nesSunsoft5bParameterSpecs()
 {
-    auto specs = nesParameterSpecs();
+    auto specs = nesExpansionBaseParameterSpecs();
     specs.push_back(sourceSpec(ChipParameterRole::source5Enabled,
                                "nes.sunsoft5b.toneA.enabled",
                                "5B Tone A",
@@ -2246,7 +2260,7 @@ std::vector<ChipParameterSpec> nesSunsoft5bParameterSpecs()
 
 std::vector<ChipParameterSpec> nesMmc5ParameterSpecs()
 {
-    auto specs = nesParameterSpecs();
+    auto specs = nesExpansionBaseParameterSpecs();
     specs.push_back(sourceSpec(ChipParameterRole::source5Enabled,
                                "nes.mmc5Pulse1.enabled",
                                "MMC5 Pulse 1",
@@ -3466,7 +3480,7 @@ std::array<ModuleDescriptor, 6> nesModules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "RP2A03-inspired clean-room APU model.", { "2A03 family", "NTSC/PAL clock override", "Hybrid default", "Authentic still partial" }),
-        makeModule("sources", "Channels", "Native channel layout exposed musically.", { "Pulse 1", "Pulse 2", "Triangle / Chip Poly", "Noise / DMC lane" }),
+        makeModule("sources", "Channels", "All five native APU channels remain visible while their own controls stay with each lane.", { "Pulse 1", "Pulse 2", "Triangle", "Noise + DMC" }),
         makeModule("tone", "Shape / Mixer", "Pulse, triangle, noise, and nonlinear mixer behavior.", { "Pulse duty", "Pitch sweep macro", "Noise mode", "Nonlinear mixer" }),
         makeModule("envelope", "APU Envelope", "Pulse/noise APU envelope and duration behavior.", { "Envelope decay", "Length counters", "Triangle linear counter", "Drum decay helper" }),
         makeModule("motion", "Motion", "Musical gestures write chip-like preset recipes.", { "Coin blip", "Jump rise", "Laser sweep", "Fast arps" }),
@@ -4603,6 +4617,8 @@ bool supportsPlayMode(ChipMode mode, PlayMode playMode)
 
 size_t visibleSourceCountForMode(ChipMode mode)
 {
+    if (mode == ChipMode::nes)
+        return 5u;
     if (mode == ChipMode::sid)
         return 3u;
     if (mode == ChipMode::spc700)

@@ -1,69 +1,65 @@
 # UI Overhaul Execution Plan
 
-This plan turns the current all-controls-at-once editor into a scalable instrument workflow while preserving APVTS parameter identity, MIDI CC mappings, chip-owned control placement, preset recall, and truthful verification language.
+This plan turns Chipper into one coherent multi-chip instrument while preserving APVTS parameter identity, MIDI CC mappings, preset recall, chip-owned controls, and truthful verification language.
 
 ## Completion Contract
 
 The overhaul is complete only when all of the following are implemented and verified:
 
-1. Play, Edit, and Info workspaces provide progressive disclosure without changing sound or automation state.
-2. The stable shell and chip-family workspaces replace repeated per-chip layout policy where behavior is shared.
-3. Every public chip is covered by repeatable compact/default UI captures plus a machine-readable component manifest.
-4. Preset and chip discovery use a dedicated role-first browser rather than a cramped header-only workflow.
-5. High-source-count chips use a master-detail source workflow while keeping source enable, identity, and level visible in each card.
-6. Four-operator FM chips share a real algorithm/operator editor with chip-specific controls and honest register detail.
-7. Sampler and wavetable chips share clear assignment, waveform, loop, mapping, and missing-asset recovery conventions.
-8. Cross-channel relationships and native-versus-Chipper helper behavior are visible and understandable.
-9. Keyboard traversal, visible focus, accessible names, contrast, and interaction states are verified across workspaces.
+1. The editor presents one unified chip surface; Play/Edit/Info are not navigation destinations.
+2. The entire active signal path remains legible, while focus and density can emphasize the channel being edited.
+3. Every public chip has repeatable compact/default editor captures plus a machine-readable component manifest.
+4. Preset and chip discovery use the dedicated sound browser, the only separate overlay.
+5. Every visible channel retains identity, enable/activity, and an honest level or native amplitude state.
+6. Channel-local controls live with their owner; shared sections contain only genuinely cross-channel behavior.
+7. Four-operator FM chips share a real algorithm/operator editor with chip-specific controls and honest register detail.
+8. Sampler and wavetable chips share clear assignment, waveform, loop, mapping, and missing-asset recovery conventions.
+9. Keyboard traversal, visible focus, accessible names, contrast, and interaction states are verified across the editor and browser.
 10. Musician workflow tools include A/B comparison, undo/redo, section initialization, copy/paste, and bounded chip-safe variation where supported.
 
 ## Progress
 
-- Complete: repeatable PNG capture plus a portable structural manifest for every chip, workspace, and supported width.
-- Complete: stable header/summary/footer layout extracted into `ChipperEditorShell`.
-- Complete: Play, Edit, and Info workspace foundation with APVTS-safe switching, UI-only persistence, all-chip layout coverage, and parameter-mutation guards.
-- Complete: intent-specific workspace hierarchy: Play leads with large performance controls and compact chip-aware sources, Edit keeps the authoritative chip-native construction surface, and Info replaces developer-first text boxes with authenticity, capability, limitation, and collapsible evidence views.
-- Complete: low-density Play source cards use 2x2 performance decks, descriptor-backed quick controls, source-state indicators, and waveform identity glyphs; sampler, wavetable, and high-source-count modes retain master-detail precision editing.
-- Complete: actionable sample empty states begin with NES DMC, whose waveform surface now offers a direct `Load a .dmc sample` recovery action.
-- Complete: shared chip-family classification, browser grouping, density policy, and centralized Edit-layout height rules.
-- Complete: selected-source master-detail editing for every chip with seven or more visible lanes while retaining card-level identity, enable, and level controls.
-- Complete: dedicated global sound browser with grouped chip navigation, role and text filtering, favorites, recents, recursive user-bank discovery, detail copy, and explicit cross-chip loading.
-- Complete: shared four-operator FM editor with a 2x2 carrier/modulator grid, per-operator level/multiplier/envelope editing, resolved register readouts, and shared algorithm visualization.
-- Complete: unified sampler/wavetable selected-asset workflow with per-source assignment, loaded/missing status, Wave RAM shape state, precision level, and direct Edit recovery actions.
-- Complete: chip-aware relationship schematics with distinct Native and Chipper affordances for routing, modulation, shared resources, and musical helpers.
-- Complete: shared high-contrast focus outline, explicit cross-surface focus order, accessible control names, browser keyboard behavior, and workspace/global shortcuts.
-- Complete: stable-shell musician workflow bar with grouped APVTS undo/redo, per-chip A/B audition slots, guarded whole-sound copy/paste, section initialization, and bounded macro/source-level variation.
-- Complete: final audit across 27 chips, Play/Edit/Info, both supported widths, and the dedicated browser (164 retained PNGs plus manifests); all 826 tests pass for the current implementation.
+- Complete: stable header, summary, workflow, footer, and browser layout extracted into reusable shell components.
+- Complete: Play/Edit/Info navigation removed; obsolete programmatic requests and Ctrl/Cmd+1–3 cannot leave the unified editor.
+- Complete: dedicated global sound browser with grouped chip navigation, role/text filtering, favorites, recents, recursive user-bank discovery, detail copy, and explicit cross-chip loading.
+- Complete: Browse remains open through periodic UI refresh and is kept above the editor until explicitly closed, loaded, or dismissed with Escape.
+- Complete: NES exposes five truthful lanes—Pulse 1, Pulse 2, Triangle, Noise, and independently gated DMC. Noise owns mode/period; DMC owns its native DAC/rate/sample path and has no fake conventional level trim.
+- Complete: actionable sample empty states begin with NES DMC, whose waveform surface offers a direct `Load a .dmc sample` recovery action.
+- Complete: shared chip-family classification, browser grouping, density policy, and centralized editor-height rules.
+- Complete: shared four-operator FM editor with carrier/modulator grid, per-operator editing, resolved register readouts, and algorithm visualization.
+- Complete: sampler/wavetable asset workflows with per-source assignment, loaded/missing status, Wave RAM shape state, loop controls, and standard-size selectors.
+- Complete: stable-shell workflow bar with APVTS undo/redo, per-chip A/B slots, guarded whole-sound copy/paste, section initialization, and bounded variation.
+- Complete: snapshot tooling now names the primary surface `editor`; `browser` is captured explicitly rather than multiplying obsolete workspace variants.
+- In progress: final all-chip visual audit, documentation cleanup, full test run, clean build installation, and footer marker verification.
 
 ## Delivery Order
 
-### Foundation
+### Unified Surface
 
-- Add PNG capture tooling for human visual review at 1180 and 1240 px.
-- Export a structural component manifest so CI can detect hierarchy, visibility, focusability, and bounds regressions without relying on platform-identical pixels.
-- Add a workspace deck whose switches are presentation-only.
-- Extract the stable shell and family layout policies before adding more one-off chip branches.
+- Keep the complete active signal path visible.
+- Use spatial hierarchy and inline focus instead of top-level editor tabs.
+- Move hardware-owned state into the source/operator/block it affects.
+- Keep Strictness, note allocation, authenticity, and output as distinct concepts.
 
 ### Discovery And Density
 
-- Add the global preset/chip browser with role, chip family, engine, tag, favorites, recents, user banks, and explicit cross-chip loading.
-- Convert dense source decks to compact cards plus a selected-source detail editor.
+- Preserve Browse as the only overlay and give it explicit Close/Escape behavior.
+- Use bounded inline master-detail organization for dense chips without hiding the rest of the instrument.
 
 ### Deep Editors
 
-- Build the shared FM algorithm/operator editor.
-- Build shared sampler and wavetable editors with clear asset and mapping state.
-- Add relationship diagrams for pairing, modulation, routing, and shared resources.
+- Continue enriching shared FM, sampler, and wavetable components only when engine mappings, automation, preset recall, and renderer coverage exist.
+- Add relationship diagrams only where they materially clarify shared hardware resources or modulation routing.
 
 ### Quality And Workflow
 
-- Complete the accessibility and interaction-state pass.
-- Add musician workflow accelerators and final visual polish.
-- Audit every chip at both supported widths, run the full relevant test suite, install the exact build, and verify the footer marker.
+- Verify focus order, names, contrast, empty states, enabled/disabled states, and overlay z-order.
+- Audit every chip at both supported widths.
+- Run the full test suite, install the exact clean build, and verify the footer marker.
 
 ## UI Capture Workflow
 
-Generate PNGs and `manifest.json` for every chip, workspace, and supported width:
+Generate unified-editor PNGs and `manifest.json` for every chip at both supported widths:
 
 ```powershell
 .\scripts\capture-ui.ps1
@@ -81,4 +77,4 @@ Capture the dedicated global sound browser at both supported widths:
 .\scripts\capture-ui.ps1 -Chip nes -Workspace browser
 ```
 
-PNG comparisons are reviewed per operating system because font rasterization and graphics backends differ. The JSON manifest is the portable CI evidence for component hierarchy, bounds, visibility, enabled state, and keyboard focusability.
+PNG comparisons are reviewed per operating system because font rasterization and graphics backends differ. The JSON manifest is portable CI evidence for hierarchy, bounds, visibility, enabled state, and keyboard focusability.

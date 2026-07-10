@@ -1331,6 +1331,30 @@ int main()
     ok &= expect(jsonIntValue(dmcDebug, "dmcMixerLevel") > 0,
                  "NES DMC loop should keep the sample audible through the DMC mixer lane");
 
+    ChipperAudioProcessor dmcLaneGateProcessor;
+    dmcLaneGateProcessor.prepareToPlay(48000.0, 256);
+    ok &= expect(dmcLaneGateProcessor.loadNesDmcSampleDirectory(dmcDir).wasOk(),
+                 "Should load a DMC sample bank for independent channel-gate coverage");
+    setPlainFromHost(dmcLaneGateProcessor, chipper::parameters::id::source4Enabled, 1.0f);
+    setPlainFromHost(dmcLaneGateProcessor, chipper::parameters::id::source5Enabled, 0.0f);
+    sendNoteOn(dmcLaneGateProcessor, 48);
+    auto dmcLaneGateDebug = dmcLaneGateProcessor.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(dmcLaneGateDebug, "sourceEnabled4") == 1
+                     && jsonIntValue(dmcLaneGateDebug, "sourceEnabled5") == 0
+                     && jsonIntValue(dmcLaneGateDebug, "dmcSampleActive") == 0,
+                 "NES DMC source 5 should mute independently while the noise source remains enabled");
+    setPlainFromHost(dmcLaneGateProcessor, chipper::parameters::id::source4Enabled, 0.0f);
+    setPlainFromHost(dmcLaneGateProcessor, chipper::parameters::id::source5Enabled, 1.0f);
+    sendNoteOn(dmcLaneGateProcessor, 52);
+    dmcLaneGateDebug = dmcLaneGateProcessor.currentCoreDebugStateJson();
+    const auto independentDmcGateWorked = jsonIntValue(dmcLaneGateDebug, "sourceEnabled4") == 0
+        && jsonIntValue(dmcLaneGateDebug, "sourceEnabled5") == 1
+        && jsonIntValue(dmcLaneGateDebug, "dmcSampleCompleted") == 1
+        && jsonIntValue(dmcLaneGateDebug, "dmcSampleBitsPlayed") == 32
+        && jsonIntValue(dmcLaneGateDebug, "dmcMixerLevel") > 0;
+    ok &= expect(independentDmcGateWorked,
+                 "NES DMC source 5 should play independently while the noise source is muted");
+
     juce::AudioBuffer<float> dmcMapBuffer(2, 64);
     juce::MidiBuffer dmcMapMidi;
     dmcMapMidi.addEvent(juce::MidiMessage::noteOn(1, 36, static_cast<juce::uint8>(100)), 0);

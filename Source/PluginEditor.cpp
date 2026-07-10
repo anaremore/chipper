@@ -148,36 +148,6 @@ ChipperWorkspaceTheme workspaceThemeFor(const ChipUiTheme& theme)
     };
 }
 
-juce::PropertiesFile::Options uiPreferenceOptions()
-{
-    juce::PropertiesFile::Options options;
-    options.applicationName = "Chipper";
-    options.filenameSuffix = "settings";
-    options.folderName = "Chipper";
-    options.osxLibrarySubFolder = "Application Support/Chipper";
-    options.storageFormat = juce::PropertiesFile::storeAsXML;
-    options.millisecondsBeforeSaving = 0;
-    return options;
-}
-
-int loadEditorWorkspacePreference()
-{
-    juce::PropertiesFile preferences(uiPreferenceOptions());
-    return preferences.getIntValue("editorWorkspace", 1);
-}
-
-void saveEditorWorkspacePreference(ChipperEditorWorkspace workspace)
-{
-    juce::PropertiesFile preferences(uiPreferenceOptions());
-    preferences.setValue("editorWorkspace", static_cast<int>(workspace));
-    preferences.saveIfNeeded();
-}
-
-bool shouldPersistEditorPreferences()
-{
-    return juce::PluginHostType::getPluginLoadedAs() != juce::AudioProcessor::wrapperType_Undefined;
-}
-
 bool isNesFamily(chipper::ChipMode mode)
 {
     return chipper::ui::profileFor(mode).nesFamily;
@@ -2571,9 +2541,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     presetSearchBox.setTooltip("Search factory and user presets by name, category, chip role, engine, tags, or note text.");
     presetBox.setTooltip("Browse factory and user presets for the selected chip mode. Choosing one applies the sound immediately.");
     macroBox.setTooltip(withMidiCc("Internal preset recipe. Factory/user presets set this automatically for chip-native defaults.", chipper::parameters::id::macro));
-    playModeBox.setTooltip(withMidiCc("Chooses how incoming notes use the chip channels inside one patch.", chipper::parameters::id::playMode));
+    playModeBox.setTooltip(withMidiCc("Note allocation: chooses how incoming notes use the chip channels inside one patch.", chipper::parameters::id::playMode));
 
-    const std::array<const char*, 5> headerNames { "Preset", "Chip Mode", "Strictness", "", "Play Mode" };
+    const std::array<const char*, 5> headerNames { "Preset", "Chip Mode", "Strictness", "", "Note Allocation" };
     for (size_t i = 0; i < headerControlLabels.size(); ++i)
     {
         headerControlLabels[i].setText(headerNames[i], juce::dontSendNotification);
@@ -3834,7 +3804,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(scope);
     }
 
-    globalStripLabel.setText("Performance mapping", juce::dontSendNotification);
+    globalStripLabel.setText("Performance", juce::dontSendNotification);
     globalStripLabel.setJustificationType(juce::Justification::centredLeft);
     globalStripLabel.setColour(juce::Label::textColourId, juce::Colour(0xfff0c94d));
     globalStripLabel.setFont(juce::FontOptions(14.0f, juce::Font::bold));
@@ -3852,8 +3822,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addAndMakeVisible(editorShell);
     editorShell.toBack();
     editorShell.attachExternalControlsTo(*this);
-    addAndMakeVisible(workspaceDeck);
-    workspaceDeck.toFront(false);
+    workspaceDeck.setVisible(false);
     presetBrowser.setVisible(false);
     addChildComponent(presetBrowser);
     presetBrowser.onApply = [this](ChipperPresetBrowser::Entry entry)
@@ -3885,14 +3854,6 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         presetBrowserButton.grabKeyboardFocus();
     };
     addAndMakeVisible(focusOutline);
-    editorShell.onWorkspaceChanged = [this](ChipperEditorWorkspace workspace)
-    {
-        setEditorWorkspace(workspace, true);
-    };
-    workspaceDeck.onOpenEditRequested = [this]
-    {
-        setEditorWorkspace(ChipperEditorWorkspace::edit, true);
-    };
     workflowBar.onUndo = [this] { performWorkflowUndo(); };
     workflowBar.onRedo = [this] { performWorkflowRedo(); };
     workflowBar.onSlotA = [this] { switchWorkflowSlot(0); };
@@ -3905,11 +3866,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         applySafeVariation(static_cast<uint32_t>(juce::Random::getSystemRandom().nextInt()));
     };
 
-    if (shouldPersistEditorPreferences())
-    {
-        const auto savedWorkspace = std::clamp(loadEditorWorkspacePreference(), 0, 2);
-        selectedWorkspace = static_cast<ChipperEditorWorkspace>(savedWorkspace);
-    }
+    selectedWorkspace = ChipperEditorWorkspace::edit;
     editorShell.setWorkspace(selectedWorkspace);
     workspaceDeck.setWorkspace(selectedWorkspace);
 
@@ -4191,15 +4148,15 @@ void ChipperAudioProcessorEditor::resized()
     area.removeFromTop(8);
 
     constexpr auto footerReserve = 44;
-    workspaceDeck.setBounds(area.withTrimmedBottom(footerReserve));
-    presetBrowser.setBounds(workspaceDeck.getBounds());
+    workspaceDeck.setBounds({});
+    presetBrowser.setBounds(area.withTrimmedBottom(footerReserve));
     if (presetBrowser.isVisible())
         presetBrowser.toFront(false);
     focusOutline.setBounds(getLocalBounds());
     focusOutline.toFront(false);
     const auto uiProfile = chipper::ui::profileFor(displayedMode);
     const auto nesLayout = uiProfile.nesFamily;
-    const auto nesExpansionLayout = uiProfile.nesFamily && uiProfile.visibleSourceCount > 4u;
+    const auto nesExpansionLayout = uiProfile.nesExpansion;
     const auto sidLayout = displayedMode == chipper::ChipMode::sid;
     const auto dmgLayout = displayedMode == chipper::ChipMode::dmg;
     const auto spc700Layout = displayedMode == chipper::ChipMode::spc700;
@@ -4512,7 +4469,7 @@ void ChipperAudioProcessorEditor::resized()
     const auto visibleSourceCards = chipper::visibleSourceCountForMode(displayedMode);
     const auto useSpc700VoiceGrid = displayedMode == chipper::ChipMode::spc700 && visibleSourceCards > 4u;
     const auto usePaulaVoiceGrid = displayedMode == chipper::ChipMode::paula && visibleSourceCards > 2u;
-    const auto useNesExpansionVoiceGrid = isNesFamily(displayedMode) && visibleSourceCards > 4u;
+    const auto useNesExpansionVoiceGrid = uiProfile.nesExpansion && visibleSourceCards > 4u;
     const auto useWavetableVoiceGrid = (displayedMode == chipper::ChipMode::huc6280
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
@@ -4710,6 +4667,17 @@ void ChipperAudioProcessorEditor::resized()
                 snNoiseModeSegmentBounds = sourceCard.removeFromTop(std::min(compactSegmentHeight, sourceCard.getHeight()));
                 placeCompactSegment(snNoiseModeButtons, snNoiseModeSegmentBounds, snNoiseModeButtons.size());
                 sourceCard.removeFromTop(3);
+                if (displayedMode == chipper::ChipMode::nes)
+                {
+                    auto periodHeader = sourceCard.removeFromTop(std::min(14, sourceCard.getHeight()));
+                    nativeGroupLabels[2].setBounds({});
+                    nativeLabels[2].setJustificationType(juce::Justification::centredLeft);
+                    nativeLabels[2].setBounds(periodHeader.removeFromLeft(std::min(92, periodHeader.getWidth())));
+                    controlValueLabels[2].setJustificationType(juce::Justification::centredRight);
+                    controlValueLabels[2].setBounds(periodHeader);
+                    nativeSliders[2].setBounds(sourceCard.removeFromTop(std::min(22, sourceCard.getHeight())).reduced(0, 2));
+                    sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
+                }
             }
         }
         else if (isSnSourceCard && i == 3)
@@ -5202,16 +5170,13 @@ void ChipperAudioProcessorEditor::resized()
         auto macroRow = nesRow.removeFromTop(std::min(macroRowHeight, nesRow.getHeight()));
         nesRow.removeFromTop(std::min(nesControlGap, nesRow.getHeight()));
 
-        const auto nesMacroColumnWidth = (macroRow.getWidth() - (nesControlGap * 2)) / 3;
-        for (size_t i = 0; i < 3u; ++i)
-        {
-            controlCells[i] = {
-                macroRow.getX() + (static_cast<int>(i) * (nesMacroColumnWidth + nesControlGap)),
-                macroRow.getY(),
-                nesMacroColumnWidth,
-                macroRow.getHeight()
-            };
-        }
+        const auto nesMacroColumnCount = displayedMode == chipper::ChipMode::nes ? 2 : 3;
+        const auto nesMacroColumnWidth = (macroRow.getWidth() - (nesControlGap * (nesMacroColumnCount - 1))) / nesMacroColumnCount;
+        controlCells[0] = { macroRow.getX(), macroRow.getY(), nesMacroColumnWidth, macroRow.getHeight() };
+        controlCells[1] = displayedMode == chipper::ChipMode::nes
+            ? juce::Rectangle<int> {}
+            : juce::Rectangle<int> { macroRow.getX() + nesMacroColumnWidth + nesControlGap, macroRow.getY(), nesMacroColumnWidth, macroRow.getHeight() };
+        controlCells[2] = { macroRow.getRight() - nesMacroColumnWidth, macroRow.getY(), nesMacroColumnWidth, macroRow.getHeight() };
 
         controlCells[3] = {};
         controlCells[4] = nesRow.removeFromTop(std::min(nesDecayRowHeight, nesRow.getHeight()));
@@ -5275,7 +5240,8 @@ void ChipperAudioProcessorEditor::resized()
         nativeSliders[0].setBounds({});
         controlValueLabels[0].setBounds({});
         placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[0]);
-        placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[1]);
+        if (displayedMode != chipper::ChipMode::nes)
+            placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[1]);
         placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[2]);
 
         auto decayCell = controlCells[4];
@@ -5696,35 +5662,18 @@ void ChipperAudioProcessorEditor::resized()
 
 void ChipperAudioProcessorEditor::setEditorWorkspace(ChipperEditorWorkspace workspace, bool persistSelection)
 {
+    juce::ignoreUnused(workspace, persistSelection);
     if (presetBrowser.isVisible())
         presetBrowser.close();
-    selectedWorkspace = workspace;
+    selectedWorkspace = ChipperEditorWorkspace::edit;
     editorShell.setWorkspace(selectedWorkspace);
     workspaceDeck.setWorkspace(selectedWorkspace);
-    workspaceDeck.toFront(false);
-
-    if (persistSelection && shouldPersistEditorPreferences())
-    {
-        saveEditorWorkspacePreference(selectedWorkspace);
-    }
-
-    if (selectedWorkspace == ChipperEditorWorkspace::edit)
-    {
-        restoreEditWorkspaceVisibility();
-        descriptorTextInitialized = false;
-        updateDescriptorText();
-        updateLiveControlReadouts();
-        captureEditWorkspaceVisibility();
-        if (persistSelection)
-            presetBox.grabKeyboardFocus();
-    }
-    else
-    {
-        enforceWorkspaceVisibility();
-        resized();
-        if (persistSelection)
-            workspaceDeck.focusInitialControl();
-    }
+    workspaceDeck.setVisible(false);
+    restoreEditWorkspaceVisibility();
+    descriptorTextInitialized = false;
+    updateDescriptorText();
+    updateLiveControlReadouts();
+    captureEditWorkspaceVisibility();
 
     repaint();
 }
@@ -5738,29 +5687,8 @@ void ChipperAudioProcessorEditor::enforceWorkspaceVisibility()
         focusOutline.toFront(false);
     };
 
-    if (selectedWorkspace == ChipperEditorWorkspace::edit)
-    {
-        workspaceDeck.setVisible(false);
-        restoreOverlayOrder();
-        return;
-    }
-
-    if (editWorkspaceVisibility.empty())
-        captureEditWorkspaceVisibility();
-
-    for (auto childIndex = 0; childIndex < getNumChildComponents(); ++childIndex)
-    {
-        auto* child = getChildComponent(childIndex);
-        if (child != nullptr
-            && child != &editorShell
-            && child != &workspaceDeck
-            && child != &presetBrowser
-            && child != &focusOutline
-            && ! editorShell.isExternalControl(child))
-            child->setVisible(false);
-    }
-    workspaceDeck.setVisible(true);
-    workspaceDeck.toFront(false);
+    selectedWorkspace = ChipperEditorWorkspace::edit;
+    workspaceDeck.setVisible(false);
     restoreOverlayOrder();
 }
 
@@ -6275,11 +6203,6 @@ bool ChipperAudioProcessorEditor::keyPressed(const juce::KeyPress& key)
             performWorkflowRedo();
             return true;
         }
-        if (code >= '1' && code <= '3')
-        {
-            setEditorWorkspace(static_cast<ChipperEditorWorkspace>(code - '1'), true);
-            return true;
-        }
     }
     return juce::AudioProcessorEditor::keyPressed(key);
 }
@@ -6295,18 +6218,10 @@ void ChipperAudioProcessorEditor::timerCallback()
         return;
     }
 
-    const auto modeChoice = static_cast<int>(std::round(parameterValue(chipper::parameters::id::chipMode)));
-    const auto pendingMode = chipper::parameters::chipModeFromChoice(modeChoice);
-    const auto restoredEditVisibility = selectedWorkspace != ChipperEditorWorkspace::edit
-        && pendingMode != displayedMode;
-    if (restoredEditVisibility)
-        restoreEditWorkspaceVisibility();
-
     updateDescriptorText();
     updateLiveControlReadouts();
     refreshAccessibleNames();
-    if (selectedWorkspace == ChipperEditorWorkspace::edit || restoredEditVisibility)
-        captureEditWorkspaceVisibility();
+    captureEditWorkspaceVisibility();
     statusLabel.setText(audioProcessor.currentCoreStatus(), juce::dontSendNotification);
     statusLabel.setTooltip(audioProcessor.currentCoreStatusDetail());
     outputScopePreview.setSamples(audioProcessor.outputScopeSnapshot());
@@ -11372,11 +11287,13 @@ void ChipperAudioProcessorEditor::setSourceChannelSurfaceVisible(chipper::ChipMo
     {
         const auto hasSource = chipper::parameterSpecFor(mode, sourceRole(i)) != nullptr;
         const auto visible = active && hasSource;
+        const auto isNesDmcLane = mode == chipper::ChipMode::nes && i == 4u;
+        const auto hasLevel = chipper::parameterSpecFor(mode, sourceLevelRole(i)) != nullptr;
         sourceChannelButtons[i].setVisible(visible);
         sourcePreviewScopes[i].setVisible(visible);
-        sourceLevelSliders[i].setVisible(visible && chipper::parameterSpecFor(mode, sourceLevelRole(i)) != nullptr);
-        sourceLevelLabels[i].setVisible(visible && chipper::parameterSpecFor(mode, sourceLevelRole(i)) != nullptr);
-        sourceLevelValueLabels[i].setVisible(visible && chipper::parameterSpecFor(mode, sourceLevelRole(i)) != nullptr);
+        sourceLevelSliders[i].setVisible(visible && hasLevel);
+        sourceLevelLabels[i].setVisible(visible && (hasLevel || isNesDmcLane));
+        sourceLevelValueLabels[i].setVisible(visible && (hasLevel || isNesDmcLane));
         if (i < paulaVoiceSampleBoxes.size())
         {
             const auto paulaSlotVisible = visible && mode == chipper::ChipMode::paula;
@@ -11811,8 +11728,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Pulse 1  |  duty lead",
         "Pulse 2  |  stack / sweep",
         "Triangle | bass body",
-        "Noise/DMC | snare / sample",
-        "VRC6 P1 | expansion",
+        "Noise | percussion",
+        "DMC | sample lane",
         "VRC6 P2 | expansion",
         "VRC6 Saw | expansion",
         "Source 8 | hidden",
@@ -11822,8 +11739,8 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         "Pulse 1  |  note 1",
         "Pulse 2  |  note 2",
         "Triangle | note 3 bass",
-        "Noise/DMC | mono SFX",
-        "VRC6 P1 | note 4",
+        "Noise | mono SFX",
+        "DMC | mono sample",
         "VRC6 P2 | note 5",
         "VRC6 Saw | note 6",
         "Source 8 | hidden",
@@ -12235,6 +12152,7 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         else
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(juce::String("Enable or mute ") + (*labels)[i], sourceRole(i)));
 
+        const auto isNesDmcLane = mode == chipper::ChipMode::nes && i == 4u;
         if (levelSpec != nullptr)
         {
             auto levelTooltip = juce::String(levelSpec->label) + ": " + juce::String(levelSpec->help);
@@ -12243,15 +12161,27 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
             sourceLevelLabels[i].setTooltip(withMidiCcForRole(levelTooltip, sourceLevelRole(i)));
             sourceLevelSliders[i].setTooltip(withMidiCcForRole(levelTooltip, sourceLevelRole(i)));
         }
+        else if (isNesDmcLane)
+        {
+            const auto dmcTooltip = withMidiCcForRole("Native RP2A03 $4011 direct DAC level. DMC has no conventional source trim.",
+                                                       chipper::ChipParameterRole::nesDmcDirectLevel);
+            sourceLevelLabels[i].setTooltip(dmcTooltip);
+            sourceLevelValueLabels[i].setTooltip(dmcTooltip);
+            sourceLevelSliders[i].setTooltip(dmcTooltip);
+        }
         else
         {
             sourceLevelLabels[i].setTooltip(withMidiCcForRole(juce::String("Trim level for ") + (*labels)[i], sourceLevelRole(i)));
             sourceLevelSliders[i].setTooltip(withMidiCcForRole(juce::String("Trim level for ") + (*labels)[i], sourceLevelRole(i)));
         }
 
-        sourceLevelLabels[i].setText(mode == chipper::ChipMode::pokey ? "AUDV" : "Level", juce::dontSendNotification);
-        sourceLevelValueLabels[i].setTooltip(sourceLevelSliders[i].getTooltip());
-        sourceLevelValueLabels[i].setText(mode == chipper::ChipMode::pokey ? pokeySourceLevelReadout(patch, i) : sourceLevelReadout(i), juce::dontSendNotification);
+        sourceLevelLabels[i].setText(isNesDmcLane ? "7-bit DAC" : (mode == chipper::ChipMode::pokey ? "AUDV" : "Level"), juce::dontSendNotification);
+        if (! isNesDmcLane)
+            sourceLevelValueLabels[i].setTooltip(sourceLevelSliders[i].getTooltip());
+        sourceLevelValueLabels[i].setText(isNesDmcLane
+                                              ? nesDmcDirectReadout(patch.nesDmcDirectLevel)
+                                              : (mode == chipper::ChipMode::pokey ? pokeySourceLevelReadout(patch, i) : sourceLevelReadout(i)),
+                                          juce::dontSendNotification);
         updateSourcePreviewScope(mode, patch, i, spec != nullptr && chipper::descriptorFor(mode).implemented);
     }
 
@@ -12304,9 +12234,14 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
         else if (index == 3)
         {
             shape = ChipWaveformPreviewShape::noise;
-            tooltip = "RP2A03 noise / DMC lane: " + nesNoiseModeReadout(patch)
-                + "\nDMC Direct " + nesDmcDirectReadout(patch.nesDmcDirectLevel)
-                + "\nExternal .dmc playback is available from the DMC sample bank.";
+            tooltip = "RP2A03 noise channel: " + nesNoiseModeReadout(patch);
+        }
+        else if (mode == chipper::ChipMode::nes && index == 4)
+        {
+            shape = ChipWaveformPreviewShape::stepped;
+            tooltip = "RP2A03 DMC sample channel."
+                "\nDMC Direct " + nesDmcDirectReadout(patch.nesDmcDirectLevel)
+                + "\nExternal .dmc playback uses the file and bank controls below.";
         }
         else if (mode == chipper::ChipMode::nesVrc6 && (index == 4 || index == 5))
         {
@@ -14448,7 +14383,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         && ! applyingFactoryPreset
         && restoreChipSettingsSnapshot(mode);
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
-    globalStripLabel.setText(hasLiveCore ? "Performance mapping" : "Roadmap", juce::dontSendNotification);
+    globalStripLabel.setText(hasLiveCore ? "Shared Performance" : "Roadmap", juce::dontSendNotification);
     macroSummaryLabel.setVisible(true);
     macroSummaryLabel.setEnabled(true);
     macroSummaryLabel.setAlpha(hasLiveCore ? 1.0f : 0.85f);
@@ -14565,8 +14500,8 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         auto summary = juce::String(module.summary);
         if (isNesFamily(mode) && i == 5)
         {
-            moduleTitleLabels[i].setText("DMC Sample", juce::dontSendNotification);
-            summary = "Load a DMC file or bank, then browse manually or map slots across notes.";
+            moduleTitleLabels[i].setText("DMC Channel", juce::dontSendNotification);
+            summary = "Fifth APU channel: load a DMC file or bank, set its native DAC/rate behavior, or map slots across notes.";
         }
         else if (mode == chipper::ChipMode::spc700 && i == 5)
         {

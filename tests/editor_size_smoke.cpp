@@ -418,6 +418,8 @@ bool checkChannelOwnedControlLayout(chipper::ChipMode mode)
         ok &= expectControlOwnedBySourceChannel(editor, 1, editor.getPulse2DutyBoundsForLayoutTest(), "NES pulse 2 duty");
         if (mode != chipper::ChipMode::nesVrc7)
             ok &= expectControlOwnedBySourceChannel(editor, 3, editor.getSnNoiseModeBoundsForLayoutTest(), "NES noise mode");
+        if (mode == chipper::ChipMode::nes)
+            ok &= expectControlOwnedBySourceChannel(editor, 3, editor.getNativeSliderBoundsForLayoutTest(2), "NES noise period");
         break;
 
     case chipper::ChipMode::dmg:
@@ -1396,6 +1398,8 @@ bool checkPerformanceMacroSliderLayout()
         switch (mode)
         {
             case chipper::ChipMode::nes:
+                expectedMacroSliders = { 1, 3 };
+                break;
             case chipper::ChipMode::nesVrc6:
             case chipper::ChipMode::nesFds:
             case chipper::ChipMode::nesSunsoft5b:
@@ -1884,24 +1888,14 @@ bool checkGlobalPresetBrowserWorkflow()
     ChipperAudioProcessor processor;
     ChipperAudioProcessorEditor editor(processor);
     editor.setSize(expectedEditorMinimumWidth, expectedEditorHeight);
-
-    for (const auto workspace : { ChipperEditorWorkspace::play, ChipperEditorWorkspace::inspect })
-    {
-        editor.setWorkspaceForLayoutTest(workspace);
-        editor.runEditorUpdateForLayoutTest();
-        editor.showPresetBrowserForLayoutTest();
-        editor.runEditorUpdateForLayoutTest();
-        if (! editor.isPresetBrowserVisibleForLayoutTest() || ! editor.isPresetBrowserAboveWorkspaceForLayoutTest())
-        {
-            std::cerr << "editor_size_smoke: global browser did not remain above the "
-                      << (workspace == ChipperEditorWorkspace::play ? "Play" : "Info")
-                      << " workspace after the periodic UI update\n";
-            ok = false;
-        }
-        editor.closePresetBrowserForLayoutTest();
-    }
-    editor.setWorkspaceForLayoutTest(ChipperEditorWorkspace::edit);
+    editor.showPresetBrowserForLayoutTest();
     editor.runEditorUpdateForLayoutTest();
+    if (! editor.isPresetBrowserVisibleForLayoutTest())
+    {
+        std::cerr << "editor_size_smoke: global browser did not remain open above the unified editor after the periodic UI update\n";
+        ok = false;
+    }
+    editor.closePresetBrowserForLayoutTest();
 
     const auto crossChipPreset = std::find_if(chipper::presetCatalog().begin(),
                                               chipper::presetCatalog().end(),
@@ -1950,7 +1944,7 @@ bool checkGlobalPresetBrowserWorkflow()
     return ok;
 }
 
-bool checkWorkspaceNavigation()
+bool checkUnifiedEditorContract()
 {
     bool ok = true;
     const auto chipModeCount = chipper::parameters::chipModeChoices().size();
@@ -1967,11 +1961,11 @@ bool checkWorkspaceNavigation()
         for (const auto* parameter : processor.getParameters())
             parameterValues.push_back(parameter != nullptr ? parameter->getValue() : 0.0f);
 
-        const auto selectorBounds = editor.getWorkspaceSelectorBoundsForLayoutTest();
-        if (selectorBounds.getWidth() < 240 || selectorBounds.getHeight() < 24)
+        editor.runEditorUpdateForLayoutTest();
+        if (! editor.getWorkspaceSelectorBoundsForLayoutTest().isEmpty())
         {
-            std::cerr << "editor_size_smoke: workspace selector is not readable for chip choice "
-                      << chipChoice << ": " << selectorBounds.toString() << '\n';
+            std::cerr << "editor_size_smoke: unified editor still reserves a workspace selector for chip choice "
+                      << chipChoice << '\n';
             ok = false;
         }
 
@@ -1979,225 +1973,81 @@ bool checkWorkspaceNavigation()
                                       ChipperEditorWorkspace::edit,
                                       ChipperEditorWorkspace::inspect })
         {
-            const auto buttonBounds = editor.getWorkspaceButtonBoundsForLayoutTest(workspace);
-            if (buttonBounds.getWidth() < 48 || buttonBounds.getHeight() < 20)
+            if (! editor.getWorkspaceButtonBoundsForLayoutTest(workspace).isEmpty())
             {
-                std::cerr << "editor_size_smoke: workspace button is below readable size for chip choice "
-                          << chipChoice << ": " << buttonBounds.toString() << '\n';
-                ok = false;
-            }
-        }
-
-        editor.setWorkspaceForLayoutTest(ChipperEditorWorkspace::play);
-        editor.runEditorUpdateForLayoutTest();
-        if (editor.getWorkspaceForLayoutTest() != ChipperEditorWorkspace::play
-            || ! editor.isWorkspaceDeckVisibleForLayoutTest())
-        {
-            std::cerr << "editor_size_smoke: Play workspace did not become active for chip choice "
-                      << chipChoice << '\n';
-            ok = false;
-        }
-        ok &= checkAccessibleFocusContract(editor, "play.");
-
-        const auto mode = chipper::parameters::chipModeFromChoice(chipChoice);
-        const auto uiProfile = chipper::ui::profileFor(mode);
-        const auto expectedSources = chipper::visibleSourceCountForMode(mode);
-        if (editor.getPlayWorkspaceSourceCountForLayoutTest() != expectedSources)
-        {
-            std::cerr << "editor_size_smoke: Play workspace source count mismatch for chip choice "
-                      << chipChoice << '\n';
-            ok = false;
-        }
-        const auto relationshipBounds = editor.getPlayWorkspaceRelationshipBoundsForLayoutTest();
-        const auto relationshipSummary = editor.getPlayWorkspaceRelationshipSummaryForLayoutTest();
-        if (relationshipBounds.getWidth() < 600 || relationshipBounds.getHeight() < 18
-            || relationshipSummary.isEmpty()
-            || ! relationshipSummary.contains("Chipper"))
-        {
-            std::cerr << "editor_size_smoke: Play relationship/authenticity map is incomplete for chip choice "
-                      << chipChoice << '\n';
-            ok = false;
-        }
-        if ((mode == chipper::ChipMode::sid && ! relationshipSummary.contains("Sync/Ring"))
-            || (mode == chipper::ChipMode::huc6280 && ! relationshipSummary.contains("Channel 2"))
-            || (uiProfile.sampler && ! relationshipSummary.contains("Sample bank"))
-            || (uiProfile.wavetable && ! relationshipSummary.contains("amp envelope")))
-        {
-            std::cerr << "editor_size_smoke: Play relationship map lost chip-family semantics for chip choice "
-                      << chipChoice << ": " << relationshipSummary.toStdString() << '\n';
-            ok = false;
-        }
-        for (size_t source = 0; source < expectedSources; ++source)
-        {
-            const auto bounds = editor.getPlayWorkspaceSourceBoundsForLayoutTest(source);
-            if (bounds.getWidth() < 80 || bounds.getHeight() < 24)
-            {
-                std::cerr << "editor_size_smoke: Play source control is unreadable for chip choice "
-                          << chipChoice << " source " << source << ": " << bounds.toString() << '\n';
-                ok = false;
-            }
-        }
-        const auto expectsMasterDetail = uiProfile.usesMasterDetailSources;
-        if (editor.getPlayWorkspaceUsesMasterDetailForLayoutTest() != expectsMasterDetail)
-        {
-            std::cerr << "editor_size_smoke: Play master-detail source policy mismatch for chip choice "
-                      << chipChoice << '\n';
-            ok = false;
-        }
-        if (expectsMasterDetail)
-        {
-            const auto detailBounds = editor.getPlayWorkspaceSourceDetailBoundsForLayoutTest();
-            const auto detailLevelBounds = editor.getPlayWorkspaceSourceDetailLevelBoundsForLayoutTest();
-            if (detailBounds.getWidth() < 340 || detailBounds.getHeight() < 120
-                || detailLevelBounds.getWidth() < 140 || detailLevelBounds.getHeight() < 20)
-            {
-                std::cerr << "editor_size_smoke: Play selected-source detail editor is unreadable for chip choice "
-                          << chipChoice << ": " << detailBounds.toString() << '\n';
-                ok = false;
-            }
-
-            const auto lastSource = expectedSources - 1u;
-            editor.selectPlayWorkspaceSourceForLayoutTest(lastSource);
-            if (editor.getPlayWorkspaceSelectedSourceForLayoutTest() != lastSource
-                || editor.getPlayWorkspaceSourceDetailTitleForLayoutTest().isEmpty())
-            {
-                std::cerr << "editor_size_smoke: Play selected-source detail editor did not follow selection for chip choice "
-                          << chipChoice << '\n';
-                ok = false;
-            }
-
-            const auto expectsAssetDetail = uiProfile.sampler || uiProfile.wavetable;
-            const auto assetBounds = editor.getPlayWorkspaceSourceDetailAssetBoundsForLayoutTest();
-            const auto editButtonBounds = editor.getPlayWorkspaceSourceDetailEditButtonBoundsForLayoutTest();
-            if (expectsAssetDetail)
-            {
-                if (detailBounds.getHeight() < 100
-                    || assetBounds.getWidth() < 180 || assetBounds.getHeight() < 24
-                    || editButtonBounds.getWidth() < 120 || editButtonBounds.getHeight() < 22
-                    || editor.getPlayWorkspaceSourceDetailAssetStatusForLayoutTest().isEmpty())
-                {
-                    std::cerr << "editor_size_smoke: sampler/wavetable selected-asset workflow is incomplete for chip choice "
-                              << chipChoice << '\n';
-                    ok = false;
-                }
-
-                editor.openPlayWorkspaceAssetEditorForLayoutTest();
-                if (editor.getWorkspaceForLayoutTest() != ChipperEditorWorkspace::edit)
-                {
-                    std::cerr << "editor_size_smoke: selected-asset recovery action did not open Edit for chip choice "
-                              << chipChoice << '\n';
-                    ok = false;
-                }
-                editor.setWorkspaceForLayoutTest(ChipperEditorWorkspace::play);
-                editor.runEditorUpdateForLayoutTest();
-            }
-            else if (! assetBounds.isEmpty() || ! editButtonBounds.isEmpty())
-            {
-                std::cerr << "editor_size_smoke: non-asset source detail unexpectedly exposed asset controls for chip choice "
+                std::cerr << "editor_size_smoke: unified editor still exposes a workspace button for chip choice "
                           << chipChoice << '\n';
                 ok = false;
             }
         }
-        else if (! editor.getPlayWorkspaceSourceDetailBoundsForLayoutTest().isEmpty())
-        {
-            std::cerr << "editor_size_smoke: compact Play source deck unexpectedly reserved a detail editor for chip choice "
-                      << chipChoice << '\n';
-            ok = false;
-        }
-        for (size_t macro = 0; macro < 4u; ++macro)
-        {
-            const auto bounds = editor.getPlayWorkspaceMacroBoundsForLayoutTest(macro);
-            if (bounds.getWidth() < 120 || bounds.getHeight() < 20)
-            {
-                std::cerr << "editor_size_smoke: Play macro is unreadable for chip choice "
-                          << chipChoice << " macro " << macro << ": " << bounds.toString() << '\n';
-                ok = false;
-            }
-        }
-        if (mode == chipper::ChipMode::nes)
-        {
-            const auto pulse2QuickControl = editor.getPlayWorkspaceSourceQuickControlBoundsForLayoutTest(1);
-            const auto noiseQuickControl = editor.getPlayWorkspaceSourceQuickControlBoundsForLayoutTest(3);
-            if (pulse2QuickControl.getWidth() < 120 || pulse2QuickControl.getHeight() < 20
-                || noiseQuickControl.getWidth() < 120 || noiseQuickControl.getHeight() < 20)
-            {
-                std::cerr << "editor_size_smoke: NES Play quick chip controls are incomplete\n";
-                ok = false;
-            }
-        }
-        if (editor.getPlayWorkspaceOutputBoundsForLayoutTest().getHeight() < 20)
-        {
-            std::cerr << "editor_size_smoke: Play output is unreadable for chip choice "
-                      << chipChoice << '\n';
-            ok = false;
-        }
 
-        editor.setWorkspaceForLayoutTest(ChipperEditorWorkspace::inspect);
-        editor.runEditorUpdateForLayoutTest();
-        if (editor.getWorkspaceForLayoutTest() != ChipperEditorWorkspace::inspect
-            || editor.getInspectWorkspaceVerificationForLayoutTest().isEmpty()
-            || editor.getInspectWorkspaceGapsForLayoutTest().isEmpty())
-        {
-            std::cerr << "editor_size_smoke: Info workspace content is incomplete for chip choice "
-                      << chipChoice << '\n';
-            ok = false;
-        }
-        if (editor.getInfoWorkspaceAuthenticityBoundsForLayoutTest().getHeight() < 100
-            || editor.getInfoWorkspaceCapabilityBoundsForLayoutTest().getHeight() < 70
-            || editor.getInfoWorkspaceTechnicalDetailsExpandedForLayoutTest())
-        {
-            std::cerr << "editor_size_smoke: Info overview hierarchy is incomplete for chip choice "
-                      << chipChoice << '\n';
-            ok = false;
-        }
-        editor.toggleInfoWorkspaceTechnicalDetailsForLayoutTest();
-        if (! editor.getInfoWorkspaceTechnicalDetailsExpandedForLayoutTest())
-        {
-            std::cerr << "editor_size_smoke: Info technical evidence did not expand for chip choice "
-                      << chipChoice << '\n';
-            ok = false;
-        }
-        editor.toggleInfoWorkspaceTechnicalDetailsForLayoutTest();
-        ok &= checkAccessibleFocusContract(editor, "inspect.");
-
-        editor.setWorkspaceForLayoutTest(ChipperEditorWorkspace::edit);
-        editor.runEditorUpdateForLayoutTest();
         if (editor.getWorkspaceForLayoutTest() != ChipperEditorWorkspace::edit
             || editor.isWorkspaceDeckVisibleForLayoutTest()
             || ! editor.isModuleTitleVisibleForLayoutTest(1))
         {
-            std::cerr << "editor_size_smoke: Edit workspace did not restore chip controls for chip choice "
+            std::cerr << "editor_size_smoke: unified chip surface is not authoritative for chip choice "
                       << chipChoice << '\n';
             ok = false;
         }
+
+        const auto mode = chipper::parameters::chipModeFromChoice(chipChoice);
+        const auto expectedSources = chipper::visibleSourceCountForMode(mode);
+        for (size_t source = 0; source < expectedSources; ++source)
+        {
+            const auto bounds = editor.getSourceChannelBoundsForLayoutTest(source);
+            if (bounds.getWidth() < 80 || bounds.getHeight() < 60)
+            {
+                std::cerr << "editor_size_smoke: unified source card is unreadable for chip choice "
+                          << chipChoice << " source " << source << ": " << bounds.toString() << '\n';
+                ok = false;
+            }
+        }
+        if (editor.getPerformanceBoundsForLayoutTest().getHeight() < 100
+            || editor.getOutputSliderBoundsForLayoutTest().getHeight() < 16)
+        {
+            std::cerr << "editor_size_smoke: unified performance/output path is unreadable for chip choice "
+                      << chipChoice << '\n';
+            ok = false;
+        }
+
         if (mode == chipper::ChipMode::nes
             && (! editor.isDmcEmptyStateButtonVisibleForLayoutTest()
                 || editor.getDmcEmptyStateButtonBoundsForLayoutTest().getWidth() < 150
-                || editor.getDmcEmptyStateButtonBoundsForLayoutTest().getHeight() < 24))
+                || editor.getDmcEmptyStateButtonBoundsForLayoutTest().getHeight() < 24
+                || editor.getSourceChannelBoundsForLayoutTest(4).isEmpty()))
         {
-            std::cerr << "editor_size_smoke: NES DMC empty state is not actionable\n";
+            std::cerr << "editor_size_smoke: NES DMC fifth channel or empty state is not actionable\n";
+            ok = false;
+        }
+
+        editor.setWorkspaceForLayoutTest(ChipperEditorWorkspace::play);
+        editor.runEditorUpdateForLayoutTest();
+        editor.setWorkspaceForLayoutTest(ChipperEditorWorkspace::inspect);
+        editor.runEditorUpdateForLayoutTest();
+        if (editor.getWorkspaceForLayoutTest() != ChipperEditorWorkspace::edit
+            || editor.isWorkspaceDeckVisibleForLayoutTest())
+        {
+            std::cerr << "editor_size_smoke: obsolete workspace requests escaped the unified editor contract for chip choice "
+                      << chipChoice << '\n';
             ok = false;
         }
 
         if (chipChoice == 0)
         {
             ok &= checkAccessibleFocusContract(editor, "header.");
-            ok &= checkAccessibleFocusContract(editor, "workspace.");
             const auto command = juce::ModifierKeys(juce::ModifierKeys::commandModifier);
             editor.keyPressed(juce::KeyPress('1', command, 0));
-            ok &= expect(editor.getWorkspaceForLayoutTest() == ChipperEditorWorkspace::play,
-                         "Ctrl/Cmd+1 did not open Play");
+            ok &= expect(editor.getWorkspaceForLayoutTest() == ChipperEditorWorkspace::edit,
+                         "Ctrl/Cmd+1 should not leave the unified editor");
             editor.keyPressed(juce::KeyPress('3', command, 0));
-            ok &= expect(editor.getWorkspaceForLayoutTest() == ChipperEditorWorkspace::inspect,
-                         "Ctrl/Cmd+3 did not open Info");
+            ok &= expect(editor.getWorkspaceForLayoutTest() == ChipperEditorWorkspace::edit,
+                         "Ctrl/Cmd+3 should not leave the unified editor");
             editor.keyPressed(juce::KeyPress('B', command, 0));
             ok &= expect(editor.isPresetBrowserVisibleForLayoutTest(),
                          "Ctrl/Cmd+B did not open the global browser");
             editor.keyPressed(juce::KeyPress(juce::KeyPress::escapeKey));
             ok &= expect(! editor.isPresetBrowserVisibleForLayoutTest(),
                          "Escape did not close the global browser");
-            editor.setWorkspaceForLayoutTest(ChipperEditorWorkspace::edit);
-            editor.runEditorUpdateForLayoutTest();
         }
 
         size_t parameterIndex = 0;
@@ -2207,7 +2057,7 @@ bool checkWorkspaceNavigation()
             const auto after = parameter != nullptr ? parameter->getValue() : 0.0f;
             if (std::abs(before - after) > 0.000001f)
             {
-                std::cerr << "editor_size_smoke: workspace switching changed parameter state for chip choice "
+                std::cerr << "editor_size_smoke: unified-surface checks changed parameter state for chip choice "
                           << chipChoice << '\n';
                 ok = false;
                 break;
@@ -2474,7 +2324,7 @@ int main()
     ok &= checkPresetRoleFilterLayout();
     ok &= checkGlobalPresetBrowserWorkflow();
     ok &= checkChipSwitchPreservesEditorSettings();
-    ok &= checkWorkspaceNavigation();
+    ok &= checkUnifiedEditorContract();
     ok &= checkWorkflowTools();
 
     return ok ? 0 : 1;

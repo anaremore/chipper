@@ -28,40 +28,17 @@ ChipperEditorShell::ChipperEditorShell(Controls controlsToUse)
     addAndMakeVisible(controls.midiCc);
     addAndMakeVisible(controls.build);
 
-    workspaceLabel.setText("View", juce::dontSendNotification);
-    workspaceLabel.setJustificationType(juce::Justification::centredRight);
-    workspaceLabel.setFont(juce::FontOptions(11.0f, juce::Font::bold));
-    addAndMakeVisible(workspaceLabel);
-
-    static constexpr std::array<const char*, 3> workspaceNames { "Play", "Edit", "Info" };
-    static constexpr std::array<const char*, 3> workspaceHelp {
-        "Play: perform with expressive macros, quick source character, source mix, and output. Shortcut: Ctrl/Cmd+1.",
-        "Edit: construct the sound with the full chip-native editor. Shortcut: Ctrl/Cmd+2.",
-        "Info: understand native behavior, Chipper helpers, authenticity, and documented limitations. Shortcut: Ctrl/Cmd+3."
-    };
-    for (size_t i = 0; i < workspaceButtons.size(); ++i)
+    for (auto& button : workspaceButtons)
     {
-        auto& button = workspaceButtons[i];
-        button.setButtonText(workspaceNames[i]);
-        button.setComponentID("workspace." + juce::String(workspaceNames[i]).toLowerCase());
-        button.setName(juce::String(workspaceNames[i]) + " workspace");
-        button.setTooltip(workspaceHelp[i]);
-        button.setClickingTogglesState(true);
-        button.setRadioGroupId(0x43485052);
-        button.setWantsKeyboardFocus(true);
-        button.onClick = [this, i]
-        {
-            setWorkspace(static_cast<ChipperEditorWorkspace>(i), juce::sendNotification);
-        };
-        addAndMakeVisible(button);
+        button.setWantsKeyboardFocus(false);
+        button.setVisible(false);
     }
     int focusOrder = 1;
-    for (auto* component : std::array<juce::Component*, 11> {
+    for (auto* component : std::array<juce::Component*, 9> {
              &controls.browser, &controls.preset, &controls.favorite, &controls.load,
              &controls.save, &controls.saveAs, &controls.chipMode, &controls.strictness,
-             &controls.playMode, &workspaceButtons[0], &workspaceButtons[1] })
+             &controls.playMode })
         component->setExplicitFocusOrder(focusOrder++);
-    workspaceButtons[2].setExplicitFocusOrder(focusOrder);
     setWorkspace(selectedWorkspace);
 }
 
@@ -126,23 +103,14 @@ void ChipperEditorShell::resized()
 
     area.removeFromTop(6);
     auto summaryRow = area.removeFromTop(28);
-    workspaceBounds = summaryRow.removeFromRight(std::min(270, summaryRow.getWidth() / 3));
-    summaryRow.removeFromRight(8);
-    const auto workflowWidth = std::min(346, std::max(250, summaryRow.getWidth() / 2));
+    workspaceBounds = {};
+    workspaceLabel.setBounds({});
+    for (auto& button : workspaceButtons)
+        button.setBounds({});
+    const auto workflowWidth = std::min(360, std::max(300, summaryRow.getWidth() / 3));
     controls.workflow.setBounds(summaryRow.removeFromRight(workflowWidth).reduced(0, 2));
     summaryRow.removeFromRight(8);
     controls.chipSummary.setBounds(summaryRow);
-
-    auto workspaceRow = workspaceBounds;
-    workspaceLabel.setBounds(workspaceRow.removeFromLeft(40));
-    workspaceRow.removeFromLeft(6);
-    constexpr auto workspaceGap = 4;
-    const auto buttonWidth = std::max(48, (workspaceRow.getWidth() - (workspaceGap * 2)) / 3);
-    for (auto& button : workspaceButtons)
-    {
-        button.setBounds(workspaceRow.removeFromLeft(std::min(buttonWidth, workspaceRow.getWidth())).reduced(0, 2));
-        workspaceRow.removeFromLeft(std::min(workspaceGap, workspaceRow.getWidth()));
-    }
 
     auto footer = getLocalBounds().reduced(16).removeFromBottom(44);
     controls.build.setBounds(footer.removeFromRight(190));
@@ -212,12 +180,8 @@ bool ChipperEditorShell::isExternalControl(const juce::Component* component) con
 
 void ChipperEditorShell::setWorkspace(ChipperEditorWorkspace workspaceToUse, juce::NotificationType notification)
 {
-    selectedWorkspace = workspaceToUse;
-    for (size_t i = 0; i < workspaceButtons.size(); ++i)
-        workspaceButtons[i].setToggleState(static_cast<size_t>(selectedWorkspace) == i, juce::dontSendNotification);
-
-    if (notification != juce::dontSendNotification && onWorkspaceChanged)
-        onWorkspaceChanged(selectedWorkspace);
+    juce::ignoreUnused(workspaceToUse, notification);
+    selectedWorkspace = ChipperEditorWorkspace::edit;
 }
 
 void ChipperEditorShell::setTheme(juce::Colour primary,

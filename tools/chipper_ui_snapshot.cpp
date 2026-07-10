@@ -16,7 +16,7 @@ struct Options
 {
     juce::File outputDirectory;
     juce::String chip = "all";
-    juce::String workspace = "all";
+    juce::String workspace = "editor";
     std::vector<int> widths { compactEditorWidth, defaultEditorWidth };
     bool manifestOnly = false;
 };
@@ -26,7 +26,7 @@ void printUsage()
     std::cout
         << "Usage: chipper_ui_snapshot [--output <directory>] [--chip <name|all>]\n"
         << "                           [--width <1180|1240|both>]\n"
-        << "                           [--workspace <play|edit|inspect|browser|all>] [--manifest-only]\n";
+        << "                           [--workspace <editor|browser|all>] [--manifest-only]\n";
 }
 
 std::optional<Options> parseOptions(int argc, char** argv)
@@ -80,7 +80,7 @@ std::optional<Options> parseOptions(int argc, char** argv)
         {
             const auto value = nextValue();
             if (! value.has_value()
-                || (*value != "play" && *value != "edit" && *value != "inspect" && *value != "browser" && *value != "all"))
+                || (*value != "editor" && *value != "edit" && *value != "browser" && *value != "all"))
                 return std::nullopt;
 
             options.workspace = *value;
@@ -223,6 +223,7 @@ bool writePng(ChipperAudioProcessorEditor& editor, const juce::File& destination
     // Windows, the first headless snapshot after a dense component re-layout can
     // otherwise contain only the children that invalidated themselves.
     editor.createComponentSnapshot(editor.getLocalBounds(), true, 1.0f);
+    editor.createComponentSnapshot(editor.getLocalBounds(), true, 1.0f);
     auto image = editor.createComponentSnapshot(editor.getLocalBounds(), true, 1.0f);
     if (! image.isValid())
         return false;
@@ -273,22 +274,14 @@ std::optional<int> requestedChipChoice(const juce::String& requested)
 
 juce::String workspaceName(ChipperEditorWorkspace workspace)
 {
-    switch (workspace)
-    {
-        case ChipperEditorWorkspace::play: return "play";
-        case ChipperEditorWorkspace::edit: return "edit";
-        case ChipperEditorWorkspace::inspect: return "inspect";
-    }
-    return "edit";
+    juce::ignoreUnused(workspace);
+    return "editor";
 }
 
 std::vector<ChipperEditorWorkspace> requestedWorkspaces(const juce::String& requested)
 {
-    if (requested == "play") return { ChipperEditorWorkspace::play };
-    if (requested == "edit") return { ChipperEditorWorkspace::edit };
-    if (requested == "inspect") return { ChipperEditorWorkspace::inspect };
-    if (requested == "browser") return { ChipperEditorWorkspace::edit };
-    return { ChipperEditorWorkspace::play, ChipperEditorWorkspace::edit, ChipperEditorWorkspace::inspect };
+    juce::ignoreUnused(requested);
+    return { ChipperEditorWorkspace::edit };
 }
 }
 
@@ -332,11 +325,11 @@ int main(int argc, char** argv)
                     std::cerr << "Could not select chip choice " << choice << '\n';
                     return 1;
                 }
+                processor.prepareToPlay(48000.0, 512);
                 ChipperAudioProcessorEditor editor(processor);
                 editor.runEditorUpdateForLayoutTest();
                 editor.runEditorUpdateForLayoutTest();
                 editor.setSize(width, editor.getHeight());
-                editor.setWorkspaceForLayoutTest(workspace);
                 editor.runEditorUpdateForLayoutTest();
                 editor.runEditorUpdateForLayoutTest();
                 const auto browserCapture = options.workspace == "browser";
@@ -344,9 +337,11 @@ int main(int argc, char** argv)
                 {
                     editor.showPresetBrowserForLayoutTest();
                     editor.showBrowserSearchFocusOutlineForLayoutTest();
+                    editor.runEditorUpdateForLayoutTest();
+                    editor.runEditorUpdateForLayoutTest();
                 }
                 editor.repaint();
-                juce::MessageManager::getInstance()->runDispatchLoopUntil(50);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil(browserCapture ? 100 : 50);
 
                 const auto displayName = chipper::parameters::chipModeChoices()[choice];
                 const auto workspaceKey = browserCapture ? juce::String("browser") : workspaceName(workspace);
