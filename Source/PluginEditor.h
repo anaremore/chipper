@@ -175,6 +175,10 @@ public:
     juce::Rectangle<int> getPresetFavoriteBoundsForLayoutTest() const { return presetFavoriteButton.getBounds(); }
     juce::Rectangle<int> getPresetBrowserButtonBoundsForLayoutTest() const { return presetBrowserButton.getBounds(); }
     bool isPresetBrowserVisibleForLayoutTest() const { return presetBrowser.isVisible(); }
+    bool isPresetBrowserAboveWorkspaceForLayoutTest() const
+    {
+        return getIndexOfChildComponent(&presetBrowser) > getIndexOfChildComponent(&workspaceDeck);
+    }
     void showPresetBrowserForLayoutTest() { showPresetBrowser(); }
     void closePresetBrowserForLayoutTest() { presetBrowser.close(); }
     juce::Rectangle<int> getGlobalPresetBrowserSearchBoundsForLayoutTest() const { return presetBrowser.searchBoundsForTest(); }

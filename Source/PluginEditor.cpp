@@ -5718,9 +5718,17 @@ void ChipperAudioProcessorEditor::setEditorWorkspace(ChipperEditorWorkspace work
 
 void ChipperAudioProcessorEditor::enforceWorkspaceVisibility()
 {
+    const auto restoreOverlayOrder = [this]
+    {
+        if (presetBrowser.isVisible())
+            presetBrowser.toFront(false);
+        focusOutline.toFront(false);
+    };
+
     if (selectedWorkspace == ChipperEditorWorkspace::edit)
     {
         workspaceDeck.setVisible(false);
+        restoreOverlayOrder();
         return;
     }
 
@@ -5740,6 +5748,7 @@ void ChipperAudioProcessorEditor::enforceWorkspaceVisibility()
     }
     workspaceDeck.setVisible(true);
     workspaceDeck.toFront(false);
+    restoreOverlayOrder();
 }
 
 void ChipperAudioProcessorEditor::captureEditWorkspaceVisibility()

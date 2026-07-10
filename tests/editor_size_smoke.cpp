@@ -1885,6 +1885,24 @@ bool checkGlobalPresetBrowserWorkflow()
     ChipperAudioProcessorEditor editor(processor);
     editor.setSize(expectedEditorMinimumWidth, expectedEditorHeight);
 
+    for (const auto workspace : { ChipperEditorWorkspace::play, ChipperEditorWorkspace::inspect })
+    {
+        editor.setWorkspaceForLayoutTest(workspace);
+        editor.runEditorUpdateForLayoutTest();
+        editor.showPresetBrowserForLayoutTest();
+        editor.runEditorUpdateForLayoutTest();
+        if (! editor.isPresetBrowserVisibleForLayoutTest() || ! editor.isPresetBrowserAboveWorkspaceForLayoutTest())
+        {
+            std::cerr << "editor_size_smoke: global browser did not remain above the "
+                      << (workspace == ChipperEditorWorkspace::play ? "Play" : "Inspect")
+                      << " workspace after the periodic UI update\n";
+            ok = false;
+        }
+        editor.closePresetBrowserForLayoutTest();
+    }
+    editor.setWorkspaceForLayoutTest(ChipperEditorWorkspace::edit);
+    editor.runEditorUpdateForLayoutTest();
+
     const auto crossChipPreset = std::find_if(chipper::presetCatalog().begin(),
                                               chipper::presetCatalog().end(),
                                               [](const chipper::PresetInfo& preset)
