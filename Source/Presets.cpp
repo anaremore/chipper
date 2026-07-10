@@ -1480,10 +1480,10 @@ const std::vector<PresetInfo>& presetCatalog()
             14318180.0
         },
         {
-            "opl2-power-rise",
+            "opl3-four-op-rise",
             "OPL2/OPL3 / DOS FM",
-            "OPL2 Power Rise",
-            "Optimistic DOS FM rise using bright two-operator stacks.",
+            "OPL3 Four-Op Rise",
+            "Optimistic DOS FM rise using native OPL3 $104 four-operator pairs.",
             ChipMode::opl3,
             AccuracyMode::hybrid,
             MacroKind::powerUp,
@@ -1492,7 +1492,7 @@ const std::vector<PresetInfo>& presetCatalog()
             { true, true, true, true },
             0.14f,
             2,
-            0,
+            4,
             0,
             -10.0f,
             14318180.0
@@ -8257,6 +8257,9 @@ std::vector<std::string> presetTagsFor(const PresetInfo& preset)
             addPresetTag(tags, "pokey");
             break;
     }
+
+    if (preset.chip == ChipMode::opl3 && preset.ymEnvelopeShape == 4)
+        addPresetTag(tags, "4op");
 
     if ((preset.chip == ChipMode::nes
          || preset.chip == ChipMode::nesVrc6
