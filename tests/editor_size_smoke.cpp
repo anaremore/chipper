@@ -1894,7 +1894,7 @@ bool checkGlobalPresetBrowserWorkflow()
         if (! editor.isPresetBrowserVisibleForLayoutTest() || ! editor.isPresetBrowserAboveWorkspaceForLayoutTest())
         {
             std::cerr << "editor_size_smoke: global browser did not remain above the "
-                      << (workspace == ChipperEditorWorkspace::play ? "Play" : "Inspect")
+                      << (workspace == ChipperEditorWorkspace::play ? "Play" : "Info")
                       << " workspace after the periodic UI update\n";
             ok = false;
         }
@@ -2048,7 +2048,7 @@ bool checkWorkspaceNavigation()
         {
             const auto detailBounds = editor.getPlayWorkspaceSourceDetailBoundsForLayoutTest();
             const auto detailLevelBounds = editor.getPlayWorkspaceSourceDetailLevelBoundsForLayoutTest();
-            if (detailBounds.getWidth() < 600 || detailBounds.getHeight() < 64
+            if (detailBounds.getWidth() < 340 || detailBounds.getHeight() < 120
                 || detailLevelBounds.getWidth() < 140 || detailLevelBounds.getHeight() < 20)
             {
                 std::cerr << "editor_size_smoke: Play selected-source detail editor is unreadable for chip choice "
@@ -2114,6 +2114,17 @@ bool checkWorkspaceNavigation()
                 ok = false;
             }
         }
+        if (mode == chipper::ChipMode::nes)
+        {
+            const auto pulse2QuickControl = editor.getPlayWorkspaceSourceQuickControlBoundsForLayoutTest(1);
+            const auto noiseQuickControl = editor.getPlayWorkspaceSourceQuickControlBoundsForLayoutTest(3);
+            if (pulse2QuickControl.getWidth() < 120 || pulse2QuickControl.getHeight() < 20
+                || noiseQuickControl.getWidth() < 120 || noiseQuickControl.getHeight() < 20)
+            {
+                std::cerr << "editor_size_smoke: NES Play quick chip controls are incomplete\n";
+                ok = false;
+            }
+        }
         if (editor.getPlayWorkspaceOutputBoundsForLayoutTest().getHeight() < 20)
         {
             std::cerr << "editor_size_smoke: Play output is unreadable for chip choice "
@@ -2127,10 +2138,26 @@ bool checkWorkspaceNavigation()
             || editor.getInspectWorkspaceVerificationForLayoutTest().isEmpty()
             || editor.getInspectWorkspaceGapsForLayoutTest().isEmpty())
         {
-            std::cerr << "editor_size_smoke: Inspect workspace content is incomplete for chip choice "
+            std::cerr << "editor_size_smoke: Info workspace content is incomplete for chip choice "
                       << chipChoice << '\n';
             ok = false;
         }
+        if (editor.getInfoWorkspaceAuthenticityBoundsForLayoutTest().getHeight() < 100
+            || editor.getInfoWorkspaceCapabilityBoundsForLayoutTest().getHeight() < 70
+            || editor.getInfoWorkspaceTechnicalDetailsExpandedForLayoutTest())
+        {
+            std::cerr << "editor_size_smoke: Info overview hierarchy is incomplete for chip choice "
+                      << chipChoice << '\n';
+            ok = false;
+        }
+        editor.toggleInfoWorkspaceTechnicalDetailsForLayoutTest();
+        if (! editor.getInfoWorkspaceTechnicalDetailsExpandedForLayoutTest())
+        {
+            std::cerr << "editor_size_smoke: Info technical evidence did not expand for chip choice "
+                      << chipChoice << '\n';
+            ok = false;
+        }
+        editor.toggleInfoWorkspaceTechnicalDetailsForLayoutTest();
         ok &= checkAccessibleFocusContract(editor, "inspect.");
 
         editor.setWorkspaceForLayoutTest(ChipperEditorWorkspace::edit);
@@ -2141,6 +2168,14 @@ bool checkWorkspaceNavigation()
         {
             std::cerr << "editor_size_smoke: Edit workspace did not restore chip controls for chip choice "
                       << chipChoice << '\n';
+            ok = false;
+        }
+        if (mode == chipper::ChipMode::nes
+            && (! editor.isDmcEmptyStateButtonVisibleForLayoutTest()
+                || editor.getDmcEmptyStateButtonBoundsForLayoutTest().getWidth() < 150
+                || editor.getDmcEmptyStateButtonBoundsForLayoutTest().getHeight() < 24))
+        {
+            std::cerr << "editor_size_smoke: NES DMC empty state is not actionable\n";
             ok = false;
         }
 
@@ -2154,7 +2189,7 @@ bool checkWorkspaceNavigation()
                          "Ctrl/Cmd+1 did not open Play");
             editor.keyPressed(juce::KeyPress('3', command, 0));
             ok &= expect(editor.getWorkspaceForLayoutTest() == ChipperEditorWorkspace::inspect,
-                         "Ctrl/Cmd+3 did not open Inspect");
+                         "Ctrl/Cmd+3 did not open Info");
             editor.keyPressed(juce::KeyPress('B', command, 0));
             ok &= expect(editor.isPresetBrowserVisibleForLayoutTest(),
                          "Ctrl/Cmd+B did not open the global browser");

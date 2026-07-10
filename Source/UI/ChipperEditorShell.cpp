@@ -28,16 +28,16 @@ ChipperEditorShell::ChipperEditorShell(Controls controlsToUse)
     addAndMakeVisible(controls.midiCc);
     addAndMakeVisible(controls.build);
 
-    workspaceLabel.setText("Workspace", juce::dontSendNotification);
+    workspaceLabel.setText("View", juce::dontSendNotification);
     workspaceLabel.setJustificationType(juce::Justification::centredRight);
     workspaceLabel.setFont(juce::FontOptions(11.0f, juce::Font::bold));
     addAndMakeVisible(workspaceLabel);
 
-    static constexpr std::array<const char*, 3> workspaceNames { "Play", "Edit", "Inspect" };
+    static constexpr std::array<const char*, 3> workspaceNames { "Play", "Edit", "Info" };
     static constexpr std::array<const char*, 3> workspaceHelp {
-        "Play workspace: essential sources, musical macros, and output. Shortcut: Ctrl/Cmd+1.",
-        "Edit workspace: the full chip-native editor. Shortcut: Ctrl/Cmd+2.",
-        "Inspect workspace: verification, implementation evidence, gaps, and control contract. Shortcut: Ctrl/Cmd+3."
+        "Play: perform with expressive macros, quick source character, source mix, and output. Shortcut: Ctrl/Cmd+1.",
+        "Edit: construct the sound with the full chip-native editor. Shortcut: Ctrl/Cmd+2.",
+        "Info: understand native behavior, Chipper helpers, authenticity, and documented limitations. Shortcut: Ctrl/Cmd+3."
     };
     for (size_t i = 0; i < workspaceButtons.size(); ++i)
     {
@@ -126,7 +126,7 @@ void ChipperEditorShell::resized()
 
     area.removeFromTop(6);
     auto summaryRow = area.removeFromTop(28);
-    workspaceBounds = summaryRow.removeFromRight(std::min(286, summaryRow.getWidth() / 3));
+    workspaceBounds = summaryRow.removeFromRight(std::min(270, summaryRow.getWidth() / 3));
     summaryRow.removeFromRight(8);
     const auto workflowWidth = std::min(346, std::max(250, summaryRow.getWidth() / 2));
     controls.workflow.setBounds(summaryRow.removeFromRight(workflowWidth).reduced(0, 2));
@@ -134,7 +134,7 @@ void ChipperEditorShell::resized()
     controls.chipSummary.setBounds(summaryRow);
 
     auto workspaceRow = workspaceBounds;
-    workspaceLabel.setBounds(workspaceRow.removeFromLeft(68));
+    workspaceLabel.setBounds(workspaceRow.removeFromLeft(40));
     workspaceRow.removeFromLeft(6);
     constexpr auto workspaceGap = 4;
     const auto buttonWidth = std::max(48, (workspaceRow.getWidth() - (workspaceGap * 2)) / 3);

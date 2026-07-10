@@ -281,6 +281,8 @@ public:
     juce::Rectangle<int> getSampleFileButtonBoundsForLayoutTest() const { return dmcSampleFileButton.getBounds(); }
     juce::Rectangle<int> getSampleFolderButtonBoundsForLayoutTest() const { return dmcSampleFolderButton.getBounds(); }
     juce::Rectangle<int> getSampleBankButtonBoundsForLayoutTest() const { return dmcSampleBankButton.getBounds(); }
+    juce::Rectangle<int> getDmcEmptyStateButtonBoundsForLayoutTest() const { return dmcEmptyStateButton.getBounds(); }
+    bool isDmcEmptyStateButtonVisibleForLayoutTest() const { return dmcEmptyStateButton.isVisible(); }
     juce::Rectangle<int> getSamplePlaybackModeBoundsForLayoutTest() const { return dmcPlaybackModeBox.getBounds(); }
     juce::Rectangle<int> getSampleSlotBoundsForLayoutTest() const { return dmcSampleSlotBox.getBounds(); }
     juce::Rectangle<int> getSampleRootBoundsForLayoutTest() const { return dmcMapRootBox.getBounds(); }
@@ -393,6 +395,10 @@ public:
     {
         return workspaceDeck.playWorkspaceForTest().macroSliderBoundsForTest(index);
     }
+    juce::Rectangle<int> getPlayWorkspaceSourceQuickControlBoundsForLayoutTest(size_t index) const
+    {
+        return workspaceDeck.playWorkspaceForTest().sourceQuickControlBoundsForTest(index);
+    }
     juce::Rectangle<int> getPlayWorkspaceRelationshipBoundsForLayoutTest() const
     {
         return workspaceDeck.playWorkspaceForTest().relationshipBoundsForTest();
@@ -412,6 +418,22 @@ public:
     juce::String getInspectWorkspaceGapsForLayoutTest() const
     {
         return workspaceDeck.inspectWorkspaceForTest().gapsTextForTest();
+    }
+    bool getInfoWorkspaceTechnicalDetailsExpandedForLayoutTest() const
+    {
+        return workspaceDeck.inspectWorkspaceForTest().technicalDetailsExpandedForTest();
+    }
+    void toggleInfoWorkspaceTechnicalDetailsForLayoutTest()
+    {
+        workspaceDeck.inspectWorkspaceForTest().toggleTechnicalDetailsForTest();
+    }
+    juce::Rectangle<int> getInfoWorkspaceAuthenticityBoundsForLayoutTest() const
+    {
+        return workspaceDeck.inspectWorkspaceForTest().authenticityBoundsForTest();
+    }
+    juce::Rectangle<int> getInfoWorkspaceCapabilityBoundsForLayoutTest() const
+    {
+        return workspaceDeck.inspectWorkspaceForTest().capabilityBoundsForTest();
     }
 
 private:
@@ -858,6 +880,7 @@ private:
     juce::TextButton dmcSampleFileButton;
     juce::TextButton dmcSampleFolderButton;
     juce::TextButton dmcSampleBankButton;
+    juce::TextButton dmcEmptyStateButton;
     juce::ComboBox dmcSampleSlotBox;
     juce::ComboBox dmcPlaybackModeBox;
     juce::ComboBox dmcMapRootBox;

@@ -2735,6 +2735,14 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     dmcSampleBankButton.onClick = [this] { showDmcSampleBankEditor(); };
     addAndMakeVisible(dmcSampleBankButton);
 
+    dmcEmptyStateButton.setButtonText("Load a .dmc sample");
+    dmcEmptyStateButton.setName("Load the first DMC sample");
+    dmcEmptyStateButton.setTooltip("Load a user-provided .dmc file and make the NES sample lane playable.");
+    dmcEmptyStateButton.setComponentID("edit.dmc.empty.load");
+    dmcEmptyStateButton.setWantsKeyboardFocus(true);
+    dmcEmptyStateButton.onClick = [this] { chooseDmcSampleFile(); };
+    addAndMakeVisible(dmcEmptyStateButton);
+
     dmcPlaybackModeBox.setTooltip(withMidiCcForRole("NES-only DMC playback mode. Manual Slot uses the selected sample; Note Map maps checked bank slots upward from the DMC Map Root; Sample Map Only also mutes pulse, triangle, and noise for a DMC sample keyboard.", chipper::ChipParameterRole::nesDmcPlaybackMode));
     {
         const auto choices = chipper::parameters::nesDmcPlaybackModeChoices();
@@ -3826,7 +3834,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(scope);
     }
 
-    globalStripLabel.setText("Performance Macros", juce::dontSendNotification);
+    globalStripLabel.setText("Performance mapping", juce::dontSendNotification);
     globalStripLabel.setJustificationType(juce::Justification::centredLeft);
     globalStripLabel.setColour(juce::Label::textColourId, juce::Colour(0xfff0c94d));
     globalStripLabel.setFont(juce::FontOptions(14.0f, juce::Font::bold));
@@ -4069,6 +4077,7 @@ void ChipperAudioProcessorEditor::applyChipTheme()
         styleButton(*button);
     }
     styleButton(dmcSampleBankButton);
+    styleButton(dmcEmptyStateButton);
     for (auto& button : fmOperatorMultiplierButtons)
         styleButton(button);
     for (auto& button : fmOperatorAttackRateButtons)
@@ -5348,6 +5357,7 @@ void ChipperAudioProcessorEditor::resized()
         : (isNesFamily(displayedMode)
                ? nesDmcModuleCell
                : (sampleLayout ? sampleModuleCell : controlCells[4]));
+    dmcEmptyStateButton.setBounds({});
     if (isNesFamily(displayedMode))
     {
         clockSlider.setBounds({});
@@ -5405,6 +5415,9 @@ void ChipperAudioProcessorEditor::resized()
         if (! useTwoColumnDmc)
             dmcControlColumn.removeFromTop(6);
         sampleWaveformPreview.setBounds((useTwoColumnDmc ? dmcWaveformColumn : dmcControlColumn).reduced(0, 2));
+        const auto emptyActionArea = sampleWaveformPreview.getBounds().reduced(12);
+        dmcEmptyStateButton.setBounds(emptyActionArea.withSizeKeepingCentre(std::min(190, emptyActionArea.getWidth()),
+                                                                           std::min(32, emptyActionArea.getHeight())));
         sampleLoopStartLabel.setBounds({});
         sampleLoopEndLabel.setBounds({});
         sampleLoopStartValueLabel.setBounds({});
@@ -13784,6 +13797,10 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
             + ".";
     sampleTooltip += "\nFolder loads create a local checklist; checked entries become up to 32 CC117-addressable slots. WAV-to-DMC conversion is planned.";
     dmcSampleStatusLabel.setTooltip(withMidiCcForRole(sampleTooltip, chipper::ChipParameterRole::nesDmcSampleSlot));
+    dmcEmptyStateButton.setVisible(sampleCount == 0);
+    dmcEmptyStateButton.setEnabled(true);
+    if (dmcEmptyStateButton.isVisible())
+        dmcEmptyStateButton.toFront(false);
     updateSampleWaveformPreview(chipper::ChipMode::nes);
 }
 
@@ -14431,7 +14448,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         && ! applyingFactoryPreset
         && restoreChipSettingsSnapshot(mode);
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
-    globalStripLabel.setText(hasLiveCore ? "Performance Macros" : "Roadmap", juce::dontSendNotification);
+    globalStripLabel.setText(hasLiveCore ? "Performance mapping" : "Roadmap", juce::dontSendNotification);
     macroSummaryLabel.setVisible(true);
     macroSummaryLabel.setEnabled(true);
     macroSummaryLabel.setAlpha(hasLiveCore ? 1.0f : 0.85f);
@@ -14483,6 +14500,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcSampleFileButton.setVisible(showSampleFileControls);
     dmcSampleFolderButton.setVisible(showSampleFolderControls);
     dmcSampleBankButton.setVisible(showSampleBankControls);
+    dmcEmptyStateButton.setVisible(showNesDmcSampleControls && audioProcessor.nesDmcSampleNames().isEmpty());
     dmcSampleSlotBox.setVisible(showSampleBankControls);
     dmcPlaybackModeBox.setVisible(showSampleBankControls);
     dmcMapRootBox.setVisible(showSampleBankControls);
@@ -14502,6 +14520,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcSampleFileButton.setEnabled(showSampleFileControls);
     dmcSampleFolderButton.setEnabled(showSampleFolderControls);
     dmcSampleBankButton.setEnabled(showSampleBankControls);
+    dmcEmptyStateButton.setEnabled(showNesDmcSampleControls);
     dmcSampleSlotBox.setEnabled(showSampleBankControls);
     dmcPlaybackModeBox.setEnabled(showSampleBankControls);
     dmcMapRootBox.setEnabled(showSampleBankControls);
@@ -14521,6 +14540,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcSampleFileButton.setAlpha(showSampleFileControls ? 1.0f : 0.55f);
     dmcSampleFolderButton.setAlpha(showSampleFolderControls ? 1.0f : 0.55f);
     dmcSampleBankButton.setAlpha(showSampleBankControls ? 1.0f : 0.55f);
+    dmcEmptyStateButton.setAlpha(showNesDmcSampleControls ? 1.0f : 0.55f);
     dmcPlaybackModeBox.setAlpha(showSampleBankControls ? 1.0f : 0.55f);
     dmcMapRootBox.setAlpha(showSampleBankControls ? 1.0f : 0.55f);
     dmcLoopButton.setAlpha(showNesDmcSampleControls ? 1.0f : 0.55f);

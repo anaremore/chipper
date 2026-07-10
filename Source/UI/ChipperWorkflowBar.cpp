@@ -58,12 +58,24 @@ ChipperWorkflowBar::ChipperWorkflowBar()
     setState(false, false, false, 0);
 }
 
+void ChipperWorkflowBar::paint(juce::Graphics& graphics)
+{
+    graphics.setColour(findColour(juce::TextButton::buttonColourId).brighter(0.25f));
+    for (const auto index : { 1u, 3u, 5u })
+    {
+        const auto x = (buttons[index].getRight() + buttons[index + 1u].getX()) / 2;
+        graphics.drawVerticalLine(x, 4.0f, static_cast<float>(std::max(4, getHeight() - 4)));
+    }
+}
+
 void ChipperWorkflowBar::resized()
 {
     auto area = getLocalBounds();
-    constexpr auto gap = 3;
+    constexpr auto normalGap = 3;
+    constexpr auto groupGap = 9;
     constexpr std::array<int, 8> idealWidths { 46, 46, 28, 28, 44, 48, 40, 44 };
-    const auto availableForButtons = std::max(0, area.getWidth() - gap * static_cast<int>(buttons.size() - 1u));
+    constexpr auto totalGap = normalGap * 4 + groupGap * 3;
+    const auto availableForButtons = std::max(0, area.getWidth() - totalGap);
     const auto idealTotal = std::accumulate(idealWidths.begin(), idealWidths.end(), 0);
 
     for (size_t i = 0; i < buttons.size(); ++i)
@@ -74,7 +86,10 @@ void ChipperWorkflowBar::resized()
             : 24;
         buttons[i].setBounds(isLast ? area : area.removeFromLeft(std::min(scaledWidth, area.getWidth())));
         if (! isLast)
+        {
+            const auto gap = (i == 1u || i == 3u || i == 5u) ? groupGap : normalGap;
             area.removeFromLeft(std::min(gap, area.getWidth()));
+        }
     }
 }
 
@@ -94,6 +109,7 @@ void ChipperWorkflowBar::setTheme(juce::Colour primary,
         button.setColour(juce::TextButton::textColourOffId, button.isEnabled() ? text : mutedText);
         button.setColour(juce::TextButton::textColourOnId, darkText);
     }
+    setColour(juce::TextButton::buttonColourId, outline);
 }
 
 void ChipperWorkflowBar::setState(bool canUndo, bool canRedo, bool canPaste, int activeSlot)

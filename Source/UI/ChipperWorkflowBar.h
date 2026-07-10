@@ -10,6 +10,7 @@ class ChipperWorkflowBar final : public juce::Component
 public:
     ChipperWorkflowBar();
 
+    void paint(juce::Graphics& graphics) override;
     void resized() override;
     void setTheme(juce::Colour primary,
                   juce::Colour accent,

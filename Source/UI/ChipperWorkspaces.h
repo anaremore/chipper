@@ -54,6 +54,7 @@ public:
             onOpenEditRequested();
     }
     juce::Rectangle<int> macroSliderBoundsForTest(size_t index) const;
+    juce::Rectangle<int> sourceQuickControlBoundsForTest(size_t index) const;
     juce::Rectangle<int> relationshipBoundsForTest() const { return relationshipMap.getBounds(); }
     juce::String relationshipSummaryForTest() const { return relationshipMap.summaryForTest(); }
     juce::Rectangle<int> outputBoundsForTest() const noexcept { return outputSlider.getBounds(); }
@@ -67,6 +68,8 @@ private:
     void selectSource(size_t index);
     void bindSelectedSource();
     void updateSelectedAssetStatus(float plainValue);
+    void configureSourceQuickControls();
+    void clearSourceQuickControl(size_t index);
 
     ChipperAudioProcessor& audioProcessor;
     ChipperWorkspaceTheme theme;
@@ -77,6 +80,7 @@ private:
     bool usesAssetDetail = false;
     juce::Label titleLabel;
     juce::Label summaryLabel;
+    juce::TextButton editDetailsButton;
     juce::Label sourceSectionLabel;
     ChipperRelationshipMap relationshipMap;
     juce::Label macroSectionLabel;
@@ -85,8 +89,11 @@ private:
     std::array<juce::TextButton, sourceCount> sourceSelectButtons;
     std::array<juce::Label, sourceCount> sourceLevelLabels;
     std::array<juce::Slider, sourceCount> sourceLevelSliders;
+    std::array<juce::Label, sourceCount> sourceFeatureLabels;
+    std::array<juce::ComboBox, sourceCount> sourceFeatureBoxes;
     std::array<std::unique_ptr<ButtonAttachment>, sourceCount> sourceButtonAttachments;
     std::array<std::unique_ptr<SliderAttachment>, sourceCount> sourceLevelAttachments;
+    std::array<std::unique_ptr<juce::ParameterAttachment>, sourceCount> sourceFeatureAttachments;
     juce::Label detailTitleLabel;
     juce::Label detailSummaryLabel;
     juce::ToggleButton detailEnableButton;
@@ -100,11 +107,13 @@ private:
     std::unique_ptr<SliderAttachment> detailLevelAttachment;
     std::unique_ptr<juce::ParameterAttachment> detailAssetAttachment;
     std::array<juce::Label, macroCount> macroLabels;
+    std::array<juce::Label, macroCount> macroHintLabels;
     std::array<juce::Slider, macroCount> macroSliders;
     std::array<std::unique_ptr<SliderAttachment>, macroCount> macroAttachments;
     juce::Slider outputSlider;
     std::unique_ptr<SliderAttachment> outputAttachment;
     std::array<juce::Rectangle<int>, sourceCount> sourceCardBounds;
+    std::array<juce::Rectangle<int>, macroCount> macroCellBounds;
     juce::Rectangle<int> sourcePanelBounds;
     juce::Rectangle<int> sourceDetailPanelBounds;
     juce::Rectangle<int> macroPanelBounds;
@@ -125,13 +134,19 @@ public:
 
     juce::String verificationTextForTest() const { return verificationText.getText(); }
     juce::String gapsTextForTest() const { return gapsText.getText(); }
+    bool technicalDetailsExpandedForTest() const noexcept { return technicalDetailsExpanded; }
+    void toggleTechnicalDetailsForTest() { setTechnicalDetailsExpanded(! technicalDetailsExpanded); }
+    juce::Rectangle<int> authenticityBoundsForTest() const noexcept { return panelBounds[0]; }
+    juce::Rectangle<int> capabilityBoundsForTest() const noexcept { return capabilityPanelBounds; }
 
 private:
     void configureHeading(juce::Label& label, const juce::String& text);
     void configureReadOnlyText(juce::TextEditor& editor);
+    void setTechnicalDetailsExpanded(bool expanded);
 
     ChipperWorkspaceTheme theme;
     juce::Label titleLabel;
+    juce::Label summaryLabel;
     juce::Label badgeLabel;
     juce::Label implementationHeading;
     juce::Label evidenceHeading;
@@ -141,7 +156,12 @@ private:
     juce::TextEditor verificationText;
     juce::TextEditor gapsText;
     juce::TextEditor controlsText;
+    ChipperRelationshipMap relationshipMap;
+    std::array<juce::Label, 6> capabilityLabels;
+    juce::TextButton technicalDetailsButton;
+    bool technicalDetailsExpanded = false;
     std::array<juce::Rectangle<int>, 4> panelBounds;
+    juce::Rectangle<int> capabilityPanelBounds;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipperInspectWorkspace)
 };

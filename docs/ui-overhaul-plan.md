@@ -6,7 +6,7 @@ This plan turns the current all-controls-at-once editor into a scalable instrume
 
 The overhaul is complete only when all of the following are implemented and verified:
 
-1. Play, Edit, and Inspect workspaces provide progressive disclosure without changing sound or automation state.
+1. Play, Edit, and Info workspaces provide progressive disclosure without changing sound or automation state.
 2. The stable shell and chip-family workspaces replace repeated per-chip layout policy where behavior is shared.
 3. Every public chip is covered by repeatable compact/default UI captures plus a machine-readable component manifest.
 4. Preset and chip discovery use a dedicated role-first browser rather than a cramped header-only workflow.
@@ -21,7 +21,10 @@ The overhaul is complete only when all of the following are implemented and veri
 
 - Complete: repeatable PNG capture plus a portable structural manifest for every chip, workspace, and supported width.
 - Complete: stable header/summary/footer layout extracted into `ChipperEditorShell`.
-- Complete: Play, Edit, and Inspect workspace foundation with APVTS-safe switching, UI-only persistence, all-chip layout coverage, and parameter-mutation guards.
+- Complete: Play, Edit, and Info workspace foundation with APVTS-safe switching, UI-only persistence, all-chip layout coverage, and parameter-mutation guards.
+- Complete: intent-specific workspace hierarchy: Play leads with large performance controls and compact chip-aware sources, Edit keeps the authoritative chip-native construction surface, and Info replaces developer-first text boxes with authenticity, capability, limitation, and collapsible evidence views.
+- Complete: low-density Play source cards use 2x2 performance decks, descriptor-backed quick controls, source-state indicators, and waveform identity glyphs; sampler, wavetable, and high-source-count modes retain master-detail precision editing.
+- Complete: actionable sample empty states begin with NES DMC, whose waveform surface now offers a direct `Load a .dmc sample` recovery action.
 - Complete: shared chip-family classification, browser grouping, density policy, and centralized Edit-layout height rules.
 - Complete: selected-source master-detail editing for every chip with seven or more visible lanes while retaining card-level identity, enable, and level controls.
 - Complete: dedicated global sound browser with grouped chip navigation, role and text filtering, favorites, recents, recursive user-bank discovery, detail copy, and explicit cross-chip loading.
@@ -30,7 +33,7 @@ The overhaul is complete only when all of the following are implemented and veri
 - Complete: chip-aware relationship schematics with distinct Native and Chipper affordances for routing, modulation, shared resources, and musical helpers.
 - Complete: shared high-contrast focus outline, explicit cross-surface focus order, accessible control names, browser keyboard behavior, and workspace/global shortcuts.
 - Complete: stable-shell musician workflow bar with grouped APVTS undo/redo, per-chip A/B audition slots, guarded whole-sound copy/paste, section initialization, and bounded macro/source-level variation.
-- Complete: final audit across 27 chips, Play/Edit/Inspect, both supported widths, and the dedicated browser (164 retained PNGs plus manifests); all 826 tests pass, and the exact clean `526fc179ca` user-scope VST3 install is verified.
+- Complete: final audit across 27 chips, Play/Edit/Info, both supported widths, and the dedicated browser (164 retained PNGs plus manifests); all 826 tests pass for the current implementation.
 
 ## Delivery Order
 
