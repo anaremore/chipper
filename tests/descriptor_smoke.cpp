@@ -635,7 +635,7 @@ bool expectEnvelopeModels()
                  "HuC6280 envelope module should identify its shared volume helper");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::namcoWsg).modules[3].title == "Chipper Gate",
                  "Namco WSG envelope module should identify its shared lane-volume helper");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).modules[3].title == "Shared Amp Env",
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).modules[3].title == "Chipper Gate",
                  "SCC envelope module should identify its shared wave-channel helper");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::saa1099).modules[3].title == "Envelope Groups",
                  "SAA1099 envelope module should identify its two native envelope groups");
@@ -1231,13 +1231,18 @@ bool expectWavetableRegisterHelpers()
                                                    0.5f,
                                                    0.80f,
                                                    chipper::PlayMode::stack,
-                                                   { true, false, true, true },
-                                                   { 1.0f, 0.5f, 1.0f, 1.0f },
+                                                   { true, false, true, true, true },
+                                                   { 1.0f, 0.5f, 1.0f, 1.0f, 0.25f },
                                                    0.0f,
                                                    0.0f,
                                                    3);
     ok &= expect(chipper::sccVolumeForPatch(sccPulse, 0) == 12u, "SCC helper should resolve 4-bit channel volume");
+    ok &= expect(chipper::sccVolumeForPatch(sccPulse, 4) == 3u, "SCC helper should apply the visible channel 5 level to its 4-bit volume register");
     ok &= expect(! chipper::sccChannelKeyOnForPatch(sccPulse, 1), "SCC helper should honor source mute for exposed channels");
+    ok &= expect(chipper::sccChannelKeyOnForPatch(sccPulse, 4), "SCC helper should honor the visible channel 5 key state");
+    auto sccMuted = sccPulse;
+    sccMuted.sourceEnabled[4] = false;
+    ok &= expect(! chipper::sccChannelKeyOnForPatch(sccMuted, 4), "SCC helper should not infer channel 5 key state from a macro recipe");
     ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::scc, sccPulse, 0, 0) == 255u, "SCC pulse Wave RAM head should resolve high");
     ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::scc, sccPulse, 0, 31) == 0u, "SCC pulse Wave RAM tail should resolve low");
     const auto sccSplit = chipper::makePatchConfig(chipper::ChipMode::scc,
@@ -2095,6 +2100,10 @@ int main()
     ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::sidVoice3WaveShape, "Ch 3 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
     ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::pulse2Duty, "Ch 4 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
     ok &= expectWavetableWaveSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::dmgWaveLevel, "Ch 5 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Gesture Pitch");
+    ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Pulse Width");
+    ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::stereoSpread, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Modern Width");
+    ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::envelopeDecay, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Chipper Gate");
     ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 5");
     ok &= expectSpec(chipper::ChipMode::scc, chipper::ChipParameterRole::source5Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Channel 5 Level");
     ok &= expectPresetBrowserCatalog(chipper::ChipMode::nes, "nes-hero-pulse");

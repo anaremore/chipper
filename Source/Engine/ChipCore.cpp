@@ -8100,9 +8100,9 @@ public:
 
     void setPatch(const PatchConfig& nextPatch) override
     {
-        patch = nextPatch;
-        if (patch.playMode == PlayMode::chipPoly)
+        if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled)
             clearChipPolyState();
+        patch = nextPatch;
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -8288,7 +8288,7 @@ public:
     std::string implementedAccuracy() const override { return "partial emu2212-backed register-level"; }
     std::string limitations() const override
     {
-        return "Five frequency, volume, key-on, and waveform-RAM register paths are driven through the MIT emu2212 SCC/SCC+ core; exact mapper/bank behavior, output curve, timing edge cases, golden emulator comparison, and hardware validation are not complete.";
+        return "Five independent frequency, volume, key-on, and waveform-RAM paths are driven through MIT emu2212 enhanced mode; SCC/SCC+ selection, original channel D/E wave sharing, exact mapper/bank behavior, output curve, timing edge cases, golden emulator comparison, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -8320,6 +8320,14 @@ public:
              << "\"keyOnMask\":" << static_cast<int>(keyOnMask) << ","
              << "\"waveRam0\":" << static_cast<int>(waveRam[0][0]) << ","
              << "\"waveRam31\":" << static_cast<int>(waveRam[0][31]) << ","
+             << "\"waveRam1_0\":" << static_cast<int>(waveRam[1][0]) << ","
+             << "\"waveRam1_31\":" << static_cast<int>(waveRam[1][31]) << ","
+             << "\"waveRam2_0\":" << static_cast<int>(waveRam[2][0]) << ","
+             << "\"waveRam2_31\":" << static_cast<int>(waveRam[2][31]) << ","
+             << "\"waveRam3_0\":" << static_cast<int>(waveRam[3][0]) << ","
+             << "\"waveRam3_31\":" << static_cast<int>(waveRam[3][31]) << ","
+             << "\"waveRam4_0\":" << static_cast<int>(waveRam[4][0]) << ","
+             << "\"waveRam4_31\":" << static_cast<int>(waveRam[4][31]) << ","
              << "\"sourceEnabled0\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
@@ -8369,7 +8377,7 @@ private:
 
     void seedWave(size_t channel)
     {
-        const auto choice = std::clamp(patch.waveShape, 0, 4);
+        const auto choice = static_cast<int>(wavetableWaveShapeForChannel(ChipMode::scc, patch, channel));
         const auto skew = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
         for (size_t i = 0; i < 32; ++i)
         {
@@ -8511,7 +8519,7 @@ private:
         channelVelocity[index] = static_cast<float>(clamp01(velocity));
         channelStamp[index] = ++noteStamp;
         period[index] = sccPeriodForNote(channelNotes[index]);
-        volume[index] = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 15.0f)), 1, 15));
+        volume[index] = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<float>(channelVolumeForPatch(index)) * channelVelocity[index])), 0, 15));
         keyOnMask |= static_cast<uint8_t>(1u << index);
         seedWave(index);
         syncAllRegistersToEmu();

@@ -24,6 +24,7 @@ constexpr int expectedEditorZxSpectrumBeeperHeight = 720;
 constexpr int expectedEditorSpc700Height = 900;
 constexpr int expectedEditorPaulaHeight = 900;
 constexpr int expectedEditorNamcoWsgHeight = 720;
+constexpr int expectedEditorSccHeight = 720;
 constexpr int expectedEditorSidHeight = 880;
 constexpr int expectedEditorMinimumWidth = 1180;
 constexpr int expectedEditorMaximumHeight = expectedEditorSpc700Height;
@@ -176,6 +177,8 @@ int expectedHeightForChipMode(int chipMode)
         return expectedEditorPaulaHeight;
     if (mode == chipper::ChipMode::namcoWsg)
         return expectedEditorNamcoWsgHeight;
+    if (mode == chipper::ChipMode::scc)
+        return expectedEditorSccHeight;
 
     return expectedEditorHeight;
 }
@@ -1617,6 +1620,129 @@ bool checkNamcoWsgUnifiedLayout()
         for (size_t lane = 0; lane < cards.size(); ++lane)
             widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(lane).contains("Note " + juce::String(static_cast<int>(lane + 1u))),
                               "Namco WSG Chip Poly headers should expose all eight allocation lanes");
+
+        ok &= widthOk;
+    }
+
+    return ok;
+}
+
+bool checkSccUnifiedLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::scc);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: SCC chip mode choice unavailable\n";
+        return false;
+    }
+
+    auto ok = true;
+    for (const auto width : { 1240, expectedEditorMinimumWidth })
+    {
+        ChipperAudioProcessor processor;
+        auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(width, expectedHeightForChipMode(chipChoice));
+        editor.runEditorUpdateForLayoutTest();
+
+        widthOk &= expect(editor.getHeight() == expectedEditorSccHeight,
+                          "SCC should use its dedicated compact editor height");
+        const auto voiceDeck = editor.getModuleBoundsForLayoutTest(1);
+        const auto topologySummary = editor.getModuleSummaryBoundsForLayoutTest(1);
+        const auto performance = editor.getPerformanceBoundsForLayoutTest();
+        widthOk &= expect(! voiceDeck.isEmpty() && voiceDeck.getHeight() >= 340,
+                          "SCC unified wave bank should reserve two readable card rows");
+        widthOk &= expect(editor.isModuleSummaryVisibleForLayoutTest(1)
+                              && ! topologySummary.isEmpty()
+                              && voiceDeck.expanded(2).contains(topologySummary)
+                              && editor.getModuleSummaryTextForLayoutTest(1).containsIgnoreCase("enhanced")
+                              && editor.getModuleSummaryTextForLayoutTest(1).containsIgnoreCase("sharing is not modeled"),
+                          "SCC wave bank should disclose the enhanced five-wave topology and unmodeled original sharing");
+        widthOk &= expect(performance.getHeight() >= 180,
+                          "SCC shared wave-stack/output strip should expose two readable rows");
+        for (const auto retiredModule : { 0u, 2u, 3u, 4u, 5u })
+            widthOk &= expect(editor.getModuleBoundsForLayoutTest(retiredModule).isEmpty(),
+                              "SCC should not retain detached generic modules");
+
+        std::array<juce::Rectangle<int>, 5> cards {};
+        for (size_t channel = 0; channel < cards.size(); ++channel)
+        {
+            cards[channel] = editor.getSourceChannelBoundsForLayoutTest(channel);
+            const auto wave = editor.getSourceWaveSelectorBoundsForLayoutTest(channel);
+            const auto level = editor.getSourceLevelBoundsForLayoutTest(channel);
+            const auto header = editor.getSourceChannelButtonTextForLayoutTest(channel);
+            widthOk &= expect(cards[channel].getHeight() >= 136 && cards[channel].getHeight() <= 144,
+                              "SCC channel cards should keep the dedicated readable height");
+            widthOk &= expect(! cards[channel].intersects(topologySummary),
+                              "SCC topology disclosure should not be covered by channel cards");
+            widthOk &= expect(! wave.isEmpty() && wave.getHeight() >= 28 && cards[channel].expanded(2).contains(wave),
+                              "SCC per-channel wave selector should be owned by its card");
+            widthOk &= expect(! level.isEmpty() && level.getHeight() >= 16 && cards[channel].expanded(2).contains(level),
+                              "SCC per-channel 4-bit level should be owned by its card");
+            widthOk &= expect(header.startsWith("Ch " + juce::String(static_cast<int>(channel + 1u)) + " | 32-byte Wave RAM | V")
+                                  && header.endsWith("/15"),
+                              "SCC header should identify channel, Wave RAM depth, and resolved 4-bit volume");
+            widthOk &= expect(editor.getSourceWaveSelectorItemTextForLayoutTest(channel, 4) == "Steps",
+                              "SCC channel selectors should keep the Steps Wave RAM template");
+        }
+        for (size_t left = 0; left < cards.size(); ++left)
+            for (size_t right = left + 1u; right < cards.size(); ++right)
+                widthOk &= expect(! cards[left].intersects(cards[right]),
+                                  "SCC channel cards should not overlap");
+        widthOk &= expect(std::abs((cards[3].getX() + cards[4].getRight()) / 2 - voiceDeck.getCentreX()) <= 2,
+                          "SCC channels 4 and 5 should form an intentional centered second row");
+
+        const std::array<juce::Rectangle<int>, 7> sharedControls {
+            editor.getNativeSliderBoundsForLayoutTest(0),
+            editor.getNativeSliderBoundsForLayoutTest(1),
+            editor.getNativeSliderBoundsForLayoutTest(2),
+            editor.getNativeSliderBoundsForLayoutTest(3),
+            editor.getEnvelopeDecayBoundsForLayoutTest(),
+            editor.getStereoSpreadBoundsForLayoutTest(),
+            editor.getOutputSliderBoundsForLayoutTest()
+        };
+        for (const auto& control : sharedControls)
+            widthOk &= expect(! control.isEmpty()
+                                  && control.getHeight() >= 16
+                                  && performance.expanded(2).contains(control),
+                              "SCC shared controls should be readable and owned by the shared strip");
+
+        widthOk &= expect(! editor.isNativeSliderEnabledForLayoutTest(1)
+                              && editor.getNativeLabelTextForLayoutTest(1).containsIgnoreCase("choose Zap / Jump")
+                              && editor.getNativeValueLabelTextForLayoutTest(1).containsIgnoreCase("Zap / Jump only"),
+                          "SCC Gesture Pitch should disclose its recipe-specific ownership");
+        widthOk &= expect(! editor.isNativeSliderEnabledForLayoutTest(2)
+                              && editor.getNativeLabelTextForLayoutTest(2).containsIgnoreCase("select Pulse")
+                              && editor.getNativeValueLabelTextForLayoutTest(2).containsIgnoreCase("no Pulse channels"),
+                          "SCC Pulse Width should disclose when no channel uses the Pulse template");
+        widthOk &= expect(editor.getStereoSpreadValueTextForLayoutTest().containsIgnoreCase("modern width off"),
+                          "SCC zero-width readout should identify centered mono as a modern-width state");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::macro, 7);
+        widthOk &= setPlainParameter(processor, chipper::parameters::id::macroControl2, 1.0f);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 3);
+        widthOk &= setPlainParameter(processor, chipper::parameters::id::macroControl3, 1.0f);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.isNativeSliderEnabledForLayoutTest(1)
+                              && editor.getNativeLabelTextForLayoutTest(1) == "Gesture Pitch"
+                              && editor.getNativeValueLabelTextForLayoutTest(1).contains("Ch 1 +12 st"),
+                          "SCC Gesture Pitch should activate for the Sweep Zap recipe");
+        widthOk &= expect(editor.isNativeSliderEnabledForLayoutTest(2)
+                              && editor.getNativeLabelTextForLayoutTest(2) == "Pulse Width"
+                              && editor.getNativeValueLabelTextForLayoutTest(2).contains("Pulse high 28/32"),
+                          "SCC Pulse Width should activate and show the generated high-byte count for Pulse channels");
+
+        widthOk &= setPlainParameter(processor, chipper::parameters::id::stereoSpread, 1.0f);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.getStereoSpreadValueTextForLayoutTest().containsIgnoreCase("modern five-channel")
+                              && editor.getStereoSpreadValueTextForLayoutTest().containsIgnoreCase("native SCC pan not modeled"),
+                          "SCC full-width readout should distinguish modern spread from unmodeled hardware routing");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::playMode, 1);
+        editor.runEditorUpdateForLayoutTest();
+        for (size_t channel = 0; channel < cards.size(); ++channel)
+            widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(channel).contains("Note " + juce::String(static_cast<int>(channel + 1u))),
+                              "SCC Chip Poly headers should expose all five allocation channels");
 
         ok &= widthOk;
     }
@@ -3580,7 +3706,7 @@ int main()
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2610b);
     ok &= checkHuc6280UnifiedLayout();
     ok &= checkNamcoWsgUnifiedLayout();
-    ok &= checkWavetableSourceDeck(chipper::ChipMode::scc);
+    ok &= checkSccUnifiedLayout();
     ok &= checkSamplerSourceDeck(chipper::ChipMode::spc700);
     ok &= checkSamplerSourceDeck(chipper::ChipMode::paula);
     ok &= checkSamplerBankLayout(chipper::ChipMode::spc700);

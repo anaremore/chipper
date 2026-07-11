@@ -300,6 +300,18 @@ public:
     {
         return module < moduleBounds.size() ? moduleBounds[module] : juce::Rectangle<int> {};
     }
+    juce::Rectangle<int> getModuleSummaryBoundsForLayoutTest(size_t module) const
+    {
+        return module < moduleSummaryLabels.size() ? moduleSummaryLabels[module].getBounds() : juce::Rectangle<int> {};
+    }
+    juce::String getModuleSummaryTextForLayoutTest(size_t module) const
+    {
+        return module < moduleSummaryLabels.size() ? moduleSummaryLabels[module].getText() : juce::String {};
+    }
+    bool isModuleSummaryVisibleForLayoutTest(size_t module) const
+    {
+        return module < moduleSummaryLabels.size() && moduleSummaryLabels[module].isVisible();
+    }
     juce::Rectangle<int> getPerformanceBoundsForLayoutTest() const { return globalStripBounds; }
     juce::Rectangle<int> getSampleBankBoundsForLayoutTest() const { return moduleBounds[5]; }
     juce::Rectangle<int> getSampleFileButtonBoundsForLayoutTest() const { return dmcSampleFileButton.getBounds(); }

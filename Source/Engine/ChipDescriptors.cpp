@@ -3185,19 +3185,19 @@ std::vector<ChipParameterSpec> sccParameterSpecs()
     return {
         sliderSpec(ChipParameterRole::macroControl1,
                    "scc.channelSpread",
-                   "Channel Spread",
+                   "Stack Spread",
                    "Channels",
-                   "Sets interval spread across the Konami SCC wavetable channels."),
+                   "Sets the Big Mono note-interval spread across the five SCC wavetable channels."),
         sliderSpec(ChipParameterRole::macroControl2,
                    "scc.pitchMotion",
-                   "Pitch",
-                   "Pitch",
-                   "Offsets musical pitch gestures and channel intervals."),
+                   "Gesture Pitch",
+                   "Motion",
+                   "Offsets channel 1 for the SCC Sweep Zap and SCC Jump recipes. It is inactive for other recipes."),
         sliderSpec(ChipParameterRole::macroControl3,
                    "scc.waveSkew",
-                   "Wave Skew",
-                   "Wave",
-                   "Shapes generated waveform RAM while preserving 32-byte SCC wave memory.",
+                   "Pulse Width",
+                   "Wave RAM",
+                   "Sets the high-byte width of generated Pulse templates across channels using that waveform. It does not alter Sine, Ramp, Tri, or Steps templates.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "scc.channelVolume",
@@ -3211,13 +3211,19 @@ std::vector<ChipParameterSpec> sccParameterSpecs()
         sourceSpec(ChipParameterRole::source3Enabled, "scc.channel3.enabled", "Channel 3", "Enable SCC wavetable channel 3."),
         sourceSpec(ChipParameterRole::source4Enabled, "scc.channel4.enabled", "Channel 4", "Enable SCC wavetable channel 4."),
         sourceSpec(ChipParameterRole::source5Enabled, "scc.channel5.enabled", "Channel 5", "Enable SCC wavetable channel 5."),
-        sourceLevelSpec(ChipParameterRole::source1Level, "scc.channel1.level", "Channel 1 Level", "Modern trim after SCC channel 1 volume."),
-        sourceLevelSpec(ChipParameterRole::source2Level, "scc.channel2.level", "Channel 2 Level", "Modern trim after SCC channel 2 volume."),
-        sourceLevelSpec(ChipParameterRole::source3Level, "scc.channel3.level", "Channel 3 Level", "Modern trim after SCC channel 3 volume."),
-        sourceLevelSpec(ChipParameterRole::source4Level, "scc.channel4.level", "Channel 4 Level", "Modern trim after SCC channel 4 volume."),
-        sourceLevelSpec(ChipParameterRole::source5Level, "scc.channel5.level", "Channel 5 Level", "Modern trim after SCC channel 5 volume."),
-        stereoSpreadSpec("scc.stereoSpread", "Modern stereo convenience that spreads audible SCC channels; zero preserves centered output."),
-        envelopeSpec("scc.decay", "Shared Amp Env", "Applies one shared Chipper volume-gate helper over SCC channel volume; native per-channel key and 4-bit volume registers remain visible in the voice cards and debug output."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "scc.channel1.level", "Channel 1 Level", "Scales SCC channel 1's 4-bit volume register."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "scc.channel2.level", "Channel 2 Level", "Scales SCC channel 2's 4-bit volume register."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "scc.channel3.level", "Channel 3 Level", "Scales SCC channel 3's 4-bit volume register."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "scc.channel4.level", "Channel 4 Level", "Scales SCC channel 4's 4-bit volume register."),
+        sourceLevelSpec(ChipParameterRole::source5Level, "scc.channel5.level", "Channel 5 Level", "Scales SCC channel 5's 4-bit volume register."),
+        sliderSpec(ChipParameterRole::stereoSpread,
+                   "scc.stereoSpread",
+                   "Modern Width",
+                   "Output",
+                   "Modern convenience that spreads the five channels across the stereo field. Zero is centered mono; this is not a modeled SCC pan register.",
+                   ParameterKind::continuous,
+                   0.0f),
+        envelopeSpec("scc.decay", "Chipper Gate", "Applies one shared Chipper volume-gate helper over SCC channel volume; this is not a native envelope."),
         wavetableWaveSpec(ChipParameterRole::waveShape, "scc.channel1.waveShape", "Ch 1 Wave", "SCC", "32-byte 8-bit"),
         wavetableWaveSpec(ChipParameterRole::sidVoice2WaveShape, "scc.channel2.waveShape", "Ch 2 Wave", "SCC", "32-byte 8-bit"),
         wavetableWaveSpec(ChipParameterRole::sidVoice3WaveShape, "scc.channel3.waveShape", "Ch 3 Wave", "SCC", "32-byte 8-bit"),
@@ -4387,7 +4393,7 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::scc,
             "Konami SCC",
-            "Partial emu2212-backed Konami SCC/SCC+ wavetable model with five internal channels.",
+            "Partial emu2212 enhanced-mode Konami SCC adapter with five independent channels; SCC/SCC+ selection is not yet modeled.",
             {
                 { "wave", "Wave RAM", "Wave", "32-byte SCC wave memory shapes." },
                 { "vol", "Volume", "Mixer", "4-bit channel volume registers." },
@@ -4396,11 +4402,11 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             {
                 makeModule("profile", "Profile", "Konami SCC/SCC+ emu2212 groundwork.", { "Konami wavetable family", "3.58 MHz default", "MIT emu2212 core", "Authentic still partial" }),
-                makeModule("sources", "Wavetable Voices", "All five SCC channels are exposed as playable wavetable lanes.", { "Channel 1", "Channel 2", "Channel 3", "Channel 4-5" }),
-                makeModule("wave", "Wave / Mixer", "Wave RAM plus frequency and volume behavior.", { "Wave shape", "Wave skew", "4-bit volume", "Pitch periods" }),
-                makeModule("envelope", "Shared Amp Env", "Shared musical helper over SCC channel volume and key state; not native ADSR.", { "4-bit channel volume", "Key mask", "Gate helper", "Register readout" }),
-                makeModule("motion", "Motion", "Arcade SFX gestures mapped to frequency registers.", { "Coin ping", "Sweep zap", "Five-voice arp", "Wave tick" }),
-                makeModule("output", "Output", "Centered SCC output with optional modern spread.", { "Output gain", "Stereo spread", "Verified partial", "Wavetable mix" })
+                makeModule("sources", "5-Channel Wave Bank", "emu2212 enhanced mode: five independent 32-byte waves; original SCC channel 4/5 sharing is not modeled.", { "Channels 1-5", "32-byte 8-bit Wave RAM", "4-bit volume", "$AF key mask" }),
+                makeModule("wave", "Wave RAM", "Each channel owns a generated 32-byte waveform in the current enhanced-core adapter.", { "Per-channel template", "Shared pulse width", "8-bit samples", "12-bit period" }),
+                makeModule("envelope", "Chipper Gate", "Shared musical helper over SCC channel volume; not a native envelope.", { "4-bit channel volume", "$AF key mask", "Shared gate", "Register readout" }),
+                makeModule("motion", "Wave Stack", "Big Mono interval stacks plus recipe-specific channel-1 gestures.", { "Stack spread", "Sweep zap", "SCC jump", "Five-voice arp" }),
+                makeModule("output", "Output", "Centered SCC mix with an explicitly modern stereo-width convenience.", { "Output gain", "Modern width", "Centered at zero", "Verified partial" })
             },
             sccMacros(),
             true,
@@ -4408,12 +4414,12 @@ const std::vector<ChipDescriptor>& descriptors()
             sccParameterSpecs(),
             verifiedPartial(
                 {
-                    "Five frequency, volume, key-on, and waveform-RAM register paths are driven through vendored MIT emu2212.",
-                    "The shared UI exposes all five generic source controls with host/MIDI-controllable enable and level trims, including channel 5 on CC64/66.",
-                    "Descriptor metadata, MIDI CC mappings, renderer debug JSON, five-channel chip-poly allocation, presets, and smoke output are covered by automated tests."
+                    "Five independently seeded waveform-RAM, frequency, 4-bit volume, and key-on paths are driven through vendored MIT emu2212 in enhanced mode.",
+                    "The dedicated 3+2 channel bank exposes all five wave, enable, and level controls with host/MIDI automation, including channel 5 on CC64/66.",
+                    "Descriptor metadata, MIDI CC mappings, per-channel RAM checkpoints, five-channel chip-poly allocation and volume behavior, presets, and smoke output are covered by automated tests."
                 },
                 {
-                    "Exact SCC cartridge mapper/bank behavior, SCC vs SCC+ mode differences, channel D/E shared-wave quirks, exact DAC/output curve, timing edge cases, and hardware validation are not complete.",
+                    "The adapter is fixed to enhanced mode; exact SCC cartridge mapper/bank behavior, a real SCC vs SCC+ distinction, original channel D/E shared-wave behavior, exact DAC/output curve, timing edge cases, and hardware validation are not complete.",
                     "Golden emulator and hardware spectral/timing comparisons are not complete, so this mode is not labeled cycle-accurate."
                 })
         },
@@ -6657,18 +6663,13 @@ double huc6280LfoRateHzForPatch(const PatchConfig& patch)
 uint8_t sccVolumeForPatch(const PatchConfig& patch, size_t channel)
 {
     const auto base = std::clamp(static_cast<int>(std::round(clampControl(patch.control4) * 15.0f)), 1, 15);
-    const auto trim = channel < 4u ? clampControl(patch.sourceLevels[channel]) : 0.85f;
+    const auto trim = channel < patch.sourceLevels.size() ? clampControl(patch.sourceLevels[channel]) : 1.0f;
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<float>(base) * trim)), 0, 15));
 }
 
 bool sccChannelKeyOnForPatch(const PatchConfig& patch, size_t channel)
 {
-    if (channel < 4u)
-        return patch.sourceEnabled[channel];
-
-    return patch.macro == MacroKind::arp
-        || patch.macro == MacroKind::powerUp
-        || patch.macro == MacroKind::hit;
+    return channel < patch.sourceEnabled.size() && patch.sourceEnabled[channel];
 }
 
 uint8_t namcoWsgVolumeForPatch(const PatchConfig& patch, size_t channel)
