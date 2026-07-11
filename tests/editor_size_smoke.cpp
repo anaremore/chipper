@@ -228,7 +228,7 @@ bool checkPrimaryPanelStack(const ChipperAudioProcessorEditor& editor, chipper::
 
     const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
     const auto minimumPerformanceHeight = isNesFamily ? 220
-        : ((mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3) ? 80
+        : ((mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151) ? 80
         : (mode == chipper::ChipMode::sid ? 96
         : ((mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 84 : 108)));
     requirePanel(performanceBounds, "performance macros", minimumPerformanceHeight);
@@ -1068,12 +1068,31 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
                 || ! patchModuleBounds.expanded(2).contains(labelBounds)
                 || ! patchModuleBounds.expanded(2).contains(valueBounds))
             {
-                std::cerr << "editor_size_smoke: YM2612 shared Operator Tone/FM Level controls should live beside Algorithm and Feedback\n";
+                std::cerr << "editor_size_smoke: " << modeLabel
+                          << " shared Operator Tone/FM Level controls should live beside Algorithm and Feedback\n";
                 std::cerr << "  module " << patchModuleBounds.toString()
                           << " slider " << sliderBounds.toString()
                           << " group " << groupBounds.toString()
                           << " label " << labelBounds.toString()
                           << " value " << valueBounds.toString() << '\n';
+                ok = false;
+            }
+        }
+        else if (mode == chipper::ChipMode::ym2151)
+        {
+            const auto patchModuleBounds = editor.getModuleBoundsForLayoutTest(2);
+            const auto optionalFieldEscapes = [&patchModuleBounds](juce::Rectangle<int> field)
+            {
+                return ! field.isEmpty() && ! patchModuleBounds.expanded(2).contains(field);
+            };
+            if (sliderBounds.isEmpty()
+                || labelBounds.isEmpty()
+                || ! patchModuleBounds.expanded(2).contains(sliderBounds)
+                || ! patchModuleBounds.expanded(2).contains(labelBounds)
+                || optionalFieldEscapes(groupBounds)
+                || optionalFieldEscapes(valueBounds))
+            {
+                std::cerr << "editor_size_smoke: YM2151 shared Operator Tone/FM Level controls should live beside Algorithm and Feedback\n";
                 ok = false;
             }
         }
@@ -1233,6 +1252,128 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
                   << " mixed algorithm should show both carriers and modulators, got C="
                   << carrierCount << " M=" << modulatorCount << '\n';
         ok = false;
+    }
+
+    return ok;
+}
+
+bool checkYm2151UnifiedOpmLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::ym2151);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: YM2151 chip mode choice unavailable\n";
+        return false;
+    }
+
+    auto ok = true;
+    for (const auto width : { 1240, expectedEditorMinimumWidth })
+    {
+        ChipperAudioProcessor processor;
+        auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::macro, 0);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 0);
+
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(width, expectedHeightForChipMode(chipChoice));
+        editor.runEditorUpdateForLayoutTest();
+
+        const auto channels = editor.getModuleBoundsForLayoutTest(1);
+        const auto patch = editor.getModuleBoundsForLayoutTest(2);
+        const auto operators = editor.getModuleBoundsForLayoutTest(3);
+        const auto routing = editor.getModuleBoundsForLayoutTest(5);
+        const auto footer = editor.getPerformanceBoundsForLayoutTest();
+        widthOk &= expect(! channels.isEmpty() && channels.getHeight() >= 254,
+                          "YM2151 should reserve two readable rows for all eight OPM channels");
+        widthOk &= expect(! patch.isEmpty() && ! operators.isEmpty() && ! routing.isEmpty(),
+                          "YM2151 unified patch, operator matrix, or routing module is missing");
+        widthOk &= expect(editor.getModuleBoundsForLayoutTest(0).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(4).isEmpty(),
+                          "YM2151 should retire detached profile and motion destinations");
+        widthOk &= expect(editor.getModuleTitleTextForLayoutTest(1) == "Eight OPM Channels"
+                              && editor.getModuleTitleTextForLayoutTest(2) == "Shared Four-Operator Patch"
+                              && editor.getModuleTitleTextForLayoutTest(3) == "Shared Operator Matrix"
+                              && editor.getModuleTitleTextForLayoutTest(5) == "Shared LFO + Stereo Routing",
+                          "YM2151 module titles should explain OPM ownership and signal flow");
+
+        std::array<juce::Rectangle<int>, 8> cards {};
+        for (size_t channel = 0; channel < cards.size(); ++channel)
+        {
+            cards[channel] = editor.getSourceChannelBoundsForLayoutTest(channel);
+            const auto level = editor.getSourceLevelBoundsForLayoutTest(channel);
+            const auto header = editor.getSourceChannelButtonTextForLayoutTest(channel);
+            widthOk &= expect(cards[channel].getHeight() >= 98
+                                  && channels.expanded(2).contains(cards[channel]),
+                              "YM2151 channel card should remain readable and owned by the channel bank");
+            widthOk &= expect(! level.isEmpty()
+                                  && level.getHeight() >= 12
+                                  && cards[channel].expanded(2).contains(level),
+                              "YM2151 channel trim should remain inside its owning card");
+            widthOk &= expect(header.startsWith("OPM " + juce::String(static_cast<int>(channel + 1u)) + " | A")
+                                  && (header.contains("L+R") || header.contains(" | L |") || header.contains(" | R |")),
+                              "YM2151 channel header should expose channel, algorithm, and native pan state");
+        }
+        for (size_t left = 0; left < cards.size(); ++left)
+            for (size_t right = left + 1u; right < cards.size(); ++right)
+                widthOk &= expect(! cards[left].intersects(cards[right]),
+                                  "YM2151 channel cards should not overlap");
+
+        const auto noise = editor.getSnNoiseModeBoundsForLayoutTest();
+        widthOk &= expect(! noise.isEmpty()
+                              && noise.getHeight() >= 18
+                              && cards[7].expanded(2).contains(noise),
+                          "YM2151 native noise selector must belong to channel 8");
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(7).contains("Sine"),
+                          "YM2151 channel 8 should disclose when operator 4 remains tonal");
+
+        const std::array<juce::Rectangle<int>, 6> sharedPatchControls {
+            editor.getFmAlgorithmBoundsForLayoutTest(),
+            editor.getFmAlgorithmPreviewBoundsForLayoutTest(),
+            editor.getNativeSliderBoundsForLayoutTest(0),
+            editor.getFmFeedbackBoundsForLayoutTest(),
+            editor.getNativeSliderBoundsForLayoutTest(2),
+            editor.getNativeSliderBoundsForLayoutTest(3)
+        };
+        for (const auto& control : sharedPatchControls)
+            widthOk &= expect(! control.isEmpty()
+                                  && control.getHeight() >= 16
+                                  && patch.expanded(2).contains(control),
+                              "YM2151 shared four-operator control should remain readable and owned by its patch");
+        widthOk &= expect(editor.isNativeSliderEnabledForLayoutTest(0),
+                          "YM2151 Algorithm Bias should be active for Manual + Preset");
+
+        for (size_t op = 0; op < 4u; ++op)
+            widthOk &= expect(! editor.getFmOperatorCardBoundsForLayoutTest(op).isEmpty()
+                                  && operators.expanded(2).contains(editor.getFmOperatorCardBoundsForLayoutTest(op)),
+                              "YM2151 operator card should remain inside the shared operator matrix");
+
+        const auto lfo = editor.getStereoSpreadBoundsForLayoutTest();
+        const auto pan = editor.getDmgStereoRouteBoundsForLayoutTest();
+        widthOk &= expect(! lfo.isEmpty() && lfo.getHeight() >= 16 && routing.expanded(2).contains(lfo),
+                          "YM2151 LFO Depth should live in shared modulation/routing");
+        widthOk &= expect(! pan.isEmpty() && pan.getHeight() >= 18 && routing.expanded(2).contains(pan),
+                          "YM2151 native pan pattern should live in shared modulation/routing");
+        widthOk &= expect(editor.getGlobalStripLabelTextForLayoutTest() == "Clock + Output"
+                              && footer.getHeight() <= 90,
+                          "YM2151 footer should be the compact clock/output stage");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 5);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(! editor.isNativeSliderEnabledForLayoutTest(0)
+                              && editor.getNativeLabelTextForLayoutTest(0).contains("Manual + Preset only"),
+                          "YM2151 explicit Algorithm should visibly take ownership from Algorithm Bias");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::snNoiseMode, 4);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::playMode, 1);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(7).contains("Noise")
+                              && editor.getSourceChannelButtonTextForLayoutTest(7).containsIgnoreCase("note 8"),
+                          "YM2151 channel 8 should disclose native noise and Chip Poly allocation together");
+        for (size_t channel = 0; channel < cards.size(); ++channel)
+            widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(channel).containsIgnoreCase("note " + juce::String(static_cast<int>(channel + 1u))),
+                              "YM2151 Chip Poly headers should expose all eight allocation lanes");
+
+        ok &= widthOk;
     }
 
     return ok;
@@ -2581,6 +2722,10 @@ bool checkPerformanceMacroSliderLayout()
                 expectedMacroSliders = {};
                 break;
             case chipper::ChipMode::ym2151:
+                // Eight channels, the complete shared OPM patch, channel-8
+                // noise, and LFO/pan routing all live above the compact footer.
+                expectedMacroSliders = {};
+                break;
             case chipper::ChipMode::ym2203:
             case chipper::ChipMode::ym2608:
             case chipper::ChipMode::ym2610:
@@ -2702,7 +2847,7 @@ bool checkPerformanceMacroSliderLayout()
         {
             const auto feedbackBounds = editor.getFmFeedbackBoundsForLayoutTest();
             const auto feedbackSliderBounds = editor.getNativeSliderBoundsForLayoutTest(1);
-            const auto feedbackOwnerBounds = mode == chipper::ChipMode::ym2612
+            const auto feedbackOwnerBounds = mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151
                 ? editor.getModuleBoundsForLayoutTest(2)
                 : performanceBounds;
             if (feedbackBounds.isEmpty()
@@ -3648,7 +3793,7 @@ bool checkUnifiedEditorContract()
                 ok = false;
             }
         }
-        const auto minimumPerformanceHeight = (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3) ? 80 : 100;
+        const auto minimumPerformanceHeight = (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151) ? 80 : 100;
         if (editor.getPerformanceBoundsForLayoutTest().getHeight() < minimumPerformanceHeight
             || editor.getOutputSliderBoundsForLayoutTest().getHeight() < 16)
         {
@@ -3954,6 +4099,7 @@ int main()
     ok &= checkOpl3UnifiedTopologyLayout();
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2612);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2151);
+    ok &= checkYm2151UnifiedOpmLayout();
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2203);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2608);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2610);

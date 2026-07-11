@@ -3713,11 +3713,11 @@ std::array<ModuleDescriptor, 6> ym2151Modules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "YM2151/OPM core is backed by audited BSD-licensed ymfm.", { "YM2151 core", "Arcade clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM Voices", "All eight OPM melodic channels are exposed as playable lanes.", { "Ch 1-4", "Ch 5-8", "Chip Poly", "Per-lane trims" }),
-        makeModule("tone", "Operators", "Musical controls write native OPM algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
-        makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPM attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
+        makeModule("sources", "Eight OPM Channels", "All eight four-operator channels remain visible; channel 8 uniquely owns the native operator-4 noise source.", { "Ch 1-4", "Ch 5-8", "Chip Poly", "Ch 8 noise" }),
+        makeModule("tone", "Shared Four-Operator Patch", "Algorithm, feedback, operator tone, and carrier level are written across the active OPM lanes.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
+        makeModule("envelope", "Shared Operator Matrix", "The four editable operators show their current carrier/modulator roles and native envelope register fields.", { "Operator level", "Multiplier", "Attack/decay", "Sustain/release" }),
         makeModule("motion", "Motion", "Arcade FM preset recipes map to register-backed OPM patches with native LFO PM/AM depth and channel-8 noise options.", { "LFO PM/AM", "$38 sensitivity", "$0F noise", "Laser" }),
-        makeModule("output", "Output", "ymfm stereo OPM output is rendered with left/right pan enabled per active lane.", { "Stereo core", "Native pan", "Output gain", "Verified partial" })
+        makeModule("output", "Shared LFO + Stereo Routing", "The native LFO affects audible carrier operators; the pan pattern writes each channel's left/right output bits.", { "LFO PM/AM", "Carrier AM enable", "Native pan", "Stereo ymfm output" })
     };
 }
 
