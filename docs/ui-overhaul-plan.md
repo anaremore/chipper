@@ -38,7 +38,8 @@ The overhaul is complete only when all of the following are implemented and veri
 - Complete: sampler/wavetable asset workflows with per-source assignment, loaded/missing status, Wave RAM shape state, loop controls, and standard-size selectors.
 - Complete: stable-shell workflow bar with APVTS undo/redo, per-chip A/B slots, guarded whole-sound copy/paste, section initialization, and bounded variation.
 - Complete: snapshot tooling now names the primary surface `editor`; `browser` is captured explicitly rather than multiplying obsolete workspace variants.
-- In progress: chip-by-chip refinement continues after NES and DMG; each remaining chip must complete its own source-truth audit, implementation, two-width visual review, behavioral coverage, and product-gap record before the final all-chip release audit.
+- Complete: zero-bounds chip-specific controls and JUCE-owned value labels are removed from keyboard traversal, while visible editor and browser actions retain explicit focus names and order.
+- Complete: the final release audit enumerates all 27 implemented modes, records their truthful visible/native lane counts, captures every editor and browser at 1180 and 1240 px, preserves the prioritized engine/product gap record, and passes the full renderer, descriptor, MIDI, processor, layout, accessibility, browser, and snapshot suite.
 
 ## Delivery Order
 

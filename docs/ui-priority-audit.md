@@ -178,13 +178,14 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
 ## Highest-Value Next Fixes
 
 1. Preset browser and preset sharing
-   - Issue: the top dropdown now groups the current chip's presets by category, includes a chip-local Init Patch, and can filter factory sounds plus metadata-bearing user presets by role, engine, tag, or search text. A Furnace-inspired coverage matrix is exported and enforced. The next browser pass should add favorites and deeper bank management. Furnace may guide quality targets and vocabulary, but factory presets must be original Chipper parameter snapshots with clean provenance. User presets should remain simple flat files that are easy to share.
+   - Current UI: the global browser is the sole overlay and now includes grouped chip navigation, role/text filtering, favorites, recents, recursive user-bank discovery, detail copy, chip-local Init Patch entries, and explicit cross-chip loading. A Furnace-inspired coverage matrix is exported and enforced without copying preset data.
+   - Genuine gap: deeper user-bank management, bulk metadata editing, preset rename/delete workflows, and a systematic audibility/loudness/visible-recall QA pass remain. Factory presets must stay original Chipper parameter snapshots with clean provenance, and user presets should remain easy to share.
    - User value: very high. Most musicians will browse for "arcade bass" or "Game Boy lead" before they know which chip engine they want.
    - Confidence: 7/10. Preset data already exists; browser UX and save/load polish are the main work. Confidence improves with a preset QA pass that checks audibility, loudness, visible-control recall, and clean provenance for every factory preset.
 
 2. Unified chip surfaces
-   - Implemented direction: Play / Edit / Inspect workspace navigation has been removed. The active chip's musical signal path belongs on one coherent surface; the preset browser is the sole separate overlay because browsing is a distinct task.
-   - Next value: continue replacing generic module grids chip by chip with layouts that expose every meaningful lane, place native controls with their owning channel or shared generator, and keep verification detail in tooltips/footer documentation rather than a destination tab.
+   - Implemented direction: Play / Edit / Inspect workspace navigation has been removed, and every one of the 27 implemented modes now has a reviewed unified surface. Each surface exposes every meaningful lane, keeps native controls with the owning channel or shared generator, and leaves the preset browser as the sole separate overlay.
+   - Next value: deepen only engine-backed controls and editors; do not create another layout destination to represent behavior the engine does not expose.
    - Non-regression rule: never reintroduce workspace switching as a way to hide ordinary sound-design controls. Unified layouts must preserve sound, automation, MIDI state, preset state, chip-local snapshots, source ownership, accessibility, and both supported editor widths.
 
 3. SPC700 fidelity and independent voice state
@@ -199,9 +200,10 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
    - Confidence: 8/10. Layout and parameters are in place; remaining work is deeper per-lane editing and any engine gaps found while playing.
 
 5. FM operator editors
-   - Issue: FM chips are playable, but the current UI is still too macro/operator-summary driven for serious FM editing.
+   - Current UI: OPN2, OPM, OPN, OPNA, OPNB, and OPNB2 expose algorithm graphs, carrier/modulator roles, a four-operator matrix, native feedback, and the currently implemented per-operator level/multiplier/envelope fields. OPL and OPLL use topology-appropriate shared patch editors instead of inheriting the OPN layout.
+   - Genuine gap: independent per-channel patches, deeper native detune/LFO/sensitivity controls, dedicated OPL3 18-channel and complete four-operator editing, OPLL patch-set variants, and stronger golden/hardware validation remain engine and product work.
    - User value: very high for FM users.
-   - Confidence: 6/10. Needs a larger design slice: algorithm graph, operator grid, per-operator envelopes, and readable register values.
+   - Confidence: 5/10. The remaining work changes engine state, automation, preset compatibility, and validation rather than only adding UI.
 
 6. Paula tracker import depth
    - Current UI: the unified four-channel DMA surface, explicit shared loop/period/volume/gate/filter controls, sample-bank mapping, waveform evidence, imported uncompressed 8SVX, WAV `smpl`, AIFF `MARK`/`INST`, and first-pass ProTracker MOD sample loop metadata are in place.
@@ -215,9 +217,10 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
    - Confidence: 7/10. Requires a consistent Expert/detail overlay and tooltip policy across chips.
 
 8. All-chip screenshot audit
-   - Issue: each bespoke chip layout can regress independently, especially when a source card grows per-voice controls. The editor default/restored size is clamped to a DAW-friendly height so hosts cannot reopen old oversized windows that run off screen.
+   - Current release gate: all 27 implemented modes have fresh editor and browser captures at 1180 and 1240 px plus machine-readable component manifests. Structural tests cover source ownership, standard control sizes, compact heights, overlay persistence, focus contracts, and obsolete workspace removal.
+   - Genuine gap: host-specific DPI/scaling comparison and stable pixel-diff baselines across supported operating systems remain; the current renderer is the authoritative geometry/visual smoke gate.
    - User value: high. Users should never need to guess whether a control is hidden, clipped, or decorative.
-   - Confidence: 8/10. The latest screenshots make the remaining problems visible; a repeatable screenshot checklist will catch most regressions before release.
+   - Confidence: 8/10. Repeatable captures and structural assertions catch the known layout regressions before release.
 
 9. Expand audio non-regression smoke checks
    - Issue: FM held-tail assertions and NES DMC loop-off assertions are now release gates, not open UI bugs. The next coverage value is extending that same confidence to sample, loop, helper-envelope, and source-card changes that can look correct while regressing key-on/key-off, one-shot/loop behavior, or sustained output.

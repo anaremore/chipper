@@ -6841,6 +6841,11 @@ void ChipperAudioProcessorEditor::refreshAccessibleNames()
                 || dynamic_cast<juce::ComboBox*>(child) != nullptr
                 || dynamic_cast<juce::TextEditor*>(child) != nullptr
                 || dynamic_cast<juce::ListBox*>(child) != nullptr;
+            // JUCE sliders own an editable Label. When a chip-specific slider is
+            // laid out at zero size, that child can otherwise remain in keyboard
+            // traversal even though the owning control is absent from the surface.
+            if (child->getBounds().isEmpty())
+                child->setWantsKeyboardFocus(false);
             if (interactive)
                 child->setWantsKeyboardFocus(child->isVisible() && ! child->getBounds().isEmpty() && child->isEnabled());
             if (interactive && child->getName().trim().isEmpty())

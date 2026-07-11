@@ -283,12 +283,7 @@ bool checkVisibleChildGeometry(const juce::Component& root,
         const auto absoluteBounds = bounds.translated(parentOrigin.x, parentOrigin.y);
         const auto childPath = path + "/" + std::to_string(childIndex);
 
-        const auto interactive = dynamic_cast<const juce::Button*>(child) != nullptr
-            || dynamic_cast<const juce::Slider*>(child) != nullptr
-            || dynamic_cast<const juce::ComboBox*>(child) != nullptr
-            || dynamic_cast<const juce::TextEditor*>(child) != nullptr
-            || dynamic_cast<const juce::ListBox*>(child) != nullptr;
-        if (bounds.isEmpty() && interactive && child->isEnabled() && child->getWantsKeyboardFocus())
+        if (bounds.isEmpty() && child->isEnabled() && child->getWantsKeyboardFocus())
         {
             std::cerr << "editor_size_smoke: zero-bounds control remained keyboard-focusable at "
                       << childPath << " type " << typeid(*child).name() << '\n';
