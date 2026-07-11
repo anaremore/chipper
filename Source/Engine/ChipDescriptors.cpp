@@ -3588,8 +3588,8 @@ std::array<ModuleDescriptor, 6> sidModules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "SID clean-room voice-core groundwork.", { "6581 / 8580 model", "PAL clock default", "Hybrid default", "Authentic still partial" }),
-        makeModule("sources", "Voices", "Three SID oscillator voices.", { "Voice 1", "Voice 2", "Audible Voice 3", "OSC3/ENV3 readout scope" }),
-        makeModule("tone", "Filter", "Register-backed SID filter mode and voice routing.", { "Filter mode", "Voice routing", "Cutoff", "Resonance" }),
+        makeModule("sources", "Three Voices + Interaction", "Each oscillator owns waveform, pulse width, level, and ADSR; follower voices share the sync/ring interaction choice below.", { "Voice 1", "Voice 2", "Audible Voice 3", "Sync / ring followers" }),
+        makeModule("tone", "Filter + SID Model", "The selected 6581/8580 profile shapes the register-backed cutoff, resonance, mode, routing, and output drive approximation.", { "Cutoff / resonance", "Filter mode", "Voice routing", "6581 / 8580 model" }),
         makeModule("envelope", "ADSR", "SID-style per-voice ADSR gate behavior.", { "Attack/decay nibbles", "Sustain nibble", "Release nibble", "Per-voice ADSR" }),
         makeModule("motion", "Motion", "Classic SID modulation gestures.", { "Voice detune", "PWM-ready width", "Osc interaction", "Preset motion" }),
         makeModule("output", "Output", "Warm mono C64-style output groundwork.", { "Output gain", "Voice trims", "Model color", "Verified partial" })

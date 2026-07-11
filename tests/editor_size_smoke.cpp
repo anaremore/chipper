@@ -1551,7 +1551,9 @@ bool checkPerformanceMacroSliderLayout()
                 expectedMacroSliders = {};
                 break;
             case chipper::ChipMode::sid:
-                expectedMacroSliders = { 0, 1, 3 };
+                // Voice 1 pulse width is owned by the Voice 1 card alongside
+                // the independent Voice 2/3 pulse-width controls.
+                expectedMacroSliders = { 1, 3 };
                 break;
             case chipper::ChipMode::spc700:
             case chipper::ChipMode::paula:
@@ -1740,6 +1742,84 @@ bool checkSidAdsrLayout()
         const auto adsrModuleBounds = editor.getModuleBoundsForLayoutTest(3);
         const auto adsrContentBounds = editor.getSidAdsrContentBoundsForLayoutTest();
         const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+        const auto voicesModuleBounds = editor.getModuleBoundsForLayoutTest(1);
+        const auto filterModuleBounds = editor.getModuleBoundsForLayoutTest(2);
+        const auto profileModuleBounds = editor.getModuleBoundsForLayoutTest(0);
+        const auto motionModuleBounds = editor.getModuleBoundsForLayoutTest(4);
+        const auto interactionBounds = editor.getSnNoiseModeBoundsForLayoutTest();
+        const auto modelBounds = editor.getDmgStereoRouteBoundsForLayoutTest();
+        const auto filterModeBounds = editor.getYmEnvelopeShapeBoundsForLayoutTest();
+        const auto filterRoutingBounds = editor.getSidFilterRoutingBoundsForLayoutTest();
+        const auto cutoffBounds = editor.getNativeSliderBoundsForLayoutTest(2);
+        const auto resonanceBounds = editor.getStereoSpreadBoundsForLayoutTest();
+        const auto duplicatePulseWidthBounds = editor.getNativeSliderBoundsForLayoutTest(0);
+        const auto detuneBounds = editor.getNativeSliderBoundsForLayoutTest(1);
+        const auto sustainBounds = editor.getNativeSliderBoundsForLayoutTest(3);
+        const auto clockBounds = editor.getClockSliderBoundsForLayoutTest();
+        const auto outputBounds = editor.getOutputSliderBoundsForLayoutTest();
+
+        if (! profileModuleBounds.isEmpty() || ! motionModuleBounds.isEmpty())
+        {
+            std::cerr << "editor_size_smoke: SID should not reserve single-control Profile/Motion destinations at width "
+                      << editorWidth << ": profile " << profileModuleBounds.toString()
+                      << " motion " << motionModuleBounds.toString() << '\n';
+            widthOk = false;
+        }
+
+        for (size_t voice = 0; voice < 3; ++voice)
+        {
+            const auto sourceBounds = editor.getSourceChannelBoundsForLayoutTest(voice);
+            const auto waveBounds = editor.getSidVoiceWaveBoundsForLayoutTest(voice);
+            const auto pulseWidthBounds = editor.getSidVoicePulseWidthBoundsForLayoutTest(voice);
+            if (sourceBounds.isEmpty()
+                || ! voicesModuleBounds.expanded(2).contains(sourceBounds)
+                || ! sourceBounds.expanded(2).contains(waveBounds)
+                || ! sourceBounds.expanded(2).contains(pulseWidthBounds))
+            {
+                std::cerr << "editor_size_smoke: SID voice " << (voice + 1u)
+                          << " lost owned waveform/pulse-width controls at width " << editorWidth
+                          << ": source " << sourceBounds.toString() << " wave " << waveBounds.toString()
+                          << " pulse width " << pulseWidthBounds.toString() << '\n';
+                widthOk = false;
+            }
+        }
+
+        if (interactionBounds.isEmpty() || ! voicesModuleBounds.expanded(2).contains(interactionBounds))
+        {
+            std::cerr << "editor_size_smoke: SID oscillator interaction is not owned by the voice block at width "
+                      << editorWidth << ": interaction " << interactionBounds.toString()
+                      << " voices " << voicesModuleBounds.toString() << '\n';
+            widthOk = false;
+        }
+
+        for (const auto control : { cutoffBounds, resonanceBounds, modelBounds, filterModeBounds, filterRoutingBounds })
+        {
+            if (control.isEmpty() || ! filterModuleBounds.expanded(2).contains(control))
+            {
+                std::cerr << "editor_size_smoke: SID filter/model block is incomplete at width "
+                          << editorWidth << ": control " << control.toString()
+                          << " filter " << filterModuleBounds.toString() << '\n';
+                widthOk = false;
+            }
+        }
+
+        if (! duplicatePulseWidthBounds.isEmpty())
+        {
+            std::cerr << "editor_size_smoke: SID Voice 1 pulse width is still duplicated in the footer at width "
+                      << editorWidth << ": " << duplicatePulseWidthBounds.toString() << '\n';
+            widthOk = false;
+        }
+
+        for (const auto control : { detuneBounds, sustainBounds, clockBounds, outputBounds })
+        {
+            if (control.isEmpty() || ! performanceBounds.expanded(2).contains(control))
+            {
+                std::cerr << "editor_size_smoke: SID performance/output footer is incomplete at width "
+                          << editorWidth << ": control " << control.toString()
+                          << " footer " << performanceBounds.toString() << '\n';
+                widthOk = false;
+            }
+        }
 
         if (adsrModuleBounds.isEmpty() || adsrContentBounds.isEmpty())
         {

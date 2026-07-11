@@ -229,6 +229,15 @@ public:
     }
     juce::Rectangle<int> getSnNoiseModeBoundsForLayoutTest() const { return snNoiseModeSegmentBounds; }
     juce::Rectangle<int> getSnNoiseModeMenuBoundsForLayoutTest() const { return snNoiseModeBox.getBounds(); }
+    juce::Rectangle<int> getSidVoiceWaveBoundsForLayoutTest(size_t voice) const
+    {
+        return voice < sidVoiceWaveBoxes.size() ? sidVoiceWaveBoxes[voice].getBounds() : juce::Rectangle<int> {};
+    }
+    juce::Rectangle<int> getSidVoicePulseWidthBoundsForLayoutTest(size_t voice) const
+    {
+        return voice < sidVoicePulseWidthSliders.size() ? sidVoicePulseWidthSliders[voice].getBounds() : juce::Rectangle<int> {};
+    }
+    juce::Rectangle<int> getSidFilterRoutingBoundsForLayoutTest() const { return sidFilterRoutingBox.getBounds(); }
     juce::Rectangle<int> getYmChannelMixBoundsForLayoutTest(size_t channel) const
     {
         return channel < ymChannelMixBoxes.size() ? ymChannelMixBoxes[channel].getBounds() : juce::Rectangle<int> {};
