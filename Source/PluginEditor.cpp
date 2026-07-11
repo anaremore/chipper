@@ -20,6 +20,7 @@ constexpr int userPresetItemIdBase = 10000;
 constexpr int initPresetItemId = 9000;
 constexpr int editorDefaultWidth = 1240;
 constexpr int editorDefaultHeight = 860;
+constexpr int editorDmgHeight = 720;
 constexpr int editorSidHeight = 880;
 constexpr int editorMinWidth = 1180;
 constexpr int editorMaxWidth = 1800;
@@ -32,6 +33,8 @@ int preferredEditorHeightForMode(chipper::ChipMode mode)
 {
     if (mode == chipper::ChipMode::sid)
         return editorSidHeight;
+    if (mode == chipper::ChipMode::dmg)
+        return editorDmgHeight;
 
     return editorDefaultHeight;
 }
@@ -2610,10 +2613,33 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     };
 
     addLabeledSlider(clockSlider, clockLabel, "Clock");
-    clockSlider.setTextValueSuffix(" Hz");
     clockSlider.setSkewFactor(0.35);
-    clockSlider.setTooltip(withMidiCc("Optional chip clock override. Zero uses the documented default for the selected mode.", chipper::parameters::id::clockHz));
     clockAttachment = std::make_unique<SliderAttachment>(state, chipper::parameters::id::clockHz, clockSlider);
+    clockSlider.textFromValueFunction = [](double value)
+    {
+        if (value <= 0.0)
+            return juce::String("Default");
+        if (value >= 1000000.0)
+            return juce::String(value / 1000000.0, 2) + " MHz";
+        if (value >= 1000.0)
+            return juce::String(value / 1000.0, 1) + " kHz";
+        return juce::String(static_cast<int>(std::round(value))) + " Hz";
+    };
+    clockSlider.valueFromTextFunction = [](const juce::String& text)
+    {
+        const auto trimmed = text.trim();
+        if (trimmed.equalsIgnoreCase("default") || trimmed.equalsIgnoreCase("native"))
+            return 0.0;
+
+        const auto number = trimmed.retainCharacters("0123456789.-").getDoubleValue();
+        if (trimmed.endsWithIgnoreCase("mhz"))
+            return number * 1000000.0;
+        if (trimmed.endsWithIgnoreCase("khz"))
+            return number * 1000.0;
+        return number;
+    };
+    clockSlider.setTooltip(withMidiCc("Optional chip clock override. Zero uses the documented default for the selected mode.", chipper::parameters::id::clockHz));
+    clockSlider.updateText();
 
     addLabeledSlider(dmcDirectSlider, dmcDirectLabel, "DMC Direct");
     dmcDirectSlider.setNumDecimalPlacesToDisplay(2);
@@ -4279,8 +4305,8 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (dmgLayout)
     {
-        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.50)), 232, 270);
-        const auto bottomRowHeight = std::max(170, modules.getHeight() - topRowHeight - gap);
+        const auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getHeight()) * 0.60)), 240, 250);
+        const auto bottomRowHeight = std::max(0, modules.getHeight() - topRowHeight - gap);
         const auto topY = modules.getY();
         const auto bottomY = topY + topRowHeight + gap;
 
@@ -4642,6 +4668,13 @@ void ChipperAudioProcessorEditor::resized()
                 pulseDutySegmentBounds = sourceCard.removeFromTop(std::min(compactSegmentHeight, sourceCard.getHeight()));
                 placeCompactSegment(pulseDutyButtons, pulseDutySegmentBounds, pulseDutyButtons.size());
                 sourceCard.removeFromTop(3);
+                if (isDmgSourceCard)
+                {
+                    nativeGroupLabels[1].setBounds({});
+                    placeCompactLabel(nativeLabels[1], &controlValueLabels[1], sourceCard.removeFromTop(std::min(compactLabelHeight, sourceCard.getHeight())));
+                    nativeSliders[1].setBounds(sourceCard.removeFromTop(std::min(22, sourceCard.getHeight())).reduced(0, 2));
+                    sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
+                }
             }
             else if (i == 1)
             {
@@ -4667,7 +4700,14 @@ void ChipperAudioProcessorEditor::resized()
                 snNoiseModeSegmentBounds = sourceCard.removeFromTop(std::min(compactSegmentHeight, sourceCard.getHeight()));
                 placeCompactSegment(snNoiseModeButtons, snNoiseModeSegmentBounds, snNoiseModeButtons.size());
                 sourceCard.removeFromTop(3);
-                if (displayedMode == chipper::ChipMode::nes)
+                if (isDmgSourceCard)
+                {
+                    nativeGroupLabels[2].setBounds({});
+                    placeCompactLabel(nativeLabels[2], &controlValueLabels[2], sourceCard.removeFromTop(std::min(compactLabelHeight, sourceCard.getHeight())));
+                    nativeSliders[2].setBounds(sourceCard.removeFromTop(std::min(22, sourceCard.getHeight())).reduced(0, 2));
+                    sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
+                }
+                else if (displayedMode == chipper::ChipMode::nes)
                 {
                     auto periodHeader = sourceCard.removeFromTop(std::min(14, sourceCard.getHeight()));
                     nativeGroupLabels[2].setBounds({});
@@ -5014,6 +5054,17 @@ void ChipperAudioProcessorEditor::resized()
         placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
         ymEnvelopePreview.setBounds({});
     }
+    else if (displayedMode == chipper::ChipMode::dmg)
+    {
+        const auto gapWidth = 12;
+        const auto controlWidth = std::max(0, (envelopeDecayPanel.getWidth() - gapWidth) / 2);
+        auto levelPanel = envelopeDecayPanel.removeFromLeft(std::min(controlWidth, envelopeDecayPanel.getWidth()));
+        envelopeDecayPanel.removeFromLeft(std::min(gapWidth, envelopeDecayPanel.getWidth()));
+        nativeGroupLabels[3].setBounds({});
+        placeLabeledSliderWithReadout(nativeSliders[3], nativeLabels[3], controlValueLabels[3], levelPanel);
+        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
+        ymEnvelopePreview.setBounds({});
+    }
     else if (displayedMode == chipper::ChipMode::paula)
     {
         const auto filterHeight = std::clamp(envelopeDecayPanel.getHeight() / 2, 50, 64);
@@ -5212,6 +5263,14 @@ void ChipperAudioProcessorEditor::resized()
             };
         }
     }
+    else if (displayedMode == chipper::ChipMode::dmg)
+    {
+        constexpr int dmgControlGap = 12;
+        const auto controlWidth = (strip.getWidth() - dmgControlGap) / 2;
+        controlCells.fill({});
+        controlCells[4] = { strip.getX(), strip.getY(), controlWidth, strip.getHeight() };
+        controlCells[5] = { strip.getX() + controlWidth + dmgControlGap, strip.getY(), controlWidth, strip.getHeight() };
+    }
     else if (sampleLayout)
     {
         constexpr int sampleControlGap = 10;
@@ -5257,9 +5316,6 @@ void ChipperAudioProcessorEditor::resized()
         nativeGroupLabels[0].setBounds({});
         nativeSliders[0].setBounds({});
         controlValueLabels[0].setBounds({});
-        placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], controlCells[0]);
-        placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[1]);
-        placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[2]);
     }
     else if (sampleLayout)
     {
@@ -10368,6 +10424,19 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
                                                                juce::String fallback) const
 {
     const auto number = juce::String(static_cast<int>(index + 1u));
+    if (mode == chipper::ChipMode::dmg)
+    {
+        const auto chipPoly = patch.playMode == chipper::PlayMode::chipPoly;
+        switch (index)
+        {
+            case 0: return chipPoly ? "Pulse 1 | note 1 + NR10 sweep" : "Pulse 1 | NR10 sweep voice";
+            case 1: return chipPoly ? "Pulse 2 | note 2" : "Pulse 2 | independent duty";
+            case 2: return chipPoly ? "Wave | note 3" : "Wave | 32 x 4-bit RAM";
+            case 3: return chipPoly ? "Noise | SFX, not note-allocated" : "Noise | 15/7-bit LFSR";
+            default: return fallback;
+        }
+    }
+
     if (mode == chipper::ChipMode::pokey)
         return "Ch " + number + " | AUDC $" + byteHex(chipper::pokeyAudcForPatch(patch));
 
@@ -14383,7 +14452,8 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         && ! applyingFactoryPreset
         && restoreChipSettingsSnapshot(mode);
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
-    globalStripLabel.setText(hasLiveCore ? "Shared Performance" : "Roadmap", juce::dontSendNotification);
+    globalStripLabel.setText(hasLiveCore ? (mode == chipper::ChipMode::dmg ? "Global" : "Shared Performance") : "Roadmap",
+                             juce::dontSendNotification);
     macroSummaryLabel.setVisible(true);
     macroSummaryLabel.setEnabled(true);
     macroSummaryLabel.setAlpha(hasLiveCore ? 1.0f : 0.85f);
@@ -14943,6 +15013,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
             : juce::String("Override ") + juce::String(static_cast<double>(clock) / 1000000.0, 2) + " MHz";
         controlValueLabels[4].setText(clockText, juce::dontSendNotification);
         controlValueLabels[4].setTooltip(withMidiCc("Optional chip clock override. Zero uses the documented default for the selected mode.", chipper::parameters::id::clockHz));
+        clockSlider.updateText();
     }
 
     const auto outputDb = parameterValue(chipper::parameters::id::outputDb);

@@ -15,6 +15,7 @@
 namespace
 {
 constexpr int expectedEditorHeight = 860;
+constexpr int expectedEditorDmgHeight = 720;
 constexpr int expectedEditorSidHeight = 880;
 constexpr int expectedEditorMinimumWidth = 1180;
 constexpr int expectedEditorMaximumHeight = expectedEditorSidHeight;
@@ -149,6 +150,8 @@ int expectedHeightForChipMode(int chipMode)
     const auto mode = chipper::parameters::chipModeFromChoice(chipMode);
     if (mode == chipper::ChipMode::sid)
         return expectedEditorSidHeight;
+    if (mode == chipper::ChipMode::dmg)
+        return expectedEditorDmgHeight;
 
     return expectedEditorHeight;
 }
@@ -424,9 +427,43 @@ bool checkChannelOwnedControlLayout(chipper::ChipMode mode)
 
     case chipper::ChipMode::dmg:
         ok &= expectControlOwnedBySourceChannel(editor, 0, editor.getPulseDutyBoundsForLayoutTest(), "DMG pulse 1 duty");
+        ok &= expectControlOwnedBySourceChannel(editor, 0, editor.getNativeSliderBoundsForLayoutTest(1), "DMG pulse 1 sweep shift");
         ok &= expectControlOwnedBySourceChannel(editor, 1, editor.getPulse2DutyBoundsForLayoutTest(), "DMG pulse 2 duty");
         ok &= expectControlOwnedBySourceChannel(editor, 2, editor.getDmgWaveLevelBoundsForLayoutTest(), "DMG wave level");
         ok &= expectControlOwnedBySourceChannel(editor, 3, editor.getSnNoiseModeBoundsForLayoutTest(), "DMG noise mode");
+        ok &= expectControlOwnedBySourceChannel(editor, 3, editor.getNativeSliderBoundsForLayoutTest(2), "DMG noise clock");
+        {
+            const auto envelopeBounds = editor.getModuleBoundsForLayoutTest(3);
+            const auto initialLevelBounds = editor.getNativeSliderBoundsForLayoutTest(3);
+            const auto envelopeDecayBounds = editor.getEnvelopeDecayBoundsForLayoutTest();
+            if (envelopeBounds.isEmpty()
+                || ! envelopeBounds.expanded(2).contains(initialLevelBounds)
+                || ! envelopeBounds.expanded(2).contains(envelopeDecayBounds))
+            {
+                std::cerr << "editor_size_smoke: DMG shared envelope helpers must stay inside the Pulse + Noise Envelopes module\n";
+                ok = false;
+            }
+
+            const auto routeBounds = editor.getDmgStereoRouteBoundsForLayoutTest();
+            const auto outputModuleBounds = editor.getModuleBoundsForLayoutTest(5);
+            if (routeBounds.isEmpty() || ! outputModuleBounds.expanded(2).contains(routeBounds))
+            {
+                std::cerr << "editor_size_smoke: DMG NR51 routing must stay inside its output module\n";
+                ok = false;
+            }
+        }
+        ok &= expect(editor.getSourceChannelButtonTextForLayoutTest(3).contains("15/7-bit LFSR"),
+                     "DMG mono Noise card should disclose its native LFSR identity");
+        ok &= expect(editor.getClockTextForLayoutTest() == "Default",
+                     "DMG zero clock override should read Default instead of 0 Hz");
+        ok &= setChoiceParameter(processor, chipper::parameters::id::playMode, 1);
+        editor.runEditorUpdateForLayoutTest();
+        ok &= expect(editor.getSourceChannelButtonTextForLayoutTest(0).contains("note 1"),
+                     "DMG Chip Poly should identify Pulse 1 as the first allocated note lane");
+        ok &= expect(editor.getSourceChannelButtonTextForLayoutTest(2).contains("note 3"),
+                     "DMG Chip Poly should identify Wave as the third allocated note lane");
+        ok &= expect(editor.getSourceChannelButtonTextForLayoutTest(3).contains("not note-allocated"),
+                     "DMG Chip Poly should disclose that Noise remains an SFX lane");
         break;
 
     case chipper::ChipMode::sn76489:
@@ -1405,8 +1442,12 @@ bool checkPerformanceMacroSliderLayout()
             case chipper::ChipMode::nesSunsoft5b:
             case chipper::ChipMode::nesMmc5:
             case chipper::ChipMode::nesVrc7:
-            case chipper::ChipMode::dmg:
                 expectedMacroSliders = { 1, 2, 3 };
+                break;
+            case chipper::ChipMode::dmg:
+                // DMG register controls live with Pulse 1, Noise, and the shared
+                // envelope module instead of the global performance strip.
+                expectedMacroSliders = {};
                 break;
             case chipper::ChipMode::sid:
                 expectedMacroSliders = { 0, 1, 3 };

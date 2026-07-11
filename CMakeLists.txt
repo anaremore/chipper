@@ -3277,12 +3277,12 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_dmg_envelope_decay_assert PROPERTIES DEPENDS chipper_render_dmg_envelope_decay_smoke)
 
     add_test(NAME chipper_render_dmg_envelope_level_low_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-envelope-level-low-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.005 --core-min initialEnvelope0=1 --core-max initialEnvelope0=1 --core-min envelope0=1 --core-max envelope0=1 --descriptor-param-kind macroControl4=chipRegister --descriptor-param-surface macroControl4=slider --descriptor-param-label "macroControl4=Envelope Level"
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-envelope-level-low-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.005 --core-min initialEnvelope0=1 --core-max initialEnvelope0=1 --core-min envelope0=1 --core-max envelope0=1 --descriptor-param-kind macroControl4=chipRegister --descriptor-param-surface macroControl4=slider --descriptor-param-label "macroControl4=Pulse Initial Level"
     )
     set_tests_properties(chipper_render_dmg_envelope_level_low_assert PROPERTIES DEPENDS chipper_render_dmg_envelope_level_low_smoke)
 
     add_test(NAME chipper_render_dmg_envelope_level_high_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-envelope-level-high-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.1 --core-min initialEnvelope0=15 --core-max initialEnvelope0=15 --core-min envelope0=15 --core-max envelope0=15 --descriptor-param-kind macroControl4=chipRegister --descriptor-param-surface macroControl4=slider --descriptor-param-label "macroControl4=Envelope Level"
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/dmg-envelope-level-high-smoke.json --implemented-contains partial --macro Manual --register-writes 0 --note-events 0 --min-peak 0.1 --core-min initialEnvelope0=15 --core-max initialEnvelope0=15 --core-min envelope0=15 --core-max envelope0=15 --descriptor-param-kind macroControl4=chipRegister --descriptor-param-surface macroControl4=slider --descriptor-param-label "macroControl4=Pulse Initial Level"
     )
     set_tests_properties(chipper_render_dmg_envelope_level_high_assert PROPERTIES DEPENDS chipper_render_dmg_envelope_level_high_smoke)
 

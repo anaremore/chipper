@@ -2403,20 +2403,20 @@ std::vector<ChipParameterSpec> dmgParameterSpecs()
         sliderSpec(ChipParameterRole::macroControl2,
                    "dmg.sweepShift",
                    "Sweep Shift",
-                   "Pitch",
+                   "Pulse 1",
                    "Maps to the DMG NR10 sweep-shift bits for channel 1; macros may also use it for pitch gestures.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl3,
                    "dmg.noiseClock",
                    "Noise Clock",
-                   "Noise",
+                   "Noise Channel",
                    "Maps to the DMG NR43 clock shift used by the musical noise control while Noise Mode selects the LFSR width.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "dmg.envelopeLevel",
-                   "Envelope Level",
-                   "Envelope",
-                   "Maps to the DMG NRx2 initial volume register nibble for pulse channels.",
+                   "Pulse Initial Level",
+                   "Pulse + Noise Envelopes",
+                   "Maps to the DMG NRx2 initial-volume register nibble used by both pulse channels; Noise derives its starting level from the active recipe.",
                    ParameterKind::chipRegister),
         sourceSpec(ChipParameterRole::source1Enabled, "dmg.pulse1.enabled", "Pulse 1", "Enable DMG pulse channel 1."),
         sourceSpec(ChipParameterRole::source2Enabled, "dmg.pulse2.enabled", "Pulse 2", "Enable DMG pulse channel 2."),
@@ -2426,7 +2426,7 @@ std::vector<ChipParameterSpec> dmgParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source2Level, "dmg.pulse2.level", "Pulse 2 Level", "Modern trim for DMG pulse channel 2."),
         sourceLevelSpec(ChipParameterRole::source3Level, "dmg.wave.level", "Wave Level", "Modern trim for the Wave RAM channel."),
         sourceLevelSpec(ChipParameterRole::source4Level, "dmg.noise.level", "Noise Level", "Modern trim for the noise channel."),
-        envelopeSpec("dmg.envelopeDecay", "Volume Envelope", "Maps musical decay to DMG 64 Hz volume-envelope periods."),
+        envelopeSpec("dmg.envelopeDecay", "Envelope Decay", "One shared musical helper maps decay to the DMG 64 Hz envelope periods for Pulse 1, Pulse 2, and Noise. Independent per-channel envelope registers are not yet exposed as separate parameters."),
         segmentedSpec(ChipParameterRole::snNoiseMode,
                       "dmg.noiseMode",
                       "Noise Mode",
@@ -3552,11 +3552,11 @@ std::array<ModuleDescriptor, 6> dmgModules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "DMG APU clean-room register model.", { "DMG profile", "DMG clock domain", "Hybrid default", "Authentic still partial" }),
-        makeModule("sources", "Channels", "Four hardware sound generators.", { "Pulse 1 / sweep", "Pulse 2", "Wave RAM", "Chip Poly ready" }),
+        makeModule("sources", "Channels", "Four native generators; Chip Poly assigns pitched notes to Pulse 1, Pulse 2, and Wave while Noise remains an SFX lane.", { "Pulse 1 / sweep", "Pulse 2", "Wave RAM", "Noise" }),
         makeModule("tone", "Wave / Noise", "Duty, wave RAM, and polynomial noise behavior.", { "Pulse duty", "Wave shape", "Wave level", "Noise clock" }),
-        makeModule("envelope", "Volume Envelope", "DMG volume envelope, length, and sweep groundwork.", { "64 Hz volume envelope", "256 Hz length", "DAC gating", "128 Hz CH1 sweep" }),
+        makeModule("envelope", "Pulse + Noise Envelopes", "Shared musical helpers write native NRx2 starting levels and 64 Hz decay periods for the envelope-driven lanes.", { "Pulse initial level", "64 Hz envelope period", "Pulse 1 / Pulse 2 / Noise", "Per-channel controls planned" }),
         makeModule("motion", "Motion", "Portable-game gesture presets.", { "Arp stack", "Pitch rise/drop", "Retrigger", "Coin/noise SFX" }),
-        makeModule("output", "Output", "Compact handheld output character.", { "Output gain", "NR50 volume", "NR51 routing", "Speaker color helper" })
+        makeModule("output", "NR51 Routing", "Route all four hardware channels to both sides, one side, or the documented split pairing.", { "Both", "Left", "Right", "P1 + Wave / P2 + Noise" })
     };
 }
 
@@ -3887,12 +3887,12 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::dmg,
             "Game Boy / DMG APU",
-            "Two pulse channels, wave RAM, and noise controls map to the partial DMG APU register model.",
+            "Four native lanes: two pulse channels, 32-sample Wave RAM, and polynomial noise. Chip Poly allocates pitched notes across Pulse 1, Pulse 2, and Wave.",
             {
                 { "duty", "Pulse Duty", "Pulse", "Chooses the pulse duty family for channel 1 and 2." },
                 { "sweep", "Sweep Shift", "Pitch", "Maps pitch gestures to the DMG NR10 sweep shift." },
                 { "noise", "Noise Clock", "Noise", "Moves the noise clock and narrow-noise behavior." },
-                { "level", "Envelope Level", "Mixer", "Sets the initial envelope level used by preset recipes." },
+                { "level", "Pulse Initial Level", "Envelope", "Sets the NRx2 initial envelope level used by both pulse channels." },
             },
             dmgModules(),
             dmgMacros(),
@@ -3905,6 +3905,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 },
                 {
                     "Exact DMG power-up behavior, all length-counter edge cases, hardware capture comparison, and cycle accuracy are not claimed.",
+                    "The performance surface exposes one shared envelope-decay helper and one shared pulse initial-level helper; independent Pulse 1, Pulse 2, and Noise envelope registers plus zombie-envelope techniques remain a product gap.",
                     "CGB-specific differences remain planned."
                 })
         },

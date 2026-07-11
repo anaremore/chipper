@@ -24,13 +24,14 @@ The overhaul is complete only when all of the following are implemented and veri
 - Complete: dedicated global sound browser with grouped chip navigation, role/text filtering, favorites, recents, recursive user-bank discovery, detail copy, and explicit cross-chip loading.
 - Complete: Browse remains open through periodic UI refresh and is kept above the editor until explicitly closed, loaded, or dismissed with Escape.
 - Complete: NES exposes five truthful lanes—Pulse 1, Pulse 2, Triangle, Noise, and independently gated DMC. Noise owns mode/period; DMC owns its native DAC/rate/sample path and has no fake conventional level trim.
+- Complete: Game Boy / DMG exposes four native lanes with Pulse 1 sweep and Noise clock inside their owning cards, Wave RAM shape/NR32 level inside Wave, shared NRx2 envelope helpers in one truthful module, explicit NR51 routing, and an explicit three-pitched-lane Chip Poly contract.
 - Complete: actionable sample empty states begin with NES DMC, whose waveform surface offers a direct `Load a .dmc sample` recovery action.
 - Complete: shared chip-family classification, browser grouping, density policy, and centralized editor-height rules.
 - Complete: shared four-operator FM editor with carrier/modulator grid, per-operator editing, resolved register readouts, and algorithm visualization.
 - Complete: sampler/wavetable asset workflows with per-source assignment, loaded/missing status, Wave RAM shape state, loop controls, and standard-size selectors.
 - Complete: stable-shell workflow bar with APVTS undo/redo, per-chip A/B slots, guarded whole-sound copy/paste, section initialization, and bounded variation.
 - Complete: snapshot tooling now names the primary surface `editor`; `browser` is captured explicitly rather than multiplying obsolete workspace variants.
-- In progress: final all-chip visual audit, documentation cleanup, full test run, clean build installation, and footer marker verification.
+- In progress: chip-by-chip refinement continues after NES and DMG; each remaining chip must complete its own source-truth audit, implementation, two-width visual review, behavioral coverage, and product-gap record before the final all-chip release audit.
 
 ## Delivery Order
 

@@ -156,6 +156,10 @@ public:
     {
         return channel < sourceChannelBounds.size() ? sourceChannelBounds[channel] : juce::Rectangle<int> {};
     }
+    juce::String getSourceChannelButtonTextForLayoutTest(size_t channel) const
+    {
+        return channel < sourceChannelButtons.size() ? sourceChannelButtons[channel].getButtonText() : juce::String {};
+    }
     juce::Rectangle<int> getSourceLevelBoundsForLayoutTest(size_t channel) const
     {
         return channel < sourceLevelSliders.size() ? sourceLevelSliders[channel].getBounds() : juce::Rectangle<int> {};
@@ -294,6 +298,7 @@ public:
     juce::Rectangle<int> getStereoSpreadBoundsForLayoutTest() const { return stereoSpreadSlider.getBounds(); }
     juce::Rectangle<int> getOutputSliderBoundsForLayoutTest() const { return outputSlider.getBounds(); }
     juce::Rectangle<int> getOutputScopeBoundsForLayoutTest() const { return outputScopePreview.getBounds(); }
+    juce::String getClockTextForLayoutTest() { return clockSlider.getTextFromValue(clockSlider.getValue()); }
     juce::Rectangle<int> getNativeSliderBoundsForLayoutTest(size_t index) const
     {
         return index < nativeSliders.size() ? nativeSliders[index].getBounds() : juce::Rectangle<int> {};
