@@ -13512,8 +13512,7 @@ private:
         if (channel >= channelNotes.size() || ! chip)
             return;
 
-        const auto detune = static_cast<int>(std::round((patch.control2 - 0.5f) * 8.0f));
-        const auto pitch = pitchForNote(midiNote + detune);
+        const auto pitch = pitchForNote(midiNote);
         const auto nativeChannel = nativeFmChannel(channel);
         channelNotes[channel] = std::clamp(midiNote, 0, 127);
         channelVelocity[channel] = static_cast<float>(clamp01(velocity) * sourceLevel(patch, channel));

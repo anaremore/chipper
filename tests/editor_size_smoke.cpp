@@ -24,6 +24,7 @@ constexpr int expectedEditorZxSpectrumBeeperHeight = 720;
 constexpr int expectedEditorSpc700Height = 900;
 constexpr int expectedEditorPaulaHeight = 900;
 constexpr int expectedEditorYm2608Height = 900;
+constexpr int expectedEditorYm2610Height = 900;
 constexpr int expectedEditorNamcoWsgHeight = 720;
 constexpr int expectedEditorSccHeight = 720;
 constexpr int expectedEditorSidHeight = 880;
@@ -178,6 +179,8 @@ int expectedHeightForChipMode(int chipMode)
         return expectedEditorPaulaHeight;
     if (mode == chipper::ChipMode::ym2608)
         return expectedEditorYm2608Height;
+    if (mode == chipper::ChipMode::ym2610)
+        return expectedEditorYm2610Height;
     if (mode == chipper::ChipMode::namcoWsg)
         return expectedEditorNamcoWsgHeight;
     if (mode == chipper::ChipMode::scc)
@@ -231,7 +234,7 @@ bool checkPrimaryPanelStack(const ChipperAudioProcessorEditor& editor, chipper::
 
     const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
     const auto minimumPerformanceHeight = isNesFamily ? 220
-        : ((mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608) ? 80
+        : ((mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610) ? 80
         : (mode == chipper::ChipMode::sid ? 96
         : ((mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 84 : 108)));
     requirePanel(performanceBounds, "performance macros", minimumPerformanceHeight);
@@ -1101,7 +1104,7 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
                 ok = false;
             }
         }
-        else if (mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608)
+        else if (mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610)
         {
             const auto footer = editor.getPerformanceBoundsForLayoutTest();
             const auto optionalFieldEscapes = [&footer](juce::Rectangle<int> field)
@@ -1886,6 +1889,177 @@ bool checkYm2608UnifiedOpnaLayout()
                               && editor.isPresetBrowserAboveWorkspaceForLayoutTest()
                               && ! editor.getGlobalPresetBrowserSearchBoundsForLayoutTest().isEmpty(),
                           "YM2608 preset browser should remain open as the sole overlay until dismissed");
+
+        ok &= widthOk;
+    }
+
+    return ok;
+}
+
+bool checkYm2610UnifiedOpnbLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::ym2610);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: YM2610 chip mode choice unavailable\n";
+        return false;
+    }
+
+    auto ok = true;
+    for (const auto width : { 1240, expectedEditorMinimumWidth })
+    {
+        ChipperAudioProcessor processor;
+        auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::macro, 0);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 0);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::playMode, 0);
+
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(width, expectedHeightForChipMode(chipChoice));
+        editor.runEditorUpdateForLayoutTest();
+
+        const auto lanes = editor.getModuleBoundsForLayoutTest(1);
+        const auto fmPatch = editor.getModuleBoundsForLayoutTest(2);
+        const auto operators = editor.getModuleBoundsForLayoutTest(3);
+        const auto ssgGenerator = editor.getModuleBoundsForLayoutTest(4);
+        const auto adpcmLayers = editor.getModuleBoundsForLayoutTest(5);
+        const auto footer = editor.getPerformanceBoundsForLayoutTest();
+        widthOk &= expect(editor.getHeight() == expectedEditorYm2610Height
+                              && ! lanes.isEmpty() && lanes.getHeight() >= 236,
+                          "YM2610 should use its 900px centered two-row FM/SSG surface");
+        widthOk &= expect(! fmPatch.isEmpty() && ! operators.isEmpty() && ! ssgGenerator.isEmpty() && ! adpcmLayers.isEmpty(),
+                          "YM2610 unified FM patch, operator, SSG, or external ADPCM module is missing");
+        widthOk &= expect(editor.getModuleBoundsForLayoutTest(0).isEmpty(),
+                          "YM2610 should retire the detached profile destination");
+        widthOk &= expect(editor.getModuleTitleTextForLayoutTest(1) == "Four FM + Three SSG Lanes"
+                              && editor.getModuleTitleTextForLayoutTest(2) == "Shared FM Patch"
+                              && editor.getModuleTitleTextForLayoutTest(3) == "Shared Operator Matrix"
+                              && editor.getModuleTitleTextForLayoutTest(4) == "Shared SSG Generator"
+                              && editor.getModuleTitleTextForLayoutTest(5) == "External ADPCM-A/B Layers",
+                          "YM2610 module titles should explain FM, SSG, and external sample ownership");
+
+        std::array<juce::Rectangle<int>, 7> cards {};
+        for (size_t lane = 0; lane < cards.size(); ++lane)
+        {
+            cards[lane] = editor.getSourceChannelBoundsForLayoutTest(lane);
+            const auto level = editor.getSourceLevelBoundsForLayoutTest(lane);
+            const auto header = editor.getSourceChannelButtonTextForLayoutTest(lane);
+            widthOk &= expect(cards[lane].getHeight() >= 90
+                                  && cards[lane].getWidth() >= 260
+                                  && lanes.expanded(2).contains(cards[lane]),
+                              "YM2610 FM/SSG lane card should remain readable inside the 4x2 bank");
+            widthOk &= expect(! level.isEmpty()
+                                  && level.getHeight() >= 8
+                                  && cards[lane].expanded(2).contains(level),
+                              "YM2610 lane level should remain inside its owning card");
+            if (lane < 4u)
+                widthOk &= expect(header.startsWith("FM " + juce::String(static_cast<int>(lane + 1u)))
+                                      && header.contains("stack note " + juce::String(static_cast<int>(lane + 1u)))
+                                      && header.contains("| A"),
+                                  "YM2610 FM header should expose lane, stack role, and algorithm");
+            else
+                widthOk &= expect(header.startsWith("SSG ")
+                                      && header.contains("stack note " + juce::String(static_cast<int>(lane + 1u)))
+                                      && (header.contains("Tone") || header.contains("Noise") || header.contains("T+N") || header.contains("Off")),
+                                  "YM2610 SSG header should expose lane, stack role, and resolved mixer state");
+        }
+        for (size_t left = 0; left < cards.size(); ++left)
+            for (size_t right = left + 1u; right < cards.size(); ++right)
+                widthOk &= expect(! cards[left].intersects(cards[right]),
+                                  "YM2610 FM/SSG lane cards should not overlap");
+        widthOk &= expect(std::abs((cards[4].getX() + cards[6].getRight()) / 2 - lanes.getCentreX()) <= 2,
+                          "YM2610 SSG A-C should form an intentional centered second row");
+
+        for (size_t ssg = 0; ssg < 3u; ++ssg)
+        {
+            const auto mix = editor.getYmChannelMixBoundsForLayoutTest(ssg);
+            widthOk &= expect(! mix.isEmpty()
+                                  && mix.getHeight() >= 26
+                                  && cards[ssg + 4u].expanded(2).contains(mix),
+                              "Each YM2610 SSG lane must own its Tone/Noise mix selector");
+        }
+
+        const std::array<juce::Rectangle<int>, 5> fmPatchControls {
+            editor.getFmAlgorithmBoundsForLayoutTest(),
+            editor.getFmAlgorithmPreviewBoundsForLayoutTest(),
+            editor.getYmEnvelopeShapeBoundsForLayoutTest(),
+            editor.getNativeSliderBoundsForLayoutTest(0),
+            editor.getFmFeedbackBoundsForLayoutTest()
+        };
+        for (const auto& control : fmPatchControls)
+            widthOk &= expect(! control.isEmpty()
+                                  && control.getHeight() >= 16
+                                  && fmPatch.expanded(2).contains(control),
+                              "YM2610 FM control should remain readable and owned by Shared FM Patch");
+        widthOk &= expect(editor.isNativeSliderEnabledForLayoutTest(0),
+                          "YM2610 Algorithm Bias should be active for Manual + Preset");
+
+        for (size_t op = 0; op < 4u; ++op)
+            widthOk &= expect(! editor.getFmOperatorCardBoundsForLayoutTest(op).isEmpty()
+                                  && operators.expanded(2).contains(editor.getFmOperatorCardBoundsForLayoutTest(op)),
+                              "YM2610 operator card should remain inside the shared operator matrix");
+
+        widthOk &= expect(ssgGenerator.expanded(2).contains(editor.getSnNoiseModeBoundsForLayoutTest())
+                              && ssgGenerator.expanded(2).contains(editor.getEnvelopeDecayBoundsForLayoutTest())
+                              && editor.isEnvelopeDecayVisibleForLayoutTest(),
+                          "YM2610 shared SSG envelope shape and period should live in Shared SSG Generator");
+        widthOk &= expect(adpcmLayers.expanded(2).contains(editor.getSampleFileButtonBoundsForLayoutTest())
+                              && adpcmLayers.expanded(2).contains(editor.getSampleFolderButtonBoundsForLayoutTest())
+                              && adpcmLayers.expanded(2).contains(editor.getSampleWaveformBoundsForLayoutTest())
+                              && editor.getSampleLabelTextForLayoutTest() == "Drum/Hit Layers"
+                              && editor.getSampleFileButtonTextForLayoutTest() == "ADPCM-A"
+                              && editor.getSampleFolderButtonTextForLayoutTest() == "ADPCM-B"
+                              && editor.getSampleStatusTextForLayoutTest().contains("Drum/Hit only")
+                              && editor.getSampleStatusTextForLayoutTest().contains("A empty")
+                              && editor.getSampleStatusTextForLayoutTest().contains("B empty"),
+                          "YM2610 external ADPCM empty state should remain actionable, conditional, and explicit");
+
+        widthOk &= expect(editor.getGlobalStripLabelTextForLayoutTest() == "Shared FM/SSG + Stereo Output"
+                              && footer.getHeight() == 88,
+                          "YM2610 footer should contain only cross-engine, stereo, clock, and output controls");
+        for (const auto control : { editor.getNativeSliderBoundsForLayoutTest(2),
+                                    editor.getNativeSliderBoundsForLayoutTest(3),
+                                    editor.getDmgStereoRouteBoundsForLayoutTest(),
+                                    editor.getStereoSpreadBoundsForLayoutTest(),
+                                    editor.getClockSliderBoundsForLayoutTest(),
+                                    editor.getOutputSliderBoundsForLayoutTest() })
+            widthOk &= expect(! control.isEmpty()
+                                  && control.getHeight() >= 16
+                                  && footer.expanded(2).contains(control),
+                              "YM2610 shared bridge/stereo/clock/output control escaped the compact footer");
+        widthOk &= expect(editor.getNativeLabelTextForLayoutTest(2) == "FM Tone + SSG Noise"
+                              && editor.getNativeSliderTextForLayoutTest(2).startsWith("N")
+                              && editor.getNativeSliderTextForLayoutTest(3).startsWith("V"),
+                          "YM2610 shared bridge controls should use FM/SSG and native register vocabulary");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 5);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(! editor.isNativeSliderEnabledForLayoutTest(0)
+                              && editor.getNativeLabelTextForLayoutTest(0).contains("Manual + Preset only"),
+                          "YM2610 explicit Algorithm should visibly take ownership from Algorithm Bias");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 0);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::macro, 5);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(0).contains("FM 1 + ADPCM-A1")
+                              && editor.getSourceChannelButtonTextForLayoutTest(3).contains("FM 4 + ADPCM-A4")
+                              && editor.getSourceChannelButtonTextForLayoutTest(4).contains("SSG A + ADPCM-A5")
+                              && editor.getSourceChannelButtonTextForLayoutTest(5).contains("SSG B + ADPCM-A6")
+                              && ! editor.getSourceChannelButtonTextForLayoutTest(6).contains("ADPCM-A"),
+                          "YM2610 Drum recipe should disclose exact ADPCM-A segment ownership on the first six lanes");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::playMode, 1);
+        editor.runEditorUpdateForLayoutTest();
+        for (size_t lane = 0; lane < 7u; ++lane)
+            widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(lane).containsIgnoreCase("note " + juce::String(static_cast<int>(lane + 1u))),
+                              "YM2610 Chip Poly headers should expose all seven allocation lanes");
+
+        editor.showPresetBrowserForLayoutTest();
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.isPresetBrowserVisibleForLayoutTest()
+                              && editor.isPresetBrowserAboveWorkspaceForLayoutTest()
+                              && ! editor.getGlobalPresetBrowserSearchBoundsForLayoutTest().isEmpty(),
+                          "YM2610 preset browser should remain open as the sole overlay until dismissed");
 
         ok &= widthOk;
     }
@@ -3251,6 +3425,10 @@ bool checkPerformanceMacroSliderLayout()
                 expectedMacroSliders = { 2, 3 };
                 break;
             case chipper::ChipMode::ym2610:
+                // Algorithm Bias and Feedback belong to Shared FM Patch;
+                // FM/SSG tone and level bridge the two engines in the footer.
+                expectedMacroSliders = { 2, 3 };
+                break;
             case chipper::ChipMode::ym2610b:
                 expectedMacroSliders = { 0 };
                 break;
@@ -3369,7 +3547,7 @@ bool checkPerformanceMacroSliderLayout()
         {
             const auto feedbackBounds = editor.getFmFeedbackBoundsForLayoutTest();
             const auto feedbackSliderBounds = editor.getNativeSliderBoundsForLayoutTest(1);
-            const auto feedbackOwnerBounds = mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608
+            const auto feedbackOwnerBounds = mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610
                 ? editor.getModuleBoundsForLayoutTest(2)
                 : performanceBounds;
             if (feedbackBounds.isEmpty()
@@ -4319,7 +4497,8 @@ bool checkUnifiedEditorContract()
                                                 || mode == chipper::ChipMode::opl3
                                                 || mode == chipper::ChipMode::ym2151
                                                 || mode == chipper::ChipMode::ym2203
-                                                || mode == chipper::ChipMode::ym2608)
+                                                || mode == chipper::ChipMode::ym2608
+                                                || mode == chipper::ChipMode::ym2610)
             ? 80
             : 100;
         if (editor.getPerformanceBoundsForLayoutTest().getHeight() < minimumPerformanceHeight
@@ -4633,6 +4812,7 @@ int main()
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2203);
     ok &= checkYm2608UnifiedOpnaLayout();
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2608);
+    ok &= checkYm2610UnifiedOpnbLayout();
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2610);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2610b);
     ok &= checkHuc6280UnifiedLayout();
