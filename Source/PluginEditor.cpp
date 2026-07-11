@@ -4259,6 +4259,7 @@ void ChipperAudioProcessorEditor::resized()
     const auto ym2612Layout = displayedMode == chipper::ChipMode::ym2612;
     const auto opl3Layout = displayedMode == chipper::ChipMode::opl3;
     const auto ym2151Layout = displayedMode == chipper::ChipMode::ym2151;
+    const auto ym2413Layout = displayedMode == chipper::ChipMode::ym2413;
     const auto fourOperatorFmLayout = uiProfile.fourOperatorFm;
     const auto sampleLayout = uiProfile.sampler;
     const auto wavetableLayout = uiProfile.wavetable;
@@ -4510,6 +4511,22 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[4] = {};
         moduleBounds[5] = { modules.getX(), bottomY, modules.getWidth(), routingRowHeight };
     }
+    else if (ym2413Layout)
+    {
+        const auto availableHeight = modules.getHeight();
+        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.50)), 276, 284);
+        const auto lowerRowHeight = std::max(0, availableHeight - sourceRowHeight - gap);
+        const auto instrumentWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getWidth()) * 0.40)), 450, 510);
+        const auto topY = modules.getY();
+        const auto lowerY = topY + sourceRowHeight + gap;
+
+        moduleBounds[0] = {};
+        moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), sourceRowHeight };
+        moduleBounds[2] = { modules.getX(), lowerY, instrumentWidth, lowerRowHeight };
+        moduleBounds[3] = { modules.getX() + instrumentWidth + gap, lowerY, modules.getWidth() - instrumentWidth - gap, lowerRowHeight };
+        moduleBounds[4] = {};
+        moduleBounds[5] = {};
+    }
     else if (wavetableLayout)
     {
         const auto availableHeight = modules.getHeight();
@@ -4639,10 +4656,11 @@ void ChipperAudioProcessorEditor::resized()
     const auto useNesExpansionVoiceGrid = uiProfile.nesExpansion && visibleSourceCards > 4u;
     const auto useOplVoiceGrid = opl3Layout && visibleSourceCards > 6u;
     const auto useOpmVoiceGrid = ym2151Layout && visibleSourceCards > 4u;
+    const auto useOpllVoiceGrid = ym2413Layout && visibleSourceCards > 6u;
     const auto useWavetableVoiceGrid = (displayedMode == chipper::ChipMode::huc6280
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
-    const auto compactSourceGrid = useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || saa1099Layout || pokeyLayout || oneBitHardwarePathLayout;
+    const auto compactSourceGrid = useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid || saa1099Layout || pokeyLayout || oneBitHardwarePathLayout;
     if ((compactSourceGrid && ! sccLayout) || displayedMode == chipper::ChipMode::sid)
         moduleSummaryLabels[1].setBounds({});
     if (sampleLayout)
@@ -4687,8 +4705,8 @@ void ChipperAudioProcessorEditor::resized()
     const auto wavetableColumns = useWavetableVoiceGrid ? (visibleSourceCards <= 6u ? 3 : 4) : 0;
     const auto nesExpansionColumns = displayedMode == chipper::ChipMode::nesVrc7 ? 5 : 4;
     const auto paulaColumns = 2;
-    const auto sourceColumns = pokeyLayout ? 2 : ((ym2149Layout || saa1099Layout || useOplVoiceGrid) ? 3 : ((useSpc700VoiceGrid || useOpmVoiceGrid) ? 4 : (usePaulaVoiceGrid ? paulaColumns : (useNesExpansionVoiceGrid ? nesExpansionColumns : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards))))));
-    const auto sourceRows = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || saa1099Layout || pokeyLayout)
+    const auto sourceColumns = pokeyLayout ? 2 : ((ym2149Layout || saa1099Layout || useOplVoiceGrid || useOpllVoiceGrid) ? 3 : ((useSpc700VoiceGrid || useOpmVoiceGrid) ? 4 : (usePaulaVoiceGrid ? paulaColumns : (useNesExpansionVoiceGrid ? nesExpansionColumns : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards))))));
+    const auto sourceRows = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid || saa1099Layout || pokeyLayout)
         ? static_cast<int>((visibleSourceCards + static_cast<size_t>(sourceColumns) - 1u) / static_cast<size_t>(sourceColumns))
         : 1;
     const auto sourceCardWidth = sourceColumns > 0
@@ -4737,8 +4755,8 @@ void ChipperAudioProcessorEditor::resized()
             continue;
         }
 
-        const auto sourceColumn = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || saa1099Layout || pokeyLayout) ? static_cast<int>(i % static_cast<size_t>(sourceColumns)) : static_cast<int>(i);
-        const auto sourceRow = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || saa1099Layout || pokeyLayout) ? static_cast<int>(i / static_cast<size_t>(sourceColumns)) : 0;
+        const auto sourceColumn = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid || saa1099Layout || pokeyLayout) ? static_cast<int>(i % static_cast<size_t>(sourceColumns)) : static_cast<int>(i);
+        const auto sourceRow = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid || saa1099Layout || pokeyLayout) ? static_cast<int>(i / static_cast<size_t>(sourceColumns)) : 0;
         const auto sourceGridOffsetX = sccLayout && visibleSourceCards == 5u && sourceRow == 1
             ? (sourceCardWidth + sourceGap) / 2
             : 0;
@@ -4763,13 +4781,13 @@ void ChipperAudioProcessorEditor::resized()
         const auto isOpmSourceCard = displayedMode == chipper::ChipMode::ym2151;
         const auto isWavetableSourceCard = useWavetableVoiceGrid;
         const auto isDenseSampleCard = isWavetableSourceCard || isPaulaSourceCard || isSpc700SourceCard;
-        auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isDenseSampleCard ? 5 : ((useOplVoiceGrid || useOpmVoiceGrid) ? 6 : 8)),
-                                                         isSidSourceCard ? 2 : (isDenseSampleCard ? 3 : ((isYm2149ToneSourceCard || useOplVoiceGrid || useOpmVoiceGrid) ? 2 : 4)));
+        auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isDenseSampleCard ? 5 : ((useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid) ? 6 : 8)),
+                                                         isSidSourceCard ? 2 : (isDenseSampleCard ? 3 : ((isYm2149ToneSourceCard || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid) ? 2 : 4)));
         const auto standardInlineControlHeight = isDenseSampleCard ? 28 : 30;
         const auto buttonHeight = isDenseSampleCard ? 18 : (isSidSourceCard ? 18 : (isWavetableSourceCard ? 18 : 18));
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isYm2149ToneSourceCard ? 1 : (isDenseSampleCard ? 2 : 2));
-        const auto previewHeight = (useOplVoiceGrid || useOpmVoiceGrid)
+        const auto previewHeight = (useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid)
             ? std::clamp(sourceCard.getHeight() / 5, 14, 17)
             : (isYm2149ToneSourceCard
             ? std::clamp(sourceCard.getHeight() / 7, 14, 18)
@@ -5084,7 +5102,7 @@ void ChipperAudioProcessorEditor::resized()
         tonePanel.removeFromTop(std::min(rowGap, tonePanel.getHeight()));
         tertiaryTonePanel = tonePanel;
     }
-    else if (usesFmToneStack && ! ym2612Layout && ! opl3Layout && ! ym2151Layout)
+    else if (usesFmToneStack && ! ym2612Layout && ! opl3Layout && ! ym2151Layout && ! ym2413Layout)
     {
         const auto isFourOperatorFm = isFourOperatorFmMode(displayedMode);
         if (isFourOperatorFm)
@@ -5319,8 +5337,8 @@ void ChipperAudioProcessorEditor::resized()
         placeFmAlgorithmControl(primaryTonePanel);
     else if (displayedMode == chipper::ChipMode::opl3)
         placeOplWaveformControl(primaryTonePanel);
-    else if (displayedMode == chipper::ChipMode::ym2413)
-        placeOpllInstrumentControl(primaryTonePanel);
+    else if (ym2413Layout)
+        placeOpllInstrumentControl(tonePanel);
     else if (isNesFamily(displayedMode))
     {
         // NES register controls are owned by the individual source cards.
@@ -5535,7 +5553,7 @@ void ChipperAudioProcessorEditor::resized()
         && ! routeOwnsMotionCard
         && usesStereoSpreadControl(displayedMode)
         && usesDmgStereoRouteSegment(displayedMode);
-    if (splitOutputCard && ! ym2612Layout && ! opl3Layout && ! ym2151Layout)
+    if (splitOutputCard && ! ym2612Layout && ! opl3Layout && ! ym2151Layout && ! ym2413Layout)
     {
         const auto availableHeight = outputPanel.getHeight();
         const auto routeMinimum = displayedMode == chipper::ChipMode::huc6280 ? 70 : 58;
@@ -5614,7 +5632,7 @@ void ChipperAudioProcessorEditor::resized()
         for (auto& button : dmgStereoRouteButtons)
             button.setBounds({});
     }
-    else if (displayedMode != chipper::ChipMode::sid && ! pokeyLayout && ! huc6280Layout && ! ym2612Layout && ! opl3Layout && ! ym2151Layout)
+    else if (displayedMode != chipper::ChipMode::sid && ! pokeyLayout && ! huc6280Layout && ! ym2612Layout && ! opl3Layout && ! ym2151Layout && ! ym2413Layout)
     {
         placeDmgStereoRouteSegment(routeOwnsMotionCard ? motionRoutePanel : outputRoutePanel);
     }
@@ -5759,6 +5777,11 @@ void ChipperAudioProcessorEditor::resized()
         controlCells.fill({});
         controlCells[4] = { strip.getX(), strip.getY(), controlWidth, strip.getHeight() };
         controlCells[5] = { strip.getX() + controlWidth + ym2612ControlGap, strip.getY(), controlWidth, strip.getHeight() };
+    }
+    else if (ym2413Layout)
+    {
+        // OPLL keeps its four shared performance controls beside clock/output
+        // in a compact two-row footer. Instrument, topology, and User0 live above.
     }
     else if (paulaLayout)
     {
@@ -7399,12 +7422,18 @@ void ChipperAudioProcessorEditor::placeOpllInstrumentControl(juce::Rectangle<int
     auto rhythmHeader = rhythmPanel.removeFromTop(std::min(labelHeight, rhythmPanel.getHeight()));
     ymEnvelopeShapeLabel.setBounds(rhythmHeader.removeFromLeft(std::min(132, rhythmHeader.getWidth())));
     ymEnvelopeShapeValueLabel.setJustificationType(juce::Justification::centredRight);
-    ymEnvelopeShapeValueLabel.setBounds(rhythmHeader);
+    ymEnvelopeShapeValueLabel.setBounds(useColumns ? juce::Rectangle<int> {} : rhythmHeader);
     rhythmPanel.removeFromTop(std::min(compact ? 3 : 5, rhythmPanel.getHeight()));
     ymEnvelopeShapeSegmentBounds = rhythmPanel.removeFromTop(std::min(controlHeight, rhythmPanel.getHeight())).reduced(0, 1);
     layoutSegmentedButtons(ymEnvelopeShapeButtons, ymEnvelopeShapeSegmentBounds, rhythmCount);
 
-    if (! useColumns)
+    if (useColumns)
+    {
+        rhythmPanel.removeFromTop(std::min(3, rhythmPanel.getHeight()));
+        ymEnvelopeShapeValueLabel.setJustificationType(juce::Justification::centredLeft);
+        ymEnvelopeShapeValueLabel.setBounds(rhythmPanel.removeFromTop(std::min(readoutHeight, rhythmPanel.getHeight())));
+    }
+    else
     {
         ymEnvelopeShapeValueLabel.setJustificationType(juce::Justification::centredLeft);
         ymEnvelopeShapeValueLabel.setBounds(rhythmPanel);
@@ -9860,7 +9889,7 @@ juce::String ChipperAudioProcessorEditor::performanceMacroDestination(chipper::C
 
         case chipper::ChipMode::ym2413:
         {
-            static constexpr std::array<const char*, 4> labels { "ROM instr.", "Pitch spread", "Motion", "Volume nibble" };
+            static constexpr std::array<const char*, 4> labels { "ROM instrument", "Tuning offset", "Motion", "Volume nibble" };
             return labels[std::min(index, labels.size() - 1u)];
         }
     }
@@ -10835,7 +10864,10 @@ juce::String ChipperAudioProcessorEditor::fmFeedbackReadout(chipper::ChipMode mo
     }
 
     if (mode == chipper::ChipMode::ym2413)
-        return "Pitch spread " + juce::String(static_cast<int>(std::round(std::clamp(patch.control2, 0.0f, 1.0f) * 12.0f))) + " st";
+    {
+        const auto offset = static_cast<int>(std::round((std::clamp(patch.control2, 0.0f, 1.0f) - 0.5f) * 12.0f));
+        return "Tuning " + juce::String(offset >= 0 ? "+" : "") + juce::String(offset) + " st";
+    }
 
     return "Feedback " + juce::String(feedback) + "/7";
 }
@@ -10879,6 +10911,8 @@ juce::String ChipperAudioProcessorEditor::fmOperatorRegisterReadout(chipper::Chi
     {
         const auto custom = chipper::opllCustomPatchEnabledForPatch(patch);
         const auto family = mode == chipper::ChipMode::nesVrc7 ? juce::String("VRC7") : juce::String("YM2413");
+        if (mode == chipper::ChipMode::ym2413 && patch.waveShape > 0)
+            return "ROM I" + juce::String(static_cast<int>(chipper::ym2413InstrumentForPatch(patch))) + " owns EG | User0 editor inactive";
         const auto multiple = static_cast<int>(chipper::opllOperatorMultipleForPatch(patch, op));
         const auto multipleText = multiple == 0 ? juce::String("0.5") : juce::String(multiple);
         const auto attack = static_cast<int>(chipper::opllOperatorAttackRateForPatch(patch, op));
@@ -11345,24 +11379,36 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
 
     if (mode == chipper::ChipMode::ym2413)
     {
-        if (chipper::ym2413RhythmModeForPatch(patch) == 2u && index >= 6u && index <= 8u)
+        const auto rhythm = chipper::ym2413RhythmModeForPatch(patch) == 2u;
+        const auto rhythmOnly = rhythm
+            && (patch.playMode == chipper::PlayMode::chipPoly
+                || patch.macro == chipper::MacroKind::drum
+                || patch.macro == chipper::MacroKind::hit);
+        if (rhythm && index >= 6u && index <= 8u)
         {
             if (index == 6u)
-                return "OPLL BD | V" + juce::String(static_cast<int>(chipper::ym2413RhythmBassDrumVolumeForPatch(patch)));
+                return "BD | $36 V" + juce::String(static_cast<int>(chipper::ym2413RhythmBassDrumVolumeForPatch(patch))) + " | rhythm trigger";
             if (index == 7u)
-                return "OPLL HH+SD | V"
+                return "HH+SD | $37 V"
                     + juce::String(static_cast<int>(chipper::ym2413RhythmHatVolumeForPatch(patch)))
-                    + "/" + juce::String(static_cast<int>(chipper::ym2413RhythmSnareVolumeForPatch(patch)));
-            return "OPLL TOM+CYM | V"
+                    + "/" + juce::String(static_cast<int>(chipper::ym2413RhythmSnareVolumeForPatch(patch))) + " | rhythm trigger";
+            return "TOM+CYM | $38 V"
                 + juce::String(static_cast<int>(chipper::ym2413RhythmTomVolumeForPatch(patch)))
-                + "/" + juce::String(static_cast<int>(chipper::ym2413RhythmCymVolumeForPatch(patch)));
+                + "/" + juce::String(static_cast<int>(chipper::ym2413RhythmCymVolumeForPatch(patch))) + " | rhythm trigger";
         }
+
+        if (rhythmOnly && index < 6u)
+            return "OPLL " + number + " | idle | rhythm owns notes";
 
         const auto instrumentText = chipper::opllCustomPatchEnabledForPatch(patch)
             ? juce::String("User0")
             : juce::String("I") + juce::String(static_cast<int>(chipper::ym2413InstrumentForPatch(patch)));
+        const auto allocation = patch.playMode == chipper::PlayMode::chipPoly
+            ? juce::String("note ") + number
+            : (rhythm ? juce::String("melodic + rhythm") : juce::String("melodic layer"));
         return "OPLL " + number + " | " + instrumentText
-            + " V" + juce::String(static_cast<int>(chipper::ym2413VolumeNibbleForPatch(patch, index)));
+            + " V" + juce::String(static_cast<int>(chipper::ym2413VolumeNibbleForPatch(patch, index)))
+            + " | " + allocation;
     }
 
     if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || isOpnbMode(mode))
@@ -11640,11 +11686,11 @@ juce::String ChipperAudioProcessorEditor::ymEnvelopeShapeReadout(int choice) con
         const auto clamped = std::clamp(choice, 0, 2);
         switch (clamped)
         {
-            case 1: return "Melodic, all nine OPLL channels use preset instruments";
-            case 2: return "Rhythm, $0E maps source cards 7-9 to BD, HH+SD, and TOM+CYM";
+            case 1: return "Melodic: all nine channels";
+            case 2: return "Rhythm: 7-9 = BD / HH+SD / TOM+CYM";
             case 0:
             default:
-                return "Preset recipe, Drum/Hit use native OPLL rhythm";
+                return "Preset: Drum/Hit = Rhythm";
         }
     }
 
@@ -13141,6 +13187,12 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
             && chipper::oplFourOperatorPairForPatch(patch)
             && i >= 3u
             && i <= 5u;
+        const auto opllRhythmOnlyMelodicLane = mode == chipper::ChipMode::ym2413
+            && chipper::ym2413RhythmModeForPatch(patch) == 2u
+            && i < 6u
+            && (patch.playMode == chipper::PlayMode::chipPoly
+                || patch.macro == chipper::MacroKind::drum
+                || patch.macro == chipper::MacroKind::hit);
         const auto isSidVoice = mode == chipper::ChipMode::sid && i < sidVoiceWaveCount && spec != nullptr;
         const auto sidWaveBits = isSidVoice ? chipper::sidWaveformControlForVoice(patch, i) : uint8_t { 0u };
         juce::String buttonLabel;
@@ -13154,7 +13206,7 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
             buttonLabel = spec != nullptr ? juce::String(spec->label) : juce::String((*labels)[i]);
 
         sourceChannelButtons[i].setButtonText(buttonLabel);
-        sourceChannelButtons[i].setEnabled(spec != nullptr && ! pokeyPairedHighByte && ! oplPairedOperatorLane);
+        sourceChannelButtons[i].setEnabled(spec != nullptr && ! pokeyPairedHighByte && ! oplPairedOperatorLane && ! opllRhythmOnlyMelodicLane);
         if (isSidVoice)
         {
             sourceChannelButtons[i].setTooltip(withMidiCcForRole(buttonLabel
@@ -13209,13 +13261,14 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
         }
 
         sourceLevelLabels[i].setText(isNesDmcLane ? "7-bit DAC" : (mode == chipper::ChipMode::pokey ? "Trim" : "Level"), juce::dontSendNotification);
-        sourceLevelLabels[i].setEnabled(levelSpec != nullptr && ! pokeyPairedHighByte);
-        sourceLevelSliders[i].setEnabled(levelSpec != nullptr && ! pokeyPairedHighByte);
-        sourceLevelValueLabels[i].setEnabled(levelSpec != nullptr && ! pokeyPairedHighByte);
-        const auto pokeyControlAlpha = pokeyPairedHighByte ? 0.45f : 1.0f;
-        sourceLevelLabels[i].setAlpha(pokeyControlAlpha);
-        sourceLevelSliders[i].setAlpha(pokeyControlAlpha);
-        sourceLevelValueLabels[i].setAlpha(pokeyControlAlpha);
+        const auto sourceLevelActive = levelSpec != nullptr && ! pokeyPairedHighByte && ! opllRhythmOnlyMelodicLane;
+        sourceLevelLabels[i].setEnabled(sourceLevelActive);
+        sourceLevelSliders[i].setEnabled(sourceLevelActive);
+        sourceLevelValueLabels[i].setEnabled(sourceLevelActive);
+        const auto sourceControlAlpha = (pokeyPairedHighByte || opllRhythmOnlyMelodicLane) ? 0.45f : 1.0f;
+        sourceLevelLabels[i].setAlpha(sourceControlAlpha);
+        sourceLevelSliders[i].setAlpha(sourceControlAlpha);
+        sourceLevelValueLabels[i].setAlpha(sourceControlAlpha);
         if (! isNesDmcLane)
             sourceLevelValueLabels[i].setTooltip(sourceLevelSliders[i].getTooltip());
         sourceLevelValueLabels[i].setText(isNesDmcLane
@@ -13696,7 +13749,10 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
             || isOpnbMode(mode));
     const auto visibleRows = mode == chipper::ChipMode::opl3 ? 3u : (isOpllOperatorEditMode(mode) ? 2u : fmOperatorReadoutRows);
     const auto hasOperatorLevelControls = active && hasEditableFmOperatorRows(mode);
+    const auto userPatchEditable = mode != chipper::ChipMode::ym2413 || patch.waveShape == 0;
     fmEditor.setVisible(active && selectedWorkspace == ChipperEditorWorkspace::edit);
+    fmEditor.setEnabled(userPatchEditable);
+    fmEditor.setAlpha(userPatchEditable ? 1.0f : 0.45f);
 
     static constexpr std::array<const char*, fmOperatorReadoutRows> fmNames { "OP1", "OP2", "OP3", "OP4" };
     static constexpr std::array<const char*, fmOperatorReadoutRows> oplNames { "Pair", "Mod", "Car", "" };
@@ -13754,7 +13810,9 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
             const auto multiplierChoice = std::clamp(static_cast<int>(std::round(parameterValue(fmOperatorMultiplierParameterId(i)))),
                                                      0,
                                                      choices.size() - 1);
-            fmOperatorMultiplierButtons[i].setButtonText(choices[multiplierChoice]);
+            fmOperatorMultiplierButtons[i].setButtonText(isOpllOperatorEditMode(mode)
+                                                             ? juce::String("Mult ") + choices[multiplierChoice]
+                                                             : choices[multiplierChoice]);
             fmOperatorMultiplierButtons[i].setTooltip(multiplierTooltip);
 
             const auto* attackSpec = chipper::parameterSpecFor(mode, fmOperatorAttackRateRole(i));
@@ -13783,7 +13841,10 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
             const auto releaseChoice = std::clamp(static_cast<int>(std::round(parameterValue(fmOperatorReleaseRateParameterId(i)))),
                                                   0,
                                                   chipper::parameters::fmOperatorReleaseRateChoices().size() - 1);
-            fmOperatorAttackRateButtons[i].setButtonText(fmOperatorEnvelopeButtonText(attackChoice, decayChoice, sustainChoice, releaseChoice));
+            const auto envelopeText = fmOperatorEnvelopeButtonText(attackChoice, decayChoice, sustainChoice, releaseChoice);
+            fmOperatorAttackRateButtons[i].setButtonText(isOpllOperatorEditMode(mode) && envelopeText == "EG F"
+                                                             ? juce::String("EG Follow")
+                                                             : envelopeText);
             fmOperatorAttackRateButtons[i].setTooltip(attackTooltip);
         }
     }
@@ -15469,7 +15530,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
                                                               ? "Lane Motion + Output"
                                                        : (mode == chipper::ChipMode::scc
                                                               ? "Wave Stack + Output"
-                                                       : (mode == chipper::ChipMode::ym2149 || mode == chipper::ChipMode::sid || mode == chipper::ChipMode::saa1099 || mode == chipper::ChipMode::pokey
+                                                        : (mode == chipper::ChipMode::ym2149 || mode == chipper::ChipMode::sid || mode == chipper::ChipMode::saa1099 || mode == chipper::ChipMode::pokey || mode == chipper::ChipMode::ym2413
                                                               ? "Performance + Output"
                                                               : (mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::sn76489 ? "Global" : "Shared Performance")))))))))
                                            : "Roadmap",
@@ -15676,6 +15737,53 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         }
     }
 
+    for (auto& slider : nativeSliders)
+    {
+        slider.textFromValueFunction = [](double value) { return juce::String(value, 3); };
+        slider.valueFromTextFunction = [](const juce::String& text) { return text.getDoubleValue(); };
+    }
+    if (mode == chipper::ChipMode::ym2413)
+    {
+        nativeSliders[0].textFromValueFunction = [](double value)
+        {
+            return "I" + juce::String(std::clamp(static_cast<int>(std::round(1.0 + value * 14.0)), 1, 15));
+        };
+        nativeSliders[0].valueFromTextFunction = [](const juce::String& text)
+        {
+            const auto instrument = std::clamp(text.retainCharacters("0123456789").getIntValue(), 1, 15);
+            return static_cast<double>(instrument - 1) / 14.0;
+        };
+        nativeSliders[1].textFromValueFunction = [](double value)
+        {
+            const auto offset = static_cast<int>(std::round((std::clamp(value, 0.0, 1.0) - 0.5) * 12.0));
+            return juce::String(offset >= 0 ? "+" : "") + juce::String(offset) + " st";
+        };
+        nativeSliders[1].valueFromTextFunction = [](const juce::String& text)
+        {
+            const auto offset = std::clamp(text.getIntValue(), -6, 6);
+            return 0.5 + static_cast<double>(offset) / 12.0;
+        };
+        nativeSliders[2].textFromValueFunction = [](double value)
+        {
+            return juce::String(static_cast<int>(std::round(std::clamp(value, 0.0, 1.0) * 100.0))) + "%";
+        };
+        nativeSliders[2].valueFromTextFunction = [](const juce::String& text)
+        {
+            return std::clamp(text.getDoubleValue() / 100.0, 0.0, 1.0);
+        };
+        nativeSliders[3].textFromValueFunction = [](double value)
+        {
+            return "V" + juce::String(static_cast<int>(std::round(std::clamp(value, 0.0, 1.0) * 15.0))) + "/15";
+        };
+        nativeSliders[3].valueFromTextFunction = [](const juce::String& text)
+        {
+            const auto nibble = text.upToFirstOccurrenceOf("/", false, false).retainCharacters("0123456789").getIntValue();
+            return std::clamp(static_cast<double>(nibble) / 15.0, 0.0, 1.0);
+        };
+    }
+    for (auto& slider : nativeSliders)
+        slider.updateText();
+
     updateSegmentedControlSpecs(mode);
     controlValueLabels[4].setVisible(true);
     controlValueLabels[5].setVisible(true);
@@ -15807,6 +15915,38 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         nativeLabels[0].setAlpha(biasAlpha);
         nativeSliders[0].setAlpha(biasAlpha);
         controlValueLabels[0].setAlpha(biasAlpha);
+    }
+    if (mode == chipper::ChipMode::ym2413)
+    {
+        const auto customPatch = chipper::opllCustomPatchEnabledForPatch(patch);
+        const auto instrumentBiasActive = patch.waveShape == 0
+            && patch.macro == chipper::MacroKind::manual
+            && ! customPatch;
+        nativeLabels[0].setText(instrumentBiasActive ? "Instrument Bias" : "Instrument Bias (Manual + Preset only)",
+                                juce::dontSendNotification);
+        nativeGroupLabels[0].setEnabled(instrumentBiasActive);
+        nativeLabels[0].setEnabled(instrumentBiasActive);
+        nativeSliders[0].setEnabled(instrumentBiasActive);
+        controlValueLabels[0].setEnabled(instrumentBiasActive);
+        const auto instrumentAlpha = instrumentBiasActive ? 1.0f : 0.45f;
+        nativeGroupLabels[0].setAlpha(instrumentAlpha);
+        nativeLabels[0].setAlpha(instrumentAlpha);
+        nativeSliders[0].setAlpha(instrumentAlpha);
+        controlValueLabels[0].setAlpha(instrumentAlpha);
+
+        const auto motionActive = patch.macro == chipper::MacroKind::laser
+            || (patch.macro == chipper::MacroKind::manual && customPatch);
+        nativeLabels[2].setText(motionActive ? "Motion" : "Motion (Laser or Manual User0)",
+                                juce::dontSendNotification);
+        nativeGroupLabels[2].setEnabled(motionActive);
+        nativeLabels[2].setEnabled(motionActive);
+        nativeSliders[2].setEnabled(motionActive);
+        controlValueLabels[2].setEnabled(motionActive);
+        const auto motionAlpha = motionActive ? 1.0f : 0.45f;
+        nativeGroupLabels[2].setAlpha(motionAlpha);
+        nativeLabels[2].setAlpha(motionAlpha);
+        nativeSliders[2].setAlpha(motionAlpha);
+        controlValueLabels[2].setAlpha(motionAlpha);
     }
     const auto macroText = macroTemplateReadout(mode, patch);
     const auto& templ = chipper::macroTemplateFor(mode, patch.macro);
@@ -16117,6 +16257,36 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
             else
                 signalPath = "Nine independent two-operator voices: Modulator -> Carrier (or parallel via Connection) -> YMF262 buses -> stereo.";
             moduleSummaryLabels[5].setText(signalPath, juce::dontSendNotification);
+        }
+        else if (mode == chipper::ChipMode::ym2413)
+        {
+            const auto custom = chipper::opllCustomPatchEnabledForPatch(patch);
+            const auto instrument = static_cast<int>(chipper::ym2413InstrumentForPatch(patch));
+            const auto tuningOffset = static_cast<int>(std::round((std::clamp(patch.control2, 0.0f, 1.0f) - 0.5f) * 12.0f));
+            const auto rhythm = chipper::ym2413RhythmModeForPatch(patch) == 2u;
+            const auto instrumentBiasReadout = custom
+                ? juce::String("Inactive: User0 owns instrument")
+                : (patch.waveShape > 0
+                       ? juce::String("Inactive: explicit I") + juce::String(instrument)
+                       : (patch.macro != chipper::MacroKind::manual
+                              ? juce::String("Recipe owns I") + juce::String(instrument)
+                              : juce::String("Resolved I") + juce::String(instrument)));
+            const auto motionReadout = patch.macro == chipper::MacroKind::laser
+                ? juce::String("Laser pitch motion ") + juce::String(patch.control3, 2)
+                : ((patch.macro == chipper::MacroKind::manual && custom)
+                       ? juce::String("User0 Follow bias ") + juce::String(patch.control3, 2)
+                       : juce::String("Inactive for current recipe"));
+
+            controlValueLabels[0].setText(macroReadout(0, instrumentBiasReadout), juce::dontSendNotification);
+            controlValueLabels[1].setText(macroReadout(1,
+                                                       "Tuning " + juce::String(tuningOffset >= 0 ? "+" : "")
+                                                           + juce::String(tuningOffset) + " st"),
+                                          juce::dontSendNotification);
+            controlValueLabels[2].setText(macroReadout(2, motionReadout), juce::dontSendNotification);
+            controlValueLabels[3].setText(macroReadout(3,
+                                                       juce::String(rhythm ? "$36-$38 rhythm volume " : "$30-$38 channel volume ")
+                                                           + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15"),
+                                          juce::dontSendNotification);
         }
         else
         {

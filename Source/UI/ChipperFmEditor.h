@@ -47,6 +47,7 @@ public:
 private:
     void clearControlBounds(size_t index);
     void layoutFourOperatorGrid();
+    void layoutTwoOperatorGrid();
     void layoutCompactRows();
 
     Controls controls;
@@ -54,6 +55,7 @@ private:
     size_t operatorRows = 0;
     bool editable = false;
     bool gridLayout = false;
+    bool twoOperatorGrid = false;
     juce::Colour panelColour;
     juce::Colour cardColour;
     juce::Colour outlineColour;

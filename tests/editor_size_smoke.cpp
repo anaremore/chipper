@@ -1379,6 +1379,174 @@ bool checkYm2151UnifiedOpmLayout()
     return ok;
 }
 
+bool checkYm2413UnifiedOpllLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::ym2413);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: YM2413 chip mode choice unavailable\n";
+        return false;
+    }
+
+    auto ok = true;
+    for (const auto width : { 1240, expectedEditorMinimumWidth })
+    {
+        ChipperAudioProcessor processor;
+        auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::macro, 0);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 0);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 1);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::playMode, 0);
+        widthOk &= setPlainParameter(processor, chipper::parameters::id::macroControl2, 0.5f);
+
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(width, expectedHeightForChipMode(chipChoice));
+        editor.runEditorUpdateForLayoutTest();
+
+        const auto lanes = editor.getModuleBoundsForLayoutTest(1);
+        const auto topology = editor.getModuleBoundsForLayoutTest(2);
+        const auto userPatch = editor.getModuleBoundsForLayoutTest(3);
+        const auto footer = editor.getPerformanceBoundsForLayoutTest();
+        widthOk &= expect(! lanes.isEmpty() && lanes.getHeight() >= 276,
+                          "YM2413 should reserve a readable three-row bank for all nine OPLL lanes");
+        widthOk &= expect(! topology.isEmpty() && ! userPatch.isEmpty(),
+                          "YM2413 instrument/topology or shared User0 module is missing");
+        widthOk &= expect(editor.getModuleBoundsForLayoutTest(0).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(4).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(5).isEmpty(),
+                          "YM2413 should retire detached profile, motion, and output destinations");
+        widthOk &= expect(editor.getModuleTitleTextForLayoutTest(1) == "Nine OPLL Lanes"
+                              && editor.getModuleTitleTextForLayoutTest(2) == "Instrument + Topology"
+                              && editor.getModuleTitleTextForLayoutTest(3) == "Shared User0 Patch",
+                          "YM2413 module titles should explain OPLL lane and shared-patch ownership");
+
+        std::array<juce::Rectangle<int>, 9> cards {};
+        for (size_t channel = 0; channel < cards.size(); ++channel)
+        {
+            cards[channel] = editor.getSourceChannelBoundsForLayoutTest(channel);
+            const auto level = editor.getSourceLevelBoundsForLayoutTest(channel);
+            const auto header = editor.getSourceChannelButtonTextForLayoutTest(channel);
+            widthOk &= expect(cards[channel].getHeight() >= 70
+                                  && cards[channel].getWidth() >= 330
+                                  && lanes.expanded(2).contains(cards[channel]),
+                              "YM2413 lane card should remain readable and owned by the lane bank");
+            widthOk &= expect(! level.isEmpty()
+                                  && level.getHeight() >= 12
+                                  && cards[channel].expanded(2).contains(level),
+                              "YM2413 lane level should remain inside its owning card");
+            widthOk &= expect(header.startsWith("OPLL " + juce::String(static_cast<int>(channel + 1u)) + " | I")
+                                  && header.contains("melodic layer"),
+                              "YM2413 melodic lane header should expose instrument, volume, and allocation role");
+        }
+        for (size_t left = 0; left < cards.size(); ++left)
+            for (size_t right = left + 1u; right < cards.size(); ++right)
+                widthOk &= expect(! cards[left].intersects(cards[right]),
+                                  "YM2413 lane cards should not overlap");
+
+        const auto instrument = editor.getOpllInstrumentBoundsForLayoutTest();
+        const auto rhythm = editor.getYmEnvelopeShapeBoundsForLayoutTest();
+        widthOk &= expect(! instrument.isEmpty()
+                              && instrument.getHeight() >= 24
+                              && topology.expanded(2).contains(instrument),
+                          "YM2413 ROM/User0 instrument selector should live in Instrument + Topology");
+        widthOk &= expect(! rhythm.isEmpty()
+                              && rhythm.getHeight() >= 24
+                              && topology.expanded(2).contains(rhythm),
+                          "YM2413 native rhythm selector should remain visible in Instrument + Topology");
+
+        for (size_t op = 0; op < 2u; ++op)
+        {
+            const auto card = editor.getFmOperatorCardBoundsForLayoutTest(op);
+            widthOk &= expect(! card.isEmpty()
+                                  && card.getHeight() >= 90
+                                  && userPatch.expanded(2).contains(card),
+                              "YM2413 Mod/Carrier card should remain inside the shared User0 patch");
+            widthOk &= expect(! editor.getFmOperatorLevelSliderBoundsForLayoutTest(op).isEmpty()
+                                  && ! editor.getFmOperatorMultiplierBoundsForLayoutTest(op).isEmpty()
+                                  && ! editor.getFmOperatorAttackRateBoundsForLayoutTest(op).isEmpty(),
+                              "YM2413 User0 row should expose level, multiplier, and operator EG controls");
+            widthOk &= expect(editor.isFmOperatorLevelEnabledForLayoutTest(op),
+                              "YM2413 User0 controls should be editable while Preset/Custom is selected");
+        }
+        widthOk &= expect(editor.getFmOperatorNameTextForLayoutTest(0) == "Mod"
+                              && editor.getFmOperatorNameTextForLayoutTest(1) == "Car",
+                          "YM2413 User0 rows should identify modulator and carrier roles");
+
+        widthOk &= expect(editor.getGlobalStripLabelTextForLayoutTest() == "Performance + Output"
+                              && footer.getHeight() == 124,
+                          "YM2413 footer should be the compact shared performance/output stage");
+        widthOk &= expect(footer.expanded(2).contains(editor.getClockSliderBoundsForLayoutTest())
+                              && footer.expanded(2).contains(editor.getOutputSliderBoundsForLayoutTest()),
+                          "YM2413 clock and output should remain in the compact footer");
+        widthOk &= expect(editor.getNativeLabelTextForLayoutTest(1) == "Tuning Offset"
+                              && editor.getNativeSliderTextForLayoutTest(1) == "+0 st"
+                              && editor.getNativeValueLabelTextForLayoutTest(1).contains("Tuning +0 st"),
+                          "YM2413 should describe the engine's global -6..+6 semitone offset truthfully");
+        widthOk &= expect(editor.getNativeSliderTextForLayoutTest(0).startsWith("I")
+                              && editor.getNativeSliderTextForLayoutTest(3).startsWith("V"),
+                          "YM2413 compact footer should use instrument and native volume vocabulary");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 12);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(! editor.isFmOperatorLevelEnabledForLayoutTest(0)
+                              && editor.getFmOperatorValueTextForLayoutTest(0).contains("User0 editor inactive"),
+                          "YM2413 explicit ROM instruments should visibly take ownership from User0");
+        widthOk &= expect(! editor.isNativeSliderEnabledForLayoutTest(0)
+                              && editor.getNativeLabelTextForLayoutTest(0).contains("Manual + Preset only"),
+                          "YM2413 explicit ROM instrument should disable Instrument Bias without losing its value");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 0);
+        widthOk &= setPlainParameter(processor, chipper::parameters::id::fmOperator1Level, 0.72f);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.isFmOperatorLevelEnabledForLayoutTest(0)
+                              && editor.getSourceChannelButtonTextForLayoutTest(0).contains("User0")
+                              && editor.getWaveShapeValueTextForLayoutTest().contains("Custom slot 0"),
+                          "YM2413 operator override should activate and disclose the shared User0 patch");
+        widthOk &= expect(! editor.isNativeSliderEnabledForLayoutTest(0)
+                              && editor.isNativeSliderEnabledForLayoutTest(2),
+                          "YM2413 Manual User0 should disable ROM bias and enable the Follow motion control");
+
+        widthOk &= setPlainParameter(processor, chipper::parameters::id::fmOperator1Level, 0.5f);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::macro, 5);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 2);
+        editor.runEditorUpdateForLayoutTest();
+        for (size_t channel = 0; channel < 6u; ++channel)
+            widthOk &= expect(! editor.isSourceChannelButtonEnabledForLayoutTest(channel)
+                                  && editor.getSourceChannelButtonTextForLayoutTest(channel).contains("idle"),
+                              "YM2413 Drum/Hit rhythm should visibly retire melodic lanes 1-6");
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(6).startsWith("BD | $36")
+                              && editor.getSourceChannelButtonTextForLayoutTest(7).startsWith("HH+SD | $37")
+                              && editor.getSourceChannelButtonTextForLayoutTest(8).startsWith("TOM+CYM | $38"),
+                          "YM2413 rhythm cards should expose their native instrument pairs and volume registers");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::macro, 0);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 2);
+        editor.runEditorUpdateForLayoutTest();
+        for (size_t channel = 0; channel < 6u; ++channel)
+            widthOk &= expect(editor.isSourceChannelButtonEnabledForLayoutTest(channel)
+                                  && editor.getSourceChannelButtonTextForLayoutTest(channel).contains("melodic + rhythm"),
+                              "YM2413 Big Mono explicit rhythm should retain melodic lanes for non-drum recipes");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::playMode, 1);
+        editor.runEditorUpdateForLayoutTest();
+        for (size_t channel = 0; channel < 6u; ++channel)
+            widthOk &= expect(! editor.isSourceChannelButtonEnabledForLayoutTest(channel)
+                                  && editor.getSourceChannelButtonTextForLayoutTest(channel).contains("rhythm owns notes"),
+                              "YM2413 Chip Poly rhythm should show that every note triggers the rhythm set");
+
+        editor.showPresetBrowserForLayoutTest();
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.isPresetBrowserVisibleForLayoutTest()
+                              && editor.isPresetBrowserAboveWorkspaceForLayoutTest()
+                              && ! editor.getGlobalPresetBrowserSearchBoundsForLayoutTest().isEmpty(),
+                          "YM2413 preset browser should remain open as the sole overlay until dismissed");
+
+        ok &= widthOk;
+    }
+
+    return ok;
+}
+
 bool checkWavetableSourceDeck(chipper::ChipMode mode)
 {
     const auto chipChoice = chipModeChoiceFor(mode);
@@ -4100,6 +4268,7 @@ int main()
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2612);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2151);
     ok &= checkYm2151UnifiedOpmLayout();
+    ok &= checkYm2413UnifiedOpllLayout();
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2203);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2608);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2610);

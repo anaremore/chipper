@@ -28,6 +28,7 @@ void ChipperFmEditor::configure(chipper::ChipMode modeToUse, size_t visibleOpera
     operatorRows = std::min(operatorCount, visibleOperators);
     editable = editableOperators;
     gridLayout = editable && operatorRows == operatorCount;
+    twoOperatorGrid = editable && operatorRows == 2u;
     resized();
     repaint();
 }
@@ -52,7 +53,7 @@ void ChipperFmEditor::setTheme(juce::Colour panel,
 
 void ChipperFmEditor::paint(juce::Graphics& graphics)
 {
-    if (! gridLayout && mode != chipper::ChipMode::opl3)
+    if (! gridLayout && ! twoOperatorGrid && mode != chipper::ChipMode::opl3)
         return;
 
     for (size_t i = 0; i < operatorRows; ++i)
@@ -61,7 +62,8 @@ void ChipperFmEditor::paint(juce::Graphics& graphics)
         if (bounds.isEmpty())
             continue;
         const auto carrier = controls.names[i].getText().endsWith(" C")
-            || (mode == chipper::ChipMode::opl3 && i == 2u);
+            || (mode == chipper::ChipMode::opl3 && i == 2u)
+            || ((mode == chipper::ChipMode::ym2413 || mode == chipper::ChipMode::nesVrc7) && i == 1u);
         graphics.setColour(cardColour);
         graphics.fillRoundedRectangle(bounds.toFloat(), 4.0f);
         graphics.setColour(carrier ? primaryColour : accentColour);
@@ -76,6 +78,8 @@ void ChipperFmEditor::resized()
     operatorCards.fill({});
     if (gridLayout)
         layoutFourOperatorGrid();
+    else if (twoOperatorGrid)
+        layoutTwoOperatorGrid();
     else
         layoutCompactRows();
 }
@@ -124,6 +128,47 @@ void ChipperFmEditor::layoutFourOperatorGrid()
         controls.multipliers[i].setBounds(controlsRow.removeFromRight(multiplierWidth));
         controlsRow.removeFromRight(std::min(6, controlsRow.getWidth()));
         controls.levelSliders[i].setBounds(controlsRow.reduced(0, 1));
+    }
+}
+
+void ChipperFmEditor::layoutTwoOperatorGrid()
+{
+    auto area = getLocalBounds();
+    constexpr auto gap = 6;
+    const auto cardHeight = std::max(0, (area.getHeight() - gap) / 2);
+    for (size_t i = 0; i < operatorCount; ++i)
+    {
+        if (i >= operatorRows)
+        {
+            clearControlBounds(i);
+            continue;
+        }
+
+        operatorCards[i] = {
+            area.getX(),
+            area.getY() + static_cast<int>(i) * (cardHeight + gap),
+            area.getWidth(),
+            cardHeight
+        };
+
+        auto content = operatorCards[i].reduced(9, 5);
+        auto header = content.removeFromTop(std::min(16, content.getHeight()));
+        controls.names[i].setBounds(header.removeFromLeft(std::min(82, header.getWidth())));
+        controls.levelReadouts[i].setBounds(header);
+        content.removeFromTop(std::min(3, content.getHeight()));
+
+        auto registerRow = content.removeFromBottom(std::min(17, content.getHeight()));
+        controls.registerReadouts[i].setBounds(registerRow.reduced(2, 0));
+        content.removeFromBottom(std::min(4, content.getHeight()));
+
+        auto controlsRow = content.removeFromTop(std::min(30, content.getHeight()));
+        const auto envelopeWidth = std::min(72, controlsRow.getWidth());
+        controls.envelopes[i].setBounds(controlsRow.removeFromRight(envelopeWidth));
+        controlsRow.removeFromRight(std::min(6, controlsRow.getWidth()));
+        const auto multiplierWidth = std::min(82, controlsRow.getWidth());
+        controls.multipliers[i].setBounds(controlsRow.removeFromRight(multiplierWidth));
+        controlsRow.removeFromRight(std::min(8, controlsRow.getWidth()));
+        controls.levelSliders[i].setBounds(controlsRow.reduced(0, 3));
     }
 }
 

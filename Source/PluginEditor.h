@@ -238,6 +238,8 @@ public:
     juce::Rectangle<int> getWaveShapeBoundsForLayoutTest() const { return waveShapeSegmentBounds; }
     juce::Rectangle<int> getOplWaveformBoundsForLayoutTest() const { return oplWaveformBox.getBounds(); }
     juce::Rectangle<int> getOplWaveformPreviewBoundsForLayoutTest() const { return oplWaveformPreview.getBounds(); }
+    juce::Rectangle<int> getOpllInstrumentBoundsForLayoutTest() const { return opllInstrumentBox.getBounds(); }
+    juce::String getWaveShapeValueTextForLayoutTest() const { return waveShapeValueLabel.getText(); }
     bool isWaveShapeSegmentVisibleForLayoutTest() const { return waveShapeButtons[0].isVisible(); }
     bool isSnNoiseModeSegmentVisibleForLayoutTest() const { return snNoiseModeButtons[0].isVisible(); }
     juce::Rectangle<int> getSnNoiseModeMenuBoundsForLayoutTest() const { return snNoiseModeBox.getBounds(); }
@@ -297,6 +299,10 @@ public:
     juce::String getFmOperatorLevelValueTextForLayoutTest(size_t index) const
     {
         return index < fmOperatorLevelValueLabels.size() ? fmOperatorLevelValueLabels[index].getText() : juce::String {};
+    }
+    bool isFmOperatorLevelEnabledForLayoutTest(size_t index) const
+    {
+        return index < fmOperatorLevelSliders.size() && fmOperatorLevelSliders[index].isEnabled();
     }
     juce::Rectangle<int> getModuleBoundsForLayoutTest(size_t module) const
     {
@@ -360,6 +366,10 @@ public:
     juce::String getNativeValueLabelTextForLayoutTest(size_t index) const
     {
         return index < controlValueLabels.size() ? controlValueLabels[index].getText() : juce::String {};
+    }
+    juce::String getNativeSliderTextForLayoutTest(size_t index)
+    {
+        return index < nativeSliders.size() ? nativeSliders[index].getTextFromValue(nativeSliders[index].getValue()) : juce::String {};
     }
     bool isNativeSliderEnabledForLayoutTest(size_t index) const
     {

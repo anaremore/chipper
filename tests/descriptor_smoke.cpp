@@ -625,8 +625,10 @@ bool expectEnvelopeModels()
                  "SPC700 voice-shaping module should own envelope, ADSR/GAIN speed, and PMON controls");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2612).modules[3].title == "Shared Operator Matrix",
                  "YM2612 operator module should disclose that one editable patch is shared across six channels");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2413).modules[3].title == "ROM / User EG",
-                 "YM2413 envelope module should expose ROM and user patch EG wording");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2413).modules[1].title == "Nine OPLL Lanes"
+                     && chipper::descriptorFor(chipper::ChipMode::ym2413).modules[2].title == "Instrument + Topology"
+                     && chipper::descriptorFor(chipper::ChipMode::ym2413).modules[3].title == "Shared User0 Patch",
+                 "YM2413 modules should expose lane, topology, and shared User0 ownership");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::pokey).modules[3].title == "Shared AUDC Texture + Gate",
                  "POKEY shared texture module should name the AUDC/AUDV helper path and avoid ADSR wording");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::paula).modules[3].title == "Tracker Playback",
@@ -2074,6 +2076,7 @@ int main()
     ok &= expectPreset(chipper::ChipMode::ym2413, "opll-soft-keys");
     ok &= expectPreset(chipper::ChipMode::ym2413, "opll-custom-bass");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Instrument");
+    ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Tuning Offset");
     ok &= expectChoiceRegister(chipper::ChipMode::ym2413, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 16, "Preset/Custom");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::fmOperator1Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Mod Level");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::fmOperator2Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Car Level");
