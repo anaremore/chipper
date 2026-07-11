@@ -3564,9 +3564,9 @@ std::array<ModuleDescriptor, 6> ym2149Modules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "AY/YM PSG clean-room register model.", { "AY / YM2149", "Clock override", "Hybrid default", "Authentic still partial" }),
-        makeModule("sources", "Channels", "Three tone channels plus shared noise.", { "Channel A", "Channel B", "Channel C", "Shared noise" }),
-        makeModule("tone", "Mixer", "Global tone/noise behavior with per-channel overrides.", { "Tone/noise bits", "Noise period", "Channel overrides", "Crunch" }),
-        makeModule("envelope", "Hardware Envelope", "AY/YM shape generator and volume timing.", { "Volume registers", "Env speed", "Shape select", "Hybrid helper" }),
+        makeModule("sources", "Three Output Channels", "A, B, and C each combine their square tone with the shared noise generator through register 7.", { "Channel A", "Channel B", "Channel C", "Per-channel tone/noise gates" }),
+        makeModule("tone", "Shared Noise + Routing", "One register-6 noise generator feeds the independently gated A/B/C output channels.", { "Shared noise enable", "Noise period", "Default register-7 routing", "Per-channel overrides above" }),
+        makeModule("envelope", "Shared Hardware Envelope", "One register-13 shape generator can replace the fixed volume of every sounding A/B/C channel.", { "Shared shape", "Shared period", "A/B/C volume bit", "Fixed-volume bypass" }),
         makeModule("motion", "Motion", "Classic fake-chord and demo-scene movement.", { "Fast arps", "Fake chords", "Pattern retrigger", "Pitch motion" }),
         makeModule("output", "Output", "Bright buzzy computer output.", { "Output gain", "Stereo spread", "Alias character", "Preset suggestions" })
     };

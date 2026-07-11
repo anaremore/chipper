@@ -17,6 +17,7 @@ namespace
 constexpr int expectedEditorHeight = 860;
 constexpr int expectedEditorDmgHeight = 720;
 constexpr int expectedEditorSn76489Height = 720;
+constexpr int expectedEditorYm2149Height = 720;
 constexpr int expectedEditorSidHeight = 880;
 constexpr int expectedEditorMinimumWidth = 1180;
 constexpr int expectedEditorMaximumHeight = expectedEditorSidHeight;
@@ -155,6 +156,8 @@ int expectedHeightForChipMode(int chipMode)
         return expectedEditorDmgHeight;
     if (mode == chipper::ChipMode::sn76489)
         return expectedEditorSn76489Height;
+    if (mode == chipper::ChipMode::ym2149)
+        return expectedEditorYm2149Height;
 
     return expectedEditorHeight;
 }
@@ -563,10 +566,12 @@ bool checkYm2149ToneNoiseMixLayout()
         }
     }
 
+    const auto channelsModuleBounds = editor.getModuleBoundsForLayoutTest(1);
     const auto mixerBounds = editor.getModuleBoundsForLayoutTest(2);
     const auto envelopeModuleBounds = editor.getModuleBoundsForLayoutTest(3);
     const auto outputModuleBounds = editor.getModuleBoundsForLayoutTest(5);
     const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+    const auto sharedNoiseBounds = editor.getSourceChannelBoundsForLayoutTest(3);
     const auto toneNoiseBounds = editor.getToneNoiseMixBoundsForLayoutTest();
     const auto noisePitchBounds = editor.getNativeSliderBoundsForLayoutTest(2);
     const auto retiredMacroSliderBounds = editor.getNativeSliderBoundsForLayoutTest(3);
@@ -574,11 +579,36 @@ bool checkYm2149ToneNoiseMixLayout()
     const auto envelopeShapeBounds = editor.getYmEnvelopeShapeBoundsForLayoutTest();
     const auto envelopeSpeedBounds = editor.getEnvelopeDecayBoundsForLayoutTest();
     const auto envelopePreviewBounds = editor.getYmEnvelopePreviewBoundsForLayoutTest();
+    const auto stereoSpreadBounds = editor.getStereoSpreadBoundsForLayoutTest();
+    const auto clockBounds = editor.getClockSliderBoundsForLayoutTest();
+    const auto outputBounds = editor.getOutputSliderBoundsForLayoutTest();
 
-    if (mixerBounds.isEmpty() || mixerBounds.getHeight() < 160)
+    for (size_t channel = 0; channel < 3; ++channel)
     {
-        std::cerr << "editor_size_smoke: YM2149 mixer module is missing useful space: "
+        const auto sourceBounds = editor.getSourceChannelBoundsForLayoutTest(channel);
+        if (channelsModuleBounds.isEmpty() || ! channelsModuleBounds.expanded(2).contains(sourceBounds))
+        {
+            std::cerr << "editor_size_smoke: YM2149 output channel " << channel
+                      << " is not owned by the three-channel module: source " << sourceBounds.toString()
+                      << " module " << channelsModuleBounds.toString() << '\n';
+            ok = false;
+        }
+    }
+
+    if (mixerBounds.isEmpty() || mixerBounds.getHeight() < 220)
+    {
+        std::cerr << "editor_size_smoke: YM2149 shared-noise/routing module is missing useful space: "
                   << mixerBounds.toString() << '\n';
+        ok = false;
+    }
+
+    if (sharedNoiseBounds.isEmpty()
+        || ! mixerBounds.expanded(2).contains(sharedNoiseBounds)
+        || channelsModuleBounds.expanded(2).contains(sharedNoiseBounds))
+    {
+        std::cerr << "editor_size_smoke: YM2149 shared noise must be a generator inside routing, not a fourth output lane: noise "
+                  << sharedNoiseBounds.toString() << " routing " << mixerBounds.toString()
+                  << " channels " << channelsModuleBounds.toString() << '\n';
         ok = false;
     }
 
@@ -622,7 +652,7 @@ bool checkYm2149ToneNoiseMixLayout()
         ok = false;
     }
 
-    if (envelopeModuleBounds.isEmpty() || envelopeModuleBounds.getHeight() < 160)
+    if (envelopeModuleBounds.isEmpty() || envelopeModuleBounds.getHeight() < 220)
     {
         std::cerr << "editor_size_smoke: YM2149 envelope module is missing useful space: "
                   << envelopeModuleBounds.toString() << '\n';
@@ -663,22 +693,62 @@ bool checkYm2149ToneNoiseMixLayout()
         ok = false;
     }
 
-    if (! outputModuleBounds.isEmpty()
-        && ((! mixerBounds.isEmpty() && mixerBounds.getBottom() > outputModuleBounds.getY())
-            || (! envelopeModuleBounds.isEmpty() && envelopeModuleBounds.getBottom() > outputModuleBounds.getY())))
+    if (! outputModuleBounds.isEmpty())
     {
-        std::cerr << "editor_size_smoke: YM2149 middle modules overlap the output module: mixer "
-                  << mixerBounds.toString() << " envelope " << envelopeModuleBounds.toString()
-                  << " output " << outputModuleBounds.toString() << '\n';
+        std::cerr << "editor_size_smoke: YM2149 should not reserve a separate output destination below the signal path: "
+                  << outputModuleBounds.toString() << '\n';
         ok = false;
     }
 
-    if (! performanceBounds.isEmpty() && ! outputModuleBounds.isEmpty() && outputModuleBounds.getBottom() > performanceBounds.getY())
+    if (performanceBounds.isEmpty()
+        || stereoSpreadBounds.isEmpty()
+        || clockBounds.isEmpty()
+        || outputBounds.isEmpty()
+        || ! performanceBounds.expanded(2).contains(stereoSpreadBounds)
+        || ! performanceBounds.expanded(2).contains(clockBounds)
+        || ! performanceBounds.expanded(2).contains(outputBounds))
     {
-        std::cerr << "editor_size_smoke: YM2149 output module overlaps performance macros: output "
-                  << outputModuleBounds.toString() << " performance " << performanceBounds.toString() << '\n';
+        std::cerr << "editor_size_smoke: YM2149 compact performance/output strip is incomplete: spread "
+                  << stereoSpreadBounds.toString() << " clock " << clockBounds.toString()
+                  << " output " << outputBounds.toString() << " strip " << performanceBounds.toString() << '\n';
         ok = false;
     }
+
+    editor.setSize(expectedEditorMinimumWidth, expectedHeightForChipMode(chipChoice));
+    editor.runEditorUpdateForLayoutTest();
+
+    const auto compactChannels = editor.getModuleBoundsForLayoutTest(1);
+    const auto compactRouting = editor.getModuleBoundsForLayoutTest(2);
+    const auto compactEnvelope = editor.getModuleBoundsForLayoutTest(3);
+    const auto compactPerformance = editor.getPerformanceBoundsForLayoutTest();
+    const auto compactSharedNoise = editor.getSourceChannelBoundsForLayoutTest(3);
+    const auto compactToneNoise = editor.getToneNoiseMixBoundsForLayoutTest();
+    const auto compactNoisePitch = editor.getNativeSliderBoundsForLayoutTest(2);
+    const auto compactEnvelopeShape = editor.getYmEnvelopeShapeBoundsForLayoutTest();
+    const auto compactEnvelopeSpeed = editor.getEnvelopeDecayBoundsForLayoutTest();
+    const auto compactEnvelopePreview = editor.getYmEnvelopePreviewBoundsForLayoutTest();
+    const auto compactStereoSpread = editor.getStereoSpreadBoundsForLayoutTest();
+    const auto compactClock = editor.getClockSliderBoundsForLayoutTest();
+    const auto compactOutput = editor.getOutputSliderBoundsForLayoutTest();
+
+    for (size_t channel = 0; channel < 3; ++channel)
+        ok &= expect(compactChannels.expanded(2).contains(editor.getSourceChannelBoundsForLayoutTest(channel)),
+                     "YM2149 compact width lost an A/B/C output channel");
+
+    ok &= expect(compactRouting.expanded(2).contains(compactSharedNoise),
+                 "YM2149 compact width detached shared noise from routing");
+    ok &= expect(compactRouting.expanded(2).contains(compactToneNoise),
+                 "YM2149 compact width detached default routing from shared noise");
+    ok &= expect(compactRouting.expanded(2).contains(compactNoisePitch),
+                 "YM2149 compact width detached register-6 pitch from shared noise");
+    ok &= expect(compactEnvelope.expanded(2).contains(compactEnvelopeShape)
+                     && compactEnvelope.expanded(2).contains(compactEnvelopeSpeed)
+                     && compactEnvelope.expanded(2).contains(compactEnvelopePreview),
+                 "YM2149 compact width lost shared-envelope controls");
+    ok &= expect(compactPerformance.expanded(2).contains(compactStereoSpread)
+                     && compactPerformance.expanded(2).contains(compactClock)
+                     && compactPerformance.expanded(2).contains(compactOutput),
+                 "YM2149 compact width lost performance/output controls");
 
     return ok;
 }

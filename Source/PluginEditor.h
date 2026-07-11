@@ -296,6 +296,7 @@ public:
     juce::Rectangle<int> getSampleWaveformBoundsForLayoutTest() const { return sampleWaveformPreview.getBounds(); }
     juce::Rectangle<int> getEnvelopeDecayBoundsForLayoutTest() const { return envelopeDecaySlider.getBounds(); }
     juce::Rectangle<int> getStereoSpreadBoundsForLayoutTest() const { return stereoSpreadSlider.getBounds(); }
+    juce::Rectangle<int> getClockSliderBoundsForLayoutTest() const { return clockSlider.getBounds(); }
     juce::Rectangle<int> getOutputSliderBoundsForLayoutTest() const { return outputSlider.getBounds(); }
     juce::Rectangle<int> getOutputScopeBoundsForLayoutTest() const { return outputScopePreview.getBounds(); }
     juce::String getClockTextForLayoutTest() { return clockSlider.getTextFromValue(clockSlider.getValue()); }

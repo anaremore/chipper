@@ -154,6 +154,7 @@ ChipUiProfile profileFor(ChipMode mode)
     const auto sid = mode == ChipMode::sid;
     const auto dmg = mode == ChipMode::dmg;
     const auto sn76489 = mode == ChipMode::sn76489;
+    const auto ym2149 = mode == ChipMode::ym2149;
     const auto huc6280 = mode == ChipMode::huc6280;
     const auto fourOp = isFourOperatorFm(mode);
     const auto wavetable = family == ChipUiFamily::wavetable;
@@ -167,13 +168,13 @@ ChipUiProfile profileFor(ChipMode mode)
     profile.visibleSourceCount = visibleSources;
     profile.nativeSourceCount = nativeSourceCountForMode(mode);
     profile.playSourceColumns = playSourceColumns(visibleSources);
-    profile.performanceStripHeight = sid || dmg || sn76489 ? 124
+    profile.performanceStripHeight = sid || dmg || sn76489 || ym2149 ? 124
                                          : (nes ? 236
                                                 : (spc700 || paula || fourOp ? 124
                                                                              : (wavetable ? 132 : 196)));
     profile.maximumModulesHeight = sid ? 666
                                        : (nes ? 436
-                                              : (dmg || sn76489 ? 410
+                                              : (dmg || sn76489 || ym2149 ? 410
                                                      : (spc700 ? 548
                                                         : (paula ? 580
                                                                  : (fourOp ? 564

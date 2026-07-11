@@ -22,6 +22,7 @@ constexpr int editorDefaultWidth = 1240;
 constexpr int editorDefaultHeight = 860;
 constexpr int editorDmgHeight = 720;
 constexpr int editorSn76489Height = 720;
+constexpr int editorYm2149Height = 720;
 constexpr int editorSidHeight = 880;
 constexpr int editorMinWidth = 1180;
 constexpr int editorMaxWidth = 1800;
@@ -38,6 +39,8 @@ int preferredEditorHeightForMode(chipper::ChipMode mode)
         return editorDmgHeight;
     if (mode == chipper::ChipMode::sn76489)
         return editorSn76489Height;
+    if (mode == chipper::ChipMode::ym2149)
+        return editorYm2149Height;
 
     return editorDefaultHeight;
 }
@@ -4337,33 +4340,18 @@ void ChipperAudioProcessorEditor::resized()
     else if (ym2149Layout)
     {
         const auto availableHeight = modules.getHeight();
-        auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.31)), 136, 154);
-        auto outputRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.20)), 82, 104);
-        auto middleRowHeight = std::max(0, availableHeight - sourceRowHeight - outputRowHeight - (gap * 2));
-
-        constexpr auto minimumMiddleRowHeight = 170;
-        auto deficit = minimumMiddleRowHeight - middleRowHeight;
-        if (deficit > 0)
-        {
-            const auto outputReduction = std::min(deficit, std::max(0, outputRowHeight - 82));
-            outputRowHeight -= outputReduction;
-            deficit -= outputReduction;
-
-            const auto sourceReduction = std::min(deficit, std::max(0, sourceRowHeight - 136));
-            sourceRowHeight -= sourceReduction;
-            middleRowHeight = std::max(0, availableHeight - sourceRowHeight - outputRowHeight - (gap * 2));
-        }
+        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.37)), 148, 154);
+        const auto middleRowHeight = std::max(0, availableHeight - sourceRowHeight - gap);
 
         const auto topY = modules.getY();
         const auto middleY = topY + sourceRowHeight + gap;
-        const auto bottomY = middleY + middleRowHeight + gap;
 
         moduleBounds[0] = {};
         moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), sourceRowHeight };
         moduleBounds[2] = { modules.getX(), middleY, columnWidth, middleRowHeight };
         moduleBounds[3] = { modules.getX() + columnWidth + gap, middleY, columnWidth, middleRowHeight };
         moduleBounds[4] = {};
-        moduleBounds[5] = { modules.getX(), bottomY, modules.getWidth(), outputRowHeight };
+        moduleBounds[5] = {};
     }
     else if (wavetableLayout)
     {
@@ -4518,10 +4506,21 @@ void ChipperAudioProcessorEditor::resized()
         sourcePanel.removeFromTop(4);
 
     const auto sourceGap = 6;
+    constexpr int ymSharedNoiseCardHeight = 78;
+    juce::Rectangle<int> ymSharedNoiseSourceBounds;
+    if (ym2149Layout)
+    {
+        auto sharedNoisePanel = moduleBounds[2].reduced(12, 9);
+        sharedNoisePanel.removeFromTop(20);
+        if (moduleSummaryLabels[2].isVisible())
+            sharedNoisePanel.removeFromTop(30);
+        sharedNoisePanel.removeFromTop(moduleSummaryLabels[2].isVisible() ? 4 : 8);
+        ymSharedNoiseSourceBounds = sharedNoisePanel.removeFromTop(std::min(ymSharedNoiseCardHeight, sharedNoisePanel.getHeight()));
+    }
     const auto wavetableColumns = useWavetableVoiceGrid ? (visibleSourceCards <= 6u ? 3 : 4) : 0;
     const auto nesExpansionColumns = displayedMode == chipper::ChipMode::nesVrc7 ? 5 : 4;
     const auto paulaColumns = 2;
-    const auto sourceColumns = useSpc700VoiceGrid ? 4 : (usePaulaVoiceGrid ? paulaColumns : (useNesExpansionVoiceGrid ? nesExpansionColumns : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards))));
+    const auto sourceColumns = ym2149Layout ? 3 : (useSpc700VoiceGrid ? 4 : (usePaulaVoiceGrid ? paulaColumns : (useNesExpansionVoiceGrid ? nesExpansionColumns : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards)))));
     const auto sourceRows = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid)
         ? static_cast<int>((visibleSourceCards + static_cast<size_t>(sourceColumns) - 1u) / static_cast<size_t>(sourceColumns))
         : 1;
@@ -4572,12 +4571,14 @@ void ChipperAudioProcessorEditor::resized()
         const auto cardHeightForChannel = displayedMode == chipper::ChipMode::sn76489 && i < 3u
             ? std::min(sourceCardHeight, 106)
             : sourceCardHeight;
-        sourceChannelBounds[i] = {
-            sourcePanel.getX() + (sourceColumn * (sourceCardWidth + sourceGap)),
-            sourcePanel.getY() + (sourceRow * (sourceCardHeight + sourceGap)),
-            sourceCardWidth,
-            cardHeightForChannel
-        };
+        sourceChannelBounds[i] = ym2149Layout && i == 3u
+            ? ymSharedNoiseSourceBounds
+            : juce::Rectangle<int> {
+                sourcePanel.getX() + (sourceColumn * (sourceCardWidth + sourceGap)),
+                sourcePanel.getY() + (sourceRow * (sourceCardHeight + sourceGap)),
+                sourceCardWidth,
+                cardHeightForChannel
+            };
         const auto isSidSourceCard = displayedMode == chipper::ChipMode::sid;
         const auto isNesSourceCard = isNesFamily(displayedMode);
         const auto isDmgSourceCard = displayedMode == chipper::ChipMode::dmg;
@@ -4870,6 +4871,8 @@ void ChipperAudioProcessorEditor::resized()
     const auto usesSampleToneStack = (displayedMode == chipper::ChipMode::spc700
         || displayedMode == chipper::ChipMode::paula)
         && usesSnNoiseModeSegment(displayedMode);
+    if (displayedMode == chipper::ChipMode::ym2149)
+        tonePanel.removeFromTop(std::min(ymSharedNoiseCardHeight + 8, tonePanel.getHeight()));
     if (displayedMode == chipper::ChipMode::dmg)
     {
         const auto availableHeight = tonePanel.getHeight();
@@ -4987,6 +4990,7 @@ void ChipperAudioProcessorEditor::resized()
     {
         ymChannelMixLabel.setBounds({});
         ymChannelMixValueLabel.setBounds({});
+        nativeLabels[3].setText("Default A/B/C Routing", juce::dontSendNotification);
         placeToneNoiseMixSegment(primaryTonePanel);
         placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], secondaryTonePanel);
     }
@@ -5182,7 +5186,9 @@ void ChipperAudioProcessorEditor::resized()
         outputPanel.removeFromTop(std::min(gapHeight, outputPanel.getHeight()));
         outputRoutePanel = outputPanel;
     }
-    if (displayedMode != chipper::ChipMode::sid && ! sampleLayout)
+    if (displayedMode != chipper::ChipMode::sid
+        && displayedMode != chipper::ChipMode::ym2149
+        && ! sampleLayout)
         placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, outputTonePanel);
     else if (sampleLayout)
     {
@@ -5282,31 +5288,16 @@ void ChipperAudioProcessorEditor::resized()
     else if (displayedMode == chipper::ChipMode::ym2149)
     {
         constexpr int ymControlGap = 10;
-        constexpr int ymBottomRowHeight = 96;
-        auto ymRows = strip;
-        auto bottomRow = ymRows.removeFromBottom(std::min(ymBottomRowHeight, ymRows.getHeight()));
-        ymRows.removeFromBottom(std::min(ymControlGap, ymRows.getHeight()));
-        auto topRow = ymRows;
-
-        const auto topColumnWidth = (topRow.getWidth() - (ymControlGap * 2)) / 3;
-        const auto bottomColumnWidth = (bottomRow.getWidth() - (ymControlGap * 2)) / 3;
-
-        for (size_t i = 0; i < 3u; ++i)
-        {
-            controlCells[i] = {
-                topRow.getX() + (static_cast<int>(i) * (topColumnWidth + ymControlGap)),
-                topRow.getY(),
-                topColumnWidth,
-                topRow.getHeight()
+        constexpr std::array<size_t, 5> ymCellIndices { 0u, 1u, 2u, 4u, 5u };
+        const auto ymControlWidth = (strip.getWidth() - (ymControlGap * 4)) / 5;
+        controlCells.fill({});
+        for (size_t column = 0; column < ymCellIndices.size(); ++column)
+            controlCells[ymCellIndices[column]] = {
+                strip.getX() + (static_cast<int>(column) * (ymControlWidth + ymControlGap)),
+                strip.getY(),
+                ymControlWidth,
+                strip.getHeight()
             };
-
-            controlCells[i + 3u] = {
-                bottomRow.getX() + (static_cast<int>(i) * (bottomColumnWidth + ymControlGap)),
-                bottomRow.getY(),
-                bottomColumnWidth,
-                bottomRow.getHeight()
-            };
-        }
     }
     else if (displayedMode == chipper::ChipMode::dmg)
     {
@@ -5400,8 +5391,11 @@ void ChipperAudioProcessorEditor::resized()
         const auto sustainCell = displayedMode == chipper::ChipMode::sid ? controlCells[2] : controlCells[3];
         if (displayedMode == chipper::ChipMode::ym2149)
         {
+            nativeGroupLabels[0].setBounds({});
+            nativeGroupLabels[1].setBounds({});
             nativeGroupLabels[3].setBounds({});
             nativeSliders[3].setBounds({});
+            placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, controlCells[2]);
         }
         else if (fourOperatorFmControlsMoved)
         {
@@ -10504,7 +10498,7 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
             return juce::String::charToString(static_cast<juce::juce_wchar>('A' + static_cast<int>(index)))
                 + " | " + ym2149ResolvedChannelMixLabel(patch, index);
 
-        return ym2149ResolvedChannelMixLabel(patch, index);
+        return "Shared " + ym2149ResolvedChannelMixLabel(patch, index);
     }
 
     if (mode == chipper::ChipMode::saa1099)
@@ -14516,7 +14510,10 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         && ! applyingFactoryPreset
         && restoreChipSettingsSnapshot(mode);
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
-    globalStripLabel.setText(hasLiveCore ? (mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::sn76489 ? "Global" : "Shared Performance") : "Roadmap",
+    globalStripLabel.setText(hasLiveCore ? (mode == chipper::ChipMode::ym2149
+                                                ? "Performance + Output"
+                                                : (mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::sn76489 ? "Global" : "Shared Performance"))
+                                           : "Roadmap",
                              juce::dontSendNotification);
     macroSummaryLabel.setVisible(true);
     macroSummaryLabel.setEnabled(true);
