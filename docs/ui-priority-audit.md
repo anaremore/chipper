@@ -71,6 +71,8 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
 - Atari POKEY now uses a 2x2 channel matrix: horizontal rows preserve the 1+2 and 3+4 16-bit pairings, while vertical columns preserve the 3-to-1 and 4-to-2 high-pass relationships. AUDCTL Pairing and Filter are adjacent in a dedicated relationship block instead of being split between Tone and Output destinations.
 - POKEY pairing is reflected in the playable surface. A paired high-byte channel is labelled as consumed, its inactive enable/trim controls are disabled without losing their parameter state, and Chip Poly renumbers the remaining three or two note lanes. Distortion Code, preset-only Distortion Bias, and the modern AUDV Gate remain one shared block because the current partial engine resolves one AUDC texture/AUDV base across sounding channels.
 - POKEY channel sliders are modern post-AUDV trims, not independent AUDV registers. Cards say `Trim`, show the shared AUDV nibble plus trim percentage, and keep exact AUDF/AUDC/AUDCTL detail in tooltips/readouts. Both supported widths, relationship ownership, pairing state, bias enablement, and note-allocation labels are structural smoke-test contracts.
+- PC Speaker now presents its complete audible architecture as one compact mono path: PIT channel 2 -> port `0x61` -> speaker cone. The one source card owns enable and modern trim; Speaker Mode, Pulse Width, Pitch Motion, Click Grit, Speaker Level, and the Chipper Gate Decay helper stay together in the path block rather than being scattered across generic Tone, Envelope, and Performance destinations.
+- PC Speaker intentionally has no mixer or Chip Poly surface. Only its clock override and final output are global. The 720 px surface, both supported widths, source ownership, named hardware path, control containment, and non-overlap are structural smoke-test contracts.
 - Embedded channel controls must suppress their old standalone labels and readouts; otherwise stale labels can reappear after chip switching or parameter refresh.
 - HuC6280, Namco WSG, and Konami SCC now follow the same rule: per-channel wave shape selectors live inside a taller four-column wavetable voice deck instead of a detached Wave/Mixer panel, with level strips reserved so wave controls cannot crowd out channel gain or stretch each card into an awkward wide strip.
 - Wavetable-family source decks now take priority over duplicate summary copy: HuC6280, Namco WSG, and SCC reserve more height for channel cards so per-lane wave selectors and level controls stay readable.
@@ -179,27 +181,22 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
    - User value: very high for FM users.
    - Confidence: 6/10. Needs a larger design slice: algorithm graph, operator grid, per-operator envelopes, and readable register values.
 
-6. POKEY channel deck
-   - Issue: channel cards now expose AUDC in the header and AUDF/AUDV in the per-channel strip, but AUDCTL pairing/filter paths still need a stronger visual relationship between linked channels.
-   - User value: medium-high. Helps users understand why POKEY sounds chaotic and how channel pairing changes pitch behavior.
-   - Confidence: 7/10. Register readouts are now straightforward; the remaining work is a clearer cross-channel pairing visual without crowding the deck.
-
-7. Paula tracker import depth
+6. Paula tracker import depth
    - Issue: channel-local generated shapes, loaded sample-slot pins, imported uncompressed 8SVX, WAV `smpl`, AIFF `MARK`/`INST`, and first-pass ProTracker MOD sample loop metadata, waveform loop preview, matching renderer flags, a protected Sample Bank waveform, and non-overlapping macro/sample layout are in place. Full MOD playback/effects, 14-bit/channel-pair options, and clearer tracker-style retrigger workflows remain planned.
    - User value: medium-high. Makes Paula feel more like a four-channel tracker sampler for real module-style workflows.
    - Confidence: 6/10. The UI and runtime bank model are usable; the remaining work needs file-format parsing and stricter validation.
 
-8. Behavior strictness and register text presentation
+7. Behavior strictness and register text presentation
    - Issue: exact register readouts help prove honesty, but they compete with musical labels in the default view.
    - User value: high. Musicians should see what they hear first, while advanced users can still inspect register-level behavior.
    - Confidence: 7/10. Requires a consistent Expert/detail overlay and tooltip policy across chips.
 
-9. All-chip screenshot audit
+8. All-chip screenshot audit
    - Issue: each bespoke chip layout can regress independently, especially when a source card grows per-voice controls. The editor default/restored size is clamped to a DAW-friendly height so hosts cannot reopen old oversized windows that run off screen.
    - User value: high. Users should never need to guess whether a control is hidden, clipped, or decorative.
    - Confidence: 8/10. The latest screenshots make the remaining problems visible; a repeatable screenshot checklist will catch most regressions before release.
 
-10. Expand audio non-regression smoke checks
+9. Expand audio non-regression smoke checks
    - Issue: FM held-tail assertions and NES DMC loop-off assertions are now release gates, not open UI bugs. The next coverage value is extending that same confidence to sample, loop, helper-envelope, and source-card changes that can look correct while regressing key-on/key-off, one-shot/loop behavior, or sustained output.
    - User value: high. A playable instrument must hold notes predictably before deeper editor polish matters.
    - Confidence: 8/10. Existing renderer and processor smoke tests already expose source levels, key-on state, sample loop state, `tailRms`, and debug JSON; the next value is expanding the same assertion style beyond FM.

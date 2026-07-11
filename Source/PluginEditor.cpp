@@ -24,6 +24,7 @@ constexpr int editorDmgHeight = 720;
 constexpr int editorSn76489Height = 720;
 constexpr int editorYm2149Height = 720;
 constexpr int editorSaa1099Height = 780;
+constexpr int editorPcSpeakerHeight = 720;
 constexpr int editorSidHeight = 880;
 constexpr int editorMinWidth = 1180;
 constexpr int editorMaxWidth = 1800;
@@ -44,6 +45,8 @@ int preferredEditorHeightForMode(chipper::ChipMode mode)
         return editorYm2149Height;
     if (mode == chipper::ChipMode::saa1099)
         return editorSaa1099Height;
+    if (mode == chipper::ChipMode::pcSpeaker)
+        return editorPcSpeakerHeight;
 
     return editorDefaultHeight;
 }
@@ -4200,6 +4203,7 @@ void ChipperAudioProcessorEditor::resized()
     const auto ym2149Layout = displayedMode == chipper::ChipMode::ym2149;
     const auto saa1099Layout = displayedMode == chipper::ChipMode::saa1099;
     const auto pokeyLayout = displayedMode == chipper::ChipMode::pokey;
+    const auto pcSpeakerLayout = displayedMode == chipper::ChipMode::pcSpeaker;
     const auto huc6280Layout = displayedMode == chipper::ChipMode::huc6280;
     const auto fourOperatorFmLayout = uiProfile.fourOperatorFm;
     const auto sampleLayout = uiProfile.sampler;
@@ -4371,6 +4375,21 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[4] = {};
         moduleBounds[5] = {};
     }
+    else if (pcSpeakerLayout)
+    {
+        const auto availableHeight = modules.getHeight();
+        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.37)), 148, 154);
+        const auto pathRowHeight = std::max(0, availableHeight - sourceRowHeight - gap);
+        const auto topY = modules.getY();
+        const auto pathY = topY + sourceRowHeight + gap;
+
+        moduleBounds[0] = {};
+        moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), sourceRowHeight };
+        moduleBounds[2] = { modules.getX(), pathY, modules.getWidth(), pathRowHeight };
+        moduleBounds[3] = {};
+        moduleBounds[4] = {};
+        moduleBounds[5] = {};
+    }
     else if (wavetableLayout)
     {
         const auto availableHeight = modules.getHeight();
@@ -4508,7 +4527,7 @@ void ChipperAudioProcessorEditor::resized()
     const auto useWavetableVoiceGrid = (displayedMode == chipper::ChipMode::huc6280
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
-    const auto compactSourceGrid = useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || saa1099Layout || pokeyLayout;
+    const auto compactSourceGrid = useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || saa1099Layout || pokeyLayout || pcSpeakerLayout;
     if (compactSourceGrid || displayedMode == chipper::ChipMode::sid)
         moduleSummaryLabels[1].setBounds({});
     if (sampleLayout)
@@ -4518,6 +4537,8 @@ void ChipperAudioProcessorEditor::resized()
         moduleSummaryLabels[2].setBounds({});
         moduleSummaryLabels[3].setBounds({});
     }
+    if (pcSpeakerLayout)
+        moduleSummaryLabels[2].setBounds({});
     if (! compactSourceGrid
         && displayedMode != chipper::ChipMode::sid
         && (! sourceSurfaceActive || moduleSummaryLabels[1].isVisible()))
@@ -5058,6 +5079,29 @@ void ChipperAudioProcessorEditor::resized()
         placeDmgStereoRouteSegment(pairingPanel);
         placeYmEnvelopeShapeSegment(filterPanel);
     }
+    else if (pcSpeakerLayout)
+    {
+        auto modeRow = tonePanel.removeFromTop(std::min(58, tonePanel.getHeight()));
+        placeWaveShapeSegment(modeRow);
+        tonePanel.removeFromTop(std::min(8, tonePanel.getHeight()));
+
+        constexpr int pathControlGap = 12;
+        const auto pathControlWidth = (tonePanel.getWidth() - (pathControlGap * 4)) / 5;
+        std::array<juce::Rectangle<int>, 5> pathControls {};
+        for (size_t control = 0; control < pathControls.size(); ++control)
+            pathControls[control] = {
+                tonePanel.getX() + (static_cast<int>(control) * (pathControlWidth + pathControlGap)),
+                tonePanel.getY(),
+                pathControlWidth,
+                tonePanel.getHeight()
+            };
+
+        placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlValueLabels[0], pathControls[0]);
+        placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], pathControls[1]);
+        placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], pathControls[2]);
+        placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], pathControls[3]);
+        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, pathControls[4]);
+    }
     else if (isFourOperatorFmMode(displayedMode))
         placeFmAlgorithmControl(primaryTonePanel);
     else if (displayedMode == chipper::ChipMode::opl3)
@@ -5084,7 +5128,7 @@ void ChipperAudioProcessorEditor::resized()
         for (auto& button : waveShapeButtons)
             button.setBounds({});
     }
-    else if (! pokeyLayout)
+    else if (! pokeyLayout && ! pcSpeakerLayout)
         placeWaveShapeSegment(primaryTonePanel);
     if (displayedMode != chipper::ChipMode::sid && displayedMode != chipper::ChipMode::dmg)
     {
@@ -5182,6 +5226,11 @@ void ChipperAudioProcessorEditor::resized()
         placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], biasPanel);
         nativeGroupLabels[2].setBounds({});
         placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, gatePanel);
+        ymEnvelopePreview.setBounds({});
+    }
+    else if (pcSpeakerLayout)
+    {
+        // Gate Decay is part of the one-lane PIT/port/speaker path above.
         ymEnvelopePreview.setBounds({});
     }
     else if (displayedMode == chipper::ChipMode::spc700)
@@ -5411,6 +5460,14 @@ void ChipperAudioProcessorEditor::resized()
                 strip.getHeight()
             };
     }
+    else if (pcSpeakerLayout)
+    {
+        constexpr int pcControlGap = 12;
+        const auto pcControlWidth = (strip.getWidth() - pcControlGap) / 2;
+        controlCells.fill({});
+        controlCells[4] = { strip.getX(), strip.getY(), pcControlWidth, strip.getHeight() };
+        controlCells[5] = { strip.getX() + pcControlWidth + pcControlGap, strip.getY(), pcControlWidth, strip.getHeight() };
+    }
     else if (displayedMode == chipper::ChipMode::dmg)
     {
         constexpr int dmgControlGap = 12;
@@ -5501,6 +5558,10 @@ void ChipperAudioProcessorEditor::resized()
         placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, controlCells[3]);
         for (const auto index : { 0u, 1u, 3u })
             nativeGroupLabels[index].setBounds({});
+    }
+    else if (pcSpeakerLayout)
+    {
+        // All speaker-shaping controls live in the single hardware path.
     }
     else
     {
@@ -10709,7 +10770,7 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
     }
 
     if (mode == chipper::ChipMode::pcSpeaker)
-        return "Speaker | PIT";
+        return "PIT ch2 -> port 0x61 -> speaker cone";
 
     if (mode == chipper::ChipMode::zxSpectrumBeeper)
         return "Beeper | ULA FE";
@@ -14752,9 +14813,11 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         && ! applyingFactoryPreset
         && restoreChipSettingsSnapshot(mode);
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
-    globalStripLabel.setText(hasLiveCore ? (mode == chipper::ChipMode::ym2149 || mode == chipper::ChipMode::sid || mode == chipper::ChipMode::saa1099 || mode == chipper::ChipMode::pokey
-                                                ? "Performance + Output"
-                                                : (mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::sn76489 ? "Global" : "Shared Performance"))
+    globalStripLabel.setText(hasLiveCore ? (mode == chipper::ChipMode::pcSpeaker
+                                                ? "Clock + Output"
+                                                : (mode == chipper::ChipMode::ym2149 || mode == chipper::ChipMode::sid || mode == chipper::ChipMode::saa1099 || mode == chipper::ChipMode::pokey
+                                                       ? "Performance + Output"
+                                                       : (mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::sn76489 ? "Global" : "Shared Performance")))
                                            : "Roadmap",
                              juce::dontSendNotification);
     macroSummaryLabel.setVisible(true);

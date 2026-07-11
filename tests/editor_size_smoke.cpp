@@ -19,6 +19,7 @@ constexpr int expectedEditorDmgHeight = 720;
 constexpr int expectedEditorSn76489Height = 720;
 constexpr int expectedEditorYm2149Height = 720;
 constexpr int expectedEditorSaa1099Height = 780;
+constexpr int expectedEditorPcSpeakerHeight = 720;
 constexpr int expectedEditorSidHeight = 880;
 constexpr int expectedEditorMinimumWidth = 1180;
 constexpr int expectedEditorMaximumHeight = expectedEditorSidHeight;
@@ -161,6 +162,8 @@ int expectedHeightForChipMode(int chipMode)
         return expectedEditorYm2149Height;
     if (mode == chipper::ChipMode::saa1099)
         return expectedEditorSaa1099Height;
+    if (mode == chipper::ChipMode::pcSpeaker)
+        return expectedEditorPcSpeakerHeight;
 
     return expectedEditorHeight;
 }
@@ -1573,6 +1576,10 @@ bool checkPerformanceMacroSliderLayout()
                 // Distortion Bias is owned by Shared AUDC Texture + Gate.
                 expectedMacroSliders = { 0, 1, 3 };
                 break;
+            case chipper::ChipMode::pcSpeaker:
+                // Every speaker-shaping control belongs to the one hardware path.
+                expectedMacroSliders = {};
+                break;
             case chipper::ChipMode::ym2612:
             case chipper::ChipMode::ym2151:
             case chipper::ChipMode::ym2203:
@@ -2011,6 +2018,119 @@ bool checkPokeyRelationshipLayout()
         widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(2).contains("8-bit note 2")
                               && editor.getSourceChannelButtonTextForLayoutTest(3).contains("8-bit note 3"),
                           "POKEY 1+2 pairing should renumber the remaining Chip Poly lanes truthfully");
+
+        return widthOk;
+    };
+
+    auto ok = checkAtWidth(1240);
+    ok &= checkAtWidth(expectedEditorMinimumWidth);
+    return ok;
+}
+
+bool checkPcSpeakerHardwarePathLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::pcSpeaker);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: PC Speaker chip mode choice unavailable\n";
+        return false;
+    }
+
+    auto checkAtWidth = [&](int editorWidth)
+    {
+        ChipperAudioProcessor processor;
+        auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(editorWidth, expectedHeightForChipMode(chipChoice));
+        editor.runEditorUpdateForLayoutTest();
+
+        const auto sourceModule = editor.getModuleBoundsForLayoutTest(1);
+        const auto pathModule = editor.getModuleBoundsForLayoutTest(2);
+        const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+        widthOk &= expect(editor.getHeight() == expectedEditorPcSpeakerHeight,
+                          "PC Speaker should retain its compact 720 px instrument surface");
+        widthOk &= expect(! sourceModule.isEmpty() && ! pathModule.isEmpty(),
+                          "PC Speaker source and complete hardware path must remain visible");
+        widthOk &= expect(editor.getModuleBoundsForLayoutTest(0).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(3).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(4).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(5).isEmpty(),
+                          "PC Speaker must not restore detached profile, envelope, motion, or output panels");
+
+        const auto sourceBounds = editor.getSourceChannelBoundsForLayoutTest(0);
+        const auto levelBounds = editor.getSourceLevelBoundsForLayoutTest(0);
+        if (sourceBounds.isEmpty()
+            || ! sourceModule.expanded(2).contains(sourceBounds)
+            || levelBounds.isEmpty()
+            || ! sourceBounds.expanded(2).contains(levelBounds)
+            || levelBounds.getWidth() < 320
+            || levelBounds.getHeight() < 10)
+        {
+            std::cerr << "editor_size_smoke: PC Speaker lost its single source-owned level lane at width "
+                      << editorWidth << ": source " << sourceBounds.toString()
+                      << " level " << levelBounds.toString() << '\n';
+            widthOk = false;
+        }
+
+        const auto sourceLabel = editor.getSourceChannelButtonTextForLayoutTest(0);
+        widthOk &= expect(sourceLabel.containsIgnoreCase("PIT ch2")
+                              && sourceLabel.contains("0x61")
+                              && sourceLabel.containsIgnoreCase("speaker"),
+                          "PC Speaker source card must name the real PIT channel 2 to port 0x61 speaker path");
+
+        const std::array<std::pair<juce::Rectangle<int>, const char*>, 6> pathControls {{
+            { editor.getWaveShapeBoundsForLayoutTest(), "Speaker Mode" },
+            { editor.getNativeSliderBoundsForLayoutTest(0), "Pulse Width" },
+            { editor.getNativeSliderBoundsForLayoutTest(1), "Pitch Motion" },
+            { editor.getNativeSliderBoundsForLayoutTest(2), "Click Grit" },
+            { editor.getNativeSliderBoundsForLayoutTest(3), "Speaker Level" },
+            { editor.getEnvelopeDecayBoundsForLayoutTest(), "Gate Decay" }
+        }};
+        for (size_t control = 0; control < pathControls.size(); ++control)
+        {
+            const auto& [bounds, name] = pathControls[control];
+            const auto minimumWidth = control == 0u ? 480 : 96;
+            if (bounds.isEmpty()
+                || ! pathModule.expanded(2).contains(bounds)
+                || bounds.getWidth() < minimumWidth
+                || bounds.getHeight() < 18)
+            {
+                std::cerr << "editor_size_smoke: PC Speaker " << name
+                          << " is missing or escaped the one hardware path at width " << editorWidth
+                          << ": control " << bounds.toString()
+                          << " module " << pathModule.toString() << '\n';
+                widthOk = false;
+            }
+            for (size_t other = control + 1u; other < pathControls.size(); ++other)
+            {
+                if (bounds.intersects(pathControls[other].first))
+                {
+                    std::cerr << "editor_size_smoke: PC Speaker path controls overlap at width "
+                              << editorWidth << ": " << name << ' ' << bounds.toString()
+                              << " and " << pathControls[other].second << ' '
+                              << pathControls[other].first.toString() << '\n';
+                    widthOk = false;
+                }
+            }
+        }
+
+        const auto clockBounds = editor.getClockSliderBoundsForLayoutTest();
+        const auto outputBounds = editor.getOutputSliderBoundsForLayoutTest();
+        if (performanceBounds.isEmpty()
+            || clockBounds.isEmpty()
+            || outputBounds.isEmpty()
+            || ! performanceBounds.expanded(2).contains(clockBounds)
+            || ! performanceBounds.expanded(2).contains(outputBounds)
+            || clockBounds.intersects(outputBounds)
+            || clockBounds.getWidth() < 240
+            || outputBounds.getWidth() < 240)
+        {
+            std::cerr << "editor_size_smoke: PC Speaker Clock + Output strip is missing, cramped, or overlapping at width "
+                      << editorWidth << ": clock " << clockBounds.toString()
+                      << " output " << outputBounds.toString()
+                      << " performance " << performanceBounds.toString() << '\n';
+            widthOk = false;
+        }
 
         return widthOk;
     };
@@ -2841,6 +2961,7 @@ int main()
     ok &= checkPerformanceMacroSliderLayout();
     ok &= checkSaa1099GroupedLayout();
     ok &= checkPokeyRelationshipLayout();
+    ok &= checkPcSpeakerHardwarePathLayout();
     ok &= checkSidAdsrLayout();
     ok &= checkCompactChipLayouts();
     ok &= checkPresetRoleFilterLayout();

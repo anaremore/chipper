@@ -157,6 +157,7 @@ ChipUiProfile profileFor(ChipMode mode)
     const auto ym2149 = mode == ChipMode::ym2149;
     const auto saa1099 = mode == ChipMode::saa1099;
     const auto pokey = mode == ChipMode::pokey;
+    const auto pcSpeaker = mode == ChipMode::pcSpeaker;
     const auto huc6280 = mode == ChipMode::huc6280;
     const auto fourOp = isFourOperatorFm(mode);
     const auto wavetable = family == ChipUiFamily::wavetable;
@@ -170,18 +171,19 @@ ChipUiProfile profileFor(ChipMode mode)
     profile.visibleSourceCount = visibleSources;
     profile.nativeSourceCount = nativeSourceCountForMode(mode);
     profile.playSourceColumns = playSourceColumns(visibleSources);
-    profile.performanceStripHeight = sid || dmg || sn76489 || ym2149 || saa1099 || pokey ? 124
+    profile.performanceStripHeight = sid || dmg || sn76489 || ym2149 || saa1099 || pokey || pcSpeaker ? 124
                                          : (nes ? 236
                                                 : (spc700 || paula || fourOp ? 124
                                                                              : (wavetable ? 132 : 196)));
     profile.maximumModulesHeight = sid ? 666
                                        : (nes ? 436
                                               : (dmg || sn76489 || ym2149 ? 410
-                                                     : (spc700 ? 548
+                                                     : (pcSpeaker ? 410
+                                                        : (spc700 ? 548
                                                         : (paula ? 580
                                                                  : (fourOp ? 564
                                                                            : (huc6280 ? 478
-                                                                                      : (pokey ? 550 : (saa1099 ? 470 : (wavetable ? 416 : 492)))))))));
+                                                                                      : (pokey ? 550 : (saa1099 ? 470 : (wavetable ? 416 : 492))))))))));
     profile.nesFamily = nes;
     profile.nesExpansion = nes && mode != ChipMode::nes;
     profile.fourOperatorFm = fourOp;

@@ -4023,8 +4023,8 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             {
                 makeModule("profile", "Profile", "PC Speaker clean-room PIT beeper groundwork.", { "PIT channel 2", "1.193182 MHz default", "Hybrid default", "Authentic still partial" }),
-                makeModule("sources", "Speaker Lane", "The single one-bit PC Speaker output path is exposed as one source card.", { "Speaker gate", "Port 0x61", "One mono lane", "Source trim" }),
-                makeModule("tone", "PIT / Click", "PIT divisor tone generation plus direct speaker-data click behavior.", { "PIT divisor", "Pulse width", "Direct click", "Gate burst" }),
+                makeModule("sources", "One Mono Hardware Path", "The single source card is the complete audible PC Speaker lane; no Chip Poly or hidden oscillator bank is implied.", { "PIT channel 2", "Port 0x61", "One-bit cone", "Modern trim" }),
+                makeModule("tone", "PIT ch2 -> Port 0x61 -> Speaker", "Speaker Mode chooses the PIT tone/data-bit path; pulse, motion, click, drive, and helper decay shape that same one-bit lane.", { "PIT divisor and duty", "Gate/data bits", "Direct click", "One-bit speaker drive" }),
                 makeModule("envelope", "Gate Decay", "Chipper helper decay for short beeps, clicks, and one-shot SFX; the PC Speaker has no native ADSR.", { "Helper decay", "One-shot clicks", "Gate tails", "No native ADSR" }),
                 makeModule("motion", "Motion", "PC-style SFX gestures mapped to PIT frequency and speaker-data changes.", { "Coin blip", "Pitch laser", "Jump burst", "Click drum" }),
                 makeModule("output", "Output", "Dry one-bit mono output with source and output trims.", { "Mono speaker", "Source level", "Output gain", "Verified partial" })
