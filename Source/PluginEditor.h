@@ -335,9 +335,17 @@ public:
     {
         return index < nativeLabels.size() ? nativeLabels[index].getBounds() : juce::Rectangle<int> {};
     }
+    juce::String getNativeLabelTextForLayoutTest(size_t index) const
+    {
+        return index < nativeLabels.size() ? nativeLabels[index].getText() : juce::String {};
+    }
     juce::Rectangle<int> getNativeValueLabelBoundsForLayoutTest(size_t index) const
     {
         return index < controlValueLabels.size() ? controlValueLabels[index].getBounds() : juce::Rectangle<int> {};
+    }
+    juce::String getNativeValueLabelTextForLayoutTest(size_t index) const
+    {
+        return index < controlValueLabels.size() ? controlValueLabels[index].getText() : juce::String {};
     }
     bool isNativeSliderEnabledForLayoutTest(size_t index) const
     {

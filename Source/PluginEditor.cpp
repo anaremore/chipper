@@ -28,6 +28,7 @@ constexpr int editorPcSpeakerHeight = 720;
 constexpr int editorZxSpectrumBeeperHeight = 720;
 constexpr int editorSpc700Height = 900;
 constexpr int editorPaulaHeight = 900;
+constexpr int editorNamcoWsgHeight = 720;
 constexpr int editorSidHeight = 880;
 constexpr int editorMinWidth = 1180;
 constexpr int editorMaxWidth = 1800;
@@ -56,6 +57,8 @@ int preferredEditorHeightForMode(chipper::ChipMode mode)
         return editorSpc700Height;
     if (mode == chipper::ChipMode::paula)
         return editorPaulaHeight;
+    if (mode == chipper::ChipMode::namcoWsg)
+        return editorNamcoWsgHeight;
 
     return editorDefaultHeight;
 }
@@ -4248,6 +4251,7 @@ void ChipperAudioProcessorEditor::resized()
     const auto zxSpectrumBeeperLayout = displayedMode == chipper::ChipMode::zxSpectrumBeeper;
     const auto oneBitHardwarePathLayout = pcSpeakerLayout || zxSpectrumBeeperLayout;
     const auto huc6280Layout = displayedMode == chipper::ChipMode::huc6280;
+    const auto namcoWsgLayout = displayedMode == chipper::ChipMode::namcoWsg;
     const auto fourOperatorFmLayout = uiProfile.fourOperatorFm;
     const auto sampleLayout = uiProfile.sampler;
     const auto wavetableLayout = uiProfile.wavetable;
@@ -4419,6 +4423,15 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[5] = {};
     }
     else if (huc6280Layout)
+    {
+        moduleBounds[0] = {};
+        moduleBounds[1] = modules;
+        moduleBounds[2] = {};
+        moduleBounds[3] = {};
+        moduleBounds[4] = {};
+        moduleBounds[5] = {};
+    }
+    else if (namcoWsgLayout)
     {
         moduleBounds[0] = {};
         moduleBounds[1] = modules;
@@ -4613,7 +4626,7 @@ void ChipperAudioProcessorEditor::resized()
         : sourcePanel.getHeight();
     const auto sourceCardHeight = displayedMode == chipper::ChipMode::sid
         ? std::min(rawSourceCardHeight, 110)
-        : (huc6280Layout
+        : ((huc6280Layout || namcoWsgLayout)
         ? std::clamp(rawSourceCardHeight, 136, 144)
         : (useWavetableVoiceGrid
         ? std::clamp(rawSourceCardHeight, 96, 116)
@@ -4684,7 +4697,7 @@ void ChipperAudioProcessorEditor::resized()
             : (isPaulaSourceCard
             ? std::clamp(sourceCard.getHeight() / 9, 10, 14)
             : (isWavetableSourceCard
-            ? (huc6280Layout ? std::clamp(sourceCard.getHeight() / 4, 24, 30)
+            ? ((huc6280Layout || namcoWsgLayout) ? std::clamp(sourceCard.getHeight() / 4, 24, 30)
                              : std::clamp(sourceCard.getHeight() / 6, 14, 16))
             : std::clamp(sourceCard.getHeight() / (useSpc700VoiceGrid ? 5 : 4),
                          useSpc700VoiceGrid ? 14 : (isSidSourceCard ? 18 : ((isNesSourceCard || isDmgSourceCard || isPaulaSourceCard) ? 22 : 20)),
@@ -4848,7 +4861,7 @@ void ChipperAudioProcessorEditor::resized()
             hucVoiceWaveLabels[i].setBounds(waveRow.removeFromLeft(std::min(huc6280Layout ? 74 : 44, waveRow.getWidth())));
             hucVoiceWaveBoxes[i].setBounds(waveRow);
             sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
-            auto levelArea = huc6280Layout
+            auto levelArea = (huc6280Layout || namcoWsgLayout)
                 ? sourceCard.removeFromTop(std::min(30, sourceCard.getHeight()))
                 : sourceCard.removeFromBottom(std::min(30, sourceCard.getHeight()));
             placeEmbeddedLevelInArea(levelArea, 44);
@@ -5420,7 +5433,7 @@ void ChipperAudioProcessorEditor::resized()
     globalStripBounds = area.removeFromTop(performanceStripHeight);
     auto strip = globalStripBounds.reduced(12, 8);
     auto stripHeader = strip.removeFromTop(20);
-    globalStripLabel.setBounds(stripHeader.removeFromLeft(paulaLayout ? 210 : (huc6280Layout ? 205 : 150)));
+    globalStripLabel.setBounds(stripHeader.removeFromLeft(paulaLayout ? 210 : (huc6280Layout ? 205 : (namcoWsgLayout ? 195 : 150))));
     stripHeader.removeFromLeft(10);
     macroSummaryLabel.setBounds(stripHeader);
     strip.removeFromTop(4);
@@ -5432,6 +5445,7 @@ void ChipperAudioProcessorEditor::resized()
     std::array<juce::Rectangle<int>, 6> controlCells;
     std::array<juce::Rectangle<int>, 9> paulaControlCells {};
     std::array<juce::Rectangle<int>, 7> huc6280ControlCells {};
+    std::array<juce::Rectangle<int>, 7> namcoWsgControlCells {};
     for (size_t i = 0; i < controlCells.size(); ++i)
     {
         const auto row = static_cast<int>(i / 3);
@@ -5598,6 +5612,31 @@ void ChipperAudioProcessorEditor::resized()
                 bottomRow.getHeight()
             };
     }
+    else if (namcoWsgLayout)
+    {
+        constexpr int namcoRowGap = 10;
+        constexpr int namcoCellGap = 9;
+        auto topRow = strip.removeFromTop(std::max(0, (strip.getHeight() - namcoRowGap) / 2));
+        strip.removeFromTop(std::min(namcoRowGap, strip.getHeight()));
+        auto bottomRow = strip;
+        const auto topWidth = (topRow.getWidth() - (namcoCellGap * 3)) / 4;
+        const auto bottomWidth = (bottomRow.getWidth() - (namcoCellGap * 2)) / 3;
+
+        for (size_t column = 0; column < 4u; ++column)
+            namcoWsgControlCells[column] = {
+                topRow.getX() + (static_cast<int>(column) * (topWidth + namcoCellGap)),
+                topRow.getY(),
+                topWidth,
+                topRow.getHeight()
+            };
+        for (size_t column = 0; column < 3u; ++column)
+            namcoWsgControlCells[column + 4u] = {
+                bottomRow.getX() + (static_cast<int>(column) * (bottomWidth + namcoCellGap)),
+                bottomRow.getY(),
+                bottomWidth,
+                bottomRow.getHeight()
+            };
+    }
     else if (spc700Layout)
     {
         constexpr int spcControlGap = 8;
@@ -5689,6 +5728,15 @@ void ChipperAudioProcessorEditor::resized()
         placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], huc6280ControlCells[3]);
         placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, huc6280ControlCells[4]);
         placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, huc6280ControlCells[5]);
+    }
+    else if (namcoWsgLayout)
+    {
+        placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlValueLabels[0], namcoWsgControlCells[0]);
+        placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], namcoWsgControlCells[1]);
+        placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], namcoWsgControlCells[2]);
+        placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], namcoWsgControlCells[3]);
+        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, namcoWsgControlCells[4]);
+        placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, namcoWsgControlCells[5]);
     }
     else if (sampleLayout)
     {
@@ -6143,7 +6191,9 @@ void ChipperAudioProcessorEditor::resized()
         ? paulaControlCells[8]
         : (huc6280Layout
                ? huc6280ControlCells[6]
-               : (displayedMode == chipper::ChipMode::sid ? controlCells[4] : controlCells[5]));
+               : (namcoWsgLayout
+                      ? namcoWsgControlCells[6]
+                      : (displayedMode == chipper::ChipMode::sid ? controlCells[4] : controlCells[5])));
     const auto compactOutputCell = outputCell.getHeight() < 46;
     auto outputHeader = outputCell.removeFromTop(std::min(compactOutputCell ? 14 : 18, outputCell.getHeight()));
     outputLabel.setBounds(outputHeader.removeFromLeft(std::min(compactOutputCell ? 82 : 96, outputHeader.getWidth())));
@@ -9555,7 +9605,7 @@ juce::String ChipperAudioProcessorEditor::performanceMacroDestination(chipper::C
 
         case chipper::ChipMode::namcoWsg:
         {
-            static constexpr std::array<const char*, 4> labels { "Lane spread", "Freq regs", "WSG RAM", "4-bit volume" };
+            static constexpr std::array<const char*, 4> labels { "Lane spread", "Pitch motion", "Pulse width", "4-bit volume" };
             return labels[std::min(index, labels.size() - 1u)];
         }
 
@@ -10352,6 +10402,13 @@ juce::String ChipperAudioProcessorEditor::wavetableChipReadout(chipper::ChipMode
         return "32-sample 5-bit RAM | volume " + juce::String(volume) + "/31 | " + huc6280LfoReadout(patch);
     }
 
+    if (mode == chipper::ChipMode::namcoWsg)
+    {
+        const auto volume = std::clamp(static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f)), 1, 15);
+        const auto highSamples = std::clamp(static_cast<int>(std::round(4.0f + std::clamp(patch.control3, 0.0f, 1.0f) * 24.0f)), 4, 28);
+        return "32 x 4-bit Wave RAM | pulse high " + juce::String(highSamples) + "/32 | volume " + juce::String(volume) + "/15";
+    }
+
     const auto volume = static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f));
     const auto skew = static_cast<int>(std::round(std::clamp(patch.control3, 0.0f, 1.0f) * 31.0f));
     juce::String memory = "Wave RAM";
@@ -10408,10 +10465,13 @@ juce::String ChipperAudioProcessorEditor::wavetableSourceCardLabel(chipper::Chip
     }
 
     if (mode == chipper::ChipMode::namcoWsg)
-        return "Lane " + number
-            + " | " + shape
-            + " $" + byteHex(wave0)
-            + "/$" + byteHex(wave31);
+    {
+        auto text = "Lane " + number
+            + " | 4-bit Wave RAM | V" + juce::String(static_cast<int>(chipper::namcoWsgVolumeForPatch(patch, index))) + "/15";
+        if (patch.playMode == chipper::PlayMode::chipPoly)
+            text += " | Note " + number;
+        return text;
+    }
 
     if (mode == chipper::ChipMode::scc)
         return "Ch " + number
@@ -11671,6 +11731,14 @@ juce::String ChipperAudioProcessorEditor::stereoSpreadReadout(chipper::ChipMode 
         if (spread <= 0.01f)
             return "Centered mono: modern width off";
         return juce::String(percent) + "%: modern six-lane spread; native balance not modeled";
+    }
+
+    if (mode == chipper::ChipMode::namcoWsg)
+    {
+        const auto percent = static_cast<int>(std::round(spread * 100.0f));
+        if (spread <= 0.01f)
+            return "Centered mono: modern width off";
+        return juce::String(percent) + "%: modern eight-lane spread; native pan not modeled";
     }
 
     if (spread <= 0.01f)
@@ -14001,7 +14069,7 @@ void ChipperAudioProcessorEditor::updateHucVoiceWaveControls(bool shouldBeVisibl
                                                 : (isPaula ? juce::String("Shape")
                                                            : (mode == chipper::ChipMode::huc6280
                                                                   ? (i >= 4u ? juce::String("Wave / Noise") : juce::String("Wave"))
-                                                                  : laneName + " " + juce::String(static_cast<int>(i + 1u)))),
+                                                                  : (isNamco ? juce::String("Wave") : laneName + " " + juce::String(static_cast<int>(i + 1u))))),
                                       juce::dontSendNotification);
         hucVoiceWaveLabels[i].setVisible(visible);
         box.setVisible(visible);
@@ -15110,9 +15178,11 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
                                                               ? "Tracker Playback + Paula Output"
                                                        : (mode == chipper::ChipMode::huc6280
                                                               ? "Voice Motion + Output"
+                                                       : (mode == chipper::ChipMode::namcoWsg
+                                                              ? "Lane Motion + Output"
                                                        : (mode == chipper::ChipMode::ym2149 || mode == chipper::ChipMode::sid || mode == chipper::ChipMode::saa1099 || mode == chipper::ChipMode::pokey
                                                               ? "Performance + Output"
-                                                              : (mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::sn76489 ? "Global" : "Shared Performance"))))))
+                                                              : (mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::sn76489 ? "Global" : "Shared Performance")))))))
                                            : "Roadmap",
                              juce::dontSendNotification);
     macroSummaryLabel.setVisible(true);
@@ -15634,7 +15704,33 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         controlValueLabels[3].setText(macroReadout(3, "$04 volume " + juce::String(volume) + "/31"), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
-    else if (mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
+    else if (mode == chipper::ChipMode::namcoWsg)
+    {
+        const auto spread = static_cast<int>(std::round(std::clamp(patch.control1, 0.0f, 1.0f) * 19.0f));
+        const auto motion = static_cast<int>(std::round(std::clamp(patch.control2, 0.0f, 1.0f) * 100.0f));
+        const auto highSamples = std::clamp(static_cast<int>(std::round(4.0f + std::clamp(patch.control3, 0.0f, 1.0f) * 24.0f)), 4, 28);
+        const auto volume = std::clamp(static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f)), 1, 15);
+        auto anyPulseLane = false;
+        for (size_t lane = 0; lane < 8u; ++lane)
+            anyPulseLane = anyPulseLane || chipper::wavetableWaveShapeForChannel(chipper::ChipMode::namcoWsg, patch, lane) == 3u;
+
+        controlValueLabels[0].setText(macroReadout(0, "Spread " + juce::String(spread) + " st"), juce::dontSendNotification);
+        controlValueLabels[1].setText(macroReadout(1, "Motion " + juce::String(motion) + "%"), juce::dontSendNotification);
+        controlValueLabels[2].setText(macroReadout(2, anyPulseLane ? "Pulse high " + juce::String(highSamples) + "/32" : juce::String("Inactive: no Pulse lanes")), juce::dontSendNotification);
+        controlValueLabels[3].setText(macroReadout(3, "Lane volume " + juce::String(volume) + "/15"), juce::dontSendNotification);
+        nativeLabels[2].setText(anyPulseLane ? "Pulse Width" : "Pulse Width (select Pulse)", juce::dontSendNotification);
+        nativeSliders[2].setEnabled(anyPulseLane);
+        nativeGroupLabels[2].setEnabled(anyPulseLane);
+        nativeLabels[2].setEnabled(anyPulseLane);
+        controlValueLabels[2].setEnabled(anyPulseLane);
+        const auto pulseAlpha = anyPulseLane ? 1.0f : 0.55f;
+        nativeSliders[2].setAlpha(pulseAlpha);
+        nativeGroupLabels[2].setAlpha(pulseAlpha);
+        nativeLabels[2].setAlpha(pulseAlpha);
+        controlValueLabels[2].setAlpha(pulseAlpha);
+        updateSourceChannelButtons(mode);
+    }
+    else if (mode == chipper::ChipMode::scc)
     {
         controlValueLabels[0].setText(macroReadout(0, "Channel spread " + juce::String(static_cast<int>(std::round(patch.control1 * 12.0f))) + " st"), juce::dontSendNotification);
         controlValueLabels[1].setText(macroReadout(1, "Pitch motion " + juce::String(patch.control2, 2)), juce::dontSendNotification);

@@ -3231,23 +3231,23 @@ std::vector<ChipParameterSpec> namcoWsgParameterSpecs()
     return {
         sliderSpec(ChipParameterRole::macroControl1,
                    "namcoWsg.channelSpread",
-                   "Channel Spread",
+                   "Lane Spread",
                    "Channels",
                    "Sets interval spread across the Namco WSG wavetable lanes."),
         sliderSpec(ChipParameterRole::macroControl2,
                    "namcoWsg.pitchMotion",
-                   "Pitch",
-                   "Pitch",
+                   "Pitch Motion",
+                   "Motion",
                    "Offsets arcade pitch gestures and lane intervals."),
         sliderSpec(ChipParameterRole::macroControl3,
                    "namcoWsg.waveSkew",
-                   "Wave Skew",
-                   "Wave",
-                   "Shapes generated 4-bit waveform RAM.",
+                   "Pulse Width",
+                   "Wave RAM",
+                   "Sets the high-sample width of generated Pulse templates across lanes using that waveform. It does not alter Sine, Ramp, Tri, or Steps templates.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "namcoWsg.channelVolume",
-                   "Channel Volume",
+                   "Lane Volume",
                    "Mixer",
                    "Maps to simplified 4-bit Namco WSG lane volume registers.",
                    ParameterKind::chipRegister,
@@ -3260,16 +3260,22 @@ std::vector<ChipParameterSpec> namcoWsgParameterSpecs()
         sourceSpec(ChipParameterRole::source6Enabled, "namcoWsg.channel6.enabled", "Lane 6", "Enable Namco WSG wavetable lane 6."),
         sourceSpec(ChipParameterRole::source7Enabled, "namcoWsg.channel7.enabled", "Lane 7", "Enable Namco WSG wavetable lane 7."),
         sourceSpec(ChipParameterRole::source8Enabled, "namcoWsg.channel8.enabled", "Lane 8", "Enable Namco WSG wavetable lane 8."),
-        sourceLevelSpec(ChipParameterRole::source1Level, "namcoWsg.channel1.level", "Lane 1 Level", "Modern trim after Namco WSG lane 1 volume."),
-        sourceLevelSpec(ChipParameterRole::source2Level, "namcoWsg.channel2.level", "Lane 2 Level", "Modern trim after Namco WSG lane 2 volume."),
-        sourceLevelSpec(ChipParameterRole::source3Level, "namcoWsg.channel3.level", "Lane 3 Level", "Modern trim after Namco WSG lane 3 volume."),
-        sourceLevelSpec(ChipParameterRole::source4Level, "namcoWsg.channel4.level", "Lane 4 Level", "Modern trim after Namco WSG lane 4 volume."),
-        sourceLevelSpec(ChipParameterRole::source5Level, "namcoWsg.channel5.level", "Lane 5 Level", "Modern trim after Namco WSG lane 5 volume."),
-        sourceLevelSpec(ChipParameterRole::source6Level, "namcoWsg.channel6.level", "Lane 6 Level", "Modern trim after Namco WSG lane 6 volume."),
-        sourceLevelSpec(ChipParameterRole::source7Level, "namcoWsg.channel7.level", "Lane 7 Level", "Modern trim after Namco WSG lane 7 volume."),
-        sourceLevelSpec(ChipParameterRole::source8Level, "namcoWsg.channel8.level", "Lane 8 Level", "Modern trim after Namco WSG lane 8 volume."),
-        stereoSpreadSpec("namcoWsg.stereoSpread", "Modern stereo convenience that spreads audible WSG lanes; zero preserves centered output."),
-        envelopeSpec("namcoWsg.decay", "Shared Amp Env", "Applies one shared Chipper volume-gate helper over Namco WSG lane volume; native per-lane 4-bit volume and enable states remain visible in the lane cards and debug output."),
+        sourceLevelSpec(ChipParameterRole::source1Level, "namcoWsg.channel1.level", "Lane 1 Level", "Scales Namco WSG lane 1's simplified 4-bit volume register."),
+        sourceLevelSpec(ChipParameterRole::source2Level, "namcoWsg.channel2.level", "Lane 2 Level", "Scales Namco WSG lane 2's simplified 4-bit volume register."),
+        sourceLevelSpec(ChipParameterRole::source3Level, "namcoWsg.channel3.level", "Lane 3 Level", "Scales Namco WSG lane 3's simplified 4-bit volume register."),
+        sourceLevelSpec(ChipParameterRole::source4Level, "namcoWsg.channel4.level", "Lane 4 Level", "Scales Namco WSG lane 4's simplified 4-bit volume register."),
+        sourceLevelSpec(ChipParameterRole::source5Level, "namcoWsg.channel5.level", "Lane 5 Level", "Scales Namco WSG lane 5's simplified 4-bit volume register."),
+        sourceLevelSpec(ChipParameterRole::source6Level, "namcoWsg.channel6.level", "Lane 6 Level", "Scales Namco WSG lane 6's simplified 4-bit volume register."),
+        sourceLevelSpec(ChipParameterRole::source7Level, "namcoWsg.channel7.level", "Lane 7 Level", "Scales Namco WSG lane 7's simplified 4-bit volume register."),
+        sourceLevelSpec(ChipParameterRole::source8Level, "namcoWsg.channel8.level", "Lane 8 Level", "Scales Namco WSG lane 8's simplified 4-bit volume register."),
+        sliderSpec(ChipParameterRole::stereoSpread,
+                   "namcoWsg.stereoSpread",
+                   "Modern Width",
+                   "Output",
+                   "Modern convenience that spreads the eight lanes across the stereo field. Zero is centered mono; this is not a modeled Namco WSG hardware pan register.",
+                   ParameterKind::continuous,
+                   0.0f),
+        envelopeSpec("namcoWsg.decay", "Chipper Gate", "Applies one shared Chipper volume-gate helper over Namco WSG lane volume; this is not a native per-lane envelope."),
         wavetableWaveSpec(ChipParameterRole::waveShape, "namcoWsg.lane1.waveShape", "Lane 1 Wave", "Namco WSG", "32-sample 4-bit"),
         wavetableWaveSpec(ChipParameterRole::sidVoice2WaveShape, "namcoWsg.lane2.waveShape", "Lane 2 Wave", "Namco WSG", "32-sample 4-bit"),
         wavetableWaveSpec(ChipParameterRole::sidVoice3WaveShape, "namcoWsg.lane3.waveShape", "Lane 3 Wave", "Namco WSG", "32-sample 4-bit"),
@@ -4297,11 +4303,11 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             {
                 makeModule("profile", "Profile", "Namco WSG clean-room groundwork.", { "Arcade wavetable family", "96 kHz default", "Hybrid default", "Authentic still partial" }),
-                makeModule("sources", "WSG Lanes", "All eight wavetable lanes are exposed as playable source lanes.", { "Lanes 1-4", "Lanes 5-8", "4-bit wave RAM", "Enable mask" }),
-                makeModule("wave", "Wave / Mixer", "Wave RAM plus frequency and volume behavior.", { "Wave shape", "Wave skew", "4-bit volume", "Pitch periods" }),
-                makeModule("envelope", "Shared Amp Env", "Shared musical helper over Namco WSG lane volume; not native ADSR.", { "4-bit lane volume", "Enable mask", "Gate helper", "Register readout" }),
-                makeModule("motion", "Motion", "Arcade SFX gestures mapped to lane frequency registers.", { "Coin ping", "Sweep zap", "Tracker arp", "Wave tick" }),
-                makeModule("output", "Output", "Centered arcade wavetable output with optional modern spread.", { "Output gain", "Stereo spread", "Verified partial", "Wavetable mix" })
+                makeModule("sources", "8-Lane WSG Voice Bank", "All eight simplified wavetable lanes are visible and playable.", { "Lanes 1-4", "Lanes 5-8", "32 x 4-bit Wave RAM", "Enable mask" }),
+                makeModule("wave", "Wave RAM", "Each lane owns a generated 32-sample 4-bit waveform and 4-bit volume.", { "Per-lane template", "Shared pulse width", "4-bit volume", "12-bit period" }),
+                makeModule("envelope", "Chipper Gate", "Shared musical helper over Namco WSG lane volume; not a native envelope.", { "4-bit lane volume", "Enable mask", "Shared gate", "Register readout" }),
+                makeModule("motion", "Arcade Motion", "Shared stack intervals and pitch gestures across the eight lanes.", { "Coin ping", "Sweep zap", "Tracker arp", "Wave tick" }),
+                makeModule("output", "Output", "Centered WSG mix with an explicitly modern stereo-width convenience.", { "Output gain", "Modern width", "Centered at zero", "Verified partial" })
             },
             namcoWsgMacros(),
             true,
@@ -6668,19 +6674,13 @@ bool sccChannelKeyOnForPatch(const PatchConfig& patch, size_t channel)
 uint8_t namcoWsgVolumeForPatch(const PatchConfig& patch, size_t channel)
 {
     const auto base = std::clamp(static_cast<int>(std::round(clampControl(patch.control4) * 15.0f)), 1, 15);
-    const auto trim = channel < 4u ? clampControl(patch.sourceLevels[channel]) : 0.80f;
+    const auto trim = channel < patch.sourceLevels.size() ? clampControl(patch.sourceLevels[channel]) : 1.0f;
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(static_cast<float>(base) * trim)), 0, 15));
 }
 
 bool namcoWsgChannelEnabledForPatch(const PatchConfig& patch, size_t channel)
 {
-    if (channel < 4u)
-        return patch.sourceEnabled[channel];
-
-    return patch.macro == MacroKind::arp
-        || patch.macro == MacroKind::hit
-        || patch.macro == MacroKind::laser
-        || patch.macro == MacroKind::powerUp;
+    return channel < patch.sourceEnabled.size() && patch.sourceEnabled[channel];
 }
 
 uint8_t wavetableRamSampleForPatch(ChipMode mode, const PatchConfig& patch, size_t channel, size_t sampleIndex)

@@ -633,7 +633,7 @@ bool expectEnvelopeModels()
                  "Paula shared playback metadata should identify its period, loop, volume, and tracker helper layer");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::huc6280).modules[3].title == "Chipper Gate",
                  "HuC6280 envelope module should identify its shared volume helper");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::namcoWsg).modules[3].title == "Shared Amp Env",
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::namcoWsg).modules[3].title == "Chipper Gate",
                  "Namco WSG envelope module should identify its shared lane-volume helper");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).modules[3].title == "Shared Amp Env",
                  "SCC envelope module should identify its shared wave-channel helper");
@@ -1275,13 +1275,17 @@ bool expectWavetableRegisterHelpers()
                                                    0.5f,
                                                    0.76f,
                                                    chipper::PlayMode::stack,
-                                                   { true, true, true, true },
-                                                   { 1.0f, 0.5f, 1.0f, 1.0f },
+                                                   { true, true, true, true, true, true, true, true, true },
+                                                   { 1.0f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.25f, 1.0f },
                                                    0.0f,
                                                    0.0f,
                                                    4);
     ok &= expect(chipper::namcoWsgVolumeForPatch(namcoArp, 0) == 11u, "Namco WSG helper should resolve 4-bit lane volume");
-    ok &= expect(chipper::namcoWsgChannelEnabledForPatch(namcoArp, 7), "Namco WSG arp macro should expose internal extra lanes as enabled");
+    ok &= expect(chipper::namcoWsgVolumeForPatch(namcoArp, 7) == 3u, "Namco WSG helper should apply the visible lane 8 level to its 4-bit volume register");
+    ok &= expect(chipper::namcoWsgChannelEnabledForPatch(namcoArp, 7), "Namco WSG helper should honor the visible lane 8 enable state");
+    auto namcoMuted = namcoArp;
+    namcoMuted.sourceEnabled[7] = false;
+    ok &= expect(! chipper::namcoWsgChannelEnabledForPatch(namcoMuted, 7), "Namco WSG helper should not infer hidden lane enables from the macro recipe");
     ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::namcoWsg, namcoArp, 1, 0) == 3u, "Namco WSG stepped RAM should include channel offset");
     ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::namcoWsg, namcoArp, 1, 31) == 14u, "Namco WSG stepped RAM tail should match core formula");
     const auto namcoSplit = chipper::makePatchConfig(chipper::ChipMode::namcoWsg,
@@ -1831,6 +1835,9 @@ int main()
     ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::snNoiseMode, "Lane 6 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
     ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::ymEnvelopeShape, "Lane 7 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
     ok &= expectWavetableWaveSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::dmgStereoRoute, "Lane 8 Wave", { "Preset", "Ramp", "Tri", "Pulse", "Steps" });
+    ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Pulse Width");
+    ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::stereoSpread, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Modern Width");
+    ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::envelopeDecay, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Chipper Gate");
     ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::source8Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Lane 8");
     ok &= expectSpec(chipper::ChipMode::namcoWsg, chipper::ChipParameterRole::source8Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Lane 8 Level");
     ok &= expectMacroLabel(chipper::ChipMode::ym2151, chipper::MacroKind::lead, "OPM Metallic Lead");

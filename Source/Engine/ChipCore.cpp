@@ -8581,9 +8581,9 @@ public:
 
     void setPatch(const PatchConfig& nextPatch) override
     {
-        patch = nextPatch;
-        if (patch.playMode == PlayMode::chipPoly)
+        if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled)
             clearChipPolyState();
+        patch = nextPatch;
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -8793,6 +8793,12 @@ public:
              << "\"enableMask\":" << static_cast<int>(enabledMask) << ","
              << "\"waveRam0\":" << static_cast<int>(waveRam[0][0]) << ","
              << "\"waveRam31\":" << static_cast<int>(waveRam[0][31]) << ","
+             << "\"waveRam1_0\":" << static_cast<int>(waveRam[1][0]) << ","
+             << "\"waveRam1_31\":" << static_cast<int>(waveRam[1][31]) << ","
+             << "\"waveRam2_0\":" << static_cast<int>(waveRam[2][0]) << ","
+             << "\"waveRam2_31\":" << static_cast<int>(waveRam[2][31]) << ","
+             << "\"waveRam3_0\":" << static_cast<int>(waveRam[3][0]) << ","
+             << "\"waveRam3_31\":" << static_cast<int>(waveRam[3][31]) << ","
              << "\"sourceEnabled0\":" << (sourceEnabled(patch, 0) ? 1 : 0) << ","
              << "\"sourceEnabled1\":" << (sourceEnabled(patch, 1) ? 1 : 0) << ","
              << "\"sourceEnabled2\":" << (sourceEnabled(patch, 2) ? 1 : 0) << ","
@@ -8838,7 +8844,7 @@ private:
 
     void seedWave(size_t channel)
     {
-        const auto choice = std::clamp(patch.waveShape, 0, 4);
+        const auto choice = static_cast<int>(wavetableWaveShapeForChannel(ChipMode::namcoWsg, patch, channel));
         const auto skew = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
         for (size_t i = 0; i < 32; ++i)
         {

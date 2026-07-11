@@ -23,6 +23,7 @@ constexpr int expectedEditorPcSpeakerHeight = 720;
 constexpr int expectedEditorZxSpectrumBeeperHeight = 720;
 constexpr int expectedEditorSpc700Height = 900;
 constexpr int expectedEditorPaulaHeight = 900;
+constexpr int expectedEditorNamcoWsgHeight = 720;
 constexpr int expectedEditorSidHeight = 880;
 constexpr int expectedEditorMinimumWidth = 1180;
 constexpr int expectedEditorMaximumHeight = expectedEditorSpc700Height;
@@ -173,6 +174,8 @@ int expectedHeightForChipMode(int chipMode)
         return expectedEditorSpc700Height;
     if (mode == chipper::ChipMode::paula)
         return expectedEditorPaulaHeight;
+    if (mode == chipper::ChipMode::namcoWsg)
+        return expectedEditorNamcoWsgHeight;
 
     return expectedEditorHeight;
 }
@@ -1512,6 +1515,108 @@ bool checkHuc6280UnifiedLayout()
         for (size_t channel = 0; channel < cards.size(); ++channel)
             widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(channel).contains("Note " + juce::String(static_cast<int>(channel + 1u))),
                               "HuC6280 Chip Poly headers should expose all six allocation lanes");
+
+        ok &= widthOk;
+    }
+
+    return ok;
+}
+
+bool checkNamcoWsgUnifiedLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::namcoWsg);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: Namco WSG chip mode choice unavailable\n";
+        return false;
+    }
+
+    auto ok = true;
+    for (const auto width : { 1240, expectedEditorMinimumWidth })
+    {
+        ChipperAudioProcessor processor;
+        auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(width, expectedHeightForChipMode(chipChoice));
+        editor.runEditorUpdateForLayoutTest();
+
+        widthOk &= expect(editor.getHeight() == expectedEditorNamcoWsgHeight,
+                          "Namco WSG should use its dedicated compact editor height");
+        const auto voiceDeck = editor.getModuleBoundsForLayoutTest(1);
+        const auto performance = editor.getPerformanceBoundsForLayoutTest();
+        widthOk &= expect(! voiceDeck.isEmpty() && voiceDeck.getHeight() >= 340,
+                          "Namco WSG unified voice bank should reserve two readable card rows");
+        widthOk &= expect(performance.getHeight() >= 180,
+                          "Namco WSG shared lane-motion/output strip should expose two readable rows");
+        for (const auto retiredModule : { 0u, 2u, 3u, 4u, 5u })
+            widthOk &= expect(editor.getModuleBoundsForLayoutTest(retiredModule).isEmpty(),
+                              "Namco WSG should not retain detached generic modules");
+
+        std::array<juce::Rectangle<int>, 8> cards {};
+        for (size_t lane = 0; lane < cards.size(); ++lane)
+        {
+            cards[lane] = editor.getSourceChannelBoundsForLayoutTest(lane);
+            const auto wave = editor.getSourceWaveSelectorBoundsForLayoutTest(lane);
+            const auto level = editor.getSourceLevelBoundsForLayoutTest(lane);
+            const auto header = editor.getSourceChannelButtonTextForLayoutTest(lane);
+            widthOk &= expect(cards[lane].getHeight() >= 136 && cards[lane].getHeight() <= 144,
+                              "Namco WSG lane cards should use the dedicated readable height");
+            widthOk &= expect(! wave.isEmpty() && wave.getHeight() >= 28 && cards[lane].expanded(2).contains(wave),
+                              "Namco WSG per-lane wave selector should be owned by its card");
+            widthOk &= expect(! level.isEmpty() && level.getHeight() >= 16 && cards[lane].expanded(2).contains(level),
+                              "Namco WSG per-lane 4-bit level should be owned by its card");
+            widthOk &= expect(header.startsWith("Lane " + juce::String(static_cast<int>(lane + 1u)) + " | 4-bit Wave RAM | V")
+                                  && header.endsWith("/15"),
+                              "Namco WSG header should identify lane, Wave RAM depth, and resolved 4-bit volume");
+            widthOk &= expect(editor.getSourceWaveSelectorItemTextForLayoutTest(lane, 4) == "Steps",
+                              "Namco WSG lane selectors should keep the Steps Wave RAM template");
+        }
+        for (size_t left = 0; left < cards.size(); ++left)
+            for (size_t right = left + 1u; right < cards.size(); ++right)
+                widthOk &= expect(! cards[left].intersects(cards[right]),
+                                  "Namco WSG lane cards should not overlap");
+
+        const std::array<juce::Rectangle<int>, 7> sharedControls {
+            editor.getNativeSliderBoundsForLayoutTest(0),
+            editor.getNativeSliderBoundsForLayoutTest(1),
+            editor.getNativeSliderBoundsForLayoutTest(2),
+            editor.getNativeSliderBoundsForLayoutTest(3),
+            editor.getEnvelopeDecayBoundsForLayoutTest(),
+            editor.getStereoSpreadBoundsForLayoutTest(),
+            editor.getOutputSliderBoundsForLayoutTest()
+        };
+        for (const auto& control : sharedControls)
+            widthOk &= expect(! control.isEmpty()
+                                  && control.getHeight() >= 16
+                                  && performance.expanded(2).contains(control),
+                              "Namco WSG shared controls should be readable and owned by the shared strip");
+
+        widthOk &= expect(! editor.isNativeSliderEnabledForLayoutTest(2)
+                              && editor.getNativeLabelTextForLayoutTest(2).containsIgnoreCase("select Pulse")
+                              && editor.getNativeValueLabelTextForLayoutTest(2).containsIgnoreCase("no Pulse lanes"),
+                          "Namco WSG Pulse Width should disclose when no lane uses the Pulse template");
+        widthOk &= expect(editor.getStereoSpreadValueTextForLayoutTest().containsIgnoreCase("modern width off"),
+                          "Namco WSG zero-width readout should identify centered mono as a modern-width state");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 3);
+        widthOk &= setPlainParameter(processor, chipper::parameters::id::macroControl3, 1.0f);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.isNativeSliderEnabledForLayoutTest(2)
+                              && editor.getNativeLabelTextForLayoutTest(2) == "Pulse Width"
+                              && editor.getNativeValueLabelTextForLayoutTest(2).contains("Pulse high 28/32"),
+                          "Namco WSG Pulse Width should activate and show the generated high-sample count for Pulse lanes");
+
+        widthOk &= setPlainParameter(processor, chipper::parameters::id::stereoSpread, 1.0f);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.getStereoSpreadValueTextForLayoutTest().containsIgnoreCase("modern eight-lane")
+                              && editor.getStereoSpreadValueTextForLayoutTest().containsIgnoreCase("native pan not modeled"),
+                          "Namco WSG full-width readout should distinguish modern spread from unmodeled hardware routing");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::playMode, 1);
+        editor.runEditorUpdateForLayoutTest();
+        for (size_t lane = 0; lane < cards.size(); ++lane)
+            widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(lane).contains("Note " + juce::String(static_cast<int>(lane + 1u))),
+                              "Namco WSG Chip Poly headers should expose all eight allocation lanes");
 
         ok &= widthOk;
     }
@@ -3474,7 +3579,7 @@ int main()
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2610);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2610b);
     ok &= checkHuc6280UnifiedLayout();
-    ok &= checkWavetableSourceDeck(chipper::ChipMode::namcoWsg);
+    ok &= checkNamcoWsgUnifiedLayout();
     ok &= checkWavetableSourceDeck(chipper::ChipMode::scc);
     ok &= checkSamplerSourceDeck(chipper::ChipMode::spc700);
     ok &= checkSamplerSourceDeck(chipper::ChipMode::paula);
