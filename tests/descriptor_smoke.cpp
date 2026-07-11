@@ -2067,6 +2067,7 @@ int main()
     ok &= expectChoiceRegister(chipper::ChipMode::ym2610b, chipper::ChipParameterRole::waveShape, chipper::ControlSurface::menu, 9, "Preset");
     ok &= expectSpec(chipper::ChipMode::ym2610b, chipper::ChipParameterRole::macroControl2, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Feedback");
     ok &= expectChoiceRegister(chipper::ChipMode::ym2610b, chipper::ChipParameterRole::macroControl2, chipper::ControlSurface::menu, 8, "FB 0");
+    ok &= expectSpec(chipper::ChipMode::ym2610b, chipper::ChipParameterRole::envelopeDecay, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "SSG Envelope Period");
     ok &= expectSpec(chipper::ChipMode::ym2610b, chipper::ChipParameterRole::ymChannelAMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "SSG A Mix");
     ok &= expectSpec(chipper::ChipMode::ym2610b, chipper::ChipParameterRole::source6Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPNB2 FM 6");
     ok &= expectSpec(chipper::ChipMode::ym2610b, chipper::ChipParameterRole::source7Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPNB2 SSG A");

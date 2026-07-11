@@ -30,6 +30,7 @@ constexpr int editorSpc700Height = 900;
 constexpr int editorPaulaHeight = 900;
 constexpr int editorYm2608Height = 900;
 constexpr int editorYm2610Height = 900;
+constexpr int editorYm2610bHeight = 900;
 constexpr int editorNamcoWsgHeight = 720;
 constexpr int editorSccHeight = 720;
 constexpr int editorSidHeight = 880;
@@ -64,6 +65,8 @@ int preferredEditorHeightForMode(chipper::ChipMode mode)
         return editorYm2608Height;
     if (mode == chipper::ChipMode::ym2610)
         return editorYm2610Height;
+    if (mode == chipper::ChipMode::ym2610b)
+        return editorYm2610bHeight;
     if (mode == chipper::ChipMode::namcoWsg)
         return editorNamcoWsgHeight;
     if (mode == chipper::ChipMode::scc)
@@ -4272,6 +4275,9 @@ void ChipperAudioProcessorEditor::resized()
     const auto ym2203Layout = displayedMode == chipper::ChipMode::ym2203;
     const auto ym2608Layout = displayedMode == chipper::ChipMode::ym2608;
     const auto ym2610Layout = displayedMode == chipper::ChipMode::ym2610;
+    const auto ym2610bLayout = displayedMode == chipper::ChipMode::ym2610b;
+    const auto nineLaneOpnSsgLayout = ym2608Layout || ym2610bLayout;
+    const auto opnaOpnbLayout = nineLaneOpnSsgLayout || ym2610Layout;
     const auto fourOperatorFmLayout = uiProfile.fourOperatorFm;
     const auto sampleLayout = uiProfile.sampler;
     const auto wavetableLayout = uiProfile.wavetable;
@@ -4557,7 +4563,7 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[4] = {};
         moduleBounds[5] = { modules.getX(), bottomY, modules.getWidth(), ssgRowHeight };
     }
-    else if (ym2608Layout)
+    else if (nineLaneOpnSsgLayout)
     {
         const auto availableHeight = modules.getHeight();
         const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.49)), 304, 308);
@@ -4728,7 +4734,7 @@ void ChipperAudioProcessorEditor::resized()
     const auto useWavetableVoiceGrid = (displayedMode == chipper::ChipMode::huc6280
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
-    const auto compactSourceGrid = useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid || ym2203Layout || ym2608Layout || ym2610Layout || saa1099Layout || pokeyLayout || oneBitHardwarePathLayout;
+    const auto compactSourceGrid = useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid || ym2203Layout || opnaOpnbLayout || saa1099Layout || pokeyLayout || oneBitHardwarePathLayout;
     if ((compactSourceGrid && ! sccLayout) || displayedMode == chipper::ChipMode::sid)
         moduleSummaryLabels[1].setBounds({});
     if (sampleLayout)
@@ -4773,8 +4779,8 @@ void ChipperAudioProcessorEditor::resized()
     const auto wavetableColumns = useWavetableVoiceGrid ? (visibleSourceCards <= 6u ? 3 : 4) : 0;
     const auto nesExpansionColumns = displayedMode == chipper::ChipMode::nesVrc7 ? 5 : 4;
     const auto paulaColumns = 2;
-    const auto sourceColumns = ym2610Layout ? 4 : (pokeyLayout ? 2 : ((ym2149Layout || ym2203Layout || ym2608Layout || saa1099Layout || useOplVoiceGrid || useOpllVoiceGrid) ? 3 : ((useSpc700VoiceGrid || useOpmVoiceGrid) ? 4 : (usePaulaVoiceGrid ? paulaColumns : (useNesExpansionVoiceGrid ? nesExpansionColumns : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards)))))));
-    const auto sourceRows = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid || ym2203Layout || ym2608Layout || ym2610Layout || saa1099Layout || pokeyLayout)
+    const auto sourceColumns = ym2610Layout ? 4 : (pokeyLayout ? 2 : ((ym2149Layout || ym2203Layout || nineLaneOpnSsgLayout || saa1099Layout || useOplVoiceGrid || useOpllVoiceGrid) ? 3 : ((useSpc700VoiceGrid || useOpmVoiceGrid) ? 4 : (usePaulaVoiceGrid ? paulaColumns : (useNesExpansionVoiceGrid ? nesExpansionColumns : (useWavetableVoiceGrid ? wavetableColumns : static_cast<int>(visibleSourceCards)))))));
+    const auto sourceRows = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid || ym2203Layout || opnaOpnbLayout || saa1099Layout || pokeyLayout)
         ? static_cast<int>((visibleSourceCards + static_cast<size_t>(sourceColumns) - 1u) / static_cast<size_t>(sourceColumns))
         : 1;
     const auto sourceCardWidth = sourceColumns > 0
@@ -4823,8 +4829,8 @@ void ChipperAudioProcessorEditor::resized()
             continue;
         }
 
-        const auto sourceColumn = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid || ym2203Layout || ym2608Layout || ym2610Layout || saa1099Layout || pokeyLayout) ? static_cast<int>(i % static_cast<size_t>(sourceColumns)) : static_cast<int>(i);
-        const auto sourceRow = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid || ym2203Layout || ym2608Layout || ym2610Layout || saa1099Layout || pokeyLayout) ? static_cast<int>(i / static_cast<size_t>(sourceColumns)) : 0;
+        const auto sourceColumn = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid || ym2203Layout || opnaOpnbLayout || saa1099Layout || pokeyLayout) ? static_cast<int>(i % static_cast<size_t>(sourceColumns)) : static_cast<int>(i);
+        const auto sourceRow = (useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid || ym2203Layout || opnaOpnbLayout || saa1099Layout || pokeyLayout) ? static_cast<int>(i / static_cast<size_t>(sourceColumns)) : 0;
         const auto sourceGridOffsetX = ((sccLayout && visibleSourceCards == 5u) || (ym2610Layout && visibleSourceCards == 7u)) && sourceRow == 1
             ? (sourceCardWidth + sourceGap) / 2
             : 0;
@@ -4845,7 +4851,7 @@ void ChipperAudioProcessorEditor::resized()
         const auto isSnSourceCard = displayedMode == chipper::ChipMode::sn76489;
         const auto isYm2149ToneSourceCard = displayedMode == chipper::ChipMode::ym2149 && i < ymChannelMixBoxes.size();
         const auto isYm2203SsgSourceCard = ym2203Layout && i >= 3u && i < 6u;
-        const auto isYm2608SsgSourceCard = ym2608Layout && i >= 6u && i < 9u;
+        const auto isYm2608SsgSourceCard = nineLaneOpnSsgLayout && i >= 6u && i < 9u;
         const auto isYm2610SsgSourceCard = ym2610Layout && i >= 4u && i < 7u;
         const auto isEmbeddedSsgSourceCard = isYm2149ToneSourceCard || isYm2203SsgSourceCard || isYm2608SsgSourceCard || isYm2610SsgSourceCard;
         const auto isPaulaSourceCard = displayedMode == chipper::ChipMode::paula;
@@ -4853,12 +4859,12 @@ void ChipperAudioProcessorEditor::resized()
         const auto isOpmSourceCard = displayedMode == chipper::ChipMode::ym2151;
         const auto isWavetableSourceCard = useWavetableVoiceGrid;
         const auto isDenseSampleCard = isWavetableSourceCard || isPaulaSourceCard || isSpc700SourceCard;
-        auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isDenseSampleCard ? 5 : ((ym2608Layout || ym2610Layout || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid) ? 6 : 8)),
-                                                         isSidSourceCard ? 2 : (isDenseSampleCard ? 3 : ((isEmbeddedSsgSourceCard || ym2203Layout || ym2608Layout || ym2610Layout || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid) ? 2 : 4)));
+        auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isDenseSampleCard ? 5 : ((opnaOpnbLayout || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid) ? 6 : 8)),
+                                                         isSidSourceCard ? 2 : (isDenseSampleCard ? 3 : ((isEmbeddedSsgSourceCard || ym2203Layout || opnaOpnbLayout || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid) ? 2 : 4)));
         const auto standardInlineControlHeight = isDenseSampleCard ? 28 : 30;
         const auto buttonHeight = isDenseSampleCard ? 18 : (isSidSourceCard ? 18 : (isWavetableSourceCard ? 18 : 18));
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
-        sourceCard.removeFromTop((ym2608Layout || ym2610Layout) ? 0 : (isYm2149ToneSourceCard ? 1 : (isDenseSampleCard ? 2 : 2)));
+        sourceCard.removeFromTop(opnaOpnbLayout ? 0 : (isYm2149ToneSourceCard ? 1 : (isDenseSampleCard ? 2 : 2)));
         const auto previewHeight = (useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid)
             ? std::clamp(sourceCard.getHeight() / 5, 14, 17)
             : (isEmbeddedSsgSourceCard
@@ -5177,7 +5183,7 @@ void ChipperAudioProcessorEditor::resized()
         tonePanel.removeFromTop(std::min(rowGap, tonePanel.getHeight()));
         tertiaryTonePanel = tonePanel;
     }
-    else if (usesFmToneStack && ! ym2612Layout && ! opl3Layout && ! ym2151Layout && ! ym2413Layout && ! ym2203Layout && ! ym2608Layout && ! ym2610Layout)
+    else if (usesFmToneStack && ! ym2612Layout && ! opl3Layout && ! ym2151Layout && ! ym2413Layout && ! ym2203Layout && ! opnaOpnbLayout)
     {
         const auto isFourOperatorFm = isFourOperatorFmMode(displayedMode);
         if (isFourOperatorFm)
@@ -5426,7 +5432,7 @@ void ChipperAudioProcessorEditor::resized()
         placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlValueLabels[0], algorithmBiasArea);
         placeFmFeedbackControl(tonePanel);
     }
-    else if (ym2608Layout || ym2610Layout)
+    else if (opnaOpnbLayout)
     {
         constexpr int fmPatchGap = 5;
         auto algorithmArea = tonePanel.removeFromTop(std::min(56, tonePanel.getHeight()));
@@ -5493,16 +5499,16 @@ void ChipperAudioProcessorEditor::resized()
 
     auto motionPanel = moduleBounds[4].reduced(12, 9);
     motionPanel.removeFromTop(20);
-    if (! ym2608Layout && ! ym2610Layout)
+    if (! opnaOpnbLayout)
         motionPanel.removeFromTop(30);
-    motionPanel.removeFromTop((ym2608Layout || ym2610Layout) ? 2 : 4);
-    if (ym2608Layout || ym2610Layout)
+    motionPanel.removeFromTop(opnaOpnbLayout ? 2 : 4);
+    if (opnaOpnbLayout)
     {
         constexpr int ssgGeneratorGap = 12;
         const auto availableGeneratorWidth = std::max(0, motionPanel.getWidth() - ssgGeneratorGap);
         const auto generatorWidth = ym2610Layout
             ? static_cast<int>(std::round(static_cast<double>(availableGeneratorWidth) * 0.62))
-            : availableGeneratorWidth / 2;
+            : static_cast<int>(std::round(static_cast<double>(availableGeneratorWidth) * 0.58));
         auto envelopeShapeArea = motionPanel.removeFromLeft(std::min(generatorWidth, motionPanel.getWidth()));
         motionPanel.removeFromLeft(std::min(ssgGeneratorGap, motionPanel.getWidth()));
         placeSnNoiseModeSegment(envelopeShapeArea);
@@ -5512,8 +5518,7 @@ void ChipperAudioProcessorEditor::resized()
         && ! ym2612Layout
         && ! ym2151Layout
         && ! ym2203Layout
-        && ! ym2608Layout
-        && ! ym2610Layout
+        && ! opnaOpnbLayout
         && ! isNesFamily(displayedMode)
         && displayedMode != chipper::ChipMode::sid
         && displayedMode != chipper::ChipMode::dmg
@@ -5534,8 +5539,7 @@ void ChipperAudioProcessorEditor::resized()
     }
     if (isOpnSsgMode(displayedMode)
         && ! ym2203Layout
-        && ! ym2608Layout
-        && ! ym2610Layout
+        && ! opnaOpnbLayout
         && usesYmChannelMixControls(displayedMode))
     {
         placeYmChannelMixControls(motionPanel);
@@ -5636,7 +5640,7 @@ void ChipperAudioProcessorEditor::resized()
         placeSnNoiseModeSegment(envelopeDecayPanel);
         ymEnvelopePreview.setBounds({});
     }
-    else if (ym2203Layout || ym2608Layout || ym2610Layout)
+    else if (ym2203Layout || opnaOpnbLayout)
     {
         placeFmOperatorRegisterSurface(displayedMode, envelopeDecayPanel);
         ymEnvelopePreview.setBounds({});
@@ -5673,7 +5677,7 @@ void ChipperAudioProcessorEditor::resized()
         outputPanel.removeFromTop(4);
         outputPanel.removeFromBottom(6);
     }
-    if (ym2608Layout || ym2610Layout)
+    if (opnaOpnbLayout)
     {
         opnaRhythmRomCell = outputPanel;
         outputPanel = {};
@@ -5761,8 +5765,7 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (displayedMode != chipper::ChipMode::sid
         && displayedMode != chipper::ChipMode::ym2149
-        && ! ym2608Layout
-        && ! ym2610Layout
+        && ! opnaOpnbLayout
         && ! opl3Layout
         && ! sampleLayout)
         placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, outputTonePanel);
@@ -5786,7 +5789,7 @@ void ChipperAudioProcessorEditor::resized()
         for (auto& button : dmgStereoRouteButtons)
             button.setBounds({});
     }
-    else if (displayedMode != chipper::ChipMode::sid && ! pokeyLayout && ! huc6280Layout && ! ym2612Layout && ! opl3Layout && ! ym2151Layout && ! ym2413Layout && ! ym2203Layout && ! ym2608Layout && ! ym2610Layout)
+    else if (displayedMode != chipper::ChipMode::sid && ! pokeyLayout && ! huc6280Layout && ! ym2612Layout && ! opl3Layout && ! ym2151Layout && ! ym2413Layout && ! ym2203Layout && ! opnaOpnbLayout)
     {
         placeDmgStereoRouteSegment(routeOwnsMotionCard ? motionRoutePanel : outputRoutePanel);
     }
@@ -5795,7 +5798,7 @@ void ChipperAudioProcessorEditor::resized()
     globalStripBounds = area.removeFromTop(performanceStripHeight);
     auto strip = globalStripBounds.reduced(12, 8);
     auto stripHeader = strip.removeFromTop(20);
-    globalStripLabel.setBounds(stripHeader.removeFromLeft(paulaLayout ? 210 : ((ym2608Layout || ym2610Layout) ? 230 : (huc6280Layout ? 205 : ((namcoWsgLayout || sccLayout) ? 195 : 150)))));
+    globalStripLabel.setBounds(stripHeader.removeFromLeft(paulaLayout ? 210 : (opnaOpnbLayout ? 230 : (huc6280Layout ? 205 : ((namcoWsgLayout || sccLayout) ? 195 : 150)))));
     stripHeader.removeFromLeft(10);
     macroSummaryLabel.setBounds(stripHeader);
     strip.removeFromTop(4);
@@ -5948,7 +5951,7 @@ void ChipperAudioProcessorEditor::resized()
             controlCells[column + 2u] = cell;
         }
     }
-    else if (ym2608Layout || ym2610Layout)
+    else if (opnaOpnbLayout)
     {
         constexpr int opnaControlGap = 8;
         const auto opnaControlWidth = (strip.getWidth() - (opnaControlGap * 5)) / 6;
@@ -6118,7 +6121,7 @@ void ChipperAudioProcessorEditor::resized()
         placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[2]);
         placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[3]);
     }
-    else if (ym2608Layout || ym2610Layout)
+    else if (opnaOpnbLayout)
     {
         placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[0]);
         placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[1]);
@@ -6528,7 +6531,7 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (displayedMode == chipper::ChipMode::ym2608 || isOpnbMode(displayedMode))
     {
-        if (displayedMode == chipper::ChipMode::ym2608 || ym2610Layout)
+        if (opnaOpnbLayout)
             placeLabeledSliderWithReadout(clockSlider, clockLabel, controlValueLabels[4], utilityCell);
         else
         {
@@ -6567,7 +6570,7 @@ void ChipperAudioProcessorEditor::resized()
         else
         {
             constexpr int standardRomControlHeight = 30;
-            if ((ym2608Layout || ym2610Layout) && romCell.getWidth() >= 460)
+            if (opnaOpnbLayout && romCell.getWidth() >= 460)
             {
                 const auto controlWidth = std::clamp(romCell.getWidth() / 2, 260, 330);
                 auto controlCell = romCell.removeFromLeft(std::min(controlWidth, romCell.getWidth()));
@@ -11727,6 +11730,36 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
                 + " | " + modeText
                 + " V" + juce::String(static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f)));
         }
+        if (mode == chipper::ChipMode::ym2610b)
+        {
+            const auto allocation = patch.playMode == chipper::PlayMode::chipPoly
+                ? juce::String("note ") + number
+                : juce::String("stack note ") + number;
+            const auto adpcmLayer = patch.macro == chipper::MacroKind::drum || patch.macro == chipper::MacroKind::hit;
+            if (index < 6u)
+            {
+                auto label = juce::String("FM ") + number;
+                if (adpcmLayer)
+                    label += " + ADPCM-A" + juce::String(static_cast<int>(index + 1u));
+                return label
+                    + " | " + allocation
+                    + " | A" + juce::String(algorithm)
+                    + " TL" + juce::String(static_cast<int>(chipper::fmOperatorTotalLevelForPatch(mode, patch, 3)));
+            }
+
+            static constexpr std::array<const char*, 3> ssgNames { "A", "B", "C" };
+            const auto ssgIndex = std::min(index - 6u, size_t { 2u });
+            const auto mixer = chipper::opnSsgMixerRegisterForPatch(patch);
+            const auto toneEnabled = (mixer & static_cast<uint8_t>(1u << ssgIndex)) == 0u;
+            const auto noiseEnabled = (mixer & static_cast<uint8_t>(1u << (ssgIndex + 3u))) == 0u;
+            auto modeText = toneEnabled && noiseEnabled ? juce::String("T+N") : (toneEnabled ? juce::String("Tone") : (noiseEnabled ? juce::String("Noise") : juce::String("Off")));
+            if (chipper::opnSsgEnvelopeEnabledForPatch(patch))
+                modeText += " Env";
+            return juce::String("SSG ") + ssgNames[ssgIndex]
+                + " | " + allocation
+                + " | " + modeText
+                + " V" + juce::String(static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f)));
+        }
         if (mode == chipper::ChipMode::ym2610)
         {
             const auto allocation = patch.playMode == chipper::PlayMode::chipPoly
@@ -15456,8 +15489,7 @@ void ChipperAudioProcessorEditor::updateOpnaRhythmRomControls()
 
 void ChipperAudioProcessorEditor::updateOpnbAdpcmSampleControls()
 {
-    const auto opnb2 = displayedMode == chipper::ChipMode::ym2610b;
-    dmcSampleLabel.setText(opnb2 ? "OPNB2 ADPCM" : "Drum/Hit Layers", juce::dontSendNotification);
+    dmcSampleLabel.setText("Drum/Hit Layers", juce::dontSendNotification);
     dmcSampleLabel.setTooltip("Load user-owned YM2610-family ADPCM-A and ADPCM-B encoded sample-memory bytes. Without files, both OPNB ADPCM memories stay empty.");
     dmcSampleFileButton.setButtonText("ADPCM-A");
     dmcSampleFileButton.setTooltip("Load one user-owned encoded OPNB ADPCM-A byte image. The first 1 MiB fills YM2610-family ADPCM-A sample memory.");
@@ -15478,8 +15510,7 @@ void ChipperAudioProcessorEditor::updateOpnbAdpcmSampleControls()
         ? " | B " + compactSampleName(adpcmBInfo.sampleName, 18) + " " + juce::String(adpcmBInfo.copiedByteCount) + "/"
             + juce::String(adpcmBInfo.memoryByteCount)
         : " | B empty";
-    if (! opnb2)
-        visibleStatus = "Drum/Hit only | " + visibleStatus;
+    visibleStatus = "Drum/Hit only | " + visibleStatus;
     if (adpcmAInfo.truncated || adpcmBInfo.truncated)
         visibleStatus += " | truncated";
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
@@ -15823,7 +15854,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         globalStripText = "Clock + Output";
     else if (mode == chipper::ChipMode::ym2203)
         globalStripText = "Shared FM/SSG + Output";
-    else if (mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610)
+    else if (mode == chipper::ChipMode::ym2608 || isOpnbMode(mode))
         globalStripText = "Shared FM/SSG + Stereo Output";
     else if (mode == chipper::ChipMode::spc700)
         globalStripText = "Voice Mix + Echo + Output";
@@ -15947,8 +15978,8 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     sampleLoopEndValueLabel.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
     sampleLoopStartSlider.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
     sampleLoopEndSlider.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
-    clockLabel.setVisible(! isNesFamily(mode) && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula && mode != chipper::ChipMode::ym2610b);
-    clockSlider.setVisible(! isNesFamily(mode) && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula && mode != chipper::ChipMode::ym2610b);
+    clockLabel.setVisible(! isNesFamily(mode) && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula);
+    clockSlider.setVisible(! isNesFamily(mode) && mode != chipper::ChipMode::spc700 && mode != chipper::ChipMode::paula);
 
     for (size_t i = 0; i < moduleTitleLabels.size(); ++i)
     {
@@ -15977,11 +16008,6 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         {
             moduleTitleLabels[i].setText("Rhythm + ADPCM Layers", juce::dontSendNotification);
             summary = "Drum/Hit layers generated or user ADPCM-A rhythm and optional encoded ADPCM-B memory.";
-        }
-        else if (mode == chipper::ChipMode::ym2610b && i == 5)
-        {
-            moduleTitleLabels[i].setText("OPNB2 ADPCM", juce::dontSendNotification);
-            summary = "Load encoded ADPCM-A and ADPCM-B sample memory.";
         }
         if (i == 1 && hasLiveCore && usesSourceChannelSurface(mode))
         {
@@ -16051,7 +16077,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         slider.textFromValueFunction = [](double value) { return juce::String(value, 3); };
         slider.valueFromTextFunction = [](const juce::String& text) { return text.getDoubleValue(); };
     }
-    if (mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610)
+    if (mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || isOpnbMode(mode))
     {
         nativeSliders[0].textFromValueFunction = [](double value)
         {
@@ -16124,9 +16150,9 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         slider.updateText();
 
     updateSegmentedControlSpecs(mode);
-    if ((mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610) && ! dmgStereoRouteButtons.empty())
+    if ((mode == chipper::ChipMode::ym2608 || isOpnbMode(mode)) && ! dmgStereoRouteButtons.empty())
         dmgStereoRouteButtons[0].setButtonText("Auto");
-    if (mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610)
+    if (mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || isOpnbMode(mode))
     {
         nativeLabels[2].setText("FM Tone + SSG Noise", juce::dontSendNotification);
         nativeLabels[3].setText("FM + SSG Level", juce::dontSendNotification);
@@ -16167,7 +16193,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
                                      || !(hasLiveCore && usesSourceChannelSurface(mode)));
     if (mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151)
         moduleSummaryLabels[2].setVisible(false);
-    if (mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610)
+    if (mode == chipper::ChipMode::ym2608 || isOpnbMode(mode))
     {
         moduleSummaryLabels[4].setVisible(false);
         moduleSummaryLabels[5].setVisible(false);
@@ -16260,9 +16286,9 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
                                          && mode != chipper::ChipMode::ym2151
                                          && mode != chipper::ChipMode::ym2203
                                          && mode != chipper::ChipMode::ym2608
-                                         && mode != chipper::ChipMode::ym2610)
+                                         && ! isOpnbMode(mode))
         || (patch.waveShape == 0 && patch.macro == chipper::MacroKind::manual);
-    if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610)
+    if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203 || mode == chipper::ChipMode::ym2608 || isOpnbMode(mode))
     {
         nativeLabels[0].setText(fmAlgorithmBiasActive ? "Algorithm Bias" : "Algorithm Bias (Manual + Preset only)",
                                  juce::dontSendNotification);
@@ -16657,7 +16683,7 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
                                                 && mode != chipper::ChipMode::ym2151
                                                 && mode != chipper::ChipMode::ym2203
                                                 && mode != chipper::ChipMode::ym2608
-                                                && mode != chipper::ChipMode::ym2610)
+                                                && ! isOpnbMode(mode))
                     || fmAlgorithmBiasActive
                 ? fmChipReadout(mode, patch)
                 : (patch.waveShape > 0
@@ -16737,22 +16763,14 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     }
     else if (isOpnbMode(mode))
     {
-        if (mode == chipper::ChipMode::ym2610)
-        {
-            const auto clock = parameterValue(chipper::parameters::id::clockHz);
-            const auto defaultClock = chipper::parameters::defaultClockForMode(mode);
-            controlValueLabels[4].setText(clock <= 0.0f
-                                              ? juce::String("Default ") + juce::String(defaultClock / 1000000.0, 2) + " MHz"
-                                              : juce::String("Override ") + juce::String(static_cast<double>(clock) / 1000000.0, 2) + " MHz",
-                                          juce::dontSendNotification);
-            controlValueLabels[4].setTooltip(withMidiCc("Optional OPNB clock override. Zero uses the documented 8.00 MHz default.", chipper::parameters::id::clockHz));
-            clockSlider.updateText();
-        }
-        else
-        {
-            controlValueLabels[4].setText("OPNB2 ADPCM memory", juce::dontSendNotification);
-            controlValueLabels[4].setTooltip("Loads user-owned encoded ADPCM-A and ADPCM-B sample bytes for YM2610-family Drum/Hit macros; empty memories remain silent until files are loaded.");
-        }
+        const auto clock = parameterValue(chipper::parameters::id::clockHz);
+        const auto defaultClock = chipper::parameters::defaultClockForMode(mode);
+        controlValueLabels[4].setText(clock <= 0.0f
+                                          ? juce::String("Default ") + juce::String(defaultClock / 1000000.0, 2) + " MHz"
+                                          : juce::String("Override ") + juce::String(static_cast<double>(clock) / 1000000.0, 2) + " MHz",
+                                      juce::dontSendNotification);
+        controlValueLabels[4].setTooltip(withMidiCc("Optional OPNB-family clock override. Zero uses the documented 8.00 MHz default.", chipper::parameters::id::clockHz));
+        clockSlider.updateText();
         updateOpnbAdpcmSampleControls();
     }
     else

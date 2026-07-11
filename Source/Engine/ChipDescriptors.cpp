@@ -1698,12 +1698,6 @@ std::vector<ChipParameterSpec> ym2610ParameterSpecs()
 std::vector<ChipParameterSpec> ym2610bParameterSpecs()
 {
     auto specs = ym2608ParameterSpecs();
-    // OPNB2 receives its own UI/parameter audit next. Do not let OPNA's newly
-    // surfaced SSG period control leak into that still-generic layout.
-    specs.erase(std::remove_if(specs.begin(), specs.end(), [](const auto& spec)
-    {
-        return spec.role == ChipParameterRole::envelopeDecay;
-    }), specs.end());
     for (auto& spec : specs)
     {
         replaceAllInPlace(spec.id, "ym2608", "ym2610b");
@@ -3716,11 +3710,11 @@ std::array<ModuleDescriptor, 6> ym2610bModules()
 {
     return {
         makeModule("profile", "Profile", "YM2610B/OPNB2 path is backed by audited BSD-licensed ymfm with the six-FM OPNB2 channel mask.", { "YM2610B-style mask", "8.00 MHz Neo Geo clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM + SSG Voices", "Six YM2610B FM channels and all three embedded SSG tone/noise/envelope channels are exposed as playable source lanes.", { "FM lanes 1-6", "SSG A-C", "9-lane Chip Poly", "Source trims" }),
-        makeModule("tone", "Operators", "Musical controls write native OPNB2 algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
-        makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPNB2 attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
-        makeModule("motion", "Motion", "YM2610B/OPNB2 preset recipes map to register-backed FM and SSG patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
-        makeModule("output", "Output", "ymfm OPNB2 stereo FM output is mixed with the embedded mono SSG tone/noise/envelope bus and optional encoded ADPCM-A/B sample memory.", { "Stereo FM core", "Mono SSG bus", "ADPCM-A/B memory", "Verified partial" })
+        makeModule("sources", "Six FM + Three SSG Lanes", "Six OPNB2 FM channels and three embedded SSG lanes stay visible. In Drum/Hit, FM1-6 controls also own external ADPCM-A segments 1-6.", { "FM 1-6", "SSG A-C", "Nine-lane allocation", "ADPCM-A ownership" }),
+        makeModule("tone", "Shared FM Patch", "Algorithm, feedback, FM envelope shape, and contextual algorithm bias form one four-operator patch shared by all six FM lanes.", { "Algorithm + graph", "Feedback", "FM envelope", "Contextual algorithm bias" }),
+        makeModule("envelope", "Shared Operator Matrix", "The four editable operators show their carrier/modulator roles and native multiplier, total-level, and envelope registers.", { "Carrier/modulator roles", "MULT / TL", "AR / D1R / D2R", "SL / RR" }),
+        makeModule("motion", "Shared SSG Generator", "SSG A-C own Tone/Noise routing in their lane cards while sharing one hardware envelope generator, period, and noise-period register.", { "Per-lane mixer above", "Shared envelope shape", "Shared envelope period", "Shared noise period below" }),
+        makeModule("output", "External ADPCM-A/B Layers", "Drum/Hit can layer six FM-owned segments from user-loaded encoded ADPCM-A memory plus one shared pitched ADPCM-B layer; empty memory remains silent.", { "FM-owned ADPCM-A 1-6", "Shared pitched ADPCM-B", "Encoded user bytes", "Drum/Hit only" })
     };
 }
 
@@ -4524,7 +4518,7 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2610b,
             "YM2610B / OPNB2",
-            "Six YM2610B/OPNB2 FM lanes plus three embedded SSG tone/noise/envelope lanes write native registers into the audited ymfm OPNB path; Drum and Hit macros can also trigger optional encoded ADPCM-A/B sample memory.",
+            "Six FM + three SSG lanes; Drum/Hit can layer user-loaded ADPCM-A/B memory.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2610B algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2610B feedback bits for the active OPNB2 FM voices." },
