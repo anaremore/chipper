@@ -629,8 +629,8 @@ bool expectEnvelopeModels()
                  "YM2413 envelope module should expose ROM and user patch EG wording");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::pokey).modules[3].title == "Shared AUDC Texture + Gate",
                  "POKEY shared texture module should name the AUDC/AUDV helper path and avoid ADSR wording");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::paula).modules[3].title == "Tracker Amp Env",
-                 "Paula envelope module should identify the tracker helper layer");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::paula).modules[3].title == "Tracker Playback",
+                 "Paula shared playback metadata should identify its period, loop, volume, and tracker helper layer");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::huc6280).modules[3].title == "Shared Amp Env",
                  "HuC6280 envelope module should identify its shared volume helper");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::namcoWsg).modules[3].title == "Shared Amp Env",
@@ -1802,6 +1802,8 @@ int main()
     ok &= expectSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::source2Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 2 R");
     ok &= expectSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::source3Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 3 R");
     ok &= expectSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::source4Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 4 L");
+    ok &= expectSpec(chipper::ChipMode::paula, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Loop Mode");
+    ok &= expectSegmentedRegister(chipper::ChipMode::paula, chipper::ChipParameterRole::dmgStereoRoute, 3, "Preset");
     ok &= expectMacroLabel(chipper::ChipMode::huc6280, chipper::MacroKind::lead, "HuC6280 Glass Lead");
     ok &= expectPreset(chipper::ChipMode::huc6280, "huc-boss-alert");
     ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::waveShape, "Ch 1 Wave", { "Preset", "Ramp", "Tri", "Square", "Noise" });

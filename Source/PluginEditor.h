@@ -231,6 +231,8 @@ public:
     {
         return ! dmgStereoRouteSegmentBounds.isEmpty() ? dmgStereoRouteSegmentBounds : dmgStereoRouteBox.getBounds();
     }
+    bool isDmgStereoRouteSegmentVisibleForLayoutTest() const { return dmgStereoRouteButtons[0].isVisible(); }
+    juce::String getDmgStereoRouteLabelTextForLayoutTest() const { return dmgStereoRouteLabel.getText(); }
     juce::Rectangle<int> getSnNoiseModeBoundsForLayoutTest() const { return snNoiseModeSegmentBounds; }
     juce::Rectangle<int> getWaveShapeBoundsForLayoutTest() const { return waveShapeSegmentBounds; }
     bool isWaveShapeSegmentVisibleForLayoutTest() const { return waveShapeButtons[0].isVisible(); }
@@ -315,6 +317,7 @@ public:
     juce::Rectangle<int> getSampleLoopEndBoundsForLayoutTest() const { return sampleLoopEndSlider.getBounds(); }
     juce::Rectangle<int> getEnvelopeDecayBoundsForLayoutTest() const { return envelopeDecaySlider.getBounds(); }
     juce::Rectangle<int> getStereoSpreadBoundsForLayoutTest() const { return stereoSpreadSlider.getBounds(); }
+    juce::String getStereoSpreadValueTextForLayoutTest() const { return stereoSpreadValueLabel.getText(); }
     juce::Rectangle<int> getClockSliderBoundsForLayoutTest() const { return clockSlider.getBounds(); }
     juce::Rectangle<int> getOutputSliderBoundsForLayoutTest() const { return outputSlider.getBounds(); }
     juce::Rectangle<int> getOutputScopeBoundsForLayoutTest() const { return outputScopePreview.getBounds(); }
@@ -613,6 +616,7 @@ private:
     juce::String spc700EnvelopeReadout(const chipper::PatchConfig& patch) const;
     juce::String spc700EchoReadout(const chipper::PatchConfig& patch) const;
     juce::String paulaOutputFilterReadout(const chipper::PatchConfig& patch) const;
+    juce::String paulaLoopModeReadout(const chipper::PatchConfig& patch) const;
     juce::String sampleSourceCardLabel(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const;
     juce::String sampleSourceRegisterReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index) const;
     juce::String wavetableChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const;

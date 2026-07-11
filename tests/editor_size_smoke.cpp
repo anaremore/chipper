@@ -22,6 +22,7 @@ constexpr int expectedEditorSaa1099Height = 780;
 constexpr int expectedEditorPcSpeakerHeight = 720;
 constexpr int expectedEditorZxSpectrumBeeperHeight = 720;
 constexpr int expectedEditorSpc700Height = 900;
+constexpr int expectedEditorPaulaHeight = 900;
 constexpr int expectedEditorSidHeight = 880;
 constexpr int expectedEditorMinimumWidth = 1180;
 constexpr int expectedEditorMaximumHeight = expectedEditorSpc700Height;
@@ -170,6 +171,8 @@ int expectedHeightForChipMode(int chipMode)
         return expectedEditorZxSpectrumBeeperHeight;
     if (mode == chipper::ChipMode::spc700)
         return expectedEditorSpc700Height;
+    if (mode == chipper::ChipMode::paula)
+        return expectedEditorPaulaHeight;
 
     return expectedEditorHeight;
 }
@@ -1357,7 +1360,9 @@ bool checkSamplerBankLayout(chipper::ChipMode mode)
 
     if (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
     {
-        const auto envelopePanel = editor.getModuleBoundsForLayoutTest(3);
+        const auto envelopePanel = mode == chipper::ChipMode::paula
+            ? editor.getPerformanceBoundsForLayoutTest()
+            : editor.getModuleBoundsForLayoutTest(3);
         if (envelopeBounds.isEmpty()
             || envelopeBounds.getHeight() < 16
             || ! envelopePanel.expanded(2).contains(envelopeBounds))
@@ -1606,6 +1611,175 @@ bool checkSpc700UnifiedSamplerLayout()
                 }
             }
         }
+
+        return widthOk;
+    };
+
+    auto ok = checkAtWidth(1240);
+    ok &= checkAtWidth(expectedEditorMinimumWidth);
+    return ok;
+}
+
+bool checkPaulaUnifiedTrackerLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::paula);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: Paula chip mode choice unavailable\n";
+        return false;
+    }
+
+    auto checkAtWidth = [&](int editorWidth)
+    {
+        ChipperAudioProcessor processor;
+        auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(editorWidth, expectedHeightForChipMode(chipChoice));
+        editor.runEditorUpdateForLayoutTest();
+
+        const auto channelsModule = editor.getModuleBoundsForLayoutTest(1);
+        const auto sampleBank = editor.getSampleBankBoundsForLayoutTest();
+        const auto performance = editor.getPerformanceBoundsForLayoutTest();
+        widthOk &= expect(editor.getHeight() == expectedEditorPaulaHeight,
+                          "Paula editor lost the height required for its complete tracker path");
+        widthOk &= expect(! channelsModule.isEmpty() && ! sampleBank.isEmpty() && ! performance.isEmpty(),
+                          "Paula DMA channels, sample memory, and shared playback/output must remain visible");
+        widthOk &= expect(editor.getModuleBoundsForLayoutTest(0).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(2).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(3).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(4).isEmpty(),
+                          "Paula must not restore detached profile, sample, envelope, or motion destinations");
+
+        std::array<juce::Rectangle<int>, 4> channels {};
+        for (size_t channel = 0; channel < channels.size(); ++channel)
+        {
+            channels[channel] = editor.getSourceChannelBoundsForLayoutTest(channel);
+            const auto shape = editor.getSourceWaveSelectorBoundsForLayoutTest(channel);
+            const auto sample = editor.getPaulaSourceSampleSelectorBoundsForLayoutTest(channel);
+            const auto level = editor.getSourceLevelBoundsForLayoutTest(channel);
+            const auto header = editor.getSourceChannelButtonTextForLayoutTest(channel);
+            const auto expectedPan = channel == 0u || channel == 3u ? "L" : "R";
+            if (channels[channel].isEmpty()
+                || ! channelsModule.expanded(2).contains(channels[channel])
+                || shape.isEmpty()
+                || sample.isEmpty()
+                || level.isEmpty()
+                || ! channels[channel].expanded(2).contains(shape)
+                || ! channels[channel].expanded(2).contains(sample)
+                || ! channels[channel].expanded(2).contains(level)
+                || shape.getHeight() < 28
+                || sample.getHeight() < 28
+                || level.getHeight() < 16
+                || shape.getWidth() < 360
+                || sample.getWidth() < 360
+                || level.getWidth() < 360
+                || sample.getY() <= shape.getBottom()
+                || level.getY() <= sample.getBottom()
+                || level.getY() - sample.getBottom() > 16
+                || ! header.contains("Ch " + juce::String(static_cast<int>(channel + 1u)))
+                || ! header.contains(expectedPan)
+                || ! header.contains("V")
+                || ! header.containsIgnoreCase("Loop"))
+            {
+                std::cerr << "editor_size_smoke: Paula channel " << (channel + 1u)
+                          << " lost its pan, sample-source, volume, or lifetime path at width " << editorWidth
+                          << ": channel " << channels[channel].toString()
+                          << " shape " << shape.toString()
+                          << " sample " << sample.toString()
+                          << " level " << level.toString()
+                          << " header " << header << '\n';
+                widthOk = false;
+            }
+        }
+        widthOk &= expect(channels[0].getY() == channels[1].getY()
+                              && channels[2].getY() == channels[3].getY()
+                              && channels[2].getY() > channels[0].getBottom()
+                              && channels[2].getBottom() <= channelsModule.getBottom(),
+                          "Paula channels must remain a contained two-by-two L/R/R/L matrix");
+
+        const std::array<std::pair<juce::Rectangle<int>, const char*>, 6> bankControls {{
+            { editor.getSampleFileButtonBoundsForLayoutTest(), "File" },
+            { editor.getSampleFolderButtonBoundsForLayoutTest(), "Folder" },
+            { editor.getSampleBankButtonBoundsForLayoutTest(), "Bank" },
+            { editor.getSamplePlaybackModeBoundsForLayoutTest(), "Playback" },
+            { editor.getSampleSlotBoundsForLayoutTest(), "Manual Slot" },
+            { editor.getSampleRootBoundsForLayoutTest(), "Map Root" }
+        }};
+        for (const auto& [bounds, name] : bankControls)
+        {
+            if (bounds.isEmpty()
+                || ! sampleBank.expanded(2).contains(bounds)
+                || bounds.getHeight() < 28
+                || bounds.getWidth() < 72)
+            {
+                std::cerr << "editor_size_smoke: Paula sample-memory control " << name
+                          << " is missing, cramped, or escaped its bank at width " << editorWidth
+                          << ": control " << bounds.toString()
+                          << " bank " << sampleBank.toString() << '\n';
+                widthOk = false;
+            }
+        }
+        const auto waveform = editor.getSampleWaveformBoundsForLayoutTest();
+        widthOk &= expect(! waveform.isEmpty()
+                              && waveform.getWidth() >= 560
+                              && waveform.getHeight() >= 108
+                              && sampleBank.expanded(2).contains(waveform),
+                          "Paula sample waveform must remain a useful, bank-owned editor");
+
+        const std::array<std::pair<juce::Rectangle<int>, const char*>, 9> sharedControls {{
+            { editor.getNativeSliderBoundsForLayoutTest(0), "Channel Spread" },
+            { editor.getNativeSliderBoundsForLayoutTest(1), "Period Motion" },
+            { editor.getNativeSliderBoundsForLayoutTest(2), "Loop Tendency" },
+            { editor.getDmgStereoRouteBoundsForLayoutTest(), "Loop Mode" },
+            { editor.getNativeSliderBoundsForLayoutTest(3), "Channel Volume" },
+            { editor.getEnvelopeDecayBoundsForLayoutTest(), "Tracker Amp Env" },
+            { editor.getSnNoiseModeBoundsForLayoutTest(), "Output Filter" },
+            { editor.getStereoSpreadBoundsForLayoutTest(), "Stereo Spread" },
+            { editor.getOutputSliderBoundsForLayoutTest(), "Output" }
+        }};
+        widthOk &= expect(editor.isDmgStereoRouteSegmentVisibleForLayoutTest()
+                              && editor.getDmgStereoRouteLabelTextForLayoutTest() == "Loop Mode"
+                              && editor.isSnNoiseModeSegmentVisibleForLayoutTest(),
+                          "Paula Loop Mode and Output Filter choices must remain visibly labeled");
+        for (size_t control = 0; control < sharedControls.size(); ++control)
+        {
+            const auto& [bounds, name] = sharedControls[control];
+            if (bounds.isEmpty()
+                || ! performance.expanded(2).contains(bounds)
+                || bounds.getWidth() < 88
+                || bounds.getHeight() < 18)
+            {
+                std::cerr << "editor_size_smoke: Paula shared " << name
+                          << " escaped Tracker Playback + Paula Output at width " << editorWidth
+                          << ": control " << bounds.toString()
+                          << " performance " << performance.toString() << '\n';
+                widthOk = false;
+            }
+            for (size_t other = control + 1u; other < sharedControls.size(); ++other)
+            {
+                if (bounds.intersects(sharedControls[other].first))
+                {
+                    std::cerr << "editor_size_smoke: Paula shared controls overlap at width "
+                              << editorWidth << ": " << name << ' ' << bounds.toString()
+                              << " and " << sharedControls[other].second << ' '
+                              << sharedControls[other].first.toString() << '\n';
+                    widthOk = false;
+                }
+            }
+        }
+
+        widthOk &= expect(editor.getStereoSpreadValueTextForLayoutTest().containsIgnoreCase("modern mono"),
+                          "Paula zero Stereo Spread must be disclosed as a modern centered collapse");
+        widthOk &= setPlainParameter(processor, chipper::parameters::id::stereoSpread, 1.0f);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.getStereoSpreadValueTextForLayoutTest().containsIgnoreCase("authentic L/R/R/L"),
+                          "Paula full Stereo Spread must identify the authentic hardware pan layout");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::playMode, 1);
+        editor.runEditorUpdateForLayoutTest();
+        for (size_t channel = 0; channel < channels.size(); ++channel)
+            widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(channel).contains("Note " + juce::String(static_cast<int>(channel + 1u))),
+                              "Paula Chip Poly must identify each independent note lane in its channel header");
 
         return widthOk;
     };
@@ -3190,6 +3364,7 @@ int main()
     ok &= checkSamplerBankLayout(chipper::ChipMode::spc700);
     ok &= checkSamplerBankLayout(chipper::ChipMode::paula);
     ok &= checkSpc700UnifiedSamplerLayout();
+    ok &= checkPaulaUnifiedTrackerLayout();
     ok &= checkNesDmcAndPerformanceLayout();
     ok &= checkPerformanceMacroSliderLayout();
     ok &= checkSaa1099GroupedLayout();

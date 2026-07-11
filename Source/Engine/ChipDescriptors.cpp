@@ -3012,9 +3012,9 @@ std::vector<ChipParameterSpec> paulaParameterSpecs()
                    "Offsets tracker sample periods for chip-like pitch gestures."),
         sliderSpec(ChipParameterRole::macroControl3,
                    "paula.loopBias",
-                   "Loop Bias",
-                   "Sample",
-                   "Controls whether the active preset recipe behaves more like looping instruments or short one-shots.",
+                   "Loop Tendency",
+                   "Playback",
+                   "When Loop Mode follows the preset, biases the recipe toward a looping instrument or a short one-shot. Explicit Loop or One Shot overrides this helper.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "paula.channelVolume",
@@ -3031,8 +3031,19 @@ std::vector<ChipParameterSpec> paulaParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source2Level, "paula.channel2.level", "Channel 2 R Level", "Modern trim after Paula channel 2 volume on the fixed right output."),
         sourceLevelSpec(ChipParameterRole::source3Level, "paula.channel3.level", "Channel 3 R Level", "Modern trim after Paula channel 3 volume on the fixed right output."),
         sourceLevelSpec(ChipParameterRole::source4Level, "paula.channel4.level", "Channel 4 L Level", "Modern trim after Paula channel 4 volume on the fixed left output."),
-        stereoSpreadSpec("paula.stereoSpread", "Modern stereo spread around the classic Paula L/R/R/L channel layout; zero preserves centered output."),
+        stereoSpreadSpec("paula.stereoSpread", "Modern width around Paula's fixed L/R/R/L routing. Full spread preserves the authentic hard-pan layout; zero collapses all four channels to a centered mono convenience."),
         envelopeSpec("paula.decay", "Tracker Amp Env", "Applies a modern tracker-style musical gate over Paula's 6-bit channel volume path; native channel volume remains visible in debug output."),
+        segmentedSpec(ChipParameterRole::dmgStereoRoute,
+                      "paula.loopMode",
+                      "Loop Mode",
+                      "Playback",
+                      "Chooses whether all four Paula channels follow the preset recipe, loop their sample memory, or stop after one pass. This is a shared playback flag in the current partial core.",
+                      {
+                          choice("Preset", "Use the selected Paula recipe and Loop Tendency control.", 0.0f, 0),
+                          choice("Loop", "Force the four Paula channels to loop their current generated or loaded sample.", 0.5f, 1),
+                          choice("One Shot", "Force the four Paula channels to stop at the sample end.", 1.0f, 2)
+                      },
+                      ParameterKind::chipRegister),
         segmentedSpec(ChipParameterRole::snNoiseMode,
                       "paula.outputFilter",
                       "Output Filter",
@@ -3043,7 +3054,7 @@ std::vector<ChipParameterSpec> paulaParameterSpecs()
                           choice("Raw", "Bright 8-bit Paula DAC path with no extra low-pass stage.", 0.25f, 1),
                           choice("A500", "Gentle fixed Amiga 500-style output softening.", 0.5f, 2),
                           choice("LED", "Iconic LED low-pass filter color for darker tracker playback.", 0.75f, 3),
-                          choice("LED+A500", "Both output stages for the warmest Paula-style color.", 1.0f, 4)
+                          choice("Both", "Both LED and A500 output stages for the warmest Paula-style color.", 1.0f, 4)
                       },
                       ParameterKind::chipRegister),
         segmentedSpec(ChipParameterRole::waveShape,
@@ -4212,11 +4223,11 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             {
                 makeModule("profile", "Profile", "Paula clean-room tracker sampler groundwork.", { "Amiga family", "3.55 MHz PAL default", "Hybrid default", "Authentic still partial" }),
-                makeModule("sources", "Sample Channels", "Four independent Paula DAC channels with per-channel generated sample shapes in the fixed L/R/R/L hardware layout.", { "Ch 1 left", "Ch 2 right", "Ch 3 right", "Ch 4 left" }),
-                makeModule("sample", "Sample Bank", "User WAV/AIFF/8SVX/MOD file and folder-bank import for Paula-style 8-bit playback.", { "WAV/AIFF/8SVX/MOD file", "Loop markers", "Folder bank", "Note map" }),
-                makeModule("envelope", "Tracker Amp Env", "Looped instrument, one-shot behavior, and tracker-style amp helper; Paula has no native ADSR.", { "Loop bias", "One-shot drums", "Decay helper", "Output filter" }),
+                makeModule("sources", "DMA Sample Channels", "Four independent Paula DAC channels with per-channel generated or loaded sample selection in the fixed L/R/R/L hardware layout.", { "Ch 1 left", "Ch 2 right", "Ch 3 right", "Ch 4 left" }),
+                makeModule("sample", "Sample Memory", "User WAV/AIFF/8SVX/MOD file and folder-bank import for Paula-style 8-bit playback.", { "WAV/AIFF/8SVX/MOD file", "Loop markers", "Folder bank", "Key/tracker map" }),
+                makeModule("envelope", "Tracker Playback", "Shared period, loop, volume, and musical gate behavior; Paula has no native ADSR.", { "Period motion", "Loop mode/tendency", "0-64 volume", "Tracker amp helper" }),
                 makeModule("motion", "Motion", "Tracker SFX gestures mapped to sample periods.", { "Tracker arp", "Rate sweep", "Jump blip", "Damage hit" }),
-                makeModule("output", "Output", "Classic hard-panned Amiga channel layout groundwork.", { "0-64 volume", "Stereo spread convenience", "User samples", "Verified partial" })
+                makeModule("output", "Paula Output", "Classic hard-panned Amiga channel layout plus modeled output-filter color.", { "L/R/R/L hardware pan", "Output filter", "Stereo spread convenience", "Verified partial" })
             },
             paulaMacros(),
             true,

@@ -173,16 +173,17 @@ ChipUiProfile profileFor(ChipMode mode)
     profile.visibleSourceCount = visibleSources;
     profile.nativeSourceCount = nativeSourceCountForMode(mode);
     profile.playSourceColumns = playSourceColumns(visibleSources);
-    profile.performanceStripHeight = sid || dmg || sn76489 || ym2149 || saa1099 || pokey || oneBitHardwarePath ? 124
+    profile.performanceStripHeight = paula ? 184
+                                         : (sid || dmg || sn76489 || ym2149 || saa1099 || pokey || oneBitHardwarePath ? 124
                                          : (nes ? 236
-                                                : (spc700 || paula || fourOp ? 124
-                                                                             : (wavetable ? 132 : 196)));
+                                                : (spc700 || fourOp ? 124
+                                                                             : (wavetable ? 132 : 196))));
     profile.maximumModulesHeight = sid ? 666
                                        : (nes ? 436
                                               : (dmg || sn76489 || ym2149 ? 410
                                                      : (oneBitHardwarePath ? 410
                                                         : (spc700 ? 588
-                                                        : (paula ? 580
+                                                        : (paula ? 529
                                                                  : (fourOp ? 564
                                                                            : (huc6280 ? 478
                                                                                       : (pokey ? 550 : (saa1099 ? 470 : (wavetable ? 416 : 492))))))))));

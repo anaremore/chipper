@@ -27,6 +27,7 @@ constexpr int editorSaa1099Height = 780;
 constexpr int editorPcSpeakerHeight = 720;
 constexpr int editorZxSpectrumBeeperHeight = 720;
 constexpr int editorSpc700Height = 900;
+constexpr int editorPaulaHeight = 900;
 constexpr int editorSidHeight = 880;
 constexpr int editorMinWidth = 1180;
 constexpr int editorMaxWidth = 1800;
@@ -53,6 +54,8 @@ int preferredEditorHeightForMode(chipper::ChipMode mode)
         return editorZxSpectrumBeeperHeight;
     if (mode == chipper::ChipMode::spc700)
         return editorSpc700Height;
+    if (mode == chipper::ChipMode::paula)
+        return editorPaulaHeight;
 
     return editorDefaultHeight;
 }
@@ -4443,29 +4446,22 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (paulaLayout)
     {
-        constexpr auto targetSourceRowHeight = 292;
-        constexpr auto minimumEnvelopeRowHeight = 74;
-        constexpr auto minimumSampleRowHeight = 176;
+        constexpr auto targetSourceRowHeight = 358;
+        constexpr auto minimumSourceRowHeight = 338;
+        constexpr auto minimumSampleRowHeight = 172;
         const auto availableHeight = modules.getHeight();
-        const auto maxSourceRowHeight = std::max(0, availableHeight - minimumEnvelopeRowHeight - minimumSampleRowHeight - (gap * 2));
-        auto sourceRowHeight = std::min(targetSourceRowHeight, maxSourceRowHeight);
-        if (sourceRowHeight <= 0)
-            sourceRowHeight = std::max(0, (availableHeight - gap) / 2);
-        auto envelopeRowHeight = std::min(minimumEnvelopeRowHeight, std::max(0, availableHeight - sourceRowHeight - minimumSampleRowHeight - (gap * 2)));
-        auto sampleRowHeight = std::max(0, availableHeight - sourceRowHeight - envelopeRowHeight - (gap * 2));
-        if (sampleRowHeight < minimumSampleRowHeight && availableHeight > minimumSampleRowHeight + gap)
-        {
-            sampleRowHeight = minimumSampleRowHeight;
-            sourceRowHeight = std::max(0, availableHeight - envelopeRowHeight - sampleRowHeight - (gap * 2));
-        }
+        const auto maximumSourceRowHeight = std::max(0, availableHeight - minimumSampleRowHeight - gap);
+        const auto sourceRowHeight = std::clamp(maximumSourceRowHeight,
+                                                std::min(minimumSourceRowHeight, maximumSourceRowHeight),
+                                                std::min(targetSourceRowHeight, maximumSourceRowHeight));
+        const auto sampleRowHeight = std::max(0, availableHeight - sourceRowHeight - gap);
         const auto topY = modules.getY();
-        const auto envelopeY = topY + sourceRowHeight + gap;
-        const auto bottomY = envelopeY + envelopeRowHeight + gap;
+        const auto bottomY = topY + sourceRowHeight + gap;
 
         moduleBounds[0] = {};
         moduleBounds[1] = { modules.getX(), topY, modules.getWidth(), sourceRowHeight };
         moduleBounds[2] = {};
-        moduleBounds[3] = { modules.getX(), envelopeY, modules.getWidth(), envelopeRowHeight };
+        moduleBounds[3] = {};
         moduleBounds[4] = {};
         moduleBounds[5] = { modules.getX(), bottomY, modules.getWidth(), sampleRowHeight };
     }
@@ -4666,9 +4662,7 @@ void ChipperAudioProcessorEditor::resized()
         const auto isDenseSampleCard = isWavetableSourceCard || isPaulaSourceCard || isSpc700SourceCard;
         auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isDenseSampleCard ? 5 : 8),
                                                          isSidSourceCard ? 2 : (isDenseSampleCard ? 3 : (isYm2149ToneSourceCard ? 2 : 4)));
-        const auto standardInlineControlHeight = isPaulaSourceCard ? 30 : (isDenseSampleCard ? 28 : 30);
-        const auto embeddedLabelHeight = isPaulaSourceCard ? 11 : (isDenseSampleCard ? 10 : 14);
-        const auto embeddedControlRowHeight = embeddedLabelHeight + standardInlineControlHeight;
+        const auto standardInlineControlHeight = isDenseSampleCard ? 28 : 30;
         const auto buttonHeight = isDenseSampleCard ? 18 : (isSidSourceCard ? 18 : (isWavetableSourceCard ? 18 : 18));
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
         sourceCard.removeFromTop(isYm2149ToneSourceCard ? 1 : (isDenseSampleCard ? 2 : 2));
@@ -4848,24 +4842,21 @@ void ChipperAudioProcessorEditor::resized()
         {
             if (i < paulaVoiceSampleBoxes.size())
             {
-                auto levelArea = sourceCard.removeFromBottom(std::min(30, sourceCard.getHeight()));
-                sourceCard.removeFromBottom(std::min(2, sourceCard.getHeight()));
-
-                const auto placeLabeledCombo = [&](juce::Label& label, juce::ComboBox& box, juce::Rectangle<int> area)
+                auto placeInlineCombo = [](juce::Label& label, juce::ComboBox& box, juce::Rectangle<int> row)
                 {
-                    const auto labelHeight = area.getHeight() >= standardInlineControlHeight + embeddedLabelHeight
-                        ? std::min(embeddedLabelHeight, area.getHeight())
-                        : 0;
-                    label.setBounds(area.removeFromTop(labelHeight));
-                    box.setBounds(area.removeFromTop(std::min(standardInlineControlHeight, area.getHeight())));
+                    label.setBounds(row.removeFromLeft(std::min(48, row.getWidth())));
+                    row.removeFromLeft(std::min(4, row.getWidth()));
+                    box.setBounds(row);
                 };
 
-                auto shapeRow = sourceCard.removeFromTop(std::min(embeddedControlRowHeight, sourceCard.getHeight()));
-                placeLabeledCombo(hucVoiceWaveLabels[i], hucVoiceWaveBoxes[i], shapeRow);
-                sourceCard.removeFromTop(std::min(2, sourceCard.getHeight()));
+                auto shapeRow = sourceCard.removeFromTop(std::min(standardInlineControlHeight, sourceCard.getHeight()));
+                placeInlineCombo(hucVoiceWaveLabels[i], hucVoiceWaveBoxes[i], shapeRow);
+                sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
 
-                auto sampleRow = sourceCard.removeFromTop(std::min(embeddedControlRowHeight, sourceCard.getHeight()));
-                placeLabeledCombo(paulaVoiceSampleLabels[i], paulaVoiceSampleBoxes[i], sampleRow);
+                auto sampleRow = sourceCard.removeFromTop(std::min(standardInlineControlHeight, sourceCard.getHeight()));
+                placeInlineCombo(paulaVoiceSampleLabels[i], paulaVoiceSampleBoxes[i], sampleRow);
+                sourceCard.removeFromTop(std::min(3, sourceCard.getHeight()));
+                auto levelArea = sourceCard.removeFromTop(std::min(30, sourceCard.getHeight()));
                 placeEmbeddedLevelInArea(levelArea);
             }
         }
@@ -5403,7 +5394,7 @@ void ChipperAudioProcessorEditor::resized()
     globalStripBounds = area.removeFromTop(performanceStripHeight);
     auto strip = globalStripBounds.reduced(12, 8);
     auto stripHeader = strip.removeFromTop(20);
-    globalStripLabel.setBounds(stripHeader.removeFromLeft(150));
+    globalStripLabel.setBounds(stripHeader.removeFromLeft(paulaLayout ? 210 : 150));
     stripHeader.removeFromLeft(10);
     macroSummaryLabel.setBounds(stripHeader);
     strip.removeFromTop(4);
@@ -5413,6 +5404,7 @@ void ChipperAudioProcessorEditor::resized()
     const auto controlRowHeight = (strip.getHeight() - controlGap) / 2;
 
     std::array<juce::Rectangle<int>, 6> controlCells;
+    std::array<juce::Rectangle<int>, 9> paulaControlCells {};
     for (size_t i = 0; i < controlCells.size(); ++i)
     {
         const auto row = static_cast<int>(i / 3);
@@ -5529,6 +5521,31 @@ void ChipperAudioProcessorEditor::resized()
         controlCells[4] = { strip.getX(), strip.getY(), controlWidth, strip.getHeight() };
         controlCells[5] = { strip.getX() + controlWidth + snControlGap, strip.getY(), controlWidth, strip.getHeight() };
     }
+    else if (paulaLayout)
+    {
+        constexpr int paulaRowGap = 10;
+        constexpr int paulaCellGap = 8;
+        auto topRow = strip.removeFromTop(std::max(0, (strip.getHeight() - paulaRowGap) / 2));
+        strip.removeFromTop(std::min(paulaRowGap, strip.getHeight()));
+        auto bottomRow = strip;
+        const auto topWidth = (topRow.getWidth() - (paulaCellGap * 4)) / 5;
+        const auto bottomWidth = (bottomRow.getWidth() - (paulaCellGap * 3)) / 4;
+
+        for (size_t column = 0; column < 5u; ++column)
+            paulaControlCells[column] = {
+                topRow.getX() + (static_cast<int>(column) * (topWidth + paulaCellGap)),
+                topRow.getY(),
+                topWidth,
+                topRow.getHeight()
+            };
+        for (size_t column = 0; column < 4u; ++column)
+            paulaControlCells[column + 5u] = {
+                bottomRow.getX() + (static_cast<int>(column) * (bottomWidth + paulaCellGap)),
+                bottomRow.getY(),
+                bottomWidth,
+                bottomRow.getHeight()
+            };
+    }
     else if (spc700Layout)
     {
         constexpr int spcControlGap = 8;
@@ -5600,6 +5617,17 @@ void ChipperAudioProcessorEditor::resized()
         placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[1]);
         placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[2]);
         placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, controlCells[3]);
+    }
+    else if (paulaLayout)
+    {
+        placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlValueLabels[0], paulaControlCells[0]);
+        placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], paulaControlCells[1]);
+        placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], paulaControlCells[2]);
+        placeDmgStereoRouteSegment(paulaControlCells[3]);
+        placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], paulaControlCells[4]);
+        placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, paulaControlCells[5]);
+        placeSnNoiseModeSegment(paulaControlCells[6]);
+        placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, paulaControlCells[7]);
     }
     else if (sampleLayout)
     {
@@ -5793,9 +5821,10 @@ void ChipperAudioProcessorEditor::resized()
         constexpr int standardSampleControlHeight = 30;
         constexpr int compactSampleControlHeight = 28;
         const auto compactSampleBank = controlColumn.getHeight() < 190;
-        if (displayedMode == chipper::ChipMode::spc700)
+        if (displayedMode == chipper::ChipMode::spc700 || displayedMode == chipper::ChipMode::paula)
         {
-            // Pitch / PMON is owned by the Voice Shaping module.
+            // SPC700 Pitch / PMON and Paula Period Motion are owned by their
+            // shared performance strips rather than the sample-bank editor.
         }
         else if (compactSampleBank)
         {
@@ -5872,10 +5901,14 @@ void ChipperAudioProcessorEditor::resized()
                 button.setBounds({});
             controlColumn.removeFromTop(std::min(compactSampleBank ? 3 : (twoColumnSampleBank ? 5 : 6), controlColumn.getHeight()));
         }
-        else
+        else if (displayedMode != chipper::ChipMode::paula)
         {
             dmgStereoRouteLabel.setBounds({});
             dmgStereoRouteBox.setBounds({});
+            spc700LoopModeButton.setBounds({});
+        }
+        else
+        {
             spc700LoopModeButton.setBounds({});
         }
 
@@ -6045,9 +6078,9 @@ void ChipperAudioProcessorEditor::resized()
             placeLabeledSliderWithReadout(clockSlider, clockLabel, controlValueLabels[4], utilityCell);
     }
 
-    auto outputCell = displayedMode == chipper::ChipMode::sid
-        ? controlCells[4]
-        : controlCells[5];
+    auto outputCell = paulaLayout
+        ? paulaControlCells[8]
+        : (displayedMode == chipper::ChipMode::sid ? controlCells[4] : controlCells[5]);
     const auto compactOutputCell = outputCell.getHeight() < 46;
     auto outputHeader = outputCell.removeFromTop(std::min(compactOutputCell ? 14 : 18, outputCell.getHeight()));
     outputLabel.setBounds(outputHeader.removeFromLeft(std::min(compactOutputCell ? 82 : 96, outputHeader.getWidth())));
@@ -7152,7 +7185,7 @@ void ChipperAudioProcessorEditor::placeDmgStereoRouteSegment(juce::Rectangle<int
         || displayedMode == chipper::ChipMode::ym2608
         || isOpnbMode(displayedMode);
     dmgStereoRouteLabel.setBounds(bounds.removeFromTop(std::min(compact ? 15 : 18, bounds.getHeight())));
-    if (displayedMode == chipper::ChipMode::spc700 || displayedMode == chipper::ChipMode::paula)
+    if (displayedMode == chipper::ChipMode::spc700)
     {
         dmgStereoRouteBox.setBounds(bounds.removeFromTop(std::min(28, bounds.getHeight())));
         dmgStereoRouteSegmentBounds = {};
@@ -9863,10 +9896,17 @@ juce::String ChipperAudioProcessorEditor::pokeyAudctlFilterReadout(const chipper
 
 juce::String ChipperAudioProcessorEditor::sampleChipReadout(chipper::ChipMode mode, const chipper::PatchConfig& patch) const
 {
-    const auto chipLabel = mode == chipper::ChipMode::paula ? juce::String("8-bit hard-pan period sample") : juce::String("lo-fi sample voice");
+    if (mode == chipper::ChipMode::paula)
+    {
+        const auto volume = std::clamp(static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 64.0f)), 1, 64);
+        return "8-bit period sample | AUDxVOL " + juce::String(volume) + "/64 | "
+            + paulaLoopModeReadout(patch) + " | "
+            + envelopeDecayReadout(mode, patch.envelopeDecay);
+    }
+
     const auto decay = static_cast<int>(std::round(std::clamp(patch.envelopeDecay, 0.0f, 1.0f) * 15.0f));
     const auto volume = static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 15.0f));
-    auto text = chipLabel
+    auto text = juce::String("lo-fi sample voice")
         + " | shape " + juce::String(static_cast<int>(chipper::sampleTemplateForPatch(mode, patch)))
         + " | decay " + juce::String(decay) + "/15 | volume " + juce::String(volume) + "/15";
     if (mode == chipper::ChipMode::spc700)
@@ -9959,6 +9999,12 @@ juce::String ChipperAudioProcessorEditor::paulaOutputFilterReadout(const chipper
     }
 
     return patch.snNoiseMode == 0 ? juce::String("Preset -> ") + resolved : resolved;
+}
+
+juce::String ChipperAudioProcessorEditor::paulaLoopModeReadout(const chipper::PatchConfig& patch) const
+{
+    const auto resolved = chipper::paulaLoopForPatch(patch) ? juce::String("Loop") : juce::String("One Shot");
+    return patch.dmgStereoRoute == 0 ? juce::String("Preset -> ") + resolved : resolved;
 }
 
 static juce::String paulaHardwarePanLabel(size_t index)
@@ -10083,6 +10129,11 @@ juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMod
 
     if (mode == chipper::ChipMode::paula)
     {
+        const auto volume = chipper::paulaChannelVolumeForPatch(patch, index);
+        const auto lifetime = chipper::paulaLoopForPatch(patch) ? juce::String("Loop") : juce::String("1-shot");
+        const auto allocation = patch.playMode == chipper::PlayMode::chipPoly
+            ? juce::String(" | Note ") + number
+            : juce::String();
         const auto info = audioProcessor.paulaSampleInfo();
         if (info.loaded)
         {
@@ -10093,13 +10144,29 @@ juce::String ChipperAudioProcessorEditor::sampleSourceCardLabel(chipper::ChipMod
                 : juce::String("Sample");
             if (slot >= 0 && slot < names.size())
                 slotText += " " + compactSampleName(names[slot], 12);
-            return "Ch " + number + " " + paulaHardwarePanLabel(index) + " | " + slotText;
+            return "Ch " + number + " " + paulaHardwarePanLabel(index)
+                + " | " + slotText
+                + " | V" + juce::String(static_cast<int>(volume))
+                + " | " + lifetime
+                + allocation;
         }
 
+        juce::String shape;
+        switch (templateId)
+        {
+            case 1: shape = "Ramp"; break;
+            case 2: shape = "Tri"; break;
+            case 3: shape = "Sine"; break;
+            case 4: shape = "Noise"; break;
+            case 0:
+            default: shape = "Pulse"; break;
+        }
         return "Ch " + number
             + " " + paulaHardwarePanLabel(index)
-            + " | Shape " + juce::String(templateId)
-            + " " + juce::String(sample0) + "/" + juce::String(sample32);
+            + " | Gen " + shape
+            + " | V" + juce::String(static_cast<int>(volume))
+            + " | " + lifetime
+            + allocation;
     }
 
     return {};
@@ -11482,6 +11549,16 @@ juce::String ChipperAudioProcessorEditor::stereoSpreadReadout(chipper::ChipMode 
         return juce::String("$D417=0x")
              + juce::String::toHexString(registerValue).paddedLeft('0', 2).toUpperCase()
              + ", resonance " + juce::String(static_cast<int>(resonance)) + "/15";
+    }
+
+    if (mode == chipper::ChipMode::paula)
+    {
+        const auto percent = static_cast<int>(std::round(spread * 100.0f));
+        if (spread <= 0.01f)
+            return "Centered: modern mono collapse";
+        if (spread >= 0.99f)
+            return "100%: authentic L/R/R/L hard pan";
+        return juce::String(percent) + "%: Paula L/R/R/L width";
     }
 
     if (spread <= 0.01f)
@@ -13965,6 +14042,8 @@ void ChipperAudioProcessorEditor::updateDmgStereoRouteButtons(chipper::ChipMode 
         routeReadout = sidModelReadout(patch);
     else if (mode == chipper::ChipMode::spc700)
         routeReadout = spc700SamplePlaybackReadout(patch);
+    else if (mode == chipper::ChipMode::paula)
+        routeReadout = paulaLoopModeReadout(patch);
     else if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2608 || isOpnbMode(mode))
         routeReadout = ym2612PanReadout(patch);
     else if (mode == chipper::ChipMode::ym2151)
@@ -14912,9 +14991,11 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
                                                 ? "Clock + Output"
                                                 : (mode == chipper::ChipMode::spc700
                                                        ? "Voice Mix + Echo + Output"
+                                                       : (mode == chipper::ChipMode::paula
+                                                              ? "Tracker Playback + Paula Output"
                                                        : (mode == chipper::ChipMode::ym2149 || mode == chipper::ChipMode::sid || mode == chipper::ChipMode::saa1099 || mode == chipper::ChipMode::pokey
                                                               ? "Performance + Output"
-                                                              : (mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::sn76489 ? "Global" : "Shared Performance"))))
+                                                              : (mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::sn76489 ? "Global" : "Shared Performance")))))
                                            : "Roadmap",
                              juce::dontSendNotification);
     macroSummaryLabel.setVisible(true);
@@ -15412,10 +15493,14 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     }
     else if (mode == chipper::ChipMode::paula)
     {
-        controlValueLabels[0].setText(macroReadout(0, waveShapeReadout(mode, patch.waveShape)), juce::dontSendNotification);
-        controlValueLabels[1].setText(macroReadout(1, "Pitch/rate motion " + juce::String(patch.control2, 2)), juce::dontSendNotification);
-        controlValueLabels[2].setText(macroReadout(2, "Sample color " + juce::String(patch.control3, 2)), juce::dontSendNotification);
-        controlValueLabels[3].setText(macroReadout(3, sampleChipReadout(mode, patch)), juce::dontSendNotification);
+        const auto spread = static_cast<int>(std::round(std::clamp(patch.control1, 0.0f, 1.0f) * 12.0f));
+        const auto periodOffset = static_cast<int>(std::round((std::clamp(patch.control2, 0.0f, 1.0f) - 0.5f) * 12.0f));
+        const auto loopBias = static_cast<int>(std::round(std::clamp(patch.control3, 0.0f, 1.0f) * 100.0f));
+        const auto volume = std::clamp(static_cast<int>(std::round(std::clamp(patch.control4, 0.0f, 1.0f) * 64.0f)), 1, 64);
+        controlValueLabels[0].setText(macroReadout(0, "Spread " + juce::String(spread) + " st"), juce::dontSendNotification);
+        controlValueLabels[1].setText(macroReadout(1, "Period " + juce::String(periodOffset >= 0 ? "+" : "") + juce::String(periodOffset) + " st"), juce::dontSendNotification);
+        controlValueLabels[2].setText(macroReadout(2, "Bias " + juce::String(loopBias) + "% -> " + paulaLoopModeReadout(patch)), juce::dontSendNotification);
+        controlValueLabels[3].setText(macroReadout(3, "AUDxVOL " + juce::String(volume) + "/64"), juce::dontSendNotification);
         updateSourceChannelButtons(mode);
     }
     else if (mode == chipper::ChipMode::huc6280 || mode == chipper::ChipMode::namcoWsg || mode == chipper::ChipMode::scc)
