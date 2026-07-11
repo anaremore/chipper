@@ -163,6 +163,7 @@ ChipUiProfile profileFor(ChipMode mode)
     const auto huc6280 = mode == ChipMode::huc6280;
     const auto namcoWsg = mode == ChipMode::namcoWsg;
     const auto scc = mode == ChipMode::scc;
+    const auto ym2612 = mode == ChipMode::ym2612;
     const auto fourOp = isFourOperatorFm(mode);
     const auto wavetable = family == ChipUiFamily::wavetable;
 
@@ -175,20 +176,41 @@ ChipUiProfile profileFor(ChipMode mode)
     profile.visibleSourceCount = visibleSources;
     profile.nativeSourceCount = nativeSourceCountForMode(mode);
     profile.playSourceColumns = playSourceColumns(visibleSources);
-    profile.performanceStripHeight = (paula || huc6280 || namcoWsg || scc) ? 184
-                                         : (sid || dmg || sn76489 || ym2149 || saa1099 || pokey || oneBitHardwarePath ? 124
-                                         : (nes ? 236
-                                                : (spc700 || fourOp ? 124
-                                                                             : (wavetable ? 132 : 196))));
-    profile.maximumModulesHeight = sid ? 666
-                                       : (nes ? 436
-                                              : (dmg || sn76489 || ym2149 ? 410
-                                                     : (oneBitHardwarePath ? 410
-                                                        : (spc700 ? 588
-                                                        : (paula ? 529
-                                                                 : (fourOp ? 564
-                                                                           : (huc6280 ? 478
-                                                                                      : (pokey ? 550 : (saa1099 ? 470 : (wavetable ? 416 : 492))))))))));
+    if (paula || huc6280 || namcoWsg || scc)
+        profile.performanceStripHeight = 184;
+    else if (sid || dmg || sn76489 || ym2149 || saa1099 || pokey || oneBitHardwarePath)
+        profile.performanceStripHeight = 124;
+    else if (nes)
+        profile.performanceStripHeight = 236;
+    else if (ym2612)
+        profile.performanceStripHeight = 88;
+    else if (spc700 || fourOp)
+        profile.performanceStripHeight = 124;
+    else
+        profile.performanceStripHeight = wavetable ? 132 : 196;
+
+    if (sid)
+        profile.maximumModulesHeight = 666;
+    else if (nes)
+        profile.maximumModulesHeight = 436;
+    else if (dmg || sn76489 || ym2149 || oneBitHardwarePath)
+        profile.maximumModulesHeight = 410;
+    else if (spc700)
+        profile.maximumModulesHeight = 588;
+    else if (paula)
+        profile.maximumModulesHeight = 529;
+    else if (ym2612)
+        profile.maximumModulesHeight = 586;
+    else if (fourOp)
+        profile.maximumModulesHeight = 564;
+    else if (huc6280)
+        profile.maximumModulesHeight = 478;
+    else if (pokey)
+        profile.maximumModulesHeight = 550;
+    else if (saa1099)
+        profile.maximumModulesHeight = 470;
+    else
+        profile.maximumModulesHeight = wavetable ? 416 : 492;
     profile.nesFamily = nes;
     profile.nesExpansion = nes && mode != ChipMode::nes;
     profile.fourOperatorFm = fourOp;

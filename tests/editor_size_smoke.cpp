@@ -227,7 +227,10 @@ bool checkPrimaryPanelStack(const ChipperAudioProcessorEditor& editor, chipper::
         requirePanel(editor.getModuleBoundsForLayoutTest(5), "sample bank", isNesFamily ? 176 : 132);
 
     const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
-    const auto minimumPerformanceHeight = isNesFamily ? 220 : (mode == chipper::ChipMode::sid ? 96 : ((mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 84 : 108));
+    const auto minimumPerformanceHeight = isNesFamily ? 220
+        : (mode == chipper::ChipMode::ym2612 ? 80
+        : (mode == chipper::ChipMode::sid ? 96
+        : ((mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 84 : 108)));
     requirePanel(performanceBounds, "performance macros", minimumPerformanceHeight);
     if (performanceBounds.getBottom() > footerTop)
     {
@@ -785,22 +788,99 @@ bool checkYm2612DacModeLayout()
 
     ChipperAudioProcessor processor;
     auto ok = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+    ok &= setChoiceParameter(processor, chipper::parameters::id::snNoiseMode, 2);
+    ok &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 5);
+    ok &= setChoiceParameter(processor, chipper::parameters::id::macro, 0);
     ChipperAudioProcessorEditor editor(processor);
-    editor.setSize(1240, expectedHeightForChipMode(chipChoice));
-    editor.runEditorUpdateForLayoutTest();
 
-    const auto dacBounds = editor.getSnNoiseModeBoundsForLayoutTest();
-    if (dacBounds.isEmpty())
+    for (const auto width : { expectedEditorMinimumWidth, 1240 })
     {
-        std::cerr << "editor_size_smoke: YM2612 DAC mode control is missing\n";
-        ok = false;
+        editor.setSize(width, expectedHeightForChipMode(chipChoice));
+        editor.runEditorUpdateForLayoutTest();
+
+        const auto channelModule = editor.getModuleBoundsForLayoutTest(1);
+        const auto patchModule = editor.getModuleBoundsForLayoutTest(2);
+        const auto operatorModule = editor.getModuleBoundsForLayoutTest(3);
+        const auto routeModule = editor.getModuleBoundsForLayoutTest(5);
+        const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+        const auto algorithmBounds = editor.getFmAlgorithmBoundsForLayoutTest();
+        const auto algorithmPreviewBounds = editor.getFmAlgorithmPreviewBoundsForLayoutTest();
+        const auto feedbackBounds = editor.getFmFeedbackBoundsForLayoutTest();
+        const auto dacBounds = editor.getSnNoiseModeBoundsForLayoutTest();
+        const auto envelopeBounds = editor.getYmEnvelopeShapeBoundsForLayoutTest();
+        const auto lfoBounds = editor.getStereoSpreadBoundsForLayoutTest();
+        const auto panBounds = editor.getDmgStereoRouteBoundsForLayoutTest();
+        const auto clockBounds = editor.getClockSliderBoundsForLayoutTest();
+        const auto outputBounds = editor.getOutputSliderBoundsForLayoutTest();
+
+        ok &= expect(editor.getModuleTitleTextForLayoutTest(2) == "Shared Four-Operator Patch"
+                         && editor.getModuleTitleTextForLayoutTest(3) == "Shared Operator Matrix"
+                         && editor.getModuleTitleTextForLayoutTest(5) == "Envelope, DAC + Routing",
+                     "YM2612 dedicated signal-path module titles are missing");
+        ok &= expect(editor.getModuleSummaryTextForLayoutTest(5).containsIgnoreCase("VST sample-file loading is not available"),
+                     "YM2612 DAC surface should disclose the VST sample-loading limitation");
+        ok &= expect(editor.getGlobalStripLabelTextForLayoutTest() == "Clock + Output",
+                     "YM2612 global strip should contain only clock and output");
+
+        for (size_t channel = 0; channel < 6u; ++channel)
+            ok &= expect(channelModule.expanded(2).contains(editor.getSourceChannelBoundsForLayoutTest(channel)),
+                         "YM2612 source channel escaped the six-channel deck");
+        ok &= expect(editor.getSourceChannelButtonTextForLayoutTest(5).contains("DAC $2A stream"),
+                     "YM2612 channel 6 should visibly become the DAC lane");
+
+        for (const auto control : {
+                 algorithmBounds,
+                 algorithmPreviewBounds,
+                 feedbackBounds,
+                 editor.getNativeSliderBoundsForLayoutTest(0),
+                 editor.getNativeSliderBoundsForLayoutTest(2),
+                 editor.getNativeSliderBoundsForLayoutTest(3) })
+        {
+            ok &= expect(! control.isEmpty() && patchModule.expanded(2).contains(control),
+                         "YM2612 shared patch control escaped its owning module");
+        }
+
+        for (size_t op = 0; op < 4u; ++op)
+            ok &= expect(operatorModule.expanded(2).contains(editor.getFmOperatorCardBoundsForLayoutTest(op)),
+                         "YM2612 operator card escaped the shared operator matrix");
+
+        for (const auto& [control, label] : std::array<std::pair<juce::Rectangle<int>, const char*>, 4> {
+                 std::pair { envelopeBounds, "Envelope Shape" },
+                 std::pair { dacBounds, "DAC Mode" },
+                 std::pair { lfoBounds, "LFO Depth" },
+                 std::pair { panBounds, "Pan" } })
+        {
+            if (control.isEmpty() || ! routeModule.expanded(2).contains(control))
+            {
+                std::cerr << "editor_size_smoke: YM2612 " << label
+                          << " is missing from Envelope, DAC + Routing\n";
+                ok = false;
+            }
+        }
+
+        ok &= expect(dacBounds.getWidth() >= 240 && dacBounds.getHeight() >= 20,
+                     "YM2612 DAC mode control is below readable size");
+        ok &= expect(performanceBounds.expanded(2).contains(clockBounds)
+                         && performanceBounds.expanded(2).contains(outputBounds),
+                     "YM2612 clock/output controls escaped the compact global strip");
+        if (editor.isNativeSliderEnabledForLayoutTest(0)
+            || ! editor.getNativeLabelTextForLayoutTest(0).contains("Manual + Preset only")
+            || (! editor.getNativeValueLabelTextForLayoutTest(0).contains("explicit Alg")
+                && ! editor.getNativeValueLabelTextForLayoutTest(0).contains("Recipe owns Algorithm")))
+        {
+            std::cerr << "editor_size_smoke: YM2612 Algorithm Bias should be contextual when an explicit Algorithm owns the register: enabled="
+                      << editor.isNativeSliderEnabledForLayoutTest(0)
+                      << " label='" << editor.getNativeLabelTextForLayoutTest(0)
+                      << "' value='" << editor.getNativeValueLabelTextForLayoutTest(0) << "'\n";
+            ok = false;
+        }
     }
-    else if (dacBounds.getWidth() < 240 || dacBounds.getHeight() < 20)
-    {
-        std::cerr << "editor_size_smoke: YM2612 DAC mode control below readable size: "
-                  << dacBounds.toString() << '\n';
-        ok = false;
-    }
+
+    ok &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 0);
+    editor.runEditorUpdateForLayoutTest();
+    ok &= expect(editor.isNativeSliderEnabledForLayoutTest(0)
+                     && editor.getNativeLabelTextForLayoutTest(0) == "Algorithm Bias",
+                 "YM2612 Algorithm Bias should activate for the Manual recipe in Preset mode");
 
     return ok;
 }
@@ -837,7 +917,25 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
         const auto groupBounds = editor.getNativeGroupLabelBoundsForLayoutTest(sliderIndex);
         const auto labelBounds = editor.getNativeLabelBoundsForLayoutTest(sliderIndex);
         const auto valueBounds = editor.getNativeValueLabelBoundsForLayoutTest(sliderIndex);
-        if (! sliderBounds.isEmpty() || ! groupBounds.isEmpty() || ! labelBounds.isEmpty() || ! valueBounds.isEmpty())
+        if (mode == chipper::ChipMode::ym2612)
+        {
+            const auto patchModuleBounds = editor.getModuleBoundsForLayoutTest(2);
+            if (sliderBounds.isEmpty()
+                || ! patchModuleBounds.expanded(2).contains(sliderBounds)
+                || ! patchModuleBounds.expanded(2).contains(groupBounds)
+                || ! patchModuleBounds.expanded(2).contains(labelBounds)
+                || ! patchModuleBounds.expanded(2).contains(valueBounds))
+            {
+                std::cerr << "editor_size_smoke: YM2612 shared Operator Tone/FM Level controls should live beside Algorithm and Feedback\n";
+                std::cerr << "  module " << patchModuleBounds.toString()
+                          << " slider " << sliderBounds.toString()
+                          << " group " << groupBounds.toString()
+                          << " label " << labelBounds.toString()
+                          << " value " << valueBounds.toString() << '\n';
+                ok = false;
+            }
+        }
+        else if (! sliderBounds.isEmpty() || ! groupBounds.isEmpty() || ! labelBounds.isEmpty() || ! valueBounds.isEmpty())
         {
             std::cerr << "editor_size_smoke: " << modeLabel
                       << " should keep universal musical macros in Play instead of crowding the native operator grid\n";
@@ -2331,6 +2429,10 @@ bool checkPerformanceMacroSliderLayout()
                 expectedMacroSliders = {};
                 break;
             case chipper::ChipMode::ym2612:
+                // The complete shared four-operator patch lives in its owning
+                // module; the compact footer is clock/output only.
+                expectedMacroSliders = {};
+                break;
             case chipper::ChipMode::ym2151:
             case chipper::ChipMode::ym2203:
             case chipper::ChipMode::ym2608:
@@ -2453,15 +2555,18 @@ bool checkPerformanceMacroSliderLayout()
         {
             const auto feedbackBounds = editor.getFmFeedbackBoundsForLayoutTest();
             const auto feedbackSliderBounds = editor.getNativeSliderBoundsForLayoutTest(1);
+            const auto feedbackOwnerBounds = mode == chipper::ChipMode::ym2612
+                ? editor.getModuleBoundsForLayoutTest(2)
+                : performanceBounds;
             if (feedbackBounds.isEmpty()
-                || ! performanceBounds.expanded(2).contains(feedbackBounds)
+                || ! feedbackOwnerBounds.expanded(2).contains(feedbackBounds)
                 || feedbackBounds.getWidth() < 96
                 || feedbackBounds.getHeight() < 20)
             {
-                std::cerr << "editor_size_smoke: FM feedback menu is not readable/owned by performance strip for mode "
+                std::cerr << "editor_size_smoke: FM feedback menu is not readable/owned by its patch surface for mode "
                           << chipper::parameters::chipModeChoices()[chipMode]
                           << ": feedback " << feedbackBounds.toString()
-                          << " performance " << performanceBounds.toString() << '\n';
+                          << " owner " << feedbackOwnerBounds.toString() << '\n';
                 ok = false;
             }
 
@@ -3396,7 +3501,8 @@ bool checkUnifiedEditorContract()
                 ok = false;
             }
         }
-        if (editor.getPerformanceBoundsForLayoutTest().getHeight() < 100
+        const auto minimumPerformanceHeight = mode == chipper::ChipMode::ym2612 ? 80 : 100;
+        if (editor.getPerformanceBoundsForLayoutTest().getHeight() < minimumPerformanceHeight
             || editor.getOutputSliderBoundsForLayoutTest().getHeight() < 16)
         {
             std::cerr << "editor_size_smoke: unified performance/output path is unreadable for chip choice "

@@ -363,7 +363,14 @@ public:
     {
         return index < nativeSliders.size() && nativeSliders[index].isEnabled();
     }
+    juce::Rectangle<int> getFmAlgorithmBoundsForLayoutTest() const { return fmAlgorithmBox.getBounds(); }
+    juce::Rectangle<int> getFmAlgorithmPreviewBoundsForLayoutTest() const { return fmAlgorithmPreview.getBounds(); }
     juce::Rectangle<int> getFmFeedbackBoundsForLayoutTest() const { return fmFeedbackBox.getBounds(); }
+    juce::String getModuleTitleTextForLayoutTest(size_t index) const
+    {
+        return index < moduleTitleLabels.size() ? moduleTitleLabels[index].getText() : juce::String {};
+    }
+    juce::String getGlobalStripLabelTextForLayoutTest() const { return globalStripLabel.getText(); }
     juce::Rectangle<int> getSidAdsrContentBoundsForLayoutTest() const;
     juce::Rectangle<int> getSidAdsrSliderBoundsForLayoutTest(size_t index) const
     {

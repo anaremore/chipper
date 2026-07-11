@@ -3641,11 +3641,11 @@ std::array<ModuleDescriptor, 6> ym2612Modules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "YM2612/OPN2 core is backed by audited BSD-licensed ymfm.", { "YM2612 model", "NTSC Genesis clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM Voices", "All six YM2612 melodic channels are exposed as playable source lanes.", { "FM Ch 1", "FM Ch 2", "FM Ch 3", "FM Ch 4-6" }),
-        makeModule("tone", "Operators", "Musical controls write native OPN2 algorithm, feedback, multiplier, DT1 detune, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
-        makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPN2 attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
+        makeModule("sources", "Six OPN2 Channels", "Six note-allocated OPN2 channels share one four-operator patch; channel 6 becomes the native 8-bit DAC lane in DAC Drum mode.", { "FM Ch 1-5", "FM or DAC Ch 6", "Six-lane Chip Poly", "Modern channel trims" }),
+        makeModule("tone", "Shared Four-Operator Patch", "Algorithm, feedback, operator tone, and carrier level are written across all six FM channels rather than stored per channel.", { "Algorithm + graph", "Feedback", "Multiplier / DT1 tone", "Carrier total level" }),
+        makeModule("envelope", "Shared Operator Matrix", "The four editable operator rows and their EG overrides are one shared patch applied across the six FM channels.", { "Carrier/modulator roles", "MULT / TL", "AR / D1R / D2R", "SL / RR" }),
         makeModule("motion", "Motion", "Genesis-style preset recipes map to register-backed FM patches with first-pass native LFO depth.", { "$22 LFO", "AMS/PMS", "Carrier AM", "Pitch laser" }),
-        makeModule("output", "Output", "ymfm stereo OPN2 output follows native channel pan bits plus output trim and optional generated/renderer-loaded DAC drum bytes.", { "Stereo core", "$B4 pan", "DAC drum", "Verified partial" })
+        makeModule("output", "Envelope, DAC + Routing", "Ch 6 DAC uses generated or renderer-supplied bytes; VST sample-file loading is not available. Envelope, LFO, and pan remain native register paths.", { "Envelope shape", "Ch 6 FM / DAC", "$22 + AMS/PMS", "$B4 pan" })
     };
 }
 
@@ -4128,8 +4128,7 @@ const std::vector<ChipDescriptor>& descriptors()
                     "Descriptor, MIDI CC, renderer smoke, source gating, LFO Depth JSON, DT1 debug JSON, DAC Drum, renderer-fed DAC sample memory, and Chip Poly regression tests cover the first playable adapter, including six visible source lanes and six-channel note allocation."
                 },
                 {
-                    "The six-lane UI is still a compact generic source-card layout rather than a dedicated operator grid.",
-                    "VST file loading/state recall for OPN2 DAC sample paths, exact DAC timing, deeper LFO waveform/modulation UI, SSG-EG quirks, timers, and hardware capture comparison are not complete.",
+                    "VST file loading/state recall for OPN2 DAC sample paths, exact DAC timing, deeper LFO waveform/modulation control, SSG-EG quirks, timers, and hardware capture comparison are not complete.",
                     "Cycle accuracy is not claimed."
                 })
         },

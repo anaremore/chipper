@@ -623,8 +623,8 @@ bool expectEnvelopeModels()
 
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::spc700).modules[3].title == "Voice Shaping",
                  "SPC700 voice-shaping module should own envelope, ADSR/GAIN speed, and PMON controls");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2612).modules[3].title == "Operator EG",
-                 "YM2612 envelope module should expose native operator EG wording");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2612).modules[3].title == "Shared Operator Matrix",
+                 "YM2612 operator module should disclose that one editable patch is shared across six channels");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2413).modules[3].title == "ROM / User EG",
                  "YM2413 envelope module should expose ROM and user patch EG wording");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::pokey).modules[3].title == "Shared AUDC Texture + Gate",
