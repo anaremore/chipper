@@ -18,6 +18,7 @@ constexpr int expectedEditorHeight = 860;
 constexpr int expectedEditorDmgHeight = 720;
 constexpr int expectedEditorSn76489Height = 720;
 constexpr int expectedEditorYm2149Height = 720;
+constexpr int expectedEditorSaa1099Height = 780;
 constexpr int expectedEditorSidHeight = 880;
 constexpr int expectedEditorMinimumWidth = 1180;
 constexpr int expectedEditorMaximumHeight = expectedEditorSidHeight;
@@ -158,6 +159,8 @@ int expectedHeightForChipMode(int chipMode)
         return expectedEditorSn76489Height;
     if (mode == chipper::ChipMode::ym2149)
         return expectedEditorYm2149Height;
+    if (mode == chipper::ChipMode::saa1099)
+        return expectedEditorSaa1099Height;
 
     return expectedEditorHeight;
 }
@@ -1562,6 +1565,10 @@ bool checkPerformanceMacroSliderLayout()
             case chipper::ChipMode::ym2149:
                 expectedMacroSliders = { 0, 1 };
                 break;
+            case chipper::ChipMode::saa1099:
+                // Noise Clock is owned by the dual shared-generator block.
+                expectedMacroSliders = { 0, 1, 3 };
+                break;
             case chipper::ChipMode::ym2612:
             case chipper::ChipMode::ym2151:
             case chipper::ChipMode::ym2203:
@@ -1719,6 +1726,132 @@ bool checkPerformanceMacroSliderLayout()
         }
     }
 
+    return ok;
+}
+
+bool checkSaa1099GroupedLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::saa1099);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: SAA1099 chip mode choice unavailable\n";
+        return false;
+    }
+
+    auto checkAtWidth = [&](int editorWidth)
+    {
+        ChipperAudioProcessor processor;
+        auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(editorWidth, expectedHeightForChipMode(chipChoice));
+        editor.runEditorUpdateForLayoutTest();
+
+        const auto channelsModule = editor.getModuleBoundsForLayoutTest(1);
+        const auto generatorsModule = editor.getModuleBoundsForLayoutTest(2);
+        const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+
+        widthOk &= expect(editor.getHeight() == expectedEditorSaa1099Height,
+                          "SAA1099 editor lost its compact chip-specific height");
+        widthOk &= expect(! channelsModule.isEmpty() && ! generatorsModule.isEmpty(),
+                          "SAA1099 channel and shared-generator modules must both remain visible");
+        widthOk &= expect(editor.getModuleBoundsForLayoutTest(0).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(3).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(4).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(5).isEmpty(),
+                          "SAA1099 must not restore detached profile, envelope, motion, or output panels");
+
+        std::array<juce::Rectangle<int>, 6> channelBounds {};
+        for (size_t channel = 0; channel < channelBounds.size(); ++channel)
+        {
+            channelBounds[channel] = editor.getSourceChannelBoundsForLayoutTest(channel);
+            const auto levelBounds = editor.getSourceLevelBoundsForLayoutTest(channel);
+            if (channelBounds[channel].isEmpty()
+                || ! channelsModule.expanded(2).contains(channelBounds[channel])
+                || levelBounds.isEmpty()
+                || ! channelBounds[channel].expanded(2).contains(levelBounds)
+                || levelBounds.getWidth() < 96
+                || levelBounds.getHeight() < 10)
+            {
+                std::cerr << "editor_size_smoke: SAA1099 channel " << (channel + 1u)
+                          << " lost its readable, source-owned level lane at width " << editorWidth
+                          << ": channel " << channelBounds[channel].toString()
+                          << " level " << levelBounds.toString()
+                          << " module " << channelsModule.toString() << '\n';
+                widthOk = false;
+            }
+        }
+
+        const auto topRowY = channelBounds[0].getY();
+        const auto bottomRowY = channelBounds[3].getY();
+        widthOk &= expect(channelBounds[1].getY() == topRowY && channelBounds[2].getY() == topRowY,
+                          "SAA1099 channels 1-3 must remain one visible generator group");
+        widthOk &= expect(channelBounds[4].getY() == bottomRowY && channelBounds[5].getY() == bottomRowY,
+                          "SAA1099 channels 4-6 must remain one visible generator group");
+        widthOk &= expect(bottomRowY > channelBounds[0].getBottom(),
+                          "SAA1099 generator groups must remain spatially separated");
+
+        const std::array<std::pair<juce::Rectangle<int>, const char*>, 4> generatorControls {{
+            { editor.getSnNoiseModeBoundsForLayoutTest(), "Noise Mode" },
+            { editor.getNativeSliderBoundsForLayoutTest(2), "Noise Clock" },
+            { editor.getYmEnvelopeShapeBoundsForLayoutTest(), "Envelope Shape" },
+            { editor.getEnvelopeDecayBoundsForLayoutTest(), "Envelope Speed" }
+        }};
+        for (size_t control = 0; control < generatorControls.size(); ++control)
+        {
+            const auto& [bounds, name] = generatorControls[control];
+            if (bounds.isEmpty()
+                || ! generatorsModule.expanded(2).contains(bounds)
+                || bounds.getWidth() < 96
+                || bounds.getHeight() < 18)
+            {
+                std::cerr << "editor_size_smoke: SAA1099 " << name
+                          << " is missing or escaped Shared Generators at width " << editorWidth
+                          << ": control " << bounds.toString()
+                          << " module " << generatorsModule.toString() << '\n';
+                widthOk = false;
+            }
+
+            for (size_t other = control + 1u; other < generatorControls.size(); ++other)
+            {
+                if (bounds.intersects(generatorControls[other].first))
+                {
+                    std::cerr << "editor_size_smoke: SAA1099 shared controls overlap at width "
+                              << editorWidth << ": " << name << ' ' << bounds.toString()
+                              << " and " << generatorControls[other].second << ' '
+                              << generatorControls[other].first.toString() << '\n';
+                    widthOk = false;
+                }
+            }
+        }
+
+        const std::array<std::pair<juce::Rectangle<int>, const char*>, 6> performanceControls {{
+            { editor.getNativeSliderBoundsForLayoutTest(0), "Channel Spread" },
+            { editor.getNativeSliderBoundsForLayoutTest(1), "Pitch Motion" },
+            { editor.getNativeSliderBoundsForLayoutTest(3), "Channel Level" },
+            { editor.getStereoSpreadBoundsForLayoutTest(), "Stereo Spread" },
+            { editor.getClockSliderBoundsForLayoutTest(), "Clock" },
+            { editor.getOutputSliderBoundsForLayoutTest(), "Output" }
+        }};
+        for (const auto& [bounds, name] : performanceControls)
+        {
+            if (bounds.isEmpty()
+                || ! performanceBounds.expanded(2).contains(bounds)
+                || bounds.getWidth() < 72
+                || bounds.getHeight() < 18)
+            {
+                std::cerr << "editor_size_smoke: SAA1099 " << name
+                          << " is missing or escaped Performance + Output at width " << editorWidth
+                          << ": control " << bounds.toString()
+                          << " performance " << performanceBounds.toString() << '\n';
+                widthOk = false;
+            }
+        }
+
+        return widthOk;
+    };
+
+    auto ok = checkAtWidth(1240);
+    ok &= checkAtWidth(expectedEditorMinimumWidth);
     return ok;
 }
 
@@ -2541,6 +2674,7 @@ int main()
     ok &= checkSamplerBankLayout(chipper::ChipMode::paula);
     ok &= checkNesDmcAndPerformanceLayout();
     ok &= checkPerformanceMacroSliderLayout();
+    ok &= checkSaa1099GroupedLayout();
     ok &= checkSidAdsrLayout();
     ok &= checkCompactChipLayouts();
     ok &= checkPresetRoleFilterLayout();

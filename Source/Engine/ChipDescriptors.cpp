@@ -2660,9 +2660,9 @@ std::vector<ChipParameterSpec> saa1099ParameterSpecs()
                       {
                           choice("Preset", "Resolve noise generator mix and clock selectors from the selected recipe.", 0.0f, 0),
                           choice("Off", "Keep all six lanes tone-only.", 0.25f, 1),
-                          choice("Low", "Use slower shared noise on the upper channel of each group.", 0.5f, 2),
-                          choice("Mid", "Mix mid-speed shared noise into alternating lanes.", 0.75f, 3),
-                          choice("High", "Mix faster shared noise into all six lanes.", 1.0f, 4)
+                          choice("Fast", "Clock both noise generators at clock/1024 and route them to channels 3 and 6.", 0.5f, 2),
+                          choice("Mid", "Clock both noise generators at clock/2048 and route them to channels 1, 3, 4, and 6.", 0.75f, 3),
+                          choice("Slow", "Clock both noise generators at clock/4096 and route them through all six channels.", 1.0f, 4)
                       },
                       ParameterKind::chipRegister)
     };
@@ -3990,8 +3990,8 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             {
                 makeModule("profile", "Profile", "Philips SAA1099 clean-room PSG groundwork.", { "SAM Coupe family", "8 MHz default", "Hybrid default", "Authentic still partial" }),
-                makeModule("sources", "Channels", "All six SAA1099 channels are exposed as playable tone/noise lanes.", { "Channels 1-3", "Channels 4-6", "Six-note Chip Poly", "Source trims" }),
-                makeModule("tone", "Tone / Noise", "Frequency offsets, octave nibbles, and two shared noise generators.", { "8-bit frequency", "3-bit octave", "Tone mask", "Noise mask" }),
+                makeModule("sources", "Six Stereo Channels · Two Generator Groups", "Six playable channels are arranged as hardware groups 1-3 and 4-6, each sharing one noise and one envelope generator.", { "Channels 1-3", "Channels 4-6", "Six-note Chip Poly", "Per-lane stereo amplitude" }),
+                makeModule("tone", "Shared Generators · 1-3 / 4-6", "Noise 0 and Envelope 0 feed channels 1-3; Noise 1 and Envelope 1 feed channels 4-6 through the native masks.", { "Dual noise mode/clock", "Dual envelope shape/speed", "Tone/noise masks", "Two three-channel groups" }),
                 makeModule("envelope", "Envelope Groups", "Two simplified SAA1099 envelope generators control channel groups 1-3 and 4-6.", { "Fall", "Rise", "Saw", "Triangle" }),
                 makeModule("motion", "Motion", "Stereo PSG SFX gestures mapped to pitch, noise, and envelope state.", { "Coin ping", "Six-voice arp", "Dual-noise perc", "Pitch laser" }),
                 makeModule("output", "Output", "Native-style stereo amplitude nibbles with a modern spread helper.", { "Left/right nibbles", "Output gain", "Source levels", "Verified partial" })

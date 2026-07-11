@@ -66,6 +66,8 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
 - SN76489 now carries that rule through the entire native noise path: the taller Noise card owns Noise Mode, preset-only Noise Bias, native 4-bit attenuation, and the modern post-attenuation Level trim. Explicit Noise Mode choices visibly disable the preset-only bias control.
 - SN76489's three square-tone cards stay compact, with Tone Stack and Pitch Motion grouped immediately below them. This preserves the important Tone 3/noise-clock relationship without pretending the tone lanes need the same control depth as Noise.
 - SN76489 Chip Poly allocates Tone 1–3 only. Noise remains visible as an SFX lane and explicitly says it is not note-allocated. The complete surface uses the smoke-tested 720 px compact height at both supported widths.
+- Philips SAA1099 now presents all six stereo output lanes in two visible rows matching its shared-generator groups: channels 1-3 use Noise 0/Envelope 0 and channels 4-6 use Noise 1/Envelope 1. Each channel card reports its resolved left/right amplitude nibbles, while Noise Mode/Clock and Envelope Shape/Speed stay together in one Shared Generators block. This avoids inventing extra noise lanes or scattering the two group relationships across destinations.
+- SAA1099's six tone lanes remain the six Chip Poly allocation targets. Noise masks are shared group state, not seventh and eighth note channels. The 780 px surface and both supported widths are protected by structural ownership, row-grouping, control-size, and overlap checks.
 - Embedded channel controls must suppress their old standalone labels and readouts; otherwise stale labels can reappear after chip switching or parameter refresh.
 - HuC6280, Namco WSG, and Konami SCC now follow the same rule: per-channel wave shape selectors live inside a taller four-column wavetable voice deck instead of a detached Wave/Mixer panel, with level strips reserved so wave controls cannot crowd out channel gain or stretch each card into an awkward wide strip.
 - Wavetable-family source decks now take priority over duplicate summary copy: HuC6280, Namco WSG, and SCC reserve more height for channel cards so per-lane wave selectors and level controls stay readable.
@@ -154,10 +156,10 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
    - User value: very high. Most musicians will browse for "arcade bass" or "Game Boy lead" before they know which chip engine they want.
    - Confidence: 7/10. Preset data already exists; browser UX and save/load polish are the main work. Confidence improves with a preset QA pass that checks audibility, loudness, visible-control recall, and clean provenance for every factory preset.
 
-2. Play / Edit / Inspect workspaces
-   - Implemented baseline: the stable shell now switches between an APVTS-backed Play surface, the complete existing Edit surface, and a read-only descriptor-driven Inspect surface. Workspace selection is a UI preference outside preset/host parameter state, chip changes recompute the hidden Edit layout before it is restored, and editor smoke tests assert that switching workspaces changes no parameter values across every public chip.
-   - Next value: deepen the family-specific Play cards, FM editor, sampler/wavetable detail views, and relationship diagrams without returning to one all-controls-at-once canvas.
-   - Non-regression rule: workspace switching must not change sound, automation, MIDI state, preset state, chip-local snapshots, source ownership, or the compact/default editor-size contract.
+2. Unified chip surfaces
+   - Implemented direction: Play / Edit / Inspect workspace navigation has been removed. The active chip's musical signal path belongs on one coherent surface; the preset browser is the sole separate overlay because browsing is a distinct task.
+   - Next value: continue replacing generic module grids chip by chip with layouts that expose every meaningful lane, place native controls with their owning channel or shared generator, and keep verification detail in tooltips/footer documentation rather than a destination tab.
+   - Non-regression rule: never reintroduce workspace switching as a way to hide ordinary sound-design controls. Unified layouts must preserve sound, automation, MIDI state, preset state, chip-local snapshots, source ownership, accessibility, and both supported editor widths.
 
 3. SNES SPC700-style sample voices
    - Issue: each voice can now pin a loaded sample slot in its card, but deeper work still needs per-voice loop/envelope/noise controls and clearer visual confirmation of voice-to-sample mapping.
