@@ -236,6 +236,8 @@ public:
     juce::String getDmgStereoRouteValueTextForLayoutTest() const { return dmgStereoRouteValueLabel.getText(); }
     juce::Rectangle<int> getSnNoiseModeBoundsForLayoutTest() const { return snNoiseModeSegmentBounds; }
     juce::Rectangle<int> getWaveShapeBoundsForLayoutTest() const { return waveShapeSegmentBounds; }
+    juce::Rectangle<int> getOplWaveformBoundsForLayoutTest() const { return oplWaveformBox.getBounds(); }
+    juce::Rectangle<int> getOplWaveformPreviewBoundsForLayoutTest() const { return oplWaveformPreview.getBounds(); }
     bool isWaveShapeSegmentVisibleForLayoutTest() const { return waveShapeButtons[0].isVisible(); }
     bool isSnNoiseModeSegmentVisibleForLayoutTest() const { return snNoiseModeButtons[0].isVisible(); }
     juce::Rectangle<int> getSnNoiseModeMenuBoundsForLayoutTest() const { return snNoiseModeBox.getBounds(); }

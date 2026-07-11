@@ -228,7 +228,7 @@ bool checkPrimaryPanelStack(const ChipperAudioProcessorEditor& editor, chipper::
 
     const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
     const auto minimumPerformanceHeight = isNesFamily ? 220
-        : (mode == chipper::ChipMode::ym2612 ? 80
+        : ((mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3) ? 80
         : (mode == chipper::ChipMode::sid ? 96
         : ((mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 84 : 108)));
     requirePanel(performanceBounds, "performance macros", minimumPerformanceHeight);
@@ -882,6 +882,148 @@ bool checkYm2612DacModeLayout()
                      && editor.getNativeLabelTextForLayoutTest(0) == "Algorithm Bias",
                  "YM2612 Algorithm Bias should activate for the Manual recipe in Preset mode");
 
+    return ok;
+}
+
+bool checkOpl3UnifiedTopologyLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::opl3);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: OPL3 chip mode choice unavailable\n";
+        return false;
+    }
+
+    auto checkAtWidth = [&](int editorWidth)
+    {
+        ChipperAudioProcessor processor;
+        auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 1);
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(editorWidth, expectedHeightForChipMode(chipChoice));
+        editor.runEditorUpdateForLayoutTest();
+
+        const auto laneModule = editor.getModuleBoundsForLayoutTest(1);
+        const auto patchModule = editor.getModuleBoundsForLayoutTest(2);
+        const auto operatorModule = editor.getModuleBoundsForLayoutTest(3);
+        const auto pathModule = editor.getModuleBoundsForLayoutTest(5);
+        const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+
+        widthOk &= expect(editor.getModuleTitleTextForLayoutTest(1) == "Nine OPL Lanes"
+                              && editor.getModuleTitleTextForLayoutTest(2) == "Topology + Shared Patch"
+                              && editor.getModuleTitleTextForLayoutTest(3) == "Operator Register State"
+                              && editor.getModuleTitleTextForLayoutTest(5) == "Active Signal Path",
+                          "OPL3 dedicated signal-path module titles are missing");
+        widthOk &= expect(editor.getModuleBoundsForLayoutTest(0).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(4).isEmpty(),
+                          "OPL3 should not restore detached profile or motion destinations");
+        widthOk &= expect(editor.getGlobalStripLabelTextForLayoutTest() == "Clock + Output",
+                          "OPL3 global strip should contain only clock and output");
+
+        for (size_t lane = 0; lane < 9u; ++lane)
+        {
+            const auto card = editor.getSourceChannelBoundsForLayoutTest(lane);
+            const auto level = editor.getSourceLevelBoundsForLayoutTest(lane);
+            if (card.isEmpty()
+                || ! laneModule.expanded(2).contains(card)
+                || card.getWidth() < 300
+                || card.getHeight() < 68
+                || level.isEmpty()
+                || ! card.expanded(2).contains(level)
+                || level.getHeight() < 10)
+            {
+                std::cerr << "editor_size_smoke: OPL3 lane " << (lane + 1u)
+                          << " is not readable inside the 3x3 lane matrix at width " << editorWidth
+                          << ": card " << card.toString() << " level " << level.toString() << '\n';
+                widthOk = false;
+            }
+        }
+
+        const std::array<juce::Rectangle<int>, 7> patchControls {
+            editor.getYmEnvelopeShapeBoundsForLayoutTest(),
+            editor.getOplWaveformBoundsForLayoutTest(),
+            editor.getOplWaveformPreviewBoundsForLayoutTest(),
+            editor.getNativeSliderBoundsForLayoutTest(0),
+            editor.getNativeSliderBoundsForLayoutTest(1),
+            editor.getNativeSliderBoundsForLayoutTest(2),
+            editor.getNativeSliderBoundsForLayoutTest(3)
+        };
+        for (const auto& control : patchControls)
+        {
+            if (control.isEmpty()
+                || ! patchModule.expanded(2).contains(control)
+                || control.getWidth() < 96
+                || control.getHeight() < 16)
+            {
+                std::cerr << "editor_size_smoke: OPL3 topology/shared-patch control escaped or collapsed at width "
+                          << editorWidth << ": control " << control.toString()
+                          << " patch " << patchModule.toString() << '\n';
+                widthOk = false;
+            }
+        }
+
+        for (size_t row = 0; row < 3u; ++row)
+        {
+            const auto card = editor.getFmOperatorCardBoundsForLayoutTest(row);
+            if (card.isEmpty()
+                || ! operatorModule.expanded(2).contains(card)
+                || card.getWidth() < 280
+                || card.getHeight() < 36)
+            {
+                std::cerr << "editor_size_smoke: OPL3 operator-state row " << row
+                          << " is unreadable at width " << editorWidth
+                          << ": card " << card.toString() << " module " << operatorModule.toString() << '\n';
+                widthOk = false;
+            }
+        }
+
+        const auto clockBounds = editor.getClockSliderBoundsForLayoutTest();
+        const auto outputBounds = editor.getOutputSliderBoundsForLayoutTest();
+        widthOk &= expect(performanceBounds.expanded(2).contains(clockBounds)
+                              && performanceBounds.expanded(2).contains(outputBounds)
+                              && ! clockBounds.intersects(outputBounds),
+                          "OPL3 clock/output controls escaped the compact global strip");
+        widthOk &= expect(editor.getStereoSpreadBoundsForLayoutTest().isEmpty()
+                              && editor.getDmgStereoRouteBoundsForLayoutTest().isEmpty(),
+                          "OPL3 should not leave detached generic routing controls in Active Signal Path");
+
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(0).contains("Ch 1 | 2-op voice")
+                              && editor.getSourceChannelButtonTextForLayoutTest(8).contains("Ch 9 | 2-op voice")
+                              && editor.getModuleSummaryTextForLayoutTest(5).containsIgnoreCase("Nine independent two-operator voices"),
+                          "OPL3 melodic topology is not explained by its lanes and active signal path");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 2);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(6).contains("Bass Drum")
+                              && editor.getSourceChannelButtonTextForLayoutTest(7).contains("Hi-Hat + Snare")
+                              && editor.getSourceChannelButtonTextForLayoutTest(8).contains("Tom + Cymbal")
+                              && editor.getModuleSummaryTextForLayoutTest(5).contains("$BD percussion"),
+                          "OPL3 rhythm topology does not expose the five native percussion roles");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 3);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(0).contains("Layer 1+10")
+                              && editor.getSourceChannelButtonTextForLayoutTest(8).contains("Layer 9+18")
+                              && editor.getModuleSummaryTextForLayoutTest(5).containsIgnoreCase("Nine paired layers"),
+                          "OPL3 18-channel layer topology does not explain the low/high bank pairing");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 4);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(0).contains("Pair 1+4")
+                              && editor.getSourceChannelButtonTextForLayoutTest(3).contains("Ops 3-4")
+                              && ! editor.isSourceChannelButtonEnabledForLayoutTest(3)
+                              && editor.isSourceChannelButtonEnabledForLayoutTest(6)
+                              && editor.getModuleSummaryTextForLayoutTest(5).containsIgnoreCase("Three linked 4-op voices"),
+                          "OPL3 4-op topology does not distinguish key lanes, paired stages, and remaining 2-op voices");
+
+        widthOk &= expect(! pathModule.isEmpty()
+                              && ! editor.getModuleSummaryBoundsForLayoutTest(5).isEmpty(),
+                          "OPL3 active signal-path explanation is missing");
+        return widthOk;
+    };
+
+    auto ok = checkAtWidth(1240);
+    ok &= checkAtWidth(expectedEditorMinimumWidth);
     return ok;
 }
 
@@ -2433,6 +2575,11 @@ bool checkPerformanceMacroSliderLayout()
                 // module; the compact footer is clock/output only.
                 expectedMacroSliders = {};
                 break;
+            case chipper::ChipMode::opl3:
+                // Topology and the complete shared OPL patch live together;
+                // the compact footer is clock/output only.
+                expectedMacroSliders = {};
+                break;
             case chipper::ChipMode::ym2151:
             case chipper::ChipMode::ym2203:
             case chipper::ChipMode::ym2608:
@@ -3501,7 +3648,7 @@ bool checkUnifiedEditorContract()
                 ok = false;
             }
         }
-        const auto minimumPerformanceHeight = mode == chipper::ChipMode::ym2612 ? 80 : 100;
+        const auto minimumPerformanceHeight = (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3) ? 80 : 100;
         if (editor.getPerformanceBoundsForLayoutTest().getHeight() < minimumPerformanceHeight
             || editor.getOutputSliderBoundsForLayoutTest().getHeight() < 16)
         {
@@ -3804,6 +3951,7 @@ int main()
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::sn76489);
     ok &= checkYm2149ToneNoiseMixLayout();
     ok &= checkYm2612DacModeLayout();
+    ok &= checkOpl3UnifiedTopologyLayout();
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2612);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2151);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2203);

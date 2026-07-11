@@ -2675,7 +2675,7 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_opl3_sources_off_assert PROPERTIES DEPENDS chipper_render_opl3_sources_off_smoke)
 
     add_test(NAME chipper_render_opl3_rhythm_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-rhythm-smoke.json --implemented-contains ymfm --macro Drum --min-peak 0.01 --register-writes 0 --note-events 1 --core-min rhythmModeChoice=2 --core-max rhythmModeChoice=2 --core-min rhythmMode=1 --core-max rhythmMode=1 --core-min rhythmRegister=32 --core-max rhythmRegister=63 --core-min rhythmKeyBits=1 --core-max rhythmKeyBits=31 --core-min keyOnMask=64 --core-max keyOnMask=448 --descriptor-param-kind ymEnvelopeShape=chipRegister --descriptor-param-surface ymEnvelopeShape=segmentedChoice --descriptor-param-label "ymEnvelopeShape=Rhythm Mode" --descriptor-param-choices ymEnvelopeShape=5
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-rhythm-smoke.json --implemented-contains ymfm --macro Drum --min-peak 0.01 --register-writes 0 --note-events 1 --core-min rhythmModeChoice=2 --core-max rhythmModeChoice=2 --core-min rhythmMode=1 --core-max rhythmMode=1 --core-min rhythmRegister=32 --core-max rhythmRegister=63 --core-min rhythmKeyBits=1 --core-max rhythmKeyBits=31 --core-min keyOnMask=64 --core-max keyOnMask=448 --descriptor-param-kind ymEnvelopeShape=chipRegister --descriptor-param-surface ymEnvelopeShape=segmentedChoice --descriptor-param-label "ymEnvelopeShape=OPL Topology" --descriptor-param-choices ymEnvelopeShape=5
     )
     set_tests_properties(chipper_render_opl3_rhythm_assert PROPERTIES DEPENDS chipper_render_opl3_rhythm_smoke)
 

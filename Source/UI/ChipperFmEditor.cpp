@@ -52,7 +52,7 @@ void ChipperFmEditor::setTheme(juce::Colour panel,
 
 void ChipperFmEditor::paint(juce::Graphics& graphics)
 {
-    if (! gridLayout)
+    if (! gridLayout && mode != chipper::ChipMode::opl3)
         return;
 
     for (size_t i = 0; i < operatorRows; ++i)
@@ -60,7 +60,8 @@ void ChipperFmEditor::paint(juce::Graphics& graphics)
         const auto bounds = operatorCards[i];
         if (bounds.isEmpty())
             continue;
-        const auto carrier = controls.names[i].getText().endsWith(" C");
+        const auto carrier = controls.names[i].getText().endsWith(" C")
+            || (mode == chipper::ChipMode::opl3 && i == 2u);
         graphics.setColour(cardColour);
         graphics.fillRoundedRectangle(bounds.toFloat(), 4.0f);
         graphics.setColour(carrier ? primaryColour : accentColour);
@@ -130,8 +131,9 @@ void ChipperFmEditor::layoutCompactRows()
 {
     auto bounds = getLocalBounds();
     const auto rowGap = 4;
+    const auto maximumRowHeight = mode == chipper::ChipMode::opl3 ? 48 : 22;
     const auto rowHeight = operatorRows > 0
-        ? std::clamp((bounds.getHeight() - rowGap * (static_cast<int>(operatorRows) - 1)) / static_cast<int>(operatorRows), 13, 22)
+        ? std::clamp((bounds.getHeight() - rowGap * (static_cast<int>(operatorRows) - 1)) / static_cast<int>(operatorRows), 13, maximumRowHeight)
         : 0;
     for (size_t i = 0; i < operatorCount; ++i)
     {
@@ -142,18 +144,19 @@ void ChipperFmEditor::layoutCompactRows()
         }
         auto row = bounds.removeFromTop(std::min(rowHeight, bounds.getHeight()));
         operatorCards[i] = row;
-        controls.names[i].setBounds(row.removeFromLeft(std::min(48, row.getWidth())));
-        row.removeFromLeft(std::min(5, row.getWidth()));
+        auto content = mode == chipper::ChipMode::opl3 ? row.reduced(8, 4) : row;
+        controls.names[i].setBounds(content.removeFromLeft(std::min(48, content.getWidth())));
+        content.removeFromLeft(std::min(5, content.getWidth()));
         if (editable)
         {
-            controls.levelReadouts[i].setBounds(row.removeFromLeft(std::min(38, row.getWidth())));
-            row.removeFromLeft(std::min(4, row.getWidth()));
-            controls.levelSliders[i].setBounds(row.removeFromLeft(std::min(78, row.getWidth())).reduced(0, 1));
-            row.removeFromLeft(std::min(4, row.getWidth()));
-            controls.multipliers[i].setBounds(row.removeFromLeft(std::min(50, row.getWidth())));
-            row.removeFromLeft(std::min(4, row.getWidth()));
-            controls.envelopes[i].setBounds(row.removeFromLeft(std::min(46, row.getWidth())));
-            row.removeFromLeft(std::min(4, row.getWidth()));
+            controls.levelReadouts[i].setBounds(content.removeFromLeft(std::min(38, content.getWidth())));
+            content.removeFromLeft(std::min(4, content.getWidth()));
+            controls.levelSliders[i].setBounds(content.removeFromLeft(std::min(78, content.getWidth())).reduced(0, 1));
+            content.removeFromLeft(std::min(4, content.getWidth()));
+            controls.multipliers[i].setBounds(content.removeFromLeft(std::min(50, content.getWidth())));
+            content.removeFromLeft(std::min(4, content.getWidth()));
+            controls.envelopes[i].setBounds(content.removeFromLeft(std::min(46, content.getWidth())));
+            content.removeFromLeft(std::min(4, content.getWidth()));
         }
         else
         {
@@ -162,7 +165,7 @@ void ChipperFmEditor::layoutCompactRows()
             controls.multipliers[i].setBounds({});
             controls.envelopes[i].setBounds({});
         }
-        controls.registerReadouts[i].setBounds(row.reduced(2, 0));
+        controls.registerReadouts[i].setBounds(content.reduced(2, 0));
         bounds.removeFromTop(std::min(rowGap, bounds.getHeight()));
     }
 }

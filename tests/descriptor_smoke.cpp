@@ -2087,7 +2087,7 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source7Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 7 / BD Level");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source8Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 8 / HH+SD Level");
     ok &= expectSpec(chipper::ChipMode::ym2413, chipper::ChipParameterRole::source9Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 9 / TOM+CYM Level");
-    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Rhythm Mode");
+    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "OPL Topology");
     ok &= expectSegmentedRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Preset");
     ok &= expectPreset(chipper::ChipMode::opl3, "opl2-rhythm-kit");
     ok &= expectPreset(chipper::ChipMode::opl3, "opl3-layer-arp");

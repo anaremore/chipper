@@ -1908,8 +1908,8 @@ std::vector<ChipParameterSpec> oplParameterSpecs()
           0.0f },
         segmentedSpec(ChipParameterRole::ymEnvelopeShape,
                       "opl.rhythmMode",
-                      "Rhythm Mode",
-                      "Rhythm",
+                      "OPL Topology",
+                      "Voice Architecture",
                       "Controls OPL2 register $BD rhythm mode, OPL3 18-channel paired-layer mode, or OPL3 $104 four-operator pair mode. Preset uses Rhythm for Drum/Hit presets and Melodic otherwise.",
                       oplRhythmModeChoices(),
                       ParameterKind::chipRegister),
@@ -3677,11 +3677,11 @@ std::array<ModuleDescriptor, 6> oplModules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "OPL2/OPL3 surface is backed by audited BSD-licensed ymfm YMF262 core.", { "YMF262 core", "14.32 MHz clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM Voices", "Nine source cards address OPL2 melodic channels, native rhythm slots, paired low/high-bank OPL3 channels in 18ch Layer mode, or $104 4-op pairs 1+4/2+5/3+6.", { "Ch 1-9 cards", "Ch 10-18 layer", "$104 4-op pairs", "Chip Poly" }),
-        makeModule("tone", "Operators", "Musical controls write native OPL operator and channel registers.", { "Waveform", "Feedback", "Connection", "Operator tone" }),
-        makeModule("envelope", "Operator EG", "Melodic and rhythm presets write native OPL attack/decay and sustain/release bytes.", { "EG type sustain", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
+        makeModule("sources", "Nine OPL Lanes", "Each card remains visible while its role changes with the selected OPL topology.", { "Ch 1-9", "Ch 10-18 layers", "$BD percussion", "$104 pairs" }),
+        makeModule("tone", "Topology + Shared Patch", "Choose the voice architecture, then shape the register-backed operator pair shared by the visible lanes.", { "OPL topology", "Waveform", "Connection + feedback", "Operator tone + level" }),
+        makeModule("envelope", "Operator Register State", "The resolved pair, modulator, and carrier registers for the active shared patch.", { "Pair routing", "Modulator registers", "Carrier registers", "Preset-resolved EG" }),
         makeModule("motion", "Motion", "DOS FM preset recipes map to register-backed melodic and rhythm patches.", { "UI bell", "FM bass", "Rhythm hits", "Laser" }),
-        makeModule("output", "Output", "ymfm OPL3 output is routed from the four native YMF262 output buses into plugin stereo.", { "OPL3 core", "High bank writes", "$BD rhythm bits", "Verified partial" })
+        makeModule("output", "Active Signal Path", "Nine independent two-operator lanes feed the YMF262 output buses and plugin stereo.", {})
     };
 }
 
