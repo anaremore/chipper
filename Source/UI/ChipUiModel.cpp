@@ -167,6 +167,7 @@ ChipUiProfile profileFor(ChipMode mode)
     const auto opl3 = mode == ChipMode::opl3;
     const auto ym2151 = mode == ChipMode::ym2151;
     const auto ym2413 = mode == ChipMode::ym2413;
+    const auto ym2203 = mode == ChipMode::ym2203;
     const auto fourOp = isFourOperatorFm(mode);
     const auto wavetable = family == ChipUiFamily::wavetable;
 
@@ -185,7 +186,7 @@ ChipUiProfile profileFor(ChipMode mode)
         profile.performanceStripHeight = 124;
     else if (nes)
         profile.performanceStripHeight = 236;
-    else if (ym2612 || opl3 || ym2151)
+    else if (ym2612 || opl3 || ym2151 || ym2203)
         profile.performanceStripHeight = 88;
     else if (spc700 || fourOp)
         profile.performanceStripHeight = 124;
@@ -202,7 +203,7 @@ ChipUiProfile profileFor(ChipMode mode)
         profile.maximumModulesHeight = 588;
     else if (paula)
         profile.maximumModulesHeight = 529;
-    else if (ym2612 || opl3 || ym2151)
+    else if (ym2612 || opl3 || ym2151 || ym2203)
         profile.maximumModulesHeight = 586;
     else if (fourOp || ym2413)
         profile.maximumModulesHeight = 564;

@@ -1432,7 +1432,10 @@ std::vector<ChipParameterSpec> ym2203ParameterSpecs()
                       "Writes OPN operator attack, decay, sustain-rate, sustain-level, and release fields for the current musical envelope shape.",
                       ym2612EnvelopeShapeChoices(),
                       ParameterKind::chipRegister),
-        opnSsgEnvelopeSpec("ym2203.ssgEnvelope", "YM2203")
+        opnSsgEnvelopeSpec("ym2203.ssgEnvelope", "YM2203"),
+        envelopeSpec("ym2203.ssgEnvelopePeriod",
+                     "SSG Envelope Period",
+                     "Writes the shared embedded SSG envelope-period registers 11 and 12. Zero uses the default register period; all envelope-enabled SSG lanes share this value.")
     };
 }
 
@@ -3653,11 +3656,11 @@ std::array<ModuleDescriptor, 6> ym2203Modules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "YM2203/OPN core is backed by audited BSD-licensed ymfm.", { "YM2203 model", "3.99 MHz clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM + SSG Voices", "All three YM2203 FM channels and all three embedded SSG tone/noise/envelope channels are exposed as playable source lanes.", { "FM Ch 1-3", "SSG A-C", "6-lane Chip Poly", "Source trims" }),
-        makeModule("tone", "Operators", "Musical controls write native OPN algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
-        makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPN attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
+        makeModule("sources", "Three FM + Three SSG Lanes", "Each column pairs one four-operator FM lane with one embedded SSG lane in Big Mono; Chip Poly allocates all six lanes independently.", { "FM Ch 1-3", "SSG A-C", "Paired Big Mono stack", "Six-lane Chip Poly" }),
+        makeModule("tone", "Shared FM Patch", "Algorithm, feedback, FM envelope shape, and algorithm bias form one four-operator patch shared by FM channels 1-3.", { "Algorithm + graph", "Feedback", "FM envelope", "Contextual algorithm bias" }),
+        makeModule("envelope", "Shared Operator Matrix", "The four editable operator rows and their EG overrides are one shared patch applied across all three FM channels.", { "Carrier/modulator roles", "MULT / TL", "AR / D1R / D2R", "SL / RR" }),
         makeModule("motion", "Motion", "PC-88/arcade-style YM2203 preset recipes map to register-backed FM and SSG patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
-        makeModule("output", "Output", "ymfm mono OPN output is rendered to plugin stereo with the embedded SSG mixer/envelope path mixed in.", { "Mono FM core", "Three SSG lanes", "SSG mixer", "Verified partial" })
+        makeModule("output", "Shared SSG Generator", "SSG A-C own their Tone/Noise mix above while sharing one hardware envelope generator, one envelope period, and one noise-period register.", { "Per-lane mixer above", "Shared envelope shape", "Shared envelope period", "Shared noise period below" })
     };
 }
 

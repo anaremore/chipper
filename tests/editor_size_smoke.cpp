@@ -228,7 +228,7 @@ bool checkPrimaryPanelStack(const ChipperAudioProcessorEditor& editor, chipper::
 
     const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
     const auto minimumPerformanceHeight = isNesFamily ? 220
-        : ((mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151) ? 80
+        : ((mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203) ? 80
         : (mode == chipper::ChipMode::sid ? 96
         : ((mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula) ? 84 : 108)));
     requirePanel(performanceBounds, "performance macros", minimumPerformanceHeight);
@@ -1096,6 +1096,24 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
                 ok = false;
             }
         }
+        else if (mode == chipper::ChipMode::ym2203)
+        {
+            const auto footer = editor.getPerformanceBoundsForLayoutTest();
+            const auto optionalFieldEscapes = [&footer](juce::Rectangle<int> field)
+            {
+                return ! field.isEmpty() && ! footer.expanded(2).contains(field);
+            };
+            if (sliderBounds.isEmpty()
+                || labelBounds.isEmpty()
+                || ! footer.expanded(2).contains(sliderBounds)
+                || ! footer.expanded(2).contains(labelBounds)
+                || optionalFieldEscapes(groupBounds)
+                || optionalFieldEscapes(valueBounds))
+            {
+                std::cerr << "editor_size_smoke: YM2203 cross-engine FM/SSG controls should live in the compact shared footer\n";
+                ok = false;
+            }
+        }
         else if (! sliderBounds.isEmpty() || ! groupBounds.isEmpty() || ! labelBounds.isEmpty() || ! valueBounds.isEmpty())
         {
             std::cerr << "editor_size_smoke: " << modeLabel
@@ -1540,6 +1558,165 @@ bool checkYm2413UnifiedOpllLayout()
                               && editor.isPresetBrowserAboveWorkspaceForLayoutTest()
                               && ! editor.getGlobalPresetBrowserSearchBoundsForLayoutTest().isEmpty(),
                           "YM2413 preset browser should remain open as the sole overlay until dismissed");
+
+        ok &= widthOk;
+    }
+
+    return ok;
+}
+
+bool checkYm2203UnifiedOpnLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::ym2203);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: YM2203 chip mode choice unavailable\n";
+        return false;
+    }
+
+    auto ok = true;
+    for (const auto width : { 1240, expectedEditorMinimumWidth })
+    {
+        ChipperAudioProcessor processor;
+        auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::macro, 0);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 0);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::playMode, 0);
+
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(width, expectedHeightForChipMode(chipChoice));
+        editor.runEditorUpdateForLayoutTest();
+
+        const auto lanes = editor.getModuleBoundsForLayoutTest(1);
+        const auto fmPatch = editor.getModuleBoundsForLayoutTest(2);
+        const auto operators = editor.getModuleBoundsForLayoutTest(3);
+        const auto ssgGenerator = editor.getModuleBoundsForLayoutTest(5);
+        const auto footer = editor.getPerformanceBoundsForLayoutTest();
+        widthOk &= expect(! lanes.isEmpty() && lanes.getHeight() >= 230,
+                          "YM2203 should reserve two readable rows for its three FM and three SSG lanes");
+        widthOk &= expect(! fmPatch.isEmpty() && ! operators.isEmpty() && ! ssgGenerator.isEmpty(),
+                          "YM2203 unified FM patch, operator matrix, or SSG generator module is missing");
+        widthOk &= expect(editor.getModuleBoundsForLayoutTest(0).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(4).isEmpty(),
+                          "YM2203 should retire detached profile and motion destinations");
+        widthOk &= expect(editor.getModuleTitleTextForLayoutTest(1) == "Three FM + Three SSG Lanes"
+                              && editor.getModuleTitleTextForLayoutTest(2) == "Shared FM Patch"
+                              && editor.getModuleTitleTextForLayoutTest(3) == "Shared Operator Matrix"
+                              && editor.getModuleTitleTextForLayoutTest(5) == "Shared SSG Generator",
+                          "YM2203 module titles should explain FM, SSG, and shared ownership");
+
+        std::array<juce::Rectangle<int>, 6> cards {};
+        for (size_t lane = 0; lane < cards.size(); ++lane)
+        {
+            cards[lane] = editor.getSourceChannelBoundsForLayoutTest(lane);
+            const auto level = editor.getSourceLevelBoundsForLayoutTest(lane);
+            const auto header = editor.getSourceChannelButtonTextForLayoutTest(lane);
+            widthOk &= expect(cards[lane].getHeight() >= 86
+                                  && cards[lane].getWidth() >= 350
+                                  && lanes.expanded(2).contains(cards[lane]),
+                              "YM2203 FM/SSG lane card should remain readable inside the lane bank");
+            widthOk &= expect(! level.isEmpty()
+                                  && level.getHeight() >= 12
+                                  && cards[lane].expanded(2).contains(level),
+                              "YM2203 lane level should remain inside its owning card");
+            if (lane < 3u)
+                widthOk &= expect(header.startsWith("FM " + juce::String(static_cast<int>(lane + 1u)))
+                                      && header.contains("stack note " + juce::String(static_cast<int>(lane + 1u)))
+                                      && header.contains("| A"),
+                                  "YM2203 FM headers should expose lane, Big Mono stack role, and algorithm");
+            else
+                widthOk &= expect(header.startsWith("SSG ")
+                                      && header.contains("stack note " + juce::String(static_cast<int>(lane - 2u)))
+                                      && (header.contains("Tone") || header.contains("Noise") || header.contains("T+N") || header.contains("Off")),
+                                  "YM2203 SSG headers should expose paired stack role and resolved mixer state");
+        }
+        for (size_t left = 0; left < cards.size(); ++left)
+            for (size_t right = left + 1u; right < cards.size(); ++right)
+                widthOk &= expect(! cards[left].intersects(cards[right]),
+                                  "YM2203 FM/SSG lane cards should not overlap");
+
+        for (size_t ssg = 0; ssg < 3u; ++ssg)
+        {
+            const auto mix = editor.getYmChannelMixBoundsForLayoutTest(ssg);
+            widthOk &= expect(! mix.isEmpty()
+                                  && mix.getHeight() >= 24
+                                  && cards[ssg + 3u].expanded(2).contains(mix),
+                              "Each YM2203 SSG lane must own its Tone/Noise mix selector");
+        }
+
+        const std::array<juce::Rectangle<int>, 5> fmPatchControls {
+            editor.getFmAlgorithmBoundsForLayoutTest(),
+            editor.getFmAlgorithmPreviewBoundsForLayoutTest(),
+            editor.getYmEnvelopeShapeBoundsForLayoutTest(),
+            editor.getNativeSliderBoundsForLayoutTest(0),
+            editor.getFmFeedbackBoundsForLayoutTest()
+        };
+        for (const auto& control : fmPatchControls)
+            widthOk &= expect(! control.isEmpty()
+                                  && control.getHeight() >= 16
+                                  && fmPatch.expanded(2).contains(control),
+                              "YM2203 FM control should remain readable and owned by Shared FM Patch");
+        widthOk &= expect(editor.isNativeSliderEnabledForLayoutTest(0),
+                          "YM2203 Algorithm Bias should be active for Manual + Preset");
+
+        for (size_t op = 0; op < 4u; ++op)
+            widthOk &= expect(! editor.getFmOperatorCardBoundsForLayoutTest(op).isEmpty()
+                                  && operators.expanded(2).contains(editor.getFmOperatorCardBoundsForLayoutTest(op)),
+                              "YM2203 operator card should remain inside the shared operator matrix");
+
+        const auto ssgEnvelope = editor.getSnNoiseModeBoundsForLayoutTest();
+        const auto ssgEnvelopePeriod = editor.getEnvelopeDecayBoundsForLayoutTest();
+        widthOk &= expect(! ssgEnvelope.isEmpty()
+                              && ssgEnvelope.getHeight() >= 20
+                              && ssgGenerator.expanded(2).contains(ssgEnvelope),
+                          "YM2203 SSG envelope shape must live in Shared SSG Generator");
+        widthOk &= expect(editor.isEnvelopeDecayVisibleForLayoutTest()
+                              && ! ssgEnvelopePeriod.isEmpty()
+                              && ssgEnvelopePeriod.getHeight() >= 16
+                              && ssgGenerator.expanded(2).contains(ssgEnvelopePeriod),
+                          "YM2203 SSG envelope period must live in Shared SSG Generator");
+
+        widthOk &= expect(editor.getGlobalStripLabelTextForLayoutTest() == "Shared FM/SSG + Output"
+                              && footer.getHeight() == 88,
+                          "YM2203 footer should contain only cross-engine color, clock, and output");
+        for (const auto control : { editor.getNativeSliderBoundsForLayoutTest(2),
+                                    editor.getNativeSliderBoundsForLayoutTest(3),
+                                    editor.getClockSliderBoundsForLayoutTest(),
+                                    editor.getOutputSliderBoundsForLayoutTest() })
+            widthOk &= expect(! control.isEmpty()
+                                  && control.getHeight() >= 16
+                                  && footer.expanded(2).contains(control),
+                              "YM2203 shared bridge/clock/output control escaped the compact footer");
+        widthOk &= expect(editor.getNativeLabelTextForLayoutTest(2) == "FM Tone + SSG Noise"
+                              && editor.getNativeSliderTextForLayoutTest(2).startsWith("N")
+                              && editor.getNativeSliderTextForLayoutTest(3).startsWith("V"),
+                          "YM2203 shared bridge controls should use FM/SSG and native register vocabulary");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 5);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(! editor.isNativeSliderEnabledForLayoutTest(0)
+                              && editor.getNativeLabelTextForLayoutTest(0).contains("Manual + Preset only"),
+                          "YM2203 explicit Algorithm should visibly take ownership from Algorithm Bias");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 0);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymChannelAMix, 2);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::snNoiseMode, 4);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(3).contains("Noise Env"),
+                          "YM2203 SSG A should disclose its explicit Noise mix and shared envelope state");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::playMode, 1);
+        editor.runEditorUpdateForLayoutTest();
+        for (size_t lane = 0; lane < 6u; ++lane)
+            widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(lane).containsIgnoreCase("note " + juce::String(static_cast<int>(lane + 1u))),
+                              "YM2203 Chip Poly headers should expose all six allocation lanes");
+
+        editor.showPresetBrowserForLayoutTest();
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.isPresetBrowserVisibleForLayoutTest()
+                              && editor.isPresetBrowserAboveWorkspaceForLayoutTest()
+                              && ! editor.getGlobalPresetBrowserSearchBoundsForLayoutTest().isEmpty(),
+                          "YM2203 preset browser should remain open as the sole overlay until dismissed");
 
         ok &= widthOk;
     }
@@ -2895,6 +3072,10 @@ bool checkPerformanceMacroSliderLayout()
                 expectedMacroSliders = {};
                 break;
             case chipper::ChipMode::ym2203:
+                // Algorithm Bias and Feedback belong to Shared FM Patch;
+                // only controls that bridge FM and SSG remain in the footer.
+                expectedMacroSliders = { 2, 3 };
+                break;
             case chipper::ChipMode::ym2608:
             case chipper::ChipMode::ym2610:
             case chipper::ChipMode::ym2610b:
@@ -3015,7 +3196,7 @@ bool checkPerformanceMacroSliderLayout()
         {
             const auto feedbackBounds = editor.getFmFeedbackBoundsForLayoutTest();
             const auto feedbackSliderBounds = editor.getNativeSliderBoundsForLayoutTest(1);
-            const auto feedbackOwnerBounds = mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151
+            const auto feedbackOwnerBounds = mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2203
                 ? editor.getModuleBoundsForLayoutTest(2)
                 : performanceBounds;
             if (feedbackBounds.isEmpty()
@@ -3961,7 +4142,12 @@ bool checkUnifiedEditorContract()
                 ok = false;
             }
         }
-        const auto minimumPerformanceHeight = (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2151) ? 80 : 100;
+        const auto minimumPerformanceHeight = (mode == chipper::ChipMode::ym2612
+                                                || mode == chipper::ChipMode::opl3
+                                                || mode == chipper::ChipMode::ym2151
+                                                || mode == chipper::ChipMode::ym2203)
+            ? 80
+            : 100;
         if (editor.getPerformanceBoundsForLayoutTest().getHeight() < minimumPerformanceHeight
             || editor.getOutputSliderBoundsForLayoutTest().getHeight() < 16)
         {
@@ -4269,6 +4455,7 @@ int main()
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2151);
     ok &= checkYm2151UnifiedOpmLayout();
     ok &= checkYm2413UnifiedOpllLayout();
+    ok &= checkYm2203UnifiedOpnLayout();
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2203);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2608);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2610);

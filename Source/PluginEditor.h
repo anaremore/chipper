@@ -337,6 +337,7 @@ public:
     juce::Rectangle<int> getSampleLoopStartBoundsForLayoutTest() const { return sampleLoopStartSlider.getBounds(); }
     juce::Rectangle<int> getSampleLoopEndBoundsForLayoutTest() const { return sampleLoopEndSlider.getBounds(); }
     juce::Rectangle<int> getEnvelopeDecayBoundsForLayoutTest() const { return envelopeDecaySlider.getBounds(); }
+    bool isEnvelopeDecayVisibleForLayoutTest() const { return envelopeDecaySlider.isVisible(); }
     juce::Rectangle<int> getStereoSpreadBoundsForLayoutTest() const { return stereoSpreadSlider.getBounds(); }
     juce::String getStereoSpreadValueTextForLayoutTest() const { return stereoSpreadValueLabel.getText(); }
     juce::Rectangle<int> getClockSliderBoundsForLayoutTest() const { return clockSlider.getBounds(); }

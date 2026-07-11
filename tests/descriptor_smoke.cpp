@@ -1903,6 +1903,7 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "FM/SSG Level");
     ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::snNoiseMode, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "SSG Envelope");
     ok &= expectSegmentedRegister(chipper::ChipMode::ym2203, chipper::ChipParameterRole::snNoiseMode, 5, "Preset");
+    ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::envelopeDecay, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "SSG Envelope Period");
     ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::ymChannelAMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "SSG A Mix");
     ok &= expectChoiceRegister(chipper::ChipMode::ym2203, chipper::ChipParameterRole::ymChannelAMix, chipper::ControlSurface::menu, 5, "Follow");
     ok &= expectSpec(chipper::ChipMode::ym2203, chipper::ChipParameterRole::ymChannelBMix, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "SSG B Mix");

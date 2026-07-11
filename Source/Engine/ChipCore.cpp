@@ -11331,8 +11331,10 @@ private:
         if (channel >= channelNotes.size() || ! chip)
             return;
 
-        const auto detune = static_cast<int>(std::round((patch.control2 - 0.5f) * 6.0f));
-        const auto pitch = pitchForNote(midiNote + detune);
+        // control2 is the native OPN feedback field. It must not alter pitch:
+        // doing so detunes only FM1-3 while the paired SSG lanes remain on the
+        // requested notes, breaking the YM2203's combined FM/SSG instrument.
+        const auto pitch = pitchForNote(midiNote);
         channelNotes[channel] = std::clamp(midiNote, 0, 127);
         channelVelocity[channel] = static_cast<float>(clamp01(velocity) * sourceLevel(patch, channel));
         currentFnum[channel] = pitch.fnum;
