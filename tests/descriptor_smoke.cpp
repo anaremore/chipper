@@ -621,8 +621,8 @@ bool expectEnvelopeModels()
     ok &= expect(std::string(chipper::envelopeModelLabel(chipper::EnvelopeModel::chipperAmpHelper)) == "Chipper Amp Env",
                  "helper envelope label should stay honest");
 
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::spc700).modules[3].title == "ADSR / Gain",
-                 "SPC700 envelope module should expose native S-DSP ADSR/GAIN wording");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::spc700).modules[3].title == "Voice Shaping",
+                 "SPC700 voice-shaping module should own envelope, ADSR/GAIN speed, and PMON controls");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2612).modules[3].title == "Operator EG",
                  "YM2612 envelope module should expose native operator EG wording");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2413).modules[3].title == "ROM / User EG",
@@ -1738,7 +1738,7 @@ int main()
     ok &= expectPreset(chipper::ChipMode::spc700, "spc700-stage-clear");
     ok &= expectPreset(chipper::ChipMode::spc700, "spc700-noise-snare");
     ok &= expectPreset(chipper::ChipMode::spc700, "spc700-pmon-shimmer");
-    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Sample Shape");
+    ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Generated Shape");
     ok &= expectSegmentedRegister(chipper::ChipMode::spc700, chipper::ChipParameterRole::waveShape, 5, "Preset");
     ok &= expectSpec(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Loop Mode");
     ok &= expectSpecGroup(chipper::ChipMode::spc700, chipper::ChipParameterRole::dmgStereoRoute, "Sample");

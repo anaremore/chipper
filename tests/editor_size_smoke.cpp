@@ -21,9 +21,10 @@ constexpr int expectedEditorYm2149Height = 720;
 constexpr int expectedEditorSaa1099Height = 780;
 constexpr int expectedEditorPcSpeakerHeight = 720;
 constexpr int expectedEditorZxSpectrumBeeperHeight = 720;
+constexpr int expectedEditorSpc700Height = 900;
 constexpr int expectedEditorSidHeight = 880;
 constexpr int expectedEditorMinimumWidth = 1180;
-constexpr int expectedEditorMaximumHeight = expectedEditorSidHeight;
+constexpr int expectedEditorMaximumHeight = expectedEditorSpc700Height;
 
 bool expect(bool condition, const char* message)
 {
@@ -167,6 +168,8 @@ int expectedHeightForChipMode(int chipMode)
         return expectedEditorPcSpeakerHeight;
     if (mode == chipper::ChipMode::zxSpectrumBeeper)
         return expectedEditorZxSpectrumBeeperHeight;
+    if (mode == chipper::ChipMode::spc700)
+        return expectedEditorSpc700Height;
 
     return expectedEditorHeight;
 }
@@ -1391,6 +1394,224 @@ bool checkSamplerBankLayout(chipper::ChipMode mode)
         ok = false;
     }
 
+    return ok;
+}
+
+bool checkSpc700UnifiedSamplerLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::spc700);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: SPC700 chip mode choice unavailable\n";
+        return false;
+    }
+
+    auto checkAtWidth = [&](int editorWidth)
+    {
+        ChipperAudioProcessor processor;
+        auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(editorWidth, expectedHeightForChipMode(chipChoice));
+        editor.runEditorUpdateForLayoutTest();
+
+        const auto voicesModule = editor.getModuleBoundsForLayoutTest(1);
+        const auto generatedModule = editor.getModuleBoundsForLayoutTest(2);
+        const auto shapingModule = editor.getModuleBoundsForLayoutTest(3);
+        const auto sampleBank = editor.getSampleBankBoundsForLayoutTest();
+        const auto performance = editor.getPerformanceBoundsForLayoutTest();
+
+        widthOk &= expect(editor.getHeight() == expectedEditorSpc700Height,
+                          "SPC700 editor lost the height required for its complete sample-voice path");
+        widthOk &= expect(! voicesModule.isEmpty()
+                              && ! generatedModule.isEmpty()
+                              && ! shapingModule.isEmpty()
+                              && ! sampleBank.isEmpty()
+                              && ! performance.isEmpty(),
+                          "SPC700 unified voice, source, shaping, bank, and output regions must remain visible");
+        widthOk &= expect(editor.getModuleBoundsForLayoutTest(0).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(4).isEmpty(),
+                          "SPC700 must not restore detached profile or motion destinations");
+
+        const auto generatedShape = editor.getWaveShapeBoundsForLayoutTest();
+        const auto noiseSource = editor.getSnNoiseModeBoundsForLayoutTest();
+        if (! editor.isWaveShapeSegmentVisibleForLayoutTest()
+            || ! editor.isSnNoiseModeSegmentVisibleForLayoutTest()
+            || generatedShape.isEmpty()
+            || noiseSource.isEmpty()
+            || ! generatedModule.expanded(2).contains(generatedShape)
+            || ! generatedModule.expanded(2).contains(noiseSource)
+            || generatedShape.intersects(noiseSource)
+            || generatedShape.getWidth() < 220
+            || noiseSource.getWidth() < 220
+            || generatedShape.getHeight() < 24
+            || noiseSource.getHeight() < 24)
+        {
+            std::cerr << "editor_size_smoke: SPC700 generated shape and NON noise source must be visible, separate, and owned by Generated Source at width "
+                      << editorWidth << ": shape " << generatedShape.toString()
+                      << " noise " << noiseSource.toString()
+                      << " module " << generatedModule.toString() << '\n';
+            widthOk = false;
+        }
+
+        const std::array<std::pair<juce::Rectangle<int>, const char*>, 3> shapingControls {{
+            { editor.getYmEnvelopeShapeBoundsForLayoutTest(), "Envelope Shape" },
+            { editor.getNativeSliderBoundsForLayoutTest(1), "Pitch / PMON" },
+            { editor.getEnvelopeDecayBoundsForLayoutTest(), "ADSR / Gain Speed" }
+        }};
+        widthOk &= expect(editor.isYmEnvelopeShapeSegmentVisibleForLayoutTest(),
+                          "SPC700 Envelope Shape choices must remain visible");
+        for (size_t control = 0; control < shapingControls.size(); ++control)
+        {
+            const auto& [bounds, name] = shapingControls[control];
+            if (bounds.isEmpty()
+                || ! shapingModule.expanded(2).contains(bounds)
+                || bounds.getWidth() < (control == 0u ? 220 : 88)
+                || bounds.getHeight() < 18)
+            {
+                std::cerr << "editor_size_smoke: SPC700 " << name
+                          << " is missing or escaped Voice Shaping at width " << editorWidth
+                          << ": control " << bounds.toString()
+                          << " module " << shapingModule.toString() << '\n';
+                widthOk = false;
+            }
+            for (size_t other = control + 1u; other < shapingControls.size(); ++other)
+            {
+                if (bounds.intersects(shapingControls[other].first))
+                {
+                    std::cerr << "editor_size_smoke: SPC700 shaping controls overlap at width "
+                              << editorWidth << ": " << name << ' ' << bounds.toString()
+                              << " and " << shapingControls[other].second << ' '
+                              << shapingControls[other].first.toString() << '\n';
+                    widthOk = false;
+                }
+            }
+        }
+
+        std::array<juce::Rectangle<int>, 8> voices {};
+        for (size_t voice = 0; voice < voices.size(); ++voice)
+        {
+            voices[voice] = editor.getSourceChannelBoundsForLayoutTest(voice);
+            const auto sampleSelector = editor.getSourceWaveSelectorBoundsForLayoutTest(voice);
+            const auto level = editor.getSourceLevelBoundsForLayoutTest(voice);
+            if (voices[voice].isEmpty()
+                || ! voicesModule.expanded(2).contains(voices[voice])
+                || sampleSelector.isEmpty()
+                || ! voices[voice].expanded(2).contains(sampleSelector)
+                || sampleSelector.getHeight() < 28
+                || sampleSelector.getWidth() < 180
+                || level.isEmpty()
+                || ! voices[voice].expanded(2).contains(level)
+                || level.getWidth() < 180
+                || level.getHeight() < 10)
+            {
+                std::cerr << "editor_size_smoke: SPC700 voice " << (voice + 1u)
+                          << " lost its source-owned sample pin or level at width " << editorWidth
+                          << ": voice " << voices[voice].toString()
+                          << " sample " << sampleSelector.toString()
+                          << " level " << level.toString() << '\n';
+                widthOk = false;
+            }
+        }
+        widthOk &= expect(voices[0].getY() == voices[1].getY()
+                              && voices[0].getY() == voices[2].getY()
+                              && voices[0].getY() == voices[3].getY()
+                              && voices[4].getY() == voices[5].getY()
+                              && voices[4].getY() == voices[6].getY()
+                              && voices[4].getY() == voices[7].getY()
+                              && voices[4].getY() > voices[0].getBottom(),
+                          "SPC700 voices must remain a contained four-by-two voice matrix");
+        widthOk &= expect(voices[4].getBottom() <= voicesModule.getBottom()
+                              && voicesModule.getBottom() <= sampleBank.getY(),
+                          "SPC700 second voice row must not overrun the sample bank");
+
+        const std::array<std::pair<juce::Rectangle<int>, const char*>, 7> bankControls {{
+            { editor.getSampleFileButtonBoundsForLayoutTest(), "File" },
+            { editor.getSampleFolderButtonBoundsForLayoutTest(), "Folder" },
+            { editor.getSampleBankButtonBoundsForLayoutTest(), "Bank" },
+            { editor.getSamplePlaybackModeBoundsForLayoutTest(), "Playback" },
+            { editor.getSampleSlotBoundsForLayoutTest(), "Manual Slot" },
+            { editor.getSampleRootBoundsForLayoutTest(), "Map Root" },
+            { editor.getSampleLoopToggleBoundsForLayoutTest(), "Loop While Held" }
+        }};
+        for (const auto& [bounds, name] : bankControls)
+        {
+            if (bounds.isEmpty()
+                || ! sampleBank.expanded(2).contains(bounds)
+                || bounds.getHeight() < 24
+                || bounds.getWidth() < 64)
+            {
+                std::cerr << "editor_size_smoke: SPC700 sample-bank control " << name
+                          << " is missing, cramped, or not bank-owned at width " << editorWidth
+                          << ": control " << bounds.toString()
+                          << " bank " << sampleBank.toString() << '\n';
+                widthOk = false;
+            }
+        }
+
+        const auto waveform = editor.getSampleWaveformBoundsForLayoutTest();
+        const auto loopStart = editor.getSampleLoopStartBoundsForLayoutTest();
+        const auto loopEnd = editor.getSampleLoopEndBoundsForLayoutTest();
+        if (waveform.isEmpty()
+            || loopStart.isEmpty()
+            || loopEnd.isEmpty()
+            || ! sampleBank.expanded(2).contains(waveform)
+            || ! sampleBank.expanded(2).contains(loopStart)
+            || ! sampleBank.expanded(2).contains(loopEnd)
+            || waveform.getWidth() < 560
+            || waveform.getHeight() < 108
+            || loopStart.getWidth() < 240
+            || loopEnd.getWidth() < 240
+            || loopStart.getY() <= waveform.getBottom()
+            || loopEnd.getY() <= waveform.getBottom()
+            || loopStart.intersects(loopEnd))
+        {
+            std::cerr << "editor_size_smoke: SPC700 waveform and loop range must remain readable and bank-owned at width "
+                      << editorWidth << ": waveform " << waveform.toString()
+                      << " start " << loopStart.toString()
+                      << " end " << loopEnd.toString()
+                      << " bank " << sampleBank.toString() << '\n';
+            widthOk = false;
+        }
+
+        const std::array<std::pair<juce::Rectangle<int>, const char*>, 5> performanceControls {{
+            { editor.getNativeSliderBoundsForLayoutTest(0), "Voice Spread" },
+            { editor.getNativeSliderBoundsForLayoutTest(2), "Echo Color" },
+            { editor.getNativeSliderBoundsForLayoutTest(3), "Voice Volume" },
+            { editor.getStereoSpreadBoundsForLayoutTest(), "Stereo Spread" },
+            { editor.getOutputSliderBoundsForLayoutTest(), "Output" }
+        }};
+        for (size_t control = 0; control < performanceControls.size(); ++control)
+        {
+            const auto& [bounds, name] = performanceControls[control];
+            if (bounds.isEmpty()
+                || ! performance.expanded(2).contains(bounds)
+                || bounds.getWidth() < 88
+                || bounds.getHeight() < 18)
+            {
+                std::cerr << "editor_size_smoke: SPC700 shared " << name
+                          << " escaped Voice Mix + Echo + Output at width " << editorWidth
+                          << ": control " << bounds.toString()
+                          << " performance " << performance.toString() << '\n';
+                widthOk = false;
+            }
+            for (size_t other = control + 1u; other < performanceControls.size(); ++other)
+            {
+                if (bounds.intersects(performanceControls[other].first))
+                {
+                    std::cerr << "editor_size_smoke: SPC700 performance controls overlap at width "
+                              << editorWidth << ": " << name << ' ' << bounds.toString()
+                              << " and " << performanceControls[other].second << ' '
+                              << performanceControls[other].first.toString() << '\n';
+                    widthOk = false;
+                }
+            }
+        }
+
+        return widthOk;
+    };
+
+    auto ok = checkAtWidth(1240);
+    ok &= checkAtWidth(expectedEditorMinimumWidth);
     return ok;
 }
 
@@ -2968,6 +3189,7 @@ int main()
     ok &= checkSamplerSourceDeck(chipper::ChipMode::paula);
     ok &= checkSamplerBankLayout(chipper::ChipMode::spc700);
     ok &= checkSamplerBankLayout(chipper::ChipMode::paula);
+    ok &= checkSpc700UnifiedSamplerLayout();
     ok &= checkNesDmcAndPerformanceLayout();
     ok &= checkPerformanceMacroSliderLayout();
     ok &= checkSaa1099GroupedLayout();

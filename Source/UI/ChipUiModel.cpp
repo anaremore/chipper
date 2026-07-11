@@ -181,7 +181,7 @@ ChipUiProfile profileFor(ChipMode mode)
                                        : (nes ? 436
                                               : (dmg || sn76489 || ym2149 ? 410
                                                      : (oneBitHardwarePath ? 410
-                                                        : (spc700 ? 548
+                                                        : (spc700 ? 588
                                                         : (paula ? 580
                                                                  : (fourOp ? 564
                                                                            : (huc6280 ? 478

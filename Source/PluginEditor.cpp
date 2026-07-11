@@ -26,10 +26,11 @@ constexpr int editorYm2149Height = 720;
 constexpr int editorSaa1099Height = 780;
 constexpr int editorPcSpeakerHeight = 720;
 constexpr int editorZxSpectrumBeeperHeight = 720;
+constexpr int editorSpc700Height = 900;
 constexpr int editorSidHeight = 880;
 constexpr int editorMinWidth = 1180;
 constexpr int editorMaxWidth = 1800;
-constexpr int editorMaxHeight = editorSidHeight;
+constexpr int editorMaxHeight = editorSpc700Height;
 
 static_assert(editorDefaultHeight <= editorMaxHeight);
 static_assert(editorMaxHeight <= 900, "Keep the Chipper editor DAW-friendly by default.");
@@ -50,6 +51,8 @@ int preferredEditorHeightForMode(chipper::ChipMode mode)
         return editorPcSpeakerHeight;
     if (mode == chipper::ChipMode::zxSpectrumBeeper)
         return editorZxSpectrumBeeperHeight;
+    if (mode == chipper::ChipMode::spc700)
+        return editorSpc700Height;
 
     return editorDefaultHeight;
 }
@@ -2827,7 +2830,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addAndMakeVisible(dmcLoopButton);
     dmcLoopAttachment = std::make_unique<ButtonAttachment>(state, chipper::parameters::id::nesDmcLoop, dmcLoopButton);
 
-    spc700LoopModeButton.setButtonText("Loop Sample");
+    spc700LoopModeButton.setButtonText("Loop While Held");
     spc700LoopModeButton.setTooltip(withMidiCcForRole("SPC700 sample lifetime helper. Checked writes Loop While Held; unchecked writes One Shot. Preset recipes still resolve to the shown effective state until you click the toggle.", chipper::ChipParameterRole::dmgStereoRoute));
     spc700LoopModeButton.onClick = [this]()
     {
@@ -4302,26 +4305,11 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (spc700Layout)
     {
-        constexpr auto minimumTopRowHeight = 92;
-        constexpr auto targetSourceRowHeight = 228;
-        constexpr auto minimumSampleRowHeight = 188;
         const auto availableHeight = modules.getHeight();
-        auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.22)),
-                                       minimumTopRowHeight,
-                                       108);
-        auto remainingHeight = std::max(0, availableHeight - topRowHeight - (gap * 2));
-        auto sourceRowHeight = std::min(targetSourceRowHeight, std::max(0, remainingHeight - minimumSampleRowHeight));
-        auto sampleRowHeight = std::max(0, remainingHeight - sourceRowHeight);
-        if (sourceRowHeight < 212 && remainingHeight > 212)
-        {
-            sourceRowHeight = std::min(212, remainingHeight);
-            sampleRowHeight = std::max(0, remainingHeight - sourceRowHeight);
-        }
-        if (sampleRowHeight < minimumSampleRowHeight && remainingHeight > minimumSampleRowHeight)
-        {
-            sampleRowHeight = std::min(minimumSampleRowHeight, remainingHeight);
-            sourceRowHeight = std::max(0, remainingHeight - sampleRowHeight);
-        }
+        const auto topRowHeight = std::min(114, availableHeight);
+        const auto remainingHeight = std::max(0, availableHeight - topRowHeight - (gap * 2));
+        const auto sourceRowHeight = std::clamp(remainingHeight - 200, 238, 254);
+        const auto sampleRowHeight = std::max(0, remainingHeight - sourceRowHeight);
         const auto topColumnWidth = (modules.getWidth() - gap) / 2;
         const auto topY = modules.getY();
         const auto sourceY = topY + topRowHeight + gap;
@@ -4567,6 +4555,13 @@ void ChipperAudioProcessorEditor::resized()
         moduleSummaryLabels[1].setBounds({});
     if (sampleLayout)
         moduleSummaryLabels[3].setBounds({});
+    if (spc700Layout)
+    {
+        moduleSummaryLabels[2].setBounds({});
+        for (const auto moduleIndex : { 2u, 3u })
+            for (auto& itemLabel : moduleItemLabels[moduleIndex])
+                itemLabel.setBounds({});
+    }
     if (pokeyLayout)
     {
         moduleSummaryLabels[2].setBounds({});
@@ -4615,7 +4610,7 @@ void ChipperAudioProcessorEditor::resized()
         ? std::clamp(rawSourceCardHeight, 96, 116)
         : (usePaulaVoiceGrid
                ? std::clamp(rawSourceCardHeight, 150, 160)
-               : (useSpc700VoiceGrid ? std::clamp(rawSourceCardHeight, 104, 116) : rawSourceCardHeight)));
+               : (useSpc700VoiceGrid ? std::clamp(rawSourceCardHeight, 90, 104) : rawSourceCardHeight)));
     for (size_t i = 0; i < sourceChannelBounds.size(); ++i)
     {
         if (i >= visibleSourceCards)
@@ -4959,8 +4954,7 @@ void ChipperAudioProcessorEditor::resized()
         || displayedMode == chipper::ChipMode::ym2203
         || displayedMode == chipper::ChipMode::ym2608
         || isOpnbMode(displayedMode);
-    const auto usesSampleToneStack = (displayedMode == chipper::ChipMode::spc700
-        || displayedMode == chipper::ChipMode::paula)
+    const auto usesSampleToneStack = displayedMode == chipper::ChipMode::paula
         && usesSnNoiseModeSegment(displayedMode);
     if (displayedMode == chipper::ChipMode::ym2149)
         tonePanel.removeFromTop(std::min(ymSharedNoiseCardHeight + 8, tonePanel.getHeight()));
@@ -5045,7 +5039,16 @@ void ChipperAudioProcessorEditor::resized()
         }
     }
 
-    if (displayedMode == chipper::ChipMode::sid)
+    if (spc700Layout)
+    {
+        constexpr int sourceTypeGap = 10;
+        const auto sourceTypeWidth = (tonePanel.getWidth() - sourceTypeGap) / 2;
+        auto generatedShapePanel = tonePanel.removeFromLeft(sourceTypeWidth);
+        tonePanel.removeFromLeft(sourceTypeGap);
+        placeWaveShapeSegment(generatedShapePanel);
+        placeSnNoiseModeSegment(tonePanel);
+    }
+    else if (displayedMode == chipper::ChipMode::sid)
     {
         const auto placeFilterSlider = [](juce::Slider& slider,
                                           juce::Label& label,
@@ -5163,7 +5166,7 @@ void ChipperAudioProcessorEditor::resized()
         for (auto& button : waveShapeButtons)
             button.setBounds({});
     }
-    else if (! pokeyLayout && ! oneBitHardwarePathLayout)
+    else if (! spc700Layout && ! pokeyLayout && ! oneBitHardwarePathLayout)
         placeWaveShapeSegment(primaryTonePanel);
     if (displayedMode != chipper::ChipMode::sid && displayedMode != chipper::ChipMode::dmg)
     {
@@ -5193,6 +5196,7 @@ void ChipperAudioProcessorEditor::resized()
         && displayedMode != chipper::ChipMode::dmg
         && displayedMode != chipper::ChipMode::sn76489
         && displayedMode != chipper::ChipMode::saa1099
+        && displayedMode != chipper::ChipMode::spc700
         && displayedMode != chipper::ChipMode::paula)
     {
         auto noiseModePanel = primaryTonePanel;
@@ -5270,10 +5274,16 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (displayedMode == chipper::ChipMode::spc700)
     {
-        const auto shapeHeight = envelopeDecayPanel.getHeight() >= 52 ? 28 : 24;
-        auto shapeArea = envelopeDecayPanel.removeFromTop(std::min(shapeHeight, envelopeDecayPanel.getHeight()));
+        constexpr int shapingGap = 10;
+        const auto shapeWidth = std::max(260, envelopeDecayPanel.getWidth() / 2);
+        auto shapeArea = envelopeDecayPanel.removeFromLeft(std::min(shapeWidth, envelopeDecayPanel.getWidth()));
+        envelopeDecayPanel.removeFromLeft(std::min(shapingGap, envelopeDecayPanel.getWidth()));
+        const auto sliderWidth = std::max(0, (envelopeDecayPanel.getWidth() - shapingGap) / 2);
+        auto pitchArea = envelopeDecayPanel.removeFromLeft(std::min(sliderWidth, envelopeDecayPanel.getWidth()));
+        envelopeDecayPanel.removeFromLeft(std::min(shapingGap, envelopeDecayPanel.getWidth()));
+
         placeYmEnvelopeShapeSegment(shapeArea);
-        envelopeDecayPanel.removeFromTop(std::min(4, envelopeDecayPanel.getHeight()));
+        placeGroupedSlider(nativeSliders[1], nativeGroupLabels[1], nativeLabels[1], controlValueLabels[1], pitchArea);
         placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, envelopeDecayPanel);
         ymEnvelopePreview.setBounds({});
     }
@@ -5519,6 +5529,20 @@ void ChipperAudioProcessorEditor::resized()
         controlCells[4] = { strip.getX(), strip.getY(), controlWidth, strip.getHeight() };
         controlCells[5] = { strip.getX() + controlWidth + snControlGap, strip.getY(), controlWidth, strip.getHeight() };
     }
+    else if (spc700Layout)
+    {
+        constexpr int spcControlGap = 8;
+        constexpr std::array<size_t, 5> spcCellIndices { 0u, 1u, 2u, 3u, 5u };
+        const auto spcControlWidth = (strip.getWidth() - (spcControlGap * 4)) / 5;
+        controlCells.fill({});
+        for (size_t column = 0; column < spcCellIndices.size(); ++column)
+            controlCells[spcCellIndices[column]] = {
+                strip.getX() + (static_cast<int>(column) * (spcControlWidth + spcControlGap)),
+                strip.getY(),
+                spcControlWidth,
+                strip.getHeight()
+            };
+    }
     else if (sampleLayout)
     {
         constexpr int sampleControlGap = 10;
@@ -5569,6 +5593,13 @@ void ChipperAudioProcessorEditor::resized()
     {
         // Tone Stack and Pitch Motion are spatially owned by the three tone
         // cards above; the global strip contains only clock and output.
+    }
+    else if (spc700Layout)
+    {
+        placeGroupedSlider(nativeSliders[0], nativeGroupLabels[0], nativeLabels[0], controlValueLabels[0], controlCells[0]);
+        placeGroupedSlider(nativeSliders[2], nativeGroupLabels[2], nativeLabels[2], controlValueLabels[2], controlCells[1]);
+        placeGroupedSlider(nativeSliders[3], nativeGroupLabels[3], nativeLabels[3], controlValueLabels[3], controlCells[2]);
+        placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, controlCells[3]);
     }
     else if (sampleLayout)
     {
@@ -5762,7 +5793,11 @@ void ChipperAudioProcessorEditor::resized()
         constexpr int standardSampleControlHeight = 30;
         constexpr int compactSampleControlHeight = 28;
         const auto compactSampleBank = controlColumn.getHeight() < 190;
-        if (compactSampleBank)
+        if (displayedMode == chipper::ChipMode::spc700)
+        {
+            // Pitch / PMON is owned by the Voice Shaping module.
+        }
+        else if (compactSampleBank)
         {
             nativeGroupLabels[1].setBounds({});
             nativeLabels[1].setBounds({});
@@ -5845,7 +5880,7 @@ void ChipperAudioProcessorEditor::resized()
         }
 
         auto loopColumn = controlColumn;
-        if (displayedMode == chipper::ChipMode::spc700 && ! compactSampleBank)
+        if (displayedMode == chipper::ChipMode::spc700 && ! compactSampleBank && ! twoColumnSampleBank)
         {
             auto placeLoopRow = [](juce::Label& label,
                                    juce::Label& valueLabel,
@@ -5865,7 +5900,7 @@ void ChipperAudioProcessorEditor::resized()
             loopColumn.removeFromTop(6);
             controlColumn = loopColumn;
         }
-        else
+        else if (! (displayedMode == chipper::ChipMode::spc700 && twoColumnSampleBank))
         {
             sampleLoopStartLabel.setBounds({});
             sampleLoopEndLabel.setBounds({});
@@ -5893,6 +5928,29 @@ void ChipperAudioProcessorEditor::resized()
         }
 
         auto waveformBounds = (twoColumnSampleBank ? waveformColumn : loopColumn).reduced(0, 1);
+        if (displayedMode == chipper::ChipMode::spc700 && twoColumnSampleBank)
+        {
+            auto loopControls = waveformBounds.removeFromBottom(std::min(38, waveformBounds.getHeight()));
+            waveformBounds.removeFromBottom(std::min(4, waveformBounds.getHeight()));
+            constexpr int loopControlGap = 10;
+            const auto loopControlWidth = (loopControls.getWidth() - loopControlGap) / 2;
+
+            auto placeLoopControl = [](juce::Label& label,
+                                       juce::Label& valueLabel,
+                                       juce::Slider& slider,
+                                       juce::Rectangle<int> bounds)
+            {
+                auto header = bounds.removeFromTop(std::min(14, bounds.getHeight()));
+                valueLabel.setBounds(header.removeFromRight(std::min(54, header.getWidth())));
+                label.setBounds(header);
+                slider.setBounds(bounds.reduced(0, 2));
+            };
+
+            auto loopStart = loopControls.removeFromLeft(loopControlWidth);
+            loopControls.removeFromLeft(loopControlGap);
+            placeLoopControl(sampleLoopStartLabel, sampleLoopStartValueLabel, sampleLoopStartSlider, loopStart);
+            placeLoopControl(sampleLoopEndLabel, sampleLoopEndValueLabel, sampleLoopEndSlider, loopControls);
+        }
         if (displayedMode == chipper::ChipMode::paula && twoColumnSampleBank)
         {
             const auto previewHeight = std::min(waveformBounds.getHeight(), 178);
@@ -11819,6 +11877,7 @@ void ChipperAudioProcessorEditor::setPulse2DutySegmentVisible(chipper::ChipMode 
 void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode mode, bool shouldBeVisible)
 {
     const auto usesPerLaneWaves = usesChannelLocalWaveDeck(mode);
+    const auto hidesGlobalWaveShape = usesPerLaneWaves && mode != chipper::ChipMode::spc700;
     setSidVoiceWaveControlsVisible(shouldBeVisible && mode == chipper::ChipMode::sid);
     const auto perLaneWaveActive = usesPerLaneWaves
         && chipper::descriptorFor(mode).implemented
@@ -11835,7 +11894,7 @@ void ChipperAudioProcessorEditor::setWaveShapeSegmentVisible(chipper::ChipMode m
         opllInstrumentBox.setVisible(false);
         return;
     }
-    if (usesPerLaneWaves)
+    if (hidesGlobalWaveShape)
     {
         for (auto& button : waveShapeButtons)
             button.setVisible(false);
@@ -12887,7 +12946,7 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
         shape = noiseActive ? ChipWaveformPreviewShape::noise : wavetablePreviewShape(patch);
         tooltip = juce::String("SPC700-style sample voice ") + juce::String(static_cast<int>(index + 1u))
             + ": generated lo-fi sample shape preview."
-            + "\nSample Shape: " + waveShapeReadout(mode, patch.waveShape)
+            + "\nGenerated Shape: " + waveShapeReadout(mode, patch.waveShape)
             + "\nPitch / PMON: " + spc700PitchMotionReadout(patch)
             + "\nPlayback: " + spc700SamplePlaybackReadout(patch)
             + "\nEnvelope: " + spc700EnvelopeReadout(patch)
@@ -13372,11 +13431,12 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
         updateSidVoiceWaveControls(shouldBeVisible);
         return;
     }
+    if (mode == chipper::ChipMode::spc700)
+        updateHucVoiceWaveControls(shouldBeVisible || usesChannelLocalWaveDeck(mode));
     if (mode == chipper::ChipMode::huc6280
         || mode == chipper::ChipMode::namcoWsg
         || mode == chipper::ChipMode::scc
-        || mode == chipper::ChipMode::paula
-        || mode == chipper::ChipMode::spc700)
+        || mode == chipper::ChipMode::paula)
     {
         for (auto& button : waveShapeButtons)
             button.setVisible(false);
@@ -13427,6 +13487,8 @@ void ChipperAudioProcessorEditor::updateWaveShapeButtons(int choice, bool should
         || mode == chipper::ChipMode::dmg;
     waveShapeLabel.setVisible(shouldBeVisible);
     waveShapeValueLabel.setVisible(shouldBeVisible && ! embeddedInSourceCard);
+    if (mode == chipper::ChipMode::spc700)
+        waveShapeLabel.setText("Generated Shape", juce::dontSendNotification);
     waveShapeValueLabel.setText(waveShapeReadout(mode, static_cast<int>(selected)), juce::dontSendNotification);
 }
 
@@ -13893,7 +13955,7 @@ void ChipperAudioProcessorEditor::updateDmgStereoRouteButtons(chipper::ChipMode 
     {
         const auto loops = chipper::spc700SampleLoopsForPatch(patch);
         spc700LoopModeButton.setToggleState(loops, juce::dontSendNotification);
-        spc700LoopModeButton.setButtonText("Loop Sample");
+        spc700LoopModeButton.setButtonText(loops ? "Loop While Held" : "One Shot");
         if (spec != nullptr)
             spc700LoopModeButton.setTooltip(withMidiCcForRole(juce::String(spec->help) + "\n" + spc700SamplePlaybackReadout(patch), spec->role));
     }
@@ -14273,7 +14335,7 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     dmcSampleSlotBox.setTooltip(withMidiCcForRole(
         sampleCount > 0
             ? "Selects the manual SPC700 sample from the loaded bank. MIDI CC117 selects the same slot; Manual playback uses it for every note."
-            : "No external SPC700 bank is loaded. Chipper is playing the generated SPC700 sample shape selected by Sample Shape.",
+            : "No external SPC700 bank is loaded. Chipper is playing the fallback selected by Generated Shape.",
         chipper::ChipParameterRole::nesDmcSampleSlot));
     dmcPlaybackModeBox.setTooltip(withMidiCcForRole("SPC700 Sample Playback. Manual Slot plays the selected dropdown slot; Note Map maps loaded folder slots upward from the Sample Map Root. Drum Map uses the same bank mapping path for one-shot/percussion presets.", chipper::ChipParameterRole::nesDmcPlaybackMode));
     dmcMapRootBox.setTooltip(withMidiCcForRole("SPC700 Sample Map Root. Loaded folder slots map upward from this MIDI note when playback is a map mode.", chipper::ChipParameterRole::nesDmcMapRoot));
@@ -14848,9 +14910,11 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
     globalStripLabel.setText(hasLiveCore ? (mode == chipper::ChipMode::pcSpeaker || mode == chipper::ChipMode::zxSpectrumBeeper
                                                 ? "Clock + Output"
-                                                : (mode == chipper::ChipMode::ym2149 || mode == chipper::ChipMode::sid || mode == chipper::ChipMode::saa1099 || mode == chipper::ChipMode::pokey
-                                                       ? "Performance + Output"
-                                                       : (mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::sn76489 ? "Global" : "Shared Performance")))
+                                                : (mode == chipper::ChipMode::spc700
+                                                       ? "Voice Mix + Echo + Output"
+                                                       : (mode == chipper::ChipMode::ym2149 || mode == chipper::ChipMode::sid || mode == chipper::ChipMode::saa1099 || mode == chipper::ChipMode::pokey
+                                                              ? "Performance + Output"
+                                                              : (mode == chipper::ChipMode::dmg || mode == chipper::ChipMode::sn76489 ? "Global" : "Shared Performance"))))
                                            : "Roadmap",
                              juce::dontSendNotification);
     macroSummaryLabel.setVisible(true);
@@ -15061,7 +15125,9 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     setSourceChannelSurfaceVisible(mode, usesSourceChannelSurface(mode));
     const auto hasChannelLocalWaveDeck = usesChannelLocalWaveDeck(mode);
     setPulse2DutySegmentVisible(mode, usesPulse2DutySegment(mode) && hasLiveCore && ! hasChannelLocalWaveDeck);
-    setWaveShapeSegmentVisible(mode, usesWaveShapeSegment(mode) && hasLiveCore && ! hasChannelLocalWaveDeck);
+    setWaveShapeSegmentVisible(mode, usesWaveShapeSegment(mode)
+                                         && hasLiveCore
+                                         && (! hasChannelLocalWaveDeck || mode == chipper::ChipMode::spc700));
     setDmgWaveLevelSegmentVisible(mode, usesDmgWaveLevelSegment(mode) && hasLiveCore);
     setDmgStereoRouteSegmentVisible(mode, usesDmgStereoRouteSegment(mode) && hasLiveCore);
     setYmEnvelopeShapeSegmentVisible(mode, usesYmEnvelopeShapeSegment(mode) && hasLiveCore);
@@ -15092,7 +15158,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         itemLabel.setVisible(! hasReferenceOnlyProfile && ! hasCustomProfileSurface && ! itemLabel.getText().isEmpty());
     const auto hasEmbeddedSourceRegisterControls = isNesFamily(mode)
         || mode == chipper::ChipMode::dmg
-        || usesChannelLocalWaveDeck(mode);
+        || (usesChannelLocalWaveDeck(mode) && mode != chipper::ChipMode::spc700);
     const auto hasCustomToneSurface = hasLiveCore && mode != chipper::ChipMode::dmg && ! hasEmbeddedSourceRegisterControls && (usesWaveShapeSegment(mode)
         || usesPulse2DutySegment(mode)
         || usesDmgWaveLevelSegment(mode)
@@ -15201,7 +15267,9 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     const auto hasChannelLocalWaveDeck = usesChannelLocalWaveDeck(mode);
     const auto hasPulseDutySegment = usesPulseDutySegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasPulse2DutySegment = usesPulse2DutySegment(mode) && chipper::descriptorFor(mode).implemented && ! hasChannelLocalWaveDeck;
-    const auto hasWaveShapeSegment = usesWaveShapeSegment(mode) && chipper::descriptorFor(mode).implemented && ! hasChannelLocalWaveDeck;
+    const auto hasWaveShapeSegment = usesWaveShapeSegment(mode)
+        && chipper::descriptorFor(mode).implemented
+        && (! hasChannelLocalWaveDeck || mode == chipper::ChipMode::spc700);
     const auto hasDmgWaveLevelSegment = usesDmgWaveLevelSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasDmgStereoRouteSegment = usesDmgStereoRouteSegment(mode) && chipper::descriptorFor(mode).implemented;
     const auto hasYmEnvelopeShapeSegment = usesYmEnvelopeShapeSegment(mode) && chipper::descriptorFor(mode).implemented;

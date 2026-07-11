@@ -233,6 +233,8 @@ public:
     }
     juce::Rectangle<int> getSnNoiseModeBoundsForLayoutTest() const { return snNoiseModeSegmentBounds; }
     juce::Rectangle<int> getWaveShapeBoundsForLayoutTest() const { return waveShapeSegmentBounds; }
+    bool isWaveShapeSegmentVisibleForLayoutTest() const { return waveShapeButtons[0].isVisible(); }
+    bool isSnNoiseModeSegmentVisibleForLayoutTest() const { return snNoiseModeButtons[0].isVisible(); }
     juce::Rectangle<int> getSnNoiseModeMenuBoundsForLayoutTest() const { return snNoiseModeBox.getBounds(); }
     juce::Rectangle<int> getSidVoiceWaveBoundsForLayoutTest(size_t voice) const
     {
@@ -252,6 +254,7 @@ public:
     {
         return ! ymEnvelopeShapeSegmentBounds.isEmpty() ? ymEnvelopeShapeSegmentBounds : sidFilterModeBox.getBounds();
     }
+    bool isYmEnvelopeShapeSegmentVisibleForLayoutTest() const { return ymEnvelopeShapeButtons[0].isVisible(); }
     juce::Rectangle<int> getYmEnvelopePreviewBoundsForLayoutTest() const { return ymEnvelopePreview.getBounds(); }
     juce::Rectangle<int> getFmOperatorNameBoundsForLayoutTest(size_t index) const
     {
@@ -308,6 +311,8 @@ public:
     juce::Rectangle<int> getDmcLoopToggleBoundsForLayoutTest() const { return dmcLoopButton.getBounds(); }
     juce::Rectangle<int> getDmcRateBoundsForLayoutTest() const { return dmcRateBox.getBounds(); }
     juce::Rectangle<int> getSampleWaveformBoundsForLayoutTest() const { return sampleWaveformPreview.getBounds(); }
+    juce::Rectangle<int> getSampleLoopStartBoundsForLayoutTest() const { return sampleLoopStartSlider.getBounds(); }
+    juce::Rectangle<int> getSampleLoopEndBoundsForLayoutTest() const { return sampleLoopEndSlider.getBounds(); }
     juce::Rectangle<int> getEnvelopeDecayBoundsForLayoutTest() const { return envelopeDecaySlider.getBounds(); }
     juce::Rectangle<int> getStereoSpreadBoundsForLayoutTest() const { return stereoSpreadSlider.getBounds(); }
     juce::Rectangle<int> getClockSliderBoundsForLayoutTest() const { return clockSlider.getBounds(); }

@@ -2983,9 +2983,9 @@ std::vector<ChipParameterSpec> spc700ParameterSpecs()
                    1.0f),
         segmentedSpec(ChipParameterRole::waveShape,
                       "spc700.sampleShape",
-                      "Sample Shape",
-                      "Sample",
-                      "Selects the generated lo-fi sample shape. Preset resolves from the active SPC700 recipe.",
+                      "Generated Shape",
+                      "Generated Source",
+                      "Selects the generated lo-fi fallback shape used when no loaded sample bank supplies the voice. Preset resolves from the active SPC700 recipe.",
                       {
                           choice("Preset", "Use the active SPC700 preset recipe sample shape.", 0.0f, 0),
                           choice("Bell", "Rounded sample with stepped lo-fi edge.", 0.25f, 1),
@@ -4144,8 +4144,8 @@ const std::vector<ChipDescriptor>& descriptors()
             {
                 makeModule("profile", "Profile", "SPC700-style clean-room sample groundwork.", { "SNES family", "32 kHz DSP-rate default", "Hybrid default", "Authentic still partial" }),
                 makeModule("sources", "Sample Voices", "All eight SPC700-style sample voices are exposed as playable lanes.", { "Voices 1-4", "Voices 5-8", "Sample lane", "Chip Poly" }),
-                makeModule("sample", "Sample / Pitch", "Generated lo-fi sample shapes plus user BRR/WAV/AIFF file and folder loading.", { "Sample file", "Sample folder bank", "Note map", "Noise source" }),
-                makeModule("envelope", "ADSR / Gain", "Playable gain and envelope shaping derived from the selected preset.", { "Attack", "Decay", "Sustain", "Release" }),
+                makeModule("sample", "Generated Source", "The generated fallback shape and partial S-DSP noise source used when voices are not pinned to loaded sample memory.", { "Generated shape", "NON-style noise", "Loaded samples override", "Shared source modes" }),
+                makeModule("envelope", "Voice Shaping", "Shared envelope contour, ADSR/GAIN speed, and partial previous-voice PMON depth for the eight sample voices.", { "Envelope shape", "ADSR / Gain speed", "Pitch / PMON", "Eight voice paths" }),
                 makeModule("motion", "Motion", "SNES-style SFX gestures mapped to sample pitch and previous-voice modulation.", { "Voice arp", "Pitch sweep", "PMON-style link", "Damage hit" }),
                 makeModule("output", "Output", "Soft sample output with echo-color helper.", { "Voice volume", "Stereo spread convenience", "Echo color", "Verified partial" })
             },
