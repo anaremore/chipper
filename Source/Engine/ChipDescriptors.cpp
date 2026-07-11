@@ -3122,14 +3122,14 @@ std::vector<ChipParameterSpec> huc6280ParameterSpecs()
                    "Sets interval spread across the PC Engine wavetable channels."),
         sliderSpec(ChipParameterRole::macroControl2,
                    "huc6280.pitchMotion",
-                   "Pitch",
-                   "Pitch",
-                   "Offsets musical pitch gestures and channel intervals."),
+                   "Pitch Motion / LFO Rate",
+                   "Motion",
+                   "Offsets preset pitch gestures and sets the partial channel 2 to channel 1 LFO rate when that relationship is active."),
         sliderSpec(ChipParameterRole::macroControl3,
                    "huc6280.noiseBias",
-                   "Noise Bias",
-                   "Noise",
-                   "Biases the simplified HuC6280 noise-control behavior for percussion presets.",
+                   "Noise Period / LFO Depth",
+                   "Noise + LFO",
+                   "Sets the simplified 5-bit noise period for channels 5 and 6 and the depth of the partial channel 2 to channel 1 LFO.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl4,
                    "huc6280.channelVolume",
@@ -3150,12 +3150,18 @@ std::vector<ChipParameterSpec> huc6280ParameterSpecs()
         sourceLevelSpec(ChipParameterRole::source4Level, "huc6280.channel4.level", "Channel 4 Level", "Modern trim after HuC6280 channel 4 volume."),
         sourceLevelSpec(ChipParameterRole::source5Level, "huc6280.channel5.level", "Channel 5 Level", "Modern trim after HuC6280 channel 5 volume."),
         sourceLevelSpec(ChipParameterRole::source6Level, "huc6280.channel6.level", "Channel 6 Level", "Modern trim after HuC6280 channel 6 volume."),
-        stereoSpreadSpec("huc6280.stereoSpread", "Modern stereo convenience that spreads audible HuC6280 channels; zero preserves centered output."),
-        envelopeSpec("huc6280.decay", "Shared Amp Env", "Applies one shared Chipper volume-gate helper over HuC6280 channel volume; native per-channel 5-bit volume state remains visible in the voice cards and debug output."),
+        sliderSpec(ChipParameterRole::stereoSpread,
+                   "huc6280.stereoSpread",
+                   "Modern Width",
+                   "Output",
+                   "Modern convenience that spreads the six audible lanes across the stereo field. Zero is centered mono; this is not the HuC6280 balance-register path.",
+                   ParameterKind::continuous,
+                   0.0f),
+        envelopeSpec("huc6280.decay", "Chipper Gate", "Applies one shared Chipper volume-gate helper over HuC6280 channel volume; this is not a native per-channel envelope."),
         segmentedSpec(ChipParameterRole::dmgStereoRoute,
                       "huc6280.lfoPair",
-                      "Ch 1/2 LFO",
-                      "Motion",
+                      "Ch 2 -> Ch 1 Pitch LFO",
+                      "Voice Relationship",
                       "Selects Chipper's partial HuC6280 channel-pair pitch modulation path. The source concept follows the PC Engine PSG channel 1/2 FM-LFO pairing, but exact native LFO timing is not yet verified.",
                       {
                           choice("Preset", "Use the selected HuC6280 preset recipe to decide whether the channel-pair LFO is active.", 0.0f, 0),
@@ -3165,12 +3171,12 @@ std::vector<ChipParameterSpec> huc6280ParameterSpecs()
                           choice("Fast", "Use channel 2 as a muted faster wavetable LFO for sharp arcade chirps.", 1.0f, 4)
                       },
                       ParameterKind::chipRegister),
-        wavetableWaveSpec(ChipParameterRole::waveShape, "huc6280.channel1.waveShape", "Ch 1 Wave", "HuC6280", "32-sample 5-bit", {}, "Square", "Noise"),
-        wavetableWaveSpec(ChipParameterRole::sidVoice2WaveShape, "huc6280.channel2.waveShape", "Ch 2 Wave", "HuC6280", "32-sample 5-bit", {}, "Square", "Noise"),
-        wavetableWaveSpec(ChipParameterRole::sidVoice3WaveShape, "huc6280.channel3.waveShape", "Ch 3 Wave", "HuC6280", "32-sample 5-bit", {}, "Square", "Noise"),
-        wavetableWaveSpec(ChipParameterRole::pulse2Duty, "huc6280.channel4.waveShape", "Ch 4 Wave", "HuC6280", "32-sample 5-bit", {}, "Square", "Noise"),
-        wavetableWaveSpec(ChipParameterRole::dmgWaveLevel, "huc6280.channel5.waveShape", "Ch 5 Wave", "HuC6280", "32-sample 5-bit", {}, "Square", "Noise"),
-        wavetableWaveSpec(ChipParameterRole::snNoiseMode, "huc6280.channel6.waveShape", "Ch 6 Wave", "HuC6280", "32-sample 5-bit", {}, "Square", "Noise")
+        wavetableWaveSpec(ChipParameterRole::waveShape, "huc6280.channel1.waveShape", "Ch 1 Wave", "HuC6280", "32-sample 5-bit", "Choice 4 is a generated grain waveform here; hardware noise is available only on channels 5 and 6.", "Square", "Grain"),
+        wavetableWaveSpec(ChipParameterRole::sidVoice2WaveShape, "huc6280.channel2.waveShape", "Ch 2 Wave", "HuC6280", "32-sample 5-bit", "Choice 4 is a generated grain waveform here; when the LFO is active this wave becomes the muted modulation source for channel 1.", "Square", "Grain"),
+        wavetableWaveSpec(ChipParameterRole::sidVoice3WaveShape, "huc6280.channel3.waveShape", "Ch 3 Wave", "HuC6280", "32-sample 5-bit", "Choice 4 is a generated grain waveform here; hardware noise is available only on channels 5 and 6.", "Square", "Grain"),
+        wavetableWaveSpec(ChipParameterRole::pulse2Duty, "huc6280.channel4.waveShape", "Ch 4 Wave", "HuC6280", "32-sample 5-bit", "Choice 4 is a generated grain waveform here; hardware noise is available only on channels 5 and 6.", "Square", "Grain"),
+        wavetableWaveSpec(ChipParameterRole::dmgWaveLevel, "huc6280.channel5.waveShape", "Ch 5 Wave / Noise", "HuC6280", "32-sample 5-bit", "Noise selects the implemented HuC6280-style hardware noise path for this upper channel.", "Square", "Noise"),
+        wavetableWaveSpec(ChipParameterRole::snNoiseMode, "huc6280.channel6.waveShape", "Ch 6 Wave / Noise", "HuC6280", "32-sample 5-bit", "Noise selects the implemented HuC6280-style hardware noise path for this upper channel.", "Square", "Noise")
     };
 }
 
@@ -4257,11 +4263,11 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             {
                 makeModule("profile", "Profile", "HuC6280 clean-room groundwork.", { "PC Engine family", "3.58 MHz default", "Hybrid default", "Authentic still partial" }),
-                makeModule("sources", "Wavetable Voices", "Six direct HuC6280 channels.", { "Ch 1-3 wave", "Ch 4 wave/noise", "Ch 5-6 wave/noise", "6-note Chip Poly" }),
+                makeModule("sources", "Wave RAM + Noise Voices", "Six direct HuC6280 channels with the channel 2 to channel 1 LFO relationship kept beside them.", { "Ch 1 LFO target", "Ch 2 voice/LFO source", "Ch 3-4 wave RAM", "Ch 5-6 wave/noise" }),
                 makeModule("tone", "Wave / Noise", "32-sample wave RAM plus simplified noise.", { "Sine-like", "Ramp", "Triangle", "Square / noise" }),
-                makeModule("envelope", "Shared Amp Env", "Shared musical helper over HuC6280 channel volume; not native ADSR.", { "5-bit volume", "Per-channel trims", "Gate helper", "Register readout" }),
-                makeModule("motion", "Motion", "PC Engine SFX gestures mapped to frequency registers.", { "Coin ping", "Sweep zap", "Six-wave arp", "Noise tap" }),
-                makeModule("output", "Output", "Compact console wavetable output groundwork.", { "Output gain", "Stereo spread convenience", "Ch 1/2 LFO helper", "Verified partial" })
+                makeModule("envelope", "Chipper Gate", "Shared musical helper over HuC6280 channel volume; not a native envelope.", { "5-bit volume", "Per-channel trims", "Shared gate", "Register readout" }),
+                makeModule("motion", "Voice Relationship", "Channel 2 can become a muted wavetable LFO source for channel 1.", { "Off = independent", "Light", "Deep", "Fast" }),
+                makeModule("output", "Output", "Modern output conveniences kept distinct from unimplemented native balance registers.", { "Output gain", "Modern width", "Centered at zero", "Verified partial" })
             },
             huc6280Macros(),
             true,
@@ -4275,7 +4281,7 @@ const std::vector<ChipDescriptor>& descriptors()
                 },
                 {
                     "Native LFO behavior, exact DDA behavior, stereo register routing, timer edge timing, and exact noise taps are not implemented.",
-                    "The six-lane HuC6280 UI is still a compact generic source-card layout rather than a dedicated wave-RAM editor with channel-pair LFO controls.",
+                    "Direct 32-sample wave-RAM drawing/import and per-channel native balance register editing are not implemented.",
                     "Output DAC, analog path, and hardware or trusted-emulator comparison are not complete."
                 })
         },
@@ -6582,6 +6588,15 @@ bool huc6280ChannelUsesNoiseForPatch(const PatchConfig& patch, size_t channel)
     return usesNoiseTemplate && channel >= 4u;
 }
 
+uint8_t huc6280NoiseControlForPatch(const PatchConfig& patch, size_t channel)
+{
+    if (! huc6280ChannelUsesNoiseForPatch(patch, channel))
+        return 0u;
+
+    const auto period = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control3) * 31.0f)), 0, 31));
+    return static_cast<uint8_t>(0x80u | period);
+}
+
 uint8_t huc6280LfoModeForPatch(const PatchConfig& patch)
 {
     const auto explicitChoice = std::clamp(patch.dmgStereoRoute, 0, 4);
@@ -6608,6 +6623,29 @@ uint8_t huc6280LfoModeForPatch(const PatchConfig& patch)
     }
 
     return 1;
+}
+
+double huc6280LfoDepthSemitonesForPatch(const PatchConfig& patch)
+{
+    switch (huc6280LfoModeForPatch(patch))
+    {
+        case 2: return 0.25 + static_cast<double>(clampControl(patch.control3)) * 0.75;
+        case 3: return 1.25 + static_cast<double>(clampControl(patch.control3)) * 2.75;
+        case 4: return 0.75 + static_cast<double>(clampControl(patch.control3)) * 1.50;
+        default: return 0.0;
+    }
+}
+
+double huc6280LfoRateHzForPatch(const PatchConfig& patch)
+{
+    const auto motion = static_cast<double>(clampControl(patch.control2));
+    switch (huc6280LfoModeForPatch(patch))
+    {
+        case 2: return 2.0 + motion * 5.0;
+        case 3: return 4.0 + motion * 9.0;
+        case 4: return 9.0 + motion * 18.0;
+        default: return 0.0;
+    }
 }
 
 uint8_t sccVolumeForPatch(const PatchConfig& patch, size_t channel)

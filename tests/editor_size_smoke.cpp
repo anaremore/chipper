@@ -1402,6 +1402,123 @@ bool checkSamplerBankLayout(chipper::ChipMode mode)
     return ok;
 }
 
+bool checkHuc6280UnifiedLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::huc6280);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: HuC6280 chip mode choice unavailable\n";
+        return false;
+    }
+
+    auto ok = true;
+    for (const auto width : { 1240, expectedEditorMinimumWidth })
+    {
+        ChipperAudioProcessor processor;
+        auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(width, expectedHeightForChipMode(chipChoice));
+        editor.runEditorUpdateForLayoutTest();
+
+        const auto sourceDeck = editor.getModuleBoundsForLayoutTest(1);
+        const auto performance = editor.getPerformanceBoundsForLayoutTest();
+        widthOk &= expect(! sourceDeck.isEmpty() && sourceDeck.getHeight() >= 440,
+                          "HuC6280 unified voice deck should reserve space for six voices and their LFO relationship");
+        widthOk &= expect(performance.getHeight() >= 180,
+                          "HuC6280 shared performance/output strip should expose two readable rows");
+        for (const auto retiredModule : { 0u, 2u, 3u, 4u, 5u })
+            widthOk &= expect(editor.getModuleBoundsForLayoutTest(retiredModule).isEmpty(),
+                              "HuC6280 should not retain detached generic modules outside the unified voice deck");
+
+        const auto lfoBounds = editor.getDmgStereoRouteBoundsForLayoutTest();
+        widthOk &= expect(! lfoBounds.isEmpty()
+                              && lfoBounds.getHeight() >= 24
+                              && sourceDeck.expanded(2).contains(lfoBounds),
+                          "HuC6280 Ch 2 to Ch 1 LFO must live with the voice cards");
+        widthOk &= expect(editor.isDmgStereoRouteSegmentVisibleForLayoutTest()
+                              && editor.getDmgStereoRouteLabelTextForLayoutTest() == "Ch 2 -> Ch 1 Pitch LFO",
+                          "HuC6280 LFO relationship should use chip-specific wording");
+        widthOk &= expect(editor.getDmgStereoRouteValueTextForLayoutTest().contains("independent voices")
+                              && ! editor.getDmgStereoRouteValueTextForLayoutTest().contains("NR51"),
+                          "HuC6280 LFO readout should describe the voice relationship rather than DMG routing");
+
+        widthOk &= expect(editor.getSourceWaveSelectorItemTextForLayoutTest(0, 4) == "Grain",
+                          "HuC6280 channels 1-4 should name choice 4 as a generated grain wave");
+        widthOk &= expect(editor.getSourceWaveSelectorItemTextForLayoutTest(4, 4) == "Noise",
+                          "HuC6280 channels 5-6 should expose the hardware-noise choice");
+
+        std::array<juce::Rectangle<int>, 6> cards {};
+        for (size_t channel = 0; channel < cards.size(); ++channel)
+        {
+            cards[channel] = editor.getSourceChannelBoundsForLayoutTest(channel);
+            const auto wave = editor.getSourceWaveSelectorBoundsForLayoutTest(channel);
+            const auto level = editor.getSourceLevelBoundsForLayoutTest(channel);
+            const auto header = editor.getSourceChannelButtonTextForLayoutTest(channel);
+
+            widthOk &= expect(cards[channel].getHeight() >= 136 && cards[channel].getHeight() <= 144,
+                              "HuC6280 source cards should use the dedicated readable height");
+            widthOk &= expect(! wave.isEmpty() && wave.getHeight() >= 28 && cards[channel].expanded(2).contains(wave),
+                              "HuC6280 wave selector should be owned by its voice card");
+            widthOk &= expect(! level.isEmpty() && level.getHeight() >= 16 && cards[channel].expanded(2).contains(level),
+                              "HuC6280 level trim should be owned by its voice card");
+            widthOk &= expect(header.startsWith("Ch " + juce::String(static_cast<int>(channel + 1u)) + " |"),
+                              "HuC6280 voice header should name its channel and role");
+        }
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(1).contains("LFO source"),
+                          "HuC6280 channel 2 should advertise its LFO-source role even while independent");
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(4).contains("Wave RAM + noise")
+                              && editor.getSourceChannelButtonTextForLayoutTest(5).contains("Wave RAM + noise"),
+                          "HuC6280 upper channels should advertise their wave/noise architecture");
+        for (size_t left = 0; left < cards.size(); ++left)
+            for (size_t right = left + 1u; right < cards.size(); ++right)
+                widthOk &= expect(! cards[left].intersects(cards[right]),
+                                  "HuC6280 voice cards should not overlap");
+
+        const std::array<juce::Rectangle<int>, 7> sharedControls {
+            editor.getNativeSliderBoundsForLayoutTest(0),
+            editor.getNativeSliderBoundsForLayoutTest(1),
+            editor.getNativeSliderBoundsForLayoutTest(2),
+            editor.getNativeSliderBoundsForLayoutTest(3),
+            editor.getEnvelopeDecayBoundsForLayoutTest(),
+            editor.getStereoSpreadBoundsForLayoutTest(),
+            editor.getOutputSliderBoundsForLayoutTest()
+        };
+        for (const auto& control : sharedControls)
+            widthOk &= expect(! control.isEmpty()
+                                  && control.getHeight() >= 16
+                                  && performance.expanded(2).contains(control),
+                              "HuC6280 shared controls should remain readable and owned by the shared strip");
+        widthOk &= expect(editor.getStereoSpreadValueTextForLayoutTest().containsIgnoreCase("modern width off"),
+                          "HuC6280 zero-width readout should identify the modern centered-mono convenience");
+
+        widthOk &= setPlainParameter(processor, chipper::parameters::id::stereoSpread, 1.0f);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.getStereoSpreadValueTextForLayoutTest().containsIgnoreCase("modern six-lane")
+                              && editor.getStereoSpreadValueTextForLayoutTest().containsIgnoreCase("native balance not modeled"),
+                          "HuC6280 full-width readout should not pretend to expose native balance registers");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::dmgStereoRoute, 3);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(0).contains("LFO target")
+                              && editor.getSourceChannelButtonTextForLayoutTest(1).contains("LFO source - muted"),
+                          "HuC6280 active LFO should expose channel 1 target and channel 2 muted-source roles");
+        widthOk &= expect(editor.getDmgStereoRouteValueTextForLayoutTest().contains("Deep")
+                              && editor.getDmgStereoRouteValueTextForLayoutTest().contains("Ch 2 wave -> Ch 1 pitch")
+                              && editor.getDmgStereoRouteValueTextForLayoutTest().contains("Ch 2 muted"),
+                          "HuC6280 active LFO readout should explain its rate/depth relationship and voice cost");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::playMode, 1);
+        editor.runEditorUpdateForLayoutTest();
+        for (size_t channel = 0; channel < cards.size(); ++channel)
+            widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(channel).contains("Note " + juce::String(static_cast<int>(channel + 1u))),
+                              "HuC6280 Chip Poly headers should expose all six allocation lanes");
+
+        ok &= widthOk;
+    }
+
+    return ok;
+}
+
 bool checkSpc700UnifiedSamplerLayout()
 {
     const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::spc700);
@@ -3356,7 +3473,7 @@ int main()
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2608);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2610);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2610b);
-    ok &= checkWavetableSourceDeck(chipper::ChipMode::huc6280);
+    ok &= checkHuc6280UnifiedLayout();
     ok &= checkWavetableSourceDeck(chipper::ChipMode::namcoWsg);
     ok &= checkWavetableSourceDeck(chipper::ChipMode::scc);
     ok &= checkSamplerSourceDeck(chipper::ChipMode::spc700);

@@ -631,7 +631,7 @@ bool expectEnvelopeModels()
                  "POKEY shared texture module should name the AUDC/AUDV helper path and avoid ADSR wording");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::paula).modules[3].title == "Tracker Playback",
                  "Paula shared playback metadata should identify its period, loop, volume, and tracker helper layer");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::huc6280).modules[3].title == "Shared Amp Env",
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::huc6280).modules[3].title == "Chipper Gate",
                  "HuC6280 envelope module should identify its shared volume helper");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::namcoWsg).modules[3].title == "Shared Amp Env",
                  "Namco WSG envelope module should identify its shared lane-volume helper");
@@ -1218,6 +1218,11 @@ bool expectWavetableRegisterHelpers()
     ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::huc6280, hucSplit, 3) == 3u, "HuC6280 channel 4 should use its own wave choice");
     ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::huc6280, hucSplit, 4) == 4u, "HuC6280 channel 5 should use its own wave choice");
     ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::huc6280, hucSplit, 5) == 2u, "HuC6280 channel 6 should use its own wave choice");
+    ok &= expect(chipper::huc6280NoiseControlForPatch(hucSplit, 0) == 0u, "HuC6280 lower channels should not expose the hardware-noise control path");
+    ok &= expect(chipper::huc6280NoiseControlForPatch(hucSplit, 4) == 0x90u, "HuC6280 channel 5 noise choice should resolve the shared 5-bit period");
+    ok &= expect(chipper::huc6280LfoModeForPatch(hucLead) == 2u, "HuC6280 lead recipe should resolve the light channel-pair LFO");
+    ok &= expect(std::abs(chipper::huc6280LfoRateHzForPatch(hucLead) - 2.0) < 0.001, "HuC6280 LFO rate helper should follow pitch-motion control");
+    ok &= expect(std::abs(chipper::huc6280LfoDepthSemitonesForPatch(hucLead) - 0.25) < 0.001, "HuC6280 LFO depth helper should follow the shared noise/depth control");
 
     const auto sccPulse = chipper::makePatchConfig(chipper::ChipMode::scc,
                                                    chipper::MacroKind::manual,
@@ -1806,13 +1811,13 @@ int main()
     ok &= expectSegmentedRegister(chipper::ChipMode::paula, chipper::ChipParameterRole::dmgStereoRoute, 3, "Preset");
     ok &= expectMacroLabel(chipper::ChipMode::huc6280, chipper::MacroKind::lead, "HuC6280 Glass Lead");
     ok &= expectPreset(chipper::ChipMode::huc6280, "huc-boss-alert");
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::waveShape, "Ch 1 Wave", { "Preset", "Ramp", "Tri", "Square", "Noise" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::sidVoice2WaveShape, "Ch 2 Wave", { "Preset", "Ramp", "Tri", "Square", "Noise" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::sidVoice3WaveShape, "Ch 3 Wave", { "Preset", "Ramp", "Tri", "Square", "Noise" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::pulse2Duty, "Ch 4 Wave", { "Preset", "Ramp", "Tri", "Square", "Noise" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::dmgWaveLevel, "Ch 5 Wave", { "Preset", "Ramp", "Tri", "Square", "Noise" });
-    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::snNoiseMode, "Ch 6 Wave", { "Preset", "Ramp", "Tri", "Square", "Noise" });
-    ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Ch 1/2 LFO");
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::waveShape, "Ch 1 Wave", { "Preset", "Ramp", "Tri", "Square", "Grain" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::sidVoice2WaveShape, "Ch 2 Wave", { "Preset", "Ramp", "Tri", "Square", "Grain" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::sidVoice3WaveShape, "Ch 3 Wave", { "Preset", "Ramp", "Tri", "Square", "Grain" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::pulse2Duty, "Ch 4 Wave", { "Preset", "Ramp", "Tri", "Square", "Grain" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::dmgWaveLevel, "Ch 5 Wave / Noise", { "Preset", "Ramp", "Tri", "Square", "Noise" });
+    ok &= expectWavetableWaveSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::snNoiseMode, "Ch 6 Wave / Noise", { "Preset", "Ramp", "Tri", "Square", "Noise" });
+    ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Ch 2 -> Ch 1 Pitch LFO");
     ok &= expectSegmentedRegister(chipper::ChipMode::huc6280, chipper::ChipParameterRole::dmgStereoRoute, 5, "Preset");
     ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::source5Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 5");
     ok &= expectSpec(chipper::ChipMode::huc6280, chipper::ChipParameterRole::source6Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Channel 6");

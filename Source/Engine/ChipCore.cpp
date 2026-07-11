@@ -7587,6 +7587,8 @@ public:
             clearChipPolyState();
 
         patch = newPatch;
+        for (size_t channel = 0; channel < noiseControl.size(); ++channel)
+            noiseControl[channel] = huc6280NoiseControlForPatch(patch, channel);
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -7680,6 +7682,7 @@ public:
             frequency[channel] = hucPeriodForNote(notes[channel]);
             control[channel] = channelActiveForPatch(channel) ? channelControlForPatch(channel) : 0x00u;
             balance[channel] = 0xffu;
+            noiseControl[channel] = channelActiveForPatch(channel) ? huc6280NoiseControlForPatch(patch, channel) : 0x00u;
             seedWave(channel);
         }
     }
@@ -7820,12 +7823,9 @@ private:
         return static_cast<uint16_t>(std::clamp(std::round(clock / (32.0 * hz)), 1.0, 4095.0));
     }
 
-    uint8_t channelControlForPatch(size_t channel) const
+    uint8_t channelControlForPatch(size_t) const
     {
         const auto volume = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(patch.control4 * 31.0f)), 1, 31));
-        const auto useNoise = patch.macro == MacroKind::drum || patch.macro == MacroKind::hit || patch.waveShape == 4;
-        if (useNoise && channel >= 4)
-            return static_cast<uint8_t>(0x80u | volume);
         return static_cast<uint8_t>(0x80u | volume);
     }
 
@@ -7847,15 +7847,7 @@ private:
 
     bool channelActiveForPatch(size_t channel) const
     {
-        if (! chipPolyChannelEnabled(channel))
-            return false;
-
-        if (channel < 4)
-            return true;
-        return patch.macro == MacroKind::arp
-            || patch.macro == MacroKind::drum
-            || patch.macro == MacroKind::hit
-            || patch.macro == MacroKind::powerUp;
+        return chipPolyChannelEnabled(channel);
     }
 
     void seedWave(size_t channel)
@@ -7947,25 +7939,12 @@ private:
 
     double lfoDepthSemitones() const
     {
-        switch (huc6280LfoModeForPatch(patch))
-        {
-            case 2: return 0.25 + static_cast<double>(clamp01(patch.control3)) * 0.75;
-            case 3: return 1.25 + static_cast<double>(clamp01(patch.control3)) * 2.75;
-            case 4: return 0.75 + static_cast<double>(clamp01(patch.control3)) * 1.50;
-            default: return 0.0;
-        }
+        return huc6280LfoDepthSemitonesForPatch(patch);
     }
 
     double lfoRateHz() const
     {
-        const auto motion = static_cast<double>(clamp01(patch.control2));
-        switch (huc6280LfoModeForPatch(patch))
-        {
-            case 2: return 2.0 + motion * 5.0;
-            case 3: return 4.0 + motion * 9.0;
-            case 4: return 9.0 + motion * 18.0;
-            default: return 0.0;
-        }
+        return huc6280LfoRateHzForPatch(patch);
     }
 
     double currentLfoSample() const
@@ -8024,6 +8003,7 @@ private:
         noteStamp = 0;
         noteVelocity = 0.0f;
         control.fill(0x00);
+        noiseControl.fill(0x00);
     }
 
     void noteOnChipPoly(int midiNote, float velocity)
@@ -8039,6 +8019,7 @@ private:
         frequency[index] = hucPeriodForNote(channelNotes[index]);
         const auto volume = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(channelVelocity[index] * 31.0f)), 1, 31));
         control[index] = static_cast<uint8_t>(0x80u | volume);
+        noiseControl[index] = huc6280NoiseControlForPatch(patch, index);
         seedWave(index);
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
     }
@@ -8054,6 +8035,7 @@ private:
             channelVelocity[channel] = 0.0f;
             channelStamp[channel] = 0;
             control[channel] = 0x00;
+            noiseControl[channel] = 0x00;
         }
         noteVelocity = activeChipPolyChannels() > 0 ? 1.0f : 0.0f;
     }

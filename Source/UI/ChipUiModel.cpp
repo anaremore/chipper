@@ -173,7 +173,7 @@ ChipUiProfile profileFor(ChipMode mode)
     profile.visibleSourceCount = visibleSources;
     profile.nativeSourceCount = nativeSourceCountForMode(mode);
     profile.playSourceColumns = playSourceColumns(visibleSources);
-    profile.performanceStripHeight = paula ? 184
+    profile.performanceStripHeight = (paula || huc6280) ? 184
                                          : (sid || dmg || sn76489 || ym2149 || saa1099 || pokey || oneBitHardwarePath ? 124
                                          : (nes ? 236
                                                 : (spc700 || fourOp ? 124

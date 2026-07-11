@@ -233,6 +233,7 @@ public:
     }
     bool isDmgStereoRouteSegmentVisibleForLayoutTest() const { return dmgStereoRouteButtons[0].isVisible(); }
     juce::String getDmgStereoRouteLabelTextForLayoutTest() const { return dmgStereoRouteLabel.getText(); }
+    juce::String getDmgStereoRouteValueTextForLayoutTest() const { return dmgStereoRouteValueLabel.getText(); }
     juce::Rectangle<int> getSnNoiseModeBoundsForLayoutTest() const { return snNoiseModeSegmentBounds; }
     juce::Rectangle<int> getWaveShapeBoundsForLayoutTest() const { return waveShapeSegmentBounds; }
     bool isWaveShapeSegmentVisibleForLayoutTest() const { return waveShapeButtons[0].isVisible(); }
@@ -633,6 +634,7 @@ private:
     juce::String sourceCardNativeLabel(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t index, juce::String fallback) const;
     juce::String dmgWaveLevelReadout(const chipper::PatchConfig& patch) const;
     juce::String dmgStereoRouteReadout(const chipper::PatchConfig& patch) const;
+    juce::String huc6280LfoReadout(const chipper::PatchConfig& patch) const;
     juce::String spc700SamplePlaybackReadout(const chipper::PatchConfig& patch) const;
     juce::String spc700NoiseReadout(const chipper::PatchConfig& patch) const;
     juce::String ym2151NoiseReadout(const chipper::PatchConfig& patch) const;
