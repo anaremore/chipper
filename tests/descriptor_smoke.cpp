@@ -1632,7 +1632,7 @@ int main()
     ok &= expectSpec(chipper::ChipMode::pcSpeaker, chipper::ChipParameterRole::source1Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Speaker");
     ok &= expectSpec(chipper::ChipMode::pcSpeaker, chipper::ChipParameterRole::source1Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Speaker Level");
     ok &= expectSegmentedRegister(chipper::ChipMode::pcSpeaker, chipper::ChipParameterRole::waveShape, 5, "Preset");
-    ok &= expectSpec(chipper::ChipMode::zxSpectrumBeeper, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Border / Duty");
+    ok &= expectSpec(chipper::ChipMode::zxSpectrumBeeper, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::macro, chipper::ControlSurface::slider, "Duty + Border");
     ok &= expectSpec(chipper::ChipMode::zxSpectrumBeeper, chipper::ChipParameterRole::macroControl3, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "MIC Grit");
     ok &= expectSpec(chipper::ChipMode::zxSpectrumBeeper, chipper::ChipParameterRole::macroControl4, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Beeper Level");
     ok &= expectSpec(chipper::ChipMode::zxSpectrumBeeper, chipper::ChipParameterRole::source1Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "Beeper");

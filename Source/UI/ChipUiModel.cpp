@@ -158,6 +158,8 @@ ChipUiProfile profileFor(ChipMode mode)
     const auto saa1099 = mode == ChipMode::saa1099;
     const auto pokey = mode == ChipMode::pokey;
     const auto pcSpeaker = mode == ChipMode::pcSpeaker;
+    const auto zxSpectrumBeeper = mode == ChipMode::zxSpectrumBeeper;
+    const auto oneBitHardwarePath = pcSpeaker || zxSpectrumBeeper;
     const auto huc6280 = mode == ChipMode::huc6280;
     const auto fourOp = isFourOperatorFm(mode);
     const auto wavetable = family == ChipUiFamily::wavetable;
@@ -171,14 +173,14 @@ ChipUiProfile profileFor(ChipMode mode)
     profile.visibleSourceCount = visibleSources;
     profile.nativeSourceCount = nativeSourceCountForMode(mode);
     profile.playSourceColumns = playSourceColumns(visibleSources);
-    profile.performanceStripHeight = sid || dmg || sn76489 || ym2149 || saa1099 || pokey || pcSpeaker ? 124
+    profile.performanceStripHeight = sid || dmg || sn76489 || ym2149 || saa1099 || pokey || oneBitHardwarePath ? 124
                                          : (nes ? 236
                                                 : (spc700 || paula || fourOp ? 124
                                                                              : (wavetable ? 132 : 196)));
     profile.maximumModulesHeight = sid ? 666
                                        : (nes ? 436
                                               : (dmg || sn76489 || ym2149 ? 410
-                                                     : (pcSpeaker ? 410
+                                                     : (oneBitHardwarePath ? 410
                                                         : (spc700 ? 548
                                                         : (paula ? 580
                                                                  : (fourOp ? 564

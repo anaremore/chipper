@@ -20,6 +20,7 @@ constexpr int expectedEditorSn76489Height = 720;
 constexpr int expectedEditorYm2149Height = 720;
 constexpr int expectedEditorSaa1099Height = 780;
 constexpr int expectedEditorPcSpeakerHeight = 720;
+constexpr int expectedEditorZxSpectrumBeeperHeight = 720;
 constexpr int expectedEditorSidHeight = 880;
 constexpr int expectedEditorMinimumWidth = 1180;
 constexpr int expectedEditorMaximumHeight = expectedEditorSidHeight;
@@ -164,6 +165,8 @@ int expectedHeightForChipMode(int chipMode)
         return expectedEditorSaa1099Height;
     if (mode == chipper::ChipMode::pcSpeaker)
         return expectedEditorPcSpeakerHeight;
+    if (mode == chipper::ChipMode::zxSpectrumBeeper)
+        return expectedEditorZxSpectrumBeeperHeight;
 
     return expectedEditorHeight;
 }
@@ -1580,6 +1583,10 @@ bool checkPerformanceMacroSliderLayout()
                 // Every speaker-shaping control belongs to the one hardware path.
                 expectedMacroSliders = {};
                 break;
+            case chipper::ChipMode::zxSpectrumBeeper:
+                // Every EAR/MIC beeper control belongs to the one ULA path.
+                expectedMacroSliders = {};
+                break;
             case chipper::ChipMode::ym2612:
             case chipper::ChipMode::ym2151:
             case chipper::ChipMode::ym2203:
@@ -2027,12 +2034,15 @@ bool checkPokeyRelationshipLayout()
     return ok;
 }
 
-bool checkPcSpeakerHardwarePathLayout()
+bool checkOneBitHardwarePathLayout(chipper::ChipMode mode,
+                                   const char* chipName,
+                                   const std::array<const char*, 3>& sourceLabelTokens,
+                                   const std::array<const char*, 6>& controlNames)
 {
-    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::pcSpeaker);
+    const auto chipChoice = chipModeChoiceFor(mode);
     if (chipChoice < 0)
     {
-        std::cerr << "editor_size_smoke: PC Speaker chip mode choice unavailable\n";
+        std::cerr << "editor_size_smoke: " << chipName << " chip mode choice unavailable\n";
         return false;
     }
 
@@ -2047,15 +2057,15 @@ bool checkPcSpeakerHardwarePathLayout()
         const auto sourceModule = editor.getModuleBoundsForLayoutTest(1);
         const auto pathModule = editor.getModuleBoundsForLayoutTest(2);
         const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
-        widthOk &= expect(editor.getHeight() == expectedEditorPcSpeakerHeight,
-                          "PC Speaker should retain its compact 720 px instrument surface");
+        widthOk &= expect(editor.getHeight() == expectedHeightForChipMode(chipChoice),
+                          "One-bit hardware path should retain its chip-specific compact instrument height");
         widthOk &= expect(! sourceModule.isEmpty() && ! pathModule.isEmpty(),
-                          "PC Speaker source and complete hardware path must remain visible");
+                          "One-bit source and complete hardware path must remain visible");
         widthOk &= expect(editor.getModuleBoundsForLayoutTest(0).isEmpty()
                               && editor.getModuleBoundsForLayoutTest(3).isEmpty()
                               && editor.getModuleBoundsForLayoutTest(4).isEmpty()
                               && editor.getModuleBoundsForLayoutTest(5).isEmpty(),
-                          "PC Speaker must not restore detached profile, envelope, motion, or output panels");
+                          "One-bit chip must not restore detached profile, envelope, motion, or output panels");
 
         const auto sourceBounds = editor.getSourceChannelBoundsForLayoutTest(0);
         const auto levelBounds = editor.getSourceLevelBoundsForLayoutTest(0);
@@ -2066,25 +2076,26 @@ bool checkPcSpeakerHardwarePathLayout()
             || levelBounds.getWidth() < 320
             || levelBounds.getHeight() < 10)
         {
-            std::cerr << "editor_size_smoke: PC Speaker lost its single source-owned level lane at width "
+            std::cerr << "editor_size_smoke: " << chipName << " lost its single source-owned level lane at width "
                       << editorWidth << ": source " << sourceBounds.toString()
                       << " level " << levelBounds.toString() << '\n';
             widthOk = false;
         }
 
         const auto sourceLabel = editor.getSourceChannelButtonTextForLayoutTest(0);
-        widthOk &= expect(sourceLabel.containsIgnoreCase("PIT ch2")
-                              && sourceLabel.contains("0x61")
-                              && sourceLabel.containsIgnoreCase("speaker"),
-                          "PC Speaker source card must name the real PIT channel 2 to port 0x61 speaker path");
+        auto sourceLabelOk = true;
+        for (const auto* token : sourceLabelTokens)
+            sourceLabelOk &= sourceLabel.containsIgnoreCase(token);
+        widthOk &= expect(sourceLabelOk,
+                          "One-bit source card must name the real hardware output path");
 
         const std::array<std::pair<juce::Rectangle<int>, const char*>, 6> pathControls {{
-            { editor.getWaveShapeBoundsForLayoutTest(), "Speaker Mode" },
-            { editor.getNativeSliderBoundsForLayoutTest(0), "Pulse Width" },
-            { editor.getNativeSliderBoundsForLayoutTest(1), "Pitch Motion" },
-            { editor.getNativeSliderBoundsForLayoutTest(2), "Click Grit" },
-            { editor.getNativeSliderBoundsForLayoutTest(3), "Speaker Level" },
-            { editor.getEnvelopeDecayBoundsForLayoutTest(), "Gate Decay" }
+            { editor.getWaveShapeBoundsForLayoutTest(), controlNames[0] },
+            { editor.getNativeSliderBoundsForLayoutTest(0), controlNames[1] },
+            { editor.getNativeSliderBoundsForLayoutTest(1), controlNames[2] },
+            { editor.getNativeSliderBoundsForLayoutTest(2), controlNames[3] },
+            { editor.getNativeSliderBoundsForLayoutTest(3), controlNames[4] },
+            { editor.getEnvelopeDecayBoundsForLayoutTest(), controlNames[5] }
         }};
         for (size_t control = 0; control < pathControls.size(); ++control)
         {
@@ -2095,7 +2106,7 @@ bool checkPcSpeakerHardwarePathLayout()
                 || bounds.getWidth() < minimumWidth
                 || bounds.getHeight() < 18)
             {
-                std::cerr << "editor_size_smoke: PC Speaker " << name
+                std::cerr << "editor_size_smoke: " << chipName << ' ' << name
                           << " is missing or escaped the one hardware path at width " << editorWidth
                           << ": control " << bounds.toString()
                           << " module " << pathModule.toString() << '\n';
@@ -2105,7 +2116,7 @@ bool checkPcSpeakerHardwarePathLayout()
             {
                 if (bounds.intersects(pathControls[other].first))
                 {
-                    std::cerr << "editor_size_smoke: PC Speaker path controls overlap at width "
+                    std::cerr << "editor_size_smoke: " << chipName << " path controls overlap at width "
                               << editorWidth << ": " << name << ' ' << bounds.toString()
                               << " and " << pathControls[other].second << ' '
                               << pathControls[other].first.toString() << '\n';
@@ -2125,7 +2136,7 @@ bool checkPcSpeakerHardwarePathLayout()
             || clockBounds.getWidth() < 240
             || outputBounds.getWidth() < 240)
         {
-            std::cerr << "editor_size_smoke: PC Speaker Clock + Output strip is missing, cramped, or overlapping at width "
+            std::cerr << "editor_size_smoke: " << chipName << " Clock + Output strip is missing, cramped, or overlapping at width "
                       << editorWidth << ": clock " << clockBounds.toString()
                       << " output " << outputBounds.toString()
                       << " performance " << performanceBounds.toString() << '\n';
@@ -2961,7 +2972,14 @@ int main()
     ok &= checkPerformanceMacroSliderLayout();
     ok &= checkSaa1099GroupedLayout();
     ok &= checkPokeyRelationshipLayout();
-    ok &= checkPcSpeakerHardwarePathLayout();
+    ok &= checkOneBitHardwarePathLayout(chipper::ChipMode::pcSpeaker,
+                                        "PC Speaker",
+                                        { "PIT ch2", "0x61", "speaker" },
+                                        { "Speaker Mode", "Pulse Width", "Pitch Motion", "Click Grit", "Speaker Level", "Gate Decay" });
+    ok &= checkOneBitHardwarePathLayout(chipper::ChipMode::zxSpectrumBeeper,
+                                        "ZX Spectrum Beeper",
+                                        { "ULA $FE", "EAR bit 4", "MIC bit 3" },
+                                        { "Beeper Mode", "Duty + Border", "Pitch Motion", "MIC Grit", "Beeper Level", "Gate Decay" });
     ok &= checkSidAdsrLayout();
     ok &= checkCompactChipLayouts();
     ok &= checkPresetRoleFilterLayout();

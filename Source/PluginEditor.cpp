@@ -25,6 +25,7 @@ constexpr int editorSn76489Height = 720;
 constexpr int editorYm2149Height = 720;
 constexpr int editorSaa1099Height = 780;
 constexpr int editorPcSpeakerHeight = 720;
+constexpr int editorZxSpectrumBeeperHeight = 720;
 constexpr int editorSidHeight = 880;
 constexpr int editorMinWidth = 1180;
 constexpr int editorMaxWidth = 1800;
@@ -47,8 +48,40 @@ int preferredEditorHeightForMode(chipper::ChipMode mode)
         return editorSaa1099Height;
     if (mode == chipper::ChipMode::pcSpeaker)
         return editorPcSpeakerHeight;
+    if (mode == chipper::ChipMode::zxSpectrumBeeper)
+        return editorZxSpectrumBeeperHeight;
 
     return editorDefaultHeight;
+}
+
+int zxSpectrumBeeperModeForPatch(const chipper::PatchConfig& patch)
+{
+    const auto explicitMode = std::clamp(patch.waveShape, 0, 4);
+    if (explicitMode > 0)
+        return explicitMode;
+
+    switch (patch.macro)
+    {
+        case chipper::MacroKind::drum:
+        case chipper::MacroKind::hit:
+            return 2;
+        case chipper::MacroKind::laser:
+            return 3;
+        case chipper::MacroKind::arp:
+        case chipper::MacroKind::jump:
+        case chipper::MacroKind::powerUp:
+            return 4;
+        default:
+            return 1;
+    }
+}
+
+float zxSpectrumDutyForPatch(const chipper::PatchConfig& patch)
+{
+    const auto pulseTrain = zxSpectrumBeeperModeForPatch(patch) == 4;
+    const auto base = pulseTrain ? 0.18f : 0.50f;
+    const auto spread = pulseTrain ? 0.28f : 0.46f;
+    return std::clamp(base + ((std::clamp(patch.control1, 0.0f, 1.0f) - 0.5f) * spread), 0.08f, 0.78f);
 }
 
 constexpr std::array chipSettingsSnapshotParameterIds {
@@ -4204,6 +4237,8 @@ void ChipperAudioProcessorEditor::resized()
     const auto saa1099Layout = displayedMode == chipper::ChipMode::saa1099;
     const auto pokeyLayout = displayedMode == chipper::ChipMode::pokey;
     const auto pcSpeakerLayout = displayedMode == chipper::ChipMode::pcSpeaker;
+    const auto zxSpectrumBeeperLayout = displayedMode == chipper::ChipMode::zxSpectrumBeeper;
+    const auto oneBitHardwarePathLayout = pcSpeakerLayout || zxSpectrumBeeperLayout;
     const auto huc6280Layout = displayedMode == chipper::ChipMode::huc6280;
     const auto fourOperatorFmLayout = uiProfile.fourOperatorFm;
     const auto sampleLayout = uiProfile.sampler;
@@ -4375,7 +4410,7 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[4] = {};
         moduleBounds[5] = {};
     }
-    else if (pcSpeakerLayout)
+    else if (oneBitHardwarePathLayout)
     {
         const auto availableHeight = modules.getHeight();
         const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.37)), 148, 154);
@@ -4527,7 +4562,7 @@ void ChipperAudioProcessorEditor::resized()
     const auto useWavetableVoiceGrid = (displayedMode == chipper::ChipMode::huc6280
         || displayedMode == chipper::ChipMode::namcoWsg
         || displayedMode == chipper::ChipMode::scc) && visibleSourceCards > 4u;
-    const auto compactSourceGrid = useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || saa1099Layout || pokeyLayout || pcSpeakerLayout;
+    const auto compactSourceGrid = useSpc700VoiceGrid || usePaulaVoiceGrid || useWavetableVoiceGrid || useNesExpansionVoiceGrid || saa1099Layout || pokeyLayout || oneBitHardwarePathLayout;
     if (compactSourceGrid || displayedMode == chipper::ChipMode::sid)
         moduleSummaryLabels[1].setBounds({});
     if (sampleLayout)
@@ -4537,7 +4572,7 @@ void ChipperAudioProcessorEditor::resized()
         moduleSummaryLabels[2].setBounds({});
         moduleSummaryLabels[3].setBounds({});
     }
-    if (pcSpeakerLayout)
+    if (oneBitHardwarePathLayout)
         moduleSummaryLabels[2].setBounds({});
     if (! compactSourceGrid
         && displayedMode != chipper::ChipMode::sid
@@ -5079,7 +5114,7 @@ void ChipperAudioProcessorEditor::resized()
         placeDmgStereoRouteSegment(pairingPanel);
         placeYmEnvelopeShapeSegment(filterPanel);
     }
-    else if (pcSpeakerLayout)
+    else if (oneBitHardwarePathLayout)
     {
         auto modeRow = tonePanel.removeFromTop(std::min(58, tonePanel.getHeight()));
         placeWaveShapeSegment(modeRow);
@@ -5128,7 +5163,7 @@ void ChipperAudioProcessorEditor::resized()
         for (auto& button : waveShapeButtons)
             button.setBounds({});
     }
-    else if (! pokeyLayout && ! pcSpeakerLayout)
+    else if (! pokeyLayout && ! oneBitHardwarePathLayout)
         placeWaveShapeSegment(primaryTonePanel);
     if (displayedMode != chipper::ChipMode::sid && displayedMode != chipper::ChipMode::dmg)
     {
@@ -5228,9 +5263,9 @@ void ChipperAudioProcessorEditor::resized()
         placeLabeledSliderWithReadout(envelopeDecaySlider, envelopeDecayLabel, envelopeDecayValueLabel, gatePanel);
         ymEnvelopePreview.setBounds({});
     }
-    else if (pcSpeakerLayout)
+    else if (oneBitHardwarePathLayout)
     {
-        // Gate Decay is part of the one-lane PIT/port/speaker path above.
+        // Gate Decay is part of the complete one-bit hardware path above.
         ymEnvelopePreview.setBounds({});
     }
     else if (displayedMode == chipper::ChipMode::spc700)
@@ -5460,13 +5495,13 @@ void ChipperAudioProcessorEditor::resized()
                 strip.getHeight()
             };
     }
-    else if (pcSpeakerLayout)
+    else if (oneBitHardwarePathLayout)
     {
-        constexpr int pcControlGap = 12;
-        const auto pcControlWidth = (strip.getWidth() - pcControlGap) / 2;
+        constexpr int oneBitControlGap = 12;
+        const auto oneBitControlWidth = (strip.getWidth() - oneBitControlGap) / 2;
         controlCells.fill({});
-        controlCells[4] = { strip.getX(), strip.getY(), pcControlWidth, strip.getHeight() };
-        controlCells[5] = { strip.getX() + pcControlWidth + pcControlGap, strip.getY(), pcControlWidth, strip.getHeight() };
+        controlCells[4] = { strip.getX(), strip.getY(), oneBitControlWidth, strip.getHeight() };
+        controlCells[5] = { strip.getX() + oneBitControlWidth + oneBitControlGap, strip.getY(), oneBitControlWidth, strip.getHeight() };
     }
     else if (displayedMode == chipper::ChipMode::dmg)
     {
@@ -5559,9 +5594,9 @@ void ChipperAudioProcessorEditor::resized()
         for (const auto index : { 0u, 1u, 3u })
             nativeGroupLabels[index].setBounds({});
     }
-    else if (pcSpeakerLayout)
+    else if (oneBitHardwarePathLayout)
     {
-        // All speaker-shaping controls live in the single hardware path.
+        // All one-bit shaping controls live in the single hardware path.
     }
     else
     {
@@ -10773,7 +10808,7 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
         return "PIT ch2 -> port 0x61 -> speaker cone";
 
     if (mode == chipper::ChipMode::zxSpectrumBeeper)
-        return "Beeper | ULA FE";
+        return "ULA $FE: EAR bit 4 + MIC bit 3 -> one-bit beeper";
 
     if (mode == chipper::ChipMode::spc700)
         return sampleSourceCardLabel(mode, patch, index);
@@ -12819,16 +12854,14 @@ void ChipperAudioProcessorEditor::updateSourcePreviewScope(chipper::ChipMode mod
     }
     else if (mode == chipper::ChipMode::zxSpectrumBeeper)
     {
-        const auto beeperMode = std::clamp(patch.waveShape, 0, 4);
+        const auto beeperMode = zxSpectrumBeeperModeForPatch(patch);
         if (beeperMode == 2)
             shape = ChipWaveformPreviewShape::noise;
-        else if (beeperMode == 3 || beeperMode == 4 || patch.macro == chipper::MacroKind::laser || patch.macro == chipper::MacroKind::hit)
+        else if (beeperMode == 3 || beeperMode == 4)
             shape = ChipWaveformPreviewShape::toneNoise;
         else
             shape = ChipWaveformPreviewShape::pulse;
-        duty = beeperMode == 4
-            ? 0.08f + (std::clamp(patch.control1, 0.0f, 1.0f) * 0.28f)
-            : 0.27f + (std::clamp(patch.control1, 0.0f, 1.0f) * 0.46f);
+        duty = zxSpectrumDutyForPatch(patch);
         tooltip = juce::String("ZX Spectrum ULA port FE one-bit beeper.")
             + "\nMode: " + waveShapeReadout(mode, patch.waveShape)
             + "\nMIC grit " + juce::String(patch.control3, 2)
@@ -14813,7 +14846,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         && ! applyingFactoryPreset
         && restoreChipSettingsSnapshot(mode);
     chipSummaryLabel.setText(descriptor.summary, juce::dontSendNotification);
-    globalStripLabel.setText(hasLiveCore ? (mode == chipper::ChipMode::pcSpeaker
+    globalStripLabel.setText(hasLiveCore ? (mode == chipper::ChipMode::pcSpeaker || mode == chipper::ChipMode::zxSpectrumBeeper
                                                 ? "Clock + Output"
                                                 : (mode == chipper::ChipMode::ym2149 || mode == chipper::ChipMode::sid || mode == chipper::ChipMode::saa1099 || mode == chipper::ChipMode::pokey
                                                        ? "Performance + Output"
@@ -15277,7 +15310,9 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     }
     else if (mode == chipper::ChipMode::zxSpectrumBeeper)
     {
-        controlValueLabels[0].setText(macroReadout(0, "Border " + juce::String(static_cast<int>(std::round(patch.control1 * 7.0f))) + " | duty"), juce::dontSendNotification);
+        const auto border = static_cast<int>(std::round(std::clamp(patch.control1, 0.0f, 1.0f) * 7.0f));
+        const auto dutyPercent = static_cast<int>(std::round(zxSpectrumDutyForPatch(patch) * 100.0f));
+        controlValueLabels[0].setText(macroReadout(0, "Border " + juce::String(border) + " | duty " + juce::String(dutyPercent) + "%"), juce::dontSendNotification);
         controlValueLabels[1].setText(macroReadout(1, "Loop motion " + juce::String(patch.control2, 2)), juce::dontSendNotification);
         controlValueLabels[2].setText(macroReadout(2, "MIC grit " + juce::String(patch.control3, 2)), juce::dontSendNotification);
         controlValueLabels[3].setText(macroReadout(3, "Beeper level " + juce::String(static_cast<int>(std::round(patch.control4 * 15.0f))) + "/15"), juce::dontSendNotification);
