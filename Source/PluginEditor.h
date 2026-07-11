@@ -160,6 +160,10 @@ public:
     {
         return channel < sourceChannelButtons.size() ? sourceChannelButtons[channel].getButtonText() : juce::String {};
     }
+    bool isSourceChannelButtonEnabledForLayoutTest(size_t channel) const
+    {
+        return channel < sourceChannelButtons.size() && sourceChannelButtons[channel].isEnabled();
+    }
     juce::Rectangle<int> getSourceLevelBoundsForLayoutTest(size_t channel) const
     {
         return channel < sourceLevelSliders.size() ? sourceLevelSliders[channel].getBounds() : juce::Rectangle<int> {};
@@ -228,6 +232,7 @@ public:
         return ! dmgStereoRouteSegmentBounds.isEmpty() ? dmgStereoRouteSegmentBounds : dmgStereoRouteBox.getBounds();
     }
     juce::Rectangle<int> getSnNoiseModeBoundsForLayoutTest() const { return snNoiseModeSegmentBounds; }
+    juce::Rectangle<int> getWaveShapeBoundsForLayoutTest() const { return waveShapeSegmentBounds; }
     juce::Rectangle<int> getSnNoiseModeMenuBoundsForLayoutTest() const { return snNoiseModeBox.getBounds(); }
     juce::Rectangle<int> getSidVoiceWaveBoundsForLayoutTest(size_t voice) const
     {

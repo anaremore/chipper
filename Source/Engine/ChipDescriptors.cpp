@@ -4178,9 +4178,9 @@ const std::vector<ChipDescriptor>& descriptors()
             },
             {
                 makeModule("profile", "Profile", "POKEY clean-room groundwork.", { "Atari 8-bit family", "1.79 MHz default", "Hybrid default", "Authentic still partial" }),
-                makeModule("sources", "Channels", "Four native POKEY audio channels.", { "Channel 1", "Channel 2", "Channel 3", "Channel 4" }),
-                makeModule("tone", "Distortion / Noise", "AUDC-style tone and polynomial texture controls.", { "Pure tone", "Poly4", "Poly5", "Poly17" }),
-                makeModule("envelope", "AUDV Gate", "AUDV volume nibble plus musical gate helper; POKEY has no native ADSR.", { "4-bit volume", "Per-channel trims", "Gate helper", "Register readout" }),
+                makeModule("sources", "Four Channels · Pair / Filter Matrix", "Channels 1+2 and 3+4 can become 16-bit pairs; channels 3 and 4 also clock the modeled high-pass paths into channels 1 and 2.", { "1+2 pair", "3+4 pair", "3 -> 1 high-pass", "4 -> 2 high-pass" }),
+                makeModule("tone", "AUDCTL Relationships", "Pairing consumes the high-byte channel; high-pass clocks can keep running when their channel is muted.", { "16-bit 1+2", "16-bit 3+4", "High-pass 3 -> 1", "High-pass 4 -> 2" }),
+                makeModule("envelope", "Shared AUDC Texture + Gate", "The current partial core applies one AUDC texture and AUDV base across sounding lanes; channel cards retain modern post-AUDV trims and the gate is a musical helper.", { "Pure / Poly4 / Poly5 / Poly17", "Preset-only distortion bias", "Shared AUDV base", "Modern gate helper" }),
                 makeModule("motion", "Motion", "Atari SFX gestures mapped to channel timers.", { "Console blip", "Pitch drop", "Four-channel arp", "Poly perc" }),
                 makeModule("output", "Output", "Bright mono Atari-style output groundwork.", { "Output gain", "Stereo spread convenience", "AUDCTL pairing", "AUDCTL filter" })
             },

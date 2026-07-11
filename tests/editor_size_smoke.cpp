@@ -1569,6 +1569,10 @@ bool checkPerformanceMacroSliderLayout()
                 // Noise Clock is owned by the dual shared-generator block.
                 expectedMacroSliders = { 0, 1, 3 };
                 break;
+            case chipper::ChipMode::pokey:
+                // Distortion Bias is owned by Shared AUDC Texture + Gate.
+                expectedMacroSliders = { 0, 1, 3 };
+                break;
             case chipper::ChipMode::ym2612:
             case chipper::ChipMode::ym2151:
             case chipper::ChipMode::ym2203:
@@ -1846,6 +1850,167 @@ bool checkSaa1099GroupedLayout()
                 widthOk = false;
             }
         }
+
+        return widthOk;
+    };
+
+    auto ok = checkAtWidth(1240);
+    ok &= checkAtWidth(expectedEditorMinimumWidth);
+    return ok;
+}
+
+bool checkPokeyRelationshipLayout()
+{
+    const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::pokey);
+    if (chipChoice < 0)
+    {
+        std::cerr << "editor_size_smoke: POKEY chip mode choice unavailable\n";
+        return false;
+    }
+
+    auto checkAtWidth = [&](int editorWidth)
+    {
+        ChipperAudioProcessor processor;
+        auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(editorWidth, expectedHeightForChipMode(chipChoice));
+        editor.runEditorUpdateForLayoutTest();
+
+        const auto channelsModule = editor.getModuleBoundsForLayoutTest(1);
+        const auto relationshipsModule = editor.getModuleBoundsForLayoutTest(2);
+        const auto textureModule = editor.getModuleBoundsForLayoutTest(3);
+        const auto performanceBounds = editor.getPerformanceBoundsForLayoutTest();
+        widthOk &= expect(! channelsModule.isEmpty() && ! relationshipsModule.isEmpty() && ! textureModule.isEmpty(),
+                          "POKEY channel, AUDCTL relationship, and shared texture modules must remain visible");
+        widthOk &= expect(editor.getModuleBoundsForLayoutTest(0).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(4).isEmpty()
+                              && editor.getModuleBoundsForLayoutTest(5).isEmpty(),
+                          "POKEY must not restore detached profile, motion, or output panels");
+
+        std::array<juce::Rectangle<int>, 4> channels {};
+        for (size_t channel = 0; channel < channels.size(); ++channel)
+        {
+            channels[channel] = editor.getSourceChannelBoundsForLayoutTest(channel);
+            const auto trim = editor.getSourceLevelBoundsForLayoutTest(channel);
+            if (channels[channel].isEmpty()
+                || ! channelsModule.expanded(2).contains(channels[channel])
+                || trim.isEmpty()
+                || ! channels[channel].expanded(2).contains(trim)
+                || trim.getWidth() < 96
+                || trim.getHeight() < 10)
+            {
+                std::cerr << "editor_size_smoke: POKEY channel " << (channel + 1u)
+                          << " lost its source-owned post-AUDV trim at width " << editorWidth
+                          << ": channel " << channels[channel].toString()
+                          << " trim " << trim.toString() << '\n';
+                widthOk = false;
+            }
+        }
+        widthOk &= expect(channels[0].getY() == channels[1].getY()
+                              && channels[2].getY() == channels[3].getY()
+                              && channels[2].getY() > channels[0].getBottom(),
+                          "POKEY channels must remain a 1+2 / 3+4 pair matrix");
+        widthOk &= expect(channels[0].getX() == channels[2].getX()
+                              && channels[1].getX() == channels[3].getX(),
+                          "POKEY channels must preserve vertical 3-to-1 and 4-to-2 filter relationships");
+
+        const auto pairingBounds = editor.getDmgStereoRouteBoundsForLayoutTest();
+        const auto filterBounds = editor.getYmEnvelopeShapeBoundsForLayoutTest();
+        if (pairingBounds.isEmpty()
+            || filterBounds.isEmpty()
+            || ! relationshipsModule.expanded(2).contains(pairingBounds)
+            || ! relationshipsModule.expanded(2).contains(filterBounds)
+            || pairingBounds.intersects(filterBounds)
+            || pairingBounds.getWidth() < 240
+            || filterBounds.getWidth() < 240)
+        {
+            std::cerr << "editor_size_smoke: POKEY AUDCTL Pairing and Filter must be readable, separate, and owned by Relationships at width "
+                      << editorWidth << ": pairing " << pairingBounds.toString()
+                      << " filter " << filterBounds.toString()
+                      << " module " << relationshipsModule.toString() << '\n';
+            widthOk = false;
+        }
+
+        const std::array<std::pair<juce::Rectangle<int>, const char*>, 3> textureControls {{
+            { editor.getWaveShapeBoundsForLayoutTest(), "Distortion Code" },
+            { editor.getNativeSliderBoundsForLayoutTest(2), "Distortion Bias" },
+            { editor.getEnvelopeDecayBoundsForLayoutTest(), "AUDV Gate" }
+        }};
+        for (size_t control = 0; control < textureControls.size(); ++control)
+        {
+            const auto& [bounds, name] = textureControls[control];
+            if (bounds.isEmpty()
+                || ! textureModule.expanded(2).contains(bounds)
+                || bounds.getWidth() < 96
+                || bounds.getHeight() < 18)
+            {
+                std::cerr << "editor_size_smoke: POKEY " << name
+                          << " is missing or escaped Shared AUDC Texture + Gate at width " << editorWidth
+                          << ": control " << bounds.toString()
+                          << " module " << textureModule.toString() << '\n';
+                widthOk = false;
+            }
+            for (size_t other = control + 1u; other < textureControls.size(); ++other)
+            {
+                if (bounds.intersects(textureControls[other].first))
+                {
+                    std::cerr << "editor_size_smoke: POKEY shared texture controls overlap at width "
+                              << editorWidth << ": " << name << ' ' << bounds.toString()
+                              << " and " << textureControls[other].second << ' '
+                              << textureControls[other].first.toString() << '\n';
+                    widthOk = false;
+                }
+            }
+        }
+
+        const std::array<juce::Rectangle<int>, 6> performanceControls {{
+            editor.getNativeSliderBoundsForLayoutTest(0),
+            editor.getNativeSliderBoundsForLayoutTest(1),
+            editor.getNativeSliderBoundsForLayoutTest(3),
+            editor.getStereoSpreadBoundsForLayoutTest(),
+            editor.getClockSliderBoundsForLayoutTest(),
+            editor.getOutputSliderBoundsForLayoutTest()
+        }};
+        for (const auto& bounds : performanceControls)
+        {
+            if (bounds.isEmpty()
+                || ! performanceBounds.expanded(2).contains(bounds)
+                || bounds.getWidth() < 72
+                || bounds.getHeight() < 18)
+            {
+                std::cerr << "editor_size_smoke: POKEY performance/output control escaped its compact strip at width "
+                          << editorWidth << ": control " << bounds.toString()
+                          << " performance " << performanceBounds.toString() << '\n';
+                widthOk = false;
+            }
+        }
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 0);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.isNativeSliderEnabledForLayoutTest(2),
+                          "POKEY Distortion Bias should be active while Distortion Code follows the preset");
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 2);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(! editor.isNativeSliderEnabledForLayoutTest(2),
+                          "POKEY explicit Distortion Code should disable the preset-only Distortion Bias");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::playMode, 1);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::dmgStereoRoute, 1);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(0).contains("8-bit note 1")
+                              && editor.getSourceChannelButtonTextForLayoutTest(3).contains("8-bit note 4"),
+                          "POKEY unpaired Chip Poly should expose four independent note lanes");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::dmgStereoRoute, 2);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(0).contains("16-bit note 1"),
+                          "POKEY 1+2 pairing should present channel 1 as the 16-bit note lane");
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(1).contains("high byte")
+                              && ! editor.isSourceChannelButtonEnabledForLayoutTest(1),
+                          "POKEY 1+2 pairing should visibly consume and disable channel 2 as the high byte");
+        widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(2).contains("8-bit note 2")
+                              && editor.getSourceChannelButtonTextForLayoutTest(3).contains("8-bit note 3"),
+                          "POKEY 1+2 pairing should renumber the remaining Chip Poly lanes truthfully");
 
         return widthOk;
     };
@@ -2675,6 +2840,7 @@ int main()
     ok &= checkNesDmcAndPerformanceLayout();
     ok &= checkPerformanceMacroSliderLayout();
     ok &= checkSaa1099GroupedLayout();
+    ok &= checkPokeyRelationshipLayout();
     ok &= checkSidAdsrLayout();
     ok &= checkCompactChipLayouts();
     ok &= checkPresetRoleFilterLayout();

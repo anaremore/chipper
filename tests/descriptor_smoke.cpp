@@ -627,8 +627,8 @@ bool expectEnvelopeModels()
                  "YM2612 envelope module should expose native operator EG wording");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2413).modules[3].title == "ROM / User EG",
                  "YM2413 envelope module should expose ROM and user patch EG wording");
-    ok &= expect(chipper::descriptorFor(chipper::ChipMode::pokey).modules[3].title == "AUDV Gate",
-                 "POKEY envelope module should name the AUDV helper path and avoid ADSR wording");
+    ok &= expect(chipper::descriptorFor(chipper::ChipMode::pokey).modules[3].title == "Shared AUDC Texture + Gate",
+                 "POKEY shared texture module should name the AUDC/AUDV helper path and avoid ADSR wording");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::paula).modules[3].title == "Tracker Amp Env",
                  "Paula envelope module should identify the tracker helper layer");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::huc6280).modules[3].title == "Shared Amp Env",
