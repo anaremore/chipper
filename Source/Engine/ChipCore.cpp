@@ -12433,8 +12433,10 @@ private:
         if (channel >= channelNotes.size() || ! chip)
             return;
 
-        const auto detune = static_cast<int>(std::round((patch.control2 - 0.5f) * 8.0f));
-        const auto pitch = pitchForNote(midiNote + detune);
+        // control2 is the native OPNA feedback field. It must not alter pitch:
+        // feedback changes the operator loop written to $B0, while FNUM/block
+        // continue to follow the requested MIDI note.
+        const auto pitch = pitchForNote(midiNote);
         channelNotes[channel] = std::clamp(midiNote, 0, 127);
         channelVelocity[channel] = static_cast<float>(clamp01(velocity) * sourceLevel(patch, channel));
         currentFnum[channel] = pitch.fnum;

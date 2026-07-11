@@ -334,6 +334,10 @@ public:
     juce::Rectangle<int> getDmcLoopToggleBoundsForLayoutTest() const { return dmcLoopButton.getBounds(); }
     juce::Rectangle<int> getDmcRateBoundsForLayoutTest() const { return dmcRateBox.getBounds(); }
     juce::Rectangle<int> getSampleWaveformBoundsForLayoutTest() const { return sampleWaveformPreview.getBounds(); }
+    juce::String getSampleLabelTextForLayoutTest() const { return dmcSampleLabel.getText(); }
+    juce::String getSampleStatusTextForLayoutTest() const { return dmcSampleStatusLabel.getText(); }
+    juce::String getSampleFileButtonTextForLayoutTest() const { return dmcSampleFileButton.getButtonText(); }
+    juce::String getSampleFolderButtonTextForLayoutTest() const { return dmcSampleFolderButton.getButtonText(); }
     juce::Rectangle<int> getSampleLoopStartBoundsForLayoutTest() const { return sampleLoopStartSlider.getBounds(); }
     juce::Rectangle<int> getSampleLoopEndBoundsForLayoutTest() const { return sampleLoopEndSlider.getBounds(); }
     juce::Rectangle<int> getEnvelopeDecayBoundsForLayoutTest() const { return envelopeDecaySlider.getBounds(); }

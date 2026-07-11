@@ -1557,6 +1557,9 @@ std::vector<ChipParameterSpec> ym2608ParameterSpecs()
                       ym2612EnvelopeShapeChoices(),
                       ParameterKind::chipRegister),
         opnSsgEnvelopeSpec("ym2608.ssgEnvelope", "YM2608"),
+        envelopeSpec("ym2608.ssgEnvelopePeriod",
+                     "SSG Envelope Period",
+                     "Writes the shared YM2608 SSG envelope-period registers $0B/$0C. Zero keeps the recipe-resolved default period."),
         sliderSpec(ChipParameterRole::stereoSpread,
                    "ym2608.stereoSpread",
                    "Stereo Spread",
@@ -1692,6 +1695,12 @@ std::vector<ChipParameterSpec> ym2610ParameterSpecs()
 std::vector<ChipParameterSpec> ym2610bParameterSpecs()
 {
     auto specs = ym2608ParameterSpecs();
+    // OPNB2 receives its own UI/parameter audit next. Do not let OPNA's newly
+    // surfaced SSG period control leak into that still-generic layout.
+    specs.erase(std::remove_if(specs.begin(), specs.end(), [](const auto& spec)
+    {
+        return spec.role == ChipParameterRole::envelopeDecay;
+    }), specs.end());
     for (auto& spec : specs)
     {
         replaceAllInPlace(spec.id, "ym2608", "ym2610b");
@@ -3668,11 +3677,11 @@ std::array<ModuleDescriptor, 6> ym2608Modules()
 {
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "YM2608/OPNA core is backed by audited BSD-licensed ymfm.", { "YM2608 model", "7.99 MHz PC-98 clock", "Hybrid default", "Verified partial" }),
-        makeModule("sources", "FM + SSG Voices", "All six YM2608 FM channels and all three embedded SSG tone/noise/envelope channels are exposed as playable source lanes.", { "FM Ch 1-6", "SSG A-C", "9-lane Chip Poly", "Source trims" }),
-        makeModule("tone", "Operators", "Musical controls write native OPNA algorithm, feedback, multiplier, attack-rate, decay-rate, and total-level registers.", { "Algorithm", "Feedback", "Operator tone", "Carrier level" }),
-        makeModule("envelope", "Operator EG", "Preset and user-selected shapes write native OPNA attack, decay, sustain-rate, sustain-level, and release registers.", { "Envelope shape", "Attack/decay bytes", "Sustain/release bytes", "Operator EG readout" }),
-        makeModule("motion", "Motion", "PC-98-style YM2608 preset recipes map to register-backed FM and SSG patches.", { "Chime", "Feedback bass", "Metal lead", "Pitch laser" }),
-        makeModule("output", "Output", "ymfm OPNA stereo FM output is mixed with the embedded mono SSG tone/noise/envelope bus, ADPCM-A rhythm overlay, and optional encoded ADPCM-B sample memory.", { "Stereo FM core", "Mono SSG bus", "ADPCM-A/B memory", "Verified partial" })
+        makeModule("sources", "Six FM + Three SSG Lanes", "Six four-operator FM lanes and three embedded SSG lanes stay visible. In Drum/Hit, FM lane enable/level controls also own the six native ADPCM-A rhythm instruments.", { "FM Ch 1-6", "SSG A-C", "Nine-lane allocation", "Rhythm ownership" }),
+        makeModule("tone", "Shared FM Patch", "Algorithm, feedback, FM envelope shape, and contextual algorithm bias form one four-operator patch shared by FM channels 1-6.", { "Algorithm + graph", "Feedback", "FM envelope", "Contextual algorithm bias" }),
+        makeModule("envelope", "Shared Operator Matrix", "The four editable operators show their carrier/modulator roles and native multiplier, total-level, and envelope registers.", { "Carrier/modulator roles", "MULT / TL", "AR / D1R / D2R", "SL / RR" }),
+        makeModule("motion", "Shared SSG Generator", "SSG A-C own their Tone/Noise routing in the lane bank while sharing one hardware envelope generator, period, and noise-period register.", { "Per-lane mixer above", "Shared envelope shape", "Shared envelope period", "Shared noise period below" }),
+        makeModule("output", "Rhythm + ADPCM Layers", "Drum/Hit layers the six native ADPCM-A rhythm instruments through FM 1-6 controls and can add one optional user-supplied encoded ADPCM-B sample.", { "FM-lane rhythm ownership", "Generated/user ADPCM-A", "Optional ADPCM-B", "Drum/Hit only" })
     };
 }
 
