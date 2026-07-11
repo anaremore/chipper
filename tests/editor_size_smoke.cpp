@@ -16,6 +16,7 @@ namespace
 {
 constexpr int expectedEditorHeight = 860;
 constexpr int expectedEditorDmgHeight = 720;
+constexpr int expectedEditorSn76489Height = 720;
 constexpr int expectedEditorSidHeight = 880;
 constexpr int expectedEditorMinimumWidth = 1180;
 constexpr int expectedEditorMaximumHeight = expectedEditorSidHeight;
@@ -152,6 +153,8 @@ int expectedHeightForChipMode(int chipMode)
         return expectedEditorSidHeight;
     if (mode == chipper::ChipMode::dmg)
         return expectedEditorDmgHeight;
+    if (mode == chipper::ChipMode::sn76489)
+        return expectedEditorSn76489Height;
 
     return expectedEditorHeight;
 }
@@ -467,7 +470,32 @@ bool checkChannelOwnedControlLayout(chipper::ChipMode mode)
         break;
 
     case chipper::ChipMode::sn76489:
+        {
+            const auto channelsBounds = editor.getModuleBoundsForLayoutTest(1);
+            ok &= expect(channelsBounds.expanded(2).contains(editor.getNativeSliderBoundsForLayoutTest(0)),
+                         "SN76489 Tone Stack should stay spatially owned by the tone-channel group");
+            ok &= expect(channelsBounds.expanded(2).contains(editor.getNativeSliderBoundsForLayoutTest(1)),
+                         "SN76489 Pitch Motion should stay spatially owned by the tone-channel group");
+        }
         ok &= expectControlOwnedBySourceChannel(editor, 3, editor.getSnNoiseModeMenuBoundsForLayoutTest(), "SN76489 noise mode");
+        ok &= expectControlOwnedBySourceChannel(editor, 3, editor.getNativeSliderBoundsForLayoutTest(2), "SN76489 preset noise bias");
+        ok &= expectControlOwnedBySourceChannel(editor, 3, editor.getNativeSliderBoundsForLayoutTest(3), "SN76489 native noise level");
+        ok &= expect(editor.getSourceChannelBoundsForLayoutTest(3).getHeight() > editor.getSourceChannelBoundsForLayoutTest(0).getHeight() + 60,
+                     "SN76489 Noise card should be deeper than the compact tone cards");
+        ok &= expect(editor.isNativeSliderEnabledForLayoutTest(2),
+                     "SN76489 Preset Noise Bias should be enabled while Noise Mode follows the preset");
+        ok &= setChoiceParameter(processor, chipper::parameters::id::snNoiseMode, 4);
+        editor.runEditorUpdateForLayoutTest();
+        ok &= expect(! editor.isNativeSliderEnabledForLayoutTest(2),
+                     "SN76489 explicit Noise Mode should disable the preset-only Noise Bias control");
+        ok &= setChoiceParameter(processor, chipper::parameters::id::playMode, 1);
+        editor.runEditorUpdateForLayoutTest();
+        ok &= expect(editor.getSourceChannelButtonTextForLayoutTest(0).contains("note 1"),
+                     "SN76489 Chip Poly should identify Tone 1 as the first allocated note lane");
+        ok &= expect(editor.getSourceChannelButtonTextForLayoutTest(2).contains("note 3"),
+                     "SN76489 Chip Poly should identify Tone 3 as the third allocated note lane");
+        ok &= expect(editor.getSourceChannelButtonTextForLayoutTest(3).contains("not note-allocated"),
+                     "SN76489 Chip Poly should disclose that Noise remains an SFX lane");
         if (! editor.getModuleBoundsForLayoutTest(2).isEmpty())
         {
             std::cerr << "editor_size_smoke: SN76489 should not show a separate tone/noise module once Noise Mode is owned by the Noise channel\n";
@@ -1449,6 +1477,9 @@ bool checkPerformanceMacroSliderLayout()
                 // envelope module instead of the global performance strip.
                 expectedMacroSliders = {};
                 break;
+            case chipper::ChipMode::sn76489:
+                expectedMacroSliders = {};
+                break;
             case chipper::ChipMode::sid:
                 expectedMacroSliders = { 0, 1, 3 };
                 break;
@@ -1552,7 +1583,7 @@ bool checkPerformanceMacroSliderLayout()
                 ok = false;
             }
 
-            if (compactMacroCell && ! valueBounds.isEmpty())
+            if (compactMacroCell && mode != chipper::ChipMode::sn76489 && ! valueBounds.isEmpty())
             {
                 std::cerr << "editor_size_smoke: compact performance macro cell "
                           << sliderIndex << " should hide secondary readout text for mode "

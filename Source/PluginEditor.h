@@ -315,6 +315,10 @@ public:
     {
         return index < controlValueLabels.size() ? controlValueLabels[index].getBounds() : juce::Rectangle<int> {};
     }
+    bool isNativeSliderEnabledForLayoutTest(size_t index) const
+    {
+        return index < nativeSliders.size() && nativeSliders[index].isEnabled();
+    }
     juce::Rectangle<int> getFmFeedbackBoundsForLayoutTest() const { return fmFeedbackBox.getBounds(); }
     juce::Rectangle<int> getSidAdsrContentBoundsForLayoutTest() const;
     juce::Rectangle<int> getSidAdsrSliderBoundsForLayoutTest(size_t index) const

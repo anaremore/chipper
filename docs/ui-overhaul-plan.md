@@ -25,6 +25,7 @@ The overhaul is complete only when all of the following are implemented and veri
 - Complete: Browse remains open through periodic UI refresh and is kept above the editor until explicitly closed, loaded, or dismissed with Escape.
 - Complete: NES exposes five truthful lanes—Pulse 1, Pulse 2, Triangle, Noise, and independently gated DMC. Noise owns mode/period; DMC owns its native DAC/rate/sample path and has no fake conventional level trim.
 - Complete: Game Boy / DMG exposes four native lanes with Pulse 1 sweep and Noise clock inside their owning cards, Wave RAM shape/NR32 level inside Wave, shared NRx2 envelope helpers in one truthful module, explicit NR51 routing, and an explicit three-pitched-lane Chip Poly contract.
+- Complete: SN76489 / Sega PSG presents three compact tone lanes beside a deeper Noise lane. Tone Stack/Pitch Motion stay spatially under the tone group; Noise owns mode, preset-only bias, native attenuation, and modern trim; Chip Poly explicitly allocates only the three tone lanes.
 - Complete: actionable sample empty states begin with NES DMC, whose waveform surface offers a direct `Load a .dmc sample` recovery action.
 - Complete: shared chip-family classification, browser grouping, density policy, and centralized editor-height rules.
 - Complete: shared four-operator FM editor with carrier/modulator grid, per-operator editing, resolved register readouts, and algorithm visualization.
