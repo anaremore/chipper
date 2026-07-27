@@ -894,6 +894,29 @@ bool checkYm2612DacModeLayout()
     return ok;
 }
 
+bool checkCompactOplWaveformPreviewPaint()
+{
+    OplWaveformPreview preview;
+    preview.setSize(320, 33);
+    preview.setWaveform(1, false);
+
+    const auto image = preview.createComponentSnapshot(preview.getLocalBounds());
+
+    int accentPixels = 0;
+    for (int y = 0; y < image.getHeight(); ++y)
+    {
+        for (int x = 0; x < image.getWidth(); ++x)
+        {
+            const auto colour = image.getPixelAt(x, y);
+            if (colour.getGreen() >= 120 && colour.getBlue() >= 140 && colour.getRed() <= 140)
+                ++accentPixels;
+        }
+    }
+
+    return expect(accentPixels >= 12,
+                  "compact OPL waveform preview did not paint an active trace");
+}
+
 bool checkOpl3UnifiedTopologyLayout()
 {
     const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::opl3);
@@ -5373,6 +5396,7 @@ int main()
     ok &= checkYm2149ToneNoiseMixLayout();
     ok &= checkYm2612DacModeLayout();
     ok &= checkOpl3UnifiedTopologyLayout();
+    ok &= checkCompactOplWaveformPreviewPaint();
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2612);
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2151);
     ok &= checkYm2151UnifiedOpmLayout();

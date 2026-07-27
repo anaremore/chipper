@@ -2255,11 +2255,16 @@ void OplWaveformPreview::paint(juce::Graphics& g)
     g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
 
     auto graph = bounds.reduced(7.0f, 5.0f);
-    if (graph.getWidth() < 60.0f || graph.getHeight() < 30.0f)
+    const auto compact = graph.getHeight() < 42.0f;
+    if (graph.getWidth() < 60.0f || graph.getHeight() < (compact ? 12.0f : 30.0f))
         return;
 
-    auto labelArea = graph.removeFromTop(13.0f);
-    graph.removeFromTop(2.0f);
+    auto labelArea = juce::Rectangle<float> {};
+    if (! compact)
+    {
+        labelArea = graph.removeFromTop(13.0f);
+        graph.removeFromTop(2.0f);
+    }
 
     const auto left = graph.getX();
     const auto right = graph.getRight();
@@ -2322,11 +2327,14 @@ void OplWaveformPreview::paint(juce::Graphics& g)
     g.setColour(activeColour.withAlpha(follow ? 0.72f : 1.0f));
     g.strokePath(path, juce::PathStrokeType(1.5f));
 
-    g.setColour(follow ? juce::Colour(0xffaebbc4) : juce::Colour(0xffdbe8e5));
-    g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
-    g.drawText(juce::String(follow ? "Preset -> " : "") + "OPL W" + juce::String(waveform),
-               labelArea,
-               juce::Justification::centredLeft);
+    if (! labelArea.isEmpty())
+    {
+        g.setColour(follow ? juce::Colour(0xffaebbc4) : juce::Colour(0xffdbe8e5));
+        g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
+        g.drawText(juce::String(follow ? "Preset -> " : "") + "OPL W" + juce::String(waveform),
+                   labelArea,
+                   juce::Justification::centredLeft);
+    }
 }
 
 void OutputScopePreview::setSamples(const ChipperAudioProcessor::OutputScopeSnapshot& newSamples)

@@ -6,7 +6,7 @@ param(
     [string]$Chip = "all",
     [ValidateSet("1180", "1240", "both")]
     [string]$Width = "both",
-    [ValidateSet("editor", "edit", "browser", "all")]
+    [ValidateSet("editor", "edit", "browser", "motion", "opl4op", "all")]
     [string]$Workspace = "editor",
     [switch]$ManifestOnly
 )
