@@ -26,12 +26,15 @@ must not silently reinterpret an existing ID or accepted state.
 - The APVTS root tag is `ChipperState`.
 - Unversioned state is schema 1. It is accepted and migrated to the current
   schema before APVTS restore.
-- Current saved state declares `stateSchemaVersion="2"`.
+- Current saved state declares `stateSchemaVersion="3"`. Schema 3 adds
+  optional embedded custom Wave RAM; unversioned, schema-1, and schema-2
+  states migrate with generated wave templates and no custom lanes.
 - Invalid versions and versions newer than the plugin supports fail explicitly;
   they are not partially interpreted.
 - A state payload may restore at most 4,096 low-level register writes and at
-  most 256 sample references per bank. Oversized register payloads fail;
-  oversized sample banks are bounded.
+  most 256 sample references per bank and 19 native custom Wave RAM lanes.
+  Oversized register or Wave RAM payloads fail; oversized sample banks are
+  bounded. Wave RAM lanes contain exactly 32 native-range samples.
 - Schema fixtures live in `tests/state/` and are exercised by
   `chipper_processor_midi_cc_smoke`.
 

@@ -35,6 +35,7 @@ WavetableSpec wavetableSpecForMode(ChipMode mode) noexcept;
 uint8_t quantizeWavetableSample(ChipMode mode, int sample) noexcept;
 WavetableLane quantizeWavetableLane(ChipMode mode, const WavetableLane& lane) noexcept;
 uint8_t wavetableWaveShapeForChannel(ChipMode mode, const PatchConfig& patch, size_t channel);
+bool wavetablePatchContentMatches(const PatchConfig& first, const PatchConfig& second) noexcept;
 uint8_t generatedWavetableSampleForPatch(ChipMode mode,
                                          const PatchConfig& patch,
                                          size_t channel,

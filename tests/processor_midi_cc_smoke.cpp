@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "State/PluginStateSchema.h"
+#include "State/WavetableState.h"
 
 #include <algorithm>
 #include <array>
@@ -2318,9 +2319,56 @@ int main()
     ok &= expect(tailProcessor.getTailLengthSeconds() >= 24.0,
                  "SID processor tail should include the longest selected release nibble");
 
+    ChipperAudioProcessor waveStateProcessor;
+    waveStateProcessor.prepareToPlay(48000.0, 64);
+    setPlainFromHost(waveStateProcessor, chipper::parameters::id::chipMode,
+                     static_cast<float>(static_cast<int>(chipper::ChipMode::huc6280)));
+    chipper::WavetableLane customWave {};
+    customWave[0] = 31u;
+    customWave[15] = 12u;
+    customWave[31] = 7u;
+    ok &= expect(waveStateProcessor.setWavetableLane(chipper::ChipMode::huc6280, 0u, customWave),
+                 "Processor should accept a native HuC6280 custom Wave RAM lane");
+    const auto customSnapshot = waveStateProcessor.wavetableSnapshot(chipper::ChipMode::huc6280, 0u);
+    ok &= expect(customSnapshot.custom && customSnapshot.samples == customWave,
+                 "Processor Wave RAM snapshot should expose the custom native samples");
+    processEmptyBlock(waveStateProcessor);
+    const auto customWaveDebug = waveStateProcessor.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(customWaveDebug, "waveRam0") == 31
+                     && jsonIntValue(customWaveDebug, "waveRam31") == 7,
+                 "Processor custom Wave RAM should reach the active HuC6280 core");
+    const auto waveStateXml = waveStateProcessor.createStateXml();
+    ok &= expect(waveStateXml != nullptr
+                     && waveStateXml->getChildByName(chipper::state::wavetableStateTag) != nullptr,
+                 "Saved processor state should embed custom Wave RAM");
+    if (waveStateXml != nullptr)
+    {
+        ChipperAudioProcessor waveRestoreProcessor;
+        waveRestoreProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(waveRestoreProcessor.restoreStateXml(*waveStateXml).wasOk(),
+                     "Custom Wave RAM state should restore successfully");
+        const auto restoredWave = waveRestoreProcessor.wavetableSnapshot(chipper::ChipMode::huc6280, 0u);
+        ok &= expect(restoredWave.custom && restoredWave.samples == customWave,
+                     "Custom Wave RAM should survive a host-state round trip exactly");
+        processEmptyBlock(waveRestoreProcessor);
+        const auto restoredWaveDebug = waveRestoreProcessor.currentCoreDebugStateJson();
+        ok &= expect(jsonIntValue(restoredWaveDebug, "waveRam0") == 31
+                         && jsonIntValue(restoredWaveDebug, "waveRam31") == 7,
+                     "Restored custom Wave RAM should reach the active HuC6280 core");
+
+        auto invalidWaveState = std::make_unique<juce::XmlElement>(*waveStateXml);
+        if (auto* waveBank = invalidWaveState->getChildByName(chipper::state::wavetableStateTag))
+            if (auto* wave = waveBank->getChildByName(chipper::state::wavetableLaneStateTag))
+                wave->setAttribute("data", "FF");
+        ChipperAudioProcessor invalidWaveRestoreProcessor;
+        invalidWaveRestoreProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(invalidWaveRestoreProcessor.restoreStateXml(*invalidWaveState).failed(),
+                     "Malformed custom Wave RAM state should fail explicitly");
+    }
+
     auto versionedState = processor.createStateXml();
-    ok &= expect(versionedState != nullptr && versionedState->getIntAttribute("stateSchemaVersion") == 2,
-                 "Saved processor state should declare schema version 2");
+    ok &= expect(versionedState != nullptr && versionedState->getIntAttribute("stateSchemaVersion") == 3,
+                 "Saved processor state should declare schema version 3");
     if (versionedState != nullptr)
     {
         auto legacyState = std::make_unique<juce::XmlElement>(*versionedState);
@@ -2330,8 +2378,8 @@ int main()
         ok &= expect(legacyRestoreProcessor.restoreStateXml(*legacyState).wasOk(),
                      "Unversioned schema-1 state should migrate successfully");
         const auto migratedState = legacyRestoreProcessor.createStateXml();
-        ok &= expect(migratedState != nullptr && migratedState->getIntAttribute("stateSchemaVersion") == 2,
-                     "Migrated state should be re-saved as schema version 2");
+        ok &= expect(migratedState != nullptr && migratedState->getIntAttribute("stateSchemaVersion") == 3,
+                     "Migrated state should be re-saved as schema version 3");
 
         auto futureState = std::make_unique<juce::XmlElement>(*versionedState);
         futureState->setAttribute("stateSchemaVersion", 999);
@@ -2360,6 +2408,7 @@ int main()
 
     for (const auto& fixture : {
              std::pair { "legacy-v1-minimal.xml", true },
+             std::pair { "current-v3-minimal.xml", true },
              std::pair { "current-v2-minimal.xml", true },
              std::pair { "future-v999.xml", false },
              std::pair { "invalid-version.xml", false },

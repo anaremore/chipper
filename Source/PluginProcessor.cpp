@@ -3,12 +3,14 @@
 #include "Engine/ChipDescriptors.h"
 #include "PluginEditor.h"
 #include "State/PluginStateSchema.h"
+#include "State/WavetableState.h"
 
 #include <algorithm>
 #include <array>
 #include <cstring>
 #include <filesystem>
 #include <string_view>
+#include <thread>
 
 namespace
 {
@@ -1016,6 +1018,67 @@ void ChipperAudioProcessor::prepareToPlay(double sampleRate, int)
         sample.store(0.0f, std::memory_order_relaxed);
     outputScopeWriteIndex.store(0u, std::memory_order_release);
     ensureCore();
+}
+
+ChipperAudioProcessor::PublishedWavetableMemory::PublishedWavetableMemory() noexcept
+{
+    for (auto& readers : readerCounts)
+        readers.store(0u, std::memory_order_relaxed);
+}
+
+chipper::WavetableMemory ChipperAudioProcessor::PublishedWavetableMemory::load() const noexcept
+{
+    for (;;)
+    {
+        const auto slot = activeSlot.load(std::memory_order_acquire);
+        auto& readers = readerCounts[slot];
+        readers.fetch_add(1u, std::memory_order_acquire);
+
+        if (slot == activeSlot.load(std::memory_order_acquire))
+        {
+            const auto memory = slots[slot];
+            readers.fetch_sub(1u, std::memory_order_release);
+            return memory;
+        }
+
+        readers.fetch_sub(1u, std::memory_order_release);
+    }
+}
+
+void ChipperAudioProcessor::PublishedWavetableMemory::store(const chipper::WavetableMemory& memory) noexcept
+{
+    const auto nextSlot = static_cast<uint8_t>(activeSlot.load(std::memory_order_relaxed) ^ 1u);
+    while (readerCounts[nextSlot].load(std::memory_order_acquire) != 0u)
+        std::this_thread::yield();
+
+    slots[nextSlot] = memory;
+    activeSlot.store(nextSlot, std::memory_order_release);
+    revision.fetch_add(1u, std::memory_order_release);
+}
+
+int ChipperAudioProcessor::editableWavetableIndex(chipper::ChipMode mode) noexcept
+{
+    switch (mode)
+    {
+        case chipper::ChipMode::huc6280: return 0;
+        case chipper::ChipMode::namcoWsg: return 1;
+        case chipper::ChipMode::scc: return 2;
+        default: return -1;
+    }
+}
+
+chipper::WavetableMemory ChipperAudioProcessor::wavetableMemory(chipper::ChipMode mode) const noexcept
+{
+    const auto index = editableWavetableIndex(mode);
+    return index >= 0 ? wavetableMemories[static_cast<size_t>(index)].load() : chipper::WavetableMemory {};
+}
+
+void ChipperAudioProcessor::publishWavetableMemory(chipper::ChipMode mode,
+                                                   const chipper::WavetableMemory& memory) noexcept
+{
+    const auto index = editableWavetableIndex(mode);
+    if (index >= 0)
+        wavetableMemories[static_cast<size_t>(index)].store(memory);
 }
 
 size_t ChipperAudioProcessor::corePoolIndex(chipper::ChipMode mode) noexcept
@@ -3123,7 +3186,7 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
         && dmcPlaybackMode == 2;
     const auto resolvedDmgStereoRoute = sampleMapRequestsOneShot && dmgStereoRoute == 0 ? 2 : dmgStereoRoute;
 
-    return chipper::makePatchConfig(
+    auto patch = chipper::makePatchConfig(
         selectedMode,
         chipper::parameters::macroFromChoice(macroChoice),
         apvts.getRawParameterValue(chipper::parameters::id::macroControl1)->load(),
@@ -3233,6 +3296,96 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
             static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::fmOperator3ReleaseRate)->load())),
             static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::fmOperator4ReleaseRate)->load()))
         });
+    patch.wavetableMemory = wavetableMemory(selectedMode);
+    return patch;
+}
+
+ChipperAudioProcessor::WavetableSnapshot ChipperAudioProcessor::wavetableSnapshot(chipper::ChipMode mode,
+                                                                                   size_t lane) const
+{
+    WavetableSnapshot snapshot;
+    const auto spec = chipper::wavetableSpecForMode(mode);
+    if (lane >= spec.laneCount)
+        return snapshot;
+
+    chipper::WavetableMemory memory;
+    uint64_t revision = 0u;
+    do
+    {
+        revision = wavetableRevision(mode);
+        memory = wavetableMemory(mode);
+    }
+    while (revision != wavetableRevision(mode));
+
+    auto patch = currentPatchFromParameters();
+    patch.wavetableMemory = memory;
+    snapshot.samples = chipper::wavetableLaneForPatch(mode, patch, lane);
+    snapshot.lane = lane;
+    snapshot.bitDepth = spec.bitDepth;
+    snapshot.maximumSampleValue = spec.maximumSampleValue;
+    snapshot.custom = memory.customLanes[lane];
+    snapshot.revision = revision;
+    return snapshot;
+}
+
+bool ChipperAudioProcessor::setWavetableLane(chipper::ChipMode mode,
+                                             size_t lane,
+                                             const chipper::WavetableLane& samples)
+{
+    const auto spec = chipper::wavetableSpecForMode(mode);
+    const auto index = editableWavetableIndex(mode);
+    if (index < 0 || lane >= spec.laneCount)
+        return false;
+
+    const auto quantized = chipper::quantizeWavetableLane(mode, samples);
+    auto changed = false;
+    {
+        const std::lock_guard<std::mutex> lock(wavetableWriteMutex);
+        auto memory = wavetableMemories[static_cast<size_t>(index)].load();
+        changed = ! memory.customLanes[lane] || memory.lanes[lane] != quantized;
+        if (changed)
+        {
+            memory.lanes[lane] = quantized;
+            memory.customLanes[lane] = true;
+            wavetableMemories[static_cast<size_t>(index)].store(memory);
+        }
+    }
+
+    if (changed)
+        updateHostDisplay(juce::AudioProcessorListener::ChangeDetails {}.withNonParameterStateChanged(true));
+    return true;
+}
+
+bool ChipperAudioProcessor::resetWavetableLane(chipper::ChipMode mode, size_t lane)
+{
+    const auto spec = chipper::wavetableSpecForMode(mode);
+    const auto index = editableWavetableIndex(mode);
+    if (index < 0 || lane >= spec.laneCount)
+        return false;
+
+    auto changed = false;
+    {
+        const std::lock_guard<std::mutex> lock(wavetableWriteMutex);
+        auto memory = wavetableMemories[static_cast<size_t>(index)].load();
+        changed = memory.customLanes[lane];
+        if (changed)
+        {
+            memory.customLanes[lane] = false;
+            wavetableMemories[static_cast<size_t>(index)].store(memory);
+        }
+    }
+
+    if (changed)
+        updateHostDisplay(juce::AudioProcessorListener::ChangeDetails {}.withNonParameterStateChanged(true));
+    return true;
+}
+
+uint64_t ChipperAudioProcessor::wavetableRevision(chipper::ChipMode mode) const noexcept
+{
+    const auto index = editableWavetableIndex(mode);
+    return index >= 0
+        ? wavetableMemories[static_cast<size_t>(index)].revision.load(std::memory_order_acquire)
+        : 0u;
 }
 
 void ChipperAudioProcessor::replayPendingRegisterState()
@@ -3320,6 +3473,8 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
         xml->removeChildElement(existingOpnbAdpcmAState, true);
     while (auto* existingOpnbAdpcmBState = xml->getChildByName(opnbAdpcmBSampleStateTag))
         xml->removeChildElement(existingOpnbAdpcmBState, true);
+    while (auto* existingWavetableState = xml->getChildByName(chipper::state::wavetableStateTag))
+        xml->removeChildElement(existingWavetableState, true);
 
     if (core != nullptr)
     {
@@ -3339,6 +3494,13 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
 
         xml->addChildElement(coreState);
     }
+
+    chipper::state::WavetableState wavetableState;
+    wavetableState.huc6280 = wavetableMemory(chipper::ChipMode::huc6280);
+    wavetableState.namcoWsg = wavetableMemory(chipper::ChipMode::namcoWsg);
+    wavetableState.scc = wavetableMemory(chipper::ChipMode::scc);
+    if (auto customWaveState = chipper::state::createWavetableStateXml(wavetableState))
+        xml->addChildElement(customWaveState.release());
 
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
@@ -3465,6 +3627,7 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     DmcSampleSlot restoredOpnaAdpcmBSample;
     DmcSampleSlot restoredOpnbAdpcmASample;
     DmcSampleSlot restoredOpnbAdpcmBSample;
+    chipper::state::WavetableState restoredWavetableState;
     juce::StringArray dmcSampleRestoreIssues;
     juce::StringArray spc700SampleRestoreIssues;
     juce::StringArray paulaSampleRestoreIssues;
@@ -3496,6 +3659,13 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
             }
         }
         xml->removeChildElement(coreState, true);
+    }
+
+    if (auto* customWaveState = xml->getChildByName(chipper::state::wavetableStateTag))
+    {
+        if (const auto result = chipper::state::restoreWavetableStateXml(*customWaveState, restoredWavetableState); result.failed())
+            return result;
+        xml->removeChildElement(customWaveState, true);
     }
 
     if (auto* dmcBankState = xml->getChildByName(dmcBankStateTag))
@@ -3642,6 +3812,12 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
 
     const juce::ScopedLock callbackGuard(getCallbackLock());
     apvts.replaceState(juce::ValueTree::fromXml(*xml));
+    {
+        const std::lock_guard<std::mutex> lock(wavetableWriteMutex);
+        publishWavetableMemory(chipper::ChipMode::huc6280, restoredWavetableState.huc6280);
+        publishWavetableMemory(chipper::ChipMode::namcoWsg, restoredWavetableState.namcoWsg);
+        publishWavetableMemory(chipper::ChipMode::scc, restoredWavetableState.scc);
+    }
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
         dmcSampleBank = std::move(restoredDmcBank);

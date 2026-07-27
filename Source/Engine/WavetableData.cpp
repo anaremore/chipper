@@ -162,6 +162,21 @@ uint8_t wavetableWaveShapeForChannel(ChipMode mode, const PatchConfig& patch, si
     return static_cast<uint8_t>(choice == 0 ? baseChoice : choice);
 }
 
+bool wavetablePatchContentMatches(const PatchConfig& first, const PatchConfig& second) noexcept
+{
+    constexpr auto tolerance = 0.0001f;
+    return std::abs(first.control3 - second.control3) < tolerance
+        && first.waveShape == second.waveShape
+        && first.sidVoice2WaveShape == second.sidVoice2WaveShape
+        && first.sidVoice3WaveShape == second.sidVoice3WaveShape
+        && first.pulse2Duty == second.pulse2Duty
+        && first.dmgWaveLevel == second.dmgWaveLevel
+        && first.snNoiseMode == second.snNoiseMode
+        && first.ymEnvelopeShape == second.ymEnvelopeShape
+        && first.dmgStereoRoute == second.dmgStereoRoute
+        && first.wavetableMemory == second.wavetableMemory;
+}
+
 uint8_t generatedWavetableSampleForPatch(ChipMode mode,
                                          const PatchConfig& patch,
                                          size_t channel,

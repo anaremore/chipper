@@ -3636,6 +3636,8 @@ set(CHIPPER_PLUGIN_SOURCES
     Source/PluginProcessor.h
     Source/State/PluginStateSchema.cpp
     Source/State/PluginStateSchema.h
+    Source/State/WavetableState.cpp
+    Source/State/WavetableState.h
     Source/UI/ChipUiModel.cpp
     Source/UI/ChipUiModel.h
     Source/UI/ChipperFmEditor.cpp

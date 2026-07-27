@@ -7637,12 +7637,17 @@ public:
 
     void setPatch(const PatchConfig& newPatch) override
     {
+        const auto waveContentChanged = ! wavetablePatchContentMatches(newPatch, patch);
         if (newPatch.playMode != patch.playMode || newPatch.sourceEnabled != patch.sourceEnabled)
             clearChipPolyState();
 
         patch = newPatch;
         for (size_t channel = 0; channel < noiseControl.size(); ++channel)
+        {
             noiseControl[channel] = huc6280NoiseControlForPatch(patch, channel);
+            if (waveContentChanged)
+                seedWave(channel);
+        }
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -8140,9 +8145,14 @@ public:
 
     void setPatch(const PatchConfig& nextPatch) override
     {
+        const auto waveContentChanged = ! wavetablePatchContentMatches(nextPatch, patch);
         if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled)
             clearChipPolyState();
         patch = nextPatch;
+
+        if (waveContentChanged)
+            for (size_t channel = 0; channel < waveRam.size(); ++channel)
+                seedWave(channel);
     }
 
     void writeRegister(uint16_t address, uint8_t value) override
@@ -8618,9 +8628,14 @@ public:
 
     void setPatch(const PatchConfig& nextPatch) override
     {
+        const auto waveContentChanged = ! wavetablePatchContentMatches(nextPatch, patch);
         if (nextPatch.playMode != patch.playMode || nextPatch.sourceEnabled != patch.sourceEnabled)
             clearChipPolyState();
         patch = nextPatch;
+
+        if (waveContentChanged)
+            for (size_t channel = 0; channel < waveRam.size(); ++channel)
+                seedWave(channel);
     }
 
     void writeRegister(uint16_t address, uint8_t value) override

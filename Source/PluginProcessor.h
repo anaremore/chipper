@@ -31,6 +31,16 @@ public:
         float loopEnd = 1.0f;
     };
 
+    struct WavetableSnapshot
+    {
+        chipper::WavetableLane samples {};
+        size_t lane = 0u;
+        uint8_t bitDepth = 0u;
+        uint8_t maximumSampleValue = 0u;
+        bool custom = false;
+        uint64_t revision = 0u;
+    };
+
     struct DmcSampleSlot
     {
         juce::String name;
@@ -171,6 +181,10 @@ public:
     chipper::ChipMode currentChipMode() const { return publishedActiveMode.load(std::memory_order_acquire); }
     OutputScopeSnapshot outputScopeSnapshot() const;
     SampleWaveformSnapshot sampleWaveformSnapshot(chipper::ChipMode mode) const;
+    WavetableSnapshot wavetableSnapshot(chipper::ChipMode mode, size_t lane) const;
+    bool setWavetableLane(chipper::ChipMode mode, size_t lane, const chipper::WavetableLane& samples);
+    bool resetWavetableLane(chipper::ChipMode mode, size_t lane);
+    uint64_t wavetableRevision(chipper::ChipMode mode) const noexcept;
     juce::Result loadNesDmcSampleFile(const juce::File& file);
     juce::Result loadNesDmcSampleDirectory(const juce::File& directory);
     juce::Result loadSpc700BrrSampleFile(const juce::File& file);
@@ -214,6 +228,19 @@ public:
 private:
     static constexpr size_t chipModeCount = static_cast<size_t>(chipper::ChipMode::ym2610b) + 1u;
     static constexpr size_t corePoolSize = chipModeCount;
+    static constexpr size_t editableWavetableModeCount = 3u;
+
+    struct PublishedWavetableMemory
+    {
+        PublishedWavetableMemory() noexcept;
+        chipper::WavetableMemory load() const noexcept;
+        void store(const chipper::WavetableMemory& memory) noexcept;
+
+        std::array<chipper::WavetableMemory, 2> slots;
+        mutable std::array<std::atomic<uint32_t>, 2> readerCounts {};
+        std::atomic<uint8_t> activeSlot { 0u };
+        std::atomic<uint64_t> revision { 0u };
+    };
 
     struct HeldMidiNote
     {
@@ -226,6 +253,9 @@ private:
     void initializeCorePool();
     void synchronizeActiveExternalAssets(chipper::ChipMode mode);
     static size_t corePoolIndex(chipper::ChipMode mode) noexcept;
+    static int editableWavetableIndex(chipper::ChipMode mode) noexcept;
+    chipper::WavetableMemory wavetableMemory(chipper::ChipMode mode) const noexcept;
+    void publishWavetableMemory(chipper::ChipMode mode, const chipper::WavetableMemory& memory) noexcept;
     chipper::PatchConfig currentPatchFromParameters() const;
     void replayPendingRegisterState();
     void replayHeldNotes();
@@ -315,6 +345,8 @@ private:
     juce::String opnbAdpcmBSampleRestoreWarning;
     std::atomic<uint64_t> opnbAdpcmBSampleRevision { 0 };
     uint64_t activeOpnbAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
+    mutable std::mutex wavetableWriteMutex;
+    std::array<PublishedWavetableMemory, editableWavetableModeCount> wavetableMemories;
     chipper::PatchConfig activePatch;
     std::vector<chipper::RegisterWrite> pendingRegisterState;
     chipper::PatchConfig lastObservedMacroPatch;

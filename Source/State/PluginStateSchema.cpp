@@ -11,6 +11,14 @@ juce::Result migrateSchema1To2(juce::XmlElement& xml)
     xml.setAttribute(schemaVersionAttribute, 2);
     return juce::Result::ok();
 }
+
+juce::Result migrateSchema2To3(juce::XmlElement& xml)
+{
+    // Schema 3 adds optional embedded custom Wave RAM. Existing schema-2
+    // states have no custom lanes and therefore need only the version marker.
+    xml.setAttribute(schemaVersionAttribute, 3);
+    return juce::Result::ok();
+}
 }
 
 juce::Result validateAndMigrate(juce::XmlElement& xml, const juce::Identifier& expectedRootType)
@@ -39,6 +47,8 @@ juce::Result validateAndMigrate(juce::XmlElement& xml, const juce::Identifier& e
         juce::Result migration = juce::Result::fail("No migration is available for this Chipper state.");
         if (schemaVersion == 1)
             migration = migrateSchema1To2(xml);
+        else if (schemaVersion == 2)
+            migration = migrateSchema2To3(xml);
         if (migration.failed())
             return migration;
         ++schemaVersion;
