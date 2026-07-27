@@ -106,6 +106,9 @@ inline constexpr auto fmOperator1ReleaseRate = "fmOperator1ReleaseRate";
 inline constexpr auto fmOperator2ReleaseRate = "fmOperator2ReleaseRate";
 inline constexpr auto fmOperator3ReleaseRate = "fmOperator3ReleaseRate";
 inline constexpr auto fmOperator4ReleaseRate = "fmOperator4ReleaseRate";
+inline constexpr auto opmLfoWaveform = "opmLfoWaveform";
+inline constexpr auto opmLfoPms = "opmLfoPms";
+inline constexpr auto opmLfoAms = "opmLfoAms";
 }
 
 struct MidiCcMapping
@@ -115,7 +118,7 @@ struct MidiCcMapping
     const char* label = nullptr;
 };
 
-inline constexpr auto midiCcMappingCount = 96u;
+inline constexpr auto midiCcMappingCount = 99u;
 using MidiCcMappingList = std::array<MidiCcMapping, midiCcMappingCount>;
 
 const MidiCcMappingList& midiCcMappings();

@@ -215,6 +215,25 @@ juce::StringArray fmOperatorReleaseRateChoices()
     return choices;
 }
 
+juce::StringArray opmLfoWaveformChoices()
+{
+    return { "Preset", "Saw", "Square", "Triangle", "Noise" };
+}
+
+juce::StringArray opmLfoPmsChoices()
+{
+    juce::StringArray choices;
+    choices.add("Preset");
+    for (int sensitivity = 0; sensitivity <= 7; ++sensitivity)
+        choices.add(juce::String(sensitivity));
+    return choices;
+}
+
+juce::StringArray opmLfoAmsChoices()
+{
+    return { "Preset", "0", "1", "2", "3" };
+}
+
 juce::StringArray nesDmcRateChoices()
 {
     return {
@@ -495,6 +514,24 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::ParameterID { id::fmOperator4ReleaseRate, 1 },
         "FM Operator 4 Release Rate",
         fmOperatorReleaseRateChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::opmLfoWaveform, 1 },
+        "YM2151 LFO Waveform",
+        opmLfoWaveformChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::opmLfoPms, 1 },
+        "YM2151 Phase Modulation Sensitivity",
+        opmLfoPmsChoices(),
+        0));
+
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID { id::opmLfoAms, 1 },
+        "YM2151 Amplitude Modulation Sensitivity",
+        opmLfoAmsChoices(),
         0));
 
     params.push_back(std::make_unique<juce::AudioParameterBool>(

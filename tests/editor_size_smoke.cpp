@@ -1490,10 +1490,33 @@ bool checkYm2151UnifiedOpmLayout()
 
         const auto lfo = editor.getStereoSpreadBoundsForLayoutTest();
         const auto pan = editor.getDmgStereoRouteBoundsForLayoutTest();
+        const auto lfoWaveform = editor.getOpmLfoWaveformBoundsForLayoutTest();
+        const auto lfoPms = editor.getOpmLfoPmsBoundsForLayoutTest();
+        const auto lfoAms = editor.getOpmLfoAmsBoundsForLayoutTest();
         widthOk &= expect(! lfo.isEmpty() && lfo.getHeight() >= 16 && routing.expanded(2).contains(lfo),
                           "YM2151 LFO Depth should live in shared modulation/routing");
         widthOk &= expect(! pan.isEmpty() && pan.getHeight() >= 18 && routing.expanded(2).contains(pan),
                           "YM2151 native pan pattern should live in shared modulation/routing");
+        const std::array<juce::Rectangle<int>, 5> routingControls {
+            lfo,
+            lfoWaveform,
+            lfoPms,
+            lfoAms,
+            pan
+        };
+        for (const auto& control : routingControls)
+            widthOk &= expect(! control.isEmpty()
+                                  && control.getHeight() >= 16
+                                  && routing.expanded(2).contains(control),
+                              "YM2151 LFO/routing control should remain readable and owned by its module");
+        for (size_t left = 0; left < routingControls.size(); ++left)
+            for (size_t right = left + 1u; right < routingControls.size(); ++right)
+                widthOk &= expect(! routingControls[left].intersects(routingControls[right]),
+                                  "YM2151 LFO/routing controls should not overlap");
+        widthOk &= expect(editor.isOpmLfoWaveformVisibleForLayoutTest()
+                              && editor.isOpmLfoPmsVisibleForLayoutTest()
+                              && editor.isOpmLfoAmsVisibleForLayoutTest(),
+                          "YM2151 direct waveform, PMS, and AMS choices should be visible");
         widthOk &= expect(editor.getGlobalStripLabelTextForLayoutTest() == "Clock + Output"
                               && footer.getHeight() <= 90,
                           "YM2151 footer should be the compact clock/output stage");

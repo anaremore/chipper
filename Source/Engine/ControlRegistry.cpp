@@ -101,7 +101,10 @@ const MidiCcMappingList& midiCcMappings()
         { 36, parameter_ids::fmOperator1AttackRate, "FM Operator 1 Attack Rate" },
         { 37, parameter_ids::fmOperator2AttackRate, "FM Operator 2 Attack Rate" },
         { 38, parameter_ids::fmOperator3AttackRate, "FM Operator 3 Attack Rate" },
-        { 39, parameter_ids::fmOperator4AttackRate, "FM Operator 4 Attack Rate" }
+        { 39, parameter_ids::fmOperator4AttackRate, "FM Operator 4 Attack Rate" },
+        { 20, parameter_ids::opmLfoWaveform, "YM2151 LFO Waveform" },
+        { 21, parameter_ids::opmLfoPms, "YM2151 Phase Modulation Sensitivity" },
+        { 22, parameter_ids::opmLfoAms, "YM2151 Amplitude Modulation Sensitivity" }
     }};
 
     return mappings;
@@ -223,6 +226,9 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::fmOperator2ReleaseRate: return parameter_ids::fmOperator2ReleaseRate;
         case ChipParameterRole::fmOperator3ReleaseRate: return parameter_ids::fmOperator3ReleaseRate;
         case ChipParameterRole::fmOperator4ReleaseRate: return parameter_ids::fmOperator4ReleaseRate;
+        case ChipParameterRole::opmLfoWaveform: return parameter_ids::opmLfoWaveform;
+        case ChipParameterRole::opmLfoPms: return parameter_ids::opmLfoPms;
+        case ChipParameterRole::opmLfoAms: return parameter_ids::opmLfoAms;
         case ChipParameterRole::clockHz: return parameter_ids::clockHz;
         case ChipParameterRole::outputDb: return parameter_ids::outputDb;
     }

@@ -1135,6 +1135,9 @@ add_test(NAME chipper_render_ym2151_noise_high_smoke
 add_test(NAME chipper_render_ym2151_lfo_depth_smoke
     COMMAND chipper_render --chip ym2151 --accuracy authentic --macro lead --wave-shape 5 --opm-lfo-depth 0.65 --clock 3579545 --rate 48000 --seconds 0.12 --note 69 --out ym2151-lfo-depth-smoke.wav --debug ym2151-lfo-depth-smoke.json
 )
+add_test(NAME chipper_render_ym2151_direct_lfo_smoke
+    COMMAND chipper_render --chip ym2151 --accuracy authentic --macro manual --wave-shape 5 --opm-feedback 7 --opm-lfo-depth 0.65 --opm-lfo-waveform noise --opm-pms 7 --opm-ams 3 --clock 3579545 --rate 48000 --seconds 0.08 --note 69 --out ym2151-direct-lfo-smoke.wav --debug ym2151-direct-lfo-smoke.json
+)
 add_test(NAME chipper_render_preset_opm_noise_envelope_hit_smoke
     COMMAND chipper_render --preset opm-noise-envelope-hit --rate 48000 --seconds 0.08 --note 48 --out preset-opm-noise-envelope-hit.wav --debug preset-opm-noise-envelope-hit.json
 )
@@ -2872,6 +2875,8 @@ if (Python3_Interpreter_FOUND)
             --core-min feedback0=6 --core-max feedback0=6
             --core-min algorithm0=4 --core-max algorithm0=4
             --core-min algorithmFeedbackRegister0=244 --core-max algorithmFeedbackRegister0=244
+            --core-min keyCode0=76 --core-max keyCode0=76
+            --core-min keyFraction0=0 --core-max keyFraction0=0
             --descriptor-param-kind macroControl2=chipRegister
             --descriptor-param-surface macroControl2=menu
             --descriptor-param-choices macroControl2=8
@@ -2911,6 +2916,31 @@ if (Python3_Interpreter_FOUND)
             --descriptor-param-kind stereoSpread=chipRegister --descriptor-param-surface stereoSpread=slider --descriptor-param-label "stereoSpread=LFO Depth"
     )
     set_tests_properties(chipper_render_ym2151_lfo_depth_assert PROPERTIES DEPENDS chipper_render_ym2151_lfo_depth_smoke)
+    add_test(NAME chipper_render_ym2151_direct_lfo_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-direct-lfo-smoke.json
+            --implemented-contains ymfm --macro Manual --min-peak 0.01
+            --core-min feedback0=7 --core-max feedback0=7
+            --core-min algorithmFeedbackRegister0=252 --core-max algorithmFeedbackRegister0=252
+            --core-min keyCode0=76 --core-max keyCode0=76
+            --core-min keyFraction0=0 --core-max keyFraction0=0
+            --core-min opmLfoWaveformChoice=4 --core-max opmLfoWaveformChoice=4
+            --core-min opmLfoPmsChoice=8 --core-max opmLfoPmsChoice=8
+            --core-min opmLfoAmsChoice=4 --core-max opmLfoAmsChoice=4
+            --core-min lfoWaveform=3 --core-max lfoWaveform=3
+            --core-min lfoPmSensitivity=7 --core-max lfoPmSensitivity=7
+            --core-min lfoAmSensitivity=3 --core-max lfoAmSensitivity=3
+            --core-min lfoRegister1B=3 --core-max lfoRegister1B=3
+            --core-min lfoChannelRegister0=115 --core-max lfoChannelRegister0=115
+            --core-min operatorAmEnable0=0 --core-max operatorAmEnable0=0
+            --core-min operatorAmEnable1=1 --core-max operatorAmEnable1=1
+            --core-min operatorAmEnable2=0 --core-max operatorAmEnable2=0
+            --core-min operatorAmEnable3=1 --core-max operatorAmEnable3=1
+            --descriptor-param-kind opmLfoWaveform=chipRegister --descriptor-param-surface opmLfoWaveform=menu --descriptor-param-choices opmLfoWaveform=5 --descriptor-param-label "opmLfoWaveform=Waveform"
+            --descriptor-param-kind opmLfoPms=chipRegister --descriptor-param-surface opmLfoPms=menu --descriptor-param-choices opmLfoPms=9 --descriptor-param-label "opmLfoPms=PMS"
+            --descriptor-param-kind opmLfoAms=chipRegister --descriptor-param-surface opmLfoAms=menu --descriptor-param-choices opmLfoAms=5 --descriptor-param-label "opmLfoAms=AMS"
+    )
+    set_tests_properties(chipper_render_ym2151_direct_lfo_assert PROPERTIES DEPENDS chipper_render_ym2151_direct_lfo_smoke)
+
 
     add_test(NAME chipper_render_preset_opm_noise_envelope_hit_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opm-noise-envelope-hit.json --implemented-contains ymfm --preset opm-noise-envelope-hit --macro Drum --play-mode "Big Mono" --output-db -11.5 --min-peak 0.01 --register-writes 0 --note-events 0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=1 --core-max sourceEnabled2=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled7=1 --core-max sourceEnabled7=1 --core-min algorithm0=2 --core-max algorithm0=2 --core-min feedback0=5 --core-max feedback0=5 --core-min algorithmFeedbackRegister0=234 --core-max algorithmFeedbackRegister0=234 --core-min noiseRegister=159 --core-max noiseRegister=159 --core-min noiseEnabled=1 --core-max noiseEnabled=1 --core-min noiseFrequency=31 --core-max noiseFrequency=31 --core-min envelopeShape=4 --core-max envelopeShape=4 --core-min attackRate0=31 --core-max attackRate0=31 --core-min decayRate0=24 --core-max decayRate0=24 --core-min sustainRate0=14 --core-max sustainRate0=14 --core-min sustainRelease0=63 --core-max sustainRelease0=63 --core-min fmOperatorLevel0=0.68 --core-max fmOperatorLevel0=0.68 --core-min fmOperatorLevel1=0.5 --core-max fmOperatorLevel1=0.5 --core-min fmOperatorLevel2=0.82 --core-max fmOperatorLevel2=0.82 --core-min fmOperatorLevel3=0.92 --core-max fmOperatorLevel3=0.92 --core-min operatorTotalLevel0=11 --core-max operatorTotalLevel0=11 --core-min operatorTotalLevel1=20 --core-max operatorTotalLevel1=20 --core-min operatorTotalLevel2=5 --core-max operatorTotalLevel2=5 --core-min operatorTotalLevel3=4 --core-max operatorTotalLevel3=4

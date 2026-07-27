@@ -1191,6 +1191,43 @@ std::vector<ParameterChoiceSpec> ym2151NoiseChoices()
     };
 }
 
+std::vector<ParameterChoiceSpec> ym2151LfoWaveformChoices()
+{
+    return {
+        choice("Preset", "Resolve the YM2151 LFO waveform from the selected preset recipe.", 0.0f, 0),
+        choice("Saw", "Write native YM2151 LFO waveform 0 (saw) to register $1B.", 0.25f, 1),
+        choice("Square", "Write native YM2151 LFO waveform 1 (square) to register $1B.", 0.5f, 2),
+        choice("Triangle", "Write native YM2151 LFO waveform 2 (triangle) to register $1B.", 0.75f, 3),
+        choice("Noise", "Write native YM2151 LFO waveform 3 (noise) to register $1B.", 1.0f, 4)
+    };
+}
+
+std::vector<ParameterChoiceSpec> ym2151LfoPmsChoices()
+{
+    return {
+        choice("Preset", "Derive YM2151 phase-modulation sensitivity from LFO Depth.", 0.0f, 0),
+        choice("0", "Write native PMS 0 to register $38+n.", 0.125f, 1),
+        choice("1", "Write native PMS 1 to register $38+n.", 0.25f, 2),
+        choice("2", "Write native PMS 2 to register $38+n.", 0.375f, 3),
+        choice("3", "Write native PMS 3 to register $38+n.", 0.5f, 4),
+        choice("4", "Write native PMS 4 to register $38+n.", 0.625f, 5),
+        choice("5", "Write native PMS 5 to register $38+n.", 0.75f, 6),
+        choice("6", "Write native PMS 6 to register $38+n.", 0.875f, 7),
+        choice("7", "Write native PMS 7 to register $38+n.", 1.0f, 8)
+    };
+}
+
+std::vector<ParameterChoiceSpec> ym2151LfoAmsChoices()
+{
+    return {
+        choice("Preset", "Derive YM2151 amplitude-modulation sensitivity from LFO Depth.", 0.0f, 0),
+        choice("0", "Write native AMS 0 to register $38+n.", 0.25f, 1),
+        choice("1", "Write native AMS 1 to register $38+n.", 0.5f, 2),
+        choice("2", "Write native AMS 2 to register $38+n.", 0.75f, 3),
+        choice("3", "Write native AMS 3 to register $38+n.", 1.0f, 4)
+    };
+}
+
 std::vector<ParameterChoiceSpec> ym2612EnvelopeShapeChoices()
 {
     return {
@@ -1897,7 +1934,40 @@ std::vector<ChipParameterSpec> ym2151ParameterSpecs()
                    "LFO Depth",
                    "Motion",
                    "Writes native YM2151 LFO rate/depth registers $18/$19/$1B, per-channel PM/AM sensitivity in $38+n, and AM-enable bits on audible carrier operators. Zero leaves the OPM LFO off.",
-                   ParameterKind::chipRegister)
+                   ParameterKind::chipRegister),
+        { ChipParameterRole::opmLfoWaveform,
+          "ym2151.lfoWaveform",
+          "Waveform",
+          "Motion",
+          "Writes the native YM2151 LFO waveform field in register $1B. The waveform remains configured when depth is zero.",
+          ParameterKind::chipRegister,
+          ControlSurface::menu,
+          ym2151LfoWaveformChoices(),
+          0.0f,
+          1.0f,
+          0.0f },
+        { ChipParameterRole::opmLfoPms,
+          "ym2151.lfoPms",
+          "PMS",
+          "Motion",
+          "Writes native YM2151 phase-modulation sensitivity 0-7 in register $38+n. Preset follows LFO Depth.",
+          ParameterKind::chipRegister,
+          ControlSurface::menu,
+          ym2151LfoPmsChoices(),
+          0.0f,
+          1.0f,
+          0.0f },
+        { ChipParameterRole::opmLfoAms,
+          "ym2151.lfoAms",
+          "AMS",
+          "Motion",
+          "Writes native YM2151 amplitude-modulation sensitivity 0-3 in register $38+n. Preset follows LFO Depth.",
+          ParameterKind::chipRegister,
+          ControlSurface::menu,
+          ym2151LfoAmsChoices(),
+          0.0f,
+          1.0f,
+          0.0f }
     };
 }
 
@@ -4896,7 +4966,10 @@ PatchConfig makePatchConfig(ChipMode mode,
                             std::array<int, 4> fmOperatorDecayRates,
                             std::array<int, 4> fmOperatorSustainRates,
                             std::array<int, 4> fmOperatorReleaseRates,
-                            WavetableMemory wavetableMemory)
+                            WavetableMemory wavetableMemory,
+                            int opmLfoWaveform,
+                            int opmLfoPms,
+                            int opmLfoAms)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid
@@ -5007,7 +5080,10 @@ PatchConfig makePatchConfig(ChipMode mode,
             std::clamp(fmOperatorReleaseRates[2], 0, 16),
             std::clamp(fmOperatorReleaseRates[3], 0, 16)
         },
-        std::move(wavetableMemory)
+        std::move(wavetableMemory),
+        std::clamp(opmLfoWaveform, 0, 4),
+        std::clamp(opmLfoPms, 0, 8),
+        std::clamp(opmLfoAms, 0, 4)
     };
 }
 
@@ -6054,6 +6130,9 @@ uint8_t ym2151LfoPmDepthForPatch(const PatchConfig& patch)
 
 uint8_t ym2151LfoWaveformForPatch(const PatchConfig& patch)
 {
+    if (patch.opmLfoWaveform > 0)
+        return static_cast<uint8_t>(std::clamp(patch.opmLfoWaveform - 1, 0, 3));
+
     if (clampControl(patch.stereoSpread) <= 0.001f)
         return 0;
 
@@ -6078,6 +6157,9 @@ uint8_t ym2151LfoWaveformForPatch(const PatchConfig& patch)
 
 uint8_t ym2151LfoPmSensitivityForPatch(const PatchConfig& patch)
 {
+    if (patch.opmLfoPms > 0)
+        return static_cast<uint8_t>(std::clamp(patch.opmLfoPms - 1, 0, 7));
+
     const auto amount = clampControl(patch.stereoSpread);
     if (amount <= 0.001f)
         return 0;
@@ -6087,6 +6169,9 @@ uint8_t ym2151LfoPmSensitivityForPatch(const PatchConfig& patch)
 
 uint8_t ym2151LfoAmSensitivityForPatch(const PatchConfig& patch)
 {
+    if (patch.opmLfoAms > 0)
+        return static_cast<uint8_t>(std::clamp(patch.opmLfoAms - 1, 0, 3));
+
     const auto amount = clampControl(patch.stereoSpread);
     if (amount <= 0.001f)
         return 0;

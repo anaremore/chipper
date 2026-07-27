@@ -367,6 +367,72 @@ bool expectFourOperatorCarrierRoleDebug(int chipChoice, const char* label)
                  std::string(label) + " algorithm 4 debug JSON should expose M/C/M/C operator roles");
     return ok;
 }
+bool expectOpmDirectLfoAndFeedbackPitchNeutrality()
+{
+    ChipperAudioProcessor processor;
+    processor.prepareToPlay(48000.0, 256);
+    sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 12));
+    setPlainFromHost(processor, chipper::parameters::id::waveShape, 5.0f);
+    setPlainFromHost(processor, chipper::parameters::id::stereoSpread, 0.65f);
+    sendNoteOn(processor, 69);
+    const auto before = processor.currentCoreDebugStateJson();
+    const auto keyCode = jsonIntValue(before, "keyCode0");
+    const auto keyFraction = jsonIntValue(before, "keyFraction0");
+    sendController(processor, 20, controllerValueForChoice(processor, chipper::parameters::id::opmLfoWaveform, 4));
+    sendController(processor, 21, controllerValueForChoice(processor, chipper::parameters::id::opmLfoPms, 8));
+    sendController(processor, 22, controllerValueForChoice(processor, chipper::parameters::id::opmLfoAms, 4));
+    const auto direct = processor.currentCoreDebugStateJson();
+    auto ok = true;
+    ok &= expect(jsonIntValue(direct, "opmLfoWaveformChoice") == 4
+                     && jsonIntValue(direct, "opmLfoPmsChoice") == 8
+                     && jsonIntValue(direct, "opmLfoAmsChoice") == 4,
+                 "CC20-22 should apply the exact direct YM2151 LFO choices to a held note");
+    ok &= expect(jsonIntValue(direct, "lfoWaveform") == 3
+                     && jsonIntValue(direct, "lfoPmSensitivity") == 7
+                     && jsonIntValue(direct, "lfoAmSensitivity") == 3
+                     && jsonIntValue(direct, "lfoRegister1B") == 3
+                     && jsonIntValue(direct, "lfoChannelRegister0") == 0x73,
+                 "Direct YM2151 LFO choices should write exact $1B and $38+n register values");
+    ok &= expect(jsonIntValue(direct, "keyCode0") == keyCode
+                     && jsonIntValue(direct, "keyFraction0") == keyFraction,
+                 "Changing direct YM2151 LFO choices should preserve held-note pitch");
+    sendController(processor, 77, 127);
+    const auto feedback = processor.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(feedback, "feedback0") == 7
+                     && jsonIntValue(feedback, "algorithmFeedbackRegister0") == 0xfcu,
+                 "Maximum YM2151 feedback should update the native feedback register");
+    ok &= expect(jsonIntValue(feedback, "keyCode0") == keyCode
+                     && jsonIntValue(feedback, "keyFraction0") == keyFraction,
+                 "YM2151 feedback must remain timbral and pitch-neutral for a held note");
+    return ok;
+}
+
+bool expectFeedbackPitchNeutrality(int chipChoice, const char* label)
+{
+    ChipperAudioProcessor processor;
+    processor.prepareToPlay(48000.0, 256);
+    sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, chipChoice));
+    sendController(processor, 77, 0);
+    sendNoteOn(processor, 69);
+
+    const auto feedback0 = processor.currentCoreDebugStateJson();
+    const auto fnum = jsonIntValue(feedback0, "fnum0");
+    const auto block = jsonIntValue(feedback0, "block0");
+    auto ok = expect(jsonIntValue(feedback0, "feedback0") == 0,
+                     std::string(label) + " feedback-neutrality fixture should begin at native feedback 0");
+    ok &= expect(fnum > 0,
+                 std::string(label) + " feedback-neutrality fixture should expose a valid held-note pitch");
+
+    sendController(processor, 77, 127);
+    const auto feedback7 = processor.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(feedback7, "feedback0") == 7,
+                 std::string(label) + " maximum feedback should update the native feedback field");
+    ok &= expect(jsonIntValue(feedback7, "fnum0") == fnum
+                     && jsonIntValue(feedback7, "block0") == block,
+                 std::string(label) + " feedback must remain timbral and pitch-neutral for a held note");
+    return ok;
+}
+
 
 bool writeDmcFixture(const juce::File& file, uint8_t seed)
 {
@@ -776,9 +842,9 @@ bool expectMotionPlaybackAndState()
 
     const auto stateXml = processor.createStateXml();
     ok &= expect(stateXml != nullptr
-                     && stateXml->getIntAttribute(chipper::state::schemaVersionAttribute) == 4
+                     && stateXml->getIntAttribute(chipper::state::schemaVersionAttribute) == 5
                      && stateXml->getChildByName(chipper::state::motionStateTag) != nullptr,
-                 "Schema-v4 processor state should embed edited tracker motion");
+                 "Schema-v5 processor state should embed edited tracker motion");
     if (stateXml != nullptr)
     {
         ChipperAudioProcessor restored;
@@ -1247,6 +1313,9 @@ int main()
     }
     ok &= expectFourOperatorCarrierRoleDebug(5, "OPN2");
     ok &= expectFourOperatorCarrierRoleDebug(12, "OPM");
+    ok &= expectOpmDirectLfoAndFeedbackPitchNeutrality();
+    ok &= expectFeedbackPitchNeutrality(5, "OPN2");
+    ok &= expectFeedbackPitchNeutrality(6, "OPL3");
 
     {
         auto opnaRomFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
@@ -2510,8 +2579,8 @@ int main()
     }
 
     auto versionedState = processor.createStateXml();
-    ok &= expect(versionedState != nullptr && versionedState->getIntAttribute("stateSchemaVersion") == 4,
-                 "Saved processor state should declare schema version 4");
+    ok &= expect(versionedState != nullptr && versionedState->getIntAttribute("stateSchemaVersion") == 5,
+                 "Saved processor state should declare schema version 5");
     if (versionedState != nullptr)
     {
         auto legacyState = std::make_unique<juce::XmlElement>(*versionedState);
@@ -2521,8 +2590,45 @@ int main()
         ok &= expect(legacyRestoreProcessor.restoreStateXml(*legacyState).wasOk(),
                      "Unversioned schema-1 state should migrate successfully");
         const auto migratedState = legacyRestoreProcessor.createStateXml();
-        ok &= expect(migratedState != nullptr && migratedState->getIntAttribute("stateSchemaVersion") == 4,
-                     "Migrated state should be re-saved as schema version 4");
+        ok &= expect(migratedState != nullptr && migratedState->getIntAttribute("stateSchemaVersion") == 5,
+                     "Migrated state should be re-saved as schema version 5");
+        ChipperAudioProcessor opmLegacySource;
+        opmLegacySource.prepareToPlay(48000.0, 64);
+        auto legacyOpmState = opmLegacySource.createStateXml();
+        ok &= expect(legacyOpmState != nullptr, "Should create legacy OPM migration fixture state");
+        if (legacyOpmState != nullptr)
+        {
+            legacyOpmState->setAttribute(chipper::state::schemaVersionAttribute, 4);
+            int removedOpmParameters = 0;
+            for (auto* child = legacyOpmState->getFirstChildElement(); child != nullptr;)
+            {
+                auto* next = child->getNextElement();
+                const auto id = child->getStringAttribute("id");
+                if (id == chipper::parameters::id::opmLfoWaveform
+                    || id == chipper::parameters::id::opmLfoPms
+                    || id == chipper::parameters::id::opmLfoAms)
+                {
+                    legacyOpmState->removeChildElement(child, true);
+                    ++removedOpmParameters;
+                }
+                child = next;
+            }
+            ok &= expect(removedOpmParameters == 3, "Legacy OPM migration fixture should omit all three schema-v5 choices");
+            ChipperAudioProcessor staleOpmProcessor;
+            staleOpmProcessor.prepareToPlay(48000.0, 64);
+            setPlainFromHost(staleOpmProcessor, chipper::parameters::id::opmLfoWaveform, 4.0f);
+            setPlainFromHost(staleOpmProcessor, chipper::parameters::id::opmLfoPms, 8.0f);
+            setPlainFromHost(staleOpmProcessor, chipper::parameters::id::opmLfoAms, 4.0f);
+            ok &= expect(parameterValue(staleOpmProcessor, chipper::parameters::id::opmLfoWaveform) == 4.0f
+                             && parameterValue(staleOpmProcessor, chipper::parameters::id::opmLfoPms) == 8.0f
+                             && parameterValue(staleOpmProcessor, chipper::parameters::id::opmLfoAms) == 4.0f,
+                         "OPM migration regression setup should begin with stale direct choices");
+            ok &= expect(staleOpmProcessor.restoreStateXml(*legacyOpmState).wasOk(),
+                         "Schema-v4 state missing direct OPM choices should migrate successfully");
+            ok &= expectNear(parameterValue(staleOpmProcessor, chipper::parameters::id::opmLfoWaveform), 0.0f, 0.001f, "Schema-v4 migration should reset OPM waveform to Preset");
+            ok &= expectNear(parameterValue(staleOpmProcessor, chipper::parameters::id::opmLfoPms), 0.0f, 0.001f, "Schema-v4 migration should reset OPM PMS to Preset");
+            ok &= expectNear(parameterValue(staleOpmProcessor, chipper::parameters::id::opmLfoAms), 0.0f, 0.001f, "Schema-v4 migration should reset OPM AMS to Preset");
+        }
 
         auto futureState = std::make_unique<juce::XmlElement>(*versionedState);
         futureState->setAttribute("stateSchemaVersion", 999);

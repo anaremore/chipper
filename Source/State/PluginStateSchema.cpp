@@ -1,5 +1,7 @@
 #include "PluginStateSchema.h"
 
+#include "Engine/ControlRegistry.h"
+
 namespace chipper::state
 {
 namespace
@@ -25,6 +27,31 @@ juce::Result migrateSchema3To4(juce::XmlElement& xml)
     // Schema 4 adds optional per-chip tracker-motion patterns. Existing
     // schema-3 states use the disabled neutral pattern for every chip.
     xml.setAttribute(schemaVersionAttribute, 4);
+    return juce::Result::ok();
+}
+
+void ensureChoiceParameterDefault(juce::XmlElement& xml, const char* parameterId)
+{
+    for (auto* child : xml.getChildIterator())
+    {
+        if (child != nullptr && child->getStringAttribute("id") == parameterId)
+            return;
+    }
+
+    auto* parameter = new juce::XmlElement("PARAM");
+    parameter->setAttribute("id", parameterId);
+    parameter->setAttribute("value", 0.0);
+    xml.addChildElement(parameter);
+}
+
+juce::Result migrateSchema4To5(juce::XmlElement& xml)
+{
+    // Schema 5 adds direct YM2151 LFO waveform/PMS/AMS choices. Explicitly
+    // backfill Preset so loading an older patch cannot retain stale overrides.
+    ensureChoiceParameterDefault(xml, parameter_ids::opmLfoWaveform);
+    ensureChoiceParameterDefault(xml, parameter_ids::opmLfoPms);
+    ensureChoiceParameterDefault(xml, parameter_ids::opmLfoAms);
+    xml.setAttribute(schemaVersionAttribute, 5);
     return juce::Result::ok();
 }
 }
@@ -59,6 +86,8 @@ juce::Result validateAndMigrate(juce::XmlElement& xml, const juce::Identifier& e
             migration = migrateSchema2To3(xml);
         else if (schemaVersion == 3)
             migration = migrateSchema3To4(xml);
+        else if (schemaVersion == 4)
+            migration = migrateSchema4To5(xml);
         if (migration.failed())
             return migration;
         ++schemaVersion;

@@ -2923,6 +2923,31 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     stereoSpreadValueLabel.setFont(juce::FontOptions(11.0f));
     stereoSpreadValueLabel.setMinimumHorizontalScale(0.75f);
     addAndMakeVisible(stereoSpreadValueLabel);
+    const auto addOpmLfoChoice =
+        [this, &state](juce::Label& label, juce::ComboBox& box, std::unique_ptr<ComboBoxAttachment>& attachment, const juce::String& labelText, const juce::StringArray& choices, const char* parameterId, chipper::ChipParameterRole role)
+    {
+        const auto* spec = chipper::parameterSpecFor(chipper::ChipMode::ym2151, role);
+        const auto help = spec != nullptr ? juce::String(spec->help) : labelText;
+        label.setText(labelText, juce::dontSendNotification);
+        label.setJustificationType(juce::Justification::centredLeft);
+        label.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
+        label.setFont(juce::FontOptions(12.0f, juce::Font::bold));
+        label.setTooltip(withMidiCcForRole(help, role));
+        addAndMakeVisible(label);
+        label.setVisible(false);
+        box.addItemList(choices, 1);
+        box.setTitle(labelText);
+        box.setDescription(help);
+        box.setTooltip(withMidiCcForRole(help, role));
+        addAndMakeVisible(box);
+        box.setVisible(false);
+        attachment = std::make_unique<ComboBoxAttachment>(state, parameterId, box);
+    };
+
+    addOpmLfoChoice(opmLfoWaveformLabel, opmLfoWaveformBox, opmLfoWaveformAttachment, "Waveform", chipper::parameters::opmLfoWaveformChoices(), chipper::parameters::id::opmLfoWaveform, chipper::ChipParameterRole::opmLfoWaveform);
+    addOpmLfoChoice(opmLfoPmsLabel, opmLfoPmsBox, opmLfoPmsAttachment, "PMS", chipper::parameters::opmLfoPmsChoices(), chipper::parameters::id::opmLfoPms, chipper::ChipParameterRole::opmLfoPms);
+    addOpmLfoChoice(opmLfoAmsLabel, opmLfoAmsBox, opmLfoAmsAttachment, "AMS", chipper::parameters::opmLfoAmsChoices(), chipper::parameters::id::opmLfoAms, chipper::ChipParameterRole::opmLfoAms);
+
 
     addLabeledSlider(envelopeDecaySlider, envelopeDecayLabel, "Envelope Decay");
     envelopeDecaySlider.setNumDecimalPlacesToDisplay(2);
@@ -4530,7 +4555,7 @@ void ChipperAudioProcessorEditor::resized()
     {
         const auto availableHeight = modules.getHeight();
         const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.44)), 254, 260);
-        const auto routingRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.15)), 84, 90);
+        const auto routingRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.17)), 100, 104);
         const auto middleRowHeight = std::max(0, availableHeight - sourceRowHeight - routingRowHeight - (gap * 2));
         const auto patchWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getWidth()) * 0.43)), 490, 560);
         const auto topY = modules.getY();
@@ -5759,12 +5784,25 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (ym2151Layout)
     {
-        constexpr int routingGap = 14;
-        const auto routingWidth = std::max(0, (outputPanel.getWidth() - routingGap) / 2);
-        auto lfoPanel = outputPanel.removeFromLeft(std::min(routingWidth, outputPanel.getWidth()));
-        outputPanel.removeFromLeft(std::min(routingGap, outputPanel.getWidth()));
-        placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, lfoPanel);
-        placeDmgStereoRouteSegment(outputPanel);
+        constexpr int routingGap = 8;
+        const auto routingWidth = std::max(0, (outputPanel.getWidth() - (routingGap * 4)) / 5);
+        std::array<juce::Rectangle<int>, 5> routingCells {};
+        for (size_t column = 0; column < routingCells.size(); ++column)
+            routingCells[column] = { outputPanel.getX() + static_cast<int>(column) * (routingWidth + routingGap), outputPanel.getY(), routingWidth, outputPanel.getHeight() };
+
+        const auto placeOpmChoice = [](juce::Label& label, juce::ComboBox& box, juce::Rectangle<int> bounds)
+        {
+            auto header = bounds.removeFromTop(std::min(17, bounds.getHeight()));
+            label.setBounds(header);
+            bounds.removeFromTop(std::min(2, bounds.getHeight()));
+            box.setBounds(bounds.removeFromTop(std::min(30, bounds.getHeight())));
+        };
+
+        placeLabeledSliderWithReadout(stereoSpreadSlider, stereoSpreadLabel, stereoSpreadValueLabel, routingCells[0]);
+        placeOpmChoice(opmLfoWaveformLabel, opmLfoWaveformBox, routingCells[1]);
+        placeOpmChoice(opmLfoPmsLabel, opmLfoPmsBox, routingCells[2]);
+        placeOpmChoice(opmLfoAmsLabel, opmLfoAmsBox, routingCells[3]);
+        placeDmgStereoRouteSegment(routingCells[4]);
     }
     else if (ym2203Layout)
     {
@@ -9441,6 +9479,9 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
     setChoiceParameterFromUi(chipper::parameters::id::ymChannelBMix, 0);
     setChoiceParameterFromUi(chipper::parameters::id::ymChannelCMix, 0);
     setChoiceParameterFromUi(chipper::parameters::id::snNoiseMode, templ.snNoiseMode);
+    setChoiceParameterFromUi(chipper::parameters::id::opmLfoWaveform, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::opmLfoPms, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::opmLfoAms, 0);
     setParameterValueFromUi(chipper::parameters::id::nesDmcDirectLevel, templ.nesDmcDirectLevel);
     if (mode == chipper::ChipMode::spc700)
     {
@@ -9685,6 +9726,9 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
     setChoiceParameterFromUi(chipper::parameters::id::ymChannelBMix, 0);
     setChoiceParameterFromUi(chipper::parameters::id::ymChannelCMix, 0);
     setChoiceParameterFromUi(chipper::parameters::id::snNoiseMode, preset.snNoiseMode);
+    setChoiceParameterFromUi(chipper::parameters::id::opmLfoWaveform, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::opmLfoPms, 0);
+    setChoiceParameterFromUi(chipper::parameters::id::opmLfoAms, 0);
     setParameterValueFromUi(chipper::parameters::id::nesDmcDirectLevel, preset.nesDmcDirectLevel);
     if (preset.chip == chipper::ChipMode::spc700)
         setChoiceParameterFromUi(chipper::parameters::id::nesDmcPlaybackMode,
@@ -9737,7 +9781,7 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
             ? 2
             : dmgStereoRoute;
 
-    return chipper::makePatchConfig(
+    auto patch = chipper::makePatchConfig(
         mode,
         chipper::parameters::macroFromChoice(macroChoice),
         control1,
@@ -9848,6 +9892,10 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator3ReleaseRate))),
             static_cast<int>(std::round(parameterValue(chipper::parameters::id::fmOperator4ReleaseRate)))
         });
+    patch.opmLfoWaveform = static_cast<int>(std::round(parameterValue(chipper::parameters::id::opmLfoWaveform)));
+    patch.opmLfoPms = static_cast<int>(std::round(parameterValue(chipper::parameters::id::opmLfoPms)));
+    patch.opmLfoAms = static_cast<int>(std::round(parameterValue(chipper::parameters::id::opmLfoAms)));
+    return patch;
 }
 
 bool ChipperAudioProcessorEditor::usesPulseDutySegment(chipper::ChipMode mode) const
@@ -11957,11 +12005,13 @@ juce::String ChipperAudioProcessorEditor::ym2151LfoReadout(const chipper::PatchC
     const auto pmDepth = chipper::ym2151LfoPmDepthForPatch(patch);
     const auto waveform = chipper::ym2151LfoWaveformForPatch(patch);
     const auto channelRegister = chipper::ym2151LfoChannelRegisterForPatch(patch);
+    static constexpr std::array<const char*, 4> waveLabels { "saw", "square", "tri", "noise" };
+    const auto pms = chipper::ym2151LfoPmSensitivityForPatch(patch);
+    const auto ams = chipper::ym2151LfoAmSensitivityForPatch(patch);
 
     if (rate == 0u && amDepth == 0u && pmDepth == 0u)
-        return "LFO off, $38 PM/AM 0";
+        return juce::String("LFO off; ") + waveLabels[waveform & 0x03u] + ", PMS " + juce::String(static_cast<int>(pms)) + ", AMS " + juce::String(static_cast<int>(ams));
 
-    static constexpr std::array<const char*, 4> waveLabels { "saw", "square", "tri", "noise" };
     return juce::String("$18 ")
         + juce::String(static_cast<int>(rate))
         + ", PM" + juce::String(static_cast<int>(pmDepth))
@@ -16213,6 +16263,18 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     setSnNoiseModeSegmentVisible(mode, usesSnNoiseModeSegment(mode) && hasLiveCore);
     setEnvelopeDecayControlVisible(mode, usesEnvelopeDecayControl(mode) && hasLiveCore);
     setStereoSpreadControlVisible(mode, usesStereoSpreadControl(mode) && hasLiveCore);
+    const auto hasOpmLfoChoices = hasLiveCore && mode == chipper::ChipMode::ym2151;
+    const auto setOpmLfoChoiceVisible = [hasOpmLfoChoices](juce::Label& label, juce::ComboBox& box)
+    {
+        label.setVisible(hasOpmLfoChoices);
+        label.setEnabled(hasOpmLfoChoices);
+        box.setVisible(hasOpmLfoChoices);
+        box.setEnabled(hasOpmLfoChoices);
+        box.setAlpha(hasOpmLfoChoices ? 1.0f : 0.42f);
+    };
+    setOpmLfoChoiceVisible(opmLfoWaveformLabel, opmLfoWaveformBox);
+    setOpmLfoChoiceVisible(opmLfoPmsLabel, opmLfoPmsBox);
+    setOpmLfoChoiceVisible(opmLfoAmsLabel, opmLfoAmsBox);
     const auto hasSidFilterRoutingControl = hasLiveCore
         && mode == chipper::ChipMode::sid
         && chipper::parameterSpecFor(mode, chipper::ChipParameterRole::sidFilterRouting) != nullptr;

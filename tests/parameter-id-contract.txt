@@ -41,6 +41,9 @@ nesDmcMapRoot
 nesDmcPlaybackMode
 nesDmcRateIndex
 nesDmcSampleSlot
+opmLfoAms
+opmLfoPms
+opmLfoWaveform
 outputDb
 playMode
 pulse2Duty

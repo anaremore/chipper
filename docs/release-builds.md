@@ -24,7 +24,7 @@ This focused pass is the current high-signal regression gate for:
 - MIDI CC and state-recall smoke behavior
 - OPL3 four-operator algorithm/role mapping, exact native operator registers, and the shared OP1-OP4 editor at both supported widths
 - DAW-friendly editor default and restored-window height
-- Motion Lab schema-v4 recall, sample-accurate/no-allocation playback, two-width layout/accessibility, and focused snapshot behavior
+- Motion Lab schema-v5 recall, sample-accurate/no-allocation playback, two-width layout/accessibility, and focused snapshot behavior
 - NES DMC one-shot versus loop behavior
 - FM held-tail behavior and held factory presets
 

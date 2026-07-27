@@ -915,6 +915,32 @@ bool expectFmRegisterHelpers()
                  && chipper::ym2151LfoPmDepthForPatch(opmLfo) == 0u
                  && chipper::ym2151LfoChannelRegisterForPatch(opmLfo) == 0u,
                  "YM2151 zero LFO depth should leave native LFO registers off");
+    auto directOpmLfo = opmLfo;
+    directOpmLfo.stereoSpread = 0.65f;
+    directOpmLfo.opmLfoWaveform = 4;
+    directOpmLfo.opmLfoPms = 8;
+    directOpmLfo.opmLfoAms = 4;
+    ok &= expect(chipper::ym2151LfoWaveformForPatch(directOpmLfo) == 3u
+                     && chipper::ym2151LfoPmSensitivityForPatch(directOpmLfo) == 7u
+                     && chipper::ym2151LfoAmSensitivityForPatch(directOpmLfo) == 3u
+                     && chipper::ym2151LfoChannelRegisterForPatch(directOpmLfo) == 0x73u,
+                 "YM2151 direct LFO choices should resolve exact waveform and $38+n sensitivity bits");
+    ok &= expect(! chipper::ym2151OperatorAmEnabledForPatch(directOpmLfo, 0)
+                     && chipper::ym2151OperatorAmEnabledForPatch(directOpmLfo, 1)
+                     && ! chipper::ym2151OperatorAmEnabledForPatch(directOpmLfo, 2)
+                     && chipper::ym2151OperatorAmEnabledForPatch(directOpmLfo, 3),
+                 "YM2151 explicit AMS should enable AM only on audible carriers while LFO depth is active");
+    directOpmLfo.stereoSpread = 0.0f;
+    ok &= expect(chipper::ym2151LfoWaveformForPatch(directOpmLfo) == 3u
+                     && chipper::ym2151LfoPmSensitivityForPatch(directOpmLfo) == 7u
+                     && chipper::ym2151LfoAmSensitivityForPatch(directOpmLfo) == 3u
+                     && chipper::ym2151LfoChannelRegisterForPatch(directOpmLfo) == 0x73u,
+                 "YM2151 direct choices should stay inspectable when modulation depth is zero");
+    ok &= expect(! chipper::ym2151OperatorAmEnabledForPatch(directOpmLfo, 0)
+                     && ! chipper::ym2151OperatorAmEnabledForPatch(directOpmLfo, 1)
+                     && ! chipper::ym2151OperatorAmEnabledForPatch(directOpmLfo, 2)
+                     && ! chipper::ym2151OperatorAmEnabledForPatch(directOpmLfo, 3),
+                 "YM2151 zero depth should keep AM disabled even when a direct AMS value is selected");
     auto opmTrimmed = opmArp;
     opmTrimmed.fmOperatorLevels = { 1.0f, 0.5f, 0.5f, 0.0f };
     ok &= expect(chipper::fmOperatorTotalLevelForPatch(chipper::ChipMode::ym2151, opmTrimmed, 0) == 0u, "YM2151 operator 1 level trim should boost total level around neutral");
@@ -1533,6 +1559,15 @@ int main()
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::ym2151).supportsChipPoly, "YM2151 should support Chip Poly across exposed melodic channels");
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::stereoSpread, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "LFO Depth");
     ok &= expectSpecGroup(chipper::ChipMode::ym2151, chipper::ChipParameterRole::stereoSpread, "Motion");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::opmLfoWaveform, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "Waveform");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::opmLfoWaveform, chipper::ControlSurface::menu, 5, "Preset");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2151, chipper::ChipParameterRole::opmLfoWaveform, "Motion");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::opmLfoPms, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "PMS");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::opmLfoPms, chipper::ControlSurface::menu, 9, "Preset");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2151, chipper::ChipParameterRole::opmLfoPms, "Motion");
+    ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::opmLfoAms, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "AMS");
+    ok &= expectChoiceRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::opmLfoAms, chipper::ControlSurface::menu, 5, "Preset");
+    ok &= expectSpecGroup(chipper::ChipMode::ym2151, chipper::ChipParameterRole::opmLfoAms, "Motion");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).implemented, "SCC descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).supportsChipPoly, "SCC should support Chip Poly across exposed wavetable channels");
     ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl1, 4, "12.5%");

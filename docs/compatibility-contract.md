@@ -49,8 +49,8 @@ must not silently reinterpret an existing ID or accepted state.
   rate, a length from 1-8, pitch from -24 to +24 semitones, level from 0-15,
   and Hold/Trig/Cut gate values; duplicate or unknown chip IDs fail explicitly.
 - Schema fixtures live in `tests/state/` and are exercised by
-  `chipper_processor_midi_cc_smoke`, including legacy migration, schema-v4
-  round trips, malformed motion rejection, and future-version rejection.
+  `chipper_processor_midi_cc_smoke`, including legacy migration, schema-v5
+  round trips, missing-OPM-choice backfill, malformed motion rejection, and future-version rejection.
 
 ## External assets
 

@@ -320,6 +320,12 @@ public:
     juce::Rectangle<int> getSnNoiseModeBoundsForLayoutTest() const { return snNoiseModeSegmentBounds; }
     juce::Rectangle<int> getWaveShapeBoundsForLayoutTest() const { return waveShapeSegmentBounds; }
     juce::Rectangle<int> getOplWaveformBoundsForLayoutTest() const { return oplWaveformBox.getBounds(); }
+    juce::Rectangle<int> getOpmLfoWaveformBoundsForLayoutTest() const { return opmLfoWaveformBox.getBounds(); }
+    juce::Rectangle<int> getOpmLfoPmsBoundsForLayoutTest() const { return opmLfoPmsBox.getBounds(); }
+    juce::Rectangle<int> getOpmLfoAmsBoundsForLayoutTest() const { return opmLfoAmsBox.getBounds(); }
+    bool isOpmLfoWaveformVisibleForLayoutTest() const { return opmLfoWaveformBox.isVisible(); }
+    bool isOpmLfoPmsVisibleForLayoutTest() const { return opmLfoPmsBox.isVisible(); }
+    bool isOpmLfoAmsVisibleForLayoutTest() const { return opmLfoAmsBox.isVisible(); }
     juce::Rectangle<int> getOplWaveformPreviewBoundsForLayoutTest() const { return oplWaveformPreview.getBounds(); }
     juce::Rectangle<int> getOpllInstrumentBoundsForLayoutTest() const { return opllInstrumentBox.getBounds(); }
     juce::String getWaveShapeValueTextForLayoutTest() const { return waveShapeValueLabel.getText(); }
@@ -922,6 +928,9 @@ private:
     OutputScopePreview outputScopePreview;
     juce::Label stereoSpreadLabel;
     juce::Label stereoSpreadValueLabel;
+    juce::Label opmLfoWaveformLabel;
+    juce::Label opmLfoPmsLabel;
+    juce::Label opmLfoAmsLabel;
     juce::Label envelopeDecayLabel;
     juce::Label envelopeDecayValueLabel;
     std::array<juce::Label, sidAdsrVoiceCount> sidEnvelopeVoiceLabels;
@@ -987,6 +996,9 @@ private:
     std::array<juce::TextButton, dmgWaveLevelCount> dmgWaveLevelButtons;
     std::array<juce::TextButton, dmgStereoRouteCount> dmgStereoRouteButtons;
     juce::ComboBox dmgStereoRouteBox;
+    juce::ComboBox opmLfoWaveformBox;
+    juce::ComboBox opmLfoPmsBox;
+    juce::ComboBox opmLfoAmsBox;
     std::array<juce::TextButton, ymEnvelopeShapeCount> ymEnvelopeShapeButtons;
     juce::ComboBox sidFilterModeBox;
     juce::ComboBox sidFilterRoutingBox;
@@ -1078,6 +1090,9 @@ private:
     std::unique_ptr<SliderAttachment> sampleLoopEndAttachment;
     std::unique_ptr<SliderAttachment> outputAttachment;
     std::unique_ptr<SliderAttachment> stereoSpreadAttachment;
+    std::unique_ptr<ComboBoxAttachment> opmLfoWaveformAttachment;
+    std::unique_ptr<ComboBoxAttachment> opmLfoPmsAttachment;
+    std::unique_ptr<ComboBoxAttachment> opmLfoAmsAttachment;
     std::unique_ptr<ComboBoxAttachment> sidFilterRoutingAttachment;
     std::unique_ptr<SliderAttachment> envelopeDecayAttachment;
     std::array<std::unique_ptr<SliderAttachment>, 4> nativeAttachments;

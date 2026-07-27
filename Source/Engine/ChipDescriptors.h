@@ -142,6 +142,9 @@ enum class ChipParameterRole
     fmOperator2ReleaseRate,
     fmOperator3ReleaseRate,
     fmOperator4ReleaseRate,
+    opmLfoWaveform,
+    opmLfoPms,
+    opmLfoAms,
     clockHz,
     outputDb
 };
@@ -302,7 +305,10 @@ PatchConfig makePatchConfig(ChipMode mode,
                             std::array<int, 4> fmOperatorDecayRates = { 0, 0, 0, 0 },
                             std::array<int, 4> fmOperatorSustainRates = { 0, 0, 0, 0 },
                             std::array<int, 4> fmOperatorReleaseRates = { 0, 0, 0, 0 },
-                            WavetableMemory wavetableMemory = {});
+                            WavetableMemory wavetableMemory = {},
+                            int opmLfoWaveform = 0,
+                            int opmLfoPms = 0,
+                            int opmLfoAms = 0);
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t nesNoisePeriodForControl(float noisePeriodControl);
 uint8_t nesDmcDirectLevelForControl(float levelControl);

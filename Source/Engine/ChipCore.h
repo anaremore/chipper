@@ -127,6 +127,11 @@ struct PatchConfig
     std::array<int, 4> fmOperatorSustainRates { 0, 0, 0, 0 };
     std::array<int, 4> fmOperatorReleaseRates { 0, 0, 0, 0 };
     WavetableMemory wavetableMemory;
+    // YM2151 choices use 0 for Preset/derived behavior and native+1 for
+    // explicit register values so native zero remains independently selectable.
+    int opmLfoWaveform = 0;
+    int opmLfoPms = 0;
+    int opmLfoAms = 0;
 };
 
 struct StereoFrame
