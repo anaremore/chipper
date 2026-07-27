@@ -32,3 +32,38 @@ distinguishable in filenames and metadata. Keep reference audio out of Git
 until its license permits redistribution; CI can fetch an immutable,
 checksum-verified fixture from an approved source when redistribution is not
 allowed.
+
+## Accepted captures
+
+### YM2149 tone A via Ayumi
+
+| Field | Contract |
+| --- | --- |
+| Fixture | `ym2149-ayumi-tone-a.wav` |
+| Metadata | `ym2149-ayumi-tone-a.json` |
+| Source | MIT Ayumi at `07c08b4874c359169e4a028edf73f046d8b763e2` |
+| Model / clock | YM2149 / 1,773,400 Hz |
+| Audio | 48 kHz, stereo PCM16, 12,000 frames / 0.25 seconds |
+| Trace | Tone A period `0x120`, fixed volume 15, tone B/C and noise disabled |
+| Fixture SHA-256 | `902e3464b3c833b52686cc7abc46de835beb9a85bc33730a78bbbc6ad9fa94d2` |
+
+Reproduce the fixture from a clean Ayumi checkout:
+
+```text
+git clone https://github.com/true-grue/ayumi.git
+git -C ayumi checkout 07c08b4874c359169e4a028edf73f046d8b763e2
+cc -O2 -I ayumi tests/references/tools/generate_ym2149_ayumi_reference.c ayumi/ayumi.c -lm -o generate_reference
+./generate_reference tests/references/ym2149-ayumi-tone-a.wav
+```
+
+The checked-in fixture is redistribution-safe because it is an original direct
+register trace generated without music, game data, presets, ROM content, or
+sample assets from the MIT-licensed emulator. Ayumi source and binaries are not
+vendored or linked into Chipper.
+
+The adjacent JSON is authoritative for the exact Chipper render command,
+measured baseline, accepted thresholds, provenance, and scope. The gate is
+deliberately limited to gross tone-period, square-duty/polarity, mixer-routing,
+channel-layout, level, startup-lag, and duration regressions. It does not support
+cycle-accuracy, hardware-accuracy, analog-output, full noise/envelope, or
+AY/YM-variant-equivalence claims.

@@ -317,6 +317,12 @@ add_test(NAME chipper_render_ym2149_envelope_reset_smoke
 add_test(NAME chipper_render_ym2149_volume_curve_smoke
     COMMAND chipper_render --chip ym2149 --accuracy authentic --macro manual --clock 2000000 --rate 48000 --seconds 0.01 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2149-volume-curve-events.txt --out ym-volume-curve-smoke.wav --debug ym-volume-curve-smoke.json
 )
+add_test(NAME chipper_render_ym2149_ayumi_reference
+    COMMAND chipper_render --chip ym2149 --accuracy authentic --macro manual --clock 1773400 --rate 48000 --seconds 0.25 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2149-reference-tone-events.txt --source1 1 --source2 1 --source3 1 --source4 1 --level1 1 --level2 1 --level3 1 --level4 1 --stereo-spread 0 --output-db 0 --out ym2149-ayumi-reference-candidate.wav --debug ym2149-ayumi-reference-candidate.json
+)
+set_tests_properties(chipper_render_ym2149_ayumi_reference PROPERTIES
+    LABELS "audio;reference;release-gate"
+)
 add_test(NAME chipper_render_sn76489_smoke
     COMMAND chipper_render --chip sn76489 --accuracy authentic --clock 3579545 --rate 48000 --seconds 0.10 --note 76 --out sn-smoke.wav --debug sn-smoke.json
 )
@@ -1974,6 +1980,29 @@ if (Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym-volume-curve-smoke.json --implemented-contains partial --macro Manual --register-writes 4 --note-events 1 --min-peak 0.1 --core-min volumeA=15 --core-max volumeA=15 --core-min volumeB=10 --core-max volumeB=10 --core-min volumeC=0 --core-max volumeC=0 --core-min linearVolumeA=1 --core-max linearVolumeA=1 --core-min linearVolumeB=0.421 --core-max linearVolumeB=0.423 --core-min linearVolumeC=0 --core-max linearVolumeC=0
     )
     set_tests_properties(chipper_render_ym2149_volume_curve_assert PROPERTIES DEPENDS chipper_render_ym2149_volume_curve_smoke)
+
+    add_test(NAME chipper_ym2149_ayumi_reference_metadata
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_reference_metadata.py ${CMAKE_CURRENT_SOURCE_DIR}/tests/references/ym2149-ayumi-tone-a.json
+    )
+    set_tests_properties(chipper_ym2149_ayumi_reference_metadata PROPERTIES
+        LABELS "audio;reference;release-gate"
+    )
+
+    add_test(NAME chipper_render_ym2149_ayumi_reference_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2149-ayumi-reference-candidate.json --implemented-contains emu2149 --macro Manual --stereo-spread 0 --register-writes 14 --note-events 1 --min-peak 0.35 --max-peak 0.45 --min-rms 0.20 --max-rms 0.26 --core-min periodA=288 --core-max periodA=288 --core-min periodB=1 --core-max periodB=1 --core-min periodC=1 --core-max periodC=1 --core-min mixer=62 --core-max mixer=62 --core-min toneEnabledA=1 --core-max toneEnabledA=1 --core-min toneEnabledB=0 --core-max toneEnabledB=0 --core-min toneEnabledC=0 --core-max toneEnabledC=0 --core-min noiseEnabledA=0 --core-max noiseEnabledA=0 --core-min volumeA=15 --core-max volumeA=15 --core-min volumeB=0 --core-max volumeB=0 --core-min volumeC=0 --core-max volumeC=0
+    )
+    set_tests_properties(chipper_render_ym2149_ayumi_reference_assert PROPERTIES
+        DEPENDS chipper_render_ym2149_ayumi_reference
+        LABELS "audio;reference;release-gate"
+    )
+
+    add_test(NAME chipper_render_ym2149_ayumi_reference_compare
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/compare_reference_wav.py ${CMAKE_CURRENT_SOURCE_DIR}/tests/references/ym2149-ayumi-tone-a.wav ${CMAKE_CURRENT_BINARY_DIR}/ym2149-ayumi-reference-candidate.wav --min-correlation 0.97 --max-normalized-rmse 0.25 --min-rms-ratio 1.05 --max-rms-ratio 1.30 --alignment-window-frames 32 --max-accepted-lag-frames 16 --max-length-difference-frames 0 --json ${CMAKE_CURRENT_BINARY_DIR}/ym2149-ayumi-reference-comparison.json
+    )
+    set_tests_properties(chipper_render_ym2149_ayumi_reference_compare PROPERTIES
+        DEPENDS "chipper_render_ym2149_ayumi_reference;chipper_ym2149_ayumi_reference_metadata"
+        LABELS "audio;reference;release-gate"
+    )
 
     add_test(NAME chipper_render_sn76489_stereo_spread_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sn-stereo-spread-smoke.json --implemented-contains partial --macro Manual --stereo-spread 1 --register-writes 0 --note-events 0 --min-stereo-rms-delta 0.001 --core-min stereoSpread=1 --core-max stereoSpread=1 --core-min stereoPan0=-1 --core-max stereoPan0=-1 --core-min stereoPan2=1 --core-max stereoPan2=1 --descriptor-param-kind stereoSpread=continuous --descriptor-param-surface stereoSpread=slider --descriptor-param-label "stereoSpread=Stereo Spread"
@@ -3730,6 +3759,74 @@ add_test(NAME chipper_processor_midi_cc_smoke
     COMMAND chipper_processor_midi_cc_smoke
 )
 set_tests_properties(chipper_processor_midi_cc_smoke PROPERTIES TIMEOUT 30)
+
+add_executable(chipper_processor_performance_smoke
+    tests/processor_performance_smoke.cpp
+    ${CHIPPER_PLUGIN_SOURCES}
+)
+
+add_dependencies(chipper_processor_performance_smoke chipper_build_info)
+
+target_include_directories(chipper_processor_performance_smoke
+    PRIVATE
+        Source
+        "${CHIPPER_GENERATED_DIR}"
+        "${CMAKE_CURRENT_BINARY_DIR}/Chipper_artefacts/JuceLibraryCode"
+)
+
+target_compile_definitions(chipper_processor_performance_smoke
+    PUBLIC
+        JUCE_USE_CURL=0
+        JUCE_WEB_BROWSER=0
+        JUCE_VST3_CAN_REPLACE_VST2=0
+        JucePlugin_Name="Chipper"
+)
+
+target_link_libraries(chipper_processor_performance_smoke
+    PRIVATE
+        chipper_engine
+        juce::juce_audio_utils
+        juce::juce_dsp
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+add_test(NAME chipper_processor_performance_smoke
+    COMMAND chipper_processor_performance_smoke
+)
+set_tests_properties(chipper_processor_performance_smoke PROPERTIES
+    LABELS "performance;release-gate"
+    TIMEOUT 30
+)
+
+add_executable(chipper_vst3_host_state_smoke
+    tests/vst3_host_state_smoke.cpp
+)
+
+add_dependencies(chipper_vst3_host_state_smoke Chipper_VST3)
+
+target_compile_definitions(chipper_vst3_host_state_smoke
+    PRIVATE
+        JUCE_PLUGINHOST_VST3=1
+        JUCE_USE_CURL=0
+        JUCE_WEB_BROWSER=0
+)
+
+target_link_libraries(chipper_vst3_host_state_smoke
+    PRIVATE
+        juce::juce_audio_formats
+        juce::juce_audio_processors_headless
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+add_test(NAME chipper_vst3_host_state_smoke
+    COMMAND chipper_vst3_host_state_smoke "$<TARGET_FILE:Chipper_VST3>"
+)
+set_tests_properties(chipper_vst3_host_state_smoke PROPERTIES
+    LABELS "host;release-gate;state"
+    TIMEOUT 30
+)
 
 add_executable(chipper_editor_size_smoke
     tests/editor_size_smoke.cpp

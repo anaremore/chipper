@@ -13918,6 +13918,8 @@ public:
         currentLfoPmSensitivity = 0;
         currentLfoChannelBits = 0;
         dacSample.clear();
+        if (dacSample.capacity() < maxDacSampleBytes)
+            dacSample.reserve(maxDacSampleBytes);
         dacPhase = 0.0;
         dacStep = 1.0;
         dacActive = false;
@@ -13949,7 +13951,6 @@ public:
 
     void setExternalSampleData(std::vector<uint8_t> data) override
     {
-        static constexpr size_t maxDacSampleBytes = 0x40000;
         if (data.size() > maxDacSampleBytes)
             data.resize(maxDacSampleBytes);
         externalDacSample = std::move(data);
@@ -14486,7 +14487,10 @@ private:
         currentAlgorithm[5] = 0;
         currentFeedback[5] = 0;
         dacUsingExternalSample = ! externalDacSample.empty();
-        dacSample = dacUsingExternalSample ? makeExternalDacSample(channelVelocity[5]) : makeDacDrumSample(midiNote, channelVelocity[5]);
+        if (dacUsingExternalSample)
+            fillExternalDacSample(channelVelocity[5]);
+        else
+            fillDacDrumSample(midiNote, channelVelocity[5]);
         dacPhase = 0.0;
         if (dacUsingExternalSample)
         {
@@ -14506,16 +14510,16 @@ private:
             keyOnMask |= static_cast<uint16_t>(1u << 5u);
     }
 
-    std::vector<uint8_t> makeDacDrumSample(int midiNote, float velocity) const
+    void fillDacDrumSample(int midiNote, float velocity)
     {
         const auto length = (patch.macro == MacroKind::drum || midiNote < 48) ? 512u : 384u;
-        std::vector<uint8_t> sample(length, 0x80u);
+        dacSample.resize(length, 0x80u);
         uint32_t noise = 0x6d2b79f5u ^ static_cast<uint32_t>(std::clamp(midiNote, 0, 127) * 1103515245u);
         const auto velocityScale = std::clamp(static_cast<double>(velocity), 0.0, 1.0);
         const auto baseCycles = midiNote < 48 ? 9.0 : 20.0;
-        for (size_t i = 0; i < sample.size(); ++i)
+        for (size_t i = 0; i < dacSample.size(); ++i)
         {
-            const auto t = static_cast<double>(i) / static_cast<double>(sample.size());
+            const auto t = static_cast<double>(i) / static_cast<double>(dacSample.size());
             const auto env = std::exp(-7.0 * t) * velocityScale;
             const auto sweep = baseCycles * (1.0 - 0.72 * t);
             auto value = std::sin(twoPi * sweep * t);
@@ -14528,22 +14532,20 @@ private:
                 value = value * 0.82 + noiseValue * 0.18;
 
             const auto byteValue = static_cast<int>(std::round(128.0 + std::clamp(value * env, -1.0, 1.0) * 118.0));
-            sample[i] = static_cast<uint8_t>(std::clamp(byteValue, 0, 255));
+            dacSample[i] = static_cast<uint8_t>(std::clamp(byteValue, 0, 255));
         }
-        return sample;
     }
 
-    std::vector<uint8_t> makeExternalDacSample(float velocity) const
+    void fillExternalDacSample(float velocity)
     {
-        std::vector<uint8_t> sample;
-        sample.reserve(externalDacSample.size());
+        dacSample.resize(externalDacSample.size());
         const auto velocityScale = std::clamp(static_cast<double>(velocity), 0.0, 1.0);
-        for (const auto byte : externalDacSample)
+        for (size_t index = 0; index < externalDacSample.size(); ++index)
         {
+            const auto byte = externalDacSample[index];
             const auto centered = (static_cast<double>(byte) - 128.0) * velocityScale;
-            sample.push_back(static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(128.0 + centered)), 0, 255)));
+            dacSample[index] = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(128.0 + centered)), 0, 255));
         }
-        return sample;
     }
 
     void advanceDacPlayback()
@@ -14684,6 +14686,7 @@ private:
     std::array<int, 6> channelNotes {};
     std::array<float, 6> channelVelocity {};
     std::array<uint64_t, 6> channelStamp {};
+    static constexpr size_t maxDacSampleBytes = 0x40000u;
     std::vector<uint8_t> dacSample;
     std::vector<uint8_t> externalDacSample;
     uint64_t noteStamp = 0;

@@ -56,7 +56,7 @@ SOFTWARE.
 - License: MIT
 - Use in Chipper: linked into `chipper_engine` as the YM2149 / AY PSG tone/noise/envelope generation core. Chipper's adapter maps user-facing musical controls, renderer note events, source gates, and register-write events to YM2149/AY register writes, then applies Chipper-side source trims and optional modern stereo spread.
 - Local integration change: the adapter reuses the allocated PSG instance and upstream clock/rate/reset APIs instead of deleting and recreating it during processor mode changes.
-- Accuracy claim: verified partial only. Exact AY/YM variant behavior, analog output curve, golden emulator comparison, and hardware validation are not complete.
+- Accuracy claim: verified partial only. A pinned independent Ayumi tone-A comparison now gates gross period, duty, polarity, routing, gain, and duration regressions; exact AY/YM variant behavior, analog output curve, broader independent traces, and hardware validation are not complete.
 - Provenance note: upstream source comments cite `psg.vhd`, NEZplug `s_fme7.c`, MAME `ay8910.c`, MSX-Datapack, and the AY-3-8910 data sheet as behavioral references. The vendored source and header are distributed by upstream under the MIT license shown below; keep this provenance note attached to any future accuracy claims.
 
 MIT License text from upstream:
@@ -219,6 +219,18 @@ The other current partial chip cores are clean-room/internal implementations in 
 
 These implementations are not claimed to be cycle-accurate. See `docs/emulation-accuracy.md` for current accuracy status and known limitations.
 
+## External Validation References
+
+### Ayumi
+
+- Project: `true-grue/ayumi`
+- Upstream URL: https://github.com/true-grue/ayumi
+- Reference revision: `07c08b4874c359169e4a028edf73f046d8b763e2`
+- License reported by upstream: MIT
+- Use in Chipper: non-vendored, build-time-independent test oracle only. The checked-in `tests/references/ym2149-ayumi-tone-a.wav` fixture is an original one-channel YM2149 register trace produced from that pinned revision. No Ayumi source or binary is linked into or distributed with Chipper.
+- Reproduction and integrity: `tests/references/tools/generate_ym2149_ayumi_reference.c` contains the exact generator recipe; `tests/references/ym2149-ayumi-tone-a.json` records the upstream revision, trace, fixture SHA-256, audio format, measured comparison baseline, thresholds, and claim boundary.
+- Accuracy boundary: the gate detects gross tone period, square duty/polarity, mixer routing, channel-layout, level, latency, and duration regressions. It is not a hardware capture and does not establish cycle accuracy, exact analog response, complete envelope/noise behavior, or complete AY/YM variant equivalence.
+
 ## Candidate Cores Not Yet Vendored
 
 These projects may be evaluated later. Listing them here is not an endorsement that they are already compatible or included.
@@ -229,7 +241,7 @@ The full candidate map is maintained in `docs/emulator-source-map.md`.
 
 Current priority candidates:
 
-- Permissive-first candidates: [ayumi](https://github.com/true-grue/ayumi), [SameBoy](https://github.com/LIJI32/SameBoy), [web-pokey](https://github.com/mrk-its/web-pokey), and Paula/ProTracker references. Audit required before vendoring. `ymfm` has passed the BSD-3-Clause file/header audit at `17decfae857b92ab55fbb30ade2287ace095a381` and is now vendored for the first YM2612/OPN2, OPL2/YM3812, and YM2151/OPM adapters; `emu2149` has passed the initial file-level MIT audit and is now vendored for YM2149 / AY; `emu2212` has passed the initial file-level MIT audit and is now vendored for Konami SCC/SCC+; `emu2413` has passed the initial file-level MIT audit and is now vendored for YM2413/OPLL; `emu76489` has passed the initial file-level MIT audit and is now vendored for SN76489 / Sega PSG.
+- Permissive-first candidates: [SameBoy](https://github.com/LIJI32/SameBoy), [web-pokey](https://github.com/mrk-its/web-pokey), and Paula/ProTracker references. Audit required before vendoring. Ayumi is accepted only as the pinned external validation oracle described above and still requires a separate file-level audit before any source reuse. `ymfm` has passed the BSD-3-Clause file/header audit at `17decfae857b92ab55fbb30ade2287ace095a381` and is now vendored for the first YM2612/OPN2, OPL2/YM3812, and YM2151/OPM adapters; `emu2149` has passed the initial file-level MIT audit and is now vendored for YM2149 / AY; `emu2212` has passed the initial file-level MIT audit and is now vendored for Konami SCC/SCC+; `emu2413` has passed the initial file-level MIT audit and is now vendored for YM2413/OPLL; `emu76489` has passed the initial file-level MIT audit and is now vendored for SN76489 / Sega PSG.
 - SNES/SPC700 candidates: [emu-rs/snes-apu](https://github.com/emu-rs/snes-apu) reports BSD-2-Clause but must be audited for file-level provenance and its attributed higan/Blargg-derived behavior before reuse; [nyanpasu64-backup/snes-echo](https://github.com/nyanpasu64-backup/snes-echo) reports BSD-3-Clause and may be useful for echo/FIR research, but its README says it targets audible similarity rather than bit accuracy. No code from either project is vendored.
 - LGPL-sensitive candidates: [FigBug/RP2A03](https://github.com/FigBug/RP2A03), [FigBug/SN76489](https://github.com/FigBug/SN76489), [osoumen/C700](https://github.com/osoumen/C700), [blarggs-audio-libraries/snes_spc](https://github.com/blarggs-audio-libraries/snes_spc), [Nuked-OPN2](https://github.com/nukeykt/Nuked-OPN2), [Nuked-OPL3](https://github.com/nukeykt/Nuked-OPL3), and [Game_Music_Emu](https://github.com/libgme/game-music-emu). Do not import without an LGPL compliance plan.
 - GPL/reference candidates: [FigBug/SID](https://github.com/FigBug/SID), [FigBug/PAPU](https://github.com/FigBug/PAPU), [libsidplayfp/reSIDfp](https://github.com/libsidplayfp/libsidplayfp), [Furnace](https://github.com/tildearrow/furnace), [MAME](https://www.mamedev.org/about.html), and GPL-family alternatives. Use as references or validation targets only unless Chipper adopts a compatible distribution model. Furnace was reviewed on 2026-06-06 as a broad chip-coverage, tracker UX, and emulator-core discovery reference; no Furnace code is vendored. Upstream states most Furnace is GPLv2-or-later, ASIO-enabled builds become GPLv3, and individual components may carry their own licenses.

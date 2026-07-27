@@ -26,7 +26,7 @@ This focused pass is the current high-signal regression gate for:
 - NES DMC one-shot versus loop behavior
 - FM held-tail behavior and held factory presets
 
-Latest local checkpoint: 843/843 full CTest cases, 401/401 factory-preset audibility renders, and pluginval 1.0.4 strictness level 5 passed on Windows on 2026-07-26.
+Latest local checkpoint: the full Release build, 849/849 CTest cases, 401/401 factory-preset audibility renders, pluginval 1.0.4 strictness level 5, the binary VST3 save/reopen gate, the dense-MIDI no-allocation/deadline gate, and the independent Ayumi YM2149 reference gate passed on Windows on 2026-07-26.
 
 Generated sample prerequisites such as NES `.dmc` and Paula `.8svx` fixtures should use CTest fixtures, not only `DEPENDS`, so filtered sample-focused runs still prepare their binary inputs.
 
@@ -128,8 +128,42 @@ Before a release is considered usable, keep these checks green:
 - Factory preset catalog and audibility checks whenever preset content changed.
 - The parameter-ID, state-schema, portable-asset, and mono/stereo bus invariants in [compatibility-contract.md](compatibility-contract.md).
 - Independent reference comparisons for selected high-risk cores, with provenance and per-capture thresholds recorded as described in `tests/references/README.md`.
-- At least one manual DAW scan/load/project-save/reopen check for Windows, including automation and an external-asset preset. Linux and macOS host checks are required before those platforms are advertised as host-tested.
-- A repeatable dense-MIDI performance capture with no audio-thread allocations, dropouts, or unbounded mode-switch work.
+
+  ```powershell
+  ctest --test-dir build-codex -C Release --output-on-failure -R ym2149_ayumi_reference
+  ```
+
+  The first checked-in gate renders a direct YM2149 tone-A register trace and
+  compares it against an independently generated Ayumi fixture. It verifies the
+  fixture checksum/format/provenance metadata, the renderer's final register
+  state, per-channel waveform correlation and normalized error, raw RMS ratio,
+  bounded startup lag, channel layout, and exact duration. Its thresholds catch
+  gross tone, duty, polarity, routing, gain, and duration regressions; they do not
+  claim cycle accuracy, exact analog output, complete variant behavior, or
+  hardware validation.
+- The binary-level VST3 scan/load/project-save/reopen gate:
+
+  ```powershell
+  ctest --test-dir build-codex -C Release --output-on-failure -R chipper_vst3_host_state_smoke
+  ```
+
+  It discovers the built VST3 class through JUCE's VST3 host, instantiates the
+  bundle twice, automates parameters, round-trips state with an external DMC
+  asset, and compares the reopened render with the saved instance. This is the
+  reproducible host-boundary gate; at least one manual Windows DAW scan/load/
+  project-save/reopen check remains required for release UX. Linux and macOS
+  manual host checks are required before those platforms are advertised as host-tested.
+- The repeatable dense-MIDI processor capture:
+
+  ```powershell
+  ctest --test-dir build-codex -C Release --output-on-failure -R chipper_processor_performance_smoke
+  ```
+
+  It warms every chip mode, then measures steady dense-MIDI blocks and a 1,024-block
+  mode-switch stress pass at 48 kHz / 256 samples. The gate fails on any
+  `processBlock` allocation, callback deadline miss, non-finite output, or
+  out-of-range output, and prints mean, p99, maximum callback time, deadline,
+  real-time load, and peak for the release record.
 
 Passing fixed-regression gates should not create new roadmap work. If one fails, reopen the owning bug as a P0, fix it with a tighter test, then return it to this release gate instead of leaving stale todo language in the planning docs.
 
