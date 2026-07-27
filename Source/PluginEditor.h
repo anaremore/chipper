@@ -7,6 +7,7 @@
 #include "UI/ChipperFmEditor.h"
 #include "UI/ChipperFocusOutline.h"
 #include "UI/ChipperWorkspaces.h"
+#include "UI/ChipperWaveLab.h"
 #include "UI/ChipperPresetBrowser.h"
 #include "UI/ChipperWorkflowBar.h"
 
@@ -176,6 +177,40 @@ public:
     {
         return channel < hucVoiceWaveBoxes.size() ? hucVoiceWaveBoxes[channel].getItemText(itemIndex) : juce::String {};
     }
+    juce::Rectangle<int> getWaveLabBoundsForLayoutTest() const { return waveLab.getBounds(); }
+    juce::Rectangle<int> getWaveLabCanvasBoundsForLayoutTest() const
+    {
+        return waveLab.canvasBoundsForTest().translated(waveLab.getX(), waveLab.getY());
+    }
+    juce::Rectangle<int> getWaveLabLaneSelectorBoundsForLayoutTest() const
+    {
+        return waveLab.laneSelectorBoundsForTest().translated(waveLab.getX(), waveLab.getY());
+    }
+    juce::Rectangle<int> getWaveLabCopyBoundsForLayoutTest() const
+    {
+        return waveLab.copyButtonBoundsForTest().translated(waveLab.getX(), waveLab.getY());
+    }
+    juce::Rectangle<int> getWaveLabPasteBoundsForLayoutTest() const
+    {
+        return waveLab.pasteButtonBoundsForTest().translated(waveLab.getX(), waveLab.getY());
+    }
+    juce::Rectangle<int> getWaveLabImportBoundsForLayoutTest() const
+    {
+        return waveLab.importButtonBoundsForTest().translated(waveLab.getX(), waveLab.getY());
+    }
+    juce::Rectangle<int> getWaveLabResetBoundsForLayoutTest() const
+    {
+        return waveLab.resetButtonBoundsForTest().translated(waveLab.getX(), waveLab.getY());
+    }
+    juce::String getWaveLabStatusForLayoutTest() const { return waveLab.statusTextForTest(); }
+    int getWaveLabLaneCountForLayoutTest() const { return waveLab.laneCountForTest(); }
+    size_t getWaveLabSelectedLaneForLayoutTest() const { return waveLab.selectedLaneForTest(); }
+    void selectWaveLabLaneForLayoutTest(size_t lane) { waveLab.selectLane(lane); }
+    void setWaveLabSampleForLayoutTest(size_t sample, uint8_t value) { waveLab.setSampleForTest(sample, value); }
+    void copyWaveLabForLayoutTest() { waveLab.copyForTest(); }
+    void pasteWaveLabForLayoutTest() { waveLab.pasteForTest(); }
+    void resetWaveLabForLayoutTest() { waveLab.resetForTest(); }
+    void importWaveLabAudioFileForLayoutTest(const juce::File& file) { waveLab.importAudioFileForTest(file); }
     juce::Rectangle<int> getPresetFilterBoundsForLayoutTest() const { return presetFilterBox.getBounds(); }
     juce::String getPresetFilterTextForLayoutTest() const { return presetFilterBox.getText(); }
     juce::Rectangle<int> getPresetSearchBoundsForLayoutTest() const { return presetSearchBox.getBounds(); }
@@ -855,6 +890,7 @@ private:
     std::array<juce::TextButton, fmOperatorReadoutRows> fmOperatorMultiplierButtons;
     std::array<juce::TextButton, fmOperatorReadoutRows> fmOperatorAttackRateButtons;
     ChipperFmEditor fmEditor;
+    ChipperWaveLab waveLab;
     juce::Label waveShapeLabel;
     juce::Label waveShapeValueLabel;
     juce::Label pulse2DutyLabel;

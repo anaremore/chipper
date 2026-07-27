@@ -3646,6 +3646,8 @@ set(CHIPPER_PLUGIN_SOURCES
     Source/UI/ChipperFocusOutline.h
     Source/UI/ChipperWorkflowBar.cpp
     Source/UI/ChipperWorkflowBar.h
+    Source/UI/ChipperWaveLab.cpp
+    Source/UI/ChipperWaveLab.h
     Source/UI/ChipperPresetBrowser.cpp
     Source/UI/ChipperPresetBrowser.h
     Source/UI/ChipperRelationshipMap.cpp

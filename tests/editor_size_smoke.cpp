@@ -26,8 +26,9 @@ constexpr int expectedEditorPaulaHeight = 900;
 constexpr int expectedEditorYm2608Height = 900;
 constexpr int expectedEditorYm2610Height = 900;
 constexpr int expectedEditorYm2610bHeight = 900;
-constexpr int expectedEditorNamcoWsgHeight = 720;
-constexpr int expectedEditorSccHeight = 720;
+constexpr int expectedEditorWavetableHeight = 880;
+constexpr int expectedEditorNamcoWsgHeight = expectedEditorWavetableHeight;
+constexpr int expectedEditorSccHeight = expectedEditorWavetableHeight;
 constexpr int expectedEditorSidHeight = 880;
 constexpr int expectedEditorMinimumWidth = 1180;
 constexpr int expectedEditorMaximumHeight = expectedEditorSpc700Height;
@@ -160,6 +161,8 @@ const char* chipModeName(chipper::ChipMode mode)
 int expectedHeightForChipMode(int chipMode)
 {
     const auto mode = chipper::parameters::chipModeFromChoice(chipMode);
+    if (mode == chipper::ChipMode::huc6280)
+        return expectedEditorWavetableHeight;
     if (mode == chipper::ChipMode::sid)
         return expectedEditorSidHeight;
     if (mode == chipper::ChipMode::dmg)
@@ -2640,6 +2643,137 @@ bool checkSamplerBankLayout(chipper::ChipMode mode)
     return ok;
 }
 
+bool checkWaveLabAudioImport()
+{
+    const auto file = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                          .getNonexistentChildFile("chipper-wave-lab-import", ".wav", false);
+    juce::AudioBuffer<float> audio(1, 256);
+    for (auto sample = 0; sample < audio.getNumSamples(); ++sample)
+    {
+        const auto phase = static_cast<float>(sample) / static_cast<float>(audio.getNumSamples());
+        audio.setSample(0, sample, std::sin(phase * juce::MathConstants<float>::twoPi) * 0.8f);
+    }
+
+    auto fixtureWritten = false;
+    if (auto stream = std::unique_ptr<juce::OutputStream>(file.createOutputStream()))
+    {
+        juce::WavAudioFormat format;
+        const auto options = juce::AudioFormatWriterOptions {}
+                                 .withSampleRate(48000.0)
+                                 .withNumChannels(1)
+                                 .withBitsPerSample(16);
+        if (auto writer = format.createWriterFor(stream, options))
+        {
+            fixtureWritten = writer->writeFromAudioSampleBuffer(audio, 0, audio.getNumSamples());
+        }
+    }
+
+    auto ok = expect(fixtureWritten, "Wave Lab WAV import fixture should be writable");
+    if (fixtureWritten)
+    {
+        ChipperAudioProcessor processor;
+        ok &= setChoiceParameter(processor, chipper::parameters::id::chipMode,
+                                 chipModeChoiceFor(chipper::ChipMode::huc6280));
+        ChipperAudioProcessorEditor editor(processor);
+        editor.importWaveLabAudioFileForLayoutTest(file);
+        editor.runEditorUpdateForLayoutTest();
+
+        const auto imported = processor.wavetableSnapshot(chipper::ChipMode::huc6280, 0u);
+        const auto minimum = *std::min_element(imported.samples.begin(), imported.samples.end());
+        const auto maximum = *std::max_element(imported.samples.begin(), imported.samples.end());
+        ok &= expect(imported.custom
+                         && imported.bitDepth == 5u
+                         && imported.maximumSampleValue == 31u
+                         && minimum < maximum
+                         && editor.getWaveLabStatusForLayoutTest().contains("Custom"),
+                     "Wave Lab WAV import should normalize and quantize one cycle into native 5-bit RAM");
+    }
+
+    if (file.existsAsFile() && ! file.deleteFile())
+        ok &= expect(false, "Wave Lab WAV import fixture should be removable");
+
+    return ok;
+}
+
+bool checkWaveLabSurface(ChipperAudioProcessorEditor& editor,
+                         ChipperAudioProcessor& processor,
+                         chipper::ChipMode mode,
+                         size_t expectedLaneCount,
+                         uint8_t expectedBitDepth,
+                         uint8_t expectedMaximum,
+                         juce::Rectangle<int> sourceDeck,
+                         juce::Rectangle<int> performance)
+{
+    auto ok = true;
+    const auto lab = editor.getWaveLabBoundsForLayoutTest();
+    const auto canvas = editor.getWaveLabCanvasBoundsForLayoutTest();
+    const std::array controls {
+        editor.getWaveLabLaneSelectorBoundsForLayoutTest(),
+        editor.getWaveLabCopyBoundsForLayoutTest(),
+        editor.getWaveLabPasteBoundsForLayoutTest(),
+        editor.getWaveLabImportBoundsForLayoutTest(),
+        editor.getWaveLabResetBoundsForLayoutTest()
+    };
+
+    ok &= expect(! lab.isEmpty() && lab.getHeight() >= 150,
+                 "Wave Lab should reserve a readable inline editing surface");
+    ok &= expect(! canvas.isEmpty()
+                     && canvas.getHeight() >= 82
+                     && lab.expanded(2).contains(canvas),
+                 "Wave Lab canvas should remain readable and owned by its panel");
+    for (const auto control : controls)
+        ok &= expect(! control.isEmpty()
+                         && control.getHeight() >= 24
+                         && lab.expanded(2).contains(control),
+                     "Wave Lab header control should remain inside its panel");
+    ok &= expect(! sourceDeck.intersects(lab) && ! lab.intersects(performance)
+                     && sourceDeck.getBottom() < lab.getY()
+                     && lab.getBottom() < performance.getY(),
+                 "Wave Lab should sit between the source bank and shared performance strip without overlap");
+    ok &= expect(editor.getWaveLabLaneCountForLayoutTest() == static_cast<int>(expectedLaneCount),
+                 "Wave Lab lane selector should match the chip's native lane count");
+    ok &= expect(editor.getWaveLabStatusForLayoutTest().contains("Generated")
+                     && editor.getWaveLabStatusForLayoutTest().contains("32 x " + juce::String(static_cast<int>(expectedBitDepth)) + "-bit")
+                     && editor.getWaveLabStatusForLayoutTest().contains("saved with project"),
+                 "Wave Lab should disclose generated/custom state, native depth, and project recall");
+    ok &= checkAccessibleFocusContract(editor, "chipper-wave-lab-");
+
+    editor.selectWaveLabLaneForLayoutTest(0u);
+    const auto generated = processor.wavetableSnapshot(mode, 0u);
+    const auto editedValue = static_cast<uint8_t>(generated.samples[0] == expectedMaximum ? 0u : expectedMaximum);
+    editor.setWaveLabSampleForLayoutTest(0u, editedValue);
+    editor.runEditorUpdateForLayoutTest();
+    const auto edited = processor.wavetableSnapshot(mode, 0u);
+    ok &= expect(edited.custom
+                     && edited.samples[0] == editedValue
+                     && edited.bitDepth == expectedBitDepth
+                     && edited.maximumSampleValue == expectedMaximum
+                     && editor.getWaveLabStatusForLayoutTest().contains("Custom"),
+                 "Wave Lab drawing should publish a native-depth custom lane");
+
+    editor.copyWaveLabForLayoutTest();
+    editor.selectWaveLabLaneForLayoutTest(1u);
+    editor.pasteWaveLabForLayoutTest();
+    editor.runEditorUpdateForLayoutTest();
+    const auto pasted = processor.wavetableSnapshot(mode, 1u);
+    ok &= expect(pasted.custom && pasted.samples == edited.samples,
+                 "Wave Lab copy/paste should reproduce the complete 32-sample lane");
+
+    editor.resetWaveLabForLayoutTest();
+    editor.runEditorUpdateForLayoutTest();
+    ok &= expect(! processor.wavetableSnapshot(mode, 1u).custom
+                     && editor.getWaveLabStatusForLayoutTest().contains("Generated"),
+                 "Wave Lab reset should return the selected lane to its generated selector-backed wave");
+
+    editor.selectWaveLabLaneForLayoutTest(0u);
+    editor.resetWaveLabForLayoutTest();
+    editor.runEditorUpdateForLayoutTest();
+    ok &= expect(! processor.wavetableSnapshot(mode, 0u).custom,
+                 "Wave Lab cleanup should reset the source lane after the interaction contract");
+
+    return ok;
+}
+
 bool checkHuc6280UnifiedLayout()
 {
     const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::huc6280);
@@ -2660,13 +2794,17 @@ bool checkHuc6280UnifiedLayout()
 
         const auto sourceDeck = editor.getModuleBoundsForLayoutTest(1);
         const auto performance = editor.getPerformanceBoundsForLayoutTest();
-        widthOk &= expect(! sourceDeck.isEmpty() && sourceDeck.getHeight() >= 440,
+        widthOk &= expect(editor.getHeight() == expectedEditorWavetableHeight,
+                          "HuC6280 should use the shared 880px Wave Lab editor height");
+        widthOk &= expect(! sourceDeck.isEmpty() && sourceDeck.getHeight() >= 398,
                           "HuC6280 unified voice deck should reserve space for six voices and their LFO relationship");
-        widthOk &= expect(performance.getHeight() >= 180,
+        widthOk &= expect(performance.getHeight() >= 128,
                           "HuC6280 shared performance/output strip should expose two readable rows");
         for (const auto retiredModule : { 0u, 2u, 3u, 4u, 5u })
             widthOk &= expect(editor.getModuleBoundsForLayoutTest(retiredModule).isEmpty(),
                               "HuC6280 should not retain detached generic modules outside the unified voice deck");
+        widthOk &= checkWaveLabSurface(editor, processor, chipper::ChipMode::huc6280,
+                                       6u, 5u, 31u, sourceDeck, performance);
 
         const auto lfoBounds = editor.getDmgStereoRouteBoundsForLayoutTest();
         widthOk &= expect(! lfoBounds.isEmpty()
@@ -2776,16 +2914,18 @@ bool checkNamcoWsgUnifiedLayout()
         editor.runEditorUpdateForLayoutTest();
 
         widthOk &= expect(editor.getHeight() == expectedEditorNamcoWsgHeight,
-                          "Namco WSG should use its dedicated compact editor height");
+                          "Namco WSG should use the shared 880px Wave Lab editor height");
         const auto voiceDeck = editor.getModuleBoundsForLayoutTest(1);
         const auto performance = editor.getPerformanceBoundsForLayoutTest();
         widthOk &= expect(! voiceDeck.isEmpty() && voiceDeck.getHeight() >= 340,
                           "Namco WSG unified voice bank should reserve two readable card rows");
-        widthOk &= expect(performance.getHeight() >= 180,
+        widthOk &= expect(performance.getHeight() >= 128,
                           "Namco WSG shared lane-motion/output strip should expose two readable rows");
         for (const auto retiredModule : { 0u, 2u, 3u, 4u, 5u })
             widthOk &= expect(editor.getModuleBoundsForLayoutTest(retiredModule).isEmpty(),
                               "Namco WSG should not retain detached generic modules");
+        widthOk &= checkWaveLabSurface(editor, processor, chipper::ChipMode::namcoWsg,
+                                       8u, 4u, 15u, voiceDeck, performance);
 
         std::array<juce::Rectangle<int>, 8> cards {};
         for (size_t lane = 0; lane < cards.size(); ++lane)
@@ -2878,7 +3018,7 @@ bool checkSccUnifiedLayout()
         editor.runEditorUpdateForLayoutTest();
 
         widthOk &= expect(editor.getHeight() == expectedEditorSccHeight,
-                          "SCC should use its dedicated compact editor height");
+                          "SCC should use the shared 880px Wave Lab editor height");
         const auto voiceDeck = editor.getModuleBoundsForLayoutTest(1);
         const auto topologySummary = editor.getModuleSummaryBoundsForLayoutTest(1);
         const auto performance = editor.getPerformanceBoundsForLayoutTest();
@@ -2890,11 +3030,13 @@ bool checkSccUnifiedLayout()
                               && editor.getModuleSummaryTextForLayoutTest(1).containsIgnoreCase("enhanced")
                               && editor.getModuleSummaryTextForLayoutTest(1).containsIgnoreCase("sharing is not modeled"),
                           "SCC wave bank should disclose the enhanced five-wave topology and unmodeled original sharing");
-        widthOk &= expect(performance.getHeight() >= 180,
+        widthOk &= expect(performance.getHeight() >= 128,
                           "SCC shared wave-stack/output strip should expose two readable rows");
         for (const auto retiredModule : { 0u, 2u, 3u, 4u, 5u })
             widthOk &= expect(editor.getModuleBoundsForLayoutTest(retiredModule).isEmpty(),
                               "SCC should not retain detached generic modules");
+        widthOk &= checkWaveLabSurface(editor, processor, chipper::ChipMode::scc,
+                                       5u, 8u, 255u, voiceDeck, performance);
 
         std::array<juce::Rectangle<int>, 5> cards {};
         for (size_t channel = 0; channel < cards.size(); ++channel)
@@ -4985,6 +5127,7 @@ int main()
     ok &= checkHuc6280UnifiedLayout();
     ok &= checkNamcoWsgUnifiedLayout();
     ok &= checkSccUnifiedLayout();
+    ok &= checkWaveLabAudioImport();
     ok &= checkSamplerSourceDeck(chipper::ChipMode::spc700);
     ok &= checkSamplerSourceDeck(chipper::ChipMode::paula);
     ok &= checkSamplerBankLayout(chipper::ChipMode::spc700);

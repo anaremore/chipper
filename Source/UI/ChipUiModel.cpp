@@ -183,7 +183,7 @@ ChipUiProfile profileFor(ChipMode mode)
     profile.visibleSourceCount = visibleSources;
     profile.nativeSourceCount = nativeSourceCountForMode(mode);
     profile.playSourceColumns = playSourceColumns(visibleSources);
-    if (paula || huc6280 || namcoWsg || scc)
+    if (paula)
         profile.performanceStripHeight = 184;
     else if (sid || dmg || sn76489 || ym2149 || saa1099 || pokey || oneBitHardwarePath || ym2413)
         profile.performanceStripHeight = 124;
@@ -193,6 +193,8 @@ ChipUiProfile profileFor(ChipMode mode)
         profile.performanceStripHeight = 88;
     else if (spc700 || fourOp)
         profile.performanceStripHeight = 124;
+    else if (huc6280 || namcoWsg || scc)
+        profile.performanceStripHeight = 132;
     else
         profile.performanceStripHeight = wavetable ? 132 : 196;
 
@@ -212,8 +214,8 @@ ChipUiProfile profileFor(ChipMode mode)
         profile.maximumModulesHeight = 626;
     else if (fourOp || ym2413)
         profile.maximumModulesHeight = 564;
-    else if (huc6280)
-        profile.maximumModulesHeight = 478;
+    else if (huc6280 || namcoWsg || scc)
+        profile.maximumModulesHeight = 562;
     else if (pokey)
         profile.maximumModulesHeight = 550;
     else if (saa1099)

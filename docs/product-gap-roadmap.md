@@ -4,7 +4,7 @@ This roadmap captures the broad product gaps that remain after the first playabl
 
 > Can a musician make a complete chiptune bass, lead, arp, drum kit, and SFX pack in Chipper without fighting the UI?
 
-Review status: synced on 2026-06-14 after the fixed-regression and helper-envelope cleanup. The focused release gate passed 26/26 on 2026-06-14. FM held-tail and NES DMC loop-off are release gates; descriptor smoke owns source-card placement, visible level controls, MIDI CC coverage, named chip modes, preset presence, and honest helper-envelope wording. This document stays focused on product workflows that are still missing and user-visible. Use [release-builds.md](release-builds.md) for exact gate commands. Current active product gaps are sample/wave/operator editing, preset sharing, state recall, tracker motion, and release confidence.
+Review status: synced on 2026-07-27 after the native Wave Lab and versioned custom Wave RAM state landed for HuC6280, Namco WSG, and SCC. FM held-tail, NES DMC loop-off, descriptor ownership, state compatibility, dense MIDI behavior, and Wave Lab interaction are release gates. This document stays focused on user-visible workflows still missing. Current active gaps are tracker motion, deeper FM/sample editing, chip authenticity, and final release confidence.
 
 ## Current Baseline To Preserve
 
@@ -58,9 +58,9 @@ Planning-only cleanup should not become its own backlog. If no current build rep
    - UI direction: a compact **Motion / Tracker FX** surface with chip-specific destinations and synced rates like 1/8, 1/16, 1/32, and 1/64.
 
 2. **Wave / Sample Editor**
-   - User value: very high. This can become one of Chipper's signature workflows for wavetable and sampler chips.
-   - Chips: Game Boy wave channel, SNES SPC700-style, Amiga Paula, HuC6280, Namco WSG, Konami SCC.
-   - Scope: draw, randomize, smooth, invert, mirror, normalize, bit-depth quantize, copy/paste between lanes, import WAV/BRR/DMC where appropriate, auto-loop, root note, one-shot/loop, and save wave mini-presets.
+   - Delivered foundation: HuC6280, Namco WSG, and SCC share a native 32-sample Wave Lab with draw/keyboard editing, 5/4/8-bit quantization, cross-depth copy/paste, WAV/AIFF import, selector reset, live audio publication, and exact project recall.
+   - Remaining chips: Game Boy/FDS/N163 need memory-model-specific wave editing; SPC700 and Paula need deeper sample editing beyond their existing bank/import/loop workflows.
+   - Remaining scope: transforms and wave mini-presets, BRR/DMC-appropriate editing, sample trim/normalize/auto-loop, and chip-specific shared-memory/voice-count behavior.
 
 3. **FM Operator Editor**
    - User value: very high for FM users. Macros are useful starts, but serious FM patches require operator access.

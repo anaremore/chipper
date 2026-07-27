@@ -32,8 +32,9 @@ constexpr int editorPaulaHeight = 900;
 constexpr int editorYm2608Height = 900;
 constexpr int editorYm2610Height = 900;
 constexpr int editorYm2610bHeight = 900;
-constexpr int editorNamcoWsgHeight = 720;
-constexpr int editorSccHeight = 720;
+constexpr int editorWavetableHeight = 880;
+constexpr int editorNamcoWsgHeight = editorWavetableHeight;
+constexpr int editorSccHeight = editorWavetableHeight;
 constexpr int editorSidHeight = 880;
 constexpr int editorMinWidth = 1180;
 constexpr int editorMaxWidth = 1800;
@@ -44,6 +45,8 @@ static_assert(editorMaxHeight <= 900, "Keep the Chipper editor DAW-friendly by d
 
 int preferredEditorHeightForMode(chipper::ChipMode mode)
 {
+    if (mode == chipper::ChipMode::huc6280)
+        return editorWavetableHeight;
     if (mode == chipper::ChipMode::sid)
         return editorSidHeight;
     if (mode == chipper::ChipMode::dmg)
@@ -2459,6 +2462,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
                  fmOperatorLevelSliders,
                  fmOperatorMultiplierButtons,
                  fmOperatorAttackRateButtons }),
+      waveLab(processor),
       editorShell({ titleLabel,
                     statusLabel,
                     buildLabel,
@@ -3447,7 +3451,12 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
                 if (displayedMode == chipper::ChipMode::spc700)
                     setPlainParameterValueFromUi(spc700VoiceSampleParameterId(i), static_cast<float>(selected));
                 else
+                {
                     setChoiceParameterFromUi(hucVoiceWaveParameterId(i), selected);
+                    if (chipper::supportsDirectWavetableEditing(displayedMode))
+                        waveLab.selectLane(i);
+                }
+
                 updateLiveControlReadouts();
             }
         };
@@ -3863,6 +3872,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     addAndMakeVisible(fmEditor);
     fmEditor.attachControls();
     fmEditor.setVisible(false);
+    addAndMakeVisible(waveLab);
+    waveLab.setVisible(false);
     addAndMakeVisible(editorShell);
     editorShell.toBack();
     editorShell.attachExternalControlsTo(*this);
@@ -4108,6 +4119,13 @@ void ChipperAudioProcessorEditor::applyChipTheme()
     editorShell.setTheme(theme.primary, theme.accent, theme.outline, theme.text, theme.mutedText, theme.darkText);
     workflowBar.setTheme(theme.primary, theme.accent, theme.outline, theme.text, theme.mutedText, theme.darkText);
     fmEditor.setTheme(theme.panel, theme.sourceCard, theme.outline, theme.primary, theme.accent, theme.text, theme.mutedText);
+    waveLab.setTheme({ theme.panel,
+                       theme.sourceCard,
+                       theme.outline,
+                       theme.primary,
+                       theme.accent,
+                       theme.text,
+                       theme.mutedText });
     focusOutline.setColour(theme.accent.contrasting(0.18f));
     workspaceDeck.refresh(displayedMode, workspaceThemeFor(theme));
     presetBrowser.setTheme({ theme.background,
@@ -4236,6 +4254,7 @@ void ChipperAudioProcessorEditor::resized()
     const auto availableModulesHeight = std::max(0, area.getHeight() - footerReserve - 12 - performanceStripHeight);
     const auto modulesHeight = std::clamp(availableModulesHeight, std::min(410, availableModulesHeight), std::min(maxModulesHeight, availableModulesHeight));
     auto modules = area.removeFromTop(modulesHeight);
+    waveLab.setBounds({});
     const auto gap = 10;
     const auto columnWidth = (modules.getWidth() - gap) / 2;
     const auto rowHeight = (modules.getHeight() - (gap * 2)) / 3;
@@ -4398,32 +4417,20 @@ void ChipperAudioProcessorEditor::resized()
         moduleBounds[4] = {};
         moduleBounds[5] = {};
     }
-    else if (huc6280Layout)
+    else if (huc6280Layout || namcoWsgLayout || sccLayout)
     {
+        const auto targetSourceHeight = huc6280Layout ? 400 : (namcoWsgLayout ? 340 : 370);
+        const auto sourceHeight = std::min(targetSourceHeight, std::max(0, modules.getHeight() - gap - 150));
+        const auto sourceBounds = modules.removeFromTop(sourceHeight);
+        modules.removeFromTop(std::min(gap, modules.getHeight()));
+
         moduleBounds[0] = {};
-        moduleBounds[1] = modules;
+        moduleBounds[1] = sourceBounds;
         moduleBounds[2] = {};
         moduleBounds[3] = {};
         moduleBounds[4] = {};
         moduleBounds[5] = {};
-    }
-    else if (namcoWsgLayout)
-    {
-        moduleBounds[0] = {};
-        moduleBounds[1] = modules;
-        moduleBounds[2] = {};
-        moduleBounds[3] = {};
-        moduleBounds[4] = {};
-        moduleBounds[5] = {};
-    }
-    else if (sccLayout)
-    {
-        moduleBounds[0] = {};
-        moduleBounds[1] = modules;
-        moduleBounds[2] = {};
-        moduleBounds[3] = {};
-        moduleBounds[4] = {};
-        moduleBounds[5] = {};
+        waveLab.setBounds(modules);
     }
     else if (ym2612Layout)
     {
@@ -7171,6 +7178,7 @@ void ChipperAudioProcessorEditor::timerCallback()
 
     updateDescriptorText();
     updateLiveControlReadouts();
+    waveLab.refresh();
     refreshAccessibleNames();
     captureEditWorkspaceVisibility();
     statusLabel.setText(audioProcessor.currentCoreStatus(), juce::dontSendNotification);
@@ -15784,6 +15792,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         displayedDmcSampleCount = -1;
         displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();
     }
+    waveLab.setMode(mode);
     applyChipTheme();
     const auto& descriptor = chipper::descriptorFor(mode);
     const auto hasLiveCore = descriptor.implemented;
