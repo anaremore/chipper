@@ -3650,6 +3650,8 @@ set(CHIPPER_PLUGIN_SOURCES
     Source/UI/ChipperFocusOutline.h
     Source/UI/ChipperWorkflowBar.cpp
     Source/UI/ChipperWorkflowBar.h
+    Source/UI/ChipperMotionLab.cpp
+    Source/UI/ChipperMotionLab.h
     Source/UI/ChipperWaveLab.cpp
     Source/UI/ChipperWaveLab.h
     Source/UI/ChipperPresetBrowser.cpp
@@ -3917,6 +3919,15 @@ add_test(NAME chipper_ui_browser_snapshot_smoke
         --chip nes
         --width both
         --workspace browser
+        --manifest-only
+)
+
+add_test(NAME chipper_ui_motion_snapshot_smoke
+    COMMAND chipper_ui_snapshot
+        --output "${CMAKE_CURRENT_BINARY_DIR}/ui-motion-snapshot-smoke"
+        --chip nes
+        --width both
+        --workspace motion
         --manifest-only
 )
 

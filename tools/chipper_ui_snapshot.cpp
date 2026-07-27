@@ -26,7 +26,7 @@ void printUsage()
     std::cout
         << "Usage: chipper_ui_snapshot [--output <directory>] [--chip <name|all>]\n"
         << "                           [--width <1180|1240|both>]\n"
-        << "                           [--workspace <editor|browser|all>] [--manifest-only]\n";
+        << "                           [--workspace <editor|browser|motion|all>] [--manifest-only]\n";
 }
 
 std::optional<Options> parseOptions(int argc, char** argv)
@@ -80,7 +80,8 @@ std::optional<Options> parseOptions(int argc, char** argv)
         {
             const auto value = nextValue();
             if (! value.has_value()
-                || (*value != "editor" && *value != "edit" && *value != "browser" && *value != "all"))
+                || (*value != "editor" && *value != "edit" && *value != "browser"
+                    && *value != "motion" && *value != "all"))
                 return std::nullopt;
 
             options.workspace = *value;
@@ -272,16 +273,31 @@ std::optional<int> requestedChipChoice(const juce::String& requested)
     return -1;
 }
 
-juce::String workspaceName(ChipperEditorWorkspace workspace)
+enum class CaptureSurface
 {
-    juce::ignoreUnused(workspace);
-    return "editor";
+    editor,
+    browser,
+    motion
+};
+
+std::vector<CaptureSurface> requestedSurfaces(const juce::String& requested)
+{
+    if (requested == "browser")
+        return { CaptureSurface::browser };
+    if (requested == "motion")
+        return { CaptureSurface::motion };
+    if (requested == "all")
+        return { CaptureSurface::editor, CaptureSurface::browser, CaptureSurface::motion };
+    return { CaptureSurface::editor };
 }
 
-std::vector<ChipperEditorWorkspace> requestedWorkspaces(const juce::String& requested)
+juce::String surfaceName(CaptureSurface surface)
 {
-    juce::ignoreUnused(requested);
-    return { ChipperEditorWorkspace::edit };
+    if (surface == CaptureSurface::browser)
+        return "browser";
+    if (surface == CaptureSurface::motion)
+        return "motion";
+    return "editor";
 }
 }
 
@@ -308,7 +324,7 @@ int main(int argc, char** argv)
     juce::ScopedJuceInitialiser_GUI juceInitialiser;
     juce::Array<juce::var> snapshots;
     const auto chipModeCount = chipper::parameters::chipModeChoices().size();
-    const auto workspaces = requestedWorkspaces(options.workspace);
+    const auto surfaces = requestedSurfaces(options.workspace);
 
     for (int choice = 0; choice < chipModeCount; ++choice)
     {
@@ -317,7 +333,7 @@ int main(int argc, char** argv)
 
         for (const auto width : options.widths)
         {
-            for (const auto workspace : workspaces)
+            for (const auto surface : surfaces)
             {
                 ChipperAudioProcessor processor;
                 if (! setChipMode(processor, choice))
@@ -332,7 +348,8 @@ int main(int argc, char** argv)
                 editor.setSize(width, editor.getHeight());
                 editor.runEditorUpdateForLayoutTest();
                 editor.runEditorUpdateForLayoutTest();
-                const auto browserCapture = options.workspace == "browser";
+                const auto browserCapture = surface == CaptureSurface::browser;
+                const auto motionCapture = surface == CaptureSurface::motion;
                 if (browserCapture)
                 {
                     editor.showPresetBrowserForLayoutTest();
@@ -340,11 +357,25 @@ int main(int argc, char** argv)
                     editor.runEditorUpdateForLayoutTest();
                     editor.runEditorUpdateForLayoutTest();
                 }
+                else if (motionCapture)
+                {
+                    editor.applyMotionTemplateForLayoutTest(chipper::MotionTemplate::majorArp);
+                    juce::AudioBuffer<float> motionBuffer(2, 512);
+                    juce::MidiBuffer motionMidi;
+                    motionBuffer.clear();
+                    motionMidi.addEvent(juce::MidiMessage::noteOn(1, 60, 0.8f), 0);
+                    processor.processBlock(motionBuffer, motionMidi);
+
+                    editor.showMotionLabForLayoutTest();
+                    editor.runEditorUpdateForLayoutTest();
+                    editor.runEditorUpdateForLayoutTest();
+                }
                 editor.repaint();
-                juce::MessageManager::getInstance()->runDispatchLoopUntil(browserCapture ? 100 : 50);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil(
+                    browserCapture || motionCapture ? 100 : 50);
 
                 const auto displayName = chipper::parameters::chipModeChoices()[choice];
-                const auto workspaceKey = browserCapture ? juce::String("browser") : workspaceName(workspace);
+                const auto workspaceKey = surfaceName(surface);
                 const auto snapshotKey = juce::String(choice).paddedLeft('0', 2)
                     + "-" + fileKey(displayName)
                     + "-" + workspaceKey

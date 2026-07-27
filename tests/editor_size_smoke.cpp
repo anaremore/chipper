@@ -4875,6 +4875,176 @@ bool checkUnifiedEditorContract()
     return ok;
 }
 
+bool checkMotionLabLayout()
+{
+    bool ok = true;
+    const auto nesChoice = chipModeChoiceFor(chipper::ChipMode::nes);
+    const auto sidChoice = chipModeChoiceFor(chipper::ChipMode::sid);
+    if (nesChoice < 0 || sidChoice < 0)
+        return expect(false, "Motion Lab chip choices unavailable");
+
+    for (const auto width : { expectedEditorMinimumWidth, 1240 })
+    {
+        ChipperAudioProcessor processor;
+        auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, nesChoice);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::playMode, 0);
+
+        ChipperAudioProcessorEditor editor(processor);
+        editor.setSize(width, expectedEditorHeight);
+        editor.runEditorUpdateForLayoutTest();
+
+        const auto motionButtonBounds = editor.getWorkflowButtonBoundsForLayoutTest(8u);
+        if (motionButtonBounds.getWidth() < 48 || motionButtonBounds.getHeight() < 20)
+        {
+            std::cerr << "editor_size_smoke: Motion workflow button is unreadable at width "
+                      << width << ": " << motionButtonBounds.toString() << '\n';
+            widthOk = false;
+        }
+
+        editor.showMotionLabForLayoutTest();
+        editor.runEditorUpdateForLayoutTest();
+        const auto labBounds = editor.getMotionLabBoundsForLayoutTest();
+        if (! editor.isMotionLabVisibleForLayoutTest()
+            || ! editor.isMotionLabAboveWorkspaceForLayoutTest()
+            || labBounds.getWidth() < width - 48
+            || labBounds.getHeight() < 600
+            || ! editor.getLocalBounds().contains(labBounds))
+        {
+            std::cerr << "editor_size_smoke: Motion Lab overlay is not an authoritative readable surface at width "
+                      << width << ": " << labBounds.toString() << '\n';
+            widthOk = false;
+        }
+
+        const auto requireControl = [&](juce::Rectangle<int> bounds,
+                                        const char* name,
+                                        int minimumWidth,
+                                        int minimumHeight)
+        {
+            if (bounds.getWidth() < minimumWidth || bounds.getHeight() < minimumHeight)
+            {
+                std::cerr << "editor_size_smoke: Motion Lab " << name
+                          << " is unreadable at width " << width << ": "
+                          << bounds.toString() << '\n';
+                widthOk = false;
+            }
+            if (! labBounds.contains(bounds))
+            {
+                std::cerr << "editor_size_smoke: Motion Lab " << name
+                          << " escaped the overlay at width " << width << ": "
+                          << bounds.toString() << " overlay " << labBounds.toString() << '\n';
+                widthOk = false;
+            }
+        };
+
+        requireControl(editor.getMotionEnableBoundsForLayoutTest(), "enable toggle", 80, 24);
+        requireControl(editor.getMotionRateBoundsForLayoutTest(), "rate menu", 70, 24);
+        requireControl(editor.getMotionLengthBoundsForLayoutTest(), "length menu", 56, 24);
+        for (size_t index = 0; index < 6u; ++index)
+            requireControl(editor.getMotionTemplateBoundsForLayoutTest(index), "template button", 48, 24);
+
+        auto previousStepRight = -1;
+        for (size_t index = 0; index < chipper::motionStepCount; ++index)
+        {
+            const auto stepBounds = editor.getMotionStepBoundsForLayoutTest(index);
+            const auto pitchBounds = editor.getMotionPitchBoundsForLayoutTest(index);
+            const auto levelBounds = editor.getMotionLevelBoundsForLayoutTest(index);
+            const auto gateBounds = editor.getMotionGateBoundsForLayoutTest(index);
+            requireControl(stepBounds, "step column", 96, 300);
+            requireControl(pitchBounds, "pitch lane", 42, 100);
+            requireControl(levelBounds, "level lane", 42, 70);
+            requireControl(gateBounds, "gate menu", 42, 24);
+
+            if (! stepBounds.contains(pitchBounds)
+                || ! stepBounds.contains(levelBounds)
+                || ! stepBounds.contains(gateBounds)
+                || pitchBounds.getBottom() > levelBounds.getY()
+                || levelBounds.getBottom() > gateBounds.getY()
+                || (previousStepRight >= 0 && previousStepRight > stepBounds.getX()))
+            {
+                std::cerr << "editor_size_smoke: Motion Lab step " << index
+                          << " has overlapping or escaped controls at width " << width << '\n';
+                widthOk = false;
+            }
+            previousStepRight = stepBounds.getRight();
+        }
+
+        widthOk &= checkAccessibleFocusContract(editor, "motion.");
+        widthOk &= expect(editor.getMotionDestinationForLayoutTest().contains("NES")
+                              && editor.getMotionDestinationForLayoutTest().contains("timer / F-number"),
+                          "Motion Lab NES destination did not disclose the chip-aware timer/F-number path");
+        widthOk &= expect(editor.getMotionStatusForLayoutTest().contains("Fallback 120.0 BPM")
+                              && editor.getMotionStatusForLayoutTest().contains("Disabled"),
+                          "Motion Lab did not disclose fallback tempo and disabled runtime state");
+
+        editor.applyMotionTemplateForLayoutTest(chipper::MotionTemplate::majorArp);
+        auto snapshot = processor.motionSnapshot(chipper::ChipMode::nes);
+        widthOk &= expect(snapshot.pattern.enabled
+                              && snapshot.pattern.rate == chipper::MotionRate::sixteenth
+                              && snapshot.pattern.length == chipper::motionStepCount
+                              && snapshot.pattern.steps[1].pitch == 4
+                              && snapshot.pattern.steps[2].pitch == 7
+                              && snapshot.pattern.steps[0].gate == chipper::MotionGate::retrigger,
+                          "Motion Lab Major template did not publish the exact engine-backed pattern");
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.getMotionStatusForLayoutTest().contains("Running in Big Mono"),
+                          "Motion Lab did not report its enabled Big Mono runtime state");
+
+        editor.setMotionLengthForLayoutTest(4);
+        snapshot = processor.motionSnapshot(chipper::ChipMode::nes);
+        widthOk &= expect(snapshot.pattern.length == 4u
+                              && editor.isMotionStepEnabledForLayoutTest(3u)
+                              && ! editor.isMotionStepEnabledForLayoutTest(4u)
+                              && editor.getMotionStepTextForLayoutTest(4u).contains("OFF"),
+                          "Motion Lab length did not publish or disable out-of-pattern steps");
+
+        if (width == expectedEditorMinimumWidth)
+        {
+            widthOk &= setChoiceParameter(processor, chipper::parameters::id::chipMode, sidChoice);
+            editor.runEditorUpdateForLayoutTest();
+            widthOk &= expect(editor.isMotionLabVisibleForLayoutTest()
+                                  && editor.getMotionDestinationForLayoutTest().contains("SID")
+                                  && editor.getMotionDestinationForLayoutTest().contains("frequency + gate; post-chip level")
+                                  && ! processor.motionSnapshot(chipper::ChipMode::sid).pattern.enabled,
+                              "Motion Lab did not switch to independent SID motion state and destination");
+
+            widthOk &= setChoiceParameter(processor, chipper::parameters::id::chipMode, nesChoice);
+            editor.runEditorUpdateForLayoutTest();
+            widthOk &= expect(processor.motionSnapshot(chipper::ChipMode::nes).pattern.enabled
+                                  && processor.motionSnapshot(chipper::ChipMode::nes).pattern.length == 4u
+                                  && editor.getMotionDestinationForLayoutTest().contains("timer / F-number"),
+                              "Motion Lab did not restore the independent NES pattern after a chip switch");
+        }
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::playMode, 1);
+        processor.prepareToPlay(48000.0, 64);
+        juce::AudioBuffer<float> buffer(2, 64);
+        juce::MidiBuffer midi;
+        buffer.clear();
+        processor.processBlock(buffer, midi);
+        buffer.clear();
+        processor.processBlock(buffer, midi);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(editor.getMotionStatusForLayoutTest().contains("Bypassed in Chip Poly")
+                              && processor.motionSnapshot(chipper::ChipMode::nes).bypassedForChipPoly,
+                          "Motion Lab did not make its intentional Chip Poly bypass explicit");
+        processor.releaseResources();
+
+        editor.closeMotionLabForLayoutTest();
+        widthOk &= expect(! editor.isMotionLabVisibleForLayoutTest(),
+                          "Motion Lab close action left the overlay visible");
+        editor.showMotionLabForLayoutTest();
+        editor.showPresetBrowserForLayoutTest();
+        widthOk &= expect(! editor.isMotionLabVisibleForLayoutTest()
+                              && editor.isPresetBrowserVisibleForLayoutTest(),
+                          "global preset browser did not replace the Motion Lab overlay");
+        editor.closePresetBrowserForLayoutTest();
+
+        ok &= widthOk;
+    }
+
+    return ok;
+}
+
 bool checkWorkflowTools()
 {
     bool ok = true;
@@ -4891,7 +5061,7 @@ bool checkWorkflowTools()
                       << ": " << barBounds.toString() << '\n';
             ok = false;
         }
-        for (size_t button = 0; button < 8u; ++button)
+        for (size_t button = 0; button < 9u; ++button)
         {
             const auto bounds = editor.getWorkflowButtonBoundsForLayoutTest(button);
             if (bounds.getWidth() < 24 || bounds.getHeight() < 20)
@@ -5152,6 +5322,7 @@ int main()
     ok &= checkGlobalPresetBrowserWorkflow();
     ok &= checkChipSwitchPreservesEditorSettings();
     ok &= checkUnifiedEditorContract();
+    ok &= checkMotionLabLayout();
     ok &= checkWorkflowTools();
 
     return ok ? 0 : 1;

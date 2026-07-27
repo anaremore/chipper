@@ -5,10 +5,10 @@
 
 ChipperWorkflowBar::ChipperWorkflowBar()
 {
-    static constexpr std::array<const char*, 8> labels {
-        "Undo", "Redo", "A", "B", "Copy", "Paste", "Init", "Vary"
+    static constexpr std::array<const char*, 9> labels {
+        "Undo", "Redo", "A", "B", "Copy", "Paste", "Init", "Vary", "Motion"
     };
-    static constexpr std::array<const char*, 8> names {
+    static constexpr std::array<const char*, 9> names {
         "Undo last sound edit",
         "Redo last sound edit",
         "Audition sound slot A",
@@ -16,9 +16,10 @@ ChipperWorkflowBar::ChipperWorkflowBar()
         "Copy current chip sound",
         "Paste copied chip sound",
         "Initialize a sound section",
-        "Create a safe variation"
+        "Create a safe variation",
+        "Open Motion Lab"
     };
-    static constexpr std::array<const char*, 8> help {
+    static constexpr std::array<const char*, 9> help {
         "Undo the last parameter edit or workflow action.",
         "Redo the last undone parameter edit or workflow action.",
         "Store the current B sound and audition A.",
@@ -26,7 +27,8 @@ ChipperWorkflowBar::ChipperWorkflowBar()
         "Copy all automatable parameters for this chip.",
         "Paste a copied sound only when it belongs to the current chip.",
         "Reset Sources, Musical controls, Output, or the whole chip.",
-        "Gently vary musical macros and active source levels without changing chip-native configuration."
+        "Gently vary musical macros and active source levels without changing chip-native configuration.",
+        "Open the per-chip eight-step pitch, level, and gate editor. Motion runs in Big Mono and is safely bypassed in Chip Poly."
     };
 
     for (size_t i = 0; i < buttons.size(); ++i)
@@ -54,6 +56,8 @@ ChipperWorkflowBar::ChipperWorkflowBar()
     buttons[5].onClick = [this] { if (onPaste) onPaste(); };
     buttons[6].onClick = [this] { if (onInit) onInit(); };
     buttons[7].onClick = [this] { if (onVary) onVary(); };
+    buttons[8].setClickingTogglesState(true);
+    buttons[8].onClick = [this] { if (onMotion) onMotion(); };
 
     setState(false, false, false, 0);
 }
@@ -61,7 +65,7 @@ ChipperWorkflowBar::ChipperWorkflowBar()
 void ChipperWorkflowBar::paint(juce::Graphics& graphics)
 {
     graphics.setColour(findColour(juce::TextButton::buttonColourId).brighter(0.25f));
-    for (const auto index : { 1u, 3u, 5u })
+    for (const auto index : { 1u, 3u, 5u, 7u })
     {
         const auto x = (buttons[index].getRight() + buttons[index + 1u].getX()) / 2;
         graphics.drawVerticalLine(x, 4.0f, static_cast<float>(std::max(4, getHeight() - 4)));
@@ -73,8 +77,8 @@ void ChipperWorkflowBar::resized()
     auto area = getLocalBounds();
     constexpr auto normalGap = 3;
     constexpr auto groupGap = 9;
-    constexpr std::array<int, 8> idealWidths { 46, 46, 28, 28, 44, 48, 40, 44 };
-    constexpr auto totalGap = normalGap * 4 + groupGap * 3;
+    constexpr std::array<int, 9> idealWidths { 46, 46, 28, 28, 44, 48, 40, 44, 62 };
+    constexpr auto totalGap = normalGap * 4 + groupGap * 4;
     const auto availableForButtons = std::max(0, area.getWidth() - totalGap);
     const auto idealTotal = std::accumulate(idealWidths.begin(), idealWidths.end(), 0);
 
@@ -87,7 +91,7 @@ void ChipperWorkflowBar::resized()
         buttons[i].setBounds(isLast ? area : area.removeFromLeft(std::min(scaledWidth, area.getWidth())));
         if (! isLast)
         {
-            const auto gap = (i == 1u || i == 3u || i == 5u) ? groupGap : normalGap;
+            const auto gap = (i == 1u || i == 3u || i == 5u || i == 7u) ? groupGap : normalGap;
             area.removeFromLeft(std::min(gap, area.getWidth()));
         }
     }
@@ -119,6 +123,16 @@ void ChipperWorkflowBar::setState(bool canUndo, bool canRedo, bool canPaste, int
     buttons[5].setEnabled(canPaste);
     buttons[2].setToggleState(activeSlot == 0, juce::dontSendNotification);
     buttons[3].setToggleState(activeSlot == 1, juce::dontSendNotification);
+}
+
+void ChipperWorkflowBar::setMotionOpen(bool shouldBeOpen)
+{
+    buttons[8].setToggleState(shouldBeOpen, juce::dontSendNotification);
+}
+
+void ChipperWorkflowBar::focusMotionButton()
+{
+    buttons[8].grabKeyboardFocus();
 }
 
 juce::Rectangle<int> ChipperWorkflowBar::buttonBoundsForTest(size_t index) const

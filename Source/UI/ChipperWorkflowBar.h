@@ -19,6 +19,8 @@ public:
                   juce::Colour mutedText,
                   juce::Colour darkText);
     void setState(bool canUndo, bool canRedo, bool canPaste, int activeSlot);
+    void setMotionOpen(bool shouldBeOpen);
+    void focusMotionButton();
 
     std::function<void()> onUndo;
     std::function<void()> onRedo;
@@ -28,11 +30,12 @@ public:
     std::function<void()> onPaste;
     std::function<void()> onInit;
     std::function<void()> onVary;
+    std::function<void()> onMotion;
 
     juce::Rectangle<int> buttonBoundsForTest(size_t index) const;
 
 private:
-    std::array<juce::TextButton, 8> buttons;
+    std::array<juce::TextButton, 9> buttons;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipperWorkflowBar)
 };

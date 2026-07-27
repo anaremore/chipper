@@ -150,16 +150,16 @@ std::string_view motionDestinationForMode(ChipMode mode) noexcept
         case ChipMode::nesSunsoft5b:
         case ChipMode::nesMmc5:
         case ChipMode::nesVrc7:
-            return "timer / F-number + level + key";
+            return "timer / F-number + key; post-chip level";
         case ChipMode::dmg:
-            return "NR13/NR14 period + level + trigger";
+            return "NR13/NR14 period + trigger; post-chip level";
         case ChipMode::sid:
-            return "frequency + volume + gate";
+            return "frequency + gate; post-chip level";
         case ChipMode::ym2149:
         case ChipMode::sn76489:
         case ChipMode::saa1099:
         case ChipMode::pokey:
-            return "tone period + attenuation + gate";
+            return "tone period + gate; post-chip level";
         case ChipMode::ym2612:
         case ChipMode::opl3:
         case ChipMode::ym2151:
@@ -168,20 +168,20 @@ std::string_view motionDestinationForMode(ChipMode mode) noexcept
         case ChipMode::ym2608:
         case ChipMode::ym2610:
         case ChipMode::ym2610b:
-            return "F-number/block + output + key-on";
+            return "F-number/block + key-on; post-chip level";
         case ChipMode::spc700:
         case ChipMode::paula:
-            return "sample pitch/period + level + key";
+            return "sample pitch/period + key; post-chip level";
         case ChipMode::huc6280:
         case ChipMode::namcoWsg:
         case ChipMode::scc:
-            return "frequency + volume + key-on";
+            return "frequency + key-on; post-chip level";
         case ChipMode::pcSpeaker:
-            return "PIT divisor + speaker gate";
+            return "PIT divisor + speaker gate; post-chip level";
         case ChipMode::zxSpectrumBeeper:
-            return "ULA delay pitch + EAR/MIC gate";
+            return "ULA delay pitch + EAR/MIC gate; post-chip level";
     }
-    return "pitch + level + gate";
+    return "pitch + gate; post-chip level";
 }
 
 } // namespace chipper

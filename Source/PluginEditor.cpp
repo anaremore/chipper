@@ -2462,6 +2462,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
                  fmOperatorLevelSliders,
                  fmOperatorMultiplierButtons,
                  fmOperatorAttackRateButtons }),
+      motionLab(std::make_unique<ChipperMotionLab>(processor)),
       waveLab(processor),
       editorShell({ titleLabel,
                     statusLabel,
@@ -3880,6 +3881,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     workspaceDeck.setVisible(false);
     presetBrowser.setVisible(false);
     addChildComponent(presetBrowser);
+    motionLab->setVisible(false);
+    addChildComponent(*motionLab);
     presetBrowser.onApply = [this](ChipperPresetBrowser::Entry entry)
     {
         recordRecentPresetKey(entry.key);
@@ -3908,6 +3911,11 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     {
         presetBrowserButton.grabKeyboardFocus();
     };
+    motionLab->onClose = [this]
+    {
+        workflowBar.setMotionOpen(false);
+        workflowBar.focusMotionButton();
+    };
     addAndMakeVisible(focusOutline);
     workflowBar.onUndo = [this] { performWorkflowUndo(); };
     workflowBar.onRedo = [this] { performWorkflowRedo(); };
@@ -3920,6 +3928,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     {
         applySafeVariation(static_cast<uint32_t>(juce::Random::getSystemRandom().nextInt()));
     };
+    workflowBar.onMotion = [this] { showMotionLab(); };
 
     selectedWorkspace = ChipperEditorWorkspace::edit;
     editorShell.setWorkspace(selectedWorkspace);
@@ -4126,6 +4135,15 @@ void ChipperAudioProcessorEditor::applyChipTheme()
                        theme.accent,
                        theme.text,
                        theme.mutedText });
+    motionLab->setTheme({ theme.background,
+                         theme.panel,
+                         theme.sourceCard,
+                         theme.outline,
+                         theme.primary,
+                         theme.accent,
+                         theme.text,
+                         theme.mutedText,
+                         theme.darkText });
     focusOutline.setColour(theme.accent.contrasting(0.18f));
     workspaceDeck.refresh(displayedMode, workspaceThemeFor(theme));
     presetBrowser.setTheme({ theme.background,
@@ -4215,8 +4233,11 @@ void ChipperAudioProcessorEditor::resized()
     constexpr auto footerReserve = 44;
     workspaceDeck.setBounds({});
     presetBrowser.setBounds(area.withTrimmedBottom(footerReserve));
+    motionLab->setBounds(area.withTrimmedBottom(footerReserve));
     if (presetBrowser.isVisible())
         presetBrowser.toFront(false);
+    if (motionLab->isVisible())
+        motionLab->toFront(false);
     focusOutline.setBounds(getLocalBounds());
     focusOutline.toFront(false);
     const auto uiProfile = chipper::ui::profileFor(displayedMode);
@@ -6637,6 +6658,8 @@ void ChipperAudioProcessorEditor::enforceWorkspaceVisibility()
     {
         if (presetBrowser.isVisible())
             presetBrowser.toFront(false);
+        if (motionLab->isVisible())
+            motionLab->toFront(false);
         focusOutline.toFront(false);
     };
 
@@ -6656,6 +6679,7 @@ void ChipperAudioProcessorEditor::captureEditWorkspaceVisibility()
             && child != &editorShell
             && child != &workspaceDeck
             && child != &presetBrowser
+            && child != motionLab.get()
             && child != &focusOutline
             && ! editorShell.isExternalControl(child))
             editWorkspaceVisibility.emplace_back(child, child->isVisible());
@@ -7134,6 +7158,12 @@ void ChipperAudioProcessorEditor::updateWorkflowBarState()
 
 bool ChipperAudioProcessorEditor::keyPressed(const juce::KeyPress& key)
 {
+    if (key == juce::KeyPress::escapeKey && motionLab->isVisible())
+    {
+        motionLab->close();
+        return true;
+    }
+
     if (key == juce::KeyPress::escapeKey && presetBrowser.isVisible())
     {
         presetBrowser.close();
@@ -7179,6 +7209,8 @@ void ChipperAudioProcessorEditor::timerCallback()
     updateDescriptorText();
     updateLiveControlReadouts();
     waveLab.refresh();
+    motionLab->setMode(displayedMode);
+    motionLab->refresh();
     refreshAccessibleNames();
     captureEditWorkspaceVisibility();
     statusLabel.setText(audioProcessor.currentCoreStatus(), juce::dontSendNotification);
@@ -8525,8 +8557,25 @@ void ChipperAudioProcessorEditor::refreshGlobalPresetBrowser()
 
 void ChipperAudioProcessorEditor::showPresetBrowser()
 {
+    if (motionLab->isVisible())
+        motionLab->close();
     refreshGlobalPresetBrowser();
     presetBrowser.open(displayedMode);
+}
+
+void ChipperAudioProcessorEditor::showMotionLab()
+{
+    if (motionLab->isVisible())
+    {
+        motionLab->close();
+        return;
+    }
+
+    if (presetBrowser.isVisible())
+        presetBrowser.close();
+    motionLab->open(displayedMode);
+    workflowBar.setMotionOpen(true);
+    focusOutline.toFront(false);
 }
 
 void ChipperAudioProcessorEditor::recordRecentPresetKey(const juce::String& key)

@@ -15,7 +15,7 @@ ctest --test-dir build-codex -C Release --output-on-failure
 For a focused smoke pass while iterating:
 
 ```powershell
-ctest --test-dir build-codex -C Release -R "chipper_descriptor_smoke|processor_midi_cc_smoke|chipper_editor_size_smoke|held_tail|preset_.*held" --output-on-failure
+ctest --test-dir build-codex -C Release -R "chipper_descriptor_smoke|processor_midi_cc_smoke|chipper_editor_size_smoke|chipper_ui_motion_snapshot_smoke|held_tail|preset_.*held" --output-on-failure
 ```
 
 This focused pass is the current high-signal regression gate for:
@@ -23,10 +23,11 @@ This focused pass is the current high-signal regression gate for:
 - chip descriptor/UI metadata
 - MIDI CC and state-recall smoke behavior
 - DAW-friendly editor default and restored-window height
+- Motion Lab schema-v4 recall, sample-accurate/no-allocation playback, two-width layout/accessibility, and focused snapshot behavior
 - NES DMC one-shot versus loop behavior
 - FM held-tail behavior and held factory presets
 
-Latest local checkpoint: the full Release build, 849/849 CTest cases, 401/401 factory-preset audibility renders, pluginval 1.0.4 strictness level 5, the binary VST3 save/reopen gate, the dense-MIDI no-allocation/deadline gate, and the independent Ayumi YM2149 reference gate passed on Windows on 2026-07-26.
+Latest local development checkpoint: the full RelWithDebInfo build, 850/850 CTest cases, 401/401 factory-preset audibility renders, the binary VST3 save/reopen gate, the dense-MIDI and Motion Lab no-allocation/deadline gates, the independent Ayumi YM2149 reference gate, and editor/browser/Motion Lab capture gates passed on Windows on 2026-07-27. The separately verified full Release build and pluginval 1.0.4 strictness-level-5 checkpoint remain dated 2026-07-26.
 
 Generated sample prerequisites such as NES `.dmc` and Paula `.8svx` fixtures should use CTest fixtures, not only `DEPENDS`, so filtered sample-focused runs still prepare their binary inputs.
 
@@ -125,6 +126,7 @@ Before a release is considered usable, keep these checks green:
 - FM held-tail tests, because FM notes fading to silence is a fixed regression.
 - NES DMC loop-off tests, because one-shot DMC playback should stop stepping and hold the DAC value instead of looping.
 - Editor-size smoke tests, because Chipper should open and restore inside the documented DAW-friendly per-chip fixed height. Most chips are capped at 860 px; SID is currently capped at 880 px for readable ADSR.
+- Motion Lab editor/snapshot and processor-performance gates, because its per-chip non-parameter state, active-step UI, Big Mono timing, and intentional Chip Poly bypass must remain deterministic.
 - Factory preset catalog and audibility checks whenever preset content changed.
 - The parameter-ID, state-schema, portable-asset, and mono/stereo bus invariants in [compatibility-contract.md](compatibility-contract.md).
 - Independent reference comparisons for selected high-risk cores, with provenance and per-capture thresholds recorded as described in `tests/references/README.md`.

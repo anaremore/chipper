@@ -25,18 +25,25 @@ must not silently reinterpret an existing ID or accepted state.
 
 - The APVTS root tag is `ChipperState`.
 - Unversioned state is schema 1. It is accepted and migrated to the current
-  schema before APVTS restore.
-- Current saved state declares `stateSchemaVersion="3"`. Schema 3 adds
-  optional embedded custom Wave RAM; unversioned, schema-1, and schema-2
-  states migrate with generated wave templates and no custom lanes.
+  schema before APVTS and non-parameter state restore.
+- Current saved state declares `stateSchemaVersion="4"`. Schema 3 added
+  optional embedded custom Wave RAM. Schema 4 adds optional per-chip Motion
+  Lab patterns. Unversioned, schema-1, and schema-2 states migrate with
+  generated wave templates and no custom lanes; schema-3 and older states
+  migrate with one disabled neutral motion pattern per chip.
 - Invalid versions and versions newer than the plugin supports fail explicitly;
   they are not partially interpreted.
 - A state payload may restore at most 4,096 low-level register writes and at
-  most 256 sample references per bank and 19 native custom Wave RAM lanes.
-  Oversized register or Wave RAM payloads fail; oversized sample banks are
-  bounded. Wave RAM lanes contain exactly 32 native-range samples.
+  most 256 sample references per bank, 19 native custom Wave RAM lanes,
+  and one Motion Lab pattern for each of the 27 canonical chip modes.
+  Oversized register, Wave RAM, or motion payloads fail; oversized sample
+  banks are bounded. Wave RAM lanes contain exactly 32 native-range samples.
+  Each motion pattern contains exactly eight bounded steps, one legal synced
+  rate, a length from 1-8, pitch from -24 to +24 semitones, level from 0-15,
+  and Hold/Trig/Cut gate values; duplicate or unknown chip IDs fail explicitly.
 - Schema fixtures live in `tests/state/` and are exercised by
-  `chipper_processor_midi_cc_smoke`.
+  `chipper_processor_midi_cc_smoke`, including legacy migration, schema-v4
+  round trips, malformed motion rejection, and future-version rejection.
 
 ## External assets
 

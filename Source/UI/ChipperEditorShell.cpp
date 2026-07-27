@@ -107,7 +107,7 @@ void ChipperEditorShell::resized()
     workspaceLabel.setBounds({});
     for (auto& button : workspaceButtons)
         button.setBounds({});
-    const auto workflowWidth = std::min(360, std::max(300, summaryRow.getWidth() / 3));
+    const auto workflowWidth = std::min(420, std::max(390, summaryRow.getWidth() * 3 / 8));
     controls.workflow.setBounds(summaryRow.removeFromRight(workflowWidth).reduced(0, 2));
     summaryRow.removeFromRight(8);
     controls.chipSummary.setBounds(summaryRow);

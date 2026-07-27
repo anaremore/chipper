@@ -6,6 +6,7 @@
 #include "UI/ChipperEditorShell.h"
 #include "UI/ChipperFmEditor.h"
 #include "UI/ChipperFocusOutline.h"
+#include "UI/ChipperMotionLab.h"
 #include "UI/ChipperWorkspaces.h"
 #include "UI/ChipperWaveLab.h"
 #include "UI/ChipperPresetBrowser.h"
@@ -14,6 +15,7 @@
 #include <array>
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <vector>
 
 namespace chipper
@@ -211,6 +213,52 @@ public:
     void pasteWaveLabForLayoutTest() { waveLab.pasteForTest(); }
     void resetWaveLabForLayoutTest() { waveLab.resetForTest(); }
     void importWaveLabAudioFileForLayoutTest(const juce::File& file) { waveLab.importAudioFileForTest(file); }
+    juce::Rectangle<int> getMotionLabBoundsForLayoutTest() const { return motionLab->getBounds(); }
+    bool isMotionLabVisibleForLayoutTest() const { return motionLab->isVisible(); }
+    bool isMotionLabAboveWorkspaceForLayoutTest() const
+    {
+        return getIndexOfChildComponent(motionLab.get()) > getIndexOfChildComponent(&workspaceDeck);
+    }
+    void showMotionLabForLayoutTest() { showMotionLab(); }
+    void closeMotionLabForLayoutTest() { motionLab->close(); }
+    juce::Rectangle<int> getMotionEnableBoundsForLayoutTest() const
+    {
+        return motionLab->enableBoundsForTest().translated(motionLab->getX(), motionLab->getY());
+    }
+    juce::Rectangle<int> getMotionRateBoundsForLayoutTest() const
+    {
+        return motionLab->rateBoundsForTest().translated(motionLab->getX(), motionLab->getY());
+    }
+    juce::Rectangle<int> getMotionLengthBoundsForLayoutTest() const
+    {
+        return motionLab->lengthBoundsForTest().translated(motionLab->getX(), motionLab->getY());
+    }
+    juce::Rectangle<int> getMotionTemplateBoundsForLayoutTest(size_t index) const
+    {
+        return motionLab->templateBoundsForTest(index).translated(motionLab->getX(), motionLab->getY());
+    }
+    juce::Rectangle<int> getMotionStepBoundsForLayoutTest(size_t index) const
+    {
+        return motionLab->stepBoundsForTest(index).translated(motionLab->getX(), motionLab->getY());
+    }
+    juce::Rectangle<int> getMotionPitchBoundsForLayoutTest(size_t index) const
+    {
+        return motionLab->pitchBoundsForTest(index).translated(motionLab->getX(), motionLab->getY());
+    }
+    juce::Rectangle<int> getMotionLevelBoundsForLayoutTest(size_t index) const
+    {
+        return motionLab->levelBoundsForTest(index).translated(motionLab->getX(), motionLab->getY());
+    }
+    juce::Rectangle<int> getMotionGateBoundsForLayoutTest(size_t index) const
+    {
+        return motionLab->gateBoundsForTest(index).translated(motionLab->getX(), motionLab->getY());
+    }
+    juce::String getMotionStatusForLayoutTest() const { return motionLab->statusTextForTest(); }
+    juce::String getMotionDestinationForLayoutTest() const { return motionLab->destinationTextForTest(); }
+    void applyMotionTemplateForLayoutTest(chipper::MotionTemplate type) { motionLab->applyTemplateForTest(type); }
+    void setMotionLengthForLayoutTest(int length) { motionLab->setLengthForTest(length); }
+    juce::String getMotionStepTextForLayoutTest(size_t index) const { return motionLab->stepTextForTest(index); }
+    bool isMotionStepEnabledForLayoutTest(size_t index) const { return motionLab->stepEnabledForTest(index); }
     juce::Rectangle<int> getPresetFilterBoundsForLayoutTest() const { return presetFilterBox.getBounds(); }
     juce::String getPresetFilterTextForLayoutTest() const { return presetFilterBox.getText(); }
     juce::Rectangle<int> getPresetSearchBoundsForLayoutTest() const { return presetSearchBox.getBounds(); }
@@ -640,6 +688,7 @@ private:
     void setSelectedPresetFavorite(bool shouldBeFavorite);
     void updatePresetFavoriteButton();
     void showPresetBrowser();
+    void showMotionLab();
     void refreshGlobalPresetBrowser();
     std::vector<ChipperPresetBrowser::Entry> globalPresetBrowserEntries() const;
     void recordRecentPresetKey(const juce::String& key);
@@ -890,6 +939,7 @@ private:
     std::array<juce::TextButton, fmOperatorReadoutRows> fmOperatorMultiplierButtons;
     std::array<juce::TextButton, fmOperatorReadoutRows> fmOperatorAttackRateButtons;
     ChipperFmEditor fmEditor;
+    std::unique_ptr<ChipperMotionLab> motionLab;
     ChipperWaveLab waveLab;
     juce::Label waveShapeLabel;
     juce::Label waveShapeValueLabel;

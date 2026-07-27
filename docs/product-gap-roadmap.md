@@ -4,7 +4,7 @@ This roadmap captures the broad product gaps that remain after the first playabl
 
 > Can a musician make a complete chiptune bass, lead, arp, drum kit, and SFX pack in Chipper without fighting the UI?
 
-Review status: synced on 2026-07-27 after the native Wave Lab and versioned custom Wave RAM state landed for HuC6280, Namco WSG, and SCC. FM held-tail, NES DMC loop-off, descriptor ownership, state compatibility, dense MIDI behavior, and Wave Lab interaction are release gates. This document stays focused on user-visible workflows still missing. Current active gaps are tracker motion, deeper FM/sample editing, chip authenticity, and final release confidence.
+Review status: synced on 2026-07-27 after the native Wave Lab and global Motion Lab landed with versioned per-chip non-parameter state. FM held-tail, NES DMC loop-off, descriptor ownership, state compatibility, dense MIDI behavior, Wave Lab interaction, and sample-accurate Motion Lab playback are release gates. Current active gaps are the complete OPL3 four-operator editor, deeper FM/sample editing, richer chip-native motion/SFX destinations, chip authenticity, and final release confidence.
 
 ## Current Baseline To Preserve
 
@@ -17,9 +17,10 @@ Recent work has converted many early placeholder panels into playable, chip-awar
 - Factory and user presets are real user value only when they load audible, playable states and visibly update the chip controls.
 - Source cards are now the baseline home for chip-owned controls. Do not move per-channel duty, wave, sample, or level controls back into detached summary panels unless the chip hardware really shares that control.
 - Chips without native ADSR must keep helper envelope modules labeled as Chipper amp/gate helpers, never as native ADSR or reused NES decay behavior.
+- Motion Lab is a global Big Mono workflow, not eight fake automation lanes per chip. Its eight-step pitch, post-chip level, and Hold/Trig/Cut data stays independent per chip, follows host tempo with an explicit 120 BPM fallback, survives schema-v4 project recall, and remains visibly bypassed rather than ambiguously applied in Chip Poly.
 - Roadmap-only chip features should remain in docs until they have an audible engine path, stable parameters, state recall, and renderer or descriptor coverage. The plugin UI should favor implemented, truthful surfaces over planned-looking controls.
 
-Do not reopen fixed regressions in this roadmap unless a current build reproduces them and the owning gate fails. Otherwise, keep pushing the remaining work: deeper chip editors, preset quality, sample/wave workflows, state recall, and verification evidence.
+Do not reopen fixed regressions in this roadmap unless a current build reproduces them and the owning gate fails. Otherwise, keep pushing the remaining work: the shared OPL3 four-operator editor, deeper chip editors, preset quality, sample workflows, richer motion/SFX destinations, state recall, and verification evidence.
 
 The current product bias is workflow completion over breadth. A good next slice should let a user choose one chip, load or design a sound source, hear it on the intended lane, see the relevant native controls, save a preset, reload it, and verify the renderer reports the same state. Layout polish matters most when it protects that loop.
 
@@ -48,14 +49,15 @@ Current fixed-regression gates are FM sustained-note output and NES DMC one-shot
 
 Cleanup rule: fixed bugs, screenshot complaints, and one-off exploratory notes should not live here once the durable rule is captured in the owning doc. A passing regression gate keeps this roadmap unchanged; a failing gate promotes the issue back to active work and should leave behind a tighter test when fixed.
 
-Planning-only cleanup should not become its own backlog. If no current build reproduces a fixed regression, this roadmap should keep pointing at user workflows: tracker motion, wave/sample editing, FM operator editing, drum/SFX design, preset browsing, MIDI/automation polish, and release readiness. Use [priority-roadmap.md](priority-roadmap.md) for ranked execution and [release-builds.md](release-builds.md) for the exact gate commands.
+Planning-only cleanup should not become its own backlog. If no current build reproduces a fixed regression, this roadmap should keep pointing at user workflows: deeper motion/SFX destinations, wave/sample editing, FM operator editing, drum/SFX design, preset browsing, MIDI/automation polish, and release readiness. Use [priority-roadmap.md](priority-roadmap.md) for ranked execution and [release-builds.md](release-builds.md) for the exact gate commands.
 
 ## Highest-Value Product Gaps
 
 1. **Chip-Aware Tracker Motion / SFX Gestures**
-   - User value: very high. Chiptune identity often comes from fast note and register gestures, not only static tone.
-   - Scope: 0xx-style arps, octave jumps, pitch drops/rises, vibrato, duty cycling, wave cycling, rapid noise pitch changes, fake chords, retrigger, stutter, note cut, and stepped volume motion.
-   - UI direction: a compact **Motion / Tracker FX** surface with chip-specific destinations and synced rates like 1/8, 1/16, 1/32, and 1/64.
+   - Delivered foundation: the global Motion Lab stores one independent eight-step pattern for every canonical chip, with -24..+24 semitone pitch, 0-15 post-chip level, Hold/Trig/Cut, 1-8 length, 1/8-1/64 host-tempo rates, six templates, sample-accurate boundaries, 120 BPM fallback, schema-v4 recall, and an explicit Chip Poly bypass.
+   - Signal-path truth: pitch/retrigger/cut resolve through the selected chip core; level is intentionally post-chip and labeled that way. The UI names the chip-aware pitch/key destination without pretending the level step writes a native volume register.
+   - Remaining scope: vibrato, duty/wave/noise cycling, per-chip register traces, one-shot SFX envelopes, fake-chord policies, and a future deterministic per-voice motion design for Chip Poly.
+   - Non-regression rule: keep the lock-free/no-allocation audio path, exact step-boundary tests, per-chip state isolation, two-width layout/accessibility gate, and active-step non-color cue green.
 
 2. **Wave / Sample Editor**
    - Delivered foundation: HuC6280, Namco WSG, and SCC share a native 32-sample Wave Lab with draw/keyboard editing, 5/4/8-bit quantization, cross-depth copy/paste, WAV/AIFF import, selector reset, live audio publication, and exact project recall.
@@ -124,14 +126,14 @@ Envelope UI is a correctness issue, not just a layout issue. Chipper should only
 
 ## Execution Principle
 
-Avoid polishing Chipper into fifteen pretty but separate chip panels. Prioritize features that turn the existing chip surfaces into a complete musical workflow: browse a role, play a patch, edit native chip controls, add tracker motion, shape samples/waves/operators, save/share the result, and automate it from DAW or MIDI hardware.
+Avoid polishing Chipper into fifteen pretty but separate chip panels. Prioritize features that turn the existing chip surfaces into a complete musical workflow: browse a role, play a patch, edit native chip controls, shape motion/samples/waves/operators, save/share the result, and automate the stable parameter surface from DAW or MIDI hardware.
 
 ## Planning Ownership
 
 Keep planning split into three buckets so fixed work does not keep looking unfinished:
 
 - **Fixed regressions with named tests:** FM sustained-note fade-out and NES DMC one-shot looping are closed unless a current build reproduces them. Keep the held-tail renderer subset and `processor_midi_cc_smoke` in the smoke-test habit, then reopen roadmap work only after a failing repro.
-- **Implemented-but-shallow surfaces:** prioritize deeper operator editors, clearer sample/wavetable workflows, stronger presets, state recall, and verification evidence.
+- **Implemented-but-shallow surfaces:** prioritize the complete OPL3 four-operator editor, richer native Motion Lab destinations, clearer sample/wavetable workflows, stronger presets, state recall, and verification evidence.
 - **Future research:** keep source/licensing decisions, hardware captures, and unverified emulator comparisons out of the active UI unless they have an audible engine path and truthful verification label.
 
 When docs drift, update the owning document instead of repeating the same note everywhere:
