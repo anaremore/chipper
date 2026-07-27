@@ -1090,6 +1090,9 @@ add_test(NAME chipper_render_opl3_18ch_layer_smoke
 add_test(NAME chipper_render_opl3_four_op_pair_smoke
     COMMAND chipper_render --chip opl3 --accuracy authentic --macro manual --play-mode chip-poly --opl-rhythm 4op --wave-shape 2 --control1 1.0 --control3 0.35 --control4 0.9 --clock 14318180 --rate 48000 --seconds 0.10 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/opl3-four-op-pair-events.txt --out opl3-four-op-pair-smoke.wav --debug opl3-four-op-pair-smoke.json
 )
+add_test(NAME chipper_render_opl3_four_op_editor_smoke
+    COMMAND chipper_render --chip opl3 --accuracy authentic --macro manual --play-mode chip-poly --opl-rhythm 4op --wave-shape 2 --control1 0.67 --control2 0.35 --control3 0.35 --control4 0.9 --fm-op1-level 0.65 --fm-op2-level 0.45 --fm-op3-level 0.75 --fm-op4-level 0.55 --fm-op1-multiplier 2 --fm-op2-multiplier 3 --fm-op3-multiplier 4 --fm-op4-multiplier 5 --fm-op1-attack-rate 3 --fm-op2-attack-rate 7 --fm-op3-attack-rate 11 --fm-op4-attack-rate 15 --fm-op1-decay-rate 2 --fm-op2-decay-rate 4 --fm-op3-decay-rate 6 --fm-op4-decay-rate 8 --fm-op1-sustain-rate 1 --fm-op2-sustain-rate 5 --fm-op3-sustain-rate 9 --fm-op4-sustain-rate 13 --fm-op1-release-rate 2 --fm-op2-release-rate 6 --fm-op3-release-rate 10 --fm-op4-release-rate 14 --clock 14318180 --rate 48000 --seconds 0.05 --note 60 --out opl3-four-op-editor-smoke.wav --debug opl3-four-op-editor-smoke.json
+)
 add_test(NAME chipper_render_opl3_sources_off_smoke
     COMMAND chipper_render --chip opl3 --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 0 --source5 0 --source6 0 --source7 0 --source8 0 --source9 0 --clock 14318180 --rate 48000 --seconds 0.04 --note 69 --out opl3-sources-off-smoke.wav --debug opl3-sources-off-smoke.json
 )
@@ -2774,6 +2777,11 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_opl3_four_op_pair_assert PROPERTIES DEPENDS chipper_render_opl3_four_op_pair_smoke)
 
+    add_test(NAME chipper_render_opl3_four_op_editor_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-four-op-editor-smoke.json --implemented-contains ymfm --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 0 --min-peak 0.01 --core-min opl3FourOperatorPairMode=1 --core-max opl3FourOperatorPairMode=1 --core-min opl3FourOperatorRegister=7 --core-max opl3FourOperatorRegister=7 --core-min opl3FourOperatorAlgorithm=2 --core-max opl3FourOperatorAlgorithm=2 --core-min opl3FourOperatorPrimaryConnection=0 --core-max opl3FourOperatorPrimaryConnection=0 --core-min opl3FourOperatorSecondaryConnection=1 --core-max opl3FourOperatorSecondaryConnection=1 --core-min connectionRegister0=244 --core-max connectionRegister0=244 --core-min connectionRegister3=245 --core-max connectionRegister3=245 --core-min operatorMultiple0=2 --core-max operatorMultiple0=2 --core-min operatorMultiple1=3 --core-max operatorMultiple1=3 --core-min operatorMultiple2=4 --core-max operatorMultiple2=4 --core-min operatorMultiple3=5 --core-max operatorMultiple3=5 --core-min operatorTotalLevel0=38 --core-max operatorTotalLevel0=38 --core-min operatorTotalLevel1=3 --core-max operatorTotalLevel1=3 --core-min operatorTotalLevel2=36 --core-max operatorTotalLevel2=36 --core-min operatorTotalLevel3=1 --core-max operatorTotalLevel3=1 --core-min operatorAttackRate0=3 --core-max operatorAttackRate0=3 --core-min operatorAttackRate1=7 --core-max operatorAttackRate1=7 --core-min operatorAttackRate2=11 --core-max operatorAttackRate2=11 --core-min operatorAttackRate3=15 --core-max operatorAttackRate3=15 --core-min operatorDecayRate0=2 --core-max operatorDecayRate0=2 --core-min operatorDecayRate1=4 --core-max operatorDecayRate1=4 --core-min operatorDecayRate2=6 --core-max operatorDecayRate2=6 --core-min operatorDecayRate3=8 --core-max operatorDecayRate3=8 --core-min operatorSustainLevel0=1 --core-max operatorSustainLevel0=1 --core-min operatorSustainLevel1=5 --core-max operatorSustainLevel1=5 --core-min operatorSustainLevel2=9 --core-max operatorSustainLevel2=9 --core-min operatorSustainLevel3=13 --core-max operatorSustainLevel3=13 --core-min operatorReleaseRate0=2 --core-max operatorReleaseRate0=2 --core-min operatorReleaseRate1=6 --core-max operatorReleaseRate1=6 --core-min operatorReleaseRate2=10 --core-max operatorReleaseRate2=10 --core-min operatorReleaseRate3=14 --core-max operatorReleaseRate3=14 --descriptor-param-kind fmOperator1Level=chipRegister --descriptor-param-surface fmOperator1Level=slider --descriptor-param-choices fmOperator1AttackRate=17 --descriptor-param-choices fmOperator4SustainRate=17 --descriptor-param-label "fmOperator1SustainRate=OP1 Sustain Level"
+    )
+    set_tests_properties(chipper_render_opl3_four_op_editor_assert PROPERTIES DEPENDS chipper_render_opl3_four_op_editor_smoke)
+
     add_test(NAME chipper_render_opl3_sources_off_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-sources-off-smoke.json --implemented-contains ymfm --macro Manual --register-writes 0 --note-events 0 --max-peak 0.001 --max-rms 0.001 --core-min keyOnMask=0 --core-max keyOnMask=0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min sourceEnabled5=0 --core-max sourceEnabled5=0 --core-min sourceEnabled6=0 --core-max sourceEnabled6=0 --core-min sourceEnabled7=0 --core-max sourceEnabled7=0 --core-min sourceEnabled8=0 --core-max sourceEnabled8=0
     )
@@ -3929,6 +3937,14 @@ add_test(NAME chipper_ui_motion_snapshot_smoke
         --width both
         --workspace motion
         --manifest-only
+)
+
+add_test(NAME chipper_ui_opl3_four_op_snapshot_smoke
+    COMMAND chipper_ui_snapshot
+        --output "${CMAKE_CURRENT_BINARY_DIR}/ui-opl3-four-op-snapshot-smoke"
+        --chip opl3
+        --width both
+        --workspace opl4op
 )
 
 add_test(NAME chipper_ui_png_snapshot_smoke

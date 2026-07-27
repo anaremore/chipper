@@ -162,6 +162,14 @@ struct FmEnvelopeRegisters
     uint8_t sustainRelease = 0x46;
 };
 
+struct OplEnvelopeRegisters
+{
+    uint8_t attackRate = 0x0f;
+    uint8_t decayRate = 0x04;
+    uint8_t sustainLevel = 0x02;
+    uint8_t releaseRate = 0x06;
+};
+
 struct ChipParameterSpec
 {
     ChipParameterRole role = ChipParameterRole::macroControl1;
@@ -378,10 +386,16 @@ uint8_t fmOperatorMultipleForPatch(ChipMode mode, const PatchConfig& patch, size
 bool fmOperatorIsCarrierForAlgorithm(uint8_t algorithm, size_t op);
 uint8_t fmOperatorTotalLevelForPatch(ChipMode mode, const PatchConfig& patch, size_t op, float velocity = 1.0f);
 uint8_t oplWaveformForPatch(const PatchConfig& patch);
+uint8_t oplFourOperatorAlgorithmForPatch(const PatchConfig& patch);
 uint8_t oplConnectionForPatch(const PatchConfig& patch);
+uint8_t oplConnectionForOperatorStage(const PatchConfig& patch, size_t stage);
+bool oplOperatorIsCarrierForPatch(const PatchConfig& patch, size_t op);
 uint8_t oplModulatorMultipleForPatch(const PatchConfig& patch);
 uint8_t oplModulatorTotalLevelForPatch(const PatchConfig& patch);
 uint8_t oplCarrierTotalLevelForPatch(const PatchConfig& patch, float velocity = 1.0f);
+uint8_t oplOperatorMultipleForPatch(const PatchConfig& patch, size_t op);
+uint8_t oplOperatorTotalLevelForPatch(const PatchConfig& patch, size_t op, float velocity = 1.0f);
+OplEnvelopeRegisters oplOperatorEnvelopeRegistersForPatch(const PatchConfig& patch, size_t op);
 uint8_t oplRhythmModeForPatch(const PatchConfig& patch);
 bool opl18ChannelLayerForPatch(const PatchConfig& patch);
 bool oplFourOperatorPairForPatch(const PatchConfig& patch);

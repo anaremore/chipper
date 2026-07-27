@@ -26,7 +26,7 @@ void printUsage()
     std::cout
         << "Usage: chipper_ui_snapshot [--output <directory>] [--chip <name|all>]\n"
         << "                           [--width <1180|1240|both>]\n"
-        << "                           [--workspace <editor|browser|motion|all>] [--manifest-only]\n";
+        << "                           [--workspace <editor|browser|motion|opl4op|all>] [--manifest-only]\n";
 }
 
 std::optional<Options> parseOptions(int argc, char** argv)
@@ -81,7 +81,7 @@ std::optional<Options> parseOptions(int argc, char** argv)
             const auto value = nextValue();
             if (! value.has_value()
                 || (*value != "editor" && *value != "edit" && *value != "browser"
-                    && *value != "motion" && *value != "all"))
+                    && *value != "motion" && *value != "opl4op" && *value != "all"))
                 return std::nullopt;
 
             options.workspace = *value;
@@ -105,10 +105,10 @@ std::optional<Options> parseOptions(int argc, char** argv)
     return options;
 }
 
-bool setChipMode(ChipperAudioProcessor& processor, int choice)
+bool setChoiceParameter(ChipperAudioProcessor& processor, const juce::String& parameterId, int choice)
 {
     auto* parameter = dynamic_cast<juce::AudioParameterChoice*>(
-        processor.getValueTreeState().getParameter(chipper::parameters::id::chipMode));
+        processor.getValueTreeState().getParameter(parameterId));
     if (parameter == nullptr || choice < 0 || choice >= parameter->choices.size())
         return false;
 
@@ -117,6 +117,33 @@ bool setChipMode(ChipperAudioProcessor& processor, int choice)
         : 0.0f;
     parameter->setValueNotifyingHost(normalised);
     return true;
+}
+
+bool setPlainParameter(ChipperAudioProcessor& processor, const juce::String& parameterId, float value)
+{
+    auto* parameter = processor.getValueTreeState().getParameter(parameterId);
+    if (parameter == nullptr)
+        return false;
+
+    parameter->setValueNotifyingHost(parameter->convertTo0to1(value));
+    return true;
+}
+
+bool setChipMode(ChipperAudioProcessor& processor, int choice)
+{
+    return setChoiceParameter(processor, chipper::parameters::id::chipMode, choice);
+}
+
+bool configureOplFourOperatorCapture(ChipperAudioProcessor& processor)
+{
+    auto ok = setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 4);
+    ok &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 2);
+    ok &= setPlainParameter(processor, chipper::parameters::id::macroControl1, 0.67f);
+    ok &= setPlainParameter(processor, chipper::parameters::id::fmOperator1Level, 0.65f);
+    ok &= setPlainParameter(processor, chipper::parameters::id::fmOperator2Level, 0.45f);
+    ok &= setPlainParameter(processor, chipper::parameters::id::fmOperator3Level, 0.75f);
+    ok &= setPlainParameter(processor, chipper::parameters::id::fmOperator4Level, 0.55f);
+    return ok;
 }
 
 juce::String componentType(const juce::Component& component)
@@ -277,7 +304,8 @@ enum class CaptureSurface
 {
     editor,
     browser,
-    motion
+    motion,
+    opl4op
 };
 
 std::vector<CaptureSurface> requestedSurfaces(const juce::String& requested)
@@ -286,6 +314,8 @@ std::vector<CaptureSurface> requestedSurfaces(const juce::String& requested)
         return { CaptureSurface::browser };
     if (requested == "motion")
         return { CaptureSurface::motion };
+    if (requested == "opl4op")
+        return { CaptureSurface::opl4op };
     if (requested == "all")
         return { CaptureSurface::editor, CaptureSurface::browser, CaptureSurface::motion };
     return { CaptureSurface::editor };
@@ -297,6 +327,8 @@ juce::String surfaceName(CaptureSurface surface)
         return "browser";
     if (surface == CaptureSurface::motion)
         return "motion";
+    if (surface == CaptureSurface::opl4op)
+        return "opl4op";
     return "editor";
 }
 }
@@ -320,6 +352,13 @@ int main(int argc, char** argv)
         std::cerr << "Unknown chip: " << options.chip << '\n';
         return 2;
     }
+    if (options.workspace == "opl4op"
+        && (! selectedChoice.has_value()
+            || chipper::parameters::chipModeFromChoice(*selectedChoice) != chipper::ChipMode::opl3))
+    {
+        std::cerr << "The opl4op workspace requires --chip opl3\n";
+        return 2;
+    }
 
     juce::ScopedJuceInitialiser_GUI juceInitialiser;
     juce::Array<juce::var> snapshots;
@@ -339,6 +378,11 @@ int main(int argc, char** argv)
                 if (! setChipMode(processor, choice))
                 {
                     std::cerr << "Could not select chip choice " << choice << '\n';
+                    return 1;
+                }
+                if (surface == CaptureSurface::opl4op && ! configureOplFourOperatorCapture(processor))
+                {
+                    std::cerr << "Could not configure the OPL3 four-operator snapshot state\n";
                     return 1;
                 }
                 processor.prepareToPlay(48000.0, 512);

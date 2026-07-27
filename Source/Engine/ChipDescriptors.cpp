@@ -896,6 +896,42 @@ ChipParameterSpec fmOperatorReleaseRateSpec(ChipParameterRole role, std::string 
              0.0f };
 }
 
+ChipParameterSpec oplOperatorEnvelopeSpec(ChipParameterRole role,
+                                          std::string id,
+                                          std::string label,
+                                          std::string fieldName,
+                                          size_t op,
+                                          int hostChoiceRange)
+{
+    const auto operatorName = "operator " + std::to_string(op + 1u);
+    std::vector<ParameterChoiceSpec> choices;
+    choices.reserve(17);
+    choices.push_back(choice("Follow",
+                             "Resolve the YMF262 " + operatorName + " " + fieldName + " nibble from the selected recipe.",
+                             0.0f,
+                             0));
+    for (int value = 0; value <= 15; ++value)
+    {
+        choices.push_back(choice(std::to_string(value),
+                                 "Write native YMF262 " + fieldName + " nibble "
+                                     + std::to_string(value) + " for " + operatorName + ".",
+                                 static_cast<float>(value + 1) / static_cast<float>(hostChoiceRange),
+                                 value + 1));
+    }
+    return { role,
+             std::move(id),
+             std::move(label),
+             "Operators",
+             "Overrides the YMF262 " + operatorName + " native " + fieldName
+                 + " nibble. Follow preserves the selected recipe.",
+             ParameterKind::chipRegister,
+             ControlSurface::menu,
+             std::move(choices),
+             0.0f,
+             1.0f,
+             0.0f };
+}
+
 std::vector<ParameterChoiceSpec> ymChannelMixChoices(std::string channelName)
 {
     return {
@@ -1881,9 +1917,9 @@ std::vector<ChipParameterSpec> oplParameterSpecs()
     return {
         sliderSpec(ChipParameterRole::macroControl1,
                    "opl.operatorBalance",
-                   "Operator Balance",
+                   "Connection / 4-op Algorithm",
                    "FM",
-                   "Maps to the OPL connection bit, balancing modulator/carrier behavior for two-operator voices.",
+                   "Maps to the serial/parallel OPL connection bit for two-operator voices. In 4-op Pair topology it selects all four YMF262 algorithms through the linked channel $C0 connection bits.",
                    ParameterKind::chipRegister),
         sliderSpec(ChipParameterRole::macroControl2,
                    "opl.feedback",
@@ -1904,6 +1940,54 @@ std::vector<ChipParameterSpec> oplParameterSpecs()
                    "Controls carrier level through native OPL attenuation registers.",
                    ParameterKind::chipRegister,
                    0.72f),
+        sliderSpec(ChipParameterRole::fmOperator1Level,
+                   "opl.op1.level",
+                   "OP1 Level",
+                   "Operators",
+                   "Offsets YMF262 operator 1 total level in the first linked channel. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator2Level,
+                   "opl.op2.level",
+                   "OP2 Level",
+                   "Operators",
+                   "Offsets YMF262 operator 2 total level in the first linked channel. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator3Level,
+                   "opl.op3.level",
+                   "OP3 Level",
+                   "Operators",
+                   "Offsets YMF262 operator 3 total level in the paired second channel used by 4-op topology. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        sliderSpec(ChipParameterRole::fmOperator4Level,
+                   "opl.op4.level",
+                   "OP4 Level",
+                   "Operators",
+                   "Offsets YMF262 operator 4 total level in the paired second channel used by 4-op topology. 50% is neutral; higher is louder.",
+                   ParameterKind::chipRegister,
+                   0.5f),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator1Multiplier, "opl.op1.multiplier", "OP1 Mult", "YMF262", 0),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator2Multiplier, "opl.op2.multiplier", "OP2 Mult", "YMF262", 1),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator3Multiplier, "opl.op3.multiplier", "OP3 Mult", "YMF262", 2),
+        fmOperatorMultiplierSpec(ChipParameterRole::fmOperator4Multiplier, "opl.op4.multiplier", "OP4 Mult", "YMF262", 3),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator1AttackRate, "opl.op1.attackRate", "OP1 Attack", "attack-rate", 0, 32),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator2AttackRate, "opl.op2.attackRate", "OP2 Attack", "attack-rate", 1, 32),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator3AttackRate, "opl.op3.attackRate", "OP3 Attack", "attack-rate", 2, 32),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator4AttackRate, "opl.op4.attackRate", "OP4 Attack", "attack-rate", 3, 32),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator1DecayRate, "opl.op1.decayRate", "OP1 Decay", "decay-rate", 0, 32),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator2DecayRate, "opl.op2.decayRate", "OP2 Decay", "decay-rate", 1, 32),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator3DecayRate, "opl.op3.decayRate", "OP3 Decay", "decay-rate", 2, 32),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator4DecayRate, "opl.op4.decayRate", "OP4 Decay", "decay-rate", 3, 32),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator1SustainRate, "opl.op1.sustainLevel", "OP1 Sustain Level", "sustain-level", 0, 32),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator2SustainRate, "opl.op2.sustainLevel", "OP2 Sustain Level", "sustain-level", 1, 32),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator3SustainRate, "opl.op3.sustainLevel", "OP3 Sustain Level", "sustain-level", 2, 32),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator4SustainRate, "opl.op4.sustainLevel", "OP4 Sustain Level", "sustain-level", 3, 32),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator1ReleaseRate, "opl.op1.releaseRate", "OP1 Release", "release-rate", 0, 16),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator2ReleaseRate, "opl.op2.releaseRate", "OP2 Release", "release-rate", 1, 16),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator3ReleaseRate, "opl.op3.releaseRate", "OP3 Release", "release-rate", 2, 16),
+        oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator4ReleaseRate, "opl.op4.releaseRate", "OP4 Release", "release-rate", 3, 16),
         { ChipParameterRole::waveShape,
           "opl.waveform",
           "Waveform",
@@ -3687,8 +3771,8 @@ std::array<ModuleDescriptor, 6> oplModules()
     return std::array<ModuleDescriptor, 6> {
         makeModule("profile", "Profile", "OPL2/OPL3 surface is backed by audited BSD-licensed ymfm YMF262 core.", { "YMF262 core", "14.32 MHz clock", "Hybrid default", "Verified partial" }),
         makeModule("sources", "Nine OPL Lanes", "Each card remains visible while its role changes with the selected OPL topology.", { "Ch 1-9", "Ch 10-18 layers", "$BD percussion", "$104 pairs" }),
-        makeModule("tone", "Topology + Shared Patch", "Choose the voice architecture, then shape the register-backed operator pair shared by the visible lanes.", { "OPL topology", "Waveform", "Connection + feedback", "Operator tone + level" }),
-        makeModule("envelope", "Operator Register State", "The resolved pair, modulator, and carrier registers for the active shared patch.", { "Pair routing", "Modulator registers", "Carrier registers", "Preset-resolved EG" }),
+        makeModule("tone", "Topology + Shared Patch", "Choose the voice architecture, waveform, feedback, and two- or four-operator connection algorithm shared by the visible lanes.", { "OPL topology", "Waveform", "2-op connection / 4-op algorithm", "Feedback" }),
+        makeModule("envelope", "Shared Operator Matrix", "Four editable YMF262 operators expose multiplier, total level, attack/decay, sustain level, and release; OP3-4 become the paired stage in 4-op topology.", { "Carrier/modulator roles", "$20 / $40", "$60 AR / DR", "$80 SL / RR" }),
         makeModule("motion", "Motion", "DOS FM preset recipes map to register-backed melodic and rhythm patches.", { "UI bell", "FM bass", "Rhythm hits", "Laser" }),
         makeModule("output", "Active Signal Path", "Nine independent two-operator lanes feed the YMF262 output buses and plugin stereo.", {})
     };
@@ -4144,12 +4228,12 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::opl3,
             "OPL2/OPL3 / DOS FM",
-            "Nine source cards write OPL-compatible registers into the audited ymfm YMF262/OPL3 core for DOS FM tones, native rhythm mode, an explicit paired 18-channel OPL3 layer mode, and first-pass $104 four-operator pairs.",
+            "Nine source cards write OPL-compatible registers into the audited ymfm YMF262/OPL3 core for DOS FM tones, native rhythm mode, an explicit paired 18-channel OPL3 layer mode, and shared editable $104 four-operator pairs.",
             {
-                { "balance", "Operator Balance", "FM", "Writes the OPL connection bit for two-operator voices." },
+                { "balance", "Connection / 4-op Algorithm", "FM", "Writes one OPL connection bit for two-operator voices or both linked $C0 bits for all four YMF262 four-operator algorithms." },
                 { "feedback", "Feedback", "FM", "Writes OPL feedback bits." },
-                { "waveform", "Waveform", "Operators", "Writes OPL2 operator waveform registers." },
-                { "level", "FM Level", "Output", "Controls carrier level through native OPL attenuation registers." },
+                { "waveform", "Waveform", "Operators", "Writes the selected YMF262 waveform to all four shared operators." },
+                { "level", "FM Level", "Output", "Controls carrier levels through native OPL attenuation registers." },
             },
             oplModules(),
             oplMacros(),
@@ -4159,12 +4243,12 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YMF262/OPL3 synthesis core.",
-                    "Renderer notes and preset recipes write OPL-compatible operator waveform, multiple, total-level, envelope, channel feedback/connection/output-select, f-number/block, key-on, OPL3 new-mode, high-bank channel, $104 four-operator-pair, and $BD rhythm registers.",
-                    "Descriptor, MIDI CC, renderer smoke, YMF262 high-bank/new-mode state, source gating, Rhythm Mode, 18-channel Layer Mode, 4-op Pair mode, and Chip Poly regression tests cover the paired nine-card adapter."
+                    "Renderer notes, automation, and preset recipes write shared four-operator YMF262 waveform, multiple, total-level, attack/decay, sustain-level/release, both four-operator algorithm connection bits, channel feedback/output-select, f-number/block, key-on, OPL3 new-mode, high-bank channel, $104 pair-enable, and $BD rhythm registers.",
+                    "Descriptor, MIDI CC, renderer smoke, four-operator register, YMF262 high-bank/new-mode state, source gating, Rhythm Mode, 18-channel Layer Mode, 4-op Pair mode, and Chip Poly regression tests cover the paired nine-card adapter."
                 },
                 {
-                    "The OPL2/OPL3 mode exposes 18 native YMF262 melodic channels through paired low/high-bank source cards and a first-pass $104 4-op Pair mode through the existing nine-card surface rather than a dedicated 18-card/four-operator editor.",
-                    "Deep per-operator ADSR UI, full four-operator algorithm editing, LFO/tremolo/vibrato controls, rhythm-instrument fine tuning, golden emulator comparison, and hardware capture comparison are not complete.",
+                    "The OPL2/OPL3 mode exposes 18 native YMF262 melodic channels through paired low/high-bank source cards; its shared four-operator matrix edits the three low-bank $104 pairs while the existing nine cards retain key-lane and paired-stage semantics.",
+                    "LFO/tremolo/vibrato controls, rhythm-instrument fine tuning, dedicated per-lane patches, golden emulator comparison, and hardware capture comparison are not complete.",
                     "Cycle accuracy is not claimed."
                 })
         },
@@ -6204,9 +6288,40 @@ uint8_t oplWaveformForPatch(const PatchConfig& patch)
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control3) * 3.0f)), 0, 3));
 }
 
+uint8_t oplFourOperatorAlgorithmForPatch(const PatchConfig& patch)
+{
+    return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(clampControl(patch.control1) * 3.0f)), 0, 3));
+}
+
 uint8_t oplConnectionForPatch(const PatchConfig& patch)
 {
+    if (oplFourOperatorPairForPatch(patch))
+        return static_cast<uint8_t>(oplFourOperatorAlgorithmForPatch(patch) & 0x01u);
     return patch.control1 > 0.55f ? 1u : 0u;
+}
+
+uint8_t oplConnectionForOperatorStage(const PatchConfig& patch, size_t stage)
+{
+    if (! oplFourOperatorPairForPatch(patch))
+        return oplConnectionForPatch(patch);
+
+    const auto algorithm = oplFourOperatorAlgorithmForPatch(patch);
+    return static_cast<uint8_t>((algorithm >> std::min(stage, size_t { 1u })) & 0x01u);
+}
+
+bool oplOperatorIsCarrierForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto safeOp = std::min(op, size_t { 3u });
+    if (! oplFourOperatorPairForPatch(patch))
+        return (safeOp % 2u) == 1u;
+
+    static constexpr std::array<std::array<bool, 4>, 4> carriers {{
+        {{ false, false, false, true }},
+        {{ true, false, false, true }},
+        {{ false, true, false, true }},
+        {{ true, false, true, true }}
+    }};
+    return carriers[oplFourOperatorAlgorithmForPatch(patch)][safeOp];
 }
 
 uint8_t oplModulatorMultipleForPatch(const PatchConfig& patch)
@@ -6223,6 +6338,46 @@ uint8_t oplCarrierTotalLevelForPatch(const PatchConfig& patch, float velocity)
 {
     const auto level = clampControl(velocity) * clampControl(patch.control4);
     return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0f - level) * 24.0f)), 0, 63));
+}
+
+uint8_t oplOperatorMultipleForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto safeOp = std::min(op, size_t { 3u });
+    const auto overrideChoice = std::clamp(patch.fmOperatorMultipliers[safeOp], 0, 16);
+    if (overrideChoice > 0)
+        return static_cast<uint8_t>(overrideChoice - 1);
+
+    return (safeOp % 2u) == 0u ? oplModulatorMultipleForPatch(patch) : 1u;
+}
+
+uint8_t oplOperatorTotalLevelForPatch(const PatchConfig& patch, size_t op, float velocity)
+{
+    const auto safeOp = std::min(op, size_t { 3u });
+    const auto base = oplOperatorIsCarrierForPatch(patch, safeOp)
+        ? static_cast<int>(oplCarrierTotalLevelForPatch(patch, velocity))
+        : static_cast<int>(oplModulatorTotalLevelForPatch(patch));
+    const auto trim = static_cast<int>(std::round((0.5f - clampControl(patch.fmOperatorLevels[safeOp])) * 24.0f));
+    return static_cast<uint8_t>(std::clamp(base + trim, 0, 63));
+}
+
+OplEnvelopeRegisters oplOperatorEnvelopeRegistersForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto safeOp = std::min(op, size_t { 3u });
+    const auto melodicSustain = patch.macro != MacroKind::drum
+        && patch.macro != MacroKind::hit
+        && patch.macro != MacroKind::coin
+        && patch.macro != MacroKind::jump;
+    const auto resolve = [](int choice, int fallback)
+    {
+        return static_cast<uint8_t>(choice > 0 ? std::clamp(choice - 1, 0, 15) : fallback);
+    };
+
+    return {
+        resolve(std::clamp(patch.fmOperatorAttackRates[safeOp], 0, 32), 15),
+        resolve(std::clamp(patch.fmOperatorDecayRates[safeOp], 0, 32), 4),
+        resolve(std::clamp(patch.fmOperatorSustainRates[safeOp], 0, 32), melodicSustain ? 2 : 10),
+        resolve(std::clamp(patch.fmOperatorReleaseRates[safeOp], 0, 16), 6)
+    };
 }
 
 uint8_t oplRhythmModeForPatch(const PatchConfig& patch)

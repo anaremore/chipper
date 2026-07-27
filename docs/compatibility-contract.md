@@ -20,6 +20,13 @@ must not silently reinterpret an existing ID or accepted state.
 - `chipper_processor_midi_cc_smoke` compares the live APVTS parameter set with
   the checked-in fixture and fails on an accidental addition, removal, or
   rename.
+- The shared OPL3 OP1-OP4 matrix reuses the existing stable
+  `fmOperator*Level`, `fmOperator*Multiplier`, and `fmOperator*Attack/Decay/
+  Sustain/ReleaseRate` IDs. Neutral Level plus Follow choices preserve the
+  previous resolved OPL patch. No parameter ID or state-schema revision was
+  added. In 4-op topology only, the existing `macroControl1` OPL connection
+  value now selects algorithms 0-3; two-operator serial/parallel behavior is
+  unchanged.
 
 ## Saved state
 

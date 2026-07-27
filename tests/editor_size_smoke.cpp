@@ -907,7 +907,8 @@ bool checkOpl3UnifiedTopologyLayout()
     {
         ChipperAudioProcessor processor;
         auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
-        widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 1);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 4);
+        widthOk &= setPlainParameter(processor, chipper::parameters::id::macroControl1, 0.67f);
         ChipperAudioProcessorEditor editor(processor);
         editor.setSize(editorWidth, expectedHeightForChipMode(chipChoice));
         editor.runEditorUpdateForLayoutTest();
@@ -920,9 +921,9 @@ bool checkOpl3UnifiedTopologyLayout()
 
         widthOk &= expect(editor.getModuleTitleTextForLayoutTest(1) == "Nine OPL Lanes"
                               && editor.getModuleTitleTextForLayoutTest(2) == "Topology + Shared Patch"
-                              && editor.getModuleTitleTextForLayoutTest(3) == "Operator Register State"
+                              && editor.getModuleTitleTextForLayoutTest(3) == "Shared Operator Matrix"
                               && editor.getModuleTitleTextForLayoutTest(5) == "Active Signal Path",
-                          "OPL3 dedicated signal-path module titles are missing");
+                          "OPL3 shared-editor module titles are missing");
         widthOk &= expect(editor.getModuleBoundsForLayoutTest(0).isEmpty()
                               && editor.getModuleBoundsForLayoutTest(4).isEmpty(),
                           "OPL3 should not restore detached profile or motion destinations");
@@ -971,18 +972,73 @@ bool checkOpl3UnifiedTopologyLayout()
             }
         }
 
-        for (size_t row = 0; row < 3u; ++row)
+        std::array<juce::Rectangle<int>, 4> operatorCards;
+        for (size_t op = 0; op < operatorCards.size(); ++op)
         {
-            const auto card = editor.getFmOperatorCardBoundsForLayoutTest(row);
-            if (card.isEmpty()
+            const auto card = editor.getFmOperatorCardBoundsForLayoutTest(op);
+            const auto name = editor.getFmOperatorNameBoundsForLayoutTest(op);
+            const auto levelReadout = editor.getFmOperatorLevelValueBoundsForLayoutTest(op);
+            const auto level = editor.getFmOperatorLevelSliderBoundsForLayoutTest(op);
+            const auto multiplier = editor.getFmOperatorMultiplierBoundsForLayoutTest(op);
+            const auto envelope = editor.getFmOperatorAttackRateBoundsForLayoutTest(op);
+            const auto registers = editor.getFmOperatorValueBoundsForLayoutTest(op);
+            operatorCards[op] = card;
+            if (card.isEmpty() || name.isEmpty() || levelReadout.isEmpty() || level.isEmpty()
+                || multiplier.isEmpty() || envelope.isEmpty() || registers.isEmpty()
                 || ! operatorModule.expanded(2).contains(card)
-                || card.getWidth() < 280
-                || card.getHeight() < 36)
+                || ! card.expanded(2).contains(name)
+                || ! card.expanded(2).contains(levelReadout)
+                || ! card.expanded(2).contains(level)
+                || ! card.expanded(2).contains(multiplier)
+                || ! card.expanded(2).contains(envelope)
+                || ! card.expanded(2).contains(registers)
+                || card.getWidth() < 175 || card.getHeight() < 72
+                || name.getWidth() < 70 || name.getHeight() < 12
+                || levelReadout.getWidth() < 70 || levelReadout.getHeight() < 12
+                || level.getWidth() < 50 || level.getHeight() < 16
+                || multiplier.getWidth() < 48 || multiplier.getHeight() < 16
+                || envelope.getWidth() < 40 || envelope.getHeight() < 16
+                || registers.getWidth() < 150 || registers.getHeight() < 12)
             {
-                std::cerr << "editor_size_smoke: OPL3 operator-state row " << row
-                          << " is unreadable at width " << editorWidth
-                          << ": card " << card.toString() << " module " << operatorModule.toString() << '\n';
+                std::cerr << "editor_size_smoke: OPL3 editable operator " << (op + 1u)
+                          << " is incomplete or unreadable at width " << editorWidth
+                          << ": card " << card.toString()
+                          << " name " << name.toString()
+                          << " level readout " << levelReadout.toString()
+                          << " level " << level.toString()
+                          << " multiplier " << multiplier.toString()
+                          << " envelope " << envelope.toString()
+                          << " registers " << registers.toString()
+                          << " module " << operatorModule.toString() << '\n';
                 widthOk = false;
+            }
+            if (! editor.isFmOperatorLevelEnabledForLayoutTest(op)
+                || ! editor.getFmOperatorNameTextForLayoutTest(op).startsWith("OP")
+                || ! editor.getFmOperatorValueTextForLayoutTest(op).contains("MULT")
+                || ! editor.getFmOperatorValueTextForLayoutTest(op).contains("TL")
+                || ! editor.getFmOperatorValueTextForLayoutTest(op).contains("AR/DR")
+                || ! editor.getFmOperatorValueTextForLayoutTest(op).contains("SL/RR")
+                || ! editor.getFmOperatorLevelValueTextForLayoutTest(op).contains("%"))
+            {
+                std::cerr << "editor_size_smoke: OPL3 operator " << (op + 1u)
+                          << " is not an enabled native register editor: name='"
+                          << editor.getFmOperatorNameTextForLayoutTest(op)
+                          << "' register='" << editor.getFmOperatorValueTextForLayoutTest(op)
+                          << "' level='" << editor.getFmOperatorLevelValueTextForLayoutTest(op) << "'\n";
+                widthOk = false;
+            }
+        }
+
+        for (size_t left = 0; left < operatorCards.size(); ++left)
+        {
+            for (size_t right = left + 1u; right < operatorCards.size(); ++right)
+            {
+                if (operatorCards[left].intersects(operatorCards[right]))
+                {
+                    std::cerr << "editor_size_smoke: OPL3 shared operator cards overlap at width "
+                              << editorWidth << '\n';
+                    widthOk = false;
+                }
             }
         }
 
@@ -996,6 +1052,8 @@ bool checkOpl3UnifiedTopologyLayout()
                               && editor.getDmgStereoRouteBoundsForLayoutTest().isEmpty(),
                           "OPL3 should not leave detached generic routing controls in Active Signal Path");
 
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 1);
+        editor.runEditorUpdateForLayoutTest();
         widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(0).contains("Ch 1 | 2-op voice")
                               && editor.getSourceChannelButtonTextForLayoutTest(8).contains("Ch 9 | 2-op voice")
                               && editor.getModuleSummaryTextForLayoutTest(5).containsIgnoreCase("Nine independent two-operator voices"),
@@ -1022,8 +1080,41 @@ bool checkOpl3UnifiedTopologyLayout()
                               && editor.getSourceChannelButtonTextForLayoutTest(3).contains("Ops 3-4")
                               && ! editor.isSourceChannelButtonEnabledForLayoutTest(3)
                               && editor.isSourceChannelButtonEnabledForLayoutTest(6)
-                              && editor.getModuleSummaryTextForLayoutTest(5).containsIgnoreCase("Three linked 4-op voices"),
+                              && editor.getModuleSummaryTextForLayoutTest(5).containsIgnoreCase("Three linked 4-op voices")
+                              && editor.getModuleSummaryTextForLayoutTest(5).contains("shared editable OP1-4"),
                           "OPL3 4-op topology does not distinguish key lanes, paired stages, and remaining 2-op voices");
+
+        static constexpr std::array<std::array<const char*, 4>, 4> expectedRoleLabels {{
+            {{ "OP1 M", "OP2 M", "OP3 M", "OP4 C" }},
+            {{ "OP1 C", "OP2 M", "OP3 M", "OP4 C" }},
+            {{ "OP1 M", "OP2 C", "OP3 M", "OP4 C" }},
+            {{ "OP1 C", "OP2 M", "OP3 C", "OP4 C" }}
+        }};
+        for (size_t algorithm = 0; algorithm < expectedRoleLabels.size(); ++algorithm)
+        {
+            widthOk &= setPlainParameter(processor,
+                                         chipper::parameters::id::macroControl1,
+                                         static_cast<float>(algorithm) / 3.0f);
+            editor.runEditorUpdateForLayoutTest();
+            for (size_t op = 0; op < expectedRoleLabels[algorithm].size(); ++op)
+            {
+                if (editor.getFmOperatorNameTextForLayoutTest(op) != expectedRoleLabels[algorithm][op])
+                {
+                    std::cerr << "editor_size_smoke: OPL3 algorithm " << algorithm
+                              << " operator " << (op + 1u)
+                              << " has the wrong carrier/modulator label: '"
+                              << editor.getFmOperatorNameTextForLayoutTest(op)
+                              << "', expected '" << expectedRoleLabels[algorithm][op] << "'\n";
+                    widthOk = false;
+                }
+            }
+            if (! editor.getModuleSummaryTextForLayoutTest(5).contains("Alg " + juce::String(static_cast<int>(algorithm))))
+            {
+                std::cerr << "editor_size_smoke: OPL3 active signal path did not disclose algorithm "
+                          << algorithm << '\n';
+                widthOk = false;
+            }
+        }
 
         widthOk &= expect(! pathModule.isEmpty()
                               && ! editor.getModuleSummaryBoundsForLayoutTest(5).isEmpty(),

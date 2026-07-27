@@ -1105,6 +1105,60 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::oplFourOperatorPairForPatch(oplFourOp), "OPL 4-op Pair helper should expose native paired-operator mode");
     ok &= expect(chipper::oplFourOperatorEnableRegisterForPatch(oplFourOp) == 0x07u, "OPL 4-op Pair helper should write $104 bits 0-2");
 
+    static constexpr std::array<std::array<bool, 4>, 4> expectedOplCarriers {{
+        {{ false, false, false, true }},
+        {{ true, false, false, true }},
+        {{ false, true, false, true }},
+        {{ true, false, true, true }}
+    }};
+    for (size_t algorithm = 0; algorithm < expectedOplCarriers.size(); ++algorithm)
+    {
+        auto algorithmPatch = oplFourOp;
+        algorithmPatch.control1 = static_cast<float>(algorithm) / 3.0f;
+        ok &= expect(chipper::oplFourOperatorAlgorithmForPatch(algorithmPatch) == algorithm,
+                     "OPL 4-op algorithm control should resolve algorithm " + std::to_string(algorithm));
+        ok &= expect(chipper::oplConnectionForOperatorStage(algorithmPatch, 0) == (algorithm & 0x01u),
+                     "OPL 4-op primary $C0 bit should resolve algorithm " + std::to_string(algorithm));
+        ok &= expect(chipper::oplConnectionForOperatorStage(algorithmPatch, 1) == ((algorithm >> 1u) & 0x01u),
+                     "OPL 4-op paired $C0 bit should resolve algorithm " + std::to_string(algorithm));
+        for (size_t op = 0; op < 4u; ++op)
+        {
+            ok &= expect(chipper::oplOperatorIsCarrierForPatch(algorithmPatch, op) == expectedOplCarriers[algorithm][op],
+                         "OPL 4-op carrier routing should match YMF262 algorithm "
+                             + std::to_string(algorithm) + " operator " + std::to_string(op + 1u));
+        }
+    }
+
+    auto oplExplicitOperators = oplFourOp;
+    oplExplicitOperators.control1 = 0.67f;
+    oplExplicitOperators.control3 = 0.35f;
+    oplExplicitOperators.control4 = 0.9f;
+    oplExplicitOperators.fmOperatorLevels = { 0.65f, 0.45f, 0.75f, 0.55f };
+    oplExplicitOperators.fmOperatorMultipliers = { 3, 4, 5, 6 };
+    oplExplicitOperators.fmOperatorAttackRates = { 4, 8, 12, 16 };
+    oplExplicitOperators.fmOperatorDecayRates = { 3, 5, 7, 9 };
+    oplExplicitOperators.fmOperatorSustainRates = { 2, 6, 10, 14 };
+    oplExplicitOperators.fmOperatorReleaseRates = { 3, 7, 11, 15 };
+    static constexpr std::array<uint8_t, 4> expectedMultiples { 2, 3, 4, 5 };
+    static constexpr std::array<uint8_t, 4> expectedTotalLevels { 38, 3, 36, 1 };
+    static constexpr std::array<uint8_t, 4> expectedAttackRates { 3, 7, 11, 15 };
+    static constexpr std::array<uint8_t, 4> expectedDecayRates { 2, 4, 6, 8 };
+    static constexpr std::array<uint8_t, 4> expectedSustainLevels { 1, 5, 9, 13 };
+    static constexpr std::array<uint8_t, 4> expectedReleaseRates { 2, 6, 10, 14 };
+    for (size_t op = 0; op < 4u; ++op)
+    {
+        const auto envelope = chipper::oplOperatorEnvelopeRegistersForPatch(oplExplicitOperators, op);
+        ok &= expect(chipper::oplOperatorMultipleForPatch(oplExplicitOperators, op) == expectedMultiples[op],
+                     "OPL explicit multiplier should reach operator " + std::to_string(op + 1u));
+        ok &= expect(chipper::oplOperatorTotalLevelForPatch(oplExplicitOperators, op) == expectedTotalLevels[op],
+                     "OPL explicit level should reach operator " + std::to_string(op + 1u));
+        ok &= expect(envelope.attackRate == expectedAttackRates[op]
+                         && envelope.decayRate == expectedDecayRates[op]
+                         && envelope.sustainLevel == expectedSustainLevels[op]
+                         && envelope.releaseRate == expectedReleaseRates[op],
+                     "OPL explicit envelope nibbles should reach operator " + std::to_string(op + 1u));
+    }
+
     const auto opllBass = chipper::makePatchConfig(chipper::ChipMode::ym2413,
                                                    chipper::MacroKind::bass,
                                                    0.0f,
@@ -2125,6 +2179,29 @@ int main()
     ok &= expectSegmentedRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Preset");
     ok &= expectPreset(chipper::ChipMode::opl3, "opl2-rhythm-kit");
     ok &= expectPreset(chipper::ChipMode::opl3, "opl3-layer-arp");
+    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Connection / 4-op Algorithm");
+    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator1Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP1 Level");
+    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator4Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP4 Level");
+    ok &= expectSpecGroup(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator1Level, "Operators");
+    ok &= expectSpecGroup(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator4Level, "Operators");
+    ok &= expectChoiceRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator1Multiplier, chipper::ControlSurface::menu, 17, "Follow");
+    ok &= expectChoiceRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator4Multiplier, chipper::ControlSurface::menu, 17, "Follow");
+    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator1AttackRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP1 Attack");
+    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator4AttackRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP4 Attack");
+    ok &= expectChoiceRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator1AttackRate, chipper::ControlSurface::menu, 17, "Follow");
+    ok &= expectChoiceRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator4AttackRate, chipper::ControlSurface::menu, 17, "Follow");
+    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator1DecayRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP1 Decay");
+    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator4DecayRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP4 Decay");
+    ok &= expectChoiceRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator1DecayRate, chipper::ControlSurface::menu, 17, "Follow");
+    ok &= expectChoiceRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator4DecayRate, chipper::ControlSurface::menu, 17, "Follow");
+    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator1SustainRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP1 Sustain Level");
+    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator4SustainRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP4 Sustain Level");
+    ok &= expectChoiceRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator1SustainRate, chipper::ControlSurface::menu, 17, "Follow");
+    ok &= expectChoiceRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator4SustainRate, chipper::ControlSurface::menu, 17, "Follow");
+    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator1ReleaseRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP1 Release");
+    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator4ReleaseRate, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "OP4 Release");
+    ok &= expectChoiceRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator1ReleaseRate, chipper::ControlSurface::menu, 17, "Follow");
+    ok &= expectChoiceRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator4ReleaseRate, chipper::ControlSurface::menu, 17, "Follow");
     ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::source9Enabled, chipper::ParameterKind::booleanToggle, chipper::ControlSurface::sourceCards, "OPL Ch 9 / 18 / TOM+CYM");
     ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::source9Level, chipper::ParameterKind::continuous, chipper::ControlSurface::slider, "Ch 9 / 18 / TOM+CYM Level");
     ok &= expectMacroLabel(chipper::ChipMode::scc, chipper::MacroKind::powerUp, "SCC Power Wave");

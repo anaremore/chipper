@@ -1417,7 +1417,9 @@ bool isOpllOperatorEditMode(chipper::ChipMode mode)
 
 bool hasEditableFmOperatorRows(chipper::ChipMode mode)
 {
-    return isFourOperatorFmMode(mode) || isOpllOperatorEditMode(mode);
+    return mode == chipper::ChipMode::opl3
+        || isFourOperatorFmMode(mode)
+        || isOpllOperatorEditMode(mode);
 }
 
 bool isOpnbMode(chipper::ChipMode mode)
@@ -1432,14 +1434,20 @@ bool isOpnSsgMode(chipper::ChipMode mode)
 
 uint8_t fourOperatorAlgorithmForPatch(chipper::ChipMode mode, const chipper::PatchConfig& patch)
 {
-    return mode == chipper::ChipMode::ym2151 ? chipper::ym2151AlgorithmForPatch(patch)
-                                             : chipper::ym2612AlgorithmForPatch(patch);
+    if (mode == chipper::ChipMode::opl3)
+        return chipper::oplFourOperatorAlgorithmForPatch(patch);
+    if (mode == chipper::ChipMode::ym2151)
+        return chipper::ym2151AlgorithmForPatch(patch);
+    return chipper::ym2612AlgorithmForPatch(patch);
 }
 
 bool fmOperatorIsCarrierForPatch(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t op)
 {
     if (isOpllOperatorEditMode(mode))
         return op == 1u;
+
+    if (mode == chipper::ChipMode::opl3)
+        return chipper::oplOperatorIsCarrierForPatch(patch, op);
 
     return isFourOperatorFmMode(mode) && chipper::fmOperatorIsCarrierForAlgorithm(fourOperatorAlgorithmForPatch(mode, patch), op);
 }
@@ -1451,6 +1459,18 @@ juce::String fmOperatorRoleShortLabel(chipper::ChipMode mode, const chipper::Pat
 
 juce::String fmOperatorRoleDescription(chipper::ChipMode mode, const chipper::PatchConfig& patch, size_t op)
 {
+    if (mode == chipper::ChipMode::opl3)
+    {
+        const auto algorithm = static_cast<int>(chipper::oplFourOperatorAlgorithmForPatch(patch));
+        const auto stage = op < 2u ? 1 : 2;
+        const auto activeText = chipper::oplFourOperatorPairForPatch(patch) || op < 2u
+            ? juce::String("Active in the current topology.")
+            : juce::String("Retained for the paired stage and activated by 4-op Pair topology.");
+        return juce::String(chipper::oplOperatorIsCarrierForPatch(patch, op) ? "Carrier" : "Modulator")
+            + " in YMF262 4-op algorithm " + juce::String(algorithm)
+            + ", linked stage " + juce::String(stage) + ". " + activeText;
+    }
+
     if (isOpllOperatorEditMode(mode))
     {
         const auto family = mode == chipper::ChipMode::nesVrc7 ? juce::String("VRC7") : juce::String("YM2413");
@@ -3089,6 +3109,12 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         attackButton.onClick = [this, i]()
         {
             juce::PopupMenu menu;
+            const auto modeChoice = std::clamp(
+                static_cast<int>(std::round(parameterValue(chipper::parameters::id::chipMode))),
+                0,
+                chipper::parameters::chipModeChoices().size() - 1);
+            const auto mode = chipper::parameters::chipModeFromChoice(modeChoice);
+            const auto isOpl = mode == chipper::ChipMode::opl3;
             const auto attackChoices = chipper::parameters::fmOperatorAttackRateChoices();
             const auto decayChoices = chipper::parameters::fmOperatorDecayRateChoices();
             const auto sustainChoices = chipper::parameters::fmOperatorSustainRateChoices();
@@ -3106,7 +3132,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
                                                     0,
                                                     releaseChoices.size() - 1);
             menu.addSectionHeader("Attack Rate");
-            for (int choice = 0; choice < attackChoices.size(); ++choice)
+            const auto attackChoiceCount = isOpl ? std::min(17, attackChoices.size()) : attackChoices.size();
+            for (int choice = 0; choice < attackChoiceCount; ++choice)
                 menu.addItem(choice + 1,
                              choice == 0 ? juce::String("Follow") : juce::String("AR ") + attackChoices[choice],
                              true,
@@ -3114,17 +3141,19 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
             menu.addSeparator();
             menu.addSectionHeader("Decay Rate");
-            for (int choice = 0; choice < decayChoices.size(); ++choice)
+            const auto decayChoiceCount = isOpl ? std::min(17, decayChoices.size()) : decayChoices.size();
+            for (int choice = 0; choice < decayChoiceCount; ++choice)
                 menu.addItem(101 + choice,
                              choice == 0 ? juce::String("Follow") : juce::String("DR ") + decayChoices[choice],
                              true,
                              choice == selectedDecay);
 
             menu.addSeparator();
-            menu.addSectionHeader("Sustain Rate");
-            for (int choice = 0; choice < sustainChoices.size(); ++choice)
+            menu.addSectionHeader(isOpl ? "Sustain Level" : "Sustain Rate");
+            const auto sustainChoiceCount = isOpl ? std::min(17, sustainChoices.size()) : sustainChoices.size();
+            for (int choice = 0; choice < sustainChoiceCount; ++choice)
                 menu.addItem(201 + choice,
-                             choice == 0 ? juce::String("Follow") : juce::String("D2R ") + sustainChoices[choice],
+                             choice == 0 ? juce::String("Follow") : juce::String(isOpl ? "SL " : "D2R ") + sustainChoices[choice],
                              true,
                              choice == selectedSustain);
 
@@ -7418,7 +7447,7 @@ void ChipperAudioProcessorEditor::placeFmOperatorEditSurface(chipper::ChipMode m
 
 void ChipperAudioProcessorEditor::placeFmOperatorRegisterSurface(chipper::ChipMode mode, juce::Rectangle<int> bounds)
 {
-    const auto rowCount = mode == chipper::ChipMode::opl3 ? 3u : (isOpllOperatorEditMode(mode) ? 2u : fmOperatorReadoutRows);
+    const auto rowCount = isOpllOperatorEditMode(mode) ? 2u : fmOperatorReadoutRows;
     fmEditor.setBounds(bounds);
     fmEditor.configure(mode, rowCount, hasEditableFmOperatorRows(mode));
 }
@@ -11114,33 +11143,15 @@ juce::String ChipperAudioProcessorEditor::fmOperatorRegisterReadout(chipper::Chi
 {
     if (mode == chipper::ChipMode::opl3)
     {
-        const auto wave = static_cast<int>(chipper::oplWaveformForPatch(patch));
-        const auto connection = chipper::oplConnectionForPatch(patch) != 0 ? juce::String("parallel") : juce::String("serial");
-        const auto feedback = static_cast<int>(chipper::fmFeedbackForPatch(patch));
-        const auto melodicSustain = patch.macro != chipper::MacroKind::drum
-            && patch.macro != chipper::MacroKind::hit
-            && patch.macro != chipper::MacroKind::coin
-            && patch.macro != chipper::MacroKind::jump;
-        const auto attackDecay = 0xf4u;
-        const auto sustainRelease = melodicSustain ? 0x26u : 0xa6u;
-
-        if (op == 0u)
-        {
-            auto text = "W" + juce::String(wave) + " | " + connection + " | FB " + juce::String(feedback) + "/7";
-            if (chipper::oplFourOperatorPairForPatch(patch))
-                text += " | 4-op $104=$" + byteHex(chipper::oplFourOperatorEnableRegisterForPatch(patch));
-            return text;
-        }
-
-        if (op == 1u)
-            return "MUL " + juce::String(static_cast<int>(chipper::oplModulatorMultipleForPatch(patch)))
-                + " | TL " + juce::String(static_cast<int>(chipper::oplModulatorTotalLevelForPatch(patch)))
-                + " | AD $" + byteHex(static_cast<uint8_t>(attackDecay))
-                + " | SR $" + byteHex(static_cast<uint8_t>(sustainRelease));
-
-        return "MUL 1 | TL " + juce::String(static_cast<int>(chipper::oplCarrierTotalLevelForPatch(patch)))
-            + " | AD $" + byteHex(static_cast<uint8_t>(attackDecay))
-            + " | SR $" + byteHex(static_cast<uint8_t>(sustainRelease));
+        const auto envelope = chipper::oplOperatorEnvelopeRegistersForPatch(patch, op);
+        const auto multiple = static_cast<int>(chipper::oplOperatorMultipleForPatch(patch, op));
+        const auto multipleText = multiple == 0 ? juce::String("0.5") : juce::String(multiple);
+        return "MULT " + multipleText
+            + " | TL " + juce::String(static_cast<int>(chipper::oplOperatorTotalLevelForPatch(patch, op)))
+            + " | AR/DR " + juce::String(static_cast<int>(envelope.attackRate))
+            + "/" + juce::String(static_cast<int>(envelope.decayRate))
+            + " | SL/RR " + juce::String(static_cast<int>(envelope.sustainLevel))
+            + "/" + juce::String(static_cast<int>(envelope.releaseRate));
     }
 
     if (isOpllOperatorEditMode(mode))
@@ -11213,6 +11224,9 @@ juce::String ChipperAudioProcessorEditor::fmOperatorLevelReadout(chipper::ChipMo
         return juce::String(percent) + "% | Vol " + juce::String(volumeNibble);
     }
 
+    if (mode == chipper::ChipMode::opl3)
+        return juce::String(percent) + "% | TL " + juce::String(static_cast<int>(chipper::oplOperatorTotalLevelForPatch(patch, safeOp)));
+
     const auto totalLevel = static_cast<int>(chipper::fmOperatorTotalLevelForPatch(mode, patch, safeOp));
     return juce::String(percent) + "% | TL " + juce::String(totalLevel);
 }
@@ -11221,11 +11235,9 @@ juce::String ChipperAudioProcessorEditor::fmOperatorRegisterTooltip(chipper::Chi
 {
     if (mode == chipper::ChipMode::opl3)
     {
-        if (op == 0u)
-            return "OPL2 pair state written to $C0: connection and feedback, plus the $E0 waveform selector.";
-
-        return juce::String(op == 1u ? "OPL2 modulator operator. " : "OPL2 carrier operator. ")
-            + "This readout follows the current preset and shows the register-backed two-operator state; full editable OPL ADSR remains planned.";
+        const auto stage = op < 2u ? juce::String("first linked channel") : juce::String("paired second channel");
+        return "YMF262 operator " + juce::String(static_cast<int>(op + 1u)) + " in the " + stage
+            + ". The shared editor writes $20 MULT/EGT, $40 TL, $60 AR/DR, $80 SL/RR, and $E0 waveform fields.";
     }
 
     if (isOpllOperatorEditMode(mode))
@@ -14075,7 +14087,7 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
             || mode == chipper::ChipMode::ym2203
             || mode == chipper::ChipMode::ym2608
             || isOpnbMode(mode));
-    const auto visibleRows = mode == chipper::ChipMode::opl3 ? 3u : (isOpllOperatorEditMode(mode) ? 2u : fmOperatorReadoutRows);
+    const auto visibleRows = isOpllOperatorEditMode(mode) ? 2u : fmOperatorReadoutRows;
     const auto hasOperatorLevelControls = active && hasEditableFmOperatorRows(mode);
     const auto userPatchEditable = mode != chipper::ChipMode::ym2413 || patch.waveShape == 0;
     fmEditor.setVisible(active && selectedWorkspace == ChipperEditorWorkspace::edit);
@@ -14083,7 +14095,6 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
     fmEditor.setAlpha(userPatchEditable ? 1.0f : 0.45f);
 
     static constexpr std::array<const char*, fmOperatorReadoutRows> fmNames { "OP1", "OP2", "OP3", "OP4" };
-    static constexpr std::array<const char*, fmOperatorReadoutRows> oplNames { "Pair", "Mod", "Car", "" };
     static constexpr std::array<const char*, fmOperatorReadoutRows> opllNames { "Mod", "Car", "", "" };
 
     for (size_t i = 0; i < fmOperatorReadoutRows; ++i)
@@ -14100,11 +14111,9 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
             continue;
 
         const auto readout = fmOperatorRegisterReadout(mode, patch, i);
-        const auto nameText = mode == chipper::ChipMode::opl3
-            ? juce::String(oplNames[i])
-            : (isOpllOperatorEditMode(mode)
-                   ? juce::String(opllNames[i])
-                   : juce::String(fmNames[i]) + " " + fmOperatorRoleShortLabel(mode, patch, i));
+        const auto nameText = isOpllOperatorEditMode(mode)
+            ? juce::String(opllNames[i])
+            : juce::String(fmNames[i]) + " " + fmOperatorRoleShortLabel(mode, patch, i);
         fmOperatorNameLabels[i].setText(nameText, juce::dontSendNotification);
         fmOperatorValueLabels[i].setText(readout, juce::dontSendNotification);
 
@@ -14564,9 +14573,15 @@ void ChipperAudioProcessorEditor::updateOplWaveformControl(chipper::ChipMode mod
     const auto registerText = juce::String("$E0 operator waveform=") + juce::String(resolvedWaveform)
         + ", FB=" + juce::String(static_cast<int>(chipper::fmFeedbackForPatch(patch)))
         + ", CNT=" + juce::String(static_cast<int>(chipper::oplConnectionForPatch(patch)));
-    const auto pairText = chipper::oplFourOperatorPairForPatch(patch)
-        ? juce::String("\n4-op Pair writes $104=$") + byteHex(chipper::oplFourOperatorEnableRegisterForPatch(patch))
-        : juce::String();
+    const auto pairText = [&patch]
+    {
+        if (! chipper::oplFourOperatorPairForPatch(patch))
+            return juce::String();
+        return juce::String("\n4-op Alg ") + juce::String(static_cast<int>(chipper::oplFourOperatorAlgorithmForPatch(patch)))
+            + " writes primary CNT=" + juce::String(static_cast<int>(chipper::oplConnectionForOperatorStage(patch, 0)))
+            + ", paired CNT=" + juce::String(static_cast<int>(chipper::oplConnectionForOperatorStage(patch, 1)))
+            + ", $104=$" + byteHex(chipper::oplFourOperatorEnableRegisterForPatch(patch));
+    }();
 
     waveShapeValueLabel.setJustificationType(juce::Justification::centredRight);
     waveShapeValueLabel.setText(valueText, juce::dontSendNotification);
@@ -14575,7 +14590,7 @@ void ChipperAudioProcessorEditor::updateOplWaveformControl(chipper::ChipMode mod
     oplWaveformPreview.setTooltip("OPL2/YM3812 operator waveform preview.\n"
                                   + registerText
                                   + pairText
-                                  + "\nCurrent pass writes the selected waveform to the visible operator pairs.");
+                                  + "\nThe selected waveform is shared by all four editable operators.");
 }
 
 void ChipperAudioProcessorEditor::updateOpllInstrumentControl(chipper::ChipMode mode, int choice, bool shouldBeVisible)
@@ -16628,22 +16643,32 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
         if (mode == chipper::ChipMode::opl3)
         {
             const auto waveform = static_cast<int>(chipper::oplWaveformForPatch(patch));
-            const auto connection = static_cast<int>(chipper::oplConnectionForPatch(patch));
             const auto feedback = static_cast<int>(chipper::fmFeedbackForPatch(patch));
-            const auto modMultiple = static_cast<int>(chipper::oplModulatorMultipleForPatch(patch));
-            const auto modLevel = static_cast<int>(chipper::oplModulatorTotalLevelForPatch(patch));
-            const auto carrierLevel = static_cast<int>(chipper::oplCarrierTotalLevelForPatch(patch));
+            const auto fourOperator = chipper::oplFourOperatorPairForPatch(patch);
+            const auto connectionReadout = fourOperator
+                ? juce::String("Alg ") + juce::String(static_cast<int>(chipper::oplFourOperatorAlgorithmForPatch(patch)))
+                    + " | CNT " + juce::String(static_cast<int>(chipper::oplConnectionForOperatorStage(patch, 0)))
+                    + "/" + juce::String(static_cast<int>(chipper::oplConnectionForOperatorStage(patch, 1)))
+                : juce::String("CON ") + juce::String(static_cast<int>(chipper::oplConnectionForPatch(patch)))
+                    + (chipper::oplConnectionForPatch(patch) == 0 ? " serial FM" : " additive");
 
-            controlValueLabels[0].setText(macroReadout(0, juce::String("CON ") + juce::String(connection)
-                                                               + (connection == 0 ? " serial FM" : " additive")),
+            controlValueLabels[0].setText(macroReadout(0, connectionReadout),
                                           juce::dontSendNotification);
             controlValueLabels[1].setText(macroReadout(1, "FB " + juce::String(feedback) + "/7 | $C0"),
                                           juce::dontSendNotification);
-            controlValueLabels[2].setText(macroReadout(2, "W" + juce::String(waveform)
-                                                               + " | Mod MULT " + juce::String(modMultiple)
-                                                               + " TL " + juce::String(modLevel)),
+            controlValueLabels[2].setText(macroReadout(2,
+                                                       "W" + juce::String(waveform)
+                                                           + " | MULT "
+                                                           + juce::String(static_cast<int>(chipper::oplOperatorMultipleForPatch(patch, 0)))
+                                                           + "/"
+                                                           + juce::String(static_cast<int>(chipper::oplOperatorMultipleForPatch(patch, 2)))),
                                           juce::dontSendNotification);
-            controlValueLabels[3].setText(macroReadout(3, "Carrier TL " + juce::String(carrierLevel) + "/63"),
+            controlValueLabels[3].setText(macroReadout(3,
+                                                       "Carrier TL "
+                                                           + juce::String(static_cast<int>(chipper::oplOperatorTotalLevelForPatch(patch, 1)))
+                                                           + "/"
+                                                           + juce::String(static_cast<int>(chipper::oplOperatorTotalLevelForPatch(patch, 3)))
+                                                           + " /63"),
                                           juce::dontSendNotification);
 
             juce::String signalPath;
@@ -16652,7 +16677,9 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
             else if (chipper::opl18ChannelLayerForPatch(patch))
                 signalPath = "Nine paired layers: each card keys its low/high-bank pair (1+10 through 9+18) -> YMF262 buses -> stereo.";
             else if (chipper::oplFourOperatorPairForPatch(patch))
-                signalPath = "Three linked 4-op voices (1+4, 2+5, 3+6) plus independent 2-op lanes 7-9; cards 4-6 are paired operator stages.";
+                signalPath = "Three linked 4-op voices (1+4, 2+5, 3+6) use shared editable OP1-4 and Alg "
+                    + juce::String(static_cast<int>(chipper::oplFourOperatorAlgorithmForPatch(patch)))
+                    + "; independent 2-op lanes 7-9 use OP1-2.";
             else
                 signalPath = "Nine independent two-operator voices: Modulator -> Carrier (or parallel via Connection) -> YMF262 buses -> stereo.";
             moduleSummaryLabels[5].setText(signalPath, juce::dontSendNotification);

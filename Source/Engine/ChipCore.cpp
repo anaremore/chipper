@@ -14846,11 +14846,17 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPL3/YMF262 register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YMF262/OPL3 synthesis core for this OPL2/OPL3 mode pass. Chipper exposes nine OPL2-compatible two-operator lanes, native $BD rhythm-mode key bits, an explicit 18-channel OPL3 layer mode that maps each visible source card to a low/high-bank YMF262 channel pair, and a first-pass $104 four-operator pair mode for channels 1+4, 2+5, and 3+6. Dedicated 18-card editing, a full four-operator editor, deep per-operator ADSR UI, rhythm-instrument fine tuning, golden comparisons, and hardware validation are not complete.";
+        return "BSD-3-Clause ymfm provides the YMF262/OPL3 synthesis core for this OPL2/OPL3 mode pass. Chipper exposes nine OPL2-compatible two-operator lanes, native $BD rhythm-mode key bits, an explicit 18-channel OPL3 layer mode that maps each visible source card to a low/high-bank YMF262 channel pair, and shared editable $104 four-operator pairs for channels 1+4, 2+5, and 3+6. Per-lane operator patches, dedicated 18-card editing, LFO/tremolo/vibrato controls, rhythm-instrument fine tuning, golden comparisons, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
     {
+        const auto operatorValue = [this](uint16_t base, size_t op)
+        {
+            const auto channel = op < 2u ? size_t { 0u } : size_t { 3u };
+            return regs[operatorRegister(channel, base, (op % 2u) != 0u)];
+        };
+
         std::ostringstream json;
         json << "{"
              << "\"mode\":\"OPL2/OPL3 / DOS FM\","
@@ -14875,6 +14881,9 @@ public:
              << "\"opl3FourOperatorPairCount\":" << fourOperatorPairCount() << ","
              << "\"opl3FourOperatorPlayableChannels\":" << modePlayableChannelCount() << ","
              << "\"opl3FourOperatorSecondaryMuted\":" << (fourOperatorModeActive() ? 1 : 0) << ","
+             << "\"opl3FourOperatorAlgorithm\":" << static_cast<int>(oplFourOperatorAlgorithmForPatch(patch)) << ","
+             << "\"opl3FourOperatorPrimaryConnection\":" << static_cast<int>(oplConnectionForOperatorStage(patch, 0)) << ","
+             << "\"opl3FourOperatorSecondaryConnection\":" << static_cast<int>(oplConnectionForOperatorStage(patch, 1)) << ","
              << "\"opl3NewFlag\":" << static_cast<int>(regs[0x105] & 0x01u) << ","
              << "\"opl3NewModeRegister\":" << static_cast<int>(regs[0x105]) << ","
              << "\"waveform0\":" << static_cast<int>(currentWaveform[0]) << ","
@@ -14886,8 +14895,57 @@ public:
              << "\"carrierAttackDecay0\":" << static_cast<int>(currentCarrierAttackDecay[0]) << ","
              << "\"carrierSustainRelease0\":" << static_cast<int>(currentCarrierSustainRelease[0]) << ","
              << "\"connectionRegister0\":" << static_cast<int>(regs[0xc0]) << ","
+             << "\"connectionRegister3\":" << static_cast<int>(regs[0xc3]) << ","
              << "\"highBankConnectionRegister0\":" << static_cast<int>(regs[0x1c0]) << ","
              << "\"opl3OutputSelect0\":" << static_cast<int>(regs[0xc0] & 0xf0u) << ","
+             << "\"fmOperatorLevel0\":" << patch.fmOperatorLevels[0] << ","
+             << "\"fmOperatorLevel1\":" << patch.fmOperatorLevels[1] << ","
+             << "\"fmOperatorLevel2\":" << patch.fmOperatorLevels[2] << ","
+             << "\"fmOperatorLevel3\":" << patch.fmOperatorLevels[3] << ","
+             << "\"fmOperatorMultiplier0\":" << patch.fmOperatorMultipliers[0] << ","
+             << "\"fmOperatorMultiplier1\":" << patch.fmOperatorMultipliers[1] << ","
+             << "\"fmOperatorMultiplier2\":" << patch.fmOperatorMultipliers[2] << ","
+             << "\"fmOperatorMultiplier3\":" << patch.fmOperatorMultipliers[3] << ","
+             << "\"fmOperatorAttackRate0\":" << patch.fmOperatorAttackRates[0] << ","
+             << "\"fmOperatorAttackRate1\":" << patch.fmOperatorAttackRates[1] << ","
+             << "\"fmOperatorAttackRate2\":" << patch.fmOperatorAttackRates[2] << ","
+             << "\"fmOperatorAttackRate3\":" << patch.fmOperatorAttackRates[3] << ","
+             << "\"fmOperatorDecayRate0\":" << patch.fmOperatorDecayRates[0] << ","
+             << "\"fmOperatorDecayRate1\":" << patch.fmOperatorDecayRates[1] << ","
+             << "\"fmOperatorDecayRate2\":" << patch.fmOperatorDecayRates[2] << ","
+             << "\"fmOperatorDecayRate3\":" << patch.fmOperatorDecayRates[3] << ","
+             << "\"fmOperatorSustainRate0\":" << patch.fmOperatorSustainRates[0] << ","
+             << "\"fmOperatorSustainRate1\":" << patch.fmOperatorSustainRates[1] << ","
+             << "\"fmOperatorSustainRate2\":" << patch.fmOperatorSustainRates[2] << ","
+             << "\"fmOperatorSustainRate3\":" << patch.fmOperatorSustainRates[3] << ","
+             << "\"fmOperatorReleaseRate0\":" << patch.fmOperatorReleaseRates[0] << ","
+             << "\"fmOperatorReleaseRate1\":" << patch.fmOperatorReleaseRates[1] << ","
+             << "\"fmOperatorReleaseRate2\":" << patch.fmOperatorReleaseRates[2] << ","
+             << "\"fmOperatorReleaseRate3\":" << patch.fmOperatorReleaseRates[3] << ","
+             << "\"operatorMultiple0\":" << static_cast<int>(operatorValue(0x20u, 0) & 0x0fu) << ","
+             << "\"operatorMultiple1\":" << static_cast<int>(operatorValue(0x20u, 1) & 0x0fu) << ","
+             << "\"operatorMultiple2\":" << static_cast<int>(operatorValue(0x20u, 2) & 0x0fu) << ","
+             << "\"operatorMultiple3\":" << static_cast<int>(operatorValue(0x20u, 3) & 0x0fu) << ","
+             << "\"operatorTotalLevel0\":" << static_cast<int>(operatorValue(0x40u, 0) & 0x3fu) << ","
+             << "\"operatorTotalLevel1\":" << static_cast<int>(operatorValue(0x40u, 1) & 0x3fu) << ","
+             << "\"operatorTotalLevel2\":" << static_cast<int>(operatorValue(0x40u, 2) & 0x3fu) << ","
+             << "\"operatorTotalLevel3\":" << static_cast<int>(operatorValue(0x40u, 3) & 0x3fu) << ","
+             << "\"operatorAttackRate0\":" << static_cast<int>((operatorValue(0x60u, 0) >> 4u) & 0x0fu) << ","
+             << "\"operatorAttackRate1\":" << static_cast<int>((operatorValue(0x60u, 1) >> 4u) & 0x0fu) << ","
+             << "\"operatorAttackRate2\":" << static_cast<int>((operatorValue(0x60u, 2) >> 4u) & 0x0fu) << ","
+             << "\"operatorAttackRate3\":" << static_cast<int>((operatorValue(0x60u, 3) >> 4u) & 0x0fu) << ","
+             << "\"operatorDecayRate0\":" << static_cast<int>(operatorValue(0x60u, 0) & 0x0fu) << ","
+             << "\"operatorDecayRate1\":" << static_cast<int>(operatorValue(0x60u, 1) & 0x0fu) << ","
+             << "\"operatorDecayRate2\":" << static_cast<int>(operatorValue(0x60u, 2) & 0x0fu) << ","
+             << "\"operatorDecayRate3\":" << static_cast<int>(operatorValue(0x60u, 3) & 0x0fu) << ","
+             << "\"operatorSustainLevel0\":" << static_cast<int>((operatorValue(0x80u, 0) >> 4u) & 0x0fu) << ","
+             << "\"operatorSustainLevel1\":" << static_cast<int>((operatorValue(0x80u, 1) >> 4u) & 0x0fu) << ","
+             << "\"operatorSustainLevel2\":" << static_cast<int>((operatorValue(0x80u, 2) >> 4u) & 0x0fu) << ","
+             << "\"operatorSustainLevel3\":" << static_cast<int>((operatorValue(0x80u, 3) >> 4u) & 0x0fu) << ","
+             << "\"operatorReleaseRate0\":" << static_cast<int>(operatorValue(0x80u, 0) & 0x0fu) << ","
+             << "\"operatorReleaseRate1\":" << static_cast<int>(operatorValue(0x80u, 1) & 0x0fu) << ","
+             << "\"operatorReleaseRate2\":" << static_cast<int>(operatorValue(0x80u, 2) & 0x0fu) << ","
+             << "\"operatorReleaseRate3\":" << static_cast<int>(operatorValue(0x80u, 3) & 0x0fu) << ","
              << "\"opl3HighBankOutputSelect0\":" << static_cast<int>(regs[0x1c0] & 0xf0u) << ","
              << "\"rhythmModeChoice\":" << std::clamp(patch.ymEnvelopeShape, 0, 4) << ","
              << "\"rhythmMode\":" << (rhythmModeActive() ? 1 : 0) << ","
@@ -15131,9 +15189,10 @@ private:
     {
         const auto wave = waveformForPatch();
         const auto feedback = feedbackForPatch();
-        const auto level = clamp01(velocity) * clamp01(patch.control4) * sourceLevelForChannel(channel);
-        const auto modLevel = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(12.0 + (1.0 - clamp01(patch.control3)) * 46.0)), 0, 63));
-        const auto carLevel = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round((1.0 - level) * 24.0)), 0, 63));
+        const auto levelVelocity = static_cast<float>(clamp01(velocity) * sourceLevelForChannel(channel));
+        const auto slot = channelSlot(channel);
+        const auto pairedSecondStage = fourOperatorModeActive() && slot >= 3u && slot <= 5u;
+        const auto operatorBase = pairedSecondStage ? size_t { 2u } : size_t { 0u };
 
         currentWaveform[channel] = wave;
         currentFeedback[channel] = feedback;
@@ -15142,24 +15201,35 @@ private:
             && patch.macro != MacroKind::hit
             && patch.macro != MacroKind::coin
             && patch.macro != MacroKind::jump;
-        const auto carrierControl = static_cast<uint8_t>(melodicSustain ? 0x21u : 0x01u);
-        const auto attackDecay = static_cast<uint8_t>(0xf4u);
-        const auto sustainRelease = static_cast<uint8_t>(melodicSustain ? 0x26u : 0xa6u);
-        currentCarrierControl[channel] = carrierControl;
-        currentCarrierAttackDecay[channel] = attackDecay;
-        currentCarrierSustainRelease[channel] = sustainRelease;
+        for (size_t physicalOperator = 0; physicalOperator < 2u; ++physicalOperator)
+        {
+            const auto op = operatorBase + physicalOperator;
+            const auto carrier = physicalOperator != 0u;
+            const auto envelope = oplOperatorEnvelopeRegistersForPatch(patch, op);
+            const auto operatorControl = static_cast<uint8_t>((melodicSustain ? 0x20u : 0x00u)
+                                                               | oplOperatorMultipleForPatch(patch, op));
+            const auto totalLevel = oplOperatorTotalLevelForPatch(patch, op, levelVelocity);
+            const auto attackDecay = static_cast<uint8_t>((envelope.attackRate << 4u) | envelope.decayRate);
+            const auto sustainRelease = static_cast<uint8_t>((envelope.sustainLevel << 4u) | envelope.releaseRate);
 
-        writeOplRegister(operatorRegister(channel, 0x20u, false), static_cast<uint8_t>(0x20 | std::clamp(static_cast<int>(std::round(patch.control3 * 14.0f)) + 1, 1, 15)));
-        writeOplRegister(operatorRegister(channel, 0x20u, true), carrierControl);
-        writeOplRegister(operatorRegister(channel, 0x40u, false), modLevel);
-        writeOplRegister(operatorRegister(channel, 0x40u, true), carLevel);
-        writeOplRegister(operatorRegister(channel, 0x60u, false), attackDecay);
-        writeOplRegister(operatorRegister(channel, 0x60u, true), attackDecay);
-        writeOplRegister(operatorRegister(channel, 0x80u, false), sustainRelease);
-        writeOplRegister(operatorRegister(channel, 0x80u, true), sustainRelease);
-        writeOplRegister(operatorRegister(channel, 0xe0u, false), wave);
-        writeOplRegister(operatorRegister(channel, 0xe0u, true), wave);
-        writeOplRegister(channelRegister(channel, 0xc0u), static_cast<uint8_t>(0xf0u | (feedback << 1u) | (patch.control1 > 0.55f ? 1u : 0u)));
+            writeOplRegister(operatorRegister(channel, 0x20u, carrier), operatorControl);
+            writeOplRegister(operatorRegister(channel, 0x40u, carrier), totalLevel);
+            writeOplRegister(operatorRegister(channel, 0x60u, carrier), attackDecay);
+            writeOplRegister(operatorRegister(channel, 0x80u, carrier), sustainRelease);
+            writeOplRegister(operatorRegister(channel, 0xe0u, carrier), wave);
+
+            if (carrier)
+            {
+                currentCarrierControl[channel] = operatorControl;
+                currentCarrierAttackDecay[channel] = attackDecay;
+                currentCarrierSustainRelease[channel] = sustainRelease;
+            }
+        }
+
+        const auto connectionStage = pairedSecondStage ? size_t { 1u } : size_t { 0u };
+        const auto connection = oplConnectionForOperatorStage(patch, connectionStage);
+        writeOplRegister(channelRegister(channel, 0xc0u),
+                         static_cast<uint8_t>(0xf0u | (feedback << 1u) | connection));
     }
 
     void applyPatchToAllChannels(bool preserveKeys)

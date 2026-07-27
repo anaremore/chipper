@@ -4,7 +4,7 @@ This roadmap captures the broad product gaps that remain after the first playabl
 
 > Can a musician make a complete chiptune bass, lead, arp, drum kit, and SFX pack in Chipper without fighting the UI?
 
-Review status: synced on 2026-07-27 after the native Wave Lab and global Motion Lab landed with versioned per-chip non-parameter state. FM held-tail, NES DMC loop-off, descriptor ownership, state compatibility, dense MIDI behavior, Wave Lab interaction, and sample-accurate Motion Lab playback are release gates. Current active gaps are the complete OPL3 four-operator editor, deeper FM/sample editing, richer chip-native motion/SFX destinations, chip authenticity, and final release confidence.
+Review status: synced on 2026-07-27 after the native Wave Lab, global Motion Lab, and shared OPL3 four-operator editor landed with versioned state and exact register/layout gates. FM held-tail, NES DMC loop-off, descriptor ownership, state compatibility, dense MIDI behavior, Wave Lab interaction, sample-accurate Motion Lab playback, and OPL3 operator routing are release gates. Current active gaps are deeper FM/sample editing, richer chip-native motion/SFX destinations, chip authenticity, and final release confidence.
 
 ## Current Baseline To Preserve
 
@@ -20,7 +20,7 @@ Recent work has converted many early placeholder panels into playable, chip-awar
 - Motion Lab is a global Big Mono workflow, not eight fake automation lanes per chip. Its eight-step pitch, post-chip level, and Hold/Trig/Cut data stays independent per chip, follows host tempo with an explicit 120 BPM fallback, survives schema-v4 project recall, and remains visibly bypassed rather than ambiguously applied in Chip Poly.
 - Roadmap-only chip features should remain in docs until they have an audible engine path, stable parameters, state recall, and renderer or descriptor coverage. The plugin UI should favor implemented, truthful surfaces over planned-looking controls.
 
-Do not reopen fixed regressions in this roadmap unless a current build reproduces them and the owning gate fails. Otherwise, keep pushing the remaining work: the shared OPL3 four-operator editor, deeper chip editors, preset quality, sample workflows, richer motion/SFX destinations, state recall, and verification evidence.
+Do not reopen fixed regressions in this roadmap unless a current build reproduces them and the owning gate fails. Otherwise, keep pushing the remaining work: deeper chip editors, preset quality, sample workflows, richer motion/SFX destinations, state recall, and verification evidence.
 
 The current product bias is workflow completion over breadth. A good next slice should let a user choose one chip, load or design a sound source, hear it on the intended lane, see the relevant native controls, save a preset, reload it, and verify the renderer reports the same state. Layout polish matters most when it protects that loop.
 
@@ -65,9 +65,9 @@ Planning-only cleanup should not become its own backlog. If no current build rep
    - Remaining scope: transforms and wave mini-presets, BRR/DMC-appropriate editing, sample trim/normalize/auto-loop, and chip-specific shared-memory/voice-count behavior.
 
 3. **FM Operator Editor**
-   - User value: very high for FM users. Macros are useful starts, but serious FM patches require operator access.
-   - Chips: YM2612/OPN2, YM2151/OPM, OPL2/OPL3, and YM2413/OPLL user-patch/rhythm refinement.
-   - Scope: algorithm, feedback, operator enable/mute, level, ratio/multiple, detune, attack, decay, sustain/level, release, key scale, velocity response, and clear output-operator highlighting.
+   - Delivered foundation: YM2612/OPN2, YM2151/OPM, OPN-family FM, and OPL2/OPL3 share editable operator matrices with carrier/modulator roles, multiplier/level/envelope overrides, feedback, resolved register readouts, and chip-appropriate algorithm ownership. OPL 4-op topology now maps both linked `$C0` bits to all four YMF262 algorithms and applies OP1-OP4 controls to the correct physical stages.
+   - OPLL path: YM2413/OPLL and NES + VRC7 expose the shared two-operator User0 patch while ROM instruments remain intentionally read-only.
+   - Remaining scope: independent per-channel patches, operator enable/mute, native detune, LFO/sensitivity and OPL tremolo/vibrato/KSR/KSL flags, velocity response, dedicated OPL3 18-card editing, and stronger golden/hardware validation.
    - Non-goal: do not treat the old held-note fade-out as open design work unless it reproduces. FM editor slices must keep held-tail tests green while adding depth.
 
 4. **Drum / SFX Workflow**
@@ -133,7 +133,7 @@ Avoid polishing Chipper into fifteen pretty but separate chip panels. Prioritize
 Keep planning split into three buckets so fixed work does not keep looking unfinished:
 
 - **Fixed regressions with named tests:** FM sustained-note fade-out and NES DMC one-shot looping are closed unless a current build reproduces them. Keep the held-tail renderer subset and `processor_midi_cc_smoke` in the smoke-test habit, then reopen roadmap work only after a failing repro.
-- **Implemented-but-shallow surfaces:** prioritize the complete OPL3 four-operator editor, richer native Motion Lab destinations, clearer sample/wavetable workflows, stronger presets, state recall, and verification evidence.
+- **Implemented-but-shallow surfaces:** treat the shared OPL3 editor as delivered baseline; prioritize richer native Motion Lab destinations, deeper FM/sample controls, clearer sample/wavetable workflows, stronger presets, state recall, and verification evidence.
 - **Future research:** keep source/licensing decisions, hardware captures, and unverified emulator comparisons out of the active UI unless they have an audible engine path and truthful verification label.
 
 When docs drift, update the owning document instead of repeating the same note everywhere:

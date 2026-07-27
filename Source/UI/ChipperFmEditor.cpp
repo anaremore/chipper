@@ -62,7 +62,6 @@ void ChipperFmEditor::paint(juce::Graphics& graphics)
         if (bounds.isEmpty())
             continue;
         const auto carrier = controls.names[i].getText().endsWith(" C")
-            || (mode == chipper::ChipMode::opl3 && i == 2u)
             || ((mode == chipper::ChipMode::ym2413 || mode == chipper::ChipMode::nesVrc7) && i == 1u);
         graphics.setColour(cardColour);
         graphics.fillRoundedRectangle(bounds.toFloat(), 4.0f);
