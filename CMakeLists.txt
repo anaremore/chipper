@@ -45,6 +45,8 @@ add_library(chipper_engine STATIC
     Source/Engine/ChipDescriptors.h
     Source/Engine/ChipCore.cpp
     Source/Engine/ChipCore.h
+    Source/Engine/WavetableData.cpp
+    Source/Engine/WavetableData.h
     Source/Presets.cpp
     Source/Presets.h
 )

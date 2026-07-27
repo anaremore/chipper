@@ -293,7 +293,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             std::array<int, 4> fmOperatorAttackRates = { 0, 0, 0, 0 },
                             std::array<int, 4> fmOperatorDecayRates = { 0, 0, 0, 0 },
                             std::array<int, 4> fmOperatorSustainRates = { 0, 0, 0, 0 },
-                            std::array<int, 4> fmOperatorReleaseRates = { 0, 0, 0, 0 });
+                            std::array<int, 4> fmOperatorReleaseRates = { 0, 0, 0, 0 },
+                            WavetableMemory wavetableMemory = {});
 uint8_t nesNoiseRegisterForPatch(const PatchConfig& patch);
 uint8_t nesNoisePeriodForControl(float noisePeriodControl);
 uint8_t nesDmcDirectLevelForControl(float levelControl);
@@ -406,7 +407,6 @@ uint8_t ym2413RhythmCymVolumeForPatch(const PatchConfig& patch, float velocity =
 uint8_t vrc7InstrumentForPatch(const PatchConfig& patch);
 uint8_t vrc7VolumeNibbleForPatch(const PatchConfig& patch, size_t channel, float velocity = 1.0f);
 uint8_t huc6280ControlForPatch(const PatchConfig& patch, size_t channel);
-uint8_t wavetableWaveShapeForChannel(ChipMode mode, const PatchConfig& patch, size_t channel);
 uint8_t huc6280WaveShapeForChannel(const PatchConfig& patch, size_t channel);
 bool huc6280ChannelUsesNoiseForPatch(const PatchConfig& patch, size_t channel);
 uint8_t huc6280NoiseControlForPatch(const PatchConfig& patch, size_t channel);
@@ -417,7 +417,6 @@ uint8_t sccVolumeForPatch(const PatchConfig& patch, size_t channel);
 bool sccChannelKeyOnForPatch(const PatchConfig& patch, size_t channel);
 uint8_t namcoWsgVolumeForPatch(const PatchConfig& patch, size_t channel);
 bool namcoWsgChannelEnabledForPatch(const PatchConfig& patch, size_t channel);
-uint8_t wavetableRamSampleForPatch(ChipMode mode, const PatchConfig& patch, size_t channel, size_t sampleIndex);
 uint8_t sampleTemplateForPatch(ChipMode mode, const PatchConfig& patch);
 int8_t generatedSampleValueForPatch(ChipMode mode, const PatchConfig& patch, size_t channel, size_t sampleIndex);
 uint8_t spc700SamplePlaybackModeForPatch(const PatchConfig& patch);

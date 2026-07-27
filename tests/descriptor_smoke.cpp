@@ -1326,6 +1326,33 @@ bool expectWavetableRegisterHelpers()
     ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::namcoWsg, namcoSplit, 6) == 3u, "Namco WSG lane 7 should use its own wave choice");
     ok &= expect(chipper::wavetableWaveShapeForChannel(chipper::ChipMode::namcoWsg, namcoSplit, 7) == 2u, "Namco WSG lane 8 should use its own wave choice");
 
+    const auto hucWaveSpec = chipper::wavetableSpecForMode(chipper::ChipMode::huc6280);
+    const auto namcoWaveSpec = chipper::wavetableSpecForMode(chipper::ChipMode::namcoWsg);
+    const auto sccWaveSpec = chipper::wavetableSpecForMode(chipper::ChipMode::scc);
+    ok &= expect(hucWaveSpec.laneCount == 6u && hucWaveSpec.bitDepth == 5u && hucWaveSpec.maximumSampleValue == 31u,
+                 "HuC6280 direct-wave metadata should expose six 32-sample 5-bit lanes");
+    ok &= expect(namcoWaveSpec.laneCount == 8u && namcoWaveSpec.bitDepth == 4u && namcoWaveSpec.maximumSampleValue == 15u,
+                 "Namco WSG direct-wave metadata should expose eight 32-sample 4-bit lanes");
+    ok &= expect(sccWaveSpec.laneCount == 5u && sccWaveSpec.bitDepth == 8u && sccWaveSpec.maximumSampleValue == 255u,
+                 "SCC direct-wave metadata should expose five 32-sample 8-bit lanes");
+    ok &= expect(! chipper::supportsDirectWavetableEditing(chipper::ChipMode::nes),
+                 "non-wavetable modes should not advertise direct Wave RAM editing");
+    ok &= expect(chipper::quantizeWavetableSample(chipper::ChipMode::namcoWsg, 99) == 15u,
+                 "Namco direct-wave samples should clamp to the native 4-bit range");
+
+    auto customHuc = hucLead;
+    customHuc.wavetableMemory.customLanes[0] = true;
+    customHuc.wavetableMemory.lanes[0].fill(0u);
+    customHuc.wavetableMemory.lanes[0][0] = 255u;
+    customHuc.wavetableMemory.lanes[0][31] = 7u;
+    ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::huc6280, customHuc, 0, 0) == 31u,
+                 "custom HuC6280 Wave RAM should quantize to the native 5-bit range");
+    ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::huc6280, customHuc, 0, 31) == 7u,
+                 "custom HuC6280 Wave RAM should preserve valid native samples");
+    ok &= expect(chipper::wavetableRamSampleForPatch(chipper::ChipMode::huc6280, customHuc, 1, 0)
+                     == chipper::generatedWavetableSampleForPatch(chipper::ChipMode::huc6280, customHuc, 1, 0),
+                 "lanes without custom data should retain the generated selector path");
+
     return ok;
 }
 

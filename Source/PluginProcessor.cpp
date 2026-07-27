@@ -251,7 +251,8 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && a.fmOperatorAttackRates == b.fmOperatorAttackRates
         && a.fmOperatorDecayRates == b.fmOperatorDecayRates
         && a.fmOperatorSustainRates == b.fmOperatorSustainRates
-        && a.fmOperatorReleaseRates == b.fmOperatorReleaseRates;
+        && a.fmOperatorReleaseRates == b.fmOperatorReleaseRates
+        && a.wavetableMemory == b.wavetableMemory;
 }
 
 bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfig& b)

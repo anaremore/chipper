@@ -4811,7 +4811,8 @@ PatchConfig makePatchConfig(ChipMode mode,
                             std::array<int, 4> fmOperatorAttackRates,
                             std::array<int, 4> fmOperatorDecayRates,
                             std::array<int, 4> fmOperatorSustainRates,
-                            std::array<int, 4> fmOperatorReleaseRates)
+                            std::array<int, 4> fmOperatorReleaseRates,
+                            WavetableMemory wavetableMemory)
 {
     const auto effectivePlayMode = supportsPlayMode(mode, playMode) ? playMode : PlayMode::stack;
     const auto maxYmEnvelopeShape = mode == ChipMode::sid
@@ -4921,7 +4922,8 @@ PatchConfig makePatchConfig(ChipMode mode,
             std::clamp(fmOperatorReleaseRates[1], 0, 16),
             std::clamp(fmOperatorReleaseRates[2], 0, 16),
             std::clamp(fmOperatorReleaseRates[3], 0, 16)
-        }
+        },
+        std::move(wavetableMemory)
     };
 }
 
@@ -6562,41 +6564,6 @@ uint8_t huc6280ControlForPatch(const PatchConfig& patch, size_t)
     return static_cast<uint8_t>(0x80u | volume);
 }
 
-uint8_t wavetableWaveShapeForChannel(ChipMode mode, const PatchConfig& patch, size_t channel)
-{
-    const std::array<int, 8> choices {
-        patch.waveShape,
-        patch.sidVoice2WaveShape,
-        patch.sidVoice3WaveShape,
-        patch.pulse2Duty,
-        patch.dmgWaveLevel,
-        patch.snNoiseMode,
-        patch.ymEnvelopeShape,
-        patch.dmgStereoRoute
-    };
-
-    const auto channelCount = mode == ChipMode::namcoWsg ? size_t { 8u }
-        : (mode == ChipMode::huc6280 ? size_t { 6u }
-        : (mode == ChipMode::scc ? size_t { 5u }
-        : (mode == ChipMode::paula ? size_t { 4u } : size_t { 1u })));
-    auto baseChoice = std::clamp(patch.waveShape, 0, 4);
-    if (mode == ChipMode::paula && baseChoice == 0)
-    {
-        switch (patch.macro)
-        {
-            case MacroKind::bass: baseChoice = 2; break;
-            case MacroKind::drum:
-            case MacroKind::hit: baseChoice = 4; break;
-            case MacroKind::lead:
-            case MacroKind::arp: baseChoice = 1; break;
-            default: baseChoice = 3; break;
-        }
-    }
-    auto choice = choices[std::min(channel, channelCount - 1u)];
-    choice = std::clamp(choice, 0, 4);
-    return static_cast<uint8_t>(choice == 0 ? baseChoice : choice);
-}
-
 uint8_t huc6280WaveShapeForChannel(const PatchConfig& patch, size_t channel)
 {
     return wavetableWaveShapeForChannel(ChipMode::huc6280, patch, channel);
@@ -6690,64 +6657,6 @@ uint8_t namcoWsgVolumeForPatch(const PatchConfig& patch, size_t channel)
 bool namcoWsgChannelEnabledForPatch(const PatchConfig& patch, size_t channel)
 {
     return channel < patch.sourceEnabled.size() && patch.sourceEnabled[channel];
-}
-
-uint8_t wavetableRamSampleForPatch(ChipMode mode, const PatchConfig& patch, size_t channel, size_t sampleIndex)
-{
-    constexpr auto twoPiLocal = 6.283185307179586476925286766559;
-    const auto choice = mode == ChipMode::huc6280 || mode == ChipMode::namcoWsg || mode == ChipMode::scc
-                            ? static_cast<int>(wavetableWaveShapeForChannel(mode, patch, channel))
-                            : std::clamp(patch.waveShape, 0, 4);
-    const auto i = sampleIndex & 31u;
-    const auto phaseValue = static_cast<double>(i) / 32.0;
-    const auto skew = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
-
-    if (mode == ChipMode::huc6280)
-    {
-        auto sample = 0;
-        switch (choice)
-        {
-            case 1: sample = static_cast<int>(std::round(31.0 * phaseValue)); break;
-            case 2: sample = i < 16u ? static_cast<int>(std::round(31.0 * (static_cast<double>(i) / 15.0))) : static_cast<int>(std::round(31.0 * (1.0 - static_cast<double>(i - 16u) / 15.0))); break;
-            case 3: sample = i < 16u ? 31 : 0; break;
-            case 4: sample = ((static_cast<int>(i) * 13 + static_cast<int>(channel) * 7) & 31); break;
-            case 0:
-            default: sample = static_cast<int>(std::round(15.5 + 15.5 * std::sin(twoPiLocal * phaseValue))); break;
-        }
-        return static_cast<uint8_t>(std::clamp(sample, 0, 31));
-    }
-
-    if (mode == ChipMode::namcoWsg)
-    {
-        auto sample = 8;
-        switch (choice)
-        {
-            case 1: sample = static_cast<int>(std::round(15.0 * phaseValue)); break;
-            case 2: sample = i < 16u ? static_cast<int>(std::round(15.0 * (static_cast<double>(i) / 15.0))) : static_cast<int>(std::round(15.0 * (1.0 - static_cast<double>(i - 16u) / 15.0))); break;
-            case 3: sample = i < static_cast<size_t>(std::round(4.0 + skew * 24.0)) ? 15 : 0; break;
-            case 4: sample = ((static_cast<int>(i) * 5 + static_cast<int>(channel) * 3) & 15); break;
-            case 0:
-            default: sample = static_cast<int>(std::round(7.5 + 7.5 * std::sin(twoPiLocal * phaseValue))); break;
-        }
-        return static_cast<uint8_t>(std::clamp(sample, 0, 15));
-    }
-
-    if (mode == ChipMode::scc)
-    {
-        auto sample = 128;
-        switch (choice)
-        {
-            case 1: sample = static_cast<int>(std::round(255.0 * phaseValue)); break;
-            case 2: sample = i < 16u ? static_cast<int>(std::round(255.0 * (static_cast<double>(i) / 15.0))) : static_cast<int>(std::round(255.0 * (1.0 - static_cast<double>(i - 16u) / 15.0))); break;
-            case 3: sample = i < static_cast<size_t>(std::round(4.0 + skew * 24.0)) ? 255 : 0; break;
-            case 4: sample = ((static_cast<int>(i) * 17 + static_cast<int>(channel) * 29) & 255); break;
-            case 0:
-            default: sample = static_cast<int>(std::round(128.0 + 127.0 * std::sin(twoPiLocal * phaseValue))); break;
-        }
-        return static_cast<uint8_t>(std::clamp(sample, 0, 255));
-    }
-
-    return 0;
 }
 
 uint8_t sampleTemplateForPatch(ChipMode mode, const PatchConfig& patch)

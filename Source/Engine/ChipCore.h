@@ -1,5 +1,7 @@
 #pragma once
 
+#include "WavetableData.h"
+
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -124,6 +126,7 @@ struct PatchConfig
     std::array<int, 4> fmOperatorDecayRates { 0, 0, 0, 0 };
     std::array<int, 4> fmOperatorSustainRates { 0, 0, 0, 0 };
     std::array<int, 4> fmOperatorReleaseRates { 0, 0, 0, 0 };
+    WavetableMemory wavetableMemory;
 };
 
 struct StereoFrame

@@ -7907,22 +7907,7 @@ private:
 
     void seedWave(size_t channel)
     {
-        const auto choice = static_cast<int>(huc6280WaveShapeForChannel(patch, channel));
-        for (size_t i = 0; i < 32; ++i)
-        {
-            const auto phaseValue = static_cast<double>(i) / 32.0;
-            auto sample = 0;
-            switch (choice)
-            {
-                case 1: sample = static_cast<int>(std::round(31.0 * phaseValue)); break;
-                case 2: sample = i < 16 ? static_cast<int>(std::round(31.0 * (static_cast<double>(i) / 15.0))) : static_cast<int>(std::round(31.0 * (1.0 - static_cast<double>(i - 16) / 15.0))); break;
-                case 3: sample = (i < 16) ? 31 : 0; break;
-                case 4: sample = ((i * 13 + static_cast<int>(channel) * 7) & 31); break;
-                case 0:
-                default: sample = static_cast<int>(std::round(15.5 + 15.5 * std::sin(twoPi * phaseValue))); break;
-            }
-            waveRam[channel][i] = static_cast<uint8_t>(std::clamp(sample, 0, 31));
-        }
+        waveRam[channel] = wavetableLaneForPatch(ChipMode::huc6280, patch, channel);
     }
 
     void writeWaveSample(size_t channel, uint8_t value)
@@ -8433,23 +8418,7 @@ private:
 
     void seedWave(size_t channel)
     {
-        const auto choice = static_cast<int>(wavetableWaveShapeForChannel(ChipMode::scc, patch, channel));
-        const auto skew = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
-        for (size_t i = 0; i < 32; ++i)
-        {
-            const auto phaseValue = static_cast<double>(i) / 32.0;
-            auto sample = 128;
-            switch (choice)
-            {
-                case 1: sample = static_cast<int>(std::round(255.0 * phaseValue)); break;
-                case 2: sample = i < 16 ? static_cast<int>(std::round(255.0 * (static_cast<double>(i) / 15.0))) : static_cast<int>(std::round(255.0 * (1.0 - static_cast<double>(i - 16) / 15.0))); break;
-                case 3: sample = i < static_cast<size_t>(std::round(4.0 + skew * 24.0)) ? 255 : 0; break;
-                case 4: sample = ((static_cast<int>(i) * 17 + static_cast<int>(channel) * 29) & 255); break;
-                case 0:
-                default: sample = static_cast<int>(std::round(128.0 + 127.0 * std::sin(twoPi * phaseValue))); break;
-            }
-            waveRam[channel][i] = static_cast<uint8_t>(std::clamp(sample, 0, 255));
-        }
+        waveRam[channel] = wavetableLaneForPatch(ChipMode::scc, patch, channel);
         syncWaveToEmu(channel);
     }
 
@@ -8913,23 +8882,7 @@ private:
 
     void seedWave(size_t channel)
     {
-        const auto choice = static_cast<int>(wavetableWaveShapeForChannel(ChipMode::namcoWsg, patch, channel));
-        const auto skew = std::clamp(static_cast<double>(patch.control3), 0.0, 1.0);
-        for (size_t i = 0; i < 32; ++i)
-        {
-            const auto phaseValue = static_cast<double>(i) / 32.0;
-            auto sample = 8;
-            switch (choice)
-            {
-                case 1: sample = static_cast<int>(std::round(15.0 * phaseValue)); break;
-                case 2: sample = i < 16 ? static_cast<int>(std::round(15.0 * (static_cast<double>(i) / 15.0))) : static_cast<int>(std::round(15.0 * (1.0 - static_cast<double>(i - 16) / 15.0))); break;
-                case 3: sample = i < static_cast<size_t>(std::round(4.0 + skew * 24.0)) ? 15 : 0; break;
-                case 4: sample = ((static_cast<int>(i) * 5 + static_cast<int>(channel) * 3) & 15); break;
-                case 0:
-                default: sample = static_cast<int>(std::round(7.5 + 7.5 * std::sin(twoPi * phaseValue))); break;
-            }
-            waveRam[channel][i] = static_cast<uint8_t>(std::clamp(sample, 0, 15));
-        }
+        waveRam[channel] = wavetableLaneForPatch(ChipMode::namcoWsg, patch, channel);
     }
 
     double renderChannel(size_t channel)
