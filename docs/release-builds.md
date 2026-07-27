@@ -1,6 +1,6 @@
 # Chipper Build And Release Notes
 
-Chipper should not spend GitHub Actions minutes on every push. Normal pushes are quiet. Release builds happen only when a maintainer deliberately starts them.
+Chipper uses two layers of automation. `.github/workflows/ci.yml` runs for pull requests, pushes to `main`, and manual dispatches so a single change does not create duplicate branch-push and pull-request runs; `.github/workflows/release.yml` remains the deliberate packaging and publishing path.
 
 ## Local Development Build
 
@@ -26,7 +26,7 @@ This focused pass is the current high-signal regression gate for:
 - NES DMC one-shot versus loop behavior
 - FM held-tail behavior and held factory presets
 
-Latest focused gate check: 27/27 passing on 2026-06-22 for `chipper_descriptor_smoke|processor_midi_cc_smoke|chipper_editor_size_smoke|held_tail|preset_.*held`.
+Latest local checkpoint: 843/843 full CTest cases, 401/401 factory-preset audibility renders, and pluginval 1.0.4 strictness level 5 passed on Windows on 2026-07-26.
 
 Generated sample prerequisites such as NES `.dmc` and Paula `.8svx` fixtures should use CTest fixtures, not only `DEPENDS`, so filtered sample-focused runs still prepare their binary inputs.
 
@@ -73,6 +73,8 @@ For docs-only planning cleanup, prefer removing duplicate command snippets from 
 
 ## GitHub Release Build
 
+The CI workflow builds and tests Windows, Linux, and macOS, runs preset QA on all three, validates the Windows VST3 with pluginval 1.0.4 at strictness level 5, and runs the engine/renderer suite under Linux AddressSanitizer and UndefinedBehaviorSanitizer. The pluginval archive is pinned by SHA-256 before extraction. Release jobs repeat the full cross-platform build/test/preset gates and checksum-verified pluginval validation before packaging.
+
 The workflow is `.github/workflows/release.yml`.
 
 It runs only for:
@@ -81,7 +83,7 @@ It runs only for:
 - Version tag pushes that match `v*`, such as `v0.2.0`.
 - Published GitHub Releases.
 
-It does not run on normal pushes or pull requests.
+The release workflow does not run on normal pushes or pull requests; the separate CI workflow does.
 
 The workflow currently builds and tests:
 
@@ -124,7 +126,10 @@ Before a release is considered usable, keep these checks green:
 - NES DMC loop-off tests, because one-shot DMC playback should stop stepping and hold the DAC value instead of looping.
 - Editor-size smoke tests, because Chipper should open and restore inside the documented DAW-friendly per-chip fixed height. Most chips are capped at 860 px; SID is currently capped at 880 px for readable ADSR.
 - Factory preset catalog and audibility checks whenever preset content changed.
-- At least one manual DAW scan/load check for Windows. Linux and macOS host checks should be added before public cross-platform releases are advertised as tested.
+- The parameter-ID, state-schema, portable-asset, and mono/stereo bus invariants in [compatibility-contract.md](compatibility-contract.md).
+- Independent reference comparisons for selected high-risk cores, with provenance and per-capture thresholds recorded as described in `tests/references/README.md`.
+- At least one manual DAW scan/load/project-save/reopen check for Windows, including automation and an external-asset preset. Linux and macOS host checks are required before those platforms are advertised as host-tested.
+- A repeatable dense-MIDI performance capture with no audio-thread allocations, dropouts, or unbounded mode-switch work.
 
 Passing fixed-regression gates should not create new roadmap work. If one fails, reopen the owning bug as a P0, fix it with a tighter test, then return it to this release gate instead of leaving stale todo language in the planning docs.
 

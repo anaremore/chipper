@@ -2,6 +2,7 @@
 
 #include "Engine/ChipDescriptors.h"
 #include "PluginEditor.h"
+#include "State/PluginStateSchema.h"
 
 #include <algorithm>
 #include <array>
@@ -24,6 +25,7 @@ constexpr auto opnaRhythmRomStateTag = "CHIPPER_OPNA_RHYTHM_ROM";
 constexpr auto opnaAdpcmBSampleStateTag = "CHIPPER_OPNA_ADPCM_B_SAMPLE";
 constexpr auto opnbAdpcmASampleStateTag = "CHIPPER_OPNB_ADPCM_A_SAMPLE";
 constexpr auto opnbAdpcmBSampleStateTag = "CHIPPER_OPNB_ADPCM_B_SAMPLE";
+constexpr size_t maxRestoredSampleReferences = 256u;
 constexpr auto unmappedDmcSampleSlot = -2;
 constexpr auto opnaRhythmRomBytes = 8192;
 constexpr auto opnaAdpcmBMemoryBytes = 262144;
@@ -35,28 +37,6 @@ juce::String midiNoteName(int note)
     static constexpr std::array<const char*, 12> names { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
     const auto clampedNote = std::clamp(note, 0, 127);
     return juce::String(names[static_cast<size_t>(clampedNote % 12)]) + juce::String((clampedNote / 12) - 2);
-}
-
-int jsonIntValue(const std::string& json, const std::string& key, int fallback = 0)
-{
-    const auto marker = "\"" + key + "\":";
-    const auto markerPosition = json.find(marker);
-    if (markerPosition == std::string::npos)
-        return fallback;
-
-    const auto valueStart = markerPosition + marker.size();
-    const auto valueEnd = json.find_first_of(",}", valueStart);
-    if (valueEnd == std::string::npos)
-        return fallback;
-
-    try
-    {
-        return std::stoi(json.substr(valueStart, valueEnd - valueStart));
-    }
-    catch (...)
-    {
-        return fallback;
-    }
 }
 
 std::vector<float> decodeDmcPreview(const std::vector<uint8_t>& bytes)
@@ -678,38 +658,7 @@ bool readAiffInstLoopMetadata(const juce::File& file, size_t sampleCount, size_t
 
 juce::File resolvePresetSamplePath(const juce::XmlElement& sampleState, const juce::File& presetDirectory)
 {
-    const auto relativePath = sampleState.getStringAttribute("relativePath").trim();
-    if (relativePath.isNotEmpty() && presetDirectory.isDirectory())
-    {
-        const auto relativeFile = presetDirectory.getChildFile(relativePath);
-        if (relativeFile.existsAsFile())
-            return relativeFile;
-    }
-
-    const auto originalPath = sampleState.getStringAttribute("path").trim();
-    if (originalPath.isEmpty())
-        return {};
-
-    const juce::File originalFile(originalPath);
-    if (originalFile.existsAsFile())
-        return originalFile;
-
-    if (presetDirectory.isDirectory())
-    {
-        const auto siblingFile = presetDirectory.getChildFile(originalFile.getFileName());
-        if (siblingFile.existsAsFile())
-            return siblingFile;
-
-        const auto samplesFile = presetDirectory.getChildFile("Samples").getChildFile(originalFile.getFileName());
-        if (samplesFile.existsAsFile())
-            return samplesFile;
-
-        const auto lowercaseSamplesFile = presetDirectory.getChildFile("samples").getChildFile(originalFile.getFileName());
-        if (lowercaseSamplesFile.existsAsFile())
-            return lowercaseSamplesFile;
-    }
-
-    return originalFile;
+    return chipper::state::resolvePortableAssetPath(sampleState, presetDirectory);
 }
 
 juce::String restoreWarningLine(const juce::String& label, const juce::StringArray& issues)
@@ -1057,12 +1006,85 @@ ChipperAudioProcessor::ChipperAudioProcessor()
 void ChipperAudioProcessor::prepareToPlay(double sampleRate, int)
 {
     currentSampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
-    core.reset();
+    heldNotes.clear();
+    heldNotes.reserve(128u);
+    publishedCoreReady.store(false, std::memory_order_release);
+    initializeCorePool();
     hasObservedMacroSnapshot = false;
     for (auto& sample : outputScopeBuffer)
         sample.store(0.0f, std::memory_order_relaxed);
     outputScopeWriteIndex.store(0u, std::memory_order_release);
     ensureCore();
+}
+
+size_t ChipperAudioProcessor::corePoolIndex(chipper::ChipMode mode) noexcept
+{
+    return static_cast<size_t>(mode);
+}
+
+void ChipperAudioProcessor::initializeCorePool()
+{
+    core.reset();
+    pooledDmcRevisions.fill(std::numeric_limits<uint64_t>::max());
+    pooledSpc700Revisions.fill(std::numeric_limits<uint64_t>::max());
+    pooledPaulaRevisions.fill(std::numeric_limits<uint64_t>::max());
+    pooledOpnaRhythmRevisions.fill(std::numeric_limits<uint64_t>::max());
+    pooledOpnaAdpcmBRevisions.fill(std::numeric_limits<uint64_t>::max());
+    pooledOpnbAdpcmARevisions.fill(std::numeric_limits<uint64_t>::max());
+    pooledOpnbAdpcmBRevisions.fill(std::numeric_limits<uint64_t>::max());
+    const auto patch = currentPatchFromParameters();
+    for (size_t modeIndex = 0; modeIndex < chipModeCount; ++modeIndex)
+    {
+        const auto mode = static_cast<chipper::ChipMode>(modeIndex);
+        const auto clock = chipper::parameters::defaultClockForMode(mode);
+        auto& preparedCore = corePool[corePoolIndex(mode)];
+        preparedCore = chipper::createChipCore(mode, chipper::AccuracyMode::hybrid);
+        preparedCore->reset(currentSampleRate, clock);
+        preparedCore->setPatch(patch);
+    }
+}
+
+void ChipperAudioProcessor::synchronizeActiveExternalAssets(chipper::ChipMode mode)
+{
+    const juce::ScopedLock callbackGuard(getCallbackLock());
+    const auto compatibleOpnbMode = mode == chipper::ChipMode::ym2610 && activeMode == chipper::ChipMode::ym2610b;
+    if (core == nullptr || (activeMode != mode && ! compatibleOpnbMode))
+        return;
+
+    if (mode == chipper::ChipMode::nes)
+    {
+        activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+        lastRequestedDmcSampleSlot = std::numeric_limits<int>::min();
+        applySelectedDmcSampleToCore();
+    }
+    else if (mode == chipper::ChipMode::spc700)
+    {
+        activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
+        activeSpc700BrrSampleSlot = -1;
+        activeSpc700BrrManualSlot = -1;
+        applySpc700BrrSampleToCore();
+    }
+    else if (mode == chipper::ChipMode::paula)
+    {
+        activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
+        activePaulaSampleSlot = -1;
+        activePaulaManualSlot = -1;
+        applyPaulaSampleToCore();
+    }
+    else if (mode == chipper::ChipMode::ym2608)
+    {
+        activeOpnaRhythmRomRevision = std::numeric_limits<uint64_t>::max();
+        activeOpnaAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
+        applyOpnaRhythmRomToCore();
+        applyOpnaAdpcmBSampleToCore();
+    }
+    else if (mode == chipper::ChipMode::ym2610 || mode == chipper::ChipMode::ym2610b)
+    {
+        activeOpnbAdpcmASampleRevision = std::numeric_limits<uint64_t>::max();
+        activeOpnbAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
+        applyOpnbAdpcmASampleToCore();
+        applyOpnbAdpcmBSampleToCore();
+    }
 }
 
 void ChipperAudioProcessor::releaseResources()
@@ -1075,6 +1097,7 @@ juce::Result ChipperAudioProcessor::loadNesDmcSampleFile(const juce::File& file)
     if (auto result = readDmcSampleFile(file, slot); result.failed())
         return result;
 
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
         dmcSampleBank.clear();
@@ -1084,7 +1107,7 @@ juce::Result ChipperAudioProcessor::loadNesDmcSampleFile(const juce::File& file)
     }
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+    synchronizeActiveExternalAssets(chipper::ChipMode::nes);
     return juce::Result::ok();
 }
 
@@ -1115,6 +1138,7 @@ juce::Result ChipperAudioProcessor::loadNesDmcSampleDirectory(const juce::File& 
     if (loaded.empty())
         return juce::Result::fail("No readable .dmc files found in: " + directory.getFullPathName());
 
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
         dmcSampleBank = std::move(loaded);
@@ -1123,7 +1147,7 @@ juce::Result ChipperAudioProcessor::loadNesDmcSampleDirectory(const juce::File& 
     }
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+    synchronizeActiveExternalAssets(chipper::ChipMode::nes);
     return juce::Result::ok();
 }
 
@@ -1133,6 +1157,7 @@ juce::Result ChipperAudioProcessor::loadSpc700BrrSampleFile(const juce::File& fi
     if (auto result = readSpc700BrrSampleFile(file, slot); result.failed())
         return result;
 
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     {
         const std::lock_guard<std::mutex> lock(spc700SampleMutex);
         spc700BrrSampleBank.clear();
@@ -1143,10 +1168,7 @@ juce::Result ChipperAudioProcessor::loadSpc700BrrSampleFile(const juce::File& fi
     }
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
-    activeSpc700BrrSampleSlot = -1;
-    activeSpc700BrrManualSlot = -1;
-    applySpc700BrrSampleToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::spc700);
     return juce::Result::ok();
 }
 
@@ -1174,6 +1196,7 @@ juce::Result ChipperAudioProcessor::loadSpc700BrrSampleDirectory(const juce::Fil
     if (loaded.empty())
         return juce::Result::fail("No readable .brr, WAV, or AIFF files found in: " + directory.getFullPathName());
 
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     {
         const std::lock_guard<std::mutex> lock(spc700SampleMutex);
         spc700BrrSampleBank = std::move(loaded);
@@ -1183,9 +1206,7 @@ juce::Result ChipperAudioProcessor::loadSpc700BrrSampleDirectory(const juce::Fil
     }
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
-    activeSpc700BrrSampleSlot = -1;
-    applySpc700BrrSampleToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::spc700);
     return juce::Result::ok();
 }
 
@@ -1195,6 +1216,7 @@ juce::Result ChipperAudioProcessor::loadPaulaSampleFile(const juce::File& file)
     if (auto result = readPaulaSampleFileSlots(file, slots); result.failed())
         return result;
 
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     {
         const std::lock_guard<std::mutex> lock(paulaSampleMutex);
         paulaSampleBank = std::move(slots);
@@ -1206,10 +1228,7 @@ juce::Result ChipperAudioProcessor::loadPaulaSampleFile(const juce::File& file)
     }
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
-    activePaulaSampleSlot = -1;
-    activePaulaManualSlot = -1;
-    applyPaulaSampleToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::paula);
     return juce::Result::ok();
 }
 
@@ -1246,6 +1265,7 @@ juce::Result ChipperAudioProcessor::loadPaulaSampleDirectory(const juce::File& d
     if (loaded.empty())
         return juce::Result::fail("No readable WAV/AIFF/8SVX/MOD files found in: " + directory.getFullPathName());
 
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     {
         const std::lock_guard<std::mutex> lock(paulaSampleMutex);
         paulaSampleBank = std::move(loaded);
@@ -1255,10 +1275,7 @@ juce::Result ChipperAudioProcessor::loadPaulaSampleDirectory(const juce::File& d
     }
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
-    activePaulaSampleSlot = -1;
-    activePaulaManualSlot = -1;
-    applyPaulaSampleToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::paula);
     return juce::Result::ok();
 }
 
@@ -1268,6 +1285,7 @@ juce::Result ChipperAudioProcessor::loadOpnaRhythmRomFile(const juce::File& file
     if (auto result = readOpnaRhythmRomFile(file, slot); result.failed())
         return result;
 
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     {
         const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
         opnaRhythmRom = std::move(slot);
@@ -1275,8 +1293,7 @@ juce::Result ChipperAudioProcessor::loadOpnaRhythmRomFile(const juce::File& file
         ++opnaRhythmRomRevision;
     }
 
-    activeOpnaRhythmRomRevision = std::numeric_limits<uint64_t>::max();
-    applyOpnaRhythmRomToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::ym2608);
     return juce::Result::ok();
 }
 
@@ -1286,6 +1303,7 @@ juce::Result ChipperAudioProcessor::loadOpnaAdpcmBSampleFile(const juce::File& f
     if (auto result = readOpnaAdpcmBSampleFile(file, slot); result.failed())
         return result;
 
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     {
         const std::lock_guard<std::mutex> lock(opnaAdpcmBSampleMutex);
         opnaAdpcmBSample = std::move(slot);
@@ -1293,8 +1311,7 @@ juce::Result ChipperAudioProcessor::loadOpnaAdpcmBSampleFile(const juce::File& f
         ++opnaAdpcmBSampleRevision;
     }
 
-    activeOpnaAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
-    applyOpnaAdpcmBSampleToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::ym2608);
     return juce::Result::ok();
 }
 
@@ -1304,6 +1321,7 @@ juce::Result ChipperAudioProcessor::loadOpnbAdpcmASampleFile(const juce::File& f
     if (auto result = readOpnbAdpcmASampleFile(file, slot); result.failed())
         return result;
 
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     {
         const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
         opnbAdpcmASample = std::move(slot);
@@ -1311,8 +1329,7 @@ juce::Result ChipperAudioProcessor::loadOpnbAdpcmASampleFile(const juce::File& f
         ++opnbAdpcmASampleRevision;
     }
 
-    activeOpnbAdpcmASampleRevision = std::numeric_limits<uint64_t>::max();
-    applyOpnbAdpcmASampleToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::ym2610);
     return juce::Result::ok();
 }
 
@@ -1322,6 +1339,7 @@ juce::Result ChipperAudioProcessor::loadOpnbAdpcmBSampleFile(const juce::File& f
     if (auto result = readOpnbAdpcmBSampleFile(file, slot); result.failed())
         return result;
 
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     {
         const std::lock_guard<std::mutex> lock(opnbAdpcmBSampleMutex);
         opnbAdpcmBSample = std::move(slot);
@@ -1329,8 +1347,7 @@ juce::Result ChipperAudioProcessor::loadOpnbAdpcmBSampleFile(const juce::File& f
         ++opnbAdpcmBSampleRevision;
     }
 
-    activeOpnbAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
-    applyOpnbAdpcmBSampleToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::ym2610);
     return juce::Result::ok();
 }
 
@@ -1346,14 +1363,11 @@ ChipperAudioProcessor::DmcSamplePlaybackInfo ChipperAudioProcessor::nesDmcSample
     info.playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
     info.mapRootNote = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcMapRoot)->load())), 0, 127);
     info.loopEnabled = apvts.getRawParameterValue(chipper::parameters::id::nesDmcLoop)->load() >= 0.5f;
-    if (core != nullptr)
-    {
-        const auto debugState = core->debugStateJson();
-        info.sampleActive = jsonIntValue(debugState, "dmcSampleActive") != 0;
-        info.sampleCompleted = jsonIntValue(debugState, "dmcSampleCompleted") != 0;
-        info.bitsPlayed = jsonIntValue(debugState, "dmcSampleBitsPlayed");
-    }
-    const auto selectedSlot = info.playbackMode != 0 && activeDmcSampleSlot >= 0 ? activeDmcSampleSlot : manualSlot;
+    info.sampleActive = publishedDmcSampleActive.load(std::memory_order_relaxed);
+    info.sampleCompleted = publishedDmcSampleCompleted.load(std::memory_order_relaxed);
+    info.bitsPlayed = publishedDmcSampleBitsPlayed.load(std::memory_order_acquire);
+    const auto publishedActiveSlot = activeDmcSampleSlot.load(std::memory_order_acquire);
+    const auto selectedSlot = info.playbackMode != 0 && publishedActiveSlot >= 0 ? publishedActiveSlot : manualSlot;
     info.rateIndex = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcRateIndex)->load()));
     info.rateIndex = std::clamp(info.rateIndex, 0, 15);
 
@@ -1480,16 +1494,13 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
             bankBrrBlockCount += static_cast<int>(slot->bytes.size() / 9u);
     }
 
-    for (int i = 0; i < static_cast<int>(activeSlots.size()); ++i)
-    {
-        if (activeSlots[static_cast<size_t>(i)]->path == spc700BrrSample.path)
-        {
-            safeSlot = i;
-            break;
-        }
-    }
     const auto mapRootNote = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcMapRoot)->load())), 0, 127);
     const auto playbackMode = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load())), 0, 2);
+    const auto publishedSlot = playbackMode != 0
+        ? activeSpc700BrrSampleSlot.load(std::memory_order_acquire)
+        : activeSpc700BrrManualSlot.load(std::memory_order_acquire);
+    if (publishedSlot >= 0)
+        safeSlot = std::clamp(publishedSlot, 0, std::max(0, bankCount - 1));
     if (playbackMode != 0 && activeSpc700BrrSampleSlot < 0)
     {
         info.selectedSlot = -1;
@@ -1573,18 +1584,13 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::paulaSampleInf
     for (const auto* slot : activeSlots)
         bankByteCount += static_cast<int>(slot->bytes.size());
 
-    for (int i = 0; i < static_cast<int>(activeSlots.size()); ++i)
-    {
-        if (activeSlots[static_cast<size_t>(i)]->path == paulaSample.path
-            && activeSlots[static_cast<size_t>(i)]->sourceSampleIndex == paulaSample.sourceSampleIndex)
-        {
-            safeSlot = i;
-            break;
-        }
-    }
-
     const auto mapRootNote = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcMapRoot)->load())), 0, 127);
     const auto playbackMode = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load())), 0, 2);
+    const auto publishedSlot = playbackMode != 0
+        ? activePaulaSampleSlot.load(std::memory_order_acquire)
+        : activePaulaManualSlot.load(std::memory_order_acquire);
+    if (publishedSlot >= 0)
+        safeSlot = std::clamp(publishedSlot, 0, std::max(0, bankCount - 1));
     if (playbackMode != 0 && activePaulaSampleSlot < 0)
     {
         info.selectedSlot = -1;
@@ -1872,6 +1878,7 @@ std::vector<ChipperAudioProcessor::DmcSampleEntryInfo> ChipperAudioProcessor::pa
 
 void ChipperAudioProcessor::setNesDmcSampleIncluded(int index, bool shouldBeIncluded)
 {
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     bool changed = false;
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
@@ -1891,11 +1898,12 @@ void ChipperAudioProcessor::setNesDmcSampleIncluded(int index, bool shouldBeIncl
         return;
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+    synchronizeActiveExternalAssets(chipper::ChipMode::nes);
 }
 
 void ChipperAudioProcessor::setSpc700BrrSampleIncluded(int index, bool shouldBeIncluded)
 {
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     bool changed = false;
     {
         const std::lock_guard<std::mutex> lock(spc700SampleMutex);
@@ -1915,14 +1923,12 @@ void ChipperAudioProcessor::setSpc700BrrSampleIncluded(int index, bool shouldBeI
         return;
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
-    activeSpc700BrrSampleSlot = -1;
-    activeSpc700BrrManualSlot = -1;
-    applySpc700BrrSampleToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::spc700);
 }
 
 void ChipperAudioProcessor::setPaulaSampleIncluded(int index, bool shouldBeIncluded)
 {
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     bool changed = false;
     {
         const std::lock_guard<std::mutex> lock(paulaSampleMutex);
@@ -1942,14 +1948,12 @@ void ChipperAudioProcessor::setPaulaSampleIncluded(int index, bool shouldBeInclu
         return;
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
-    activePaulaSampleSlot = -1;
-    activePaulaManualSlot = -1;
-    applyPaulaSampleToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::paula);
 }
 
 void ChipperAudioProcessor::selectFirstNesDmcSamples(int maxCount)
 {
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     bool changed = false;
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
@@ -1972,11 +1976,12 @@ void ChipperAudioProcessor::selectFirstNesDmcSamples(int maxCount)
         return;
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+    synchronizeActiveExternalAssets(chipper::ChipMode::nes);
 }
 
 void ChipperAudioProcessor::selectFirstSpc700BrrSamples(int maxCount)
 {
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     bool changed = false;
     {
         const std::lock_guard<std::mutex> lock(spc700SampleMutex);
@@ -1999,14 +2004,12 @@ void ChipperAudioProcessor::selectFirstSpc700BrrSamples(int maxCount)
         return;
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
-    activeSpc700BrrSampleSlot = -1;
-    activeSpc700BrrManualSlot = -1;
-    applySpc700BrrSampleToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::spc700);
 }
 
 void ChipperAudioProcessor::selectFirstPaulaSamples(int maxCount)
 {
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     bool changed = false;
     {
         const std::lock_guard<std::mutex> lock(paulaSampleMutex);
@@ -2029,14 +2032,12 @@ void ChipperAudioProcessor::selectFirstPaulaSamples(int maxCount)
         return;
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
-    activePaulaSampleSlot = -1;
-    activePaulaManualSlot = -1;
-    applyPaulaSampleToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::paula);
 }
 
 void ChipperAudioProcessor::clearNesDmcSampleSelection()
 {
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     bool changed = false;
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
@@ -2057,11 +2058,12 @@ void ChipperAudioProcessor::clearNesDmcSampleSelection()
         return;
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+    synchronizeActiveExternalAssets(chipper::ChipMode::nes);
 }
 
 void ChipperAudioProcessor::clearSpc700BrrSampleSelection()
 {
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     bool changed = false;
     {
         const std::lock_guard<std::mutex> lock(spc700SampleMutex);
@@ -2082,14 +2084,12 @@ void ChipperAudioProcessor::clearSpc700BrrSampleSelection()
         return;
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
-    activeSpc700BrrSampleSlot = -1;
-    activeSpc700BrrManualSlot = -1;
-    applySpc700BrrSampleToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::spc700);
 }
 
 void ChipperAudioProcessor::clearPaulaSampleSelection()
 {
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     bool changed = false;
     {
         const std::lock_guard<std::mutex> lock(paulaSampleMutex);
@@ -2110,14 +2110,12 @@ void ChipperAudioProcessor::clearPaulaSampleSelection()
         return;
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
-    activePaulaSampleSlot = -1;
-    activePaulaManualSlot = -1;
-    applyPaulaSampleToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::paula);
 }
 
 void ChipperAudioProcessor::invertNesDmcSampleSelection()
 {
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     bool changed = false;
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
@@ -2135,11 +2133,12 @@ void ChipperAudioProcessor::invertNesDmcSampleSelection()
         return;
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+    synchronizeActiveExternalAssets(chipper::ChipMode::nes);
 }
 
 void ChipperAudioProcessor::invertSpc700BrrSampleSelection()
 {
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     bool changed = false;
     {
         const std::lock_guard<std::mutex> lock(spc700SampleMutex);
@@ -2157,14 +2156,12 @@ void ChipperAudioProcessor::invertSpc700BrrSampleSelection()
         return;
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
-    activeSpc700BrrSampleSlot = -1;
-    activeSpc700BrrManualSlot = -1;
-    applySpc700BrrSampleToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::spc700);
 }
 
 void ChipperAudioProcessor::invertPaulaSampleSelection()
 {
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     bool changed = false;
     {
         const std::lock_guard<std::mutex> lock(paulaSampleMutex);
@@ -2182,28 +2179,22 @@ void ChipperAudioProcessor::invertPaulaSampleSelection()
         return;
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
-    activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
-    activePaulaSampleSlot = -1;
-    activePaulaManualSlot = -1;
-    applyPaulaSampleToCore();
+    synchronizeActiveExternalAssets(chipper::ChipMode::paula);
 }
 
 uint64_t ChipperAudioProcessor::nesDmcSampleRevision() const
 {
-    const std::lock_guard<std::mutex> lock(dmcSampleMutex);
-    return dmcSampleBankRevision;
+    return dmcSampleBankRevision.load(std::memory_order_acquire);
 }
 
 uint64_t ChipperAudioProcessor::spc700BrrSampleRevision() const
 {
-    const std::lock_guard<std::mutex> lock(spc700SampleMutex);
-    return spc700BrrSampleBankRevision;
+    return spc700BrrSampleBankRevision.load(std::memory_order_acquire);
 }
 
 uint64_t ChipperAudioProcessor::paulaSampleRevision() const
 {
-    const std::lock_guard<std::mutex> lock(paulaSampleMutex);
-    return paulaSampleBankRevision;
+    return paulaSampleBankRevision.load(std::memory_order_acquire);
 }
 
 bool ChipperAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -2234,6 +2225,41 @@ void ChipperAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     }
 
     renderRange(buffer, renderedUntil, buffer.getNumSamples(), readOutputGain());
+
+    if (core != nullptr)
+    {
+        const auto telemetry = core->runtimeTelemetry();
+        publishedDmcSampleActive.store(telemetry.dmcSampleActive, std::memory_order_relaxed);
+        publishedDmcSampleCompleted.store(telemetry.dmcSampleCompleted, std::memory_order_relaxed);
+        publishedDmcSampleBitsPlayed.store(telemetry.dmcSampleBitsPlayed, std::memory_order_release);
+    }
+}
+
+double ChipperAudioProcessor::getTailLengthSeconds() const
+{
+    const auto modeChoice = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::chipMode)->load()));
+    const auto mode = chipper::parameters::chipModeFromChoice(modeChoice);
+    if (mode == chipper::ChipMode::sid)
+    {
+        const auto patch = currentPatchFromParameters();
+        auto releaseSeconds = 0.0;
+        for (size_t voice = 0; voice < 3u; ++voice)
+            releaseSeconds = std::max(releaseSeconds,
+                                      chipper::sidDecayReleaseSecondsForNibble(chipper::sidReleaseNibbleForVoice(patch, voice)));
+        return releaseSeconds + 0.1;
+    }
+
+    if (mode == chipper::ChipMode::spc700 || mode == chipper::ChipMode::paula)
+        return 30.0;
+
+    if (mode == chipper::ChipMode::ym2612 || mode == chipper::ChipMode::ym2203
+        || mode == chipper::ChipMode::ym2608 || mode == chipper::ChipMode::ym2610
+        || mode == chipper::ChipMode::ym2610b || mode == chipper::ChipMode::opl3
+        || mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::ym2413
+        || mode == chipper::ChipMode::nesVrc7)
+        return 8.0;
+
+    return 2.0;
 }
 
 void ChipperAudioProcessor::renderRange(juce::AudioBuffer<float>& buffer, int startSample, int endSample, float outputGain)
@@ -2517,8 +2543,13 @@ void ChipperAudioProcessor::ensureCore()
     const auto selectedClock = clockOverride > 0.0f ? static_cast<double>(clockOverride) : chipper::parameters::defaultClockForMode(selectedMode);
     const auto selectedPatch = currentPatchFromParameters();
 
-    if (core != nullptr && selectedMode == activeMode && selectedAccuracy == activeAccuracy && std::abs(selectedClock - activeClock) < 0.5)
+    if (core != nullptr && selectedMode == activeMode && std::abs(selectedClock - activeClock) < 0.5)
     {
+        if (selectedAccuracy != activeAccuracy)
+        {
+            activeAccuracy = selectedAccuracy;
+            core->setRequestedAccuracy(activeAccuracy);
+        }
         if (! patchMatches(selectedPatch, activePatch))
         {
             activePatch = selectedPatch;
@@ -2536,23 +2567,37 @@ void ChipperAudioProcessor::ensureCore()
         return;
     }
 
+    const auto previousIndex = corePoolIndex(activeMode);
+    const auto selectedIndex = corePoolIndex(selectedMode);
+    if (core != nullptr && previousIndex != selectedIndex)
+        corePool[previousIndex] = std::move(core);
+    if (core == nullptr)
+        core = std::move(corePool[selectedIndex]);
+
     activeMode = selectedMode;
     activeAccuracy = selectedAccuracy;
     activeClock = selectedClock;
     activePatch = selectedPatch;
-    core = chipper::createChipCore(activeMode, activeAccuracy);
+    if (core == nullptr)
+    {
+        jassertfalse;
+        publishedCoreReady.store(false, std::memory_order_release);
+        return;
+    }
+    core->setRequestedAccuracy(activeAccuracy);
     core->reset(currentSampleRate, activeClock);
     core->setPatch(activePatch);
-    activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
+    activeDmcSampleBankRevision = pooledDmcRevisions[selectedIndex];
     activeDmcSampleSlot = -1;
-    activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
+    lastRequestedDmcSampleSlot = std::numeric_limits<int>::min();
+    activeSpc700BrrSampleRevision = pooledSpc700Revisions[selectedIndex];
     activeSpc700BrrSampleSlot = -1;
-    activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
+    activePaulaSampleRevision = pooledPaulaRevisions[selectedIndex];
     activePaulaSampleSlot = -1;
-    activeOpnaRhythmRomRevision = std::numeric_limits<uint64_t>::max();
-    activeOpnaAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
-    activeOpnbAdpcmASampleRevision = std::numeric_limits<uint64_t>::max();
-    activeOpnbAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
+    activeOpnaRhythmRomRevision = pooledOpnaRhythmRevisions[selectedIndex];
+    activeOpnaAdpcmBSampleRevision = pooledOpnaAdpcmBRevisions[selectedIndex];
+    activeOpnbAdpcmASampleRevision = pooledOpnbAdpcmARevisions[selectedIndex];
+    activeOpnbAdpcmBSampleRevision = pooledOpnbAdpcmBRevisions[selectedIndex];
     applySelectedDmcSampleToCore();
     applySpc700BrrSampleToCore();
     applyPaulaSampleToCore();
@@ -2562,6 +2607,8 @@ void ChipperAudioProcessor::ensureCore()
     applyOpnbAdpcmBSampleToCore();
     replayPendingRegisterState();
     replayHeldNotes();
+    publishedActiveMode.store(activeMode, std::memory_order_release);
+    publishedCoreReady.store(true, std::memory_order_release);
 }
 
 void ChipperAudioProcessor::applySelectedDmcSampleToCore()
@@ -2571,7 +2618,8 @@ void ChipperAudioProcessor::applySelectedDmcSampleToCore()
 
     const auto selectedSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
     const auto playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
-    applyDmcSampleSlotToCore(playbackMode != 0 && activeDmcSampleSlot >= 0 ? activeDmcSampleSlot : selectedSlot);
+    const auto publishedActiveSlot = activeDmcSampleSlot.load(std::memory_order_acquire);
+    applyDmcSampleSlotToCore(playbackMode != 0 && publishedActiveSlot >= 0 ? publishedActiveSlot : selectedSlot);
 }
 
 void ChipperAudioProcessor::applyDmcSampleSlotToCore(int requestedSlot)
@@ -2579,33 +2627,47 @@ void ChipperAudioProcessor::applyDmcSampleSlotToCore(int requestedSlot)
     if (core == nullptr || activeMode != chipper::ChipMode::nes)
         return;
 
-    std::vector<uint8_t> selectedBytes;
+    const auto publishedRevision = dmcSampleBankRevision.load(std::memory_order_acquire);
+    if (publishedRevision == activeDmcSampleBankRevision && requestedSlot == lastRequestedDmcSampleSlot)
+        return;
+
+    if (publishedRevision == activeDmcSampleBankRevision)
+    {
+        const auto resolvedSlot = requestedSlot == unmappedDmcSampleSlot
+            ? unmappedDmcSampleSlot
+            : (activeDmcSampleSlotCount > 0 ? std::clamp(requestedSlot, 0, activeDmcSampleSlotCount - 1) : -1);
+        activeDmcSampleSlot = resolvedSlot;
+        lastRequestedDmcSampleSlot = requestedSlot;
+        core->setExternalSampleSlot(resolvedSlot >= 0 ? resolvedSlot : -1);
+        return;
+    }
+
+    std::vector<std::vector<uint8_t>> sampleBank;
     uint64_t revision = 0;
     auto resolvedSlot = -1;
+    auto activeSlotCount = 0;
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
-        revision = dmcSampleBankRevision;
-        if (requestedSlot == unmappedDmcSampleSlot)
+        revision = dmcSampleBankRevision.load(std::memory_order_relaxed);
+        if (! dmcSampleBank.empty())
         {
-            resolvedSlot = unmappedDmcSampleSlot;
-        }
-        else if (! dmcSampleBank.empty())
-        {
-            std::vector<const DmcSampleSlot*> activeSlots;
-            activeSlots.reserve(32u);
+            sampleBank.reserve(32u);
             for (const auto& slot : dmcSampleBank)
             {
                 if (slot.included)
-                    activeSlots.push_back(&slot);
-                if (activeSlots.size() >= 32u)
+                    sampleBank.push_back(slot.bytes);
+                if (sampleBank.size() >= 32u)
                     break;
             }
 
-            if (! activeSlots.empty())
+            activeSlotCount = static_cast<int>(sampleBank.size());
+            if (requestedSlot == unmappedDmcSampleSlot)
             {
-                resolvedSlot = std::clamp(requestedSlot, 0, static_cast<int>(activeSlots.size() - 1u));
-                const auto safeSlot = static_cast<size_t>(resolvedSlot);
-                selectedBytes = activeSlots[safeSlot]->bytes;
+                resolvedSlot = unmappedDmcSampleSlot;
+            }
+            else if (! sampleBank.empty())
+            {
+                resolvedSlot = std::clamp(requestedSlot, 0, static_cast<int>(sampleBank.size() - 1u));
             }
         }
     }
@@ -2614,8 +2676,11 @@ void ChipperAudioProcessor::applyDmcSampleSlotToCore(int requestedSlot)
         return;
 
     activeDmcSampleBankRevision = revision;
+    pooledDmcRevisions[corePoolIndex(activeMode)] = revision;
     activeDmcSampleSlot = resolvedSlot;
-    core->setExternalSampleData(std::move(selectedBytes));
+    activeDmcSampleSlotCount = activeSlotCount;
+    lastRequestedDmcSampleSlot = requestedSlot;
+    core->setExternalSampleBank(std::move(sampleBank), resolvedSlot >= 0 ? resolvedSlot : -1);
 }
 
 void ChipperAudioProcessor::applyMappedDmcSampleForMidiNote(int midiNote)
@@ -2627,17 +2692,7 @@ void ChipperAudioProcessor::applyMappedDmcSampleForMidiNote(int midiNote)
     if (playbackMode == 0)
         return;
 
-    auto activeSlotCount = 0;
-    {
-        const std::lock_guard<std::mutex> lock(dmcSampleMutex);
-        for (const auto& slot : dmcSampleBank)
-        {
-            if (slot.included)
-                ++activeSlotCount;
-            if (activeSlotCount >= 32)
-                break;
-        }
-    }
+    const auto activeSlotCount = activeDmcSampleSlotCount;
 
     if (activeSlotCount <= 0)
         return;
@@ -2658,13 +2713,30 @@ void ChipperAudioProcessor::applySpc700BrrSampleToCore()
     if (core == nullptr || activeMode != chipper::ChipMode::spc700)
         return;
 
+    const auto publishedRevision = spc700BrrSampleBankRevision.load(std::memory_order_acquire);
+    const auto playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
+    if (publishedRevision == activeSpc700BrrSampleRevision)
+    {
+        if (activeSpc700BrrSampleSlotCount <= 0)
+            return;
+
+        const auto selectedSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
+        const auto resolvedSlot = std::clamp(selectedSlot, 0, activeSpc700BrrSampleSlotCount - 1);
+        activeSpc700BrrManualSlot = resolvedSlot;
+        if (playbackMode == 0 && resolvedSlot != activeSpc700BrrSampleSlot)
+        {
+            activeSpc700BrrSampleSlot = resolvedSlot;
+            core->setExternalSampleSlot(resolvedSlot);
+        }
+        return;
+    }
+
     std::vector<chipper::ExternalSampleData> sampleBank;
     uint64_t revision = 0;
     auto resolvedSlot = -1;
-    const auto playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
     {
         const std::lock_guard<std::mutex> lock(spc700SampleMutex);
-        revision = spc700BrrSampleBankRevision;
+        revision = spc700BrrSampleBankRevision.load(std::memory_order_relaxed);
         if (! spc700BrrSampleBank.empty())
         {
             std::vector<const DmcSampleSlot*> activeSlots;
@@ -2714,8 +2786,10 @@ void ChipperAudioProcessor::applySpc700BrrSampleToCore()
     }
 
     activeSpc700BrrSampleRevision = revision;
+    pooledSpc700Revisions[corePoolIndex(activeMode)] = revision;
     activeSpc700BrrSampleSlot = resolvedSlot;
     activeSpc700BrrManualSlot = resolvedSlot;
+    activeSpc700BrrSampleSlotCount = static_cast<int>(sampleBank.size());
     core->setExternalSampleBank(std::move(sampleBank), resolvedSlot);
 }
 
@@ -2724,47 +2798,16 @@ void ChipperAudioProcessor::applySpc700BrrSampleSlotToCore(int requestedSlot)
     if (core == nullptr || activeMode != chipper::ChipMode::spc700)
         return;
 
-    uint64_t revision = 0;
-    auto resolvedSlot = -1;
-    {
-        const std::lock_guard<std::mutex> lock(spc700SampleMutex);
-        revision = spc700BrrSampleBankRevision;
-        if (! spc700BrrSampleBank.empty())
-        {
-            std::vector<const DmcSampleSlot*> activeSlots;
-            activeSlots.reserve(32u);
-            for (const auto& slot : spc700BrrSampleBank)
-            {
-                if (slot.included)
-                    activeSlots.push_back(&slot);
-                if (activeSlots.size() >= 32u)
-                    break;
-            }
-
-            if (requestedSlot >= 0)
-            {
-                if (! activeSlots.empty())
-                {
-                    resolvedSlot = std::clamp(requestedSlot, 0, static_cast<int>(activeSlots.size() - 1u));
-                    spc700BrrSample = *activeSlots[static_cast<size_t>(resolvedSlot)];
-                }
-                else
-                {
-                    spc700BrrSample = {};
-                }
-            }
-        }
-        else if (! spc700BrrSample.bytes.empty())
-        {
-            resolvedSlot = requestedSlot >= 0 ? 0 : -1;
-        }
-    }
-
+    const auto revision = spc700BrrSampleBankRevision.load(std::memory_order_acquire);
     if (revision != activeSpc700BrrSampleRevision)
     {
         activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
         applySpc700BrrSampleToCore();
     }
+
+    const auto resolvedSlot = requestedSlot >= 0 && activeSpc700BrrSampleSlotCount > 0
+        ? std::clamp(requestedSlot, 0, activeSpc700BrrSampleSlotCount - 1)
+        : -1;
 
     if (resolvedSlot < 0)
     {
@@ -2788,24 +2831,7 @@ void ChipperAudioProcessor::applyMappedSpc700BrrSampleForMidiNote(int midiNote)
     if (core == nullptr || activeMode != chipper::ChipMode::spc700)
         return;
 
-    auto activeSlotCount = 0;
-    {
-        const std::lock_guard<std::mutex> lock(spc700SampleMutex);
-        if (spc700BrrSampleBank.empty())
-        {
-            activeSlotCount = spc700BrrSample.bytes.empty() ? 0 : 1;
-        }
-        else
-        {
-            for (const auto& slot : spc700BrrSampleBank)
-            {
-                if (slot.included)
-                    ++activeSlotCount;
-                if (activeSlotCount >= 32)
-                    break;
-            }
-        }
-    }
+    const auto activeSlotCount = activeSpc700BrrSampleSlotCount;
 
     if (activeSlotCount <= 1)
         return;
@@ -2830,13 +2856,30 @@ void ChipperAudioProcessor::applyPaulaSampleToCore()
     if (core == nullptr || activeMode != chipper::ChipMode::paula)
         return;
 
+    const auto publishedRevision = paulaSampleBankRevision.load(std::memory_order_acquire);
+    const auto playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
+    if (publishedRevision == activePaulaSampleRevision)
+    {
+        if (activePaulaSampleSlotCount <= 0)
+            return;
+
+        const auto selectedSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
+        const auto resolvedSlot = std::clamp(selectedSlot, 0, activePaulaSampleSlotCount - 1);
+        activePaulaManualSlot = resolvedSlot;
+        if (playbackMode == 0 && resolvedSlot != activePaulaSampleSlot)
+        {
+            activePaulaSampleSlot = resolvedSlot;
+            core->setExternalSampleSlot(resolvedSlot);
+        }
+        return;
+    }
+
     std::vector<chipper::ExternalSampleData> sampleBank;
     uint64_t revision = 0;
     auto resolvedSlot = -1;
-    const auto playbackMode = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load()));
     {
         const std::lock_guard<std::mutex> lock(paulaSampleMutex);
-        revision = paulaSampleBankRevision;
+        revision = paulaSampleBankRevision.load(std::memory_order_relaxed);
         if (! paulaSampleBank.empty())
         {
             std::vector<const DmcSampleSlot*> activeSlots;
@@ -2900,8 +2943,10 @@ void ChipperAudioProcessor::applyPaulaSampleToCore()
     }
 
     activePaulaSampleRevision = revision;
+    pooledPaulaRevisions[corePoolIndex(activeMode)] = revision;
     activePaulaSampleSlot = resolvedSlot;
     activePaulaManualSlot = resolvedSlot;
+    activePaulaSampleSlotCount = static_cast<int>(sampleBank.size());
     core->setExternalSampleBank(std::move(sampleBank), resolvedSlot);
 }
 
@@ -2910,47 +2955,16 @@ void ChipperAudioProcessor::applyPaulaSampleSlotToCore(int requestedSlot)
     if (core == nullptr || activeMode != chipper::ChipMode::paula)
         return;
 
-    uint64_t revision = 0;
-    auto resolvedSlot = -1;
-    {
-        const std::lock_guard<std::mutex> lock(paulaSampleMutex);
-        revision = paulaSampleBankRevision;
-        if (! paulaSampleBank.empty())
-        {
-            std::vector<const DmcSampleSlot*> activeSlots;
-            activeSlots.reserve(32u);
-            for (const auto& slot : paulaSampleBank)
-            {
-                if (slot.included)
-                    activeSlots.push_back(&slot);
-                if (activeSlots.size() >= 32u)
-                    break;
-            }
-
-            if (requestedSlot >= 0)
-            {
-                if (! activeSlots.empty())
-                {
-                    resolvedSlot = std::clamp(requestedSlot, 0, static_cast<int>(activeSlots.size() - 1u));
-                    paulaSample = *activeSlots[static_cast<size_t>(resolvedSlot)];
-                }
-                else
-                {
-                    paulaSample = {};
-                }
-            }
-        }
-        else if (! paulaSample.bytes.empty())
-        {
-            resolvedSlot = requestedSlot >= 0 ? 0 : -1;
-        }
-    }
-
+    const auto revision = paulaSampleBankRevision.load(std::memory_order_acquire);
     if (revision != activePaulaSampleRevision)
     {
         activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
         applyPaulaSampleToCore();
     }
+
+    const auto resolvedSlot = requestedSlot >= 0 && activePaulaSampleSlotCount > 0
+        ? std::clamp(requestedSlot, 0, activePaulaSampleSlotCount - 1)
+        : -1;
 
     if (resolvedSlot < 0)
     {
@@ -2974,24 +2988,7 @@ void ChipperAudioProcessor::applyMappedPaulaSampleForMidiNote(int midiNote)
     if (core == nullptr || activeMode != chipper::ChipMode::paula)
         return;
 
-    auto activeSlotCount = 0;
-    {
-        const std::lock_guard<std::mutex> lock(paulaSampleMutex);
-        if (paulaSampleBank.empty())
-        {
-            activeSlotCount = paulaSample.bytes.empty() ? 0 : 1;
-        }
-        else
-        {
-            for (const auto& slot : paulaSampleBank)
-            {
-                if (slot.included)
-                    ++activeSlotCount;
-                if (activeSlotCount >= 32)
-                    break;
-            }
-        }
-    }
+    const auto activeSlotCount = activePaulaSampleSlotCount;
 
     if (activeSlotCount <= 1)
         return;
@@ -3016,11 +3013,15 @@ void ChipperAudioProcessor::applyOpnaRhythmRomToCore()
     if (core == nullptr || activeMode != chipper::ChipMode::ym2608)
         return;
 
+    const auto publishedRevision = opnaRhythmRomRevision.load(std::memory_order_acquire);
+    if (publishedRevision == activeOpnaRhythmRomRevision)
+        return;
+
     std::vector<uint8_t> selectedBytes;
     uint64_t revision = 0;
     {
         const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
-        revision = opnaRhythmRomRevision;
+        revision = opnaRhythmRomRevision.load(std::memory_order_relaxed);
         selectedBytes = opnaRhythmRom.bytes;
     }
 
@@ -3028,6 +3029,7 @@ void ChipperAudioProcessor::applyOpnaRhythmRomToCore()
         return;
 
     activeOpnaRhythmRomRevision = revision;
+    pooledOpnaRhythmRevisions[corePoolIndex(activeMode)] = revision;
     core->setExternalSampleData(std::move(selectedBytes));
 }
 
@@ -3036,11 +3038,15 @@ void ChipperAudioProcessor::applyOpnaAdpcmBSampleToCore()
     if (core == nullptr || activeMode != chipper::ChipMode::ym2608)
         return;
 
+    const auto publishedRevision = opnaAdpcmBSampleRevision.load(std::memory_order_acquire);
+    if (publishedRevision == activeOpnaAdpcmBSampleRevision)
+        return;
+
     std::vector<uint8_t> selectedBytes;
     uint64_t revision = 0;
     {
         const std::lock_guard<std::mutex> lock(opnaAdpcmBSampleMutex);
-        revision = opnaAdpcmBSampleRevision;
+        revision = opnaAdpcmBSampleRevision.load(std::memory_order_relaxed);
         selectedBytes = opnaAdpcmBSample.bytes;
     }
 
@@ -3048,6 +3054,7 @@ void ChipperAudioProcessor::applyOpnaAdpcmBSampleToCore()
         return;
 
     activeOpnaAdpcmBSampleRevision = revision;
+    pooledOpnaAdpcmBRevisions[corePoolIndex(activeMode)] = revision;
     core->setExternalAdpcmBData(std::move(selectedBytes));
 }
 
@@ -3056,11 +3063,15 @@ void ChipperAudioProcessor::applyOpnbAdpcmASampleToCore()
     if (core == nullptr || (activeMode != chipper::ChipMode::ym2610 && activeMode != chipper::ChipMode::ym2610b))
         return;
 
+    const auto publishedRevision = opnbAdpcmASampleRevision.load(std::memory_order_acquire);
+    if (publishedRevision == activeOpnbAdpcmASampleRevision)
+        return;
+
     std::vector<uint8_t> selectedBytes;
     uint64_t revision = 0;
     {
         const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
-        revision = opnbAdpcmASampleRevision;
+        revision = opnbAdpcmASampleRevision.load(std::memory_order_relaxed);
         selectedBytes = opnbAdpcmASample.bytes;
     }
 
@@ -3068,6 +3079,7 @@ void ChipperAudioProcessor::applyOpnbAdpcmASampleToCore()
         return;
 
     activeOpnbAdpcmASampleRevision = revision;
+    pooledOpnbAdpcmARevisions[corePoolIndex(activeMode)] = revision;
     core->setExternalSampleData(std::move(selectedBytes));
 }
 
@@ -3076,11 +3088,15 @@ void ChipperAudioProcessor::applyOpnbAdpcmBSampleToCore()
     if (core == nullptr || (activeMode != chipper::ChipMode::ym2610 && activeMode != chipper::ChipMode::ym2610b))
         return;
 
+    const auto publishedRevision = opnbAdpcmBSampleRevision.load(std::memory_order_acquire);
+    if (publishedRevision == activeOpnbAdpcmBSampleRevision)
+        return;
+
     std::vector<uint8_t> selectedBytes;
     uint64_t revision = 0;
     {
         const std::lock_guard<std::mutex> lock(opnbAdpcmBSampleMutex);
-        revision = opnbAdpcmBSampleRevision;
+        revision = opnbAdpcmBSampleRevision.load(std::memory_order_relaxed);
         selectedBytes = opnbAdpcmBSample.bytes;
     }
 
@@ -3088,6 +3104,7 @@ void ChipperAudioProcessor::applyOpnbAdpcmBSampleToCore()
         return;
 
     activeOpnbAdpcmBSampleRevision = revision;
+    pooledOpnbAdpcmBRevisions[corePoolIndex(activeMode)] = revision;
     core->setExternalAdpcmBData(std::move(selectedBytes));
 }
 
@@ -3276,10 +3293,13 @@ juce::AudioProcessorEditor* ChipperAudioProcessor::createEditor()
 
 std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
 {
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     const auto state = apvts.copyState();
     auto xml = state.createXml();
     if (xml == nullptr)
         return {};
+
+    xml->setAttribute(chipper::state::schemaVersionAttribute, chipper::state::currentSchemaVersion);
 
     while (auto* existingCoreState = xml->getChildByName(coreStateTag))
         xml->removeChildElement(existingCoreState, true);
@@ -3429,8 +3449,10 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
 juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sourceXml, const juce::File& presetDirectory)
 {
     auto xml = std::make_unique<juce::XmlElement>(sourceXml);
-    if (xml == nullptr || ! xml->hasTagName(apvts.state.getType()))
+    if (xml == nullptr)
         return juce::Result::fail("This file does not contain Chipper plugin state.");
+    if (const auto validation = chipper::state::validateAndMigrate(*xml, apvts.state.getType()); validation.failed())
+        return validation;
 
     pendingRegisterState.clear();
     std::vector<DmcSampleSlot> restoredDmcBank;
@@ -3451,6 +3473,16 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     juce::StringArray opnbAdpcmBSampleRestoreIssues;
     if (auto* coreState = xml->getChildByName(coreStateTag))
     {
+        size_t registerWriteCount = 0u;
+        for (const auto* child : coreState->getChildIterator())
+        {
+            if (child != nullptr && child->hasTagName(registerTag))
+                ++registerWriteCount;
+        }
+        if (registerWriteCount > chipper::state::maxRestoredRegisterWrites)
+            return juce::Result::fail("This Chipper state contains too many register writes.");
+
+        pendingRegisterState.reserve(registerWriteCount);
         for (const auto* child : coreState->getChildIterator())
         {
             if (child != nullptr && child->hasTagName(registerTag))
@@ -3467,9 +3499,12 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
 
     if (auto* dmcBankState = xml->getChildByName(dmcBankStateTag))
     {
-        restoredDmcBank.reserve(static_cast<size_t>(std::max(0, dmcBankState->getIntAttribute("count"))));
+        restoredDmcBank.reserve(std::min(maxRestoredSampleReferences,
+                                        static_cast<size_t>(std::max(0, dmcBankState->getIntAttribute("count")))));
         for (const auto* child : dmcBankState->getChildIterator())
         {
+            if (restoredDmcBank.size() >= maxRestoredSampleReferences)
+                break;
             if (child == nullptr || ! child->hasTagName(dmcSampleStateTag))
                 continue;
 
@@ -3489,9 +3524,12 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
 
     if (auto* spcBrrBankState = xml->getChildByName(spc700BrrBankStateTag))
     {
-        restoredSpcBrrBank.reserve(static_cast<size_t>(std::max(0, spcBrrBankState->getIntAttribute("count"))));
+        restoredSpcBrrBank.reserve(std::min(maxRestoredSampleReferences,
+                                           static_cast<size_t>(std::max(0, spcBrrBankState->getIntAttribute("count")))));
         for (const auto* child : spcBrrBankState->getChildIterator())
         {
+            if (restoredSpcBrrBank.size() >= maxRestoredSampleReferences)
+                break;
             if (child == nullptr || ! child->hasTagName(spc700BrrSampleStateTag))
                 continue;
 
@@ -3529,9 +3567,12 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
 
     if (auto* paulaBankState = xml->getChildByName(paulaSampleBankStateTag))
     {
-        restoredPaulaBank.reserve(static_cast<size_t>(std::max(0, paulaBankState->getIntAttribute("count"))));
+        restoredPaulaBank.reserve(std::min(maxRestoredSampleReferences,
+                                          static_cast<size_t>(std::max(0, paulaBankState->getIntAttribute("count")))));
         for (const auto* child : paulaBankState->getChildIterator())
         {
+            if (restoredPaulaBank.size() >= maxRestoredSampleReferences)
+                break;
             if (child == nullptr || ! child->hasTagName(paulaSampleStateTag))
                 continue;
 
@@ -3556,6 +3597,8 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
                 {
                     for (auto& slot : slots)
                     {
+                        if (restoredPaulaBank.size() >= maxRestoredSampleReferences)
+                            break;
                         slot.included = included;
                         restoredPaulaBank.push_back(std::move(slot));
                     }
@@ -3596,6 +3639,7 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
         xml->removeChildElement(opnbAdpcmBState, true);
     }
 
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     apvts.replaceState(juce::ValueTree::fromXml(*xml));
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
@@ -3643,6 +3687,7 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     }
     activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
     activeDmcSampleSlot = -1;
+    lastRequestedDmcSampleSlot = std::numeric_limits<int>::min();
     activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
     activeSpc700BrrSampleSlot = -1;
     activeSpc700BrrManualSlot = -1;
@@ -3653,8 +3698,10 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     activeOpnaAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
     activeOpnbAdpcmASampleRevision = std::numeric_limits<uint64_t>::max();
     activeOpnbAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
-    core.reset();
+    publishedCoreReady.store(false, std::memory_order_release);
+    initializeCorePool();
     hasObservedMacroSnapshot = false;
+    ensureCore();
 
     return juce::Result::ok();
 }
@@ -3674,23 +3721,22 @@ void ChipperAudioProcessor::setStateInformation(const void* data, int sizeInByte
 
 std::string ChipperAudioProcessor::currentCoreStatus() const
 {
-    if (core == nullptr)
+    if (! publishedCoreReady.load(std::memory_order_acquire))
         return "No core loaded";
 
-    const auto& descriptor = chipper::descriptorFor(activeMode);
+    const auto& descriptor = chipper::descriptorFor(publishedActiveMode.load(std::memory_order_acquire));
     return descriptor.displayName + " - " + descriptor.verification.badge + " - active";
 }
 
 std::string ChipperAudioProcessor::currentCoreStatusDetail() const
 {
-    if (core == nullptr)
+    if (! publishedCoreReady.load(std::memory_order_acquire))
         return "No core loaded";
 
-    const auto& descriptor = chipper::descriptorFor(activeMode);
+    const auto& descriptor = chipper::descriptorFor(publishedActiveMode.load(std::memory_order_acquire));
     auto detail = descriptor.displayName + ": " + descriptor.verification.badge + ". "
         + descriptor.verification.summary + " "
-        + descriptor.summary + " "
-        + core->limitations()
+        + descriptor.summary
         + "\nEvidence: " + descriptor.verification.evidence;
 
     if (! descriptor.verification.verifiedBehaviors.empty())
@@ -3713,12 +3759,14 @@ std::string ChipperAudioProcessor::currentCoreStatusDetail() const
     detail += descriptor.verification.hardwareValidated
         ? "\nHardware validation: complete for the documented scope."
         : "\nHardware validation: not complete.";
+    detail += "\nStrictness profiles: reserved; the current engine behavior is identical for all stored choices.";
 
     return detail;
 }
 
 std::string ChipperAudioProcessor::currentCoreDebugStateJson() const
 {
+    const juce::ScopedLock callbackGuard(getCallbackLock());
     if (core == nullptr)
         return "{}";
 
@@ -3778,7 +3826,8 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
             return snapshot;
         }
 
-        const auto resolvedSlot = playbackMode != 0 && activeDmcSampleSlot >= 0 ? activeDmcSampleSlot : selectedSlot;
+        const auto publishedActiveSlot = activeDmcSampleSlot.load(std::memory_order_acquire);
+        const auto resolvedSlot = playbackMode != 0 && publishedActiveSlot >= 0 ? publishedActiveSlot : selectedSlot;
         const auto safeSlot = static_cast<size_t>(std::clamp(resolvedSlot, 0, static_cast<int>(activeSlots.size() - 1u)));
         const auto& slot = *activeSlots[safeSlot];
         decoded = decodeDmcPreview(slot.bytes);
@@ -3820,15 +3869,11 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
 
             if (! activeSlots.empty() && (playbackMode == 0 || activeSpc700BrrSampleSlot >= 0))
             {
-                auto resolvedSlot = playbackMode != 0 && activeSpc700BrrSampleSlot >= 0 ? activeSpc700BrrSampleSlot : selectedSlot;
-                for (int i = 0; i < static_cast<int>(activeSlots.size()); ++i)
-                {
-                    if (activeSlots[static_cast<size_t>(i)]->path == spc700BrrSample.path)
-                    {
-                        resolvedSlot = i;
-                        break;
-                    }
-                }
+                const auto publishedActiveSlot = activeSpc700BrrSampleSlot.load(std::memory_order_acquire);
+                const auto publishedManualSlot = activeSpc700BrrManualSlot.load(std::memory_order_acquire);
+                auto resolvedSlot = playbackMode != 0 && publishedActiveSlot >= 0
+                    ? publishedActiveSlot
+                    : (publishedManualSlot >= 0 ? publishedManualSlot : selectedSlot);
                 const auto safeSlot = static_cast<size_t>(std::clamp(resolvedSlot, 0, static_cast<int>(activeSlots.size() - 1u)));
                 const auto& slot = *activeSlots[safeSlot];
                 if (slot.encoding == chipper::ExternalSampleEncoding::spc700Brr)
@@ -3890,16 +3935,11 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
 
             if (! activeSlots.empty() && (playbackMode == 0 || activePaulaSampleSlot >= 0))
             {
-                auto resolvedSlot = playbackMode != 0 && activePaulaSampleSlot >= 0 ? activePaulaSampleSlot : selectedSlot;
-                for (int i = 0; i < static_cast<int>(activeSlots.size()); ++i)
-                {
-                    if (activeSlots[static_cast<size_t>(i)]->path == paulaSample.path
-                        && activeSlots[static_cast<size_t>(i)]->sourceSampleIndex == paulaSample.sourceSampleIndex)
-                    {
-                        resolvedSlot = i;
-                        break;
-                    }
-                }
+                const auto publishedActiveSlot = activePaulaSampleSlot.load(std::memory_order_acquire);
+                const auto publishedManualSlot = activePaulaManualSlot.load(std::memory_order_acquire);
+                auto resolvedSlot = playbackMode != 0 && publishedActiveSlot >= 0
+                    ? publishedActiveSlot
+                    : (publishedManualSlot >= 0 ? publishedManualSlot : selectedSlot);
                 const auto safeSlot = static_cast<size_t>(std::clamp(resolvedSlot, 0, static_cast<int>(activeSlots.size() - 1u)));
                 const auto& slot = *activeSlots[safeSlot];
                 decoded = decodePcm8Preview(slot.bytes);

@@ -53,6 +53,7 @@ typedef struct __SCC {
 
 SCC *SCC_new(uint32_t c, uint32_t r) ;
 void SCC_reset(SCC *scc) ;
+void SCC_set_clock(SCC *scc, uint32_t c);
 void SCC_set_rate(SCC *scc, uint32_t r);
 void SCC_set_quality(SCC *scc, uint32_t q) ;
 void SCC_set_type(SCC *scc, uint32_t type) ;

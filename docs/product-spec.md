@@ -26,16 +26,16 @@ The plugin must not use generic retro oscillators with famous chip labels. Each 
 
 Behavior strictness levels exposed in the instrument:
 
-- **Inspired:** musical approximation with smoothed edges.
-- **Hybrid:** default chip flavor with modern playability.
-- **Authentic:** register/channel/timing behavior closely follows the original chip where implemented.
+- **Inspired (reserved):** retained for state and automation compatibility; not a distinct engine path yet.
+- **Hybrid (current):** the current single chip-model behavior.
+- **Authentic (reserved):** retained for compatibility; not a distinct engine path yet.
 
-Verification labels are separate from that control. The footer, renderer debug JSON, and accuracy docs describe what is actually proven: planned, partial, verified partial, or eventually cycle-accurate when accepted test suites or real hardware captures justify it. A chip can run in Authentic strictness and still truthfully report **Verified partial** until the implementation, tests, emulator comparisons, and/or hardware captures justify a stronger claim.
+Verification labels are separate from that compatibility field. The footer, renderer debug JSON, and accuracy docs describe what is actually proven: planned, partial, verified partial, or eventually cycle-accurate when accepted test suites or real hardware captures justify it. Renderer metadata must keep reporting that the stored request is unapplied until distinct profiles exist.
 
 ## Parameter List
 
 - Chip Mode: NES/RP2A03, Game Boy/DMG, SID/C64, YM2149/AY, SN76489, YM2612, OPL2/OPL3, SPC700, POKEY, Paula, HuC6280, Namco WSG, YM2151, YM2413/OPLL, SCC, YM2203/OPN, NES + VRC6, YM2608/OPNA, YM2610/OPNB, NES + FDS, NES + Sunsoft 5B, NES + MMC5, NES + VRC7, Philips SAA1099, PC Speaker, ZX Spectrum Beeper
-- Strictness: Inspired, Hybrid, Authentic. This is a requested behavior mode, not the verification claim; footer badges and renderer debug JSON report what is actually proven. The stable host/MIDI parameter remains named `Behavior Strictness`.
+- Strictness compatibility field: Inspired (reserved), Hybrid (current), Authentic (reserved). The stable ID remains `accuracy`; the host/MIDI display name is `Behavior Strictness (Reserved)` and renderer metadata reports `requestedAccuracyApplied: false`.
 - Play Mode: Big Mono, Chip Poly where the selected chip has tested finite-channel allocation; Manual and Clone are reserved until tracker routing and hybrid engine cloning are implemented.
 - Output Level
 - Preset Recipe: internal chip-native defaults used by factory/user presets for Coin, Bass, Lead, Arp, Drum, Hit, Laser, Jump, and Power-Up style sounds. The user-facing workflow should still say **Preset**; "recipe" is internal compatibility wording for the stable APVTS/CC parameter.
@@ -321,6 +321,6 @@ Current single-screen shell:
 
 Controls use plain names and tooltips. Mode-specific controls remain musically labeled and avoid register names, hex values, and chip-documentation jargon in the main workflow.
 
-Mode-specific layouts should adapt structurally, not just change labels. Section headers stay unnumbered, and each chip may use a fixed or aspect-aware layout when that better serves readability. The current default editor contract is 1240 x 820 for most chips, with documented fixed-height exceptions such as SID at 1240 x 880 when a native control surface needs the room. The goal is enough room for standard controls and waveform previews without opening off-screen in typical DAW windows. NES and SN76489 can stay generator/register-strip oriented; SID should use three deep voice panels plus a global filter; SNES should become an eight-voice sample-bank workstation with BRR/sample selection, ADSR/GAIN, memory budget, and echo/FIR controls; FM chips should use operator and algorithm views. Reuse Chipper components where possible, but let each chip's native instrument shape determine the layout.
+Mode-specific layouts should adapt structurally, not just change labels. Section headers stay unnumbered, and each chip may use a fixed or aspect-aware layout when that better serves readability. The current shared editor contract is 1240 x 860 for most chips, with tested chip-specific fixed heights from 720 to 900: SID uses 880 for per-voice ADSR, and SPC700-style plus Paula use 900 for sample-bank completeness. The goal is enough room for standard controls and waveform previews without opening off-screen in typical DAW windows. NES and SN76489 can stay generator/register-strip oriented; SID should use three deep voice panels plus a global filter; SNES should become an eight-voice sample-bank workstation with BRR/sample selection, ADSR/GAIN, memory budget, and echo/FIR controls; FM chips should use operator and algorithm views. Reuse Chipper components where possible, but let each chip's native instrument shape determine the layout.
 
 Fixed regressions remain part of the release gate rather than active feature planning. Current smoke gates include FM held-note tail checks for the ymfm/emu2413-backed chips and NES DMC one-shot loop-off behavior. If either issue returns in a current build, treat it as a P0 regression; otherwise prioritize deeper operator, sample, wave, preset, and verification work. Documentation-only planning updates should use `git diff --check`; rebuild, install, and DAW footer verification are required for code, DSP, parameter, UI, preset, or installer changes. When a doc says a chip or preset is "current," prefer renderer-exported metadata over hand-maintained prose.

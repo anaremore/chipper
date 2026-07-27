@@ -49,6 +49,11 @@ def main() -> int:
 
     failures: list[str] = []
 
+    if data.get("requestedAccuracyApplied") is not False:
+        failures.append(
+            "requestedAccuracyApplied must be false until distinct Strictness engine profiles are implemented"
+        )
+
     if args.implemented_contains and args.implemented_contains not in data.get("implementedAccuracy", ""):
         failures.append(f"implementedAccuracy does not contain {args.implemented_contains!r}: {data.get('implementedAccuracy')!r}")
 

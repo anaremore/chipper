@@ -24,6 +24,10 @@ on:
 permissions:
   contents: write
 
+env:
+  PLUGINVAL_VERSION: '1.0.4'
+  PLUGINVAL_WINDOWS_SHA256: 'c08e61ce3b96db41636f8ec7e76f4c7e2c13ebdac7fa1b5a1f52b4f32ec715ab'
+
 jobs:
   validate-release-inputs:
     name: Validate release inputs
@@ -45,6 +49,7 @@ jobs:
     name: ${{ matrix.label }} VST3
     needs: validate-release-inputs
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -92,7 +97,8 @@ jobs:
             libxkbcommon-x11-dev \
             libxrandr-dev \
             libxrender-dev \
-            mesa-common-dev
+            mesa-common-dev \
+            xvfb
 
       - name: Configure
         run: cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
@@ -101,11 +107,47 @@ jobs:
         run: cmake --build build-release --config Release --parallel ${{ matrix.build_parallel }}
 
       - name: Test
+        if: runner.os != 'Linux'
         run: ctest --test-dir build-release -C Release --output-on-failure
+
+      - name: Test under virtual display
+        if: runner.os == 'Linux'
+        run: xvfb-run -a ctest --test-dir build-release -C Release --output-on-failure
 
       - name: Preset QA
         shell: pwsh
         run: ./scripts/verify-presets.ps1 -BuildRoot build-release -Python ${{ matrix.python }}
+
+      - name: Validate Windows VST3 with pluginval
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'pluginval_Windows.zip'
+          $install = Join-Path $env:RUNNER_TEMP 'pluginval'
+          $url = "https://github.com/Tracktion/pluginval/releases/download/v$env:PLUGINVAL_VERSION/pluginval_Windows.zip"
+          Invoke-WebRequest $url -OutFile $archive
+          $actualHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualHash -ne $env:PLUGINVAL_WINDOWS_SHA256) {
+            throw "pluginval archive checksum mismatch: expected $env:PLUGINVAL_WINDOWS_SHA256, got $actualHash"
+          }
+          Expand-Archive -LiteralPath $archive -DestinationPath $install -Force
+          $validator = Get-ChildItem -LiteralPath $install -Recurse -Filter pluginval.exe | Select-Object -ExpandProperty FullName -First 1
+          $plugin = Get-ChildItem -LiteralPath (Join-Path (Get-Location) 'build-release') -Recurse -Filter Chipper.vst3 |
+            Where-Object { $_.PSIsContainer } | Select-Object -ExpandProperty FullName -First 1
+          if ([string]::IsNullOrWhiteSpace($validator) -or [string]::IsNullOrWhiteSpace($plugin)) {
+            throw 'pluginval or the Chipper VST3 bundle was not found'
+          }
+          $logDirectory = Join-Path $env:RUNNER_TEMP 'pluginval-logs'
+          New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
+          $stdoutPath = Join-Path $logDirectory 'stdout.txt'
+          $stderrPath = Join-Path $logDirectory 'stderr.txt'
+          $pluginvalArguments = @('--validate', $plugin, '--strictness-level', '5', '--skip-gui-tests', '--timeout-ms', '60000', '--output-dir', $logDirectory, '--verbose')
+          $validation = Start-Process -FilePath $validator -ArgumentList $pluginvalArguments -Wait -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+          Get-Content -LiteralPath $stdoutPath
+          Get-Content -LiteralPath $stderrPath
+          if ($validation.ExitCode -ne 0) {
+            throw "pluginval failed with exit code $($validation.ExitCode)"
+          }
 
       - name: Package VST3
         id: package

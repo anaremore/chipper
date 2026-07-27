@@ -342,6 +342,7 @@ public:
 
     ChipMode mode() const override { return selected; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return toString(selected); }
     std::string implementedAccuracy() const override { return "not implemented"; }
     std::string limitations() const override
@@ -624,6 +625,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::dmg; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "Game Boy / DMG APU"; }
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
@@ -1546,6 +1548,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::sid; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "SID / C64"; }
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
@@ -2140,11 +2143,6 @@ public:
     {
         sampleRate = outputSampleRate;
         clock = chipClockHz > 0.0 ? chipClockHz : 1789773.0;
-        if (vrc7Opll != nullptr)
-        {
-            OPLL_delete(vrc7Opll);
-            vrc7Opll = nullptr;
-        }
         regs.fill(0);
         phase.fill(0.0);
         timer.fill(0);
@@ -2216,7 +2214,12 @@ public:
         vrc7KeyOnMask = 0;
         if (hasVrc7())
         {
-            vrc7Opll = OPLL_new(static_cast<uint32_t>(std::round(vrc7ClockHz())), static_cast<uint32_t>(std::round(sampleRate)));
+            const auto vrc7Clock = static_cast<uint32_t>(std::round(vrc7ClockHz()));
+            const auto outputRate = static_cast<uint32_t>(std::round(sampleRate));
+            if (vrc7Opll == nullptr)
+                vrc7Opll = OPLL_new(vrc7Clock, outputRate);
+            else
+                OPLL_setClockRate(vrc7Opll, vrc7Clock, outputRate);
             OPLL_reset(vrc7Opll);
             OPLL_setChipType(vrc7Opll, 1);
             OPLL_resetPatch(vrc7Opll, OPLL_VRC7_TONE);
@@ -2261,7 +2264,24 @@ public:
 
     void setExternalSampleData(std::vector<uint8_t> data) override
     {
-        dmcSample = std::move(data);
+        std::vector<std::vector<uint8_t>> bank;
+        if (! data.empty())
+            bank.push_back(std::move(data));
+        const auto selectedSlot = bank.empty() ? -1 : 0;
+        setExternalSampleBank(std::move(bank), selectedSlot);
+    }
+
+    void setExternalSampleBank(std::vector<std::vector<uint8_t>> bank, int selectedSlot) override
+    {
+        dmcSampleBank = std::move(bank);
+        setExternalSampleSlot(selectedSlot);
+    }
+
+    void setExternalSampleSlot(int selectedSlot) override
+    {
+        dmcSampleSlot = dmcSampleBank.empty()
+            ? -1
+            : std::clamp(selectedSlot, -1, static_cast<int>(dmcSampleBank.size() - 1u));
         dmcActive = false;
         dmcSampleCompleted = false;
         dmcByteIndex = 0;
@@ -2404,7 +2424,7 @@ public:
         }
         else if (patch.nesDmcOnly)
         {
-            enable = dmcSample.empty() || ! sourceEnabled(patch, dmcSourceIndex()) ? 0u : 0x10u;
+            enable = activeDmcSample().empty() || ! sourceEnabled(patch, dmcSourceIndex()) ? 0u : 0x10u;
             noiseVol = 0u;
         }
         else
@@ -2417,7 +2437,7 @@ public:
                 p2Vol = ensureNesRegisterVolume(p2Vol, std::max(5u, p1Vol));
             if ((enable & 0x08u) != 0u)
                 noiseVol = ensureNesRegisterVolume(noiseVol, static_cast<unsigned>(std::max<int>(8, std::round(patch.control3 * 12.0f))));
-            if (! dmcSample.empty() && sourceEnabled(patch, dmcSourceIndex()))
+            if (! activeDmcSample().empty() && sourceEnabled(patch, dmcSourceIndex()))
                 enable |= 0x10u;
         }
 
@@ -2580,6 +2600,7 @@ public:
 
     ChipMode mode() const override { return selectedMode; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return hasVrc6() ? "NES + VRC6" : (hasFds() ? "NES + FDS" : (hasSunsoft5b() ? "NES + Sunsoft 5B" : (hasMmc5() ? "NES + MMC5" : (hasVrc7() ? "NES + VRC7" : "NES / RP2A03")))); }
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
@@ -2748,8 +2769,8 @@ public:
         json
              << "\"dmcDirectControl\":" << patch.nesDmcDirectLevel << ","
              << "\"nesDmcOnly\":" << (patch.nesDmcOnly ? 1 : 0) << ","
-             << "\"dmcSampleLoaded\":" << (dmcSample.empty() ? 0 : 1) << ","
-             << "\"dmcSampleBytes\":" << dmcSample.size() << ","
+             << "\"dmcSampleLoaded\":" << (activeDmcSample().empty() ? 0 : 1) << ","
+             << "\"dmcSampleBytes\":" << activeDmcSample().size() << ","
              << "\"dmcSampleActive\":" << (dmcActive ? 1 : 0) << ","
              << "\"dmcSampleCompleted\":" << (dmcSampleCompleted ? 1 : 0) << ","
              << "\"dmcSampleByteIndex\":" << dmcByteIndex << ","
@@ -2804,7 +2825,24 @@ public:
         return json.str();
     }
 
+    RuntimeTelemetry runtimeTelemetry() const noexcept override
+    {
+        return {
+            dmcActive,
+            dmcSampleCompleted,
+            static_cast<int>(std::min<uint64_t>(dmcBitsPlayed, static_cast<uint64_t>(std::numeric_limits<int>::max())))
+        };
+    }
+
 private:
+    const std::vector<uint8_t>& activeDmcSample() const noexcept
+    {
+        static const std::vector<uint8_t> emptySample;
+        return dmcSampleSlot >= 0 && dmcSampleSlot < static_cast<int>(dmcSampleBank.size())
+            ? dmcSampleBank[static_cast<size_t>(dmcSampleSlot)]
+            : emptySample;
+    }
+
     size_t dmcSourceIndex() const noexcept
     {
         // The base RP2A03 surface has a dedicated fifth DMC lane. Expansion
@@ -2905,7 +2943,7 @@ private:
 
     void startDmcSample()
     {
-        if (dmcSample.empty() || dmcActive)
+        if (activeDmcSample().empty() || dmcActive)
             return;
 
         dmcActive = true;
@@ -2919,7 +2957,7 @@ private:
 
     void tickDmcSample()
     {
-        if (! dmcActive || dmcSample.empty() || sampleRate <= 0.0)
+        if (! dmcActive || activeDmcSample().empty() || sampleRate <= 0.0)
             return;
 
         dmcPhase += clock / (static_cast<double>(dmcRatePeriodCycles()) * sampleRate);
@@ -2932,7 +2970,8 @@ private:
 
     void stepDmcBit()
     {
-        if (dmcByteIndex >= dmcSample.size())
+        const auto& sample = activeDmcSample();
+        if (dmcByteIndex >= sample.size())
         {
             if (dmcLoopEnabled())
             {
@@ -2946,7 +2985,7 @@ private:
             }
         }
 
-        const auto byte = dmcSample[dmcByteIndex];
+        const auto byte = sample[dmcByteIndex];
         const auto bit = (byte >> dmcBitIndex) & 0x01u;
         auto level = dmcOutputLevel();
         if (bit != 0)
@@ -2966,7 +3005,7 @@ private:
         {
             dmcBitIndex = 0;
             ++dmcByteIndex;
-            if (dmcByteIndex >= dmcSample.size())
+            if (dmcByteIndex >= sample.size())
             {
                 if (dmcLoopEnabled())
                 {
@@ -4241,7 +4280,7 @@ private:
             enable = static_cast<uint8_t>(enable | 0x04u);
         if (! hasVrc7() && sourceEnabled(patch, 3))
             enable = static_cast<uint8_t>(enable | 0x08u);
-        if (! hasVrc7() && ! dmcSample.empty() && sourceEnabled(patch, dmcSourceIndex()))
+        if (! hasVrc7() && ! activeDmcSample().empty() && sourceEnabled(patch, dmcSourceIndex()))
             enable = static_cast<uint8_t>(enable | 0x10u);
         regs[0x10] = static_cast<uint8_t>((regs[0x10] & 0xf0u) | static_cast<uint8_t>(patch.nesDmcRateIndex & 0x0f));
         writeStatusRegister(enable, ! suppressDmcRestartOnNoteOn);
@@ -4681,7 +4720,8 @@ private:
     std::array<uint8_t, 6> vrc7CurrentBlock {};
     uint8_t vrc7KeyOnMask = 0;
     uint64_t noteStamp = 0;
-    std::vector<uint8_t> dmcSample;
+    std::vector<std::vector<uint8_t>> dmcSampleBank;
+    int dmcSampleSlot = -1;
     bool dmcActive = false;
     bool dmcSampleCompleted = false;
     bool suppressDmcRestartOnNoteOn = false;
@@ -4881,6 +4921,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::ym2149; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "YM2149 / AY-3-8910"; }
     std::string implementedAccuracy() const override { return "partial emu2149-backed register-level"; }
     std::string limitations() const override
@@ -5037,11 +5078,15 @@ private:
 
     void resetEmu()
     {
-        if (emu != nullptr)
-            PSG_delete(emu);
-
-        emu = PSG_new(static_cast<uint32_t>(std::max(1.0, std::round(clock))),
-                      static_cast<uint32_t>(std::max(1.0, std::round(sampleRate))));
+        const auto emuClock = static_cast<uint32_t>(std::max(1.0, std::round(clock)));
+        const auto outputRate = static_cast<uint32_t>(std::max(1.0, std::round(sampleRate)));
+        if (emu == nullptr)
+            emu = PSG_new(emuClock, outputRate);
+        else
+        {
+            PSG_setClock(emu, emuClock);
+            PSG_setRate(emu, outputRate);
+        }
         if (emu != nullptr)
         {
             PSG_reset(emu);
@@ -5461,6 +5506,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::pokey; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "Atari POKEY"; }
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
@@ -6006,6 +6052,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::sn76489; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "SN76489 / Sega PSG"; }
     std::string implementedAccuracy() const override { return "partial emu76489-backed register-level"; }
     std::string limitations() const override
@@ -6081,11 +6128,15 @@ private:
 
     void resetEmu()
     {
-        if (emu != nullptr)
-            SNG_delete(emu);
-
-        emu = SNG_new(static_cast<uint32_t>(std::max(1.0, std::round(clock))),
-                      static_cast<uint32_t>(std::max(1.0, std::round(sampleRate))));
+        const auto emuClock = static_cast<uint32_t>(std::max(1.0, std::round(clock)));
+        const auto outputRate = static_cast<uint32_t>(std::max(1.0, std::round(sampleRate)));
+        if (emu == nullptr)
+            emu = SNG_new(emuClock, outputRate);
+        else
+        {
+            SNG_set_clock(emu, emuClock);
+            SNG_set_rate(emu, outputRate);
+        }
         if (emu != nullptr)
         {
             SNG_reset(emu);
@@ -6436,6 +6487,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::saa1099; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "Philips SAA1099"; }
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
@@ -7042,6 +7094,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::pcSpeaker; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "PC Speaker"; }
     std::string implementedAccuracy() const override { return "partial clean-room PIT beeper"; }
     std::string limitations() const override
@@ -7357,6 +7410,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::zxSpectrumBeeper; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "ZX Spectrum Beeper"; }
     std::string implementedAccuracy() const override { return "partial clean-room ULA port FE beeper"; }
     std::string limitations() const override
@@ -7742,6 +7796,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::huc6280; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "PC Engine HuC6280"; }
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
@@ -8284,6 +8339,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::scc; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "Konami SCC"; }
     std::string implementedAccuracy() const override { return "partial emu2212-backed register-level"; }
     std::string limitations() const override
@@ -8414,11 +8470,15 @@ private:
 
     void recreateEmu()
     {
-        if (emu != nullptr)
-            SCC_delete(emu);
-
-        emu = SCC_new(static_cast<uint32_t>(std::max(1.0, std::round(clock))),
-                      static_cast<uint32_t>(std::max(1.0, std::round(sampleRate))));
+        const auto emuClock = static_cast<uint32_t>(std::max(1.0, std::round(clock)));
+        const auto outputRate = static_cast<uint32_t>(std::max(1.0, std::round(sampleRate)));
+        if (emu == nullptr)
+            emu = SCC_new(emuClock, outputRate);
+        else
+        {
+            SCC_set_clock(emu, emuClock);
+            SCC_set_rate(emu, outputRate);
+        }
         if (emu == nullptr)
             return;
 
@@ -8762,6 +8822,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::namcoWsg; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "Namco arcade WSG"; }
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
@@ -9018,21 +9079,28 @@ public:
         noteVelocity = 0.0f;
         sampleTemplate = 0;
         playbackMode = 1;
-        externalBrrSampleLoaded = false;
-        externalPcmSampleLoaded = false;
-        externalBrrBank.clear();
-        externalBrrLoopStarts.clear();
-        selectedExternalBrrSlot = -1;
-        brrBlockCount = 0;
-        brrEndFlagSeen = false;
-        brrLoopFlagSeen = false;
-        lastDecodedBrrLoopStart = 0;
+        const auto hasExternalBank = ! externalBrrBank.empty();
+        if (! hasExternalBank)
+        {
+            externalBrrSampleLoaded = false;
+            externalPcmSampleLoaded = false;
+            selectedExternalBrrSlot = -1;
+            brrBlockCount = 0;
+            brrEndFlagSeen = false;
+            brrLoopFlagSeen = false;
+            lastDecodedBrrLoopStart = 0;
+        }
         sampleLoopStarts.fill(0);
         echoMemoryLeft.fill(0.0);
         echoMemoryRight.fill(0.0);
         echoIndex = 0;
         for (size_t voice = 0; voice < sampleRam.size(); ++voice)
-            seedSample(voice);
+        {
+            if (hasExternalBank)
+                applyCurrentSampleToVoice(voice);
+            else
+                seedSample(voice);
+        }
     }
 
     void setPatch(const PatchConfig& nextPatch) override
@@ -9350,6 +9418,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::spc700; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "SNES SPC700-style"; }
     std::string implementedAccuracy() const override { return "partial clean-room sample-voice model"; }
     std::string limitations() const override
@@ -9534,7 +9603,8 @@ private:
 
     void seedSample(size_t voice)
     {
-        auto data = std::vector<double>(64, 0.0);
+        auto& data = sampleRam[voice];
+        data.assign(64u, 0.0);
         const auto choice = sampleTemplate == 0 ? resolvedSampleTemplate() : sampleTemplate;
         for (size_t i = 0; i < data.size(); ++i)
         {
@@ -9556,7 +9626,6 @@ private:
             }
             data[i] = std::clamp(std::round(sample * 127.0) / 127.0, -1.0, 1.0);
         }
-        sampleRam[voice] = std::move(data);
         sampleLoopStarts[voice] = 0;
     }
 
@@ -10376,10 +10445,12 @@ public:
         sampleRate = outputSampleRate > 0.0 ? outputSampleRate : 48000.0;
         clock = chipClockHz > 0.0 ? chipClockHz : 3579545.0;
 
-        if (opll != nullptr)
-            OPLL_delete(opll);
-
-        opll = OPLL_new(static_cast<uint32_t>(std::round(clock)), static_cast<uint32_t>(std::round(sampleRate)));
+        const auto opllClock = static_cast<uint32_t>(std::round(clock));
+        const auto outputRate = static_cast<uint32_t>(std::round(sampleRate));
+        if (opll == nullptr)
+            opll = OPLL_new(opllClock, outputRate);
+        else
+            OPLL_setClockRate(opll, opllClock, outputRate);
         OPLL_reset(opll);
         OPLL_setChipType(opll, 0);
         OPLL_resetPatch(opll, OPLL_2413_TONE);
@@ -10502,6 +10573,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::ym2413; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "YM2413 / OPLL"; }
     std::string implementedAccuracy() const override { return "verified partial emu2413 register-level"; }
     std::string limitations() const override
@@ -10884,7 +10956,8 @@ public:
     {
         sampleRate = outputSampleRate > 0.0 ? outputSampleRate : 48000.0;
         clock = chipClockHz > 0.0 ? chipClockHz : 3993600.0;
-        chip = std::make_unique<ymfm::ym2203>(host);
+        if (chip == nullptr)
+            chip = std::make_unique<ymfm::ym2203>(host);
         chip->set_fidelity(ymfm::OPN_FIDELITY_MED);
         chip->reset();
         chipSampleRate = static_cast<double>(chip->sample_rate(static_cast<uint32_t>(std::round(clock))));
@@ -11045,6 +11118,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::ym2203; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "YM2203 / OPN"; }
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPN FM register-level"; }
     std::string limitations() const override
@@ -11628,7 +11702,8 @@ public:
     {
         sampleRate = outputSampleRate > 0.0 ? outputSampleRate : 48000.0;
         clock = chipClockHz > 0.0 ? chipClockHz : 7987200.0;
-        chip = std::make_unique<ymfm::ym2608>(host);
+        if (chip == nullptr)
+            chip = std::make_unique<ymfm::ym2608>(host);
         chip->set_fidelity(ymfm::OPN_FIDELITY_MED);
         chip->reset();
         host.resetAdpcmCounters();
@@ -11831,6 +11906,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::ym2608; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "YM2608 / OPNA"; }
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPNA FM+SSG register-level"; }
     std::string limitations() const override
@@ -12741,7 +12817,8 @@ public:
     {
         sampleRate = outputSampleRate > 0.0 ? outputSampleRate : 48000.0;
         clock = chipClockHz > 0.0 ? chipClockHz : 8000000.0;
-        chip = std::make_unique<ymfm::ym2610>(host, opnb2 ? 0x3fu : 0x36u);
+        if (chip == nullptr)
+            chip = std::make_unique<ymfm::ym2610>(host, opnb2 ? 0x3fu : 0x36u);
         chip->set_fidelity(ymfm::OPN_FIDELITY_MED);
         chip->reset();
         host.resetAdpcmCounters();
@@ -12946,6 +13023,7 @@ public:
 
     ChipMode mode() const override { return opnb2 ? ChipMode::ym2610b : ChipMode::ym2610; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return opnb2 ? "YM2610B / OPNB2" : "YM2610 / OPNB"; }
     std::string implementedAccuracy() const override { return opnb2 ? "partial ymfm-backed OPNB2 FM+SSG register-level" : "partial ymfm-backed OPNB FM+SSG register-level"; }
     std::string limitations() const override
@@ -13816,7 +13894,8 @@ public:
     {
         sampleRate = outputSampleRate > 0.0 ? outputSampleRate : 48000.0;
         clock = chipClockHz > 0.0 ? chipClockHz : 7670454.0;
-        chip = std::make_unique<ymfm::ym2612>(host);
+        if (chip == nullptr)
+            chip = std::make_unique<ymfm::ym2612>(host);
         chip->reset();
         chipSampleRate = static_cast<double>(chip->sample_rate(static_cast<uint32_t>(std::round(clock))));
         sampleAccumulator = 0.0;
@@ -13985,6 +14064,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::ym2612; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "YM2612 / Genesis FM"; }
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPN2 register-level"; }
     std::string limitations() const override
@@ -14631,7 +14711,8 @@ public:
     {
         sampleRate = outputSampleRate > 0.0 ? outputSampleRate : 48000.0;
         clock = chipClockHz > 0.0 ? chipClockHz : ymf262NativeClockHz;
-        chip = std::make_unique<ymfm::ymf262>(host);
+        if (chip == nullptr)
+            chip = std::make_unique<ymfm::ymf262>(host);
         chip->reset();
         chipSampleRate = static_cast<double>(chip->sample_rate(static_cast<uint32_t>(std::round(clock))));
         sampleAccumulator = 0.0;
@@ -14789,6 +14870,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::opl3; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "OPL2/OPL3 / DOS FM"; }
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPL3/YMF262 register-level"; }
     std::string limitations() const override
@@ -15395,7 +15477,8 @@ public:
     {
         sampleRate = outputSampleRate > 0.0 ? outputSampleRate : 48000.0;
         clock = chipClockHz > 0.0 ? chipClockHz : 3579545.0;
-        chip = std::make_unique<ymfm::ym2151>(host);
+        if (chip == nullptr)
+            chip = std::make_unique<ymfm::ym2151>(host);
         chip->reset();
         chipSampleRate = static_cast<double>(chip->sample_rate(static_cast<uint32_t>(std::round(clock))));
         sampleAccumulator = 0.0;
@@ -15534,6 +15617,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::ym2151; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "YM2151 arcade/X68000 FM"; }
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPM register-level"; }
     std::string limitations() const override
@@ -16207,6 +16291,7 @@ public:
 
     ChipMode mode() const override { return ChipMode::paula; }
     AccuracyMode requestedAccuracy() const override { return accuracy; }
+    void setRequestedAccuracy(AccuracyMode requested) override { accuracy = requested; }
     std::string modeName() const override { return "Amiga Paula"; }
     std::string implementedAccuracy() const override { return "partial clean-room register-level"; }
     std::string limitations() const override
@@ -16339,7 +16424,8 @@ private:
             return;
         }
 
-        auto data = std::vector<double>(64, 0.0);
+        auto& data = sampleRam[channel];
+        data.assign(64u, 0.0);
         const auto choice = sampleTemplate[channel] == 0 ? resolvedSampleTemplate(channel) : sampleTemplate[channel];
         for (size_t i = 0; i < data.size(); ++i)
         {
@@ -16361,7 +16447,6 @@ private:
             }
             data[i] = std::clamp(std::round(sample * 127.0) / 127.0, -1.0, 1.0);
         }
-        sampleRam[channel] = std::move(data);
         sampleLoopStarts[channel] = 0u;
         sampleLoopEnds[channel] = sampleRam[channel].size();
     }

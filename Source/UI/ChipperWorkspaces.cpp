@@ -953,8 +953,8 @@ void ChipperPlayWorkspace::bindSelectedSource()
     {
         detailAssetLabel.setText("Wave RAM shape", juce::dontSendNotification);
         detailAssetBox.addItemList(waveChoicesFor(displayedMode), 1);
-        detailOpenEditButton.setButtonText("Open Wave Editor");
-        detailOpenEditButton.setTooltip("Open Edit at the per-lane Wave RAM and modulation controls.");
+        detailOpenEditButton.setButtonText("Open Wave Controls");
+        detailOpenEditButton.setTooltip("Open Edit at the available per-lane wave-shape and modulation controls. Direct Wave RAM drawing is not implemented yet.");
     }
     detailAssetBox.setName(sourceName + " asset assignment");
 

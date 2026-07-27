@@ -4038,6 +4038,7 @@ void writeDebugJson(const std::filesystem::path& path,
         << "  \"chip\": \"" << chipper::toString(options.chip) << "\",\n"
         << "  \"preset\": \"" << options.presetId << "\",\n"
         << "  \"requestedAccuracy\": \"" << chipper::toString(options.accuracy) << "\",\n"
+        << "  \"requestedAccuracyApplied\": false,\n"
         << "  \"macro\": \"" << chipper::toString(patch.macro) << "\",\n"
         << "  \"playMode\": \"" << chipper::toString(patch.playMode) << "\",\n"
         << "  \"requestedPlayMode\": \"" << chipper::toString(options.playMode) << "\",\n"

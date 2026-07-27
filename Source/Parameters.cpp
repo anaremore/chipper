@@ -38,7 +38,7 @@ juce::StringArray chipModeChoices()
 
 juce::StringArray accuracyChoices()
 {
-    return { "Inspired", "Hybrid", "Authentic" };
+    return { "Inspired (reserved)", "Hybrid (current)", "Authentic (reserved)" };
 }
 
 juce::StringArray macroChoices()
@@ -301,7 +301,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::accuracy, 1 },
-        "Behavior Strictness",
+        "Behavior Strictness (Reserved)",
         accuracyChoices(),
         1));
 

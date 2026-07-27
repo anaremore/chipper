@@ -60,11 +60,11 @@ Each interface screenshot includes a click-to-play MP3 example for GitHub users.
 Chipper is being developed as an accurate, truthful chip instrument rather than a decorative retro synth. The current product rules are:
 
 - Presets are the primary musical entry point. They should load audible chip-local sounds, update the visible controls, and remain editable/shareable as normal Chipper state.
-- The header's **Strictness** control requests Inspired, Hybrid, or Authentic behavior. It is not an accuracy certificate; the footer and docs carry the actual verification claim. Hosts and MIDI maps may show the same stable parameter as `Behavior Strictness`.
+- The header retains the version-1 **Strictness** compatibility field, but its three stored choices currently use identical engine behavior and are visibly marked reserved/current. The footer and docs carry the actual verification claim. Distinct profiles will not be advertised until engine differences and recall tests exist.
 - Chip-owned controls belong where the hardware owns them: duty under pulse channels, noise mode under noise channels, wave/sample choices and level under each wavetable or sampler lane, filters/echo/sample banks in shared modules.
 - Chips without native ADSR use clearly labeled Chipper amp/gate helpers instead of pretending the hardware has full ADSR.
 - Fixed regressions stay in tests and release gates. FM held-note fade-out and NES DMC loop-off behavior are currently treated as fixed; if they return, they are regressions, not open design questions.
-- UI readability wins over density, but the default editor must remain DAW-friendly. Most chip layouts stay inside the 1240 x 820 editor default; documented chip-specific exceptions may use a taller fixed height when that preserves standard-height controls, visible level lanes, and waveform previews without opening off-screen on typical DAW displays. SID currently uses 1240 x 880 for its per-voice ADSR surface.
+- UI readability wins over density, but the default editor must remain DAW-friendly. Most chip layouts use the shared 1240 x 860 canvas. Tested chip-specific heights range from 720 to 900: SID uses 880 for per-voice ADSR, SPC700-style and Paula use 900 for sample-bank completeness, and compact chip pages use 720 when their complete path fits without empty padding.
 
 ## Planning Map
 
@@ -76,6 +76,7 @@ The planning docs intentionally separate current execution from broader research
 - [docs/preset-sourcing.md](docs/preset-sourcing.md) is the factory preset provenance and quality checklist.
 - [docs/emulation-accuracy.md](docs/emulation-accuracy.md) is the truthful source/verification/license status for each chip.
 - [docs/release-builds.md](docs/release-builds.md) owns local install, GitHub release, and release-gate procedure.
+- [docs/compatibility-contract.md](docs/compatibility-contract.md) freezes host parameter IDs, state migrations, portable assets, and the current mono/stereo bus boundary.
 
 Fixed issues such as FM sustained-note fade-out and NES DMC one-shot looping should remain in regression tests and release gates, not in the active feature queue unless they reproduce in the current build. When a fixed issue is suspected, run the named gate first; if it passes, keep planning focused on new user value instead of adding another stale todo. As of the current planning cleanup, those gates are treated as green guardrails and the next work should favor chip-aware editors, preset quality, state recall, and verification evidence.
 
@@ -150,7 +151,7 @@ These cover high-risk playable-instrument paths such as NES DMC loop-off behavio
 
 ## GitHub Release Builds
 
-GitHub Actions are intentionally quiet on normal branch pushes. The release workflow only runs when you push a `v*` tag, publish a GitHub Release, or start it manually from the Actions tab.
+Pull requests and `main` are covered by the CI workflow. The release workflow remains deliberate and only runs when you push a `v*` tag, publish a GitHub Release, or start it manually from the Actions tab.
 
 - Push a tag such as `v0.2.0` when you want GitHub to build, test, package, create or update the GitHub Release, and attach Windows, macOS, and Linux VST3 zips.
 - Tag-created releases are draft/prerelease by default so the artifacts can be downloaded, checksum-verified, and smoke-tested before publishing.
@@ -261,7 +262,7 @@ The installer removes the previous `Chipper.vst3` bundle before copying the new 
 
 ## Command-Line Renderer
 
-`chipper_render` is the verification path for the engine. It accepts chip mode, behavior strictness, note/register events, render length, chip-specific parameters, and outputs WAV plus debug JSON. The command-line flag is still named `--accuracy` for compatibility with earlier tests and scripts, but it represents the same Inspired/Hybrid/Authentic strictness request shown in the plugin header:
+`chipper_render` is the verification path for the engine. It accepts chip mode, the legacy `--accuracy` compatibility value, note/register events, render length, chip-specific parameters, and outputs WAV plus debug JSON. The three accuracy values currently render identically; debug JSON reports `requestedAccuracyApplied: false` so automation and scripts cannot mistake the stored request for implemented behavior:
 
 ```powershell
 build\Release\chipper_render.exe --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 1 --note 69 --output-db -9 --out nes.wav --debug nes.json
@@ -314,7 +315,7 @@ Important shared assignments:
 | CC | Parameter |
 | --- | --- |
 | 70 | Chip Mode |
-| 71 | Behavior Strictness (header label: Strictness) |
+| 71 | Behavior Strictness (Reserved) (header label: Strictness) |
 | 73 | Output Level |
 | 74 | Preset recipe (internal compatibility parameter) |
 | 75 | Play Mode |
@@ -353,4 +354,4 @@ Do not import GPL/LGPL emulator code, preset banks, songs, samples, lookup table
 
 ## Strictness And Verification Rule
 
-Chipper should sound like an instrument, but it should not overclaim. The header's Strictness selector requests Inspired, Hybrid, or Authentic behavior; it does not prove that a chip mode is fully accurate. The host/MIDI parameter is named `Behavior Strictness` to make automation lanes self-explanatory. If a mode is not verified at register/timing level, label it as inspired, style, or partial. Cycle-accurate claims require accepted test suites, trusted emulator comparisons, or real hardware captures.
+Chipper should sound like an instrument, but it should not overclaim. Strictness is currently a reserved compatibility field: Inspired, Hybrid, and Authentic are recalled but do not alter synthesis. The host/MIDI parameter is therefore named `Behavior Strictness (Reserved)`, the choices say which profile is current/reserved, and renderer metadata explicitly reports that the request was not applied. If a mode is not verified at register/timing level, label it as inspired, style, or partial. Cycle-accurate claims require accepted test suites, trusted emulator comparisons, or real hardware captures.

@@ -300,6 +300,22 @@ void OPLL_RateConv_reset(OPLL_RateConv *conv) {
   }
 }
 
+static void OPLL_RateConv_setRate(OPLL_RateConv *conv, double f_inp, double f_out) {
+  int i;
+  const double next_ratio = f_inp / f_out;
+  if (fabs(conv->f_ratio - next_ratio) < 1.0e-12)
+    return;
+  conv->f_ratio = next_ratio;
+  for (i = 0; i < SINC_RESO * LW / 2; i++) {
+    const double x = (double)i / SINC_RESO;
+    if (f_out < f_inp) {
+      conv->sinc_table[i] = (int16_t)((1 << SINC_AMP_BITS) * windowed_sinc(x / conv->f_ratio) / conv->f_ratio);
+    } else {
+      conv->sinc_table[i] = (int16_t)((1 << SINC_AMP_BITS) * windowed_sinc(x));
+    }
+  }
+}
+
 /* put original data to this converter at f_inp. */
 void OPLL_RateConv_putData(OPLL_RateConv *conv, int ch, int16_t data) {
   int16_t *buf = conv->buf[ch];
@@ -1050,7 +1066,7 @@ INLINE static void mix_output(OPLL *opll) {
   for (i = 0; i < 14; i++) {
     out += opll->ch_out[i];
   }
-  if (opll->conv) {
+  if (opll->rate_conv_enabled && opll->conv) {
     OPLL_RateConv_putData(opll->conv, 0, out);
   } else {
     opll->mix_out[0] = out;
@@ -1067,7 +1083,7 @@ INLINE static void mix_output_stereo(OPLL *opll) {
     if (opll->pan[i] & 1)
       out[1] += (int16_t)(opll->ch_out[i] * opll->pan_fine[i][1]);
   }
-  if (opll->conv) {
+  if (opll->rate_conv_enabled && opll->conv) {
     OPLL_RateConv_putData(opll->conv, 0, out[0]);
     OPLL_RateConv_putData(opll->conv, 1, out[1]);
   }
@@ -1096,6 +1112,7 @@ OPLL *OPLL_new(uint32_t clk, uint32_t rate) {
 
   opll->clk = clk;
   opll->rate = rate;
+  opll->rate_conv_enabled = 0;
   opll->mask = 0;
   opll->conv = NULL;
   opll->mix_out[0] = 0;
@@ -1123,15 +1140,12 @@ static void reset_rate_conversion_params(OPLL *opll) {
   opll->out_step = f_inp;
   opll->inp_step = f_out;
 
-  if (opll->conv) {
-    OPLL_RateConv_delete(opll->conv);
-    opll->conv = NULL;
-  }
-
-  if (floor(f_inp) != f_out && floor(f_inp + 0.5) != f_out) {
+  if (!opll->conv) {
     opll->conv = OPLL_RateConv_new(f_inp, f_out, 2);
+  } else {
+    OPLL_RateConv_setRate(opll->conv, f_inp, f_out);
   }
-
+  opll->rate_conv_enabled = floor(f_inp) != f_out && floor(f_inp + 0.5) != f_out;
   if (opll->conv) {
     OPLL_RateConv_reset(opll->conv);
   }
@@ -1193,6 +1207,17 @@ void OPLL_forceRefresh(OPLL *opll) {
 }
 
 void OPLL_setRate(OPLL *opll, uint32_t rate) {
+  opll->rate = rate;
+  reset_rate_conversion_params(opll);
+}
+
+void OPLL_setClock(OPLL *opll, uint32_t clock) {
+  opll->clk = clock;
+  reset_rate_conversion_params(opll);
+}
+
+void OPLL_setClockRate(OPLL *opll, uint32_t clock, uint32_t rate) {
+  opll->clk = clock;
   opll->rate = rate;
   reset_rate_conversion_params(opll);
 }
@@ -1460,7 +1485,7 @@ int16_t OPLL_calc(OPLL *opll) {
     mix_output(opll);
   }
   opll->out_time -= opll->out_step;
-  if (opll->conv) {
+  if (opll->rate_conv_enabled && opll->conv) {
     opll->mix_out[0] = OPLL_RateConv_getData(opll->conv, 0);
   }
   return opll->mix_out[0];
@@ -1473,7 +1498,7 @@ void OPLL_calcStereo(OPLL *opll, int32_t out[2]) {
     mix_output_stereo(opll);
   }
   opll->out_time -= opll->out_step;
-  if (opll->conv) {
+  if (opll->rate_conv_enabled && opll->conv) {
     out[0] = OPLL_RateConv_getData(opll->conv, 0);
     out[1] = OPLL_RateConv_getData(opll->conv, 1);
   } else {

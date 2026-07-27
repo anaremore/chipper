@@ -18,6 +18,7 @@ Chipper currently uses JUCE. If Chipper is distributed using JUCE's open-source 
 - Vendored files: `ThirdParty/emu2413/emu2413.c`, `ThirdParty/emu2413/emu2413.h`, `ThirdParty/emu2413/LICENSE`, `ThirdParty/emu2413/README.md`
 - License: MIT
 - Use in Chipper: linked into `chipper_engine` as the YM2413/OPLL synthesis core. Chipper's adapter maps user-facing musical controls and renderer note events to YM2413 register writes for preset melodic channels.
+- Local integration change: Chipper reuses the preallocated OPLL/rate-converter storage across reset, clock, and sample-rate changes so plugin audio callbacks do not call `malloc`/`free`; synthesis equations and patch tables are unchanged.
 - Accuracy claim: verified partial only. Rhythm mode, custom patch editing, VRC7/YMF281 patch-set selection, golden emulator comparisons, and hardware validation are not complete.
 
 MIT License text from upstream:
@@ -54,6 +55,7 @@ SOFTWARE.
 - Vendored files: `ThirdParty/emu2149/emu2149.c`, `ThirdParty/emu2149/emu2149.h`, `ThirdParty/emu2149/LICENSE`, `ThirdParty/emu2149/README.md`
 - License: MIT
 - Use in Chipper: linked into `chipper_engine` as the YM2149 / AY PSG tone/noise/envelope generation core. Chipper's adapter maps user-facing musical controls, renderer note events, source gates, and register-write events to YM2149/AY register writes, then applies Chipper-side source trims and optional modern stereo spread.
+- Local integration change: the adapter reuses the allocated PSG instance and upstream clock/rate/reset APIs instead of deleting and recreating it during processor mode changes.
 - Accuracy claim: verified partial only. Exact AY/YM variant behavior, analog output curve, golden emulator comparison, and hardware validation are not complete.
 - Provenance note: upstream source comments cite `psg.vhd`, NEZplug `s_fme7.c`, MAME `ay8910.c`, MSX-Datapack, and the AY-3-8910 data sheet as behavioral references. The vendored source and header are distributed by upstream under the MIT license shown below; keep this provenance note attached to any future accuracy claims.
 
@@ -91,6 +93,7 @@ SOFTWARE.
 - Vendored files: `ThirdParty/emu76489/emu76489.c`, `ThirdParty/emu76489/emu76489.h`, `ThirdParty/emu76489/LICENSE`, `ThirdParty/emu76489/README.md`
 - License: MIT
 - Use in Chipper: linked into `chipper_engine` as the SN76489 / Sega PSG tone/noise generation core. Chipper's adapter maps user-facing musical controls, renderer note events, source gates, and register-write events to SN76489 latch/register writes, then applies Chipper-side source trims and optional modern stereo spread.
+- Local integration change: Chipper adds a clock setter and reuses the allocated SNG instance across reset, clock, and sample-rate changes.
 - Accuracy claim: verified partial only. Exact SN76489-family variant behavior, golden emulator comparison, and hardware validation are not complete.
 - Provenance note: upstream source comments cite the SN76489 data sheet, MAME's `sn76489.c`, and SMSPower documentation as behavioral references. The vendored source and header are distributed by upstream under the MIT license shown below.
 
@@ -128,6 +131,7 @@ SOFTWARE.
 - Vendored files: `ThirdParty/emu2212/emu2212.c`, `ThirdParty/emu2212/emu2212.h`, `ThirdParty/emu2212/LICENSE`, `ThirdParty/emu2212/README.md`
 - License: MIT
 - Use in Chipper: linked into `chipper_engine` as the Konami SCC/SCC+ wavetable core. Chipper's adapter maps user-facing wave, source, note, and renderer events to SCC wave RAM, frequency, volume, and key-on register writes, then applies Chipper-side source trims and optional modern stereo spread.
+- Local integration change: Chipper adds a clock setter and reuses the allocated SCC instance across reset, clock, and sample-rate changes.
 - Accuracy claim: verified partial only. Exact SCC cartridge mapper/bank behavior, SCC vs SCC+ mode differences, channel D/E shared wave-memory behavior, output curve, golden emulator comparison, and hardware validation are not complete.
 - Provenance note: upstream source comments identify the implementation as an S.C.C. emulator by Mitsutaka Okazaki with an SCC/SCC+ register map and revision history. The vendored source and header are distributed by upstream under the MIT license shown below.
 

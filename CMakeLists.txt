@@ -60,6 +60,11 @@ add_executable(chipper_descriptor_smoke tests/descriptor_smoke.cpp)
 target_link_libraries(chipper_descriptor_smoke PRIVATE chipper_engine)
 
 enable_testing()
+if (Python3_Interpreter_FOUND)
+    add_test(NAME chipper_reference_comparator_selftest
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_compare_reference_wav.py
+    )
+endif()
 add_test(NAME chipper_descriptor_smoke
     COMMAND chipper_descriptor_smoke
 )
@@ -3591,6 +3596,33 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(JUCE)
 
+set(CHIPPER_PLUGIN_SOURCES
+    Source/Parameters.cpp
+    Source/Parameters.h
+    Source/PluginEditor.cpp
+    Source/PluginEditor.h
+    Source/PluginProcessor.cpp
+    Source/PluginProcessor.h
+    Source/State/PluginStateSchema.cpp
+    Source/State/PluginStateSchema.h
+    Source/UI/ChipUiModel.cpp
+    Source/UI/ChipUiModel.h
+    Source/UI/ChipperFmEditor.cpp
+    Source/UI/ChipperFmEditor.h
+    Source/UI/ChipperFocusOutline.cpp
+    Source/UI/ChipperFocusOutline.h
+    Source/UI/ChipperWorkflowBar.cpp
+    Source/UI/ChipperWorkflowBar.h
+    Source/UI/ChipperPresetBrowser.cpp
+    Source/UI/ChipperPresetBrowser.h
+    Source/UI/ChipperRelationshipMap.cpp
+    Source/UI/ChipperRelationshipMap.h
+    Source/UI/ChipperEditorShell.cpp
+    Source/UI/ChipperEditorShell.h
+    Source/UI/ChipperWorkspaces.cpp
+    Source/UI/ChipperWorkspaces.h
+)
+
 juce_add_plugin(Chipper
     VERSION ${PROJECT_VERSION}
     COMPANY_NAME "Anaremore"
@@ -3613,28 +3645,7 @@ add_dependencies(Chipper chipper_build_info)
 
 target_sources(Chipper
     PRIVATE
-        Source/Parameters.cpp
-        Source/Parameters.h
-        Source/PluginEditor.cpp
-        Source/PluginEditor.h
-        Source/UI/ChipUiModel.cpp
-        Source/UI/ChipUiModel.h
-        Source/UI/ChipperFmEditor.cpp
-        Source/UI/ChipperFmEditor.h
-        Source/UI/ChipperFocusOutline.cpp
-        Source/UI/ChipperFocusOutline.h
-        Source/UI/ChipperWorkflowBar.cpp
-        Source/UI/ChipperWorkflowBar.h
-        Source/UI/ChipperPresetBrowser.cpp
-        Source/UI/ChipperPresetBrowser.h
-        Source/UI/ChipperRelationshipMap.cpp
-        Source/UI/ChipperRelationshipMap.h
-        Source/UI/ChipperEditorShell.cpp
-        Source/UI/ChipperEditorShell.h
-        Source/UI/ChipperWorkspaces.cpp
-        Source/UI/ChipperWorkspaces.h
-        Source/PluginProcessor.cpp
-        Source/PluginProcessor.h
+        ${CHIPPER_PLUGIN_SOURCES}
 )
 
 target_include_directories(Chipper PRIVATE Source "${CHIPPER_GENERATED_DIR}")
@@ -3685,28 +3696,7 @@ add_test(NAME chipper_parameter_midi_cc_smoke
 
 add_executable(chipper_processor_midi_cc_smoke
     tests/processor_midi_cc_smoke.cpp
-    Source/Parameters.cpp
-    Source/Parameters.h
-    Source/PluginEditor.cpp
-    Source/PluginEditor.h
-    Source/UI/ChipUiModel.cpp
-    Source/UI/ChipUiModel.h
-    Source/UI/ChipperFmEditor.cpp
-    Source/UI/ChipperFmEditor.h
-    Source/UI/ChipperFocusOutline.cpp
-    Source/UI/ChipperFocusOutline.h
-    Source/UI/ChipperWorkflowBar.cpp
-    Source/UI/ChipperWorkflowBar.h
-    Source/UI/ChipperPresetBrowser.cpp
-    Source/UI/ChipperPresetBrowser.h
-    Source/UI/ChipperRelationshipMap.cpp
-    Source/UI/ChipperRelationshipMap.h
-    Source/UI/ChipperEditorShell.cpp
-    Source/UI/ChipperEditorShell.h
-    Source/UI/ChipperWorkspaces.cpp
-    Source/UI/ChipperWorkspaces.h
-    Source/PluginProcessor.cpp
-    Source/PluginProcessor.h
+    ${CHIPPER_PLUGIN_SOURCES}
 )
 
 add_dependencies(chipper_processor_midi_cc_smoke chipper_build_info)
@@ -3720,6 +3710,7 @@ target_include_directories(chipper_processor_midi_cc_smoke
 
 target_compile_definitions(chipper_processor_midi_cc_smoke
     PUBLIC
+        CHIPPER_STATE_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/state"
         JUCE_USE_CURL=0
         JUCE_WEB_BROWSER=0
         JUCE_VST3_CAN_REPLACE_VST2=0
@@ -3738,31 +3729,11 @@ target_link_libraries(chipper_processor_midi_cc_smoke
 add_test(NAME chipper_processor_midi_cc_smoke
     COMMAND chipper_processor_midi_cc_smoke
 )
+set_tests_properties(chipper_processor_midi_cc_smoke PROPERTIES TIMEOUT 30)
 
 add_executable(chipper_editor_size_smoke
     tests/editor_size_smoke.cpp
-    Source/Parameters.cpp
-    Source/Parameters.h
-    Source/PluginEditor.cpp
-    Source/PluginEditor.h
-    Source/UI/ChipUiModel.cpp
-    Source/UI/ChipUiModel.h
-    Source/UI/ChipperFmEditor.cpp
-    Source/UI/ChipperFmEditor.h
-    Source/UI/ChipperFocusOutline.cpp
-    Source/UI/ChipperFocusOutline.h
-    Source/UI/ChipperWorkflowBar.cpp
-    Source/UI/ChipperWorkflowBar.h
-    Source/UI/ChipperPresetBrowser.cpp
-    Source/UI/ChipperPresetBrowser.h
-    Source/UI/ChipperRelationshipMap.cpp
-    Source/UI/ChipperRelationshipMap.h
-    Source/UI/ChipperEditorShell.cpp
-    Source/UI/ChipperEditorShell.h
-    Source/UI/ChipperWorkspaces.cpp
-    Source/UI/ChipperWorkspaces.h
-    Source/PluginProcessor.cpp
-    Source/PluginProcessor.h
+    ${CHIPPER_PLUGIN_SOURCES}
 )
 
 add_dependencies(chipper_editor_size_smoke chipper_build_info)
@@ -3797,28 +3768,7 @@ add_test(NAME chipper_editor_size_smoke
 
 add_executable(chipper_ui_snapshot
     tools/chipper_ui_snapshot.cpp
-    Source/Parameters.cpp
-    Source/Parameters.h
-    Source/PluginEditor.cpp
-    Source/PluginEditor.h
-    Source/UI/ChipUiModel.cpp
-    Source/UI/ChipUiModel.h
-    Source/UI/ChipperFmEditor.cpp
-    Source/UI/ChipperFmEditor.h
-    Source/UI/ChipperFocusOutline.cpp
-    Source/UI/ChipperFocusOutline.h
-    Source/UI/ChipperWorkflowBar.cpp
-    Source/UI/ChipperWorkflowBar.h
-    Source/UI/ChipperPresetBrowser.cpp
-    Source/UI/ChipperPresetBrowser.h
-    Source/UI/ChipperRelationshipMap.cpp
-    Source/UI/ChipperRelationshipMap.h
-    Source/UI/ChipperEditorShell.cpp
-    Source/UI/ChipperEditorShell.h
-    Source/UI/ChipperWorkspaces.cpp
-    Source/UI/ChipperWorkspaces.h
-    Source/PluginProcessor.cpp
-    Source/PluginProcessor.h
+    ${CHIPPER_PLUGIN_SOURCES}
 )
 
 add_dependencies(chipper_ui_snapshot chipper_build_info)

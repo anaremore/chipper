@@ -139,6 +139,13 @@ struct RegisterWrite
     uint8_t value = 0;
 };
 
+struct RuntimeTelemetry
+{
+    bool dmcSampleActive = false;
+    bool dmcSampleCompleted = false;
+    int dmcSampleBitsPlayed = 0;
+};
+
 struct NoteEvent
 {
     uint64_t sample = 0;
@@ -208,10 +215,12 @@ public:
 
     virtual ChipMode mode() const = 0;
     virtual AccuracyMode requestedAccuracy() const = 0;
+    virtual void setRequestedAccuracy(AccuracyMode accuracy) = 0;
     virtual std::string modeName() const = 0;
     virtual std::string implementedAccuracy() const = 0;
     virtual std::string limitations() const = 0;
     virtual std::string debugStateJson() const = 0;
+    virtual RuntimeTelemetry runtimeTelemetry() const noexcept { return {}; }
 };
 
 std::unique_ptr<ChipCore> createChipCore(ChipMode mode, AccuracyMode accuracy);

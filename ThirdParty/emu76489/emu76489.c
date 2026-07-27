@@ -43,6 +43,13 @@ internal_refresh (SNG * sng)
 }
 
 void
+SNG_set_clock (SNG * sng, uint32_t c)
+{
+  sng->clk = c;
+  internal_refresh (sng);
+}
+
+void
 SNG_set_rate (SNG * sng, uint32_t r)
 {
   sng->rate = r ? r : 44100;

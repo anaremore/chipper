@@ -1,12 +1,58 @@
 #include "PluginProcessor.h"
+#include "State/PluginStateSchema.h"
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
+#include <new>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
+
+namespace allocation_probe
+{
+std::atomic<bool> enabled { false };
+std::atomic<size_t> count { 0 };
+}
+
+void* operator new(std::size_t size)
+{
+    if (allocation_probe::enabled.load(std::memory_order_relaxed))
+        allocation_probe::count.fetch_add(1u, std::memory_order_relaxed);
+
+    if (auto* memory = std::malloc(size))
+        return memory;
+    throw std::bad_alloc();
+}
+
+void* operator new[](std::size_t size)
+{
+    return ::operator new(size);
+}
+
+void operator delete(void* memory) noexcept
+{
+    std::free(memory);
+}
+
+void operator delete[](void* memory) noexcept
+{
+    ::operator delete(memory);
+}
+
+void operator delete(void* memory, std::size_t) noexcept
+{
+    ::operator delete(memory);
+}
+
+void operator delete[](void* memory, std::size_t) noexcept
+{
+    ::operator delete(memory);
+}
 
 namespace
 {
@@ -17,6 +63,26 @@ bool expect(bool condition, const std::string& message)
 
     std::cerr << message << '\n';
     return false;
+}
+
+std::unique_ptr<juce::XmlElement> loadStateFixture(const char* fileName)
+{
+    return juce::XmlDocument::parse(juce::File(CHIPPER_STATE_FIXTURE_DIR).getChildFile(fileName));
+}
+
+std::vector<std::string> loadParameterIdContract()
+{
+    const auto file = juce::File(CHIPPER_STATE_FIXTURE_DIR).getSiblingFile("parameter-id-contract.txt");
+    juce::StringArray lines;
+    lines.addLines(file.loadFileAsString());
+    std::vector<std::string> ids;
+    for (const auto& line : lines)
+    {
+        const auto trimmed = line.trim();
+        if (trimmed.isNotEmpty() && ! trimmed.startsWithChar('#'))
+            ids.push_back(trimmed.toStdString());
+    }
+    return ids;
 }
 
 float parameterValue(ChipperAudioProcessor& processor, const char* parameterId)
@@ -212,6 +278,72 @@ int jsonIntValue(const std::string& json, const std::string& key, int fallback =
     {
         return fallback;
     }
+}
+
+size_t processAllocationCount(ChipperAudioProcessor& processor, juce::MidiBuffer& midi);
+
+bool expectSteadyStateProcessingDoesNotAllocate()
+{
+    ChipperAudioProcessor processor;
+    processor.prepareToPlay(48000.0, 64);
+    juce::AudioBuffer<float> buffer(2, 64);
+    juce::MidiBuffer midi;
+    bool ok = true;
+
+    const auto chipCount = chipper::parameters::chipModeChoices().size();
+    for (int chipChoice = 0; chipChoice < chipCount; ++chipChoice)
+    {
+        setPlainFromHost(processor, chipper::parameters::id::chipMode, static_cast<float>(chipChoice));
+        allocation_probe::count.store(0u, std::memory_order_relaxed);
+        allocation_probe::enabled.store(true, std::memory_order_release);
+        processor.processBlock(buffer, midi);
+        allocation_probe::enabled.store(false, std::memory_order_release);
+        const auto switchAllocations = allocation_probe::count.load(std::memory_order_relaxed);
+        ok &= expect(switchAllocations == 0u,
+                     "Chip-mode switch allocated " + std::to_string(switchAllocations)
+                         + " times in processBlock for " + chipper::parameters::chipModeChoices()[chipChoice].toStdString());
+        processor.processBlock(buffer, midi);
+
+        allocation_probe::count.store(0u, std::memory_order_relaxed);
+        allocation_probe::enabled.store(true, std::memory_order_release);
+        for (int block = 0; block < 4; ++block)
+            processor.processBlock(buffer, midi);
+        allocation_probe::enabled.store(false, std::memory_order_release);
+
+        const auto allocations = allocation_probe::count.load(std::memory_order_relaxed);
+        ok &= expect(allocations == 0u,
+                     "Steady-state processBlock allocated " + std::to_string(allocations)
+                         + " times for " + chipper::parameters::chipModeChoices()[chipChoice].toStdString());
+    }
+
+    for (int strictness = 0; strictness < 3; ++strictness)
+    {
+        setPlainFromHost(processor, chipper::parameters::id::accuracy, static_cast<float>(strictness));
+        const auto allocations = processAllocationCount(processor, midi);
+        ok &= expect(allocations == 0u,
+                     "Strictness switch allocated " + std::to_string(allocations) + " times in processBlock");
+    }
+
+    setPlainFromHost(processor, chipper::parameters::id::clockHz, 8001000.0f);
+    const auto clockAllocations = processAllocationCount(processor, midi);
+    ok &= expect(clockAllocations == 0u,
+                 "Clock change allocated " + std::to_string(clockAllocations) + " times in processBlock");
+
+    setPlainFromHost(processor, chipper::parameters::id::chipMode, 0.0f);
+    processor.processBlock(buffer, midi);
+    juce::MidiBuffer controlMidi;
+    controlMidi.addEvent(juce::MidiMessage::controllerEvent(1, 76, 96), 0);
+    auto midiCcAllocations = processAllocationCount(processor, controlMidi);
+    ok &= expect(midiCcAllocations == 0u,
+                 "Audio-thread MIDI CC update allocated " + std::to_string(midiCcAllocations) + " times");
+
+    controlMidi.clear();
+    controlMidi.addEvent(juce::MidiMessage::controllerEvent(1, 74, 127), 0);
+    midiCcAllocations = processAllocationCount(processor, controlMidi);
+    ok &= expect(midiCcAllocations == 0u,
+                 "Audio-thread macro CC update allocated " + std::to_string(midiCcAllocations) + " times");
+
+    return ok;
 }
 
 bool expectFourOperatorCarrierRoleDebug(int chipChoice, const char* label)
@@ -550,6 +682,135 @@ void addMissingSampleReference(juce::XmlElement& xml,
     sample->setAttribute("path", missingFile.getFullPathName());
     bank->addChildElement(sample);
     xml.addChildElement(bank);
+}
+
+size_t processAllocationCount(ChipperAudioProcessor& processor, juce::MidiBuffer& midi)
+{
+    juce::AudioBuffer<float> buffer(2, 64);
+    allocation_probe::count.store(0u, std::memory_order_relaxed);
+    allocation_probe::enabled.store(true, std::memory_order_release);
+    processor.processBlock(buffer, midi);
+    allocation_probe::enabled.store(false, std::memory_order_release);
+    return allocation_probe::count.load(std::memory_order_relaxed);
+}
+
+bool expectMappedSampleNoteProcessingDoesNotAllocate()
+{
+    const auto root = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                          .getNonexistentChildFile("chipper-rt-sample-map", {}, false);
+    if (! root.createDirectory())
+        return expect(false, "Could not create real-time sample-map fixture directory");
+
+    bool ok = true;
+    const auto dmcDir = root.getChildFile("dmc");
+    const auto brrDir = root.getChildFile("brr");
+    const auto paulaDir = root.getChildFile("paula");
+    dmcDir.createDirectory();
+    brrDir.createDirectory();
+    paulaDir.createDirectory();
+    ok &= writeDmcFixture(dmcDir.getChildFile("one.dmc"), 0x55u);
+    ok &= writeDmcFixture(dmcDir.getChildFile("two.dmc"), 0xaau);
+    ok &= writeBrrFixture(brrDir.getChildFile("one.brr"), 0x11u);
+    ok &= writeBrrFixture(brrDir.getChildFile("two.brr"), 0x44u);
+    ok &= writeWavFixture(paulaDir.getChildFile("one.wav"), 220.0f);
+    ok &= writeWavFixture(paulaDir.getChildFile("two.wav"), 330.0f);
+
+    const auto checkMode = [&](int chipChoice, auto loadBank, const std::string& label)
+    {
+        ChipperAudioProcessor processor;
+        processor.prepareToPlay(48000.0, 64);
+        setPlainFromHost(processor, chipper::parameters::id::chipMode, static_cast<float>(chipChoice));
+        processEmptyBlock(processor);
+        ok &= loadBank(processor).wasOk();
+        setPlainFromHost(processor, chipper::parameters::id::nesDmcPlaybackMode, 1.0f);
+        setPlainFromHost(processor, chipper::parameters::id::nesDmcMapRoot, 36.0f);
+        processEmptyBlock(processor);
+
+        juce::MidiBuffer noteOn;
+        noteOn.addEvent(juce::MidiMessage::noteOn(1, 37, 1.0f), 0);
+        const auto allocations = processAllocationCount(processor, noteOn);
+        ok &= expect(allocations == 0u,
+                     label + " mapped note allocated " + std::to_string(allocations) + " times in processBlock");
+
+        juce::MidiBuffer emptyMidi;
+        setPlainFromHost(processor, chipper::parameters::id::accuracy, 2.0f);
+        const auto strictnessAllocations = processAllocationCount(processor, emptyMidi);
+        ok &= expect(strictnessAllocations == 0u,
+                     label + " loaded-bank Strictness switch allocated " + std::to_string(strictnessAllocations)
+                         + " times in processBlock");
+
+        setPlainFromHost(processor, chipper::parameters::id::chipMode, 1.0f);
+        processEmptyBlock(processor);
+        setPlainFromHost(processor, chipper::parameters::id::chipMode, static_cast<float>(chipChoice));
+        const auto returnAllocations = processAllocationCount(processor, emptyMidi);
+        ok &= expect(returnAllocations == 0u,
+                     label + " loaded-bank chip return allocated " + std::to_string(returnAllocations)
+                         + " times in processBlock");
+
+        if (chipChoice == 0)
+        {
+            processor.clearNesDmcSampleSelection();
+            processor.invertNesDmcSampleSelection();
+        }
+        else if (chipChoice == 7)
+        {
+            processor.clearSpc700BrrSampleSelection();
+            processor.invertSpc700BrrSampleSelection();
+        }
+        else
+        {
+            processor.clearPaulaSampleSelection();
+            processor.invertPaulaSampleSelection();
+        }
+
+        const auto bankMutationAllocations = processAllocationCount(processor, emptyMidi);
+        ok &= expect(bankMutationAllocations == 0u,
+                     label + " sample-bank mutation left " + std::to_string(bankMutationAllocations)
+                         + " allocations for processBlock");
+    };
+
+    checkMode(0, [&](ChipperAudioProcessor& processor) { return processor.loadNesDmcSampleDirectory(dmcDir); }, "NES DMC");
+    checkMode(7, [&](ChipperAudioProcessor& processor) { return processor.loadSpc700BrrSampleDirectory(brrDir); }, "SPC700");
+    checkMode(9, [&](ChipperAudioProcessor& processor) { return processor.loadPaulaSampleDirectory(paulaDir); }, "Paula");
+
+    root.deleteRecursively();
+    return ok;
+}
+
+bool expectConcurrentSampleMutationDoesNotDeadlock()
+{
+    const auto root = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                          .getNonexistentChildFile("chipper-rt-sample-concurrency", {}, false);
+    if (! root.createDirectory())
+        return expect(false, "Could not create concurrent sample-mutation fixture directory");
+
+    bool ok = writeDmcFixture(root.getChildFile("one.dmc"), 0x55u)
+        && writeDmcFixture(root.getChildFile("two.dmc"), 0xaau);
+    ChipperAudioProcessor processor;
+    processor.prepareToPlay(48000.0, 64);
+    ok &= processor.loadNesDmcSampleDirectory(root).wasOk();
+
+    std::atomic<bool> start { false };
+    std::thread mutator([&]
+    {
+        while (! start.load(std::memory_order_acquire))
+            std::this_thread::yield();
+        for (int iteration = 0; iteration < 200; ++iteration)
+            processor.invertNesDmcSampleSelection();
+    });
+
+    start.store(true, std::memory_order_release);
+    juce::MidiBuffer emptyMidi;
+    for (int block = 0; block < 500; ++block)
+    {
+        juce::AudioBuffer<float> buffer(2, 64);
+        const juce::ScopedLock callbackGuard(processor.getCallbackLock());
+        processor.processBlock(buffer, emptyMidi);
+    }
+    mutator.join();
+
+    root.deleteRecursively();
+    return expect(ok, "Concurrent sample-bank mutation should complete without deadlock or load failure");
 }
 }
 
@@ -2045,6 +2306,139 @@ int main()
     scopeProcessor.processBlock(scopeBuffer, scopeMidi);
     ok &= expect(scopePeak(scopeProcessor.outputScopeSnapshot()) > 0.001f,
                  "Output scope should capture rendered post-trim audio");
+
+    ChipperAudioProcessor tailProcessor;
+    tailProcessor.prepareToPlay(48000.0, 64);
+    ok &= expect(tailProcessor.getTailLengthSeconds() >= 2.0,
+                 "NES processor tail should account for envelope and sample completion");
+    setPlainFromHost(tailProcessor, chipper::parameters::id::chipMode, 2.0f);
+    setPlainFromHost(tailProcessor, chipper::parameters::id::sidRelease, 16.0f);
+    setPlainFromHost(tailProcessor, chipper::parameters::id::sidVoice2Release, 16.0f);
+    setPlainFromHost(tailProcessor, chipper::parameters::id::sidVoice3Release, 16.0f);
+    ok &= expect(tailProcessor.getTailLengthSeconds() >= 24.0,
+                 "SID processor tail should include the longest selected release nibble");
+
+    auto versionedState = processor.createStateXml();
+    ok &= expect(versionedState != nullptr && versionedState->getIntAttribute("stateSchemaVersion") == 2,
+                 "Saved processor state should declare schema version 2");
+    if (versionedState != nullptr)
+    {
+        auto legacyState = std::make_unique<juce::XmlElement>(*versionedState);
+        legacyState->removeAttribute("stateSchemaVersion");
+        ChipperAudioProcessor legacyRestoreProcessor;
+        legacyRestoreProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(legacyRestoreProcessor.restoreStateXml(*legacyState).wasOk(),
+                     "Unversioned schema-1 state should migrate successfully");
+        const auto migratedState = legacyRestoreProcessor.createStateXml();
+        ok &= expect(migratedState != nullptr && migratedState->getIntAttribute("stateSchemaVersion") == 2,
+                     "Migrated state should be re-saved as schema version 2");
+
+        auto futureState = std::make_unique<juce::XmlElement>(*versionedState);
+        futureState->setAttribute("stateSchemaVersion", 999);
+        ChipperAudioProcessor futureRestoreProcessor;
+        futureRestoreProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(futureRestoreProcessor.restoreStateXml(*futureState).failed(),
+                     "State from a newer unsupported schema should fail explicitly");
+
+        auto oversizedRegisterState = std::make_unique<juce::XmlElement>(*versionedState);
+        if (auto* existingCoreState = oversizedRegisterState->getChildByName("CHIPPER_CORE_REGISTERS"))
+            oversizedRegisterState->removeChildElement(existingCoreState, true);
+        auto* coreState = new juce::XmlElement("CHIPPER_CORE_REGISTERS");
+        for (size_t index = 0; index <= chipper::state::maxRestoredRegisterWrites; ++index)
+        {
+            auto* registerState = new juce::XmlElement("REG");
+            registerState->setAttribute("address", static_cast<int>(index & 0xffffu));
+            registerState->setAttribute("value", static_cast<int>(index & 0xffu));
+            coreState->addChildElement(registerState);
+        }
+        oversizedRegisterState->addChildElement(coreState);
+        ChipperAudioProcessor oversizedRegisterRestoreProcessor;
+        oversizedRegisterRestoreProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(oversizedRegisterRestoreProcessor.restoreStateXml(*oversizedRegisterState).failed(),
+                     "State with an excessive register-write payload should fail explicitly");
+    }
+
+    for (const auto& fixture : {
+             std::pair { "legacy-v1-minimal.xml", true },
+             std::pair { "current-v2-minimal.xml", true },
+             std::pair { "future-v999.xml", false },
+             std::pair { "invalid-version.xml", false },
+             std::pair { "wrong-root.xml", false },
+         })
+    {
+        auto fixtureXml = loadStateFixture(fixture.first);
+        ok &= expect(fixtureXml != nullptr, std::string("Should parse state fixture ") + fixture.first);
+        if (fixtureXml != nullptr)
+        {
+            const auto migration = chipper::state::validateAndMigrate(*fixtureXml, juce::Identifier("ChipperState"));
+            ok &= expect(migration.wasOk() == fixture.second,
+                         std::string("State fixture should have expected compatibility result: ") + fixture.first);
+            if (migration.wasOk())
+                ok &= expect(fixtureXml->getIntAttribute(chipper::state::schemaVersionAttribute)
+                                 == chipper::state::currentSchemaVersion,
+                             std::string("Accepted state fixture should normalize to current schema: ") + fixture.first);
+        }
+    }
+
+    auto expectedParameterIds = loadParameterIdContract();
+    std::vector<std::string> actualParameterIds;
+    for (const auto* parameter : processor.getParameters())
+    {
+        if (const auto* identified = dynamic_cast<const juce::AudioProcessorParameterWithID*>(parameter))
+            actualParameterIds.push_back(identified->paramID.toStdString());
+    }
+    std::sort(expectedParameterIds.begin(), expectedParameterIds.end());
+    std::sort(actualParameterIds.begin(), actualParameterIds.end());
+    ok &= expect(! expectedParameterIds.empty(), "Parameter-ID compatibility fixture should not be empty");
+    ok &= expect(actualParameterIds == expectedParameterIds,
+                 "Every host automation parameter ID should match the checked-in compatibility fixture");
+
+    auto monoLayout = processor.getBusesLayout();
+    monoLayout.outputBuses.getReference(0) = juce::AudioChannelSet::mono();
+    ok &= expect(processor.isBusesLayoutSupported(monoLayout),
+                 "Host bus contract should continue to support one mono output bus");
+    auto stereoLayout = processor.getBusesLayout();
+    stereoLayout.outputBuses.getReference(0) = juce::AudioChannelSet::stereo();
+    ok &= expect(processor.isBusesLayoutSupported(stereoLayout),
+                 "Host bus contract should continue to support one stereo output bus");
+    auto surroundLayout = processor.getBusesLayout();
+    surroundLayout.outputBuses.getReference(0) = juce::AudioChannelSet::create5point1();
+    ok &= expect(! processor.isBusesLayoutSupported(surroundLayout),
+                 "Host bus contract should reject undeclared surround or multi-output layouts");
+
+    const auto portableAssetRoot = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                       .getNonexistentChildFile("chipper-portable-asset-schema", {}, false);
+    const auto portableSamples = portableAssetRoot.getChildFile("Samples");
+    ok &= expect(portableSamples.createDirectory().wasOk(), "Should create portable asset schema fixture folder");
+    const auto portableAsset = portableSamples.getChildFile("asset.bin");
+    ok &= expect(writeDmcFixture(portableAsset, 0x55u), "Should create portable asset schema fixture");
+    juce::XmlElement portableAssetState("STATE");
+    for (const auto* tag : { "DMC_SAMPLE", "BRR_SAMPLE", "PAULA_SAMPLE", "CHIPPER_SPC700_BRR",
+                             "CHIPPER_OPNA_RHYTHM_ROM", "CHIPPER_OPNA_ADPCM_B_SAMPLE",
+                             "CHIPPER_OPNB_ADPCM_A_SAMPLE", "CHIPPER_OPNB_ADPCM_B_SAMPLE" })
+    {
+        auto* asset = new juce::XmlElement(tag);
+        asset->setAttribute("path", portableAssetRoot.getSiblingFile("elsewhere").getChildFile("asset.bin").getFullPathName());
+        portableAssetState.addChildElement(asset);
+    }
+    chipper::state::annotatePortableAssetReferences(portableAssetState, portableAssetRoot);
+    for (const auto* asset : portableAssetState.getChildIterator())
+        ok &= expect(asset != nullptr && asset->getStringAttribute("relativePath") == "Samples/asset.bin",
+                     "Every external asset type should receive a portable Samples reference");
+
+    const auto escapedAsset = portableAssetRoot.getParentDirectory().getChildFile("escaped-asset.dmc");
+    ok &= expect(writeDmcFixture(escapedAsset, 0xaau), "Should create path traversal guard fixture");
+    juce::XmlElement traversalState("DMC_SAMPLE");
+    traversalState.setAttribute("path", portableAssetRoot.getChildFile("missing.dmc").getFullPathName());
+    traversalState.setAttribute("relativePath", "../escaped-asset.dmc");
+    ok &= expect(chipper::state::resolvePortableAssetPath(traversalState, portableAssetRoot) != escapedAsset,
+                 "Portable asset resolution should reject paths that escape the preset directory");
+    escapedAsset.deleteFile();
+    portableAssetRoot.deleteRecursively();
+
+    ok &= expectSteadyStateProcessingDoesNotAllocate();
+    ok &= expectMappedSampleNoteProcessingDoesNotAllocate();
+    ok &= expectConcurrentSampleMutationDoesNotDeadlock();
 
     return ok ? 0 : 1;
 }

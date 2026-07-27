@@ -98,6 +98,13 @@ SCC_set_quality (SCC * scc, uint32_t q)
 }
 
 void
+SCC_set_clock (SCC * scc, uint32_t c)
+{
+  scc->clk = c;
+  internal_refresh (scc);
+}
+
+void
 SCC_set_rate (SCC * scc, uint32_t r)
 {
   scc->rate = r ? r : 44100;

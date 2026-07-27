@@ -148,7 +148,7 @@ public:
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
-    double getTailLengthSeconds() const override { return 0.0; }
+    double getTailLengthSeconds() const override;
 
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
@@ -168,7 +168,7 @@ public:
     std::string currentCoreStatus() const;
     std::string currentCoreStatusDetail() const;
     std::string currentCoreDebugStateJson() const;
-    chipper::ChipMode currentChipMode() const { return activeMode; }
+    chipper::ChipMode currentChipMode() const { return publishedActiveMode.load(std::memory_order_acquire); }
     OutputScopeSnapshot outputScopeSnapshot() const;
     SampleWaveformSnapshot sampleWaveformSnapshot(chipper::ChipMode mode) const;
     juce::Result loadNesDmcSampleFile(const juce::File& file);
@@ -212,6 +212,9 @@ public:
     uint64_t paulaSampleRevision() const;
 
 private:
+    static constexpr size_t chipModeCount = static_cast<size_t>(chipper::ChipMode::ym2610b) + 1u;
+    static constexpr size_t corePoolSize = chipModeCount;
+
     struct HeldMidiNote
     {
         int note = -1;
@@ -220,6 +223,9 @@ private:
     };
 
     void ensureCore();
+    void initializeCorePool();
+    void synchronizeActiveExternalAssets(chipper::ChipMode mode);
+    static size_t corePoolIndex(chipper::ChipMode mode) noexcept;
     chipper::PatchConfig currentPatchFromParameters() const;
     void replayPendingRegisterState();
     void replayHeldNotes();
@@ -250,6 +256,14 @@ private:
     juce::UndoManager undoManager;
     juce::AudioProcessorValueTreeState apvts;
     std::unique_ptr<chipper::ChipCore> core;
+    std::array<std::unique_ptr<chipper::ChipCore>, corePoolSize> corePool;
+    std::array<uint64_t, corePoolSize> pooledDmcRevisions {};
+    std::array<uint64_t, corePoolSize> pooledSpc700Revisions {};
+    std::array<uint64_t, corePoolSize> pooledPaulaRevisions {};
+    std::array<uint64_t, corePoolSize> pooledOpnaRhythmRevisions {};
+    std::array<uint64_t, corePoolSize> pooledOpnaAdpcmBRevisions {};
+    std::array<uint64_t, corePoolSize> pooledOpnbAdpcmARevisions {};
+    std::array<uint64_t, corePoolSize> pooledOpnbAdpcmBRevisions {};
     chipper::ChipMode activeMode = chipper::ChipMode::nes;
     chipper::AccuracyMode activeAccuracy = chipper::AccuracyMode::hybrid;
     double activeClock = 1789773.0;
@@ -258,44 +272,48 @@ private:
     mutable std::mutex dmcSampleMutex;
     std::vector<DmcSampleSlot> dmcSampleBank;
     juce::String dmcSampleRestoreWarning;
-    uint64_t dmcSampleBankRevision = 0;
+    std::atomic<uint64_t> dmcSampleBankRevision { 0 };
     uint64_t activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
-    int activeDmcSampleSlot = -1;
+    std::atomic<int> activeDmcSampleSlot { -1 };
+    int activeDmcSampleSlotCount = 0;
+    int lastRequestedDmcSampleSlot = std::numeric_limits<int>::min();
     mutable std::mutex spc700SampleMutex;
     DmcSampleSlot spc700BrrSample;
     std::vector<DmcSampleSlot> spc700BrrSampleBank;
     juce::String spc700SampleRestoreWarning;
-    uint64_t spc700BrrSampleBankRevision = 0;
+    std::atomic<uint64_t> spc700BrrSampleBankRevision { 0 };
     uint64_t activeSpc700BrrSampleRevision = std::numeric_limits<uint64_t>::max();
-    int activeSpc700BrrSampleSlot = -1;
-    int activeSpc700BrrManualSlot = -1;
+    std::atomic<int> activeSpc700BrrSampleSlot { -1 };
+    std::atomic<int> activeSpc700BrrManualSlot { -1 };
+    int activeSpc700BrrSampleSlotCount = 0;
     mutable std::mutex paulaSampleMutex;
     DmcSampleSlot paulaSample;
     std::vector<DmcSampleSlot> paulaSampleBank;
     juce::String paulaSampleRestoreWarning;
-    uint64_t paulaSampleBankRevision = 0;
+    std::atomic<uint64_t> paulaSampleBankRevision { 0 };
     uint64_t activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
-    int activePaulaSampleSlot = -1;
-    int activePaulaManualSlot = -1;
+    std::atomic<int> activePaulaSampleSlot { -1 };
+    std::atomic<int> activePaulaManualSlot { -1 };
+    int activePaulaSampleSlotCount = 0;
     mutable std::mutex opnaRhythmRomMutex;
     DmcSampleSlot opnaRhythmRom;
     juce::String opnaRhythmRomRestoreWarning;
-    uint64_t opnaRhythmRomRevision = 0;
+    std::atomic<uint64_t> opnaRhythmRomRevision { 0 };
     uint64_t activeOpnaRhythmRomRevision = std::numeric_limits<uint64_t>::max();
     mutable std::mutex opnaAdpcmBSampleMutex;
     DmcSampleSlot opnaAdpcmBSample;
     juce::String opnaAdpcmBSampleRestoreWarning;
-    uint64_t opnaAdpcmBSampleRevision = 0;
+    std::atomic<uint64_t> opnaAdpcmBSampleRevision { 0 };
     uint64_t activeOpnaAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
     mutable std::mutex opnbAdpcmASampleMutex;
     DmcSampleSlot opnbAdpcmASample;
     juce::String opnbAdpcmASampleRestoreWarning;
-    uint64_t opnbAdpcmASampleRevision = 0;
+    std::atomic<uint64_t> opnbAdpcmASampleRevision { 0 };
     uint64_t activeOpnbAdpcmASampleRevision = std::numeric_limits<uint64_t>::max();
     mutable std::mutex opnbAdpcmBSampleMutex;
     DmcSampleSlot opnbAdpcmBSample;
     juce::String opnbAdpcmBSampleRestoreWarning;
-    uint64_t opnbAdpcmBSampleRevision = 0;
+    std::atomic<uint64_t> opnbAdpcmBSampleRevision { 0 };
     uint64_t activeOpnbAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
     chipper::PatchConfig activePatch;
     std::vector<chipper::RegisterWrite> pendingRegisterState;
@@ -305,6 +323,11 @@ private:
     bool hasObservedMacroSnapshot = false;
     std::array<std::atomic<float>, outputScopeSampleCount> outputScopeBuffer {};
     std::atomic<size_t> outputScopeWriteIndex { 0 };
+    std::atomic<chipper::ChipMode> publishedActiveMode { chipper::ChipMode::nes };
+    std::atomic<bool> publishedCoreReady { false };
+    std::atomic<bool> publishedDmcSampleActive { false };
+    std::atomic<bool> publishedDmcSampleCompleted { false };
+    std::atomic<int> publishedDmcSampleBitsPlayed { 0 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipperAudioProcessor)
 };

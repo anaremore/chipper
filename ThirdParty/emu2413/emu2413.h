@@ -87,6 +87,7 @@ void OPLL_RateConv_delete(OPLL_RateConv *conv);
 typedef struct __OPLL {
   uint32_t clk;
   uint32_t rate;
+  uint8_t rate_conv_enabled;
 
   uint8_t chip_type;
 
@@ -141,6 +142,8 @@ void OPLL_resetPatch(OPLL *, uint8_t);
  * disabled.
  */
 void OPLL_setRate(OPLL *opll, uint32_t rate);
+void OPLL_setClock(OPLL *opll, uint32_t clock);
+void OPLL_setClockRate(OPLL *opll, uint32_t clock, uint32_t rate);
 
 /**
  * Set internal calcuration quality. Currently no effects, just for compatibility.

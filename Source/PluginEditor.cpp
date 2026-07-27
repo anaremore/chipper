@@ -4,6 +4,7 @@
 #include "ChipperBuildInfo.h"
 #include "Engine/ChipDescriptors.h"
 #include "Presets.h"
+#include "State/PluginStateSchema.h"
 
 #include <algorithm>
 #include <bit>
@@ -1396,57 +1397,6 @@ juce::String joinPresetTags(const std::vector<std::string>& tags)
     return joinUserPresetTags(strings);
 }
 
-bool isPresetSampleReferenceTag(const juce::String& tagName)
-{
-    return tagName == "DMC_SAMPLE"
-        || tagName == "BRR_SAMPLE"
-        || tagName == "PAULA_SAMPLE"
-        || tagName == "CHIPPER_SPC700_BRR";
-}
-
-juce::String portableSampleRelativePath(const juce::File& sampleFile, const juce::File& presetDirectory)
-{
-    if (presetDirectory == juce::File {} || sampleFile == juce::File {})
-        return {};
-
-    if (sampleFile.getParentDirectory() == presetDirectory || sampleFile.isAChildOf(presetDirectory))
-        return sampleFile.getRelativePathFrom(presetDirectory);
-
-    if (presetDirectory.getChildFile(sampleFile.getFileName()).existsAsFile())
-        return sampleFile.getFileName();
-
-    const auto samplesFile = presetDirectory.getChildFile("Samples").getChildFile(sampleFile.getFileName());
-    if (samplesFile.existsAsFile())
-        return "Samples/" + sampleFile.getFileName();
-
-    const auto lowercaseSamplesFile = presetDirectory.getChildFile("samples").getChildFile(sampleFile.getFileName());
-    if (lowercaseSamplesFile.existsAsFile())
-        return "samples/" + sampleFile.getFileName();
-
-    return {};
-}
-
-void annotatePortablePresetSampleReferences(juce::XmlElement& xml, const juce::File& presetDirectory)
-{
-    if (isPresetSampleReferenceTag(xml.getTagName()) && xml.hasAttribute("path"))
-    {
-        const juce::File sampleFile(xml.getStringAttribute("path"));
-        if (sampleFile != juce::File {})
-        {
-            xml.setAttribute("fileName", sampleFile.getFileName());
-            const auto relativePath = portableSampleRelativePath(sampleFile, presetDirectory);
-            if (relativePath.isNotEmpty())
-                xml.setAttribute("relativePath", relativePath);
-        }
-    }
-
-    for (auto* child : xml.getChildIterator())
-    {
-        if (child != nullptr)
-            annotatePortablePresetSampleReferences(*child, presetDirectory);
-    }
-}
-
 juce::String byteHex(uint8_t value)
 {
     return juce::String::toHexString(static_cast<int>(value)).paddedLeft('0', 2).toUpperCase();
@@ -2607,7 +2557,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     macroBox.addItemList(chipper::parameters::macroChoices(), 1);
     playModeBox.addItemList(chipper::parameters::playModeChoices(), 1);
     chipModeBox.setTooltip(withMidiCc("Selects the named chip engine. Each mode shows its current verification status in the footer.", chipper::parameters::id::chipMode));
-    accuracyBox.setTooltip(withMidiCc("Selects requested behavior strictness. Authentic favors chip limits, Hybrid keeps labeled musical helpers, and Inspired permits looser conveniences. The footer verification badge is the implementation claim.", chipper::parameters::id::accuracy));
+    accuracyBox.setTooltip(withMidiCc("Compatibility field reserved for future behavior profiles. All three stored choices currently use the same engine behavior; the footer verification badge states what is actually implemented and tested.", chipper::parameters::id::accuracy));
     presetFilterBox.setTooltip("Filter factory presets and metadata-bearing user presets by favorites, role, engine, or chip-feature tag.");
     presetSearchBox.setTooltip("Search factory and user presets by name, category, chip role, engine, tags, or note text.");
     presetBox.setTooltip("Browse factory and user presets for the selected chip mode. Choosing one applies the sound immediately.");
@@ -9123,7 +9073,7 @@ void ChipperAudioProcessorEditor::saveUserPresetFile(const juce::File& file)
     }
 
     const auto presetDirectory = file.getParentDirectory();
-    annotatePortablePresetSampleReferences(*stateXml, presetDirectory);
+    chipper::state::annotatePortableAssetReferences(*stateXml, presetDirectory);
 
     auto presetName = file.getFileNameWithoutExtension();
     if (presetName.isEmpty())

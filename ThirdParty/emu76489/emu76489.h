@@ -43,6 +43,7 @@ typedef struct __SNG {
 SNG *SNG_new(uint32_t clk, uint32_t rate) ;
 void SNG_delete(SNG *) ;
 void SNG_reset(SNG *) ;
+void SNG_set_clock(SNG *,uint32_t clock) ;
 void SNG_set_rate(SNG *,uint32_t rate) ;
 void SNG_set_quality(SNG *,uint32_t q) ;
 void SNG_writeIO(SNG *SNG, uint32_t val) ;
