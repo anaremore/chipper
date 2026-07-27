@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "State/MotionState.h"
 #include "State/PluginStateSchema.h"
 #include "State/WavetableState.h"
 
@@ -693,6 +694,148 @@ size_t processAllocationCount(ChipperAudioProcessor& processor, juce::MidiBuffer
     processor.processBlock(buffer, midi);
     allocation_probe::enabled.store(false, std::memory_order_release);
     return allocation_probe::count.load(std::memory_order_relaxed);
+}
+
+float bufferPeak(const juce::AudioBuffer<float>& buffer, int startSample, int endSample)
+{
+    auto peak = 0.0f;
+    const auto start = std::clamp(startSample, 0, buffer.getNumSamples());
+    const auto end = std::clamp(endSample, start, buffer.getNumSamples());
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+    {
+        for (int sample = start; sample < end; ++sample)
+            peak = std::max(peak, std::abs(buffer.getSample(channel, sample)));
+    }
+    return peak;
+}
+
+class FixedTempoPlayHead final : public juce::AudioPlayHead
+{
+public:
+    explicit FixedTempoPlayHead(double tempo) : bpm(tempo) {}
+
+    juce::Optional<PositionInfo> getPosition() const override
+    {
+        PositionInfo position;
+        position.setBpm(bpm);
+        position.setIsPlaying(true);
+        return position;
+    }
+
+private:
+    double bpm = 120.0;
+};
+
+bool expectMotionPlaybackAndState()
+{
+    auto ok = true;
+    chipper::MotionPattern pattern;
+    pattern.enabled = true;
+    pattern.rate = chipper::MotionRate::sixtyFourth;
+    pattern.length = 2u;
+    pattern.steps[0].pitch = 0;
+    pattern.steps[0].level = 0u;
+    pattern.steps[0].gate = chipper::MotionGate::hold;
+    pattern.steps[1].pitch = 12;
+    pattern.steps[1].level = chipper::motionMaximumLevel;
+    pattern.steps[1].gate = chipper::MotionGate::retrigger;
+
+    ok &= expectNear(static_cast<float>(chipper::motionStepSamples(chipper::MotionRate::sixtyFourth,
+                                                                   240.0,
+                                                                   48000.0)),
+                     750.0f,
+                     0.001f,
+                     "1/64 tracker motion should resolve to exactly 750 samples at 240 BPM / 48 kHz");
+
+    chipper::state::MotionState everyModeState;
+    for (size_t index = 0; index < everyModeState.patterns.size(); ++index)
+    {
+        auto modePattern = pattern;
+        modePattern.enabled = index % 2u == 0u;
+        modePattern.steps[0].pitch = static_cast<int8_t>(static_cast<int>(index % 49u) - 24);
+        everyModeState.patterns[index] = modePattern;
+    }
+    const auto everyModeXml = chipper::state::createMotionStateXml(everyModeState);
+    chipper::state::MotionState everyModeRestored;
+    ok &= expect(everyModeXml != nullptr
+                     && everyModeXml->getNumChildElements()
+                         == static_cast<int>(chipper::state::motionStateModeCount),
+                 "Motion state should serialize one canonical entry for every chip mode");
+    if (everyModeXml != nullptr)
+        ok &= expect(chipper::state::restoreMotionStateXml(*everyModeXml, everyModeRestored).wasOk()
+                         && everyModeRestored.patterns == everyModeState.patterns,
+                     "Every canonical chip motion ID should round-trip without display-name coupling");
+
+    ChipperAudioProcessor processor;
+    processor.prepareToPlay(48000.0, 900);
+    ok &= expect(processor.setMotionPattern(chipper::ChipMode::nes, pattern),
+                 "Processor should accept a sanitized per-chip motion pattern");
+    const auto initialSnapshot = processor.motionSnapshot(chipper::ChipMode::nes);
+    ok &= expect(initialSnapshot.pattern == pattern && initialSnapshot.revision > 0u,
+                 "Motion snapshot should publish the exact edited NES pattern");
+
+    const auto stateXml = processor.createStateXml();
+    ok &= expect(stateXml != nullptr
+                     && stateXml->getIntAttribute(chipper::state::schemaVersionAttribute) == 4
+                     && stateXml->getChildByName(chipper::state::motionStateTag) != nullptr,
+                 "Schema-v4 processor state should embed edited tracker motion");
+    if (stateXml != nullptr)
+    {
+        ChipperAudioProcessor restored;
+        restored.prepareToPlay(48000.0, 64);
+        ok &= expect(restored.restoreStateXml(*stateXml).wasOk(),
+                     "Tracker motion should restore successfully from project state");
+        ok &= expect(restored.motionSnapshot(chipper::ChipMode::nes).pattern == pattern,
+                     "Tracker motion should survive an exact host-state round trip");
+
+        auto malformed = std::make_unique<juce::XmlElement>(*stateXml);
+        if (auto* motion = malformed->getChildByName(chipper::state::motionStateTag))
+            if (auto* savedPattern = motion->getChildByName(chipper::state::motionPatternStateTag))
+                savedPattern->setAttribute("p0", chipper::motionMaximumPitch + 1);
+        ChipperAudioProcessor malformedRestore;
+        malformedRestore.prepareToPlay(48000.0, 64);
+        ok &= expect(malformedRestore.restoreStateXml(*malformed).failed(),
+                     "Out-of-range tracker motion state should fail explicitly");
+    }
+
+    FixedTempoPlayHead playHead(240.0);
+    processor.setPlayHead(&playHead);
+    juce::AudioBuffer<float> buffer(2, 900);
+    juce::MidiBuffer midi;
+    midi.addEvent(juce::MidiMessage::noteOn(1, 60, 1.0f), 0);
+    processor.processBlock(buffer, midi);
+    const auto playingSnapshot = processor.motionSnapshot(chipper::ChipMode::nes);
+    ok &= expect(bufferPeak(buffer, 0, 750) <= 0.000001f,
+                 "Motion level zero should mute every sample before the exact step boundary");
+    ok &= expect(bufferPeak(buffer, 750, 900) > 0.001f,
+                 "The retriggered second motion step should become audible at its sample boundary");
+    ok &= expect(playingSnapshot.activeStep == 1
+                     && playingSnapshot.hostTempo
+                     && std::abs(playingSnapshot.bpm - 240.0) <= 0.001,
+                 "Motion snapshot should expose the active step and host tempo");
+    processor.setPlayHead(nullptr);
+
+    juce::MidiBuffer emptyMidi;
+    const auto allocations = processAllocationCount(processor, emptyMidi);
+    ok &= expect(allocations == 0u,
+                 "Active sample-accurate tracker motion should not allocate in processBlock");
+
+    ChipperAudioProcessor chipPolyProcessor;
+    chipPolyProcessor.prepareToPlay(48000.0, 256);
+    setPlainFromHost(chipPolyProcessor, chipper::parameters::id::playMode, 1.0f);
+    ok &= expect(chipPolyProcessor.setMotionPattern(chipper::ChipMode::nes, pattern),
+                 "Chip Poly processor should retain edited motion even while playback is bypassed");
+    juce::AudioBuffer<float> chipPolyBuffer(2, 256);
+    juce::MidiBuffer chipPolyMidi;
+    chipPolyMidi.addEvent(juce::MidiMessage::noteOn(1, 60, 1.0f), 0);
+    chipPolyProcessor.processBlock(chipPolyBuffer, chipPolyMidi);
+    const auto bypassSnapshot = chipPolyProcessor.motionSnapshot(chipper::ChipMode::nes);
+    ok &= expect(bufferPeak(chipPolyBuffer, 0, chipPolyBuffer.getNumSamples()) > 0.001f,
+                 "Chip Poly should remain audible when a level-zero motion step is safely bypassed");
+    ok &= expect(bypassSnapshot.bypassedForChipPoly && bypassSnapshot.activeStep == -1,
+                 "Motion snapshot should explicitly report the Chip Poly bypass");
+
+    return ok;
 }
 
 bool expectMappedSampleNoteProcessingDoesNotAllocate()
@@ -2367,8 +2510,8 @@ int main()
     }
 
     auto versionedState = processor.createStateXml();
-    ok &= expect(versionedState != nullptr && versionedState->getIntAttribute("stateSchemaVersion") == 3,
-                 "Saved processor state should declare schema version 3");
+    ok &= expect(versionedState != nullptr && versionedState->getIntAttribute("stateSchemaVersion") == 4,
+                 "Saved processor state should declare schema version 4");
     if (versionedState != nullptr)
     {
         auto legacyState = std::make_unique<juce::XmlElement>(*versionedState);
@@ -2378,8 +2521,8 @@ int main()
         ok &= expect(legacyRestoreProcessor.restoreStateXml(*legacyState).wasOk(),
                      "Unversioned schema-1 state should migrate successfully");
         const auto migratedState = legacyRestoreProcessor.createStateXml();
-        ok &= expect(migratedState != nullptr && migratedState->getIntAttribute("stateSchemaVersion") == 3,
-                     "Migrated state should be re-saved as schema version 3");
+        ok &= expect(migratedState != nullptr && migratedState->getIntAttribute("stateSchemaVersion") == 4,
+                     "Migrated state should be re-saved as schema version 4");
 
         auto futureState = std::make_unique<juce::XmlElement>(*versionedState);
         futureState->setAttribute("stateSchemaVersion", 999);
@@ -2408,6 +2551,7 @@ int main()
 
     for (const auto& fixture : {
              std::pair { "legacy-v1-minimal.xml", true },
+             std::pair { "current-v4-minimal.xml", true },
              std::pair { "current-v3-minimal.xml", true },
              std::pair { "current-v2-minimal.xml", true },
              std::pair { "future-v999.xml", false },
@@ -2485,6 +2629,7 @@ int main()
     escapedAsset.deleteFile();
     portableAssetRoot.deleteRecursively();
 
+    ok &= expectMotionPlaybackAndState();
     ok &= expectSteadyStateProcessingDoesNotAllocate();
     ok &= expectMappedSampleNoteProcessingDoesNotAllocate();
     ok &= expectConcurrentSampleMutationDoesNotDeadlock();

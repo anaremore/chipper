@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 
 #include "Engine/ChipCore.h"
+#include "Engine/MotionData.h"
 #include "Parameters.h"
 
 #include <array>
@@ -39,6 +40,17 @@ public:
         uint8_t maximumSampleValue = 0u;
         bool custom = false;
         uint64_t revision = 0u;
+    };
+
+    struct MotionSnapshot
+    {
+        chipper::MotionPattern pattern;
+        chipper::ChipMode mode = chipper::ChipMode::nes;
+        uint64_t revision = 0u;
+        int activeStep = -1;
+        double bpm = 120.0;
+        bool hostTempo = false;
+        bool bypassedForChipPoly = false;
     };
 
     struct DmcSampleSlot
@@ -185,6 +197,10 @@ public:
     bool setWavetableLane(chipper::ChipMode mode, size_t lane, const chipper::WavetableLane& samples);
     bool resetWavetableLane(chipper::ChipMode mode, size_t lane);
     uint64_t wavetableRevision(chipper::ChipMode mode) const noexcept;
+    MotionSnapshot motionSnapshot(chipper::ChipMode mode) const;
+    bool setMotionPattern(chipper::ChipMode mode, const chipper::MotionPattern& pattern);
+    bool resetMotionPattern(chipper::ChipMode mode);
+    uint64_t motionRevision(chipper::ChipMode mode) const noexcept;
     juce::Result loadNesDmcSampleFile(const juce::File& file);
     juce::Result loadNesDmcSampleDirectory(const juce::File& directory);
     juce::Result loadSpc700BrrSampleFile(const juce::File& file);
@@ -242,6 +258,18 @@ private:
         std::atomic<uint64_t> revision { 0u };
     };
 
+    struct PublishedMotionPattern
+    {
+        PublishedMotionPattern() noexcept;
+        chipper::MotionPattern load() const noexcept;
+        void store(const chipper::MotionPattern& pattern) noexcept;
+
+        std::array<chipper::MotionPattern, 2> slots;
+        mutable std::array<std::atomic<uint32_t>, 2> readerCounts {};
+        std::atomic<uint8_t> activeSlot { 0u };
+        std::atomic<uint64_t> revision { 0u };
+    };
+
     struct HeldMidiNote
     {
         int note = -1;
@@ -256,10 +284,19 @@ private:
     static int editableWavetableIndex(chipper::ChipMode mode) noexcept;
     chipper::WavetableMemory wavetableMemory(chipper::ChipMode mode) const noexcept;
     void publishWavetableMemory(chipper::ChipMode mode, const chipper::WavetableMemory& memory) noexcept;
+    chipper::MotionPattern motionPattern(chipper::ChipMode mode) const noexcept;
     chipper::PatchConfig currentPatchFromParameters() const;
     void replayPendingRegisterState();
     void replayHeldNotes();
     void renderRange(juce::AudioBuffer<float>& buffer, int startSample, int endSample, float outputGain);
+    void renderRangeWithMotion(juce::AudioBuffer<float>& buffer, int startSample, int endSample, float outputGain);
+    void synchronizeActiveMotion(bool replayNotesOnChange);
+    void updateMotionTempoFromPlayhead();
+    void resetMotionPlayback() noexcept;
+    void beginMotionSequence() noexcept;
+    void advanceMotionStep();
+    bool motionPlaybackEnabled() const noexcept;
+    int motionMidiNote(int midiNote) const noexcept;
     void pushOutputScopeSample(float sample) noexcept;
     void applySelectedDmcSampleToCore();
     void applyDmcSampleSlotToCore(int requestedSlot);
@@ -347,6 +384,23 @@ private:
     uint64_t activeOpnbAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
     mutable std::mutex wavetableWriteMutex;
     std::array<PublishedWavetableMemory, editableWavetableModeCount> wavetableMemories;
+    mutable std::mutex motionWriteMutex;
+    std::array<PublishedMotionPattern, chipModeCount> motionPatterns;
+    chipper::MotionPattern activeMotionPattern;
+    uint64_t activeMotionRevision = std::numeric_limits<uint64_t>::max();
+    chipper::ChipMode activeMotionMode = chipper::ChipMode::nes;
+    bool activeMotionInitialized = false;
+    int activeMotionStep = -1;
+    int activeMotionPitch = 0;
+    float activeMotionGain = 1.0f;
+    bool activeMotionCut = false;
+    double motionSamplesUntilNextStep = 0.0;
+    double activeMotionStepSamples = 0.0;
+    double activeMotionBpm = 120.0;
+    std::atomic<int> publishedMotionStep { -1 };
+    std::atomic<double> publishedMotionBpm { 120.0 };
+    std::atomic<bool> publishedMotionHostTempo { false };
+    std::atomic<bool> publishedMotionChipPolyBypass { false };
     chipper::PatchConfig activePatch;
     std::vector<chipper::RegisterWrite> pendingRegisterState;
     chipper::PatchConfig lastObservedMacroPatch;

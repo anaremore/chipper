@@ -45,6 +45,8 @@ add_library(chipper_engine STATIC
     Source/Engine/ChipDescriptors.h
     Source/Engine/ChipCore.cpp
     Source/Engine/ChipCore.h
+    Source/Engine/MotionData.cpp
+    Source/Engine/MotionData.h
     Source/Engine/WavetableData.cpp
     Source/Engine/WavetableData.h
     Source/Presets.cpp
@@ -3634,6 +3636,8 @@ set(CHIPPER_PLUGIN_SOURCES
     Source/PluginEditor.h
     Source/PluginProcessor.cpp
     Source/PluginProcessor.h
+    Source/State/MotionState.cpp
+    Source/State/MotionState.h
     Source/State/PluginStateSchema.cpp
     Source/State/PluginStateSchema.h
     Source/State/WavetableState.cpp

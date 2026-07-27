@@ -19,6 +19,14 @@ juce::Result migrateSchema2To3(juce::XmlElement& xml)
     xml.setAttribute(schemaVersionAttribute, 3);
     return juce::Result::ok();
 }
+
+juce::Result migrateSchema3To4(juce::XmlElement& xml)
+{
+    // Schema 4 adds optional per-chip tracker-motion patterns. Existing
+    // schema-3 states use the disabled neutral pattern for every chip.
+    xml.setAttribute(schemaVersionAttribute, 4);
+    return juce::Result::ok();
+}
 }
 
 juce::Result validateAndMigrate(juce::XmlElement& xml, const juce::Identifier& expectedRootType)
@@ -49,6 +57,8 @@ juce::Result validateAndMigrate(juce::XmlElement& xml, const juce::Identifier& e
             migration = migrateSchema1To2(xml);
         else if (schemaVersion == 2)
             migration = migrateSchema2To3(xml);
+        else if (schemaVersion == 3)
+            migration = migrateSchema3To4(xml);
         if (migration.failed())
             return migration;
         ++schemaVersion;

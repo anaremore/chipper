@@ -2,6 +2,7 @@
 
 #include "Engine/ChipDescriptors.h"
 #include "PluginEditor.h"
+#include "State/MotionState.h"
 #include "State/PluginStateSchema.h"
 #include "State/WavetableState.h"
 
@@ -1011,6 +1012,13 @@ void ChipperAudioProcessor::prepareToPlay(double sampleRate, int)
     currentSampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
     heldNotes.clear();
     heldNotes.reserve(128u);
+    activeMotionInitialized = false;
+    activeMotionRevision = std::numeric_limits<uint64_t>::max();
+    activeMotionStepSamples = 0.0;
+    activeMotionBpm = 120.0;
+    resetMotionPlayback();
+    publishedMotionBpm.store(activeMotionBpm, std::memory_order_release);
+    publishedMotionHostTempo.store(false, std::memory_order_release);
     publishedCoreReady.store(false, std::memory_order_release);
     initializeCorePool();
     hasObservedMacroSnapshot = false;
@@ -1056,6 +1064,42 @@ void ChipperAudioProcessor::PublishedWavetableMemory::store(const chipper::Wavet
     revision.fetch_add(1u, std::memory_order_release);
 }
 
+ChipperAudioProcessor::PublishedMotionPattern::PublishedMotionPattern() noexcept
+{
+    for (auto& readers : readerCounts)
+        readers.store(0u, std::memory_order_relaxed);
+}
+
+chipper::MotionPattern ChipperAudioProcessor::PublishedMotionPattern::load() const noexcept
+{
+    for (;;)
+    {
+        const auto slot = activeSlot.load(std::memory_order_acquire);
+        auto& readers = readerCounts[slot];
+        readers.fetch_add(1u, std::memory_order_acquire);
+
+        if (slot == activeSlot.load(std::memory_order_acquire))
+        {
+            const auto pattern = slots[slot];
+            readers.fetch_sub(1u, std::memory_order_release);
+            return pattern;
+        }
+
+        readers.fetch_sub(1u, std::memory_order_release);
+    }
+}
+
+void ChipperAudioProcessor::PublishedMotionPattern::store(const chipper::MotionPattern& pattern) noexcept
+{
+    const auto nextSlot = static_cast<uint8_t>(activeSlot.load(std::memory_order_relaxed) ^ 1u);
+    while (readerCounts[nextSlot].load(std::memory_order_acquire) != 0u)
+        std::this_thread::yield();
+
+    slots[nextSlot] = chipper::sanitizeMotionPattern(pattern);
+    activeSlot.store(nextSlot, std::memory_order_release);
+    revision.fetch_add(1u, std::memory_order_release);
+}
+
 int ChipperAudioProcessor::editableWavetableIndex(chipper::ChipMode mode) noexcept
 {
     switch (mode)
@@ -1079,6 +1123,14 @@ void ChipperAudioProcessor::publishWavetableMemory(chipper::ChipMode mode,
     const auto index = editableWavetableIndex(mode);
     if (index >= 0)
         wavetableMemories[static_cast<size_t>(index)].store(memory);
+}
+
+chipper::MotionPattern ChipperAudioProcessor::motionPattern(chipper::ChipMode mode) const noexcept
+{
+    const auto index = static_cast<size_t>(mode);
+    return index < motionPatterns.size()
+        ? motionPatterns[index].load()
+        : chipper::MotionPattern {};
 }
 
 size_t ChipperAudioProcessor::corePoolIndex(chipper::ChipMode mode) noexcept
@@ -2272,6 +2324,8 @@ void ChipperAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     juce::ScopedNoDenormals noDenormals;
     buffer.clear();
     ensureCore();
+    updateMotionTempoFromPlayhead();
+    synchronizeActiveMotion(true);
 
     const auto readOutputGain = [this]
     {
@@ -2283,12 +2337,12 @@ void ChipperAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     for (const auto metadata : midiMessages)
     {
         const auto position = std::clamp(metadata.samplePosition, 0, buffer.getNumSamples());
-        renderRange(buffer, renderedUntil, position, readOutputGain());
+        renderRangeWithMotion(buffer, renderedUntil, position, readOutputGain());
         handleMidiMessage(metadata.getMessage());
         renderedUntil = position;
     }
 
-    renderRange(buffer, renderedUntil, buffer.getNumSamples(), readOutputGain());
+    renderRangeWithMotion(buffer, renderedUntil, buffer.getNumSamples(), readOutputGain());
 
     if (core != nullptr)
     {
@@ -2347,6 +2401,154 @@ void ChipperAudioProcessor::renderRange(juce::AudioBuffer<float>& buffer, int st
     }
 }
 
+void ChipperAudioProcessor::renderRangeWithMotion(juce::AudioBuffer<float>& buffer,
+                                                   int startSample,
+                                                   int endSample,
+                                                   float outputGain)
+{
+    if (core == nullptr || endSample <= startSample)
+        return;
+
+    if (! motionPlaybackEnabled() || heldNotes.empty())
+    {
+        renderRange(buffer, startSample, endSample, outputGain);
+        return;
+    }
+
+    if (activeMotionStep < 0)
+        beginMotionSequence();
+
+    auto cursor = startSample;
+    while (cursor < endSample)
+    {
+        while (motionSamplesUntilNextStep <= 0.0 && motionPlaybackEnabled() && ! heldNotes.empty())
+            advanceMotionStep();
+
+        if (! motionPlaybackEnabled() || heldNotes.empty())
+        {
+            renderRange(buffer, cursor, endSample, outputGain);
+            return;
+        }
+
+        const auto samplesToBoundary = std::max(1, static_cast<int>(std::ceil(motionSamplesUntilNextStep)));
+        const auto chunkEnd = std::min(endSample, cursor + samplesToBoundary);
+        renderRange(buffer, cursor, chunkEnd, outputGain * activeMotionGain);
+        motionSamplesUntilNextStep -= static_cast<double>(chunkEnd - cursor);
+        cursor = chunkEnd;
+    }
+}
+
+void ChipperAudioProcessor::updateMotionTempoFromPlayhead()
+{
+    auto bpm = 120.0;
+    auto hostTempo = false;
+    if (auto* currentPlayHead = getPlayHead())
+    {
+        if (const auto position = currentPlayHead->getPosition())
+        {
+            if (const auto positionBpm = position->getBpm();
+                positionBpm && std::isfinite(*positionBpm) && *positionBpm > 0.0)
+            {
+                bpm = std::clamp(*positionBpm, 20.0, 400.0);
+                hostTempo = true;
+            }
+        }
+    }
+
+    const auto nextStepSamples = chipper::motionStepSamples(activeMotionPattern.rate, bpm, currentSampleRate);
+    if (activeMotionStepSamples > 0.0 && motionSamplesUntilNextStep > 0.0)
+        motionSamplesUntilNextStep *= nextStepSamples / activeMotionStepSamples;
+
+    activeMotionBpm = bpm;
+    activeMotionStepSamples = nextStepSamples;
+    publishedMotionBpm.store(bpm, std::memory_order_release);
+    publishedMotionHostTempo.store(hostTempo, std::memory_order_release);
+}
+
+bool ChipperAudioProcessor::motionPlaybackEnabled() const noexcept
+{
+    return activeMotionInitialized
+        && activeMotionPattern.enabled
+        && activePatch.playMode != chipper::PlayMode::chipPoly;
+}
+
+int ChipperAudioProcessor::motionMidiNote(int midiNote) const noexcept
+{
+    return std::clamp(midiNote + (motionPlaybackEnabled() ? activeMotionPitch : 0), 0, 127);
+}
+
+void ChipperAudioProcessor::resetMotionPlayback() noexcept
+{
+    activeMotionStep = -1;
+    activeMotionPitch = 0;
+    activeMotionGain = 1.0f;
+    activeMotionCut = false;
+    motionSamplesUntilNextStep = 0.0;
+    publishedMotionStep.store(-1, std::memory_order_release);
+}
+
+void ChipperAudioProcessor::beginMotionSequence() noexcept
+{
+    if (! motionPlaybackEnabled())
+    {
+        resetMotionPlayback();
+        return;
+    }
+
+    activeMotionStep = 0;
+    const auto& step = activeMotionPattern.steps[0];
+    activeMotionPitch = static_cast<int>(step.pitch);
+    activeMotionGain = static_cast<float>(step.level) / static_cast<float>(chipper::motionMaximumLevel);
+    activeMotionCut = step.gate == chipper::MotionGate::cut;
+    activeMotionStepSamples = chipper::motionStepSamples(activeMotionPattern.rate,
+                                                         activeMotionBpm,
+                                                         currentSampleRate);
+    motionSamplesUntilNextStep = activeMotionStepSamples;
+    publishedMotionStep.store(activeMotionStep, std::memory_order_release);
+}
+
+void ChipperAudioProcessor::advanceMotionStep()
+{
+    if (core == nullptr || ! motionPlaybackEnabled() || heldNotes.empty())
+    {
+        resetMotionPlayback();
+        return;
+    }
+
+    const auto previousPitch = activeMotionPitch;
+    const auto previousCut = activeMotionCut;
+    const auto length = std::clamp(static_cast<int>(activeMotionPattern.length),
+                                   1,
+                                   static_cast<int>(chipper::motionStepCount));
+    activeMotionStep = (std::max(activeMotionStep, 0) + 1) % length;
+    const auto& step = activeMotionPattern.steps[static_cast<size_t>(activeMotionStep)];
+    activeMotionPitch = static_cast<int>(step.pitch);
+    activeMotionGain = static_cast<float>(step.level) / static_cast<float>(chipper::motionMaximumLevel);
+    activeMotionCut = step.gate == chipper::MotionGate::cut;
+
+    const auto held = heldNotes.back();
+    const auto previousNote = std::clamp(held.note + previousPitch, 0, 127);
+    const auto nextNote = std::clamp(held.note + activeMotionPitch, 0, 127);
+    const auto pitchChanged = previousNote != nextNote;
+    const auto shouldRetrigger = step.gate == chipper::MotionGate::retrigger;
+    if (! previousCut && (activeMotionCut || pitchChanged || shouldRetrigger))
+        core->noteOff(previousNote);
+
+    if (! activeMotionCut && (previousCut || pitchChanged || shouldRetrigger))
+    {
+        if (shouldRetrigger)
+            core->noteOn(nextNote, held.velocity);
+        else
+            core->replayHeldNote(nextNote, held.velocity);
+    }
+
+    activeMotionStepSamples = chipper::motionStepSamples(activeMotionPattern.rate,
+                                                         activeMotionBpm,
+                                                         currentSampleRate);
+    motionSamplesUntilNextStep += activeMotionStepSamples;
+    publishedMotionStep.store(activeMotionStep, std::memory_order_release);
+}
+
 void ChipperAudioProcessor::pushOutputScopeSample(float sample) noexcept
 {
     const auto index = outputScopeWriteIndex.fetch_add(1u, std::memory_order_relaxed);
@@ -2362,11 +2564,14 @@ void ChipperAudioProcessor::handleMidiMessage(const juce::MidiMessage& message)
     {
         const auto note = message.getNoteNumber();
         const auto velocity = message.getFloatVelocity();
+        if (heldNotes.empty() && motionPlaybackEnabled())
+            beginMotionSequence();
         rememberHeldNote(note, velocity);
         applyMappedDmcSampleForMidiNote(note);
         applyMappedSpc700BrrSampleForMidiNote(note);
         applyMappedPaulaSampleForMidiNote(note);
-        core->noteOn(note, velocity);
+        if (! motionPlaybackEnabled() || ! activeMotionCut)
+            core->noteOn(motionMidiNote(note), velocity);
     }
     else if (message.isNoteOff())
     {
@@ -2379,7 +2584,8 @@ void ChipperAudioProcessor::handleMidiMessage(const juce::MidiMessage& message)
         if (remainingHolds != 0)
             return;
 
-        core->noteOff(note);
+        if (! motionPlaybackEnabled() || ! activeMotionCut)
+            core->noteOff(motionMidiNote(note));
 
         if (shouldRestorePreviousMonoNote && ! heldNotes.empty())
         {
@@ -2387,14 +2593,22 @@ void ChipperAudioProcessor::handleMidiMessage(const juce::MidiMessage& message)
             applyMappedDmcSampleForMidiNote(held.note);
             applyMappedSpc700BrrSampleForMidiNote(held.note);
             applyMappedPaulaSampleForMidiNote(held.note);
-            core->replayHeldNote(held.note, held.velocity);
+            if (! motionPlaybackEnabled() || ! activeMotionCut)
+                core->replayHeldNote(motionMidiNote(held.note), held.velocity);
         }
+
+        if (heldNotes.empty())
+            resetMotionPlayback();
     }
     else if (message.isAllNotesOff() || message.isAllSoundOff())
     {
-        for (const auto held : heldNotes)
-            core->noteOff(held.note);
+        if (! motionPlaybackEnabled() || ! activeMotionCut)
+        {
+            for (const auto held : heldNotes)
+                core->noteOff(motionMidiNote(held.note));
+        }
         heldNotes.clear();
+        resetMotionPlayback();
     }
     else if (message.isController() && handleMidiController(message))
     {
@@ -2616,8 +2830,33 @@ void ChipperAudioProcessor::ensureCore()
         }
         if (! patchMatches(selectedPatch, activePatch))
         {
+            const auto playModeChanged = selectedPatch.playMode != activePatch.playMode;
+            if (playModeChanged && ! heldNotes.empty())
+            {
+                if (activePatch.playMode == chipper::PlayMode::chipPoly)
+                {
+                    for (const auto held : heldNotes)
+                        core->noteOff(held.note);
+                }
+                else if (motionPlaybackEnabled())
+                {
+                    if (! activeMotionCut)
+                        core->noteOff(motionMidiNote(heldNotes.back().note));
+                }
+                else
+                {
+                    core->noteOff(heldNotes.back().note);
+                }
+            }
+
             activePatch = selectedPatch;
             core->setPatch(activePatch);
+            if (playModeChanged)
+            {
+                resetMotionPlayback();
+                if (motionPlaybackEnabled() && ! heldNotes.empty())
+                    beginMotionSequence();
+            }
             replayHeldNotes();
         }
 
@@ -2670,6 +2909,8 @@ void ChipperAudioProcessor::ensureCore()
     applyOpnbAdpcmASampleToCore();
     applyOpnbAdpcmBSampleToCore();
     replayPendingRegisterState();
+    activeMotionInitialized = false;
+    synchronizeActiveMotion(false);
     replayHeldNotes();
     publishedActiveMode.store(activeMode, std::memory_order_release);
     publishedCoreReady.store(true, std::memory_order_release);
@@ -3388,6 +3629,130 @@ uint64_t ChipperAudioProcessor::wavetableRevision(chipper::ChipMode mode) const 
         : 0u;
 }
 
+ChipperAudioProcessor::MotionSnapshot ChipperAudioProcessor::motionSnapshot(chipper::ChipMode mode) const
+{
+    MotionSnapshot snapshot;
+    const auto index = static_cast<size_t>(mode);
+    if (index >= motionPatterns.size())
+        return snapshot;
+
+    uint64_t revision = 0u;
+    do
+    {
+        revision = motionRevision(mode);
+        snapshot.pattern = motionPattern(mode);
+    }
+    while (revision != motionRevision(mode));
+
+    snapshot.mode = mode;
+    snapshot.revision = revision;
+    if (mode == publishedActiveMode.load(std::memory_order_acquire))
+    {
+        snapshot.activeStep = publishedMotionStep.load(std::memory_order_acquire);
+        snapshot.bpm = publishedMotionBpm.load(std::memory_order_acquire);
+        snapshot.hostTempo = publishedMotionHostTempo.load(std::memory_order_acquire);
+        snapshot.bypassedForChipPoly = publishedMotionChipPolyBypass.load(std::memory_order_acquire);
+    }
+    return snapshot;
+}
+
+bool ChipperAudioProcessor::setMotionPattern(chipper::ChipMode mode,
+                                              const chipper::MotionPattern& requestedPattern)
+{
+    const auto index = static_cast<size_t>(mode);
+    if (index >= motionPatterns.size())
+        return false;
+
+    const auto pattern = chipper::sanitizeMotionPattern(requestedPattern);
+    auto changed = false;
+    {
+        const std::lock_guard<std::mutex> lock(motionWriteMutex);
+        changed = motionPatterns[index].load() != pattern;
+        if (changed)
+            motionPatterns[index].store(pattern);
+    }
+
+    if (changed)
+        updateHostDisplay(juce::AudioProcessorListener::ChangeDetails {}.withNonParameterStateChanged(true));
+    return true;
+}
+
+bool ChipperAudioProcessor::resetMotionPattern(chipper::ChipMode mode)
+{
+    return setMotionPattern(mode, chipper::MotionPattern {});
+}
+
+uint64_t ChipperAudioProcessor::motionRevision(chipper::ChipMode mode) const noexcept
+{
+    const auto index = static_cast<size_t>(mode);
+    return index < motionPatterns.size()
+        ? motionPatterns[index].revision.load(std::memory_order_acquire)
+        : 0u;
+}
+
+void ChipperAudioProcessor::synchronizeActiveMotion(bool replayNotesOnChange)
+{
+    const auto modeIndex = static_cast<size_t>(activeMode);
+    if (modeIndex >= motionPatterns.size())
+        return;
+
+    const auto revision = motionRevision(activeMode);
+    const auto modeChanged = ! activeMotionInitialized || activeMotionMode != activeMode;
+    if (! modeChanged && activeMotionRevision == revision)
+    {
+        publishedMotionChipPolyBypass.store(activeMotionPattern.enabled
+                                                && activePatch.playMode == chipper::PlayMode::chipPoly,
+                                            std::memory_order_release);
+        return;
+    }
+
+    const auto previousPlaybackEnabled = motionPlaybackEnabled();
+    const auto previousCut = activeMotionCut;
+    const auto previousPitch = activeMotionPitch;
+    const auto canReplay = replayNotesOnChange
+        && activeMotionInitialized
+        && ! modeChanged
+        && core != nullptr
+        && ! heldNotes.empty()
+        && activePatch.playMode != chipper::PlayMode::chipPoly;
+
+    if (canReplay)
+    {
+        const auto held = heldNotes.back();
+        if (previousPlaybackEnabled)
+        {
+            if (! previousCut)
+                core->noteOff(std::clamp(held.note + previousPitch, 0, 127));
+        }
+        else
+        {
+            core->noteOff(held.note);
+        }
+    }
+
+    activeMotionPattern = chipper::sanitizeMotionPattern(motionPatterns[modeIndex].load());
+    activeMotionRevision = revision;
+    activeMotionMode = activeMode;
+    activeMotionInitialized = true;
+    resetMotionPlayback();
+    activeMotionStepSamples = chipper::motionStepSamples(activeMotionPattern.rate,
+                                                         activeMotionBpm,
+                                                         currentSampleRate);
+    if (motionPlaybackEnabled() && ! heldNotes.empty())
+        beginMotionSequence();
+
+    if (canReplay)
+    {
+        const auto held = heldNotes.back();
+        if (! motionPlaybackEnabled() || ! activeMotionCut)
+            core->replayHeldNote(motionMidiNote(held.note), held.velocity);
+    }
+
+    publishedMotionChipPolyBypass.store(activeMotionPattern.enabled
+                                            && activePatch.playMode == chipper::PlayMode::chipPoly,
+                                        std::memory_order_release);
+}
+
 void ChipperAudioProcessor::replayPendingRegisterState()
 {
     if (core == nullptr || pendingRegisterState.empty())
@@ -3404,8 +3769,14 @@ void ChipperAudioProcessor::replayHeldNotes()
     if (core == nullptr)
         return;
 
+    if (motionPlaybackEnabled() && activeMotionCut)
+        return;
+
     for (const auto held : heldNotes)
-        core->replayHeldNote(held.note, held.velocity);
+    {
+        const auto note = motionPlaybackEnabled() ? motionMidiNote(held.note) : held.note;
+        core->replayHeldNote(note, held.velocity);
+    }
 }
 
 void ChipperAudioProcessor::rememberHeldNote(int note, float velocity)
@@ -3475,6 +3846,8 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
         xml->removeChildElement(existingOpnbAdpcmBState, true);
     while (auto* existingWavetableState = xml->getChildByName(chipper::state::wavetableStateTag))
         xml->removeChildElement(existingWavetableState, true);
+    while (auto* existingMotionState = xml->getChildByName(chipper::state::motionStateTag))
+        xml->removeChildElement(existingMotionState, true);
 
     if (core != nullptr)
     {
@@ -3501,6 +3874,12 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
     wavetableState.scc = wavetableMemory(chipper::ChipMode::scc);
     if (auto customWaveState = chipper::state::createWavetableStateXml(wavetableState))
         xml->addChildElement(customWaveState.release());
+
+    chipper::state::MotionState motionState;
+    for (size_t index = 0; index < motionState.patterns.size(); ++index)
+        motionState.patterns[index] = motionPatterns[index].load();
+    if (auto customMotionState = chipper::state::createMotionStateXml(motionState))
+        xml->addChildElement(customMotionState.release());
 
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
@@ -3628,6 +4007,7 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     DmcSampleSlot restoredOpnbAdpcmASample;
     DmcSampleSlot restoredOpnbAdpcmBSample;
     chipper::state::WavetableState restoredWavetableState;
+    chipper::state::MotionState restoredMotionState;
     juce::StringArray dmcSampleRestoreIssues;
     juce::StringArray spc700SampleRestoreIssues;
     juce::StringArray paulaSampleRestoreIssues;
@@ -3666,6 +4046,13 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
         if (const auto result = chipper::state::restoreWavetableStateXml(*customWaveState, restoredWavetableState); result.failed())
             return result;
         xml->removeChildElement(customWaveState, true);
+    }
+
+    if (auto* customMotionState = xml->getChildByName(chipper::state::motionStateTag))
+    {
+        if (const auto result = chipper::state::restoreMotionStateXml(*customMotionState, restoredMotionState); result.failed())
+            return result;
+        xml->removeChildElement(customMotionState, true);
     }
 
     if (auto* dmcBankState = xml->getChildByName(dmcBankStateTag))
@@ -3819,6 +4206,11 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
         publishWavetableMemory(chipper::ChipMode::scc, restoredWavetableState.scc);
     }
     {
+        const std::lock_guard<std::mutex> lock(motionWriteMutex);
+        for (size_t index = 0; index < restoredMotionState.patterns.size(); ++index)
+            motionPatterns[index].store(restoredMotionState.patterns[index]);
+    }
+    {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
         dmcSampleBank = std::move(restoredDmcBank);
         dmcSampleRestoreWarning = restoreWarningLine("DMC", dmcSampleRestoreIssues);
@@ -3875,6 +4267,8 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     activeOpnaAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
     activeOpnbAdpcmASampleRevision = std::numeric_limits<uint64_t>::max();
     activeOpnbAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
+    activeMotionInitialized = false;
+    resetMotionPlayback();
     publishedCoreReady.store(false, std::memory_order_release);
     initializeCorePool();
     hasObservedMacroSnapshot = false;
