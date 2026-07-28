@@ -2138,6 +2138,19 @@ std::vector<ChipParameterSpec> oplParameterSpecs()
           0.0f,
           1.0f,
           0.0f },
+        segmentedSpec(ChipParameterRole::dmgStereoRoute,
+                      "opl.stereoRoute",
+                      "Stereo Route",
+                      "Output",
+                      "Writes the YMF262 $C0 output-select bits for every active channel. Preset and Both enable all four OPL3 output buses; Left uses A+C, Right uses B+D, and Alt alternates physical channels.",
+                      {
+                          choice("Preset", "Use centered OPL3 output with all four YMF262 output buses enabled.", 0.0f, 0),
+                          choice("Both", "Set $C0 output bits $F0: enable OPL3 buses A+B+C+D.", 0.25f, 1),
+                          choice("Left", "Set $C0 output bits $50: route through OPL3 buses A+C to the left host channel.", 0.5f, 2),
+                          choice("Right", "Set $C0 output bits $A0: route through OPL3 buses B+D to the right host channel.", 0.75f, 3),
+                          choice("Alt", "Alternate physical OPL3 channels between $50 left and $A0 right output bits.", 1.0f, 4)
+                      },
+                      ParameterKind::chipRegister),
         segmentedSpec(ChipParameterRole::ymEnvelopeShape,
                       "opl.rhythmMode",
                       "OPL Topology",
@@ -6445,6 +6458,18 @@ uint8_t fmOperatorTotalLevelForPatch(ChipMode mode, const PatchConfig& patch, si
     return fmOperatorLevelAdjustedTotalLevel(patch, op, fmOperatorIsCarrierForAlgorithm(ym2612AlgorithmForPatch(patch), op) ? carrier : modulator);
 }
 
+uint8_t oplOutputSelectBitsForPatch(const PatchConfig& patch, size_t channel)
+{
+    switch (std::clamp(patch.dmgStereoRoute, 0, 4))
+    {
+        case 2: return 0x50u;
+        case 3: return 0xa0u;
+        case 4: return (channel % 2u) == 0u ? 0x50u : 0xa0u;
+        case 0:
+        case 1:
+        default: return 0xf0u;
+    }
+}
 uint8_t oplWaveformForPatch(const PatchConfig& patch)
 {
     if (patch.waveShape > 0)

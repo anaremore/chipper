@@ -1114,6 +1114,20 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::oplModulatorMultipleForPatch(oplLead) == 1u, "OPL helper should resolve modulator multiple");
     ok &= expect(chipper::oplModulatorTotalLevelForPatch(oplLead) == 58u, "OPL helper should resolve modulator total level");
     ok &= expect(chipper::oplCarrierTotalLevelForPatch(oplLead) == 6u, "OPL helper should resolve carrier total level");
+    auto oplRoute = oplLead;
+    ok &= expect(chipper::oplOutputSelectBitsForPatch(oplRoute, 0u) == 0xf0u,
+                 "OPL3 Preset route should enable all YMF262 output buses");
+    oplRoute.dmgStereoRoute = 2;
+    ok &= expect(chipper::oplOutputSelectBitsForPatch(oplRoute, 0u) == 0x50u,
+                 "OPL3 Left route should enable YMF262 buses A+C");
+    oplRoute.dmgStereoRoute = 3;
+    ok &= expect(chipper::oplOutputSelectBitsForPatch(oplRoute, 0u) == 0xa0u,
+                 "OPL3 Right route should enable YMF262 buses B+D");
+    oplRoute.dmgStereoRoute = 4;
+    ok &= expect(chipper::oplOutputSelectBitsForPatch(oplRoute, 0u) == 0x50u
+                     && chipper::oplOutputSelectBitsForPatch(oplRoute, 1u) == 0xa0u
+                     && chipper::oplOutputSelectBitsForPatch(oplRoute, 9u) == 0xa0u,
+                 "OPL3 Alt route should alternate exact $50/$A0 bits across low and high banks");
     const auto oplLayer = chipper::makePatchConfig(chipper::ChipMode::opl3,
                                                    chipper::MacroKind::manual,
                                                    0.5f,
@@ -2254,6 +2268,8 @@ int main()
     ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::ymEnvelopeShape, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "OPL Topology");
     ok &= expectSegmentedRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::ymEnvelopeShape, 5, "Preset");
     ok &= expectPreset(chipper::ChipMode::opl3, "opl2-rhythm-kit");
+    ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::dmgStereoRoute, chipper::ParameterKind::chipRegister, chipper::ControlSurface::segmentedChoice, "Stereo Route");
+    ok &= expectSegmentedRegister(chipper::ChipMode::opl3, chipper::ChipParameterRole::dmgStereoRoute, 5, "Preset");
     ok &= expectPreset(chipper::ChipMode::opl3, "opl3-layer-arp");
     ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::macroControl1, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "Connection / 4-op Algorithm");
     ok &= expectSpec(chipper::ChipMode::opl3, chipper::ChipParameterRole::fmOperator1Level, chipper::ParameterKind::chipRegister, chipper::ControlSurface::slider, "OP1 Level");

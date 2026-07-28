@@ -404,6 +404,7 @@ uint8_t fmOperatorMultipleForPatch(ChipMode mode, const PatchConfig& patch, size
 bool fmOperatorIsCarrierForAlgorithm(uint8_t algorithm, size_t op);
 uint8_t fmOperatorTotalLevelForPatch(ChipMode mode, const PatchConfig& patch, size_t op, float velocity = 1.0f);
 uint8_t oplWaveformForPatch(const PatchConfig& patch);
+uint8_t oplOutputSelectBitsForPatch(const PatchConfig& patch, size_t channel);
 uint8_t oplFourOperatorAlgorithmForPatch(const PatchConfig& patch);
 uint8_t oplConnectionForPatch(const PatchConfig& patch);
 uint8_t oplConnectionForOperatorStage(const PatchConfig& patch, size_t stage);

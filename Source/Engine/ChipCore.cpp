@@ -14895,8 +14895,13 @@ public:
              << "\"carrierSustainRelease0\":" << static_cast<int>(currentCarrierSustainRelease[0]) << ","
              << "\"connectionRegister0\":" << static_cast<int>(regs[0xc0]) << ","
              << "\"connectionRegister3\":" << static_cast<int>(regs[0xc3]) << ","
+             << "\"connectionRegister6\":" << static_cast<int>(regs[0xc6]) << ","
+             << "\"connectionRegister7\":" << static_cast<int>(regs[0xc7]) << ","
+             << "\"connectionRegister8\":" << static_cast<int>(regs[0xc8]) << ","
              << "\"highBankConnectionRegister0\":" << static_cast<int>(regs[0x1c0]) << ","
+             << "\"opl3StereoRouteChoice\":" << std::clamp(patch.dmgStereoRoute, 0, 4) << ","
              << "\"opl3OutputSelect0\":" << static_cast<int>(regs[0xc0] & 0xf0u) << ","
+             << "\"opl3OutputSelect1\":" << static_cast<int>(regs[0xc1] & 0xf0u) << ","
              << "\"fmOperatorLevel0\":" << patch.fmOperatorLevels[0] << ","
              << "\"fmOperatorLevel1\":" << patch.fmOperatorLevels[1] << ","
              << "\"fmOperatorLevel2\":" << patch.fmOperatorLevels[2] << ","
@@ -15228,7 +15233,7 @@ private:
         const auto connectionStage = pairedSecondStage ? size_t { 1u } : size_t { 0u };
         const auto connection = oplConnectionForOperatorStage(patch, connectionStage);
         writeOplRegister(channelRegister(channel, 0xc0u),
-                         static_cast<uint8_t>(0xf0u | (feedback << 1u) | connection));
+                         static_cast<uint8_t>(oplOutputSelectBitsForPatch(patch, channel) | (feedback << 1u) | connection));
     }
 
     void applyPatchToAllChannels(bool preserveKeys)
@@ -15238,7 +15243,13 @@ private:
         for (size_t channel = 0; channel < playableChannelCount(); ++channel)
         {
             if (rhythmModeActive() && channel >= 6u)
+            {
+                const auto outputRegister = channelRegister(channel, 0xc0u);
+                const auto lowBits = static_cast<uint8_t>(regs[outputRegister] & 0x0fu);
+                writeOplRegister(outputRegister,
+                                 static_cast<uint8_t>(oplOutputSelectBitsForPatch(patch, channel) | lowBits));
                 continue;
+            }
             applyChannelPatch(channel, channelVelocity[channel] > 0.0f ? channelVelocity[channel] : 1.0f);
         }
 

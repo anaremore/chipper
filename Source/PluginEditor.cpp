@@ -5875,12 +5875,18 @@ void ChipperAudioProcessorEditor::resized()
         stereoSpreadSlider.setBounds({});
         stereoSpreadLabel.setBounds({});
         stereoSpreadValueLabel.setBounds({});
-        dmgStereoRouteLabel.setBounds({});
+
+        auto pathTitleRow = moduleBounds[5].reduced(12, 9);
+        pathTitleRow = pathTitleRow.removeFromTop(std::min(22, pathTitleRow.getHeight()));
+        moduleTitleLabels[5].setBounds(pathTitleRow.removeFromLeft(std::min(210, pathTitleRow.getWidth())));
+        pathTitleRow.removeFromLeft(std::min(12, pathTitleRow.getWidth()));
+        auto routeRow = pathTitleRow.removeFromRight(std::min(620, pathTitleRow.getWidth()));
+        dmgStereoRouteLabel.setBounds(routeRow.removeFromLeft(std::min(105, routeRow.getWidth())));
+        routeRow.removeFromLeft(std::min(6, routeRow.getWidth()));
+        dmgStereoRouteSegmentBounds = routeRow.reduced(0, 1);
+        layoutSegmentedButtons(dmgStereoRouteButtons, dmgStereoRouteSegmentBounds, dmgStereoRouteButtons.size());
         dmgStereoRouteValueLabel.setBounds({});
         dmgStereoRouteBox.setBounds({});
-        dmgStereoRouteSegmentBounds = {};
-        for (auto& button : dmgStereoRouteButtons)
-            button.setBounds({});
     }
     else if (ym2151Layout)
     {
@@ -9098,6 +9104,18 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
         dmgStereoRouteLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         dmgStereoRouteValueLabel.setTooltip(withMidiCcForRole(spec->help, spec->role));
         applyChoices(dmgStereoRouteButtons, spec);
+        const auto isOplRoute = mode == chipper::ChipMode::opl3;
+        for (size_t i = 0; i < dmgStereoRouteButtons.size(); ++i)
+        {
+            auto& button = dmgStereoRouteButtons[i];
+            const auto choiceLabel = i < spec->choices.size() ? juce::String(spec->choices[i].label) : juce::String();
+            button.setName(juce::String(spec->label) + " " + choiceLabel);
+            button.setTitle(isOplRoute ? juce::String("OPL3 stereo route ") + choiceLabel : button.getName());
+            button.setDescription(i < spec->choices.size() ? juce::String(spec->choices[i].help) : juce::String(spec->help));
+            button.setWantsKeyboardFocus(true);
+            button.setComponentID(isOplRoute ? juce::String("opl.stereoRoute.") + juce::String(static_cast<int>(i)) : juce::String());
+            button.setExplicitFocusOrder(isOplRoute ? 460 + static_cast<int>(i) : 0);
+        }
         dmgStereoRouteBox.clear(juce::dontSendNotification);
         for (size_t i = 0; i < spec->choices.size(); ++i)
             dmgStereoRouteBox.addItem(juce::String(spec->choices[i].label), static_cast<int>(i) + 1);
@@ -11870,6 +11888,22 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
 
         if (mode == chipper::ChipMode::opl3)
         {
+            const auto routeLabel = [](uint8_t bits)
+            {
+                if (bits == 0x50u)
+                    return juce::String("L");
+                if (bits == 0xa0u)
+                    return juce::String("R");
+                return juce::String("LR");
+            };
+            const auto lowRoute = routeLabel(chipper::oplOutputSelectBitsForPatch(patch, index));
+            auto routeSuffix = juce::String(" | OUT ") + lowRoute;
+            if (chipper::opl18ChannelLayerForPatch(patch))
+            {
+                const auto highRoute = routeLabel(chipper::oplOutputSelectBitsForPatch(patch, index + 9u));
+                routeSuffix = " | OUT " + lowRoute + "/" + highRoute + " low/high";
+            }
+
             if (chipper::oplRhythmModeForPatch(patch) == 2u && index >= 6u)
             {
                 static constexpr std::array<const char*, 3> rhythmNames {
@@ -11877,25 +11911,25 @@ juce::String ChipperAudioProcessorEditor::sourceCardNativeLabel(chipper::ChipMod
                     "Hi-Hat + Snare | $BD bits 0+3",
                     "Tom + Cymbal | $BD bits 2+1"
                 };
-                return rhythmNames[std::min(index - 6u, size_t { 2u })];
+                return rhythmNames[std::min(index - 6u, size_t { 2u })] + routeSuffix;
             }
 
             if (chipper::opl18ChannelLayerForPatch(patch))
-                return "Layer " + number + "+" + juce::String(static_cast<int>(index + 10u)) + " | paired banks";
+                return "Layer " + number + "+" + juce::String(static_cast<int>(index + 10u)) + " | paired banks" + routeSuffix;
 
             if (chipper::oplFourOperatorPairForPatch(patch) && index < 6u)
             {
                 if (index < 3u)
                     return "Pair " + juce::String(static_cast<int>(index + 1u))
                         + "+" + juce::String(static_cast<int>(index + 4u))
-                        + " | 4-op key lane";
+                        + " | 4-op key lane" + routeSuffix;
 
                 return "Ops 3-4 | follow pair "
                     + juce::String(static_cast<int>(index - 2u))
-                    + "+" + number;
+                    + "+" + number + routeSuffix;
             }
 
-            return "Ch " + number + " | 2-op voice";
+            return "Ch " + number + " | 2-op voice" + routeSuffix;
         }
 
         const auto algorithm = static_cast<int>(mode == chipper::ChipMode::ym2151
@@ -12092,6 +12126,18 @@ juce::String ChipperAudioProcessorEditor::dmgStereoRouteReadout(const chipper::P
     if (displayedMode == chipper::ChipMode::huc6280)
         return huc6280LfoReadout(patch);
 
+    if (displayedMode == chipper::ChipMode::opl3)
+    {
+        static constexpr std::array<const char*, 5> routeNames { "Preset -> Both", "Both", "Left", "Right", "Alt L/R" };
+        const auto choice = std::clamp(patch.dmgStereoRoute, 0, 4);
+        const auto firstBits = chipper::oplOutputSelectBitsForPatch(patch, 0u);
+        const auto secondBits = chipper::oplOutputSelectBitsForPatch(patch, 1u);
+        auto text = juce::String(routeNames[static_cast<size_t>(choice)])
+            + " | $C0 OUT ch1=$" + byteHex(firstBits);
+        if (secondBits != firstBits)
+            text += " ch2=$" + byteHex(secondBits);
+        return text + " | A+C left, B+D right";
+    }
     const auto routeRegister = chipper::dmgStereoRouteRegisterForPatch(patch);
     const auto registerText = juce::String("NR51=0x") + juce::String::toHexString(static_cast<int>(routeRegister)).paddedLeft('0', 2).toUpperCase();
     juce::String routeText;

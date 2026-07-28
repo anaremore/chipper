@@ -933,6 +933,7 @@ bool checkOpl3UnifiedTopologyLayout()
         auto widthOk = setChoiceParameter(processor, chipper::parameters::id::chipMode, chipChoice);
         widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 4);
         widthOk &= setPlainParameter(processor, chipper::parameters::id::macroControl1, 0.67f);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::dmgStereoRoute, 4);
         ChipperAudioProcessorEditor editor(processor);
         editor.setSize(editorWidth, expectedHeightForChipMode(chipChoice));
         editor.runEditorUpdateForLayoutTest();
@@ -1072,36 +1073,50 @@ bool checkOpl3UnifiedTopologyLayout()
                               && performanceBounds.expanded(2).contains(outputBounds)
                               && ! clockBounds.intersects(outputBounds),
                           "OPL3 clock/output controls escaped the compact global strip");
-        widthOk &= expect(editor.getStereoSpreadBoundsForLayoutTest().isEmpty()
-                              && editor.getDmgStereoRouteBoundsForLayoutTest().isEmpty(),
-                          "OPL3 should not leave detached generic routing controls in Active Signal Path");
+        const auto routeBounds = editor.getDmgStereoRouteBoundsForLayoutTest();
+        widthOk &= expect(editor.getStereoSpreadBoundsForLayoutTest().isEmpty(),
+                          "OPL3 should not expose the unrelated modern Stereo Spread control");
+        widthOk &= expect(! routeBounds.isEmpty() && routeBounds.getWidth() >= 480 && routeBounds.getHeight() >= 18
+                              && pathModule.expanded(2).contains(routeBounds)
+                              && editor.isDmgStereoRouteSegmentVisibleForLayoutTest()
+                              && editor.getDmgStereoRouteLabelTextForLayoutTest() == "Stereo Route",
+                          "OPL3 native Stereo Route should remain readable inside Active Signal Path");
 
         widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 1);
         editor.runEditorUpdateForLayoutTest();
         widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(0).contains("Ch 1 | 2-op voice")
+                              && editor.getSourceChannelButtonTextForLayoutTest(0).contains("OUT L")
                               && editor.getSourceChannelButtonTextForLayoutTest(8).contains("Ch 9 | 2-op voice")
+                              && editor.getSourceChannelButtonTextForLayoutTest(8).contains("OUT L")
                               && editor.getModuleSummaryTextForLayoutTest(5).containsIgnoreCase("Nine independent two-operator voices"),
                           "OPL3 melodic topology is not explained by its lanes and active signal path");
 
         widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 2);
         editor.runEditorUpdateForLayoutTest();
         widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(6).contains("Bass Drum")
+                              && editor.getSourceChannelButtonTextForLayoutTest(6).contains("OUT L")
                               && editor.getSourceChannelButtonTextForLayoutTest(7).contains("Hi-Hat + Snare")
+                              && editor.getSourceChannelButtonTextForLayoutTest(7).contains("OUT R")
                               && editor.getSourceChannelButtonTextForLayoutTest(8).contains("Tom + Cymbal")
+                              && editor.getSourceChannelButtonTextForLayoutTest(8).contains("OUT L")
                               && editor.getModuleSummaryTextForLayoutTest(5).contains("$BD percussion"),
                           "OPL3 rhythm topology does not expose the five native percussion roles");
 
         widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 3);
         editor.runEditorUpdateForLayoutTest();
         widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(0).contains("Layer 1+10")
+                              && editor.getSourceChannelButtonTextForLayoutTest(0).contains("OUT L/R low/high")
                               && editor.getSourceChannelButtonTextForLayoutTest(8).contains("Layer 9+18")
+                              && editor.getSourceChannelButtonTextForLayoutTest(8).contains("OUT L/R low/high")
                               && editor.getModuleSummaryTextForLayoutTest(5).containsIgnoreCase("Nine paired layers"),
                           "OPL3 18-channel layer topology does not explain the low/high bank pairing");
 
         widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 4);
         editor.runEditorUpdateForLayoutTest();
         widthOk &= expect(editor.getSourceChannelButtonTextForLayoutTest(0).contains("Pair 1+4")
+                              && editor.getSourceChannelButtonTextForLayoutTest(0).contains("OUT L")
                               && editor.getSourceChannelButtonTextForLayoutTest(3).contains("Ops 3-4")
+                              && editor.getSourceChannelButtonTextForLayoutTest(3).contains("OUT R")
                               && ! editor.isSourceChannelButtonEnabledForLayoutTest(3)
                               && editor.isSourceChannelButtonEnabledForLayoutTest(6)
                               && editor.getModuleSummaryTextForLayoutTest(5).containsIgnoreCase("Three linked 4-op voices")
@@ -1143,6 +1158,7 @@ bool checkOpl3UnifiedTopologyLayout()
         widthOk &= expect(! pathModule.isEmpty()
                               && ! editor.getModuleSummaryBoundsForLayoutTest(5).isEmpty(),
                           "OPL3 active signal-path explanation is missing");
+        widthOk &= checkAccessibleFocusContract(editor, "opl.");
         return widthOk;
     };
 

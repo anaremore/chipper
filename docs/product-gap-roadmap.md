@@ -65,9 +65,9 @@ Planning-only cleanup should not become its own backlog. If no current build rep
    - Remaining scope: transforms and wave mini-presets, BRR/DMC-appropriate editing, sample trim/normalize/auto-loop, and chip-specific shared-memory/voice-count behavior.
 
 3. **FM Operator Editor**
-   - Delivered foundation: YM2612/OPN2, YM2151/OPM, OPN-family FM, and OPL2/OPL3 share editable operator matrices with carrier/modulator roles, multiplier/level/envelope overrides, feedback, resolved register readouts, and chip-appropriate algorithm ownership. OPM also exposes native LFO Depth, waveform, PMS, and AMS with exact register/state evidence. OPL 4-op topology maps both linked `$C0` bits to all four YMF262 algorithms and applies OP1-OP4 controls to the correct physical stages.
+   - Delivered foundation: YM2612/OPN2, YM2151/OPM, OPN-family FM, and OPL2/OPL3 share editable operator matrices with carrier/modulator roles, multiplier/level/envelope overrides, feedback, resolved register readouts, and chip-appropriate algorithm ownership. OPM also exposes native LFO Depth, waveform, PMS, and AMS with exact register/state evidence. OPL 4-op topology maps both linked `$C0` bits to all four YMF262 algorithms and applies OP1-OP4 controls to the correct physical stages; its shared Stereo Route choice writes tested `$F0/$50/$A0` output-select bits and discloses the resolved route in every lane.
    - OPLL path: YM2413/OPLL and NES + VRC7 expose the shared two-operator User0 patch while ROM instruments remain intentionally read-only.
-   - Remaining scope: independent per-channel patches, operator enable/mute, native detune, OPL tremolo/vibrato/KSR/KSL flags, velocity response, dedicated OPL3 18-card editing, and stronger golden/hardware validation.
+   - Remaining scope: independent per-channel patches, operator enable/mute, native detune, OPL tremolo/vibrato/KSR/KSL flags, independently addressable A-D output buses, velocity response, dedicated OPL3 18-card editing, and stronger golden/hardware validation.
    - Non-goal: do not treat the old held-note fade-out as open design work unless it reproduces. FM editor slices must keep held-tail tests green while adding depth.
 
 4. **Drum / SFX Workflow**

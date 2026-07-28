@@ -1081,6 +1081,9 @@ add_test(NAME chipper_render_preset_opn_feedback_bass_held_smoke
 add_test(NAME chipper_render_opl3_smoke
     COMMAND chipper_render --chip opl3 --accuracy authentic --macro lead --wave-shape 4 --clock 14318180 --rate 48000 --seconds 0.08 --note 69 --out opl3-smoke.wav --debug opl3-smoke.json
 )
+add_test(NAME chipper_render_opl3_stereo_route_smoke
+    COMMAND chipper_render --chip opl3 --accuracy authentic --macro manual --play-mode chip-poly --opl-rhythm layer --opl-route alt --control1 1 --control2 1 --wave-shape 2 --clock 14318180 --rate 48000 --seconds 0.10 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/opl3-eighteen-channel-chip-poly-events.txt --out opl3-stereo-route-smoke.wav --debug opl3-stereo-route-smoke.json
+)
 add_test(NAME chipper_render_opl3_chip_poly_smoke
     COMMAND chipper_render --chip opl3 --accuracy authentic --macro manual --play-mode chip-poly --wave-shape 2 --clock 14318180 --rate 48000 --seconds 0.08 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/opl3-nine-channel-chip-poly-events.txt --out opl3-chip-poly-smoke.wav --debug opl3-chip-poly-smoke.json
 )
@@ -2768,6 +2771,10 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_opl3_json_assert PROPERTIES DEPENDS chipper_render_opl3_smoke)
 
+    add_test(NAME chipper_render_opl3_stereo_route_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-stereo-route-smoke.json --implemented-contains ymfm --macro Manual --play-mode "Chip Poly" --note-events 18 --min-peak 0.01 --core-min opl3StereoRouteChoice=4 --core-max opl3StereoRouteChoice=4 --core-min opl3OutputSelect0=80 --core-max opl3OutputSelect0=80 --core-min opl3OutputSelect1=160 --core-max opl3OutputSelect1=160 --core-min opl3HighBankOutputSelect0=160 --core-max opl3HighBankOutputSelect0=160 --core-min connectionRegister0=95 --core-max connectionRegister0=95 --core-min connectionRegister3=175 --core-max connectionRegister3=175 --core-min highBankConnectionRegister0=175 --core-max highBankConnectionRegister0=175 --descriptor-param-kind dmgStereoRoute=chipRegister --descriptor-param-surface dmgStereoRoute=segmentedChoice --descriptor-param-label "dmgStereoRoute=Stereo Route" --descriptor-param-choices dmgStereoRoute=5
+    )
+    set_tests_properties(chipper_render_opl3_stereo_route_assert PROPERTIES DEPENDS chipper_render_opl3_stereo_route_smoke)
     add_test(NAME chipper_render_opl3_chip_poly_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-chip-poly-smoke.json --implemented-contains ymfm --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 9 --min-peak 0.01 --core-min activeChannels=9 --core-max activeChannels=9 --core-min assignedNote0=48 --core-max assignedNote0=48 --core-min assignedNote1=52 --core-max assignedNote1=52 --core-min assignedNote2=55 --core-max assignedNote2=55 --core-min assignedNote3=60 --core-max assignedNote3=60 --core-min assignedNote4=64 --core-max assignedNote4=64 --core-min assignedNote5=67 --core-max assignedNote5=67 --core-min assignedNote6=72 --core-max assignedNote6=72 --core-min assignedNote7=76 --core-max assignedNote7=76 --core-min assignedNote8=79 --core-max assignedNote8=79 --core-min keyOnMask=511 --core-max keyOnMask=511
     )

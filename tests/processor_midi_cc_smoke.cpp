@@ -1349,6 +1349,44 @@ int main()
     ok &= expectFourOperatorCarrierRoleDebug(5, "OPN2");
     ok &= expectFourOperatorCarrierRoleDebug(12, "OPM");
     ok &= expectOpmDirectLfoAndFeedbackPitchNeutrality();
+    {
+        ChipperAudioProcessor oplRouteProcessor;
+        oplRouteProcessor.prepareToPlay(48000.0, 256);
+        sendController(oplRouteProcessor, 70, controllerValueForChoice(oplRouteProcessor, chipper::parameters::id::chipMode, 6));
+        setPlainFromHost(oplRouteProcessor, chipper::parameters::id::macroControl1, 1.0f);
+        setPlainFromHost(oplRouteProcessor, chipper::parameters::id::macroControl2, 1.0f);
+        setPlainFromHost(oplRouteProcessor, chipper::parameters::id::ymEnvelopeShape, 3.0f);
+        sendNoteOn(oplRouteProcessor, 60);
+        sendController(oplRouteProcessor, 94, controllerValueForChoice(oplRouteProcessor, chipper::parameters::id::dmgStereoRoute, 4));
+        const auto oplRouteDebug = oplRouteProcessor.currentCoreDebugStateJson();
+        ok &= expectNear(parameterValue(oplRouteProcessor, chipper::parameters::id::dmgStereoRoute), 4.0f, 0.001f,
+                         "CC94 should remain visible as the OPL3 Alt stereo-route choice");
+        ok &= expect(jsonIntValue(oplRouteDebug, "opl3StereoRouteChoice") == 4
+                         && jsonIntValue(oplRouteDebug, "opl3OutputSelect0") == 0x50
+                         && jsonIntValue(oplRouteDebug, "opl3OutputSelect1") == 0xa0
+                         && jsonIntValue(oplRouteDebug, "opl3HighBankOutputSelect0") == 0xa0
+                         && jsonIntValue(oplRouteDebug, "connectionRegister0") == 0x5f
+                         && jsonIntValue(oplRouteDebug, "connectionRegister3") == 0xaf
+                         && jsonIntValue(oplRouteDebug, "highBankConnectionRegister0") == 0xaf,
+                     "CC94 should update held OPL3 low/high-bank channels to exact alternating $50/$A0 output bits without losing feedback or connection");
+
+        setPlainFromHost(oplRouteProcessor, chipper::parameters::id::ymEnvelopeShape, 2.0f);
+        sendController(oplRouteProcessor, 94, controllerValueForChoice(oplRouteProcessor, chipper::parameters::id::dmgStereoRoute, 1));
+        sendNoteOn(oplRouteProcessor, 64);
+        const auto rhythmBeforeRoute = oplRouteProcessor.currentCoreDebugStateJson();
+        sendController(oplRouteProcessor, 94, controllerValueForChoice(oplRouteProcessor, chipper::parameters::id::dmgStereoRoute, 4));
+        const auto rhythmAfterRoute = oplRouteProcessor.currentCoreDebugStateJson();
+        ok &= expect(jsonIntValue(rhythmBeforeRoute, "connectionRegister6") == 0xff
+                         && jsonIntValue(rhythmBeforeRoute, "connectionRegister7") == 0xff
+                         && jsonIntValue(rhythmBeforeRoute, "connectionRegister8") == 0xff
+                         && jsonIntValue(rhythmBeforeRoute, "rhythmKeyBits") != 0,
+                     "Triggered OPL3 percussion should begin on the Both route with nonzero feedback and connection bits");
+        ok &= expect(jsonIntValue(rhythmAfterRoute, "connectionRegister6") == 0x5f
+                         && jsonIntValue(rhythmAfterRoute, "connectionRegister7") == 0xaf
+                         && jsonIntValue(rhythmAfterRoute, "connectionRegister8") == 0x5f
+                         && jsonIntValue(rhythmAfterRoute, "rhythmKeyBits") == jsonIntValue(rhythmBeforeRoute, "rhythmKeyBits"),
+                     "CC94 should reroute active OPL3 percussion immediately while preserving each $C0 low nibble and rhythm key state");
+    }
     ok &= expectFeedbackPitchNeutrality(5, "OPN2");
     ok &= expectFeedbackPitchNeutrality(6, "OPL3");
 
