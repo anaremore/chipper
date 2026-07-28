@@ -1,6 +1,7 @@
 #include "PluginProcessor.h"
 
 #include "Engine/ChipDescriptors.h"
+#include "Engine/YamahaAdpcmCodec.h"
 #include "PluginEditor.h"
 #include "State/MotionState.h"
 #include "State/PluginStateSchema.h"
@@ -8,6 +9,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstring>
 #include <filesystem>
 #include <limits>
@@ -37,6 +39,9 @@ constexpr auto opnaRhythmRomBytes = 8192;
 constexpr auto opnaAdpcmBMemoryBytes = 262144;
 constexpr auto opnbAdpcmAMemoryBytes = 1048576;
 constexpr auto opnbAdpcmBMemoryBytes = 16777216;
+constexpr auto opnaAdpcmBImportRate = 5200.0;
+constexpr auto opnbAdpcmBImportRate = 8000000.0 / 1536.0;
+constexpr size_t maxConvertedPcmSamples = 2u * 1024u * 1024u;
 constexpr size_t maxEmbeddedOpn2Bytes = 1u * 1024u * 1024u;
 constexpr size_t maxEmbeddedOpnaRhythmBytes = 64u * 1024u;
 constexpr size_t maxEmbeddedOpnaAdpcmBBytes = 1u * 1024u * 1024u;
@@ -73,6 +78,16 @@ std::vector<float> decodePcm8Preview(const std::vector<uint8_t>& bytes)
     decoded.reserve(bytes.size());
     for (const auto byte : bytes)
         decoded.push_back(std::clamp((static_cast<float>(byte) - 128.0f) / 128.0f, -1.0f, 1.0f));
+    return decoded;
+}
+
+std::vector<float> decodeYamahaAdpcmBPreview(const std::vector<uint8_t>& bytes, size_t sampleCount)
+{
+    const auto pcm = chipper::yamahaAdpcm::decodeB(bytes, sampleCount);
+    std::vector<float> decoded;
+    decoded.reserve(pcm.size());
+    for (const auto sample : pcm)
+        decoded.push_back(std::clamp(static_cast<float>(sample) / 32768.0f, -1.0f, 1.0f));
     return decoded;
 }
 
@@ -424,17 +439,22 @@ juce::Result readOpnaRhythmRomFile(const juce::File& file, ChipperAudioProcessor
     return juce::Result::ok();
 }
 
-juce::Result readOpnaAdpcmBSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
+bool fileLooksLikePcmImport(const juce::File& file)
+{
+    return file.hasFileExtension(".wav;.aif;.aiff");
+}
+
+juce::Result readRawAdpcmSampleFile(const juce::File& file,
+                                    ChipperAudioProcessor::DmcSampleSlot& slot,
+                                    const juce::String& label)
 {
     if (! file.existsAsFile())
-        return juce::Result::fail("OPNA ADPCM-B sample file does not exist: " + file.getFullPathName());
-
+        return juce::Result::fail(label + " sample file does not exist: " + file.getFullPathName());
     juce::MemoryBlock block;
     if (! file.loadFileAsData(block))
-        return juce::Result::fail("Could not read OPNA ADPCM-B sample file: " + file.getFullPathName());
-
+        return juce::Result::fail("Could not read " + label + " sample file: " + file.getFullPathName());
     if (block.getSize() == 0u)
-        return juce::Result::fail("OPNA ADPCM-B sample file is empty: " + file.getFullPathName());
+        return juce::Result::fail(label + " sample file is empty: " + file.getFullPathName());
 
     slot.name = file.getFileName();
     slot.path = file.getFullPathName();
@@ -445,42 +465,131 @@ juce::Result readOpnaAdpcmBSampleFile(const juce::File& file, ChipperAudioProces
     return juce::Result::ok();
 }
 
-juce::Result readOpnbAdpcmSampleFile(const juce::File& file,
-                                     ChipperAudioProcessor::DmcSampleSlot& slot,
-                                     const juce::String& label)
+juce::Result readResampledMonoPcm16(const juce::File& file,
+                                    const juce::String& label,
+                                    double targetSampleRate,
+                                    size_t maximumEncodedBytes,
+                                    size_t byteAlignment,
+                                    std::vector<int16_t>& samples)
 {
     if (! file.existsAsFile())
-        return juce::Result::fail("OPNB " + label + " sample file does not exist: " + file.getFullPathName());
+        return juce::Result::fail(label + " sample file does not exist: " + file.getFullPathName());
 
-    juce::MemoryBlock block;
-    if (! file.loadFileAsData(block))
-        return juce::Result::fail("Could not read OPNB " + label + " sample file: " + file.getFullPathName());
+    juce::AudioFormatManager formats;
+    formats.registerBasicFormats();
+    std::unique_ptr<juce::AudioFormatReader> reader(formats.createReaderFor(file));
+    if (reader == nullptr)
+        return juce::Result::fail("Could not decode " + label + " WAV/AIFF file: " + file.getFullPathName());
+    if (reader->lengthInSamples <= 0)
+        return juce::Result::fail(label + " WAV/AIFF file contains no audio frames: " + file.getFullPathName());
+    if (! std::isfinite(reader->sampleRate) || reader->sampleRate <= 0.0 || reader->numChannels == 0u || reader->numChannels > 32u)
+        return juce::Result::fail(label + " WAV/AIFF stream metadata is unsupported: " + file.getFileName());
 
-    if (block.getSize() == 0u)
-        return juce::Result::fail("OPNB " + label + " sample file is empty: " + file.getFullPathName());
+    const auto exactTargetSamples = static_cast<long double>(reader->lengthInSamples)
+        * static_cast<long double>(targetSampleRate) / static_cast<long double>(reader->sampleRate);
+    if (! std::isfinite(static_cast<double>(exactTargetSamples)) || exactTargetSamples <= 0.0L)
+        return juce::Result::fail(label + " WAV/AIFF duration is invalid: " + file.getFileName());
+    if (exactTargetSamples > static_cast<long double>(maxConvertedPcmSamples) + 0.5L)
+        return juce::Result::fail(label + " WAV/AIFF conversion exceeds the 2097152-frame import limit; trim the source or load encoded bytes.");
+
+    const auto roundedTargetSamples = std::max<int64_t>(1, static_cast<int64_t>(std::llround(exactTargetSamples)));
+
+    const auto targetSamples = static_cast<size_t>(roundedTargetSamples);
+    const auto alignment = std::max<size_t>(1u, byteAlignment);
+    const auto encodedBytes = (targetSamples + 1u) / 2u;
+    const auto alignedBytes = ((encodedBytes + alignment - 1u) / alignment) * alignment;
+    if (alignedBytes > maximumEncodedBytes)
+        return juce::Result::fail(label + " WAV/AIFF conversion exceeds the "
+                                  + juce::String(static_cast<juce::int64>(maximumEncodedBytes))
+                                  + "-byte hardware memory window; trim the source or load encoded bytes.");
+
+    constexpr int cacheFrames = 65536;
+    const auto channelCount = static_cast<int>(reader->numChannels);
+    juce::AudioBuffer<float> cache(channelCount, cacheFrames + 1);
+    auto cacheStart = int64_t { -1 };
+    auto cacheCount = 0;
+    auto readFailed = false;
+    const auto monoSampleAt = [&](int64_t sampleIndex) -> float
+    {
+        sampleIndex = std::clamp<int64_t>(sampleIndex, 0, reader->lengthInSamples - 1);
+        if (cacheStart < 0 || sampleIndex < cacheStart || sampleIndex >= cacheStart + cacheCount)
+        {
+            cacheStart = sampleIndex;
+            cacheCount = static_cast<int>(std::min<int64_t>(cacheFrames + 1, reader->lengthInSamples - cacheStart));
+            cache.clear();
+            if (! reader->read(&cache, 0, cacheCount, cacheStart, true, true))
+            {
+                readFailed = true;
+                return 0.0f;
+            }
+        }
+
+        const auto localIndex = static_cast<int>(sampleIndex - cacheStart);
+        auto mixed = 0.0f;
+        for (auto channel = 0; channel < channelCount; ++channel)
+            mixed += cache.getSample(channel, localIndex);
+        return mixed / static_cast<float>(channelCount);
+    };
+
+    samples.resize(targetSamples);
+    const auto sourcePerTarget = reader->sampleRate / targetSampleRate;
+    for (size_t index = 0; index < targetSamples; ++index)
+    {
+        const auto sourcePosition = std::min(static_cast<double>(reader->lengthInSamples - 1),
+                                             static_cast<double>(index) * sourcePerTarget);
+        const auto source0 = static_cast<int64_t>(std::floor(sourcePosition));
+        const auto source1 = std::min<int64_t>(reader->lengthInSamples - 1, source0 + 1);
+        const auto fraction = static_cast<float>(sourcePosition - static_cast<double>(source0));
+        const auto sample0 = monoSampleAt(source0);
+        const auto sample1 = monoSampleAt(source1);
+        const auto mixed = juce::jlimit(-1.0f, 1.0f, sample0 + (sample1 - sample0) * fraction);
+        samples[index] = mixed <= -1.0f
+            ? std::numeric_limits<int16_t>::min()
+            : static_cast<int16_t>(std::lround(mixed * 32767.0f));
+    }
+    if (readFailed)
+        return juce::Result::fail("Could not read " + label + " WAV/AIFF audio frames: " + file.getFullPathName());
+    return juce::Result::ok();
+}
+
+juce::Result readAdpcmBFile(const juce::File& file,
+                            ChipperAudioProcessor::DmcSampleSlot& slot,
+                            const juce::String& label,
+                            double targetSampleRate,
+                            size_t maximumEncodedBytes,
+                            size_t byteAlignment)
+{
+    if (! fileLooksLikePcmImport(file))
+        return readRawAdpcmSampleFile(file, slot, label);
+
+    std::vector<int16_t> pcm;
+    if (auto result = readResampledMonoPcm16(file, label, targetSampleRate, maximumEncodedBytes, byteAlignment, pcm); result.failed())
+        return result;
 
     slot.name = file.getFileName();
     slot.path = file.getFullPathName();
     slot.encoding = chipper::ExternalSampleEncoding::rawBytes;
-    slot.bytes.resize(block.getSize());
-    std::memcpy(slot.bytes.data(), block.getData(), block.getSize());
+    slot.sourceSampleCount = pcm.size();
+    slot.bytes = chipper::yamahaAdpcm::encodeB(pcm, byteAlignment);
     slot.included = true;
+    if (slot.bytes.empty() || slot.bytes.size() > maximumEncodedBytes)
+        return juce::Result::fail(label + " WAV/AIFF conversion produced an invalid encoded payload.");
     return juce::Result::ok();
+}
+
+juce::Result readOpnaAdpcmBSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    return readAdpcmBFile(file, slot, "OPNA ADPCM-B", opnaAdpcmBImportRate, opnaAdpcmBMemoryBytes, 4u);
 }
 
 juce::Result readOpnbAdpcmASampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
 {
-    return readOpnbAdpcmSampleFile(file, slot, "ADPCM-A");
+    return readRawAdpcmSampleFile(file, slot, "OPNB ADPCM-A");
 }
 
 juce::Result readOpnbAdpcmBSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
 {
-    return readOpnbAdpcmSampleFile(file, slot, "ADPCM-B");
-}
-
-bool fileLooksLikePcmImport(const juce::File& file)
-{
-    return file.hasFileExtension(".wav;.aif;.aiff");
+    return readAdpcmBFile(file, slot, "OPNB ADPCM-B", opnbAdpcmBImportRate, opnbAdpcmBMemoryBytes, 256u);
 }
 
 bool fileLooksLikeIff8svxImport(const juce::File& file)
@@ -809,6 +918,12 @@ int reportedSampleByteCount(const ChipperAudioProcessor::DmcSampleSlot& slot)
                                      static_cast<size_t>(std::numeric_limits<int>::max())));
 }
 
+int reportedDecodedSampleCount(const ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    const auto count = slot.sourceSampleCount > 0u ? slot.sourceSampleCount : slot.bytes.size() * 2u;
+    return static_cast<int>(std::min(count, static_cast<size_t>(std::numeric_limits<int>::max())));
+}
+
 void addSampleReferenceMetadata(juce::XmlElement& sampleState,
                                 const ChipperAudioProcessor::DmcSampleSlot& slot)
 {
@@ -820,6 +935,9 @@ void addSampleReferenceMetadata(juce::XmlElement& sampleState,
     sampleState.setAttribute("sourceSampleIndex", slot.sourceSampleIndex);
     sampleState.setAttribute("sourceByteCount",
                              juce::String(static_cast<juce::int64>(sampleSourceByteCount(slot))));
+    if (slot.sourceSampleCount > 0u)
+        sampleState.setAttribute("sourceSampleCount",
+                                 juce::String(static_cast<juce::int64>(slot.sourceSampleCount)));
 }
 
 bool addEmbeddedSamplePayload(juce::XmlElement& sampleState,
@@ -1054,6 +1172,16 @@ EmbeddedSampleRestore restoreEmbeddedSample(const juce::XmlElement& sampleState,
         return result;
     }
 
+    size_t sourceSampleCount = 0u;
+    if (sampleState.hasAttribute("sourceSampleCount")
+        && (! parseSizeAttribute(sampleState, "sourceSampleCount", sourceSampleCount)
+            || sourceSampleCount == 0u
+            || sourceSampleCount > byteCount * 2u))
+    {
+        result.error = "embedded project copy has invalid source-sample metadata";
+        return result;
+    }
+
     slot.name = name;
     slot.path = sampleState.getStringAttribute("path");
     slot.encoding = encoding;
@@ -1062,6 +1190,7 @@ EmbeddedSampleRestore restoreEmbeddedSample(const juce::XmlElement& sampleState,
     slot.loopEnd = hasLoop ? loopEnd : 0u;
     slot.sourceSampleIndex = sourceSampleIndex;
     slot.sourceByteCount = sourceByteCount;
+    slot.sourceSampleCount = sourceSampleCount;
     slot.bytes.resize(byteCount);
     std::memcpy(slot.bytes.data(), decoded.getData(), byteCount);
     result.restored = true;
@@ -2288,11 +2417,15 @@ ChipperAudioProcessor::OpnaAdpcmBSampleInfo ChipperAudioProcessor::opnaAdpcmBSam
     info.path = opnaAdpcmBSample.path;
     info.byteCount = reportedSampleByteCount(opnaAdpcmBSample);
     info.copiedByteCount = std::min(info.byteCount, info.memoryByteCount);
+    info.decodedSampleCount = reportedDecodedSampleCount(opnaAdpcmBSample);
     info.truncated = info.byteCount > info.memoryByteCount;
+    info.convertedFromPcm = opnaAdpcmBSample.sourceSampleCount > 0u;
     info.statusLine = juce::String("ADPCM-B sample: ") + info.sampleName + " ("
         + juce::String(info.byteCount) + " encoded bytes";
     if (info.truncated)
         info.statusLine += ", first " + juce::String(info.copiedByteCount) + " copied";
+    if (info.convertedFromPcm)
+        info.statusLine += ", " + juce::String(info.decodedSampleCount) + " PCM frames @ 5.2 kHz converted";
     info.statusLine += ")";
     appendRestoreWarning(info.statusLine, restoreWarning);
     return info;
@@ -2316,7 +2449,9 @@ ChipperAudioProcessor::OpnbAdpcmSampleInfo ChipperAudioProcessor::opnbAdpcmASamp
     info.path = opnbAdpcmASample.path;
     info.byteCount = reportedSampleByteCount(opnbAdpcmASample);
     info.copiedByteCount = std::min(info.byteCount, info.memoryByteCount);
+    info.decodedSampleCount = reportedDecodedSampleCount(opnbAdpcmASample);
     info.truncated = info.byteCount > info.memoryByteCount;
+    info.convertedFromPcm = opnbAdpcmASample.sourceSampleCount > 0u;
     info.statusLine = juce::String("ADPCM-A sample: ") + info.sampleName + " ("
         + juce::String(info.byteCount) + " encoded bytes";
     if (info.truncated)
@@ -2344,11 +2479,15 @@ ChipperAudioProcessor::OpnbAdpcmSampleInfo ChipperAudioProcessor::opnbAdpcmBSamp
     info.path = opnbAdpcmBSample.path;
     info.byteCount = reportedSampleByteCount(opnbAdpcmBSample);
     info.copiedByteCount = std::min(info.byteCount, info.memoryByteCount);
+    info.decodedSampleCount = reportedDecodedSampleCount(opnbAdpcmBSample);
     info.truncated = info.byteCount > info.memoryByteCount;
+    info.convertedFromPcm = opnbAdpcmBSample.sourceSampleCount > 0u;
     info.statusLine = juce::String("ADPCM-B sample: ") + info.sampleName + " ("
         + juce::String(info.byteCount) + " encoded bytes";
     if (info.truncated)
         info.statusLine += ", first " + juce::String(info.copiedByteCount) + " copied";
+    if (info.convertedFromPcm)
+        info.statusLine += ", " + juce::String(info.decodedSampleCount) + " PCM frames @ 5.208 kHz converted";
     info.statusLine += ")";
     appendRestoreWarning(info.statusLine, restoreWarning);
     return info;
@@ -5358,8 +5497,13 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
             const std::lock_guard<std::mutex> lock(opnaAdpcmBSampleMutex);
             if (! opnaAdpcmBSample.bytes.empty())
             {
-                decoded = decodePcm8Preview(opnaAdpcmBSample.bytes);
-                snapshot.label = "OPNA ADPCM-B sample: " + opnaAdpcmBSample.name;
+                const auto availableSamples = std::min(opnaAdpcmBSample.bytes.size(), static_cast<size_t>(opnaAdpcmBMemoryBytes)) * 2u;
+                const auto requestedSamples = opnaAdpcmBSample.sourceSampleCount > 0u
+                    ? std::min(opnaAdpcmBSample.sourceSampleCount, availableSamples)
+                    : availableSamples;
+                decoded = decodeYamahaAdpcmBPreview(opnaAdpcmBSample.bytes,
+                                                     std::min(requestedSamples, maxConvertedPcmSamples));
+                snapshot.label = "Decoded OPNA ADPCM-B: " + opnaAdpcmBSample.name;
                 snapshot.sourceSampleCount = static_cast<int>(decoded.size());
                 snapshot.loaded = ! decoded.empty();
                 appendRestoreWarning(snapshot.label, opnaAdpcmBSampleRestoreWarning);
@@ -5371,16 +5515,14 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
             const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
             if (opnaRhythmRom.bytes.empty())
             {
-                snapshot.label = "Generated OPNA ADPCM-A rhythm ROM";
+                snapshot.label = "Generated OPNA ADPCM-A rhythm bank; waveform preview unavailable";
                 appendRestoreWarning(snapshot.label, opnaRhythmRomRestoreWarning);
                 return snapshot;
             }
-
-            decoded = decodePcm8Preview(opnaRhythmRom.bytes);
-            snapshot.label = "OPNA rhythm ROM: " + opnaRhythmRom.name;
-            snapshot.sourceSampleCount = static_cast<int>(decoded.size());
-            snapshot.loaded = ! decoded.empty();
+            snapshot.label = "Encoded OPNA ADPCM-A rhythm bank: " + opnaRhythmRom.name
+                + "; waveform preview unavailable";
             appendRestoreWarning(snapshot.label, opnaRhythmRomRestoreWarning);
+            return snapshot;
         }
     }
     else if (mode == chipper::ChipMode::ym2610 || mode == chipper::ChipMode::ym2610b)
@@ -5389,8 +5531,13 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
             const std::lock_guard<std::mutex> lock(opnbAdpcmBSampleMutex);
             if (! opnbAdpcmBSample.bytes.empty())
             {
-                decoded = decodePcm8Preview(opnbAdpcmBSample.bytes);
-                snapshot.label = "OPNB ADPCM-B sample: " + opnbAdpcmBSample.name;
+                const auto availableSamples = std::min(opnbAdpcmBSample.bytes.size(), static_cast<size_t>(opnbAdpcmBMemoryBytes)) * 2u;
+                const auto requestedSamples = opnbAdpcmBSample.sourceSampleCount > 0u
+                    ? std::min(opnbAdpcmBSample.sourceSampleCount, availableSamples)
+                    : availableSamples;
+                decoded = decodeYamahaAdpcmBPreview(opnbAdpcmBSample.bytes,
+                                                     std::min(requestedSamples, maxConvertedPcmSamples));
+                snapshot.label = "Decoded OPNB ADPCM-B: " + opnbAdpcmBSample.name;
                 snapshot.sourceSampleCount = static_cast<int>(decoded.size());
                 snapshot.loaded = ! decoded.empty();
                 appendRestoreWarning(snapshot.label, opnbAdpcmBSampleRestoreWarning);
@@ -5407,12 +5554,10 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
                 appendRestoreWarning(snapshot.label, opnbAdpcmBSampleRestoreWarning);
                 return snapshot;
             }
-
-            decoded = decodePcm8Preview(opnbAdpcmASample.bytes);
-            snapshot.label = "OPNB ADPCM-A sample: " + opnbAdpcmASample.name;
-            snapshot.sourceSampleCount = static_cast<int>(decoded.size());
-            snapshot.loaded = ! decoded.empty();
+            snapshot.label = "Encoded OPNB ADPCM-A bank: " + opnbAdpcmASample.name
+                + "; waveform preview unavailable";
             appendRestoreWarning(snapshot.label, opnbAdpcmASampleRestoreWarning);
+            return snapshot;
         }
     }
 

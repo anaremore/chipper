@@ -71,6 +71,7 @@ public:
         bool included = true;
         int sourceSampleIndex = -1;
         size_t sourceByteCount = 0u;
+        size_t sourceSampleCount = 0u;
     };
 
     struct DmcSampleEntryInfo
@@ -156,9 +157,11 @@ public:
         juce::String path;
         int byteCount = 0;
         int copiedByteCount = 0;
+        int decodedSampleCount = 0;
         int memoryByteCount = 262144;
         bool loaded = false;
         bool truncated = false;
+        bool convertedFromPcm = false;
     };
 
     struct OpnbAdpcmSampleInfo
@@ -168,9 +171,11 @@ public:
         juce::String path;
         int byteCount = 0;
         int copiedByteCount = 0;
+        int decodedSampleCount = 0;
         int memoryByteCount = 1048576;
         bool loaded = false;
         bool truncated = false;
+        bool convertedFromPcm = false;
     };
 
     ChipperAudioProcessor();

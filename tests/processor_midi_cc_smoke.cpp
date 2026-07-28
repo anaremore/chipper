@@ -904,45 +904,45 @@ bool expectMotionPlaybackAndState()
                          && everyModeRestored.patterns == everyModeState.patterns,
                      "Every canonical chip motion ID should round-trip without display-name coupling");
 
-    ChipperAudioProcessor processor;
-    processor.prepareToPlay(48000.0, 900);
-    ok &= expect(processor.setMotionPattern(chipper::ChipMode::nes, pattern),
+    auto processor = std::make_unique<ChipperAudioProcessor>();
+    processor->prepareToPlay(48000.0, 900);
+    ok &= expect(processor->setMotionPattern(chipper::ChipMode::nes, pattern),
                  "Processor should accept a sanitized per-chip motion pattern");
-    const auto initialSnapshot = processor.motionSnapshot(chipper::ChipMode::nes);
+    const auto initialSnapshot = processor->motionSnapshot(chipper::ChipMode::nes);
     ok &= expect(initialSnapshot.pattern == pattern && initialSnapshot.revision > 0u,
                  "Motion snapshot should publish the exact edited NES pattern");
 
-    const auto stateXml = processor.createStateXml();
+    const auto stateXml = processor->createStateXml();
     ok &= expect(stateXml != nullptr
                      && stateXml->getIntAttribute(chipper::state::schemaVersionAttribute) == chipper::state::currentSchemaVersion
                      && stateXml->getChildByName(chipper::state::motionStateTag) != nullptr,
                  "Current-schema processor state should embed edited tracker motion");
     if (stateXml != nullptr)
     {
-        ChipperAudioProcessor restored;
-        restored.prepareToPlay(48000.0, 64);
-        ok &= expect(restored.restoreStateXml(*stateXml).wasOk(),
+        auto restored = std::make_unique<ChipperAudioProcessor>();
+        restored->prepareToPlay(48000.0, 64);
+        ok &= expect(restored->restoreStateXml(*stateXml).wasOk(),
                      "Tracker motion should restore successfully from project state");
-        ok &= expect(restored.motionSnapshot(chipper::ChipMode::nes).pattern == pattern,
+        ok &= expect(restored->motionSnapshot(chipper::ChipMode::nes).pattern == pattern,
                      "Tracker motion should survive an exact host-state round trip");
 
         auto malformed = std::make_unique<juce::XmlElement>(*stateXml);
         if (auto* motion = malformed->getChildByName(chipper::state::motionStateTag))
             if (auto* savedPattern = motion->getChildByName(chipper::state::motionPatternStateTag))
                 savedPattern->setAttribute("p0", chipper::motionMaximumPitch + 1);
-        ChipperAudioProcessor malformedRestore;
-        malformedRestore.prepareToPlay(48000.0, 64);
-        ok &= expect(malformedRestore.restoreStateXml(*malformed).failed(),
+        auto malformedRestore = std::make_unique<ChipperAudioProcessor>();
+        malformedRestore->prepareToPlay(48000.0, 64);
+        ok &= expect(malformedRestore->restoreStateXml(*malformed).failed(),
                      "Out-of-range tracker motion state should fail explicitly");
     }
 
     FixedTempoPlayHead playHead(240.0);
-    processor.setPlayHead(&playHead);
+    processor->setPlayHead(&playHead);
     juce::AudioBuffer<float> buffer(2, 900);
     juce::MidiBuffer midi;
     midi.addEvent(juce::MidiMessage::noteOn(1, 60, 1.0f), 0);
-    processor.processBlock(buffer, midi);
-    const auto playingSnapshot = processor.motionSnapshot(chipper::ChipMode::nes);
+    processor->processBlock(buffer, midi);
+    const auto playingSnapshot = processor->motionSnapshot(chipper::ChipMode::nes);
     ok &= expect(bufferPeak(buffer, 0, 750) <= 0.000001f,
                  "Motion level zero should mute every sample before the exact step boundary");
     ok &= expect(bufferPeak(buffer, 750, 900) > 0.001f,
@@ -951,23 +951,23 @@ bool expectMotionPlaybackAndState()
                      && playingSnapshot.hostTempo
                      && std::abs(playingSnapshot.bpm - 240.0) <= 0.001,
                  "Motion snapshot should expose the active step and host tempo");
-    processor.setPlayHead(nullptr);
+    processor->setPlayHead(nullptr);
 
     juce::MidiBuffer emptyMidi;
-    const auto allocations = processAllocationCount(processor, emptyMidi);
+    const auto allocations = processAllocationCount(*processor, emptyMidi);
     ok &= expect(allocations == 0u,
                  "Active sample-accurate tracker motion should not allocate in processBlock");
 
-    ChipperAudioProcessor chipPolyProcessor;
-    chipPolyProcessor.prepareToPlay(48000.0, 256);
-    setPlainFromHost(chipPolyProcessor, chipper::parameters::id::playMode, 1.0f);
-    ok &= expect(chipPolyProcessor.setMotionPattern(chipper::ChipMode::nes, pattern),
+    auto chipPolyProcessor = std::make_unique<ChipperAudioProcessor>();
+    chipPolyProcessor->prepareToPlay(48000.0, 256);
+    setPlainFromHost(*chipPolyProcessor, chipper::parameters::id::playMode, 1.0f);
+    ok &= expect(chipPolyProcessor->setMotionPattern(chipper::ChipMode::nes, pattern),
                  "Chip Poly processor should retain edited motion even while playback is bypassed");
     juce::AudioBuffer<float> chipPolyBuffer(2, 256);
     juce::MidiBuffer chipPolyMidi;
     chipPolyMidi.addEvent(juce::MidiMessage::noteOn(1, 60, 1.0f), 0);
-    chipPolyProcessor.processBlock(chipPolyBuffer, chipPolyMidi);
-    const auto bypassSnapshot = chipPolyProcessor.motionSnapshot(chipper::ChipMode::nes);
+    chipPolyProcessor->processBlock(chipPolyBuffer, chipPolyMidi);
+    const auto bypassSnapshot = chipPolyProcessor->motionSnapshot(chipper::ChipMode::nes);
     ok &= expect(bufferPeak(chipPolyBuffer, 0, chipPolyBuffer.getNumSamples()) > 0.001f,
                  "Chip Poly should remain audible when a level-zero motion step is safely bypassed");
     ok &= expect(bypassSnapshot.bypassedForChipPoly && bypassSnapshot.activeStep == -1,
@@ -1904,6 +1904,155 @@ int main()
 
         opnbAdpcmAFile.deleteFile();
         opnbAdpcmBFile.deleteFile();
+    }
+
+    {
+        const auto temp = juce::File::getSpecialLocation(juce::File::tempDirectory);
+        auto opnaWav = temp.getChildFile("chipper-opna-adpcm-b-convert.wav");
+        auto opnaAiff = temp.getChildFile("chipper-opna-adpcm-b-convert.aiff");
+        auto malformedWav = temp.getChildFile("chipper-opna-adpcm-b-malformed.wav");
+        opnaWav.deleteFile();
+        opnaAiff.deleteFile();
+        malformedWav.deleteFile();
+        ok &= expect(writeWavFixture(opnaWav, 440.0f), "Should write OPNA ADPCM-B WAV conversion fixture");
+        ok &= expect(writeAiffFixture(opnaAiff, 440.0f), "Should write OPNA ADPCM-B AIFF conversion fixture");
+        ok &= expect(writeBinaryFixture(malformedWav, 64u), "Should write malformed OPNA WAV fixture");
+
+        ChipperAudioProcessor opnaConverted;
+        opnaConverted.prepareToPlay(48000.0, 64);
+        setPlainFromHost(opnaConverted, chipper::parameters::id::chipMode, 17.0f);
+        setPlainFromHost(opnaConverted, chipper::parameters::id::macro, 5.0f);
+        processEmptyBlock(opnaConverted);
+        ok &= expect(opnaConverted.loadOpnaAdpcmBSampleFile(opnaWav).wasOk(),
+                     "OPNA ADPCM-B should convert WAV input");
+        auto opnaConvertedInfo = opnaConverted.opnaAdpcmBSampleInfo();
+        ok &= expect(opnaConvertedInfo.loaded && opnaConvertedInfo.convertedFromPcm
+                         && opnaConvertedInfo.byteCount == 16 && opnaConvertedInfo.copiedByteCount == 16
+                         && opnaConvertedInfo.decodedSampleCount == 28 && ! opnaConvertedInfo.truncated,
+                     "OPNA WAV conversion should resample to 5200 Hz and align encoded memory to four bytes");
+        ok &= expect(opnaConvertedInfo.statusLine.contains("converted")
+                         && opnaConvertedInfo.statusLine.contains("5.2 kHz"),
+                     "OPNA converted status should expose rate and provenance");
+        auto opnaConvertedPreview = opnaConverted.sampleWaveformSnapshot(chipper::ChipMode::ym2608);
+        ok &= expect(opnaConvertedPreview.loaded && opnaConvertedPreview.sourceSampleCount == 28
+                         && opnaConvertedPreview.label.contains("Decoded OPNA ADPCM-B"),
+                     "OPNA preview should decode heard ADPCM-B samples and trim alignment padding");
+        sendNoteOn(opnaConverted, 60);
+        const auto opnaWavDebug = opnaConverted.currentCoreDebugStateJson();
+        ok &= expect(jsonIntValue(opnaWavDebug, "opnaAdpcmBProvidedBytes") == 16
+                         && jsonIntValue(opnaWavDebug, "opnaAdpcmBCopiedBytes") == 16
+                         && jsonIntValue(opnaWavDebug, "opnaAdpcmBEndRegister") == 3
+                         && jsonIntValue(opnaWavDebug, "opnaAdpcmBReadCount") > 0,
+                     "OPNA converted bytes should reach the aligned ymfm memory window and be read");
+        const auto opnaWavChecksum = jsonIntValue(opnaWavDebug, "opnaAdpcmBChecksum");
+        auto opnaConvertedReferenceXml = opnaConverted.createStateXml();
+        auto opnaConvertedProjectXml = opnaConverted.createStateXml(ChipperAudioProcessor::StateAssetPolicy::embedProjectAssets);
+        ok &= expect(opnaConvertedProjectXml != nullptr
+                         && countElementsNamed(*opnaConvertedProjectXml, chipper::state::embeddedSampleStateTag) == 1u,
+                     "OPNA converted project state should embed the canonical encoded fallback only");
+
+        ok &= expect(opnaConverted.loadOpnaAdpcmBSampleFile(opnaAiff).wasOk(),
+                     "OPNA ADPCM-B should convert AIFF input");
+        sendNoteOn(opnaConverted, 60);
+        const auto opnaAiffDebug = opnaConverted.currentCoreDebugStateJson();
+        ok &= expect(jsonIntValue(opnaAiffDebug, "opnaAdpcmBChecksum") == opnaWavChecksum
+                         && opnaConverted.opnaAdpcmBSampleInfo().byteCount == 16,
+                     "Equivalent WAV and AIFF PCM should produce identical deterministic OPNA ADPCM-B bytes");
+        const auto opnaChecksumBeforeMalformed = jsonIntValue(opnaAiffDebug, "opnaAdpcmBChecksum");
+        ok &= expect(opnaConverted.loadOpnaAdpcmBSampleFile(malformedWav).failed(),
+                     "Malformed WAV should fail instead of loading its container bytes as ADPCM-B");
+        ok &= expect(jsonIntValue(opnaConverted.currentCoreDebugStateJson(), "opnaAdpcmBChecksum")
+                         == opnaChecksumBeforeMalformed,
+                     "Failed OPNA conversion must leave the previously loaded sample untouched");
+
+        opnaWav.deleteFile();
+        if (opnaConvertedReferenceXml != nullptr)
+        {
+            ChipperAudioProcessor missingOpnaReference;
+            missingOpnaReference.prepareToPlay(48000.0, 64);
+            ok &= expect(missingOpnaReference.restoreStateXml(*opnaConvertedReferenceXml).wasOk(),
+                         "Missing OPNA reference-only state should restore parameters with an asset warning");
+            const auto missingInfo = missingOpnaReference.opnaAdpcmBSampleInfo();
+            ok &= expect(! missingInfo.loaded && missingInfo.statusLine.containsIgnoreCase("does not exist"),
+                         "Reference-only OPNA restore should not invent converted bytes after source deletion");
+        }
+        if (opnaConvertedProjectXml != nullptr)
+        {
+            ChipperAudioProcessor embeddedOpnaConverted;
+            embeddedOpnaConverted.prepareToPlay(48000.0, 64);
+            ok &= expect(embeddedOpnaConverted.restoreStateXml(*opnaConvertedProjectXml).wasOk(),
+                         "OPNA converted project state should restore after source deletion");
+            processEmptyBlock(embeddedOpnaConverted);
+            const auto embeddedInfo = embeddedOpnaConverted.opnaAdpcmBSampleInfo();
+            const auto embeddedPreview = embeddedOpnaConverted.sampleWaveformSnapshot(chipper::ChipMode::ym2608);
+            ok &= expect(embeddedInfo.loaded && embeddedInfo.convertedFromPcm
+                             && embeddedInfo.byteCount == 16 && embeddedInfo.decodedSampleCount == 28
+                             && embeddedInfo.statusLine.contains("Using embedded project copy")
+                             && embeddedPreview.loaded && embeddedPreview.sourceSampleCount == 28,
+                         "OPNA embedded fallback should preserve encoded bytes and trimmed preview metadata");
+        }
+
+        opnaAiff.deleteFile();
+        malformedWav.deleteFile();
+    }
+
+    {
+        const auto temp = juce::File::getSpecialLocation(juce::File::tempDirectory);
+        auto opnbWav = temp.getChildFile("chipper-opnb-adpcm-b-convert.wav");
+        auto opnbAiff = temp.getChildFile("chipper-opnb-adpcm-b-convert.aiff");
+        opnbWav.deleteFile();
+        opnbAiff.deleteFile();
+        ok &= expect(writeWavFixture(opnbWav, 330.0f), "Should write OPNB ADPCM-B WAV conversion fixture");
+        ok &= expect(writeAiffFixture(opnbAiff, 330.0f), "Should write OPNB ADPCM-B AIFF conversion fixture");
+
+        ChipperAudioProcessor opnbConverted;
+        opnbConverted.prepareToPlay(48000.0, 64);
+        setPlainFromHost(opnbConverted, chipper::parameters::id::chipMode, 18.0f);
+        setPlainFromHost(opnbConverted, chipper::parameters::id::macro, 5.0f);
+        processEmptyBlock(opnbConverted);
+        ok &= expect(opnbConverted.loadOpnbAdpcmBSampleFile(opnbWav).wasOk(),
+                     "OPNB ADPCM-B should convert WAV input");
+        const auto opnbConvertedInfo = opnbConverted.opnbAdpcmBSampleInfo();
+        ok &= expect(opnbConvertedInfo.loaded && opnbConvertedInfo.convertedFromPcm
+                         && opnbConvertedInfo.byteCount == 256 && opnbConvertedInfo.copiedByteCount == 256
+                         && opnbConvertedInfo.decodedSampleCount == 28 && ! opnbConvertedInfo.truncated,
+                     "OPNB WAV conversion should resample to 5208.333 Hz and align encoded memory to 256 bytes");
+        const auto opnbPreview = opnbConverted.sampleWaveformSnapshot(chipper::ChipMode::ym2610);
+        ok &= expect(opnbPreview.loaded && opnbPreview.sourceSampleCount == 28
+                         && opnbPreview.label.contains("Decoded OPNB ADPCM-B"),
+                     "OPNB preview should decode heard ADPCM-B samples and trim alignment padding");
+        sendNoteOn(opnbConverted, 60);
+        const auto opnbWavDebug = opnbConverted.currentCoreDebugStateJson();
+        ok &= expect(jsonIntValue(opnbWavDebug, "opnbAdpcmBProvidedBytes") == 256
+                         && jsonIntValue(opnbWavDebug, "opnbAdpcmBCopiedBytes") == 256
+                         && jsonIntValue(opnbWavDebug, "opnbAdpcmBEndRegister") == 0
+                         && jsonIntValue(opnbWavDebug, "opnbAdpcmBReadCount") > 0,
+                     "OPNB converted bytes should reach the aligned ymfm memory window and be read");
+        const auto opnbWavChecksum = jsonIntValue(opnbWavDebug, "opnbAdpcmBChecksum");
+        auto opnbConvertedProjectXml = opnbConverted.createStateXml(ChipperAudioProcessor::StateAssetPolicy::embedProjectAssets);
+
+        ok &= expect(opnbConverted.loadOpnbAdpcmBSampleFile(opnbAiff).wasOk(),
+                     "OPNB ADPCM-B should convert AIFF input");
+        sendNoteOn(opnbConverted, 60);
+        ok &= expect(jsonIntValue(opnbConverted.currentCoreDebugStateJson(), "opnbAdpcmBChecksum") == opnbWavChecksum,
+                     "Equivalent WAV and AIFF PCM should produce identical deterministic OPNB ADPCM-B bytes");
+
+        opnbWav.deleteFile();
+        if (opnbConvertedProjectXml != nullptr)
+        {
+            ChipperAudioProcessor embeddedOpnbConverted;
+            embeddedOpnbConverted.prepareToPlay(48000.0, 64);
+            ok &= expect(embeddedOpnbConverted.restoreStateXml(*opnbConvertedProjectXml).wasOk(),
+                         "OPNB converted project state should restore after source deletion");
+            processEmptyBlock(embeddedOpnbConverted);
+            const auto embeddedInfo = embeddedOpnbConverted.opnbAdpcmBSampleInfo();
+            ok &= expect(embeddedInfo.loaded && embeddedInfo.convertedFromPcm
+                             && embeddedInfo.byteCount == 256 && embeddedInfo.decodedSampleCount == 28
+                             && embeddedInfo.statusLine.contains("Using embedded project copy"),
+                         "OPNB embedded fallback should preserve aligned converted bytes and metadata");
+        }
+
+        opnbAiff.deleteFile();
     }
 
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 7));

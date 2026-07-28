@@ -15904,11 +15904,11 @@ void ChipperAudioProcessorEditor::updateOpn2DacSampleControls()
 void ChipperAudioProcessorEditor::updateOpnaRhythmRomControls()
 {
     dmcSampleLabel.setText("Drum/Hit Layer", juce::dontSendNotification);
-    dmcSampleLabel.setTooltip("Load user-owned YM2608 ADPCM-A rhythm ROM bytes and encoded ADPCM-B sample-memory bytes. Without files, Chipper uses generated rhythm bytes and leaves ADPCM-B empty.");
+    dmcSampleLabel.setTooltip("Load a user-owned YM2608 ADPCM-A rhythm bank and an optional shared ADPCM-B layer. WAV/AIFF audio is converted to ADPCM-B automatically.");
     dmcSampleFileButton.setButtonText("Rhythm");
     dmcSampleFileButton.setTooltip("Load one user-owned OPNA ADPCM-A rhythm ROM byte image. The first 8192 bytes fill the YM2608 rhythm ROM address window.");
     dmcSampleFolderButton.setButtonText("ADPCM-B");
-    dmcSampleFolderButton.setTooltip("Load one user-owned encoded OPNA ADPCM-B byte image. The first 256 KiB fill YM2608 ADPCM-B sample memory; WAV/AIFF conversion is planned.");
+    dmcSampleFolderButton.setTooltip("Load encoded OPNA ADPCM-B bytes or WAV/AIFF audio. Audio is downmixed, resampled to the C4 playback rate, converted, and aligned automatically.");
     dmcSampleBankButton.setButtonText("Bank");
     dmcSampleSlotBox.setEnabled(false);
     dmcSampleSlotBox.setSelectedId(0, juce::dontSendNotification);
@@ -15925,8 +15925,13 @@ void ChipperAudioProcessorEditor::updateOpnaRhythmRomControls()
         ? " | B " + compactSampleName(adpcmBInfo.sampleName, 18) + " " + juce::String(adpcmBInfo.copiedByteCount) + "/"
             + juce::String(adpcmBInfo.memoryByteCount)
         : " | B empty";
+    if (adpcmBInfo.convertedFromPcm)
+        visibleStatus += " converted";
     if (rhythmInfo.truncated || adpcmBInfo.truncated)
         visibleStatus += " | truncated";
+    if (rhythmInfo.statusLine.containsIgnoreCase("embedded project copy")
+        || adpcmBInfo.statusLine.containsIgnoreCase("embedded project copy"))
+        visibleStatus += " | project copy";
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
 
     auto tooltip = rhythmInfo.statusLine
@@ -15948,7 +15953,7 @@ void ChipperAudioProcessorEditor::updateOpnaRhythmRomControls()
         if (adpcmBInfo.truncated)
             tooltip += "\nOnly the first 262144 encoded bytes are used by the YM2608 ADPCM-B memory window.";
     }
-    tooltip += "\nADPCM-B files must already be encoded YM2608 ADPCM-B bytes; WAV/AIFF import, conversion, and sample editing remain planned.";
+    tooltip += "\nADPCM-B accepts encoded byte images unchanged or converts WAV/AIFF to 5200 Hz Yamaha ADPCM-B. Encoded project state stores the converted bytes as a bounded fallback.";
     dmcSampleStatusLabel.setTooltip(tooltip);
     updateSampleWaveformPreview(chipper::ChipMode::ym2608);
 }
@@ -15956,11 +15961,11 @@ void ChipperAudioProcessorEditor::updateOpnaRhythmRomControls()
 void ChipperAudioProcessorEditor::updateOpnbAdpcmSampleControls()
 {
     dmcSampleLabel.setText("Drum/Hit Layers", juce::dontSendNotification);
-    dmcSampleLabel.setTooltip("Load user-owned YM2610-family ADPCM-A and ADPCM-B encoded sample-memory bytes. Without files, both OPNB ADPCM memories stay empty.");
+    dmcSampleLabel.setTooltip("Load a user-packed YM2610 ADPCM-A bank and an optional shared ADPCM-B layer. WAV/AIFF audio is converted only for the single ADPCM-B layer.");
     dmcSampleFileButton.setButtonText("ADPCM-A");
     dmcSampleFileButton.setTooltip("Load one user-owned encoded OPNB ADPCM-A byte image. The first 1 MiB fills YM2610-family ADPCM-A sample memory.");
     dmcSampleFolderButton.setButtonText("ADPCM-B");
-    dmcSampleFolderButton.setTooltip("Load one user-owned encoded OPNB ADPCM-B byte image. The first 16 MiB fills YM2610-family ADPCM-B sample memory; WAV/AIFF conversion is planned.");
+    dmcSampleFolderButton.setTooltip("Load encoded OPNB ADPCM-B bytes or WAV/AIFF audio. Audio is downmixed, resampled to the C4 playback rate, converted, and 256-byte aligned automatically.");
     dmcSampleBankButton.setButtonText("Bank");
     dmcSampleSlotBox.setEnabled(false);
     dmcSampleSlotBox.setSelectedId(0, juce::dontSendNotification);
@@ -15976,9 +15981,14 @@ void ChipperAudioProcessorEditor::updateOpnbAdpcmSampleControls()
         ? " | B " + compactSampleName(adpcmBInfo.sampleName, 18) + " " + juce::String(adpcmBInfo.copiedByteCount) + "/"
             + juce::String(adpcmBInfo.memoryByteCount)
         : " | B empty";
+    if (adpcmBInfo.convertedFromPcm)
+        visibleStatus += " converted";
     visibleStatus = "Drum/Hit only | " + visibleStatus;
     if (adpcmAInfo.truncated || adpcmBInfo.truncated)
         visibleStatus += " | truncated";
+    if (adpcmAInfo.statusLine.containsIgnoreCase("embedded project copy")
+        || adpcmBInfo.statusLine.containsIgnoreCase("embedded project copy"))
+        visibleStatus += " | project copy";
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
 
     auto tooltip = adpcmAInfo.statusLine
@@ -15996,7 +16006,7 @@ void ChipperAudioProcessorEditor::updateOpnbAdpcmSampleControls()
         if (adpcmBInfo.truncated)
             tooltip += "\nOnly the first 16777216 encoded bytes are used by the YM2610 ADPCM-B memory window.";
     }
-    tooltip += "\nFiles must already be encoded YM2610-family ADPCM bytes; WAV/AIFF import, conversion, and sample editing remain planned.";
+    tooltip += "\nADPCM-A remains a user-packed six-region encoded bank image. ADPCM-B accepts encoded bytes unchanged or converts WAV/AIFF to 5208.333 Hz Yamaha ADPCM-B; project state stores converted bytes as a bounded fallback.";
     dmcSampleStatusLabel.setTooltip(tooltip);
     updateSampleWaveformPreview(isOpnbMode(displayedMode) ? displayedMode : chipper::ChipMode::ym2610);
 }
@@ -16179,9 +16189,9 @@ void ChipperAudioProcessorEditor::chooseOpnaRhythmRomFile()
 
 void ChipperAudioProcessorEditor::chooseOpnaAdpcmBSampleFile()
 {
-    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose an OPNA ADPCM-B encoded sample",
+    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose OPNA ADPCM-B bytes or WAV/AIFF audio",
                                                            juce::File {},
-                                                           "*.bin;*.dat;*.adpcm;*.adpcmb;*.*");
+                                                           "*.bin;*.raw;*.dat;*.adpcm;*.adpcmb;*.wav;*.aif;*.aiff");
     dmcSampleChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
                                   [this](const juce::FileChooser& chooser)
                                   {
@@ -16197,7 +16207,7 @@ void ChipperAudioProcessorEditor::chooseOpnbAdpcmASampleFile()
 {
     dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose an OPNB ADPCM-A encoded sample",
                                                            juce::File {},
-                                                           "*.bin;*.dat;*.adpcm;*.adpcma;*.*");
+                                                           "*.bin;*.raw;*.dat;*.adpcm;*.adpcma");
     dmcSampleChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
                                   [this](const juce::FileChooser& chooser)
                                   {
@@ -16211,9 +16221,9 @@ void ChipperAudioProcessorEditor::chooseOpnbAdpcmASampleFile()
 
 void ChipperAudioProcessorEditor::chooseOpnbAdpcmBSampleFile()
 {
-    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose an OPNB ADPCM-B encoded sample",
+    dmcSampleChooser = std::make_unique<juce::FileChooser>("Choose OPNB ADPCM-B bytes or WAV/AIFF audio",
                                                            juce::File {},
-                                                           "*.bin;*.dat;*.adpcm;*.adpcmb;*.*");
+                                                           "*.bin;*.raw;*.dat;*.adpcm;*.adpcmb;*.wav;*.aif;*.aiff");
     dmcSampleChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
                                   [this](const juce::FileChooser& chooser)
                                   {
@@ -16493,7 +16503,7 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         else if (mode == chipper::ChipMode::ym2608 && i == 5)
         {
             moduleTitleLabels[i].setText("Rhythm + ADPCM Layers", juce::dontSendNotification);
-            summary = "Drum/Hit layers generated or user ADPCM-A rhythm and optional encoded ADPCM-B memory.";
+            summary = "Drum/Hit layers use generated or user ADPCM-A rhythm plus raw or converted ADPCM-B memory.";
         }
         if (i == 1 && hasLiveCore && usesSourceChannelSurface(mode))
         {

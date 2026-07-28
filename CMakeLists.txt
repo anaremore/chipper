@@ -49,6 +49,8 @@ add_library(chipper_engine STATIC
     Source/Engine/MotionData.h
     Source/Engine/WavetableData.cpp
     Source/Engine/WavetableData.h
+    Source/Engine/YamahaAdpcmCodec.cpp
+    Source/Engine/YamahaAdpcmCodec.h
     Source/Presets.cpp
     Source/Presets.h
 )
@@ -63,6 +65,9 @@ target_link_libraries(chipper_render PRIVATE chipper_engine)
 add_executable(chipper_descriptor_smoke tests/descriptor_smoke.cpp)
 target_link_libraries(chipper_descriptor_smoke PRIVATE chipper_engine)
 
+add_executable(chipper_yamaha_adpcm_codec_smoke tests/yamaha_adpcm_codec_smoke.cpp)
+target_link_libraries(chipper_yamaha_adpcm_codec_smoke PRIVATE chipper_engine)
+
 enable_testing()
 if (Python3_Interpreter_FOUND)
     add_test(NAME chipper_reference_comparator_selftest
@@ -71,6 +76,12 @@ if (Python3_Interpreter_FOUND)
 endif()
 add_test(NAME chipper_descriptor_smoke
     COMMAND chipper_descriptor_smoke
+)
+add_test(NAME chipper_yamaha_adpcm_codec_smoke
+    COMMAND chipper_yamaha_adpcm_codec_smoke
+)
+set_tests_properties(chipper_yamaha_adpcm_codec_smoke PROPERTIES
+    LABELS "codec;release-gate"
 )
 add_test(NAME chipper_render_nes_smoke
     COMMAND chipper_render --chip nes --accuracy authentic --clock 1789773 --rate 48000 --seconds 0.10 --note 69 --out nes-smoke.wav --debug nes-smoke.json
