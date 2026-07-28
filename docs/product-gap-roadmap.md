@@ -17,7 +17,7 @@ Recent work has converted many early placeholder panels into playable, chip-awar
 - Factory and user presets are real user value only when they load audible, playable states and visibly update the chip controls.
 - Source cards are now the baseline home for chip-owned controls. Do not move per-channel duty, wave, sample, or level controls back into detached summary panels unless the chip hardware really shares that control.
 - Chips without native ADSR must keep helper envelope modules labeled as Chipper amp/gate helpers, never as native ADSR or reused NES decay behavior.
-- Motion Lab is a global Big Mono workflow, not eight fake automation lanes per chip. Its eight-step pitch, post-chip level, and Hold/Trig/Cut data stays independent per chip, follows host tempo with an explicit 120 BPM fallback, survives current schema-v8 project recall, and remains visibly bypassed rather than ambiguously applied in Chip Poly.
+- Motion Lab is a global Big Mono workflow, not eight fake automation lanes per chip. Its eight-step pitch, post-chip level, and Hold/Trig/Cut data stays independent per chip, follows host tempo with an explicit 120 BPM fallback, survives current schema-v9 project recall, and remains visibly bypassed rather than ambiguously applied in Chip Poly.
 - Roadmap-only chip features should remain in docs until they have an audible engine path, stable parameters, state recall, and renderer or descriptor coverage. The plugin UI should favor implemented, truthful surfaces over planned-looking controls.
 
 Do not reopen fixed regressions in this roadmap unless a current build reproduces them and the owning gate fails. Otherwise, keep pushing the remaining work: deeper chip editors, preset quality, sample workflows, richer motion/SFX destinations, state recall, and verification evidence.
@@ -54,7 +54,7 @@ Planning-only cleanup should not become its own backlog. If no current build rep
 ## Highest-Value Product Gaps
 
 1. **Chip-Aware Tracker Motion / SFX Gestures**
-   - Delivered foundation: the global Motion Lab stores one independent eight-step pattern for every canonical chip, with -24..+24 semitone pitch, 0-15 post-chip level, Hold/Trig/Cut, 1-8 length, 1/8-1/64 host-tempo rates, six templates, sample-accurate boundaries, 120 BPM fallback, current schema-v8 recall, and an explicit Chip Poly bypass.
+   - Delivered foundation: the global Motion Lab stores one independent eight-step pattern for every canonical chip, with -24..+24 semitone pitch, 0-15 post-chip level, Hold/Trig/Cut, 1-8 length, 1/8-1/64 host-tempo rates, six templates, sample-accurate boundaries, 120 BPM fallback, current schema-v9 recall, and an explicit Chip Poly bypass.
    - Signal-path truth: pitch/retrigger/cut resolve through the selected chip core; level is intentionally post-chip and labeled that way. The UI names the chip-aware pitch/key destination without pretending the level step writes a native volume register.
    - Remaining scope: vibrato, duty/wave/noise cycling, per-chip register traces, one-shot SFX envelopes, fake-chord policies, and a future deterministic per-voice motion design for Chip Poly.
    - Non-regression rule: keep the lock-free/no-allocation audio path, exact step-boundary tests, per-chip state isolation, two-width layout/accessibility gate, and active-step non-color cue green.

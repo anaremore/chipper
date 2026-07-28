@@ -72,6 +72,11 @@ public:
         int sourceSampleIndex = -1;
         size_t sourceByteCount = 0u;
         size_t sourceSampleCount = 0u;
+        double sourceRateHz = 0.0;
+        int rootNote = 60;
+        size_t trimStart = 0u;
+        size_t trimEnd = 0u;
+        bool holdLastValue = false;
     };
 
     struct DmcSampleEntryInfo
@@ -134,8 +139,13 @@ public:
         int byteCount = 0;
         int copiedByteCount = 0;
         int memoryByteCount = 262144;
+        double sourceRateHz = 0.0;
+        int rootNote = 60;
+        size_t trimStart = 0u;
+        size_t trimEnd = 0u;
         bool loaded = false;
         bool truncated = false;
+        bool holdLastValue = false;
     };
 
     struct OpnaRhythmRomInfo
@@ -256,6 +266,8 @@ public:
     juce::Result loadPaulaSampleFile(const juce::File& file);
     juce::Result loadPaulaSampleDirectory(const juce::File& directory);
     juce::Result loadOpn2DacSampleFile(const juce::File& file);
+    juce::Result configureOpn2DacSample(int rootNote, size_t trimStart, size_t trimEnd, bool holdLastValue);
+    void clearOpn2DacSample();
     juce::Result loadOpnaRhythmRomFile(const juce::File& file);
     juce::Result loadOpnaAdpcmBSampleFile(const juce::File& file);
     juce::Result loadOpnbAdpcmASampleFile(const juce::File& file);

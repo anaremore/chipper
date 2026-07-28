@@ -8706,15 +8706,33 @@ std::array<int, 4> fmOperatorReleaseRatesForPreset(const PresetInfo& preset)
     return { 0, 0, 0, 0 };
 }
 
-PatchConfig patchConfigForPreset(const PresetInfo& preset)
+std::array<bool, 9> sourceMaskForPreset(const PresetInfo& preset)
 {
     const auto anySourceEnabled = std::any_of(preset.sourceEnabled.begin(), preset.sourceEnabled.end(), [](bool enabled) { return enabled; });
-    const auto useSource5 = anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 5u;
-    const auto useSource6 = anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 6u;
-    const auto useSource7 = anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 7u;
-    const auto useSource8 = anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 8u;
-    const auto useSource9 = anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 9u;
+    std::array<bool, 9> mask {
+        preset.sourceEnabled[0],
+        preset.sourceEnabled[1],
+        preset.sourceEnabled[2],
+        preset.sourceEnabled[3],
+        anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 5u,
+        anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 6u,
+        anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 7u,
+        anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 8u,
+        anySourceEnabled && nativeSourceCountForMode(preset.chip) >= 9u
+    };
 
+    if (preset.id == "opn2-dac-kick")
+        return { false, false, false, false, false, true, false, false, false };
+    if (preset.id == "opn2-dac-snare")
+        return { true, false, false, false, false, true, false, false, false };
+    if (preset.id == "opn2-dac-chord-hit")
+        return { true, true, true, true, false, true, false, false, false };
+
+    return mask;
+}
+
+PatchConfig patchConfigForPreset(const PresetInfo& preset)
+{
     return makePatchConfig(preset.chip,
                            preset.macro,
                            preset.controls[0],
@@ -8722,17 +8740,7 @@ PatchConfig patchConfigForPreset(const PresetInfo& preset)
                            preset.controls[2],
                            preset.controls[3],
                            preset.playMode,
-                           {
-                               preset.sourceEnabled[0],
-                               preset.sourceEnabled[1],
-                               preset.sourceEnabled[2],
-                               preset.sourceEnabled[3],
-                               useSource5,
-                               useSource6,
-                               useSource7,
-                               useSource8,
-                               useSource9
-                           },
+                           sourceMaskForPreset(preset),
                            { preset.source1Level, preset.source2Level, preset.source3Level, preset.source4Level, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f },
                            preset.stereoSpread,
                            preset.envelopeDecay,

@@ -78,6 +78,7 @@ std::array<int, 4> fmOperatorAttackRatesForPreset(const PresetInfo& preset);
 std::array<int, 4> fmOperatorDecayRatesForPreset(const PresetInfo& preset);
 std::array<int, 4> fmOperatorSustainRatesForPreset(const PresetInfo& preset);
 std::array<int, 4> fmOperatorReleaseRatesForPreset(const PresetInfo& preset);
+std::array<bool, 9> sourceMaskForPreset(const PresetInfo& preset);
 PatchConfig patchConfigForPreset(const PresetInfo& preset);
 
 } // namespace chipper

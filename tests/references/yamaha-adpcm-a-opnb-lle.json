@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "fixture": {
+    "file": "yamaha-adpcm-a-opnb-lle.wav",
+    "sha256": "dad60ac442ecd4ecb61b6edefb4142080e7cf404ba50e10d9c1e7053115c58e8",
+    "encoding": "PCM16LE",
+    "sampleRate": 48000,
+    "channelCount": 2,
+    "frameCount": 9600,
+    "durationSeconds": 0.2
+  },
+  "reference": {
+    "kind": "trusted-emulator",
+    "engine": "YM2608-LLE YM2610 path",
+    "repository": "https://github.com/nukeykt/YM2608-LLE",
+    "commit": "7a2aca7b6830b96e48e3a4e1a40d15525993fa60",
+    "license": "GPL-2.0-or-later (offline reference oracle only)",
+    "generator": "tools/generate_yamaha_adpcm_a_lle_reference.c",
+    "generatedFromCopyrightedMusicOrGameData": false,
+    "notes": "Die-shot-level YM2610 model built in a sparse isolated checkout with the documented two-line YM2610 compile guard. Only Chipper's original synthetic external-memory bytes were supplied. No oracle source or binary is vendored, linked, or shipped with Chipper."
+  },
+  "trace": {
+    "chipModel": "YM2610 / OPNB",
+    "clockHz": 8000000,
+    "nativeFrameRateNumerator": 8000000,
+    "nativeFrameRateDenominator": 144,
+    "resampleContract": "Exact rational clock/144 serial frames converted to 48 kHz with the same accumulator-and-hold schedule as chipper_render.",
+    "eventFile": "../events/ym2610-adpcm-a-reference-events.txt",
+    "registerWritesAtFrame": 1,
+    "registers": {
+      "256": 33,
+      "257": 63,
+      "264": 159,
+      "269": 95,
+      "272": 0,
+      "280": 0,
+      "288": 0,
+      "296": 0,
+      "277": 2,
+      "285": 0,
+      "293": 2,
+      "301": 0
+    },
+    "sampleFile": "yamaha-adpcm-a-synthetic-opnb.bin",
+    "sampleSha256": "21448b6d4d07d823abd176c6fc368d137891aef5ac9e73aaeec11bb2b7056194",
+    "sampleBytes": 768,
+    "audibleState": "ADPCM-A channel 0 reads page 0 to the left while channel 5 reads page 2 to the right. A distinct all-0x88 sentinel page 1 makes page-selection, inclusive-end, and over-read regressions audible."
+  },
+  "candidate": {
+    "renderer": "chipper_render",
+    "command": "chipper_render --chip ym2610 --accuracy authentic --macro manual --clock 8000000 --rate 48000 --seconds 0.2 --events tests/events/ym2610-adpcm-a-reference-events.txt --source1 1 --source2 0 --source3 0 --source4 0 --source5 0 --source6 0 --source7 0 --source8 0 --source9 0 --stereo-spread 0 --output-db 0 --opnb-adpcm-a-sample tests/references/yamaha-adpcm-a-synthetic-opnb.bin --out yamaha-adpcm-a-opnb-candidate.wav --debug yamaha-adpcm-a-opnb-candidate.json"
+  },
+  "comparison": {
+    "command": "python tests/compare_reference_wav.py tests/references/yamaha-adpcm-a-opnb-lle.wav yamaha-adpcm-a-opnb-candidate.wav --per-channel-alignment --min-correlation 0.88 --max-normalized-rmse 0.45 --min-rms-ratio 0.97 --max-rms-ratio 1.04 --alignment-window-frames 32 --max-accepted-lag-frames 16 --max-channel-lag-spread-frames 2 --max-length-difference-frames 0",
+    "thresholds": {
+      "minCorrelation": 0.88,
+      "maxGainMatchedNormalizedRmse": 0.45,
+      "minRmsRatio": 0.97,
+      "maxRmsRatio": 1.04,
+      "alignmentWindowFrames": 32,
+      "maxAcceptedLagFrames": 16,
+      "maxChannelLagSpreadFrames": 2,
+      "maxLengthDifferenceFrames": 0,
+      "alignmentMode": "per-channel"
+    },
+    "acceptanceBaseline": {
+      "correlationPerChannel": 0.9151685624914767,
+      "correlationByChannel": [
+        0.9151685624914767,
+        0.9642788862616561
+      ],
+      "gainMatchedNormalizedRmsePerChannel": 0.4030713364000025,
+      "gainMatchedNormalizedRmseByChannel": [
+        0.4030713364000025,
+        0.2648890890731064
+      ],
+      "candidateToReferenceRmsRatioPerChannel": 0.9998209270908524,
+      "candidateToReferenceRmsRatioByChannel": [
+        0.9998209270908524,
+        1.0077309526952485
+      ],
+      "lagFrames": -8,
+      "lagFramesPerChannel": [
+        -8,
+        -7
+      ],
+      "lagSpreadFrames": 1,
+      "lengthDifferenceFrames": 0
+    },
+    "negativeQualification": "tests/qualify_yamaha_adpcm_a_reference.py must reject a page-2-to-page-1 register mutation at these thresholds."
+  },
+  "scope": {
+    "covers": [
+      "independent trusted-emulator regression evidence for YM2610 ADPCM-A decoding",
+      "high-nibble-first external-memory byte order",
+      "256-byte page-address scaling and inclusive page endings",
+      "independent channel 0/page 0 and channel 5/page 2 memory windows",
+      "left/right pan routing, duration, gross level, and bounded channel-slot startup skew"
+    ],
+    "doesNotClaim": [
+      "hardware validation",
+      "cycle accuracy",
+      "timer or prescaler accuracy",
+      "ADPCM-B validation",
+      "exact analog output curve",
+      "exact cross-implementation channel-slot latency"
+    ]
+  }
+}

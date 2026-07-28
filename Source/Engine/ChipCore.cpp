@@ -11002,7 +11002,7 @@ public:
              << "\"implementedAccuracy\":\"partial ymfm-backed OPN FM register-level\","
              << "\"vendoredCore\":\"ymfm\","
              << "\"vendoredCoreLicense\":\"BSD-3-Clause\","
-             << "\"vendoredCoreCommit\":\"17decfae857b92ab55fbb30ade2287ace095a381\","
+             << "\"vendoredCoreCommit\":\"81aec25ccbb98f4873a255f7551ac4dadac59b4a\","
              << "\"clockHz\":" << clock << ","
              << "\"sampleRate\":" << sampleRate << ","
              << "\"chipSampleRate\":" << chipSampleRate << ","
@@ -11774,7 +11774,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPNA FM+SSG register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2608/OPNA synthesis core. Chipper currently maps musical controls and notes to six OPNA FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2608 low/high address-data ports. Drum and Hit macros also write native OPNA ADPCM-A rhythm key, total-level, pan, and instrument-level registers, using original Chipper-generated in-memory percussion bytes by default with an optional user-owned ADPCM-A rhythm ROM override. A first-pass ADPCM-B byte-memory path can layer user-owned encoded ADPCM-B samples onto Drum and Hit macros. ADPCM-B WAV/AIFF import or format conversion, full sample editing, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2608/OPNA synthesis core. Chipper currently maps musical controls and notes to six OPNA FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2608 low/high address-data ports. Drum and Hit macros also write native OPNA ADPCM-A rhythm key, total-level, pan, and instrument-level registers, using original Chipper-generated in-memory percussion bytes by default with an optional user-owned ADPCM-A rhythm ROM override. A first-pass ADPCM-B byte-memory path can layer user-owned encoded ADPCM-B samples onto Drum and Hit macros. A pinned YM2608-LLE stereo fixture independently gates covered OPNA ADPCM-A BD/Tom decoding, native rates, addressing, routing, gain, duration, and a failing nibble mutation. Broader ADPCM-A traces, ADPCM-B reference proof, timers, prescaler controls, analog/hardware comparison, and cycle accuracy are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -11790,7 +11790,7 @@ public:
              << "\"implementedAccuracy\":\"partial ymfm-backed OPNA FM+SSG register-level\","
              << "\"vendoredCore\":\"ymfm\","
              << "\"vendoredCoreLicense\":\"BSD-3-Clause\","
-             << "\"vendoredCoreCommit\":\"17decfae857b92ab55fbb30ade2287ace095a381\","
+             << "\"vendoredCoreCommit\":\"81aec25ccbb98f4873a255f7551ac4dadac59b4a\","
              << "\"clockHz\":" << clock << ","
              << "\"sampleRate\":" << sampleRate << ","
              << "\"chipSampleRate\":" << chipSampleRate << ","
@@ -12904,9 +12904,9 @@ public:
     std::string limitations() const override
     {
         if (opnb2)
-            return "BSD-3-Clause ymfm provides the YM2610B/OPNB2-compatible synthesis path through the YM2610 core's six-FM channel mask. Chipper maps musical controls and notes to all six OPNB2 FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2610 low/high address-data ports. Drum and Hit macros can also write native OPNB ADPCM-A key/start/end/level registers and ADPCM-B start/end/delta/level registers from user-owned encoded byte memory. WAV/AIFF ADPCM import or format conversion, sample editing, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
+            return "BSD-3-Clause ymfm provides the YM2610B/OPNB2-compatible synthesis path through the YM2610 core's six-FM channel mask. Chipper maps musical controls and notes to all six OPNB2 FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2610 low/high address-data ports. Drum and Hit macros can also write native OPNB ADPCM-A key/start/end/level registers and ADPCM-B start/end/delta/level registers from user-owned encoded byte memory. A pinned YM2608-LLE YM2610 stereo fixture independently gates covered ADPCM-A page addressing, decoding, routing, gain, duration, and a failing page-misaddress mutation in the YM2610 configuration. Broader ADPCM traces, timers, prescaler controls, analog/hardware comparison, and cycle accuracy are not complete.";
 
-        return "BSD-3-Clause ymfm provides the YM2610/OPNB synthesis core. Chipper currently maps musical controls and notes to the four exposed OPNB FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2610 low/high address-data ports. Drum and Hit macros can also write native OPNB ADPCM-A key/start/end/level registers and ADPCM-B start/end/delta/level registers from user-owned encoded byte memory. WAV/AIFF ADPCM import or format conversion, sample editing, timers, prescaler controls, golden emulator comparison, hardware comparison, and cycle accuracy are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2610/OPNB synthesis core. Chipper currently maps musical controls and notes to the four exposed OPNB FM channels plus the embedded three-channel SSG tone/noise/envelope generator: operator, algorithm, feedback, f-number/block, FM key-on, FM pan, SSG tone/noise period, mixer, amplitude, and envelope registers are driven through the YM2610 low/high address-data ports. Drum and Hit macros can also write native OPNB ADPCM-A key/start/end/level registers and ADPCM-B start/end/delta/level registers from user-owned encoded byte memory. A pinned YM2608-LLE YM2610 stereo fixture independently gates covered ADPCM-A page addressing, decoding, routing, gain, duration, and a failing page-misaddress mutation in the YM2610 configuration. Broader ADPCM traces, timers, prescaler controls, analog/hardware comparison, and cycle accuracy are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -12917,7 +12917,7 @@ public:
              << "\"implementedAccuracy\":\"" << implementedAccuracy() << "\","
              << "\"vendoredCore\":\"ymfm\","
              << "\"vendoredCoreLicense\":\"BSD-3-Clause\","
-             << "\"vendoredCoreCommit\":\"17decfae857b92ab55fbb30ade2287ace095a381\","
+             << "\"vendoredCoreCommit\":\"81aec25ccbb98f4873a255f7551ac4dadac59b4a\","
              << "\"clockHz\":" << clock << ","
              << "\"sampleRate\":" << sampleRate << ","
              << "\"chipSampleRate\":" << chipSampleRate << ","
@@ -13838,6 +13838,15 @@ public:
         dacActive = false;
         dacEnabled = false;
         dacUsingExternalSample = false;
+        dacLastTriggerUsedExternalSample = false;
+        dacVelocityScale = 1.0;
+        dacLastSourceIndex = std::numeric_limits<size_t>::max();
+        dacTriggerSampleBytes = 0;
+        dacTriggerSampleChecksum = 0;
+        dacWriteCount = 0;
+        dacWriteChecksum = 2166136261u;
+        dacTriggerWriteCount = 0;
+        dacTriggerWriteChecksum = 2166136261u;
         dacLastValue = 0x80u;
         noteStamp = 0;
         heldNote = -1;
@@ -13864,9 +13873,31 @@ public:
 
     void setExternalSampleData(std::vector<uint8_t> data) override
     {
-        if (data.size() > maxDacSampleBytes)
-            data.resize(maxDacSampleBytes);
-        externalDacSample = std::move(data);
+        ExternalPcmSampleData sample;
+        sample.bytes = std::move(data);
+        setExternalPcmSampleData(std::move(sample));
+    }
+
+    void setExternalPcmSampleData(ExternalPcmSampleData data) override
+    {
+        if (data.bytes.size() > maxDacSampleBytes)
+            data.bytes.resize(maxDacSampleBytes);
+
+        externalDacSample = std::move(data.bytes);
+        externalDacSourceRateHz = std::isfinite(data.sourceRateHz) && data.sourceRateHz > 0.0
+            ? data.sourceRateHz
+            : 0.0;
+        externalDacRootNote = std::clamp(data.rootNote, 0, 127);
+        externalDacTrimStart = std::min(data.trimStart, externalDacSample.size());
+        const auto requestedEnd = data.trimEnd == 0 ? externalDacSample.size() : data.trimEnd;
+        externalDacTrimEnd = std::clamp(requestedEnd, externalDacTrimStart, externalDacSample.size());
+        externalDacTailBehavior = data.tailBehavior;
+        externalDacTrimChecksum = checksumDacRange(externalDacSample, externalDacTrimStart, externalDacTrimEnd);
+        dacActive = false;
+        dacUsingExternalSample = false;
+        dacSample.clear();
+        keyOnMask &= static_cast<uint16_t>(~(1u << 5u));
+        updateDacEnable(false);
     }
 
     void noteOn(int midiNote, float velocity) override
@@ -13895,14 +13926,11 @@ public:
             default: break;
         }
 
-        if (dacModeActive() && (patch.macro == MacroKind::drum || patch.macro == MacroKind::hit))
-        {
-            triggerChannel(5, notes[5], baseVelocity, channelEnabled(5));
-            return;
-        }
-
         for (size_t channel = 0; channel < notes.size(); ++channel)
-            triggerChannel(channel, notes[channel], baseVelocity, channelEnabled(channel));
+        {
+            const auto channelNote = channel == 5u && dacModeActive() ? heldNote : notes[channel];
+            triggerChannel(channel, channelNote, baseVelocity, channelEnabled(channel));
+        }
     }
 
     void noteOff(int midiNote) override
@@ -13983,7 +14011,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPN2 register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator multiplier/DT1 detune, algorithm, feedback, f-number/block, $B4 left/right pan plus AMS/PMS bits, $22 LFO enable/rate, carrier AM-enable bits, key-on registers for all six melodic channels, and optional channel-6 DAC Drum playback through $2B/$2A using generated or user-loaded WAV/AIFF/raw unsigned PCM bytes in the renderer and VST, with portable path recall and all six source lanes exposed for play and mix control. Exact DAC timing and ladder nonlinearity, SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper maps musical controls and notes to all six melodic channels and optional channel-6 DAC playback through $2B/$2A. Imported WAV/AIFF/raw unsigned PCM assets use bounded, sample-rate-aware, root-note and trim metadata with direct no-copy trigger playback plus selectable center/hold tail behavior; generated kick, snare, and chord-impact recipes remain deterministic. Exact host-bus cycle timing, YM2612 ladder nonlinearity, SSG-EG edge cases, timers, and hardware comparison are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -13999,7 +14027,7 @@ public:
              << "\"implementedAccuracy\":\"partial ymfm-backed OPN2 register-level\","
              << "\"vendoredCore\":\"ymfm\","
              << "\"vendoredCoreLicense\":\"BSD-3-Clause\","
-             << "\"vendoredCoreCommit\":\"17decfae857b92ab55fbb30ade2287ace095a381\","
+             << "\"vendoredCoreCommit\":\"81aec25ccbb98f4873a255f7551ac4dadac59b4a\","
              << "\"clockHz\":" << clock << ","
              << "\"sampleRate\":" << sampleRate << ","
              << "\"chipSampleRate\":" << chipSampleRate << ","
@@ -14091,12 +14119,31 @@ public:
              << "\"dacActive\":" << (dacActive ? 1 : 0) << ","
              << "\"dacRegister2A\":" << static_cast<int>(regs[0x2a]) << ","
              << "\"dacRegister2B\":" << static_cast<int>(regs[0x2b]) << ","
-             << "\"dacSampleBytes\":" << dacSample.size() << ","
+             << "\"dacSampleBytes\":" << dacTriggerSampleBytes << ","
              << "\"dacExternalSampleLoaded\":" << (! externalDacSample.empty() ? 1 : 0) << ","
              << "\"dacExternalSampleBytes\":" << externalDacSample.size() << ","
              << "\"dacExternalSampleChecksum\":" << checksumBytes(externalDacSample) << ","
-             << "\"dacSampleSourceUser\":" << (dacUsingExternalSample ? 1 : 0) << ","
+             << "\"dacExternalSourceRateHz\":" << externalDacSourceRateHz << ","
+             << "\"dacResolvedSourceRateHz\":" << resolvedExternalDacSourceRate() << ","
+             << "\"dacRootNote\":" << externalDacRootNote << ","
+             << "\"dacTrimStart\":" << externalDacTrimStart << ","
+             << "\"dacTrimEnd\":" << externalDacTrimEnd << ","
+             << "\"dacTailBehavior\":\"" << (externalDacTailBehavior == PcmTailBehavior::hold ? "hold" : "center") << "\","
+             << "\"dacCurrentSampleSourceUser\":" << (dacUsingExternalSample ? 1 : 0) << ","
+             << "\"dacSampleSourceUser\":" << (dacLastTriggerUsedExternalSample ? 1 : 0) << ","
              << "\"dacPlaybackStep\":" << dacStep << ","
+             << "\"dacEffectivePlaybackRateHz\":" << (dacStep * chipSampleRate) << ","
+             << "\"dacPlaybackPositionBytes\":"
+             << (dacLastSourceIndex == std::numeric_limits<size_t>::max()
+                     ? 0u
+                     : std::min(dacLastSourceIndex + 1u, dacTriggerSampleBytes)) << ","
+             << "\"dacTriggerSampleBytes\":" << dacTriggerSampleBytes << ","
+             << "\"dacTriggerSampleChecksum\":" << dacTriggerSampleChecksum << ","
+             << "\"dacWriteCount\":" << dacWriteCount << ","
+             << "\"dacWriteChecksum\":" << dacWriteChecksum << ","
+             << "\"dacTriggerWriteCount\":" << dacTriggerWriteCount << ","
+             << "\"dacTriggerWriteChecksum\":" << dacTriggerWriteChecksum << ","
+             << "\"dacLastValue\":" << static_cast<int>(dacLastValue) << ","
              << "\"envelopeShape\":" << std::clamp(patch.ymEnvelopeShape, 0, 4) << ","
              << "\"attackRate0\":" << static_cast<int>(currentAttackRate[0]) << ","
              << "\"decayRate0\":" << static_cast<int>(currentDecayRate[0]) << ","
@@ -14241,7 +14288,10 @@ private:
         dacEnabled = enable;
         writeYmRegister(0x2b, enable ? 0x80u : 0x00u);
         if (! enable)
-            writeYmRegister(0x2a, 0x80u);
+        {
+            dacLastValue = 0x80u;
+            writeYmRegister(0x2a, dacLastValue);
+        }
     }
 
     uint8_t multipleDetuneRegisterForPatch(size_t op) const
@@ -14378,6 +14428,56 @@ private:
         keyOnMask &= static_cast<uint16_t>(~(1u << channel));
     }
 
+    static uint32_t checksumDacRange(const std::vector<uint8_t>& bytes, size_t start, size_t end)
+    {
+        auto checksum = 2166136261u;
+        const auto boundedStart = std::min(start, bytes.size());
+        const auto boundedEnd = std::clamp(end, boundedStart, bytes.size());
+        for (auto index = boundedStart; index < boundedEnd; ++index)
+        {
+            checksum ^= bytes[index];
+            checksum *= 16777619u;
+        }
+        return checksum;
+    }
+
+    double resolvedExternalDacSourceRate() const
+    {
+        return externalDacSourceRateHz > 0.0 ? externalDacSourceRateHz : chipSampleRate;
+    }
+
+    size_t activeDacSampleSize() const
+    {
+        if (dacUsingExternalSample)
+            return externalDacTrimEnd > externalDacTrimStart ? externalDacTrimEnd - externalDacTrimStart : 0u;
+        return dacSample.size();
+    }
+
+    uint8_t activeDacSampleByte(size_t index) const
+    {
+        if (! dacUsingExternalSample)
+            return index < dacSample.size() ? dacSample[index] : 0x80u;
+
+        const auto sourceIndex = externalDacTrimStart + index;
+        if (sourceIndex >= externalDacTrimEnd || sourceIndex >= externalDacSample.size())
+            return 0x80u;
+
+        const auto centered = (static_cast<double>(externalDacSample[sourceIndex]) - 128.0) * dacVelocityScale;
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(128.0 + centered)), 0, 255));
+    }
+
+    void writeDacByte(uint8_t value)
+    {
+        dacLastValue = value;
+        writeYmRegister(0x2a, value);
+        ++dacWriteCount;
+        ++dacTriggerWriteCount;
+        dacWriteChecksum ^= value;
+        dacWriteChecksum *= 16777619u;
+        dacTriggerWriteChecksum ^= value;
+        dacTriggerWriteChecksum *= 16777619u;
+    }
+
     void triggerDacChannel(int midiNote, float velocity, bool shouldEnable)
     {
         channelVelocity[5] = static_cast<float>(clamp01(velocity) * sourceLevel(patch, 5));
@@ -14398,91 +14498,116 @@ private:
         currentBlock[5] = 0;
         currentAlgorithm[5] = 0;
         currentFeedback[5] = 0;
-        dacUsingExternalSample = ! externalDacSample.empty();
+        dacUsingExternalSample = externalDacTrimEnd > externalDacTrimStart;
+        dacLastTriggerUsedExternalSample = dacUsingExternalSample;
+        dacVelocityScale = std::clamp(static_cast<double>(channelVelocity[5]), 0.0, 1.0);
         if (dacUsingExternalSample)
-            fillExternalDacSample(channelVelocity[5]);
+            dacSample.clear();
         else
             fillDacDrumSample(midiNote, channelVelocity[5]);
+
         dacPhase = 0.0;
+        dacLastSourceIndex = std::numeric_limits<size_t>::max();
+        dacTriggerWriteCount = 0;
+        dacTriggerWriteChecksum = 2166136261u;
         if (dacUsingExternalSample)
         {
-            const auto noteRatio = std::pow(2.0, (std::clamp(midiNote, 24, 96) - 60) / 12.0);
-            dacStep = chipSampleRate > 0.0 ? std::clamp(noteRatio, 0.25, 4.0) : 1.0;
+            const auto noteRatio = std::pow(2.0, (std::clamp(midiNote, 0, 127) - externalDacRootNote) / 12.0);
+            const auto sourceRate = resolvedExternalDacSourceRate();
+            dacStep = chipSampleRate > 0.0 ? (sourceRate / chipSampleRate) * noteRatio : noteRatio;
         }
         else
         {
             const auto playbackHz = std::clamp(9000.0 * std::pow(2.0, (std::clamp(midiNote, 24, 96) - 60) / 24.0), 3500.0, 22000.0);
             dacStep = chipSampleRate > 0.0 ? playbackHz / chipSampleRate : 1.0;
         }
-        dacActive = ! dacSample.empty();
-        dacLastValue = dacActive ? dacSample.front() : 0x80u;
+        if (! std::isfinite(dacStep) || dacStep <= 0.0)
+            dacStep = 1.0;
+
+        dacTriggerSampleBytes = activeDacSampleSize();
+        dacTriggerSampleChecksum = dacUsingExternalSample
+            ? externalDacTrimChecksum
+            : checksumDacRange(dacSample, 0, dacSample.size());
+        dacActive = dacTriggerSampleBytes > 0;
         updateDacEnable(dacActive);
-        writeYmRegister(0x2a, dacLastValue);
         if (dacActive)
             keyOnMask |= static_cast<uint16_t>(1u << 5u);
+        else
+            keyOnMask &= static_cast<uint16_t>(~(1u << 5u));
     }
 
     void fillDacDrumSample(int midiNote, float velocity)
     {
-        const auto length = (patch.macro == MacroKind::drum || midiNote < 48) ? 512u : 384u;
+        const auto recipe = std::clamp(static_cast<double>(patch.control1), 0.0, 1.0);
+        const auto kickRecipe = recipe < 0.18;
+        const auto snareRecipe = ! kickRecipe && recipe < 0.32;
+        const auto length = kickRecipe ? 512u : (snareRecipe ? 384u : 448u);
+        const auto baseCycles = kickRecipe ? 8.5 : (snareRecipe ? 22.0 : 14.0);
+        const auto noiseMix = kickRecipe ? 0.14 : (snareRecipe ? 0.78 : 0.46);
+        const auto decay = kickRecipe ? 7.4 : (snareRecipe ? 10.0 : 6.4);
+
         dacSample.resize(length, 0x80u);
-        uint32_t noise = 0x6d2b79f5u ^ static_cast<uint32_t>(std::clamp(midiNote, 0, 127) * 1103515245u);
+        uint32_t noise = 0x6d2b79f5u
+            ^ static_cast<uint32_t>(std::clamp(midiNote, 0, 127) * 1103515245u)
+            ^ static_cast<uint32_t>(std::round(recipe * 65535.0));
         const auto velocityScale = std::clamp(static_cast<double>(velocity), 0.0, 1.0);
-        const auto baseCycles = midiNote < 48 ? 9.0 : 20.0;
         for (size_t i = 0; i < dacSample.size(); ++i)
         {
             const auto t = static_cast<double>(i) / static_cast<double>(dacSample.size());
-            const auto env = std::exp(-7.0 * t) * velocityScale;
-            const auto sweep = baseCycles * (1.0 - 0.72 * t);
+            const auto env = std::exp(-decay * t) * velocityScale;
+            const auto sweep = baseCycles * (1.0 - (kickRecipe ? 0.78 : 0.48) * t);
             auto value = std::sin(twoPi * sweep * t);
 
             noise = noise * 1664525u + 1013904223u;
             const auto noiseValue = (static_cast<int>((noise >> 24) & 0xffu) - 128) / 128.0;
-            if (patch.macro == MacroKind::hit || midiNote >= 48)
-                value = value * 0.45 + noiseValue * 0.55;
-            else
-                value = value * 0.82 + noiseValue * 0.18;
+            value = value * (1.0 - noiseMix) + noiseValue * noiseMix;
+            if (! kickRecipe)
+                value += std::sin(twoPi * (snareRecipe ? 43.0 : 27.0) * t) * (snareRecipe ? 0.12 : 0.20);
 
             const auto byteValue = static_cast<int>(std::round(128.0 + std::clamp(value * env, -1.0, 1.0) * 118.0));
             dacSample[i] = static_cast<uint8_t>(std::clamp(byteValue, 0, 255));
         }
     }
 
-    void fillExternalDacSample(float velocity)
-    {
-        dacSample.resize(externalDacSample.size());
-        const auto velocityScale = std::clamp(static_cast<double>(velocity), 0.0, 1.0);
-        for (size_t index = 0; index < externalDacSample.size(); ++index)
-        {
-            const auto byte = externalDacSample[index];
-            const auto centered = (static_cast<double>(byte) - 128.0) * velocityScale;
-            dacSample[index] = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(128.0 + centered)), 0, 255));
-        }
-    }
-
     void advanceDacPlayback()
     {
-        if (! dacActive || ! dacEnabled || dacSample.empty())
+        if (! dacActive || ! dacEnabled)
             return;
 
-        const auto index = static_cast<size_t>(dacPhase);
-        if (index >= dacSample.size())
+        const auto sampleBytes = activeDacSampleSize();
+        if (sampleBytes == 0)
+        {
+            dacActive = false;
+            dacUsingExternalSample = false;
+            keyOnMask &= static_cast<uint16_t>(~(1u << 5u));
+            return;
+        }
+
+        const auto requestedIndex = static_cast<size_t>(std::max(0.0, std::floor(dacPhase)));
+        const auto reachedEnd = requestedIndex >= sampleBytes;
+        const auto targetIndex = std::min(requestedIndex, sampleBytes - 1u);
+        auto nextIndex = dacLastSourceIndex == std::numeric_limits<size_t>::max()
+            ? 0u
+            : dacLastSourceIndex + 1u;
+        while (nextIndex <= targetIndex)
+        {
+            writeDacByte(activeDacSampleByte(nextIndex));
+            dacLastSourceIndex = nextIndex;
+            ++nextIndex;
+        }
+
+        if (reachedEnd)
         {
             dacActive = false;
             dacSample.clear();
             dacUsingExternalSample = false;
             keyOnMask &= static_cast<uint16_t>(~(1u << 5u));
-            writeYmRegister(0x2a, 0x80u);
+            if (! dacLastTriggerUsedExternalSample || externalDacTailBehavior == PcmTailBehavior::center)
+                writeDacByte(0x80u);
             return;
         }
 
-        const auto value = dacSample[index];
-        if (value != dacLastValue)
-        {
-            dacLastValue = value;
-            writeYmRegister(0x2a, value);
-        }
-        dacPhase += std::max(0.125, dacStep);
+        dacPhase += dacStep;
     }
 
     void clearChipPolyState()
@@ -14601,15 +14726,30 @@ private:
     static constexpr size_t maxDacSampleBytes = 0x40000u;
     std::vector<uint8_t> dacSample;
     std::vector<uint8_t> externalDacSample;
+    double externalDacSourceRateHz = 0.0;
+    int externalDacRootNote = 60;
+    size_t externalDacTrimStart = 0;
+    size_t externalDacTrimEnd = 0;
+    uint32_t externalDacTrimChecksum = 2166136261u;
+    PcmTailBehavior externalDacTailBehavior = PcmTailBehavior::center;
     uint64_t noteStamp = 0;
     int heldNote = -1;
     uint16_t keyOnMask = 0;
     double laserPhase = 0.0;
     double dacPhase = 0.0;
     double dacStep = 1.0;
+    double dacVelocityScale = 1.0;
+    size_t dacLastSourceIndex = std::numeric_limits<size_t>::max();
+    size_t dacTriggerSampleBytes = 0;
+    uint32_t dacTriggerSampleChecksum = 0;
+    uint64_t dacWriteCount = 0;
+    uint32_t dacWriteChecksum = 2166136261u;
+    uint64_t dacTriggerWriteCount = 0;
+    uint32_t dacTriggerWriteChecksum = 2166136261u;
     bool dacActive = false;
     bool dacEnabled = false;
     bool dacUsingExternalSample = false;
+    bool dacLastTriggerUsedExternalSample = false;
     uint8_t dacLastValue = 0x80u;
     int32_t lastNativeLeft = 0;
     int32_t lastNativeRight = 0;
@@ -14815,7 +14955,7 @@ public:
              << "\"oplCore\":\"YMF262\","
              << "\"opl3Core\":1,"
              << "\"vendoredCoreLicense\":\"BSD-3-Clause\","
-             << "\"vendoredCoreCommit\":\"17decfae857b92ab55fbb30ade2287ace095a381\","
+             << "\"vendoredCoreCommit\":\"81aec25ccbb98f4873a255f7551ac4dadac59b4a\","
              << "\"clockHz\":" << clock << ","
              << "\"sampleRate\":" << sampleRate << ","
              << "\"chipSampleRate\":" << chipSampleRate << ","
@@ -15703,7 +15843,7 @@ public:
              << "\"implementedAccuracy\":\"partial ymfm-backed OPM register-level\","
              << "\"vendoredCore\":\"ymfm\","
              << "\"vendoredCoreLicense\":\"BSD-3-Clause\","
-             << "\"vendoredCoreCommit\":\"17decfae857b92ab55fbb30ade2287ace095a381\","
+             << "\"vendoredCoreCommit\":\"81aec25ccbb98f4873a255f7551ac4dadac59b4a\","
              << "\"clockHz\":" << clock << ","
              << "\"sampleRate\":" << sampleRate << ","
              << "\"chipSampleRate\":" << chipSampleRate << ","

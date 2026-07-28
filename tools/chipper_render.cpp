@@ -3,6 +3,10 @@
 #include "Engine/ControlRegistry.h"
 #include "Presets.h"
 
+#if defined(CHIPPER_RENDER_HAS_JUCE_AUDIO_FORMATS)
+#include <juce_audio_formats/juce_audio_formats.h>
+#endif
+
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -16,6 +20,7 @@
 #include <iostream>
 #include <iterator>
 #include <limits>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -149,6 +154,12 @@ struct Options
     std::filesystem::path spc700BrrSamplePath;
     std::vector<std::filesystem::path> paulaSamplePaths;
     std::string opn2DacHex;
+    double opn2DacRateHz = 0.0;
+    bool opn2DacRateProvided = false;
+    int opn2DacRootNote = 60;
+    size_t opn2DacTrimStart = 0u;
+    size_t opn2DacTrimEnd = 0u;
+    chipper::PcmTailBehavior opn2DacTailBehavior = chipper::PcmTailBehavior::center;
     std::string opnaRhythmRomHex;
     std::string opnaAdpcmBHex;
     std::string opnbAdpcmAHex;
@@ -1595,7 +1606,7 @@ void printUsage()
         << "       OPL3 operator fields: --opl-op1-flags..--opl-op4-flags preset|none|am|vib|am+vib|ksr|am+ksr|vib+ksr|all --opl-op1-ksl..--opl-op4-ksl preset|0..3\n"
         << "       OPM operator detune: --opm-op1-dt1..--opm-op4-dt1 preset|0..7 --opm-op1-dt2..--opm-op4-dt2 preset|0..3\n"
         << "       OPM LFO: --opm-lfo-waveform preset|saw|square|triangle|noise --opm-pms preset|0..7 --opm-ams preset|0..3\n"
-        << "       OPN2 DAC sample memory: --opn2-dac-sample path.bin --opn2-dac-hex 8080... (unsigned 8-bit YM2612 DAC bytes)\n"
+        << "       OPN2 DAC sample memory: --opn2-dac-sample path.wav|path.aiff|path.bin --opn2-dac-hex 8080... --opn2-dac-rate Hz --opn2-dac-root 0..127 --opn2-dac-trim-start frame --opn2-dac-trim-end frame --opn2-dac-tail center|hold\n"
         << "       OPNA sample memory: --opna-adpcm-b-sample path.bin --opna-adpcm-b-hex 017f... (encoded ADPCM-B bytes)\n"
         << "       OPNB sample memory: --opnb-adpcm-a-sample path.bin --opnb-adpcm-a-hex 017f... --opnb-adpcm-b-sample path.bin --opnb-adpcm-b-hex 017f... (encoded YM2610 ADPCM bytes)\n"
         << "\nEvent file lines:\n"
@@ -1628,24 +1639,7 @@ void applyPreset(Options& options, const chipper::PresetInfo& preset)
     options.fmOperatorDecayRateProvided = { true, true, true, true };
     options.fmOperatorSustainRateProvided = { true, true, true, true };
     options.fmOperatorReleaseRateProvided = { true, true, true, true };
-    const auto anySourceEnabled = std::any_of(preset.sourceEnabled.begin(), preset.sourceEnabled.end(), [](bool enabled) { return enabled; });
-    const auto nativeSourceCount = chipper::nativeSourceCountForMode(preset.chip);
-    const auto useSource5 = anySourceEnabled && nativeSourceCount >= 5u;
-    const auto useSource6 = anySourceEnabled && nativeSourceCount >= 6u;
-    const auto useSource7 = anySourceEnabled && nativeSourceCount >= 7u;
-    const auto useSource8 = anySourceEnabled && nativeSourceCount >= 8u;
-    const auto useSource9 = anySourceEnabled && nativeSourceCount >= 9u;
-    options.sourceEnabled = {
-        preset.sourceEnabled[0],
-        preset.sourceEnabled[1],
-        preset.sourceEnabled[2],
-        preset.sourceEnabled[3],
-        useSource5,
-        useSource6,
-        useSource7,
-        useSource8,
-        useSource9
-    };
+    options.sourceEnabled = chipper::sourceMaskForPreset(preset);
     options.sourceProvided = { true, true, true, true, true, true, true, true, true };
     options.sourceLevels = { preset.source1Level, preset.source2Level, preset.source3Level, preset.source4Level, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
     options.sourceLevelProvided = { true, true, true, true, true, true, true, true, true };
@@ -1828,6 +1822,56 @@ bool parseArgs(int argc, char** argv, Options& options)
             if (value == nullptr)
                 return false;
             options.opn2DacHex = value;
+            continue;
+        }
+
+        if (arg == "--opn2-dac-rate" || arg == "--ym2612-dac-rate")
+        {
+            const auto* value = requireValue(arg.c_str());
+            if (value == nullptr || ! parseNumber(std::string(value), options.opn2DacRateHz)
+                || ! std::isfinite(options.opn2DacRateHz) || options.opn2DacRateHz < 0.0)
+                return false;
+            options.opn2DacRateProvided = true;
+            continue;
+        }
+
+        if (arg == "--opn2-dac-root" || arg == "--ym2612-dac-root")
+        {
+            const auto* value = requireValue(arg.c_str());
+            if (value == nullptr || ! parseNumber(std::string(value), options.opn2DacRootNote)
+                || options.opn2DacRootNote < 0 || options.opn2DacRootNote > 127)
+                return false;
+            continue;
+        }
+
+        if (arg == "--opn2-dac-trim-start")
+        {
+            const auto* value = requireValue("--opn2-dac-trim-start");
+            if (value == nullptr || ! parseNumber(std::string(value), options.opn2DacTrimStart))
+                return false;
+            continue;
+        }
+
+        if (arg == "--opn2-dac-trim-end")
+        {
+            const auto* value = requireValue("--opn2-dac-trim-end");
+            if (value == nullptr || ! parseNumber(std::string(value), options.opn2DacTrimEnd))
+                return false;
+            continue;
+        }
+
+        if (arg == "--opn2-dac-tail")
+        {
+            const auto* value = requireValue("--opn2-dac-tail");
+            if (value == nullptr)
+                return false;
+            const auto key = normalizedToken(value);
+            if (key == "center" || key == "centre")
+                options.opn2DacTailBehavior = chipper::PcmTailBehavior::center;
+            else if (key == "hold" || key == "holdlast")
+                options.opn2DacTailBehavior = chipper::PcmTailBehavior::hold;
+            else
+                return false;
             continue;
         }
 
@@ -3106,6 +3150,78 @@ std::vector<uint8_t> loadBinaryFile(const std::filesystem::path& path)
     };
 }
 
+bool looksLikeSupportedOpn2AudioFile(const std::filesystem::path& path)
+{
+    auto extension = path.extension().string();
+    std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c)
+    {
+        return static_cast<char>(std::tolower(c));
+    });
+    if (extension == ".wav" || extension == ".wave" || extension == ".aif" || extension == ".aiff" || extension == ".aifc")
+        return true;
+
+    std::array<uint8_t, 12> header {};
+    std::ifstream stream(path, std::ios::binary);
+    stream.read(reinterpret_cast<char*>(header.data()), static_cast<std::streamsize>(header.size()));
+    if (stream.gcount() != static_cast<std::streamsize>(header.size()))
+        return false;
+
+    const auto isWave = std::memcmp(header.data(), "RIFF", 4u) == 0
+        && std::memcmp(header.data() + 8u, "WAVE", 4u) == 0;
+    const auto isAiff = std::memcmp(header.data(), "FORM", 4u) == 0
+        && (std::memcmp(header.data() + 8u, "AIFF", 4u) == 0
+            || std::memcmp(header.data() + 8u, "AIFC", 4u) == 0);
+    return isWave || isAiff;
+}
+
+chipper::ExternalPcmSampleData loadOpn2DacSampleFile(const std::filesystem::path& path)
+{
+    chipper::ExternalPcmSampleData sample;
+    if (! looksLikeSupportedOpn2AudioFile(path))
+    {
+        sample.bytes = loadBinaryFile(path);
+        return sample;
+    }
+
+#if defined(CHIPPER_RENDER_HAS_JUCE_AUDIO_FORMATS)
+    juce::AudioFormatManager formats;
+    formats.registerBasicFormats();
+#if defined(_WIN32)
+    const auto file = juce::File(juce::String(path.c_str()));
+#else
+    const auto file = juce::File(juce::String(path.string()));
+#endif
+    std::unique_ptr<juce::AudioFormatReader> reader(formats.createReaderFor(file));
+    if (reader == nullptr)
+        throw std::runtime_error("Could not decode OPN2 DAC WAV/AIFF sample: " + path.string());
+
+    constexpr auto maxImportedSamples = static_cast<int64_t>(0x40000);
+    const auto frameCount64 = std::clamp(reader->lengthInSamples, static_cast<int64_t>(0), maxImportedSamples);
+    const auto frameCount = static_cast<int>(frameCount64);
+    const auto channelCount = std::max(1, std::min(static_cast<int>(reader->numChannels), 64));
+    juce::AudioBuffer<float> decoded(channelCount, frameCount);
+    if (frameCount > 0 && ! reader->read(&decoded, 0, frameCount, 0, true, true))
+        throw std::runtime_error("Could not read OPN2 DAC WAV/AIFF sample frames: " + path.string());
+
+    sample.bytes.resize(static_cast<size_t>(frameCount));
+    sample.sourceRateHz = reader->sampleRate;
+    for (int frame = 0; frame < frameCount; ++frame)
+    {
+        auto mixed = 0.0f;
+        for (int channel = 0; channel < channelCount; ++channel)
+            mixed += decoded.getSample(channel, frame);
+        mixed /= static_cast<float>(channelCount);
+        const auto quantized = std::clamp(static_cast<int>(std::lround(std::clamp(mixed, -1.0f, 1.0f) * 127.0f)) + 128,
+                                          0,
+                                          255);
+        sample.bytes[static_cast<size_t>(frame)] = static_cast<uint8_t>(quantized);
+    }
+#else
+    throw std::runtime_error("OPN2 DAC WAV/AIFF decoding requires a renderer build with JUCE audio formats enabled");
+#endif
+
+    return sample;
+}
 uint16_t readBigEndian16(const uint8_t* data)
 {
     return static_cast<uint16_t>((static_cast<uint16_t>(data[0]) << 8u) | static_cast<uint16_t>(data[1]));
@@ -4335,6 +4451,12 @@ void writeDebugJson(const std::filesystem::path& path,
     writeJsonString(out, options.opn2DacSamplePath.string());
     out << ",\n"
         << "  \"opn2DacHexBytes\": " << (options.opn2DacHex.empty() ? 0 : static_cast<int>(parseHexBytes(options.opn2DacHex).size())) << ",\n"
+        << "  \"opn2DacRateHz\": " << options.opn2DacRateHz << ",\n"
+        << "  \"opn2DacRateProvided\": " << (options.opn2DacRateProvided ? "true" : "false") << ",\n"
+        << "  \"opn2DacRootNote\": " << options.opn2DacRootNote << ",\n"
+        << "  \"opn2DacTrimStart\": " << options.opn2DacTrimStart << ",\n"
+        << "  \"opn2DacTrimEnd\": " << options.opn2DacTrimEnd << ",\n"
+        << "  \"opn2DacTailBehavior\": \"" << (options.opn2DacTailBehavior == chipper::PcmTailBehavior::hold ? "hold" : "center") << "\",\n"
         << "  \"opnaRhythmRomPath\": ";
     writeJsonString(out, options.opnaRhythmRomPath.string());
     out << ",\n"
@@ -4422,10 +4544,20 @@ int main(int argc, char** argv)
         applyMacroTemplateDefaults(options);
         auto core = chipper::createChipCore(options.chip, options.accuracy);
         core->reset(options.sampleRate, options.clock);
-        if ((! options.opn2DacSamplePath.empty() || ! options.opn2DacHex.empty()) && options.chip != chipper::ChipMode::ym2612)
+        const auto hasOpn2DacMetadata = options.opn2DacRateProvided
+            || options.opn2DacRootNote != 60
+            || options.opn2DacTrimStart != 0u
+            || options.opn2DacTrimEnd != 0u
+            || options.opn2DacTailBehavior != chipper::PcmTailBehavior::center;
+        if ((! options.opn2DacSamplePath.empty() || ! options.opn2DacHex.empty() || hasOpn2DacMetadata)
+            && options.chip != chipper::ChipMode::ym2612)
             throw std::runtime_error("--opn2-dac sample options are only valid with --chip ym2612");
         if (! options.opn2DacSamplePath.empty() && ! options.opn2DacHex.empty())
             throw std::runtime_error("Use either --opn2-dac-sample or --opn2-dac-hex, not both");
+        if (hasOpn2DacMetadata && options.opn2DacSamplePath.empty() && options.opn2DacHex.empty())
+            throw std::runtime_error("--opn2-dac rate/root/trim/tail options require --opn2-dac-sample or --opn2-dac-hex");
+        if (options.opn2DacTrimEnd != 0u && options.opn2DacTrimEnd <= options.opn2DacTrimStart)
+            throw std::runtime_error("--opn2-dac-trim-end must be greater than --opn2-dac-trim-start, or zero for the full sample");
         if ((! options.opnaRhythmRomPath.empty() || ! options.opnaRhythmRomHex.empty()) && options.chip != chipper::ChipMode::ym2608)
             throw std::runtime_error("--opna-rhythm-rom is only valid with --chip ym2608");
         if (! options.opnaRhythmRomPath.empty() && ! options.opnaRhythmRomHex.empty())
@@ -4445,10 +4577,21 @@ int main(int argc, char** argv)
             throw std::runtime_error("Use either --opnb-adpcm-b-sample or --opnb-adpcm-b-hex, not both");
         if (! options.nesDmcSamplePath.empty())
             core->setExternalSampleData(loadBinaryFile(options.nesDmcSamplePath));
-        if (! options.opn2DacSamplePath.empty())
-            core->setExternalSampleData(loadBinaryFile(options.opn2DacSamplePath));
-        else if (! options.opn2DacHex.empty())
-            core->setExternalSampleData(parseHexBytes(options.opn2DacHex));
+        if (! options.opn2DacSamplePath.empty() || ! options.opn2DacHex.empty())
+        {
+            auto sample = ! options.opn2DacSamplePath.empty()
+                ? loadOpn2DacSampleFile(options.opn2DacSamplePath)
+                : chipper::ExternalPcmSampleData { parseHexBytes(options.opn2DacHex) };
+            if (options.opn2DacRateProvided)
+                sample.sourceRateHz = options.opn2DacRateHz;
+            else
+                options.opn2DacRateHz = sample.sourceRateHz;
+            sample.rootNote = options.opn2DacRootNote;
+            sample.trimStart = options.opn2DacTrimStart;
+            sample.trimEnd = options.opn2DacTrimEnd;
+            sample.tailBehavior = options.opn2DacTailBehavior;
+            core->setExternalPcmSampleData(std::move(sample));
+        }
         if (! options.opnaRhythmRomPath.empty())
             core->setExternalSampleData(loadBinaryFile(options.opnaRhythmRomPath));
         else if (! options.opnaRhythmRomHex.empty())

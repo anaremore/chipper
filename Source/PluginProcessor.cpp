@@ -11,6 +11,7 @@
 #include <array>
 #include <cmath>
 #include <cstring>
+#include <cstdlib>
 #include <filesystem>
 #include <limits>
 #include <string_view>
@@ -877,6 +878,7 @@ enum class EmbeddedSampleFamily
     dmc,
     spc700,
     paula,
+    opn2,
     rawMemory
 };
 
@@ -928,6 +930,24 @@ bool parseSizeAttribute(const juce::XmlElement& element, const char* attributeNa
         return false;
     value = static_cast<size_t>(parsed);
     return static_cast<juce::int64>(value) == parsed;
+}
+
+bool parseNonNegativeDoubleAttribute(const juce::XmlElement& element,
+                                     const char* attributeName,
+                                     double& value)
+{
+    const auto text = element.getStringAttribute(attributeName).trim();
+    if (text.isEmpty() || text.length() > 64)
+        return false;
+
+    const auto* begin = text.toRawUTF8();
+    char* end = nullptr;
+    const auto parsed = std::strtod(begin, &end);
+    if (end == begin || end == nullptr || *end != '\0' || ! std::isfinite(parsed) || parsed < 0.0)
+        return false;
+
+    value = parsed;
+    return true;
 }
 
 bool parseSignedIntAttribute(const juce::XmlElement& element, const char* attributeName, int& value)
@@ -991,6 +1011,52 @@ void addSampleReferenceMetadata(juce::XmlElement& sampleState,
     if (slot.sourceSampleCount > 0u)
         sampleState.setAttribute("sourceSampleCount",
                                  juce::String(static_cast<juce::int64>(slot.sourceSampleCount)));
+}
+
+void addOpn2DacPlaybackMetadata(juce::XmlElement& sampleState,
+                                const ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    sampleState.setAttribute("sourceRateHz", slot.sourceRateHz);
+    sampleState.setAttribute("rootNote", slot.rootNote);
+    sampleState.setAttribute("trimStart", juce::String(static_cast<juce::int64>(slot.trimStart)));
+    sampleState.setAttribute("trimEnd", juce::String(static_cast<juce::int64>(slot.trimEnd)));
+    sampleState.setAttribute("tailBehavior", slot.holdLastValue ? "hold" : "center");
+}
+
+juce::Result restoreOpn2DacPlaybackMetadata(const juce::XmlElement& sampleState,
+                                            ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    auto sourceRateHz = 0.0;
+    auto rootNote = 60;
+    auto trimStart = size_t { 0u };
+    auto trimEnd = size_t { 0u };
+
+    if (sampleState.hasAttribute("sourceRateHz")
+        && ! parseNonNegativeDoubleAttribute(sampleState, "sourceRateHz", sourceRateHz))
+        return juce::Result::fail("OPN2 DAC state has an invalid source sample rate.");
+    if (sampleState.hasAttribute("rootNote")
+        && (! parseSignedIntAttribute(sampleState, "rootNote", rootNote) || rootNote < 0 || rootNote > 127))
+        return juce::Result::fail("OPN2 DAC state has an invalid root note.");
+    if (sampleState.hasAttribute("trimStart") && ! parseSizeAttribute(sampleState, "trimStart", trimStart))
+        return juce::Result::fail("OPN2 DAC state has an invalid trim start.");
+    if (sampleState.hasAttribute("trimEnd") && ! parseSizeAttribute(sampleState, "trimEnd", trimEnd))
+        return juce::Result::fail("OPN2 DAC state has an invalid trim end.");
+
+    const auto tailBehavior = sampleState.getStringAttribute("tailBehavior", "center").trim();
+    if (tailBehavior != "center" && tailBehavior != "hold")
+        return juce::Result::fail("OPN2 DAC state has an invalid tail behavior.");
+
+    const auto playbackBytes = std::min(slot.bytes.size(), static_cast<size_t>(opn2DacMemoryBytes));
+    if ((playbackBytes > 0u && trimStart >= playbackBytes)
+        || (trimEnd > 0u && (trimEnd <= trimStart || (playbackBytes > 0u && trimEnd > playbackBytes))))
+        return juce::Result::fail("OPN2 DAC state has invalid trim bounds.");
+
+    slot.sourceRateHz = sourceRateHz;
+    slot.rootNote = rootNote;
+    slot.trimStart = trimStart;
+    slot.trimEnd = trimEnd;
+    slot.holdLastValue = tailBehavior == "hold";
+    return juce::Result::ok();
 }
 
 bool addEmbeddedSamplePayload(juce::XmlElement& sampleState,
@@ -1091,6 +1157,9 @@ bool encodingAllowedForFamily(chipper::ExternalSampleEncoding encoding, Embedded
         case EmbeddedSampleFamily::dmc:
         case EmbeddedSampleFamily::rawMemory:
             return encoding == chipper::ExternalSampleEncoding::rawBytes;
+        case EmbeddedSampleFamily::opn2:
+            return encoding == chipper::ExternalSampleEncoding::rawBytes
+                || encoding == chipper::ExternalSampleEncoding::signedPcm8;
         case EmbeddedSampleFamily::spc700:
             return encoding == chipper::ExternalSampleEncoding::spc700Brr
                 || encoding == chipper::ExternalSampleEncoding::signedPcm8;
@@ -1322,6 +1391,7 @@ juce::Result readPcm8SampleFile(const juce::File& file,
     slot.name = file.getFileName();
     slot.path = file.getFullPathName();
     slot.encoding = chipper::ExternalSampleEncoding::signedPcm8;
+    slot.sourceRateHz = std::isfinite(reader->sampleRate) && reader->sampleRate > 0.0 ? reader->sampleRate : 0.0;
     slot.bytes.resize(static_cast<size_t>(sampleCount));
     const auto channelCount = std::max(1, decoded.getNumChannels());
     for (int i = 0; i < sampleCount; ++i)
@@ -2150,6 +2220,47 @@ juce::Result ChipperAudioProcessor::loadOpn2DacSampleFile(const juce::File& file
     return juce::Result::ok();
 }
 
+juce::Result ChipperAudioProcessor::configureOpn2DacSample(int rootNote,
+                                                           size_t trimStart,
+                                                           size_t trimEnd,
+                                                           bool holdLastValue)
+{
+    if (rootNote < 0 || rootNote > 127)
+        return juce::Result::fail("OPN2 DAC root note must be between 0 and 127.");
+
+    const juce::ScopedLock callbackGuard(getCallbackLock());
+    {
+        const std::lock_guard<std::mutex> lock(opn2DacSampleMutex);
+        const auto playbackBytes = std::min(opn2DacSample.bytes.size(), static_cast<size_t>(opn2DacMemoryBytes));
+        if (playbackBytes == 0u)
+            return juce::Result::fail("Load an OPN2 DAC sample before changing its playback settings.");
+        if (trimStart >= playbackBytes
+            || (trimEnd > 0u && (trimEnd <= trimStart || trimEnd > playbackBytes)))
+            return juce::Result::fail("OPN2 DAC trim bounds must stay within the 256 KiB playback window.");
+
+        opn2DacSample.rootNote = rootNote;
+        opn2DacSample.trimStart = trimStart;
+        opn2DacSample.trimEnd = trimEnd;
+        opn2DacSample.holdLastValue = holdLastValue;
+        ++opn2DacSampleRevision;
+    }
+
+    synchronizeActiveExternalAssets(chipper::ChipMode::ym2612);
+    return juce::Result::ok();
+}
+
+void ChipperAudioProcessor::clearOpn2DacSample()
+{
+    const juce::ScopedLock callbackGuard(getCallbackLock());
+    {
+        const std::lock_guard<std::mutex> lock(opn2DacSampleMutex);
+        opn2DacSample = {};
+        opn2DacSampleRestoreWarning = {};
+        ++opn2DacSampleRevision;
+    }
+    synchronizeActiveExternalAssets(chipper::ChipMode::ym2612);
+}
+
 juce::Result ChipperAudioProcessor::loadOpnaRhythmRomFile(const juce::File& file)
 {
     DmcSampleSlot slot;
@@ -2520,12 +2631,26 @@ ChipperAudioProcessor::Opn2DacSampleInfo ChipperAudioProcessor::opn2DacSampleInf
     info.path = opn2DacSample.path;
     info.byteCount = reportedSampleByteCount(opn2DacSample);
     info.copiedByteCount = std::min(info.byteCount, info.memoryByteCount);
+    info.sourceRateHz = opn2DacSample.sourceRateHz;
+    info.rootNote = opn2DacSample.rootNote;
+    info.trimStart = opn2DacSample.trimStart;
+    info.trimEnd = opn2DacSample.trimEnd;
+    info.holdLastValue = opn2DacSample.holdLastValue;
     info.truncated = info.byteCount > info.memoryByteCount;
     info.statusLine = juce::String("DAC sample: ") + info.sampleName + " ("
         + juce::String(info.byteCount) + " unsigned 8-bit bytes";
     if (info.truncated)
         info.statusLine += ", first " + juce::String(info.copiedByteCount) + " copied";
-    info.statusLine += ")";
+    info.statusLine += ") | ";
+    info.statusLine += info.sourceRateHz > 0.0
+        ? juce::String(info.sourceRateHz / 1000.0, 1) + " kHz"
+        : "Native DAC rate";
+    info.statusLine += " | Root " + juce::String(info.rootNote);
+    info.statusLine += info.trimEnd > 0u
+        ? " | Trim " + juce::String(static_cast<juce::int64>(info.trimStart)) + "-"
+            + juce::String(static_cast<juce::int64>(info.trimEnd))
+        : " | Trim " + juce::String(static_cast<juce::int64>(info.trimStart)) + "-end";
+    info.statusLine += info.holdLastValue ? " | Tail Hold" : " | Tail Center";
     appendRestoreWarning(info.statusLine, restoreWarning);
     return info;
 }
@@ -4310,12 +4435,19 @@ void ChipperAudioProcessor::applyOpn2DacSampleToCore()
     if (publishedRevision == activeOpn2DacSampleRevision)
         return;
 
-    std::vector<uint8_t> selectedBytes;
+    chipper::ExternalPcmSampleData selectedSample;
     uint64_t revision = 0;
     {
         const std::lock_guard<std::mutex> lock(opn2DacSampleMutex);
         revision = opn2DacSampleRevision.load(std::memory_order_relaxed);
-        selectedBytes = opn2DacSample.bytes;
+        selectedSample.bytes = opn2DacSample.bytes;
+        selectedSample.sourceRateHz = opn2DacSample.sourceRateHz;
+        selectedSample.rootNote = opn2DacSample.rootNote;
+        selectedSample.trimStart = opn2DacSample.trimStart;
+        selectedSample.trimEnd = opn2DacSample.trimEnd;
+        selectedSample.tailBehavior = opn2DacSample.holdLastValue
+            ? chipper::PcmTailBehavior::hold
+            : chipper::PcmTailBehavior::center;
     }
 
     if (revision == activeOpn2DacSampleRevision)
@@ -4323,7 +4455,7 @@ void ChipperAudioProcessor::applyOpn2DacSampleToCore()
 
     activeOpn2DacSampleRevision = revision;
     pooledOpn2DacRevisions[corePoolIndex(activeMode)] = revision;
-    core->setExternalSampleData(std::move(selectedBytes));
+    core->setExternalPcmSampleData(std::move(selectedSample));
 }
 
 void ChipperAudioProcessor::applyOpnaRhythmRomToCore()
@@ -5051,6 +5183,7 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml(StateAss
             auto* dacSampleState = new juce::XmlElement(opn2DacSampleStateTag);
             dacSampleState->setAttribute("path", opn2DacSample.path);
             addSampleReferenceMetadata(*dacSampleState, opn2DacSample);
+            addOpn2DacPlaybackMetadata(*dacSampleState, opn2DacSample);
             if (embedProjectAssets)
                 addEmbeddedSamplePayload(*dacSampleState, opn2DacSample, maxEmbeddedOpn2Bytes, embeddedBudget);
             xml->addChildElement(dacSampleState);
@@ -5444,7 +5577,7 @@ juce::Result ChipperAudioProcessor::restoreStateXmlInternal(const juce::XmlEleme
         {
             const auto embedded = restoreEmbeddedSample(*opn2DacSampleState,
                                                         restoredOpn2DacSample,
-                                                        EmbeddedSampleFamily::rawMemory,
+                                                        EmbeddedSampleFamily::opn2,
                                                         maxEmbeddedOpn2Bytes);
             if (embedded.restored)
                 opn2EmbeddedFallbacks.add(restoredOpn2DacSample.name);
@@ -5453,9 +5586,12 @@ juce::Result ChipperAudioProcessor::restoreStateXmlInternal(const juce::XmlEleme
                 opn2DacSampleRestoreIssues.add(fileResult.getErrorMessage());
                 if (embedded.present)
                     opn2DacSampleRestoreIssues.add(embedded.error);
-                restoredOpn2DacSample = sampleTombstone(*opn2DacSampleState, EmbeddedSampleFamily::rawMemory);
+                restoredOpn2DacSample = sampleTombstone(*opn2DacSampleState, EmbeddedSampleFamily::opn2);
             }
         }
+        if (const auto metadataResult = restoreOpn2DacPlaybackMetadata(*opn2DacSampleState, restoredOpn2DacSample);
+            metadataResult.failed())
+            return metadataResult;
         xml->removeChildElement(opn2DacSampleState, true);
     }
 

@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "fixture": {
+    "file": "yamaha-adpcm-a-opna-lle.wav",
+    "sha256": "26d34c598cb904fa87a3effe0471fb663dff4356aa98167ad3b2d7c9d8ab2368",
+    "encoding": "PCM16LE",
+    "sampleRate": 48000,
+    "channelCount": 2,
+    "frameCount": 9600,
+    "durationSeconds": 0.2
+  },
+  "reference": {
+    "kind": "trusted-emulator",
+    "engine": "YM2608-LLE",
+    "repository": "https://github.com/nukeykt/YM2608-LLE",
+    "commit": "7a2aca7b6830b96e48e3a4e1a40d15525993fa60",
+    "license": "GPL-2.0-or-later (offline reference oracle only)",
+    "generator": "tools/generate_yamaha_adpcm_a_lle_reference.c",
+    "generatedFromCopyrightedMusicOrGameData": false,
+    "notes": "Die-shot-level YM2608 model built in a sparse isolated checkout. The upstream rhythm-ROM header was excluded and replaced at build time by Chipper's original synthetic bytes. No oracle source or binary is vendored, linked, or shipped with Chipper."
+  },
+  "trace": {
+    "chipModel": "YM2608B / OPNA",
+    "clockHz": 7987200,
+    "nativeFrameRateNumerator": 7987200,
+    "nativeFrameRateDenominator": 144,
+    "resampleContract": "Exact rational clock/144 serial frames converted to 48 kHz with the same accumulator-and-hold schedule as chipper_render.",
+    "eventFile": "../events/ym2608-adpcm-a-reference-events.txt",
+    "registerWritesAtFrame": 1,
+    "registers": {
+      "16": 17,
+      "17": 63,
+      "24": 159,
+      "28": 95
+    },
+    "sampleFile": "yamaha-adpcm-a-synthetic-opna.bin",
+    "sampleSha256": "e537223fa038a6cab245ec8ad1a13007e09f41fbc66b41e50403f0c4d79efdd4",
+    "sampleBytes": 8192,
+    "audibleState": "Fixed-region bass drum is routed left and Tom is routed right. The pair covers the YM2608 rhythm /432 and /864 timing domains, canonical high-nibble-first file bytes, fixed inclusive endings, and stereo pan."
+  },
+  "candidate": {
+    "renderer": "chipper_render",
+    "command": "chipper_render --chip ym2608 --accuracy authentic --macro manual --clock 7987200 --rate 48000 --seconds 0.2 --events tests/events/ym2608-adpcm-a-reference-events.txt --source1 1 --source2 0 --source3 0 --source4 0 --source5 0 --source6 0 --source7 0 --source8 0 --source9 0 --stereo-spread 0 --output-db 0 --opna-rhythm-rom tests/references/yamaha-adpcm-a-synthetic-opna.bin --out yamaha-adpcm-a-opna-candidate.wav --debug yamaha-adpcm-a-opna-candidate.json"
+  },
+  "comparison": {
+    "command": "python tests/compare_reference_wav.py tests/references/yamaha-adpcm-a-opna-lle.wav yamaha-adpcm-a-opna-candidate.wav --per-channel-alignment --min-correlation 0.80 --max-normalized-rmse 0.58 --min-rms-ratio 0.97 --max-rms-ratio 1.03 --alignment-window-frames 32 --max-accepted-lag-frames 16 --max-channel-lag-spread-frames 4 --max-length-difference-frames 0",
+    "thresholds": {
+      "minCorrelation": 0.8,
+      "maxGainMatchedNormalizedRmse": 0.58,
+      "minRmsRatio": 0.97,
+      "maxRmsRatio": 1.03,
+      "alignmentWindowFrames": 32,
+      "maxAcceptedLagFrames": 16,
+      "maxChannelLagSpreadFrames": 4,
+      "maxLengthDifferenceFrames": 0,
+      "alignmentMode": "per-channel"
+    },
+    "acceptanceBaseline": {
+      "correlationPerChannel": 0.843895236463254,
+      "correlationByChannel": [
+        0.843895236463254,
+        0.9750768319095346
+      ],
+      "gainMatchedNormalizedRmsePerChannel": 0.5365079960957047,
+      "gainMatchedNormalizedRmseByChannel": [
+        0.5365079960957047,
+        0.22186746465686477
+      ],
+      "candidateToReferenceRmsRatioPerChannel": 0.9993810171370309,
+      "candidateToReferenceRmsRatioByChannel": [
+        0.9993810171370309,
+        0.999571134727049
+      ],
+      "lagFrames": -9,
+      "lagFramesPerChannel": [
+        -9,
+        -6
+      ],
+      "lagSpreadFrames": 3,
+      "lengthDifferenceFrames": 0
+    },
+    "negativeQualification": "tests/qualify_yamaha_adpcm_a_reference.py must reject a nibble-reversed candidate at these thresholds."
+  },
+  "scope": {
+    "covers": [
+      "independent trusted-emulator regression evidence for YM2608 ADPCM-A decoding",
+      "canonical file-byte to physical internal-ROM nibble wiring",
+      "fixed bass-drum and Tom ROM windows with inclusive endings",
+      "the /432 and /864 rhythm timing domains",
+      "left/right pan routing, duration, gross level, and bounded channel-slot startup skew"
+    ],
+    "doesNotClaim": [
+      "hardware validation",
+      "cycle accuracy",
+      "timer or prescaler accuracy",
+      "ADPCM-B validation",
+      "exact analog output curve",
+      "exact cross-implementation channel-slot latency"
+    ]
+  }
+}

@@ -286,6 +286,7 @@ public:
     void setGlobalPresetBrowserScopeForLayoutTest(int scopeId) { presetBrowser.setScopeForTest(scopeId); }
     void selectAllGlobalPresetBrowserChipsForLayoutTest() { presetBrowser.selectAllChipsForTest(); }
     void applyFirstGlobalPresetBrowserResultForLayoutTest() { presetBrowser.applyFirstResultForTest(); }
+    bool applyFactoryPresetForLayoutTest(const juce::String& presetId);
     bool getPresetFavoriteToggleStateForLayoutTest() const { return presetFavoriteButton.getToggleState(); }
     bool selectPresetFilterForLayoutTest(const juce::String& kind, const juce::String& value);
     void clearPresetFavoritesForLayoutTest();
@@ -455,7 +456,10 @@ public:
     juce::Rectangle<int> getSampleWaveformBoundsForLayoutTest() const { return sampleWaveformPreview.getBounds(); }
     juce::String getSampleLabelTextForLayoutTest() const { return dmcSampleLabel.getText(); }
     juce::String getSampleStatusTextForLayoutTest() const { return dmcSampleStatusLabel.getText(); }
+    juce::String getSampleStatusTooltipForLayoutTest() { return dmcSampleStatusLabel.getTooltip(); }
     juce::String getSampleFileButtonTextForLayoutTest() const { return dmcSampleFileButton.getButtonText(); }
+    juce::String getSampleFileButtonNameForLayoutTest() const { return dmcSampleFileButton.getName(); }
+    bool doesSampleFileButtonWantKeyboardFocusForLayoutTest() const { return dmcSampleFileButton.getWantsKeyboardFocus(); }
     juce::String getSampleFolderButtonTextForLayoutTest() const { return dmcSampleFolderButton.getButtonText(); }
     juce::String getSampleBankButtonTextForLayoutTest() const { return dmcSampleBankButton.getButtonText(); }
     juce::Rectangle<int> getSampleLoopStartBoundsForLayoutTest() const { return sampleLoopStartSlider.getBounds(); }

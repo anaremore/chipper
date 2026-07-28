@@ -184,6 +184,22 @@ struct ExternalSampleData
     size_t loopEnd = 0;
 };
 
+enum class PcmTailBehavior
+{
+    center,
+    hold
+};
+
+struct ExternalPcmSampleData
+{
+    std::vector<uint8_t> bytes;
+    double sourceRateHz = 0.0;
+    int rootNote = 60;
+    size_t trimStart = 0;
+    size_t trimEnd = 0;
+    PcmTailBehavior tailBehavior = PcmTailBehavior::center;
+};
+
 struct RenderStats
 {
     double peak = 0.0;
@@ -205,6 +221,11 @@ public:
     virtual void reset(double outputSampleRate, double chipClockHz) = 0;
     virtual void setPatch(const PatchConfig& patch) = 0;
     virtual void setExternalSampleData(std::vector<uint8_t> data) { (void) data; }
+    virtual void setExternalPcmSampleData(ExternalPcmSampleData data)
+    {
+        setExternalSampleData(std::move(data.bytes));
+    }
+
     virtual void setExternalAdpcmAData(
         std::vector<uint8_t> data,
         std::array<yamahaAdpcm::AdpcmARegionWindow, yamahaAdpcm::regionCountA> regions)

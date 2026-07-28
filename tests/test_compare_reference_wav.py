@@ -44,6 +44,33 @@ class ReferenceComparatorTests(unittest.TestCase):
         correlations = [channel["correlation"] for channel in metrics["channels"]]
         self.assertLess(min(correlations), 0.25)
 
+    def test_shared_alignment_maximizes_the_weakest_stereo_channel(self) -> None:
+        left = [math.sin(index * 0.31) for index in range(512)]
+        right = [math.sin(index * 0.23 + 0.7) for index in range(512)]
+        candidate_left = [0.0] * 5 + left + [0.0] * 4
+        candidate_right = [0.0] * 9 + right
+        metrics = compare_audio(
+            [left, right], [candidate_left, candidate_right],
+            max_lag_samples=12, min_overlap_samples=400,
+        )
+        correlations = [channel["correlation"] for channel in metrics["channels"]]
+        self.assertGreater(min(correlations), 0.75)
+        self.assertIn(metrics["lagFrames"], range(5, 10))
+
+    def test_bounded_per_channel_alignment_reports_slot_stagger(self) -> None:
+        left = [math.sin(index * 0.31) for index in range(512)]
+        right = [math.sin(index * 0.23 + 0.7) for index in range(512)]
+        metrics = compare_audio(
+            [left, right],
+            [[0.0] * 5 + left + [0.0] * 4, [0.0] * 9 + right],
+            max_lag_samples=12,
+            min_overlap_samples=400,
+            per_channel_alignment=True,
+        )
+        self.assertEqual(metrics["lagFramesPerChannel"], [5, 9])
+        self.assertEqual(metrics["lagSpreadFrames"], 4)
+        self.assertTrue(all(channel["correlation"] > 0.999 for channel in metrics["channels"]))
+
     def test_channel_count_mismatch_fails_explicitly(self) -> None:
         signal = [math.sin(index * 0.1) for index in range(128)]
         with self.assertRaisesRegex(ValueError, "channel-count mismatch"):

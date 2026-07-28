@@ -26,6 +26,11 @@ duration. Use `--max-accepted-lag-frames` and
 explicitly; do not widen them merely to make a failing render pass. The
 alignment window must be at least as large as the accepted lag.
 
+`--per-channel-alignment` is reserved for references whose native stereo
+serializer can stagger channel slots. It independently aligns each channel
+but requires an explicit, small `--max-channel-lag-spread-frames` bound. The
+default remains one shared stereo alignment.
+
 Thresholds must be justified per capture; they are not an accuracy certificate
 on their own. Hardware and trusted-emulator references should remain
 distinguishable in filenames and metadata. Keep reference audio out of Git
@@ -67,3 +72,32 @@ deliberately limited to gross tone-period, square-duty/polarity, mixer-routing,
 channel-layout, level, startup-lag, and duration regressions. It does not support
 cycle-accuracy, hardware-accuracy, analog-output, full noise/envelope, or
 AY/YM-variant-equivalence claims.
+
+### YM2608 and YM2610 ADPCM-A via YM2608-LLE
+
+| Field | YM2608 / OPNA | YM2610 / OPNB |
+| --- | --- | --- |
+| Fixture | `yamaha-adpcm-a-opna-lle.wav` | `yamaha-adpcm-a-opnb-lle.wav` |
+| Metadata | `yamaha-adpcm-a-opna-lle.json` | `yamaha-adpcm-a-opnb-lle.json` |
+| Source | GPL-2.0-or-later YM2608-LLE at `7a2aca7b6830b96e48e3a4e1a40d15525993fa60` | Same pinned oracle, YM2610 build |
+| Model / clock | YM2608 / 7,987,200 Hz | YM2610 / 8,000,000 Hz |
+| Audio | 48 kHz stereo PCM16, 9,600 frames / 0.2 seconds | Same |
+| Synthetic bank | Fixed 8 KiB canonical OPNA rhythm ROM | Three 256-byte pages in the OPNB external window |
+| Fixture SHA-256 | `26d34c598cb904fa87a3effe0471fb663dff4356aa98167ad3b2d7c9d8ab2368` | `dad60ac442ecd4ecb61b6edefb4142080e7cf404ba50e10d9c1e7053115c58e8` |
+
+The fixtures contain only original deterministic Chipper test bytes and direct
+register traces; they contain no upstream ROM, music, game, preset, or sample
+asset. No YM2608-LLE source or binary is vendored or linked into Chipper.
+`tools/README-yamaha-adpcm-a-lle.md` gives the pinned clean-checkout build and
+reproduction steps. The checked-in C harness owns the trace, bus scheduler,
+external-address reconstruction, serial decode, and exact-rational 48 kHz
+capture policy.
+
+The OPNA gate covers independent BD-left and Tom-right paths at the native
+`clock / 432` and `clock / 864` rates. The OPNB gate covers separate page-zero
+left and page-two right regions and external address reconstruction. Each gate
+also has a required negative mutation: OPNA nibble reversal and OPNB page
+misaddressing must fail comparison. This is independent emulator evidence for
+the covered ADPCM-A decoding, memory addressing, rate, stereo routing, gain,
+and duration paths. It is not hardware, analog-output, bus-cycle, FM/SSG,
+ADPCM-B, timer, prescaler, CSM, or full-chip equivalence evidence.

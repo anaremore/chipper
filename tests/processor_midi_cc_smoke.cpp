@@ -2003,11 +2003,24 @@ int runSmoke()
         ok &= expect(opn2Processor.loadOpn2DacSampleFile(opn2RawFile).wasOk(),
                      "OPN2 raw DAC sample load should succeed");
 
-        const auto opn2Info = opn2Processor.opn2DacSampleInfo();
-        ok &= expect(opn2Info.loaded && opn2Info.byteCount == 270000
-                         && opn2Info.copiedByteCount == 262144
-                         && opn2Info.truncated,
+        const auto defaultOpn2Info = opn2Processor.opn2DacSampleInfo();
+        ok &= expect(defaultOpn2Info.loaded && defaultOpn2Info.byteCount == 270000
+                         && defaultOpn2Info.copiedByteCount == 262144
+                         && defaultOpn2Info.truncated,
                      "OPN2 DAC status should report source bytes and the 256 KiB playback window");
+        ok &= expect(defaultOpn2Info.sourceRateHz == 0.0 && defaultOpn2Info.rootNote == 60
+                         && defaultOpn2Info.trimStart == 0u && defaultOpn2Info.trimEnd == 0u
+                         && ! defaultOpn2Info.holdLastValue,
+                     "Raw OPN2 DAC imports should retain legacy native-rate, C4, full-trim, centered-tail semantics");
+        ok &= expect(opn2Processor.configureOpn2DacSample(48, 8u, 128u, true).wasOk(),
+                     "OPN2 DAC playback settings should accept bounded root, trim, and tail values");
+        ok &= expect(opn2Processor.configureOpn2DacSample(128, 0u, 0u, false).failed()
+                         && opn2Processor.configureOpn2DacSample(60, 262144u, 0u, false).failed(),
+                     "OPN2 DAC playback settings should reject invalid root notes and trim bounds");
+        const auto opn2Info = opn2Processor.opn2DacSampleInfo();
+        ok &= expect(opn2Info.rootNote == 48 && opn2Info.trimStart == 8u && opn2Info.trimEnd == 128u
+                         && opn2Info.holdLastValue && opn2Info.statusLine.contains("Tail Hold"),
+                     "OPN2 DAC status should expose configured root, trim, and tail behavior");
         const auto opn2Preview = opn2Processor.sampleWaveformSnapshot(chipper::ChipMode::ym2612);
         ok &= expect(opn2Preview.loaded && opn2Preview.sourceSampleCount == 270000
                          && opn2Preview.label.contains("chipper-opn2-dac-test.raw"),
@@ -2021,9 +2034,17 @@ int runSmoke()
                      "OPN2 DAC core should receive the bounded user bytes and select them for playback");
 
         auto opn2StateXml = opn2Processor.createStateXml();
-        ok &= expect(opn2StateXml != nullptr
-                         && opn2StateXml->getChildByName("CHIPPER_OPN2_DAC_SAMPLE") != nullptr,
+        const auto* savedOpn2Sample = opn2StateXml != nullptr
+            ? opn2StateXml->getChildByName("CHIPPER_OPN2_DAC_SAMPLE") : nullptr;
+        ok &= expect(savedOpn2Sample != nullptr,
                      "OPN2 state XML should save the loaded DAC sample path");
+        ok &= expect(savedOpn2Sample != nullptr
+                         && savedOpn2Sample->getDoubleAttribute("sourceRateHz", -1.0) == 0.0
+                         && savedOpn2Sample->getIntAttribute("rootNote", -1) == 48
+                         && savedOpn2Sample->getIntAttribute("trimStart", -1) == 8
+                         && savedOpn2Sample->getIntAttribute("trimEnd", -1) == 128
+                         && savedOpn2Sample->getStringAttribute("tailBehavior") == "hold",
+                     "OPN2 state XML should save source-rate, root, trim, and tail metadata");
         auto opn2ProjectXml = opn2Processor.createStateXml(ChipperAudioProcessor::StateAssetPolicy::embedProjectAssets);
         ok &= expect(opn2StateXml != nullptr
                          && countElementsNamed(*opn2StateXml, chipper::state::embeddedSampleStateTag) == 0u,
@@ -2041,8 +2062,11 @@ int runSmoke()
         processEmptyBlock(restoredOpn2Processor);
         const auto restoredOpn2Info = restoredOpn2Processor.opn2DacSampleInfo();
         const auto restoredOpn2Debug = restoredOpn2Processor.currentCoreDebugStateJson();
-        ok &= expect(restoredOpn2Info.loaded && restoredOpn2Info.byteCount == 270000,
-                     "OPN2 DAC state restore should reload the user sample path");
+        ok &= expect(restoredOpn2Info.loaded && restoredOpn2Info.byteCount == 270000
+                         && restoredOpn2Info.sourceRateHz == 0.0 && restoredOpn2Info.rootNote == 48
+                         && restoredOpn2Info.trimStart == 8u && restoredOpn2Info.trimEnd == 128u
+                         && restoredOpn2Info.holdLastValue,
+                     "OPN2 DAC state restore should reload the user sample path and playback metadata");
         ok &= expect(jsonIntValue(restoredOpn2Debug, "dacExternalSampleLoaded") == 1
                          && jsonIntValue(restoredOpn2Debug, "dacExternalSampleBytes") == 262144,
                      "Restored OPN2 core should receive the bounded user sample bytes");
@@ -2076,6 +2100,11 @@ int runSmoke()
         {
             auto* missingSample = new juce::XmlElement("CHIPPER_OPN2_DAC_SAMPLE");
             missingSample->setAttribute("path", portableOpn2PresetDir.getChildFile("missing-opn2.raw").getFullPathName());
+            missingSample->setAttribute("sourceRateHz", 32000.0);
+            missingSample->setAttribute("rootNote", 51);
+            missingSample->setAttribute("trimStart", 11);
+            missingSample->setAttribute("trimEnd", 77);
+            missingSample->setAttribute("tailBehavior", "hold");
             missingOpn2Xml->addChildElement(missingSample);
             ChipperAudioProcessor missingOpn2Processor;
             missingOpn2Processor.prepareToPlay(48000.0, 64);
@@ -2093,14 +2122,35 @@ int runSmoke()
                 ? missingOpn2ResavedXml->getChildByName("CHIPPER_OPN2_DAC_SAMPLE") : nullptr;
             ok &= expect(missingOpn2ResavedSample != nullptr
                              && missingOpn2ResavedSample->getStringAttribute("path").contains("missing-opn2.raw")
+                             && missingOpn2ResavedSample->getDoubleAttribute("sourceRateHz", -1.0) == 32000.0
+                             && missingOpn2ResavedSample->getIntAttribute("rootNote", -1) == 51
+                             && missingOpn2ResavedSample->getIntAttribute("trimStart", -1) == 11
+                             && missingOpn2ResavedSample->getIntAttribute("trimEnd", -1) == 77
+                             && missingOpn2ResavedSample->getStringAttribute("tailBehavior") == "hold"
                              && countElementsNamed(*missingOpn2ResavedSample, chipper::state::embeddedSampleStateTag) == 0u,
-                         "Re-saving a missing OPN2 asset should retain its reference for relinking without inventing bytes");
+                         "Re-saving a missing OPN2 asset should retain its reference and playback metadata without inventing bytes");
             ok &= expect(missingOpn2Processor.loadOpn2DacSampleFile(opn2WavFile).wasOk(),
                          "Manual OPN2 WAV load should succeed after a restore warning");
             missingOpn2Info = missingOpn2Processor.opn2DacSampleInfo();
             ok &= expect(missingOpn2Info.loaded && missingOpn2Info.byteCount == 256
+                             && std::abs(missingOpn2Info.sourceRateHz - 48000.0) < 0.001
+                             && missingOpn2Info.rootNote == 60
+                             && missingOpn2Info.trimStart == 0u && missingOpn2Info.trimEnd == 0u
+                             && ! missingOpn2Info.holdLastValue
                              && ! missingOpn2Info.statusLine.contains("restore issue"),
-                         "OPN2 WAV import should produce 8-bit samples and clear stale restore warnings");
+                         "OPN2 WAV import should preserve its sample rate, use neutral playback defaults, and clear stale restore warnings");
+            auto embeddedWavState = missingOpn2Processor.createStateXml(
+                ChipperAudioProcessor::StateAssetPolicy::embedProjectAssets);
+            opn2WavFile.deleteFile();
+            ChipperAudioProcessor embeddedWavProcessor;
+            embeddedWavProcessor.prepareToPlay(48000.0, 64);
+            ok &= expect(embeddedWavState != nullptr
+                             && embeddedWavProcessor.restoreStateXml(*embeddedWavState).wasOk(),
+                         "Embedded OPN2 WAV state should restore without the original source file");
+            const auto embeddedWavInfo = embeddedWavProcessor.opn2DacSampleInfo();
+            ok &= expect(embeddedWavInfo.loaded && embeddedWavInfo.byteCount == 256
+                             && std::abs(embeddedWavInfo.sourceRateHz - 48000.0) < 0.001,
+                         "Embedded OPN2 WAV state should preserve signed PCM bytes and source rate");
         }
 
         opn2RawFile.deleteFile();
@@ -2113,8 +2163,15 @@ int runSmoke()
             processEmptyBlock(embeddedOpn2Processor);
             const auto embeddedInfo = embeddedOpn2Processor.opn2DacSampleInfo();
             ok &= expect(embeddedInfo.loaded && embeddedInfo.byteCount == 270000u
+                             && embeddedInfo.rootNote == 48
+                             && embeddedInfo.trimStart == 8u && embeddedInfo.trimEnd == 128u
+                             && embeddedInfo.holdLastValue
                              && embeddedInfo.statusLine.contains("Using embedded project copy"),
-                         "OPN2 deleted-source restore should use the bounded embedded project copy");
+                         "OPN2 deleted-source restore should use the bounded embedded project copy with its playback metadata");
+            embeddedOpn2Processor.clearOpn2DacSample();
+            ok &= expect(! embeddedOpn2Processor.opn2DacSampleInfo().loaded
+                             && embeddedOpn2Processor.createStateXml()->getChildByName("CHIPPER_OPN2_DAC_SAMPLE") == nullptr,
+                         "Clearing the OPN2 DAC sample should clear playback data and its saved reference");
         }
 
         portableOpn2PresetDir.deleteRecursively();
@@ -3842,6 +3899,27 @@ int runSmoke()
                  "Saved processor state should declare the current schema version");
     if (versionedState != nullptr)
     {
+        auto schema8Opn2State = std::make_unique<juce::XmlElement>(*versionedState);
+        schema8Opn2State->setAttribute(chipper::state::schemaVersionAttribute, 8);
+        while (auto* existing = schema8Opn2State->getChildByName("CHIPPER_OPN2_DAC_SAMPLE"))
+            schema8Opn2State->removeChildElement(existing, true);
+        auto* legacyOpn2Sample = new juce::XmlElement("CHIPPER_OPN2_DAC_SAMPLE");
+        legacyOpn2Sample->setAttribute("path", "legacy-opn2.raw");
+        schema8Opn2State->addChildElement(legacyOpn2Sample);
+        const auto schema8Migration = chipper::state::validateAndMigrate(
+            *schema8Opn2State, juce::Identifier(schema8Opn2State->getTagName()));
+        const auto* migratedOpn2Sample = schema8Opn2State->getChildByName("CHIPPER_OPN2_DAC_SAMPLE");
+        ok &= expect(schema8Migration.wasOk()
+                         && schema8Opn2State->getIntAttribute(chipper::state::schemaVersionAttribute)
+                             == chipper::state::currentSchemaVersion
+                         && migratedOpn2Sample != nullptr
+                         && migratedOpn2Sample->getDoubleAttribute("sourceRateHz", -1.0) == 0.0
+                         && migratedOpn2Sample->getIntAttribute("rootNote", -1) == 60
+                         && migratedOpn2Sample->getIntAttribute("trimStart", -1) == 0
+                         && migratedOpn2Sample->getIntAttribute("trimEnd", -1) == 0
+                         && migratedOpn2Sample->getStringAttribute("tailBehavior") == "center",
+                     "Schema-v8 OPN2 DAC references should migrate to explicit legacy playback semantics");
+
         auto legacyState = std::make_unique<juce::XmlElement>(*versionedState);
         legacyState->removeAttribute("stateSchemaVersion");
         ChipperAudioProcessor legacyRestoreProcessor;

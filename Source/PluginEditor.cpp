@@ -7371,6 +7371,17 @@ bool ChipperAudioProcessorEditor::selectPresetFilterForLayoutTest(const juce::St
     return false;
 }
 
+bool ChipperAudioProcessorEditor::applyFactoryPresetForLayoutTest(const juce::String& presetId)
+{
+    if (const auto* preset = chipper::presetById(presetId.toStdString()))
+    {
+        applyFactoryPreset(*preset);
+        return true;
+    }
+
+    return false;
+}
+
 void ChipperAudioProcessorEditor::clearPresetFavoritesForLayoutTest()
 {
     favoriteFactoryPresetIds.clear();
@@ -10252,14 +10263,9 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
     for (size_t i = 0; i < fmOperatorReleaseRateIds.size(); ++i)
         setChoiceParameterFromUi(fmOperatorReleaseRateIds[i], fmOperatorReleaseRates[i]);
 
+    const auto sourceMask = chipper::sourceMaskForPreset(preset);
     for (size_t i = 0; i < sourceIds.size(); ++i)
-    {
-        const auto anyPresetSourceEnabled = std::any_of(preset.sourceEnabled.begin(), preset.sourceEnabled.end(), [](bool value) { return value; });
-        const auto enabled = i < preset.sourceEnabled.size()
-            ? preset.sourceEnabled[i]
-            : (anyPresetSourceEnabled && chipper::nativeSourceCountForMode(preset.chip) > i);
-        setParameterValueFromUi(sourceIds[i], enabled ? 1.0f : 0.0f);
-    }
+        setParameterValueFromUi(sourceIds[i], sourceMask[i] ? 1.0f : 0.0f);
 
     const std::array<float, sourceChannelCount> sourceLevels {
         preset.source1Level,
@@ -15875,6 +15881,7 @@ void ChipperAudioProcessorEditor::updateDmcSampleControls()
     dmcSampleLabel.setText("DMC", juce::dontSendNotification);
     dmcSampleLabel.setTooltip(withMidiCcForRole("Load one .dmc file or a folder of .dmc files. CC selects the active preloaded sample slot.", chipper::ChipParameterRole::nesDmcSampleSlot));
     dmcSampleFileButton.setButtonText("File");
+    dmcSampleFileButton.setName("Load NES DMC sample");
     dmcSampleFileButton.setTooltip("Load one user-provided .dmc file as a one-slot bank.");
     dmcSampleBankButton.setButtonText("Bank");
     dmcSampleBankButton.setTooltip("Open the DMC bank checklist. Checked files become the playable 32-slot dropdown, note map, and CC117 bank.");
@@ -16006,6 +16013,7 @@ void ChipperAudioProcessorEditor::updateSpc700BrrSampleControls()
     const auto lifetimeLabel = resolvedPlaybackMode == 1u ? juce::String("loop") : juce::String("one-shot");
     dmcSampleLabel.setTooltip(withMidiCcForRole("Load one user-provided SNES BRR, WAV, or AIFF sample, or a folder bank. CC117 selects the manual slot; Sample Playback chooses whether MIDI notes browse the loaded bank.", chipper::ChipParameterRole::nesDmcSampleSlot));
     dmcSampleFileButton.setButtonText("File");
+    dmcSampleFileButton.setName("Load SPC700 sample");
     dmcSampleFileButton.setTooltip("Load one user-provided .brr, WAV, or AIFF file into the SPC700-style sample voice model.");
     dmcSampleFolderButton.setButtonText("Folder");
     dmcSampleFolderButton.setTooltip("Load a folder of user-provided .brr, WAV, or AIFF files. The first 32 readable samples become CC117-addressable slots and note-mapped sample choices from C1 upward.");
@@ -16132,6 +16140,7 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
     const auto playbackMode = static_cast<int>(std::round(parameterValue(chipper::parameters::id::nesDmcPlaybackMode)));
     dmcSampleLabel.setTooltip(withMidiCcForRole("Load one user-provided WAV/AIFF/8SVX/MOD sample source or a folder. MOD files expand ProTracker instruments into sample slots. CC117 selects the manual Paula sample slot; Sample Playback chooses whether MIDI notes browse the loaded bank.", chipper::ChipParameterRole::nesDmcSampleSlot));
     dmcSampleFileButton.setButtonText("File");
+    dmcSampleFileButton.setName("Load Paula sample");
     dmcSampleFileButton.setTooltip("Load one user-provided WAV/AIFF, uncompressed IFF/8SVX, or ProTracker MOD sample source into the Paula-style 8-bit sample voice model.");
     dmcSampleFolderButton.setButtonText("Folder");
     dmcSampleFolderButton.setTooltip("Load a folder of user-provided WAV/AIFF/8SVX/MOD files. Checked entries become up to 32 playable slots and note-mapped sample choices.");
@@ -16225,31 +16234,55 @@ void ChipperAudioProcessorEditor::updatePaulaSampleControls()
 
 void ChipperAudioProcessorEditor::updateOpn2DacSampleControls()
 {
-    dmcSampleLabel.setText("DAC Sample", juce::dontSendNotification);
-    dmcSampleLabel.setTooltip("Load one user-owned WAV/AIFF sample or raw unsigned 8-bit byte stream for the YM2612 channel 6 DAC path.");
-    dmcSampleFileButton.setButtonText("File");
-    dmcSampleFileButton.setTooltip("Load WAV, AIFF, BIN, RAW, PCM, or DAT data. Audio files are converted to mono unsigned 8-bit samples; raw files are copied as-is.");
+    dmcSampleLabel.setText("DAC Source", juce::dontSendNotification);
+    dmcSampleLabel.setTooltip("YM2612 channel 6 DAC source. Load one user-owned WAV/AIFF sample or raw unsigned 8-bit byte stream; the strip reports rate, root, trim, and tail behavior.");
+    dmcSampleFileButton.setButtonText("Load");
+    dmcSampleFileButton.setName("Load YM2612 DAC sample");
+    dmcSampleFileButton.setTooltip("Load or replace the YM2612 DAC source. WAV/AIFF is converted to mono unsigned 8-bit while preserving its source rate; BIN, RAW, PCM, and DAT use the native DAC rate.");
     dmcSampleSlotBox.setEnabled(false);
     dmcSampleSlotBox.setSelectedId(0, juce::dontSendNotification);
     dmcSampleSlotBox.setTextWhenNothingSelected("Single file");
 
     const auto info = audioProcessor.opn2DacSampleInfo();
+    const auto rateText = info.sourceRateHz > 0.0
+        ? juce::String(info.sourceRateHz / 1000.0, 1) + " kHz"
+        : juce::String("native");
+    const auto rootNote = std::clamp(info.rootNote, 0, 127);
+    const auto rootText = chipper::parameters::midiNoteChoices()[rootNote];
+    const auto trimText = juce::String(static_cast<juce::int64>(info.trimStart)) + "-"
+        + (info.trimEnd > 0u ? juce::String(static_cast<juce::int64>(info.trimEnd)) : juce::String("end"));
+    const auto tailText = info.holdLastValue ? juce::String("Hold") : juce::String("Center");
+
     auto visibleStatus = info.loaded
-        ? compactSampleName(info.sampleName, 16) + " | " + juce::String(info.copiedByteCount) + " bytes"
-        : juce::String("Generated fallback");
+        ? compactSampleName(info.sampleName, 12) + " | " + rateText + " | " + rootText + " | " + trimText + " | " + tailText
+        : juce::String("Generated fallback | internal DAC recipe");
     if (info.statusLine.containsIgnoreCase("restore issue"))
-        visibleStatus = "Missing file | click File to relink";
+        visibleStatus = "Missing file | click Load to relink";
     else if (info.statusLine.containsIgnoreCase("Using embedded project copy"))
         visibleStatus += " | project copy";
     if (info.truncated)
         visibleStatus += " | truncated";
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
 
-    auto tooltip = info.statusLine
-        + "\nThe loaded unsigned 8-bit bytes drive the native channel 6 DAC stream when DAC Sample mode is selected.";
+    auto tooltip = info.statusLine;
     if (info.loaded)
+    {
+        tooltip += "\nSource rate: " + (info.sourceRateHz > 0.0
+            ? juce::String(info.sourceRateHz, 1) + " Hz"
+            : juce::String("native YM2612 DAC rate for raw bytes"));
+        tooltip += "\nRoot: " + rootText + " (MIDI " + juce::String(rootNote) + ")";
+        tooltip += "\nTrim: bytes " + juce::String(static_cast<juce::int64>(info.trimStart)) + " to "
+            + (info.trimEnd > 0u ? juce::String(static_cast<juce::int64>(info.trimEnd)) + " (end exclusive)" : juce::String("sample end"));
+        tooltip += info.holdLastValue
+            ? "\nTail: hold the final DAC byte after playback."
+            : "\nTail: return the DAC output to center (0x80) after playback.";
         tooltip += "\nPath: " + info.path;
-    tooltip += "\nExact YM2612 DAC timing and analog ladder nonlinearity remain planned.";
+    }
+    else
+    {
+        tooltip += "\nLoaded sample metadata appears here as Source rate, Root, Trim, and Tail.";
+    }
+    tooltip += "\nThe loaded unsigned 8-bit bytes drive channel 6 when DAC Sample mode is selected. Per-chip analog ladder nonlinearity remains planned.";
     dmcSampleStatusLabel.setTooltip(tooltip);
     updateSampleWaveformPreview(chipper::ChipMode::ym2612);
 }
@@ -16259,6 +16292,7 @@ void ChipperAudioProcessorEditor::updateOpnaRhythmRomControls()
     dmcSampleLabel.setText("Drum/Hit Layer", juce::dontSendNotification);
     dmcSampleLabel.setTooltip("Import a packed YM2608 rhythm ROM, edit its six fixed hardware regions, and optionally load the shared ADPCM-B layer.");
     dmcSampleFileButton.setButtonText("Packed A");
+    dmcSampleFileButton.setName("Load OPNA packed rhythm image");
     dmcSampleFileButton.setTooltip("Compatibility import for one user-owned 8192-byte OPNA ADPCM-A rhythm-ROM image. Use Regions to load WAV/AIFF or exact encoded data per hardware voice.");
     dmcSampleFolderButton.setButtonText("ADPCM-B");
     dmcSampleFolderButton.setTooltip("Load encoded OPNA ADPCM-B bytes or WAV/AIFF audio. Audio is downmixed, resampled to the C4 playback rate, converted, and aligned automatically.");
@@ -16328,6 +16362,7 @@ void ChipperAudioProcessorEditor::updateOpnbAdpcmSampleControls()
     dmcSampleLabel.setText("Drum/Hit Layers", juce::dontSendNotification);
     dmcSampleLabel.setTooltip("Import a packed YM2610 ADPCM-A image, build its six logical regions, and optionally load the shared ADPCM-B layer.");
     dmcSampleFileButton.setButtonText("Packed A");
+    dmcSampleFileButton.setName("Load OPNB packed ADPCM-A image");
     dmcSampleFileButton.setTooltip("Compatibility import for one user-owned OPNB ADPCM-A image up to 1 MiB. Use Regions to load WAV/AIFF or page-aligned encoded data per logical voice.");
     dmcSampleFolderButton.setButtonText("ADPCM-B");
     dmcSampleFolderButton.setTooltip("Load encoded OPNB ADPCM-B bytes or WAV/AIFF audio. Audio is downmixed, resampled to the C4 playback rate, converted, and 256-byte aligned automatically.");
@@ -16894,6 +16929,11 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
         {
             moduleTitleLabels[i].setText("Sample Bank", juce::dontSendNotification);
             summary = "Load tracker-style samples, choose playback mapping, and preview the waveform.";
+        }
+        else if (mode == chipper::ChipMode::ym2612 && i == 5)
+        {
+            moduleTitleLabels[i].setText("DAC Lab + Routing", juce::dontSendNotification);
+            summary = "Load and inspect channel-6 DAC samples with source-rate, root, trim, and tail metadata; envelope, LFO, pan, and portable path recall stay together.";
         }
         else if (mode == chipper::ChipMode::ym2608 && i == 5)
         {

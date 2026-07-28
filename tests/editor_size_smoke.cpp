@@ -827,7 +827,7 @@ bool checkYm2612DacModeLayout()
 
         ok &= expect(editor.getModuleTitleTextForLayoutTest(2) == "Shared Four-Operator Patch"
                          && editor.getModuleTitleTextForLayoutTest(3) == "Shared Operator Matrix"
-                         && editor.getModuleTitleTextForLayoutTest(5) == "Envelope, DAC + Routing",
+                         && editor.getModuleTitleTextForLayoutTest(5) == "DAC Lab + Routing",
                      "YM2612 dedicated signal-path module titles are missing");
         ok &= expect(editor.getModuleSummaryTextForLayoutTest(5).containsIgnoreCase("portable path recall"),
                      "YM2612 DAC surface should disclose the delivered sample-loading workflow");
@@ -865,7 +865,7 @@ bool checkYm2612DacModeLayout()
             if (control.isEmpty() || ! routeModule.expanded(2).contains(control))
             {
                 std::cerr << "editor_size_smoke: YM2612 " << label
-                          << " is missing from Envelope, DAC + Routing\n";
+                          << " is missing from DAC Lab + Routing\n";
                 ok = false;
             }
         }
@@ -878,6 +878,18 @@ bool checkYm2612DacModeLayout()
         ok &= expect(sampleFileBounds.getWidth() >= 48 && sampleFileBounds.getHeight() >= 20
                          && sampleWaveformBounds.getWidth() >= 300 && sampleWaveformBounds.getHeight() >= 20,
                      "YM2612 DAC sample workflow controls are below readable size");
+        const auto dacStatusTooltip = editor.getSampleStatusTooltipForLayoutTest();
+        ok &= expect(editor.getSampleLabelTextForLayoutTest() == "DAC Source"
+                         && editor.getSampleFileButtonTextForLayoutTest() == "Load"
+                         && editor.getSampleStatusTextForLayoutTest().containsIgnoreCase("Generated fallback"),
+                     "YM2612 DAC Lab strip should make its source and fallback state explicit");
+        ok &= expect(editor.getSampleFileButtonNameForLayoutTest().containsIgnoreCase("Load YM2612 DAC sample")
+                         && editor.doesSampleFileButtonWantKeyboardFocusForLayoutTest()
+                         && dacStatusTooltip.containsIgnoreCase("Source rate")
+                         && dacStatusTooltip.containsIgnoreCase("Root")
+                         && dacStatusTooltip.containsIgnoreCase("Trim")
+                         && dacStatusTooltip.containsIgnoreCase("Tail"),
+                     "YM2612 DAC Lab strip should expose keyboard focus and truthful sample metadata semantics");
         ok &= expect(performanceBounds.expanded(2).contains(clockBounds)
                          && performanceBounds.expanded(2).contains(outputBounds),
                      "YM2612 clock/output controls escaped the compact global strip");
@@ -899,6 +911,43 @@ bool checkYm2612DacModeLayout()
     ok &= expect(editor.isNativeSliderEnabledForLayoutTest(0)
                      && editor.getNativeLabelTextForLayoutTest(0) == "Algorithm Bias",
                  "YM2612 Algorithm Bias should activate for the Manual recipe in Preset mode");
+
+    const std::array<const char*, 9> sourceIds {
+        chipper::parameters::id::source1Enabled,
+        chipper::parameters::id::source2Enabled,
+        chipper::parameters::id::source3Enabled,
+        chipper::parameters::id::source4Enabled,
+        chipper::parameters::id::source5Enabled,
+        chipper::parameters::id::source6Enabled,
+        chipper::parameters::id::source7Enabled,
+        chipper::parameters::id::source8Enabled,
+        chipper::parameters::id::source9Enabled
+    };
+    const std::array<std::pair<const char*, std::array<bool, 9>>, 3> dacPresetMasks {
+        std::pair { "opn2-dac-kick", std::array { false, false, false, false, false, true, false, false, false } },
+        std::pair { "opn2-dac-snare", std::array { true, false, false, false, false, true, false, false, false } },
+        std::pair { "opn2-dac-chord-hit", std::array { true, true, true, true, false, true, false, false, false } }
+    };
+    for (const auto& [presetId, expectedMask] : dacPresetMasks)
+    {
+        if (! editor.applyFactoryPresetForLayoutTest(presetId))
+        {
+            std::cerr << "editor_size_smoke: failed to apply " << presetId << '\n';
+            ok = false;
+            continue;
+        }
+
+        for (size_t lane = 0; lane < sourceIds.size(); ++lane)
+        {
+            const auto actual = plainParameterValue(processor, sourceIds[lane]) >= 0.5f;
+            if (actual != expectedMask[lane])
+            {
+                std::cerr << "editor_size_smoke: " << presetId << " source lane " << (lane + 1u)
+                          << " ownership mismatch\n";
+                ok = false;
+            }
+        }
+    }
 
     return ok;
 }

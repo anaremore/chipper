@@ -33,20 +33,23 @@ must not silently reinterpret an existing ID or accepted state.
 - The APVTS root tag is `ChipperState`.
 - Unversioned state is schema 1. It is accepted and migrated to the current
   schema before APVTS and non-parameter state restore.
-- Current saved state declares `stateSchemaVersion="8"`. Schema 3 added
+- Current saved state declares `stateSchemaVersion="9"`. Schema 3 added
   optional embedded custom Wave RAM; schema 4 added optional per-chip Motion
   Lab patterns; schema 5 added native YM2151 LFO controls; schema 6 added
   native YM2151 per-operator DT1/DT2 choices; and schema 7 gives those stable
   slots native OPL3 AM/VIB/KSR and KSL semantics. Schema 8 adds optional
   indexed `CHIPPER_ADPCM_A_REGION` children beneath the existing OPNA/OPNB
-  sample-state parents while preserving legacy packed parent records.
-  Unversioned, schema-1, and
-  schema-2 states migrate with generated wave templates and no custom lanes;
-  schema-3 and older states migrate with one disabled neutral motion pattern
-  per chip; schema-4/5 states deterministically backfill the newer OPM controls
-  to Preset; and schema-6 migration preserves genuine YM2151 DT1/DT2 values
-  while resetting latent values in non-YM2151 state before OPL3 can reinterpret
-  them. This keeps old projects at their previously resolved sound.
+  sample-state parents while preserving legacy packed parent records. Schema 9
+  adds OPN2 DAC `sourceRateHz`, `rootNote`, `trimStart`, `trimEnd`, and
+  `tailBehavior` metadata. Schema-8 OPN2 state migrates to source rate 0
+  (native legacy cadence), root note 60, full trim, and centered tail so old
+  projects keep their resolved sound.
+  Unversioned, schema-1, and schema-2 states migrate with generated wave
+  templates and no custom lanes; schema-3 and older states migrate with one
+  disabled neutral motion pattern per chip; schema-4/5 states deterministically
+  backfill the newer OPM controls to Preset; and schema-6 migration preserves
+  genuine YM2151 DT1/DT2 values while resetting latent values in non-YM2151
+  state before OPL3 can reinterpret them.
 - Invalid versions and versions newer than the plugin supports fail explicitly;
   they are not partially interpreted.
 - A state payload may restore at most 4,096 low-level register writes and at
@@ -63,7 +66,7 @@ must not silently reinterpret an existing ID or accepted state.
   that do not use complete 256-byte pages, and OPNB banks exceeding 1 MiB.
 - Schema fixtures live in `tests/state/` and are exercised by
   `chipper_processor_midi_cc_smoke`, including legacy migration, current
-  schema-v8 round trips, malformed ADPCM-A region rejection, deleted-source
+  schema-v9 round trips, schema-8 OPN2 migration, malformed ADPCM-A region rejection, deleted-source
   fallback, missing OPM choice backfill, malformed motion, and future versions.
 
 ## External assets
@@ -88,7 +91,7 @@ must not silently reinterpret an existing ID or accepted state.
   Chipper uses the embedded copy only when the source cannot be read and shows
   `Using embedded project copy ...; relink source` in the asset status.
 - Bank serialization includes at most the first 32 playable slots and 256 KiB
-  per slot. Single-asset caps are 1 MiB for OPN2 DAC, 64 KiB for OPNA rhythm,
+  per slot. Single-asset caps are 256 KiB for OPN2 DAC, 64 KiB for OPNA rhythm,
   1 MiB for OPNA ADPCM-B, 2 MiB for OPNB ADPCM-A, and 16 MiB for OPNB ADPCM-B.
   Within schema-8 region mode, each OPNA payload must equal its fixed
   128-5952-byte window; each OPNB payload is at most 1 MiB and the six-region
@@ -97,7 +100,10 @@ must not silently reinterpret an existing ID or accepted state.
   sample bytes inside a 32 MiB processor-state envelope. Assets beyond a cap
   stay reference-only.
 - Embedded payloads carry format version, encoding, name, loop points, source
-  instrument index/byte count, Base64 data, and an FNV-1a checksum. Structurally
+  instrument index/byte count, Base64 data, and an FNV-1a checksum. OPN2 DAC
+  parents additionally retain rate, root, trim, and center/hold tail metadata
+  whether their bytes come from the live path, embedded fallback, or a missing
+  reference tombstone. Structurally
   oversized or misplaced payloads fail before state mutation. A missing or
   corrupt individual bank slot becomes a named silent tombstone so later note
   mappings do not shift; an ADPCM-A region likewise retains its logical index

@@ -340,6 +340,18 @@ add_test(NAME chipper_render_ym2149_ayumi_reference
 set_tests_properties(chipper_render_ym2149_ayumi_reference PROPERTIES
     LABELS "audio;reference;release-gate"
 )
+add_test(NAME chipper_render_yamaha_adpcm_a_opna_reference
+    COMMAND chipper_render --chip ym2608 --accuracy authentic --macro manual --clock 7987200 --rate 48000 --seconds 0.2 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2608-adpcm-a-reference-events.txt --source1 1 --source2 0 --source3 0 --source4 0 --source5 0 --source6 0 --source7 0 --source8 0 --source9 0 --stereo-spread 0 --output-db 0 --opna-rhythm-rom ${CMAKE_CURRENT_SOURCE_DIR}/tests/references/yamaha-adpcm-a-synthetic-opna.bin --out yamaha-adpcm-a-opna-candidate.wav --debug yamaha-adpcm-a-opna-candidate.json
+)
+set_tests_properties(chipper_render_yamaha_adpcm_a_opna_reference PROPERTIES
+    LABELS "audio;reference;release-gate"
+)
+add_test(NAME chipper_render_yamaha_adpcm_a_opnb_reference
+    COMMAND chipper_render --chip ym2610 --accuracy authentic --macro manual --clock 8000000 --rate 48000 --seconds 0.2 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2610-adpcm-a-reference-events.txt --source1 1 --source2 0 --source3 0 --source4 0 --source5 0 --source6 0 --source7 0 --source8 0 --source9 0 --stereo-spread 0 --output-db 0 --opnb-adpcm-a-sample ${CMAKE_CURRENT_SOURCE_DIR}/tests/references/yamaha-adpcm-a-synthetic-opnb.bin --out yamaha-adpcm-a-opnb-candidate.wav --debug yamaha-adpcm-a-opnb-candidate.json
+)
+set_tests_properties(chipper_render_yamaha_adpcm_a_opnb_reference PROPERTIES
+    LABELS "audio;reference;release-gate"
+)
 add_test(NAME chipper_render_sn76489_smoke
     COMMAND chipper_render --chip sn76489 --accuracy authentic --clock 3579545 --rate 48000 --seconds 0.10 --note 76 --out sn-smoke.wav --debug sn-smoke.json
 )
@@ -968,6 +980,24 @@ add_test(NAME chipper_render_ym2612_dac_smoke
 add_test(NAME chipper_render_ym2612_dac_user_sample_smoke
     COMMAND chipper_render --chip ym2612 --accuracy authentic --macro drum --opn2-dac dac --opn2-dac-hex 8080c0ff80400020 --opn2-pan both --clock 7670454 --rate 48000 --seconds 0.03 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2612-dac-events.txt --out ym2612-dac-user-sample-smoke.wav --debug ym2612-dac-user-sample-smoke.json
 )
+if (Python3_EXECUTABLE)
+    add_test(NAME chipper_generate_opn2_dac_wav_fixture
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/write_binary_fixture.py ${CMAKE_CURRENT_BINARY_DIR}/generated-opn2-dac-sample.wav "52 49 46 46 34 00 00 00 57 41 56 45 66 6d 74 20 10 00 00 00 01 00 01 00 40 1f 00 00 40 1f 00 00 01 00 08 00 64 61 74 61 10 00 00 00 80 80 80 c0 c0 ff 80 40 40 00 20 20 f0 10 10 80"
+    )
+    set_tests_properties(chipper_generate_opn2_dac_wav_fixture PROPERTIES FIXTURES_SETUP opn2_dac_wav_fixture)
+    add_test(NAME chipper_render_ym2612_dac_wav_sample_smoke
+        COMMAND chipper_render --chip ym2612 --accuracy authentic --macro drum --opn2-dac dac --opn2-dac-sample ${CMAKE_CURRENT_BINARY_DIR}/generated-opn2-dac-sample.wav --opn2-dac-root 48 --opn2-dac-trim-start 2 --opn2-dac-trim-end 14 --opn2-dac-tail hold --source1 0 --source2 0 --source3 0 --source4 0 --source5 0 --source6 1 --opn2-pan both --clock 7670454 --rate 48000 --seconds 0.03 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2612-dac-events.txt --out ym2612-dac-wav-sample-smoke.wav --debug ym2612-dac-wav-sample-smoke.json
+    )
+    set_tests_properties(chipper_render_ym2612_dac_wav_sample_smoke PROPERTIES DEPENDS chipper_generate_opn2_dac_wav_fixture FIXTURES_REQUIRED opn2_dac_wav_fixture)
+    add_test(NAME chipper_generate_opn2_dac_aiff_fixture
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/write_binary_fixture.py ${CMAKE_CURRENT_BINARY_DIR}/generated-opn2-dac-sample.aiff "46 4f 52 4d 00 00 00 3e 41 49 46 46 43 4f 4d 4d 00 00 00 12 00 01 00 00 00 10 00 08 40 0b fa 00 00 00 00 00 00 00 53 53 4e 44 00 00 00 18 00 00 00 00 00 00 00 00 00 00 00 40 40 7f 00 c0 c0 80 a0 a0 70 90 90 00"
+    )
+    set_tests_properties(chipper_generate_opn2_dac_aiff_fixture PROPERTIES FIXTURES_SETUP opn2_dac_aiff_fixture)
+    add_test(NAME chipper_render_ym2612_dac_aiff_sample_smoke
+        COMMAND chipper_render --chip ym2612 --accuracy authentic --macro drum --opn2-dac dac --opn2-dac-sample ${CMAKE_CURRENT_BINARY_DIR}/generated-opn2-dac-sample.aiff --opn2-dac-root 48 --opn2-dac-trim-start 2 --opn2-dac-trim-end 14 --opn2-dac-tail hold --source1 0 --source2 0 --source3 0 --source4 0 --source5 0 --source6 1 --opn2-pan both --clock 7670454 --rate 48000 --seconds 0.03 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2612-dac-events.txt --out ym2612-dac-aiff-sample-smoke.wav --debug ym2612-dac-aiff-sample-smoke.json
+    )
+    set_tests_properties(chipper_render_ym2612_dac_aiff_sample_smoke PROPERTIES DEPENDS chipper_generate_opn2_dac_aiff_fixture FIXTURES_REQUIRED opn2_dac_aiff_fixture)
+endif()
 add_test(NAME chipper_render_preset_opn2_dac_kick_smoke
     COMMAND chipper_render --preset opn2-dac-kick --rate 48000 --seconds 0.03 --events ${CMAKE_CURRENT_SOURCE_DIR}/tests/events/ym2612-dac-events.txt --out preset-opn2-dac-kick.wav --debug preset-opn2-dac-kick.json
 )
@@ -2050,6 +2080,41 @@ if (Python3_Interpreter_FOUND)
         LABELS "audio;reference;release-gate"
     )
 
+    add_test(NAME chipper_yamaha_adpcm_a_opna_reference_metadata
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_reference_metadata.py ${CMAKE_CURRENT_SOURCE_DIR}/tests/references/yamaha-adpcm-a-opna-lle.json
+    )
+    set_tests_properties(chipper_yamaha_adpcm_a_opna_reference_metadata PROPERTIES LABELS "audio;reference;release-gate")
+
+    add_test(NAME chipper_yamaha_adpcm_a_opnb_reference_metadata
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_reference_metadata.py ${CMAKE_CURRENT_SOURCE_DIR}/tests/references/yamaha-adpcm-a-opnb-lle.json
+    )
+    set_tests_properties(chipper_yamaha_adpcm_a_opnb_reference_metadata PROPERTIES LABELS "audio;reference;release-gate")
+
+    add_test(NAME chipper_render_yamaha_adpcm_a_opna_reference_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/yamaha-adpcm-a-opna-candidate.json --implemented-contains ymfm --macro Manual --register-writes 4 --note-events 1 --min-left-rms 0.10 --min-right-rms 0.18 --core-min opnaRhythmRegister=17 --core-max opnaRhythmRegister=17 --core-min opnaAdpcmAUserRomLoaded=1 --core-max opnaAdpcmAUserRomLoaded=1 --core-min opnaAdpcmARomProvidedBytes=8192 --core-max opnaAdpcmARomProvidedBytes=8192 --core-min opnaAdpcmARomCopiedBytes=8192 --core-max opnaAdpcmARomCopiedBytes=8192 --core-min opnaAdpcmARomChecksum=1257093457 --core-max opnaAdpcmARomChecksum=1257093457 --core-min opnaAdpcmAReadCount=1088 --core-max opnaAdpcmAReadCount=1088 --core-min opnaAdpcmALastReadAddress=8063 --core-max opnaAdpcmALastReadAddress=8063
+    )
+    set_tests_properties(chipper_render_yamaha_adpcm_a_opna_reference_assert PROPERTIES DEPENDS chipper_render_yamaha_adpcm_a_opna_reference LABELS "audio;reference;release-gate")
+
+    add_test(NAME chipper_render_yamaha_adpcm_a_opnb_reference_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/yamaha-adpcm-a-opnb-candidate.json --implemented-contains ymfm --macro Manual --register-writes 12 --note-events 1 --min-left-rms 0.08 --min-right-rms 0.08 --core-min opnbAdpcmALoaded=1 --core-max opnbAdpcmALoaded=1 --core-min opnbAdpcmAProvidedBytes=768 --core-max opnbAdpcmAProvidedBytes=768 --core-min opnbAdpcmACopiedBytes=768 --core-max opnbAdpcmACopiedBytes=768 --core-min opnbAdpcmAChecksum=2913488414 --core-max opnbAdpcmAChecksum=2913488414 --core-min opnbAdpcmAReadCount=512 --core-max opnbAdpcmAReadCount=512 --core-min opnbAdpcmALastReadAddress=767 --core-max opnbAdpcmALastReadAddress=767
+    )
+    set_tests_properties(chipper_render_yamaha_adpcm_a_opnb_reference_assert PROPERTIES DEPENDS chipper_render_yamaha_adpcm_a_opnb_reference LABELS "audio;reference;release-gate")
+
+    add_test(NAME chipper_render_yamaha_adpcm_a_opna_reference_compare
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/compare_reference_wav.py ${CMAKE_CURRENT_SOURCE_DIR}/tests/references/yamaha-adpcm-a-opna-lle.wav ${CMAKE_CURRENT_BINARY_DIR}/yamaha-adpcm-a-opna-candidate.wav --per-channel-alignment --min-correlation 0.80 --max-normalized-rmse 0.58 --min-rms-ratio 0.97 --max-rms-ratio 1.03 --alignment-window-frames 32 --max-accepted-lag-frames 16 --max-channel-lag-spread-frames 4 --max-length-difference-frames 0 --json ${CMAKE_CURRENT_BINARY_DIR}/yamaha-adpcm-a-opna-reference-comparison.json
+    )
+    set_tests_properties(chipper_render_yamaha_adpcm_a_opna_reference_compare PROPERTIES DEPENDS "chipper_render_yamaha_adpcm_a_opna_reference;chipper_yamaha_adpcm_a_opna_reference_metadata" LABELS "audio;reference;release-gate")
+
+    add_test(NAME chipper_render_yamaha_adpcm_a_opnb_reference_compare
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/compare_reference_wav.py ${CMAKE_CURRENT_SOURCE_DIR}/tests/references/yamaha-adpcm-a-opnb-lle.wav ${CMAKE_CURRENT_BINARY_DIR}/yamaha-adpcm-a-opnb-candidate.wav --per-channel-alignment --min-correlation 0.88 --max-normalized-rmse 0.45 --min-rms-ratio 0.97 --max-rms-ratio 1.04 --alignment-window-frames 32 --max-accepted-lag-frames 16 --max-channel-lag-spread-frames 2 --max-length-difference-frames 0 --json ${CMAKE_CURRENT_BINARY_DIR}/yamaha-adpcm-a-opnb-reference-comparison.json
+    )
+    set_tests_properties(chipper_render_yamaha_adpcm_a_opnb_reference_compare PROPERTIES DEPENDS "chipper_render_yamaha_adpcm_a_opnb_reference;chipper_yamaha_adpcm_a_opnb_reference_metadata" LABELS "audio;reference;release-gate")
+
+    add_test(NAME chipper_yamaha_adpcm_a_reference_qualification
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/qualify_yamaha_adpcm_a_reference.py $<TARGET_FILE:chipper_render> ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}
+    )
+    set_tests_properties(chipper_yamaha_adpcm_a_reference_qualification PROPERTIES DEPENDS "chipper_render_yamaha_adpcm_a_opna_reference_compare;chipper_render_yamaha_adpcm_a_opnb_reference_compare" LABELS "audio;reference;release-gate")
+
     add_test(NAME chipper_render_sn76489_stereo_spread_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/sn-stereo-spread-smoke.json --implemented-contains partial --macro Manual --stereo-spread 1 --register-writes 0 --note-events 0 --min-stereo-rms-delta 0.001 --core-min stereoSpread=1 --core-max stereoSpread=1 --core-min stereoPan0=-1 --core-max stereoPan0=-1 --core-min stereoPan2=1 --core-max stereoPan2=1 --descriptor-param-kind stereoSpread=continuous --descriptor-param-surface stereoSpread=slider --descriptor-param-label "stereoSpread=Stereo Spread"
     )
@@ -2755,11 +2820,11 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_ym2612_env_pad_assert PROPERTIES DEPENDS chipper_render_ym2612_env_pad_smoke)
 
     add_test(NAME chipper_render_ym2612_dac_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-dac-smoke.json --implemented-contains ymfm --macro Drum --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=512 --core-max dacSampleBytes=512 --core-min dacExternalSampleLoaded=0 --core-max dacExternalSampleLoaded=0 --core-min dacSampleSourceUser=0 --core-max dacSampleSourceUser=0 --core-min keyOnMask=32 --core-max keyOnMask=32 --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=DAC Mode" --descriptor-param-choices snNoiseMode=3
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-dac-smoke.json --implemented-contains ymfm --macro Drum --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=512 --core-max dacSampleBytes=512 --core-min dacExternalSampleLoaded=0 --core-max dacExternalSampleLoaded=0 --core-min dacSampleSourceUser=0 --core-max dacSampleSourceUser=0 --core-min keyOnMask=60 --core-max keyOnMask=60 --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=DAC Mode" --descriptor-param-choices snNoiseMode=3
     )
     set_tests_properties(chipper_render_ym2612_dac_assert PROPERTIES DEPENDS chipper_render_ym2612_dac_smoke)
     add_test(NAME chipper_render_ym2612_dac_user_sample_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-dac-user-sample-smoke.json --implemented-contains ymfm --macro Drum --register-writes 0 --note-events 1 --min-peak 0.0001 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=0 --core-max dacActive=0 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=128 --core-max dacRegister2A=128 --core-min dacSampleBytes=0 --core-max dacSampleBytes=0 --core-min dacExternalSampleLoaded=1 --core-max dacExternalSampleLoaded=1 --core-min dacExternalSampleBytes=8 --core-max dacExternalSampleBytes=8 --core-min dacExternalSampleChecksum=2912425144 --core-max dacExternalSampleChecksum=2912425144 --core-min dacSampleSourceUser=0 --core-max dacSampleSourceUser=0 --core-min dacPlaybackStep=1.49 --core-max dacPlaybackStep=1.51 --core-min keyOnMask=0 --core-max keyOnMask=0 --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=DAC Mode" --descriptor-param-choices snNoiseMode=3
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2612-dac-user-sample-smoke.json --implemented-contains ymfm --macro Drum --register-writes 0 --note-events 1 --min-peak 0.0001 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=0 --core-max dacActive=0 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=128 --core-max dacRegister2A=128 --core-min dacSampleBytes=8 --core-max dacSampleBytes=8 --core-min dacExternalSampleLoaded=1 --core-max dacExternalSampleLoaded=1 --core-min dacExternalSampleBytes=8 --core-max dacExternalSampleBytes=8 --core-min dacExternalSampleChecksum=2912425144 --core-max dacExternalSampleChecksum=2912425144 --core-min dacSampleSourceUser=1 --core-max dacSampleSourceUser=1 --core-min dacPlaybackStep=0.49 --core-max dacPlaybackStep=0.51 --core-min keyOnMask=28 --core-max keyOnMask=28 --descriptor-param-kind snNoiseMode=chipRegister --descriptor-param-surface snNoiseMode=segmentedChoice --descriptor-param-label "snNoiseMode=DAC Mode" --descriptor-param-choices snNoiseMode=3
     )
     set_tests_properties(chipper_render_ym2612_dac_user_sample_assert PROPERTIES DEPENDS chipper_render_ym2612_dac_user_sample_smoke)
     add_test(NAME chipper_render_preset_opn2_dac_kick_assert
@@ -2767,13 +2832,21 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_preset_opn2_dac_kick_assert PROPERTIES DEPENDS chipper_render_preset_opn2_dac_kick_smoke)
     add_test(NAME chipper_render_preset_opn2_dac_chord_hit_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-dac-chord-hit.json --implemented-contains ymfm --preset opn2-dac-chord-hit --macro Drum --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=512 --core-max dacSampleBytes=512 --core-min dacExternalSampleLoaded=0 --core-max dacExternalSampleLoaded=0 --core-min dacSampleSourceUser=0 --core-max dacSampleSourceUser=0 --core-min keyOnMask=32 --core-max keyOnMask=32 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled5=1 --core-max sourceEnabled5=1 --core-min algorithm0=7 --core-max algorithm0=7 --core-min feedback0=4 --core-max feedback0=4 --core-min algorithmFeedbackRegister0=39 --core-max algorithmFeedbackRegister0=39 --core-min envelopeShape=4 --core-max envelopeShape=4 --core-min attackRate0=31 --core-max attackRate0=31 --core-min decayRate0=24 --core-max decayRate0=24 --core-min sustainRate0=14 --core-max sustainRate0=14 --core-min sustainRelease0=63 --core-max sustainRelease0=63 --core-min fmOperatorLevel0=0.42 --core-max fmOperatorLevel0=0.42 --core-min fmOperatorLevel1=0.54 --core-max fmOperatorLevel1=0.54 --core-min fmOperatorLevel2=0.46 --core-max fmOperatorLevel2=0.46 --core-min fmOperatorLevel3=0.72 --core-max fmOperatorLevel3=0.72
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-dac-chord-hit.json --implemented-contains ymfm --preset opn2-dac-chord-hit --macro Drum --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=448 --core-max dacSampleBytes=448 --core-min dacExternalSampleLoaded=0 --core-max dacExternalSampleLoaded=0 --core-min dacSampleSourceUser=0 --core-max dacSampleSourceUser=0 --core-min keyOnMask=47 --core-max keyOnMask=47 --core-min sourceEnabled0=1 --core-max sourceEnabled0=1 --core-min sourceEnabled3=1 --core-max sourceEnabled3=1 --core-min sourceEnabled5=1 --core-max sourceEnabled5=1 --core-min algorithm0=7 --core-max algorithm0=7 --core-min feedback0=4 --core-max feedback0=4 --core-min algorithmFeedbackRegister0=39 --core-max algorithmFeedbackRegister0=39 --core-min envelopeShape=4 --core-max envelopeShape=4 --core-min attackRate0=31 --core-max attackRate0=31 --core-min decayRate0=24 --core-max decayRate0=24 --core-min sustainRate0=14 --core-max sustainRate0=14 --core-min sustainRelease0=63 --core-max sustainRelease0=63 --core-min fmOperatorLevel0=0.42 --core-max fmOperatorLevel0=0.42 --core-min fmOperatorLevel1=0.54 --core-max fmOperatorLevel1=0.54 --core-min fmOperatorLevel2=0.46 --core-max fmOperatorLevel2=0.46 --core-min fmOperatorLevel3=0.72 --core-max fmOperatorLevel3=0.72
     )
     set_tests_properties(chipper_render_preset_opn2_dac_chord_hit_assert PROPERTIES DEPENDS chipper_render_preset_opn2_dac_chord_hit_smoke)
     add_test(NAME chipper_render_preset_opn2_dac_snare_assert
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-dac-snare.json --implemented-contains ymfm --preset opn2-dac-snare --macro Drum --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=512 --core-max dacSampleBytes=512 --core-min dacExternalSampleLoaded=0 --core-max dacExternalSampleLoaded=0 --core-min dacSampleSourceUser=0 --core-max dacSampleSourceUser=0 --core-min keyOnMask=32 --core-max keyOnMask=32 --core-min envelopeShape=4 --core-max envelopeShape=4 --core-min fmOperatorLevel0=0.62 --core-max fmOperatorLevel0=0.62 --core-min fmOperatorLevel1=0.44 --core-max fmOperatorLevel1=0.44 --core-min fmOperatorLevel2=0.56 --core-max fmOperatorLevel2=0.56 --core-min fmOperatorLevel3=0.92 --core-max fmOperatorLevel3=0.92
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-dac-snare.json --implemented-contains ymfm --preset opn2-dac-snare --macro Drum --play-mode "Big Mono" --output-db -11 --register-writes 0 --note-events 1 --min-peak 0.01 --core-min dacMode=2 --core-max dacMode=2 --core-min dacEnabled=1 --core-max dacEnabled=1 --core-min dacActive=1 --core-max dacActive=1 --core-min dacRegister2B=128 --core-max dacRegister2B=128 --core-min dacRegister2A=1 --core-max dacRegister2A=255 --core-min dacSampleBytes=384 --core-max dacSampleBytes=384 --core-min dacExternalSampleLoaded=0 --core-max dacExternalSampleLoaded=0 --core-min dacSampleSourceUser=0 --core-max dacSampleSourceUser=0 --core-min keyOnMask=33 --core-max keyOnMask=33 --core-min envelopeShape=4 --core-max envelopeShape=4 --core-min fmOperatorLevel0=0.62 --core-max fmOperatorLevel0=0.62 --core-min fmOperatorLevel1=0.44 --core-max fmOperatorLevel1=0.44 --core-min fmOperatorLevel2=0.56 --core-max fmOperatorLevel2=0.56 --core-min fmOperatorLevel3=0.92 --core-max fmOperatorLevel3=0.92
     )
     set_tests_properties(chipper_render_preset_opn2_dac_snare_assert PROPERTIES DEPENDS chipper_render_preset_opn2_dac_snare_smoke)
+    add_test(NAME chipper_render_opn2_dac_renderer_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_opn2_dac_renderer.py --sample ${CMAKE_CURRENT_BINARY_DIR}/ym2612-dac-wav-sample-smoke.json --aiff ${CMAKE_CURRENT_BINARY_DIR}/ym2612-dac-aiff-sample-smoke.json --kick ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-dac-kick.json --snare ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-dac-snare.json --chord ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-dac-chord-hit.json
+    )
+    set_tests_properties(chipper_render_opn2_dac_renderer_assert PROPERTIES DEPENDS "chipper_render_ym2612_dac_wav_sample_smoke;chipper_render_ym2612_dac_aiff_sample_smoke;chipper_render_preset_opn2_dac_kick_smoke;chipper_render_preset_opn2_dac_snare_smoke;chipper_render_preset_opn2_dac_chord_hit_smoke" LABELS "audio;renderer;release-gate")
+    add_test(NAME chipper_opn2_dac_timing_qualification
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/qualify_opn2_dac_timing.py --renderer $<TARGET_FILE:chipper_render> --workdir ${CMAKE_CURRENT_BINARY_DIR}/opn2-dac-timing
+    )
+    set_tests_properties(chipper_opn2_dac_timing_qualification PROPERTIES LABELS "audio;renderer;timing;release-gate")
     add_test(NAME chipper_render_preset_opn2_envelope_bell_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/preset-opn2-envelope-bell.json --implemented-contains ymfm --preset opn2-envelope-bell --macro Lead --play-mode "Big Mono" --output-db -9.5 --register-writes 0 --note-events 0 --min-peak 0.05 --core-min envelopeShape=1 --core-max envelopeShape=1 --core-min fmOperatorLevel0=0.38 --core-max fmOperatorLevel0=0.38 --core-min fmOperatorLevel1=0.84 --core-max fmOperatorLevel1=0.84 --core-min fmOperatorLevel2=0.46 --core-max fmOperatorLevel2=0.46 --core-min fmOperatorLevel3=0.78 --core-max fmOperatorLevel3=0.78 --render-core-min keyOnMask=1 --render-core-max keyOnMask=65535
     )
@@ -3727,6 +3800,27 @@ if (Python3_Interpreter_FOUND)
     set_tests_properties(chipper_render_nes_frame_counter_inhibit_assert PROPERTIES DEPENDS chipper_render_nes_frame_counter_inhibit_smoke)
 endif()
 
+include(FetchContent)
+
+FetchContent_Declare(
+    JUCE
+    GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
+    GIT_TAG 8.0.13
+    GIT_SHALLOW TRUE
+)
+
+FetchContent_MakeAvailable(JUCE)
+
+target_compile_definitions(chipper_render PRIVATE
+    CHIPPER_RENDER_HAS_JUCE_AUDIO_FORMATS=1
+    JUCE_USE_CURL=0
+    JUCE_WEB_BROWSER=0
+)
+target_link_libraries(chipper_render PRIVATE
+    juce::juce_audio_formats
+    juce::juce_recommended_config_flags
+)
+
 if (NOT CHIPPER_BUILD_PLUGIN)
     return()
 endif()
@@ -3752,17 +3846,6 @@ add_custom_target(chipper_build_info
     BYPRODUCTS "${CHIPPER_BUILD_INFO_HEADER}"
     VERBATIM
 )
-
-include(FetchContent)
-
-FetchContent_Declare(
-    JUCE
-    GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-    GIT_TAG 8.0.13
-    GIT_SHALLOW TRUE
-)
-
-FetchContent_MakeAvailable(JUCE)
 
 set(CHIPPER_PLUGIN_SOURCES
     Source/Parameters.cpp

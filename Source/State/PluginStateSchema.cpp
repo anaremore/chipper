@@ -148,6 +148,22 @@ juce::Result migrateSchema7To8(juce::XmlElement& xml)
     xml.setAttribute(schemaVersionAttribute, 8);
     return juce::Result::ok();
 }
+
+juce::Result migrateSchema8To9(juce::XmlElement& xml)
+{
+    // Schema 9 makes OPN2 DAC source-rate, pitch, trim, and tail semantics
+    // explicit. Schema-8 raw bytes played at the chip's native DAC cadence.
+    if (auto* sample = xml.getChildByName("CHIPPER_OPN2_DAC_SAMPLE"))
+    {
+        sample->setAttribute("sourceRateHz", 0.0);
+        sample->setAttribute("rootNote", 60);
+        sample->setAttribute("trimStart", 0);
+        sample->setAttribute("trimEnd", 0);
+        sample->setAttribute("tailBehavior", "center");
+    }
+    xml.setAttribute(schemaVersionAttribute, 9);
+    return juce::Result::ok();
+}
 }
 
 juce::Result validateAndMigrate(juce::XmlElement& xml, const juce::Identifier& expectedRootType)
@@ -188,6 +204,8 @@ juce::Result validateAndMigrate(juce::XmlElement& xml, const juce::Identifier& e
             migration = migrateSchema6To7(xml);
         else if (schemaVersion == 7)
             migration = migrateSchema7To8(xml);
+        else if (schemaVersion == 8)
+            migration = migrateSchema8To9(xml);
         if (migration.failed())
             return migration;
         ++schemaVersion;

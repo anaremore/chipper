@@ -114,7 +114,11 @@ def _best_alignment(
     if min_overlap_samples < 1:
         raise ValueError("min_overlap_samples must be positive")
 
-    best: tuple[float, int, int, list[dict[str, float | int]]] | None = None
+    best: tuple[
+        tuple[float, float, int, int],
+        int,
+        list[dict[str, float | int]],
+    ] | None = None
     for lag in range(-max_lag_samples, max_lag_samples + 1):
         try:
             channel_metrics = [
@@ -125,14 +129,15 @@ def _best_alignment(
             continue
         if min(metric["sampleCount"] for metric in channel_metrics) < min_overlap_samples:
             continue
-        mean_correlation = sum(float(metric["correlation"]) for metric in channel_metrics) / len(channel_metrics)
-        ranking = (mean_correlation, -abs(lag), -lag)
-        if best is None or ranking > best[:3]:
-            best = (*ranking, channel_metrics)
+        correlations = [float(metric["correlation"]) for metric in channel_metrics]
+        mean_correlation = sum(correlations) / len(correlations)
+        ranking = (min(correlations), mean_correlation, -abs(lag), -lag)
+        if best is None or ranking > best[0]:
+            best = (ranking, lag, channel_metrics)
 
     if best is None:
         raise ValueError("no valid alignment exists inside the requested lag and overlap bounds")
-    return -best[2], best[3]
+    return best[1], best[2]
 
 
 def compare(
@@ -163,6 +168,7 @@ def compare_audio(
     *,
     max_lag_samples: int = 0,
     min_overlap_samples: int = 1,
+    per_channel_alignment: bool = False,
 ) -> dict[str, object]:
     reference_frames = _validate_channels(reference_channels, "reference")
     candidate_frames = _validate_channels(candidate_channels, "candidate")
@@ -170,17 +176,39 @@ def compare_audio(
         raise ValueError(
             f"channel-count mismatch: reference={len(reference_channels)}, candidate={len(candidate_channels)}"
         )
-    lag, channel_metrics = _best_alignment(
-        reference_channels, candidate_channels, max_lag_samples=max_lag_samples, min_overlap_samples=min_overlap_samples
-    )
-    return {
+    if per_channel_alignment:
+        lags: list[int] = []
+        channel_metrics: list[dict[str, float | int]] = []
+        for reference, candidate in zip(reference_channels, candidate_channels):
+            lag, metrics = _best_alignment(
+                [reference],
+                [candidate],
+                max_lag_samples=max_lag_samples,
+                min_overlap_samples=min_overlap_samples,
+            )
+            lags.append(lag)
+            channel_metrics.append(metrics[0])
+    else:
+        lag, channel_metrics = _best_alignment(
+            reference_channels,
+            candidate_channels,
+            max_lag_samples=max_lag_samples,
+            min_overlap_samples=min_overlap_samples,
+        )
+        lags = [lag] * len(channel_metrics)
+
+    result = {
         "channelCount": len(reference_channels),
         "referenceFrameCount": reference_frames,
         "candidateFrameCount": candidate_frames,
         "lengthDifferenceFrames": candidate_frames - reference_frames,
-        "lagFrames": lag,
+        "lagFrames": max(lags, key=abs),
+        "lagFramesPerChannel": lags,
+        "lagSpreadFrames": max(lags) - min(lags),
+        "alignmentMode": "per-channel" if per_channel_alignment else "shared",
         "channels": channel_metrics,
     }
+    return result
 
 
 def main() -> int:
@@ -195,6 +223,8 @@ def main() -> int:
     parser.add_argument("--max-accepted-lag-frames", type=int, default=256)
     parser.add_argument("--max-length-difference-frames", type=int, default=0)
     parser.add_argument("--min-overlap-frames", type=int, default=64)
+    parser.add_argument("--per-channel-alignment", action="store_true")
+    parser.add_argument("--max-channel-lag-spread-frames", type=int, default=0)
     parser.add_argument("--json", type=Path)
     args = parser.parse_args()
 
@@ -208,6 +238,7 @@ def main() -> int:
             candidate_channels,
             max_lag_samples=args.alignment_window_frames,
             min_overlap_samples=args.min_overlap_frames,
+            per_channel_alignment=args.per_channel_alignment,
         )
     except (ValueError, wave.Error, OSError) as error:
         print(f"reference comparison failed: {error}")
@@ -222,6 +253,11 @@ def main() -> int:
     failures: list[str] = []
     if abs(int(metrics["lagFrames"])) > args.max_accepted_lag_frames:
         failures.append(f"absolute lag {abs(int(metrics['lagFrames']))} > {args.max_accepted_lag_frames} frames")
+    if int(metrics["lagSpreadFrames"]) > args.max_channel_lag_spread_frames:
+        failures.append(
+            f"channel lag spread {metrics['lagSpreadFrames']} > "
+            f"{args.max_channel_lag_spread_frames} frames"
+        )
     if abs(int(metrics["lengthDifferenceFrames"])) > args.max_length_difference_frames:
         failures.append(
             f"absolute length difference {abs(int(metrics['lengthDifferenceFrames']))} "
