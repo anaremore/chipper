@@ -178,6 +178,30 @@ public:
         bool convertedFromPcm = false;
     };
 
+    struct AdpcmARegionInfo
+    {
+        juce::String statusLine;
+        juce::String sampleName;
+        juce::String path;
+        juce::String roleName;
+        int regionIndex = 0;
+        int sourceByteCount = 0;
+        int encodedByteCount = 0;
+        int decodedSampleCount = 0;
+        int capacityByteCount = 0;
+        int startByte = 0;
+        int endByteInclusive = 0;
+        int packedBankByteCount = 0;
+        int loadedRegionCount = 0;
+        double sampleRateHz = 0.0;
+        bool loaded = false;
+        bool convertedFromPcm = false;
+        bool editableBankActive = false;
+        bool legacyBankActive = false;
+        bool legacyBankMissing = false;
+        juce::String legacyBankName;
+    };
+
     ChipperAudioProcessor();
     ~ChipperAudioProcessor() override = default;
 
@@ -236,6 +260,10 @@ public:
     juce::Result loadOpnaAdpcmBSampleFile(const juce::File& file);
     juce::Result loadOpnbAdpcmASampleFile(const juce::File& file);
     juce::Result loadOpnbAdpcmBSampleFile(const juce::File& file);
+    juce::Result loadOpnaAdpcmARegionFile(int regionIndex, const juce::File& file, bool replaceLegacyBank = false);
+    juce::Result loadOpnbAdpcmARegionFile(int regionIndex, const juce::File& file, bool replaceLegacyBank = false);
+    void clearOpnaAdpcmARegion(int regionIndex);
+    void clearOpnbAdpcmARegion(int regionIndex);
     juce::String nesDmcSampleBankStatus() const;
     DmcSamplePlaybackInfo nesDmcSamplePlaybackInfo() const;
     Spc700BrrSampleInfo spc700BrrSampleInfo() const;
@@ -246,6 +274,8 @@ public:
     OpnbAdpcmSampleInfo opnbAdpcmASampleInfo() const;
     OpnbAdpcmSampleInfo opnbAdpcmBSampleInfo() const;
     juce::StringArray nesDmcSampleNames() const;
+    AdpcmARegionInfo adpcmARegionInfo(chipper::ChipMode mode, int regionIndex) const;
+    SampleWaveformSnapshot adpcmARegionWaveformSnapshot(chipper::ChipMode mode, int regionIndex) const;
     juce::StringArray spc700BrrSampleNames() const;
     juce::StringArray paulaSampleNames() const;
     std::vector<DmcSampleEntryInfo> nesDmcSampleEntryInfo() const;
@@ -308,6 +338,7 @@ private:
                                          const juce::File& presetDirectory,
                                          bool allowEmbeddedProjectAssets);
     void initializeCorePool();
+    void primeYamahaAdpcmACores();
     void synchronizeActiveExternalAssets(chipper::ChipMode mode);
     static size_t corePoolIndex(chipper::ChipMode mode) noexcept;
     static int editableWavetableIndex(chipper::ChipMode mode) noexcept;
@@ -402,6 +433,7 @@ private:
     DmcSampleSlot opnaRhythmRom;
     juce::String opnaRhythmRomRestoreWarning;
     std::atomic<uint64_t> opnaRhythmRomRevision { 0 };
+    std::vector<DmcSampleSlot> opnaAdpcmARegions;
     uint64_t activeOpnaRhythmRomRevision = std::numeric_limits<uint64_t>::max();
     mutable std::mutex opnaAdpcmBSampleMutex;
     DmcSampleSlot opnaAdpcmBSample;
@@ -412,6 +444,7 @@ private:
     DmcSampleSlot opnbAdpcmASample;
     juce::String opnbAdpcmASampleRestoreWarning;
     std::atomic<uint64_t> opnbAdpcmASampleRevision { 0 };
+    std::vector<DmcSampleSlot> opnbAdpcmARegions;
     uint64_t activeOpnbAdpcmASampleRevision = std::numeric_limits<uint64_t>::max();
     mutable std::mutex opnbAdpcmBSampleMutex;
     DmcSampleSlot opnbAdpcmBSample;

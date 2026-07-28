@@ -421,6 +421,18 @@ public:
     {
         return module < moduleSummaryLabels.size() && moduleSummaryLabels[module].isVisible();
     }
+    struct YamahaAdpcmARegionCardLayoutTestState
+    {
+        juce::Rectangle<int> bounds;
+        juce::String roleText;
+        juce::String detailText;
+        juce::String statusText;
+        juce::String loadButtonText;
+        bool clearEnabled = false;
+        bool requiresPackedBankConfirmation = false;
+    };
+    std::array<YamahaAdpcmARegionCardLayoutTestState, 6>
+        getYamahaAdpcmARegionCardStatesForLayoutTest(chipper::ChipMode mode) const;
     juce::Rectangle<int> getPerformanceBoundsForLayoutTest() const { return globalStripBounds; }
     juce::Rectangle<int> getSampleBankBoundsForLayoutTest() const { return moduleBounds[5]; }
     juce::Rectangle<int> getSampleFileButtonBoundsForLayoutTest() const { return dmcSampleFileButton.getBounds(); }
@@ -431,6 +443,12 @@ public:
     juce::Rectangle<int> getSamplePlaybackModeBoundsForLayoutTest() const { return dmcPlaybackModeBox.getBounds(); }
     juce::Rectangle<int> getSampleSlotBoundsForLayoutTest() const { return dmcSampleSlotBox.getBounds(); }
     juce::Rectangle<int> getSampleRootBoundsForLayoutTest() const { return dmcMapRootBox.getBounds(); }
+    bool isSampleFileButtonVisibleForLayoutTest() const { return dmcSampleFileButton.isVisible(); }
+    bool isSampleFolderButtonVisibleForLayoutTest() const { return dmcSampleFolderButton.isVisible(); }
+    bool isSampleBankButtonVisibleForLayoutTest() const { return dmcSampleBankButton.isVisible(); }
+    bool isSamplePlaybackModeVisibleForLayoutTest() const { return dmcPlaybackModeBox.isVisible(); }
+    bool isSampleSlotVisibleForLayoutTest() const { return dmcSampleSlotBox.isVisible(); }
+    bool isSampleRootVisibleForLayoutTest() const { return dmcMapRootBox.isVisible(); }
     juce::Rectangle<int> getSampleLoopToggleBoundsForLayoutTest() const { return spc700LoopModeButton.getBounds(); }
     juce::Rectangle<int> getDmcLoopToggleBoundsForLayoutTest() const { return dmcLoopButton.getBounds(); }
     juce::Rectangle<int> getDmcRateBoundsForLayoutTest() const { return dmcRateBox.getBounds(); }
@@ -439,6 +457,7 @@ public:
     juce::String getSampleStatusTextForLayoutTest() const { return dmcSampleStatusLabel.getText(); }
     juce::String getSampleFileButtonTextForLayoutTest() const { return dmcSampleFileButton.getButtonText(); }
     juce::String getSampleFolderButtonTextForLayoutTest() const { return dmcSampleFolderButton.getButtonText(); }
+    juce::String getSampleBankButtonTextForLayoutTest() const { return dmcSampleBankButton.getButtonText(); }
     juce::Rectangle<int> getSampleLoopStartBoundsForLayoutTest() const { return sampleLoopStartSlider.getBounds(); }
     juce::Rectangle<int> getSampleLoopEndBoundsForLayoutTest() const { return sampleLoopEndSlider.getBounds(); }
     juce::Rectangle<int> getEnvelopeDecayBoundsForLayoutTest() const { return envelopeDecaySlider.getBounds(); }
@@ -915,6 +934,7 @@ private:
     void chooseOpnbAdpcmASampleFile();
     void chooseOpnbAdpcmBSampleFile();
     void showDmcSampleBankEditor();
+    void showYamahaAdpcmARegionEditor();
     void handleDmcSampleLoadResult(const juce::Result& result);
     juce::String envelopeDecayReadout(chipper::ChipMode mode, float value) const;
 

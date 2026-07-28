@@ -3985,7 +3985,7 @@ std::array<ModuleDescriptor, 6> ym2608Modules()
         makeModule("tone", "Shared FM Patch", "Algorithm, feedback, FM envelope shape, and contextual algorithm bias form one four-operator patch shared by FM channels 1-6.", { "Algorithm + graph", "Feedback", "FM envelope", "Contextual algorithm bias" }),
         makeModule("envelope", "Shared Operator Matrix", "The four editable operators show their carrier/modulator roles and native multiplier, total-level, and envelope registers.", { "Carrier/modulator roles", "MULT / TL", "AR / D1R / D2R", "SL / RR" }),
         makeModule("motion", "Shared SSG Generator", "SSG A-C own their Tone/Noise routing in the lane bank while sharing one hardware envelope generator, period, and noise-period register.", { "Per-lane mixer above", "Shared envelope shape", "Shared envelope period", "Shared noise period below" }),
-        makeModule("output", "Rhythm + ADPCM Layers", "Drum/Hit layers the six native ADPCM-A rhythm instruments through FM 1-6 controls and can add one optional user-supplied encoded ADPCM-B sample.", { "FM-lane rhythm ownership", "Generated/user ADPCM-A", "Optional ADPCM-B", "Drum/Hit only" })
+        makeModule("output", "Rhythm + ADPCM Layers", "Drum/Hit layers the six native ADPCM-A rhythm instruments through FM 1-6 controls. Each fixed ROM region can use generated Chipper data, an exact-size raw override, or deterministic WAV/AIFF conversion; one optional raw-or-converted ADPCM-B sample remains shared.", { "Six fixed ADPCM-A regions", "Generated/reset per voice", "Optional ADPCM-B", "Drum/Hit only" })
     };
 }
 
@@ -4009,7 +4009,7 @@ std::array<ModuleDescriptor, 6> ym2610Modules()
         makeModule("tone", "Shared FM Patch", "Algorithm, feedback, FM envelope shape, and contextual algorithm bias form one four-operator patch shared by the four exposed FM lanes.", { "Algorithm + graph", "Feedback", "FM envelope", "Contextual algorithm bias" }),
         makeModule("envelope", "Shared Operator Matrix", "The four editable operators show their carrier/modulator roles and native multiplier, total-level, and envelope registers.", { "Carrier/modulator roles", "MULT / TL", "AR / D1R / D2R", "SL / RR" }),
         makeModule("motion", "Shared SSG Generator", "SSG A-C own Tone/Noise routing in their lane cards while sharing one hardware envelope generator, period, and noise-period register.", { "Per-lane mixer above", "Shared envelope shape", "Shared envelope period", "Shared noise period below" }),
-        makeModule("output", "External ADPCM-A/B Layers", "Drum/Hit can layer six segments from user-loaded encoded ADPCM-A memory plus one shared pitched ADPCM-B layer; empty memory remains silent.", { "Lane-owned ADPCM-A 1-6", "Shared pitched ADPCM-B", "Encoded user bytes", "Drum/Hit only" })
+        makeModule("output", "External ADPCM-A/B Layers", "Drum/Hit can layer six independently owned ADPCM-A regions packed into external memory plus one shared pitched ADPCM-B layer; empty logical regions remain silent.", { "Lane-owned ADPCM-A 1-6", "Page-aligned region packer", "Shared pitched ADPCM-B", "Drum/Hit only" })
     };
 }
 
@@ -4021,7 +4021,7 @@ std::array<ModuleDescriptor, 6> ym2610bModules()
         makeModule("tone", "Shared FM Patch", "Algorithm, feedback, FM envelope shape, and contextual algorithm bias form one four-operator patch shared by all six FM lanes.", { "Algorithm + graph", "Feedback", "FM envelope", "Contextual algorithm bias" }),
         makeModule("envelope", "Shared Operator Matrix", "The four editable operators show their carrier/modulator roles and native multiplier, total-level, and envelope registers.", { "Carrier/modulator roles", "MULT / TL", "AR / D1R / D2R", "SL / RR" }),
         makeModule("motion", "Shared SSG Generator", "SSG A-C own Tone/Noise routing in their lane cards while sharing one hardware envelope generator, period, and noise-period register.", { "Per-lane mixer above", "Shared envelope shape", "Shared envelope period", "Shared noise period below" }),
-        makeModule("output", "External ADPCM-A/B Layers", "Drum/Hit can layer six FM-owned segments from user-loaded encoded ADPCM-A memory plus one shared pitched ADPCM-B layer; empty memory remains silent.", { "FM-owned ADPCM-A 1-6", "Shared pitched ADPCM-B", "Encoded user bytes", "Drum/Hit only" })
+        makeModule("output", "External ADPCM-A/B Layers", "Drum/Hit can layer six FM-owned logical ADPCM-A regions packed into external memory plus one shared pitched ADPCM-B layer; empty regions remain silent.", { "FM-owned ADPCM-A 1-6", "Page-aligned region packer", "Shared pitched ADPCM-B", "Drum/Hit only" })
     };
 }
 
@@ -4768,7 +4768,7 @@ const std::vector<ChipDescriptor>& descriptors()
         {
             ChipMode::ym2608,
             "YM2608 / OPNA",
-            "Six YM2608/OPNA FM lanes plus three embedded SSG tone/noise/envelope lanes write native registers into the audited ymfm core; Drum and Hit macros also trigger generated/user ADPCM-A rhythm and optional encoded ADPCM-B sample memory.",
+            "Six YM2608/OPNA FM lanes plus three embedded SSG tone/noise/envelope lanes write native registers into the audited ymfm core; Drum and Hit macros also trigger generated or six-region user ADPCM-A rhythm data and optional raw-or-converted ADPCM-B memory.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2608 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2608 feedback bits for the active OPNA FM voices." },
@@ -4785,19 +4785,19 @@ const std::vector<ChipDescriptor>& descriptors()
                     "BSD-3-Clause ymfm is vendored and linked as the YM2608/OPNA synthesis core.",
                     "Renderer notes and preset recipes write OPNA algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, key-on, and pan registers across all six FM channels.",
                     "Embedded YM2608 SSG tone period, noise period, mixer, amplitude, and envelope registers are written for SSG A-C and mixed from the ymfm OPNA SSG output bus.",
-                    "Drum and Hit macros write native OPNA ADPCM-A rhythm key, total-level, pan, and instrument-level registers using deterministic original Chipper-generated percussion bytes by default, with renderer and VST support for user-owned rhythm ROM bytes.",
-                    "Renderer and VST paths can load user-owned encoded ADPCM-B bytes into YM2608 ADPCM-B sample memory for Drum and Hit macros.",
+                    "Drum and Hit macros write native OPNA ADPCM-A rhythm key, total-level, pan, and instrument-level registers using deterministic original Chipper-generated percussion bytes by default; the VST exposes six fixed per-role regions with exact-size encoded or deterministic WAV/AIFF import, decoded previews, reset, schema-v8 project fallback, and legacy whole-ROM compatibility.",
+                    "Renderer and VST paths can load user-owned encoded ADPCM-B bytes, while the VST can also convert WAV/AIFF deterministically at 5200 Hz with decoded preview and bounded project fallback.",
                     "Descriptor, MIDI CC, renderer smoke, source gating, and Chip Poly regression tests cover the nine-lane FM plus SSG adapter."
                 },
                 {
-                    "ADPCM-B WAV/AIFF import or format conversion, full sample editing, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
+                    "Full ADPCM-B editing, timers, prescaler behavior, CSM, external golden emulator comparison, and hardware validation remain future work; deterministic codec/bank vectors are not a hardware-golden claim.",
                     "Prescaler controls, timers, CSM, LFO/AMS/PMS, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
                 })
         },
         {
             ChipMode::ym2610,
             "YM2610 / OPNB",
-            "Four FM + three SSG lanes; Drum/Hit can layer user-loaded ADPCM-A/B memory.",
+            "Four FM + three SSG lanes; Drum/Hit can layer six logical page-packed ADPCM-A regions plus shared ADPCM-B memory.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2610 algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2610 feedback bits for the active OPNB FM voices." },
@@ -4814,18 +4814,18 @@ const std::vector<ChipDescriptor>& descriptors()
                     "BSD-3-Clause ymfm is vendored and linked as the YM2610/OPNB synthesis core.",
                     "Renderer notes and preset recipes write OPNB algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, key-on, and pan registers across the four YM2610 FM channels.",
                     "Embedded YM2610 SSG tone period, noise period, mixer, amplitude, and envelope registers are written for SSG A-C and mixed from the ymfm OPNB SSG output bus.",
-                    "Renderer and VST paths can load user-owned encoded ADPCM-A and ADPCM-B bytes into YM2610 sample memory for Drum and Hit macros.",
+                    "The VST exposes six logical ADPCM-A regions with page-aligned encoded or deterministic WAV/AIFF import, decoded previews, sparse consecutive packing, schema-v8 project fallback, and legacy whole-bank compatibility; renderer/VST paths also support user-owned ADPCM-B memory.",
                     "Descriptor, MIDI CC, renderer smoke, ADPCM sample-memory smoke, plugin ADPCM-A/B state restore, source gating, and Chip Poly regression tests cover the seven-lane FM plus SSG adapter."
                 },
                 {
-                    "WAV/AIFF ADPCM import or format conversion, full sample editing, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
+                    "Full ADPCM-B editing, timers, prescaler behavior, CSM, external golden emulator comparison, and hardware validation remain future work; deterministic codec/bank vectors are not a hardware-golden claim.",
                     "Prescaler controls, timers, CSM, LFO/AMS/PMS, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
                 })
         },
         {
             ChipMode::ym2610b,
             "YM2610B / OPNB2",
-            "Six FM + three SSG lanes; Drum/Hit can layer user-loaded ADPCM-A/B memory.",
+            "Six FM + three SSG lanes; Drum/Hit can layer six logical page-packed ADPCM-A regions plus shared ADPCM-B memory.",
             {
                 { "algorithm", "Algorithm", "FM", "Chooses or biases the native YM2610B algorithm register." },
                 { "feedback", "Feedback", "FM", "Writes YM2610B feedback bits for the active OPNB2 FM voices." },
@@ -4842,11 +4842,11 @@ const std::vector<ChipDescriptor>& descriptors()
                     "BSD-3-Clause ymfm is vendored and linked as the YM2610/OPNB synthesis core with the YM2610B/OPNB2 six-FM channel mask.",
                     "Renderer notes and preset recipes write OPNB2 algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level, f-number/block, key-on, and pan registers across all six FM channels.",
                     "Embedded YM2610B SSG tone period, noise period, mixer, amplitude, and envelope registers are written for SSG A-C and mixed from the ymfm OPNB SSG output bus.",
-                    "Renderer and VST paths can load user-owned encoded ADPCM-A and ADPCM-B bytes into YM2610B-family sample memory for Drum and Hit macros.",
+                    "The VST shares OPNB's six-logical-region ADPCM-A editor, sparse page packer, schema-v8 state, and legacy whole-bank compatibility, while renderer/VST paths also support user-owned ADPCM-B memory.",
                     "Descriptor, MIDI CC, renderer smoke, ADPCM sample-memory smoke, source gating, and Chip Poly regression tests cover the nine-lane FM plus SSG adapter."
                 },
                 {
-                    "WAV/AIFF ADPCM import or format conversion, full sample editing, timers, prescaler behavior, CSM, golden emulator comparison, and hardware validation remain future work.",
+                    "Full ADPCM-B editing, timers, prescaler behavior, CSM, external golden emulator comparison, and hardware validation remain future work; deterministic codec/bank vectors are not a hardware-golden claim.",
                     "Prescaler controls, timers, CSM, LFO/AMS/PMS, golden emulator comparison, hardware capture comparison, and cycle accuracy are not complete."
                 })
         }

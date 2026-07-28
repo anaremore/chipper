@@ -22,10 +22,11 @@ This focused pass is the current high-signal regression gate for:
 
 - chip descriptor/UI metadata
 - MIDI CC and state-recall smoke behavior
-- OPL3 four-operator algorithm/role mapping, exact AM/VIB/EGT/KSR/MULT and KSL/TL composite bytes, grouped CC12-19 held-note updates, schema-v7 compatibility, OPM/OPL chip-switch isolation, and the shared OP1-OP4 editor at both supported widths
+- OPL3 four-operator algorithm/role mapping, exact AM/VIB/EGT/KSR/MULT and KSL/TL composite bytes, grouped CC12-19 held-note updates, schema-8 compatibility, OPM/OPL chip-switch isolation, and the shared OP1-OP4 editor at both supported widths
 - YM2151 per-operator DT1/DT2 state, CC12-19, exact `$40/$C0` composite registers, held-note base-pitch neutrality, and two-width operator-card geometry
+- OPNA fixed ADPCM-A region geometry/rates/reset and OPNB sparse 256-byte-page packing, decoded previews, schema-8 region validation, deleted-source fallback, legacy packed-bank compatibility, and both supported editor widths
 - DAW-friendly editor default and restored-window height
-- Motion Lab schema-v7 recall, sample-accurate/no-allocation playback, two-width layout/accessibility, and focused snapshot behavior
+- Motion Lab schema-8 recall, sample-accurate/no-allocation playback, two-width layout/accessibility, and focused snapshot behavior
 - NES DMC one-shot versus loop behavior
 - FM held-tail behavior and held factory presets
 

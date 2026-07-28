@@ -32,6 +32,8 @@ constexpr auto opnaRhythmRomStateTag = "CHIPPER_OPNA_RHYTHM_ROM";
 constexpr auto opnaAdpcmBSampleStateTag = "CHIPPER_OPNA_ADPCM_B_SAMPLE";
 constexpr auto opnbAdpcmASampleStateTag = "CHIPPER_OPNB_ADPCM_A_SAMPLE";
 constexpr auto opnbAdpcmBSampleStateTag = "CHIPPER_OPNB_ADPCM_B_SAMPLE";
+constexpr auto adpcmARegionStateTag = "CHIPPER_ADPCM_A_REGION";
+constexpr auto adpcmARegionsBankMode = "regions";
 constexpr size_t maxRestoredSampleReferences = 256u;
 constexpr auto unmappedDmcSampleSlot = -2;
 constexpr auto opn2DacMemoryBytes = 262144;
@@ -40,6 +42,8 @@ constexpr auto opnaAdpcmBMemoryBytes = 262144;
 constexpr auto opnbAdpcmAMemoryBytes = 1048576;
 constexpr auto opnbAdpcmBMemoryBytes = 16777216;
 constexpr auto opnaAdpcmBImportRate = 5200.0;
+constexpr auto opnaAdpcmAClockHz = 7987200.0;
+constexpr auto opnbAdpcmAImportRate = 8000000.0 / 432.0;
 constexpr auto opnbAdpcmBImportRate = 8000000.0 / 1536.0;
 constexpr size_t maxConvertedPcmSamples = 2u * 1024u * 1024u;
 constexpr size_t maxEmbeddedOpn2Bytes = 1u * 1024u * 1024u;
@@ -577,6 +581,55 @@ juce::Result readAdpcmBFile(const juce::File& file,
     return juce::Result::ok();
 }
 
+juce::Result readAdpcmARegionFile(const juce::File& file,
+                                  ChipperAudioProcessor::DmcSampleSlot& slot,
+                                  const juce::String& label,
+                                  double targetSampleRate,
+                                  size_t maximumEncodedBytes,
+                                  size_t byteAlignment,
+                                  bool requireExactRawSize)
+{
+    if (! fileLooksLikePcmImport(file))
+    {
+        if (auto result = readRawAdpcmSampleFile(file, slot, label); result.failed())
+            return result;
+
+        slot.sourceByteCount = slot.bytes.size();
+        if (requireExactRawSize && slot.bytes.size() != maximumEncodedBytes)
+            return juce::Result::fail(label + " encoded region must be exactly "
+                                      + juce::String(static_cast<juce::int64>(maximumEncodedBytes))
+                                      + " bytes for its fixed OPNA ROM window.");
+        if (! requireExactRawSize && (slot.bytes.size() % byteAlignment) != 0u)
+            return juce::Result::fail(label + " encoded region must use complete 256-byte YM2610 pages.");
+        if (slot.bytes.size() > maximumEncodedBytes)
+            return juce::Result::fail(label + " encoded region exceeds the available Yamaha ADPCM-A memory.");
+        return juce::Result::ok();
+    }
+
+    std::vector<int16_t> pcm;
+    if (auto result = readResampledMonoPcm16(file,
+                                             label,
+                                             targetSampleRate,
+                                             maximumEncodedBytes,
+                                             byteAlignment,
+                                             pcm);
+        result.failed())
+        return result;
+
+    slot.name = file.getFileName();
+    slot.path = file.getFullPathName();
+    slot.encoding = chipper::ExternalSampleEncoding::rawBytes;
+    slot.sourceSampleCount = pcm.size();
+    slot.bytes = chipper::yamahaAdpcm::encodeA(pcm, byteAlignment);
+    slot.included = true;
+    if (slot.bytes.empty() || slot.bytes.size() > maximumEncodedBytes)
+        return juce::Result::fail(label + " WAV/AIFF conversion produced an invalid encoded payload.");
+    if (requireExactRawSize && slot.bytes.size() != maximumEncodedBytes)
+        return juce::Result::fail(label + " WAV/AIFF conversion did not fill its fixed OPNA ROM window.");
+    slot.sourceByteCount = slot.bytes.size();
+    return juce::Result::ok();
+}
+
 juce::Result readOpnaAdpcmBSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
 {
     return readAdpcmBFile(file, slot, "OPNA ADPCM-B", opnaAdpcmBImportRate, opnaAdpcmBMemoryBytes, 4u);
@@ -975,7 +1028,8 @@ bool isEmbeddedSampleParentTag(const juce::String& tagName)
         || tagName == opnaRhythmRomStateTag
         || tagName == opnaAdpcmBSampleStateTag
         || tagName == opnbAdpcmASampleStateTag
-        || tagName == opnbAdpcmBSampleStateTag;
+        || tagName == opnbAdpcmBSampleStateTag
+        || tagName == adpcmARegionStateTag;
 }
 
 juce::Result validateEmbeddedPayloadStructure(const juce::XmlElement& element,
@@ -1579,6 +1633,8 @@ ChipperAudioProcessor::ChipperAudioProcessor()
       undoManager(30000, 100),
       apvts(*this, &undoManager, "ChipperState", chipper::parameters::createLayout())
 {
+    opnaAdpcmARegions.resize(chipper::yamahaAdpcm::regionCountA);
+    opnbAdpcmARegions.resize(chipper::yamahaAdpcm::regionCountA);
 }
 
 void ChipperAudioProcessor::prepareToPlay(double sampleRate, int)
@@ -1595,6 +1651,7 @@ void ChipperAudioProcessor::prepareToPlay(double sampleRate, int)
     publishedMotionHostTempo.store(false, std::memory_order_release);
     publishedCoreReady.store(false, std::memory_order_release);
     initializeCorePool();
+    primeYamahaAdpcmACores();
     hasObservedMacroSnapshot = false;
     for (auto& sample : outputScopeBuffer)
         sample.store(0.0f, std::memory_order_relaxed);
@@ -1732,6 +1789,106 @@ void ChipperAudioProcessor::initializeCorePool()
         preparedCore = chipper::createChipCore(mode, chipper::AccuracyMode::hybrid);
         preparedCore->reset(currentSampleRate, clock);
         preparedCore->setPatch(patch);
+    }
+}
+
+void ChipperAudioProcessor::primeYamahaAdpcmACores()
+{
+    const juce::ScopedLock callbackGuard(getCallbackLock());
+
+    std::vector<uint8_t> opnaBytes;
+    uint64_t opnaRevision = 0;
+    {
+        const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
+        opnaRevision = opnaRhythmRomRevision.load(std::memory_order_relaxed);
+        const auto hasRegions = std::any_of(opnaAdpcmARegions.begin(),
+                                            opnaAdpcmARegions.end(),
+                                            [](const auto& region) { return ! region.bytes.empty(); });
+        if (hasRegions)
+        {
+            const auto generated = chipper::yamahaAdpcm::makeGeneratedOpnaRom();
+            opnaBytes.assign(generated.begin(), generated.end());
+            for (size_t region = 0; region < std::min(opnaAdpcmARegions.size(), chipper::yamahaAdpcm::regionCountA); ++region)
+            {
+                const auto& descriptor = chipper::yamahaAdpcm::opnaRegions[region];
+                const auto& bytes = opnaAdpcmARegions[region].bytes;
+                if (bytes.size() == descriptor.capacityBytes())
+                    std::copy(bytes.begin(), bytes.end(),
+                              opnaBytes.begin() + static_cast<std::ptrdiff_t>(descriptor.startByte));
+            }
+        }
+        else
+        {
+            opnaBytes = opnaRhythmRom.bytes;
+        }
+    }
+
+    const auto opnaIndex = corePoolIndex(chipper::ChipMode::ym2608);
+    auto* opnaCore = core != nullptr && activeMode == chipper::ChipMode::ym2608
+        ? core.get()
+        : corePool[opnaIndex].get();
+    if (opnaCore != nullptr)
+    {
+        opnaCore->setExternalSampleData(std::move(opnaBytes));
+        pooledOpnaRhythmRevisions[opnaIndex] = opnaRevision;
+        if (core != nullptr && activeMode == chipper::ChipMode::ym2608)
+            activeOpnaRhythmRomRevision = opnaRevision;
+    }
+
+    std::vector<uint8_t> opnbBytes;
+    std::array<chipper::yamahaAdpcm::AdpcmARegionWindow, chipper::yamahaAdpcm::regionCountA> opnbWindows {};
+    auto usesExplicitRegions = false;
+    uint64_t opnbRevision = 0;
+    {
+        const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
+        opnbRevision = opnbAdpcmASampleRevision.load(std::memory_order_relaxed);
+        usesExplicitRegions = std::any_of(opnbAdpcmARegions.begin(),
+                                          opnbAdpcmARegions.end(),
+                                          [](const auto& region) { return ! region.bytes.empty(); });
+        if (usesExplicitRegions)
+        {
+            std::array<std::vector<uint8_t>, chipper::yamahaAdpcm::regionCountA> regionBytes;
+            for (size_t region = 0; region < std::min(opnbAdpcmARegions.size(), chipper::yamahaAdpcm::regionCountA); ++region)
+                regionBytes[region] = opnbAdpcmARegions[region].bytes;
+            chipper::yamahaAdpcm::PackedAdpcmABank packed;
+            std::string error;
+            if (chipper::yamahaAdpcm::packOpnbRegions(regionBytes, packed, error))
+            {
+                opnbBytes = std::move(packed.bytes);
+                opnbWindows = packed.windows;
+            }
+            else
+            {
+                jassertfalse;
+                usesExplicitRegions = false;
+            }
+        }
+        if (! usesExplicitRegions)
+            opnbBytes = opnbAdpcmASample.bytes;
+    }
+
+    constexpr std::array<chipper::ChipMode, 2> opnbModes { chipper::ChipMode::ym2610, chipper::ChipMode::ym2610b };
+    for (size_t modeIndex = 0; modeIndex < opnbModes.size(); ++modeIndex)
+    {
+        const auto mode = opnbModes[modeIndex];
+        const auto poolIndex = corePoolIndex(mode);
+        auto* targetCore = core != nullptr && activeMode == mode ? core.get() : corePool[poolIndex].get();
+        if (targetCore == nullptr)
+            continue;
+        if (usesExplicitRegions)
+        {
+            if (modeIndex + 1u == opnbModes.size())
+                targetCore->setExternalAdpcmAData(std::move(opnbBytes), opnbWindows);
+            else
+                targetCore->setExternalAdpcmAData(opnbBytes, opnbWindows);
+        }
+        else if (modeIndex + 1u == opnbModes.size())
+            targetCore->setExternalSampleData(std::move(opnbBytes));
+        else
+            targetCore->setExternalSampleData(opnbBytes);
+        pooledOpnbAdpcmARevisions[poolIndex] = opnbRevision;
+        if (core != nullptr && activeMode == mode)
+            activeOpnbAdpcmASampleRevision = opnbRevision;
     }
 }
 
@@ -2003,11 +2160,12 @@ juce::Result ChipperAudioProcessor::loadOpnaRhythmRomFile(const juce::File& file
     {
         const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
         opnaRhythmRom = std::move(slot);
+        opnaAdpcmARegions.assign(chipper::yamahaAdpcm::regionCountA, {});
         opnaRhythmRomRestoreWarning = {};
         ++opnaRhythmRomRevision;
     }
 
-    synchronizeActiveExternalAssets(chipper::ChipMode::ym2608);
+    primeYamahaAdpcmACores();
     return juce::Result::ok();
 }
 
@@ -2039,11 +2197,12 @@ juce::Result ChipperAudioProcessor::loadOpnbAdpcmASampleFile(const juce::File& f
     {
         const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
         opnbAdpcmASample = std::move(slot);
+        opnbAdpcmARegions.assign(chipper::yamahaAdpcm::regionCountA, {});
         opnbAdpcmASampleRestoreWarning = {};
         ++opnbAdpcmASampleRevision;
     }
 
-    synchronizeActiveExternalAssets(chipper::ChipMode::ym2610);
+    primeYamahaAdpcmACores();
     return juce::Result::ok();
 }
 
@@ -2491,6 +2650,180 @@ ChipperAudioProcessor::OpnbAdpcmSampleInfo ChipperAudioProcessor::opnbAdpcmBSamp
     info.statusLine += ")";
     appendRestoreWarning(info.statusLine, restoreWarning);
     return info;
+}
+
+ChipperAudioProcessor::AdpcmARegionInfo ChipperAudioProcessor::adpcmARegionInfo(chipper::ChipMode mode,
+                                                                                int regionIndex) const
+{
+    AdpcmARegionInfo info;
+    info.regionIndex = std::clamp(regionIndex, 0, static_cast<int>(chipper::yamahaAdpcm::regionCountA - 1u));
+    const auto index = static_cast<size_t>(info.regionIndex);
+    const auto opna = mode == chipper::ChipMode::ym2608;
+    info.roleName = opna
+        ? juce::String::fromUTF8(chipper::yamahaAdpcm::opnaRegions[index].name.data(),
+                                 static_cast<int>(chipper::yamahaAdpcm::opnaRegions[index].name.size()))
+        : "ADPCM-A" + juce::String(info.regionIndex + 1);
+
+    juce::String restoreWarning;
+    const auto captureSlot = [&info](const DmcSampleSlot& slot)
+    {
+        info.loaded = ! slot.bytes.empty();
+        info.sampleName = slot.name;
+        info.path = slot.path;
+        info.sourceByteCount = reportedSampleByteCount(slot);
+        info.encodedByteCount = static_cast<int>(slot.bytes.size());
+        info.decodedSampleCount = reportedDecodedSampleCount(slot);
+        info.convertedFromPcm = slot.sourceSampleCount > 0u;
+    };
+    if (opna)
+    {
+        const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
+        info.legacyBankActive = ! opnaRhythmRom.bytes.empty();
+        info.legacyBankMissing = opnaRhythmRom.bytes.empty() && opnaRhythmRom.path.isNotEmpty();
+        info.legacyBankName = opnaRhythmRom.name;
+        for (const auto& region : opnaAdpcmARegions)
+        {
+            if (! region.bytes.empty())
+                ++info.loadedRegionCount;
+            if (! region.bytes.empty() || region.path.isNotEmpty())
+                info.editableBankActive = true;
+        }
+        if (index < opnaAdpcmARegions.size())
+            captureSlot(opnaAdpcmARegions[index]);
+        restoreWarning = opnaRhythmRomRestoreWarning;
+    }
+    else
+    {
+        const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
+        info.legacyBankActive = ! opnbAdpcmASample.bytes.empty();
+        info.legacyBankMissing = opnbAdpcmASample.bytes.empty() && opnbAdpcmASample.path.isNotEmpty();
+        info.legacyBankName = opnbAdpcmASample.name;
+        auto packedOffset = size_t { 0 };
+        for (size_t logicalRegion = 0; logicalRegion < std::min(opnbAdpcmARegions.size(), chipper::yamahaAdpcm::regionCountA); ++logicalRegion)
+        {
+            const auto& region = opnbAdpcmARegions[logicalRegion];
+            if (! region.bytes.empty())
+            {
+                ++info.loadedRegionCount;
+                if (logicalRegion == index)
+                {
+                    info.startByte = static_cast<int>(packedOffset);
+                    info.endByteInclusive = static_cast<int>(packedOffset + region.bytes.size() - 1u);
+                    info.capacityByteCount = static_cast<int>(region.bytes.size());
+                }
+                packedOffset += region.bytes.size();
+            }
+            if (! region.bytes.empty() || region.path.isNotEmpty())
+                info.editableBankActive = true;
+        }
+        info.packedBankByteCount = static_cast<int>(packedOffset);
+        if (index < opnbAdpcmARegions.size())
+            captureSlot(opnbAdpcmARegions[index]);
+        restoreWarning = opnbAdpcmASampleRestoreWarning;
+    }
+
+    if (opna)
+    {
+        const auto& descriptor = chipper::yamahaAdpcm::opnaRegions[index];
+        info.capacityByteCount = static_cast<int>(descriptor.capacityBytes());
+        info.startByte = static_cast<int>(descriptor.startByte);
+        info.endByteInclusive = static_cast<int>(descriptor.endByteInclusive);
+        info.packedBankByteCount = static_cast<int>(chipper::yamahaAdpcm::opnaRomBytesA);
+        info.sampleRateHz = opnaAdpcmAClockHz / descriptor.clockDivider;
+    }
+    else
+        info.sampleRateHz = opnbAdpcmAImportRate;
+
+    if (info.loaded)
+    {
+        info.statusLine = info.roleName + ": " + info.sampleName + " ("
+            + juce::String(info.encodedByteCount) + " encoded bytes";
+        if (info.convertedFromPcm)
+            info.statusLine += ", " + juce::String(info.decodedSampleCount) + " source frames converted";
+        info.statusLine += ")";
+    }
+    else if (info.path.isNotEmpty())
+    {
+        info.statusLine = info.roleName + ": missing " + (info.sampleName.isNotEmpty() ? info.sampleName : "sample");
+    }
+    else if (info.legacyBankActive)
+    {
+        info.statusLine = "Packed ADPCM-A image active; replacing it with editable regions requires confirmation";
+    }
+    else if (info.legacyBankMissing)
+    {
+        info.statusLine = "Packed ADPCM-A reference missing: "
+            + (info.legacyBankName.isNotEmpty() ? info.legacyBankName : juce::String("source file"));
+    }
+    else if (opna)
+    {
+        info.statusLine = info.roleName + ": generated Chipper rhythm data";
+    }
+    else
+    {
+        info.statusLine = info.roleName + ": empty";
+    }
+    appendRestoreWarning(info.statusLine, restoreWarning);
+    return info;
+}
+
+ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::adpcmARegionWaveformSnapshot(
+    chipper::ChipMode mode,
+    int regionIndex) const
+{
+    SampleWaveformSnapshot snapshot;
+    const auto safeIndex = static_cast<size_t>(std::clamp(regionIndex,
+                                                          0,
+                                                          static_cast<int>(chipper::yamahaAdpcm::regionCountA - 1u)));
+    const auto info = adpcmARegionInfo(mode, static_cast<int>(safeIndex));
+    std::vector<uint8_t> encoded;
+    size_t requestedSamples = 0u;
+    if (mode == chipper::ChipMode::ym2608)
+    {
+        const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
+        if (safeIndex < opnaAdpcmARegions.size() && ! opnaAdpcmARegions[safeIndex].bytes.empty())
+        {
+            encoded = opnaAdpcmARegions[safeIndex].bytes;
+            requestedSamples = opnaAdpcmARegions[safeIndex].sourceSampleCount;
+        }
+        else if (opnaRhythmRom.bytes.empty())
+        {
+            const auto generated = chipper::yamahaAdpcm::makeGeneratedOpnaRom();
+            const auto& descriptor = chipper::yamahaAdpcm::opnaRegions[safeIndex];
+            encoded.assign(generated.begin() + static_cast<std::ptrdiff_t>(descriptor.startByte),
+                           generated.begin() + static_cast<std::ptrdiff_t>(descriptor.endByteInclusive + 1u));
+        }
+    }
+    else if (mode == chipper::ChipMode::ym2610 || mode == chipper::ChipMode::ym2610b)
+    {
+        const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
+        if (safeIndex < opnbAdpcmARegions.size())
+        {
+            encoded = opnbAdpcmARegions[safeIndex].bytes;
+            requestedSamples = opnbAdpcmARegions[safeIndex].sourceSampleCount;
+        }
+    }
+
+    if (encoded.empty())
+    {
+        snapshot.label = info.statusLine;
+        return snapshot;
+    }
+    if (requestedSamples == 0u)
+        requestedSamples = encoded.size() * 2u;
+    auto decoded16 = chipper::yamahaAdpcm::decodeA(encoded, requestedSamples);
+    std::vector<float> decoded;
+    decoded.reserve(decoded16.size());
+    for (const auto sample : decoded16)
+        decoded.push_back(static_cast<float>(sample) / 32768.0f);
+    snapshot.label = (info.loaded ? "Decoded " : "Generated ") + info.roleName + " ADPCM-A";
+    if (info.loaded)
+        snapshot.label += ": " + info.sampleName;
+    snapshot.sourceSampleCount = static_cast<int>(decoded.size());
+    snapshot.selectedSlot = static_cast<int>(safeIndex);
+    snapshot.loaded = ! decoded.empty();
+    snapshot.samples = waveformPreviewFromSamples(decoded);
+    return snapshot;
 }
 
 juce::StringArray ChipperAudioProcessor::nesDmcSampleNames() const
@@ -4003,11 +4336,32 @@ void ChipperAudioProcessor::applyOpnaRhythmRomToCore()
         return;
 
     std::vector<uint8_t> selectedBytes;
+    std::vector<DmcSampleSlot> regions;
+    auto hasEditableRegions = false;
     uint64_t revision = 0;
     {
         const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
         revision = opnaRhythmRomRevision.load(std::memory_order_relaxed);
         selectedBytes = opnaRhythmRom.bytes;
+        hasEditableRegions = std::any_of(opnaAdpcmARegions.begin(),
+                                         opnaAdpcmARegions.end(),
+                                         [](const auto& region) { return ! region.bytes.empty(); });
+        if (hasEditableRegions)
+            regions = opnaAdpcmARegions;
+    }
+    if (hasEditableRegions)
+    {
+        regions.resize(chipper::yamahaAdpcm::regionCountA);
+        const auto generated = chipper::yamahaAdpcm::makeGeneratedOpnaRom();
+        selectedBytes.assign(generated.begin(), generated.end());
+        for (size_t region = 0; region < regions.size(); ++region)
+        {
+            const auto& descriptor = chipper::yamahaAdpcm::opnaRegions[region];
+            const auto& bytes = regions[region].bytes;
+            if (bytes.size() == descriptor.capacityBytes())
+                std::copy(bytes.begin(), bytes.end(),
+                          selectedBytes.begin() + static_cast<std::ptrdiff_t>(descriptor.startByte));
+        }
     }
 
     if (revision == activeOpnaRhythmRomRevision)
@@ -4053,11 +4407,18 @@ void ChipperAudioProcessor::applyOpnbAdpcmASampleToCore()
         return;
 
     std::vector<uint8_t> selectedBytes;
+    std::vector<DmcSampleSlot> regions;
+    auto hasEditableRegions = false;
     uint64_t revision = 0;
     {
         const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
         revision = opnbAdpcmASampleRevision.load(std::memory_order_relaxed);
         selectedBytes = opnbAdpcmASample.bytes;
+        hasEditableRegions = std::any_of(opnbAdpcmARegions.begin(),
+                                         opnbAdpcmARegions.end(),
+                                         [](const auto& region) { return ! region.bytes.empty(); });
+        if (hasEditableRegions)
+            regions = opnbAdpcmARegions;
     }
 
     if (revision == activeOpnbAdpcmASampleRevision)
@@ -4065,7 +4426,23 @@ void ChipperAudioProcessor::applyOpnbAdpcmASampleToCore()
 
     activeOpnbAdpcmASampleRevision = revision;
     pooledOpnbAdpcmARevisions[corePoolIndex(activeMode)] = revision;
-    core->setExternalSampleData(std::move(selectedBytes));
+    if (hasEditableRegions)
+    {
+        regions.resize(chipper::yamahaAdpcm::regionCountA);
+        std::array<std::vector<uint8_t>, chipper::yamahaAdpcm::regionCountA> regionBytes;
+        for (size_t region = 0; region < regionBytes.size(); ++region)
+            regionBytes[region] = regions[region].bytes;
+        chipper::yamahaAdpcm::PackedAdpcmABank packed;
+        std::string error;
+        if (chipper::yamahaAdpcm::packOpnbRegions(regionBytes, packed, error))
+            core->setExternalAdpcmAData(std::move(packed.bytes), packed.windows);
+        else
+            core->setExternalAdpcmAData({}, {});
+    }
+    else
+    {
+        core->setExternalSampleData(std::move(selectedBytes));
+    }
 }
 
 void ChipperAudioProcessor::applyOpnbAdpcmBSampleToCore()
@@ -4682,7 +5059,34 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml(StateAss
 
     {
         const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
-        if (! opnaRhythmRom.bytes.empty() || opnaRhythmRom.path.isNotEmpty())
+        const auto hasEditableRegions = std::any_of(opnaAdpcmARegions.begin(),
+                                                   opnaAdpcmARegions.end(),
+                                                   [](const auto& region)
+                                                   {
+                                                       return ! region.bytes.empty() || region.path.isNotEmpty();
+                                                   });
+        if (hasEditableRegions)
+        {
+            auto* rhythmRomState = new juce::XmlElement(opnaRhythmRomStateTag);
+            rhythmRomState->setAttribute("bankMode", adpcmARegionsBankMode);
+            rhythmRomState->setAttribute("count", static_cast<int>(chipper::yamahaAdpcm::regionCountA));
+            for (size_t index = 0; index < opnaAdpcmARegions.size(); ++index)
+            {
+                const auto& region = opnaAdpcmARegions[index];
+                if (region.bytes.empty() && region.path.isEmpty())
+                    continue;
+
+                auto* regionState = new juce::XmlElement(adpcmARegionStateTag);
+                regionState->setAttribute("index", static_cast<int>(index));
+                regionState->setAttribute("path", region.path);
+                addSampleReferenceMetadata(*regionState, region);
+                if (embedProjectAssets)
+                    addEmbeddedSamplePayload(*regionState, region, maxEmbeddedOpnaRhythmBytes, embeddedBudget);
+                rhythmRomState->addChildElement(regionState);
+            }
+            xml->addChildElement(rhythmRomState);
+        }
+        else if (! opnaRhythmRom.bytes.empty() || opnaRhythmRom.path.isNotEmpty())
         {
             auto* rhythmRomState = new juce::XmlElement(opnaRhythmRomStateTag);
             rhythmRomState->setAttribute("path", opnaRhythmRom.path);
@@ -4706,7 +5110,34 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml(StateAss
     }
     {
         const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
-        if (! opnbAdpcmASample.bytes.empty() || opnbAdpcmASample.path.isNotEmpty())
+        const auto hasEditableRegions = std::any_of(opnbAdpcmARegions.begin(),
+                                                   opnbAdpcmARegions.end(),
+                                                   [](const auto& region)
+                                                   {
+                                                       return ! region.bytes.empty() || region.path.isNotEmpty();
+                                                   });
+        if (hasEditableRegions)
+        {
+            auto* adpcmAState = new juce::XmlElement(opnbAdpcmASampleStateTag);
+            adpcmAState->setAttribute("bankMode", adpcmARegionsBankMode);
+            adpcmAState->setAttribute("count", static_cast<int>(chipper::yamahaAdpcm::regionCountA));
+            for (size_t index = 0; index < opnbAdpcmARegions.size(); ++index)
+            {
+                const auto& region = opnbAdpcmARegions[index];
+                if (region.bytes.empty() && region.path.isEmpty())
+                    continue;
+
+                auto* regionState = new juce::XmlElement(adpcmARegionStateTag);
+                regionState->setAttribute("index", static_cast<int>(index));
+                regionState->setAttribute("path", region.path);
+                addSampleReferenceMetadata(*regionState, region);
+                if (embedProjectAssets)
+                    addEmbeddedSamplePayload(*regionState, region, maxEmbeddedOpnbAdpcmABytes, embeddedBudget);
+                adpcmAState->addChildElement(regionState);
+            }
+            xml->addChildElement(adpcmAState);
+        }
+        else if (! opnbAdpcmASample.bytes.empty() || opnbAdpcmASample.path.isNotEmpty())
         {
             auto* adpcmAState = new juce::XmlElement(opnbAdpcmASampleStateTag);
             adpcmAState->setAttribute("path", opnbAdpcmASample.path);
@@ -4756,7 +5187,7 @@ juce::Result ChipperAudioProcessor::restoreStateXmlInternal(const juce::XmlEleme
     if (const auto validation = validateEmbeddedPayloadStructure(*xml, allowEmbeddedProjectAssets, embeddedStructureBudget); validation.failed())
         return validation;
 
-    pendingRegisterState.clear();
+    std::vector<chipper::RegisterWrite> restoredRegisterState;
     std::vector<DmcSampleSlot> restoredDmcBank;
     DmcSampleSlot restoredSpcBrrSample;
     std::vector<DmcSampleSlot> restoredSpcBrrBank;
@@ -4764,8 +5195,10 @@ juce::Result ChipperAudioProcessor::restoreStateXmlInternal(const juce::XmlEleme
     std::vector<DmcSampleSlot> restoredPaulaBank;
     DmcSampleSlot restoredOpn2DacSample;
     DmcSampleSlot restoredOpnaRhythmRom;
+    std::vector<DmcSampleSlot> restoredOpnaAdpcmARegions(chipper::yamahaAdpcm::regionCountA);
     DmcSampleSlot restoredOpnaAdpcmBSample;
     DmcSampleSlot restoredOpnbAdpcmASample;
+    std::vector<DmcSampleSlot> restoredOpnbAdpcmARegions(chipper::yamahaAdpcm::regionCountA);
     DmcSampleSlot restoredOpnbAdpcmBSample;
     chipper::state::WavetableState restoredWavetableState;
     chipper::state::MotionState restoredMotionState;
@@ -4796,12 +5229,12 @@ juce::Result ChipperAudioProcessor::restoreStateXmlInternal(const juce::XmlEleme
         if (registerWriteCount > chipper::state::maxRestoredRegisterWrites)
             return juce::Result::fail("This Chipper state contains too many register writes.");
 
-        pendingRegisterState.reserve(registerWriteCount);
+        restoredRegisterState.reserve(registerWriteCount);
         for (const auto* child : coreState->getChildIterator())
         {
             if (child != nullptr && child->hasTagName(registerTag))
             {
-                pendingRegisterState.push_back({
+                restoredRegisterState.push_back({
                     0,
                     static_cast<uint16_t>(child->getIntAttribute("address") & 0xffff),
                     static_cast<uint8_t>(child->getIntAttribute("value") & 0xff)
@@ -5028,22 +5461,93 @@ juce::Result ChipperAudioProcessor::restoreStateXmlInternal(const juce::XmlEleme
 
     if (auto* opnaRhythmRomState = xml->getChildByName(opnaRhythmRomStateTag))
     {
-        const auto fileResult = readOpnaRhythmRomFile(resolvePresetSamplePath(*opnaRhythmRomState, presetDirectory),
-                                                      restoredOpnaRhythmRom);
-        if (fileResult.failed())
+        const auto bankMode = opnaRhythmRomState->getStringAttribute("bankMode").trim();
+        if (bankMode.isNotEmpty() && bankMode != adpcmARegionsBankMode)
+            return juce::Result::fail("OPNA ADPCM-A state uses an unsupported bank mode.");
+
+        if (bankMode == adpcmARegionsBankMode)
         {
-            const auto embedded = restoreEmbeddedSample(*opnaRhythmRomState,
-                                                        restoredOpnaRhythmRom,
-                                                        EmbeddedSampleFamily::rawMemory,
-                                                        maxEmbeddedOpnaRhythmBytes);
-            if (embedded.restored)
-                opnaRhythmEmbeddedFallbacks.add(restoredOpnaRhythmRom.name);
-            else
+            auto declaredCount = 0;
+            if (! parseSignedIntAttribute(*opnaRhythmRomState, "count", declaredCount)
+                || declaredCount != static_cast<int>(chipper::yamahaAdpcm::regionCountA))
+                return juce::Result::fail("OPNA ADPCM-A region state has an invalid region count.");
+
+            std::array<bool, chipper::yamahaAdpcm::regionCountA> seen {};
+            auto referenceCount = size_t { 0u };
+            for (const auto* child : opnaRhythmRomState->getChildIterator())
             {
-                opnaRhythmRomRestoreIssues.add(fileResult.getErrorMessage());
-                if (embedded.present)
-                    opnaRhythmRomRestoreIssues.add(embedded.error);
-                restoredOpnaRhythmRom = sampleTombstone(*opnaRhythmRomState, EmbeddedSampleFamily::rawMemory);
+                if (child == nullptr)
+                    continue;
+                if (! child->hasTagName(adpcmARegionStateTag))
+                    return juce::Result::fail("OPNA ADPCM-A region state contains an unsupported child record.");
+
+                auto regionIndex = -1;
+                if (! parseSignedIntAttribute(*child, "index", regionIndex)
+                    || regionIndex < 0
+                    || regionIndex >= static_cast<int>(chipper::yamahaAdpcm::regionCountA))
+                    return juce::Result::fail("OPNA ADPCM-A region state has an invalid region index.");
+                const auto index = static_cast<size_t>(regionIndex);
+                if (seen[index])
+                    return juce::Result::fail("OPNA ADPCM-A region state contains a duplicate region index.");
+                seen[index] = true;
+                ++referenceCount;
+
+                const auto& descriptor = chipper::yamahaAdpcm::opnaRegions[index];
+                const auto roleName = juce::String::fromUTF8(descriptor.name.data(),
+                                                             static_cast<int>(descriptor.name.size()));
+                auto& slot = restoredOpnaAdpcmARegions[index];
+                const auto fileResult = readAdpcmARegionFile(resolvePresetSamplePath(*child, presetDirectory),
+                                                             slot,
+                                                             "OPNA " + roleName,
+                                                             opnaAdpcmAClockHz / descriptor.clockDivider,
+                                                             descriptor.capacityBytes(),
+                                                             descriptor.capacityBytes(),
+                                                             true);
+                if (fileResult.failed())
+                {
+                    auto embedded = restoreEmbeddedSample(*child,
+                                                          slot,
+                                                          EmbeddedSampleFamily::rawMemory,
+                                                          descriptor.capacityBytes());
+                    if (embedded.restored && slot.bytes.size() != descriptor.capacityBytes())
+                    {
+                        embedded.restored = false;
+                        embedded.error = "embedded OPNA region does not fill its fixed ROM window";
+                        slot = {};
+                    }
+                    if (embedded.restored)
+                        opnaRhythmEmbeddedFallbacks.add(slot.name);
+                    else
+                    {
+                        opnaRhythmRomRestoreIssues.add(fileResult.getErrorMessage());
+                        if (embedded.present)
+                            opnaRhythmRomRestoreIssues.add(embedded.error);
+                        slot = sampleTombstone(*child, EmbeddedSampleFamily::rawMemory);
+                    }
+                }
+            }
+            if (referenceCount == 0u)
+                return juce::Result::fail("OPNA ADPCM-A region state contains no region references.");
+        }
+        else
+        {
+            const auto fileResult = readOpnaRhythmRomFile(resolvePresetSamplePath(*opnaRhythmRomState, presetDirectory),
+                                                          restoredOpnaRhythmRom);
+            if (fileResult.failed())
+            {
+                const auto embedded = restoreEmbeddedSample(*opnaRhythmRomState,
+                                                            restoredOpnaRhythmRom,
+                                                            EmbeddedSampleFamily::rawMemory,
+                                                            maxEmbeddedOpnaRhythmBytes);
+                if (embedded.restored)
+                    opnaRhythmEmbeddedFallbacks.add(restoredOpnaRhythmRom.name);
+                else
+                {
+                    opnaRhythmRomRestoreIssues.add(fileResult.getErrorMessage());
+                    if (embedded.present)
+                        opnaRhythmRomRestoreIssues.add(embedded.error);
+                    restoredOpnaRhythmRom = sampleTombstone(*opnaRhythmRomState, EmbeddedSampleFamily::rawMemory);
+                }
             }
         }
         xml->removeChildElement(opnaRhythmRomState, true);
@@ -5072,22 +5576,101 @@ juce::Result ChipperAudioProcessor::restoreStateXmlInternal(const juce::XmlEleme
     }
     if (auto* opnbAdpcmAState = xml->getChildByName(opnbAdpcmASampleStateTag))
     {
-        const auto fileResult = readOpnbAdpcmASampleFile(resolvePresetSamplePath(*opnbAdpcmAState, presetDirectory),
-                                                         restoredOpnbAdpcmASample);
-        if (fileResult.failed())
+        const auto bankMode = opnbAdpcmAState->getStringAttribute("bankMode").trim();
+        if (bankMode.isNotEmpty() && bankMode != adpcmARegionsBankMode)
+            return juce::Result::fail("OPNB ADPCM-A state uses an unsupported bank mode.");
+
+        if (bankMode == adpcmARegionsBankMode)
         {
-            const auto embedded = restoreEmbeddedSample(*opnbAdpcmAState,
-                                                        restoredOpnbAdpcmASample,
-                                                        EmbeddedSampleFamily::rawMemory,
-                                                        maxEmbeddedOpnbAdpcmABytes);
-            if (embedded.restored)
-                opnbAdpcmAEmbeddedFallbacks.add(restoredOpnbAdpcmASample.name);
-            else
+            auto declaredCount = 0;
+            if (! parseSignedIntAttribute(*opnbAdpcmAState, "count", declaredCount)
+                || declaredCount != static_cast<int>(chipper::yamahaAdpcm::regionCountA))
+                return juce::Result::fail("OPNB ADPCM-A region state has an invalid region count.");
+
+            std::array<bool, chipper::yamahaAdpcm::regionCountA> seen {};
+            auto referenceCount = size_t { 0u };
+            for (const auto* child : opnbAdpcmAState->getChildIterator())
             {
-                opnbAdpcmASampleRestoreIssues.add(fileResult.getErrorMessage());
-                if (embedded.present)
-                    opnbAdpcmASampleRestoreIssues.add(embedded.error);
-                restoredOpnbAdpcmASample = sampleTombstone(*opnbAdpcmAState, EmbeddedSampleFamily::rawMemory);
+                if (child == nullptr)
+                    continue;
+                if (! child->hasTagName(adpcmARegionStateTag))
+                    return juce::Result::fail("OPNB ADPCM-A region state contains an unsupported child record.");
+
+                auto regionIndex = -1;
+                if (! parseSignedIntAttribute(*child, "index", regionIndex)
+                    || regionIndex < 0
+                    || regionIndex >= static_cast<int>(chipper::yamahaAdpcm::regionCountA))
+                    return juce::Result::fail("OPNB ADPCM-A region state has an invalid region index.");
+                const auto index = static_cast<size_t>(regionIndex);
+                if (seen[index])
+                    return juce::Result::fail("OPNB ADPCM-A region state contains a duplicate region index.");
+                seen[index] = true;
+                ++referenceCount;
+
+                auto& slot = restoredOpnbAdpcmARegions[index];
+                const auto fileResult = readAdpcmARegionFile(resolvePresetSamplePath(*child, presetDirectory),
+                                                             slot,
+                                                             "OPNB ADPCM-A" + juce::String(regionIndex + 1),
+                                                             opnbAdpcmAImportRate,
+                                                             opnbAdpcmAMemoryBytes,
+                                                             chipper::yamahaAdpcm::opnbPageBytesA,
+                                                             false);
+                if (fileResult.failed())
+                {
+                    auto embedded = restoreEmbeddedSample(*child,
+                                                          slot,
+                                                          EmbeddedSampleFamily::rawMemory,
+                                                          maxEmbeddedOpnbAdpcmABytes);
+                    if (embedded.restored
+                        && (slot.bytes.empty()
+                            || (slot.bytes.size() % chipper::yamahaAdpcm::opnbPageBytesA) != 0u
+                            || slot.bytes.size() > static_cast<size_t>(opnbAdpcmAMemoryBytes)))
+                    {
+                        embedded.restored = false;
+                        embedded.error = "embedded OPNB region does not use complete 256-byte pages";
+                        slot = {};
+                    }
+                    if (embedded.restored)
+                        opnbAdpcmAEmbeddedFallbacks.add(slot.name);
+                    else
+                    {
+                        opnbAdpcmASampleRestoreIssues.add(fileResult.getErrorMessage());
+                        if (embedded.present)
+                            opnbAdpcmASampleRestoreIssues.add(embedded.error);
+                        slot = sampleTombstone(*child, EmbeddedSampleFamily::rawMemory);
+                    }
+                }
+            }
+            if (referenceCount == 0u)
+                return juce::Result::fail("OPNB ADPCM-A region state contains no region references.");
+
+            std::array<std::vector<uint8_t>, chipper::yamahaAdpcm::regionCountA> regionBytes;
+            for (size_t index = 0; index < regionBytes.size(); ++index)
+                regionBytes[index] = restoredOpnbAdpcmARegions[index].bytes;
+            chipper::yamahaAdpcm::PackedAdpcmABank packed;
+            std::string packError;
+            if (! chipper::yamahaAdpcm::packOpnbRegions(regionBytes, packed, packError))
+                return juce::Result::fail("OPNB ADPCM-A region state is invalid: " + juce::String(packError));
+        }
+        else
+        {
+            const auto fileResult = readOpnbAdpcmASampleFile(resolvePresetSamplePath(*opnbAdpcmAState, presetDirectory),
+                                                             restoredOpnbAdpcmASample);
+            if (fileResult.failed())
+            {
+                const auto embedded = restoreEmbeddedSample(*opnbAdpcmAState,
+                                                            restoredOpnbAdpcmASample,
+                                                            EmbeddedSampleFamily::rawMemory,
+                                                            maxEmbeddedOpnbAdpcmABytes);
+                if (embedded.restored)
+                    opnbAdpcmAEmbeddedFallbacks.add(restoredOpnbAdpcmASample.name);
+                else
+                {
+                    opnbAdpcmASampleRestoreIssues.add(fileResult.getErrorMessage());
+                    if (embedded.present)
+                        opnbAdpcmASampleRestoreIssues.add(embedded.error);
+                    restoredOpnbAdpcmASample = sampleTombstone(*opnbAdpcmAState, EmbeddedSampleFamily::rawMemory);
+                }
             }
         }
         xml->removeChildElement(opnbAdpcmAState, true);
@@ -5117,6 +5700,7 @@ juce::Result ChipperAudioProcessor::restoreStateXmlInternal(const juce::XmlEleme
 
     const juce::ScopedLock callbackGuard(getCallbackLock());
     apvts.replaceState(juce::ValueTree::fromXml(*xml));
+    pendingRegisterState = std::move(restoredRegisterState);
     {
         const std::lock_guard<std::mutex> lock(wavetableWriteMutex);
         publishWavetableMemory(chipper::ChipMode::huc6280, restoredWavetableState.huc6280);
@@ -5157,6 +5741,7 @@ juce::Result ChipperAudioProcessor::restoreStateXmlInternal(const juce::XmlEleme
     {
         const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
         opnaRhythmRom = std::move(restoredOpnaRhythmRom);
+        opnaAdpcmARegions = std::move(restoredOpnaAdpcmARegions);
         opnaRhythmRomRestoreWarning = sampleRestoreStatusLine("OPNA rhythm ROM", opnaRhythmRomRestoreIssues, opnaRhythmEmbeddedFallbacks);
         ++opnaRhythmRomRevision;
     }
@@ -5169,6 +5754,7 @@ juce::Result ChipperAudioProcessor::restoreStateXmlInternal(const juce::XmlEleme
     {
         const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
         opnbAdpcmASample = std::move(restoredOpnbAdpcmASample);
+        opnbAdpcmARegions = std::move(restoredOpnbAdpcmARegions);
         opnbAdpcmASampleRestoreWarning = sampleRestoreStatusLine("OPNB ADPCM-A", opnbAdpcmASampleRestoreIssues, opnbAdpcmAEmbeddedFallbacks);
         ++opnbAdpcmASampleRevision;
     }
@@ -5196,6 +5782,7 @@ juce::Result ChipperAudioProcessor::restoreStateXmlInternal(const juce::XmlEleme
     resetMotionPlayback();
     publishedCoreReady.store(false, std::memory_order_release);
     initializeCorePool();
+    primeYamahaAdpcmACores();
     hasObservedMacroSnapshot = false;
     ensureCore();
 
@@ -5568,4 +6155,116 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new ChipperAudioProcessor();
+}
+
+juce::Result ChipperAudioProcessor::loadOpnaAdpcmARegionFile(int regionIndex, const juce::File& file, bool replaceLegacyBank)
+{
+    if (regionIndex < 0 || regionIndex >= static_cast<int>(chipper::yamahaAdpcm::opnaRegions.size()))
+        return juce::Result::fail("OPNA rhythm region index is out of range.");
+
+    const auto& descriptor = chipper::yamahaAdpcm::opnaRegions[static_cast<size_t>(regionIndex)];
+    DmcSampleSlot slot;
+    const auto rate = opnaAdpcmAClockHz / descriptor.clockDivider;
+    const auto label = "OPNA " + juce::String(descriptor.name.data(), descriptor.name.size()) + " ADPCM-A";
+    if (auto result = readAdpcmARegionFile(file,
+                                           slot,
+                                           label,
+                                           rate,
+                                           descriptor.capacityBytes(),
+                                           descriptor.capacityBytes(),
+                                           true);
+        result.failed())
+        return result;
+
+    const juce::ScopedLock callbackGuard(getCallbackLock());
+    {
+        const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
+        if (! opnaRhythmRom.bytes.empty() && ! replaceLegacyBank)
+            return juce::Result::fail("A packed OPNA rhythm image is active. Confirm replacing it before starting an editable region bank.");
+
+        if (opnaAdpcmARegions.size() != chipper::yamahaAdpcm::regionCountA)
+            opnaAdpcmARegions.resize(chipper::yamahaAdpcm::regionCountA);
+        opnaAdpcmARegions[static_cast<size_t>(regionIndex)] = std::move(slot);
+        opnaRhythmRom = {};
+        opnaRhythmRomRestoreWarning = {};
+        ++opnaRhythmRomRevision;
+    }
+    primeYamahaAdpcmACores();
+    return juce::Result::ok();
+}
+
+juce::Result ChipperAudioProcessor::loadOpnbAdpcmARegionFile(int regionIndex, const juce::File& file, bool replaceLegacyBank)
+{
+    if (regionIndex < 0 || regionIndex >= static_cast<int>(chipper::yamahaAdpcm::regionCountA))
+        return juce::Result::fail("OPNB ADPCM-A region index is out of range.");
+
+    DmcSampleSlot slot;
+    if (auto result = readAdpcmARegionFile(file,
+                                           slot,
+                                           "OPNB ADPCM-A" + juce::String(regionIndex + 1),
+                                           opnbAdpcmAImportRate,
+                                           opnbAdpcmAMemoryBytes,
+                                           chipper::yamahaAdpcm::opnbPageBytesA,
+                                           false);
+        result.failed())
+        return result;
+
+    std::vector<DmcSampleSlot> candidate;
+    const juce::ScopedLock callbackGuard(getCallbackLock());
+    {
+        const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
+        if (! opnbAdpcmASample.bytes.empty() && ! replaceLegacyBank)
+            return juce::Result::fail("A packed OPNB ADPCM-A image is active. Confirm replacing it before starting an editable region bank.");
+
+        candidate = opnbAdpcmARegions;
+    }
+    candidate.resize(chipper::yamahaAdpcm::regionCountA);
+    candidate[static_cast<size_t>(regionIndex)] = std::move(slot);
+    std::array<std::vector<uint8_t>, chipper::yamahaAdpcm::regionCountA> regionBytes;
+    for (size_t region = 0; region < regionBytes.size(); ++region)
+        regionBytes[region] = candidate[region].bytes;
+    chipper::yamahaAdpcm::PackedAdpcmABank packed;
+    std::string packError;
+    if (! chipper::yamahaAdpcm::packOpnbRegions(regionBytes, packed, packError))
+        return juce::Result::fail(juce::String(packError));
+
+    {
+        const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
+        opnbAdpcmARegions = std::move(candidate);
+        opnbAdpcmASample = {};
+        opnbAdpcmASampleRestoreWarning = {};
+        ++opnbAdpcmASampleRevision;
+    }
+    primeYamahaAdpcmACores();
+    return juce::Result::ok();
+}
+
+void ChipperAudioProcessor::clearOpnaAdpcmARegion(int regionIndex)
+{
+    if (regionIndex < 0 || regionIndex >= static_cast<int>(chipper::yamahaAdpcm::regionCountA))
+        return;
+    const juce::ScopedLock callbackGuard(getCallbackLock());
+    {
+        const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
+        if (opnaAdpcmARegions.size() != chipper::yamahaAdpcm::regionCountA)
+            opnaAdpcmARegions.resize(chipper::yamahaAdpcm::regionCountA);
+        opnaAdpcmARegions[static_cast<size_t>(regionIndex)] = {};
+        ++opnaRhythmRomRevision;
+    }
+    primeYamahaAdpcmACores();
+}
+
+void ChipperAudioProcessor::clearOpnbAdpcmARegion(int regionIndex)
+{
+    if (regionIndex < 0 || regionIndex >= static_cast<int>(chipper::yamahaAdpcm::regionCountA))
+        return;
+    const juce::ScopedLock callbackGuard(getCallbackLock());
+    {
+        const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
+        if (opnbAdpcmARegions.size() != chipper::yamahaAdpcm::regionCountA)
+            opnbAdpcmARegions.resize(chipper::yamahaAdpcm::regionCountA);
+        opnbAdpcmARegions[static_cast<size_t>(regionIndex)] = {};
+        ++opnbAdpcmASampleRevision;
+    }
+    primeYamahaAdpcmACores();
 }

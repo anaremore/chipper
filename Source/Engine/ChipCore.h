@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WavetableData.h"
+#include "YamahaAdpcmBank.h"
 
 #include <array>
 #include <cstdint>
@@ -8,6 +9,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace chipper
@@ -203,6 +205,13 @@ public:
     virtual void reset(double outputSampleRate, double chipClockHz) = 0;
     virtual void setPatch(const PatchConfig& patch) = 0;
     virtual void setExternalSampleData(std::vector<uint8_t> data) { (void) data; }
+    virtual void setExternalAdpcmAData(
+        std::vector<uint8_t> data,
+        std::array<yamahaAdpcm::AdpcmARegionWindow, yamahaAdpcm::regionCountA> regions)
+    {
+        (void) regions;
+        setExternalSampleData(std::move(data));
+    }
     virtual void setExternalAdpcmBData(std::vector<uint8_t> data) { (void) data; }
     virtual void setExternalSampleBank(std::vector<std::vector<uint8_t>> bank, int selectedSlot)
     {

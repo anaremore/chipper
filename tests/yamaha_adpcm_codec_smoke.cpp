@@ -1,3 +1,4 @@
+#include "Engine/YamahaAdpcmBank.h"
 #include "Engine/YamahaAdpcmCodec.h"
 
 #include <array>
@@ -15,6 +16,17 @@ bool expect(bool condition, const std::string& message)
     if (! condition)
         std::cerr << "FAIL: " << message << '\n';
     return condition;
+}
+
+uint32_t checksum(std::span<const uint8_t> bytes)
+{
+    auto value = 2166136261u;
+    for (const auto byte : bytes)
+    {
+        value ^= byte;
+        value *= 16777619u;
+    }
+    return value;
 }
 }
 
@@ -51,6 +63,45 @@ int main()
                  "ADPCM-A preview decode must trim alignment padding");
     ok &= expect(chipper::yamahaAdpcm::decodeB(alignedB, oddPcm.size()).size() == oddPcm.size(),
                  "ADPCM-B preview decode must trim alignment padding");
+
+    const auto generatedOpna = chipper::yamahaAdpcm::makeGeneratedOpnaRom();
+    auto coveredOpnaBytes = size_t { 0u };
+    for (size_t region = 0; region < chipper::yamahaAdpcm::opnaRegions.size(); ++region)
+    {
+        const auto& descriptor = chipper::yamahaAdpcm::opnaRegions[region];
+        ok &= expect(descriptor.startByte == coveredOpnaBytes,
+                     "OPNA rhythm regions must be contiguous in the fixed 8 KiB ROM");
+        coveredOpnaBytes += descriptor.capacityBytes();
+    }
+    ok &= expect(coveredOpnaBytes == chipper::yamahaAdpcm::opnaRomBytesA,
+                 "The six fixed OPNA rhythm regions must cover exactly 8 KiB");
+    ok &= expect(checksum(generatedOpna) == 1383326200u,
+                 "Moving OPNA bank geometry must preserve the generated rhythm ROM bytes");
+
+    std::array<std::vector<uint8_t>, chipper::yamahaAdpcm::regionCountA> regions;
+    regions[0].assign(256u, 0x11u);
+    regions[2].assign(512u, 0x33u);
+    regions[5].assign(256u, 0x66u);
+    chipper::yamahaAdpcm::PackedAdpcmABank packed;
+    std::string packError;
+    ok &= expect(chipper::yamahaAdpcm::packOpnbRegions(regions, packed, packError),
+                 "Aligned OPNB regions must pack deterministically");
+    ok &= expect(packed.bytes.size() == 1024u && packed.activeMask == 0x25u,
+                 "OPNB packing must retain logical holes without wasting memory pages");
+    ok &= expect(packed.windows[0].populated && packed.windows[0].startByte == 0u
+                     && packed.windows[0].endByteInclusive == 255u
+                     && ! packed.windows[1].populated
+                     && packed.windows[2].startByte == 256u
+                     && packed.windows[2].endByteInclusive == 767u
+                     && packed.windows[5].startByte == 768u
+                     && packed.windows[5].endByteInclusive == 1023u,
+                 "OPNB explicit windows must be non-overlapping, inclusive, and 256-byte aligned");
+
+    regions[1].assign(255u, 0x22u);
+    const auto previousPacked = packed.bytes;
+    ok &= expect(! chipper::yamahaAdpcm::packOpnbRegions(regions, packed, packError)
+                     && packed.bytes == previousPacked,
+                 "Invalid OPNB alignment must fail atomically");
 
     std::vector<int16_t> sine(4096u);
     for (size_t i = 0; i < sine.size(); ++i)

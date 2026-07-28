@@ -5,7 +5,7 @@
 namespace chipper::state
 {
 inline constexpr auto schemaVersionAttribute = "stateSchemaVersion";
-inline constexpr int currentSchemaVersion = 7;
+inline constexpr int currentSchemaVersion = 8;
 inline constexpr size_t maxRestoredRegisterWrites = 4096u;
 inline constexpr auto embeddedSampleStateTag = "CHIPPER_EMBEDDED_SAMPLE";
 inline constexpr int embeddedSampleFormatVersion = 1;

@@ -69,112 +69,9 @@ std::string jsonEscape(std::string_view text)
     return out.str();
 }
 
-int opnaAdpcmASignedAccumulator(int accumulator)
-{
-    accumulator &= 0x0fff;
-    return (accumulator & 0x0800) != 0 ? accumulator - 0x1000 : accumulator;
-}
-
-double opnaGeneratedNoise(size_t index, uint32_t seed)
-{
-    auto value = static_cast<uint32_t>(index) ^ seed;
-    value ^= value << 13u;
-    value ^= value >> 17u;
-    value ^= value << 5u;
-    return (static_cast<double>(value & 0xffffu) / 32767.5) - 1.0;
-}
-
-double opnaGeneratedAdpcmTarget(size_t instrument, size_t nibble, size_t totalNibbles)
-{
-    const auto t = totalNibbles > 1 ? static_cast<double>(nibble) / static_cast<double>(totalNibbles - 1u) : 0.0;
-    const auto tail = std::max(0.0, 1.0 - t);
-    switch (instrument)
-    {
-        case 0: // Bass drum.
-            return std::sin(twoPi * (3.0 * t + 1.8 * t * t)) * std::pow(tail, 1.65) * 1800.0;
-        case 1: // Snare.
-            return (opnaGeneratedNoise(nibble, 0x6d2bu) * 0.82 + std::sin(twoPi * 28.0 * t) * 0.18) * std::pow(tail, 1.1) * 1500.0;
-        case 2: // Top cymbal.
-            return (opnaGeneratedNoise(nibble * 3u, 0xa671u) * 0.72 + std::sin(twoPi * (92.0 * t + 9.0 * t * t)) * 0.28)
-                   * std::pow(tail, 0.55) * 1250.0;
-        case 3: // High hat.
-            return (opnaGeneratedNoise(nibble * 5u, 0x41c6u) * 0.9 + std::sin(twoPi * 110.0 * t) * 0.1) * std::pow(tail, 2.4) * 1400.0;
-        case 4: // Tom.
-            return std::sin(twoPi * (7.0 * t + 2.8 * t * t)) * std::pow(tail, 1.45) * 1600.0;
-        case 5: // Rim shot.
-            return (std::sin(twoPi * 36.0 * t) * 0.55 + opnaGeneratedNoise(nibble, 0xd31fu) * 0.45) * std::pow(tail, 3.2) * 1700.0;
-        default:
-            break;
-    }
-    return 0.0;
-}
-
-uint8_t encodeOpnaAdpcmANibble(double target, int& accumulator, int& stepIndex)
-{
-    static constexpr std::array<uint16_t, 49> steps {
-        16, 17, 19, 21, 23, 25, 28,
-        31, 34, 37, 41, 45, 50, 55,
-        60, 66, 73, 80, 88, 97, 107,
-        118, 130, 143, 157, 173, 190, 209,
-        230, 253, 279, 307, 337, 371, 408,
-        449, 494, 544, 598, 658, 724, 796,
-        876, 963, 1060, 1166, 1282, 1411, 1552
-    };
-    static constexpr std::array<int8_t, 8> stepInc { -1, -1, -1, -1, 2, 5, 7, 9 };
-
-    auto bestNibble = 0;
-    auto bestAccumulator = accumulator;
-    auto bestError = std::numeric_limits<double>::max();
-    for (auto nibble = 0; nibble < 16; ++nibble)
-    {
-        auto delta = (2 * (nibble & 0x07) + 1) * static_cast<int>(steps[static_cast<size_t>(stepIndex)]) / 8;
-        if ((nibble & 0x08) != 0)
-            delta = -delta;
-        const auto nextAccumulator = (accumulator + delta) & 0x0fff;
-        const auto error = std::abs(static_cast<double>(opnaAdpcmASignedAccumulator(nextAccumulator)) - target);
-        if (error < bestError)
-        {
-            bestError = error;
-            bestNibble = nibble;
-            bestAccumulator = nextAccumulator;
-        }
-    }
-
-    accumulator = bestAccumulator;
-    stepIndex = std::clamp(stepIndex + static_cast<int>(stepInc[static_cast<size_t>(bestNibble & 0x07)]), 0, 48);
-    return static_cast<uint8_t>(bestNibble);
-}
-
-void fillGeneratedOpnaAdpcmAInstrument(std::array<uint8_t, opnaAdpcmARomSize>& rom, size_t instrument, size_t start, size_t endInclusive)
-{
-    if (start >= rom.size() || endInclusive >= rom.size() || start > endInclusive)
-        return;
-
-    auto accumulator = 0;
-    auto stepIndex = 0;
-    const auto totalNibbles = (endInclusive - start + 1u) * 2u;
-    for (size_t nibble = 0; nibble < totalNibbles; ++nibble)
-    {
-        const auto target = opnaGeneratedAdpcmTarget(instrument, nibble, totalNibbles);
-        const auto encoded = encodeOpnaAdpcmANibble(target, accumulator, stepIndex);
-        const auto byteIndex = start + nibble / 2u;
-        if ((nibble & 1u) == 0)
-            rom[byteIndex] = static_cast<uint8_t>(encoded << 4u);
-        else
-            rom[byteIndex] = static_cast<uint8_t>(rom[byteIndex] | encoded);
-    }
-}
-
 std::array<uint8_t, opnaAdpcmARomSize> makeGeneratedOpnaAdpcmARom()
 {
-    std::array<uint8_t, opnaAdpcmARomSize> rom {};
-    fillGeneratedOpnaAdpcmAInstrument(rom, 0, 0x0000, 0x01bf);
-    fillGeneratedOpnaAdpcmAInstrument(rom, 1, 0x01c0, 0x043f);
-    fillGeneratedOpnaAdpcmAInstrument(rom, 2, 0x0440, 0x1b7f);
-    fillGeneratedOpnaAdpcmAInstrument(rom, 3, 0x1b80, 0x1cff);
-    fillGeneratedOpnaAdpcmAInstrument(rom, 4, 0x1d00, 0x1f7f);
-    fillGeneratedOpnaAdpcmAInstrument(rom, 5, 0x1f80, 0x1fff);
-    return rom;
+    return yamahaAdpcm::makeGeneratedOpnaRom();
 }
 
 uint32_t checksumOpnaAdpcmARom(const std::array<uint8_t, opnaAdpcmARomSize>& rom)
@@ -12838,6 +12735,18 @@ public:
 
     void setExternalSampleData(std::vector<uint8_t> data) override
     {
+        usesExplicitAdpcmARegions = false;
+        explicitAdpcmARegions = {};
+        host.setAdpcmAMemory(std::move(data));
+        host.resetAdpcmCounters();
+    }
+
+    void setExternalAdpcmAData(
+        std::vector<uint8_t> data,
+        std::array<yamahaAdpcm::AdpcmARegionWindow, yamahaAdpcm::regionCountA> regions) override
+    {
+        explicitAdpcmARegions = regions;
+        usesExplicitAdpcmARegions = true;
         host.setAdpcmAMemory(std::move(data));
         host.resetAdpcmCounters();
     }
@@ -13031,8 +12940,20 @@ public:
              << "\"opnbAdpcmAChecksum\":" << host.adpcmAChecksum() << ","
              << "\"opnbAdpcmAReadCount\":" << host.adpcmAReads() << ","
              << "\"opnbAdpcmALastReadAddress\":" << host.lastAdpcmAReadAddress() << ","
+             << "\"opnbAdpcmARegionMode\":" << (usesExplicitAdpcmARegions ? 1 : 0) << ","
+             << "\"opnbAdpcmAActiveMask\":" << static_cast<int>(opnbAdpcmAConfiguredMask()) << ","
              << "\"opnbAdpcmAStartRegister0\":" << currentOpnbAdpcmAStartRegisters[0] << ","
              << "\"opnbAdpcmAEndRegister0\":" << currentOpnbAdpcmAEndRegisters[0] << ","
+             << "\"opnbAdpcmAStartRegister1\":" << currentOpnbAdpcmAStartRegisters[1] << ","
+             << "\"opnbAdpcmAEndRegister1\":" << currentOpnbAdpcmAEndRegisters[1] << ","
+             << "\"opnbAdpcmAStartRegister2\":" << currentOpnbAdpcmAStartRegisters[2] << ","
+             << "\"opnbAdpcmAEndRegister2\":" << currentOpnbAdpcmAEndRegisters[2] << ","
+             << "\"opnbAdpcmAStartRegister3\":" << currentOpnbAdpcmAStartRegisters[3] << ","
+             << "\"opnbAdpcmAEndRegister3\":" << currentOpnbAdpcmAEndRegisters[3] << ","
+             << "\"opnbAdpcmAStartRegister4\":" << currentOpnbAdpcmAStartRegisters[4] << ","
+             << "\"opnbAdpcmAEndRegister4\":" << currentOpnbAdpcmAEndRegisters[4] << ","
+             << "\"opnbAdpcmAStartRegister5\":" << currentOpnbAdpcmAStartRegisters[5] << ","
+             << "\"opnbAdpcmAEndRegister5\":" << currentOpnbAdpcmAEndRegisters[5] << ","
              << "\"opnbAdpcmAMaxBytes\":" << opnbAdpcmAMaxBytes << ","
              << "\"opnbAdpcmBReadCount\":" << host.adpcmBReads() << ","
              << "\"opnbAdpcmBLoaded\":" << (host.adpcmBLoaded() ? 1 : 0) << ","
@@ -13279,16 +13200,31 @@ private:
         return static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(level * 31.0)), 0, 31));
     }
 
+    uint8_t opnbAdpcmAConfiguredMask() const
+    {
+        if (! usesExplicitAdpcmARegions)
+            return host.adpcmALoaded() ? 0x3fu : 0u;
+
+        auto mask = uint8_t { 0u };
+        for (size_t channel = 0; channel < explicitAdpcmARegions.size(); ++channel)
+            if (explicitAdpcmARegions[channel].populated)
+                mask = static_cast<uint8_t>(mask | (1u << channel));
+        return mask;
+    }
+
     uint8_t opnbAdpcmAKeyBitsForPatch(float velocity) const
     {
         if (! opnbAdpcmEnabledForPatch() || ! host.adpcmALoaded() || ! anyAudibleSourceEnabled())
             return 0;
 
+        const auto configuredMask = opnbAdpcmAConfiguredMask();
         uint8_t keyBits = 0;
         for (size_t channel = 0; channel < currentOpnbAdpcmALevels.size(); ++channel)
         {
             const auto source = std::min(channel, sourceChannelCount() - static_cast<size_t>(1));
-            if (channelEnabled(source) && opnbAdpcmAChannelLevel(channel, velocity) > 0)
+            if ((configuredMask & (1u << channel)) != 0u
+                && channelEnabled(source)
+                && opnbAdpcmAChannelLevel(channel, velocity) > 0)
                 keyBits = static_cast<uint8_t>(keyBits | (1u << channel));
         }
         return keyBits;
@@ -13304,6 +13240,15 @@ private:
 
     std::pair<uint16_t, uint16_t> opnbAdpcmAWindowForChannel(size_t channel) const
     {
+        if (usesExplicitAdpcmARegions && channel < explicitAdpcmARegions.size())
+        {
+            const auto& region = explicitAdpcmARegions[channel];
+            if (! region.populated)
+                return { 0, 0 };
+            return { static_cast<uint16_t>(region.startByte >> 8u),
+                     static_cast<uint16_t>(region.endByteInclusive >> 8u) };
+        }
+
         const auto copiedBytes = host.adpcmACopiedBytes();
         if (copiedBytes <= 1u)
             return { 0, 0 };
@@ -13826,6 +13771,8 @@ private:
     std::array<uint8_t, 6> currentOpnbAdpcmALevels {};
     std::array<uint16_t, 6> currentOpnbAdpcmAStartRegisters {};
     std::array<uint16_t, 6> currentOpnbAdpcmAEndRegisters {};
+    std::array<yamahaAdpcm::AdpcmARegionWindow, yamahaAdpcm::regionCountA> explicitAdpcmARegions {};
+    bool usesExplicitAdpcmARegions = false;
     uint8_t opnbAdpcmAKeyBits = 0;
     uint8_t opnbAdpcmATotalLevel = 0x3f;
     uint8_t opnbAdpcmBControlRegister = 0;

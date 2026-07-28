@@ -1999,6 +1999,162 @@ bool checkYm2203UnifiedOpnLayout()
     return ok;
 }
 
+bool checkYamahaAdpcmRegionSurface(const ChipperAudioProcessorEditor& editor,
+                                  chipper::ChipMode mode,
+                                  juce::Rectangle<int> ownerBounds)
+{
+    auto ok = true;
+    const std::array<juce::Rectangle<int>, 3> buttonBounds {
+        editor.getSampleFileButtonBoundsForLayoutTest(),
+        editor.getSampleFolderButtonBoundsForLayoutTest(),
+        editor.getSampleBankButtonBoundsForLayoutTest()
+    };
+    const std::array<juce::String, 3> buttonText {
+        editor.getSampleFileButtonTextForLayoutTest(),
+        editor.getSampleFolderButtonTextForLayoutTest(),
+        editor.getSampleBankButtonTextForLayoutTest()
+    };
+    const std::array<juce::String, 3> expectedText { "Packed A", "ADPCM-B", "Regions" };
+    const std::array<bool, 3> buttonVisible {
+        editor.isSampleFileButtonVisibleForLayoutTest(),
+        editor.isSampleFolderButtonVisibleForLayoutTest(),
+        editor.isSampleBankButtonVisibleForLayoutTest()
+    };
+
+    for (size_t button = 0; button < buttonBounds.size(); ++button)
+        ok &= expect(buttonVisible[button]
+                         && buttonText[button] == expectedText[button]
+                         && buttonBounds[button].getWidth() >= 56
+                         && buttonBounds[button].getHeight() >= 24
+                         && ownerBounds.expanded(2).contains(buttonBounds[button]),
+                     "Yamaha ADPCM-A packed, ADPCM-B, and Regions actions should remain visible, readable, and owned by the sample module");
+
+    for (size_t left = 0; left < buttonBounds.size(); ++left)
+        for (size_t right = left + 1u; right < buttonBounds.size(); ++right)
+            ok &= expect(! buttonBounds[left].intersects(buttonBounds[right]),
+                         "Yamaha ADPCM-A packed, ADPCM-B, and Regions actions should not overlap");
+
+    const auto status = editor.getSampleStatusTextForLayoutTest();
+    ok &= expect(mode == chipper::ChipMode::ym2608 ? status.contains("A generated")
+                                                   : status.contains("A empty"),
+                 "Yamaha ADPCM-A status should distinguish OPNA generated rhythm from an empty OPNB region bank");
+
+    ok &= expect(! editor.isSamplePlaybackModeVisibleForLayoutTest()
+                     && ! editor.isSampleSlotVisibleForLayoutTest()
+                     && ! editor.isSampleRootVisibleForLayoutTest()
+                     && editor.getSamplePlaybackModeBoundsForLayoutTest().isEmpty()
+                     && editor.getSampleSlotBoundsForLayoutTest().isEmpty()
+                     && editor.getSampleRootBoundsForLayoutTest().isEmpty(),
+                 "Yamaha ADPCM region banks should not expose or lay out mapped-sampler playback, slot, or root controls");
+    return ok;
+}
+
+bool checkYamahaAdpcmRegionCalloutStates()
+{
+    const auto root = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                          .getNonexistentChildFile("chipper-yamaha-region-callout", {}, false);
+    if (! root.createDirectory())
+        return expect(false, "Could not create Yamaha region callout fixture directory");
+
+    const auto writeFixture = [](const juce::File& file, size_t byteCount, uint8_t value)
+    {
+        const std::vector<uint8_t> bytes(byteCount, value);
+        return file.replaceWithData(bytes.data(), bytes.size());
+    };
+    auto ok = true;
+    const auto opnaPacked = root.getChildFile("opna-packed.bin");
+    const auto opnaKick = root.getChildFile("opna-kick.bin");
+    const auto opnbPacked = root.getChildFile("opnb-packed.bin");
+    ok &= expect(writeFixture(opnaPacked, 8192u, 0x41u)
+                     && writeFixture(opnaKick, 448u, 0x24u)
+                     && writeFixture(opnbPacked, 1536u, 0x63u),
+                 "Should create packed and region fixtures for the Yamaha callout test");
+
+    auto opnaStorage = std::make_unique<ChipperAudioProcessor>();
+    auto& opna = *opnaStorage;
+    opna.prepareToPlay(48000.0, 64);
+    auto opnaEditorStorage = std::make_unique<ChipperAudioProcessorEditor>(opna);
+    auto& opnaEditor = *opnaEditorStorage;
+    auto opnaCards = opnaEditor.getYamahaAdpcmARegionCardStatesForLayoutTest(chipper::ChipMode::ym2608);
+    const auto calloutBounds = juce::Rectangle<int>(0, 0, 736, 450);
+    for (size_t card = 0; card < opnaCards.size(); ++card)
+    {
+        ok &= expect(calloutBounds.contains(opnaCards[card].bounds)
+                         && opnaCards[card].bounds.getWidth() >= 220
+                         && opnaCards[card].bounds.getHeight() >= 170
+                         && opnaCards[card].roleText.startsWith(juce::String(static_cast<int>(card + 1u)))
+                         && opnaCards[card].statusText == "Generated Chipper region"
+                         && opnaCards[card].loadButtonText == "Load"
+                         && ! opnaCards[card].clearEnabled
+                         && ! opnaCards[card].requiresPackedBankConfirmation,
+                     "OPNA generated region cards should be truthful, actionable, contained, and non-destructive");
+        for (size_t other = card + 1u; other < opnaCards.size(); ++other)
+            ok &= expect(! opnaCards[card].bounds.intersects(opnaCards[other].bounds),
+                         "Yamaha region callout cards should not overlap");
+    }
+    ok &= expect(opnaCards[0].detailText.contains("$0000-$01BF")
+                     && opnaCards[4].detailText.contains("9.244 kHz"),
+                 "OPNA cards should expose exact fixed geometry and the slower Tom/Rim rate");
+
+    ok &= expect(opna.loadOpnaRhythmRomFile(opnaPacked).wasOk(),
+                 "Should load a packed OPNA image for callout truth testing");
+    auto opnaPackedReference = opna.createStateXml();
+    opnaCards = opnaEditor.getYamahaAdpcmARegionCardStatesForLayoutTest(chipper::ChipMode::ym2608);
+    for (const auto& card : opnaCards)
+        ok &= expect(card.statusText.contains("Packed bank active")
+                         && card.loadButtonText == "Start Regions"
+                         && ! card.clearEnabled
+                         && card.requiresPackedBankConfirmation,
+                     "Loaded packed OPNA cards should require confirmation and disable misleading Reset actions");
+
+    opnaPacked.deleteFile();
+    if (opnaPackedReference != nullptr)
+    {
+        auto missingOpnaStorage = std::make_unique<ChipperAudioProcessor>();
+        auto& missingOpna = *missingOpnaStorage;
+        missingOpna.prepareToPlay(48000.0, 64);
+        ok &= expect(missingOpna.restoreStateXml(*opnaPackedReference).wasOk(),
+                     "Should restore a missing packed OPNA reference for callout truth testing");
+        auto missingEditorStorage = std::make_unique<ChipperAudioProcessorEditor>(missingOpna);
+        auto& missingEditor = *missingEditorStorage;
+        const auto missingCards = missingEditor.getYamahaAdpcmARegionCardStatesForLayoutTest(chipper::ChipMode::ym2608);
+        for (const auto& card : missingCards)
+            ok &= expect(card.statusText.contains("Packed bank missing")
+                             && card.loadButtonText == "Start Regions"
+                             && ! card.clearEnabled
+                             && ! card.requiresPackedBankConfirmation,
+                         "Missing packed OPNA references should be reported as missing without false active-bank confirmation");
+
+        ok &= expect(missingOpna.loadOpnaAdpcmARegionFile(0, opnaKick).wasOk(),
+                     "A missing packed OPNA reference should allow direct entry into region mode");
+        const auto loadedCards = missingEditor.getYamahaAdpcmARegionCardStatesForLayoutTest(chipper::ChipMode::ym2608);
+        ok &= expect(loadedCards[0].statusText.contains("opna-kick.bin")
+                         && loadedCards[0].loadButtonText == "Replace"
+                         && loadedCards[0].clearEnabled
+                         && ! loadedCards[0].requiresPackedBankConfirmation,
+                     "A loaded OPNA override card should expose Replace and Reset without packed-bank confirmation");
+    }
+
+    auto opnbStorage = std::make_unique<ChipperAudioProcessor>();
+    auto& opnb = *opnbStorage;
+    opnb.prepareToPlay(48000.0, 64);
+    ok &= expect(opnb.loadOpnbAdpcmASampleFile(opnbPacked).wasOk(),
+                 "Should load a packed OPNB bank for callout truth testing");
+    auto opnbEditorStorage = std::make_unique<ChipperAudioProcessorEditor>(opnb);
+    auto& opnbEditor = *opnbEditorStorage;
+    const auto opnbCards = opnbEditor.getYamahaAdpcmARegionCardStatesForLayoutTest(chipper::ChipMode::ym2610);
+    for (const auto& card : opnbCards)
+        ok &= expect(card.detailText.contains("Packed-bank managed")
+                         && card.statusText.contains("Packed bank active")
+                         && card.loadButtonText == "Start Regions"
+                         && ! card.clearEnabled
+                         && card.requiresPackedBankConfirmation,
+                     "Loaded legacy OPNB cards should disclose packed-bank ownership instead of claiming they are unassigned");
+
+    root.deleteRecursively();
+    return ok;
+}
+
 bool checkYm2608UnifiedOpnaLayout()
 {
     const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::ym2608);
@@ -2104,12 +2260,9 @@ bool checkYm2608UnifiedOpnaLayout()
                               && ssgGenerator.expanded(2).contains(editor.getEnvelopeDecayBoundsForLayoutTest())
                               && editor.isEnvelopeDecayVisibleForLayoutTest(),
                           "YM2608 shared SSG envelope shape and period should live in Shared SSG Generator");
-        widthOk &= expect(adpcmLayers.expanded(2).contains(editor.getSampleFileButtonBoundsForLayoutTest())
-                              && adpcmLayers.expanded(2).contains(editor.getSampleFolderButtonBoundsForLayoutTest())
-                              && adpcmLayers.expanded(2).contains(editor.getSampleWaveformBoundsForLayoutTest())
+        widthOk &= checkYamahaAdpcmRegionSurface(editor, chipper::ChipMode::ym2608, adpcmLayers);
+        widthOk &= expect(adpcmLayers.expanded(2).contains(editor.getSampleWaveformBoundsForLayoutTest())
                               && editor.getSampleLabelTextForLayoutTest() == "Drum/Hit Layer"
-                              && editor.getSampleFileButtonTextForLayoutTest() == "Rhythm"
-                              && editor.getSampleFolderButtonTextForLayoutTest() == "ADPCM-B"
                               && editor.getSampleStatusTextForLayoutTest().contains("Drum/Hit only"),
                           "YM2608 ADPCM-A/B conditional layer should remain actionable and explicit");
 
@@ -2270,12 +2423,9 @@ bool checkYm2610UnifiedOpnbLayout()
                               && ssgGenerator.expanded(2).contains(editor.getEnvelopeDecayBoundsForLayoutTest())
                               && editor.isEnvelopeDecayVisibleForLayoutTest(),
                           "YM2610 shared SSG envelope shape and period should live in Shared SSG Generator");
-        widthOk &= expect(adpcmLayers.expanded(2).contains(editor.getSampleFileButtonBoundsForLayoutTest())
-                              && adpcmLayers.expanded(2).contains(editor.getSampleFolderButtonBoundsForLayoutTest())
-                              && adpcmLayers.expanded(2).contains(editor.getSampleWaveformBoundsForLayoutTest())
+        widthOk &= checkYamahaAdpcmRegionSurface(editor, chipper::ChipMode::ym2610, adpcmLayers);
+        widthOk &= expect(adpcmLayers.expanded(2).contains(editor.getSampleWaveformBoundsForLayoutTest())
                               && editor.getSampleLabelTextForLayoutTest() == "Drum/Hit Layers"
-                              && editor.getSampleFileButtonTextForLayoutTest() == "ADPCM-A"
-                              && editor.getSampleFolderButtonTextForLayoutTest() == "ADPCM-B"
                               && editor.getSampleStatusTextForLayoutTest().contains("Drum/Hit only")
                               && editor.getSampleStatusTextForLayoutTest().contains("A empty")
                               && editor.getSampleStatusTextForLayoutTest().contains("B empty"),
@@ -2436,12 +2586,9 @@ bool checkYm2610bUnifiedOpnb2Layout()
                               && ssgGenerator.expanded(2).contains(editor.getEnvelopeDecayBoundsForLayoutTest())
                               && editor.isEnvelopeDecayVisibleForLayoutTest(),
                           "YM2610B shared SSG envelope shape and period should live in Shared SSG Generator");
-        widthOk &= expect(adpcmLayers.expanded(2).contains(editor.getSampleFileButtonBoundsForLayoutTest())
-                              && adpcmLayers.expanded(2).contains(editor.getSampleFolderButtonBoundsForLayoutTest())
-                              && adpcmLayers.expanded(2).contains(editor.getSampleWaveformBoundsForLayoutTest())
+        widthOk &= checkYamahaAdpcmRegionSurface(editor, chipper::ChipMode::ym2610b, adpcmLayers);
+        widthOk &= expect(adpcmLayers.expanded(2).contains(editor.getSampleWaveformBoundsForLayoutTest())
                               && editor.getSampleLabelTextForLayoutTest() == "Drum/Hit Layers"
-                              && editor.getSampleFileButtonTextForLayoutTest() == "ADPCM-A"
-                              && editor.getSampleFolderButtonTextForLayoutTest() == "ADPCM-B"
                               && editor.getSampleStatusTextForLayoutTest().contains("Drum/Hit only")
                               && editor.getSampleStatusTextForLayoutTest().contains("A empty")
                               && editor.getSampleStatusTextForLayoutTest().contains("B empty"),
@@ -5603,6 +5750,7 @@ int main()
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2610);
     ok &= checkYm2610bUnifiedOpnb2Layout();
     ok &= checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode::ym2610b);
+    ok &= checkYamahaAdpcmRegionCalloutStates();
     ok &= checkHuc6280UnifiedLayout();
     ok &= checkNamcoWsgUnifiedLayout();
     ok &= checkSccUnifiedLayout();

@@ -1156,6 +1156,340 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DmcSampleBankEditorComponent)
 };
 
+class YamahaAdpcmARegionEditorComponent final : public juce::Component
+{
+public:
+    YamahaAdpcmARegionEditorComponent(ChipperAudioProcessor& processor,
+                                      chipper::ChipMode chipMode,
+                                      std::function<void()> refreshCallback)
+        : audioProcessor(processor), mode(chipMode), onRefresh(std::move(refreshCallback))
+    {
+        const auto opna = mode == chipper::ChipMode::ym2608;
+        title.setText(opna ? "OPNA Rhythm Regions" : "OPNB ADPCM-A Regions", juce::dontSendNotification);
+        title.setJustificationType(juce::Justification::centredLeft);
+        title.setColour(juce::Label::textColourId, juce::Colour(0xffffdb5c));
+        title.setFont(juce::FontOptions(15.0f, juce::Font::bold));
+        addAndMakeVisible(title);
+
+        helper.setText(opna
+                           ? "Six fixed YM2608 rhythm-ROM voices. WAV/AIFF is converted per voice; encoded files must exactly fit the shown window."
+                           : "Six logical YM2610 ADPCM-A voices. WAV/AIFF or page-aligned encoded data is packed consecutively without losing empty-slot identity.",
+                       juce::dontSendNotification);
+        helper.setJustificationType(juce::Justification::centredLeft);
+        helper.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+        helper.setFont(juce::FontOptions(11.0f));
+        helper.setMinimumHorizontalScale(0.62f);
+        addAndMakeVisible(helper);
+
+        for (size_t index = 0; index < cards.size(); ++index)
+        {
+            cards[index] = std::make_unique<RegionCard>(audioProcessor,
+                                                        mode,
+                                                        static_cast<int>(index),
+                                                        [this] { refreshAfterEdit(); });
+            addAndMakeVisible(*cards[index]);
+        }
+
+        setSize(736, 450);
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        g.fillAll(juce::Colour(0xff10181c));
+        g.setColour(juce::Colour(0xff35505a));
+        g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(0.5f), 6.0f, 1.0f);
+    }
+
+    void resized() override
+    {
+        auto area = getLocalBounds().reduced(14);
+        title.setBounds(area.removeFromTop(22));
+        helper.setBounds(area.removeFromTop(34));
+        area.removeFromTop(8);
+
+        constexpr int columnGap = 8;
+        constexpr int rowGap = 8;
+        const auto cardWidth = (area.getWidth() - (columnGap * 2)) / 3;
+        const auto cardHeight = (area.getHeight() - rowGap) / 2;
+        for (size_t index = 0; index < cards.size(); ++index)
+        {
+            const auto column = static_cast<int>(index % 3u);
+            const auto row = static_cast<int>(index / 3u);
+            cards[index]->setBounds(area.getX() + column * (cardWidth + columnGap),
+                                    area.getY() + row * (cardHeight + rowGap),
+                                    column == 2 ? area.getRight() - (area.getX() + column * (cardWidth + columnGap)) : cardWidth,
+                                    row == 1 ? area.getBottom() - (area.getY() + row * (cardHeight + rowGap)) : cardHeight);
+        }
+    }
+
+private:
+    class RegionCard final : public juce::Component
+    {
+    public:
+        RegionCard(ChipperAudioProcessor& processor,
+                   chipper::ChipMode chipMode,
+                   int logicalRegion,
+                   std::function<void()> refreshCallback)
+            : audioProcessor(processor), mode(chipMode), regionIndex(logicalRegion), onRefresh(std::move(refreshCallback))
+        {
+            role.setJustificationType(juce::Justification::centredLeft);
+            role.setColour(juce::Label::textColourId, juce::Colour(0xffffdb5c));
+            role.setFont(juce::FontOptions(12.0f, juce::Font::bold));
+            addAndMakeVisible(role);
+
+            detail.setJustificationType(juce::Justification::centredLeft);
+            detail.setColour(juce::Label::textColourId, juce::Colour(0xff8fa6b0));
+            detail.setFont(juce::FontOptions(9.5f));
+            detail.setMinimumHorizontalScale(0.56f);
+            addAndMakeVisible(detail);
+
+            status.setJustificationType(juce::Justification::centredLeft);
+            status.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
+            status.setFont(juce::FontOptions(9.5f));
+            status.setMinimumHorizontalScale(0.48f);
+            addAndMakeVisible(status);
+
+            loadButton.setButtonText("Load");
+            loadButton.setName("Load ADPCM-A region " + juce::String(regionIndex + 1));
+            loadButton.setTooltip("Load or replace this logical ADPCM-A region from encoded bytes, WAV, or AIFF.");
+            loadButton.onClick = [this] { chooseFile(); };
+            addAndMakeVisible(loadButton);
+
+            const auto opna = mode == chipper::ChipMode::ym2608;
+            clearButton.setButtonText(opna ? "Reset" : "Clear");
+            clearButton.setName((opna ? "Reset OPNA rhythm region " : "Clear OPNB ADPCM-A region ") + juce::String(regionIndex + 1));
+            clearButton.setTooltip(opna
+                                       ? "Discard the override and restore Chipper's generated data for this fixed rhythm-ROM voice."
+                                       : "Remove this logical voice. Later regions retain their voice identity and are repacked.");
+            clearButton.onClick = [this]
+            {
+                if (mode == chipper::ChipMode::ym2608)
+                    audioProcessor.clearOpnaAdpcmARegion(regionIndex);
+                else
+                    audioProcessor.clearOpnbAdpcmARegion(regionIndex);
+                if (onRefresh)
+                    onRefresh();
+                refresh();
+            };
+            addAndMakeVisible(clearButton);
+
+            addAndMakeVisible(waveform);
+            refresh();
+        }
+
+        void paint(juce::Graphics& g) override
+        {
+            const auto& info = currentInfo;
+            auto border = juce::Colour(0xff35505a);
+            if (info.loaded)
+                border = juce::Colour(0xff59d4e8);
+            else if (info.path.isNotEmpty() || info.legacyBankMissing)
+                border = juce::Colour(0xffff7b6b);
+            else if (mode == chipper::ChipMode::ym2608)
+                border = juce::Colour(0xffffdb5c).withAlpha(0.72f);
+
+            g.setColour(juce::Colour(0xff142126));
+            g.fillRoundedRectangle(getLocalBounds().toFloat(), 5.0f);
+            g.setColour(border);
+            g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(0.5f), 5.0f, 1.0f);
+        }
+
+        void resized() override
+        {
+            auto area = getLocalBounds().reduced(9, 7);
+            role.setBounds(area.removeFromTop(18));
+            detail.setBounds(area.removeFromTop(16));
+            area.removeFromTop(3);
+            waveform.setBounds(area.removeFromTop(std::max(46, area.getHeight() - 51)));
+            area.removeFromTop(3);
+            status.setBounds(area.removeFromTop(17));
+            area.removeFromTop(3);
+            auto actions = area.removeFromTop(std::min(24, area.getHeight()));
+            const auto buttonWidth = (actions.getWidth() - 6) / 2;
+            loadButton.setBounds(actions.removeFromLeft(buttonWidth));
+            actions.removeFromLeft(6);
+            clearButton.setBounds(actions);
+        }
+
+        void refresh()
+        {
+            currentInfo = audioProcessor.adpcmARegionInfo(mode, regionIndex);
+            const auto& info = currentInfo;
+            role.setText(juce::String(regionIndex + 1) + "  " + info.roleName, juce::dontSendNotification);
+
+            if (mode == chipper::ChipMode::ym2608)
+            {
+                detail.setText("$" + juce::String::toHexString(info.startByte).paddedLeft('0', 4).toUpperCase()
+                                   + "-$" + juce::String::toHexString(info.endByteInclusive).paddedLeft('0', 4).toUpperCase()
+                                   + "  " + juce::String(info.capacityByteCount) + " B  "
+                                   + juce::String(info.sampleRateHz / 1000.0, 3) + " kHz",
+                               juce::dontSendNotification);
+            }
+            else
+            {
+                const auto hasWindow = info.loaded && info.capacityByteCount > 0;
+                detail.setText(info.legacyBankActive
+                                   ? "Packed-bank managed  " + juce::String(info.sampleRateHz / 1000.0, 3) + " kHz"
+                                   : info.legacyBankMissing
+                                       ? "Packed bank unavailable  " + juce::String(info.sampleRateHz / 1000.0, 3) + " kHz"
+                                       : hasWindow
+                                           ? "$" + juce::String::toHexString(info.startByte).paddedLeft('0', 4).toUpperCase()
+                                               + "-$" + juce::String::toHexString(info.endByteInclusive).paddedLeft('0', 4).toUpperCase()
+                                               + "  " + juce::String(info.encodedByteCount) + " B  "
+                                               + juce::String(info.sampleRateHz / 1000.0, 3) + " kHz"
+                                           : "Unassigned  " + juce::String(info.sampleRateHz / 1000.0, 3) + " kHz",
+                               juce::dontSendNotification);
+            }
+
+            auto statusText = info.loaded
+                ? info.sampleName + "  " + juce::String(info.encodedByteCount) + " B"
+                : info.path.isNotEmpty()
+                    ? "Missing: " + (info.sampleName.isNotEmpty() ? info.sampleName : juce::String("source file"))
+                    : info.legacyBankActive ? juce::String("Packed bank active; confirm to replace")
+                    : info.legacyBankMissing ? "Packed bank missing: " + info.legacyBankName
+                    : mode == chipper::ChipMode::ym2608 ? juce::String("Generated Chipper region") : juce::String("Empty region");
+            if (info.convertedFromPcm)
+                statusText += "  converted";
+            status.setText(statusText, juce::dontSendNotification);
+            status.setColour(juce::Label::textColourId,
+                             (info.path.isNotEmpty() && ! info.loaded) || info.legacyBankMissing
+                                 ? juce::Colour(0xffff7b6b) : juce::Colour(0xffaebbc4));
+            status.setTooltip(info.statusLine + (info.path.isNotEmpty() ? "\nSource: " + info.path : juce::String()));
+
+            const auto snapshot = audioProcessor.adpcmARegionWaveformSnapshot(mode, regionIndex);
+            waveform.setSnapshot(snapshot);
+            waveform.setTooltip(snapshot.label
+                + (snapshot.loaded ? "\nDecoded samples: " + juce::String(snapshot.sourceSampleCount) : "\nNo decoded waveform."));
+
+            loadButton.setButtonText(info.legacyBankActive || info.legacyBankMissing
+                                         ? "Start Regions"
+                                         : info.loaded || info.path.isNotEmpty() ? "Replace" : "Load");
+            clearButton.setEnabled(info.loaded || info.path.isNotEmpty());
+            repaint();
+        }
+
+        ChipperAudioProcessorEditor::YamahaAdpcmARegionCardLayoutTestState layoutTestState() const
+        {
+            return { getBounds(),
+                     role.getText(),
+                     detail.getText(),
+                     status.getText(),
+                     loadButton.getButtonText(),
+                     clearButton.isEnabled(),
+                     packedBankConfirmationRequired() };
+        }
+
+    private:
+        bool packedBankConfirmationRequired() const
+        {
+            return audioProcessor.adpcmARegionInfo(mode, regionIndex).legacyBankActive;
+        }
+
+        void chooseFile()
+        {
+            const auto opna = mode == chipper::ChipMode::ym2608;
+            chooser = std::make_unique<juce::FileChooser>(
+                opna ? "Choose OPNA rhythm-region bytes or WAV/AIFF audio"
+                     : "Choose OPNB ADPCM-A region bytes or WAV/AIFF audio",
+                juce::File {},
+                "*.bin;*.raw;*.dat;*.adpcm;*.adpcma;*.wav;*.aif;*.aiff");
+            const juce::Component::SafePointer<RegionCard> safeThis(this);
+            chooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                                 [safeThis](const juce::FileChooser& fileChooser)
+                                 {
+                                     if (safeThis == nullptr)
+                                         return;
+                                     const auto file = fileChooser.getResult();
+                                     if (file == juce::File {})
+                                         return;
+
+                                     if (safeThis->packedBankConfirmationRequired())
+                                         safeThis->confirmPackedBankReplacement(file);
+                                     else
+                                         safeThis->loadChosenFile(file, false);
+                                 });
+        }
+
+        void confirmPackedBankReplacement(const juce::File& file)
+        {
+            const juce::Component::SafePointer<RegionCard> safeThis(this);
+            juce::AlertWindow::showOkCancelBox(
+                juce::MessageBoxIconType::WarningIcon,
+                "Replace Packed ADPCM-A Bank?",
+                "Starting region editing replaces the current packed ADPCM-A image after this file imports successfully. This cannot be undone from the region editor.",
+                "Replace Packed Bank",
+                "Cancel",
+                this,
+                juce::ModalCallbackFunction::create([safeThis, file](int result)
+                {
+                    if (result == 1 && safeThis != nullptr)
+                        safeThis->loadChosenFile(file, true);
+                }));
+        }
+
+        void loadChosenFile(const juce::File& file, bool replaceLegacyBank)
+        {
+            const auto result = mode == chipper::ChipMode::ym2608
+                ? audioProcessor.loadOpnaAdpcmARegionFile(regionIndex, file, replaceLegacyBank)
+                : audioProcessor.loadOpnbAdpcmARegionFile(regionIndex, file, replaceLegacyBank);
+            if (result.failed())
+            {
+                juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon,
+                                                       "ADPCM-A Region",
+                                                       result.getErrorMessage());
+                return;
+            }
+
+            if (onRefresh)
+                onRefresh();
+            refresh();
+        }
+
+        ChipperAudioProcessor::AdpcmARegionInfo currentInfo;
+        ChipperAudioProcessor& audioProcessor;
+        chipper::ChipMode mode = chipper::ChipMode::ym2608;
+        int regionIndex = 0;
+        std::function<void()> onRefresh;
+        juce::Label role;
+        juce::Label detail;
+        juce::Label status;
+        SampleWaveformPreview waveform;
+        juce::TextButton loadButton;
+        juce::TextButton clearButton;
+        std::unique_ptr<juce::FileChooser> chooser;
+
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RegionCard)
+    };
+
+public:
+    std::array<ChipperAudioProcessorEditor::YamahaAdpcmARegionCardLayoutTestState, 6>
+        cardStatesForLayoutTest() const
+    {
+        std::array<ChipperAudioProcessorEditor::YamahaAdpcmARegionCardLayoutTestState, 6> states;
+        for (size_t index = 0; index < cards.size(); ++index)
+            states[index] = cards[index]->layoutTestState();
+        return states;
+    }
+
+private:
+    void refreshAfterEdit()
+    {
+        if (onRefresh)
+            onRefresh();
+        for (auto& card : cards)
+            card->refresh();
+    }
+
+    ChipperAudioProcessor& audioProcessor;
+    chipper::ChipMode mode = chipper::ChipMode::ym2608;
+    std::function<void()> onRefresh;
+    juce::Label title;
+    juce::Label helper;
+    std::array<std::unique_ptr<RegionCard>, 6> cards;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(YamahaAdpcmARegionEditorComponent)
+};
+
 const char* sidAdsrFieldLabel(size_t field)
 {
     static constexpr std::array<const char*, 4> labels { "Atk", "Dec", "Sus", "Rel" };
@@ -2533,6 +2867,15 @@ void SampleWaveformPreview::paint(juce::Graphics& g)
                true);
 }
 
+std::array<ChipperAudioProcessorEditor::YamahaAdpcmARegionCardLayoutTestState, 6>
+ChipperAudioProcessorEditor::getYamahaAdpcmARegionCardStatesForLayoutTest(chipper::ChipMode mode) const
+{
+    YamahaAdpcmARegionEditorComponent regionEditor(audioProcessor, mode, [] {});
+    regionEditor.setSize(736, 450);
+    regionEditor.resized();
+    return regionEditor.cardStatesForLayoutTest();
+}
+
 ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& processor)
     : AudioProcessorEditor(processor),
       audioProcessor(processor),
@@ -2834,7 +3177,13 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
 
     dmcSampleBankButton.setButtonText("Bank");
     dmcSampleBankButton.setTooltip("Open the DMC folder bank checklist. Checked files become the CC117-addressable sample slots.");
-    dmcSampleBankButton.onClick = [this] { showDmcSampleBankEditor(); };
+    dmcSampleBankButton.onClick = [this]
+    {
+        if (displayedMode == chipper::ChipMode::ym2608 || isOpnbMode(displayedMode))
+            showYamahaAdpcmARegionEditor();
+        else
+            showDmcSampleBankEditor();
+    };
     addAndMakeVisible(dmcSampleBankButton);
 
     dmcEmptyStateButton.setButtonText("Load a .dmc sample");
@@ -6801,7 +7150,6 @@ void ChipperAudioProcessorEditor::resized()
         dmcRateBox.setBounds({});
         dmcPlaybackModeLabel.setBounds({});
         dmcMapRootLabel.setBounds({});
-        dmcSampleBankButton.setBounds({});
         dmcSampleSlotBox.setBounds({});
         dmcPlaybackModeBox.setBounds({});
         dmcMapRootBox.setBounds({});
@@ -6821,6 +7169,7 @@ void ChipperAudioProcessorEditor::resized()
             dmcSampleStatusLabel.setBounds({});
             dmcSampleFileButton.setBounds({});
             dmcSampleFolderButton.setBounds({});
+            dmcSampleBankButton.setBounds({});
             sampleWaveformPreview.setBounds({});
         }
         else
@@ -6832,7 +7181,9 @@ void ChipperAudioProcessorEditor::resized()
                 auto controlCell = romCell.removeFromLeft(std::min(controlWidth, romCell.getWidth()));
                 romCell.removeFromLeft(std::min(10, romCell.getWidth()));
                 auto header = controlCell.removeFromTop(std::min(standardRomControlHeight, controlCell.getHeight()));
-                const auto buttonWidth = std::min(82, std::max(56, header.getWidth() / 4));
+                const auto buttonWidth = std::min(82, std::max(56, header.getWidth() / 5));
+                dmcSampleBankButton.setBounds(header.removeFromRight(std::min(buttonWidth, header.getWidth())).reduced(0, 1));
+                header.removeFromRight(std::min(8, header.getWidth()));
                 dmcSampleFolderButton.setBounds(header.removeFromRight(std::min(buttonWidth, header.getWidth())).reduced(0, 1));
                 header.removeFromRight(std::min(8, header.getWidth()));
                 dmcSampleFileButton.setBounds(header.removeFromRight(std::min(buttonWidth, header.getWidth())).reduced(0, 1));
@@ -6845,7 +7196,9 @@ void ChipperAudioProcessorEditor::resized()
             else
             {
                 auto header = romCell.removeFromTop(std::min(standardRomControlHeight, romCell.getHeight()));
-                const auto buttonWidth = std::min(82, std::max(56, header.getWidth() / 4));
+                const auto buttonWidth = std::min(82, std::max(56, header.getWidth() / 5));
+                dmcSampleBankButton.setBounds(header.removeFromRight(std::min(buttonWidth, header.getWidth())).reduced(0, 1));
+                header.removeFromRight(std::min(8, header.getWidth()));
                 dmcSampleFolderButton.setBounds(header.removeFromRight(std::min(buttonWidth, header.getWidth())).reduced(0, 1));
                 header.removeFromRight(std::min(8, header.getWidth()));
                 dmcSampleFileButton.setBounds(header.removeFromRight(std::min(buttonWidth, header.getWidth())).reduced(0, 1));
@@ -15904,20 +16257,28 @@ void ChipperAudioProcessorEditor::updateOpn2DacSampleControls()
 void ChipperAudioProcessorEditor::updateOpnaRhythmRomControls()
 {
     dmcSampleLabel.setText("Drum/Hit Layer", juce::dontSendNotification);
-    dmcSampleLabel.setTooltip("Load a user-owned YM2608 ADPCM-A rhythm bank and an optional shared ADPCM-B layer. WAV/AIFF audio is converted to ADPCM-B automatically.");
-    dmcSampleFileButton.setButtonText("Rhythm");
-    dmcSampleFileButton.setTooltip("Load one user-owned OPNA ADPCM-A rhythm ROM byte image. The first 8192 bytes fill the YM2608 rhythm ROM address window.");
+    dmcSampleLabel.setTooltip("Import a packed YM2608 rhythm ROM, edit its six fixed hardware regions, and optionally load the shared ADPCM-B layer.");
+    dmcSampleFileButton.setButtonText("Packed A");
+    dmcSampleFileButton.setTooltip("Compatibility import for one user-owned 8192-byte OPNA ADPCM-A rhythm-ROM image. Use Regions to load WAV/AIFF or exact encoded data per hardware voice.");
     dmcSampleFolderButton.setButtonText("ADPCM-B");
     dmcSampleFolderButton.setTooltip("Load encoded OPNA ADPCM-B bytes or WAV/AIFF audio. Audio is downmixed, resampled to the C4 playback rate, converted, and aligned automatically.");
-    dmcSampleBankButton.setButtonText("Bank");
+    dmcSampleBankButton.setButtonText("Regions");
+    dmcSampleBankButton.setTooltip("Open the six fixed OPNA rhythm-ROM voices with per-region load, replace, reset, waveform, address, capacity, and native-rate feedback.");
     dmcSampleSlotBox.setEnabled(false);
     dmcSampleSlotBox.setSelectedId(0, juce::dontSendNotification);
     dmcSampleSlotBox.setTextWhenNothingSelected("Single files");
 
     const auto rhythmInfo = audioProcessor.opnaRhythmRomInfo();
     const auto adpcmBInfo = audioProcessor.opnaAdpcmBSampleInfo();
+    const auto firstRegionInfo = audioProcessor.adpcmARegionInfo(chipper::ChipMode::ym2608, 0);
+    auto regionsProjectCopy = false;
+    for (int region = 0; region < 6; ++region)
+        regionsProjectCopy = regionsProjectCopy
+            || audioProcessor.adpcmARegionInfo(chipper::ChipMode::ym2608, region).statusLine.containsIgnoreCase("embedded project copy");
     auto visibleStatus = juce::String("Drum/Hit only | ");
-    visibleStatus += rhythmInfo.loaded
+    visibleStatus += firstRegionInfo.editableBankActive
+        ? "A " + juce::String(firstRegionInfo.loadedRegionCount) + "/6 regions"
+        : rhythmInfo.loaded
         ? "A " + compactSampleName(rhythmInfo.sampleName, 18) + " " + juce::String(rhythmInfo.copiedByteCount) + "/"
             + juce::String(rhythmInfo.romByteCount)
         : "A generated";
@@ -15930,13 +16291,17 @@ void ChipperAudioProcessorEditor::updateOpnaRhythmRomControls()
     if (rhythmInfo.truncated || adpcmBInfo.truncated)
         visibleStatus += " | truncated";
     if (rhythmInfo.statusLine.containsIgnoreCase("embedded project copy")
-        || adpcmBInfo.statusLine.containsIgnoreCase("embedded project copy"))
+        || adpcmBInfo.statusLine.containsIgnoreCase("embedded project copy")
+        || regionsProjectCopy)
         visibleStatus += " | project copy";
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
 
     auto tooltip = rhythmInfo.statusLine
         + "\n" + adpcmBInfo.statusLine
-        + "\nThe loaded files are referenced by path in Chipper state and presets. ADPCM-A bytes fill the 8 KB rhythm ROM window; ADPCM-B bytes fill the first 256 KiB sample-memory window.";
+        + "\nPreset state references source paths; project state also carries bounded canonical encoded bytes so converted or missing-source regions can be restored."
+        + "\nPacked ADPCM-A imports fill the 8 KB rhythm-ROM window. Region edits preserve the six fixed hardware addresses and use per-voice import rates.";
+    for (int region = 0; region < 6; ++region)
+        tooltip += "\n" + audioProcessor.adpcmARegionInfo(chipper::ChipMode::ym2608, region).statusLine;
     if (rhythmInfo.loaded)
     {
         tooltip += "\nRhythm ROM path: " + rhythmInfo.path;
@@ -15945,7 +16310,7 @@ void ChipperAudioProcessorEditor::updateOpnaRhythmRomControls()
     }
     else
     {
-        tooltip += "\nGenerated ROM remains active until a user-owned file is loaded.";
+        tooltip += "\nGenerated Chipper data remains active for every fixed region without an override.";
     }
     if (adpcmBInfo.loaded)
     {
@@ -15953,7 +16318,7 @@ void ChipperAudioProcessorEditor::updateOpnaRhythmRomControls()
         if (adpcmBInfo.truncated)
             tooltip += "\nOnly the first 262144 encoded bytes are used by the YM2608 ADPCM-B memory window.";
     }
-    tooltip += "\nADPCM-B accepts encoded byte images unchanged or converts WAV/AIFF to 5200 Hz Yamaha ADPCM-B. Encoded project state stores the converted bytes as a bounded fallback.";
+    tooltip += "\nRegions accepts WAV/AIFF or exact-capacity encoded ADPCM-A. ADPCM-B accepts encoded bytes or converts WAV/AIFF to 5200 Hz Yamaha ADPCM-B.";
     dmcSampleStatusLabel.setTooltip(tooltip);
     updateSampleWaveformPreview(chipper::ChipMode::ym2608);
 }
@@ -15961,19 +16326,27 @@ void ChipperAudioProcessorEditor::updateOpnaRhythmRomControls()
 void ChipperAudioProcessorEditor::updateOpnbAdpcmSampleControls()
 {
     dmcSampleLabel.setText("Drum/Hit Layers", juce::dontSendNotification);
-    dmcSampleLabel.setTooltip("Load a user-packed YM2610 ADPCM-A bank and an optional shared ADPCM-B layer. WAV/AIFF audio is converted only for the single ADPCM-B layer.");
-    dmcSampleFileButton.setButtonText("ADPCM-A");
-    dmcSampleFileButton.setTooltip("Load one user-owned encoded OPNB ADPCM-A byte image. The first 1 MiB fills YM2610-family ADPCM-A sample memory.");
+    dmcSampleLabel.setTooltip("Import a packed YM2610 ADPCM-A image, build its six logical regions, and optionally load the shared ADPCM-B layer.");
+    dmcSampleFileButton.setButtonText("Packed A");
+    dmcSampleFileButton.setTooltip("Compatibility import for one user-owned OPNB ADPCM-A image up to 1 MiB. Use Regions to load WAV/AIFF or page-aligned encoded data per logical voice.");
     dmcSampleFolderButton.setButtonText("ADPCM-B");
     dmcSampleFolderButton.setTooltip("Load encoded OPNB ADPCM-B bytes or WAV/AIFF audio. Audio is downmixed, resampled to the C4 playback rate, converted, and 256-byte aligned automatically.");
-    dmcSampleBankButton.setButtonText("Bank");
+    dmcSampleBankButton.setButtonText("Regions");
+    dmcSampleBankButton.setTooltip("Open six logical OPNB ADPCM-A voices with per-region load, replace, clear, waveform, packed address, byte count, and import-rate feedback.");
     dmcSampleSlotBox.setEnabled(false);
     dmcSampleSlotBox.setSelectedId(0, juce::dontSendNotification);
     dmcSampleSlotBox.setTextWhenNothingSelected("Single files");
 
     const auto adpcmAInfo = audioProcessor.opnbAdpcmASampleInfo();
     const auto adpcmBInfo = audioProcessor.opnbAdpcmBSampleInfo();
-    auto visibleStatus = adpcmAInfo.loaded
+    const auto firstRegionInfo = audioProcessor.adpcmARegionInfo(displayedMode, 0);
+    auto regionsProjectCopy = false;
+    for (int region = 0; region < 6; ++region)
+        regionsProjectCopy = regionsProjectCopy
+            || audioProcessor.adpcmARegionInfo(displayedMode, region).statusLine.containsIgnoreCase("embedded project copy");
+    auto visibleStatus = firstRegionInfo.editableBankActive
+        ? "A " + juce::String(firstRegionInfo.loadedRegionCount) + "/6 regions " + juce::String(firstRegionInfo.packedBankByteCount) + " B"
+        : adpcmAInfo.loaded
         ? "A " + compactSampleName(adpcmAInfo.sampleName, 18) + " " + juce::String(adpcmAInfo.copiedByteCount) + "/"
             + juce::String(adpcmAInfo.memoryByteCount)
         : "A empty";
@@ -15987,13 +16360,17 @@ void ChipperAudioProcessorEditor::updateOpnbAdpcmSampleControls()
     if (adpcmAInfo.truncated || adpcmBInfo.truncated)
         visibleStatus += " | truncated";
     if (adpcmAInfo.statusLine.containsIgnoreCase("embedded project copy")
-        || adpcmBInfo.statusLine.containsIgnoreCase("embedded project copy"))
+        || adpcmBInfo.statusLine.containsIgnoreCase("embedded project copy")
+        || regionsProjectCopy)
         visibleStatus += " | project copy";
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);
 
     auto tooltip = adpcmAInfo.statusLine
         + "\n" + adpcmBInfo.statusLine
-        + "\nThe loaded files are referenced by path in Chipper state and presets. ADPCM-A bytes fill the first 1 MiB sample-memory window; ADPCM-B bytes fill the first 16 MiB sample-memory window.";
+        + "\nPreset state references source paths; project state also carries bounded canonical encoded bytes so converted or missing-source regions can be restored."
+        + "\nPacked ADPCM-A imports remain supported. Region edits retain six logical voices while populated regions are packed consecutively on 256-byte pages.";
+    for (int region = 0; region < 6; ++region)
+        tooltip += "\n" + audioProcessor.adpcmARegionInfo(displayedMode, region).statusLine;
     if (adpcmAInfo.loaded)
     {
         tooltip += "\nADPCM-A sample path: " + adpcmAInfo.path;
@@ -16006,7 +16383,7 @@ void ChipperAudioProcessorEditor::updateOpnbAdpcmSampleControls()
         if (adpcmBInfo.truncated)
             tooltip += "\nOnly the first 16777216 encoded bytes are used by the YM2610 ADPCM-B memory window.";
     }
-    tooltip += "\nADPCM-A remains a user-packed six-region encoded bank image. ADPCM-B accepts encoded bytes unchanged or converts WAV/AIFF to 5208.333 Hz Yamaha ADPCM-B; project state stores converted bytes as a bounded fallback.";
+    tooltip += "\nRegions accepts WAV/AIFF or 256-byte-aligned encoded ADPCM-A. ADPCM-B accepts encoded bytes or converts WAV/AIFF to 5208.333 Hz Yamaha ADPCM-B.";
     dmcSampleStatusLabel.setTooltip(tooltip);
     updateSampleWaveformPreview(isOpnbMode(displayedMode) ? displayedMode : chipper::ChipMode::ym2610);
 }
@@ -16272,6 +16649,22 @@ void ChipperAudioProcessorEditor::showDmcSampleBankEditor()
     juce::CallOutBox::launchAsynchronously(std::move(popup), dmcSampleBankButton.getScreenBounds(), this);
 }
 
+void ChipperAudioProcessorEditor::showYamahaAdpcmARegionEditor()
+{
+    auto popup = std::make_unique<YamahaAdpcmARegionEditorComponent>(audioProcessor,
+                                                                    displayedMode,
+                                                                    [this]
+                                                                    {
+                                                                        displayedDmcSampleCount = -1;
+                                                                        displayedDmcSampleRevision = std::numeric_limits<uint64_t>::max();
+                                                                        if (displayedMode == chipper::ChipMode::ym2608)
+                                                                            updateOpnaRhythmRomControls();
+                                                                        else if (isOpnbMode(displayedMode))
+                                                                            updateOpnbAdpcmSampleControls();
+                                                                    });
+    juce::CallOutBox::launchAsynchronously(std::move(popup), dmcSampleBankButton.getScreenBounds(), this);
+}
+
 void ChipperAudioProcessorEditor::handleDmcSampleLoadResult(const juce::Result& result)
 {
     if (result.failed())
@@ -16411,9 +16804,11 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     const auto showOpn2DacControls = hasLiveCore && mode == chipper::ChipMode::ym2612;
     const auto showOpnaRhythmRomControls = hasLiveCore && mode == chipper::ChipMode::ym2608;
     const auto showOpnbAdpcmControls = hasLiveCore && isOpnbMode(mode);
-    const auto showSampleBankControls = showNesDmcSampleControls || showSpc700BrrControls || showPaulaSampleControls;
-    const auto showSampleFileControls = showSampleBankControls || showOpn2DacControls || showOpnaRhythmRomControls || showOpnbAdpcmControls;
-    const auto showSampleFolderControls = showSampleBankControls || showOpnaRhythmRomControls || showOpnbAdpcmControls;
+    const auto showMappedSampleBankControls = showNesDmcSampleControls || showSpc700BrrControls || showPaulaSampleControls;
+    const auto showYamahaRegionControls = showOpnaRhythmRomControls || showOpnbAdpcmControls;
+    const auto showSampleBankControls = showMappedSampleBankControls || showYamahaRegionControls;
+    const auto showSampleFileControls = showMappedSampleBankControls || showOpn2DacControls || showYamahaRegionControls;
+    const auto showSampleFolderControls = showMappedSampleBankControls || showYamahaRegionControls;
     const auto showSampleBankLabels = showSpc700BrrControls || showPaulaSampleControls;
     dmcSampleLabel.setVisible(showSampleFileControls);
     dmcSampleStatusLabel.setVisible(showSampleFileControls);
@@ -16423,9 +16818,9 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcSampleFolderButton.setVisible(showSampleFolderControls);
     dmcSampleBankButton.setVisible(showSampleBankControls);
     dmcEmptyStateButton.setVisible(showNesDmcSampleControls && audioProcessor.nesDmcSampleNames().isEmpty());
-    dmcSampleSlotBox.setVisible(showSampleBankControls);
-    dmcPlaybackModeBox.setVisible(showSampleBankControls);
-    dmcMapRootBox.setVisible(showSampleBankControls);
+    dmcSampleSlotBox.setVisible(showMappedSampleBankControls);
+    dmcPlaybackModeBox.setVisible(showMappedSampleBankControls);
+    dmcMapRootBox.setVisible(showMappedSampleBankControls);
     dmcLoopButton.setVisible(showNesDmcSampleControls);
     spc700LoopModeButton.setVisible(showSpc700BrrControls);
     sampleWaveformPreview.setVisible(showSampleFileControls);
@@ -16443,9 +16838,9 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcSampleFolderButton.setEnabled(showSampleFolderControls);
     dmcSampleBankButton.setEnabled(showSampleBankControls);
     dmcEmptyStateButton.setEnabled(showNesDmcSampleControls);
-    dmcSampleSlotBox.setEnabled(showSampleBankControls);
-    dmcPlaybackModeBox.setEnabled(showSampleBankControls);
-    dmcMapRootBox.setEnabled(showSampleBankControls);
+    dmcSampleSlotBox.setEnabled(showMappedSampleBankControls);
+    dmcPlaybackModeBox.setEnabled(showMappedSampleBankControls);
+    dmcMapRootBox.setEnabled(showMappedSampleBankControls);
     dmcLoopButton.setEnabled(showNesDmcSampleControls);
     spc700LoopModeButton.setEnabled(showSpc700BrrControls);
     sampleWaveformPreview.setEnabled(showSampleFileControls);
@@ -16463,8 +16858,8 @@ void ChipperAudioProcessorEditor::updateDescriptorText()
     dmcSampleFolderButton.setAlpha(showSampleFolderControls ? 1.0f : 0.55f);
     dmcSampleBankButton.setAlpha(showSampleBankControls ? 1.0f : 0.55f);
     dmcEmptyStateButton.setAlpha(showNesDmcSampleControls ? 1.0f : 0.55f);
-    dmcPlaybackModeBox.setAlpha(showSampleBankControls ? 1.0f : 0.55f);
-    dmcMapRootBox.setAlpha(showSampleBankControls ? 1.0f : 0.55f);
+    dmcPlaybackModeBox.setAlpha(showMappedSampleBankControls ? 1.0f : 0.55f);
+    dmcMapRootBox.setAlpha(showMappedSampleBankControls ? 1.0f : 0.55f);
     dmcLoopButton.setAlpha(showNesDmcSampleControls ? 1.0f : 0.55f);
     spc700LoopModeButton.setAlpha(showSpc700BrrControls ? 1.0f : 0.55f);
     sampleWaveformPreview.setAlpha(showSampleFileControls ? 1.0f : 0.55f);

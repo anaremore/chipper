@@ -140,6 +140,14 @@ juce::Result migrateSchema6To7(juce::XmlElement& xml)
     xml.setAttribute(schemaVersionAttribute, 7);
     return juce::Result::ok();
 }
+
+juce::Result migrateSchema7To8(juce::XmlElement& xml)
+{
+    // Schema 8 adds optional indexed Yamaha ADPCM-A region children. Existing
+    // OPNA/OPNB parent records remain legacy packed-bank references.
+    xml.setAttribute(schemaVersionAttribute, 8);
+    return juce::Result::ok();
+}
 }
 
 juce::Result validateAndMigrate(juce::XmlElement& xml, const juce::Identifier& expectedRootType)
@@ -178,6 +186,8 @@ juce::Result validateAndMigrate(juce::XmlElement& xml, const juce::Identifier& e
             migration = migrateSchema5To6(xml);
         else if (schemaVersion == 6)
             migration = migrateSchema6To7(xml);
+        else if (schemaVersion == 7)
+            migration = migrateSchema7To8(xml);
         if (migration.failed())
             return migration;
         ++schemaVersion;
@@ -237,7 +247,8 @@ bool isAssetReferenceTag(const juce::String& tagName)
         || tagName == "CHIPPER_OPNA_RHYTHM_ROM"
         || tagName == "CHIPPER_OPNA_ADPCM_B_SAMPLE"
         || tagName == "CHIPPER_OPNB_ADPCM_A_SAMPLE"
-        || tagName == "CHIPPER_OPNB_ADPCM_B_SAMPLE";
+        || tagName == "CHIPPER_OPNB_ADPCM_B_SAMPLE"
+        || tagName == "CHIPPER_ADPCM_A_REGION";
 }
 
 juce::String portableRelativePath(const juce::File& sampleFile, const juce::File& presetDirectory)

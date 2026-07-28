@@ -1094,9 +1094,428 @@ bool expectConcurrentSampleMutationDoesNotDeadlock()
     root.deleteRecursively();
     return expect(ok, "Concurrent sample-bank mutation should complete without deadlock or load failure");
 }
+
+#if defined(_MSC_VER)
+__declspec(noinline)
+#endif
+bool expectOpnaAdpcmARegionBank(const juce::File& root)
+{
+    auto ok = true;
+    const auto opnaKick = root.getChildFile("opna-kick.wav");
+    const auto opnaTom = root.getChildFile("opna-tom.wav");
+    const auto opnaWrong = root.getChildFile("opna-wrong.bin");
+    ok &= expect(writeWavFixture(opnaKick, 110.0f), "Should write OPNA kick region fixture");
+    const auto opnaPacked = root.getChildFile("opna-packed.bin");
+    ok &= expect(writeWavFixture(opnaTom, 165.0f), "Should write OPNA tom region fixture");
+    ok &= expect(writeBinaryFixture(opnaWrong, 447u), "Should write malformed OPNA region fixture");
+    ok &= expect(writeBinaryFixture(opnaPacked, 8192u), "Should write legacy packed OPNA fixture");
+
+    auto opnaStorage = std::make_unique<ChipperAudioProcessor>();
+    auto& opna = *opnaStorage;
+    opna.prepareToPlay(48000.0, 64);
+    setPlainFromHost(opna, chipper::parameters::id::chipMode, 17.0f);
+    setPlainFromHost(opna, chipper::parameters::id::macro, 5.0f);
+    processEmptyBlock(opna);
+    ok &= expect(opna.loadOpnaAdpcmARegionFile(0, opnaKick).wasOk(),
+                 "OPNA should convert WAV into the fixed bass-drum region");
+    ok &= expect(opna.loadOpnaAdpcmARegionFile(4, opnaTom).wasOk(),
+                 "OPNA should convert WAV into the slower fixed tom region");
+
+    const auto kickInfo = opna.adpcmARegionInfo(chipper::ChipMode::ym2608, 0);
+    const auto tomInfo = opna.adpcmARegionInfo(chipper::ChipMode::ym2608, 4);
+    ok &= expect(kickInfo.loaded && kickInfo.convertedFromPcm
+                     && kickInfo.encodedByteCount == 448 && kickInfo.decodedSampleCount == 99
+                     && kickInfo.startByte == 0x0000 && kickInfo.endByteInclusive == 0x01bf
+                     && kickInfo.loadedRegionCount == 2 && kickInfo.editableBankActive,
+                 "OPNA bass drum should use its exact 448-byte ROM window and 18.489 kHz conversion");
+    ok &= expect(std::abs(kickInfo.sampleRateHz - (7987200.0 / 432.0)) < 0.001,
+                 "OPNA bass drum should report the /432 hardware playback rate");
+    ok &= expect(tomInfo.loaded && tomInfo.convertedFromPcm
+                     && tomInfo.encodedByteCount == 640 && tomInfo.decodedSampleCount == 49
+                     && tomInfo.startByte == 0x1d00 && tomInfo.endByteInclusive == 0x1f7f,
+                 "OPNA tom should use its exact 640-byte ROM window and slower conversion");
+    ok &= expect(std::abs(tomInfo.sampleRateHz - (7987200.0 / 864.0)) < 0.001,
+                 "OPNA tom should report the /864 hardware playback rate");
+    const auto kickPreview = opna.adpcmARegionWaveformSnapshot(chipper::ChipMode::ym2608, 0);
+    ok &= expect(kickPreview.loaded && kickPreview.sourceSampleCount == 99
+                     && kickPreview.label.contains("Decoded Bass drum"),
+                 "OPNA region preview should decode the heard ADPCM-A bytes and trim padding");
+
+    const auto kickName = kickInfo.sampleName;
+    ok &= expect(opna.loadOpnaAdpcmARegionFile(0, opnaWrong).failed(),
+                 "OPNA raw region import should reject a payload that does not exactly fill its ROM window");
+    const auto kickAfterFailure = opna.adpcmARegionInfo(chipper::ChipMode::ym2608, 0);
+    ok &= expect(kickAfterFailure.loaded && kickAfterFailure.sampleName == kickName
+                     && kickAfterFailure.encodedByteCount == 448,
+                 "Failed OPNA region replacement should leave the prior region untouched");
+    sendNoteOn(opna, 60);
+    const auto opnaDebug = opna.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(opnaDebug, "opnaAdpcmAUserRomLoaded") == 1
+                     && jsonIntValue(opnaDebug, "opnaAdpcmARomProvidedBytes") == 8192
+                     && jsonIntValue(opnaDebug, "opnaAdpcmARomCopiedBytes") == 8192,
+                 "Two OPNA overrides should compile over the generated canonical 8 KiB rhythm ROM");
+
+    auto opnaReference = opna.createStateXml();
+    auto opnaProject = opna.createStateXml(ChipperAudioProcessor::StateAssetPolicy::embedProjectAssets);
+    ok &= expect(opnaReference != nullptr
+                     && countElementsNamed(*opnaReference, "CHIPPER_ADPCM_A_REGION") == 2u
+                     && countElementsNamed(*opnaReference, chipper::state::embeddedSampleStateTag) == 0u,
+                 "OPNA region preset state should store two indexed references without embedded bytes");
+    ok &= expect(opnaProject != nullptr
+                     && countElementsNamed(*opnaProject, "CHIPPER_ADPCM_A_REGION") == 2u
+                     && countElementsNamed(*opnaProject, chipper::state::embeddedSampleStateTag) == 2u,
+                 "OPNA project state should embed each canonical encoded override independently");
+
+    if (opnaReference != nullptr)
+    {
+        auto duplicate = std::make_unique<juce::XmlElement>(*opnaReference);
+        if (auto* bank = duplicate->getChildByName("CHIPPER_OPNA_RHYTHM_ROM"))
+            if (auto* first = bank->getChildByName("CHIPPER_ADPCM_A_REGION"))
+                bank->addChildElement(new juce::XmlElement(*first));
+        const auto beforeRejectedRegister = jsonIntValue(opna.currentCoreDebugStateJson(),
+                                                         "algorithmFeedbackRegister0");
+        const auto rejectedRegisterValue = beforeRejectedRegister == 0 ? 0xff : 0;
+        if (auto* coreState = duplicate->getChildByName("CHIPPER_CORE_REGISTERS"))
+        {
+            auto* rejectedRegister = new juce::XmlElement("REG");
+            rejectedRegister->setAttribute("address", 0xb0);
+            rejectedRegister->setAttribute("value", rejectedRegisterValue);
+            coreState->addChildElement(rejectedRegister);
+        }
+        auto duplicateRestoreStorage = std::make_unique<ChipperAudioProcessor>();
+        auto& duplicateRestore = *duplicateRestoreStorage;
+        duplicateRestore.prepareToPlay(48000.0, 64);
+        const auto beforeRejectedRestore = opna.adpcmARegionInfo(chipper::ChipMode::ym2608, 0);
+        ok &= expect(duplicateRestore.restoreStateXml(*duplicate).failed()
+                         && opna.restoreStateXml(*duplicate).failed(),
+                     "Schema 8 should reject duplicate OPNA region indices");
+        setPlainFromHost(opna, chipper::parameters::id::chipMode, 0.0f);
+        processEmptyBlock(opna);
+        setPlainFromHost(opna, chipper::parameters::id::chipMode, 17.0f);
+        processEmptyBlock(opna);
+        const auto afterRejectedRestore = opna.adpcmARegionInfo(chipper::ChipMode::ym2608, 0);
+        ok &= expect(afterRejectedRestore.loaded
+                         && afterRejectedRestore.sampleName == beforeRejectedRestore.sampleName
+                         && jsonIntValue(opna.currentCoreDebugStateJson(), "algorithmFeedbackRegister0")
+                                == beforeRejectedRegister,
+                     "Rejected schema-8 restore should preserve both the region bank and pending register state");
+
+        auto outOfRange = std::make_unique<juce::XmlElement>(*opnaReference);
+        if (auto* bank = outOfRange->getChildByName("CHIPPER_OPNA_RHYTHM_ROM"))
+            if (auto* first = bank->getChildByName("CHIPPER_ADPCM_A_REGION"))
+                first->setAttribute("index", 6);
+        auto outOfRangeRestoreStorage = std::make_unique<ChipperAudioProcessor>();
+        auto& outOfRangeRestore = *outOfRangeRestoreStorage;
+        outOfRangeRestore.prepareToPlay(48000.0, 64);
+        ok &= expect(outOfRangeRestore.restoreStateXml(*outOfRange).failed(),
+                     "Schema 8 should reject out-of-range OPNA region indices");
+    }
+
+    std::unique_ptr<juce::XmlElement> opnaPackedReference;
+    {
+        auto legacyStorage = std::make_unique<ChipperAudioProcessor>();
+        auto& legacy = *legacyStorage;
+        legacy.prepareToPlay(48000.0, 64);
+        ok &= expect(legacy.loadOpnaRhythmRomFile(opnaPacked).wasOk(),
+                     "Legacy packed OPNA import should remain supported");
+        opnaPackedReference = legacy.createStateXml();
+        const auto packedInfo = legacy.adpcmARegionInfo(chipper::ChipMode::ym2608, 0);
+        const auto packedName = legacy.opnaRhythmRomInfo().sampleName;
+        ok &= expect(packedInfo.legacyBankActive && ! packedInfo.editableBankActive
+                         && packedInfo.statusLine.containsIgnoreCase("confirmation"),
+                     "OPNA region metadata should disclose the active packed bank and required confirmation");
+        ok &= expect(legacy.loadOpnaAdpcmARegionFile(0, opnaKick).failed()
+                         && legacy.opnaRhythmRomInfo().loaded
+                         && legacy.opnaRhythmRomInfo().sampleName == packedName,
+                     "Unconfirmed OPNA region import must preserve the active packed bank");
+        ok &= expect(legacy.loadOpnaAdpcmARegionFile(0, opnaKick, true).wasOk()
+                         && ! legacy.adpcmARegionInfo(chipper::ChipMode::ym2608, 0).legacyBankActive,
+                     "Confirmed OPNA region import should atomically replace the packed bank after conversion succeeds");
+    }
+
+    opnaPacked.deleteFile();
+    if (opnaPackedReference != nullptr)
+    {
+        auto missingLegacyStorage = std::make_unique<ChipperAudioProcessor>();
+        auto& missingLegacy = *missingLegacyStorage;
+        missingLegacy.prepareToPlay(48000.0, 64);
+        ok &= expect(missingLegacy.restoreStateXml(*opnaPackedReference).wasOk(),
+                     "A missing legacy OPNA packed reference should restore as a tombstone");
+        const auto missingPackedInfo = missingLegacy.adpcmARegionInfo(chipper::ChipMode::ym2608, 0);
+        ok &= expect(! missingPackedInfo.legacyBankActive && missingPackedInfo.legacyBankMissing
+                         && missingLegacy.loadOpnaAdpcmARegionFile(0, opnaKick).wasOk(),
+                     "Missing OPNA packed references must not masquerade as active banks or require replacement confirmation");
+    }
+
+    {
+        auto inactiveStorage = std::make_unique<ChipperAudioProcessor>();
+        auto& inactive = *inactiveStorage;
+        inactive.prepareToPlay(48000.0, 64);
+        ok &= expect(inactive.loadOpnaAdpcmARegionFile(0, opnaKick).wasOk(),
+                     "OPNA region should load while another chip is active");
+        setPlainFromHost(inactive, chipper::parameters::id::chipMode, 17.0f);
+        juce::MidiBuffer emptyMidi;
+        const auto allocations = processAllocationCount(inactive, emptyMidi);
+        ok &= expect(allocations == 0u,
+                     "Switching to an inactive OPNA core with loaded regions must not allocate or compile in processBlock");
+        inactive.clearOpnaAdpcmARegion(0);
+        const auto resetInfo = inactive.adpcmARegionInfo(chipper::ChipMode::ym2608, 0);
+        ok &= expect(! resetInfo.loaded && ! resetInfo.editableBankActive
+                         && resetInfo.statusLine.containsIgnoreCase("generated"),
+                     "Clearing the final OPNA override should restore the generated region bank");
+    }
+
+    opnaKick.deleteFile();
+    opnaTom.deleteFile();
+    if (opnaReference != nullptr)
+    {
+        auto missingStorage = std::make_unique<ChipperAudioProcessor>();
+        auto& missing = *missingStorage;
+        missing.prepareToPlay(48000.0, 64);
+        ok &= expect(missing.restoreStateXml(*opnaReference).wasOk(),
+                     "Missing OPNA region references should restore as indexed tombstones");
+        const auto missingKick = missing.adpcmARegionInfo(chipper::ChipMode::ym2608, 0);
+        const auto missingTom = missing.adpcmARegionInfo(chipper::ChipMode::ym2608, 4);
+        ok &= expect(! missingKick.loaded && ! missingTom.loaded
+                         && missingKick.sampleName == "opna-kick.wav"
+                         && missingTom.sampleName == "opna-tom.wav"
+                         && missingKick.editableBankActive
+                         && missingKick.statusLine.containsIgnoreCase("does not exist"),
+                     "Reference-only OPNA restore should preserve region identity and expose missing files");
+    }
+    if (opnaProject != nullptr)
+    {
+        auto embeddedStorage = std::make_unique<ChipperAudioProcessor>();
+        auto& embedded = *embeddedStorage;
+        embedded.prepareToPlay(48000.0, 64);
+        ok &= expect(embedded.restoreStateXml(*opnaProject).wasOk(),
+                     "Embedded OPNA region project state should restore after source deletion");
+        const auto embeddedKick = embedded.adpcmARegionInfo(chipper::ChipMode::ym2608, 0);
+        const auto embeddedTom = embedded.adpcmARegionInfo(chipper::ChipMode::ym2608, 4);
+        ok &= expect(embeddedKick.loaded && embeddedTom.loaded
+                         && embeddedKick.encodedByteCount == 448
+                         && embeddedTom.encodedByteCount == 640
+                         && embeddedKick.statusLine.contains("Using embedded project copy"),
+                     "Embedded OPNA restoration should preserve canonical bytes, roles, and conversion metadata");
+    }
+
+    return ok;
 }
 
-int main()
+#if defined(_MSC_VER)
+__declspec(noinline)
+#endif
+bool expectOpnbAdpcmARegionBank(const juce::File& root)
+{
+    auto ok = true;
+    const auto opnbOne = root.getChildFile("opnb-one.bin");
+    const auto opnbThree = root.getChildFile("opnb-three.bin");
+    const auto opnbSix = root.getChildFile("opnb-six.bin");
+    const auto opnbWrong = root.getChildFile("opnb-wrong.bin");
+    ok &= expect(writeBinaryFixture(opnbOne, 256u), "Should write OPNB region 1 fixture");
+    const auto opnbPacked = root.getChildFile("opnb-packed.bin");
+    ok &= expect(writeBinaryFixture(opnbThree, 512u), "Should write OPNB region 3 fixture");
+    ok &= expect(writeBinaryFixture(opnbSix, 256u), "Should write OPNB region 6 fixture");
+    ok &= expect(writeBinaryFixture(opnbWrong, 255u), "Should write malformed OPNB page fixture");
+    ok &= expect(writeBinaryFixture(opnbPacked, 1536u), "Should write legacy packed OPNB fixture");
+
+    auto opnbStorage = std::make_unique<ChipperAudioProcessor>();
+    auto& opnb = *opnbStorage;
+    opnb.prepareToPlay(48000.0, 64);
+    setPlainFromHost(opnb, chipper::parameters::id::chipMode, 18.0f);
+    setPlainFromHost(opnb, chipper::parameters::id::macro, 5.0f);
+    processEmptyBlock(opnb);
+    ok &= expect(opnb.loadOpnbAdpcmARegionFile(0, opnbOne).wasOk()
+                     && opnb.loadOpnbAdpcmARegionFile(2, opnbThree).wasOk()
+                     && opnb.loadOpnbAdpcmARegionFile(5, opnbSix).wasOk(),
+                 "OPNB should load sparse page-aligned logical regions");
+    const auto opnbOneInfo = opnb.adpcmARegionInfo(chipper::ChipMode::ym2610, 0);
+    ok &= expect(opnb.loadOpnbAdpcmARegionFile(0, opnbWrong).failed(),
+                 "OPNB raw region import should reject incomplete 256-byte pages");
+    ok &= expect(opnb.adpcmARegionInfo(chipper::ChipMode::ym2610, 0).sampleName == opnbOneInfo.sampleName,
+                 "Failed OPNB region replacement should leave the prior region untouched");
+    sendNoteOn(opnb, 60);
+    const auto opnbDebug = opnb.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(opnbDebug, "opnbAdpcmARegionMode") == 1
+                     && jsonIntValue(opnbDebug, "opnbAdpcmAActiveMask") == 0x25
+                     && jsonIntValue(opnbDebug, "opnbAdpcmAKeyBits") == 0x25
+                     && jsonIntValue(opnbDebug, "opnbAdpcmAProvidedBytes") == 1024
+                     && jsonIntValue(opnbDebug, "opnbAdpcmAStartRegister0") == 0
+                     && jsonIntValue(opnbDebug, "opnbAdpcmAEndRegister0") == 0
+                     && jsonIntValue(opnbDebug, "opnbAdpcmAStartRegister2") == 1
+                     && jsonIntValue(opnbDebug, "opnbAdpcmAEndRegister2") == 2
+                     && jsonIntValue(opnbDebug, "opnbAdpcmAStartRegister5") == 3
+                     && jsonIntValue(opnbDebug, "opnbAdpcmAEndRegister5") == 3,
+                 "OPNB sparse regions should pack consecutively while preserving logical channel identity");
+
+    auto opnbReference = opnb.createStateXml();
+    auto opnbProject = opnb.createStateXml(ChipperAudioProcessor::StateAssetPolicy::embedProjectAssets);
+    ok &= expect(opnbReference != nullptr
+                     && countElementsNamed(*opnbReference, "CHIPPER_ADPCM_A_REGION") == 3u
+                     && countElementsNamed(*opnbReference, chipper::state::embeddedSampleStateTag) == 0u,
+                 "OPNB region preset state should store three indexed references");
+    ok &= expect(opnbProject != nullptr
+                     && countElementsNamed(*opnbProject, "CHIPPER_ADPCM_A_REGION") == 3u
+                     && countElementsNamed(*opnbProject, chipper::state::embeddedSampleStateTag) == 3u,
+                 "OPNB project state should embed three independently encoded logical regions");
+
+    setPlainFromHost(opnb, chipper::parameters::id::chipMode, 26.0f);
+    processEmptyBlock(opnb);
+    sendNoteOn(opnb, 60);
+    const auto opnb2Debug = opnb.currentCoreDebugStateJson();
+    ok &= expect(jsonIntValue(opnb2Debug, "opnbAdpcmARegionMode") == 1
+                     && jsonIntValue(opnb2Debug, "opnbAdpcmAActiveMask") == 0x25
+                     && jsonIntValue(opnb2Debug, "opnbAdpcmAStartRegister2") == 1
+                     && jsonIntValue(opnb2Debug, "opnbAdpcmAEndRegister5") == 3,
+                 "OPNB and OPNB2 should share identical six-region ADPCM-A memory semantics");
+
+    std::unique_ptr<juce::XmlElement> opnbPackedReference;
+    {
+        auto legacyStorage = std::make_unique<ChipperAudioProcessor>();
+        auto& legacy = *legacyStorage;
+        legacy.prepareToPlay(48000.0, 64);
+        ok &= expect(legacy.loadOpnbAdpcmASampleFile(opnbPacked).wasOk(),
+                     "Legacy packed OPNB import should remain supported");
+        opnbPackedReference = legacy.createStateXml();
+        const auto packedInfo = legacy.adpcmARegionInfo(chipper::ChipMode::ym2610, 0);
+        const auto packedName = legacy.opnbAdpcmASampleInfo().sampleName;
+        ok &= expect(packedInfo.legacyBankActive && ! packedInfo.editableBankActive
+                         && packedInfo.statusLine.containsIgnoreCase("confirmation"),
+                     "OPNB region metadata should disclose the active packed bank and required confirmation");
+        ok &= expect(legacy.loadOpnbAdpcmARegionFile(0, opnbOne).failed()
+                         && legacy.opnbAdpcmASampleInfo().loaded
+                         && legacy.opnbAdpcmASampleInfo().sampleName == packedName,
+                     "Unconfirmed OPNB region import must preserve the active packed bank");
+        ok &= expect(legacy.loadOpnbAdpcmARegionFile(0, opnbOne, true).wasOk()
+                         && ! legacy.adpcmARegionInfo(chipper::ChipMode::ym2610, 0).legacyBankActive,
+                     "Confirmed OPNB region import should atomically replace the packed bank after validation succeeds");
+    }
+
+    opnbPacked.deleteFile();
+    if (opnbPackedReference != nullptr)
+    {
+        auto missingLegacyStorage = std::make_unique<ChipperAudioProcessor>();
+        auto& missingLegacy = *missingLegacyStorage;
+        missingLegacy.prepareToPlay(48000.0, 64);
+        ok &= expect(missingLegacy.restoreStateXml(*opnbPackedReference).wasOk(),
+                     "A missing legacy OPNB packed reference should restore as a tombstone");
+        const auto missingPackedInfo = missingLegacy.adpcmARegionInfo(chipper::ChipMode::ym2610, 0);
+        ok &= expect(! missingPackedInfo.legacyBankActive && missingPackedInfo.legacyBankMissing
+                         && missingLegacy.loadOpnbAdpcmARegionFile(0, opnbOne).wasOk(),
+                     "Missing OPNB packed references must not masquerade as active banks or require replacement confirmation");
+    }
+
+    {
+        auto inactiveStorage = std::make_unique<ChipperAudioProcessor>();
+        auto& inactive = *inactiveStorage;
+        inactive.prepareToPlay(48000.0, 64);
+        ok &= expect(inactive.loadOpnbAdpcmARegionFile(5, opnbSix).wasOk(),
+                     "OPNB region should load while another chip is active");
+        setPlainFromHost(inactive, chipper::parameters::id::chipMode, 18.0f);
+        juce::MidiBuffer emptyMidi;
+        const auto opnbAllocations = processAllocationCount(inactive, emptyMidi);
+        ok &= expect(opnbAllocations == 0u,
+                     "Switching to an inactive OPNB core with loaded regions must not allocate or pack in processBlock");
+        setPlainFromHost(inactive, chipper::parameters::id::chipMode, 26.0f);
+        const auto opnb2Allocations = processAllocationCount(inactive, emptyMidi);
+        ok &= expect(opnb2Allocations == 0u,
+                     "Switching to OPNB2 with loaded regions must reuse its prepared bank without audio-thread allocation");
+        inactive.clearOpnbAdpcmARegion(5);
+        const auto clearedInfo = inactive.adpcmARegionInfo(chipper::ChipMode::ym2610, 5);
+        ok &= expect(! clearedInfo.loaded && ! clearedInfo.editableBankActive
+                         && clearedInfo.statusLine.containsIgnoreCase("empty"),
+                     "Clearing the final OPNB region should return the logical bank to empty");
+    }
+
+    {
+        auto concurrentStorage = std::make_unique<ChipperAudioProcessor>();
+        auto& concurrent = *concurrentStorage;
+        concurrent.prepareToPlay(48000.0, 64);
+        std::atomic<bool> start { false };
+        std::atomic<bool> firstLoaded { false };
+        std::atomic<bool> secondLoaded { false };
+        std::thread first([&]
+        {
+            while (! start.load(std::memory_order_acquire))
+                std::this_thread::yield();
+            firstLoaded.store(concurrent.loadOpnbAdpcmARegionFile(0, opnbOne).wasOk(), std::memory_order_release);
+        });
+        std::thread second([&]
+        {
+            while (! start.load(std::memory_order_acquire))
+                std::this_thread::yield();
+            secondLoaded.store(concurrent.loadOpnbAdpcmARegionFile(2, opnbThree).wasOk(), std::memory_order_release);
+        });
+        start.store(true, std::memory_order_release);
+        first.join();
+        second.join();
+        ok &= expect(firstLoaded.load(std::memory_order_acquire)
+                         && secondLoaded.load(std::memory_order_acquire)
+                         && concurrent.adpcmARegionInfo(chipper::ChipMode::ym2610, 0).loaded
+                         && concurrent.adpcmARegionInfo(chipper::ChipMode::ym2610, 2).loaded
+                         && concurrent.adpcmARegionInfo(chipper::ChipMode::ym2610, 0).loadedRegionCount == 2,
+                     "Concurrent OPNB region imports must serialize without losing either logical update");
+    }
+
+    opnbThree.deleteFile();
+    if (opnbReference != nullptr)
+    {
+        auto sparseMissingStorage = std::make_unique<ChipperAudioProcessor>();
+        auto& sparseMissing = *sparseMissingStorage;
+        sparseMissing.prepareToPlay(48000.0, 64);
+        ok &= expect(sparseMissing.restoreStateXml(*opnbReference).wasOk(),
+                     "A missing middle OPNB region should not shift later logical region identities");
+        processEmptyBlock(sparseMissing);
+        sendNoteOn(sparseMissing, 60);
+        const auto missingThree = sparseMissing.adpcmARegionInfo(chipper::ChipMode::ym2610, 2);
+        const auto survivingSix = sparseMissing.adpcmARegionInfo(chipper::ChipMode::ym2610, 5);
+        const auto sparseDebug = sparseMissing.currentCoreDebugStateJson();
+        ok &= expect(! missingThree.loaded && missingThree.sampleName == "opnb-three.bin"
+                         && survivingSix.loaded && survivingSix.sampleName == "opnb-six.bin"
+                         && survivingSix.loadedRegionCount == 2
+                         && jsonIntValue(sparseDebug, "opnbAdpcmAActiveMask") == 0x21
+                         && jsonIntValue(sparseDebug, "opnbAdpcmAStartRegister5") == 1,
+                     "Missing OPNB region 3 should remain a tombstone while region 6 repacks without renumbering");
+    }
+
+    opnbOne.deleteFile();
+    opnbSix.deleteFile();
+    if (opnbProject != nullptr)
+    {
+        auto embeddedStorage = std::make_unique<ChipperAudioProcessor>();
+        auto& embedded = *embeddedStorage;
+        embedded.prepareToPlay(48000.0, 64);
+        ok &= expect(embedded.restoreStateXml(*opnbProject).wasOk(),
+                     "Embedded OPNB region project state should restore after all source files are deleted");
+        processEmptyBlock(embedded);
+        sendNoteOn(embedded, 60);
+        const auto debug = embedded.currentCoreDebugStateJson();
+        ok &= expect(embedded.adpcmARegionInfo(chipper::ChipMode::ym2610, 0).loaded
+                         && embedded.adpcmARegionInfo(chipper::ChipMode::ym2610, 2).loaded
+                         && embedded.adpcmARegionInfo(chipper::ChipMode::ym2610, 5).loaded
+                         && jsonIntValue(debug, "opnbAdpcmAActiveMask") == 0x25
+                         && jsonIntValue(debug, "opnbAdpcmAProvidedBytes") == 1024,
+                     "Embedded OPNB restoration should preserve all sparse logical regions and packed windows");
+    }
+
+    return ok;
+}
+
+bool expectYamahaAdpcmARegionBanks()
+{
+    const auto root = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                          .getNonexistentChildFile("chipper-adpcm-a-regions", {}, false);
+    if (! root.createDirectory())
+        return expect(false, "Could not create Yamaha ADPCM-A region fixture directory");
+
+    auto ok = expectOpnaAdpcmARegionBank(root);
+    ok &= expectOpnbAdpcmARegionBank(root);
+    root.deleteRecursively();
+    return ok;
+}
+}
+
+int runSmoke()
 {
     ChipperAudioProcessor processor;
     processor.prepareToPlay(48000.0, 64);
@@ -3664,4 +4083,14 @@ int main()
     ok &= expectConcurrentSampleMutationDoesNotDeadlock();
 
     return ok ? 0 : 1;
+}
+
+int main()
+{
+    // Build the large static descriptor table on a shallow stack. The smoke
+    // body intentionally keeps many processor fixtures alive in one function.
+    (void) chipper::descriptorFor(chipper::ChipMode::ym2610b);
+    if (! expectYamahaAdpcmARegionBanks())
+        return 1;
+    return runSmoke();
 }

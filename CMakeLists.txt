@@ -49,6 +49,8 @@ add_library(chipper_engine STATIC
     Source/Engine/MotionData.h
     Source/Engine/WavetableData.cpp
     Source/Engine/WavetableData.h
+    Source/Engine/YamahaAdpcmBank.cpp
+    Source/Engine/YamahaAdpcmBank.h
     Source/Engine/YamahaAdpcmCodec.cpp
     Source/Engine/YamahaAdpcmCodec.h
     Source/Presets.cpp
@@ -3899,6 +3901,11 @@ target_link_libraries(chipper_processor_midi_cc_smoke
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags
 )
+if(MSVC)
+    # This release gate deliberately keeps many full processor fixtures alive
+    # in one legacy test body. Give that test harness a stable stack budget.
+    target_link_options(chipper_processor_midi_cc_smoke PRIVATE /STACK:8388608)
+endif()
 
 add_test(NAME chipper_processor_midi_cc_smoke
     COMMAND chipper_processor_midi_cc_smoke
