@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <new>
 #include <string>
 #include <thread>
@@ -65,6 +66,42 @@ bool expect(bool condition, const std::string& message)
 
     std::cerr << message << '\n';
     return false;
+}
+
+std::unique_ptr<juce::XmlElement> stateXmlFromBinary(const juce::MemoryBlock& state)
+{
+    if (state.isEmpty() || state.getSize() > static_cast<size_t>(std::numeric_limits<int>::max()))
+        return {};
+
+    return juce::AudioProcessor::getXmlFromBinary(state.getData(), static_cast<int>(state.getSize()));
+}
+
+size_t countElementsNamed(const juce::XmlElement& element, const juce::String& tagName)
+{
+    auto count = element.hasTagName(tagName) ? size_t { 1 } : size_t { 0 };
+    for (const auto* child : element.getChildIterator())
+        if (child != nullptr)
+            count += countElementsNamed(*child, tagName);
+    return count;
+}
+
+juce::XmlElement* findEmbeddedPayloadAt(juce::XmlElement& element, size_t requestedIndex, size_t& currentIndex)
+{
+    if (element.hasTagName(chipper::state::embeddedSampleStateTag))
+    {
+        if (currentIndex == requestedIndex)
+            return &element;
+        ++currentIndex;
+    }
+
+    for (auto* child : element.getChildIterator())
+    {
+        if (child == nullptr)
+            continue;
+        if (auto* match = findEmbeddedPayloadAt(*child, requestedIndex, currentIndex))
+            return match;
+    }
+    return nullptr;
 }
 
 std::unique_ptr<juce::XmlElement> loadStateFixture(const char* fileName)
@@ -1568,6 +1605,14 @@ int main()
         ok &= expect(opn2StateXml != nullptr
                          && opn2StateXml->getChildByName("CHIPPER_OPN2_DAC_SAMPLE") != nullptr,
                      "OPN2 state XML should save the loaded DAC sample path");
+        auto opn2ProjectXml = opn2Processor.createStateXml(ChipperAudioProcessor::StateAssetPolicy::embedProjectAssets);
+        ok &= expect(opn2StateXml != nullptr
+                         && countElementsNamed(*opn2StateXml, chipper::state::embeddedSampleStateTag) == 0u,
+                     "Shareable OPN2 preset XML should remain reference-only");
+        ok &= expect(opn2ProjectXml != nullptr
+                         && countElementsNamed(*opn2ProjectXml, chipper::state::embeddedSampleStateTag) == 1u,
+                     "OPN2 project state should embed the loaded DAC bytes");
+
 
         ChipperAudioProcessor restoredOpn2Processor;
         restoredOpn2Processor.prepareToPlay(48000.0, 64);
@@ -1624,12 +1669,33 @@ int main()
                          "OPN2 DAC status should expose missing sample references");
             ok &= expect(missingOpn2Preview.label.contains("OPN2 DAC sample restore issue"),
                          "OPN2 DAC waveform preview should expose missing sample references");
+            auto missingOpn2ResavedXml = missingOpn2Processor.createStateXml();
+            const auto* missingOpn2ResavedSample = missingOpn2ResavedXml != nullptr
+                ? missingOpn2ResavedXml->getChildByName("CHIPPER_OPN2_DAC_SAMPLE") : nullptr;
+            ok &= expect(missingOpn2ResavedSample != nullptr
+                             && missingOpn2ResavedSample->getStringAttribute("path").contains("missing-opn2.raw")
+                             && countElementsNamed(*missingOpn2ResavedSample, chipper::state::embeddedSampleStateTag) == 0u,
+                         "Re-saving a missing OPN2 asset should retain its reference for relinking without inventing bytes");
             ok &= expect(missingOpn2Processor.loadOpn2DacSampleFile(opn2WavFile).wasOk(),
                          "Manual OPN2 WAV load should succeed after a restore warning");
             missingOpn2Info = missingOpn2Processor.opn2DacSampleInfo();
             ok &= expect(missingOpn2Info.loaded && missingOpn2Info.byteCount == 256
                              && ! missingOpn2Info.statusLine.contains("restore issue"),
                          "OPN2 WAV import should produce 8-bit samples and clear stale restore warnings");
+        }
+
+        opn2RawFile.deleteFile();
+        if (opn2ProjectXml != nullptr)
+        {
+            ChipperAudioProcessor embeddedOpn2Processor;
+            embeddedOpn2Processor.prepareToPlay(48000.0, 64);
+            ok &= expect(embeddedOpn2Processor.restoreStateXml(*opn2ProjectXml).wasOk(),
+                         "OPN2 project state should restore after its source file is deleted");
+            processEmptyBlock(embeddedOpn2Processor);
+            const auto embeddedInfo = embeddedOpn2Processor.opn2DacSampleInfo();
+            ok &= expect(embeddedInfo.loaded && embeddedInfo.byteCount == 270000u
+                             && embeddedInfo.statusLine.contains("Using embedded project copy"),
+                         "OPN2 deleted-source restore should use the bounded embedded project copy");
         }
 
         portableOpn2PresetDir.deleteRecursively();
@@ -1682,6 +1748,14 @@ int main()
 
         auto opnaStateXml = opnaProcessor.createStateXml();
         ok &= expect(opnaStateXml != nullptr, "OPNA state XML should save loaded ADPCM paths");
+        auto opnaProjectXml = opnaProcessor.createStateXml(ChipperAudioProcessor::StateAssetPolicy::embedProjectAssets);
+        ok &= expect(opnaStateXml != nullptr
+                         && countElementsNamed(*opnaStateXml, chipper::state::embeddedSampleStateTag) == 0u,
+                     "Shareable OPNA preset XML should remain reference-only");
+        ok &= expect(opnaProjectXml != nullptr
+                         && countElementsNamed(*opnaProjectXml, chipper::state::embeddedSampleStateTag) == 2u,
+                     "OPNA project state should embed both loaded sample-memory assets");
+
 
         ChipperAudioProcessor restoredOpnaProcessor;
         restoredOpnaProcessor.prepareToPlay(48000.0, 64);
@@ -1707,6 +1781,24 @@ int main()
         ok &= expect(jsonIntValue(restoredOpnaDebug, "opnaAdpcmBLoaded") == 1
                          && jsonIntValue(restoredOpnaDebug, "opnaAdpcmBCopiedBytes") == 262144,
                      "Restored OPNA core should receive the user ADPCM-B sample bytes");
+
+        opnaRomFile.deleteFile();
+        opnaAdpcmBFile.deleteFile();
+        if (opnaProjectXml != nullptr)
+        {
+            ChipperAudioProcessor embeddedOpnaProcessor;
+            embeddedOpnaProcessor.prepareToPlay(48000.0, 64);
+            ok &= expect(embeddedOpnaProcessor.restoreStateXml(*opnaProjectXml).wasOk(),
+                         "OPNA project state should restore after both source files are deleted");
+            processEmptyBlock(embeddedOpnaProcessor);
+            const auto embeddedRhythm = embeddedOpnaProcessor.opnaRhythmRomInfo();
+            const auto embeddedAdpcmB = embeddedOpnaProcessor.opnaAdpcmBSampleInfo();
+            ok &= expect(embeddedRhythm.loaded && embeddedRhythm.byteCount == 9000u
+                             && embeddedRhythm.statusLine.contains("Using embedded project copy")
+                             && embeddedAdpcmB.loaded && embeddedAdpcmB.byteCount == 270000u
+                             && embeddedAdpcmB.statusLine.contains("Using embedded project copy"),
+                         "OPNA deleted-source restore should use both bounded embedded project copies");
+        }
 
         opnaRomFile.deleteFile();
         opnaAdpcmBFile.deleteFile();
@@ -1758,6 +1850,14 @@ int main()
 
         auto opnbStateXml = opnbProcessor.createStateXml();
         ok &= expect(opnbStateXml != nullptr, "OPNB state XML should save loaded ADPCM paths");
+        auto opnbProjectXml = opnbProcessor.createStateXml(ChipperAudioProcessor::StateAssetPolicy::embedProjectAssets);
+        ok &= expect(opnbStateXml != nullptr
+                         && countElementsNamed(*opnbStateXml, chipper::state::embeddedSampleStateTag) == 0u,
+                     "Shareable OPNB preset XML should remain reference-only");
+        ok &= expect(opnbProjectXml != nullptr
+                         && countElementsNamed(*opnbProjectXml, chipper::state::embeddedSampleStateTag) == 2u,
+                     "OPNB project state should embed both loaded sample-memory assets");
+
 
         ChipperAudioProcessor restoredOpnbProcessor;
         restoredOpnbProcessor.prepareToPlay(48000.0, 64);
@@ -1783,6 +1883,24 @@ int main()
         ok &= expect(jsonIntValue(restoredOpnbDebug, "opnbAdpcmBLoaded") == 1
                          && jsonIntValue(restoredOpnbDebug, "opnbAdpcmBCopiedBytes") == 8192,
                      "Restored OPNB core should receive the user ADPCM-B sample bytes");
+
+        opnbAdpcmAFile.deleteFile();
+        opnbAdpcmBFile.deleteFile();
+        if (opnbProjectXml != nullptr)
+        {
+            ChipperAudioProcessor embeddedOpnbProcessor;
+            embeddedOpnbProcessor.prepareToPlay(48000.0, 64);
+            ok &= expect(embeddedOpnbProcessor.restoreStateXml(*opnbProjectXml).wasOk(),
+                         "OPNB project state should restore after both source files are deleted");
+            processEmptyBlock(embeddedOpnbProcessor);
+            const auto embeddedAdpcmA = embeddedOpnbProcessor.opnbAdpcmASampleInfo();
+            const auto embeddedAdpcmB = embeddedOpnbProcessor.opnbAdpcmBSampleInfo();
+            ok &= expect(embeddedAdpcmA.loaded && embeddedAdpcmA.byteCount == 1050000u
+                             && embeddedAdpcmA.statusLine.contains("Using embedded project copy")
+                             && embeddedAdpcmB.loaded && embeddedAdpcmB.byteCount == 8192u
+                             && embeddedAdpcmB.statusLine.contains("Using embedded project copy"),
+                         "OPNB deleted-source restore should use both bounded embedded project copies");
+        }
 
         opnbAdpcmAFile.deleteFile();
         opnbAdpcmBFile.deleteFile();
@@ -2204,6 +2322,39 @@ int main()
 
     juce::MemoryBlock savedState;
     processor.getStateInformation(savedState);
+    auto dmcPresetXml = processor.createStateXml();
+    auto dmcProjectXml = stateXmlFromBinary(savedState);
+    ok &= expect(dmcPresetXml != nullptr
+                     && countElementsNamed(*dmcPresetXml, chipper::state::embeddedSampleStateTag) == 0u,
+                 "Shareable DMC preset XML should remain reference-only");
+    ok &= expect(dmcProjectXml != nullptr
+                     && countElementsNamed(*dmcProjectXml, chipper::state::embeddedSampleStateTag) == 32u,
+                 "DMC host project state should embed exactly the first 32 included bank slots");
+    if (dmcProjectXml != nullptr)
+    {
+        ChipperAudioProcessor presetPolicyProcessor;
+        presetPolicyProcessor.prepareToPlay(48000.0, 64);
+        setPlainFromHost(presetPolicyProcessor, chipper::parameters::id::chipMode, 9.0f);
+        const auto beforeRejectedRestore = parameterValue(presetPolicyProcessor, chipper::parameters::id::chipMode);
+        const auto presetPolicyResult = presetPolicyProcessor.restoreStateXml(*dmcProjectXml, dmcDir);
+        ok &= expect(presetPolicyResult.failed()
+                         && parameterValue(presetPolicyProcessor, chipper::parameters::id::chipMode) == beforeRejectedRestore,
+                     "Preset restore should reject embedded payloads before mutating processor state");
+
+        auto oversizedProjectXml = std::make_unique<juce::XmlElement>(*dmcProjectXml);
+        auto payloadIndex = size_t { 0 };
+        auto* oversizedPayload = findEmbeddedPayloadAt(*oversizedProjectXml, 0u, payloadIndex);
+        if (oversizedPayload != nullptr)
+            oversizedPayload->setAttribute("byteCount", static_cast<int>(chipper::state::maxEmbeddedProjectBytes + 1u));
+        ChipperAudioProcessor oversizedStateProcessor;
+        oversizedStateProcessor.prepareToPlay(48000.0, 64);
+        setPlainFromHost(oversizedStateProcessor, chipper::parameters::id::chipMode, 9.0f);
+        const auto oversizedResult = oversizedStateProcessor.restoreStateXml(*oversizedProjectXml);
+        ok &= expect(oversizedPayload != nullptr && oversizedResult.failed()
+                         && parameterValue(oversizedStateProcessor, chipper::parameters::id::chipMode) == 9.0f,
+                     "Oversized embedded state should fail atomically before parameter mutation");
+    }
+
     ChipperAudioProcessor restoredProcessor;
     restoredProcessor.prepareToPlay(48000.0, 64);
     restoredProcessor.setStateInformation(savedState.getData(), static_cast<int>(savedState.getSize()));
@@ -2267,6 +2418,57 @@ int main()
                      "DMC manual sample load should clear stale missing-reference restore warnings");
     }
     portablePresetDir.deleteRecursively();
+    dmcDir.deleteRecursively();
+    if (dmcProjectXml != nullptr)
+    {
+        ChipperAudioProcessor embeddedDmcProcessor;
+        embeddedDmcProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(embeddedDmcProcessor.restoreStateXml(*dmcProjectXml).wasOk(),
+                     "DMC project state should restore after its source directory is deleted");
+        processEmptyBlock(embeddedDmcProcessor);
+        const auto embeddedEntries = embeddedDmcProcessor.nesDmcSampleEntryInfo();
+        const auto embeddedNames = embeddedDmcProcessor.nesDmcSampleNames();
+        const auto embeddedInfo = embeddedDmcProcessor.nesDmcSamplePlaybackInfo();
+        ok &= expect(embeddedEntries.size() == 34u && embeddedNames.size() == 32
+                         && embeddedNames[31] == "sample-32.dmc"
+                         && embeddedInfo.statusLine.contains("Using embedded project copy"),
+                     "DMC deleted-source restore should preserve staged order and the bounded playable bank");
+
+        auto corruptedProjectXml = std::make_unique<juce::XmlElement>(*dmcProjectXml);
+        auto corruptedIndex = size_t { 0 };
+        auto* corruptedPayload = findEmbeddedPayloadAt(*corruptedProjectXml, 10u, corruptedIndex);
+        if (corruptedPayload != nullptr)
+            corruptedPayload->setAttribute("checksum", "fnv1a32:00000000");
+        ok &= expect(dmcDir.createDirectory().wasOk(),
+                     "Should recreate DMC sources around the intentionally corrupt middle slot");
+        for (int i = 0; i < 34; ++i)
+        {
+            if (i == 11)
+                continue;
+            const auto name = "sample-" + juce::String(i).paddedLeft('0', 2) + ".dmc";
+            ok &= expect(writeDmcFixture(dmcDir.getChildFile(name), static_cast<uint8_t>(i + 1)),
+                         "Should recreate non-corrupt DMC fixture " + name.toStdString());
+        }
+
+        ChipperAudioProcessor corruptedDmcProcessor;
+        corruptedDmcProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(corruptedDmcProcessor.restoreStateXml(*corruptedProjectXml).wasOk(),
+                     "A corrupt embedded DMC slot should degrade locally instead of rejecting the project");
+        setPlainFromHost(corruptedDmcProcessor, chipper::parameters::id::nesDmcSampleSlot, 10.0f);
+        setPlainFromHost(corruptedDmcProcessor, chipper::parameters::id::nesDmcPlaybackMode, 0.0f);
+        processEmptyBlock(corruptedDmcProcessor);
+        const auto corruptedInfo = corruptedDmcProcessor.nesDmcSamplePlaybackInfo();
+        const auto corruptedNames = corruptedDmcProcessor.nesDmcSampleNames();
+        ok &= expect(corruptedPayload != nullptr && corruptedInfo.activeSlot == 10 && corruptedInfo.byteCount == 0
+                         && corruptedInfo.statusLine.contains("sample-11.dmc")
+                         && corruptedNames.size() == 32 && corruptedNames[31] == "sample-32.dmc",
+                     "A corrupt middle payload should become a silent tombstone without shifting later note-map slots"
+                         " active=" + std::to_string(corruptedInfo.activeSlot)
+                         + " bytes=" + std::to_string(corruptedInfo.byteCount)
+                         + " names=" + std::to_string(corruptedNames.size())
+                         + " status=" + corruptedInfo.statusLine.toStdString());
+    }
+
     dmcDir.deleteRecursively();
 
     ChipperAudioProcessor emptySpcSampleProcessor;
@@ -2355,6 +2557,15 @@ int main()
 
     juce::MemoryBlock savedSpcState;
     processor.getStateInformation(savedSpcState);
+    auto spcPresetXml = processor.createStateXml();
+    auto spcProjectXml = stateXmlFromBinary(savedSpcState);
+    ok &= expect(spcPresetXml != nullptr
+                     && countElementsNamed(*spcPresetXml, chipper::state::embeddedSampleStateTag) == 0u,
+                 "Shareable SPC700 preset XML should remain reference-only");
+    const auto* spcProjectBank = spcProjectXml != nullptr ? spcProjectXml->getChildByName("CHIPPER_SPC700_BRR_BANK") : nullptr;
+    ok &= expect(spcProjectBank != nullptr
+                     && countElementsNamed(*spcProjectBank, chipper::state::embeddedSampleStateTag) == 3u,
+                 "SPC700 host project state should embed every playable BRR bank slot");
     ChipperAudioProcessor restoredSpcProcessor;
     restoredSpcProcessor.prepareToPlay(48000.0, 64);
     restoredSpcProcessor.setStateInformation(savedSpcState.getData(), static_cast<int>(savedSpcState.getSize()));
@@ -2418,6 +2629,22 @@ int main()
                      "SPC700 manual sample load should clear stale missing-reference restore warnings");
     }
     portableSpcPresetDir.deleteRecursively();
+    brrDir.deleteRecursively();
+    if (spcProjectXml != nullptr)
+    {
+        ChipperAudioProcessor embeddedSpcProcessor;
+        embeddedSpcProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(embeddedSpcProcessor.restoreStateXml(*spcProjectXml).wasOk(),
+                     "SPC700 BRR project state should restore after its source directory is deleted");
+        processEmptyBlock(embeddedSpcProcessor);
+        const auto embeddedBrrNames = embeddedSpcProcessor.spc700BrrSampleNames();
+        const auto embeddedBrrInfo = embeddedSpcProcessor.spc700BrrSampleInfo();
+        ok &= expect(embeddedBrrNames.size() == 3 && embeddedBrrInfo.loaded && embeddedBrrInfo.blockCount == 1
+                         && embeddedBrrInfo.sampleName == "brr-02.brr"
+                         && embeddedBrrInfo.statusLine.contains("Using embedded project copy"),
+                     "SPC700 deleted-source restore should preserve BRR encoding, selection, and bank order");
+    }
+
     brrDir.deleteRecursively();
 
     auto spcWavDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("chipper-spc700-wav-bank-test");
@@ -2491,6 +2718,11 @@ int main()
 
     juce::MemoryBlock savedSpcWavState;
     processor.getStateInformation(savedSpcWavState);
+    auto spcWavProjectXml = stateXmlFromBinary(savedSpcWavState);
+    const auto* spcWavProjectBank = spcWavProjectXml != nullptr ? spcWavProjectXml->getChildByName("CHIPPER_SPC700_BRR_BANK") : nullptr;
+    ok &= expect(spcWavProjectBank != nullptr
+                     && countElementsNamed(*spcWavProjectBank, chipper::state::embeddedSampleStateTag) == 3u,
+                 "SPC700 host project state should embed every playable imported PCM slot");
     ChipperAudioProcessor restoredSpcWavProcessor;
     restoredSpcWavProcessor.prepareToPlay(48000.0, 64);
     restoredSpcWavProcessor.setStateInformation(savedSpcWavState.getData(), static_cast<int>(savedSpcWavState.getSize()));
@@ -2500,6 +2732,22 @@ int main()
     ok &= expect(restoredSpcWavNames.size() == 3, "SPC700 WAV state restore should reload staged sample paths");
     ok &= expect(restoredSpcWavInfo.loaded && restoredSpcWavInfo.sampleName == "spc-wav-02.wav",
                  "SPC700 WAV state restore should preserve the selected slot after processing resumes");
+    spcWavDir.deleteRecursively();
+    if (spcWavProjectXml != nullptr)
+    {
+        ChipperAudioProcessor embeddedSpcWavProcessor;
+        embeddedSpcWavProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(embeddedSpcWavProcessor.restoreStateXml(*spcWavProjectXml).wasOk(),
+                     "SPC700 PCM project state should restore after its source directory is deleted");
+        processEmptyBlock(embeddedSpcWavProcessor);
+        const auto embeddedPcmNames = embeddedSpcWavProcessor.spc700BrrSampleNames();
+        const auto embeddedPcmInfo = embeddedSpcWavProcessor.spc700BrrSampleInfo();
+        ok &= expect(embeddedPcmNames.size() == 3 && embeddedPcmInfo.loaded && embeddedPcmInfo.blockCount == 0
+                         && embeddedPcmInfo.byteCount == 256 && embeddedPcmInfo.sampleName == "spc-wav-02.wav"
+                         && embeddedPcmInfo.statusLine.contains("Using embedded project copy"),
+                     "SPC700 deleted-source restore should preserve imported signed-PCM encoding and selection");
+    }
+
     spcWavDir.deleteRecursively();
 
     ChipperAudioProcessor emptyPaulaSampleProcessor;
@@ -2655,6 +2903,15 @@ int main()
     sendController(processor, 117, controllerValueForChoice(processor, chipper::parameters::id::nesDmcSampleSlot, 3));
     juce::MemoryBlock savedPaulaState;
     processor.getStateInformation(savedPaulaState);
+    auto paulaPresetXml = processor.createStateXml();
+    auto paulaProjectXml = stateXmlFromBinary(savedPaulaState);
+    ok &= expect(paulaPresetXml != nullptr
+                     && countElementsNamed(*paulaPresetXml, chipper::state::embeddedSampleStateTag) == 0u,
+                 "Shareable Paula preset XML should remain reference-only");
+    const auto* paulaProjectBank = paulaProjectXml != nullptr ? paulaProjectXml->getChildByName("CHIPPER_PAULA_SAMPLE_BANK") : nullptr;
+    ok &= expect(paulaProjectBank != nullptr
+                     && countElementsNamed(*paulaProjectBank, chipper::state::embeddedSampleStateTag) == 6u,
+                 "Paula host project state should embed every playable sample-bank slot");
     ChipperAudioProcessor restoredPaulaProcessor;
     restoredPaulaProcessor.prepareToPlay(48000.0, 64);
     restoredPaulaProcessor.setStateInformation(savedPaulaState.getData(), static_cast<int>(savedPaulaState.getSize()));
@@ -2749,6 +3006,10 @@ int main()
                  "CC117 should select one-shot MOD samples without inventing loop metadata");
     juce::MemoryBlock savedPaulaModState;
     paulaModProcessor.getStateInformation(savedPaulaModState);
+    auto paulaModProjectXml = stateXmlFromBinary(savedPaulaModState);
+    ok &= expect(paulaModProjectXml != nullptr
+                     && countElementsNamed(*paulaModProjectXml, chipper::state::embeddedSampleStateTag) == 2u,
+                 "Paula MOD project state should embed each extracted instrument independently");
     ChipperAudioProcessor restoredPaulaModProcessor;
     restoredPaulaModProcessor.prepareToPlay(48000.0, 64);
     restoredPaulaModProcessor.setStateInformation(savedPaulaModState.getData(), static_cast<int>(savedPaulaModState.getSize()));
@@ -2759,6 +3020,47 @@ int main()
     ok &= expect(restoredPaulaModInfo.loaded && restoredPaulaModInfo.sampleName.contains("#02 One Shot")
                      && restoredPaulaModInfo.byteCount == 32 && ! restoredPaulaModInfo.hasLoop,
                  "Paula state restore should preserve the selected extracted MOD sample slot");
+    paulaModFile.deleteFile();
+    if (paulaModProjectXml != nullptr)
+    {
+        ChipperAudioProcessor embeddedPaulaModProcessor;
+        embeddedPaulaModProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(embeddedPaulaModProcessor.restoreStateXml(*paulaModProjectXml).wasOk(),
+                     "Paula MOD project state should restore after its module source is deleted");
+        processEmptyBlock(embeddedPaulaModProcessor);
+        const auto embeddedModNames = embeddedPaulaModProcessor.paulaSampleNames();
+        const auto embeddedOneShot = embeddedPaulaModProcessor.paulaSampleInfo();
+        ok &= expect(embeddedModNames.size() == 2 && embeddedOneShot.loaded
+                         && embeddedOneShot.sampleName.contains("#02 One Shot") && embeddedOneShot.byteCount == 32
+                         && embeddedOneShot.statusLine.contains("Using embedded project copy"),
+                     "Paula MOD deleted-source restore should preserve the selected one-shot instrument");
+        setPlainFromHost(embeddedPaulaModProcessor, chipper::parameters::id::nesDmcSampleSlot, 0.0f);
+        processEmptyBlock(embeddedPaulaModProcessor);
+        const auto embeddedLoopedMod = embeddedPaulaModProcessor.paulaSampleInfo();
+        ok &= expect(embeddedLoopedMod.loaded && embeddedLoopedMod.sampleName.contains("#01 Loop Bass")
+                         && embeddedLoopedMod.hasLoop && embeddedLoopedMod.loopStartSample == 16
+                         && embeddedLoopedMod.loopEndSample == 48,
+                     "Paula MOD embedded restore should preserve source-instrument identity and loop metadata");
+    }
+
+    paulaDir.deleteRecursively();
+    if (paulaProjectXml != nullptr)
+    {
+        ChipperAudioProcessor embeddedPaulaProcessor;
+        embeddedPaulaProcessor.prepareToPlay(48000.0, 64);
+        ok &= expect(embeddedPaulaProcessor.restoreStateXml(*paulaProjectXml).wasOk(),
+                     "Paula project state should restore after its sample directory is deleted");
+        processEmptyBlock(embeddedPaulaProcessor);
+        const auto embeddedPaulaNames = embeddedPaulaProcessor.paulaSampleNames();
+        const auto embeddedPaulaInfo = embeddedPaulaProcessor.paulaSampleInfo();
+        ok &= expect(embeddedPaulaNames.size() == 6 && embeddedPaulaInfo.loaded
+                         && embeddedPaulaInfo.sampleName == "paula-03.wav"
+                         && embeddedPaulaInfo.hasLoop && embeddedPaulaInfo.loopStartSample == 32
+                         && embeddedPaulaInfo.loopEndSample == 160
+                         && embeddedPaulaInfo.statusLine.contains("Using embedded project copy"),
+                     "Paula deleted-source restore should preserve PCM encoding, bank order, selection, and loop metadata");
+    }
+
     paulaModFile.deleteFile();
     portablePaulaPresetDir.deleteRecursively();
     paulaDir.deleteRecursively();

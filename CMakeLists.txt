@@ -3892,7 +3892,10 @@ target_link_libraries(chipper_processor_midi_cc_smoke
 add_test(NAME chipper_processor_midi_cc_smoke
     COMMAND chipper_processor_midi_cc_smoke
 )
-set_tests_properties(chipper_processor_midi_cc_smoke PROPERTIES TIMEOUT 30)
+set_tests_properties(chipper_processor_midi_cc_smoke PROPERTIES
+    TIMEOUT 30
+    LABELS "state;release-gate"
+)
 
 add_executable(chipper_processor_performance_smoke
     tests/processor_performance_smoke.cpp

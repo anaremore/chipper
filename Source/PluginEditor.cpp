@@ -15886,6 +15886,8 @@ void ChipperAudioProcessorEditor::updateOpn2DacSampleControls()
         : juce::String("Generated fallback");
     if (info.statusLine.containsIgnoreCase("restore issue"))
         visibleStatus = "Missing file | click File to relink";
+    else if (info.statusLine.containsIgnoreCase("Using embedded project copy"))
+        visibleStatus += " | project copy";
     if (info.truncated)
         visibleStatus += " | truncated";
     dmcSampleStatusLabel.setText(visibleStatus, juce::dontSendNotification);

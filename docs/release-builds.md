@@ -153,8 +153,10 @@ Before a release is considered usable, keep these checks green:
   ```
 
   It discovers the built VST3 class through JUCE's VST3 host, instantiates the
-  bundle twice, automates parameters, round-trips state with an external DMC
-  asset, and compares the reopened render with the saved instance. This is the
+  bundle twice, automates parameters, saves an external DMC asset with only the
+  DMC source audible, deletes the source file, restores from the bounded embedded
+  project copy, verifies that the fallback is re-saved, and compares the reopened
+  render with the saved instance. This is the
   reproducible host-boundary gate; at least one manual Windows DAW scan/load/
   project-save/reopen check remains required for release UX. Linux and macOS
   manual host checks are required before those platforms are advertised as host-tested.

@@ -108,7 +108,7 @@ bool injectDmcAsset(juce::MemoryBlock& state, const juce::File& asset)
     return true;
 }
 
-bool stateContainsDmcAsset(const juce::MemoryBlock& state, const juce::File& asset)
+bool stateContainsDmcAsset(const juce::MemoryBlock& state, const juce::File& asset, bool requireEmbeddedPayload)
 {
     const auto hostState = juce::AudioProcessor::getXmlFromBinary(state.getData(), static_cast<int>(state.getSize()));
     if (hostState == nullptr || ! hostState->hasTagName("VST3PluginState"))
@@ -129,9 +129,15 @@ bool stateContainsDmcAsset(const juce::MemoryBlock& state, const juce::File& ass
         return false;
 
     const auto* sample = bank->getChildByName("DMC_SAMPLE");
-    return sample != nullptr
+    const auto pathMatches = sample != nullptr
         && sample->getBoolAttribute("included", false)
         && juce::File(sample->getStringAttribute("path")) == asset;
+    const auto* payload = sample != nullptr ? sample->getChildByName("CHIPPER_EMBEDDED_SAMPLE") : nullptr;
+    return pathMatches
+        && (! requireEmbeddedPayload
+            || (payload != nullptr && payload->getIntAttribute("formatVersion") == 1
+                && payload->getIntAttribute("byteCount") == 32
+                && payload->getAllSubText().isNotEmpty()));
 }
 
 void processSilentBlock(juce::AudioPluginInstance& instance)
@@ -251,10 +257,15 @@ int main(int argc, char** argv)
     ok &= expect(original->getParameters().size() >= 96,
                  "The VST3 host should expose all Chipper parameters in addition to any JUCE MIDI proxy parameters");
 
-    const std::array<std::pair<juce::String, float>, 3> automatedParameters {
+    const std::array<std::pair<juce::String, float>, 8> automatedParameters {
         std::pair { juce::String("Output Level"), 0.71f },
         std::pair { juce::String("Behavior Strictness (Reserved)"), 1.0f },
-        std::pair { juce::String("Native Control 1"), 0.83f }
+        std::pair { juce::String("Native Control 1"), 0.83f },
+        std::pair { juce::String("Source 1 Enabled"), 0.0f },
+        std::pair { juce::String("Source 2 Enabled"), 0.0f },
+        std::pair { juce::String("Source 3 Enabled"), 0.0f },
+        std::pair { juce::String("Source 4 Enabled"), 0.0f },
+        std::pair { juce::String("Source 5 Enabled"), 1.0f }
     };
     for (const auto& [name, value] : automatedParameters)
     {
@@ -273,8 +284,8 @@ int main(int argc, char** argv)
 
     juce::MemoryBlock savedProjectState;
     original->getStateInformation(savedProjectState);
-    ok &= expect(stateContainsDmcAsset(savedProjectState, dmcAsset),
-                 "VST3 project state should retain the loaded external DMC path");
+    ok &= expect(stateContainsDmcAsset(savedProjectState, dmcAsset, true),
+                 "VST3 project state should retain the DMC source path and its embedded project payload");
 
     std::array<float, automatedParameters.size()> savedParameterValues {};
     for (size_t index = 0; index < automatedParameters.size(); ++index)
@@ -283,6 +294,8 @@ int main(int argc, char** argv)
             savedParameterValues[index] = parameter->getValue();
     }
     const auto originalRender = renderAudition(*original);
+    ok &= expect(dmcAsset.deleteFile(),
+                 "The VST3 host-state regression should delete the DMC source before reopening the project");
     original->releaseResources();
     original.reset();
 
@@ -309,8 +322,8 @@ int main(int argc, char** argv)
 
     juce::MemoryBlock reopenedState;
     reopened->getStateInformation(reopenedState);
-    ok &= expect(stateContainsDmcAsset(reopenedState, dmcAsset),
-                 "Reopened VST3 should re-save the same external DMC reference");
+    ok &= expect(stateContainsDmcAsset(reopenedState, dmcAsset, true),
+                 "Reopened VST3 should re-save the missing source reference and embedded DMC project payload");
 
     const auto reopenedRender = renderAudition(*reopened);
     const auto renderError = normalizedRmse(originalRender, reopenedRender);

@@ -53,6 +53,12 @@ public:
         bool bypassedForChipPoly = false;
     };
 
+    enum class StateAssetPolicy
+    {
+        referencesOnly,
+        embedProjectAssets
+    };
+
     struct DmcSampleSlot
     {
         juce::String name;
@@ -64,6 +70,7 @@ public:
         size_t loopEnd = 0;
         bool included = true;
         int sourceSampleIndex = -1;
+        size_t sourceByteCount = 0u;
     };
 
     struct DmcSampleEntryInfo
@@ -192,7 +199,7 @@ public:
 
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
-    std::unique_ptr<juce::XmlElement> createStateXml();
+    std::unique_ptr<juce::XmlElement> createStateXml(StateAssetPolicy assetPolicy = StateAssetPolicy::referencesOnly);
     juce::Result restoreStateXml(const juce::XmlElement& sourceXml);
     juce::Result restoreStateXml(const juce::XmlElement& sourceXml, const juce::File& presetDirectory);
 
@@ -292,6 +299,9 @@ private:
     };
 
     void ensureCore();
+    juce::Result restoreStateXmlInternal(const juce::XmlElement& sourceXml,
+                                         const juce::File& presetDirectory,
+                                         bool allowEmbeddedProjectAssets);
     void initializeCorePool();
     void synchronizeActiveExternalAssets(chipper::ChipMode mode);
     static size_t corePoolIndex(chipper::ChipMode mode) noexcept;

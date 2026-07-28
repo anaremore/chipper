@@ -9145,11 +9145,9 @@ public:
             }
 
             if (! decoded.empty())
-            {
                 decodedLoopStart = decodedLoopStart < decoded.size() ? decodedLoopStart : 0;
-                externalBrrBank.push_back(decoded);
-                externalBrrLoopStarts.push_back(decodedLoopStart);
-            }
+            externalBrrBank.push_back(std::move(decoded));
+            externalBrrLoopStarts.push_back(decodedLoopStart);
         }
 
         if (externalBrrBank.empty())
@@ -16272,9 +16270,6 @@ public:
             sample.data.reserve(source.bytes.size());
             for (const auto byte : source.bytes)
                 sample.data.push_back((static_cast<double>(byte) - 128.0) / 128.0);
-
-            if (sample.data.empty())
-                continue;
 
             const auto sampleLength = sample.data.size();
             if (source.hasLoop && source.loopStart + 1u < source.loopEnd && source.loopEnd <= sampleLength)

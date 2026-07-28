@@ -18,6 +18,7 @@ The project is intentionally honest about accuracy. A mode is only labeled accur
 
 - Chip-aware VST3 instrument built with JUCE.
 - User-facing controls map to chip-native ideas such as pulse duty, PSG noise modes, SID filter routing, FM algorithms, BRR/DMC sample playback, and wavetable source lanes.
+- DAW project saves carry bounded, checksummed fallback copies of user-owned sample assets, so moved DMC/SPC700/Paula/OPN2/OPNA/OPNB sources can be relinked without losing the saved sound; shareable `.chipperpreset` files remain reference-only.
 - Factory presets are chip-local and update the visible controls instead of hiding decisions inside opaque macros.
 - Every plugin parameter has a fixed MIDI CC mapping for hardware control and Ableton Configure workflows.
 - A separate `chipper_render` command-line tool renders WAV plus debug JSON for regression tests and emulator validation.

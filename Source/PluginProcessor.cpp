@@ -10,6 +10,7 @@
 #include <array>
 #include <cstring>
 #include <filesystem>
+#include <limits>
 #include <string_view>
 #include <thread>
 
@@ -36,6 +37,11 @@ constexpr auto opnaRhythmRomBytes = 8192;
 constexpr auto opnaAdpcmBMemoryBytes = 262144;
 constexpr auto opnbAdpcmAMemoryBytes = 1048576;
 constexpr auto opnbAdpcmBMemoryBytes = 16777216;
+constexpr size_t maxEmbeddedOpn2Bytes = 1u * 1024u * 1024u;
+constexpr size_t maxEmbeddedOpnaRhythmBytes = 64u * 1024u;
+constexpr size_t maxEmbeddedOpnaAdpcmBBytes = 1u * 1024u * 1024u;
+constexpr size_t maxEmbeddedOpnbAdpcmABytes = 2u * 1024u * 1024u;
+constexpr size_t maxEmbeddedOpnbAdpcmBBytes = 16u * 1024u * 1024u;
 
 juce::String midiNoteName(int note)
 {
@@ -702,6 +708,406 @@ void appendRestoreWarning(juce::String& statusLine, const juce::String& warning)
         statusLine = warning;
     else
         statusLine += " | " + warning;
+}
+
+enum class EmbeddedSampleFamily
+{
+    dmc,
+    spc700,
+    paula,
+    rawMemory
+};
+
+struct EmbeddedSampleBudget
+{
+    size_t payloadCount = 0u;
+    size_t totalBytes = 0u;
+};
+
+struct EmbeddedSampleRestore
+{
+    bool present = false;
+    bool restored = false;
+    juce::String error;
+};
+
+juce::String externalSampleEncodingToken(chipper::ExternalSampleEncoding encoding)
+{
+    switch (encoding)
+    {
+        case chipper::ExternalSampleEncoding::spc700Brr: return "spc700Brr";
+        case chipper::ExternalSampleEncoding::signedPcm8: return "signedPcm8";
+        case chipper::ExternalSampleEncoding::rawBytes:
+        default: return "rawBytes";
+    }
+}
+
+bool parseExternalSampleEncoding(const juce::String& token, chipper::ExternalSampleEncoding& encoding)
+{
+    if (token == "rawBytes")
+        encoding = chipper::ExternalSampleEncoding::rawBytes;
+    else if (token == "spc700Brr")
+        encoding = chipper::ExternalSampleEncoding::spc700Brr;
+    else if (token == "signedPcm8")
+        encoding = chipper::ExternalSampleEncoding::signedPcm8;
+    else
+        return false;
+    return true;
+}
+
+bool parseSizeAttribute(const juce::XmlElement& element, const char* attributeName, size_t& value)
+{
+    const auto text = element.getStringAttribute(attributeName).trim();
+    if (text.isEmpty() || text.length() > 18 || ! text.containsOnly("0123456789"))
+        return false;
+
+    const auto parsed = text.getLargeIntValue();
+    if (parsed < 0)
+        return false;
+    value = static_cast<size_t>(parsed);
+    return static_cast<juce::int64>(value) == parsed;
+}
+
+bool parseSignedIntAttribute(const juce::XmlElement& element, const char* attributeName, int& value)
+{
+    const auto text = element.getStringAttribute(attributeName).trim();
+    if (text.isEmpty() || text.length() > 11)
+        return false;
+
+    auto digits = text;
+    if (digits.startsWithChar('-'))
+        digits = digits.substring(1);
+    if (digits.isEmpty() || ! digits.containsOnly("0123456789"))
+        return false;
+
+    const auto parsed = text.getLargeIntValue();
+    if (parsed < std::numeric_limits<int>::min() || parsed > std::numeric_limits<int>::max())
+        return false;
+    value = static_cast<int>(parsed);
+    return true;
+}
+
+uint32_t embeddedSampleChecksum(const uint8_t* bytes, size_t byteCount)
+{
+    auto hash = uint32_t { 2166136261u };
+    for (size_t index = 0; index < byteCount; ++index)
+    {
+        hash ^= bytes[index];
+        hash *= 16777619u;
+    }
+    return hash;
+}
+
+size_t sampleSourceByteCount(const ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    return slot.sourceByteCount > 0u ? slot.sourceByteCount : slot.bytes.size();
+}
+
+int reportedSampleByteCount(const ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    return static_cast<int>(std::min(sampleSourceByteCount(slot),
+                                     static_cast<size_t>(std::numeric_limits<int>::max())));
+}
+
+void addSampleReferenceMetadata(juce::XmlElement& sampleState,
+                                const ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    sampleState.setAttribute("name", slot.name);
+    sampleState.setAttribute("encoding", externalSampleEncodingToken(slot.encoding));
+    sampleState.setAttribute("hasLoop", slot.hasLoop ? 1 : 0);
+    sampleState.setAttribute("loopStart", juce::String(static_cast<juce::int64>(slot.loopStart)));
+    sampleState.setAttribute("loopEnd", juce::String(static_cast<juce::int64>(slot.loopEnd)));
+    sampleState.setAttribute("sourceSampleIndex", slot.sourceSampleIndex);
+    sampleState.setAttribute("sourceByteCount",
+                             juce::String(static_cast<juce::int64>(sampleSourceByteCount(slot))));
+}
+
+bool addEmbeddedSamplePayload(juce::XmlElement& sampleState,
+                              const ChipperAudioProcessor::DmcSampleSlot& slot,
+                              size_t maxPayloadBytes,
+                              EmbeddedSampleBudget& budget)
+{
+    if (slot.bytes.empty()
+        || slot.bytes.size() > maxPayloadBytes
+        || budget.payloadCount >= chipper::state::maxEmbeddedSamplePayloads
+        || slot.bytes.size() > chipper::state::maxEmbeddedProjectBytes - budget.totalBytes)
+        return false;
+
+    auto* embedded = new juce::XmlElement(chipper::state::embeddedSampleStateTag);
+    embedded->setAttribute("formatVersion", chipper::state::embeddedSampleFormatVersion);
+    embedded->setAttribute("byteCount", juce::String(static_cast<juce::int64>(slot.bytes.size())));
+    embedded->setAttribute("checksum",
+                           "fnv1a32:" + juce::String(static_cast<juce::int64>(
+                               embeddedSampleChecksum(slot.bytes.data(), slot.bytes.size()))));
+    const juce::MemoryBlock payload(slot.bytes.data(), slot.bytes.size());
+    embedded->addTextElement(payload.toBase64Encoding());
+    sampleState.addChildElement(embedded);
+    ++budget.payloadCount;
+    budget.totalBytes += slot.bytes.size();
+    return true;
+}
+
+bool isEmbeddedSampleParentTag(const juce::String& tagName)
+{
+    return tagName == dmcSampleStateTag
+        || tagName == spc700BrrSampleStateTag
+        || tagName == paulaSampleStateTag
+        || tagName == spc700BrrStateTag
+        || tagName == opn2DacSampleStateTag
+        || tagName == opnaRhythmRomStateTag
+        || tagName == opnaAdpcmBSampleStateTag
+        || tagName == opnbAdpcmASampleStateTag
+        || tagName == opnbAdpcmBSampleStateTag;
+}
+
+juce::Result validateEmbeddedPayloadStructure(const juce::XmlElement& element,
+                                              bool allowEmbeddedProjectAssets,
+                                              EmbeddedSampleBudget& budget)
+{
+    auto directPayloadCount = 0u;
+    for (const auto* child : element.getChildIterator())
+        if (child != nullptr && child->hasTagName(chipper::state::embeddedSampleStateTag))
+            ++directPayloadCount;
+
+    if (directPayloadCount > 0u && ! isEmbeddedSampleParentTag(element.getTagName()))
+        return juce::Result::fail("Embedded sample data appears outside a supported sample reference.");
+    if (directPayloadCount > 1u)
+        return juce::Result::fail("A sample reference contains duplicate embedded project payloads.");
+    if (directPayloadCount > 0u && ! allowEmbeddedProjectAssets)
+        return juce::Result::fail("Shareable Chipper presets may contain sample references, not embedded sample data.");
+
+    if (directPayloadCount == 1u)
+    {
+        const auto* payload = element.getChildByName(chipper::state::embeddedSampleStateTag);
+        size_t byteCount = 0u;
+        if (payload == nullptr
+            || payload->getStringAttribute("formatVersion").trim()
+                != juce::String(chipper::state::embeddedSampleFormatVersion)
+            || ! parseSizeAttribute(*payload, "byteCount", byteCount)
+            || byteCount == 0u)
+            return juce::Result::fail("An embedded sample payload has invalid structural metadata.");
+
+        if (budget.payloadCount >= chipper::state::maxEmbeddedSamplePayloads)
+            return juce::Result::fail("This Chipper state contains too many embedded sample payloads.");
+        if (byteCount > chipper::state::maxEmbeddedProjectBytes - budget.totalBytes)
+            return juce::Result::fail("This Chipper state exceeds the embedded sample byte budget.");
+
+        const auto encoded = payload->getAllSubText();
+        const auto maxEncodedCharacters = byteCount * 2u + 128u;
+        if (static_cast<size_t>(encoded.length()) > maxEncodedCharacters)
+            return juce::Result::fail("An embedded sample payload exceeds its encoded-size bound.");
+
+        ++budget.payloadCount;
+        budget.totalBytes += byteCount;
+    }
+
+    for (const auto* child : element.getChildIterator())
+    {
+        if (child == nullptr)
+            continue;
+        if (const auto result = validateEmbeddedPayloadStructure(*child, allowEmbeddedProjectAssets, budget);
+            result.failed())
+            return result;
+    }
+    return juce::Result::ok();
+}
+
+bool encodingAllowedForFamily(chipper::ExternalSampleEncoding encoding, EmbeddedSampleFamily family)
+{
+    switch (family)
+    {
+        case EmbeddedSampleFamily::dmc:
+        case EmbeddedSampleFamily::rawMemory:
+            return encoding == chipper::ExternalSampleEncoding::rawBytes;
+        case EmbeddedSampleFamily::spc700:
+            return encoding == chipper::ExternalSampleEncoding::spc700Brr
+                || encoding == chipper::ExternalSampleEncoding::signedPcm8;
+        case EmbeddedSampleFamily::paula:
+            return encoding == chipper::ExternalSampleEncoding::signedPcm8;
+    }
+    return false;
+}
+
+size_t embeddedLoopSampleCapacity(chipper::ExternalSampleEncoding encoding, size_t byteCount)
+{
+    return encoding == chipper::ExternalSampleEncoding::spc700Brr
+        ? (byteCount / 9u) * 16u
+        : byteCount;
+}
+
+EmbeddedSampleRestore restoreEmbeddedSample(const juce::XmlElement& sampleState,
+                                            ChipperAudioProcessor::DmcSampleSlot& slot,
+                                            EmbeddedSampleFamily family,
+                                            size_t maxPayloadBytes)
+{
+    EmbeddedSampleRestore result;
+    const auto* payload = sampleState.getChildByName(chipper::state::embeddedSampleStateTag);
+    if (payload == nullptr)
+        return result;
+    result.present = true;
+
+    size_t byteCount = 0u;
+    if (! parseSizeAttribute(*payload, "byteCount", byteCount)
+        || byteCount == 0u
+        || byteCount > maxPayloadBytes)
+    {
+        result.error = "embedded project copy exceeds this sample family's byte limit";
+        return result;
+    }
+
+    chipper::ExternalSampleEncoding encoding {};
+    if (! parseExternalSampleEncoding(sampleState.getStringAttribute("encoding").trim(), encoding)
+        || ! encodingAllowedForFamily(encoding, family))
+    {
+        result.error = "embedded project copy has an invalid sample encoding";
+        return result;
+    }
+    if (encoding == chipper::ExternalSampleEncoding::spc700Brr && (byteCount % 9u) != 0u)
+    {
+        result.error = "embedded BRR project copy is not a whole number of 9-byte blocks";
+        return result;
+    }
+
+    const auto name = sampleState.getStringAttribute("name").trim();
+    if (name.isEmpty() || name.length() > 255)
+    {
+        result.error = "embedded project copy has an invalid sample name";
+        return result;
+    }
+
+    const auto encoded = payload->getAllSubText().trim();
+    if (static_cast<size_t>(encoded.length()) > byteCount * 2u + 128u)
+    {
+        result.error = "embedded project copy exceeds its encoded-size bound";
+        return result;
+    }
+
+    juce::MemoryBlock decoded;
+    if (! decoded.fromBase64Encoding(encoded) || decoded.getSize() != byteCount)
+    {
+        result.error = "embedded project copy has invalid Base64 or byte-count metadata";
+        return result;
+    }
+
+    const auto checksumText = payload->getStringAttribute("checksum").trim();
+    if (! checksumText.startsWith("fnv1a32:"))
+    {
+        result.error = "embedded project copy has invalid checksum metadata";
+        return result;
+    }
+    const auto checksumDigits = checksumText.substring(8);
+    if (checksumDigits.isEmpty() || checksumDigits.length() > 10 || ! checksumDigits.containsOnly("0123456789"))
+    {
+        result.error = "embedded project copy has invalid checksum metadata";
+        return result;
+    }
+    const auto expectedChecksumValue = checksumDigits.getLargeIntValue();
+    if (expectedChecksumValue < 0
+        || expectedChecksumValue > static_cast<juce::int64>(std::numeric_limits<uint32_t>::max())
+        || embeddedSampleChecksum(static_cast<const uint8_t*>(decoded.getData()), decoded.getSize())
+            != static_cast<uint32_t>(expectedChecksumValue))
+    {
+        result.error = "embedded project copy failed its checksum";
+        return result;
+    }
+
+    const auto hasLoopText = sampleState.getStringAttribute("hasLoop", "0").trim();
+    if (hasLoopText != "0" && hasLoopText != "1")
+    {
+        result.error = "embedded project copy has invalid loop metadata";
+        return result;
+    }
+    const auto hasLoop = hasLoopText == "1";
+    size_t loopStart = 0u;
+    size_t loopEnd = 0u;
+    if (hasLoop
+        && (! parseSizeAttribute(sampleState, "loopStart", loopStart)
+            || ! parseSizeAttribute(sampleState, "loopEnd", loopEnd)
+            || loopStart + 1u >= loopEnd
+            || loopEnd > embeddedLoopSampleCapacity(encoding, byteCount)))
+    {
+        result.error = "embedded project copy has invalid loop bounds";
+        return result;
+    }
+    if (hasLoop && (family == EmbeddedSampleFamily::dmc || family == EmbeddedSampleFamily::rawMemory))
+    {
+        result.error = "embedded project copy has loop metadata unsupported by this sample family";
+        return result;
+    }
+
+    auto sourceSampleIndex = -1;
+    if (! parseSignedIntAttribute(sampleState, "sourceSampleIndex", sourceSampleIndex)
+        || (family == EmbeddedSampleFamily::paula
+            ? (sourceSampleIndex < -1 || sourceSampleIndex > 30)
+            : sourceSampleIndex != -1))
+    {
+        result.error = "embedded project copy has an invalid source-sample index";
+        return result;
+    }
+
+    size_t sourceByteCount = byteCount;
+    if (sampleState.hasAttribute("sourceByteCount")
+        && (! parseSizeAttribute(sampleState, "sourceByteCount", sourceByteCount)
+            || sourceByteCount < byteCount))
+    {
+        result.error = "embedded project copy has invalid source-byte metadata";
+        return result;
+    }
+
+    slot.name = name;
+    slot.path = sampleState.getStringAttribute("path");
+    slot.encoding = encoding;
+    slot.hasLoop = hasLoop;
+    slot.loopStart = hasLoop ? loopStart : 0u;
+    slot.loopEnd = hasLoop ? loopEnd : 0u;
+    slot.sourceSampleIndex = sourceSampleIndex;
+    slot.sourceByteCount = sourceByteCount;
+    slot.bytes.resize(byteCount);
+    std::memcpy(slot.bytes.data(), decoded.getData(), byteCount);
+    result.restored = true;
+    return result;
+}
+
+ChipperAudioProcessor::DmcSampleSlot sampleTombstone(const juce::XmlElement& sampleState,
+                                                     EmbeddedSampleFamily family)
+{
+    ChipperAudioProcessor::DmcSampleSlot slot;
+    slot.path = sampleState.getStringAttribute("path");
+    slot.name = sampleState.getStringAttribute("name").trim();
+    if (slot.name.isEmpty())
+        slot.name = juce::File(slot.path).getFileName();
+    if (slot.name.isEmpty())
+        slot.name = "Missing sample";
+
+    chipper::ExternalSampleEncoding parsedEncoding {};
+    if (parseExternalSampleEncoding(sampleState.getStringAttribute("encoding").trim(), parsedEncoding)
+        && encodingAllowedForFamily(parsedEncoding, family))
+        slot.encoding = parsedEncoding;
+    else if (family == EmbeddedSampleFamily::spc700
+             && juce::File(slot.path).hasFileExtension(".wav;.aif;.aiff"))
+        slot.encoding = chipper::ExternalSampleEncoding::signedPcm8;
+    else if (family == EmbeddedSampleFamily::paula)
+        slot.encoding = chipper::ExternalSampleEncoding::signedPcm8;
+
+    auto sourceSampleIndex = -1;
+    if (parseSignedIntAttribute(sampleState, "sourceSampleIndex", sourceSampleIndex))
+        slot.sourceSampleIndex = sourceSampleIndex;
+    return slot;
+}
+
+juce::String sampleRestoreStatusLine(const juce::String& label,
+                                     const juce::StringArray& issues,
+                                     const juce::StringArray& embeddedFallbacks)
+{
+    juce::String status;
+    if (! embeddedFallbacks.isEmpty())
+    {
+        status = "Using embedded project copy for " + embeddedFallbacks[0] + "; relink source";
+        if (embeddedFallbacks.size() > 1)
+            status += " (+" + juce::String(embeddedFallbacks.size() - 1) + " more)";
+    }
+    appendRestoreWarning(status, restoreWarningLine(label, issues));
+    return status;
 }
 
 juce::Result readPcm8SampleFile(const juce::File& file,
@@ -1628,7 +2034,7 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::spc700BrrSampl
     Spc700BrrSampleInfo info;
     const std::lock_guard<std::mutex> lock(spc700SampleMutex);
     const auto restoreWarning = spc700SampleRestoreWarning;
-    if (spc700BrrSample.bytes.empty())
+    if (spc700BrrSampleBank.empty() && spc700BrrSample.bytes.empty())
     {
         info.statusLine = "Generated SPC700 template active; load File/Folder for external samples";
         appendRestoreWarning(info.statusLine, restoreWarning);
@@ -1723,7 +2129,7 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::paulaSampleInf
     Spc700BrrSampleInfo info;
     const std::lock_guard<std::mutex> lock(paulaSampleMutex);
     const auto restoreWarning = paulaSampleRestoreWarning;
-    if (paulaSample.bytes.empty())
+    if (paulaSampleBank.empty() && paulaSample.bytes.empty())
     {
         info.statusLine = "No external Paula sample bank loaded";
         appendRestoreWarning(info.statusLine, restoreWarning);
@@ -1824,7 +2230,7 @@ ChipperAudioProcessor::Opn2DacSampleInfo ChipperAudioProcessor::opn2DacSampleInf
     info.loaded = true;
     info.sampleName = opn2DacSample.name;
     info.path = opn2DacSample.path;
-    info.byteCount = static_cast<int>(opn2DacSample.bytes.size());
+    info.byteCount = reportedSampleByteCount(opn2DacSample);
     info.copiedByteCount = std::min(info.byteCount, info.memoryByteCount);
     info.truncated = info.byteCount > info.memoryByteCount;
     info.statusLine = juce::String("DAC sample: ") + info.sampleName + " ("
@@ -1852,7 +2258,7 @@ ChipperAudioProcessor::OpnaRhythmRomInfo ChipperAudioProcessor::opnaRhythmRomInf
     info.loaded = true;
     info.sampleName = opnaRhythmRom.name;
     info.path = opnaRhythmRom.path;
-    info.byteCount = static_cast<int>(opnaRhythmRom.bytes.size());
+    info.byteCount = reportedSampleByteCount(opnaRhythmRom);
     info.copiedByteCount = std::min(info.byteCount, info.romByteCount);
     info.truncated = info.byteCount > info.romByteCount;
     info.statusLine = juce::String("User rhythm ROM: ") + info.sampleName + " ("
@@ -1880,7 +2286,7 @@ ChipperAudioProcessor::OpnaAdpcmBSampleInfo ChipperAudioProcessor::opnaAdpcmBSam
     info.loaded = true;
     info.sampleName = opnaAdpcmBSample.name;
     info.path = opnaAdpcmBSample.path;
-    info.byteCount = static_cast<int>(opnaAdpcmBSample.bytes.size());
+    info.byteCount = reportedSampleByteCount(opnaAdpcmBSample);
     info.copiedByteCount = std::min(info.byteCount, info.memoryByteCount);
     info.truncated = info.byteCount > info.memoryByteCount;
     info.statusLine = juce::String("ADPCM-B sample: ") + info.sampleName + " ("
@@ -1908,7 +2314,7 @@ ChipperAudioProcessor::OpnbAdpcmSampleInfo ChipperAudioProcessor::opnbAdpcmASamp
     info.loaded = true;
     info.sampleName = opnbAdpcmASample.name;
     info.path = opnbAdpcmASample.path;
-    info.byteCount = static_cast<int>(opnbAdpcmASample.bytes.size());
+    info.byteCount = reportedSampleByteCount(opnbAdpcmASample);
     info.copiedByteCount = std::min(info.byteCount, info.memoryByteCount);
     info.truncated = info.byteCount > info.memoryByteCount;
     info.statusLine = juce::String("ADPCM-A sample: ") + info.sampleName + " ("
@@ -1936,7 +2342,7 @@ ChipperAudioProcessor::OpnbAdpcmSampleInfo ChipperAudioProcessor::opnbAdpcmBSamp
     info.loaded = true;
     info.sampleName = opnbAdpcmBSample.name;
     info.path = opnbAdpcmBSample.path;
-    info.byteCount = static_cast<int>(opnbAdpcmBSample.bytes.size());
+    info.byteCount = reportedSampleByteCount(opnbAdpcmBSample);
     info.copiedByteCount = std::min(info.byteCount, info.memoryByteCount);
     info.truncated = info.byteCount > info.memoryByteCount;
     info.statusLine = juce::String("ADPCM-B sample: ") + info.sampleName + " ("
@@ -3966,7 +4372,7 @@ juce::AudioProcessorEditor* ChipperAudioProcessor::createEditor()
     return new ChipperAudioProcessorEditor(*this);
 }
 
-std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
+std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml(StateAssetPolicy assetPolicy)
 {
     const juce::ScopedLock callbackGuard(getCallbackLock());
     const auto state = apvts.copyState();
@@ -3975,6 +4381,8 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
         return {};
 
     xml->setAttribute(chipper::state::schemaVersionAttribute, chipper::state::currentSchemaVersion);
+    const auto embedProjectAssets = assetPolicy == StateAssetPolicy::embedProjectAssets;
+    EmbeddedSampleBudget embeddedBudget;
 
     while (auto* existingCoreState = xml->getChildByName(coreStateTag))
         xml->removeChildElement(existingCoreState, true);
@@ -4039,11 +4447,19 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
         {
             auto* dmcBankState = new juce::XmlElement(dmcBankStateTag);
             dmcBankState->setAttribute("count", static_cast<int>(dmcSampleBank.size()));
+            auto playableSlotCount = size_t { 0u };
             for (const auto& slot : dmcSampleBank)
             {
                 auto* sample = new juce::XmlElement(dmcSampleStateTag);
                 sample->setAttribute("path", slot.path);
                 sample->setAttribute("included", slot.included ? 1 : 0);
+                addSampleReferenceMetadata(*sample, slot);
+                if (embedProjectAssets
+                    && slot.included
+                    && playableSlotCount < chipper::state::maxEmbeddedSampleSlotsPerBank)
+                    addEmbeddedSamplePayload(*sample, slot, chipper::state::maxEmbeddedBankSlotBytes, embeddedBudget);
+                if (slot.included)
+                    ++playableSlotCount;
                 dmcBankState->addChildElement(sample);
             }
 
@@ -4057,20 +4473,31 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
         {
             auto* spcBrrBankState = new juce::XmlElement(spc700BrrBankStateTag);
             spcBrrBankState->setAttribute("count", static_cast<int>(spc700BrrSampleBank.size()));
+            auto playableSlotCount = size_t { 0u };
             for (const auto& slot : spc700BrrSampleBank)
             {
                 auto* sample = new juce::XmlElement(spc700BrrSampleStateTag);
                 sample->setAttribute("path", slot.path);
                 sample->setAttribute("included", slot.included ? 1 : 0);
+                addSampleReferenceMetadata(*sample, slot);
+                if (embedProjectAssets
+                    && slot.included
+                    && playableSlotCount < chipper::state::maxEmbeddedSampleSlotsPerBank)
+                    addEmbeddedSamplePayload(*sample, slot, chipper::state::maxEmbeddedBankSlotBytes, embeddedBudget);
+                if (slot.included)
+                    ++playableSlotCount;
                 spcBrrBankState->addChildElement(sample);
             }
 
             xml->addChildElement(spcBrrBankState);
         }
-        else if (! spc700BrrSample.bytes.empty())
+        else if (! spc700BrrSample.bytes.empty() || spc700BrrSample.path.isNotEmpty())
         {
             auto* spcBrrState = new juce::XmlElement(spc700BrrStateTag);
             spcBrrState->setAttribute("path", spc700BrrSample.path);
+            addSampleReferenceMetadata(*spcBrrState, spc700BrrSample);
+            if (embedProjectAssets)
+                addEmbeddedSamplePayload(*spcBrrState, spc700BrrSample, chipper::state::maxEmbeddedBankSlotBytes, embeddedBudget);
             xml->addChildElement(spcBrrState);
         }
     }
@@ -4081,13 +4508,19 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
         {
             auto* paulaBankState = new juce::XmlElement(paulaSampleBankStateTag);
             paulaBankState->setAttribute("count", static_cast<int>(paulaSampleBank.size()));
+            auto playableSlotCount = size_t { 0u };
             for (const auto& slot : paulaSampleBank)
             {
                 auto* sample = new juce::XmlElement(paulaSampleStateTag);
                 sample->setAttribute("path", slot.path);
                 sample->setAttribute("included", slot.included ? 1 : 0);
-                if (slot.sourceSampleIndex >= 0)
-                    sample->setAttribute("sourceSampleIndex", slot.sourceSampleIndex);
+                addSampleReferenceMetadata(*sample, slot);
+                if (embedProjectAssets
+                    && slot.included
+                    && playableSlotCount < chipper::state::maxEmbeddedSampleSlotsPerBank)
+                    addEmbeddedSamplePayload(*sample, slot, chipper::state::maxEmbeddedBankSlotBytes, embeddedBudget);
+                if (slot.included)
+                    ++playableSlotCount;
                 paulaBankState->addChildElement(sample);
             }
 
@@ -4097,47 +4530,62 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
 
     {
         const std::lock_guard<std::mutex> lock(opn2DacSampleMutex);
-        if (! opn2DacSample.bytes.empty())
+        if (! opn2DacSample.bytes.empty() || opn2DacSample.path.isNotEmpty())
         {
             auto* dacSampleState = new juce::XmlElement(opn2DacSampleStateTag);
             dacSampleState->setAttribute("path", opn2DacSample.path);
+            addSampleReferenceMetadata(*dacSampleState, opn2DacSample);
+            if (embedProjectAssets)
+                addEmbeddedSamplePayload(*dacSampleState, opn2DacSample, maxEmbeddedOpn2Bytes, embeddedBudget);
             xml->addChildElement(dacSampleState);
         }
     }
 
     {
         const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
-        if (! opnaRhythmRom.bytes.empty())
+        if (! opnaRhythmRom.bytes.empty() || opnaRhythmRom.path.isNotEmpty())
         {
             auto* rhythmRomState = new juce::XmlElement(opnaRhythmRomStateTag);
             rhythmRomState->setAttribute("path", opnaRhythmRom.path);
+            addSampleReferenceMetadata(*rhythmRomState, opnaRhythmRom);
+            if (embedProjectAssets)
+                addEmbeddedSamplePayload(*rhythmRomState, opnaRhythmRom, maxEmbeddedOpnaRhythmBytes, embeddedBudget);
             xml->addChildElement(rhythmRomState);
         }
     }
     {
         const std::lock_guard<std::mutex> lock(opnaAdpcmBSampleMutex);
-        if (! opnaAdpcmBSample.bytes.empty())
+        if (! opnaAdpcmBSample.bytes.empty() || opnaAdpcmBSample.path.isNotEmpty())
         {
             auto* adpcmBState = new juce::XmlElement(opnaAdpcmBSampleStateTag);
             adpcmBState->setAttribute("path", opnaAdpcmBSample.path);
+            addSampleReferenceMetadata(*adpcmBState, opnaAdpcmBSample);
+            if (embedProjectAssets)
+                addEmbeddedSamplePayload(*adpcmBState, opnaAdpcmBSample, maxEmbeddedOpnaAdpcmBBytes, embeddedBudget);
             xml->addChildElement(adpcmBState);
         }
     }
     {
         const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
-        if (! opnbAdpcmASample.bytes.empty())
+        if (! opnbAdpcmASample.bytes.empty() || opnbAdpcmASample.path.isNotEmpty())
         {
             auto* adpcmAState = new juce::XmlElement(opnbAdpcmASampleStateTag);
             adpcmAState->setAttribute("path", opnbAdpcmASample.path);
+            addSampleReferenceMetadata(*adpcmAState, opnbAdpcmASample);
+            if (embedProjectAssets)
+                addEmbeddedSamplePayload(*adpcmAState, opnbAdpcmASample, maxEmbeddedOpnbAdpcmABytes, embeddedBudget);
             xml->addChildElement(adpcmAState);
         }
     }
     {
         const std::lock_guard<std::mutex> lock(opnbAdpcmBSampleMutex);
-        if (! opnbAdpcmBSample.bytes.empty())
+        if (! opnbAdpcmBSample.bytes.empty() || opnbAdpcmBSample.path.isNotEmpty())
         {
             auto* adpcmBState = new juce::XmlElement(opnbAdpcmBSampleStateTag);
             adpcmBState->setAttribute("path", opnbAdpcmBSample.path);
+            addSampleReferenceMetadata(*adpcmBState, opnbAdpcmBSample);
+            if (embedProjectAssets)
+                addEmbeddedSamplePayload(*adpcmBState, opnbAdpcmBSample, maxEmbeddedOpnbAdpcmBBytes, embeddedBudget);
             xml->addChildElement(adpcmBState);
         }
     }
@@ -4147,15 +4595,26 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
 
 juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sourceXml)
 {
-    return restoreStateXml(sourceXml, {});
+    return restoreStateXmlInternal(sourceXml, {}, true);
 }
 
 juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sourceXml, const juce::File& presetDirectory)
+{
+    return restoreStateXmlInternal(sourceXml, presetDirectory, false);
+}
+
+juce::Result ChipperAudioProcessor::restoreStateXmlInternal(const juce::XmlElement& sourceXml,
+                                                            const juce::File& presetDirectory,
+                                                            bool allowEmbeddedProjectAssets)
 {
     auto xml = std::make_unique<juce::XmlElement>(sourceXml);
     if (xml == nullptr)
         return juce::Result::fail("This file does not contain Chipper plugin state.");
     if (const auto validation = chipper::state::validateAndMigrate(*xml, apvts.state.getType()); validation.failed())
+        return validation;
+
+    EmbeddedSampleBudget embeddedStructureBudget;
+    if (const auto validation = validateEmbeddedPayloadStructure(*xml, allowEmbeddedProjectAssets, embeddedStructureBudget); validation.failed())
         return validation;
 
     pendingRegisterState.clear();
@@ -4179,6 +4638,14 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     juce::StringArray opnaAdpcmBSampleRestoreIssues;
     juce::StringArray opnbAdpcmASampleRestoreIssues;
     juce::StringArray opnbAdpcmBSampleRestoreIssues;
+    juce::StringArray dmcEmbeddedFallbacks;
+    juce::StringArray spc700EmbeddedFallbacks;
+    juce::StringArray paulaEmbeddedFallbacks;
+    juce::StringArray opn2EmbeddedFallbacks;
+    juce::StringArray opnaRhythmEmbeddedFallbacks;
+    juce::StringArray opnaAdpcmBEmbeddedFallbacks;
+    juce::StringArray opnbAdpcmAEmbeddedFallbacks;
+    juce::StringArray opnbAdpcmBEmbeddedFallbacks;
     if (auto* coreState = xml->getChildByName(coreStateTag))
     {
         size_t registerWriteCount = 0u;
@@ -4231,15 +4698,25 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
                 continue;
 
             DmcSampleSlot slot;
-            if (auto result = readDmcSampleFile(resolvePresetSamplePath(*child, presetDirectory), slot); result.wasOk())
+            const auto fileResult = readDmcSampleFile(resolvePresetSamplePath(*child, presetDirectory), slot);
+            if (fileResult.failed())
             {
-                slot.included = child->getBoolAttribute("included", true);
-                restoredDmcBank.push_back(std::move(slot));
+                const auto embedded = restoreEmbeddedSample(*child,
+                                                            slot,
+                                                            EmbeddedSampleFamily::dmc,
+                                                            chipper::state::maxEmbeddedBankSlotBytes);
+                if (embedded.restored)
+                    dmcEmbeddedFallbacks.add(slot.name);
+                else
+                {
+                    dmcSampleRestoreIssues.add(fileResult.getErrorMessage());
+                    if (embedded.present)
+                        dmcSampleRestoreIssues.add(embedded.error);
+                    slot = sampleTombstone(*child, EmbeddedSampleFamily::dmc);
+                }
             }
-            else
-            {
-                dmcSampleRestoreIssues.add(result.getErrorMessage());
-            }
+            slot.included = child->getBoolAttribute("included", true);
+            restoredDmcBank.push_back(std::move(slot));
         }
         xml->removeChildElement(dmcBankState, true);
     }
@@ -4256,18 +4733,32 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
                 continue;
 
             DmcSampleSlot slot;
-            if (auto result = readSpc700BrrSampleFile(resolvePresetSamplePath(*child, presetDirectory), slot); result.wasOk())
+            const auto fileResult = readSpc700BrrSampleFile(resolvePresetSamplePath(*child, presetDirectory), slot);
+            if (fileResult.failed())
             {
-                slot.included = child->getBoolAttribute("included", true);
-                restoredSpcBrrBank.push_back(std::move(slot));
+                const auto embedded = restoreEmbeddedSample(*child,
+                                                            slot,
+                                                            EmbeddedSampleFamily::spc700,
+                                                            chipper::state::maxEmbeddedBankSlotBytes);
+                if (embedded.restored)
+                    spc700EmbeddedFallbacks.add(slot.name);
+                else
+                {
+                    spc700SampleRestoreIssues.add(fileResult.getErrorMessage());
+                    if (embedded.present)
+                        spc700SampleRestoreIssues.add(embedded.error);
+                    slot = sampleTombstone(*child, EmbeddedSampleFamily::spc700);
+                }
             }
-            else
-            {
-                spc700SampleRestoreIssues.add(result.getErrorMessage());
-            }
+            slot.included = child->getBoolAttribute("included", true);
+            restoredSpcBrrBank.push_back(std::move(slot));
         }
         if (! restoredSpcBrrBank.empty())
-            restoredSpcBrrSample = restoredSpcBrrBank.front();
+        {
+            const auto playable = std::find_if(restoredSpcBrrBank.begin(), restoredSpcBrrBank.end(),
+                                               [](const auto& slot) { return ! slot.bytes.empty(); });
+            restoredSpcBrrSample = playable != restoredSpcBrrBank.end() ? *playable : restoredSpcBrrBank.front();
+        }
         xml->removeChildElement(spcBrrBankState, true);
     }
 
@@ -4275,14 +4766,25 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     {
         if (auto* spcBrrState = xml->getChildByName(spc700BrrStateTag))
         {
-            if (auto result = readSpc700BrrSampleFile(resolvePresetSamplePath(*spcBrrState, presetDirectory), restoredSpcBrrSample); result.wasOk())
+            const auto fileResult = readSpc700BrrSampleFile(resolvePresetSamplePath(*spcBrrState, presetDirectory),
+                                                            restoredSpcBrrSample);
+            if (fileResult.failed())
             {
-                restoredSpcBrrBank.push_back(restoredSpcBrrSample);
+                const auto embedded = restoreEmbeddedSample(*spcBrrState,
+                                                            restoredSpcBrrSample,
+                                                            EmbeddedSampleFamily::spc700,
+                                                            chipper::state::maxEmbeddedBankSlotBytes);
+                if (embedded.restored)
+                    spc700EmbeddedFallbacks.add(restoredSpcBrrSample.name);
+                else
+                {
+                    spc700SampleRestoreIssues.add(fileResult.getErrorMessage());
+                    if (embedded.present)
+                        spc700SampleRestoreIssues.add(embedded.error);
+                    restoredSpcBrrSample = sampleTombstone(*spcBrrState, EmbeddedSampleFamily::spc700);
+                }
             }
-            else
-            {
-                spc700SampleRestoreIssues.add(result.getErrorMessage());
-            }
+            restoredSpcBrrBank.push_back(restoredSpcBrrSample);
             xml->removeChildElement(spcBrrState, true);
         }
     }
@@ -4299,10 +4801,12 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
                 continue;
 
             std::vector<DmcSampleSlot> slots;
-            if (auto result = readPaulaSampleFileSlots(resolvePresetSamplePath(*child, presetDirectory), slots); result.wasOk())
+            const auto fileResult = readPaulaSampleFileSlots(resolvePresetSamplePath(*child, presetDirectory), slots);
+            const auto sourceSampleIndex = child->getIntAttribute("sourceSampleIndex", -1);
+            const auto included = child->getBoolAttribute("included", true);
+            auto restoredFromFile = false;
+            if (fileResult.wasOk())
             {
-                const auto sourceSampleIndex = child->getIntAttribute("sourceSampleIndex", -1);
-                const auto included = child->getBoolAttribute("included", true);
                 if (sourceSampleIndex >= 0)
                 {
                     for (auto& slot : slots)
@@ -4311,6 +4815,7 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
                         {
                             slot.included = included;
                             restoredPaulaBank.push_back(std::move(slot));
+                            restoredFromFile = true;
                             break;
                         }
                     }
@@ -4323,48 +4828,151 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
                             break;
                         slot.included = included;
                         restoredPaulaBank.push_back(std::move(slot));
+                        restoredFromFile = true;
                     }
                 }
             }
-            else
+
+            if (! restoredFromFile)
             {
-                paulaSampleRestoreIssues.add(result.getErrorMessage());
+                DmcSampleSlot slot;
+                const auto embedded = restoreEmbeddedSample(*child,
+                                                            slot,
+                                                            EmbeddedSampleFamily::paula,
+                                                            chipper::state::maxEmbeddedBankSlotBytes);
+                if (embedded.restored)
+                    paulaEmbeddedFallbacks.add(slot.name);
+                else
+                {
+                    paulaSampleRestoreIssues.add(fileResult.failed()
+                                                     ? fileResult.getErrorMessage()
+                                                     : "Paula source instrument was not found in " + child->getStringAttribute("path"));
+                    if (embedded.present)
+                        paulaSampleRestoreIssues.add(embedded.error);
+                    slot = sampleTombstone(*child, EmbeddedSampleFamily::paula);
+                }
+                slot.included = included;
+                restoredPaulaBank.push_back(std::move(slot));
             }
         }
         if (! restoredPaulaBank.empty())
-            restoredPaulaSample = restoredPaulaBank.front();
+        {
+            const auto playable = std::find_if(restoredPaulaBank.begin(), restoredPaulaBank.end(),
+                                               [](const auto& slot) { return ! slot.bytes.empty(); });
+            restoredPaulaSample = playable != restoredPaulaBank.end() ? *playable : restoredPaulaBank.front();
+        }
         xml->removeChildElement(paulaBankState, true);
     }
 
     if (auto* opn2DacSampleState = xml->getChildByName(opn2DacSampleStateTag))
     {
-        if (auto result = readOpn2DacSampleFile(resolvePresetSamplePath(*opn2DacSampleState, presetDirectory), restoredOpn2DacSample); result.failed())
-            opn2DacSampleRestoreIssues.add(result.getErrorMessage());
+        const auto fileResult = readOpn2DacSampleFile(resolvePresetSamplePath(*opn2DacSampleState, presetDirectory),
+                                                      restoredOpn2DacSample);
+        if (fileResult.failed())
+        {
+            const auto embedded = restoreEmbeddedSample(*opn2DacSampleState,
+                                                        restoredOpn2DacSample,
+                                                        EmbeddedSampleFamily::rawMemory,
+                                                        maxEmbeddedOpn2Bytes);
+            if (embedded.restored)
+                opn2EmbeddedFallbacks.add(restoredOpn2DacSample.name);
+            else
+            {
+                opn2DacSampleRestoreIssues.add(fileResult.getErrorMessage());
+                if (embedded.present)
+                    opn2DacSampleRestoreIssues.add(embedded.error);
+                restoredOpn2DacSample = sampleTombstone(*opn2DacSampleState, EmbeddedSampleFamily::rawMemory);
+            }
+        }
         xml->removeChildElement(opn2DacSampleState, true);
     }
 
     if (auto* opnaRhythmRomState = xml->getChildByName(opnaRhythmRomStateTag))
     {
-        if (auto result = readOpnaRhythmRomFile(resolvePresetSamplePath(*opnaRhythmRomState, presetDirectory), restoredOpnaRhythmRom); result.failed())
-            opnaRhythmRomRestoreIssues.add(result.getErrorMessage());
+        const auto fileResult = readOpnaRhythmRomFile(resolvePresetSamplePath(*opnaRhythmRomState, presetDirectory),
+                                                      restoredOpnaRhythmRom);
+        if (fileResult.failed())
+        {
+            const auto embedded = restoreEmbeddedSample(*opnaRhythmRomState,
+                                                        restoredOpnaRhythmRom,
+                                                        EmbeddedSampleFamily::rawMemory,
+                                                        maxEmbeddedOpnaRhythmBytes);
+            if (embedded.restored)
+                opnaRhythmEmbeddedFallbacks.add(restoredOpnaRhythmRom.name);
+            else
+            {
+                opnaRhythmRomRestoreIssues.add(fileResult.getErrorMessage());
+                if (embedded.present)
+                    opnaRhythmRomRestoreIssues.add(embedded.error);
+                restoredOpnaRhythmRom = sampleTombstone(*opnaRhythmRomState, EmbeddedSampleFamily::rawMemory);
+            }
+        }
         xml->removeChildElement(opnaRhythmRomState, true);
     }
     if (auto* opnaAdpcmBState = xml->getChildByName(opnaAdpcmBSampleStateTag))
     {
-        if (auto result = readOpnaAdpcmBSampleFile(resolvePresetSamplePath(*opnaAdpcmBState, presetDirectory), restoredOpnaAdpcmBSample); result.failed())
-            opnaAdpcmBSampleRestoreIssues.add(result.getErrorMessage());
+        const auto fileResult = readOpnaAdpcmBSampleFile(resolvePresetSamplePath(*opnaAdpcmBState, presetDirectory),
+                                                         restoredOpnaAdpcmBSample);
+        if (fileResult.failed())
+        {
+            const auto embedded = restoreEmbeddedSample(*opnaAdpcmBState,
+                                                        restoredOpnaAdpcmBSample,
+                                                        EmbeddedSampleFamily::rawMemory,
+                                                        maxEmbeddedOpnaAdpcmBBytes);
+            if (embedded.restored)
+                opnaAdpcmBEmbeddedFallbacks.add(restoredOpnaAdpcmBSample.name);
+            else
+            {
+                opnaAdpcmBSampleRestoreIssues.add(fileResult.getErrorMessage());
+                if (embedded.present)
+                    opnaAdpcmBSampleRestoreIssues.add(embedded.error);
+                restoredOpnaAdpcmBSample = sampleTombstone(*opnaAdpcmBState, EmbeddedSampleFamily::rawMemory);
+            }
+        }
         xml->removeChildElement(opnaAdpcmBState, true);
     }
     if (auto* opnbAdpcmAState = xml->getChildByName(opnbAdpcmASampleStateTag))
     {
-        if (auto result = readOpnbAdpcmASampleFile(resolvePresetSamplePath(*opnbAdpcmAState, presetDirectory), restoredOpnbAdpcmASample); result.failed())
-            opnbAdpcmASampleRestoreIssues.add(result.getErrorMessage());
+        const auto fileResult = readOpnbAdpcmASampleFile(resolvePresetSamplePath(*opnbAdpcmAState, presetDirectory),
+                                                         restoredOpnbAdpcmASample);
+        if (fileResult.failed())
+        {
+            const auto embedded = restoreEmbeddedSample(*opnbAdpcmAState,
+                                                        restoredOpnbAdpcmASample,
+                                                        EmbeddedSampleFamily::rawMemory,
+                                                        maxEmbeddedOpnbAdpcmABytes);
+            if (embedded.restored)
+                opnbAdpcmAEmbeddedFallbacks.add(restoredOpnbAdpcmASample.name);
+            else
+            {
+                opnbAdpcmASampleRestoreIssues.add(fileResult.getErrorMessage());
+                if (embedded.present)
+                    opnbAdpcmASampleRestoreIssues.add(embedded.error);
+                restoredOpnbAdpcmASample = sampleTombstone(*opnbAdpcmAState, EmbeddedSampleFamily::rawMemory);
+            }
+        }
         xml->removeChildElement(opnbAdpcmAState, true);
     }
     if (auto* opnbAdpcmBState = xml->getChildByName(opnbAdpcmBSampleStateTag))
     {
-        if (auto result = readOpnbAdpcmBSampleFile(resolvePresetSamplePath(*opnbAdpcmBState, presetDirectory), restoredOpnbAdpcmBSample); result.failed())
-            opnbAdpcmBSampleRestoreIssues.add(result.getErrorMessage());
+        const auto fileResult = readOpnbAdpcmBSampleFile(resolvePresetSamplePath(*opnbAdpcmBState, presetDirectory),
+                                                         restoredOpnbAdpcmBSample);
+        if (fileResult.failed())
+        {
+            const auto embedded = restoreEmbeddedSample(*opnbAdpcmBState,
+                                                        restoredOpnbAdpcmBSample,
+                                                        EmbeddedSampleFamily::rawMemory,
+                                                        maxEmbeddedOpnbAdpcmBBytes);
+            if (embedded.restored)
+                opnbAdpcmBEmbeddedFallbacks.add(restoredOpnbAdpcmBSample.name);
+            else
+            {
+                opnbAdpcmBSampleRestoreIssues.add(fileResult.getErrorMessage());
+                if (embedded.present)
+                    opnbAdpcmBSampleRestoreIssues.add(embedded.error);
+                restoredOpnbAdpcmBSample = sampleTombstone(*opnbAdpcmBState, EmbeddedSampleFamily::rawMemory);
+            }
+        }
         xml->removeChildElement(opnbAdpcmBState, true);
     }
 
@@ -4384,51 +4992,51 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     {
         const std::lock_guard<std::mutex> lock(dmcSampleMutex);
         dmcSampleBank = std::move(restoredDmcBank);
-        dmcSampleRestoreWarning = restoreWarningLine("DMC", dmcSampleRestoreIssues);
+        dmcSampleRestoreWarning = sampleRestoreStatusLine("DMC", dmcSampleRestoreIssues, dmcEmbeddedFallbacks);
         ++dmcSampleBankRevision;
     }
     {
         const std::lock_guard<std::mutex> lock(spc700SampleMutex);
         spc700BrrSampleBank = std::move(restoredSpcBrrBank);
         spc700BrrSample = std::move(restoredSpcBrrSample);
-        spc700SampleRestoreWarning = restoreWarningLine("SPC700", spc700SampleRestoreIssues);
+        spc700SampleRestoreWarning = sampleRestoreStatusLine("SPC700", spc700SampleRestoreIssues, spc700EmbeddedFallbacks);
         ++spc700BrrSampleBankRevision;
     }
     {
         const std::lock_guard<std::mutex> lock(paulaSampleMutex);
         paulaSampleBank = std::move(restoredPaulaBank);
         paulaSample = std::move(restoredPaulaSample);
-        paulaSampleRestoreWarning = restoreWarningLine("Paula", paulaSampleRestoreIssues);
+        paulaSampleRestoreWarning = sampleRestoreStatusLine("Paula", paulaSampleRestoreIssues, paulaEmbeddedFallbacks);
         ++paulaSampleBankRevision;
     }
     {
         const std::lock_guard<std::mutex> lock(opn2DacSampleMutex);
         opn2DacSample = std::move(restoredOpn2DacSample);
-        opn2DacSampleRestoreWarning = restoreWarningLine("OPN2 DAC", opn2DacSampleRestoreIssues);
+        opn2DacSampleRestoreWarning = sampleRestoreStatusLine("OPN2 DAC", opn2DacSampleRestoreIssues, opn2EmbeddedFallbacks);
         ++opn2DacSampleRevision;
     }
     {
         const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
         opnaRhythmRom = std::move(restoredOpnaRhythmRom);
-        opnaRhythmRomRestoreWarning = restoreWarningLine("OPNA rhythm ROM", opnaRhythmRomRestoreIssues);
+        opnaRhythmRomRestoreWarning = sampleRestoreStatusLine("OPNA rhythm ROM", opnaRhythmRomRestoreIssues, opnaRhythmEmbeddedFallbacks);
         ++opnaRhythmRomRevision;
     }
     {
         const std::lock_guard<std::mutex> lock(opnaAdpcmBSampleMutex);
         opnaAdpcmBSample = std::move(restoredOpnaAdpcmBSample);
-        opnaAdpcmBSampleRestoreWarning = restoreWarningLine("OPNA ADPCM-B sample", opnaAdpcmBSampleRestoreIssues);
+        opnaAdpcmBSampleRestoreWarning = sampleRestoreStatusLine("OPNA ADPCM-B sample", opnaAdpcmBSampleRestoreIssues, opnaAdpcmBEmbeddedFallbacks);
         ++opnaAdpcmBSampleRevision;
     }
     {
         const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
         opnbAdpcmASample = std::move(restoredOpnbAdpcmASample);
-        opnbAdpcmASampleRestoreWarning = restoreWarningLine("OPNB ADPCM-A", opnbAdpcmASampleRestoreIssues);
+        opnbAdpcmASampleRestoreWarning = sampleRestoreStatusLine("OPNB ADPCM-A", opnbAdpcmASampleRestoreIssues, opnbAdpcmAEmbeddedFallbacks);
         ++opnbAdpcmASampleRevision;
     }
     {
         const std::lock_guard<std::mutex> lock(opnbAdpcmBSampleMutex);
         opnbAdpcmBSample = std::move(restoredOpnbAdpcmBSample);
-        opnbAdpcmBSampleRestoreWarning = restoreWarningLine("OPNB ADPCM-B", opnbAdpcmBSampleRestoreIssues);
+        opnbAdpcmBSampleRestoreWarning = sampleRestoreStatusLine("OPNB ADPCM-B", opnbAdpcmBSampleRestoreIssues, opnbAdpcmBEmbeddedFallbacks);
         ++opnbAdpcmBSampleRevision;
     }
     activeDmcSampleBankRevision = std::numeric_limits<uint64_t>::max();
@@ -4457,12 +5065,15 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
 
 void ChipperAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    if (const auto xml = createStateXml())
+    if (const auto xml = createStateXml(StateAssetPolicy::embedProjectAssets))
         copyXmlToBinary(*xml, destData);
 }
 
 void ChipperAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
+    if (data == nullptr || sizeInBytes <= 0 || static_cast<size_t>(sizeInBytes) > chipper::state::maxHostStateBytes)
+        return;
+
     const std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
     if (xml != nullptr)
         restoreStateXml(*xml);
@@ -4596,6 +5207,7 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
         const auto loopStartControl = apvts.getRawParameterValue(chipper::parameters::id::spc700LoopStart)->load();
         const auto loopEndControl = apvts.getRawParameterValue(chipper::parameters::id::spc700LoopEnd)->load();
         juce::String restoreWarning;
+        auto hasExternalReferences = false;
         {
             const std::lock_guard<std::mutex> lock(spc700SampleMutex);
             restoreWarning = spc700SampleRestoreWarning;
@@ -4615,6 +5227,7 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
             {
                 activeSlots.push_back(&spc700BrrSample);
             }
+            hasExternalReferences = ! activeSlots.empty();
 
             if (! activeSlots.empty() && (playbackMode == 0 || activeSpc700BrrSampleSlot >= 0))
             {
@@ -4636,7 +5249,7 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
         }
         appendRestoreWarning(snapshot.label, restoreWarning);
 
-        if (decoded.empty())
+        if (decoded.empty() && ! hasExternalReferences)
         {
             const auto patch = currentPatchFromParameters();
             decoded = generatedSamplePreview(64u, [patch](size_t i)
@@ -4662,6 +5275,7 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
         const auto selectedSlot = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcSampleSlot)->load()));
         const auto playbackMode = std::clamp(static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::nesDmcPlaybackMode)->load())), 0, 2);
         juce::String restoreWarning;
+        auto hasExternalReferences = false;
         {
             const std::lock_guard<std::mutex> lock(paulaSampleMutex);
             restoreWarning = paulaSampleRestoreWarning;
@@ -4681,6 +5295,7 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
             {
                 activeSlots.push_back(&paulaSample);
             }
+            hasExternalReferences = ! activeSlots.empty();
 
             if (! activeSlots.empty() && (playbackMode == 0 || activePaulaSampleSlot >= 0))
             {
@@ -4707,7 +5322,7 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
         }
         appendRestoreWarning(snapshot.label, restoreWarning);
 
-        if (decoded.empty())
+        if (decoded.empty() && ! hasExternalReferences)
         {
             const auto patch = currentPatchFromParameters();
             decoded = generatedSamplePreview(64u, [patch](size_t i)

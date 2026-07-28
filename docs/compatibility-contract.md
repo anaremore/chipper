@@ -70,6 +70,26 @@ must not silently reinterpret an existing ID or accepted state.
   silently substituting unrelated data.
 - Presets do not embed copyrighted samples, ROMs, tracker modules, or ripped
   wave tables. Redistribution still requires provenance and license review.
+- Shareable `.chipperpreset` files remain reference-only, and preset restore
+  rejects injected embedded payloads before mutating processor state.
+- DAW host project state may include a bounded fallback copy of user-owned NES
+  DMC, SPC700 BRR/imported PCM, Paula PCM/MOD-instrument, OPN2 DAC, OPNA
+  ADPCM-A/B, and OPNB ADPCM-A/B bytes. The original path remains authoritative:
+  Chipper uses the embedded copy only when the source cannot be read and shows
+  `Using embedded project copy ...; relink source` in the asset status.
+- Bank serialization includes at most the first 32 playable slots and 256 KiB
+  per slot. Single-asset caps are 1 MiB for OPN2 DAC, 64 KiB for OPNA rhythm,
+  1 MiB for OPNA ADPCM-B, 2 MiB for OPNB ADPCM-A, and 16 MiB for OPNB ADPCM-B.
+  A project may contain at most 101 embedded payloads and 16 MiB of decoded
+  sample bytes inside a 32 MiB processor-state envelope. Assets beyond a cap
+  stay reference-only.
+- Embedded payloads carry format version, encoding, name, loop points, source
+  instrument index/byte count, Base64 data, and an FNV-1a checksum. Structurally
+  oversized or misplaced payloads fail before state mutation. A missing or
+  corrupt individual bank slot becomes a named silent tombstone so later note
+  mappings do not shift; the UI keeps the relink warning visible.
+- Embedded project fallback does not grant redistribution rights. Factory and
+  shared preset content still requires provenance and license review.
 
 ## Audio buses
 
@@ -87,6 +107,7 @@ Before changing this contract, run at minimum:
 ```powershell
 cmake --build build-codex --config Release --target Chipper_VST3 chipper_processor_midi_cc_smoke
 ctest --test-dir build-codex -C Release -R "chipper_processor_midi_cc_smoke|chipper_parameter_midi_cc_smoke|chipper_editor_size_smoke" --output-on-failure
+ctest --test-dir build-codex -C Release -R "chipper_vst3_host_state_smoke" --output-on-failure
 ```
 
 For a release candidate, also run the full CTest suite, preset QA, pluginval,
