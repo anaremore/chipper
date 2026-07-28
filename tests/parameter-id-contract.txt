@@ -44,6 +44,14 @@ nesDmcSampleSlot
 opmLfoAms
 opmLfoPms
 opmLfoWaveform
+opmOperator1Dt1
+opmOperator1Dt2
+opmOperator2Dt1
+opmOperator2Dt2
+opmOperator3Dt1
+opmOperator3Dt2
+opmOperator4Dt1
+opmOperator4Dt2
 outputDb
 playMode
 pulse2Duty

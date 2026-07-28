@@ -47,6 +47,8 @@ juce::StringArray fmOperatorAttackRateChoices();
 juce::StringArray fmOperatorDecayRateChoices();
 juce::StringArray fmOperatorSustainRateChoices();
 juce::StringArray fmOperatorReleaseRateChoices();
+juce::StringArray opmOperatorDt1Choices();
+juce::StringArray opmOperatorDt2Choices();
 juce::StringArray opmLfoWaveformChoices();
 juce::StringArray opmLfoPmsChoices();
 juce::StringArray opmLfoAmsChoices();

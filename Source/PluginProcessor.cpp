@@ -258,6 +258,8 @@ bool patchMatches(const chipper::PatchConfig& a, const chipper::PatchConfig& b)
         && a.opmLfoWaveform == b.opmLfoWaveform
         && a.opmLfoPms == b.opmLfoPms
         && a.opmLfoAms == b.opmLfoAms
+        && a.opmOperatorDt1 == b.opmOperatorDt1
+        && a.opmOperatorDt2 == b.opmOperatorDt2
         && a.wavetableMemory == b.wavetableMemory;
 }
 
@@ -314,7 +316,9 @@ bool patchControlsMatch(const chipper::PatchConfig& a, const chipper::PatchConfi
         && a.fmOperatorReleaseRates == b.fmOperatorReleaseRates
         && a.opmLfoWaveform == b.opmLfoWaveform
         && a.opmLfoPms == b.opmLfoPms
-        && a.opmLfoAms == b.opmLfoAms;
+        && a.opmLfoAms == b.opmLfoAms
+        && a.opmOperatorDt1 == b.opmOperatorDt1
+        && a.opmOperatorDt2 == b.opmOperatorDt2;
 }
 
 int samplePlaybackModeForMacroTemplate(chipper::ChipMode mode, const chipper::MacroTemplate& templ)
@@ -2784,6 +2788,19 @@ void ChipperAudioProcessor::applyCurrentMacroTemplateToParameters()
     setPlainParameterValue(chipper::parameters::id::opmLfoWaveform, 0.0f);
     setPlainParameterValue(chipper::parameters::id::opmLfoPms, 0.0f);
     setPlainParameterValue(chipper::parameters::id::opmLfoAms, 0.0f);
+    for (const auto* parameterId : {
+             chipper::parameters::id::opmOperator1Dt1,
+             chipper::parameters::id::opmOperator2Dt1,
+             chipper::parameters::id::opmOperator3Dt1,
+             chipper::parameters::id::opmOperator4Dt1,
+             chipper::parameters::id::opmOperator1Dt2,
+             chipper::parameters::id::opmOperator2Dt2,
+             chipper::parameters::id::opmOperator3Dt2,
+             chipper::parameters::id::opmOperator4Dt2
+         })
+    {
+        setPlainParameterValue(parameterId, 0.0f);
+    }
     setPlainParameterValue(chipper::parameters::id::nesDmcDirectLevel, templ.nesDmcDirectLevel);
     setPlainParameterValue(chipper::parameters::id::nesDmcRateIndex, 15.0f);
     setPlainParameterValue(chipper::parameters::id::nesDmcPlaybackMode, static_cast<float>(samplePlaybackModeForMacroTemplate(mode, templ)));
@@ -3549,6 +3566,18 @@ chipper::PatchConfig ChipperAudioProcessor::currentPatchFromParameters() const
     patch.opmLfoWaveform = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::opmLfoWaveform)->load()));
     patch.opmLfoPms = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::opmLfoPms)->load()));
     patch.opmLfoAms = static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::opmLfoAms)->load()));
+    patch.opmOperatorDt1 = {
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::opmOperator1Dt1)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::opmOperator2Dt1)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::opmOperator3Dt1)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::opmOperator4Dt1)->load()))
+    };
+    patch.opmOperatorDt2 = {
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::opmOperator1Dt2)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::opmOperator2Dt2)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::opmOperator3Dt2)->load())),
+        static_cast<int>(std::round(apvts.getRawParameterValue(chipper::parameters::id::opmOperator4Dt2)->load()))
+    };
     patch.wavetableMemory = wavetableMemory(selectedMode);
     return patch;
 }

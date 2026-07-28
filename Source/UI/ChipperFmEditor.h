@@ -19,6 +19,7 @@ public:
         std::array<juce::Slider, operatorCount>& levelSliders;
         std::array<juce::TextButton, operatorCount>& multipliers;
         std::array<juce::TextButton, operatorCount>& envelopes;
+        std::array<juce::TextButton, operatorCount>& detunes;
     };
 
     explicit ChipperFmEditor(Controls controlsToUse);

@@ -7,7 +7,7 @@ must not silently reinterpret an existing ID or accepted state.
 
 ## Host parameters
 
-- The 96 IDs in `tests/parameter-id-contract.txt` are stable host automation
+- The 107 IDs in `tests/parameter-id-contract.txt` are stable host automation
   identifiers. Display names, grouping, and chip-specific visibility may
   improve without changing those IDs.
 - Do not remove, rename, or reuse a listed ID for a different meaning. If a
@@ -33,11 +33,14 @@ must not silently reinterpret an existing ID or accepted state.
 - The APVTS root tag is `ChipperState`.
 - Unversioned state is schema 1. It is accepted and migrated to the current
   schema before APVTS and non-parameter state restore.
-- Current saved state declares `stateSchemaVersion="4"`. Schema 3 added
-  optional embedded custom Wave RAM. Schema 4 adds optional per-chip Motion
-  Lab patterns. Unversioned, schema-1, and schema-2 states migrate with
-  generated wave templates and no custom lanes; schema-3 and older states
-  migrate with one disabled neutral motion pattern per chip.
+- Current saved state declares `stateSchemaVersion="6"`. Schema 3 added
+  optional embedded custom Wave RAM; schema 4 added optional per-chip Motion
+  Lab patterns; schema 5 added native YM2151 LFO controls; and schema 6 added
+  native YM2151 per-operator DT1/DT2 choices. Unversioned, schema-1, and
+  schema-2 states migrate with generated wave templates and no custom lanes;
+  schema-3 and older states migrate with one disabled neutral motion pattern
+  per chip; and schema-4/5 states deterministically backfill the newer OPM
+  controls to Preset so old projects preserve their resolved sound.
 - Invalid versions and versions newer than the plugin supports fail explicitly;
   they are not partially interpreted.
 - A state payload may restore at most 4,096 low-level register writes and at
@@ -49,8 +52,8 @@ must not silently reinterpret an existing ID or accepted state.
   rate, a length from 1-8, pitch from -24 to +24 semitones, level from 0-15,
   and Hold/Trig/Cut gate values; duplicate or unknown chip IDs fail explicitly.
 - Schema fixtures live in `tests/state/` and are exercised by
-  `chipper_processor_midi_cc_smoke`, including legacy migration, schema-v5
-  round trips, missing-OPM-choice backfill, malformed motion rejection, and future-version rejection.
+  `chipper_processor_midi_cc_smoke`, including legacy migration, current schema-v6
+  round trips, missing OPM LFO/detune choice backfill, malformed motion rejection, and future-version rejection.
 
 ## External assets
 

@@ -374,15 +374,50 @@ bool expectOpmDirectLfoAndFeedbackPitchNeutrality()
     sendController(processor, 70, controllerValueForChoice(processor, chipper::parameters::id::chipMode, 12));
     setPlainFromHost(processor, chipper::parameters::id::waveShape, 5.0f);
     setPlainFromHost(processor, chipper::parameters::id::stereoSpread, 0.65f);
+    setPlainFromHost(processor, chipper::parameters::id::fmOperator1Multiplier, 1.0f);
+    setPlainFromHost(processor, chipper::parameters::id::fmOperator2Multiplier, 16.0f);
+    setPlainFromHost(processor, chipper::parameters::id::fmOperator3SustainRate, 6.0f);
+    setPlainFromHost(processor, chipper::parameters::id::fmOperator4SustainRate, 32.0f);
     sendNoteOn(processor, 69);
     const auto before = processor.currentCoreDebugStateJson();
     const auto keyCode = jsonIntValue(before, "keyCode0");
     const auto keyFraction = jsonIntValue(before, "keyFraction0");
+    sendController(processor, 12, controllerValueForChoice(processor, chipper::parameters::id::opmOperator1Dt1, 4));
+    sendController(processor, 13, controllerValueForChoice(processor, chipper::parameters::id::opmOperator2Dt1, 8));
+    sendController(processor, 14, controllerValueForChoice(processor, chipper::parameters::id::opmOperator3Dt1, 0));
+    sendController(processor, 15, controllerValueForChoice(processor, chipper::parameters::id::opmOperator4Dt1, 0));
+    sendController(processor, 16, controllerValueForChoice(processor, chipper::parameters::id::opmOperator1Dt2, 0));
+    sendController(processor, 17, controllerValueForChoice(processor, chipper::parameters::id::opmOperator2Dt2, 0));
+    sendController(processor, 18, controllerValueForChoice(processor, chipper::parameters::id::opmOperator3Dt2, 3));
+    sendController(processor, 19, controllerValueForChoice(processor, chipper::parameters::id::opmOperator4Dt2, 4));
+    const auto detune = processor.currentCoreDebugStateJson();
     sendController(processor, 20, controllerValueForChoice(processor, chipper::parameters::id::opmLfoWaveform, 4));
     sendController(processor, 21, controllerValueForChoice(processor, chipper::parameters::id::opmLfoPms, 8));
     sendController(processor, 22, controllerValueForChoice(processor, chipper::parameters::id::opmLfoAms, 4));
     const auto direct = processor.currentCoreDebugStateJson();
     auto ok = true;
+    ok &= expect(jsonIntValue(detune, "opmOperatorDt1Choice0") == 4
+                     && jsonIntValue(detune, "opmOperatorDt1Choice1") == 8
+                     && jsonIntValue(detune, "opmOperatorDt2Choice2") == 3
+                     && jsonIntValue(detune, "opmOperatorDt2Choice3") == 4,
+                 "CC12-19 should apply the exact per-operator YM2151 DT1/DT2 choices to a held note");
+    ok &= expect(jsonIntValue(detune, "operatorMultipleDt1Register0") == 0x30
+                     && jsonIntValue(detune, "operatorMultipleDt1Register1") == 0x7f
+                     && jsonIntValue(detune, "operatorDt2SustainRateRegister2") == 0x85
+                     && jsonIntValue(detune, "operatorDt2SustainRateRegister3") == 0xdf,
+                 "YM2151 detune MIDI CCs should write exact packed $40/$48/$D0/$D8 register bytes");
+    ok &= expect(jsonIntValue(detune, "operatorMultiple0") == 0
+                     && jsonIntValue(detune, "operatorMultiple1") == 15
+                     && jsonIntValue(detune, "operatorSustainRate2") == 5
+                     && jsonIntValue(detune, "operatorSustainRate3") == 31,
+                 "YM2151 detune writes should preserve neighboring MULT and D2R fields");
+    ok &= expect(jsonIntValue(detune, "keyCode0") == keyCode
+                     && jsonIntValue(detune, "keyFraction0") == keyFraction,
+                 "Changing YM2151 DT1/DT2 choices should preserve the held note's base KC/KF pitch registers");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::opmOperator1Dt1), 4.0f, 0.001f,
+                     "CC12 should remain visible in the host parameter value");
+    ok &= expectNear(parameterValue(processor, chipper::parameters::id::opmOperator4Dt2), 4.0f, 0.001f,
+                     "CC19 should remain visible in the host parameter value");
     ok &= expect(jsonIntValue(direct, "opmLfoWaveformChoice") == 4
                      && jsonIntValue(direct, "opmLfoPmsChoice") == 8
                      && jsonIntValue(direct, "opmLfoAmsChoice") == 4,
@@ -842,9 +877,9 @@ bool expectMotionPlaybackAndState()
 
     const auto stateXml = processor.createStateXml();
     ok &= expect(stateXml != nullptr
-                     && stateXml->getIntAttribute(chipper::state::schemaVersionAttribute) == 5
+                     && stateXml->getIntAttribute(chipper::state::schemaVersionAttribute) == chipper::state::currentSchemaVersion
                      && stateXml->getChildByName(chipper::state::motionStateTag) != nullptr,
-                 "Schema-v5 processor state should embed edited tracker motion");
+                 "Current-schema processor state should embed edited tracker motion");
     if (stateXml != nullptr)
     {
         ChipperAudioProcessor restored;
@@ -2578,9 +2613,43 @@ int main()
                      "Malformed custom Wave RAM state should fail explicitly");
     }
 
+    {
+        ChipperAudioProcessor detuneStateSource;
+        detuneStateSource.prepareToPlay(48000.0, 64);
+        setPlainFromHost(detuneStateSource, chipper::parameters::id::chipMode, 12.0f);
+        setPlainFromHost(detuneStateSource, chipper::parameters::id::fmOperator1Multiplier, 1.0f);
+        setPlainFromHost(detuneStateSource, chipper::parameters::id::fmOperator1SustainRate, 6.0f);
+        setPlainFromHost(detuneStateSource, chipper::parameters::id::opmOperator1Dt1, 4.0f);
+        setPlainFromHost(detuneStateSource, chipper::parameters::id::opmOperator1Dt2, 3.0f);
+        sendNoteOn(detuneStateSource, 69);
+        const auto detuneStateSourceDebug = detuneStateSource.currentCoreDebugStateJson();
+        auto detuneStateXml = detuneStateSource.createStateXml();
+        ok &= expect(detuneStateXml != nullptr,
+                     "Current-schema state should save explicit YM2151 DT1/DT2 choices");
+        if (detuneStateXml != nullptr)
+        {
+            ChipperAudioProcessor detuneStateRestored;
+            detuneStateRestored.prepareToPlay(48000.0, 64);
+            ok &= expect(detuneStateRestored.restoreStateXml(*detuneStateXml).wasOk(),
+                         "Current-schema state should restore explicit YM2151 DT1/DT2 choices");
+            ok &= expectNear(parameterValue(detuneStateRestored, chipper::parameters::id::opmOperator1Dt1),
+                             4.0f, 0.001f, "YM2151 DT1 should survive a current-schema state round trip");
+            ok &= expectNear(parameterValue(detuneStateRestored, chipper::parameters::id::opmOperator1Dt2),
+                             3.0f, 0.001f, "YM2151 DT2 should survive a current-schema state round trip");
+            sendNoteOn(detuneStateRestored, 69);
+            const auto detuneStateRestoredDebug = detuneStateRestored.currentCoreDebugStateJson();
+            ok &= expect(jsonIntValue(detuneStateRestoredDebug, "operatorMultipleDt1Register0") == 0x30
+                             && jsonIntValue(detuneStateRestoredDebug, "operatorDt2SustainRateRegister0") == 0x85
+                             && jsonIntValue(detuneStateRestoredDebug, "operatorMultipleDt1Register0")
+                                 == jsonIntValue(detuneStateSourceDebug, "operatorMultipleDt1Register0")
+                             && jsonIntValue(detuneStateRestoredDebug, "operatorDt2SustainRateRegister0")
+                                 == jsonIntValue(detuneStateSourceDebug, "operatorDt2SustainRateRegister0"),
+                         "Restored YM2151 DT1/DT2 should reproduce the exact packed $40/$C0 bytes");
+        }
+    }
     auto versionedState = processor.createStateXml();
-    ok &= expect(versionedState != nullptr && versionedState->getIntAttribute("stateSchemaVersion") == 5,
-                 "Saved processor state should declare schema version 5");
+    ok &= expect(versionedState != nullptr && versionedState->getIntAttribute("stateSchemaVersion") == chipper::state::currentSchemaVersion,
+                 "Saved processor state should declare the current schema version");
     if (versionedState != nullptr)
     {
         auto legacyState = std::make_unique<juce::XmlElement>(*versionedState);
@@ -2590,8 +2659,8 @@ int main()
         ok &= expect(legacyRestoreProcessor.restoreStateXml(*legacyState).wasOk(),
                      "Unversioned schema-1 state should migrate successfully");
         const auto migratedState = legacyRestoreProcessor.createStateXml();
-        ok &= expect(migratedState != nullptr && migratedState->getIntAttribute("stateSchemaVersion") == 5,
-                     "Migrated state should be re-saved as schema version 5");
+        ok &= expect(migratedState != nullptr && migratedState->getIntAttribute("stateSchemaVersion") == chipper::state::currentSchemaVersion,
+                     "Migrated state should be re-saved at the current schema version");
         ChipperAudioProcessor opmLegacySource;
         opmLegacySource.prepareToPlay(48000.0, 64);
         auto legacyOpmState = opmLegacySource.createStateXml();
@@ -2629,6 +2698,47 @@ int main()
             ok &= expectNear(parameterValue(staleOpmProcessor, chipper::parameters::id::opmLfoPms), 0.0f, 0.001f, "Schema-v4 migration should reset OPM PMS to Preset");
             ok &= expectNear(parameterValue(staleOpmProcessor, chipper::parameters::id::opmLfoAms), 0.0f, 0.001f, "Schema-v4 migration should reset OPM AMS to Preset");
         }
+
+        auto legacyDetuneState = std::make_unique<juce::XmlElement>(*versionedState);
+        legacyDetuneState->setAttribute(chipper::state::schemaVersionAttribute, 5);
+        const std::array<const char*, 8> opmDetuneIds {
+            chipper::parameters::id::opmOperator1Dt1, chipper::parameters::id::opmOperator2Dt1,
+            chipper::parameters::id::opmOperator3Dt1, chipper::parameters::id::opmOperator4Dt1,
+            chipper::parameters::id::opmOperator1Dt2, chipper::parameters::id::opmOperator2Dt2,
+            chipper::parameters::id::opmOperator3Dt2, chipper::parameters::id::opmOperator4Dt2
+        };
+        int removedDetuneParameters = 0;
+        for (auto* child = legacyDetuneState->getFirstChildElement(); child != nullptr;)
+        {
+            auto* next = child->getNextElement();
+            const auto id = child->getStringAttribute("id");
+            const auto isDetuneParameter = std::any_of(opmDetuneIds.begin(), opmDetuneIds.end(),
+                                                       [&id](const char* parameterId) { return id == parameterId; });
+            if (isDetuneParameter)
+            {
+                legacyDetuneState->removeChildElement(child, true);
+                ++removedDetuneParameters;
+            }
+            child = next;
+        }
+        ok &= expect(removedDetuneParameters == 8,
+                     "Schema-v5 detune migration fixture should omit all eight YM2151 DT1/DT2 choices");
+        ChipperAudioProcessor staleDetuneProcessor;
+        staleDetuneProcessor.prepareToPlay(48000.0, 64);
+        for (const auto* parameterId : opmDetuneIds)
+            setPlainFromHost(staleDetuneProcessor, parameterId, 1.0f);
+        ok &= expect(std::all_of(opmDetuneIds.begin(), opmDetuneIds.end(),
+                                 [&staleDetuneProcessor](const char* parameterId) {
+                                     return parameterValue(staleDetuneProcessor, parameterId) > 0.0f;
+                                 }),
+                     "Schema-v5 detune migration setup should begin with stale non-Preset values");
+        ok &= expect(staleDetuneProcessor.restoreStateXml(*legacyDetuneState).wasOk(),
+                     "Schema-v5 state missing YM2151 detune choices should migrate successfully");
+        ok &= expect(std::all_of(opmDetuneIds.begin(), opmDetuneIds.end(),
+                                 [&staleDetuneProcessor](const char* parameterId) {
+                                     return std::abs(parameterValue(staleDetuneProcessor, parameterId)) < 0.001f;
+                                 }),
+                     "Schema-v5 migration should reset every YM2151 DT1/DT2 choice to Preset");
 
         auto futureState = std::make_unique<juce::XmlElement>(*versionedState);
         futureState->setAttribute("stateSchemaVersion", 999);

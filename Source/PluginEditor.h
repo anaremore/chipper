@@ -372,6 +372,18 @@ public:
     {
         return index < fmOperatorAttackRateButtons.size() ? fmEditor.boundsInParentForTest(fmOperatorAttackRateButtons[index]) : juce::Rectangle<int> {};
     }
+    juce::Rectangle<int> getFmOperatorDetuneBoundsForLayoutTest(size_t index) const
+    {
+        return index < fmOperatorDetuneButtons.size() ? fmEditor.boundsInParentForTest(fmOperatorDetuneButtons[index]) : juce::Rectangle<int> {};
+    }
+    juce::String getFmOperatorDetuneTextForLayoutTest(size_t index) const
+    {
+        return index < fmOperatorDetuneButtons.size() ? fmOperatorDetuneButtons[index].getButtonText() : juce::String {};
+    }
+    juce::String getFmOperatorDetuneTooltipForLayoutTest(size_t index)
+    {
+        return index < fmOperatorDetuneButtons.size() ? fmOperatorDetuneButtons[index].getTooltip() : juce::String {};
+    }
     juce::Rectangle<int> getFmOperatorLevelValueBoundsForLayoutTest(size_t index) const
     {
         return index < fmOperatorLevelValueLabels.size() ? fmEditor.boundsInParentForTest(fmOperatorLevelValueLabels[index]) : juce::Rectangle<int> {};
@@ -947,6 +959,7 @@ private:
     std::array<juce::Slider, fmOperatorReadoutRows> fmOperatorLevelSliders;
     std::array<juce::TextButton, fmOperatorReadoutRows> fmOperatorMultiplierButtons;
     std::array<juce::TextButton, fmOperatorReadoutRows> fmOperatorAttackRateButtons;
+    std::array<juce::TextButton, fmOperatorReadoutRows> fmOperatorDetuneButtons;
     ChipperFmEditor fmEditor;
     std::unique_ptr<ChipperMotionLab> motionLab;
     ChipperWaveLab waveLab;

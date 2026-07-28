@@ -19,6 +19,7 @@ void ChipperFmEditor::attachControls()
         addAndMakeVisible(controls.levelSliders[i]);
         addAndMakeVisible(controls.multipliers[i]);
         addAndMakeVisible(controls.envelopes[i]);
+        addAndMakeVisible(controls.detunes[i]);
     }
 }
 
@@ -91,6 +92,7 @@ void ChipperFmEditor::clearControlBounds(size_t index)
     controls.levelSliders[index].setBounds({});
     controls.multipliers[index].setBounds({});
     controls.envelopes[index].setBounds({});
+    controls.detunes[index].setBounds({});
 }
 
 void ChipperFmEditor::layoutFourOperatorGrid()
@@ -116,6 +118,16 @@ void ChipperFmEditor::layoutFourOperatorGrid()
         controls.levelReadouts[i].setBounds(header);
         content.removeFromTop(std::min(1, content.getHeight()));
         auto registerRow = content.removeFromBottom(std::min(14, content.getHeight()));
+        if (mode == chipper::ChipMode::ym2151)
+        {
+            auto detuneRow = content.removeFromBottom(std::min(18, content.getHeight()));
+            controls.detunes[i].setBounds(detuneRow);
+            content.removeFromBottom(std::min(3, content.getHeight()));
+        }
+        else
+        {
+            controls.detunes[i].setBounds({});
+        }
         controls.registerReadouts[i].setBounds(registerRow.reduced(2, 0));
         content.removeFromBottom(std::min(1, content.getHeight()));
 
@@ -151,6 +163,7 @@ void ChipperFmEditor::layoutTwoOperatorGrid()
         };
 
         auto content = operatorCards[i].reduced(9, 5);
+        controls.detunes[i].setBounds({});
         auto header = content.removeFromTop(std::min(16, content.getHeight()));
         controls.names[i].setBounds(header.removeFromLeft(std::min(82, header.getWidth())));
         controls.levelReadouts[i].setBounds(header);
@@ -190,6 +203,7 @@ void ChipperFmEditor::layoutCompactRows()
         operatorCards[i] = row;
         auto content = mode == chipper::ChipMode::opl3 ? row.reduced(8, 4) : row;
         controls.names[i].setBounds(content.removeFromLeft(std::min(48, content.getWidth())));
+        controls.detunes[i].setBounds({});
         content.removeFromLeft(std::min(5, content.getWidth()));
         if (editable)
         {

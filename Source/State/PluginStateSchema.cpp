@@ -54,6 +54,28 @@ juce::Result migrateSchema4To5(juce::XmlElement& xml)
     xml.setAttribute(schemaVersionAttribute, 5);
     return juce::Result::ok();
 }
+
+juce::Result migrateSchema5To6(juce::XmlElement& xml)
+{
+    // Schema 6 adds direct per-operator YM2151 DT1/DT2 choices. Backfill
+    // Preset so older state cannot inherit stale detune values from the target.
+    for (const auto* parameterId : {
+             parameter_ids::opmOperator1Dt1,
+             parameter_ids::opmOperator2Dt1,
+             parameter_ids::opmOperator3Dt1,
+             parameter_ids::opmOperator4Dt1,
+             parameter_ids::opmOperator1Dt2,
+             parameter_ids::opmOperator2Dt2,
+             parameter_ids::opmOperator3Dt2,
+             parameter_ids::opmOperator4Dt2
+         })
+    {
+        ensureChoiceParameterDefault(xml, parameterId);
+    }
+    xml.setAttribute(schemaVersionAttribute, 6);
+    return juce::Result::ok();
+}
+
 }
 
 juce::Result validateAndMigrate(juce::XmlElement& xml, const juce::Identifier& expectedRootType)
@@ -88,6 +110,8 @@ juce::Result validateAndMigrate(juce::XmlElement& xml, const juce::Identifier& e
             migration = migrateSchema3To4(xml);
         else if (schemaVersion == 4)
             migration = migrateSchema4To5(xml);
+        else if (schemaVersion == 5)
+            migration = migrateSchema5To6(xml);
         if (migration.failed())
             return migration;
         ++schemaVersion;

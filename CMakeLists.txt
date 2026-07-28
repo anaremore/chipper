@@ -1114,6 +1114,9 @@ add_test(NAME chipper_render_preset_opl3_layer_arp_smoke
 add_test(NAME chipper_render_ym2151_smoke
     COMMAND chipper_render --chip ym2151 --accuracy authentic --macro lead --wave-shape 5 --fm-op2-multiplier 0.5 --fm-op4-multiplier 15 --fm-op2-attack-rate 0 --fm-op4-attack-rate 31 --fm-op2-decay-rate 0 --fm-op4-decay-rate 31 --fm-op2-sustain-rate 0 --fm-op4-sustain-rate 31 --fm-op2-release-rate 0 --fm-op4-release-rate 15 --clock 3579545 --rate 48000 --seconds 0.08 --note 69 --out ym2151-smoke.wav --debug ym2151-smoke.json
 )
+add_test(NAME chipper_render_ym2151_operator_detune_smoke
+    COMMAND chipper_render --chip ym2151 --accuracy authentic --macro manual --wave-shape 5 --fm-op1-multiplier 0.5 --fm-op2-multiplier 15 --fm-op3-multiplier 1 --fm-op4-multiplier 2 --fm-op1-sustain-rate 0 --fm-op2-sustain-rate 1 --fm-op3-sustain-rate 5 --fm-op4-sustain-rate 31 --opm-op1-dt1 3 --opm-op2-dt1 7 --opm-op3-dt1 0 --opm-op4-dt1 4 --opm-op1-dt2 0 --opm-op2-dt2 1 --opm-op3-dt2 2 --opm-op4-dt2 3 --clock 3579545 --rate 48000 --seconds 0.08 --note 69 --out ym2151-operator-detune-smoke.wav --debug ym2151-operator-detune-smoke.json
+)
 add_test(NAME chipper_render_ym2151_feedback6_smoke
     COMMAND chipper_render --chip ym2151 --accuracy authentic --macro manual --wave-shape 5 --opm-feedback 6 --clock 3579545 --rate 48000 --seconds 0.08 --note 69 --out ym2151-feedback6-smoke.wav --debug ym2151-feedback6-smoke.json
 )
@@ -2868,6 +2871,55 @@ if (Python3_Interpreter_FOUND)
             --descriptor-param-kind fmOperator4ReleaseRate=chipRegister --descriptor-param-surface fmOperator4ReleaseRate=menu --descriptor-param-label "fmOperator4ReleaseRate=OP4 Release" --descriptor-param-choices fmOperator4ReleaseRate=17
     )
     set_tests_properties(chipper_render_ym2151_json_assert PROPERTIES DEPENDS chipper_render_ym2151_smoke)
+    add_test(NAME chipper_render_ym2151_operator_detune_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-operator-detune-smoke.json
+            --implemented-contains ymfm --macro Manual --min-peak 0.01 --register-writes 0 --note-events 0
+            --core-min opmOperatorDt1Choice0=4 --core-max opmOperatorDt1Choice0=4
+            --core-min opmOperatorDt1Choice1=8 --core-max opmOperatorDt1Choice1=8
+            --core-min opmOperatorDt1Choice2=1 --core-max opmOperatorDt1Choice2=1
+            --core-min opmOperatorDt1Choice3=5 --core-max opmOperatorDt1Choice3=5
+            --core-min opmOperatorDt2Choice0=1 --core-max opmOperatorDt2Choice0=1
+            --core-min opmOperatorDt2Choice1=2 --core-max opmOperatorDt2Choice1=2
+            --core-min opmOperatorDt2Choice2=3 --core-max opmOperatorDt2Choice2=3
+            --core-min opmOperatorDt2Choice3=4 --core-max opmOperatorDt2Choice3=4
+            --core-min operatorDt10=3 --core-max operatorDt10=3
+            --core-min operatorDt11=7 --core-max operatorDt11=7
+            --core-min operatorDt12=0 --core-max operatorDt12=0
+            --core-min operatorDt13=4 --core-max operatorDt13=4
+            --core-min operatorDt20=0 --core-max operatorDt20=0
+            --core-min operatorDt21=1 --core-max operatorDt21=1
+            --core-min operatorDt22=2 --core-max operatorDt22=2
+            --core-min operatorDt23=3 --core-max operatorDt23=3
+            --core-min operatorMultiple0=0 --core-max operatorMultiple0=0
+            --core-min operatorMultiple1=15 --core-max operatorMultiple1=15
+            --core-min operatorMultiple2=1 --core-max operatorMultiple2=1
+            --core-min operatorMultiple3=2 --core-max operatorMultiple3=2
+            --core-min operatorSustainRate0=0 --core-max operatorSustainRate0=0
+            --core-min operatorSustainRate1=1 --core-max operatorSustainRate1=1
+            --core-min operatorSustainRate2=5 --core-max operatorSustainRate2=5
+            --core-min operatorSustainRate3=31 --core-max operatorSustainRate3=31
+            --core-min operatorMultipleDt1Register0=48 --core-max operatorMultipleDt1Register0=48
+            --core-min operatorMultipleDt1Register1=127 --core-max operatorMultipleDt1Register1=127
+            --core-min operatorMultipleDt1Register2=1 --core-max operatorMultipleDt1Register2=1
+            --core-min operatorMultipleDt1Register3=66 --core-max operatorMultipleDt1Register3=66
+            --core-min operatorDt2SustainRateRegister0=0 --core-max operatorDt2SustainRateRegister0=0
+            --core-min operatorDt2SustainRateRegister1=65 --core-max operatorDt2SustainRateRegister1=65
+            --core-min operatorDt2SustainRateRegister2=133 --core-max operatorDt2SustainRateRegister2=133
+            --core-min operatorDt2SustainRateRegister3=223 --core-max operatorDt2SustainRateRegister3=223
+            --core-min keyCode0=76 --core-max keyCode0=76
+            --core-min keyFraction0=0 --core-max keyFraction0=0
+            --descriptor-param-choices opmOperator1Dt1=9
+            --descriptor-param-choices opmOperator2Dt1=9
+            --descriptor-param-choices opmOperator3Dt1=9
+            --descriptor-param-choices opmOperator4Dt1=9
+            --descriptor-param-choices opmOperator1Dt2=5
+            --descriptor-param-choices opmOperator2Dt2=5
+            --descriptor-param-choices opmOperator3Dt2=5
+            --descriptor-param-choices opmOperator4Dt2=5
+            --descriptor-param-kind opmOperator1Dt1=chipRegister --descriptor-param-surface opmOperator1Dt1=menu
+            --descriptor-param-kind opmOperator1Dt2=chipRegister --descriptor-param-surface opmOperator1Dt2=menu
+    )
+    set_tests_properties(chipper_render_ym2151_operator_detune_assert PROPERTIES DEPENDS chipper_render_ym2151_operator_detune_smoke)
 
     add_test(NAME chipper_render_ym2151_feedback6_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/ym2151-feedback6-smoke.json

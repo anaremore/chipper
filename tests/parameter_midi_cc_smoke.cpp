@@ -81,6 +81,23 @@ int main()
                      == "Manual Slot|Key Map|Tracker Map",
                  "Paula sample playback labels should expose Key Map and Tracker Map");
 
+    const std::array<std::pair<int, const char*>, 8> opmDetuneMappings {{
+        { 12, chipper::parameters::id::opmOperator1Dt1 },
+        { 13, chipper::parameters::id::opmOperator2Dt1 },
+        { 14, chipper::parameters::id::opmOperator3Dt1 },
+        { 15, chipper::parameters::id::opmOperator4Dt1 },
+        { 16, chipper::parameters::id::opmOperator1Dt2 },
+        { 17, chipper::parameters::id::opmOperator2Dt2 },
+        { 18, chipper::parameters::id::opmOperator3Dt2 },
+        { 19, chipper::parameters::id::opmOperator4Dt2 }
+    }};
+    for (const auto& [controller, parameterId] : opmDetuneMappings)
+    {
+        const auto* mappedParameterId = chipper::parameters::parameterIdForMidiController(controller);
+        ok &= expect(mappedParameterId != nullptr && std::string_view(mappedParameterId) == parameterId,
+                     "YM2151 per-operator DT1/DT2 MIDI CC assignments must remain stable");
+    }
+
     std::set<int> controllers;
     std::set<std::string> parameterIds;
 

@@ -104,7 +104,15 @@ const MidiCcMappingList& midiCcMappings()
         { 39, parameter_ids::fmOperator4AttackRate, "FM Operator 4 Attack Rate" },
         { 20, parameter_ids::opmLfoWaveform, "YM2151 LFO Waveform" },
         { 21, parameter_ids::opmLfoPms, "YM2151 Phase Modulation Sensitivity" },
-        { 22, parameter_ids::opmLfoAms, "YM2151 Amplitude Modulation Sensitivity" }
+        { 22, parameter_ids::opmLfoAms, "YM2151 Amplitude Modulation Sensitivity" },
+        { 12, parameter_ids::opmOperator1Dt1, "YM2151 Operator 1 DT1" },
+        { 13, parameter_ids::opmOperator2Dt1, "YM2151 Operator 2 DT1" },
+        { 14, parameter_ids::opmOperator3Dt1, "YM2151 Operator 3 DT1" },
+        { 15, parameter_ids::opmOperator4Dt1, "YM2151 Operator 4 DT1" },
+        { 16, parameter_ids::opmOperator1Dt2, "YM2151 Operator 1 DT2" },
+        { 17, parameter_ids::opmOperator2Dt2, "YM2151 Operator 2 DT2" },
+        { 18, parameter_ids::opmOperator3Dt2, "YM2151 Operator 3 DT2" },
+        { 19, parameter_ids::opmOperator4Dt2, "YM2151 Operator 4 DT2" }
     }};
 
     return mappings;
@@ -227,6 +235,14 @@ const char* parameterIdForChipParameterRole(ChipParameterRole role)
         case ChipParameterRole::fmOperator3ReleaseRate: return parameter_ids::fmOperator3ReleaseRate;
         case ChipParameterRole::fmOperator4ReleaseRate: return parameter_ids::fmOperator4ReleaseRate;
         case ChipParameterRole::opmLfoWaveform: return parameter_ids::opmLfoWaveform;
+        case ChipParameterRole::opmOperator1Dt1: return parameter_ids::opmOperator1Dt1;
+        case ChipParameterRole::opmOperator2Dt1: return parameter_ids::opmOperator2Dt1;
+        case ChipParameterRole::opmOperator3Dt1: return parameter_ids::opmOperator3Dt1;
+        case ChipParameterRole::opmOperator4Dt1: return parameter_ids::opmOperator4Dt1;
+        case ChipParameterRole::opmOperator1Dt2: return parameter_ids::opmOperator1Dt2;
+        case ChipParameterRole::opmOperator2Dt2: return parameter_ids::opmOperator2Dt2;
+        case ChipParameterRole::opmOperator3Dt2: return parameter_ids::opmOperator3Dt2;
+        case ChipParameterRole::opmOperator4Dt2: return parameter_ids::opmOperator4Dt2;
         case ChipParameterRole::opmLfoPms: return parameter_ids::opmLfoPms;
         case ChipParameterRole::opmLfoAms: return parameter_ids::opmLfoAms;
         case ChipParameterRole::clockHz: return parameter_ids::clockHz;

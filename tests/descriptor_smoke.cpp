@@ -950,6 +950,28 @@ bool expectFmRegisterHelpers()
     ok &= expect(chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2151, opmMultiplierOverride, 0) == 1u, "YM2151 operator 1 multiplier override should write native 1x nibble");
     ok &= expect(chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2151, opmMultiplierOverride, 1) == 9u, "YM2151 operator 2 multiplier should follow Operator Tone when not overridden");
     ok &= expect(chipper::fmOperatorMultipleForPatch(chipper::ChipMode::ym2151, opmMultiplierOverride, 3) == 15u, "YM2151 operator 4 multiplier override should write native 15x nibble");
+    auto opmDetuneOverride = opmArp;
+    opmDetuneOverride.fmOperatorMultipliers = { 1, 16, 0, 0 };
+    opmDetuneOverride.fmOperatorSustainRates = { 0, 0, 6, 32 };
+    opmDetuneOverride.opmOperatorDt1 = { 4, 8, 0, 0 };
+    opmDetuneOverride.opmOperatorDt2 = { 0, 0, 3, 4 };
+    ok &= expect(chipper::ym2151OperatorDt1ForPatch(opmDetuneOverride, 0) == 3u
+                     && chipper::ym2151OperatorDt1ForPatch(opmDetuneOverride, 1) == 7u,
+                 "YM2151 DT1 choices should resolve exact positive and negative native codes");
+    ok &= expect(chipper::ym2151OperatorDt2ForPatch(opmDetuneOverride, 2) == 2u
+                     && chipper::ym2151OperatorDt2ForPatch(opmDetuneOverride, 3) == 3u,
+                 "YM2151 DT2 choices should resolve exact coarse-detune native codes");
+    ok &= expect(chipper::ym2151OperatorMultipleDt1RegisterForPatch(opmDetuneOverride, 0) == 0x30u,
+                 "YM2151 operator 1 should pack DT1 code 3 with MULT 0 into $40");
+    ok &= expect(chipper::ym2151OperatorMultipleDt1RegisterForPatch(opmDetuneOverride, 1) == 0x7fu,
+                 "YM2151 operator 2 should pack DT1 code 7 with MULT 15 into $48");
+    ok &= expect(chipper::ym2151OperatorDt2SustainRateRegisterForPatch(opmDetuneOverride, 2) == 0x85u,
+                 "YM2151 operator 3 should pack DT2 code 2 with D2R 5 into $D0");
+    ok &= expect(chipper::ym2151OperatorDt2SustainRateRegisterForPatch(opmDetuneOverride, 3) == 0xdfu,
+                 "YM2151 operator 4 should pack DT2 code 3 with D2R 31 into $D8");
+    ok &= expect(chipper::ym2151OperatorDt1ForPatch(opmArp, 0) == 0u
+                     && chipper::ym2151OperatorDt2ForPatch(opmArp, 0) == 0u,
+                 "YM2151 Preset detune choices should preserve the neutral legacy register values");
     auto opmAttackOverride = opmArp;
     opmAttackOverride.fmOperatorAttackRates = { 6, 0, 0, 32 };
     ok &= expect(chipper::ym2612EnvelopeRegistersForPatch(opmAttackOverride, 0).attackRate == 5u, "YM2151 shared helper operator 1 attack override should write native AR 5");
@@ -1568,6 +1590,25 @@ int main()
     ok &= expectSpec(chipper::ChipMode::ym2151, chipper::ChipParameterRole::opmLfoAms, chipper::ParameterKind::chipRegister, chipper::ControlSurface::menu, "AMS");
     ok &= expectChoiceRegister(chipper::ChipMode::ym2151, chipper::ChipParameterRole::opmLfoAms, chipper::ControlSurface::menu, 5, "Preset");
     ok &= expectSpecGroup(chipper::ChipMode::ym2151, chipper::ChipParameterRole::opmLfoAms, "Motion");
+    static constexpr std::array<chipper::ChipParameterRole, 4> opmDt1Roles {
+        chipper::ChipParameterRole::opmOperator1Dt1, chipper::ChipParameterRole::opmOperator2Dt1,
+        chipper::ChipParameterRole::opmOperator3Dt1, chipper::ChipParameterRole::opmOperator4Dt1
+    };
+    static constexpr std::array<chipper::ChipParameterRole, 4> opmDt2Roles {
+        chipper::ChipParameterRole::opmOperator1Dt2, chipper::ChipParameterRole::opmOperator2Dt2,
+        chipper::ChipParameterRole::opmOperator3Dt2, chipper::ChipParameterRole::opmOperator4Dt2
+    };
+    for (size_t op = 0; op < opmDt1Roles.size(); ++op)
+    {
+        ok &= expectSpec(chipper::ChipMode::ym2151, opmDt1Roles[op], chipper::ParameterKind::chipRegister,
+                         chipper::ControlSurface::menu, "OP" + std::to_string(op + 1u) + " DT1");
+        ok &= expectChoiceRegister(chipper::ChipMode::ym2151, opmDt1Roles[op], chipper::ControlSurface::menu,
+                                   9, "Preset");
+        ok &= expectSpec(chipper::ChipMode::ym2151, opmDt2Roles[op], chipper::ParameterKind::chipRegister,
+                         chipper::ControlSurface::menu, "OP" + std::to_string(op + 1u) + " DT2");
+        ok &= expectChoiceRegister(chipper::ChipMode::ym2151, opmDt2Roles[op], chipper::ControlSurface::menu,
+                                   5, "Preset");
+    }
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).implemented, "SCC descriptor should be partially implemented");
     ok &= expect(chipper::descriptorFor(chipper::ChipMode::scc).supportsChipPoly, "SCC should support Chip Poly across exposed wavetable channels");
     ok &= expectSegmentedRegister(chipper::ChipMode::nes, chipper::ChipParameterRole::macroControl1, 4, "12.5%");

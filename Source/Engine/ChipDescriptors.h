@@ -143,6 +143,14 @@ enum class ChipParameterRole
     fmOperator3ReleaseRate,
     fmOperator4ReleaseRate,
     opmLfoWaveform,
+    opmOperator1Dt1,
+    opmOperator2Dt1,
+    opmOperator3Dt1,
+    opmOperator4Dt1,
+    opmOperator1Dt2,
+    opmOperator2Dt2,
+    opmOperator3Dt2,
+    opmOperator4Dt2,
     opmLfoPms,
     opmLfoAms,
     clockHz,
@@ -387,6 +395,10 @@ uint8_t ym2151LfoPmSensitivityForPatch(const PatchConfig& patch);
 uint8_t ym2151LfoAmSensitivityForPatch(const PatchConfig& patch);
 uint8_t ym2151LfoChannelRegisterForPatch(const PatchConfig& patch);
 bool ym2151OperatorAmEnabledForPatch(const PatchConfig& patch, size_t op);
+uint8_t ym2151OperatorDt1ForPatch(const PatchConfig& patch, size_t op);
+uint8_t ym2151OperatorDt2ForPatch(const PatchConfig& patch, size_t op);
+uint8_t ym2151OperatorMultipleDt1RegisterForPatch(const PatchConfig& patch, size_t op);
+uint8_t ym2151OperatorDt2SustainRateRegisterForPatch(const PatchConfig& patch, size_t op);
 uint8_t fmFeedbackForPatch(const PatchConfig& patch);
 uint8_t fmOperatorMultipleForPatch(ChipMode mode, const PatchConfig& patch, size_t op);
 bool fmOperatorIsCarrierForAlgorithm(uint8_t algorithm, size_t op);

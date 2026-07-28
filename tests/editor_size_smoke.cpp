@@ -8,6 +8,7 @@
 #include <functional>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <set>
 #include <string>
 #include <typeinfo>
@@ -1150,7 +1151,7 @@ bool checkOpl3UnifiedTopologyLayout()
     return ok;
 }
 
-bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
+bool checkFourOperatorFmOperatorSurfaceLayoutAtWidth(chipper::ChipMode mode, int width)
 {
     const auto chipChoice = chipModeChoiceFor(mode);
     if (chipChoice < 0)
@@ -1165,7 +1166,7 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
     ok &= setChoiceParameter(processor, chipper::parameters::id::waveShape, 5);
 
     ChipperAudioProcessorEditor editor(processor);
-    editor.setSize(1240, expectedHeightForChipMode(chipChoice));
+    editor.setSize(width, expectedHeightForChipMode(chipChoice));
     editor.runEditorUpdateForLayoutTest();
 
     const auto envelopeModuleBounds = editor.getModuleBoundsForLayoutTest(3);
@@ -1260,8 +1261,48 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
         const auto nameText = editor.getFmOperatorNameTextForLayoutTest(op);
         const auto valueText = editor.getFmOperatorValueTextForLayoutTest(op);
         const auto levelValueText = editor.getFmOperatorLevelValueTextForLayoutTest(op);
+        const auto detuneBounds = editor.getFmOperatorDetuneBoundsForLayoutTest(op);
+        const auto detuneText = editor.getFmOperatorDetuneTextForLayoutTest(op);
+        const auto detuneTooltip = editor.getFmOperatorDetuneTooltipForLayoutTest(op);
         const auto cardBounds = editor.getFmOperatorCardBoundsForLayoutTest(op);
         operatorCards[op] = cardBounds;
+        const auto expectsDetune = mode == chipper::ChipMode::ym2151;
+        if (expectsDetune)
+        {
+            const auto trimmedDetuneText = detuneText.trim();
+            const auto overlapsOperatorRow = detuneBounds.intersects(levelSliderBounds)
+                || detuneBounds.intersects(levelValueBounds)
+                || detuneBounds.intersects(multiplierBounds)
+                || detuneBounds.intersects(attackRateBounds)
+                || detuneBounds.intersects(valueBounds)
+                || detuneBounds.intersects(nameBounds);
+            if (detuneBounds.isEmpty()
+                || detuneBounds.getHeight() < 18
+                || ! cardBounds.contains(detuneBounds)
+                || overlapsOperatorRow
+                || trimmedDetuneText.isEmpty()
+                || ! trimmedDetuneText.startsWith("DT1 ")
+                || trimmedDetuneText.length() > 24
+                || valueText.length() > 64
+                || valueText.contains("$40/$C0")
+                || ! detuneTooltip.contains("Native $40/$C0 bytes: $"))
+            {
+                std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
+                          << " should expose a concise, non-overlapping DT control at width " << width
+                          << ": detune " << detuneBounds.toString()
+                          << " card " << cardBounds.toString()
+                          << " text " << detuneText.toStdString() << '\n';
+                ok = false;
+            }
+        }
+        else if (! detuneBounds.isEmpty())
+        {
+            std::cerr << "editor_size_smoke: " << modeLabel << " operator row " << op
+                      << " should keep the YM2151-only DT control at zero bounds at width " << width
+                      << ", got " << detuneBounds.toString() << '\n';
+            ok = false;
+        }
+
 
         if (nameBounds.isEmpty() || valueBounds.isEmpty()
             || levelSliderBounds.isEmpty() || multiplierBounds.isEmpty()
@@ -1398,6 +1439,13 @@ bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
     return ok;
 }
 
+bool checkFourOperatorFmOperatorSurfaceLayout(chipper::ChipMode mode)
+{
+    auto ok = checkFourOperatorFmOperatorSurfaceLayoutAtWidth(mode, 1240);
+    ok &= checkFourOperatorFmOperatorSurfaceLayoutAtWidth(mode, expectedEditorMinimumWidth);
+    return ok;
+}
+
 bool checkYm2151UnifiedOpmLayout()
 {
     const auto chipChoice = chipModeChoiceFor(chipper::ChipMode::ym2151);
@@ -1484,9 +1532,32 @@ bool checkYm2151UnifiedOpmLayout()
                           "YM2151 Algorithm Bias should be active for Manual + Preset");
 
         for (size_t op = 0; op < 4u; ++op)
-            widthOk &= expect(! editor.getFmOperatorCardBoundsForLayoutTest(op).isEmpty()
-                                  && operators.expanded(2).contains(editor.getFmOperatorCardBoundsForLayoutTest(op)),
+        {
+            const auto card = editor.getFmOperatorCardBoundsForLayoutTest(op);
+            const auto detune = editor.getFmOperatorDetuneBoundsForLayoutTest(op);
+            const auto detuneText = editor.getFmOperatorDetuneTextForLayoutTest(op).trim();
+            const std::array<juce::Rectangle<int>, 5> adjacentRows {
+                editor.getFmOperatorLevelValueBoundsForLayoutTest(op),
+                editor.getFmOperatorLevelSliderBoundsForLayoutTest(op),
+                editor.getFmOperatorMultiplierBoundsForLayoutTest(op),
+                editor.getFmOperatorAttackRateBoundsForLayoutTest(op),
+                editor.getFmOperatorValueBoundsForLayoutTest(op)
+            };
+            widthOk &= expect(! card.isEmpty()
+                                  && operators.expanded(2).contains(card),
                               "YM2151 operator card should remain inside the shared operator matrix");
+            widthOk &= expect(! detune.isEmpty()
+                                  && detune.getHeight() >= 18
+                                  && card.contains(detune),
+                              "YM2151 DT control should remain readable and inside its operator card");
+            widthOk &= expect(detuneText.isNotEmpty()
+                                  && detuneText.startsWith("DT1 ")
+                                  && detuneText.length() <= 24,
+                              "YM2151 DT control should expose concise DT1/DT2 state text");
+            for (const auto& row : adjacentRows)
+                widthOk &= expect(! row.isEmpty() && ! detune.intersects(row),
+                                  "YM2151 DT control must not overlap level, MULT, EG, or register rows");
+        }
 
         const auto lfo = editor.getStereoSpreadBoundsForLayoutTest();
         const auto pan = editor.getDmgStereoRouteBoundsForLayoutTest();
@@ -1617,6 +1688,10 @@ bool checkYm2413UnifiedOpllLayout()
                               && rhythm.getHeight() >= 24
                               && topology.expanded(2).contains(rhythm),
                           "YM2413 native rhythm selector should remain visible in Instrument + Topology");
+
+        for (size_t op = 0; op < 4u; ++op)
+            widthOk &= expect(editor.getFmOperatorDetuneBoundsForLayoutTest(op).isEmpty(),
+                              "YM2413 must keep the YM2151-only DT control hidden at zero bounds");
 
         for (size_t op = 0; op < 2u; ++op)
         {
@@ -5373,39 +5448,39 @@ int main()
 {
     juce::ScopedJuceInitialiser_GUI juce;
 
-    ChipperAudioProcessor processor;
-    ChipperAudioProcessorEditor editor(processor);
+    auto processor = std::make_unique<ChipperAudioProcessor>();
+    auto editor = std::make_unique<ChipperAudioProcessorEditor>(*processor);
 
     bool ok = true;
     ok &= checkChipUiProfiles();
-    ok &= expect(editor.getWidth() == 1240, "unexpected default width");
-    ok &= expect(editor.getHeight() == expectedHeightForChipMode(0), "unexpected default height");
+    ok &= expect(editor->getWidth() == 1240, "unexpected default width");
+    ok &= expect(editor->getHeight() == expectedHeightForChipMode(0), "unexpected default height");
 
-    editor.setSize(1240, 1200);
-    ok &= expect(editor.getHeight() == expectedHeightForChipMode(0), "host-restored default editor height was not clamped to the chip preferred size");
+    editor->setSize(1240, 1200);
+    ok &= expect(editor->getHeight() == expectedHeightForChipMode(0), "host-restored default editor height was not clamped to the chip preferred size");
 
-    editor.setSize(1000, 600);
-    ok &= expect(editor.getWidth() >= expectedEditorMinimumWidth, "editor width was not clamped to minimum");
-    ok &= expect(editor.getHeight() >= expectedHeightForChipMode(0), "editor height was not clamped to the default chip preferred size");
+    editor->setSize(1000, 600);
+    ok &= expect(editor->getWidth() >= expectedEditorMinimumWidth, "editor width was not clamped to minimum");
+    ok &= expect(editor->getHeight() >= expectedHeightForChipMode(0), "editor height was not clamped to the default chip preferred size");
 
     const auto chipModeCount = chipper::parameters::chipModeChoices().size();
     for (auto chipMode = 0; chipMode < chipModeCount; ++chipMode)
     {
         const auto chipPath = chipper::parameters::chipModeChoices()[chipMode].toStdString();
-        ChipperAudioProcessor chipProcessor;
-        ok &= setChoiceParameter(chipProcessor, chipper::parameters::id::chipMode, chipMode);
+        auto chipProcessor = std::make_unique<ChipperAudioProcessor>();
+        ok &= setChoiceParameter(*chipProcessor, chipper::parameters::id::chipMode, chipMode);
 
-        ChipperAudioProcessorEditor chipEditor(chipProcessor);
-        ok &= expect(chipEditor.getWidth() == 1240, "chip default width changed");
-        ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "chip default height changed");
-        ok &= expect(chipEditor.getHeight() <= expectedEditorMaximumHeight, "chip default height exceeded DAW-friendly cap");
-        ok &= checkVisibleChildGeometry(chipEditor, chipEditor, juce::Point<int> {}, "editor/" + chipPath);
-        ok &= checkPrimaryPanelStack(chipEditor, chipper::parameters::chipModeFromChoice(chipMode));
-        chipEditor.setSize(1240, 1200);
-        ok &= expect(chipEditor.getHeight() == expectedHeightForChipMode(chipMode), "chip-switched editor height was not clamped to the chip preferred size");
-        ok &= expect(chipEditor.getWidth() == 1240, "chip-switched editor width unexpectedly changed");
-        ok &= checkVisibleChildGeometry(chipEditor, chipEditor, juce::Point<int> {}, "editor/restored/" + chipPath);
-        ok &= checkPrimaryPanelStack(chipEditor, chipper::parameters::chipModeFromChoice(chipMode));
+        auto chipEditor = std::make_unique<ChipperAudioProcessorEditor>(*chipProcessor);
+        ok &= expect(chipEditor->getWidth() == 1240, "chip default width changed");
+        ok &= expect(chipEditor->getHeight() == expectedHeightForChipMode(chipMode), "chip default height changed");
+        ok &= expect(chipEditor->getHeight() <= expectedEditorMaximumHeight, "chip default height exceeded DAW-friendly cap");
+        ok &= checkVisibleChildGeometry(*chipEditor, *chipEditor, juce::Point<int> {}, "editor/" + chipPath);
+        ok &= checkPrimaryPanelStack(*chipEditor, chipper::parameters::chipModeFromChoice(chipMode));
+        chipEditor->setSize(1240, 1200);
+        ok &= expect(chipEditor->getHeight() == expectedHeightForChipMode(chipMode), "chip-switched editor height was not clamped to the chip preferred size");
+        ok &= expect(chipEditor->getWidth() == 1240, "chip-switched editor width unexpectedly changed");
+        ok &= checkVisibleChildGeometry(*chipEditor, *chipEditor, juce::Point<int> {}, "editor/restored/" + chipPath);
+        ok &= checkPrimaryPanelStack(*chipEditor, chipper::parameters::chipModeFromChoice(chipMode));
     }
 
     ok &= checkChannelOwnedControlLayout(chipper::ChipMode::nes);

@@ -15660,7 +15660,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPM register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2151/OPM synthesis core. Chipper currently maps musical controls and notes to OPM operator, algorithm, feedback, key-code/key-fraction, pan, $0F channel-8 noise, LFO PM/AM depth and sensitivity, and key-on registers for all eight melodic lanes. Exact OPM noise timing/hardware comparison, timers, CSM behavior, DT1/DT2 detune controls, deep per-operator ADSR UI, golden comparisons, and hardware validation are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2151/OPM synthesis core. Chipper currently maps musical controls and notes to OPM operator multiplier plus per-operator DT1/DT2, envelopes, algorithm, feedback, key-code/key-fraction, pan, $0F channel-8 noise, direct LFO waveform/PM/AM depth and sensitivity, and key-on registers for all eight melodic lanes. Independent per-channel patches, exact OPM noise timing/hardware comparison, timers, CSM behavior, deeper per-operator ADSR visualization, golden comparisons, and hardware validation are not complete.";
     }
 
     std::string debugStateJson() const override
@@ -15714,10 +15714,26 @@ public:
              << "\"fmOperatorReleaseRate1\":" << patch.fmOperatorReleaseRates[1] << ","
              << "\"fmOperatorReleaseRate2\":" << patch.fmOperatorReleaseRates[2] << ","
              << "\"fmOperatorReleaseRate3\":" << patch.fmOperatorReleaseRates[3] << ","
+             << "\"opmOperatorDt1Choice0\":" << patch.opmOperatorDt1[0] << ","
+             << "\"opmOperatorDt1Choice1\":" << patch.opmOperatorDt1[1] << ","
+             << "\"opmOperatorDt1Choice2\":" << patch.opmOperatorDt1[2] << ","
+             << "\"opmOperatorDt1Choice3\":" << patch.opmOperatorDt1[3] << ","
+             << "\"opmOperatorDt2Choice0\":" << patch.opmOperatorDt2[0] << ","
+             << "\"opmOperatorDt2Choice1\":" << patch.opmOperatorDt2[1] << ","
+             << "\"opmOperatorDt2Choice2\":" << patch.opmOperatorDt2[2] << ","
+             << "\"opmOperatorDt2Choice3\":" << patch.opmOperatorDt2[3] << ","
              << "\"operatorMultiple0\":" << static_cast<int>(regs[static_cast<uint8_t>(0x40 + opOffset(0, 0))] & 0x0fu) << ","
              << "\"operatorMultiple1\":" << static_cast<int>(regs[static_cast<uint8_t>(0x40 + opOffset(0, 1))] & 0x0fu) << ","
              << "\"operatorMultiple2\":" << static_cast<int>(regs[static_cast<uint8_t>(0x40 + opOffset(0, 2))] & 0x0fu) << ","
              << "\"operatorMultiple3\":" << static_cast<int>(regs[static_cast<uint8_t>(0x40 + opOffset(0, 3))] & 0x0fu) << ","
+             << "\"operatorDt10\":" << static_cast<int>((regs[static_cast<uint8_t>(0x40 + opOffset(0, 0))] >> 4u) & 0x07u) << ","
+             << "\"operatorDt11\":" << static_cast<int>((regs[static_cast<uint8_t>(0x40 + opOffset(0, 1))] >> 4u) & 0x07u) << ","
+             << "\"operatorDt12\":" << static_cast<int>((regs[static_cast<uint8_t>(0x40 + opOffset(0, 2))] >> 4u) & 0x07u) << ","
+             << "\"operatorDt13\":" << static_cast<int>((regs[static_cast<uint8_t>(0x40 + opOffset(0, 3))] >> 4u) & 0x07u) << ","
+             << "\"operatorMultipleDt1Register0\":" << static_cast<int>(regs[static_cast<uint8_t>(0x40 + opOffset(0, 0))]) << ","
+             << "\"operatorMultipleDt1Register1\":" << static_cast<int>(regs[static_cast<uint8_t>(0x40 + opOffset(0, 1))]) << ","
+             << "\"operatorMultipleDt1Register2\":" << static_cast<int>(regs[static_cast<uint8_t>(0x40 + opOffset(0, 2))]) << ","
+             << "\"operatorMultipleDt1Register3\":" << static_cast<int>(regs[static_cast<uint8_t>(0x40 + opOffset(0, 3))]) << ","
              << "\"operatorAttackRate0\":" << static_cast<int>(regs[static_cast<uint8_t>(0x80 + opOffset(0, 0))]) << ","
              << "\"operatorAttackRate1\":" << static_cast<int>(regs[static_cast<uint8_t>(0x80 + opOffset(0, 1))]) << ","
              << "\"operatorAttackRate2\":" << static_cast<int>(regs[static_cast<uint8_t>(0x80 + opOffset(0, 2))]) << ","
@@ -15726,10 +15742,18 @@ public:
              << "\"operatorDecayRate1\":" << static_cast<int>(regs[static_cast<uint8_t>(0xa0 + opOffset(0, 1))]) << ","
              << "\"operatorDecayRate2\":" << static_cast<int>(regs[static_cast<uint8_t>(0xa0 + opOffset(0, 2))]) << ","
              << "\"operatorDecayRate3\":" << static_cast<int>(regs[static_cast<uint8_t>(0xa0 + opOffset(0, 3))]) << ","
-             << "\"operatorSustainRate0\":" << static_cast<int>(regs[static_cast<uint8_t>(0xc0 + opOffset(0, 0))]) << ","
-             << "\"operatorSustainRate1\":" << static_cast<int>(regs[static_cast<uint8_t>(0xc0 + opOffset(0, 1))]) << ","
-             << "\"operatorSustainRate2\":" << static_cast<int>(regs[static_cast<uint8_t>(0xc0 + opOffset(0, 2))]) << ","
-             << "\"operatorSustainRate3\":" << static_cast<int>(regs[static_cast<uint8_t>(0xc0 + opOffset(0, 3))]) << ","
+             << "\"operatorSustainRate0\":" << static_cast<int>(regs[static_cast<uint8_t>(0xc0 + opOffset(0, 0))] & 0x1fu) << ","
+             << "\"operatorSustainRate1\":" << static_cast<int>(regs[static_cast<uint8_t>(0xc0 + opOffset(0, 1))] & 0x1fu) << ","
+             << "\"operatorSustainRate2\":" << static_cast<int>(regs[static_cast<uint8_t>(0xc0 + opOffset(0, 2))] & 0x1fu) << ","
+             << "\"operatorSustainRate3\":" << static_cast<int>(regs[static_cast<uint8_t>(0xc0 + opOffset(0, 3))] & 0x1fu) << ","
+             << "\"operatorDt20\":" << static_cast<int>((regs[static_cast<uint8_t>(0xc0 + opOffset(0, 0))] >> 6u) & 0x03u) << ","
+             << "\"operatorDt21\":" << static_cast<int>((regs[static_cast<uint8_t>(0xc0 + opOffset(0, 1))] >> 6u) & 0x03u) << ","
+             << "\"operatorDt22\":" << static_cast<int>((regs[static_cast<uint8_t>(0xc0 + opOffset(0, 2))] >> 6u) & 0x03u) << ","
+             << "\"operatorDt23\":" << static_cast<int>((regs[static_cast<uint8_t>(0xc0 + opOffset(0, 3))] >> 6u) & 0x03u) << ","
+             << "\"operatorDt2SustainRateRegister0\":" << static_cast<int>(regs[static_cast<uint8_t>(0xc0 + opOffset(0, 0))]) << ","
+             << "\"operatorDt2SustainRateRegister1\":" << static_cast<int>(regs[static_cast<uint8_t>(0xc0 + opOffset(0, 1))]) << ","
+             << "\"operatorDt2SustainRateRegister2\":" << static_cast<int>(regs[static_cast<uint8_t>(0xc0 + opOffset(0, 2))]) << ","
+             << "\"operatorDt2SustainRateRegister3\":" << static_cast<int>(regs[static_cast<uint8_t>(0xc0 + opOffset(0, 3))]) << ","
              << "\"operatorReleaseRate0\":" << static_cast<int>(regs[static_cast<uint8_t>(0xe0 + opOffset(0, 0))] & 0x0fu) << ","
              << "\"operatorReleaseRate1\":" << static_cast<int>(regs[static_cast<uint8_t>(0xe0 + opOffset(0, 1))] & 0x0fu) << ","
              << "\"operatorReleaseRate2\":" << static_cast<int>(regs[static_cast<uint8_t>(0xe0 + opOffset(0, 2))] & 0x0fu) << ","
@@ -15904,12 +15928,12 @@ private:
                 currentSustainRate[channel] = envelope.sustainRate;
                 currentSustainRelease[channel] = envelope.sustainRelease;
             }
-            writeOpmRegister(static_cast<uint8_t>(0x40 + offs), multipleForOperator(op));
+            writeOpmRegister(static_cast<uint8_t>(0x40 + offs), ym2151OperatorMultipleDt1RegisterForPatch(patch, op));
             writeOpmRegister(static_cast<uint8_t>(0x60 + offs), totalLevelForOperator(op, velocity, algorithm));
             writeOpmRegister(static_cast<uint8_t>(0x80 + offs), envelope.attackRate);
             const auto decayRate = static_cast<uint8_t>(envelope.decayRate | (ym2151OperatorAmEnabledForPatch(patch, op) ? 0x80u : 0x00u));
             writeOpmRegister(static_cast<uint8_t>(0xa0 + offs), decayRate);
-            writeOpmRegister(static_cast<uint8_t>(0xc0 + offs), envelope.sustainRate);
+            writeOpmRegister(static_cast<uint8_t>(0xc0 + offs), ym2151OperatorDt2SustainRateRegisterForPatch(patch, op));
             writeOpmRegister(static_cast<uint8_t>(0xe0 + offs), envelope.sustainRelease);
         }
 

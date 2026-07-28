@@ -132,6 +132,10 @@ struct PatchConfig
     int opmLfoWaveform = 0;
     int opmLfoPms = 0;
     int opmLfoAms = 0;
+    // YM2151 per-operator direct choices use 0 for Preset, native value + 1
+    // for an explicit write, preserving native zero as a selectable override.
+    std::array<int, 4> opmOperatorDt1 { 0, 0, 0, 0 };
+    std::array<int, 4> opmOperatorDt2 { 0, 0, 0, 0 };
 };
 
 struct StereoFrame

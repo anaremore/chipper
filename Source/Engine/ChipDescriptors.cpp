@@ -756,6 +756,67 @@ ChipParameterSpec fmOperatorMultiplierSpec(ChipParameterRole role, std::string i
              0.0f };
 }
 
+std::vector<ParameterChoiceSpec> ym2151OperatorDt1Choices(const std::string& operatorName)
+{
+    static constexpr std::array<const char*, 8> labels { "+0", "+1", "+2", "+3", "-0", "-1", "-2", "-3" };
+    std::vector<ParameterChoiceSpec> choices;
+    choices.reserve(9);
+    choices.push_back(choice("Preset",
+                             "Keep " + operatorName + " at the neutral native YM2151 DT1 code 0.",
+                             0.0f,
+                             0));
+    for (int value = 0; value <= 7; ++value)
+    {
+        choices.push_back(choice(std::to_string(value) + " (" + labels[static_cast<size_t>(value)] + ")",
+                                 "Write native YM2151 DT1 code " + std::to_string(value) + " (" + labels[static_cast<size_t>(value)] + ") for " + operatorName + " in bits 6-4 of $40+op.",
+                                 static_cast<float>(value + 1) / 8.0f,
+                                 value + 1));
+    }
+    return choices;
+}
+
+std::vector<ParameterChoiceSpec> ym2151OperatorDt2Choices(const std::string& operatorName)
+{
+    static constexpr std::array<int, 4> cents { 0, 600, 781, 950 };
+    std::vector<ParameterChoiceSpec> choices;
+    choices.reserve(5);
+    choices.push_back(choice("Preset",
+                             "Keep " + operatorName + " at the neutral native YM2151 DT2 code 0.",
+                             0.0f,
+                             0));
+    for (int value = 0; value <= 3; ++value)
+    {
+        const auto centsLabel = value == 0 ? std::string("0") : "+" + std::to_string(cents[static_cast<size_t>(value)]);
+        choices.push_back(choice(std::to_string(value) + " (" + centsLabel + "c)",
+                                 "Write native YM2151 DT2 code " + std::to_string(value) + " (" + centsLabel + " cents) for " + operatorName + " in bits 7-6 of $C0+op.",
+                                 static_cast<float>(value + 1) / 4.0f,
+                                 value + 1));
+    }
+    return choices;
+}
+
+ChipParameterSpec ym2151OperatorDetuneSpec(ChipParameterRole role,
+                                           std::string id,
+                                           std::string label,
+                                           size_t op,
+                                           bool coarse)
+{
+    const auto operatorName = "operator " + std::to_string(op + 1u);
+    return { role,
+             std::move(id),
+             std::move(label),
+             "Operators",
+             coarse
+                 ? "Overrides the YM2151 " + operatorName + " DT2 coarse-detune field in $C0+op. Preset keeps the neutral native code 0."
+                 : "Overrides the YM2151 " + operatorName + " DT1 fine-detune field in $40+op. Preset keeps the neutral native code 0.",
+             ParameterKind::chipRegister,
+             ControlSurface::menu,
+             coarse ? ym2151OperatorDt2Choices(operatorName) : ym2151OperatorDt1Choices(operatorName),
+             0.0f,
+             1.0f,
+             0.0f };
+}
+
 std::vector<ParameterChoiceSpec> fmOperatorAttackRateChoices(std::string chipName, std::string operatorName)
 {
     std::vector<ParameterChoiceSpec> choices;
@@ -1881,6 +1942,14 @@ std::vector<ChipParameterSpec> ym2151ParameterSpecs()
         fmOperatorMultiplierSpec(ChipParameterRole::fmOperator2Multiplier, "ym2151.op2.multiplier", "OP2 Mult", "YM2151", 1),
         fmOperatorMultiplierSpec(ChipParameterRole::fmOperator3Multiplier, "ym2151.op3.multiplier", "OP3 Mult", "YM2151", 2),
         fmOperatorMultiplierSpec(ChipParameterRole::fmOperator4Multiplier, "ym2151.op4.multiplier", "OP4 Mult", "YM2151", 3),
+        ym2151OperatorDetuneSpec(ChipParameterRole::opmOperator1Dt1, "ym2151.op1.dt1", "OP1 DT1", 0, false),
+        ym2151OperatorDetuneSpec(ChipParameterRole::opmOperator2Dt1, "ym2151.op2.dt1", "OP2 DT1", 1, false),
+        ym2151OperatorDetuneSpec(ChipParameterRole::opmOperator3Dt1, "ym2151.op3.dt1", "OP3 DT1", 2, false),
+        ym2151OperatorDetuneSpec(ChipParameterRole::opmOperator4Dt1, "ym2151.op4.dt1", "OP4 DT1", 3, false),
+        ym2151OperatorDetuneSpec(ChipParameterRole::opmOperator1Dt2, "ym2151.op1.dt2", "OP1 DT2", 0, true),
+        ym2151OperatorDetuneSpec(ChipParameterRole::opmOperator2Dt2, "ym2151.op2.dt2", "OP2 DT2", 1, true),
+        ym2151OperatorDetuneSpec(ChipParameterRole::opmOperator3Dt2, "ym2151.op3.dt2", "OP3 DT2", 2, true),
+        ym2151OperatorDetuneSpec(ChipParameterRole::opmOperator4Dt2, "ym2151.op4.dt2", "OP4 DT2", 3, true),
         fmOperatorAttackRateSpec(ChipParameterRole::fmOperator1AttackRate, "ym2151.op1.attackRate", "OP1 Attack", "YM2151", 0),
         fmOperatorAttackRateSpec(ChipParameterRole::fmOperator2AttackRate, "ym2151.op2.attackRate", "OP2 Attack", "YM2151", 1),
         fmOperatorAttackRateSpec(ChipParameterRole::fmOperator3AttackRate, "ym2151.op3.attackRate", "OP3 Attack", "YM2151", 2),
@@ -4510,11 +4579,11 @@ const std::vector<ChipDescriptor>& descriptors()
             verifiedPartial(
                 {
                     "BSD-3-Clause ymfm is vendored and linked as the YM2151/OPM synthesis core.",
-                    "Renderer notes and preset recipes write OPM algorithm, feedback, operator multiplier/attack-rate/decay-rate/sustain-rate/release-rate/total-level/envelope seed, key-code/key-fraction, pan, LFO PM/AM, $0F channel-8 noise, and key-on registers.",
-                    "Descriptor, MIDI CC, renderer smoke, LFO-depth JSON, source gating, and Chip Poly regression tests cover all eight exposed melodic lanes."
+                    "Renderer notes and preset recipes write OPM algorithm, feedback, per-operator multiplier/DT1/DT2/attack-rate/decay-rate/sustain-rate/release-rate/total-level/envelope seed, key-code/key-fraction, pan, direct LFO waveform/PM/AM, $0F channel-8 noise, and key-on registers.",
+                    "Descriptor, stable APVTS/MIDI CC, schema-v6 migration, exact detune/LFO register JSON, renderer smoke, source gating, and Chip Poly regression tests cover all eight exposed melodic lanes."
                 },
                 {
-                    "Deeper LFO waveform/sensitivity UI, DT1/DT2 detune controls, exact OPM noise timing/hardware comparison, timers, CSM, deep per-operator ADSR UI, golden emulator comparison, and hardware capture comparison are not complete.",
+                    "Independent per-channel patches, exact OPM noise timing/hardware comparison, timers, CSM, deeper per-operator ADSR visualization, golden emulator comparison, and hardware capture comparison are not complete.",
                     "Cycle accuracy is not claimed."
                 })
         },
@@ -6326,6 +6395,32 @@ bool ym2151OperatorAmEnabledForPatch(const PatchConfig& patch, size_t op)
         && ym2151LfoAmSensitivityForPatch(patch) > 0
         && fmOperatorIsCarrierForAlgorithm(ym2151AlgorithmForPatch(patch), op);
 }
+
+uint8_t ym2151OperatorDt1ForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto choice = patch.opmOperatorDt1[std::min(op, size_t { 3u })];
+    return choice > 0 ? static_cast<uint8_t>(std::clamp(choice - 1, 0, 7)) : 0u;
+}
+
+uint8_t ym2151OperatorDt2ForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto choice = patch.opmOperatorDt2[std::min(op, size_t { 3u })];
+    return choice > 0 ? static_cast<uint8_t>(std::clamp(choice - 1, 0, 3)) : 0u;
+}
+
+uint8_t ym2151OperatorMultipleDt1RegisterForPatch(const PatchConfig& patch, size_t op)
+{
+    return static_cast<uint8_t>((ym2151OperatorDt1ForPatch(patch, op) << 4u)
+                                | (fmOperatorMultipleForPatch(ChipMode::ym2151, patch, op) & 0x0fu));
+}
+
+uint8_t ym2151OperatorDt2SustainRateRegisterForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto envelope = ym2612EnvelopeRegistersForPatch(patch, op);
+    return static_cast<uint8_t>((ym2151OperatorDt2ForPatch(patch, op) << 6u)
+                                | (envelope.sustainRate & 0x1fu));
+}
+
 
 uint8_t fmOperatorLevelAdjustedTotalLevel(const PatchConfig& patch, size_t op, int baseTotalLevel)
 {

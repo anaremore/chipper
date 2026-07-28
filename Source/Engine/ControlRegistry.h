@@ -104,6 +104,14 @@ inline constexpr auto fmOperator3SustainRate = "fmOperator3SustainRate";
 inline constexpr auto fmOperator4SustainRate = "fmOperator4SustainRate";
 inline constexpr auto fmOperator1ReleaseRate = "fmOperator1ReleaseRate";
 inline constexpr auto fmOperator2ReleaseRate = "fmOperator2ReleaseRate";
+inline constexpr auto opmOperator1Dt1 = "opmOperator1Dt1";
+inline constexpr auto opmOperator2Dt1 = "opmOperator2Dt1";
+inline constexpr auto opmOperator3Dt1 = "opmOperator3Dt1";
+inline constexpr auto opmOperator4Dt1 = "opmOperator4Dt1";
+inline constexpr auto opmOperator1Dt2 = "opmOperator1Dt2";
+inline constexpr auto opmOperator2Dt2 = "opmOperator2Dt2";
+inline constexpr auto opmOperator3Dt2 = "opmOperator3Dt2";
+inline constexpr auto opmOperator4Dt2 = "opmOperator4Dt2";
 inline constexpr auto fmOperator3ReleaseRate = "fmOperator3ReleaseRate";
 inline constexpr auto fmOperator4ReleaseRate = "fmOperator4ReleaseRate";
 inline constexpr auto opmLfoWaveform = "opmLfoWaveform";
@@ -118,7 +126,7 @@ struct MidiCcMapping
     const char* label = nullptr;
 };
 
-inline constexpr auto midiCcMappingCount = 99u;
+inline constexpr auto midiCcMappingCount = 107u;
 using MidiCcMappingList = std::array<MidiCcMapping, midiCcMappingCount>;
 
 const MidiCcMappingList& midiCcMappings();

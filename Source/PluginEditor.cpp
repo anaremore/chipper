@@ -561,6 +561,50 @@ const char* fmOperatorMultiplierParameterId(size_t index)
 
     return ids[std::min(index, ids.size() - 1u)];
 }
+chipper::ChipParameterRole opmOperatorDt1Role(size_t index)
+{
+    static constexpr std::array<chipper::ChipParameterRole, 4> roles {
+        chipper::ChipParameterRole::opmOperator1Dt1,
+        chipper::ChipParameterRole::opmOperator2Dt1,
+        chipper::ChipParameterRole::opmOperator3Dt1,
+        chipper::ChipParameterRole::opmOperator4Dt1
+    };
+    return roles[std::min(index, roles.size() - 1u)];
+}
+
+chipper::ChipParameterRole opmOperatorDt2Role(size_t index)
+{
+    static constexpr std::array<chipper::ChipParameterRole, 4> roles {
+        chipper::ChipParameterRole::opmOperator1Dt2,
+        chipper::ChipParameterRole::opmOperator2Dt2,
+        chipper::ChipParameterRole::opmOperator3Dt2,
+        chipper::ChipParameterRole::opmOperator4Dt2
+    };
+    return roles[std::min(index, roles.size() - 1u)];
+}
+
+const char* opmOperatorDt1ParameterId(size_t index)
+{
+    static constexpr std::array<const char*, 4> ids {
+        chipper::parameters::id::opmOperator1Dt1,
+        chipper::parameters::id::opmOperator2Dt1,
+        chipper::parameters::id::opmOperator3Dt1,
+        chipper::parameters::id::opmOperator4Dt1
+    };
+    return ids[std::min(index, ids.size() - 1u)];
+}
+
+const char* opmOperatorDt2ParameterId(size_t index)
+{
+    static constexpr std::array<const char*, 4> ids {
+        chipper::parameters::id::opmOperator1Dt2,
+        chipper::parameters::id::opmOperator2Dt2,
+        chipper::parameters::id::opmOperator3Dt2,
+        chipper::parameters::id::opmOperator4Dt2
+    };
+    return ids[std::min(index, ids.size() - 1u)];
+}
+
 
 chipper::ChipParameterRole fmOperatorAttackRateRole(size_t index)
 {
@@ -2489,7 +2533,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
                  fmOperatorLevelValueLabels,
                  fmOperatorLevelSliders,
                  fmOperatorMultiplierButtons,
-                 fmOperatorAttackRateButtons }),
+                 fmOperatorAttackRateButtons,
+                 fmOperatorDetuneButtons }),
       motionLab(std::make_unique<ChipperMotionLab>(processor)),
       waveLab(processor),
       editorShell({ titleLabel,
@@ -3123,13 +3168,14 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
                 menu.addItem(choice + 1, choices[choice], true, choice == selected);
 
             auto options = juce::PopupMenu::Options().withTargetComponent(&fmOperatorMultiplierButtons[i]);
-            menu.showMenuAsync(options, [this, i](int result)
+            const juce::Component::SafePointer<ChipperAudioProcessorEditor> safeThis(this);
+            menu.showMenuAsync(options, [safeThis, i](int result)
             {
-                if (result <= 0)
+                if (safeThis == nullptr || result <= 0)
                     return;
 
-                setChoiceParameterFromUi(fmOperatorMultiplierParameterId(i), result - 1);
-                updateLiveControlReadouts();
+                safeThis->setChoiceParameterFromUi(fmOperatorMultiplierParameterId(i), result - 1);
+                safeThis->updateLiveControlReadouts();
             });
         };
         multiplierButton.setVisible(false);
@@ -3199,24 +3245,76 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
                              choice == selectedRelease);
 
             auto options = juce::PopupMenu::Options().withTargetComponent(&fmOperatorAttackRateButtons[i]);
-            menu.showMenuAsync(options, [this, i](int result)
+            const juce::Component::SafePointer<ChipperAudioProcessorEditor> safeThis(this);
+            menu.showMenuAsync(options, [safeThis, i](int result)
             {
-                if (result <= 0)
+                if (safeThis == nullptr || result <= 0)
                     return;
 
                 if (result >= 301)
-                    setChoiceParameterFromUi(fmOperatorReleaseRateParameterId(i), result - 301);
+                    safeThis->setChoiceParameterFromUi(fmOperatorReleaseRateParameterId(i), result - 301);
                 else if (result >= 201)
-                    setChoiceParameterFromUi(fmOperatorSustainRateParameterId(i), result - 201);
+                    safeThis->setChoiceParameterFromUi(fmOperatorSustainRateParameterId(i), result - 201);
                 else if (result >= 101)
-                    setChoiceParameterFromUi(fmOperatorDecayRateParameterId(i), result - 101);
+                    safeThis->setChoiceParameterFromUi(fmOperatorDecayRateParameterId(i), result - 101);
                 else
-                    setChoiceParameterFromUi(fmOperatorAttackRateParameterId(i), result - 1);
-                updateLiveControlReadouts();
+                    safeThis->setChoiceParameterFromUi(fmOperatorAttackRateParameterId(i), result - 1);
+                safeThis->updateLiveControlReadouts();
             });
         };
         attackButton.setVisible(false);
         addAndMakeVisible(attackButton);
+        auto& detuneButton = fmOperatorDetuneButtons[i];
+        detuneButton.setButtonText("DT1 P  |  DT2 P");
+        detuneButton.setClickingTogglesState(false);
+        detuneButton.setTitle("YM2151 Operator " + juce::String(static_cast<int>(i + 1u)) + " DT1 and DT2");
+        detuneButton.setDescription("Opens native YM2151 fine and coarse detune choices for this operator.");
+        detuneButton.setComponentID("fm.operator" + juce::String(static_cast<int>(i + 1u)) + ".detune");
+        detuneButton.setTooltip(withMidiCcForRole(
+            withMidiCcForRole("YM2151 per-operator DT1 fine detune and DT2 coarse detune.", opmOperatorDt1Role(i)),
+            opmOperatorDt2Role(i)));
+        detuneButton.onClick = [this, i]()
+        {
+            const auto dt1Choices = chipper::parameters::opmOperatorDt1Choices();
+            const auto dt2Choices = chipper::parameters::opmOperatorDt2Choices();
+            const auto selectedDt1 = std::clamp(static_cast<int>(std::round(parameterValue(opmOperatorDt1ParameterId(i)))),
+                                                0,
+                                                dt1Choices.size() - 1);
+            const auto selectedDt2 = std::clamp(static_cast<int>(std::round(parameterValue(opmOperatorDt2ParameterId(i)))),
+                                                0,
+                                                dt2Choices.size() - 1);
+
+            juce::PopupMenu menu;
+            menu.addSectionHeader("DT1 Fine Detune");
+            for (int choice = 0; choice < dt1Choices.size(); ++choice)
+                menu.addItem(choice + 1,
+                             choice == 0 ? juce::String("Preset") : juce::String("DT1 ") + dt1Choices[choice],
+                             true,
+                             choice == selectedDt1);
+
+            menu.addSeparator();
+            menu.addSectionHeader("DT2 Coarse Detune");
+            for (int choice = 0; choice < dt2Choices.size(); ++choice)
+                menu.addItem(101 + choice,
+                             choice == 0 ? juce::String("Preset") : juce::String("DT2 ") + dt2Choices[choice],
+                             true,
+                             choice == selectedDt2);
+
+            auto options = juce::PopupMenu::Options().withTargetComponent(&fmOperatorDetuneButtons[i]);
+            const juce::Component::SafePointer<ChipperAudioProcessorEditor> safeThis(this);
+            menu.showMenuAsync(options, [safeThis, i](int result)
+            {
+                if (safeThis == nullptr || result <= 0)
+                    return;
+                if (result >= 101)
+                    safeThis->setChoiceParameterFromUi(opmOperatorDt2ParameterId(i), result - 101);
+                else
+                    safeThis->setChoiceParameterFromUi(opmOperatorDt1ParameterId(i), result - 1);
+                safeThis->updateLiveControlReadouts();
+            });
+        };
+        detuneButton.setVisible(false);
+        addAndMakeVisible(detuneButton);
     }
 
     const std::array<const char*, 4> ids {
@@ -4164,6 +4262,8 @@ void ChipperAudioProcessorEditor::applyChipTheme()
     for (auto& button : fmOperatorMultiplierButtons)
         styleButton(button);
     for (auto& button : fmOperatorAttackRateButtons)
+        styleButton(button);
+    for (auto& button : fmOperatorDetuneButtons)
         styleButton(button);
 
     for (auto& button : sourceChannelButtons)
@@ -9482,6 +9582,19 @@ void ChipperAudioProcessorEditor::applySelectedMacroTemplate()
     setChoiceParameterFromUi(chipper::parameters::id::opmLfoWaveform, 0);
     setChoiceParameterFromUi(chipper::parameters::id::opmLfoPms, 0);
     setChoiceParameterFromUi(chipper::parameters::id::opmLfoAms, 0);
+    for (const auto* parameterId : {
+             chipper::parameters::id::opmOperator1Dt1,
+             chipper::parameters::id::opmOperator2Dt1,
+             chipper::parameters::id::opmOperator3Dt1,
+             chipper::parameters::id::opmOperator4Dt1,
+             chipper::parameters::id::opmOperator1Dt2,
+             chipper::parameters::id::opmOperator2Dt2,
+             chipper::parameters::id::opmOperator3Dt2,
+             chipper::parameters::id::opmOperator4Dt2
+         })
+    {
+        setChoiceParameterFromUi(parameterId, 0);
+    }
     setParameterValueFromUi(chipper::parameters::id::nesDmcDirectLevel, templ.nesDmcDirectLevel);
     if (mode == chipper::ChipMode::spc700)
     {
@@ -9729,6 +9842,19 @@ void ChipperAudioProcessorEditor::applyFactoryPreset(const chipper::PresetInfo& 
     setChoiceParameterFromUi(chipper::parameters::id::opmLfoWaveform, 0);
     setChoiceParameterFromUi(chipper::parameters::id::opmLfoPms, 0);
     setChoiceParameterFromUi(chipper::parameters::id::opmLfoAms, 0);
+    for (const auto* parameterId : {
+             chipper::parameters::id::opmOperator1Dt1,
+             chipper::parameters::id::opmOperator2Dt1,
+             chipper::parameters::id::opmOperator3Dt1,
+             chipper::parameters::id::opmOperator4Dt1,
+             chipper::parameters::id::opmOperator1Dt2,
+             chipper::parameters::id::opmOperator2Dt2,
+             chipper::parameters::id::opmOperator3Dt2,
+             chipper::parameters::id::opmOperator4Dt2
+         })
+    {
+        setChoiceParameterFromUi(parameterId, 0);
+    }
     setParameterValueFromUi(chipper::parameters::id::nesDmcDirectLevel, preset.nesDmcDirectLevel);
     if (preset.chip == chipper::ChipMode::spc700)
         setChoiceParameterFromUi(chipper::parameters::id::nesDmcPlaybackMode,
@@ -9895,6 +10021,18 @@ chipper::PatchConfig ChipperAudioProcessorEditor::currentUiPatch(chipper::ChipMo
     patch.opmLfoWaveform = static_cast<int>(std::round(parameterValue(chipper::parameters::id::opmLfoWaveform)));
     patch.opmLfoPms = static_cast<int>(std::round(parameterValue(chipper::parameters::id::opmLfoPms)));
     patch.opmLfoAms = static_cast<int>(std::round(parameterValue(chipper::parameters::id::opmLfoAms)));
+    patch.opmOperatorDt1 = {
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::opmOperator1Dt1))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::opmOperator2Dt1))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::opmOperator3Dt1))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::opmOperator4Dt1)))
+    };
+    patch.opmOperatorDt2 = {
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::opmOperator1Dt2))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::opmOperator2Dt2))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::opmOperator3Dt2))),
+        static_cast<int>(std::round(parameterValue(chipper::parameters::id::opmOperator4Dt2)))
+    };
     return patch;
 }
 
@@ -11250,8 +11388,18 @@ juce::String ChipperAudioProcessorEditor::fmOperatorRegisterReadout(chipper::Chi
     const auto multiple = static_cast<int>(chipper::fmOperatorMultipleForPatch(mode, patch, op));
     const auto totalLevel = static_cast<int>(chipper::fmOperatorTotalLevelForPatch(mode, patch, op));
     const auto multipleText = multiple == 0 ? juce::String("0.5") : juce::String(multiple);
+    if (mode == chipper::ChipMode::ym2151)
+    {
+        return "MULT " + multipleText
+            + " | TL " + juce::String(totalLevel)
+            + " | AR/D1/D2 " + juce::String(static_cast<int>(envelope.attackRate))
+            + "/" + juce::String(static_cast<int>(envelope.decayRate))
+            + "/" + juce::String(static_cast<int>(envelope.sustainRate))
+            + " | SL/RR $" + byteHex(envelope.sustainRelease);
+    }
+
     const auto detuneText = mode == chipper::ChipMode::ym2612
-        ? (juce::String(" | DT1 ") + juce::String(static_cast<int>(chipper::ym2612OperatorDetuneForPatch(patch, op))))
+        ? " | DT1 " + juce::String(static_cast<int>(chipper::ym2612OperatorDetuneForPatch(patch, op)))
         : juce::String();
     return "MULT " + multipleText
         + detuneText
@@ -11307,7 +11455,7 @@ juce::String ChipperAudioProcessorEditor::fmOperatorRegisterTooltip(chipper::Chi
         ? juce::String("YM2151/OPM")
         : (mode == chipper::ChipMode::ym2203 ? juce::String("YM2203/OPN") : (mode == chipper::ChipMode::ym2608 ? juce::String("YM2608/OPNA") : (mode == chipper::ChipMode::ym2610b ? juce::String("YM2610B/OPNB2") : (mode == chipper::ChipMode::ym2610 ? juce::String("YM2610/OPNB") : juce::String("YM2612/OPN2")))));
     return family + " operator " + juce::String(static_cast<int>(op + 1u))
-        + " preset-resolved registers. MULT/TL control the operator ratio and level, DT1 appears for OPN2 detune, and AR/D1/D2/SL-RR are the native envelope registers currently written into the ymfm core.";
+        + " preset-resolved registers. MULT/TL control ratio and level; OPN2 exposes DT1, OPM exposes direct DT1/DT2 packed into $40/$C0, and AR/D1/D2/SL-RR are the native envelope fields written into the ymfm core.";
 }
 
 juce::String ChipperAudioProcessorEditor::ym2612DacModeReadout(const chipper::PatchConfig& patch) const
@@ -14164,6 +14312,8 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
         fmOperatorLevelValueLabels[i].setVisible(levelVisible);
         fmOperatorLevelSliders[i].setVisible(levelVisible);
         fmOperatorMultiplierButtons[i].setVisible(levelVisible);
+        const auto detuneVisible = levelVisible && mode == chipper::ChipMode::ym2151;
+        fmOperatorDetuneButtons[i].setVisible(detuneVisible);
         fmOperatorAttackRateButtons[i].setVisible(levelVisible);
         if (! visible)
             continue;
@@ -14241,6 +14391,27 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
                                                              ? juce::String("EG Follow")
                                                              : envelopeText);
             fmOperatorAttackRateButtons[i].setTooltip(attackTooltip);
+            if (detuneVisible)
+            {
+                const auto dt1Choice = std::clamp(static_cast<int>(std::round(parameterValue(opmOperatorDt1ParameterId(i)))), 0, 8);
+                const auto dt2Choice = std::clamp(static_cast<int>(std::round(parameterValue(opmOperatorDt2ParameterId(i)))), 0, 4);
+                static constexpr std::array<const char*, 9> dt1Labels { "P", "+0", "+1", "+2", "+3", "-0", "-1", "-2", "-3" };
+                static constexpr std::array<const char*, 5> dt2Labels { "P", "0c", "+600c", "+781c", "+950c" };
+                fmOperatorDetuneButtons[i].setButtonText("DT1 " + juce::String(dt1Labels[static_cast<size_t>(dt1Choice)])
+                                                         + "  |  DT2 " + juce::String(dt2Labels[static_cast<size_t>(dt2Choice)]));
+
+                const auto* dt1Spec = chipper::parameterSpecFor(mode, opmOperatorDt1Role(i));
+                const auto* dt2Spec = chipper::parameterSpecFor(mode, opmOperatorDt2Role(i));
+                auto detuneTooltip = juce::String(dt1Spec != nullptr ? dt1Spec->help : "YM2151 DT1 fine-detune override.")
+                    + "\n" + juce::String(dt2Spec != nullptr ? dt2Spec->help : "YM2151 DT2 coarse-detune override.")
+                    + "\n" + fmOperatorRoleDescription(mode, patch, i)
+                    + "\nNative $40/$C0 bytes: $" + byteHex(chipper::ym2151OperatorMultipleDt1RegisterForPatch(patch, i))
+                    + "/$" + byteHex(chipper::ym2151OperatorDt2SustainRateRegisterForPatch(patch, i))
+                    + "\n" + readout;
+                detuneTooltip = withMidiCcForRole(detuneTooltip, opmOperatorDt1Role(i));
+                detuneTooltip = withMidiCcForRole(detuneTooltip, opmOperatorDt2Role(i));
+                fmOperatorDetuneButtons[i].setTooltip(detuneTooltip);
+            }
         }
     }
 }

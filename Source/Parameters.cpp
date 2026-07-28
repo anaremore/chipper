@@ -215,6 +215,16 @@ juce::StringArray fmOperatorReleaseRateChoices()
     return choices;
 }
 
+juce::StringArray opmOperatorDt1Choices()
+{
+    return { "Preset", "0 (+0)", "1 (+1)", "2 (+2)", "3 (+3)", "4 (-0)", "5 (-1)", "6 (-2)", "7 (-3)" };
+}
+
+juce::StringArray opmOperatorDt2Choices()
+{
+    return { "Preset", "0 (0c)", "1 (+600c)", "2 (+781c)", "3 (+950c)" };
+}
+
 juce::StringArray opmLfoWaveformChoices()
 {
     return { "Preset", "Saw", "Square", "Triangle", "Noise" };
@@ -515,6 +525,35 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         "FM Operator 4 Release Rate",
         fmOperatorReleaseRateChoices(),
         0));
+
+    static constexpr std::array<const char*, 4> opmDt1Ids {
+        id::opmOperator1Dt1,
+        id::opmOperator2Dt1,
+        id::opmOperator3Dt1,
+        id::opmOperator4Dt1
+    };
+    static constexpr std::array<const char*, 4> opmDt2Ids {
+        id::opmOperator1Dt2,
+        id::opmOperator2Dt2,
+        id::opmOperator3Dt2,
+        id::opmOperator4Dt2
+    };
+    for (size_t op = 0; op < opmDt1Ids.size(); ++op)
+    {
+        params.push_back(std::make_unique<juce::AudioParameterChoice>(
+            juce::ParameterID { opmDt1Ids[op], 1 },
+            "YM2151 Operator " + juce::String(static_cast<int>(op + 1u)) + " DT1",
+            opmOperatorDt1Choices(),
+            0));
+    }
+    for (size_t op = 0; op < opmDt2Ids.size(); ++op)
+    {
+        params.push_back(std::make_unique<juce::AudioParameterChoice>(
+            juce::ParameterID { opmDt2Ids[op], 1 },
+            "YM2151 Operator " + juce::String(static_cast<int>(op + 1u)) + " DT2",
+            opmOperatorDt2Choices(),
+            0));
+    }
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID { id::opmLfoWaveform, 1 },
