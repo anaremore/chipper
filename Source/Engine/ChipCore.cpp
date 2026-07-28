@@ -14038,7 +14038,7 @@ public:
     std::string implementedAccuracy() const override { return "partial ymfm-backed OPN2 register-level"; }
     std::string limitations() const override
     {
-        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator multiplier/DT1 detune, algorithm, feedback, f-number/block, $B4 left/right pan plus AMS/PMS bits, $22 LFO enable/rate, carrier AM-enable bits, key-on registers for all six melodic channels, and optional channel-6 DAC Drum playback through $2B/$2A using generated or renderer-supplied unsigned PCM bytes, with all six source lanes exposed for play and mix control. VST file loading/state recall for OPN2 DAC samples, SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
+        return "BSD-3-Clause ymfm provides the YM2612/OPN2 FM synthesis core. Chipper currently maps musical controls and notes to OPN2 operator multiplier/DT1 detune, algorithm, feedback, f-number/block, $B4 left/right pan plus AMS/PMS bits, $22 LFO enable/rate, carrier AM-enable bits, key-on registers for all six melodic channels, and optional channel-6 DAC Drum playback through $2B/$2A using generated or user-loaded WAV/AIFF/raw unsigned PCM bytes in the renderer and VST, with portable path recall and all six source lanes exposed for play and mix control. Exact DAC timing and ladder nonlinearity, SSG-EG edge cases, timer behavior, and hardware comparison are not complete.";
     }
 
     std::string debugStateJson() const override

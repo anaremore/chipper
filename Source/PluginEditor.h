@@ -869,6 +869,7 @@ private:
     void updateDmcSampleControls();
     void updateSpc700BrrSampleControls();
     void updatePaulaSampleControls();
+    void updateOpn2DacSampleControls();
     void updateOpnaRhythmRomControls();
     void updateOpnbAdpcmSampleControls();
     void updateSampleWaveformPreview(chipper::ChipMode mode);
@@ -908,6 +909,7 @@ private:
     void chooseSpc700BrrSampleDirectory();
     void choosePaulaSampleFile();
     void choosePaulaSampleDirectory();
+    void chooseOpn2DacSampleFile();
     void chooseOpnaRhythmRomFile();
     void chooseOpnaAdpcmBSampleFile();
     void chooseOpnbAdpcmASampleFile();

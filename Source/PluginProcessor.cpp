@@ -24,12 +24,14 @@ constexpr auto spc700BrrBankStateTag = "CHIPPER_SPC700_BRR_BANK";
 constexpr auto spc700BrrSampleStateTag = "BRR_SAMPLE";
 constexpr auto paulaSampleBankStateTag = "CHIPPER_PAULA_SAMPLE_BANK";
 constexpr auto paulaSampleStateTag = "PAULA_SAMPLE";
+constexpr auto opn2DacSampleStateTag = "CHIPPER_OPN2_DAC_SAMPLE";
 constexpr auto opnaRhythmRomStateTag = "CHIPPER_OPNA_RHYTHM_ROM";
 constexpr auto opnaAdpcmBSampleStateTag = "CHIPPER_OPNA_ADPCM_B_SAMPLE";
 constexpr auto opnbAdpcmASampleStateTag = "CHIPPER_OPNB_ADPCM_A_SAMPLE";
 constexpr auto opnbAdpcmBSampleStateTag = "CHIPPER_OPNB_ADPCM_B_SAMPLE";
 constexpr size_t maxRestoredSampleReferences = 256u;
 constexpr auto unmappedDmcSampleSlot = -2;
+constexpr auto opn2DacMemoryBytes = 262144;
 constexpr auto opnaRhythmRomBytes = 8192;
 constexpr auto opnaAdpcmBMemoryBytes = 262144;
 constexpr auto opnbAdpcmAMemoryBytes = 1048576;
@@ -726,7 +728,7 @@ juce::Result readPcm8SampleFile(const juce::File& file,
     const auto sampleCount = static_cast<int>(std::min<int64_t>(reader->lengthInSamples, maxImportedSamples));
     juce::AudioBuffer<float> decoded(static_cast<int>(reader->numChannels), sampleCount);
     if (! reader->read(&decoded, 0, sampleCount, 0, true, true))
-        return juce::Result::fail("Could not read Paula sample audio: " + file.getFullPathName());
+        return juce::Result::fail("Could not read " + label + " sample audio: " + file.getFullPathName());
 
     slot.name = file.getFileName();
     slot.path = file.getFullPathName();
@@ -757,6 +759,33 @@ juce::Result readPcm8SampleFile(const juce::File& file,
         slot.loopEnd = loopEnd;
     }
 
+    return juce::Result::ok();
+}
+
+juce::Result readOpn2DacSampleFile(const juce::File& file, ChipperAudioProcessor::DmcSampleSlot& slot)
+{
+    if (! file.existsAsFile())
+        return juce::Result::fail("OPN2 DAC sample file does not exist: " + file.getFullPathName());
+
+    if (fileLooksLikePcmImport(file))
+        return readPcm8SampleFile(file, slot, "OPN2 DAC", "raw unsigned 8-bit");
+
+    if (! file.hasFileExtension(".bin;.raw;.pcm;.dat"))
+        return juce::Result::fail("OPN2 DAC sample import supports WAV, AIFF, BIN, RAW, PCM, and DAT files in this build.");
+
+    juce::MemoryBlock block;
+    if (! file.loadFileAsData(block))
+        return juce::Result::fail("Could not read OPN2 DAC sample file: " + file.getFullPathName());
+
+    if (block.getSize() == 0u)
+        return juce::Result::fail("OPN2 DAC sample file is empty: " + file.getFullPathName());
+
+    slot.name = file.getFileName();
+    slot.path = file.getFullPathName();
+    slot.encoding = chipper::ExternalSampleEncoding::rawBytes;
+    slot.bytes.resize(block.getSize());
+    std::memcpy(slot.bytes.data(), block.getData(), block.getSize());
+    slot.included = true;
     return juce::Result::ok();
 }
 
@@ -1154,6 +1183,7 @@ void ChipperAudioProcessor::initializeCorePool()
     pooledDmcRevisions.fill(std::numeric_limits<uint64_t>::max());
     pooledSpc700Revisions.fill(std::numeric_limits<uint64_t>::max());
     pooledPaulaRevisions.fill(std::numeric_limits<uint64_t>::max());
+    pooledOpn2DacRevisions.fill(std::numeric_limits<uint64_t>::max());
     pooledOpnaRhythmRevisions.fill(std::numeric_limits<uint64_t>::max());
     pooledOpnaAdpcmBRevisions.fill(std::numeric_limits<uint64_t>::max());
     pooledOpnbAdpcmARevisions.fill(std::numeric_limits<uint64_t>::max());
@@ -1196,6 +1226,11 @@ void ChipperAudioProcessor::synchronizeActiveExternalAssets(chipper::ChipMode mo
         activePaulaSampleSlot = -1;
         activePaulaManualSlot = -1;
         applyPaulaSampleToCore();
+    }
+    else if (mode == chipper::ChipMode::ym2612)
+    {
+        activeOpn2DacSampleRevision = std::numeric_limits<uint64_t>::max();
+        applyOpn2DacSampleToCore();
     }
     else if (mode == chipper::ChipMode::ym2608)
     {
@@ -1402,6 +1437,24 @@ juce::Result ChipperAudioProcessor::loadPaulaSampleDirectory(const juce::File& d
 
     setPlainParameterValue(chipper::parameters::id::nesDmcSampleSlot, 0.0f);
     synchronizeActiveExternalAssets(chipper::ChipMode::paula);
+    return juce::Result::ok();
+}
+
+juce::Result ChipperAudioProcessor::loadOpn2DacSampleFile(const juce::File& file)
+{
+    DmcSampleSlot slot;
+    if (auto result = readOpn2DacSampleFile(file, slot); result.failed())
+        return result;
+
+    const juce::ScopedLock callbackGuard(getCallbackLock());
+    {
+        const std::lock_guard<std::mutex> lock(opn2DacSampleMutex);
+        opn2DacSample = std::move(slot);
+        opn2DacSampleRestoreWarning = {};
+        ++opn2DacSampleRevision;
+    }
+
+    synchronizeActiveExternalAssets(chipper::ChipMode::ym2612);
     return juce::Result::ok();
 }
 
@@ -1751,6 +1804,34 @@ ChipperAudioProcessor::Spc700BrrSampleInfo ChipperAudioProcessor::paulaSampleInf
         + ": " + info.sampleName + " (" + juce::String(info.byteCount) + " 8-bit samples)";
     if (info.hasLoop)
         info.statusLine += " | Loop " + juce::String(info.loopStartSample) + "-" + juce::String(info.loopEndSample);
+    appendRestoreWarning(info.statusLine, restoreWarning);
+    return info;
+}
+
+ChipperAudioProcessor::Opn2DacSampleInfo ChipperAudioProcessor::opn2DacSampleInfo() const
+{
+    Opn2DacSampleInfo info;
+    info.memoryByteCount = opn2DacMemoryBytes;
+    const std::lock_guard<std::mutex> lock(opn2DacSampleMutex);
+    const auto restoreWarning = opn2DacSampleRestoreWarning;
+    if (opn2DacSample.bytes.empty())
+    {
+        info.statusLine = "No OPN2 DAC sample loaded";
+        appendRestoreWarning(info.statusLine, restoreWarning);
+        return info;
+    }
+
+    info.loaded = true;
+    info.sampleName = opn2DacSample.name;
+    info.path = opn2DacSample.path;
+    info.byteCount = static_cast<int>(opn2DacSample.bytes.size());
+    info.copiedByteCount = std::min(info.byteCount, info.memoryByteCount);
+    info.truncated = info.byteCount > info.memoryByteCount;
+    info.statusLine = juce::String("DAC sample: ") + info.sampleName + " ("
+        + juce::String(info.byteCount) + " unsigned 8-bit bytes";
+    if (info.truncated)
+        info.statusLine += ", first " + juce::String(info.copiedByteCount) + " copied";
+    info.statusLine += ")";
     appendRestoreWarning(info.statusLine, restoreWarning);
     return info;
 }
@@ -2889,6 +2970,7 @@ void ChipperAudioProcessor::ensureCore()
         applySelectedDmcSampleToCore();
         applySpc700BrrSampleToCore();
         applyPaulaSampleToCore();
+        applyOpn2DacSampleToCore();
         applyOpnaRhythmRomToCore();
         applyOpnaAdpcmBSampleToCore();
         applyOpnbAdpcmASampleToCore();
@@ -2923,6 +3005,7 @@ void ChipperAudioProcessor::ensureCore()
     activeSpc700BrrSampleSlot = -1;
     activePaulaSampleRevision = pooledPaulaRevisions[selectedIndex];
     activePaulaSampleSlot = -1;
+    activeOpn2DacSampleRevision = pooledOpn2DacRevisions[selectedIndex];
     activeOpnaRhythmRomRevision = pooledOpnaRhythmRevisions[selectedIndex];
     activeOpnaAdpcmBSampleRevision = pooledOpnaAdpcmBRevisions[selectedIndex];
     activeOpnbAdpcmASampleRevision = pooledOpnbAdpcmARevisions[selectedIndex];
@@ -2930,6 +3013,7 @@ void ChipperAudioProcessor::ensureCore()
     applySelectedDmcSampleToCore();
     applySpc700BrrSampleToCore();
     applyPaulaSampleToCore();
+    applyOpn2DacSampleToCore();
     applyOpnaRhythmRomToCore();
     applyOpnaAdpcmBSampleToCore();
     applyOpnbAdpcmASampleToCore();
@@ -3337,6 +3421,31 @@ void ChipperAudioProcessor::applyMappedPaulaSampleForMidiNote(int midiNote)
     }
 
     applyPaulaSampleSlotToCore(mappedSlot);
+}
+
+void ChipperAudioProcessor::applyOpn2DacSampleToCore()
+{
+    if (core == nullptr || activeMode != chipper::ChipMode::ym2612)
+        return;
+
+    const auto publishedRevision = opn2DacSampleRevision.load(std::memory_order_acquire);
+    if (publishedRevision == activeOpn2DacSampleRevision)
+        return;
+
+    std::vector<uint8_t> selectedBytes;
+    uint64_t revision = 0;
+    {
+        const std::lock_guard<std::mutex> lock(opn2DacSampleMutex);
+        revision = opn2DacSampleRevision.load(std::memory_order_relaxed);
+        selectedBytes = opn2DacSample.bytes;
+    }
+
+    if (revision == activeOpn2DacSampleRevision)
+        return;
+
+    activeOpn2DacSampleRevision = revision;
+    pooledOpn2DacRevisions[corePoolIndex(activeMode)] = revision;
+    core->setExternalSampleData(std::move(selectedBytes));
 }
 
 void ChipperAudioProcessor::applyOpnaRhythmRomToCore()
@@ -3877,6 +3986,8 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
         xml->removeChildElement(existingSpcBrrBankState, true);
     while (auto* existingPaulaSampleBankState = xml->getChildByName(paulaSampleBankStateTag))
         xml->removeChildElement(existingPaulaSampleBankState, true);
+    while (auto* existingOpn2DacSampleState = xml->getChildByName(opn2DacSampleStateTag))
+        xml->removeChildElement(existingOpn2DacSampleState, true);
     while (auto* existingOpnaRhythmRomState = xml->getChildByName(opnaRhythmRomStateTag))
         xml->removeChildElement(existingOpnaRhythmRomState, true);
     while (auto* existingOpnaAdpcmBState = xml->getChildByName(opnaAdpcmBSampleStateTag))
@@ -3985,6 +4096,16 @@ std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml()
     }
 
     {
+        const std::lock_guard<std::mutex> lock(opn2DacSampleMutex);
+        if (! opn2DacSample.bytes.empty())
+        {
+            auto* dacSampleState = new juce::XmlElement(opn2DacSampleStateTag);
+            dacSampleState->setAttribute("path", opn2DacSample.path);
+            xml->addChildElement(dacSampleState);
+        }
+    }
+
+    {
         const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
         if (! opnaRhythmRom.bytes.empty())
         {
@@ -4043,6 +4164,7 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     std::vector<DmcSampleSlot> restoredSpcBrrBank;
     DmcSampleSlot restoredPaulaSample;
     std::vector<DmcSampleSlot> restoredPaulaBank;
+    DmcSampleSlot restoredOpn2DacSample;
     DmcSampleSlot restoredOpnaRhythmRom;
     DmcSampleSlot restoredOpnaAdpcmBSample;
     DmcSampleSlot restoredOpnbAdpcmASample;
@@ -4052,6 +4174,7 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     juce::StringArray dmcSampleRestoreIssues;
     juce::StringArray spc700SampleRestoreIssues;
     juce::StringArray paulaSampleRestoreIssues;
+    juce::StringArray opn2DacSampleRestoreIssues;
     juce::StringArray opnaRhythmRomRestoreIssues;
     juce::StringArray opnaAdpcmBSampleRestoreIssues;
     juce::StringArray opnbAdpcmASampleRestoreIssues;
@@ -4213,6 +4336,13 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
         xml->removeChildElement(paulaBankState, true);
     }
 
+    if (auto* opn2DacSampleState = xml->getChildByName(opn2DacSampleStateTag))
+    {
+        if (auto result = readOpn2DacSampleFile(resolvePresetSamplePath(*opn2DacSampleState, presetDirectory), restoredOpn2DacSample); result.failed())
+            opn2DacSampleRestoreIssues.add(result.getErrorMessage());
+        xml->removeChildElement(opn2DacSampleState, true);
+    }
+
     if (auto* opnaRhythmRomState = xml->getChildByName(opnaRhythmRomStateTag))
     {
         if (auto result = readOpnaRhythmRomFile(resolvePresetSamplePath(*opnaRhythmRomState, presetDirectory), restoredOpnaRhythmRom); result.failed())
@@ -4272,6 +4402,12 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
         ++paulaSampleBankRevision;
     }
     {
+        const std::lock_guard<std::mutex> lock(opn2DacSampleMutex);
+        opn2DacSample = std::move(restoredOpn2DacSample);
+        opn2DacSampleRestoreWarning = restoreWarningLine("OPN2 DAC", opn2DacSampleRestoreIssues);
+        ++opn2DacSampleRevision;
+    }
+    {
         const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
         opnaRhythmRom = std::move(restoredOpnaRhythmRom);
         opnaRhythmRomRestoreWarning = restoreWarningLine("OPNA rhythm ROM", opnaRhythmRomRestoreIssues);
@@ -4304,6 +4440,7 @@ juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sour
     activePaulaSampleRevision = std::numeric_limits<uint64_t>::max();
     activePaulaSampleSlot = -1;
     activePaulaManualSlot = -1;
+    activeOpn2DacSampleRevision = std::numeric_limits<uint64_t>::max();
     activeOpnaRhythmRomRevision = std::numeric_limits<uint64_t>::max();
     activeOpnaAdpcmBSampleRevision = std::numeric_limits<uint64_t>::max();
     activeOpnbAdpcmASampleRevision = std::numeric_limits<uint64_t>::max();
@@ -4583,6 +4720,22 @@ ChipperAudioProcessor::SampleWaveformSnapshot ChipperAudioProcessor::sampleWavef
         }
 
         snapshot.sourceSampleCount = static_cast<int>(decoded.size());
+    }
+    else if (mode == chipper::ChipMode::ym2612)
+    {
+        const std::lock_guard<std::mutex> lock(opn2DacSampleMutex);
+        if (opn2DacSample.bytes.empty())
+        {
+            snapshot.label = "No OPN2 DAC sample loaded";
+            appendRestoreWarning(snapshot.label, opn2DacSampleRestoreWarning);
+            return snapshot;
+        }
+
+        decoded = decodePcm8Preview(opn2DacSample.bytes);
+        snapshot.label = "OPN2 DAC sample: " + opn2DacSample.name;
+        snapshot.sourceSampleCount = static_cast<int>(decoded.size());
+        snapshot.loaded = ! decoded.empty();
+        appendRestoreWarning(snapshot.label, opn2DacSampleRestoreWarning);
     }
     else if (mode == chipper::ChipMode::ym2608)
     {

@@ -822,13 +822,15 @@ bool checkYm2612DacModeLayout()
         const auto panBounds = editor.getDmgStereoRouteBoundsForLayoutTest();
         const auto clockBounds = editor.getClockSliderBoundsForLayoutTest();
         const auto outputBounds = editor.getOutputSliderBoundsForLayoutTest();
+        const auto sampleFileBounds = editor.getSampleFileButtonBoundsForLayoutTest();
+        const auto sampleWaveformBounds = editor.getSampleWaveformBoundsForLayoutTest();
 
         ok &= expect(editor.getModuleTitleTextForLayoutTest(2) == "Shared Four-Operator Patch"
                          && editor.getModuleTitleTextForLayoutTest(3) == "Shared Operator Matrix"
                          && editor.getModuleTitleTextForLayoutTest(5) == "Envelope, DAC + Routing",
                      "YM2612 dedicated signal-path module titles are missing");
-        ok &= expect(editor.getModuleSummaryTextForLayoutTest(5).containsIgnoreCase("VST sample-file loading is not available"),
-                     "YM2612 DAC surface should disclose the VST sample-loading limitation");
+        ok &= expect(editor.getModuleSummaryTextForLayoutTest(5).containsIgnoreCase("portable path recall"),
+                     "YM2612 DAC surface should disclose the delivered sample-loading workflow");
         ok &= expect(editor.getGlobalStripLabelTextForLayoutTest() == "Clock + Output",
                      "YM2612 global strip should contain only clock and output");
 
@@ -870,6 +872,12 @@ bool checkYm2612DacModeLayout()
 
         ok &= expect(dacBounds.getWidth() >= 240 && dacBounds.getHeight() >= 20,
                      "YM2612 DAC mode control is below readable size");
+        ok &= expect(routeModule.expanded(2).contains(sampleFileBounds)
+                         && routeModule.expanded(2).contains(sampleWaveformBounds),
+                     "YM2612 DAC sample file and waveform controls escaped their routing module");
+        ok &= expect(sampleFileBounds.getWidth() >= 48 && sampleFileBounds.getHeight() >= 20
+                         && sampleWaveformBounds.getWidth() >= 300 && sampleWaveformBounds.getHeight() >= 20,
+                     "YM2612 DAC sample workflow controls are below readable size");
         ok &= expect(performanceBounds.expanded(2).contains(clockBounds)
                          && performanceBounds.expanded(2).contains(outputBounds),
                      "YM2612 clock/output controls escaped the compact global strip");

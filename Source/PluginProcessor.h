@@ -118,6 +118,18 @@ public:
         bool exceedsAramBudget = false;
     };
 
+    struct Opn2DacSampleInfo
+    {
+        juce::String statusLine;
+        juce::String sampleName;
+        juce::String path;
+        int byteCount = 0;
+        int copiedByteCount = 0;
+        int memoryByteCount = 262144;
+        bool loaded = false;
+        bool truncated = false;
+    };
+
     struct OpnaRhythmRomInfo
     {
         juce::String statusLine;
@@ -207,6 +219,7 @@ public:
     juce::Result loadSpc700BrrSampleDirectory(const juce::File& directory);
     juce::Result loadPaulaSampleFile(const juce::File& file);
     juce::Result loadPaulaSampleDirectory(const juce::File& directory);
+    juce::Result loadOpn2DacSampleFile(const juce::File& file);
     juce::Result loadOpnaRhythmRomFile(const juce::File& file);
     juce::Result loadOpnaAdpcmBSampleFile(const juce::File& file);
     juce::Result loadOpnbAdpcmASampleFile(const juce::File& file);
@@ -215,6 +228,7 @@ public:
     DmcSamplePlaybackInfo nesDmcSamplePlaybackInfo() const;
     Spc700BrrSampleInfo spc700BrrSampleInfo() const;
     Spc700BrrSampleInfo paulaSampleInfo() const;
+    Opn2DacSampleInfo opn2DacSampleInfo() const;
     OpnaRhythmRomInfo opnaRhythmRomInfo() const;
     OpnaAdpcmBSampleInfo opnaAdpcmBSampleInfo() const;
     OpnbAdpcmSampleInfo opnbAdpcmASampleInfo() const;
@@ -307,6 +321,7 @@ private:
     void applyPaulaSampleToCore();
     void applyPaulaSampleSlotToCore(int requestedSlot);
     void applyMappedPaulaSampleForMidiNote(int midiNote);
+    void applyOpn2DacSampleToCore();
     void applyOpnaRhythmRomToCore();
     void applyOpnaAdpcmBSampleToCore();
     void applyOpnbAdpcmASampleToCore();
@@ -327,6 +342,7 @@ private:
     std::array<uint64_t, corePoolSize> pooledDmcRevisions {};
     std::array<uint64_t, corePoolSize> pooledSpc700Revisions {};
     std::array<uint64_t, corePoolSize> pooledPaulaRevisions {};
+    std::array<uint64_t, corePoolSize> pooledOpn2DacRevisions {};
     std::array<uint64_t, corePoolSize> pooledOpnaRhythmRevisions {};
     std::array<uint64_t, corePoolSize> pooledOpnaAdpcmBRevisions {};
     std::array<uint64_t, corePoolSize> pooledOpnbAdpcmARevisions {};
@@ -362,6 +378,11 @@ private:
     std::atomic<int> activePaulaSampleSlot { -1 };
     std::atomic<int> activePaulaManualSlot { -1 };
     int activePaulaSampleSlotCount = 0;
+    mutable std::mutex opn2DacSampleMutex;
+    DmcSampleSlot opn2DacSample;
+    juce::String opn2DacSampleRestoreWarning;
+    std::atomic<uint64_t> opn2DacSampleRevision { 0 };
+    uint64_t activeOpn2DacSampleRevision = std::numeric_limits<uint64_t>::max();
     mutable std::mutex opnaRhythmRomMutex;
     DmcSampleSlot opnaRhythmRom;
     juce::String opnaRhythmRomRestoreWarning;

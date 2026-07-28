@@ -233,6 +233,7 @@ bool isAssetReferenceTag(const juce::String& tagName)
         || tagName == "BRR_SAMPLE"
         || tagName == "PAULA_SAMPLE"
         || tagName == "CHIPPER_SPC700_BRR"
+        || tagName == "CHIPPER_OPN2_DAC_SAMPLE"
         || tagName == "CHIPPER_OPNA_RHYTHM_ROM"
         || tagName == "CHIPPER_OPNA_ADPCM_B_SAMPLE"
         || tagName == "CHIPPER_OPNB_ADPCM_A_SAMPLE"

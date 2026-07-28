@@ -1528,6 +1528,116 @@ int main()
     ok &= expectFeedbackPitchNeutrality(6, "OPL3");
 
     {
+        auto opn2RawFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                               .getChildFile("chipper-opn2-dac-test.raw");
+        auto opn2WavFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                               .getChildFile("chipper-opn2-dac-test.wav");
+        opn2RawFile.deleteFile();
+        opn2WavFile.deleteFile();
+        ok &= expect(writeBinaryFixture(opn2RawFile, 270000u),
+                     "Should write temporary OPN2 DAC raw fixture");
+        ok &= expect(writeWavFixture(opn2WavFile, 523.25f),
+                     "Should write temporary OPN2 DAC WAV fixture");
+
+        ChipperAudioProcessor opn2Processor;
+        opn2Processor.prepareToPlay(48000.0, 64);
+        setPlainFromHost(opn2Processor, chipper::parameters::id::chipMode, 5.0f);
+        setPlainFromHost(opn2Processor, chipper::parameters::id::snNoiseMode, 2.0f);
+        processEmptyBlock(opn2Processor);
+        ok &= expect(opn2Processor.loadOpn2DacSampleFile(opn2RawFile).wasOk(),
+                     "OPN2 raw DAC sample load should succeed");
+
+        const auto opn2Info = opn2Processor.opn2DacSampleInfo();
+        ok &= expect(opn2Info.loaded && opn2Info.byteCount == 270000
+                         && opn2Info.copiedByteCount == 262144
+                         && opn2Info.truncated,
+                     "OPN2 DAC status should report source bytes and the 256 KiB playback window");
+        const auto opn2Preview = opn2Processor.sampleWaveformSnapshot(chipper::ChipMode::ym2612);
+        ok &= expect(opn2Preview.loaded && opn2Preview.sourceSampleCount == 270000
+                         && opn2Preview.label.contains("chipper-opn2-dac-test.raw"),
+                     "OPN2 DAC waveform preview should expose the loaded user sample");
+
+        sendNoteOn(opn2Processor, 60);
+        const auto opn2Debug = opn2Processor.currentCoreDebugStateJson();
+        ok &= expect(jsonIntValue(opn2Debug, "dacExternalSampleLoaded") == 1
+                         && jsonIntValue(opn2Debug, "dacExternalSampleBytes") == 262144
+                         && jsonIntValue(opn2Debug, "dacSampleSourceUser") == 1,
+                     "OPN2 DAC core should receive the bounded user bytes and select them for playback");
+
+        auto opn2StateXml = opn2Processor.createStateXml();
+        ok &= expect(opn2StateXml != nullptr
+                         && opn2StateXml->getChildByName("CHIPPER_OPN2_DAC_SAMPLE") != nullptr,
+                     "OPN2 state XML should save the loaded DAC sample path");
+
+        ChipperAudioProcessor restoredOpn2Processor;
+        restoredOpn2Processor.prepareToPlay(48000.0, 64);
+        if (opn2StateXml != nullptr)
+            ok &= expect(restoredOpn2Processor.restoreStateXml(*opn2StateXml).wasOk(),
+                         "OPN2 DAC sample state restore should succeed");
+        processEmptyBlock(restoredOpn2Processor);
+        const auto restoredOpn2Info = restoredOpn2Processor.opn2DacSampleInfo();
+        const auto restoredOpn2Debug = restoredOpn2Processor.currentCoreDebugStateJson();
+        ok &= expect(restoredOpn2Info.loaded && restoredOpn2Info.byteCount == 270000,
+                     "OPN2 DAC state restore should reload the user sample path");
+        ok &= expect(jsonIntValue(restoredOpn2Debug, "dacExternalSampleLoaded") == 1
+                         && jsonIntValue(restoredOpn2Debug, "dacExternalSampleBytes") == 262144,
+                     "Restored OPN2 core should receive the bounded user sample bytes");
+
+        auto portableOpn2PresetDir = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                         .getChildFile("chipper-portable-opn2-preset-test");
+        portableOpn2PresetDir.deleteRecursively();
+        const auto portableOpn2Sample = portableOpn2PresetDir.getChildFile("Samples")
+                                            .getChildFile("portable-opn2.raw");
+        ok &= expect(portableOpn2Sample.getParentDirectory().createDirectory().wasOk()
+                         && writeBinaryFixture(portableOpn2Sample, 512u),
+                     "Should write portable OPN2 DAC fixture beside preset");
+        if (opn2StateXml != nullptr)
+        {
+            rewritePresetSamplePaths(*opn2StateXml, "CHIPPER_OPN2_DAC_SAMPLE", "portable-opn2.raw");
+            ChipperAudioProcessor portableOpn2Processor;
+            portableOpn2Processor.prepareToPlay(48000.0, 64);
+            ok &= expect(portableOpn2Processor.restoreStateXml(*opn2StateXml, portableOpn2PresetDir).wasOk(),
+                         "Portable preset restore should accept a relative OPN2 DAC sample reference");
+            const auto portableOpn2Info = portableOpn2Processor.opn2DacSampleInfo();
+            ok &= expect(portableOpn2Info.loaded && portableOpn2Info.sampleName == "portable-opn2.raw"
+                             && portableOpn2Info.byteCount == 512,
+                         "Portable OPN2 preset restore should load the sample from its Samples folder");
+        }
+
+        ChipperAudioProcessor missingOpn2XmlProcessor;
+        missingOpn2XmlProcessor.prepareToPlay(48000.0, 64);
+        auto missingOpn2Xml = missingOpn2XmlProcessor.createStateXml();
+        ok &= expect(missingOpn2Xml != nullptr, "Should create OPN2 state XML for missing-sample warning");
+        if (missingOpn2Xml != nullptr)
+        {
+            auto* missingSample = new juce::XmlElement("CHIPPER_OPN2_DAC_SAMPLE");
+            missingSample->setAttribute("path", portableOpn2PresetDir.getChildFile("missing-opn2.raw").getFullPathName());
+            missingOpn2Xml->addChildElement(missingSample);
+            ChipperAudioProcessor missingOpn2Processor;
+            missingOpn2Processor.prepareToPlay(48000.0, 64);
+            ok &= expect(missingOpn2Processor.restoreStateXml(*missingOpn2Xml, portableOpn2PresetDir).wasOk(),
+                         "Missing OPN2 DAC sample should not fail the whole preset restore");
+            auto missingOpn2Info = missingOpn2Processor.opn2DacSampleInfo();
+            const auto missingOpn2Preview = missingOpn2Processor.sampleWaveformSnapshot(chipper::ChipMode::ym2612);
+            ok &= expect(missingOpn2Info.statusLine.contains("OPN2 DAC sample restore issue")
+                             && missingOpn2Info.statusLine.contains("missing-opn2.raw"),
+                         "OPN2 DAC status should expose missing sample references");
+            ok &= expect(missingOpn2Preview.label.contains("OPN2 DAC sample restore issue"),
+                         "OPN2 DAC waveform preview should expose missing sample references");
+            ok &= expect(missingOpn2Processor.loadOpn2DacSampleFile(opn2WavFile).wasOk(),
+                         "Manual OPN2 WAV load should succeed after a restore warning");
+            missingOpn2Info = missingOpn2Processor.opn2DacSampleInfo();
+            ok &= expect(missingOpn2Info.loaded && missingOpn2Info.byteCount == 256
+                             && ! missingOpn2Info.statusLine.contains("restore issue"),
+                         "OPN2 WAV import should produce 8-bit samples and clear stale restore warnings");
+        }
+
+        portableOpn2PresetDir.deleteRecursively();
+        opn2RawFile.deleteFile();
+        opn2WavFile.deleteFile();
+    }
+
+    {
         auto opnaRomFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
                                .getChildFile("chipper-opna-rhythm-rom-test.bin");
         auto opnaAdpcmBFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
@@ -3075,7 +3185,7 @@ int main()
     ok &= expect(writeDmcFixture(portableAsset, 0x55u), "Should create portable asset schema fixture");
     juce::XmlElement portableAssetState("STATE");
     for (const auto* tag : { "DMC_SAMPLE", "BRR_SAMPLE", "PAULA_SAMPLE", "CHIPPER_SPC700_BRR",
-                             "CHIPPER_OPNA_RHYTHM_ROM", "CHIPPER_OPNA_ADPCM_B_SAMPLE",
+                             "CHIPPER_OPN2_DAC_SAMPLE", "CHIPPER_OPNA_RHYTHM_ROM", "CHIPPER_OPNA_ADPCM_B_SAMPLE",
                              "CHIPPER_OPNB_ADPCM_A_SAMPLE", "CHIPPER_OPNB_ADPCM_B_SAMPLE" })
     {
         auto* asset = new juce::XmlElement(tag);
