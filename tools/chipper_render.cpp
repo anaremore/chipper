@@ -331,6 +331,30 @@ bool opmOperatorDetuneIndexForArg(const std::string& arg, std::string_view field
     return true;
 }
 
+bool oplOperatorNativeIndexForArg(const std::string& arg, std::string_view field, size_t& index)
+{
+    static constexpr std::array<std::string_view, 2> prefixes { "--opl-op", "--opl3-op" };
+    for (const auto prefix : prefixes)
+    {
+        if (arg.rfind(prefix, 0) != 0)
+            continue;
+
+        const auto suffix = arg.substr(prefix.size());
+        const auto marker = suffix.find(field);
+        if (marker == std::string::npos || marker == 0 || marker + field.size() != suffix.size())
+            return false;
+
+        uint32_t op = 0;
+        if (! parseNumber(suffix.substr(0, marker), op) || op < 1u || op > 4u)
+            return false;
+
+        index = static_cast<size_t>(op - 1u);
+        return true;
+    }
+
+    return false;
+}
+
 bool fmOperatorAttackRateIndexForArg(const std::string& arg, size_t& index)
 {
     const std::array<const char*, 5> prefixes {
@@ -497,6 +521,45 @@ bool parseOpmOperatorDetuneChoice(const std::string& text, int maxNativeValue, i
 
     out = nativeValue + 1;
     return true;
+}
+
+bool parseOplOperatorFlagChoice(const std::string& text, int& out)
+{
+    const auto key = normalizedToken(text);
+    if (key == "follow" || key == "preset" || key == "macro" || key == "auto" || key == "default" || key == "f")
+    {
+        out = 0;
+        return true;
+    }
+
+    if (key == "none" || key == "off")
+        out = 1;
+    else if (key == "am" || key == "trem" || key == "tremolo")
+        out = 2;
+    else if (key == "vib" || key == "vibrato" || key == "pm")
+        out = 3;
+    else if (key == "am+vib" || key == "vib+am" || key == "amvib")
+        out = 4;
+    else if (key == "ksr")
+        out = 5;
+    else if (key == "am+ksr" || key == "ksr+am" || key == "amksr")
+        out = 6;
+    else if (key == "vib+ksr" || key == "ksr+vib" || key == "vibksr")
+        out = 7;
+    else if (key == "all" || key == "am+vib+ksr" || key == "amvibksr")
+        out = 8;
+    else
+        return parseOpmOperatorDetuneChoice(text, 7, out);
+
+    return true;
+}
+
+bool parseOplOperatorKslChoice(const std::string& text, int& out)
+{
+    auto key = normalizedToken(text);
+    if (key.rfind("ksl", 0) == 0)
+        key.erase(0, 3);
+    return parseOpmOperatorDetuneChoice(key, 3, out);
 }
 
 bool parseFmOperatorAttackRateChoice(const std::string& text, int& out)
@@ -1529,6 +1592,7 @@ void printUsage()
         << "                 chipper_render --describe-chip nes --debug nes-descriptor.json\n"
         << "       Optional: --preset nes-hero-pulse --macro coin --play-mode chip-poly --control1 0.2 --control2 0.8 --fm-feedback 0..7 --control3 0.1 --control4 0.5 --fm-op1-level 0..1 --fm-op2-level 0..1 --fm-op3-level 0..1 --fm-op4-level 0..1 --fm-op1-multiplier follow|0.5|1..15 --fm-op2-multiplier follow|0.5|1..15 --fm-op3-multiplier follow|0.5|1..15 --fm-op4-multiplier follow|0.5|1..15 --fm-op1-attack-rate follow|0..31 --fm-op2-attack-rate follow|0..31 --fm-op3-attack-rate follow|0..31 --fm-op4-attack-rate follow|0..31 --fm-op1-decay-rate follow|0..31 --fm-op2-decay-rate follow|0..31 --fm-op3-decay-rate follow|0..31 --fm-op4-decay-rate follow|0..31 --fm-op1-sustain-rate follow|0..31 --fm-op2-sustain-rate follow|0..31 --fm-op3-sustain-rate follow|0..31 --fm-op4-sustain-rate follow|0..31 --fm-op1-release-rate follow|0..15 --fm-op2-release-rate follow|0..15 --fm-op3-release-rate follow|0..15 --fm-op4-release-rate follow|0..15 --source1 1 --source2 0 --level1 1.0 --level2 0.5 --stereo-spread 0.75 --envelope-decay 0.7 --nes-dmc-direct-level 0..1 --nes-dmc-rate 0..15 --nes-dmc-loop 0|1 --nes-dmc-only 0|1 --nes-dmc-sample path.dmc --opn2-dac-sample path.bin --opn2-dac-hex 8080... --opna-rhythm-rom path.bin --opna-rhythm-rom-hex 017f... --spc700-brr-sample path.brr --spc700-brr-hex 017f... --spc700-brr-bank-hex 017f... --spc700-sample-slot 0..31 --spc700-sample-slot1..8 0..32 --spc700-map-root 60 --spc700-loop-start 0..1 --spc700-loop-end 0..1 --paula-sample path.wav|path.8svx|raw (repeat for bank) --paula-shape1..4 follow|ramp|tri|sine|noise --paula-sample-slot1..4 0..32 --spc700-envelope follow|pluck|lead|pad|perc --spc700-noise follow|off|low|mid|high --sid-adsr-speed 0.7 --sid-attack follow|0..15 --sid-decay follow|0..15 --sid-sustain follow|0..15 --sid-release follow|0..15 --sid-voice2-attack follow|0..15 --sid-voice2-decay follow|0..15 --sid-voice2-sustain follow|0..15 --sid-voice2-release follow|0..15 --sid-voice3-attack follow|0..15 --sid-voice3-decay follow|0..15 --sid-voice3-sustain follow|0..15 --sid-voice3-release follow|0..15 --wave-shape follow|custom|tri|saw|pulse|steps|noise --sid-voice2-wave follow|tri|saw|pulse|noise --sid-voice3-wave follow|tri|saw|pulse|noise --huc-wave1..6 follow|ramp|tri|square|noise --scc-wave1..5 follow|ramp|tri|pulse|steps --namco-wave1..8 follow|ramp|tri|pulse|steps --sid-voice2-pulse-width 0..1 --sid-voice3-pulse-width 0..1 --pulse2-duty follow|12.5|25|50|75 --dmg-wave-level follow|100|50|25|mute --dmg-stereo-route follow|both|left|right|split --huc-lfo follow|off|light|deep|fast --pokey-audctl follow|off|1+2|3+4|both --pokey-filter follow|off|1<-3|2<-4|both --paula-output-filter follow|raw|a500|led|both --spc700-playback follow|loop|one-shot --opn2-pan follow|both|left|right|alt --opm-pan follow|both|left|right|alt --opm-noise follow|off|low|mid|high --opm-lfo-depth 0..1 --opn2-lfo-depth 0..1 --opn-ssg-envelope follow|fall|rise|saw|tri --opn-ssg-a-mix follow|tone|noise|both|off --opn-ssg-b-mix follow|tone|noise|both|off --opn-ssg-c-mix follow|tone|noise|both|off --opn2-envelope follow|pluck|lead|pad|perc --opm-envelope follow|pluck|lead|pad|perc --fm-envelope follow|pluck|lead|pad|perc --opn2-dac follow|fm|dac --opl-rhythm follow|melodic|rhythm|layer|4op --opll-rhythm follow|melodic|rhythm --ym-envelope-shape fixed|fall|rise|saw|triangle|code0..code15|0x0..0xF --ym-channel-a-mix follow|tone|noise|both|off --ym-channel-b-mix follow|tone|noise|both|off --ym-channel-c-mix follow|tone|noise|both|off --sid-filter-mode follow|lp|bp|hp|off|notch|lp+bp|bp+hp|all|0x00|0x10|0x20|0x40|0x50|0x30|0x60|0x70 --sid-filter-routing follow|all|v1|v2|v3|v1+v2|v1+v3|v2+v3|none|0x00..0x07 --sid-mod-mode follow|off|sync|ring|both --sid-model follow|6581|8580 --sn-noise-mode follow|white-t3|long|short|15-bit|7-bit --output-db -9\n"
         << "       OPL3 routing: --opl-route|--opl3-route follow|both|left|right|alt\n"
+        << "       OPL3 operator fields: --opl-op1-flags..--opl-op4-flags preset|none|am|vib|am+vib|ksr|am+ksr|vib+ksr|all --opl-op1-ksl..--opl-op4-ksl preset|0..3\n"
         << "       OPM operator detune: --opm-op1-dt1..--opm-op4-dt1 preset|0..7 --opm-op1-dt2..--opm-op4-dt2 preset|0..3\n"
         << "       OPM LFO: --opm-lfo-waveform preset|saw|square|triangle|noise --opm-pms preset|0..7 --opm-ams preset|0..3\n"
         << "       OPN2 DAC sample memory: --opn2-dac-sample path.bin --opn2-dac-hex 8080... (unsigned 8-bit YM2612 DAC bytes)\n"
@@ -1924,6 +1988,28 @@ bool parseArgs(int argc, char** argv, Options& options)
             options.fmOperatorReleaseRateProvided[fmOperatorIndex] = true;
             continue;
         }
+        if (size_t oplOperatorIndex = 0; oplOperatorNativeIndexForArg(arg, "-flags", oplOperatorIndex))
+        {
+            const auto* value = requireValue(arg.c_str());
+            int parsed = 0;
+            if (value == nullptr || ! parseOplOperatorFlagChoice(std::string(value), parsed))
+                return false;
+            options.opmOperatorDt1[oplOperatorIndex] = parsed;
+            options.opmOperatorDt1Provided[oplOperatorIndex] = true;
+            continue;
+        }
+
+        if (size_t oplOperatorIndex = 0; oplOperatorNativeIndexForArg(arg, "-ksl", oplOperatorIndex))
+        {
+            const auto* value = requireValue(arg.c_str());
+            int parsed = 0;
+            if (value == nullptr || ! parseOplOperatorKslChoice(std::string(value), parsed))
+                return false;
+            options.opmOperatorDt2[oplOperatorIndex] = parsed;
+            options.opmOperatorDt2Provided[oplOperatorIndex] = true;
+            continue;
+        }
+
         if (size_t opmOperatorIndex = 0; opmOperatorDetuneIndexForArg(arg, "-dt1", opmOperatorIndex))
         {
             const auto* value = requireValue(arg.c_str());

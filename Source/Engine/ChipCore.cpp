@@ -14856,6 +14856,12 @@ public:
             return regs[operatorRegister(channel, base, (op % 2u) != 0u)];
         };
 
+        const auto rhythmOperatorValue = [this](uint16_t base, size_t op)
+        {
+            const auto channel = size_t { 6u } + (op / 2u);
+            return regs[operatorRegister(channel, base, (op % 2u) != 0u)];
+        };
+
         std::ostringstream json;
         json << "{"
              << "\"mode\":\"OPL2/OPL3 / DOS FM\","
@@ -14893,6 +14899,46 @@ public:
              << "\"carrierEgt0\":" << (((currentCarrierControl[0] & 0x20u) != 0u) ? 1 : 0) << ","
              << "\"carrierAttackDecay0\":" << static_cast<int>(currentCarrierAttackDecay[0]) << ","
              << "\"carrierSustainRelease0\":" << static_cast<int>(currentCarrierSustainRelease[0]) << ","
+             << "\"operatorControl0\":" << static_cast<int>(operatorValue(0x20u, 0)) << ","
+             << "\"operatorControl1\":" << static_cast<int>(operatorValue(0x20u, 1)) << ","
+             << "\"operatorControl2\":" << static_cast<int>(operatorValue(0x20u, 2)) << ","
+             << "\"operatorControl3\":" << static_cast<int>(operatorValue(0x20u, 3)) << ","
+             << "\"operatorFlagChoice0\":" << std::clamp(patch.opmOperatorDt1[0], 0, 8) << ","
+             << "\"operatorFlagChoice1\":" << std::clamp(patch.opmOperatorDt1[1], 0, 8) << ","
+             << "\"operatorFlagChoice2\":" << std::clamp(patch.opmOperatorDt1[2], 0, 8) << ","
+             << "\"operatorFlagChoice3\":" << std::clamp(patch.opmOperatorDt1[3], 0, 8) << ","
+             << "\"operatorFlagBits0\":" << static_cast<int>(operatorValue(0x20u, 0) & 0xd0u) << ","
+             << "\"operatorFlagBits1\":" << static_cast<int>(operatorValue(0x20u, 1) & 0xd0u) << ","
+             << "\"operatorFlagBits2\":" << static_cast<int>(operatorValue(0x20u, 2) & 0xd0u) << ","
+             << "\"operatorFlagBits3\":" << static_cast<int>(operatorValue(0x20u, 3) & 0xd0u) << ","
+             << "\"operatorKslChoice0\":" << std::clamp(patch.opmOperatorDt2[0], 0, 4) << ","
+             << "\"operatorKslChoice1\":" << std::clamp(patch.opmOperatorDt2[1], 0, 4) << ","
+             << "\"operatorKslChoice2\":" << std::clamp(patch.opmOperatorDt2[2], 0, 4) << ","
+             << "\"operatorKslChoice3\":" << std::clamp(patch.opmOperatorDt2[3], 0, 4) << ","
+             << "\"operatorKslLevel0\":" << static_cast<int>(oplOperatorKeyScaleLevelForPatch(patch, 0)) << ","
+             << "\"operatorKslLevel1\":" << static_cast<int>(oplOperatorKeyScaleLevelForPatch(patch, 1)) << ","
+             << "\"operatorKslLevel2\":" << static_cast<int>(oplOperatorKeyScaleLevelForPatch(patch, 2)) << ","
+             << "\"operatorKslLevel3\":" << static_cast<int>(oplOperatorKeyScaleLevelForPatch(patch, 3)) << ","
+             << "\"operatorTotalLevelRegister0\":" << static_cast<int>(operatorValue(0x40u, 0)) << ","
+             << "\"operatorTotalLevelRegister1\":" << static_cast<int>(operatorValue(0x40u, 1)) << ","
+             << "\"operatorTotalLevelRegister2\":" << static_cast<int>(operatorValue(0x40u, 2)) << ","
+             << "\"operatorTotalLevelRegister3\":" << static_cast<int>(operatorValue(0x40u, 3)) << ","
+             << "\"rhythmOperatorControl0\":" << static_cast<int>(rhythmOperatorValue(0x20u, 0)) << ","
+             << "\"rhythmOperatorControl1\":" << static_cast<int>(rhythmOperatorValue(0x20u, 1)) << ","
+             << "\"rhythmOperatorControl2\":" << static_cast<int>(rhythmOperatorValue(0x20u, 2)) << ","
+             << "\"rhythmOperatorControl3\":" << static_cast<int>(rhythmOperatorValue(0x20u, 3)) << ","
+             << "\"rhythmOperatorControl4\":" << static_cast<int>(rhythmOperatorValue(0x20u, 4)) << ","
+             << "\"rhythmOperatorControl5\":" << static_cast<int>(rhythmOperatorValue(0x20u, 5)) << ","
+             << "\"rhythmOperatorFlagBits0\":" << static_cast<int>(rhythmOperatorValue(0x20u, 0) & 0xd0u) << ","
+             << "\"rhythmOperatorFlagBits1\":" << static_cast<int>(rhythmOperatorValue(0x20u, 1) & 0xd0u) << ","
+             << "\"rhythmOperatorTotalLevelRegister0\":" << static_cast<int>(rhythmOperatorValue(0x40u, 0)) << ","
+             << "\"rhythmOperatorTotalLevelRegister1\":" << static_cast<int>(rhythmOperatorValue(0x40u, 1)) << ","
+             << "\"rhythmOperatorTotalLevelRegister2\":" << static_cast<int>(rhythmOperatorValue(0x40u, 2)) << ","
+             << "\"rhythmOperatorTotalLevelRegister3\":" << static_cast<int>(rhythmOperatorValue(0x40u, 3)) << ","
+             << "\"rhythmOperatorTotalLevelRegister4\":" << static_cast<int>(rhythmOperatorValue(0x40u, 4)) << ","
+             << "\"rhythmOperatorTotalLevelRegister5\":" << static_cast<int>(rhythmOperatorValue(0x40u, 5)) << ","
+             << "\"rhythmOperatorKslBits0\":" << static_cast<int>(rhythmOperatorValue(0x40u, 0) & 0xc0u) << ","
+             << "\"rhythmOperatorKslBits1\":" << static_cast<int>(rhythmOperatorValue(0x40u, 1) & 0xc0u) << ","
              << "\"connectionRegister0\":" << static_cast<int>(regs[0xc0]) << ","
              << "\"connectionRegister3\":" << static_cast<int>(regs[0xc3]) << ","
              << "\"connectionRegister6\":" << static_cast<int>(regs[0xc6]) << ","
@@ -15210,9 +15256,11 @@ private:
             const auto op = operatorBase + physicalOperator;
             const auto carrier = physicalOperator != 0u;
             const auto envelope = oplOperatorEnvelopeRegistersForPatch(patch, op);
-            const auto operatorControl = static_cast<uint8_t>((melodicSustain ? 0x20u : 0x00u)
+            const auto operatorControl = static_cast<uint8_t>(oplOperatorFlagBitsForPatch(patch, op)
+                                                               | (melodicSustain ? 0x20u : 0x00u)
                                                                | oplOperatorMultipleForPatch(patch, op));
-            const auto totalLevel = oplOperatorTotalLevelForPatch(patch, op, levelVelocity);
+            const auto totalLevel = static_cast<uint8_t>(oplOperatorKeyScaleLevelBitsForPatch(patch, op)
+                                                          | (oplOperatorTotalLevelForPatch(patch, op, levelVelocity) & 0x3fu));
             const auto attackDecay = static_cast<uint8_t>((envelope.attackRate << 4u) | envelope.decayRate);
             const auto sustainRelease = static_cast<uint8_t>((envelope.sustainLevel << 4u) | envelope.releaseRate);
 
@@ -15236,9 +15284,32 @@ private:
                          static_cast<uint8_t>(oplOutputSelectBitsForPatch(patch, channel) | (feedback << 1u) | connection));
     }
 
+    void applyRhythmOperatorNativeFields()
+    {
+        for (size_t channel = 6u; channel < visibleChannelCount; ++channel)
+        {
+            for (size_t physicalOperator = 0; physicalOperator < 2u; ++physicalOperator)
+            {
+                const auto carrier = physicalOperator != 0u;
+                const auto controlRegister = operatorRegister(channel, 0x20u, carrier);
+                const auto totalLevelRegister = operatorRegister(channel, 0x40u, carrier);
+                const auto operatorControl = static_cast<uint8_t>((regs[controlRegister] & 0x2fu)
+                                                                   | oplOperatorFlagBitsForPatch(patch, physicalOperator));
+                const auto totalLevel = static_cast<uint8_t>((regs[totalLevelRegister] & 0x3fu)
+                                                              | oplOperatorKeyScaleLevelBitsForPatch(patch, physicalOperator));
+                writeOplRegister(controlRegister, operatorControl);
+                writeOplRegister(totalLevelRegister, totalLevel);
+                if (carrier)
+                    currentCarrierControl[channel] = operatorControl;
+            }
+        }
+    }
+
     void applyPatchToAllChannels(bool preserveKeys)
     {
         writeOplRegister(0x104, oplFourOperatorEnableRegisterForPatch(patch));
+        if (rhythmModeActive())
+            applyRhythmOperatorNativeFields();
 
         for (size_t channel = 0; channel < playableChannelCount(); ++channel)
         {
@@ -15355,11 +15426,11 @@ private:
         const auto bdLevel = rhythmTotalLevel(6, velocity);
         const auto hatSnareLevel = rhythmTotalLevel(7, velocity);
         const auto tomCymLevel = rhythmTotalLevel(8, velocity);
-        writeOplRegister(0x53u, bdLevel);
-        writeOplRegister(0x51u, hatSnareLevel);
-        writeOplRegister(0x54u, hatSnareLevel);
-        writeOplRegister(0x52u, tomCymLevel);
-        writeOplRegister(0x55u, tomCymLevel);
+        writeOplRegister(0x53u, static_cast<uint8_t>((regs[0x53u] & 0xc0u) | bdLevel));
+        writeOplRegister(0x51u, static_cast<uint8_t>((regs[0x51u] & 0xc0u) | hatSnareLevel));
+        writeOplRegister(0x54u, static_cast<uint8_t>((regs[0x54u] & 0xc0u) | hatSnareLevel));
+        writeOplRegister(0x52u, static_cast<uint8_t>((regs[0x52u] & 0xc0u) | tomCymLevel));
+        writeOplRegister(0x55u, static_cast<uint8_t>((regs[0x55u] & 0xc0u) | tomCymLevel));
 
         uint8_t keyBits = 0;
         if (sourceEnabled(patch, 6))

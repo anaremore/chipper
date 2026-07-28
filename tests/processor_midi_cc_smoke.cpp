@@ -1387,6 +1387,143 @@ int main()
                          && jsonIntValue(rhythmAfterRoute, "rhythmKeyBits") == jsonIntValue(rhythmBeforeRoute, "rhythmKeyBits"),
                      "CC94 should reroute active OPL3 percussion immediately while preserving each $C0 low nibble and rhythm key state");
     }
+    {
+        ChipperAudioProcessor oplNativeProcessor;
+        oplNativeProcessor.prepareToPlay(48000.0, 256);
+        sendController(oplNativeProcessor, 70, controllerValueForChoice(oplNativeProcessor, chipper::parameters::id::chipMode, 6));
+        setPlainFromHost(oplNativeProcessor, chipper::parameters::id::ymEnvelopeShape, 4.0f);
+        setPlainFromHost(oplNativeProcessor, chipper::parameters::id::macroControl1, 0.67f);
+        setPlainFromHost(oplNativeProcessor, chipper::parameters::id::macroControl2, 0.35f);
+        setPlainFromHost(oplNativeProcessor, chipper::parameters::id::macroControl3, 0.35f);
+        setPlainFromHost(oplNativeProcessor, chipper::parameters::id::macroControl4, 0.9f);
+        setPlainFromHost(oplNativeProcessor, chipper::parameters::id::fmOperator1Level, 0.65f);
+        setPlainFromHost(oplNativeProcessor, chipper::parameters::id::fmOperator2Level, 0.45f);
+        setPlainFromHost(oplNativeProcessor, chipper::parameters::id::fmOperator3Level, 0.75f);
+        setPlainFromHost(oplNativeProcessor, chipper::parameters::id::fmOperator4Level, 0.55f);
+        setPlainFromHost(oplNativeProcessor, chipper::parameters::id::fmOperator1Multiplier, 3.0f);
+        setPlainFromHost(oplNativeProcessor, chipper::parameters::id::fmOperator2Multiplier, 4.0f);
+        setPlainFromHost(oplNativeProcessor, chipper::parameters::id::fmOperator3Multiplier, 5.0f);
+        setPlainFromHost(oplNativeProcessor, chipper::parameters::id::fmOperator4Multiplier, 6.0f);
+        sendNoteOn(oplNativeProcessor, 60);
+        const auto beforeNativeFields = oplNativeProcessor.currentCoreDebugStateJson();
+
+        sendController(oplNativeProcessor, 12, controllerValueForChoice(oplNativeProcessor, chipper::parameters::id::opmOperator1Dt1, 8));
+        sendController(oplNativeProcessor, 13, controllerValueForChoice(oplNativeProcessor, chipper::parameters::id::opmOperator2Dt1, 2));
+        sendController(oplNativeProcessor, 14, controllerValueForChoice(oplNativeProcessor, chipper::parameters::id::opmOperator3Dt1, 3));
+        sendController(oplNativeProcessor, 15, controllerValueForChoice(oplNativeProcessor, chipper::parameters::id::opmOperator4Dt1, 5));
+        sendController(oplNativeProcessor, 16, controllerValueForChoice(oplNativeProcessor, chipper::parameters::id::opmOperator1Dt2, 2));
+        sendController(oplNativeProcessor, 17, controllerValueForChoice(oplNativeProcessor, chipper::parameters::id::opmOperator2Dt2, 3));
+        sendController(oplNativeProcessor, 18, controllerValueForChoice(oplNativeProcessor, chipper::parameters::id::opmOperator3Dt2, 4));
+        sendController(oplNativeProcessor, 19, controllerValueForChoice(oplNativeProcessor, chipper::parameters::id::opmOperator4Dt2, 1));
+        const auto nativeFields = oplNativeProcessor.currentCoreDebugStateJson();
+
+        ok &= expect(jsonIntValue(nativeFields, "operatorControl0") == 0xf2
+                         && jsonIntValue(nativeFields, "operatorControl1") == 0xa3
+                         && jsonIntValue(nativeFields, "operatorControl2") == 0x64
+                         && jsonIntValue(nativeFields, "operatorControl3") == 0x35,
+                     "CC12-15 should update a held OPL3 note with exact AM/VIB/KSR + EGT + MULT $20 bytes");
+        ok &= expect(jsonIntValue(nativeFields, "operatorTotalLevelRegister0") == 0xa6
+                         && jsonIntValue(nativeFields, "operatorTotalLevelRegister1") == 0x43
+                         && jsonIntValue(nativeFields, "operatorTotalLevelRegister2") == 0xe4
+                         && jsonIntValue(nativeFields, "operatorTotalLevelRegister3") == 0x01,
+                     "CC16-19 should update a held OPL3 note with exact KSL + TL $40 bytes");
+        ok &= expect(jsonIntValue(nativeFields, "operatorFlagChoice0") == 8
+                         && jsonIntValue(nativeFields, "operatorFlagChoice1") == 2
+                         && jsonIntValue(nativeFields, "operatorFlagChoice2") == 3
+                         && jsonIntValue(nativeFields, "operatorFlagChoice3") == 5
+                         && jsonIntValue(nativeFields, "operatorKslChoice0") == 2
+                         && jsonIntValue(nativeFields, "operatorKslChoice1") == 3
+                         && jsonIntValue(nativeFields, "operatorKslChoice2") == 4
+                         && jsonIntValue(nativeFields, "operatorKslChoice3") == 1,
+                     "OPL3 debug state should disclose all raw native-field parameter choices");
+        ok &= expect(jsonIntValue(nativeFields, "fnum0") == jsonIntValue(beforeNativeFields, "fnum0")
+                         && jsonIntValue(nativeFields, "block0") == jsonIntValue(beforeNativeFields, "block0")
+                         && jsonIntValue(nativeFields, "connectionRegister0") == jsonIntValue(beforeNativeFields, "connectionRegister0")
+                         && jsonIntValue(nativeFields, "connectionRegister3") == jsonIntValue(beforeNativeFields, "connectionRegister3")
+                         && jsonIntValue(nativeFields, "opl3FourOperatorRegister") == jsonIntValue(beforeNativeFields, "opl3FourOperatorRegister"),
+                     "Changing held OPL3 operator fields should preserve pitch, topology, feedback, connection, and routing registers");
+        ok &= expectNear(parameterValue(oplNativeProcessor, chipper::parameters::id::opmOperator1Dt1), 8.0f, 0.001f,
+                         "CC12 should remain visible as the OPL3 OP1 flag choice");
+        ok &= expectNear(parameterValue(oplNativeProcessor, chipper::parameters::id::opmOperator4Dt2), 1.0f, 0.001f,
+                         "CC19 should remain visible as the OPL3 OP4 KSL choice");
+    }
+    {
+        ChipperAudioProcessor oplRhythmNativeProcessor;
+        oplRhythmNativeProcessor.prepareToPlay(48000.0, 256);
+        sendController(oplRhythmNativeProcessor, 70, controllerValueForChoice(oplRhythmNativeProcessor, chipper::parameters::id::chipMode, 6));
+        setPlainFromHost(oplRhythmNativeProcessor, chipper::parameters::id::ymEnvelopeShape, 2.0f);
+        setPlainFromHost(oplRhythmNativeProcessor, chipper::parameters::id::fmOperator1Multiplier, 3.0f);
+        setPlainFromHost(oplRhythmNativeProcessor, chipper::parameters::id::fmOperator2Multiplier, 5.0f);
+        sendNoteOn(oplRhythmNativeProcessor, 60);
+        const auto rhythmNativeBefore = oplRhythmNativeProcessor.currentCoreDebugStateJson();
+
+        sendController(oplRhythmNativeProcessor, 12, controllerValueForChoice(oplRhythmNativeProcessor, chipper::parameters::id::opmOperator1Dt1, 8));
+        sendController(oplRhythmNativeProcessor, 13, controllerValueForChoice(oplRhythmNativeProcessor, chipper::parameters::id::opmOperator2Dt1, 3));
+        sendController(oplRhythmNativeProcessor, 16, controllerValueForChoice(oplRhythmNativeProcessor, chipper::parameters::id::opmOperator1Dt2, 2));
+        sendController(oplRhythmNativeProcessor, 17, controllerValueForChoice(oplRhythmNativeProcessor, chipper::parameters::id::opmOperator2Dt2, 4));
+        processEmptyBlock(oplRhythmNativeProcessor);
+        const auto rhythmNativeAfter = oplRhythmNativeProcessor.currentCoreDebugStateJson();
+
+        ok &= expect(jsonIntValue(rhythmNativeBefore, "rhythmKeyBits") != 0
+                         && jsonIntValue(rhythmNativeAfter, "rhythmKeyBits") == jsonIntValue(rhythmNativeBefore, "rhythmKeyBits")
+                         && jsonIntValue(rhythmNativeAfter, "rhythmRegister") == jsonIntValue(rhythmNativeBefore, "rhythmRegister"),
+                     "CC12-17 should preserve active OPL3 percussion key bits and the $BD rhythm register");
+        ok &= expect(jsonIntValue(rhythmNativeAfter, "rhythmOperatorFlagBits0") == 0xd0
+                         && jsonIntValue(rhythmNativeAfter, "rhythmOperatorFlagBits1") == 0x40
+                         && (jsonIntValue(rhythmNativeAfter, "rhythmOperatorControl2") & 0xd0) == 0xd0
+                         && (jsonIntValue(rhythmNativeAfter, "rhythmOperatorControl3") & 0xd0) == 0x40
+                         && (jsonIntValue(rhythmNativeAfter, "rhythmOperatorControl4") & 0xd0) == 0xd0
+                         && (jsonIntValue(rhythmNativeAfter, "rhythmOperatorControl5") & 0xd0) == 0x40,
+                     "CC12-13 should immediately update all active OPL3 percussion operators with exact AM/VIB/KSR bits");
+        ok &= expect((jsonIntValue(rhythmNativeAfter, "rhythmOperatorControl0") & 0x2f) == (jsonIntValue(rhythmNativeBefore, "rhythmOperatorControl0") & 0x2f)
+                         && (jsonIntValue(rhythmNativeAfter, "rhythmOperatorControl1") & 0x2f) == (jsonIntValue(rhythmNativeBefore, "rhythmOperatorControl1") & 0x2f)
+                         && (jsonIntValue(rhythmNativeAfter, "rhythmOperatorControl2") & 0x2f) == (jsonIntValue(rhythmNativeBefore, "rhythmOperatorControl2") & 0x2f)
+                         && (jsonIntValue(rhythmNativeAfter, "rhythmOperatorControl3") & 0x2f) == (jsonIntValue(rhythmNativeBefore, "rhythmOperatorControl3") & 0x2f)
+                         && (jsonIntValue(rhythmNativeAfter, "rhythmOperatorControl4") & 0x2f) == (jsonIntValue(rhythmNativeBefore, "rhythmOperatorControl4") & 0x2f)
+                         && (jsonIntValue(rhythmNativeAfter, "rhythmOperatorControl5") & 0x2f) == (jsonIntValue(rhythmNativeBefore, "rhythmOperatorControl5") & 0x2f),
+                     "Live OPL3 percussion flag edits should preserve each operator's EGT and MULT fields");
+        ok &= expect((jsonIntValue(rhythmNativeAfter, "rhythmOperatorTotalLevelRegister0") & 0xc0) == 0x80
+                         && (jsonIntValue(rhythmNativeAfter, "rhythmOperatorTotalLevelRegister1") & 0xc0) == 0xc0
+                         && (jsonIntValue(rhythmNativeAfter, "rhythmOperatorTotalLevelRegister2") & 0xc0) == 0x80
+                         && (jsonIntValue(rhythmNativeAfter, "rhythmOperatorTotalLevelRegister3") & 0xc0) == 0xc0
+                         && (jsonIntValue(rhythmNativeAfter, "rhythmOperatorTotalLevelRegister4") & 0xc0) == 0x80
+                         && (jsonIntValue(rhythmNativeAfter, "rhythmOperatorTotalLevelRegister5") & 0xc0) == 0xc0,
+                     std::string("CC16-17 should immediately update all active OPL3 percussion operators with exact KSL bits actual=")
+                         + std::to_string(jsonIntValue(rhythmNativeAfter, "rhythmOperatorTotalLevelRegister0")) + ","
+                         + std::to_string(jsonIntValue(rhythmNativeAfter, "rhythmOperatorTotalLevelRegister1")) + ","
+                         + std::to_string(jsonIntValue(rhythmNativeAfter, "rhythmOperatorTotalLevelRegister2")) + ","
+                         + std::to_string(jsonIntValue(rhythmNativeAfter, "rhythmOperatorTotalLevelRegister3")) + ","
+                         + std::to_string(jsonIntValue(rhythmNativeAfter, "rhythmOperatorTotalLevelRegister4")) + ","
+                         + std::to_string(jsonIntValue(rhythmNativeAfter, "rhythmOperatorTotalLevelRegister5")));
+        ok &= expect((jsonIntValue(rhythmNativeAfter, "rhythmOperatorTotalLevelRegister0") & 0x3f) == (jsonIntValue(rhythmNativeBefore, "rhythmOperatorTotalLevelRegister0") & 0x3f)
+                         && (jsonIntValue(rhythmNativeAfter, "rhythmOperatorTotalLevelRegister1") & 0x3f) == (jsonIntValue(rhythmNativeBefore, "rhythmOperatorTotalLevelRegister1") & 0x3f)
+                         && jsonIntValue(rhythmNativeAfter, "rhythmBdLevel") == jsonIntValue(rhythmNativeBefore, "rhythmBdLevel")
+                         && jsonIntValue(rhythmNativeAfter, "rhythmHatLevel") == jsonIntValue(rhythmNativeBefore, "rhythmHatLevel")
+                         && jsonIntValue(rhythmNativeAfter, "rhythmSnareLevel") == jsonIntValue(rhythmNativeBefore, "rhythmSnareLevel")
+                         && jsonIntValue(rhythmNativeAfter, "rhythmTomLevel") == jsonIntValue(rhythmNativeBefore, "rhythmTomLevel")
+                         && jsonIntValue(rhythmNativeAfter, "rhythmCymLevel") == jsonIntValue(rhythmNativeBefore, "rhythmCymLevel"),
+                     "Live OPL3 percussion KSL edits should preserve rhythm total levels");
+
+        sendNoteOn(oplRhythmNativeProcessor, 60);
+        const auto rhythmNativeRetriggered = oplRhythmNativeProcessor.currentCoreDebugStateJson();
+        const std::array<const char*, 6> rhythmControlKeys {
+            "rhythmOperatorControl0", "rhythmOperatorControl1", "rhythmOperatorControl2",
+            "rhythmOperatorControl3", "rhythmOperatorControl4", "rhythmOperatorControl5"
+        };
+        const std::array<const char*, 6> rhythmTotalLevelKeys {
+            "rhythmOperatorTotalLevelRegister0", "rhythmOperatorTotalLevelRegister1", "rhythmOperatorTotalLevelRegister2",
+            "rhythmOperatorTotalLevelRegister3", "rhythmOperatorTotalLevelRegister4", "rhythmOperatorTotalLevelRegister5"
+        };
+        for (const auto* key : rhythmControlKeys)
+            ok &= expect(jsonIntValue(rhythmNativeRetriggered, key) == jsonIntValue(rhythmNativeAfter, key),
+                         std::string("Retriggered OPL3 percussion should preserve exact AM/VIB/KSR, EGT, and MULT byte: ") + key);
+        for (const auto* key : rhythmTotalLevelKeys)
+            ok &= expect(jsonIntValue(rhythmNativeRetriggered, key) == jsonIntValue(rhythmNativeAfter, key),
+                         std::string("Retriggered OPL3 percussion should preserve exact KSL and TL byte: ") + key);
+        ok &= expect(jsonIntValue(rhythmNativeRetriggered, "rhythmKeyBits") == jsonIntValue(rhythmNativeAfter, "rhythmKeyBits")
+                         && jsonIntValue(rhythmNativeRetriggered, "rhythmRegister") == jsonIntValue(rhythmNativeAfter, "rhythmRegister"),
+                     "Retriggered OPL3 percussion should preserve the active $BD key state");
+    }
     ok &= expectFeedbackPitchNeutrality(5, "OPN2");
     ok &= expectFeedbackPitchNeutrality(6, "OPL3");
 
@@ -2685,6 +2822,41 @@ int main()
                          "Restored YM2151 DT1/DT2 should reproduce the exact packed $40/$C0 bytes");
         }
     }
+    {
+        ChipperAudioProcessor oplStateSource;
+        oplStateSource.prepareToPlay(48000.0, 64);
+        setPlainFromHost(oplStateSource, chipper::parameters::id::chipMode, 6.0f);
+        const std::array<const char*, 8> nativeFieldIds {
+            chipper::parameters::id::opmOperator1Dt1, chipper::parameters::id::opmOperator2Dt1,
+            chipper::parameters::id::opmOperator3Dt1, chipper::parameters::id::opmOperator4Dt1,
+            chipper::parameters::id::opmOperator1Dt2, chipper::parameters::id::opmOperator2Dt2,
+            chipper::parameters::id::opmOperator3Dt2, chipper::parameters::id::opmOperator4Dt2
+        };
+        const std::array<float, 8> nativeFieldValues { 8.0f, 2.0f, 3.0f, 5.0f, 2.0f, 3.0f, 4.0f, 1.0f };
+        for (size_t i = 0; i < nativeFieldIds.size(); ++i)
+            setPlainFromHost(oplStateSource, nativeFieldIds[i], nativeFieldValues[i]);
+
+        auto oplStateXml = oplStateSource.createStateXml();
+        ok &= expect(oplStateXml != nullptr,
+                     "Current-schema state should save explicit OPL3 AM/VIB/KSR and KSL choices");
+        if (oplStateXml != nullptr)
+        {
+            ChipperAudioProcessor oplStateRestored;
+            oplStateRestored.prepareToPlay(48000.0, 64);
+            ok &= expect(oplStateRestored.restoreStateXml(*oplStateXml).wasOk(),
+                         "Current-schema state should restore explicit OPL3 operator-field choices");
+            for (size_t i = 0; i < nativeFieldIds.size(); ++i)
+                ok &= expectNear(parameterValue(oplStateRestored, nativeFieldIds[i]), nativeFieldValues[i], 0.001f,
+                                 "OPL3 operator-field choice should survive a current-schema round trip");
+            sendNoteOn(oplStateRestored, 60);
+            const auto restoredNativeDebug = oplStateRestored.currentCoreDebugStateJson();
+            ok &= expect(jsonIntValue(restoredNativeDebug, "operatorFlagChoice0") == 8
+                             && jsonIntValue(restoredNativeDebug, "operatorFlagChoice3") == 5
+                             && jsonIntValue(restoredNativeDebug, "operatorKslChoice0") == 2
+                             && jsonIntValue(restoredNativeDebug, "operatorKslChoice3") == 1,
+                         "Restored OPL3 operator fields should reproduce the saved raw choices");
+        }
+    }
     auto versionedState = processor.createStateXml();
     ok &= expect(versionedState != nullptr && versionedState->getIntAttribute("stateSchemaVersion") == chipper::state::currentSchemaVersion,
                  "Saved processor state should declare the current schema version");
@@ -2777,6 +2949,48 @@ int main()
                                      return std::abs(parameterValue(staleDetuneProcessor, parameterId)) < 0.001f;
                                  }),
                      "Schema-v5 migration should reset every YM2151 DT1/DT2 choice to Preset");
+
+        ChipperAudioProcessor schema6OplSource;
+        schema6OplSource.prepareToPlay(48000.0, 64);
+        setPlainFromHost(schema6OplSource, chipper::parameters::id::chipMode, 6.0f);
+        for (const auto* parameterId : opmDetuneIds)
+            setPlainFromHost(schema6OplSource, parameterId, 1.0f);
+        auto schema6OplState = schema6OplSource.createStateXml();
+        ok &= expect(schema6OplState != nullptr, "Should create schema-v6 OPL3 migration fixture state");
+        if (schema6OplState != nullptr)
+        {
+            schema6OplState->setAttribute(chipper::state::schemaVersionAttribute, 6);
+            ChipperAudioProcessor schema6OplRestored;
+            schema6OplRestored.prepareToPlay(48000.0, 64);
+            ok &= expect(schema6OplRestored.restoreStateXml(*schema6OplState).wasOk(),
+                         "Schema-v6 OPL3 state should migrate successfully");
+            ok &= expect(std::all_of(opmDetuneIds.begin(), opmDetuneIds.end(),
+                                     [&schema6OplRestored](const char* parameterId) {
+                                         return std::abs(parameterValue(schema6OplRestored, parameterId)) < 0.001f;
+                                     }),
+                         "Schema-v7 migration should neutralize latent non-YM2151 DT values before OPL3 reuses them");
+        }
+
+        ChipperAudioProcessor schema6OpmSource;
+        schema6OpmSource.prepareToPlay(48000.0, 64);
+        setPlainFromHost(schema6OpmSource, chipper::parameters::id::chipMode, 12.0f);
+        for (const auto* parameterId : opmDetuneIds)
+            setPlainFromHost(schema6OpmSource, parameterId, 1.0f);
+        auto schema6OpmState = schema6OpmSource.createStateXml();
+        ok &= expect(schema6OpmState != nullptr, "Should create schema-v6 YM2151 migration fixture state");
+        if (schema6OpmState != nullptr)
+        {
+            schema6OpmState->setAttribute(chipper::state::schemaVersionAttribute, 6);
+            ChipperAudioProcessor schema6OpmRestored;
+            schema6OpmRestored.prepareToPlay(48000.0, 64);
+            ok &= expect(schema6OpmRestored.restoreStateXml(*schema6OpmState).wasOk(),
+                         "Schema-v6 YM2151 state should migrate successfully");
+            ok &= expect(std::all_of(opmDetuneIds.begin(), opmDetuneIds.end(),
+                                     [&schema6OpmRestored](const char* parameterId) {
+                                         return std::abs(parameterValue(schema6OpmRestored, parameterId) - 1.0f) < 0.001f;
+                                     }),
+                         "Schema-v7 migration should preserve genuine YM2151 DT1/DT2 values");
+        }
 
         auto futureState = std::make_unique<juce::XmlElement>(*versionedState);
         futureState->setAttribute("stateSchemaVersion", 999);

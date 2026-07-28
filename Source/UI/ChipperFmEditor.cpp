@@ -118,7 +118,7 @@ void ChipperFmEditor::layoutFourOperatorGrid()
         controls.levelReadouts[i].setBounds(header);
         content.removeFromTop(std::min(1, content.getHeight()));
         auto registerRow = content.removeFromBottom(std::min(14, content.getHeight()));
-        if (mode == chipper::ChipMode::ym2151)
+        if (mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::opl3)
         {
             auto detuneRow = content.removeFromBottom(std::min(18, content.getHeight()));
             controls.detunes[i].setBounds(detuneRow);

@@ -98,6 +98,23 @@ int main()
                      "YM2151 per-operator DT1/DT2 MIDI CC assignments must remain stable");
     }
 
+    const std::array<const char*, 8> opmDetuneHostNames {
+        "YM2151 Operator 1 DT1", "YM2151 Operator 2 DT1", "YM2151 Operator 3 DT1", "YM2151 Operator 4 DT1",
+        "YM2151 Operator 1 DT2", "YM2151 Operator 2 DT2", "YM2151 Operator 3 DT2", "YM2151 Operator 4 DT2"
+    };
+    const auto expectedDt1Choices = std::string { "Preset|0 (+0)|1 (+1)|2 (+2)|3 (+3)|4 (-0)|5 (-1)|6 (-2)|7 (-3)" };
+    const auto expectedDt2Choices = std::string { "Preset|0 (0c)|1 (+600c)|2 (+781c)|3 (+950c)" };
+    for (size_t index = 0; index < opmDetuneMappings.size(); ++index)
+    {
+        auto* parameter = processor.state.getParameter(opmDetuneMappings[index].second);
+        ok &= expect(parameter != nullptr && parameter->getName(64).toStdString() == opmDetuneHostNames[index],
+                     "Published YM2151 DT1/DT2 host parameter names must remain stable");
+        auto* choiceParameter = dynamic_cast<juce::AudioParameterChoice*>(parameter);
+        const auto expectedChoices = index < 4u ? expectedDt1Choices : expectedDt2Choices;
+        ok &= expect(choiceParameter != nullptr && choiceParameter->choices.joinIntoString("|").toStdString() == expectedChoices,
+                     "Published YM2151 DT1/DT2 host choice strings must remain stable");
+    }
+
     std::set<int> controllers;
     std::set<std::string> parameterIds;
 

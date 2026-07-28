@@ -1,6 +1,7 @@
 #include "PluginStateSchema.h"
 
 #include "Engine/ControlRegistry.h"
+#include "Parameters.h"
 
 namespace chipper::state
 {
@@ -44,6 +45,35 @@ void ensureChoiceParameterDefault(juce::XmlElement& xml, const char* parameterId
     xml.addChildElement(parameter);
 }
 
+double choiceParameterValue(const juce::XmlElement& xml, const char* parameterId)
+{
+    for (const auto* child : xml.getChildIterator())
+    {
+        if (child != nullptr && child->getStringAttribute("id") == parameterId)
+            return child->getDoubleAttribute("value", 0.0);
+    }
+
+    return 0.0;
+}
+
+void setChoiceParameterValue(juce::XmlElement& xml, const char* parameterId, double value)
+{
+    for (auto* child : xml.getChildIterator())
+    {
+        if (child != nullptr && child->getStringAttribute("id") == parameterId)
+        {
+            child->setAttribute("value", value);
+            return;
+        }
+    }
+
+    auto* parameter = new juce::XmlElement("PARAM");
+    parameter->setAttribute("id", parameterId);
+    parameter->setAttribute("value", value);
+    xml.addChildElement(parameter);
+
+}
+
 juce::Result migrateSchema4To5(juce::XmlElement& xml)
 {
     // Schema 5 adds direct YM2151 LFO waveform/PMS/AMS choices. Explicitly
@@ -76,6 +106,40 @@ juce::Result migrateSchema5To6(juce::XmlElement& xml)
     return juce::Result::ok();
 }
 
+
+juce::Result migrateSchema6To7(juce::XmlElement& xml)
+{
+    // Schema 7 reuses the stable YM2151 DT1/DT2 automation slots for native
+    // OPL3 AM/VIB/KSR and KSL fields. APVTS stores choice values normalized,
+    // so recover the saved chip choice before deciding whether these values
+    // were genuine YM2151 detune overrides or previously ignored latent data.
+    const auto chipChoices = parameters::chipModeChoices();
+    const auto maxChipChoice = std::max(0, chipChoices.size() - 1);
+    const auto savedChipValue = choiceParameterValue(xml, parameter_ids::chipMode);
+    const auto savedChipChoice = savedChipValue > 1.0
+        ? static_cast<int>(std::round(savedChipValue))
+        : static_cast<int>(std::round(std::clamp(savedChipValue, 0.0, 1.0) * static_cast<double>(maxChipChoice)));
+
+    if (parameters::chipModeFromChoice(savedChipChoice) != ChipMode::ym2151)
+    {
+        for (const auto* parameterId : {
+                 parameter_ids::opmOperator1Dt1,
+                 parameter_ids::opmOperator2Dt1,
+                 parameter_ids::opmOperator3Dt1,
+                 parameter_ids::opmOperator4Dt1,
+                 parameter_ids::opmOperator1Dt2,
+                 parameter_ids::opmOperator2Dt2,
+                 parameter_ids::opmOperator3Dt2,
+                 parameter_ids::opmOperator4Dt2
+             })
+        {
+            setChoiceParameterValue(xml, parameterId, 0.0);
+        }
+    }
+
+    xml.setAttribute(schemaVersionAttribute, 7);
+    return juce::Result::ok();
+}
 }
 
 juce::Result validateAndMigrate(juce::XmlElement& xml, const juce::Identifier& expectedRootType)
@@ -112,6 +176,8 @@ juce::Result validateAndMigrate(juce::XmlElement& xml, const juce::Identifier& e
             migration = migrateSchema4To5(xml);
         else if (schemaVersion == 5)
             migration = migrateSchema5To6(xml);
+        else if (schemaVersion == 6)
+            migration = migrateSchema6To7(xml);
         if (migration.failed())
             return migration;
         ++schemaVersion;

@@ -192,7 +192,7 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
    - Non-regression rule: never reintroduce workspace switching as a way to hide ordinary sound-design controls. Unified layouts must preserve sound, automation, MIDI state, preset state, chip-local snapshots, source ownership, accessibility, and both supported editor widths.
 
 3. Motion Lab
-   - Delivered workflow: one global overlay edits an independent eight-step pattern for every canonical chip with pitch, explicitly post-chip level, Hold/Trig/Cut, 1-8 length, 1/8-1/64 rates, six templates, chip-aware destination/status text, and active-step text plus color. It is sample-accurate in Big Mono, visibly bypassed in Chip Poly, and recalled through current schema-v6 non-parameter state.
+   - Delivered workflow: one global overlay edits an independent eight-step pattern for every canonical chip with pitch, explicitly post-chip level, Hold/Trig/Cut, 1-8 length, 1/8-1/64 rates, six templates, chip-aware destination/status text, and active-step text plus color. It is sample-accurate in Big Mono, visibly bypassed in Chip Poly, and recalled through current schema-v7 non-parameter state.
    - Non-regression rule: preserve the 1180/1240 eight-column layout, standard control sizes, explicit focus order/names, lock-free publication, no audio-thread allocation, active-step non-color cue, per-chip isolation, and deterministic browser/overlay replacement.
    - Genuine gap: future native duty, wave, noise, vibrato, and one-shot SFX destinations need real engine/register state and tests; do not add decorative destinations or imply that the current 0-15 post-chip level is a native register write.
    - Confidence: 9/10 for the delivered foundation. Chip Poly motion remains intentionally out of scope until a deterministic per-voice policy exists.
@@ -209,8 +209,8 @@ Before a UI slice is considered done, inspect the changed chip at the default ed
    - Confidence: 8/10. The reusable editor and state path are release-gated; the remaining work is chip-model authenticity rather than generic per-lane editing.
 
 6. FM operator editors
-   - Current UI: OPN2, OPM, OPN, OPNA, OPNB, OPNB2, and OPL3 expose carrier/modulator roles, a four-operator matrix, native feedback, and the currently implemented per-operator level/multiplier/envelope fields. OPN/OPM use algorithm graphs; OPL uses its topology and two linked connection bits; OPLL uses the topology-appropriate shared two-operator User0 editor.
-   - Genuine gap: independent per-channel patches, deeper native detune/LFO/sensitivity controls, OPL tremolo/vibrato/KSR/KSL and independently addressable output-bus routing, dedicated OPL3 18-channel editing, OPLL patch-set variants, and stronger golden/hardware validation remain engine and product work.
+   - Current UI: OPN2, OPM, OPN, OPNA, OPNB, OPNB2, and OPL3 expose carrier/modulator roles, a four-operator matrix, native feedback, and the currently implemented per-operator level/multiplier/envelope fields. OPN/OPM use algorithm graphs; OPL adds contextual per-operator AM/VIB/KSR and KSL choices beside its topology and two linked connection bits; OPLL uses the topology-appropriate shared two-operator User0 editor.
+   - Genuine gap: independent per-channel patches, deeper native detune/LFO/sensitivity controls, OPL global `$BD` modulation depth and independently addressable output-bus routing, dedicated OPL3 18-channel editing, OPLL patch-set variants, and stronger golden/hardware validation remain engine and product work.
    - User value: very high for FM users.
    - Confidence: 5/10. The remaining work changes engine state, automation, preset compatibility, and validation rather than only adding UI.
 

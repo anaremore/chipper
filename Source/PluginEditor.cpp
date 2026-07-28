@@ -180,7 +180,15 @@ constexpr std::array chipSettingsSnapshotParameterIds {
     chipper::parameters::id::spc700Voice5SampleSlot,
     chipper::parameters::id::spc700Voice6SampleSlot,
     chipper::parameters::id::spc700Voice7SampleSlot,
-    chipper::parameters::id::spc700Voice8SampleSlot
+    chipper::parameters::id::spc700Voice8SampleSlot,
+    chipper::parameters::id::opmOperator1Dt1,
+    chipper::parameters::id::opmOperator2Dt1,
+    chipper::parameters::id::opmOperator3Dt1,
+    chipper::parameters::id::opmOperator4Dt1,
+    chipper::parameters::id::opmOperator1Dt2,
+    chipper::parameters::id::opmOperator2Dt2,
+    chipper::parameters::id::opmOperator3Dt2,
+    chipper::parameters::id::opmOperator4Dt2
 };
 
 constexpr const char* chipperPluginVersionString =
@@ -3275,6 +3283,52 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
             opmOperatorDt2Role(i)));
         detuneButton.onClick = [this, i]()
         {
+            if (displayedMode == chipper::ChipMode::opl3)
+            {
+                static constexpr std::array<const char*, 9> flagLabels {
+                    "Preset", "None", "AM", "VIB", "AM + VIB", "KSR", "AM + KSR", "VIB + KSR", "AM + VIB + KSR"
+                };
+                static constexpr std::array<const char*, 5> kslLabels { "Preset", "KSL 0", "KSL 1", "KSL 2", "KSL 3" };
+                const auto selectedFlags = std::clamp(static_cast<int>(std::round(parameterValue(opmOperatorDt1ParameterId(i)))), 0, 8);
+                const auto selectedKsl = std::clamp(static_cast<int>(std::round(parameterValue(opmOperatorDt2ParameterId(i)))), 0, 4);
+                const auto* flagSpec = chipper::parameterSpecFor(displayedMode, opmOperatorDt1Role(i));
+                const auto* kslSpec = chipper::parameterSpecFor(displayedMode, opmOperatorDt2Role(i));
+
+                juce::PopupMenu menu;
+                menu.addSectionHeader("AM / VIB / KSR ($20)");
+                for (int choice = 0; choice < static_cast<int>(flagLabels.size()); ++choice)
+                {
+                    const auto label = flagSpec != nullptr && choice < static_cast<int>(flagSpec->choices.size())
+                        ? juce::String(flagSpec->choices[static_cast<size_t>(choice)].label)
+                        : juce::String(flagLabels[static_cast<size_t>(choice)]);
+                    menu.addItem(choice + 1, label, true, choice == selectedFlags);
+                }
+
+                menu.addSeparator();
+                menu.addSectionHeader("Key Scale Level ($40)");
+                for (int choice = 0; choice < static_cast<int>(kslLabels.size()); ++choice)
+                {
+                    const auto label = kslSpec != nullptr && choice < static_cast<int>(kslSpec->choices.size())
+                        ? juce::String(kslSpec->choices[static_cast<size_t>(choice)].label)
+                        : juce::String(kslLabels[static_cast<size_t>(choice)]);
+                    menu.addItem(101 + choice, label, true, choice == selectedKsl);
+                }
+
+                auto options = juce::PopupMenu::Options().withTargetComponent(&fmOperatorDetuneButtons[i]);
+                const juce::Component::SafePointer<ChipperAudioProcessorEditor> safeThis(this);
+                menu.showMenuAsync(options, [safeThis, i](int result)
+                {
+                    if (safeThis == nullptr || result <= 0)
+                        return;
+                    if (result >= 101)
+                        safeThis->setChoiceParameterFromUi(opmOperatorDt2ParameterId(i), result - 101);
+                    else
+                        safeThis->setChoiceParameterFromUi(opmOperatorDt1ParameterId(i), result - 1);
+                    safeThis->updateLiveControlReadouts();
+                });
+                return;
+            }
+
             const auto dt1Choices = chipper::parameters::opmOperatorDt1Choices();
             const auto dt2Choices = chipper::parameters::opmOperatorDt2Choices();
             const auto selectedDt1 = std::clamp(static_cast<int>(std::round(parameterValue(opmOperatorDt1ParameterId(i)))),
@@ -11358,7 +11412,13 @@ juce::String ChipperAudioProcessorEditor::fmOperatorRegisterReadout(chipper::Chi
         const auto envelope = chipper::oplOperatorEnvelopeRegistersForPatch(patch, op);
         const auto multiple = static_cast<int>(chipper::oplOperatorMultipleForPatch(patch, op));
         const auto multipleText = multiple == 0 ? juce::String("0.5") : juce::String(multiple);
-        return "MULT " + multipleText
+        static constexpr std::array<const char*, 9> flagLabels { "P", "-", "A", "V", "AV", "K", "AK", "VK", "AVK" };
+        const auto flagChoice = std::clamp(patch.opmOperatorDt1[std::min(op, size_t { 3u })], 0, 8);
+        const auto kslChoice = std::clamp(patch.opmOperatorDt2[std::min(op, size_t { 3u })], 0, 4);
+        const auto kslText = kslChoice == 0 ? juce::String("P") : juce::String(kslChoice - 1);
+        return "F " + juce::String(flagLabels[static_cast<size_t>(flagChoice)])
+            + " KSL " + kslText
+            + " | MULT " + multipleText
             + " | TL " + juce::String(static_cast<int>(chipper::oplOperatorTotalLevelForPatch(patch, op)))
             + " | AR/DR " + juce::String(static_cast<int>(envelope.attackRate))
             + "/" + juce::String(static_cast<int>(envelope.decayRate))
@@ -11459,7 +11519,7 @@ juce::String ChipperAudioProcessorEditor::fmOperatorRegisterTooltip(chipper::Chi
     {
         const auto stage = op < 2u ? juce::String("first linked channel") : juce::String("paired second channel");
         return "YMF262 operator " + juce::String(static_cast<int>(op + 1u)) + " in the " + stage
-            + ". The shared editor writes $20 MULT/EGT, $40 TL, $60 AR/DR, $80 SL/RR, and $E0 waveform fields.";
+            + ". The shared editor writes $20 AM/VIB/EGT/KSR/MULT, $40 KSL/TL, $60 AR/DR, $80 SL/RR, and $E0 waveform fields.";
     }
 
     if (isOpllOperatorEditMode(mode))
@@ -14358,7 +14418,7 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
         fmOperatorLevelValueLabels[i].setVisible(levelVisible);
         fmOperatorLevelSliders[i].setVisible(levelVisible);
         fmOperatorMultiplierButtons[i].setVisible(levelVisible);
-        const auto detuneVisible = levelVisible && mode == chipper::ChipMode::ym2151;
+        const auto detuneVisible = levelVisible && (mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::opl3);
         fmOperatorDetuneButtons[i].setVisible(detuneVisible);
         fmOperatorAttackRateButtons[i].setVisible(levelVisible);
         if (! visible)
@@ -14441,22 +14501,52 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
             {
                 const auto dt1Choice = std::clamp(static_cast<int>(std::round(parameterValue(opmOperatorDt1ParameterId(i)))), 0, 8);
                 const auto dt2Choice = std::clamp(static_cast<int>(std::round(parameterValue(opmOperatorDt2ParameterId(i)))), 0, 4);
-                static constexpr std::array<const char*, 9> dt1Labels { "P", "+0", "+1", "+2", "+3", "-0", "-1", "-2", "-3" };
-                static constexpr std::array<const char*, 5> dt2Labels { "P", "0c", "+600c", "+781c", "+950c" };
-                fmOperatorDetuneButtons[i].setButtonText("DT1 " + juce::String(dt1Labels[static_cast<size_t>(dt1Choice)])
-                                                         + "  |  DT2 " + juce::String(dt2Labels[static_cast<size_t>(dt2Choice)]));
-
                 const auto* dt1Spec = chipper::parameterSpecFor(mode, opmOperatorDt1Role(i));
                 const auto* dt2Spec = chipper::parameterSpecFor(mode, opmOperatorDt2Role(i));
-                auto detuneTooltip = juce::String(dt1Spec != nullptr ? dt1Spec->help : "YM2151 DT1 fine-detune override.")
-                    + "\n" + juce::String(dt2Spec != nullptr ? dt2Spec->help : "YM2151 DT2 coarse-detune override.")
-                    + "\n" + fmOperatorRoleDescription(mode, patch, i)
-                    + "\nNative $40/$C0 bytes: $" + byteHex(chipper::ym2151OperatorMultipleDt1RegisterForPatch(patch, i))
-                    + "/$" + byteHex(chipper::ym2151OperatorDt2SustainRateRegisterForPatch(patch, i))
-                    + "\n" + readout;
-                detuneTooltip = withMidiCcForRole(detuneTooltip, opmOperatorDt1Role(i));
-                detuneTooltip = withMidiCcForRole(detuneTooltip, opmOperatorDt2Role(i));
-                fmOperatorDetuneButtons[i].setTooltip(detuneTooltip);
+                if (mode == chipper::ChipMode::opl3)
+                {
+                    static constexpr std::array<const char*, 9> flagLabels {
+                        "Preset", "None", "AM", "VIB", "AM+VIB", "KSR", "AM+KSR", "VIB+KSR", "All"
+                    };
+                    const auto kslText = dt2Choice == 0 ? juce::String("Preset") : juce::String(dt2Choice - 1);
+                    auto nativeTooltip = juce::String(dt1Spec != nullptr ? dt1Spec->help : "YMF262 $20 AM/VIB/KSR override.")
+                        + "\n" + juce::String(dt2Spec != nullptr ? dt2Spec->help : "YMF262 $40 KSL override.")
+                        + "\n" + fmOperatorRoleDescription(mode, patch, i)
+                        + "\nNative field masks: $20=$" + byteHex(chipper::oplOperatorFlagBitsForPatch(patch, i))
+                        + ", $40=$" + byteHex(chipper::oplOperatorKeyScaleLevelBitsForPatch(patch, i))
+                        + "\n" + readout;
+                    nativeTooltip = withMidiCcForRole(nativeTooltip, opmOperatorDt1Role(i));
+                    nativeTooltip = withMidiCcForRole(nativeTooltip, opmOperatorDt2Role(i));
+                    fmOperatorDetuneButtons[i].setButtonText("Flags " + juce::String(flagLabels[static_cast<size_t>(dt1Choice)])
+                                                             + "  |  KSL " + kslText);
+                    fmOperatorDetuneButtons[i].setName("OPL3 Operator " + juce::String(static_cast<int>(i + 1u)) + " flags and KSL");
+                    fmOperatorDetuneButtons[i].setTitle("OPL3 Operator " + juce::String(static_cast<int>(i + 1u)) + " native flags");
+                    fmOperatorDetuneButtons[i].setDescription("Opens YMF262 AM, vibrato, KSR, and KSL register choices for this shared operator.");
+                    fmOperatorDetuneButtons[i].setComponentID("opl.operator" + juce::String(static_cast<int>(i + 1u)) + ".flags");
+                    fmOperatorDetuneButtons[i].setExplicitFocusOrder(430 + static_cast<int>(i));
+                    fmOperatorDetuneButtons[i].setTooltip(nativeTooltip);
+                }
+                else
+                {
+                    static constexpr std::array<const char*, 9> dt1Labels { "P", "+0", "+1", "+2", "+3", "-0", "-1", "-2", "-3" };
+                    static constexpr std::array<const char*, 5> dt2Labels { "P", "0c", "+600c", "+781c", "+950c" };
+                    auto detuneTooltip = juce::String(dt1Spec != nullptr ? dt1Spec->help : "YM2151 DT1 fine-detune override.")
+                        + "\n" + juce::String(dt2Spec != nullptr ? dt2Spec->help : "YM2151 DT2 coarse-detune override.")
+                        + "\n" + fmOperatorRoleDescription(mode, patch, i)
+                        + "\nNative $40/$C0 bytes: $" + byteHex(chipper::ym2151OperatorMultipleDt1RegisterForPatch(patch, i))
+                        + "/$" + byteHex(chipper::ym2151OperatorDt2SustainRateRegisterForPatch(patch, i))
+                        + "\n" + readout;
+                    detuneTooltip = withMidiCcForRole(detuneTooltip, opmOperatorDt1Role(i));
+                    detuneTooltip = withMidiCcForRole(detuneTooltip, opmOperatorDt2Role(i));
+                    fmOperatorDetuneButtons[i].setButtonText("DT1 " + juce::String(dt1Labels[static_cast<size_t>(dt1Choice)])
+                                                             + "  |  DT2 " + juce::String(dt2Labels[static_cast<size_t>(dt2Choice)]));
+                    fmOperatorDetuneButtons[i].setName("YM2151 Operator " + juce::String(static_cast<int>(i + 1u)) + " DT1 and DT2");
+                    fmOperatorDetuneButtons[i].setTitle(fmOperatorDetuneButtons[i].getName());
+                    fmOperatorDetuneButtons[i].setDescription("Opens native YM2151 fine and coarse detune choices for this operator.");
+                    fmOperatorDetuneButtons[i].setComponentID("fm.operator" + juce::String(static_cast<int>(i + 1u)) + ".detune");
+                    fmOperatorDetuneButtons[i].setExplicitFocusOrder(0);
+                    fmOperatorDetuneButtons[i].setTooltip(detuneTooltip);
+                }
             }
         }
     }

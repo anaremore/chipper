@@ -1096,6 +1096,12 @@ add_test(NAME chipper_render_opl3_four_op_pair_smoke
 add_test(NAME chipper_render_opl3_four_op_editor_smoke
     COMMAND chipper_render --chip opl3 --accuracy authentic --macro manual --play-mode chip-poly --opl-rhythm 4op --wave-shape 2 --control1 0.67 --control2 0.35 --control3 0.35 --control4 0.9 --fm-op1-level 0.65 --fm-op2-level 0.45 --fm-op3-level 0.75 --fm-op4-level 0.55 --fm-op1-multiplier 2 --fm-op2-multiplier 3 --fm-op3-multiplier 4 --fm-op4-multiplier 5 --fm-op1-attack-rate 3 --fm-op2-attack-rate 7 --fm-op3-attack-rate 11 --fm-op4-attack-rate 15 --fm-op1-decay-rate 2 --fm-op2-decay-rate 4 --fm-op3-decay-rate 6 --fm-op4-decay-rate 8 --fm-op1-sustain-rate 1 --fm-op2-sustain-rate 5 --fm-op3-sustain-rate 9 --fm-op4-sustain-rate 13 --fm-op1-release-rate 2 --fm-op2-release-rate 6 --fm-op3-release-rate 10 --fm-op4-release-rate 14 --clock 14318180 --rate 48000 --seconds 0.05 --note 60 --out opl3-four-op-editor-smoke.wav --debug opl3-four-op-editor-smoke.json
 )
+add_test(NAME chipper_render_opl3_operator_fields_smoke
+    COMMAND chipper_render --chip opl3 --accuracy authentic --macro manual --play-mode chip-poly --opl-rhythm 4op --wave-shape 2 --control1 0.67 --control2 0.35 --control3 0.35 --control4 0.9 --fm-op1-level 0.65 --fm-op2-level 0.45 --fm-op3-level 0.75 --fm-op4-level 0.55 --fm-op1-multiplier 2 --fm-op2-multiplier 3 --fm-op3-multiplier 4 --fm-op4-multiplier 5 --opl-op1-flags all --opl-op2-flags am --opl-op3-flags vib --opl-op4-flags ksr --opl-op1-ksl 1 --opl-op2-ksl 2 --opl-op3-ksl 3 --opl-op4-ksl 0 --clock 14318180 --rate 48000 --seconds 0.05 --note 60 --out opl3-operator-fields-smoke.wav --debug opl3-operator-fields-smoke.json
+)
+add_test(NAME chipper_render_opl3_operator_fields_alias_smoke
+    COMMAND chipper_render --chip opl3 --accuracy authentic --macro manual --play-mode big-mono --wave-shape 2 --opl3-op1-flags none --opl3-op2-flags preset --opl3-op1-ksl 0 --opl3-op2-ksl preset --clock 14318180 --rate 48000 --seconds 0.05 --note 60 --out opl3-operator-fields-alias-smoke.wav --debug opl3-operator-fields-alias-smoke.json
+)
 add_test(NAME chipper_render_opl3_sources_off_smoke
     COMMAND chipper_render --chip opl3 --accuracy authentic --macro manual --source1 0 --source2 0 --source3 0 --source4 0 --source5 0 --source6 0 --source7 0 --source8 0 --source9 0 --clock 14318180 --rate 48000 --seconds 0.04 --note 69 --out opl3-sources-off-smoke.wav --debug opl3-sources-off-smoke.json
 )
@@ -1535,7 +1541,18 @@ if (Python3_Interpreter_FOUND)
 
     add_test(NAME chipper_render_list_cc_map_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_descriptor_list_json.py ${CMAKE_CURRENT_BINARY_DIR}/chipper-descriptors.json
-            --chip-count 27 --midi-cc-count 96
+            --chip-count 27 --midi-cc-count 107
+            --midi-cc 12=opmOperator1Dt1
+            --midi-cc 13=opmOperator2Dt1
+            --midi-cc 14=opmOperator3Dt1
+            --midi-cc 15=opmOperator4Dt1
+            --midi-cc 16=opmOperator1Dt2
+            --midi-cc 17=opmOperator2Dt2
+            --midi-cc 18=opmOperator3Dt2
+            --midi-cc 19=opmOperator4Dt2
+            --midi-cc 20=opmLfoWaveform
+            --midi-cc 21=opmLfoPms
+            --midi-cc 22=opmLfoAms
             --midi-cc 24=fmOperator1SustainRate
             --midi-cc 25=fmOperator2SustainRate
             --midi-cc 26=fmOperator3SustainRate
@@ -2795,6 +2812,14 @@ if (Python3_Interpreter_FOUND)
     )
     set_tests_properties(chipper_render_opl3_four_op_editor_assert PROPERTIES DEPENDS chipper_render_opl3_four_op_editor_smoke)
 
+    add_test(NAME chipper_render_opl3_operator_fields_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-operator-fields-smoke.json --implemented-contains ymfm --macro Manual --play-mode "Chip Poly" --register-writes 0 --note-events 0 --min-peak 0.01 --core-min operatorFlagChoice0=8 --core-max operatorFlagChoice0=8 --core-min operatorFlagChoice1=2 --core-max operatorFlagChoice1=2 --core-min operatorFlagChoice2=3 --core-max operatorFlagChoice2=3 --core-min operatorFlagChoice3=5 --core-max operatorFlagChoice3=5 --core-min operatorFlagBits0=208 --core-max operatorFlagBits0=208 --core-min operatorFlagBits1=128 --core-max operatorFlagBits1=128 --core-min operatorFlagBits2=64 --core-max operatorFlagBits2=64 --core-min operatorFlagBits3=16 --core-max operatorFlagBits3=16 --core-min operatorKslChoice0=2 --core-max operatorKslChoice0=2 --core-min operatorKslChoice1=3 --core-max operatorKslChoice1=3 --core-min operatorKslChoice2=4 --core-max operatorKslChoice2=4 --core-min operatorKslChoice3=1 --core-max operatorKslChoice3=1 --core-min operatorKslLevel0=1 --core-max operatorKslLevel0=1 --core-min operatorKslLevel1=2 --core-max operatorKslLevel1=2 --core-min operatorKslLevel2=3 --core-max operatorKslLevel2=3 --core-min operatorKslLevel3=0 --core-max operatorKslLevel3=0 --core-min operatorControl0=242 --core-max operatorControl0=242 --core-min operatorControl1=163 --core-max operatorControl1=163 --core-min operatorControl2=100 --core-max operatorControl2=100 --core-min operatorControl3=53 --core-max operatorControl3=53 --core-min operatorTotalLevelRegister0=166 --core-max operatorTotalLevelRegister0=166 --core-min operatorTotalLevelRegister1=67 --core-max operatorTotalLevelRegister1=67 --core-min operatorTotalLevelRegister2=228 --core-max operatorTotalLevelRegister2=228 --core-min operatorTotalLevelRegister3=1 --core-max operatorTotalLevelRegister3=1 --descriptor-param-choices opmOperator1Dt1=9 --descriptor-param-choices opmOperator4Dt1=9 --descriptor-param-choices opmOperator1Dt2=5 --descriptor-param-choices opmOperator4Dt2=5 --descriptor-param-kind opmOperator1Dt1=chipRegister --descriptor-param-surface opmOperator1Dt1=menu
+    )
+    set_tests_properties(chipper_render_opl3_operator_fields_assert PROPERTIES DEPENDS chipper_render_opl3_operator_fields_smoke)
+    add_test(NAME chipper_render_opl3_operator_fields_alias_assert
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-operator-fields-alias-smoke.json --implemented-contains ymfm --macro Manual --play-mode "Big Mono" --register-writes 0 --note-events 0 --min-peak 0.01 --core-min operatorFlagChoice0=1 --core-max operatorFlagChoice0=1 --core-min operatorFlagChoice1=0 --core-max operatorFlagChoice1=0 --core-min operatorFlagBits0=0 --core-max operatorFlagBits0=0 --core-min operatorFlagBits1=0 --core-max operatorFlagBits1=0 --core-min operatorKslChoice0=1 --core-max operatorKslChoice0=1 --core-min operatorKslChoice1=0 --core-max operatorKslChoice1=0 --core-min operatorKslLevel0=0 --core-max operatorKslLevel0=0 --core-min operatorKslLevel1=0 --core-max operatorKslLevel1=0
+    )
+    set_tests_properties(chipper_render_opl3_operator_fields_alias_assert PROPERTIES DEPENDS chipper_render_opl3_operator_fields_alias_smoke)
     add_test(NAME chipper_render_opl3_sources_off_assert
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/assert_render_json.py ${CMAKE_CURRENT_BINARY_DIR}/opl3-sources-off-smoke.json --implemented-contains ymfm --macro Manual --register-writes 0 --note-events 0 --max-peak 0.001 --max-rms 0.001 --core-min keyOnMask=0 --core-max keyOnMask=0 --core-min sourceEnabled0=0 --core-max sourceEnabled0=0 --core-min sourceEnabled1=0 --core-max sourceEnabled1=0 --core-min sourceEnabled2=0 --core-max sourceEnabled2=0 --core-min sourceEnabled3=0 --core-max sourceEnabled3=0 --core-min sourceEnabled4=0 --core-max sourceEnabled4=0 --core-min sourceEnabled5=0 --core-max sourceEnabled5=0 --core-min sourceEnabled6=0 --core-max sourceEnabled6=0 --core-min sourceEnabled7=0 --core-max sourceEnabled7=0 --core-min sourceEnabled8=0 --core-max sourceEnabled8=0
     )

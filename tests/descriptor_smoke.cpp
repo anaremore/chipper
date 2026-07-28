@@ -1221,6 +1221,21 @@ bool expectFmRegisterHelpers()
                      "OPL explicit envelope nibbles should reach operator " + std::to_string(op + 1u));
     }
 
+    oplExplicitOperators.opmOperatorDt1 = { 8, 2, 3, 5 };
+    oplExplicitOperators.opmOperatorDt2 = { 2, 3, 4, 1 };
+    static constexpr std::array<uint8_t, 4> expectedFlagBits { 0xd0u, 0x80u, 0x40u, 0x10u };
+    static constexpr std::array<uint8_t, 4> expectedKslLevels { 1u, 2u, 3u, 0u };
+    static constexpr std::array<uint8_t, 4> expectedKslBits { 0x80u, 0x40u, 0xc0u, 0x00u };
+    for (size_t op = 0; op < 4u; ++op)
+    {
+        ok &= expect(chipper::oplOperatorFlagBitsForPatch(oplExplicitOperators, op) == expectedFlagBits[op],
+                     "OPL native AM/VIB/KSR mask should reach operator " + std::to_string(op + 1u));
+        ok &= expect(chipper::oplOperatorKeyScaleLevelForPatch(oplExplicitOperators, op) == expectedKslLevels[op],
+                     "OPL semantic KSL should reach operator " + std::to_string(op + 1u));
+        ok &= expect(chipper::oplOperatorKeyScaleLevelBitsForPatch(oplExplicitOperators, op) == expectedKslBits[op],
+                     "OPL KSL raw bit order should match YMF262 operator " + std::to_string(op + 1u));
+    }
+
     const auto opllBass = chipper::makePatchConfig(chipper::ChipMode::ym2413,
                                                    chipper::MacroKind::bass,
                                                    0.0f,
@@ -1614,6 +1629,12 @@ int main()
     };
     for (size_t op = 0; op < opmDt1Roles.size(); ++op)
     {
+        ok &= expectSpec(chipper::ChipMode::opl3, opmDt1Roles[op], chipper::ParameterKind::chipRegister,
+                         chipper::ControlSurface::menu, "OP" + std::to_string(op + 1u) + " Flags");
+        ok &= expectChoiceRegister(chipper::ChipMode::opl3, opmDt1Roles[op], chipper::ControlSurface::menu, 9, "Preset");
+        ok &= expectSpec(chipper::ChipMode::opl3, opmDt2Roles[op], chipper::ParameterKind::chipRegister,
+                         chipper::ControlSurface::menu, "OP" + std::to_string(op + 1u) + " KSL");
+        ok &= expectChoiceRegister(chipper::ChipMode::opl3, opmDt2Roles[op], chipper::ControlSurface::menu, 5, "Preset");
         ok &= expectSpec(chipper::ChipMode::ym2151, opmDt1Roles[op], chipper::ParameterKind::chipRegister,
                          chipper::ControlSurface::menu, "OP" + std::to_string(op + 1u) + " DT1");
         ok &= expectChoiceRegister(chipper::ChipMode::ym2151, opmDt1Roles[op], chipper::ControlSurface::menu,

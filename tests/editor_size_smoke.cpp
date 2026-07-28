@@ -934,6 +934,14 @@ bool checkOpl3UnifiedTopologyLayout()
         widthOk &= setChoiceParameter(processor, chipper::parameters::id::ymEnvelopeShape, 4);
         widthOk &= setPlainParameter(processor, chipper::parameters::id::macroControl1, 0.67f);
         widthOk &= setChoiceParameter(processor, chipper::parameters::id::dmgStereoRoute, 4);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::opmOperator1Dt1, 8);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::opmOperator2Dt1, 2);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::opmOperator3Dt1, 3);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::opmOperator4Dt1, 5);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::opmOperator1Dt2, 2);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::opmOperator2Dt2, 3);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::opmOperator3Dt2, 4);
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::opmOperator4Dt2, 1);
         ChipperAudioProcessorEditor editor(processor);
         editor.setSize(editorWidth, expectedHeightForChipMode(chipChoice));
         editor.runEditorUpdateForLayoutTest();
@@ -1007,6 +1015,9 @@ bool checkOpl3UnifiedTopologyLayout()
             const auto multiplier = editor.getFmOperatorMultiplierBoundsForLayoutTest(op);
             const auto envelope = editor.getFmOperatorAttackRateBoundsForLayoutTest(op);
             const auto registers = editor.getFmOperatorValueBoundsForLayoutTest(op);
+            const auto nativeFields = editor.getFmOperatorDetuneBoundsForLayoutTest(op);
+            const auto nativeFieldText = editor.getFmOperatorDetuneTextForLayoutTest(op).trim();
+            const auto nativeFieldTooltip = editor.getFmOperatorDetuneTooltipForLayoutTest(op);
             operatorCards[op] = card;
             if (card.isEmpty() || name.isEmpty() || levelReadout.isEmpty() || level.isEmpty()
                 || multiplier.isEmpty() || envelope.isEmpty() || registers.isEmpty()
@@ -1037,6 +1048,25 @@ bool checkOpl3UnifiedTopologyLayout()
                           << " module " << operatorModule.toString() << '\n';
                 widthOk = false;
             }
+            const std::array<juce::Rectangle<int>, 6> adjacentOperatorRows {
+                name, levelReadout, level, multiplier, envelope, registers
+            };
+            const auto overlapsNativeFieldRow = std::any_of(adjacentOperatorRows.begin(), adjacentOperatorRows.end(),
+                                                             [&nativeFields](const auto& row) { return nativeFields.intersects(row); });
+            if (nativeFields.isEmpty()
+                || nativeFields.getHeight() < 18
+                || ! card.contains(nativeFields)
+                || overlapsNativeFieldRow
+                || ! nativeFieldText.startsWith("Flags ")
+                || ! nativeFieldText.contains("KSL ")
+                || nativeFieldText.length() > 36
+                || ! nativeFieldTooltip.contains("YMF262")
+                || ! nativeFieldTooltip.contains("$20")
+                || ! nativeFieldTooltip.contains("$40")
+                || ! nativeFieldTooltip.contains("CC " + juce::String(static_cast<int>(12 + op)))
+                || ! nativeFieldTooltip.contains("CC " + juce::String(static_cast<int>(16 + op))))
+                widthOk &= expect(false, "OPL3 native flag/KSL row should be readable, non-overlapping, contextual, and MIDI-discoverable");
+
             if (! editor.isFmOperatorLevelEnabledForLayoutTest(op)
                 || ! editor.getFmOperatorNameTextForLayoutTest(op).startsWith("OP")
                 || ! editor.getFmOperatorValueTextForLayoutTest(op).contains("MULT")
@@ -2659,6 +2689,48 @@ bool checkChipSwitchPreservesEditorSettings()
                  "switching back to SID should restore its local output trim");
     ok &= expect(std::abs(plainParameterValue(processor, chipper::parameters::id::waveShape) - 2.0f) < 0.001f,
                  "switching back to SID should restore its local waveform choice");
+
+    const auto opmChoice = chipModeChoiceFor(chipper::ChipMode::ym2151);
+    const auto oplChoice = chipModeChoiceFor(chipper::ChipMode::opl3);
+    ok &= expect(opmChoice >= 0 && oplChoice >= 0, "YM2151/OPL3 choices unavailable for shared-slot isolation check");
+    const std::array<const char*, 8> sharedNativeFieldIds {
+        chipper::parameters::id::opmOperator1Dt1, chipper::parameters::id::opmOperator2Dt1,
+        chipper::parameters::id::opmOperator3Dt1, chipper::parameters::id::opmOperator4Dt1,
+        chipper::parameters::id::opmOperator1Dt2, chipper::parameters::id::opmOperator2Dt2,
+        chipper::parameters::id::opmOperator3Dt2, chipper::parameters::id::opmOperator4Dt2
+    };
+    const std::array<int, 8> opmValues { 4, 8, 1, 7, 3, 4, 1, 2 };
+    const std::array<int, 8> oplValues { 8, 2, 3, 5, 2, 3, 4, 1 };
+
+    ok &= setChoiceParameter(processor, chipper::parameters::id::chipMode, opmChoice);
+    editor.runEditorUpdateForLayoutTest();
+    for (size_t i = 0; i < sharedNativeFieldIds.size(); ++i)
+        ok &= setChoiceParameter(processor, sharedNativeFieldIds[i], opmValues[i]);
+
+    ok &= setChoiceParameter(processor, chipper::parameters::id::chipMode, oplChoice);
+    editor.runEditorUpdateForLayoutTest();
+    for (size_t i = 0; i < sharedNativeFieldIds.size(); ++i)
+        ok &= setChoiceParameter(processor, sharedNativeFieldIds[i], oplValues[i]);
+
+    ok &= setChoiceParameter(processor, chipper::parameters::id::chipMode, opmChoice);
+    editor.runEditorUpdateForLayoutTest();
+    for (size_t i = 0; i < sharedNativeFieldIds.size(); ++i)
+        ok &= expect(std::abs(plainParameterValue(processor, sharedNativeFieldIds[i]) - static_cast<float>(opmValues[i])) < 0.001f,
+                     "switching back to YM2151 should restore its independent DT1/DT2 choices");
+    ok &= expect(editor.getFmOperatorDetuneTextForLayoutTest(0).startsWith("DT1 ")
+                     && editor.getFmOperatorDetuneTooltipForLayoutTest(0).contains("Native $40/$C0 bytes"),
+                 "switching back to YM2151 should restore contextual detune UI metadata");
+
+    ok &= setChoiceParameter(processor, chipper::parameters::id::chipMode, oplChoice);
+    editor.runEditorUpdateForLayoutTest();
+    for (size_t i = 0; i < sharedNativeFieldIds.size(); ++i)
+        ok &= expect(std::abs(plainParameterValue(processor, sharedNativeFieldIds[i]) - static_cast<float>(oplValues[i])) < 0.001f,
+                     "switching back to OPL3 should restore its independent AM/VIB/KSR and KSL choices");
+    ok &= expect(editor.getFmOperatorDetuneTextForLayoutTest(0).startsWith("Flags ")
+                     && editor.getFmOperatorDetuneTooltipForLayoutTest(0).contains("YMF262")
+                     && editor.getFmOperatorDetuneTooltipForLayoutTest(0).contains("$20")
+                     && editor.getFmOperatorDetuneTooltipForLayoutTest(0).contains("$40"),
+                 "switching back to OPL3 should restore contextual native-field UI metadata");
 
     return ok;
 }

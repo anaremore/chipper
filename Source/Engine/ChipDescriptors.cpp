@@ -2040,6 +2040,69 @@ std::vector<ChipParameterSpec> ym2151ParameterSpecs()
     };
 }
 
+std::vector<ParameterChoiceSpec> oplOperatorFlagChoices(std::string operatorName)
+{
+    static constexpr std::array<const char*, 8> labels {
+        "None", "AM", "VIB", "AM+VIB", "KSR", "AM+KSR", "VIB+KSR", "All"
+    };
+    std::vector<ParameterChoiceSpec> choices;
+    choices.reserve(9);
+    choices.push_back(choice("Preset",
+                             "Keep " + operatorName + " AM, vibrato, and key-scale-rate enable bits at the preset-resolved defaults.",
+                             0.0f,
+                             0));
+    for (int mask = 0; mask < 8; ++mask)
+    {
+        choices.push_back(choice(labels[static_cast<size_t>(mask)],
+                                 "Write " + operatorName + " YMF262 $20 AM/VIB/KSR bit mask " + std::to_string(mask) + ".",
+                                 static_cast<float>(mask + 1) / 8.0f,
+                                 mask + 1));
+    }
+    return choices;
+}
+
+std::vector<ParameterChoiceSpec> oplOperatorKslChoices(std::string operatorName)
+{
+    std::vector<ParameterChoiceSpec> choices;
+    choices.reserve(5);
+    choices.push_back(choice("Preset",
+                             "Keep " + operatorName + " at the preset-resolved YMF262 KSL value 0.",
+                             0.0f,
+                             0));
+    for (int level = 0; level <= 3; ++level)
+    {
+        const auto rawBits = ((level & 0x01) << 1) | ((level & 0x02) >> 1);
+        choices.push_back(choice(std::to_string(level),
+                                 "Write semantic YMF262 KSL " + std::to_string(level) + " for " + operatorName
+                                     + " using $40 bits " + std::to_string(rawBits) + ".",
+                                 static_cast<float>(level + 1) / 4.0f,
+                                 level + 1));
+    }
+    return choices;
+}
+
+ChipParameterSpec oplOperatorNativeSpec(ChipParameterRole role,
+                                        std::string id,
+                                        std::string label,
+                                        size_t op,
+                                        bool ksl)
+{
+    const auto operatorName = "operator " + std::to_string(op + 1u);
+    return { role,
+             std::move(id),
+             std::move(label),
+             "Operators",
+             ksl
+                 ? "Overrides the shared YMF262 " + operatorName + " key-scale-level field in $40+op. Preset keeps KSL 0."
+                 : "Overrides the shared YMF262 " + operatorName + " AM, vibrato, and KSR enable bits in $20+op. Preset keeps all three off.",
+             ParameterKind::chipRegister,
+             ControlSurface::menu,
+             ksl ? oplOperatorKslChoices(operatorName) : oplOperatorFlagChoices(operatorName),
+             0.0f,
+             1.0f,
+             0.0f };
+}
+
 std::vector<ParameterChoiceSpec> oplWaveformChoices()
 {
     return {
@@ -2111,6 +2174,14 @@ std::vector<ChipParameterSpec> oplParameterSpecs()
         fmOperatorMultiplierSpec(ChipParameterRole::fmOperator2Multiplier, "opl.op2.multiplier", "OP2 Mult", "YMF262", 1),
         fmOperatorMultiplierSpec(ChipParameterRole::fmOperator3Multiplier, "opl.op3.multiplier", "OP3 Mult", "YMF262", 2),
         fmOperatorMultiplierSpec(ChipParameterRole::fmOperator4Multiplier, "opl.op4.multiplier", "OP4 Mult", "YMF262", 3),
+        oplOperatorNativeSpec(ChipParameterRole::opmOperator1Dt1, "opl.op1.flags", "OP1 Flags", 0, false),
+        oplOperatorNativeSpec(ChipParameterRole::opmOperator2Dt1, "opl.op2.flags", "OP2 Flags", 1, false),
+        oplOperatorNativeSpec(ChipParameterRole::opmOperator3Dt1, "opl.op3.flags", "OP3 Flags", 2, false),
+        oplOperatorNativeSpec(ChipParameterRole::opmOperator4Dt1, "opl.op4.flags", "OP4 Flags", 3, false),
+        oplOperatorNativeSpec(ChipParameterRole::opmOperator1Dt2, "opl.op1.ksl", "OP1 KSL", 0, true),
+        oplOperatorNativeSpec(ChipParameterRole::opmOperator2Dt2, "opl.op2.ksl", "OP2 KSL", 1, true),
+        oplOperatorNativeSpec(ChipParameterRole::opmOperator3Dt2, "opl.op3.ksl", "OP3 KSL", 2, true),
+        oplOperatorNativeSpec(ChipParameterRole::opmOperator4Dt2, "opl.op4.ksl", "OP4 KSL", 3, true),
         oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator1AttackRate, "opl.op1.attackRate", "OP1 Attack", "attack-rate", 0, 32),
         oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator2AttackRate, "opl.op2.attackRate", "OP2 Attack", "attack-rate", 1, 32),
         oplOperatorEnvelopeSpec(ChipParameterRole::fmOperator3AttackRate, "opl.op3.attackRate", "OP3 Attack", "attack-rate", 2, 32),
@@ -6470,6 +6541,32 @@ uint8_t oplOutputSelectBitsForPatch(const PatchConfig& patch, size_t channel)
         default: return 0xf0u;
     }
 }
+uint8_t oplOperatorFlagBitsForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto choice = std::clamp(patch.opmOperatorDt1[std::min(op, size_t { 3u })], 0, 8);
+    if (choice == 0)
+        return 0u;
+
+    const auto mask = static_cast<uint8_t>(choice - 1);
+    return static_cast<uint8_t>(((mask & 0x01u) != 0u ? 0x80u : 0x00u)
+                                | ((mask & 0x02u) != 0u ? 0x40u : 0x00u)
+                                | ((mask & 0x04u) != 0u ? 0x10u : 0x00u));
+}
+
+uint8_t oplOperatorKeyScaleLevelForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto choice = std::clamp(patch.opmOperatorDt2[std::min(op, size_t { 3u })], 0, 4);
+    return choice > 0 ? static_cast<uint8_t>(choice - 1) : 0u;
+}
+
+uint8_t oplOperatorKeyScaleLevelBitsForPatch(const PatchConfig& patch, size_t op)
+{
+    const auto semanticLevel = oplOperatorKeyScaleLevelForPatch(patch, op);
+    const auto rawLevel = static_cast<uint8_t>(((semanticLevel & 0x01u) << 1u)
+                                               | ((semanticLevel & 0x02u) >> 1u));
+    return static_cast<uint8_t>(rawLevel << 6u);
+}
+
 uint8_t oplWaveformForPatch(const PatchConfig& patch)
 {
     if (patch.waveShape > 0)
