@@ -19,6 +19,7 @@ Chipper currently uses JUCE. If Chipper is distributed using JUCE's open-source 
 - License: MIT
 - Use in Chipper: linked into `chipper_engine` as the YM2413/OPLL synthesis core. Chipper's adapter maps user-facing musical controls and renderer note events to YM2413 register writes for preset melodic channels.
 - Local integration change: Chipper reuses the preallocated OPLL/rate-converter storage across reset, clock, and sample-rate changes so plugin audio callbacks do not call `malloc`/`free`; synthesis equations and patch tables are unchanged.
+- Local arithmetic fix: exponential-table conversion uses multiplication for signed output and explicitly underflows attenuation beyond the 11-bit magnitude. This removes undefined signed/oversized shifts while preserving the existing ones-complement amplitude mapping. An exhaustive 65,536-input test runs under UBSan.
 - Accuracy claim: verified partial only. Rhythm mode, custom patch editing, VRC7/YMF281 patch-set selection, golden emulator comparisons, and hardware validation are not complete.
 
 MIT License text from upstream:

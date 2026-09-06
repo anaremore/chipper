@@ -32,6 +32,7 @@ Browse > Featured selects [16 existing sounds](featured-sounds.md), with playing
 - Build metadata is isolated in `BuildInfo.cpp`, so a timestamp update does not recompile the editor.
 - Python 3.10+ is required with `CHIPPER_BUILD_TESTS=ON`. `scripts/verify-project.ps1` configures, builds all targets, and runs the full suite. CI uses that same command on Windows, Linux, and macOS. Sanitizers include state contention and native Motion.
 - The CI aggregate **Required checks** only succeeds when every platform and sanitizer job passes. Work should use a short-lived PR branch and pass this check before merging into `main`.
+- UBSan exposed a signed shift in the vendored OPLL exponential conversion. Defined multiplication preserves its ones-complement amplitude mapping, and an explicit attenuation cutoff prevents oversized shifts. The additional math gate covers all 65,536 inputs under UBSan, bringing the complete suite to 889 tests.
 
 ## Independent evidence
 

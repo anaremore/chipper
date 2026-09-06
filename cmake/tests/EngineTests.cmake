@@ -4,6 +4,13 @@ target_link_libraries(chipper_descriptor_smoke PRIVATE chipper_engine)
 add_executable(chipper_yamaha_adpcm_codec_smoke tests/yamaha_adpcm_codec_smoke.cpp)
 target_link_libraries(chipper_yamaha_adpcm_codec_smoke PRIVATE chipper_engine)
 
+add_executable(chipper_opll_math_smoke tests/opll_math_smoke.c)
+if(UNIX)
+    target_link_libraries(chipper_opll_math_smoke PRIVATE m)
+endif()
+add_test(NAME chipper_opll_math_smoke COMMAND chipper_opll_math_smoke)
+set_tests_properties(chipper_opll_math_smoke PROPERTIES LABELS "math;release-gate")
+
 if (Python3_Interpreter_FOUND)
     add_test(NAME chipper_reference_comparator_selftest
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_compare_reference_wav.py
