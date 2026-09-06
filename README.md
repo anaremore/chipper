@@ -198,7 +198,7 @@ Pull requests and `main` are covered by the CI workflow. The release workflow re
 
 - Push a tag such as `v0.2.0` when you want GitHub to build, test, package, create or update the GitHub Release, and attach Windows, macOS, and Linux VST3 zips.
 - Tag-created releases are draft/prerelease by default so the artifacts can be downloaded, checksum-verified, and smoke-tested before publishing.
-- Publishing a GitHub Release manually for an existing tag also builds and attaches the same platform zips and checksum files.
+- Publishing a GitHub Release manually for an existing tag builds and attaches the platform zips and checksum files when needed; a complete set of uploaded assets is preserved unchanged.
 - Use the manual `Release VST3` workflow for private candidate builds, or provide a `release_tag` and enable `attach_to_release` to stage assets on a draft/prerelease release.
 - The zip includes `Chipper.vst3`, `README.md`, `THIRD_PARTY_NOTICES.md`, `CHANGELOG.md`, and `LICENSE` when present.
 - Each zip has a matching `.sha256` file using the standard `hash  filename` checksum format.
