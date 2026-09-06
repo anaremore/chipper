@@ -199,6 +199,65 @@ double normalizedRmse(const std::vector<float>& reference, const std::vector<flo
     return std::sqrt(squaredError / std::max(squaredReference, 1.0e-18));
 }
 
+bool verifyMonoRouting(juce::VST3PluginFormatHeadless& format, const juce::PluginDescription& description)
+{
+    auto ok = true;
+    for (const auto blockSize : { 64, 128, 256 })
+    {
+        for (const auto* route : { "Both", "Left", "Right" })
+        {
+            std::array<std::vector<float>, 2> captures;
+            for (int channels : { 2, 1 })
+            {
+                juce::String error;
+                auto instance = format.createInstanceFromDescription(description, testSampleRate, blockSize, error);
+                if (! expect(instance != nullptr, "Mono routing instance failed: " + error.toStdString()))
+                    return false;
+                auto layout = instance->getBusesLayout();
+                layout.outputBuses.getReference(0) = channels == 1 ? juce::AudioChannelSet::mono() : juce::AudioChannelSet::stereo();
+                if (! expect(instance->setBusesLayout(layout), "Host failed to negotiate output layout"))
+                    return false;
+                for (const auto& [name, value] : std::array<std::pair<juce::String, juce::String>, 2> {
+                         std::pair { juce::String("Chip Mode"), juce::String("Game Boy / DMG") },
+                         std::pair { juce::String("Chip Choice / Route"), juce::String(route) } })
+                {
+                    auto* parameter = findParameterByName(*instance, name);
+                    if (! expect(parameter != nullptr, "Missing routing parameter: " + name.toStdString()))
+                        return false;
+                    automate(*parameter, parameter->getValueForText(value));
+                }
+                instance->prepareToPlay(testSampleRate, blockSize);
+                juce::AudioBuffer<float> buffer(channels, blockSize);
+                juce::MidiBuffer midi;
+                auto& capture = captures[static_cast<size_t>(channels - 1)];
+                for (int block = 0; block < 32; ++block)
+                {
+                    buffer.clear();
+                    midi.clear();
+                    if (block == 0)
+                        midi.addEvent(juce::MidiMessage::noteOn(1, 69, 0.8f), 0);
+                    instance->processBlock(buffer, midi);
+                    for (int sample = 0; sample < blockSize; ++sample)
+                        capture.push_back(channels == 1 ? buffer.getSample(0, sample)
+                                          : 0.5f * (buffer.getSample(0, sample) + buffer.getSample(1, sample)));
+                }
+                instance->releaseResources();
+            }
+            double maximumError = 0.0;
+            float peak = 0.0f;
+            for (size_t sample = 0; sample < captures[0].size(); ++sample)
+            {
+                maximumError = std::max(maximumError, std::abs(static_cast<double>(captures[0][sample] - captures[1][sample])));
+                peak = std::max(peak, std::abs(captures[0][sample]));
+            }
+            ok &= expect(peak > 0.01f && maximumError < 1.0e-6,
+                         "Mono must equal 0.5*(L+R) for DMG route " + std::string(route)
+                         + " at block size " + std::to_string(blockSize));
+        }
+    }
+    return ok;
+}
+
 std::unique_ptr<juce::AudioPluginInstance> createInstance(juce::VST3PluginFormatHeadless& format,
                                                           const juce::PluginDescription& description,
                                                           juce::String& error)
@@ -234,6 +293,7 @@ int main(int argc, char** argv)
         return 1;
 
     const auto description = *descriptions.getFirst();
+    ok &= verifyMonoRouting(format, description);
     ok &= expect(description.name == "Chipper", "The scanned VST3 class should be named Chipper");
     ok &= expect(description.pluginFormatName == "VST3", "The scanned binary should identify as VST3");
 

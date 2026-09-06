@@ -14,6 +14,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 enum
 {
@@ -72,11 +73,13 @@ static int write_header(FILE* output)
 
 int main(int argc, char** argv)
 {
-    if (argc != 2)
+    if (argc < 2 || argc > 3)
     {
-        fprintf(stderr, "Usage: generate_reference output.wav\n");
+        fprintf(stderr, "Usage: generate_reference output.wav [channel 0..2]\n");
         return 1;
     }
+    const int channel = argc == 3 ? atoi(argv[2]) : 0;
+    if (channel < 0 || channel > 2) return 1;
 
     struct ayumi chip;
     if (! ayumi_configure(&chip, 1, 1773400.0, sample_rate))
@@ -100,6 +103,13 @@ int main(int argc, char** argv)
     ayumi_set_volume(&chip, 2, 0);
     ayumi_set_envelope(&chip, 1);
     ayumi_set_envelope_shape(&chip, 9);
+
+    for (int index = 0; index < 3; ++index)
+    {
+        ayumi_set_tone(&chip, index, index == channel ? 0x120 : 1);
+        ayumi_set_mixer(&chip, index, index != channel, 1, 0);
+        ayumi_set_volume(&chip, index, index == channel ? 15 : 0);
+    }
 
     FILE* output = fopen(argv[1], "wb");
     if (output == NULL || ! write_header(output))

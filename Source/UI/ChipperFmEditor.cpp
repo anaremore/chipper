@@ -112,12 +112,12 @@ void ChipperFmEditor::layoutFourOperatorGrid()
             cardHeight
         };
 
-        auto content = operatorCards[i].reduced(8, 3);
+        auto content = operatorCards[i].reduced(8, 2);
         auto header = content.removeFromTop(std::min(15, content.getHeight()));
         controls.names[i].setBounds(header.removeFromLeft(std::min(82, header.getWidth())));
         controls.levelReadouts[i].setBounds(header);
         content.removeFromTop(std::min(1, content.getHeight()));
-        auto registerRow = content.removeFromBottom(std::min(14, content.getHeight()));
+        auto registerRow = content.removeFromBottom(std::min(16, content.getHeight()));
         if (mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::opl3)
         {
             auto detuneRow = content.removeFromBottom(std::min(18, content.getHeight()));

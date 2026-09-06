@@ -1,7 +1,7 @@
 #include "PluginEditor.h"
 #include "UI/ChipUiModel.h"
 
-#include "ChipperBuildInfo.h"
+#include "BuildInfo.h"
 #include "Engine/ChipDescriptors.h"
 #include "Presets.h"
 #include "State/PluginStateSchema.h"
@@ -3485,8 +3485,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         valueLabel.setJustificationType(juce::Justification::centredLeft);
         valueLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
         valueLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff202c33));
-        valueLabel.setFont(juce::FontOptions(10.0f));
-        valueLabel.setMinimumHorizontalScale(0.45f);
+        valueLabel.setFont(juce::FontOptions(11.0f));
+        valueLabel.setMinimumHorizontalScale(0.85f);
         valueLabel.setVisible(false);
         addAndMakeVisible(valueLabel);
     }
@@ -4314,8 +4314,8 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     buildLabel.setJustificationType(juce::Justification::centredRight);
     buildLabel.setColour(juce::Label::textColourId, juce::Colour(0xff7f9099));
     buildLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff1f2a34));
-    buildLabel.setText(juce::String("Build ") + chipper::build::label, juce::dontSendNotification);
-    buildLabel.setTooltip(juce::String("Built ") + chipper::build::builtAtUtc + " from " + chipper::build::gitState + " source");
+    buildLabel.setText(juce::String("Build ") + chipper::buildInfo::label(), juce::dontSendNotification);
+    buildLabel.setTooltip(juce::String("Built ") + chipper::buildInfo::builtAtUtc() + " from " + chipper::buildInfo::gitState() + " source");
 
     midiCcLabel.setFont(juce::FontOptions(11.0f, juce::Font::bold));
     midiCcLabel.setJustificationType(juce::Justification::centred);
@@ -7856,7 +7856,8 @@ void ChipperAudioProcessorEditor::timerCallback()
     refreshAccessibleNames();
     captureEditWorkspaceVisibility();
     statusLabel.setText(audioProcessor.currentCoreStatus(), juce::dontSendNotification);
-    statusLabel.setTooltip(audioProcessor.currentCoreStatusDetail());
+    statusLabel.setTooltip(audioProcessor.currentCoreStatusDetail()
+                          + "\nStrictness is a reserved compatibility parameter; its stored choices currently use the same engine behavior.");
     outputScopePreview.setSamples(audioProcessor.outputScopeSnapshot());
     updateSampleWaveformPreview(displayedMode);
     enforceWorkspaceVisibility();
@@ -9025,10 +9026,7 @@ void ChipperAudioProcessorEditor::refreshPresetBrowserReadout(chipper::ChipMode 
                                            ? juce::String("Preset (") + juce::String(presetCount) + "/" + juce::String(allPresetCount) + ")"
                                            : juce::String("Preset (") + juce::String(presetCount) + ")",
                                        juce::dontSendNotification);
-        const auto firstName = ! displayedPresets.empty()
-            ? juce::String(displayedPresets.front()->name)
-            : displayedUserPresets.front().name;
-        presetBox.setTextWhenNothingSelected(juce::String(presetCount) + " presets - " + firstName);
+        presetBox.setTextWhenNothingSelected("Choose a sound...");
         presetBox.setTooltip("Browse " + juce::String(presetCount) + " factory/user presets for "
                              + juce::String(chipper::toString(mode))
                              + ". Factory sounds are grouped by musical category and can be filtered by metadata or search text; choosing one applies an audible chip-specific sound immediately.");
@@ -9144,7 +9142,11 @@ std::vector<ChipperPresetBrowser::Entry> ChipperAudioProcessorEditor::globalPres
         for (const auto& tag : chipper::presetTagsFor(preset))
             entry.tags.add(juce::String(tag));
         entry.note = juce::String(preset.note);
-        entry.bank = "Factory";
+        const auto featuredNote = chipper::featuredPresetNote(preset.id);
+        entry.featured = ! featuredNote.empty();
+        entry.bank = entry.featured ? "Featured" : "Factory";
+        if (entry.featured)
+            entry.note += "\n\nTry this: " + juce::String(featuredNote.data());
         entry.favorite = isFactoryPresetFavorite(preset);
         entry.recentRank = recentPresetKeys.indexOf(entry.key);
         entries.push_back(std::move(entry));

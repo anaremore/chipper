@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "fixture": {
+    "file": "ym2149-ayumi-tone-c.wav",
+    "sha256": "902e3464b3c833b52686cc7abc46de835beb9a85bc33730a78bbbc6ad9fa94d2",
+    "encoding": "PCM16LE",
+    "sampleRate": 48000,
+    "channelCount": 2,
+    "frameCount": 12000,
+    "durationSeconds": 0.25
+  },
+  "reference": {
+    "kind": "trusted-emulator",
+    "engine": "Ayumi",
+    "repository": "https://github.com/true-grue/ayumi",
+    "commit": "07c08b4874c359169e4a028edf73f046d8b763e2",
+    "license": "MIT",
+    "generator": "tools/generate_ym2149_ayumi_reference.c",
+    "generatedFromCopyrightedMusicOrGameData": false,
+    "notes": "Ayumi source is not vendored. This original register-level tone fixture was generated from the pinned upstream revision solely as an independent validation oracle.",
+    "reproductionCommand": "generate_reference ym2149-ayumi-tone-c.wav 2"
+  },
+  "trace": {
+    "chipModel": "YM2149",
+    "clockHz": 1773400,
+    "eventFile": "../events/ym2149-reference-tone-c-events.txt",
+    "registerWritesAtFrame": 1,
+    "registers": {
+      "0": 1,
+      "1": 0,
+      "2": 1,
+      "3": 0,
+      "4": 32,
+      "5": 1,
+      "6": 1,
+      "7": 59,
+      "8": 0,
+      "9": 0,
+      "10": 15,
+      "11": 1,
+      "12": 0,
+      "13": 9
+    },
+    "audibleState": "Only tone C at period 0x120 and volume 15; other tones and noise disabled; centered stereo."
+  },
+  "candidate": {
+    "renderer": "chipper_render",
+    "command": "chipper_render --chip ym2149 --accuracy authentic --macro manual --clock 1773400 --rate 48000 --seconds 0.25 --events tests/events/ym2149-reference-tone-c-events.txt --source1 1 --source2 1 --source3 1 --source4 1 --level1 1 --level2 1 --level3 1 --level4 1 --stereo-spread 0 --output-db 0 --out ym2149-ayumi-tone-c-candidate.wav --debug ym2149-ayumi-tone-c-candidate.json"
+  },
+  "comparison": {
+    "command": "python tests/compare_reference_wav.py tests/references/ym2149-ayumi-tone-c.wav ym2149-ayumi-tone-c-candidate.wav --min-correlation 0.97 --max-normalized-rmse 0.25 --min-rms-ratio 1.05 --max-rms-ratio 1.30 --alignment-window-frames 32 --max-accepted-lag-frames 16 --max-length-difference-frames 0",
+    "thresholds": {
+      "minCorrelation": 0.97,
+      "maxGainMatchedNormalizedRmse": 0.25,
+      "minRmsRatio": 1.05,
+      "maxRmsRatio": 1.3,
+      "alignmentWindowFrames": 32,
+      "maxAcceptedLagFrames": 16,
+      "maxLengthDifferenceFrames": 0
+    },
+    "acceptanceBaseline": {
+      "correlationPerChannel": 0.9777772527906146,
+      "gainMatchedNormalizedRmsePerChannel": 0.209646473677089,
+      "candidateToReferenceRmsRatioPerChannel": 1.1678739421841433,
+      "lagFrames": -12,
+      "lengthDifferenceFrames": 0
+    }
+  },
+  "scope": {
+    "covers": [
+      "tone-C period and fundamental-frequency regressions",
+      "square-wave duty and polarity regressions",
+      "tone/noise mixer routing and isolation of tone C",
+      "mono-to-stereo channel-layout regressions",
+      "gross output-level, duration, and startup-latency regressions"
+    ],
+    "doesNotClaim": [
+      "cycle accuracy",
+      "hardware validation",
+      "exact analog output curve",
+      "complete AY-3-8910/YM2149 variant behavior",
+      "complete noise or envelope validation"
+    ]
+  }
+}

@@ -4,11 +4,11 @@ Chipper uses two layers of automation. `.github/workflows/ci.yml` runs for pull 
 
 ## Local Development Build
 
-From the repository root:
+From a clean checkout, run `./scripts/verify-project.ps1 -BuildRoot build-codex -Config Release`. Python 3.10+ is required for the complete suite. The equivalent steps from the repository root are:
 
 ```powershell
 cmake -S . -B build-codex -G "Visual Studio 17 2022" -A x64
-cmake --build build-codex --config Release --target Chipper_VST3 chipper_render
+cmake --build build-codex --config Release --parallel 2
 ctest --test-dir build-codex -C Release --output-on-failure
 ```
 

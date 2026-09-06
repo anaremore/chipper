@@ -45,6 +45,8 @@ struct MotionStep
     int8_t pitch = 0;
     uint8_t level = motionMaximumLevel;
     MotionGate gate = MotionGate::hold;
+    // YM2149 shared noise register: 0 = preset, 1..32 = native period 0..31.
+    uint8_t ymNoisePeriod = 0;
 
     bool operator==(const MotionStep&) const = default;
 };

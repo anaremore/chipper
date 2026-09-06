@@ -70,23 +70,14 @@ jobs:
             mesa-common-dev \
             xvfb
 
-      - name: Configure
-        run: cmake -S . -B build-ci -DCMAKE_BUILD_TYPE=Release
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-      - name: Build
-        run: cmake --build build-ci --config Release --parallel ${{ matrix.parallel }}
-
-      - name: Test
-        if: runner.os != 'Linux'
-        run: ctest --test-dir build-ci -C Release --output-on-failure --parallel ${{ matrix.parallel }}
-
-      - name: Test under virtual display
-        if: runner.os == 'Linux'
-        run: xvfb-run -a ctest --test-dir build-ci -C Release --output-on-failure --parallel ${{ matrix.parallel }}
-
-      - name: Preset QA
+      - name: Verify clean checkout
         shell: pwsh
-        run: ./scripts/verify-presets.ps1 -BuildRoot build-ci -Python ${{ matrix.python }}
+        run: ./scripts/verify-project.ps1 -BuildRoot build-ci -Config Release -Parallel ${{ matrix.parallel }}
 
       - name: Validate VST3 with pluginval
         if: runner.os == 'Windows'
@@ -160,10 +151,22 @@ jobs:
           -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=address,undefined'
 
       - name: Build sanitizer targets
-        run: cmake --build build-sanitizers --target chipper_processor_midi_cc_smoke chipper_render --parallel 2
+        run: cmake --build build-sanitizers --target chipper_processor_midi_cc_smoke chipper_processor_native_motion_smoke chipper_processor_state_concurrency_smoke chipper_render --parallel 2
 
       - name: Test under sanitizers
         env:
           ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
           UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
-        run: ctest --test-dir build-sanitizers --output-on-failure -R 'chipper_processor_midi_cc_smoke|chipper_render_nes_smoke|chipper_render_nes_json_assert'
+        run: ctest --test-dir build-sanitizers --output-on-failure -R 'chipper_processor_midi_cc_smoke|chipper_processor_native_motion_smoke|chipper_processor_state_concurrency_smoke|chipper_render_nes_smoke|chipper_render_nes_json_assert'
+
+  required:
+    name: Required checks
+    if: always()
+    needs: [build-test, sanitizers]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every platform and sanitizer gate
+        env:
+          BUILD_RESULT: ${{ needs.build-test.result }}
+          SANITIZER_RESULT: ${{ needs.sanitizers.result }}
+        run: test "$BUILD_RESULT" = success && test "$SANITIZER_RESULT" = success

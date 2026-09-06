@@ -5042,6 +5042,9 @@ bool checkPresetRoleFilterLayout()
         chipEditor.setSize(expectedEditorMinimumWidth, expectedHeightForChipMode(chipMode));
         chipEditor.runEditorUpdateForLayoutTest();
 
+        ok &= expect(chipEditor.getPresetNameBoundsForLayoutTest().getWidth() >= 250
+                         && ! chipEditor.isStrictnessVisibleForLayoutTest(),
+                     "Header must reserve readable preset names and hide inactive Strictness");
         const auto browserButtonBounds = chipEditor.getPresetBrowserButtonBoundsForLayoutTest();
         if (browserButtonBounds.getWidth() < 64 || browserButtonBounds.getHeight() < 28)
         {
@@ -5217,6 +5220,10 @@ bool checkGlobalPresetBrowserWorkflow()
         ok = false;
     }
     editor.selectAllGlobalPresetBrowserChipsForLayoutTest();
+    editor.setGlobalPresetBrowserScopeForLayoutTest(5);
+    ok &= expect(editor.getGlobalPresetBrowserResultCountForLayoutTest() == 16,
+                 "Featured browser scope must contain the curated bank only");
+    editor.setGlobalPresetBrowserScopeForLayoutTest(1);
     editor.setGlobalPresetBrowserSearchForLayoutTest(juce::String(crossChipPreset->name));
     if (editor.getGlobalPresetBrowserResultCountForLayoutTest() <= 0)
     {
@@ -5479,6 +5486,31 @@ bool checkMotionLabLayout()
         widthOk &= expect(editor.getMotionStatusForLayoutTest().contains("Fallback 120.0 BPM")
                               && editor.getMotionStatusForLayoutTest().contains("Disabled"),
                           "Motion Lab did not disclose fallback tempo and disabled runtime state");
+
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::chipMode,
+                                      chipModeChoiceFor(chipper::ChipMode::ym2149));
+        editor.runEditorUpdateForLayoutTest();
+        const auto findNoise = [](auto&& self, juce::Component& component) -> juce::ComboBox*
+        {
+            if (component.getComponentID() == "motion.step.1.noise")
+                return dynamic_cast<juce::ComboBox*>(&component);
+            for (auto* child : component.getChildren())
+                if (auto* found = self(self, *child)) return found;
+            return nullptr;
+        };
+        auto* noise = findNoise(findNoise, editor);
+        widthOk &= expect(noise != nullptr && noise->isVisible() && noise->getHeight() >= 30
+                              && noise->getParentComponent()->getLocalBounds().contains(noise->getBounds()),
+                          "YM2149 Motion noise control is missing or clipped");
+        if (noise != nullptr)
+        {
+            noise->setSelectedId(12, juce::sendNotificationSync);
+            widthOk &= expect(processor.motionSnapshot(chipper::ChipMode::ym2149).pattern.steps[0].ymNoisePeriod == 11,
+                              "Native Motion UI did not publish the edited period");
+        }
+        widthOk &= setChoiceParameter(processor, chipper::parameters::id::chipMode, nesChoice);
+        editor.runEditorUpdateForLayoutTest();
+        widthOk &= expect(noise != nullptr && ! noise->isVisible(), "Native YM control leaked into NES Motion");
 
         editor.applyMotionTemplateForLayoutTest(chipper::MotionTemplate::majorArp);
         auto snapshot = processor.motionSnapshot(chipper::ChipMode::nes);

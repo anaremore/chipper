@@ -8,6 +8,7 @@ constexpr int allScopeId = 1;
 constexpr int favoriteScopeId = 2;
 constexpr int recentScopeId = 3;
 constexpr int userScopeId = 4;
+constexpr int featuredScopeId = 5;
 
 void drawPanel(juce::Graphics& graphics, juce::Rectangle<int> bounds, const ChipperBrowserTheme& theme)
 {
@@ -46,6 +47,7 @@ ChipperPresetBrowser::ChipperPresetBrowser()
     searchBox.onTextChange = [this] { applyFilters(); };
     addAndMakeVisible(searchBox);
 
+    scopeBox.addItem("Featured", featuredScopeId);
     scopeBox.addItem("All sounds", allScopeId);
     scopeBox.addItem("Favorites", favoriteScopeId);
     scopeBox.addItem("Recent", recentScopeId);
@@ -316,6 +318,8 @@ void ChipperPresetBrowser::applyFilters()
             continue;
         if (! selectedChip.has_value() && selectedGroup.has_value()
             && chipper::ui::profileFor(entry.mode).browserGroup != *selectedGroup)
+            continue;
+        if (scope == featuredScopeId && ! entry.featured)
             continue;
         if (scope == favoriteScopeId && ! entry.favorite)
             continue;

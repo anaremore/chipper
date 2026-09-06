@@ -958,6 +958,20 @@ bool expectMotionPlaybackAndState()
     ok &= expect(allocations == 0u,
                  "Active sample-accurate tracker motion should not allocate in processBlock");
 
+    for (int choice = 0; choice < chipper::parameters::chipModeChoices().size(); ++choice)
+        if (chipper::parameters::chipModeFromChoice(choice) == chipper::ChipMode::ym2149)
+            setPlainFromHost(*processor, chipper::parameters::id::chipMode, static_cast<float>(choice));
+    auto noisePattern = pattern;
+    noisePattern.steps[0].ymNoisePeriod = 2;
+    noisePattern.steps[1].ymNoisePeriod = 32;
+    processor->setMotionPattern(chipper::ChipMode::ym2149, noisePattern);
+    processEmptyBlock(*processor);
+    sendNoteOn(*processor, 60);
+    size_t noiseAllocations = 0;
+    for (int block = 0; block < 64; ++block)
+        noiseAllocations += processAllocationCount(*processor, emptyMidi);
+    ok &= expect(noiseAllocations == 0u, "Native noise Motion must not allocate across step boundaries");
+
     auto chipPolyProcessor = std::make_unique<ChipperAudioProcessor>();
     chipPolyProcessor->prepareToPlay(48000.0, 256);
     setPlainFromHost(*chipPolyProcessor, chipper::parameters::id::playMode, 1.0f);

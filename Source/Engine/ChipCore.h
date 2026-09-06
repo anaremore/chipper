@@ -249,6 +249,9 @@ public:
     }
     virtual void setExternalSampleSlot(int selectedSlot) { (void) selectedSlot; }
     virtual void writeRegister(uint16_t address, uint8_t value) = 0;
+    // Transient YM2149 Motion override; 0 restores the current patch/register value.
+    // Implementations must not allocate or retrigger the envelope here.
+    virtual void setYmNoiseMotion(uint8_t) noexcept {}
     virtual void noteOn(int midiNote, float velocity) = 0;
     virtual void noteOff(int midiNote) = 0;
     virtual void replayHeldNote(int midiNote, float velocity) { noteOn(midiNote, velocity); }

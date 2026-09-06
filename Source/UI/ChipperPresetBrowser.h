@@ -46,6 +46,7 @@ public:
         juce::String note;
         juce::String bank;
         bool favorite = false;
+        bool featured = false;
         int recentRank = -1;
     };
 
@@ -73,7 +74,7 @@ public:
         searchBox.setText(text, false);
         applyFilters();
     }
-    void setScopeForTest(int scopeId) { scopeBox.setSelectedId(scopeId, juce::sendNotification); }
+    void setScopeForTest(int scopeId) { scopeBox.setSelectedId(scopeId, juce::sendNotificationSync); }
     void selectAllChipsForTest() { chipList.selectRow(0); }
     void applyFirstResultForTest()
     {
