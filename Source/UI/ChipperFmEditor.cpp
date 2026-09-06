@@ -1,12 +1,52 @@
 #include "ChipperFmEditor.h"
+#include "Parameters.h"
 
 #include <algorithm>
 
-ChipperFmEditor::ChipperFmEditor(Controls controlsToUse)
-    : controls(controlsToUse)
+juce::PopupMenu ChipperFmEditor::createEnvelopeMenu(chipper::ChipMode mode, const std::array<int, 4>& selections)
+{
+    const bool fourBitRates = mode == chipper::ChipMode::opl3 || mode == chipper::ChipMode::ym2413
+        || mode == chipper::ChipMode::nesVrc7;
+    const std::array<juce::StringArray, 4> choices {
+        chipper::parameters::fmOperatorAttackRateChoices(), chipper::parameters::fmOperatorDecayRateChoices(),
+        chipper::parameters::fmOperatorSustainRateChoices(), chipper::parameters::fmOperatorReleaseRateChoices() };
+    const std::array<juce::String, 4> names { "Attack rate", "Decay rate", fourBitRates ? "Sustain level" : "Sustain rate", "Release rate" };
+    const std::array<juce::String, 4> prefixes { "AR ", "DR ", fourBitRates ? "SL " : "D2R ", "RR " };
+    juce::PopupMenu menu;
+    for (size_t field = 0; field < choices.size(); ++field)
+    {
+        juce::PopupMenu values;
+        const int count = fourBitRates ? std::min(17, choices[field].size()) : choices[field].size();
+        // A wider OPN override may remain stored when switching to OPL/OPLL.
+        // Show the native clamped value without rewriting the shared parameter.
+        const int selected = std::clamp(selections[field], 0, count - 1);
+        for (int choice = 0; choice < count; ++choice)
+            values.addItem(static_cast<int>(field) * 100 + choice + 1,
+                           choice == 0 ? juce::String("Follow") : prefixes[field] + choices[field][choice],
+                           true, choice == selected);
+        menu.addSubMenu(names[field] + ": " + choices[field][selected], values);
+    }
+    return menu;
+}
+
+ChipperFmEditor::ChipperFmEditor(juce::AudioProcessorValueTreeState& state)
 {
     setInterceptsMouseClicks(false, true);
     setComponentID("fm.operatorEditor");
+    static const std::array<const char*, operatorCount> levelIds {
+        chipper::parameters::id::fmOperator1Level, chipper::parameters::id::fmOperator2Level,
+        chipper::parameters::id::fmOperator3Level, chipper::parameters::id::fmOperator4Level };
+    static const std::array<const char*, operatorCount> multiplierIds {
+        chipper::parameters::id::fmOperator1Multiplier, chipper::parameters::id::fmOperator2Multiplier,
+        chipper::parameters::id::fmOperator3Multiplier, chipper::parameters::id::fmOperator4Multiplier };
+    for (size_t i = 0; i < operatorCount; ++i)
+    {
+        controls.levelSliders[i].setSliderStyle(juce::Slider::LinearHorizontal);
+        controls.levelSliders[i].setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        levelAttachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(state, levelIds[i], controls.levelSliders[i]);
+        controls.multipliers[i].bind(state, multiplierIds[i], chipper::parameters::fmOperatorMultiplierChoices());
+    }
+    attachControls();
 }
 
 void ChipperFmEditor::attachControls()
@@ -49,6 +89,8 @@ void ChipperFmEditor::setTheme(juce::Colour panel,
     accentColour = accent;
     textColour = text;
     mutedTextColour = mutedText;
+    for (auto& multiplier : controls.multipliers)
+        multiplier.setTheme(card, accent, outline, text, text);
     repaint();
 }
 
@@ -113,16 +155,17 @@ void ChipperFmEditor::layoutFourOperatorGrid()
         };
 
         auto content = operatorCards[i].reduced(8, 2);
-        auto header = content.removeFromTop(std::min(15, content.getHeight()));
+        auto header = content.removeFromTop(std::min(22, content.getHeight()));
         controls.names[i].setBounds(header.removeFromLeft(std::min(82, header.getWidth())));
-        controls.levelReadouts[i].setBounds(header);
+        controls.levelReadouts[i].setBounds(header.removeFromRight(std::min(80, header.getWidth())));
+        controls.levelSliders[i].setBounds(header.reduced(4, 2));
         content.removeFromTop(std::min(1, content.getHeight()));
-        auto registerRow = content.removeFromBottom(std::min(16, content.getHeight()));
-        if (mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::opl3)
+        auto registerRow = content.removeFromBottom(std::min(mode == chipper::ChipMode::opl3 ? 14 : 16, content.getHeight()));
+        if (mode == chipper::ChipMode::opl3)
         {
-            auto detuneRow = content.removeFromBottom(std::min(18, content.getHeight()));
+            auto detuneRow = content.removeFromBottom(std::min(26, content.getHeight()));
             controls.detunes[i].setBounds(detuneRow);
-            content.removeFromBottom(std::min(3, content.getHeight()));
+            content.removeFromBottom(std::min(1, content.getHeight()));
         }
         else
         {
@@ -131,14 +174,21 @@ void ChipperFmEditor::layoutFourOperatorGrid()
         controls.registerReadouts[i].setBounds(registerRow.reduced(2, 0));
         content.removeFromBottom(std::min(1, content.getHeight()));
 
-        auto controlsRow = content;
-        const auto envelopeWidth = std::min(46, controlsRow.getWidth());
+        auto controlsRow = content.removeFromTop(std::min(30, content.getHeight()));
+        if (mode == chipper::ChipMode::ym2151)
+        {
+            controls.detunes[i].setBounds(controlsRow.removeFromRight(std::min(92, controlsRow.getWidth())));
+            controlsRow.removeFromRight(std::min(6, controlsRow.getWidth()));
+            controls.envelopes[i].setBounds(controlsRow.removeFromRight(std::min(76, controlsRow.getWidth())));
+            controls.envelopes[i].setButtonText("Envelope");
+            controlsRow.removeFromRight(std::min(6, controlsRow.getWidth()));
+            controls.multipliers[i].setBounds(controlsRow);
+            continue;
+        }
+        const auto envelopeWidth = std::max(0, (controlsRow.getWidth() - 6) / 2);
         controls.envelopes[i].setBounds(controlsRow.removeFromRight(envelopeWidth));
-        controlsRow.removeFromRight(std::min(4, controlsRow.getWidth()));
-        const auto multiplierWidth = std::min(54, controlsRow.getWidth());
-        controls.multipliers[i].setBounds(controlsRow.removeFromRight(multiplierWidth));
         controlsRow.removeFromRight(std::min(6, controlsRow.getWidth()));
-        controls.levelSliders[i].setBounds(controlsRow.reduced(0, 1));
+        controls.multipliers[i].setBounds(controlsRow);
     }
 }
 
@@ -174,10 +224,10 @@ void ChipperFmEditor::layoutTwoOperatorGrid()
         content.removeFromBottom(std::min(4, content.getHeight()));
 
         auto controlsRow = content.removeFromTop(std::min(30, content.getHeight()));
-        const auto envelopeWidth = std::min(72, controlsRow.getWidth());
+        const auto envelopeWidth = std::min(92, controlsRow.getWidth());
         controls.envelopes[i].setBounds(controlsRow.removeFromRight(envelopeWidth));
         controlsRow.removeFromRight(std::min(6, controlsRow.getWidth()));
-        const auto multiplierWidth = std::min(82, controlsRow.getWidth());
+        const auto multiplierWidth = std::min(114, controlsRow.getWidth());
         controls.multipliers[i].setBounds(controlsRow.removeFromRight(multiplierWidth));
         controlsRow.removeFromRight(std::min(8, controlsRow.getWidth()));
         controls.levelSliders[i].setBounds(controlsRow.reduced(0, 3));

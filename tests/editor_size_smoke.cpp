@@ -408,6 +408,14 @@ bool expectVisibleSourceCardsInsideDeck(const ChipperAudioProcessorEditor& edito
     for (size_t channel = 0; channel < visibleSources; ++channel)
     {
         const auto sourceBounds = editor.getSourceChannelBoundsForLayoutTest(channel);
+        const auto level = editor.getSourceLevelBoundsForLayoutTest(channel);
+        if (level.getHeight() < 12 || level.getWidth() < 100 || ! sourceBounds.contains(level))
+        {
+            std::cerr << "editor_size_smoke: expansion source " << channel << " in " << chipper::toString(mode)
+                      << " must retain a usable level lane at width " << editor.getWidth()
+                      << "; card " << sourceBounds.toString() << " level " << level.toString() << '\n';
+            ok = false;
+        }
         if (sourceBounds.isEmpty())
         {
             std::cerr << "editor_size_smoke: missing visible source card " << channel
@@ -456,7 +464,13 @@ bool checkChannelOwnedControlLayout(chipper::ChipMode mode)
             || mode == chipper::ChipMode::nesSunsoft5b
             || mode == chipper::ChipMode::nesMmc5
             || mode == chipper::ChipMode::nesVrc7)
-            ok &= expectVisibleSourceCardsInsideDeck(editor, mode);
+        {
+            for (const int width : { 1180, 1240 })
+            {
+                editor.setSize(width, expectedHeightForChipMode(chipChoice));
+                ok &= expectVisibleSourceCardsInsideDeck(editor, mode);
+            }
+        }
         ok &= expectControlOwnedBySourceChannel(editor, 0, editor.getPulseDutyBoundsForLayoutTest(), "NES pulse 1 duty");
         ok &= expectControlOwnedBySourceChannel(editor, 1, editor.getPulse2DutyBoundsForLayoutTest(), "NES pulse 2 duty");
         if (mode != chipper::ChipMode::nesVrc7)

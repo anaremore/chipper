@@ -1,4 +1,4 @@
-foreach(test IN ITEMS parameter_midi_cc processor_midi_cc processor_performance processor_native_motion editor_size)
+foreach(test IN ITEMS parameter_midi_cc processor_midi_cc processor_performance processor_native_motion editor_size ui_choice)
     chipper_add_plugin_tool(chipper_${test}_smoke tests/${test}_smoke.cpp)
     add_test(NAME chipper_${test}_smoke COMMAND chipper_${test}_smoke)
 endforeach()

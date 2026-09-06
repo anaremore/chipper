@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 
 #include "Engine/ChipCore.h"
+#include "ChipperChoiceControl.h"
 
 #include <array>
 
@@ -13,16 +14,19 @@ public:
 
     struct Controls
     {
-        std::array<juce::Label, operatorCount>& names;
-        std::array<juce::Label, operatorCount>& registerReadouts;
-        std::array<juce::Label, operatorCount>& levelReadouts;
-        std::array<juce::Slider, operatorCount>& levelSliders;
-        std::array<juce::TextButton, operatorCount>& multipliers;
-        std::array<juce::TextButton, operatorCount>& envelopes;
-        std::array<juce::TextButton, operatorCount>& detunes;
+        std::array<juce::Label, operatorCount> names;
+        std::array<juce::Label, operatorCount> registerReadouts;
+        std::array<juce::Label, operatorCount> levelReadouts;
+        std::array<juce::Slider, operatorCount> levelSliders;
+        std::array<ChipperChoiceControl, operatorCount> multipliers;
+        std::array<juce::TextButton, operatorCount> envelopes;
+        std::array<juce::TextButton, operatorCount> detunes;
     };
 
-    explicit ChipperFmEditor(Controls controlsToUse);
+    explicit ChipperFmEditor(juce::AudioProcessorValueTreeState& state);
+    Controls& widgets() noexcept { return controls; }
+    const Controls& widgets() const noexcept { return controls; }
+    static juce::PopupMenu createEnvelopeMenu(chipper::ChipMode, const std::array<int, 4>& selections);
 
     void attachControls();
     void paint(juce::Graphics& graphics) override;
@@ -65,6 +69,8 @@ private:
     juce::Colour textColour;
     juce::Colour mutedTextColour;
     std::array<juce::Rectangle<int>, operatorCount> operatorCards;
+
+    std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, operatorCount> levelAttachments;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChipperFmEditor)
 };

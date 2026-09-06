@@ -5,6 +5,8 @@
 #include "PluginProcessor.h"
 #include "UI/ChipperEditorShell.h"
 #include "UI/ChipperFmEditor.h"
+#include "UI/ChipperChoiceControl.h"
+#include "UI/ChipperSsgChannel.h"
 #include "UI/ChipperFocusOutline.h"
 #include "UI/ChipperMotionLab.h"
 #include "UI/ChipperWorkspaces.h"
@@ -346,7 +348,7 @@ public:
     juce::Rectangle<int> getSidFilterRoutingBoundsForLayoutTest() const { return sidFilterRoutingBox.getBounds(); }
     juce::Rectangle<int> getYmChannelMixBoundsForLayoutTest(size_t channel) const
     {
-        return channel < ymChannelMixBoxes.size() ? ymChannelMixBoxes[channel].getBounds() : juce::Rectangle<int> {};
+        return channel < ssgChannels.size() ? ssgChannels[channel].getBounds() : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getToneNoiseMixBoundsForLayoutTest() const { return toneNoiseMixSegmentBounds; }
     juce::Rectangle<int> getYmEnvelopeShapeBoundsForLayoutTest() const
@@ -357,56 +359,56 @@ public:
     juce::Rectangle<int> getYmEnvelopePreviewBoundsForLayoutTest() const { return ymEnvelopePreview.getBounds(); }
     juce::Rectangle<int> getFmOperatorNameBoundsForLayoutTest(size_t index) const
     {
-        return index < fmOperatorNameLabels.size() ? fmEditor.boundsInParentForTest(fmOperatorNameLabels[index]) : juce::Rectangle<int> {};
+        return index < fmEditor.widgets().names.size() ? fmEditor.boundsInParentForTest(fmEditor.widgets().names[index]) : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getFmOperatorValueBoundsForLayoutTest(size_t index) const
     {
-        return index < fmOperatorValueLabels.size() ? fmEditor.boundsInParentForTest(fmOperatorValueLabels[index]) : juce::Rectangle<int> {};
+        return index < fmEditor.widgets().registerReadouts.size() ? fmEditor.boundsInParentForTest(fmEditor.widgets().registerReadouts[index]) : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getFmOperatorLevelSliderBoundsForLayoutTest(size_t index) const
     {
-        return index < fmOperatorLevelSliders.size() ? fmEditor.boundsInParentForTest(fmOperatorLevelSliders[index]) : juce::Rectangle<int> {};
+        return index < fmEditor.widgets().levelSliders.size() ? fmEditor.boundsInParentForTest(fmEditor.widgets().levelSliders[index]) : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getFmOperatorMultiplierBoundsForLayoutTest(size_t index) const
     {
-        return index < fmOperatorMultiplierButtons.size() ? fmEditor.boundsInParentForTest(fmOperatorMultiplierButtons[index]) : juce::Rectangle<int> {};
+        return index < fmEditor.widgets().multipliers.size() ? fmEditor.boundsInParentForTest(fmEditor.widgets().multipliers[index]) : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getFmOperatorAttackRateBoundsForLayoutTest(size_t index) const
     {
-        return index < fmOperatorAttackRateButtons.size() ? fmEditor.boundsInParentForTest(fmOperatorAttackRateButtons[index]) : juce::Rectangle<int> {};
+        return index < fmEditor.widgets().envelopes.size() ? fmEditor.boundsInParentForTest(fmEditor.widgets().envelopes[index]) : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getFmOperatorDetuneBoundsForLayoutTest(size_t index) const
     {
-        return index < fmOperatorDetuneButtons.size() ? fmEditor.boundsInParentForTest(fmOperatorDetuneButtons[index]) : juce::Rectangle<int> {};
+        return index < fmEditor.widgets().detunes.size() ? fmEditor.boundsInParentForTest(fmEditor.widgets().detunes[index]) : juce::Rectangle<int> {};
     }
     juce::String getFmOperatorDetuneTextForLayoutTest(size_t index) const
     {
-        return index < fmOperatorDetuneButtons.size() ? fmOperatorDetuneButtons[index].getButtonText() : juce::String {};
+        return index < fmEditor.widgets().detunes.size() ? fmEditor.widgets().detunes[index].getButtonText() : juce::String {};
     }
     juce::String getFmOperatorDetuneTooltipForLayoutTest(size_t index)
     {
-        return index < fmOperatorDetuneButtons.size() ? fmOperatorDetuneButtons[index].getTooltip() : juce::String {};
+        return index < fmEditor.widgets().detunes.size() ? fmEditor.widgets().detunes[index].getTooltip() : juce::String {};
     }
     juce::Rectangle<int> getFmOperatorLevelValueBoundsForLayoutTest(size_t index) const
     {
-        return index < fmOperatorLevelValueLabels.size() ? fmEditor.boundsInParentForTest(fmOperatorLevelValueLabels[index]) : juce::Rectangle<int> {};
+        return index < fmEditor.widgets().levelReadouts.size() ? fmEditor.boundsInParentForTest(fmEditor.widgets().levelReadouts[index]) : juce::Rectangle<int> {};
     }
     juce::Rectangle<int> getFmOperatorCardBoundsForLayoutTest(size_t index) const { return fmEditor.cardBoundsForTest(index); }
     juce::String getFmOperatorNameTextForLayoutTest(size_t index) const
     {
-        return index < fmOperatorNameLabels.size() ? fmOperatorNameLabels[index].getText() : juce::String {};
+        return index < fmEditor.widgets().names.size() ? fmEditor.widgets().names[index].getText() : juce::String {};
     }
     juce::String getFmOperatorValueTextForLayoutTest(size_t index) const
     {
-        return index < fmOperatorValueLabels.size() ? fmOperatorValueLabels[index].getText() : juce::String {};
+        return index < fmEditor.widgets().registerReadouts.size() ? fmEditor.widgets().registerReadouts[index].getText() : juce::String {};
     }
     juce::String getFmOperatorLevelValueTextForLayoutTest(size_t index) const
     {
-        return index < fmOperatorLevelValueLabels.size() ? fmOperatorLevelValueLabels[index].getText() : juce::String {};
+        return index < fmEditor.widgets().levelReadouts.size() ? fmEditor.widgets().levelReadouts[index].getText() : juce::String {};
     }
     bool isFmOperatorLevelEnabledForLayoutTest(size_t index) const
     {
-        return index < fmOperatorLevelSliders.size() && fmOperatorLevelSliders[index].isEnabled();
+        return index < fmEditor.widgets().levelSliders.size() && fmEditor.widgets().levelSliders[index].isEnabled();
     }
     juce::Rectangle<int> getModuleBoundsForLayoutTest(size_t module) const
     {
@@ -645,7 +647,6 @@ private:
     static constexpr size_t sourceChannelCount = 9;
     static constexpr size_t liveControlCount = 6;
     static constexpr size_t waveShapeCount = 5;
-    static constexpr size_t pulse2DutyCount = 5;
     static constexpr size_t sidVoiceWaveCount = 3;
     static constexpr size_t hucVoiceWaveCount = 8;
     static constexpr size_t dmgWaveLevelCount = 5;
@@ -981,13 +982,6 @@ private:
     std::array<juce::Label, sidAdsrOverrideCount> sidAdsrValueLabels;
     std::array<juce::ComboBox, sidAdsrOverrideCount> sidAdsrBoxes;
     std::array<juce::Slider, sidAdsrOverrideCount> sidAdsrSliders;
-    std::array<juce::Label, fmOperatorReadoutRows> fmOperatorNameLabels;
-    std::array<juce::Label, fmOperatorReadoutRows> fmOperatorValueLabels;
-    std::array<juce::Label, fmOperatorReadoutRows> fmOperatorLevelValueLabels;
-    std::array<juce::Slider, fmOperatorReadoutRows> fmOperatorLevelSliders;
-    std::array<juce::TextButton, fmOperatorReadoutRows> fmOperatorMultiplierButtons;
-    std::array<juce::TextButton, fmOperatorReadoutRows> fmOperatorAttackRateButtons;
-    std::array<juce::TextButton, fmOperatorReadoutRows> fmOperatorDetuneButtons;
     ChipperFmEditor fmEditor;
     std::unique_ptr<ChipperMotionLab> motionLab;
     ChipperWaveLab waveLab;
@@ -1012,8 +1006,7 @@ private:
     juce::Label sidFilterRoutingValueLabel;
     juce::Label ymChannelMixLabel;
     juce::Label ymChannelMixValueLabel;
-    std::array<juce::Label, ymChannelMixCount> ymChannelMixLabels;
-    std::array<juce::ComboBox, ymChannelMixCount> ymChannelMixBoxes;
+    std::array<ChipperSsgChannel, ymChannelMixCount> ssgChannels;
     juce::Label snNoiseModeLabel;
     juce::Label snNoiseModeValueLabel;
     std::array<juce::Label, 5> headerControlLabels;
@@ -1023,7 +1016,7 @@ private:
     std::array<juce::TextButton, sourceChannelCount> sourceChannelButtons;
     std::array<juce::Label, liveControlCount> controlValueLabels;
     std::array<juce::TextButton, 4> pulseDutyButtons;
-    std::array<juce::TextButton, pulse2DutyCount> pulse2DutyButtons;
+    ChipperChoiceControl pulse2DutyChoice;
     std::array<juce::TextButton, waveShapeCount> waveShapeButtons;
     juce::ComboBox fmAlgorithmBox;
     FmAlgorithmPreview fmAlgorithmPreview;
@@ -1137,7 +1130,6 @@ private:
     std::unique_ptr<ComboBoxAttachment> sidFilterRoutingAttachment;
     std::unique_ptr<SliderAttachment> envelopeDecayAttachment;
     std::array<std::unique_ptr<SliderAttachment>, 4> nativeAttachments;
-    std::array<std::unique_ptr<SliderAttachment>, fmOperatorReadoutRows> fmOperatorLevelAttachments;
     std::array<std::unique_ptr<SliderAttachment>, sidVoiceWaveCount> sidVoicePulseWidthAttachments;
     std::array<std::unique_ptr<SliderAttachment>, sourceChannelCount> sourceLevelAttachments;
     std::array<std::unique_ptr<ButtonAttachment>, sourceChannelCount> sourceEnableAttachments;
