@@ -163,6 +163,10 @@ set(CHIPPER_PLUGIN_SOURCES
     Source/State/WavetableState.h
     Source/UI/ChipUiModel.cpp
     Source/UI/ChipUiModel.h
+    Source/UI/ChipperSsgChannel.cpp
+    Source/UI/ChipperSsgChannel.h
+    Source/UI/ChipperChoiceControl.cpp
+    Source/UI/ChipperChoiceControl.h
     Source/UI/ChipperFmEditor.cpp
     Source/UI/ChipperFmEditor.h
     Source/UI/ChipperFocusOutline.cpp

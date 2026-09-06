@@ -534,18 +534,6 @@ chipper::ChipParameterRole fmOperatorLevelRole(size_t index)
     return roles[std::min(index, roles.size() - 1u)];
 }
 
-const char* fmOperatorLevelParameterId(size_t index)
-{
-    static constexpr std::array<const char*, 4> ids {
-        chipper::parameters::id::fmOperator1Level,
-        chipper::parameters::id::fmOperator2Level,
-        chipper::parameters::id::fmOperator3Level,
-        chipper::parameters::id::fmOperator4Level
-    };
-
-    return ids[std::min(index, ids.size() - 1u)];
-}
-
 chipper::ChipParameterRole fmOperatorMultiplierRole(size_t index)
 {
     static constexpr std::array<chipper::ChipParameterRole, 4> roles {
@@ -558,17 +546,6 @@ chipper::ChipParameterRole fmOperatorMultiplierRole(size_t index)
     return roles[std::min(index, roles.size() - 1u)];
 }
 
-const char* fmOperatorMultiplierParameterId(size_t index)
-{
-    static constexpr std::array<const char*, 4> ids {
-        chipper::parameters::id::fmOperator1Multiplier,
-        chipper::parameters::id::fmOperator2Multiplier,
-        chipper::parameters::id::fmOperator3Multiplier,
-        chipper::parameters::id::fmOperator4Multiplier
-    };
-
-    return ids[std::min(index, ids.size() - 1u)];
-}
 chipper::ChipParameterRole opmOperatorDt1Role(size_t index)
 {
     static constexpr std::array<chipper::ChipParameterRole, 4> roles {
@@ -718,14 +695,14 @@ juce::String fmOperatorEnvelopeButtonText(int attackChoice, int decayChoice, int
         + (releaseChoice > 0 ? 1 : 0);
 
     if (activeCount == 0)
-        return "EG F";
+        return "Envelope";
     if (activeCount > 1)
-        return "EG *";
+        return "Env: Custom";
     if (attackChoice > 0)
-        return "EG A";
+        return "Env: Attack";
     if (decayChoice > 0)
-        return "EG D";
-    return sustainChoice > 0 ? "EG S" : "EG R";
+        return "Env: Decay";
+    return sustainChoice > 0 ? "Env: Sustain" : "Env: Release";
 }
 
 chipper::ChipParameterRole sourceRole(size_t index)
@@ -1505,17 +1482,6 @@ chipper::ChipParameterRole ymChannelMixRole(size_t index)
     };
 
     return roles[std::min(index, roles.size() - 1u)];
-}
-
-const char* ymChannelMixParameterId(size_t index)
-{
-    static constexpr std::array<const char*, 3> ids {
-        chipper::parameters::id::ymChannelAMix,
-        chipper::parameters::id::ymChannelBMix,
-        chipper::parameters::id::ymChannelCMix
-    };
-
-    return ids[std::min(index, ids.size() - 1u)];
 }
 
 juce::String choiceTooltip(const chipper::ChipParameterSpec& spec, size_t choiceIndex)
@@ -2879,13 +2845,7 @@ ChipperAudioProcessorEditor::getYamahaAdpcmARegionCardStatesForLayoutTest(chippe
 ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& processor)
     : AudioProcessorEditor(processor),
       audioProcessor(processor),
-      fmEditor({ fmOperatorNameLabels,
-                 fmOperatorValueLabels,
-                 fmOperatorLevelValueLabels,
-                 fmOperatorLevelSliders,
-                 fmOperatorMultiplierButtons,
-                 fmOperatorAttackRateButtons,
-                 fmOperatorDetuneButtons }),
+      fmEditor(processor.getValueTreeState()),
       motionLab(std::make_unique<ChipperMotionLab>(processor)),
       waveLab(processor),
       editorShell({ titleLabel,
@@ -3471,9 +3431,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(slider);
     }
 
-    for (size_t i = 0; i < fmOperatorNameLabels.size(); ++i)
+    for (size_t i = 0; i < fmEditor.widgets().names.size(); ++i)
     {
-        auto& nameLabel = fmOperatorNameLabels[i];
+        auto& nameLabel = fmEditor.widgets().names[i];
         nameLabel.setJustificationType(juce::Justification::centredLeft);
         nameLabel.setColour(juce::Label::textColourId, juce::Colour(0xff56c7d8));
         nameLabel.setFont(juce::FontOptions(10.5f, juce::Font::bold));
@@ -3481,7 +3441,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         nameLabel.setVisible(false);
         addAndMakeVisible(nameLabel);
 
-        auto& valueLabel = fmOperatorValueLabels[i];
+        auto& valueLabel = fmEditor.widgets().registerReadouts[i];
         valueLabel.setJustificationType(juce::Justification::centredLeft);
         valueLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd9e1e8));
         valueLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xff202c33));
@@ -3491,9 +3451,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         addAndMakeVisible(valueLabel);
     }
 
-    for (size_t i = 0; i < fmOperatorLevelSliders.size(); ++i)
+    for (size_t i = 0; i < fmEditor.widgets().levelSliders.size(); ++i)
     {
-        auto& valueLabel = fmOperatorLevelValueLabels[i];
+        auto& valueLabel = fmEditor.widgets().levelReadouts[i];
         valueLabel.setJustificationType(juce::Justification::centredRight);
         valueLabel.setColour(juce::Label::textColourId, juce::Colour(0xffaebbc4));
         valueLabel.setFont(juce::FontOptions(9.5f, juce::Font::bold));
@@ -3501,7 +3461,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         valueLabel.setVisible(false);
         addAndMakeVisible(valueLabel);
 
-        auto& slider = fmOperatorLevelSliders[i];
+        auto& slider = fmEditor.widgets().levelSliders[i];
         slider.setSliderStyle(juce::Slider::LinearHorizontal);
         slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
         slider.setColour(juce::Slider::trackColourId, juce::Colour(0xfff7d85a));
@@ -3510,37 +3470,10 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         slider.setTooltip(withMidiCcForRole("FM per-operator level trim.", fmOperatorLevelRole(i)));
         slider.setVisible(false);
         addAndMakeVisible(slider);
-        fmOperatorLevelAttachments[i] = std::make_unique<SliderAttachment>(state, fmOperatorLevelParameterId(i), slider);
 
-        auto& multiplierButton = fmOperatorMultiplierButtons[i];
-        multiplierButton.setButtonText("Follow");
-        multiplierButton.setClickingTogglesState(false);
-        multiplierButton.setTooltip(withMidiCcForRole("FM per-operator multiplier override.", fmOperatorMultiplierRole(i)));
-        multiplierButton.onClick = [this, i]()
-        {
-            juce::PopupMenu menu;
-            const auto choices = chipper::parameters::fmOperatorMultiplierChoices();
-            const auto selected = std::clamp(static_cast<int>(std::round(parameterValue(fmOperatorMultiplierParameterId(i)))),
-                                             0,
-                                             choices.size() - 1);
-            for (int choice = 0; choice < choices.size(); ++choice)
-                menu.addItem(choice + 1, choices[choice], true, choice == selected);
+        fmEditor.widgets().multipliers[i].onUserChange = [this] { updateLiveControlReadouts(); };
 
-            auto options = juce::PopupMenu::Options().withTargetComponent(&fmOperatorMultiplierButtons[i]);
-            const juce::Component::SafePointer<ChipperAudioProcessorEditor> safeThis(this);
-            menu.showMenuAsync(options, [safeThis, i](int result)
-            {
-                if (safeThis == nullptr || result <= 0)
-                    return;
-
-                safeThis->setChoiceParameterFromUi(fmOperatorMultiplierParameterId(i), result - 1);
-                safeThis->updateLiveControlReadouts();
-            });
-        };
-        multiplierButton.setVisible(false);
-        addAndMakeVisible(multiplierButton);
-
-        auto& attackButton = fmOperatorAttackRateButtons[i];
+        auto& attackButton = fmEditor.widgets().envelopes[i];
         attackButton.setButtonText("EG F");
         attackButton.setClickingTogglesState(false);
         attackButton.setTooltip(withMidiCcForRole("FM per-operator envelope-rate overrides.", fmOperatorAttackRateRole(i)));
@@ -3552,7 +3485,6 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
                 0,
                 chipper::parameters::chipModeChoices().size() - 1);
             const auto mode = chipper::parameters::chipModeFromChoice(modeChoice);
-            const auto isOpl = mode == chipper::ChipMode::opl3;
             const auto attackChoices = chipper::parameters::fmOperatorAttackRateChoices();
             const auto decayChoices = chipper::parameters::fmOperatorDecayRateChoices();
             const auto sustainChoices = chipper::parameters::fmOperatorSustainRateChoices();
@@ -3569,41 +3501,9 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
             const auto selectedRelease = std::clamp(static_cast<int>(std::round(parameterValue(fmOperatorReleaseRateParameterId(i)))),
                                                     0,
                                                     releaseChoices.size() - 1);
-            menu.addSectionHeader("Attack Rate");
-            const auto attackChoiceCount = isOpl ? std::min(17, attackChoices.size()) : attackChoices.size();
-            for (int choice = 0; choice < attackChoiceCount; ++choice)
-                menu.addItem(choice + 1,
-                             choice == 0 ? juce::String("Follow") : juce::String("AR ") + attackChoices[choice],
-                             true,
-                             choice == selectedAttack);
+            menu = ChipperFmEditor::createEnvelopeMenu(mode, { selectedAttack, selectedDecay, selectedSustain, selectedRelease });
 
-            menu.addSeparator();
-            menu.addSectionHeader("Decay Rate");
-            const auto decayChoiceCount = isOpl ? std::min(17, decayChoices.size()) : decayChoices.size();
-            for (int choice = 0; choice < decayChoiceCount; ++choice)
-                menu.addItem(101 + choice,
-                             choice == 0 ? juce::String("Follow") : juce::String("DR ") + decayChoices[choice],
-                             true,
-                             choice == selectedDecay);
-
-            menu.addSeparator();
-            menu.addSectionHeader(isOpl ? "Sustain Level" : "Sustain Rate");
-            const auto sustainChoiceCount = isOpl ? std::min(17, sustainChoices.size()) : sustainChoices.size();
-            for (int choice = 0; choice < sustainChoiceCount; ++choice)
-                menu.addItem(201 + choice,
-                             choice == 0 ? juce::String("Follow") : juce::String(isOpl ? "SL " : "D2R ") + sustainChoices[choice],
-                             true,
-                             choice == selectedSustain);
-
-            menu.addSeparator();
-            menu.addSectionHeader("Release Rate");
-            for (int choice = 0; choice < releaseChoices.size(); ++choice)
-                menu.addItem(301 + choice,
-                             choice == 0 ? juce::String("Follow") : juce::String("RR ") + releaseChoices[choice],
-                             true,
-                             choice == selectedRelease);
-
-            auto options = juce::PopupMenu::Options().withTargetComponent(&fmOperatorAttackRateButtons[i]);
+            auto options = juce::PopupMenu::Options().withTargetComponent(&fmEditor.widgets().envelopes[i]);
             const juce::Component::SafePointer<ChipperAudioProcessorEditor> safeThis(this);
             menu.showMenuAsync(options, [safeThis, i](int result)
             {
@@ -3623,7 +3523,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
         };
         attackButton.setVisible(false);
         addAndMakeVisible(attackButton);
-        auto& detuneButton = fmOperatorDetuneButtons[i];
+        auto& detuneButton = fmEditor.widgets().detunes[i];
         detuneButton.setButtonText("DT1 P  |  DT2 P");
         detuneButton.setClickingTogglesState(false);
         detuneButton.setTitle("YM2151 Operator " + juce::String(static_cast<int>(i + 1u)) + " DT1 and DT2");
@@ -3665,7 +3565,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
                     menu.addItem(101 + choice, label, true, choice == selectedKsl);
                 }
 
-                auto options = juce::PopupMenu::Options().withTargetComponent(&fmOperatorDetuneButtons[i]);
+                auto options = juce::PopupMenu::Options().withTargetComponent(&fmEditor.widgets().detunes[i]);
                 const juce::Component::SafePointer<ChipperAudioProcessorEditor> safeThis(this);
                 menu.showMenuAsync(options, [safeThis, i](int result)
                 {
@@ -3705,7 +3605,7 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
                              true,
                              choice == selectedDt2);
 
-            auto options = juce::PopupMenu::Options().withTargetComponent(&fmOperatorDetuneButtons[i]);
+            auto options = juce::PopupMenu::Options().withTargetComponent(&fmEditor.widgets().detunes[i]);
             const juce::Component::SafePointer<ChipperAudioProcessorEditor> safeThis(this);
             menu.showMenuAsync(options, [safeThis, i](int result)
             {
@@ -3785,25 +3685,13 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     pulse2DutyValueLabel.setVisible(false);
     addAndMakeVisible(pulse2DutyValueLabel);
 
-    const std::array<const char*, pulse2DutyCount> pulse2Labels { "Preset", "12.5%", "25%", "50%", "75%" };
-    for (size_t i = 0; i < pulse2DutyButtons.size(); ++i)
-    {
-        auto& button = pulse2DutyButtons[i];
-        button.setButtonText(pulse2Labels[i]);
-        button.setClickingTogglesState(false);
-        button.setTooltip(juce::String("Pulse 2 duty ") + pulse2Labels[i]);
-        button.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff202c33));
-        button.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xfff0c94d));
-        button.setColour(juce::TextButton::textColourOffId, juce::Colour(0xffdbe8e5));
-        button.setColour(juce::TextButton::textColourOnId, juce::Colour(0xff101414));
-        button.onClick = [this, i]()
-        {
-            setChoiceParameterFromUi(chipper::parameters::id::pulse2Duty, static_cast<int>(i));
-            updateLiveControlReadouts();
-        };
-        button.setVisible(false);
-        addAndMakeVisible(button);
-    }
+    pulse2DutyChoice.bind(state, chipper::parameters::id::pulse2Duty,
+                          { "Preset", "12.5%", "25%", "50%", "75%" });
+    pulse2DutyChoice.setHelp("Pulse 2 duty", withMidiCcForRole(
+        "Choose a native duty or inherit the patch duty.", chipper::ChipParameterRole::pulse2Duty));
+    pulse2DutyChoice.setSegmented(true);
+    pulse2DutyChoice.onUserChange = [this] { updateLiveControlReadouts(); };
+    addChildComponent(pulse2DutyChoice);
 
     const std::array<const char*, toneNoiseMixCount> toneNoiseLabels { "Noise", "Tone", "Both" };
     for (size_t i = 0; i < toneNoiseMixButtons.size(); ++i)
@@ -4223,34 +4111,13 @@ ChipperAudioProcessorEditor::ChipperAudioProcessorEditor(ChipperAudioProcessor& 
     ymChannelMixValueLabel.setVisible(false);
     addAndMakeVisible(ymChannelMixValueLabel);
 
-    const std::array<const char*, ymChannelMixCount> ymChannelMixLabelText { "A", "B", "C" };
-    for (size_t i = 0; i < ymChannelMixBoxes.size(); ++i)
+    for (size_t i = 0; i < ssgChannels.size(); ++i)
     {
-        auto& label = ymChannelMixLabels[i];
-        label.setText(ymChannelMixLabelText[i], juce::dontSendNotification);
-        label.setJustificationType(juce::Justification::centredLeft);
-        label.setColour(juce::Label::textColourId, juce::Colour(0xff56c7d8));
-        label.setFont(juce::FontOptions(11.0f, juce::Font::bold));
-        label.setVisible(false);
-        addAndMakeVisible(label);
-
-        auto& box = ymChannelMixBoxes[i];
-        box.addItemList(chipper::parameters::ymChannelMixChoices(), 1);
-        box.setVisible(false);
-        box.setTooltip(withMidiCcForRole("YM/AY channel tone/noise mixer override.", ymChannelMixRole(i)));
-        box.onChange = [this, i]()
-        {
-            if (suppressManualChoiceCallbacks)
-                return;
-
-            const auto selected = ymChannelMixBoxes[i].getSelectedItemIndex();
-            if (selected >= 0)
-            {
-                setChoiceParameterFromUi(ymChannelMixParameterId(i), selected);
-                updateLiveControlReadouts();
-            }
-        };
-        addAndMakeVisible(box);
+        ssgChannels[i].bind(state, i);
+        ssgChannels[i].setHelp("SSG channel " + juce::String::charToString(static_cast<juce_wchar>('A' + i)) + " mix",
+                               withMidiCcForRole("Native tone/noise routing. Follow shows the effective patch routing.", ymChannelMixRole(i)));
+        ssgChannels[i].onUserChange = [this] { updateLiveControlReadouts(); };
+        addChildComponent(ssgChannels[i]);
     }
 
     snNoiseModeLabel.setText("Noise Mode", juce::dontSendNotification);
@@ -4604,11 +4471,11 @@ void ChipperAudioProcessorEditor::applyChipTheme()
         label.setColour(juce::Label::textColourId, theme.accent);
     for (auto& label : sidAdsrValueLabels)
         label.setColour(juce::Label::textColourId, theme.mutedText);
-    for (auto& label : fmOperatorNameLabels)
+    for (auto& label : fmEditor.widgets().names)
         label.setColour(juce::Label::textColourId, theme.accent);
-    for (auto& label : fmOperatorValueLabels)
+    for (auto& label : fmEditor.widgets().registerReadouts)
         label.setColour(juce::Label::textColourId, theme.mutedText);
-    for (auto& label : fmOperatorLevelValueLabels)
+    for (auto& label : fmEditor.widgets().levelReadouts)
         label.setColour(juce::Label::textColourId, theme.mutedText);
     for (auto& label : sourceLevelLabels)
         label.setColour(juce::Label::textColourId, theme.accent);
@@ -4625,7 +4492,7 @@ void ChipperAudioProcessorEditor::applyChipTheme()
 
     for (auto& slider : sourceLevelSliders)
         styleSlider(slider);
-    for (auto& slider : fmOperatorLevelSliders)
+    for (auto& slider : fmEditor.widgets().levelSliders)
         styleSlider(slider);
     for (auto& slider : sidVoicePulseWidthSliders)
         styleSlider(slider);
@@ -4649,8 +4516,8 @@ void ChipperAudioProcessorEditor::applyChipTheme()
         styleCombo(box);
     for (auto& box : sidAdsrBoxes)
         styleCombo(box);
-    for (auto& box : ymChannelMixBoxes)
-        styleCombo(box);
+    for (auto& channel : ssgChannels)
+        channel.setTheme(theme.panelAlt, theme.accent, theme.outline, theme.text, theme.darkText);
     styleCombo(fmAlgorithmBox);
     styleCombo(fmFeedbackBox);
     styleCombo(oplWaveformBox);
@@ -4664,19 +4531,16 @@ void ChipperAudioProcessorEditor::applyChipTheme()
     }
     styleButton(dmcSampleBankButton);
     styleButton(dmcEmptyStateButton);
-    for (auto& button : fmOperatorMultiplierButtons)
+    for (auto& button : fmEditor.widgets().envelopes)
         styleButton(button);
-    for (auto& button : fmOperatorAttackRateButtons)
-        styleButton(button);
-    for (auto& button : fmOperatorDetuneButtons)
+    for (auto& button : fmEditor.widgets().detunes)
         styleButton(button);
 
     for (auto& button : sourceChannelButtons)
         styleButton(button);
     for (auto& button : pulseDutyButtons)
         styleButton(button);
-    for (auto& button : pulse2DutyButtons)
-        styleButton(button);
+    pulse2DutyChoice.setTheme(theme.panelAlt, theme.accent, theme.outline, theme.text, theme.darkText);
     for (auto& button : waveShapeButtons)
         styleButton(button);
     for (auto& button : dmgWaveLevelButtons)
@@ -4866,10 +4730,10 @@ void ChipperAudioProcessorEditor::resized()
     }
     else if (nesLayout)
     {
-        const auto minimumSourceHeight = nesExpansionLayout ? 232 : 172;
+        const auto minimumSourceHeight = nesExpansionLayout ? 232 : 224;
         const auto minimumSampleHeight = nesExpansionLayout ? 168 : 184;
-        const auto targetSourceHeight = nesExpansionLayout ? 244 : 186;
-        const auto targetSampleHeight = nesExpansionLayout ? 194 : 236;
+        const auto targetSourceHeight = nesExpansionLayout ? 244 : 224;
+        const auto targetSampleHeight = nesExpansionLayout ? 194 : 212;
 
         const auto availableHeight = modules.getHeight();
         auto topRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.47)),
@@ -5041,10 +4905,10 @@ void ChipperAudioProcessorEditor::resized()
     else if (opl3Layout)
     {
         const auto availableHeight = modules.getHeight();
-        const auto sourceRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.47)), 270, 276);
-        const auto middleRowHeight = std::clamp(static_cast<int>(std::round(static_cast<double>(availableHeight) * 0.38)), 216, 220);
+        const auto sourceRowHeight = 258;
+        const auto middleRowHeight = 250;
         const auto bottomRowHeight = std::max(0, availableHeight - sourceRowHeight - middleRowHeight - (gap * 2));
-        const auto patchWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getWidth()) * 0.64)), 720, 840);
+        const auto patchWidth = std::clamp(static_cast<int>(std::round(static_cast<double>(modules.getWidth()) * 0.47)), 536, 600);
         const auto topY = modules.getY();
         const auto middleY = topY + sourceRowHeight + gap;
         const auto bottomY = middleY + middleRowHeight + gap;
@@ -5394,7 +5258,7 @@ void ChipperAudioProcessorEditor::resized()
         const auto isNesSourceCard = isNesFamily(displayedMode);
         const auto isDmgSourceCard = displayedMode == chipper::ChipMode::dmg;
         const auto isSnSourceCard = displayedMode == chipper::ChipMode::sn76489;
-        const auto isYm2149ToneSourceCard = displayedMode == chipper::ChipMode::ym2149 && i < ymChannelMixBoxes.size();
+        const auto isYm2149ToneSourceCard = displayedMode == chipper::ChipMode::ym2149 && i < ssgChannels.size();
         const auto isYm2203SsgSourceCard = ym2203Layout && i >= 3u && i < 6u;
         const auto isYm2608SsgSourceCard = nineLaneOpnSsgLayout && i >= 6u && i < 9u;
         const auto isYm2610SsgSourceCard = ym2610Layout && i >= 4u && i < 7u;
@@ -5405,11 +5269,11 @@ void ChipperAudioProcessorEditor::resized()
         const auto isWavetableSourceCard = useWavetableVoiceGrid;
         const auto isDenseSampleCard = isWavetableSourceCard || isPaulaSourceCard || isSpc700SourceCard;
         auto sourceCard = sourceChannelBounds[i].reduced(useSpc700VoiceGrid ? 5 : (isDenseSampleCard ? 5 : ((opnaOpnbLayout || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid) ? 6 : 8)),
-                                                         isSidSourceCard ? 2 : (isDenseSampleCard ? 3 : ((isEmbeddedSsgSourceCard || ym2203Layout || opnaOpnbLayout || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid) ? 2 : 4)));
+                                                         (isSidSourceCard || useNesExpansionVoiceGrid) ? 2 : (isDenseSampleCard ? 3 : ((isEmbeddedSsgSourceCard || ym2203Layout || opnaOpnbLayout || useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid) ? 2 : 4)));
         const auto standardInlineControlHeight = isDenseSampleCard ? 28 : 30;
         const auto buttonHeight = isDenseSampleCard ? 18 : (isSidSourceCard ? 18 : (isWavetableSourceCard ? 18 : 18));
         sourceChannelButtons[i].setBounds(sourceCard.removeFromTop(std::min(buttonHeight, sourceCard.getHeight())));
-        sourceCard.removeFromTop(opnaOpnbLayout ? 0 : (isYm2149ToneSourceCard ? 1 : (isDenseSampleCard ? 2 : 2)));
+        sourceCard.removeFromTop(opnaOpnbLayout ? 0 : ((isYm2149ToneSourceCard || useNesExpansionVoiceGrid) ? 1 : 2));
         const auto previewHeight = (useOplVoiceGrid || useOpmVoiceGrid || useOpllVoiceGrid)
             ? std::clamp(sourceCard.getHeight() / 5, 14, 17)
             : (isEmbeddedSsgSourceCard
@@ -5417,15 +5281,16 @@ void ChipperAudioProcessorEditor::resized()
                    ? std::clamp(sourceCard.getHeight() / 8, 8, 10)
                    : std::clamp(sourceCard.getHeight() / 7, 14, 18))
             : (isPaulaSourceCard
-            ? std::clamp(sourceCard.getHeight() / 9, 10, 14)
+            ? std::clamp(sourceCard.getHeight() / 4, 28, 34)
             : (isWavetableSourceCard
             ? ((huc6280Layout || namcoWsgLayout || sccLayout) ? std::clamp(sourceCard.getHeight() / 4, 24, 30)
                              : std::clamp(sourceCard.getHeight() / 6, 14, 16))
             : std::clamp(sourceCard.getHeight() / (useSpc700VoiceGrid ? 5 : 4),
                          useSpc700VoiceGrid ? 14 : (isSidSourceCard ? 18 : ((isNesSourceCard || isDmgSourceCard || isPaulaSourceCard) ? 22 : 20)),
                          useSpc700VoiceGrid ? 18 : (isSidSourceCard ? 20 : (isPaulaSourceCard ? 26 : ((isNesSourceCard || isDmgSourceCard) ? 34 : 28)))))));
-        sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(previewHeight, sourceCard.getHeight())));
-        sourceCard.removeFromTop(isEmbeddedSsgSourceCard ? 1 : (isNesSourceCard || isDmgSourceCard ? 3 : (isDenseSampleCard ? 2 : 1)));
+        const auto fittedPreviewHeight = useNesExpansionVoiceGrid && i < 4u ? 12 : previewHeight;
+        sourcePreviewScopes[i].setBounds(sourceCard.removeFromTop(std::min(fittedPreviewHeight, sourceCard.getHeight())));
+        sourceCard.removeFromTop((isEmbeddedSsgSourceCard || useNesExpansionVoiceGrid) ? 1 : (isNesSourceCard || isDmgSourceCard ? 3 : (isDenseSampleCard ? 2 : 1)));
 
         const auto placeEmbeddedLevelInArea = [this, i](juce::Rectangle<int> levelArea, int labelWidth = 52)
         {
@@ -5490,7 +5355,13 @@ void ChipperAudioProcessorEditor::resized()
 
             if (i == 0)
             {
-                placeCompactLabel(nativeLabels[0], &controlValueLabels[0], sourceCard.removeFromTop(std::min(compactLabelHeight, sourceCard.getHeight())));
+                if (nesExpansionLayout)
+                {
+                    nativeLabels[0].setBounds({});
+                    controlValueLabels[0].setBounds({});
+                }
+                else
+                    placeCompactLabel(nativeLabels[0], &controlValueLabels[0], sourceCard.removeFromTop(std::min(compactLabelHeight, sourceCard.getHeight())));
                 pulseDutySegmentBounds = sourceCard.removeFromTop(std::min(compactSegmentHeight, sourceCard.getHeight()));
                 placeCompactSegment(pulseDutyButtons, pulseDutySegmentBounds, pulseDutyButtons.size());
                 sourceCard.removeFromTop(3);
@@ -5504,10 +5375,14 @@ void ChipperAudioProcessorEditor::resized()
             }
             else if (i == 1)
             {
-                placeCompactLabel(pulse2DutyLabel, &pulse2DutyValueLabel, sourceCard.removeFromTop(std::min(compactLabelHeight, sourceCard.getHeight())));
-                pulse2DutySegmentBounds = sourceCard.removeFromTop(std::min(compactSegmentHeight, sourceCard.getHeight()));
-                placeCompactSegment(pulse2DutyButtons, pulse2DutySegmentBounds, pulse2DutyButtons.size());
-                sourceCard.removeFromTop(3);
+                if (nesExpansionLayout)
+                    pulse2DutyLabel.setBounds({});
+                else
+                    placeCompactLabel(pulse2DutyLabel, &pulse2DutyValueLabel, sourceCard.removeFromTop(std::min(compactLabelHeight, sourceCard.getHeight())));
+                const auto dutyHeight = nesExpansionLayout ? 28 : 54;
+                pulse2DutySegmentBounds = sourceCard.removeFromTop(std::min(dutyHeight, sourceCard.getHeight()));
+                pulse2DutyChoice.setBounds(pulse2DutySegmentBounds);
+                sourceCard.removeFromTop(nesExpansionLayout ? 1 : 3);
             }
             else if (isDmgSourceCard && i == 2)
             {
@@ -5522,7 +5397,13 @@ void ChipperAudioProcessorEditor::resized()
             }
             else if (i == 3)
             {
-                placeCompactLabel(snNoiseModeLabel, &snNoiseModeValueLabel, sourceCard.removeFromTop(std::min(compactLabelHeight, sourceCard.getHeight())));
+                if (nesExpansionLayout)
+                {
+                    snNoiseModeLabel.setBounds({});
+                    snNoiseModeValueLabel.setBounds({});
+                }
+                else
+                    placeCompactLabel(snNoiseModeLabel, &snNoiseModeValueLabel, sourceCard.removeFromTop(std::min(compactLabelHeight, sourceCard.getHeight())));
                 snNoiseModeSegmentBounds = sourceCard.removeFromTop(std::min(compactSegmentHeight, sourceCard.getHeight()));
                 placeCompactSegment(snNoiseModeButtons, snNoiseModeSegmentBounds, snNoiseModeButtons.size());
                 sourceCard.removeFromTop(3);
@@ -5579,9 +5460,7 @@ void ChipperAudioProcessorEditor::resized()
         {
             const auto mixIndex = isYm2203SsgSourceCard ? i - 3u : (isYm2608SsgSourceCard ? i - 6u : (isYm2610SsgSourceCard ? i - 4u : i));
             auto mixRow = sourceCard.removeFromTop(std::min(28, sourceCard.getHeight()));
-            ymChannelMixLabels[mixIndex].setText("Mix", juce::dontSendNotification);
-            ymChannelMixLabels[mixIndex].setBounds(mixRow.removeFromLeft(std::min(34, mixRow.getWidth())));
-            ymChannelMixBoxes[mixIndex].setBounds(mixRow);
+            ssgChannels[mixIndex].setBounds(mixRow);
             sourceCard.removeFromTop(std::min(1, sourceCard.getHeight()));
         }
         else if (isWavetableSourceCard && i < hucVoiceWaveBoxes.size())
@@ -5811,15 +5690,16 @@ void ChipperAudioProcessorEditor::resized()
 
         auto macroRow = tonePanel;
         constexpr int macroGap = 6;
-        const auto macroWidth = std::max(0, (macroRow.getWidth() - (macroGap * 3)) / 4);
+        const auto macroWidth = std::max(0, (macroRow.getWidth() - macroGap) / 2);
+        const auto macroHeight = std::max(0, (macroRow.getHeight() - macroGap) / 2);
         std::array<juce::Rectangle<int>, 4> macroAreas {};
         for (size_t control = 0; control < macroAreas.size(); ++control)
         {
             macroAreas[control] = {
-                macroRow.getX() + (static_cast<int>(control) * (macroWidth + macroGap)),
-                macroRow.getY(),
+                macroRow.getX() + (static_cast<int>(control % 2) * (macroWidth + macroGap)),
+                macroRow.getY() + (static_cast<int>(control / 2) * (macroHeight + macroGap)),
                 macroWidth,
-                macroRow.getHeight()
+                macroHeight
             };
         }
 
@@ -6102,7 +5982,7 @@ void ChipperAudioProcessorEditor::resized()
     }
 
     auto envelopeDecayPanel = envelopePanel;
-    envelopeDecayPanel.removeFromBottom(6);
+    envelopeDecayPanel.removeFromBottom(fourOperatorFmLayout ? 0 : 6);
     if (displayedMode == chipper::ChipMode::sid)
     {
         ymEnvelopePreview.setBounds({});
@@ -8105,7 +7985,7 @@ void ChipperAudioProcessorEditor::placePulse2DutySegment(juce::Rectangle<int> bo
     pulse2DutyValueLabel.setBounds(header);
 
     pulse2DutySegmentBounds = bounds.removeFromTop(std::min(compact ? 20 : 22, bounds.getHeight())).reduced(0, 1);
-    layoutSegmentedButtons(pulse2DutyButtons, pulse2DutySegmentBounds, pulse2DutyButtons.size());
+    pulse2DutyChoice.setBounds(pulse2DutySegmentBounds);
 }
 
 void ChipperAudioProcessorEditor::placeWaveShapeSegment(juce::Rectangle<int> bounds)
@@ -8466,16 +8346,15 @@ void ChipperAudioProcessorEditor::placeYmChannelMixControls(juce::Rectangle<int>
     ymChannelMixLabel.setBounds(bounds.removeFromTop(16));
     auto row = bounds.removeFromTop(28);
     const auto gap = 6;
-    const auto width = (row.getWidth() - (gap * static_cast<int>(ymChannelMixBoxes.size() - 1u))) / static_cast<int>(ymChannelMixBoxes.size());
+    const auto width = (row.getWidth() - (gap * static_cast<int>(ssgChannels.size() - 1u))) / static_cast<int>(ssgChannels.size());
 
-    for (size_t i = 0; i < ymChannelMixBoxes.size(); ++i)
+    for (size_t i = 0; i < ssgChannels.size(); ++i)
     {
         auto cell = row.removeFromLeft(width);
-        if (i + 1u < ymChannelMixBoxes.size())
+        if (i + 1u < ssgChannels.size())
             row.removeFromLeft(gap);
 
-        ymChannelMixLabels[i].setBounds(cell.removeFromLeft(22));
-        ymChannelMixBoxes[i].setBounds(cell);
+        ssgChannels[i].setBounds(cell);
     }
 
     ymChannelMixValueLabel.setBounds(bounds);
@@ -9480,7 +9359,8 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
     };
 
     applyChoices(pulseDutyButtons, chipper::parameterSpecFor(mode, chipper::ChipParameterRole::macroControl1));
-    applyChoices(pulse2DutyButtons, chipper::parameterSpecFor(mode, chipper::ChipParameterRole::pulse2Duty));
+    if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::pulse2Duty))
+        pulse2DutyChoice.setHelp(spec->label, withMidiCcForRole(spec->help, spec->role));
     applyChoices(toneNoiseMixButtons, chipper::parameterSpecFor(mode, chipper::ChipParameterRole::macroControl4));
 
     if (const auto* spec = chipper::parameterSpecFor(mode, chipper::ChipParameterRole::macroControl2))
@@ -9610,13 +9490,11 @@ void ChipperAudioProcessorEditor::updateSegmentedControlSpecs(chipper::ChipMode 
                                      ? "Per-channel embedded OPN SSG mixer overrides. Preset follows the selected OPN-family recipe."
                                      : "Per-channel AY mixer overrides. Preset uses the global Tone/Noise Mix control.");
     ymChannelMixValueLabel.setTooltip(isOpnSsg ? "Resolved OPN SSG mixer choices." : "Resolved YM/AY channel mixer choices.");
-    for (size_t i = 0; i < ymChannelMixBoxes.size(); ++i)
+    for (size_t i = 0; i < ssgChannels.size(); ++i)
     {
         if (const auto* spec = chipper::parameterSpecFor(mode, ymChannelMixRole(i)))
         {
-            ymChannelMixLabels[i].setText(spec->label, juce::dontSendNotification);
-            ymChannelMixLabels[i].setTooltip(withMidiCcForRole(spec->help, spec->role));
-            ymChannelMixBoxes[i].setTooltip(withMidiCcForRole(spec->help, spec->role));
+            ssgChannels[i].setHelp(spec->label, withMidiCcForRole(spec->help, spec->role));
         }
     }
 
@@ -13044,7 +12922,8 @@ juce::String ChipperAudioProcessorEditor::opnSsgMixerReadout(const chipper::Patc
         const auto choice = static_cast<size_t>(std::clamp(chipper::ym2149ChannelMixChoiceForPatch(patch, channel), 0, 4));
         text += juce::String::charToString(static_cast<juce_wchar>('A' + channel));
         text += ":";
-        text += choiceLabels[choice];
+        text += choice == 0 ? "Follow:" + ChipperSsgChannel::effectiveRoute(displayedMode, patch, channel)
+                            : juce::String(choiceLabels[choice]);
     }
 
     text += " | noise p";
@@ -13218,7 +13097,8 @@ juce::String ChipperAudioProcessorEditor::ymChannelMixReadout(const chipper::Pat
         const auto choice = static_cast<size_t>(std::clamp(chipper::ym2149ChannelMixChoiceForPatch(patch, channel), 0, 4));
         text += juce::String::charToString(static_cast<juce_wchar>('A' + channel));
         text += ":";
-        text += choiceLabels[choice];
+        text += choice == 0 ? "Follow:" + ChipperSsgChannel::effectiveRoute(displayedMode, patch, channel)
+                            : juce::String(choiceLabels[choice]);
     }
 
     return text;
@@ -13467,8 +13347,7 @@ void ChipperAudioProcessorEditor::setPulse2DutySegmentVisible(chipper::ChipMode 
     const auto active = shouldBeVisible && usesPulse2DutySegment(mode);
     pulse2DutyLabel.setVisible(active);
     pulse2DutyValueLabel.setVisible(active);
-    for (auto& button : pulse2DutyButtons)
-        button.setVisible(active);
+    pulse2DutyChoice.setVisible(active);
 
     if (active)
     {
@@ -13704,9 +13583,7 @@ void ChipperAudioProcessorEditor::setYmChannelMixControlsVisible(bool shouldBeVi
     const auto embeddedInSourceCards = displayedMode == chipper::ChipMode::ym2149;
     ymChannelMixLabel.setVisible(shouldBeVisible && ! embeddedInSourceCards);
     ymChannelMixValueLabel.setVisible(shouldBeVisible && ! embeddedInSourceCards);
-    for (auto& label : ymChannelMixLabels)
-        label.setVisible(shouldBeVisible);
-    for (auto& box : ymChannelMixBoxes)
+    for (auto& box : ssgChannels)
         box.setVisible(shouldBeVisible);
 
     if (shouldBeVisible)
@@ -13826,9 +13703,9 @@ void ChipperAudioProcessorEditor::setFmOperatorRegisterSurfaceVisible(chipper::C
             || mode == chipper::ChipMode::ym2608
             || isOpnbMode(mode));
 
-    for (auto& label : fmOperatorNameLabels)
+    for (auto& label : fmEditor.widgets().names)
         label.setVisible(active);
-    for (auto& label : fmOperatorValueLabels)
+    for (auto& label : fmEditor.widgets().registerReadouts)
         label.setVisible(active);
 
     if (! active)
@@ -14316,8 +14193,16 @@ void ChipperAudioProcessorEditor::updateSourceChannelButtons(chipper::ChipMode m
             sourceLevelSliders[i].setTooltip(withMidiCcForRole(juce::String("Trim level for ") + (*labels)[i], sourceLevelRole(i)));
         }
 
-        sourceLevelLabels[i].setText(isNesDmcLane ? "7-bit DAC" : (mode == chipper::ChipMode::pokey ? "Trim" : "Level"), juce::dontSendNotification);
+        sourceLevelLabels[i].setText(isNesDmcLane ? "7-bit DAC" : ((mode == chipper::ChipMode::pokey || (mode == chipper::ChipMode::ym2149 && i == 3)) ? "Trim" : "Level"), juce::dontSendNotification);
         const auto sourceLevelActive = levelSpec != nullptr && ! pokeyPairedHighByte && ! opllRhythmOnlyMelodicLane;
+        if (mode == chipper::ChipMode::ym2149 && i == 3)
+        {
+            sourceChannelButtons[i].setButtonText(ChipperSsgChannel::sharedNoiseDestinations(mode, patch));
+            const auto help = "Chipper helper: trims the shared noise contribution after the native mixer. "
+                + ChipperSsgChannel::sharedNoiseDestinations(mode, patch);
+            sourceLevelSliders[i].setTooltip(withMidiCcForRole(help, sourceLevelRole(i)));
+            sourceLevelLabels[i].setTooltip(sourceLevelSliders[i].getTooltip());
+        }
         sourceLevelLabels[i].setEnabled(sourceLevelActive);
         sourceLevelSliders[i].setEnabled(sourceLevelActive);
         sourceLevelValueLabels[i].setEnabled(sourceLevelActive);
@@ -14817,14 +14702,14 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
     {
         const auto visible = active && i < visibleRows;
         const auto levelVisible = visible && hasOperatorLevelControls;
-        fmOperatorNameLabels[i].setVisible(visible);
-        fmOperatorValueLabels[i].setVisible(visible);
-        fmOperatorLevelValueLabels[i].setVisible(levelVisible);
-        fmOperatorLevelSliders[i].setVisible(levelVisible);
-        fmOperatorMultiplierButtons[i].setVisible(levelVisible);
+        fmEditor.widgets().names[i].setVisible(visible);
+        fmEditor.widgets().registerReadouts[i].setVisible(visible);
+        fmEditor.widgets().levelReadouts[i].setVisible(levelVisible);
+        fmEditor.widgets().levelSliders[i].setVisible(levelVisible);
+        fmEditor.widgets().multipliers[i].setVisible(levelVisible);
         const auto detuneVisible = levelVisible && (mode == chipper::ChipMode::ym2151 || mode == chipper::ChipMode::opl3);
-        fmOperatorDetuneButtons[i].setVisible(detuneVisible);
-        fmOperatorAttackRateButtons[i].setVisible(levelVisible);
+        fmEditor.widgets().detunes[i].setVisible(detuneVisible);
+        fmEditor.widgets().envelopes[i].setVisible(levelVisible);
         if (! visible)
             continue;
 
@@ -14832,15 +14717,15 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
         const auto nameText = isOpllOperatorEditMode(mode)
             ? juce::String(opllNames[i])
             : juce::String(fmNames[i]) + " " + fmOperatorRoleShortLabel(mode, patch, i);
-        fmOperatorNameLabels[i].setText(nameText, juce::dontSendNotification);
-        fmOperatorValueLabels[i].setText(readout, juce::dontSendNotification);
+        fmEditor.widgets().names[i].setText(nameText, juce::dontSendNotification);
+        fmEditor.widgets().registerReadouts[i].setText(readout, juce::dontSendNotification);
 
         auto tooltip = fmOperatorRegisterTooltip(mode, i);
         if (hasEditableFmOperatorRows(mode))
             tooltip += "\n" + fmOperatorRoleDescription(mode, patch, i);
         tooltip += "\n" + readout;
-        fmOperatorNameLabels[i].setTooltip(tooltip);
-        fmOperatorValueLabels[i].setTooltip(tooltip);
+        fmEditor.widgets().names[i].setTooltip(tooltip);
+        fmEditor.widgets().registerReadouts[i].setTooltip(tooltip);
 
         if (levelVisible)
         {
@@ -14852,23 +14737,21 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
                 + "\n" + levelReadout
                 + "\n" + readout;
             levelTooltip = withMidiCcForRole(levelTooltip, fmOperatorLevelRole(i));
-            fmOperatorLevelValueLabels[i].setText(percentText, juce::dontSendNotification);
-            fmOperatorLevelValueLabels[i].setTooltip(levelTooltip);
-            fmOperatorLevelSliders[i].setTooltip(levelTooltip);
+            fmEditor.widgets().levelReadouts[i].setText(percentText, juce::dontSendNotification);
+            fmEditor.widgets().levelReadouts[i].setTooltip(levelTooltip);
+            fmEditor.widgets().levelSliders[i].setTooltip(levelTooltip);
 
             const auto* multiplierSpec = chipper::parameterSpecFor(mode, fmOperatorMultiplierRole(i));
             auto multiplierTooltip = juce::String(multiplierSpec != nullptr ? multiplierSpec->help : "FM per-operator multiplier override.")
                 + "\n" + fmOperatorRoleDescription(mode, patch, i)
                 + "\n" + readout;
             multiplierTooltip = withMidiCcForRole(multiplierTooltip, fmOperatorMultiplierRole(i));
-            const auto choices = chipper::parameters::fmOperatorMultiplierChoices();
-            const auto multiplierChoice = std::clamp(static_cast<int>(std::round(parameterValue(fmOperatorMultiplierParameterId(i)))),
-                                                     0,
-                                                     choices.size() - 1);
-            fmOperatorMultiplierButtons[i].setButtonText(isOpllOperatorEditMode(mode)
-                                                             ? juce::String("Mult ") + choices[multiplierChoice]
-                                                             : choices[multiplierChoice]);
-            fmOperatorMultiplierButtons[i].setTooltip(multiplierTooltip);
+            const auto multiple = isOpllOperatorEditMode(mode)
+                ? chipper::opllOperatorMultipleForPatch(patch, i)
+                : (mode == chipper::ChipMode::opl3 ? chipper::oplOperatorMultipleForPatch(patch, i)
+                                                  : chipper::fmOperatorMultipleForPatch(mode, patch, i));
+            fmEditor.widgets().multipliers[i].setResolvedValue((multiple == 0 ? juce::String("0.5") : juce::String(static_cast<int>(multiple))) + "x");
+            fmEditor.widgets().multipliers[i].setHelp("Operator " + juce::String(static_cast<int>(i + 1)) + " multiplier", multiplierTooltip);
 
             const auto* attackSpec = chipper::parameterSpecFor(mode, fmOperatorAttackRateRole(i));
             const auto* decaySpec = chipper::parameterSpecFor(mode, fmOperatorDecayRateRole(i));
@@ -14897,10 +14780,8 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
                                                   0,
                                                   chipper::parameters::fmOperatorReleaseRateChoices().size() - 1);
             const auto envelopeText = fmOperatorEnvelopeButtonText(attackChoice, decayChoice, sustainChoice, releaseChoice);
-            fmOperatorAttackRateButtons[i].setButtonText(isOpllOperatorEditMode(mode) && envelopeText == "EG F"
-                                                             ? juce::String("EG Follow")
-                                                             : envelopeText);
-            fmOperatorAttackRateButtons[i].setTooltip(attackTooltip);
+            fmEditor.widgets().envelopes[i].setButtonText(mode == chipper::ChipMode::ym2151 ? juce::String("Envelope") : envelopeText);
+            fmEditor.widgets().envelopes[i].setTooltip(attackTooltip);
             if (detuneVisible)
             {
                 const auto dt1Choice = std::clamp(static_cast<int>(std::round(parameterValue(opmOperatorDt1ParameterId(i)))), 0, 8);
@@ -14921,14 +14802,14 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
                         + "\n" + readout;
                     nativeTooltip = withMidiCcForRole(nativeTooltip, opmOperatorDt1Role(i));
                     nativeTooltip = withMidiCcForRole(nativeTooltip, opmOperatorDt2Role(i));
-                    fmOperatorDetuneButtons[i].setButtonText("Flags " + juce::String(flagLabels[static_cast<size_t>(dt1Choice)])
+                    fmEditor.widgets().detunes[i].setButtonText("Flags " + juce::String(flagLabels[static_cast<size_t>(dt1Choice)])
                                                              + "  |  KSL " + kslText);
-                    fmOperatorDetuneButtons[i].setName("OPL3 Operator " + juce::String(static_cast<int>(i + 1u)) + " flags and KSL");
-                    fmOperatorDetuneButtons[i].setTitle("OPL3 Operator " + juce::String(static_cast<int>(i + 1u)) + " native flags");
-                    fmOperatorDetuneButtons[i].setDescription("Opens YMF262 AM, vibrato, KSR, and KSL register choices for this shared operator.");
-                    fmOperatorDetuneButtons[i].setComponentID("opl.operator" + juce::String(static_cast<int>(i + 1u)) + ".flags");
-                    fmOperatorDetuneButtons[i].setExplicitFocusOrder(430 + static_cast<int>(i));
-                    fmOperatorDetuneButtons[i].setTooltip(nativeTooltip);
+                    fmEditor.widgets().detunes[i].setName("OPL3 Operator " + juce::String(static_cast<int>(i + 1u)) + " flags and KSL");
+                    fmEditor.widgets().detunes[i].setTitle("OPL3 Operator " + juce::String(static_cast<int>(i + 1u)) + " native flags");
+                    fmEditor.widgets().detunes[i].setDescription("Opens YMF262 AM, vibrato, KSR, and KSL register choices for this shared operator.");
+                    fmEditor.widgets().detunes[i].setComponentID("opl.operator" + juce::String(static_cast<int>(i + 1u)) + ".flags");
+                    fmEditor.widgets().detunes[i].setExplicitFocusOrder(430 + static_cast<int>(i));
+                    fmEditor.widgets().detunes[i].setTooltip(nativeTooltip);
                 }
                 else
                 {
@@ -14942,14 +14823,14 @@ void ChipperAudioProcessorEditor::updateFmOperatorRegisterSurface(chipper::ChipM
                         + "\n" + readout;
                     detuneTooltip = withMidiCcForRole(detuneTooltip, opmOperatorDt1Role(i));
                     detuneTooltip = withMidiCcForRole(detuneTooltip, opmOperatorDt2Role(i));
-                    fmOperatorDetuneButtons[i].setButtonText("DT1 " + juce::String(dt1Labels[static_cast<size_t>(dt1Choice)])
+                    fmEditor.widgets().detunes[i].setButtonText("DT1 " + juce::String(dt1Labels[static_cast<size_t>(dt1Choice)])
                                                              + "  |  DT2 " + juce::String(dt2Labels[static_cast<size_t>(dt2Choice)]));
-                    fmOperatorDetuneButtons[i].setName("YM2151 Operator " + juce::String(static_cast<int>(i + 1u)) + " DT1 and DT2");
-                    fmOperatorDetuneButtons[i].setTitle(fmOperatorDetuneButtons[i].getName());
-                    fmOperatorDetuneButtons[i].setDescription("Opens native YM2151 fine and coarse detune choices for this operator.");
-                    fmOperatorDetuneButtons[i].setComponentID("fm.operator" + juce::String(static_cast<int>(i + 1u)) + ".detune");
-                    fmOperatorDetuneButtons[i].setExplicitFocusOrder(0);
-                    fmOperatorDetuneButtons[i].setTooltip(detuneTooltip);
+                    fmEditor.widgets().detunes[i].setName("YM2151 Operator " + juce::String(static_cast<int>(i + 1u)) + " DT1 and DT2");
+                    fmEditor.widgets().detunes[i].setTitle(fmEditor.widgets().detunes[i].getName());
+                    fmEditor.widgets().detunes[i].setDescription("Opens native YM2151 fine and coarse detune choices for this operator.");
+                    fmEditor.widgets().detunes[i].setComponentID("fm.operator" + juce::String(static_cast<int>(i + 1u)) + ".detune");
+                    fmEditor.widgets().detunes[i].setExplicitFocusOrder(0);
+                    fmEditor.widgets().detunes[i].setTooltip(detuneTooltip);
                 }
             }
         }
@@ -15098,25 +14979,13 @@ void ChipperAudioProcessorEditor::updatePulseDutyButtons(float value, bool shoul
 
 void ChipperAudioProcessorEditor::updatePulse2DutyButtons(const chipper::PatchConfig& patch, bool shouldBeVisible)
 {
-    const auto* spec = chipper::parameterSpecFor(displayedMode, chipper::ChipParameterRole::pulse2Duty);
-    const auto choiceCount = spec == nullptr || spec->choices.empty()
-                                 ? pulse2DutyButtons.size()
-                                 : std::min(pulse2DutyButtons.size(), spec->choices.size());
-    const auto selected = static_cast<size_t>(std::clamp(patch.pulse2Duty, 0, static_cast<int>(choiceCount - 1u)));
-    layoutSegmentedButtons(pulse2DutyButtons, pulse2DutySegmentBounds, choiceCount);
-    for (size_t i = 0; i < pulse2DutyButtons.size(); ++i)
-    {
-        const auto visible = shouldBeVisible && i < choiceCount;
-        pulse2DutyButtons[i].setVisible(visible);
-        pulse2DutyButtons[i].setToggleState(visible && i == selected, juce::dontSendNotification);
-    }
-
-    const auto embeddedInSourceCard = isNesFamily(displayedMode)
-        || displayedMode == chipper::ChipMode::dmg;
+    static const juce::StringArray duties { "12.5%", "25%", "50%", "75%" };
+    const auto resolved = displayedMode == chipper::ChipMode::dmg
+        ? dmgPulseDutyChoiceForSource(patch, 1) : nesPulse2DutyChoiceForPatch(patch);
+    pulse2DutyChoice.setResolvedValue(duties[std::clamp(resolved, 0, 3)]);
+    pulse2DutyChoice.setVisible(shouldBeVisible);
     pulse2DutyLabel.setVisible(shouldBeVisible);
-    pulse2DutyValueLabel.setVisible(shouldBeVisible);
-    pulse2DutyValueLabel.setText(embeddedInSourceCard ? compactPulse2DutyReadout(patch) : pulse2DutyReadout(patch),
-                                 juce::dontSendNotification);
+    pulse2DutyValueLabel.setVisible(false);
 }
 
 void ChipperAudioProcessorEditor::updateToneNoiseMixButtons(float value, bool shouldBeVisible)
@@ -15810,12 +15679,9 @@ void ChipperAudioProcessorEditor::updateYmChannelMixControls(bool shouldBeVisibl
 {
     const juce::ScopedValueSetter<bool> suppressChoices(suppressManualChoiceCallbacks, true);
 
-    for (size_t i = 0; i < ymChannelMixBoxes.size(); ++i)
+    for (size_t i = 0; i < ssgChannels.size(); ++i)
     {
-        const auto selected = static_cast<int>(std::round(parameterValue(ymChannelMixParameterId(i))));
-        ymChannelMixLabels[i].setVisible(shouldBeVisible);
-        ymChannelMixBoxes[i].setVisible(shouldBeVisible);
-        ymChannelMixBoxes[i].setSelectedItemIndex(std::clamp(selected, 0, 4), juce::dontSendNotification);
+        ssgChannels[i].setVisible(shouldBeVisible);
     }
 
     const auto embeddedInSourceCards = displayedMode == chipper::ChipMode::ym2149;
@@ -15837,7 +15703,10 @@ void ChipperAudioProcessorEditor::updateYmChannelMixControls(bool shouldBeVisibl
         static_cast<int>(std::round(parameterValue(chipper::parameters::id::snNoiseMode))),
         parameterValue(chipper::parameters::id::stereoSpread));
     const auto isOpnSsg = isOpnSsgMode(displayedMode);
+    for (auto& channel : ssgChannels)
+        channel.updatePatch(displayedMode, patch);
     ymChannelMixValueLabel.setText(isOpnSsg ? opnSsgMixerReadout(patch) : ymChannelMixReadout(patch), juce::dontSendNotification);
+    ymChannelMixValueLabel.setTooltip(ChipperSsgChannel::sharedNoiseDestinations(displayedMode, patch));
 }
 
 void ChipperAudioProcessorEditor::updateSnNoiseModeButtons(chipper::ChipMode mode, const chipper::PatchConfig& patch, bool shouldBeVisible)
@@ -17696,13 +17565,13 @@ void ChipperAudioProcessorEditor::updateLiveControlReadouts()
     }
     else if (mode == chipper::ChipMode::spc700)
     {
-        controlValueLabels[4].setText("SPC700 sample import", juce::dontSendNotification);
+        controlValueLabels[4].setVisible(false); // Import belongs to the sample bank.
         controlValueLabels[4].setTooltip("Loads BRR, WAV, or AIFF samples into the SPC700-style sample voice path.");
         updateSpc700BrrSampleControls();
     }
     else if (mode == chipper::ChipMode::paula)
     {
-        controlValueLabels[4].setText("Paula sample import", juce::dontSendNotification);
+        controlValueLabels[4].setVisible(false); // Import belongs to the sample bank.
         controlValueLabels[4].setTooltip("Loads WAV/AIFF, uncompressed IFF/8SVX, or ProTracker MOD sample sources into the Paula-style 8-bit sample voice path.");
         updatePaulaSampleControls();
     }
