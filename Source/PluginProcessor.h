@@ -4,6 +4,7 @@
 
 #include "Engine/ChipCore.h"
 #include "Engine/MotionData.h"
+#include "State/SampleAsset.h"
 #include "Parameters.h"
 
 #include <array>
@@ -59,25 +60,7 @@ public:
         embedProjectAssets
     };
 
-    struct DmcSampleSlot
-    {
-        juce::String name;
-        juce::String path;
-        std::vector<uint8_t> bytes;
-        chipper::ExternalSampleEncoding encoding = chipper::ExternalSampleEncoding::rawBytes;
-        bool hasLoop = false;
-        size_t loopStart = 0;
-        size_t loopEnd = 0;
-        bool included = true;
-        int sourceSampleIndex = -1;
-        size_t sourceByteCount = 0u;
-        size_t sourceSampleCount = 0u;
-        double sourceRateHz = 0.0;
-        int rootNote = 60;
-        size_t trimStart = 0u;
-        size_t trimEnd = 0u;
-        bool holdLastValue = false;
-    };
+    using DmcSampleSlot = chipper::state::SampleAsset;
 
     struct DmcSampleEntryInfo
     {

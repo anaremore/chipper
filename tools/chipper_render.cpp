@@ -3196,7 +3196,7 @@ chipper::ExternalPcmSampleData loadOpn2DacSampleFile(const std::filesystem::path
         throw std::runtime_error("Could not decode OPN2 DAC WAV/AIFF sample: " + path.string());
 
     constexpr auto maxImportedSamples = static_cast<int64_t>(0x40000);
-    const auto frameCount64 = std::clamp(reader->lengthInSamples, static_cast<int64_t>(0), maxImportedSamples);
+    const auto frameCount64 = std::clamp<int64_t>(reader->lengthInSamples, 0, maxImportedSamples);
     const auto frameCount = static_cast<int>(frameCount64);
     const auto channelCount = std::max(1, std::min(static_cast<int>(reader->numChannels), 64));
     juce::AudioBuffer<float> decoded(channelCount, frameCount);
@@ -3979,6 +3979,7 @@ void writeDescriptorJson(std::ostream& out, chipper::ChipMode mode)
         const auto& preset = *presets[i];
         out << "      { \"id\": ";
         writeJsonString(out, preset.id);
+        out << ",\n      \"featured\": " << (chipper::featuredPresetNote(preset.id).empty() ? "false" : "true");
         out << ", \"category\": ";
         writeJsonString(out, preset.category);
         out << ", \"name\": ";
@@ -4216,6 +4217,7 @@ void writePresetCatalogJson(std::ostream& out, const std::vector<chipper::ChipMo
         out << "    {\n"
             << "      \"id\": ";
         writeJsonString(out, preset.id);
+        out << ",\n      \"featured\": " << (chipper::featuredPresetNote(preset.id).empty() ? "false" : "true");
         out << ",\n"
             << "      \"category\": ";
         writeJsonString(out, preset.category);

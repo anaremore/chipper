@@ -206,6 +206,13 @@ juce::Result validateAndMigrate(juce::XmlElement& xml, const juce::Identifier& e
             migration = migrateSchema7To8(xml);
         else if (schemaVersion == 8)
             migration = migrateSchema8To9(xml);
+        else if (schemaVersion == 9)
+        {
+            // Schema 10 adds optional YM2149 Motion noise periods. Missing
+            // attributes retain the preset; existing patterns stay unchanged.
+            xml.setAttribute(schemaVersionAttribute, 10);
+            migration = juce::Result::ok();
+        }
         if (migration.failed())
             return migration;
         ++schemaVersion;

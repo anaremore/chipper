@@ -66,7 +66,7 @@ private:
         void setStep(size_t index,
                      const chipper::MotionStep& step,
                      bool inPatternLength,
-                     bool active);
+                     bool active, bool nativeNoise);
         chipper::MotionStep step() const;
 
         std::function<void()> onChanged;
@@ -85,6 +85,7 @@ private:
         size_t stepIndex = 0u;
         bool inPatternLength = true;
         bool active = false;
+        bool nativeNoise = false;
         bool updating = false;
         juce::Label stepLabel;
         juce::Label pitchLabel;
@@ -93,6 +94,8 @@ private:
         juce::Slider levelSlider;
         juce::Label gateLabel;
         juce::ComboBox gateBox;
+        juce::Label noiseLabel;
+        juce::ComboBox noiseBox;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StepColumn)
     };

@@ -61,6 +61,7 @@ ChipperMotionLab::StepColumn::StepColumn()
     configureFieldLabel(pitchLabel, "PITCH");
     configureFieldLabel(levelLabel, "LEVEL");
     configureFieldLabel(gateLabel, "GATE");
+    configureFieldLabel(noiseLabel, "NOISE PERIOD");
 
     pitchSlider.setSliderStyle(juce::Slider::LinearVertical);
     pitchSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 52, 22);
@@ -93,6 +94,14 @@ ChipperMotionLab::StepColumn::StepColumn()
     gateBox.setWantsKeyboardFocus(true);
     addAndMakeVisible(gateBox);
 
+    noiseBox.addItem("Preset", 1);
+    for (int period = 0; period < 32; ++period)
+        noiseBox.addItem(juce::String(period), period + 2);
+    noiseBox.setName("YM2149 shared noise period");
+    noiseBox.setTooltip("Native register 6 period (0-31); lower is faster. Preset restores the patch. Enable Noise and route it in the A/B/C source cards. Hold changes timbre without retriggering.");
+    noiseBox.setWantsKeyboardFocus(true);
+    addAndMakeVisible(noiseBox);
+
     const auto changed = [this]
     {
         if (! updating && onChanged)
@@ -101,12 +110,13 @@ ChipperMotionLab::StepColumn::StepColumn()
     pitchSlider.onValueChange = changed;
     levelSlider.onValueChange = changed;
     gateBox.onChange = changed;
+    noiseBox.onChange = changed;
 }
 
 void ChipperMotionLab::StepColumn::setTheme(const Theme& newTheme)
 {
     theme = newTheme;
-    for (auto* label : { &stepLabel, &pitchLabel, &levelLabel, &gateLabel })
+    for (auto* label : { &stepLabel, &pitchLabel, &levelLabel, &gateLabel, &noiseLabel })
         label->setColour(juce::Label::textColourId, theme.text);
 
     for (auto* slider : { &pitchSlider, &levelSlider })
@@ -123,18 +133,25 @@ void ChipperMotionLab::StepColumn::setTheme(const Theme& newTheme)
 void ChipperMotionLab::StepColumn::setStep(size_t index,
                                            const chipper::MotionStep& newStep,
                                            bool shouldBeInPatternLength,
-                                           bool shouldBeActive)
+                                           bool shouldBeActive, bool shouldShowNativeNoise)
 {
     updating = true;
     stepIndex = index;
+    nativeNoise = shouldShowNativeNoise;
+    noiseLabel.setVisible(nativeNoise);
+    noiseBox.setVisible(nativeNoise);
+    noiseBox.setEnabled(shouldBeInPatternLength);
+    noiseBox.setSelectedId(static_cast<int>(newStep.ymNoisePeriod) + 1, juce::dontSendNotification);
     inPatternLength = shouldBeInPatternLength;
-    const auto focusBase = motionFocusOrderBase + 20 + static_cast<int>(stepIndex * 3u);
+    const auto focusBase = motionFocusOrderBase + 20 + static_cast<int>(stepIndex * 4u);
     pitchSlider.setComponentID("motion.step." + juce::String(static_cast<int>(stepIndex + 1u)) + ".pitch");
     pitchSlider.setExplicitFocusOrder(focusBase);
     levelSlider.setComponentID("motion.step." + juce::String(static_cast<int>(stepIndex + 1u)) + ".level");
     levelSlider.setExplicitFocusOrder(focusBase + 1);
     gateBox.setComponentID("motion.step." + juce::String(static_cast<int>(stepIndex + 1u)) + ".gate");
     gateBox.setExplicitFocusOrder(focusBase + 2);
+    noiseBox.setComponentID("motion.step." + juce::String(static_cast<int>(stepIndex + 1u)) + ".noise");
+    noiseBox.setExplicitFocusOrder(focusBase + 3);
     active = shouldBeActive;
     stepLabel.setText("STEP " + juce::String(static_cast<int>(stepIndex + 1u))
                           + (active ? "  >"
@@ -150,6 +167,7 @@ void ChipperMotionLab::StepColumn::setStep(size_t index,
     setDescription("Tracker motion step " + juce::String(static_cast<int>(stepIndex + 1u))
                    + (inPatternLength ? " is inside the pattern length." : " is outside the current pattern length."));
     updating = false;
+    resized();
     repaint();
 }
 
@@ -159,6 +177,7 @@ chipper::MotionStep ChipperMotionLab::StepColumn::step() const
     result.pitch = static_cast<int8_t>(std::lround(pitchSlider.getValue()));
     result.level = static_cast<uint8_t>(std::lround(levelSlider.getValue()));
     result.gate = static_cast<chipper::MotionGate>(std::clamp(gateBox.getSelectedId() - 1, 0, 2));
+    result.ymNoisePeriod = nativeNoise ? static_cast<uint8_t>(std::clamp(noiseBox.getSelectedId() - 1, 0, 32)) : 0;
     return result;
 }
 
@@ -194,7 +213,7 @@ void ChipperMotionLab::StepColumn::resized()
     constexpr auto labelHeight = 15;
     constexpr auto gateHeight = 30;
     constexpr auto gap = 4;
-    const auto fixedHeight = labelHeight * 3 + gateHeight + gap * 4;
+    const auto fixedHeight = labelHeight * 3 + gateHeight + gap * 4 + (nativeNoise ? labelHeight + gateHeight + gap : 0);
     const auto slidersHeight = std::max(80, area.getHeight() - fixedHeight);
     const auto pitchHeight = std::max(46, slidersHeight * 55 / 100);
     const auto levelHeight = std::max(42, slidersHeight - pitchHeight);
@@ -207,6 +226,14 @@ void ChipperMotionLab::StepColumn::resized()
     area.removeFromTop(std::min(gap, area.getHeight()));
     gateLabel.setBounds(area.removeFromTop(std::min(labelHeight, area.getHeight())));
     gateBox.setBounds(area.removeFromTop(std::min(gateHeight, area.getHeight())));
+    noiseLabel.setBounds({});
+    noiseBox.setBounds({});
+    if (nativeNoise)
+    {
+        area.removeFromTop(gap);
+        noiseLabel.setBounds(area.removeFromTop(labelHeight));
+        noiseBox.setBounds(area.removeFromTop(gateHeight));
+    }
 }
 
 ChipperMotionLab::ChipperMotionLab(ChipperAudioProcessor& processorToUse)
@@ -327,7 +354,7 @@ ChipperMotionLab::ChipperMotionLab(ChipperAudioProcessor& processorToUse)
             pattern.steps[index] = stepColumns[index].step();
             commitPattern();
         };
-        column.setExplicitFocusOrder(motionFocusOrderBase + 20 + static_cast<int>(index * 3u));
+        column.setExplicitFocusOrder(motionFocusOrderBase + 20 + static_cast<int>(index * 4u));
         addAndMakeVisible(column);
     }
 
@@ -391,7 +418,7 @@ void ChipperMotionLab::refresh()
             stepColumns[index].setStep(index,
                                        pattern.steps[index],
                                        index < pattern.length,
-                                       static_cast<int>(index) == snapshot.activeStep);
+                                       static_cast<int>(index) == snapshot.activeStep, mode == chipper::ChipMode::ym2149);
     }
 }
 
@@ -433,7 +460,7 @@ void ChipperMotionLab::updatePatternControls()
         stepColumns[index].setStep(index,
                                    pattern.steps[index],
                                    index < pattern.length,
-                                   static_cast<int>(index) == lastActiveStep);
+                                   static_cast<int>(index) == lastActiveStep, mode == chipper::ChipMode::ym2149);
     updating = false;
 }
 

@@ -62,6 +62,8 @@ struct PresetQualityTarget
     int minimumPresetCount = 12;
 };
 
+// Empty for sounds outside the curated starter bank. IDs and preset values stay stable.
+std::string_view featuredPresetNote(std::string_view id) noexcept;
 const std::vector<PresetInfo>& presetCatalog();
 std::vector<const PresetInfo*> presetsForChip(ChipMode chip);
 std::vector<const PresetInfo*> presetBrowserCatalog(ChipMode preferredChip);

@@ -102,6 +102,7 @@ std::unique_ptr<juce::XmlElement> createMotionStateXml(const MotionState& state)
             entry->setAttribute("p" + suffix, static_cast<int>(pattern.steps[step].pitch));
             entry->setAttribute("v" + suffix, static_cast<int>(pattern.steps[step].level));
             entry->setAttribute("g" + suffix, static_cast<int>(pattern.steps[step].gate));
+            entry->setAttribute("yn" + suffix, static_cast<int>(pattern.steps[step].ymNoisePeriod));
         }
     }
     return root->getNumChildElements() > 0 ? std::move(root) : nullptr;
@@ -145,6 +146,10 @@ juce::Result restoreMotionStateXml(const juce::XmlElement& xml, MotionState& sta
             const auto pitch = entry->getIntAttribute("p" + suffix, 0);
             const auto level = entry->getIntAttribute("v" + suffix, motionMaximumLevel);
             const auto gate = entry->getIntAttribute("g" + suffix, 0);
+            const auto noisePeriod = entry->getIntAttribute("yn" + suffix, 0);
+            if (noisePeriod < 0 || noisePeriod > 32
+                || (*parsedMode != ChipMode::ym2149 && noisePeriod != 0))
+                return juce::Result::fail("Tracker motion contains an invalid YM2149 noise period");
             if (pitch < motionMinimumPitch || pitch > motionMaximumPitch
                 || level < 0 || level > motionMaximumLevel
                 || gate < static_cast<int>(MotionGate::hold) || gate > static_cast<int>(MotionGate::cut))
@@ -153,6 +158,7 @@ juce::Result restoreMotionStateXml(const juce::XmlElement& xml, MotionState& sta
             pattern.steps[step].pitch = static_cast<int8_t>(pitch);
             pattern.steps[step].level = static_cast<uint8_t>(level);
             pattern.steps[step].gate = static_cast<MotionGate>(gate);
+            pattern.steps[step].ymNoisePeriod = static_cast<uint8_t>(noisePeriod);
         }
         restored.patterns[index] = pattern;
     }

@@ -47,7 +47,7 @@ Each interface screenshot includes a click-to-play MP3 example for GitHub users.
   <tr>
     <td width="33%" valign="top"><strong>PC Engine HuC6280</strong><br><img src="screenshots/huc6280.png" alt="Chipper PC Engine HuC6280 plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/c7d5c736-88af-49ea-a52a-79909d45f3b1">Play sample</a></td>
     <td width="33%" valign="top"><strong>Namco WSG</strong><br><img src="screenshots/namcowsg.png" alt="Chipper Namco WSG plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/1a4b994c-42cd-4a98-bf13-bd08534ceaa5">Play sample</a></td>
-    <td width="33%" valign="top"><strong>Konami SCC</strong><br><img src="screenshots/konamiscc.png" alt="Chipper Konami SCC plugin interface" width="100%"><br<a href="https://github.com/user-attachments/assets/1b04da2c-e8d7-4e5a-9351-b4955ef34d26">Play sample</a></td>
+    <td width="33%" valign="top"><strong>Konami SCC</strong><br><img src="screenshots/konamiscc.png" alt="Chipper Konami SCC plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/1b04da2c-e8d7-4e5a-9351-b4955ef34d26">Play sample</a></td>
   </tr>
   <tr>
     <td width="33%" valign="top"><strong>YM2151 / OPM</strong><br><img src="screenshots/ym2151.png" alt="Chipper YM2151 / OPM plugin interface" width="100%"><br><a href="https://github.com/user-attachments/assets/7b73fb11-0e02-4d50-972d-c3f713c5f3e3">Play sample</a></td>
@@ -120,14 +120,15 @@ Implemented depth varies by chip. See [docs/emulation-accuracy.md](docs/emulatio
 Requirements:
 
 - CMake 3.22 or newer
+- Python 3.10 or newer (required when building tests)
 - Visual Studio 2019/2022 with the Desktop C++ workload
 - Internet access on first configure so CMake can fetch JUCE
 
-Configure and build:
+Configure and build all plugin, renderer, and test targets:
 
 ```powershell
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64
-cmake --build build --config Release --target Chipper_VST3 chipper_render
+cmake --build build --config Release --parallel 2
 ```
 
 The VST3 bundle is produced at:
@@ -136,7 +137,7 @@ The VST3 bundle is produced at:
 build\Chipper_artefacts\Release\VST3\Chipper.vst3
 ```
 
-Run the test suite:
+Run the test suite (CTest does not build missing executables):
 
 ```powershell
 ctest --test-dir build -C Release --output-on-failure
@@ -149,6 +150,16 @@ ctest --test-dir build-codex -C Release -R "chipper_descriptor_smoke|processor_m
 ```
 
 These cover high-risk playable-instrument paths such as NES DMC loop-off behavior and FM sustained-note/key-on regressions before a full suite run. For the FM sustain regression specifically, the CTest names include `held_tail` and assert renderer `tailRms` rather than only checking that rendering completed.
+
+For a complete clean-checkout check, CI and local development use:
+
+```powershell
+./scripts/verify-project.ps1 -BuildRoot build-check -Config Release
+```
+
+When multiple Visual Studio installations exist, select the working C++ toolchain with `-Generator "Visual Studio 16 2019"` or the installed 2022 generator. See [review improvements](docs/review-improvements.md) for mono routing, concurrent saves, native YM2149 noise Motion, and the [Featured starter bank](docs/featured-sounds.md).
+
+Set `-DCHIPPER_BUILD_TESTS=OFF` only for a build without test targets or test registration. Python is mandatory when tests are enabled, so a missing interpreter cannot silently omit assertions.
 
 ## GitHub Release Builds
 
@@ -279,7 +290,7 @@ build\Release\chipper_render.exe --list-presets --chip sid --debug sid-presets.j
 Run the preset QA gate before adding or releasing factory sounds:
 
 ```powershell
-cmake --build build --config Release --target Chipper_VST3 chipper_render
+cmake --build build --config Release --parallel 2
 .\scripts\verify-presets.ps1
 ```
 

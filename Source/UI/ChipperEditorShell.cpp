@@ -19,7 +19,7 @@ ChipperEditorShell::ChipperEditorShell(Controls controlsToUse)
     addAndMakeVisible(controls.save);
     addAndMakeVisible(controls.saveAs);
     addAndMakeVisible(controls.chipMode);
-    addAndMakeVisible(controls.strictness);
+    addChildComponent(controls.strictness);
     addAndMakeVisible(controls.macro);
     addAndMakeVisible(controls.playMode);
     addAndMakeVisible(controls.workflow);
@@ -52,7 +52,7 @@ void ChipperEditorShell::resized()
         comboBox.setBounds(bounds.reduced(0, 4));
     };
 
-    controls.title.setBounds(top.removeFromLeft(230));
+    controls.title.setBounds(top.removeFromLeft(184));
     top.removeFromLeft(8);
 
     constexpr auto headerGap = 8;
@@ -62,17 +62,15 @@ void ChipperEditorShell::resized()
     constexpr auto saveButtonWidth = 56;
     constexpr auto saveAsButtonWidth = 72;
     constexpr auto chipModeWidth = 184;
-    constexpr auto strictnessWidth = 108;
     constexpr auto playModeWidth = 122;
-    constexpr auto presetMinWidth = 148;
-    constexpr auto presetMaxWidth = 330;
+    constexpr auto presetMinWidth = 270;
+    constexpr auto presetMaxWidth = 484;
 
     const auto fixedHeaderWidth = compactGap + favoriteButtonWidth
         + compactGap + loadButtonWidth
         + compactGap + saveButtonWidth
         + compactGap + saveAsButtonWidth
         + headerGap + chipModeWidth
-        + headerGap + strictnessWidth
         + headerGap + playModeWidth;
     const auto presetWidth = std::clamp(top.getWidth() - fixedHeaderWidth, presetMinWidth, presetMaxWidth);
 
@@ -97,8 +95,10 @@ void ChipperEditorShell::resized()
     top.removeFromLeft(headerGap);
     placeHeaderCombo(1, controls.chipMode, top.removeFromLeft(chipModeWidth));
     top.removeFromLeft(headerGap);
-    placeHeaderCombo(2, controls.strictness, top.removeFromLeft(strictnessWidth));
-    top.removeFromLeft(headerGap);
+    // Keep the frozen host parameter/attachment while removing its inactive UI.
+    controls.strictness.setVisible(false);
+    controls.strictness.setBounds({});
+    controls.headerLabels[2].setBounds({});
     placeHeaderCombo(4, controls.playMode, top.removeFromLeft(playModeWidth));
 
     area.removeFromTop(6);

@@ -33,7 +33,7 @@ must not silently reinterpret an existing ID or accepted state.
 - The APVTS root tag is `ChipperState`.
 - Unversioned state is schema 1. It is accepted and migrated to the current
   schema before APVTS and non-parameter state restore.
-- Current saved state declares `stateSchemaVersion="9"`. Schema 3 added
+- Current saved state declares `stateSchemaVersion="10"`. Schema 3 added
   optional embedded custom Wave RAM; schema 4 added optional per-chip Motion
   Lab patterns; schema 5 added native YM2151 LFO controls; schema 6 added
   native YM2151 per-operator DT1/DT2 choices; and schema 7 gives those stable
@@ -66,10 +66,12 @@ must not silently reinterpret an existing ID or accepted state.
   that do not use complete 256-byte pages, and OPNB banks exceeding 1 MiB.
 - Schema fixtures live in `tests/state/` and are exercised by
   `chipper_processor_midi_cc_smoke`, including legacy migration, current
-  schema-v9 round trips, schema-8 OPN2 migration, malformed ADPCM-A region rejection, deleted-source
+  schema-v10 round trips, schema-8 OPN2 migration, malformed ADPCM-A region rejection, deleted-source
   fallback, missing OPM choice backfill, malformed motion, and future versions.
 
 ## External assets
+
+Schema 10 adds optional `yn0` through `yn7` to YM2149 Motion patterns: zero follows the preset; 1-32 encode noise periods 0-31. Older states default to zero. Native values on other chip modes and out-of-range values fail before mutation. Transient Motion periods are excluded from base register snapshots.
 
 - Saved asset tags retain the original `path` and are annotated with `fileName`
   plus a portable `relativePath` when the file is inside the preset directory

@@ -50,6 +50,7 @@ MotionPattern sanitizeMotionPattern(const MotionPattern& pattern) noexcept
                                                    motionMinimumPitch,
                                                    motionMaximumPitch));
         step.level = static_cast<uint8_t>(std::min(step.level, motionMaximumLevel));
+        step.ymNoisePeriod = std::min<uint8_t>(step.ymNoisePeriod, 32u);
         if (! validGate(step.gate))
             step.gate = MotionGate::hold;
     }
@@ -156,6 +157,7 @@ std::string_view motionDestinationForMode(ChipMode mode) noexcept
         case ChipMode::sid:
             return "frequency + gate; post-chip level";
         case ChipMode::ym2149:
+            return "tone period + gate; native shared noise period; post-chip level";
         case ChipMode::sn76489:
         case ChipMode::saa1099:
         case ChipMode::pokey:

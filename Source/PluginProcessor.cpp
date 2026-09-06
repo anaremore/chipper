@@ -4,6 +4,8 @@
 #include "Engine/YamahaAdpcmCodec.h"
 #include "PluginEditor.h"
 #include "State/MotionState.h"
+#include "State/ProjectState.h"
+#include "State/SampleStateMetadata.h"
 #include "State/PluginStateSchema.h"
 #include "State/WavetableState.h"
 
@@ -19,22 +21,7 @@
 
 namespace
 {
-constexpr auto coreStateTag = "CHIPPER_CORE_REGISTERS";
-constexpr auto registerTag = "REG";
-constexpr auto dmcBankStateTag = "CHIPPER_DMC_BANK";
-constexpr auto dmcSampleStateTag = "DMC_SAMPLE";
-constexpr auto spc700BrrStateTag = "CHIPPER_SPC700_BRR";
-constexpr auto spc700BrrBankStateTag = "CHIPPER_SPC700_BRR_BANK";
-constexpr auto spc700BrrSampleStateTag = "BRR_SAMPLE";
-constexpr auto paulaSampleBankStateTag = "CHIPPER_PAULA_SAMPLE_BANK";
-constexpr auto paulaSampleStateTag = "PAULA_SAMPLE";
-constexpr auto opn2DacSampleStateTag = "CHIPPER_OPN2_DAC_SAMPLE";
-constexpr auto opnaRhythmRomStateTag = "CHIPPER_OPNA_RHYTHM_ROM";
-constexpr auto opnaAdpcmBSampleStateTag = "CHIPPER_OPNA_ADPCM_B_SAMPLE";
-constexpr auto opnbAdpcmASampleStateTag = "CHIPPER_OPNB_ADPCM_A_SAMPLE";
-constexpr auto opnbAdpcmBSampleStateTag = "CHIPPER_OPNB_ADPCM_B_SAMPLE";
-constexpr auto adpcmARegionStateTag = "CHIPPER_ADPCM_A_REGION";
-constexpr auto adpcmARegionsBankMode = "regions";
+using namespace chipper::state::assets;
 constexpr size_t maxRestoredSampleReferences = 256u;
 constexpr auto unmappedDmcSampleSlot = -2;
 constexpr auto opn2DacMemoryBytes = 262144;
@@ -47,11 +34,6 @@ constexpr auto opnaAdpcmAClockHz = 7987200.0;
 constexpr auto opnbAdpcmAImportRate = 8000000.0 / 432.0;
 constexpr auto opnbAdpcmBImportRate = 8000000.0 / 1536.0;
 constexpr size_t maxConvertedPcmSamples = 2u * 1024u * 1024u;
-constexpr size_t maxEmbeddedOpn2Bytes = 1u * 1024u * 1024u;
-constexpr size_t maxEmbeddedOpnaRhythmBytes = 64u * 1024u;
-constexpr size_t maxEmbeddedOpnaAdpcmBBytes = 1u * 1024u * 1024u;
-constexpr size_t maxEmbeddedOpnbAdpcmABytes = 2u * 1024u * 1024u;
-constexpr size_t maxEmbeddedOpnbAdpcmBBytes = 16u * 1024u * 1024u;
 
 juce::String midiNoteName(int note)
 {
@@ -418,8 +400,7 @@ juce::Result readDmcSampleFile(const juce::File& file, ChipperAudioProcessor::Dm
     slot.name = file.getFileName();
     slot.path = file.getFullPathName();
     slot.encoding = chipper::ExternalSampleEncoding::rawBytes;
-    slot.bytes.resize(block.getSize());
-    std::memcpy(slot.bytes.data(), block.getData(), block.getSize());
+    slot.bytes.assign(block.getData(), block.getSize());
     return juce::Result::ok();
 }
 
@@ -438,8 +419,7 @@ juce::Result readOpnaRhythmRomFile(const juce::File& file, ChipperAudioProcessor
     slot.name = file.getFileName();
     slot.path = file.getFullPathName();
     slot.encoding = chipper::ExternalSampleEncoding::rawBytes;
-    slot.bytes.resize(block.getSize());
-    std::memcpy(slot.bytes.data(), block.getData(), block.getSize());
+    slot.bytes.assign(block.getData(), block.getSize());
     slot.included = true;
     return juce::Result::ok();
 }
@@ -464,8 +444,7 @@ juce::Result readRawAdpcmSampleFile(const juce::File& file,
     slot.name = file.getFileName();
     slot.path = file.getFullPathName();
     slot.encoding = chipper::ExternalSampleEncoding::rawBytes;
-    slot.bytes.resize(block.getSize());
-    std::memcpy(slot.bytes.data(), block.getData(), block.getSize());
+    slot.bytes.assign(block.getData(), block.getSize());
     slot.included = true;
     return juce::Result::ok();
 }
@@ -882,11 +861,7 @@ enum class EmbeddedSampleFamily
     rawMemory
 };
 
-struct EmbeddedSampleBudget
-{
-    size_t payloadCount = 0u;
-    size_t totalBytes = 0u;
-};
+
 
 struct EmbeddedSampleRestore
 {
@@ -895,16 +870,7 @@ struct EmbeddedSampleRestore
     juce::String error;
 };
 
-juce::String externalSampleEncodingToken(chipper::ExternalSampleEncoding encoding)
-{
-    switch (encoding)
-    {
-        case chipper::ExternalSampleEncoding::spc700Brr: return "spc700Brr";
-        case chipper::ExternalSampleEncoding::signedPcm8: return "signedPcm8";
-        case chipper::ExternalSampleEncoding::rawBytes:
-        default: return "rawBytes";
-    }
-}
+
 
 bool parseExternalSampleEncoding(const juce::String& token, chipper::ExternalSampleEncoding& encoding)
 {
@@ -969,21 +935,9 @@ bool parseSignedIntAttribute(const juce::XmlElement& element, const char* attrib
     return true;
 }
 
-uint32_t embeddedSampleChecksum(const uint8_t* bytes, size_t byteCount)
-{
-    auto hash = uint32_t { 2166136261u };
-    for (size_t index = 0; index < byteCount; ++index)
-    {
-        hash ^= bytes[index];
-        hash *= 16777619u;
-    }
-    return hash;
-}
 
-size_t sampleSourceByteCount(const ChipperAudioProcessor::DmcSampleSlot& slot)
-{
-    return slot.sourceByteCount > 0u ? slot.sourceByteCount : slot.bytes.size();
-}
+
+
 
 int reportedSampleByteCount(const ChipperAudioProcessor::DmcSampleSlot& slot)
 {
@@ -997,31 +951,9 @@ int reportedDecodedSampleCount(const ChipperAudioProcessor::DmcSampleSlot& slot)
     return static_cast<int>(std::min(count, static_cast<size_t>(std::numeric_limits<int>::max())));
 }
 
-void addSampleReferenceMetadata(juce::XmlElement& sampleState,
-                                const ChipperAudioProcessor::DmcSampleSlot& slot)
-{
-    sampleState.setAttribute("name", slot.name);
-    sampleState.setAttribute("encoding", externalSampleEncodingToken(slot.encoding));
-    sampleState.setAttribute("hasLoop", slot.hasLoop ? 1 : 0);
-    sampleState.setAttribute("loopStart", juce::String(static_cast<juce::int64>(slot.loopStart)));
-    sampleState.setAttribute("loopEnd", juce::String(static_cast<juce::int64>(slot.loopEnd)));
-    sampleState.setAttribute("sourceSampleIndex", slot.sourceSampleIndex);
-    sampleState.setAttribute("sourceByteCount",
-                             juce::String(static_cast<juce::int64>(sampleSourceByteCount(slot))));
-    if (slot.sourceSampleCount > 0u)
-        sampleState.setAttribute("sourceSampleCount",
-                                 juce::String(static_cast<juce::int64>(slot.sourceSampleCount)));
-}
 
-void addOpn2DacPlaybackMetadata(juce::XmlElement& sampleState,
-                                const ChipperAudioProcessor::DmcSampleSlot& slot)
-{
-    sampleState.setAttribute("sourceRateHz", slot.sourceRateHz);
-    sampleState.setAttribute("rootNote", slot.rootNote);
-    sampleState.setAttribute("trimStart", juce::String(static_cast<juce::int64>(slot.trimStart)));
-    sampleState.setAttribute("trimEnd", juce::String(static_cast<juce::int64>(slot.trimEnd)));
-    sampleState.setAttribute("tailBehavior", slot.holdLastValue ? "hold" : "center");
-}
+
+
 
 juce::Result restoreOpn2DacPlaybackMetadata(const juce::XmlElement& sampleState,
                                             ChipperAudioProcessor::DmcSampleSlot& slot)
@@ -1059,30 +991,7 @@ juce::Result restoreOpn2DacPlaybackMetadata(const juce::XmlElement& sampleState,
     return juce::Result::ok();
 }
 
-bool addEmbeddedSamplePayload(juce::XmlElement& sampleState,
-                              const ChipperAudioProcessor::DmcSampleSlot& slot,
-                              size_t maxPayloadBytes,
-                              EmbeddedSampleBudget& budget)
-{
-    if (slot.bytes.empty()
-        || slot.bytes.size() > maxPayloadBytes
-        || budget.payloadCount >= chipper::state::maxEmbeddedSamplePayloads
-        || slot.bytes.size() > chipper::state::maxEmbeddedProjectBytes - budget.totalBytes)
-        return false;
 
-    auto* embedded = new juce::XmlElement(chipper::state::embeddedSampleStateTag);
-    embedded->setAttribute("formatVersion", chipper::state::embeddedSampleFormatVersion);
-    embedded->setAttribute("byteCount", juce::String(static_cast<juce::int64>(slot.bytes.size())));
-    embedded->setAttribute("checksum",
-                           "fnv1a32:" + juce::String(static_cast<juce::int64>(
-                               embeddedSampleChecksum(slot.bytes.data(), slot.bytes.size()))));
-    const juce::MemoryBlock payload(slot.bytes.data(), slot.bytes.size());
-    embedded->addTextElement(payload.toBase64Encoding());
-    sampleState.addChildElement(embedded);
-    ++budget.payloadCount;
-    budget.totalBytes += slot.bytes.size();
-    return true;
-}
 
 bool isEmbeddedSampleParentTag(const juce::String& tagName)
 {
@@ -1314,8 +1223,7 @@ EmbeddedSampleRestore restoreEmbeddedSample(const juce::XmlElement& sampleState,
     slot.sourceSampleIndex = sourceSampleIndex;
     slot.sourceByteCount = sourceByteCount;
     slot.sourceSampleCount = sourceSampleCount;
-    slot.bytes.resize(byteCount);
-    std::memcpy(slot.bytes.data(), decoded.getData(), byteCount);
+    slot.bytes.assign(decoded.getData(), byteCount);
     result.restored = true;
     return result;
 }
@@ -1392,7 +1300,7 @@ juce::Result readPcm8SampleFile(const juce::File& file,
     slot.path = file.getFullPathName();
     slot.encoding = chipper::ExternalSampleEncoding::signedPcm8;
     slot.sourceRateHz = std::isfinite(reader->sampleRate) && reader->sampleRate > 0.0 ? reader->sampleRate : 0.0;
-    slot.bytes.resize(static_cast<size_t>(sampleCount));
+    std::vector<uint8_t> importedBytes(static_cast<size_t>(sampleCount));
     const auto channelCount = std::max(1, decoded.getNumChannels());
     for (int i = 0; i < sampleCount; ++i)
     {
@@ -1402,9 +1310,10 @@ juce::Result readPcm8SampleFile(const juce::File& file,
         mixed /= static_cast<float>(channelCount);
 
         const auto quantized = std::clamp(static_cast<int>(std::round(juce::jlimit(-1.0f, 1.0f, mixed) * 127.0f)), -128, 127);
-        slot.bytes[static_cast<size_t>(i)] = static_cast<uint8_t>(quantized + 128);
+        importedBytes[static_cast<size_t>(i)] = static_cast<uint8_t>(quantized + 128);
     }
 
+    slot.bytes = std::move(importedBytes);
     if (slot.bytes.empty())
         return juce::Result::fail(label + " sample import produced no usable sample bytes: " + file.getFileName());
 
@@ -1442,8 +1351,7 @@ juce::Result readOpn2DacSampleFile(const juce::File& file, ChipperAudioProcessor
     slot.name = file.getFileName();
     slot.path = file.getFullPathName();
     slot.encoding = chipper::ExternalSampleEncoding::rawBytes;
-    slot.bytes.resize(block.getSize());
-    std::memcpy(slot.bytes.data(), block.getData(), block.getSize());
+    slot.bytes.assign(block.getData(), block.getSize());
     slot.included = true;
     return juce::Result::ok();
 }
@@ -1518,7 +1426,7 @@ juce::Result readIff8svxSampleFile(const juce::File& file, ChipperAudioProcessor
     slot.name = file.getFileName();
     slot.path = file.getFullPathName();
     slot.encoding = chipper::ExternalSampleEncoding::signedPcm8;
-    slot.bytes.resize(sampleCount);
+    std::vector<uint8_t> importedBytes(sampleCount);
     if (repeatSamples > 1u && oneShotSamples < sampleCount)
     {
         slot.hasLoop = true;
@@ -1528,7 +1436,8 @@ juce::Result readIff8svxSampleFile(const juce::File& file, ChipperAudioProcessor
             slot.hasLoop = false;
     }
     for (size_t i = 0; i < sampleCount; ++i)
-        slot.bytes[i] = static_cast<uint8_t>(static_cast<int>(static_cast<int8_t>(body[i])) + 128);
+        importedBytes[i] = static_cast<uint8_t>(static_cast<int>(static_cast<int8_t>(body[i])) + 128);
+    slot.bytes = std::move(importedBytes);
 
     return juce::Result::ok();
 }
@@ -1622,9 +1531,10 @@ juce::Result readProTrackerModSampleFile(const juce::File& file, std::vector<Chi
             slot.path = file.getFullPathName();
             slot.encoding = chipper::ExternalSampleEncoding::signedPcm8;
             slot.sourceSampleIndex = static_cast<int>(i);
-            slot.bytes.resize(importedLength);
+            std::vector<uint8_t> importedBytes(importedLength);
             for (size_t sample = 0; sample < importedLength; ++sample)
-                slot.bytes[sample] = static_cast<uint8_t>(static_cast<int>(static_cast<int8_t>(bytes[sampleOffset + sample])) + 128);
+                importedBytes[sample] = static_cast<uint8_t>(static_cast<int>(static_cast<int8_t>(bytes[sampleOffset + sample])) + 128);
+            slot.bytes = std::move(importedBytes);
 
             if (headers[i].loopLength > 2u && headers[i].loopStart < importedLength)
             {
@@ -1671,8 +1581,7 @@ juce::Result readSpc700BrrSampleFile(const juce::File& file, ChipperAudioProcess
     slot.name = file.getFileName();
     slot.path = file.getFullPathName();
     slot.encoding = chipper::ExternalSampleEncoding::spc700Brr;
-    slot.bytes.resize(block.getSize());
-    std::memcpy(slot.bytes.data(), block.getData(), block.getSize());
+    slot.bytes.assign(block.getData(), block.getSize());
     return juce::Result::ok();
 }
 
@@ -3486,7 +3395,11 @@ void ChipperAudioProcessor::renderRange(juce::AudioBuffer<float>& buffer, int st
         const auto left = juce::jlimit(-1.0f, 1.0f, frame.left * outputGain);
         const auto right = juce::jlimit(-1.0f, 1.0f, frame.right * outputGain);
 
-        if (channels > 0)
+        // Equal-weight mono preserves a centered sound's level and includes
+        // native right-only lanes without adding 6 dB for correlated channels.
+        if (channels == 1)
+            buffer.setSample(0, sample, juce::jlimit(-1.0f, 1.0f, (frame.left + frame.right) * 0.5f * outputGain));
+        else if (channels > 1)
             buffer.setSample(0, sample, left);
         if (channels > 1)
             buffer.setSample(1, sample, right);
@@ -3573,6 +3486,8 @@ int ChipperAudioProcessor::motionMidiNote(int midiNote) const noexcept
 
 void ChipperAudioProcessor::resetMotionPlayback() noexcept
 {
+    if (core != nullptr)
+        core->setYmNoiseMotion(0);
     activeMotionStep = -1;
     activeMotionPitch = 0;
     activeMotionGain = 1.0f;
@@ -3591,6 +3506,8 @@ void ChipperAudioProcessor::beginMotionSequence() noexcept
 
     activeMotionStep = 0;
     const auto& step = activeMotionPattern.steps[0];
+    if (core != nullptr)
+        core->setYmNoiseMotion(step.ymNoisePeriod);
     activeMotionPitch = static_cast<int>(step.pitch);
     activeMotionGain = static_cast<float>(step.level) / static_cast<float>(chipper::motionMaximumLevel);
     activeMotionCut = step.gate == chipper::MotionGate::cut;
@@ -3616,6 +3533,8 @@ void ChipperAudioProcessor::advanceMotionStep()
                                    static_cast<int>(chipper::motionStepCount));
     activeMotionStep = (std::max(activeMotionStep, 0) + 1) % length;
     const auto& step = activeMotionPattern.steps[static_cast<size_t>(activeMotionStep)];
+    if (core != nullptr)
+        core->setYmNoiseMotion(step.ymNoisePeriod);
     activeMotionPitch = static_cast<int>(step.pitch);
     activeMotionGain = static_cast<float>(step.level) / static_cast<float>(chipper::motionMaximumLevel);
     activeMotionCut = step.gate == chipper::MotionGate::cut;
@@ -4867,7 +4786,10 @@ bool ChipperAudioProcessor::setMotionPattern(chipper::ChipMode mode,
     if (index >= motionPatterns.size())
         return false;
 
-    const auto pattern = chipper::sanitizeMotionPattern(requestedPattern);
+    auto pattern = chipper::sanitizeMotionPattern(requestedPattern);
+    if (mode != chipper::ChipMode::ym2149)
+        for (auto& step : pattern.steps)
+            step.ymNoisePeriod = 0;
     auto changed = false;
     {
         const std::lock_guard<std::mutex> lock(motionWriteMutex);
@@ -5022,278 +4944,59 @@ juce::AudioProcessorEditor* ChipperAudioProcessor::createEditor()
 
 std::unique_ptr<juce::XmlElement> ChipperAudioProcessor::createStateXml(StateAssetPolicy assetPolicy)
 {
-    const juce::ScopedLock callbackGuard(getCallbackLock());
-    const auto state = apvts.copyState();
-    auto xml = state.createXml();
-    if (xml == nullptr)
-        return {};
-
-    xml->setAttribute(chipper::state::schemaVersionAttribute, chipper::state::currentSchemaVersion);
-    const auto embedProjectAssets = assetPolicy == StateAssetPolicy::embedProjectAssets;
-    EmbeddedSampleBudget embeddedBudget;
-
-    while (auto* existingCoreState = xml->getChildByName(coreStateTag))
-        xml->removeChildElement(existingCoreState, true);
-    while (auto* existingDmcBankState = xml->getChildByName(dmcBankStateTag))
-        xml->removeChildElement(existingDmcBankState, true);
-    while (auto* existingSpcBrrState = xml->getChildByName(spc700BrrStateTag))
-        xml->removeChildElement(existingSpcBrrState, true);
-    while (auto* existingSpcBrrBankState = xml->getChildByName(spc700BrrBankStateTag))
-        xml->removeChildElement(existingSpcBrrBankState, true);
-    while (auto* existingPaulaSampleBankState = xml->getChildByName(paulaSampleBankStateTag))
-        xml->removeChildElement(existingPaulaSampleBankState, true);
-    while (auto* existingOpn2DacSampleState = xml->getChildByName(opn2DacSampleStateTag))
-        xml->removeChildElement(existingOpn2DacSampleState, true);
-    while (auto* existingOpnaRhythmRomState = xml->getChildByName(opnaRhythmRomStateTag))
-        xml->removeChildElement(existingOpnaRhythmRomState, true);
-    while (auto* existingOpnaAdpcmBState = xml->getChildByName(opnaAdpcmBSampleStateTag))
-        xml->removeChildElement(existingOpnaAdpcmBState, true);
-    while (auto* existingOpnbAdpcmAState = xml->getChildByName(opnbAdpcmASampleStateTag))
-        xml->removeChildElement(existingOpnbAdpcmAState, true);
-    while (auto* existingOpnbAdpcmBState = xml->getChildByName(opnbAdpcmBSampleStateTag))
-        xml->removeChildElement(existingOpnbAdpcmBState, true);
-    while (auto* existingWavetableState = xml->getChildByName(chipper::state::wavetableStateTag))
-        xml->removeChildElement(existingWavetableState, true);
-    while (auto* existingMotionState = xml->getChildByName(chipper::state::motionStateTag))
-        xml->removeChildElement(existingMotionState, true);
-
-    if (core != nullptr)
+    chipper::state::ProjectStateSnapshot snapshot;
     {
-        auto* coreState = new juce::XmlElement(coreStateTag);
-        coreState->setAttribute("mode", core->modeName());
-        coreState->setAttribute("implementedAccuracy", core->implementedAccuracy());
-
-        const auto writes = core->exportRegisterState();
-        coreState->setAttribute("count", static_cast<int>(writes.size()));
-        for (const auto& write : writes)
+        const juce::ScopedLock callbackGuard(getCallbackLock());
+        snapshot.parameters = apvts.copyState();
+        if (core != nullptr)
         {
-            auto* reg = new juce::XmlElement(registerTag);
-            reg->setAttribute("address", static_cast<int>(write.address));
-            reg->setAttribute("value", static_cast<int>(write.value));
-            coreState->addChildElement(reg);
+            snapshot.coreMode = core->modeName();
+            snapshot.accuracy = core->implementedAccuracy();
+            snapshot.registers = core->exportRegisterState();
         }
-
-        xml->addChildElement(coreState);
-    }
-
-    chipper::state::WavetableState wavetableState;
-    wavetableState.huc6280 = wavetableMemory(chipper::ChipMode::huc6280);
-    wavetableState.namcoWsg = wavetableMemory(chipper::ChipMode::namcoWsg);
-    wavetableState.scc = wavetableMemory(chipper::ChipMode::scc);
-    if (auto customWaveState = chipper::state::createWavetableStateXml(wavetableState))
-        xml->addChildElement(customWaveState.release());
-
-    chipper::state::MotionState motionState;
-    for (size_t index = 0; index < motionState.patterns.size(); ++index)
-        motionState.patterns[index] = motionPatterns[index].load();
-    if (auto customMotionState = chipper::state::createMotionStateXml(motionState))
-        xml->addChildElement(customMotionState.release());
-
-    {
-        const std::lock_guard<std::mutex> lock(dmcSampleMutex);
-        if (! dmcSampleBank.empty())
+        snapshot.wavetables.huc6280 = wavetableMemory(chipper::ChipMode::huc6280);
+        snapshot.wavetables.namcoWsg = wavetableMemory(chipper::ChipMode::namcoWsg);
+        snapshot.wavetables.scc = wavetableMemory(chipper::ChipMode::scc);
+        for (size_t index = 0; index < snapshot.motion.patterns.size(); ++index)
+            snapshot.motion.patterns[index] = motionPatterns[index].load();
         {
-            auto* dmcBankState = new juce::XmlElement(dmcBankStateTag);
-            dmcBankState->setAttribute("count", static_cast<int>(dmcSampleBank.size()));
-            auto playableSlotCount = size_t { 0u };
-            for (const auto& slot : dmcSampleBank)
-            {
-                auto* sample = new juce::XmlElement(dmcSampleStateTag);
-                sample->setAttribute("path", slot.path);
-                sample->setAttribute("included", slot.included ? 1 : 0);
-                addSampleReferenceMetadata(*sample, slot);
-                if (embedProjectAssets
-                    && slot.included
-                    && playableSlotCount < chipper::state::maxEmbeddedSampleSlotsPerBank)
-                    addEmbeddedSamplePayload(*sample, slot, chipper::state::maxEmbeddedBankSlotBytes, embeddedBudget);
-                if (slot.included)
-                    ++playableSlotCount;
-                dmcBankState->addChildElement(sample);
-            }
-
-            xml->addChildElement(dmcBankState);
+            const std::lock_guard<std::mutex> lock(dmcSampleMutex);
+            snapshot.dmcSampleBank = dmcSampleBank;
+        }
+        {
+            const std::lock_guard<std::mutex> lock(spc700SampleMutex);
+            snapshot.spc700BrrSampleBank = spc700BrrSampleBank;
+            snapshot.spc700BrrSample = spc700BrrSample;
+        }
+        {
+            const std::lock_guard<std::mutex> lock(paulaSampleMutex);
+            snapshot.paulaSampleBank = paulaSampleBank;
+        }
+        {
+            const std::lock_guard<std::mutex> lock(opn2DacSampleMutex);
+            snapshot.opn2DacSample = opn2DacSample;
+        }
+        {
+            const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
+            snapshot.opnaRhythmRom = opnaRhythmRom;
+            snapshot.opnaAdpcmARegions = opnaAdpcmARegions;
+        }
+        {
+            const std::lock_guard<std::mutex> lock(opnaAdpcmBSampleMutex);
+            snapshot.opnaAdpcmBSample = opnaAdpcmBSample;
+        }
+        {
+            const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
+            snapshot.opnbAdpcmASample = opnbAdpcmASample;
+            snapshot.opnbAdpcmARegions = opnbAdpcmARegions;
+        }
+        {
+            const std::lock_guard<std::mutex> lock(opnbAdpcmBSampleMutex);
+            snapshot.opnbAdpcmBSample = opnbAdpcmBSample;
         }
     }
-
-    {
-        const std::lock_guard<std::mutex> lock(spc700SampleMutex);
-        if (! spc700BrrSampleBank.empty())
-        {
-            auto* spcBrrBankState = new juce::XmlElement(spc700BrrBankStateTag);
-            spcBrrBankState->setAttribute("count", static_cast<int>(spc700BrrSampleBank.size()));
-            auto playableSlotCount = size_t { 0u };
-            for (const auto& slot : spc700BrrSampleBank)
-            {
-                auto* sample = new juce::XmlElement(spc700BrrSampleStateTag);
-                sample->setAttribute("path", slot.path);
-                sample->setAttribute("included", slot.included ? 1 : 0);
-                addSampleReferenceMetadata(*sample, slot);
-                if (embedProjectAssets
-                    && slot.included
-                    && playableSlotCount < chipper::state::maxEmbeddedSampleSlotsPerBank)
-                    addEmbeddedSamplePayload(*sample, slot, chipper::state::maxEmbeddedBankSlotBytes, embeddedBudget);
-                if (slot.included)
-                    ++playableSlotCount;
-                spcBrrBankState->addChildElement(sample);
-            }
-
-            xml->addChildElement(spcBrrBankState);
-        }
-        else if (! spc700BrrSample.bytes.empty() || spc700BrrSample.path.isNotEmpty())
-        {
-            auto* spcBrrState = new juce::XmlElement(spc700BrrStateTag);
-            spcBrrState->setAttribute("path", spc700BrrSample.path);
-            addSampleReferenceMetadata(*spcBrrState, spc700BrrSample);
-            if (embedProjectAssets)
-                addEmbeddedSamplePayload(*spcBrrState, spc700BrrSample, chipper::state::maxEmbeddedBankSlotBytes, embeddedBudget);
-            xml->addChildElement(spcBrrState);
-        }
-    }
-
-    {
-        const std::lock_guard<std::mutex> lock(paulaSampleMutex);
-        if (! paulaSampleBank.empty())
-        {
-            auto* paulaBankState = new juce::XmlElement(paulaSampleBankStateTag);
-            paulaBankState->setAttribute("count", static_cast<int>(paulaSampleBank.size()));
-            auto playableSlotCount = size_t { 0u };
-            for (const auto& slot : paulaSampleBank)
-            {
-                auto* sample = new juce::XmlElement(paulaSampleStateTag);
-                sample->setAttribute("path", slot.path);
-                sample->setAttribute("included", slot.included ? 1 : 0);
-                addSampleReferenceMetadata(*sample, slot);
-                if (embedProjectAssets
-                    && slot.included
-                    && playableSlotCount < chipper::state::maxEmbeddedSampleSlotsPerBank)
-                    addEmbeddedSamplePayload(*sample, slot, chipper::state::maxEmbeddedBankSlotBytes, embeddedBudget);
-                if (slot.included)
-                    ++playableSlotCount;
-                paulaBankState->addChildElement(sample);
-            }
-
-            xml->addChildElement(paulaBankState);
-        }
-    }
-
-    {
-        const std::lock_guard<std::mutex> lock(opn2DacSampleMutex);
-        if (! opn2DacSample.bytes.empty() || opn2DacSample.path.isNotEmpty())
-        {
-            auto* dacSampleState = new juce::XmlElement(opn2DacSampleStateTag);
-            dacSampleState->setAttribute("path", opn2DacSample.path);
-            addSampleReferenceMetadata(*dacSampleState, opn2DacSample);
-            addOpn2DacPlaybackMetadata(*dacSampleState, opn2DacSample);
-            if (embedProjectAssets)
-                addEmbeddedSamplePayload(*dacSampleState, opn2DacSample, maxEmbeddedOpn2Bytes, embeddedBudget);
-            xml->addChildElement(dacSampleState);
-        }
-    }
-
-    {
-        const std::lock_guard<std::mutex> lock(opnaRhythmRomMutex);
-        const auto hasEditableRegions = std::any_of(opnaAdpcmARegions.begin(),
-                                                   opnaAdpcmARegions.end(),
-                                                   [](const auto& region)
-                                                   {
-                                                       return ! region.bytes.empty() || region.path.isNotEmpty();
-                                                   });
-        if (hasEditableRegions)
-        {
-            auto* rhythmRomState = new juce::XmlElement(opnaRhythmRomStateTag);
-            rhythmRomState->setAttribute("bankMode", adpcmARegionsBankMode);
-            rhythmRomState->setAttribute("count", static_cast<int>(chipper::yamahaAdpcm::regionCountA));
-            for (size_t index = 0; index < opnaAdpcmARegions.size(); ++index)
-            {
-                const auto& region = opnaAdpcmARegions[index];
-                if (region.bytes.empty() && region.path.isEmpty())
-                    continue;
-
-                auto* regionState = new juce::XmlElement(adpcmARegionStateTag);
-                regionState->setAttribute("index", static_cast<int>(index));
-                regionState->setAttribute("path", region.path);
-                addSampleReferenceMetadata(*regionState, region);
-                if (embedProjectAssets)
-                    addEmbeddedSamplePayload(*regionState, region, maxEmbeddedOpnaRhythmBytes, embeddedBudget);
-                rhythmRomState->addChildElement(regionState);
-            }
-            xml->addChildElement(rhythmRomState);
-        }
-        else if (! opnaRhythmRom.bytes.empty() || opnaRhythmRom.path.isNotEmpty())
-        {
-            auto* rhythmRomState = new juce::XmlElement(opnaRhythmRomStateTag);
-            rhythmRomState->setAttribute("path", opnaRhythmRom.path);
-            addSampleReferenceMetadata(*rhythmRomState, opnaRhythmRom);
-            if (embedProjectAssets)
-                addEmbeddedSamplePayload(*rhythmRomState, opnaRhythmRom, maxEmbeddedOpnaRhythmBytes, embeddedBudget);
-            xml->addChildElement(rhythmRomState);
-        }
-    }
-    {
-        const std::lock_guard<std::mutex> lock(opnaAdpcmBSampleMutex);
-        if (! opnaAdpcmBSample.bytes.empty() || opnaAdpcmBSample.path.isNotEmpty())
-        {
-            auto* adpcmBState = new juce::XmlElement(opnaAdpcmBSampleStateTag);
-            adpcmBState->setAttribute("path", opnaAdpcmBSample.path);
-            addSampleReferenceMetadata(*adpcmBState, opnaAdpcmBSample);
-            if (embedProjectAssets)
-                addEmbeddedSamplePayload(*adpcmBState, opnaAdpcmBSample, maxEmbeddedOpnaAdpcmBBytes, embeddedBudget);
-            xml->addChildElement(adpcmBState);
-        }
-    }
-    {
-        const std::lock_guard<std::mutex> lock(opnbAdpcmASampleMutex);
-        const auto hasEditableRegions = std::any_of(opnbAdpcmARegions.begin(),
-                                                   opnbAdpcmARegions.end(),
-                                                   [](const auto& region)
-                                                   {
-                                                       return ! region.bytes.empty() || region.path.isNotEmpty();
-                                                   });
-        if (hasEditableRegions)
-        {
-            auto* adpcmAState = new juce::XmlElement(opnbAdpcmASampleStateTag);
-            adpcmAState->setAttribute("bankMode", adpcmARegionsBankMode);
-            adpcmAState->setAttribute("count", static_cast<int>(chipper::yamahaAdpcm::regionCountA));
-            for (size_t index = 0; index < opnbAdpcmARegions.size(); ++index)
-            {
-                const auto& region = opnbAdpcmARegions[index];
-                if (region.bytes.empty() && region.path.isEmpty())
-                    continue;
-
-                auto* regionState = new juce::XmlElement(adpcmARegionStateTag);
-                regionState->setAttribute("index", static_cast<int>(index));
-                regionState->setAttribute("path", region.path);
-                addSampleReferenceMetadata(*regionState, region);
-                if (embedProjectAssets)
-                    addEmbeddedSamplePayload(*regionState, region, maxEmbeddedOpnbAdpcmABytes, embeddedBudget);
-                adpcmAState->addChildElement(regionState);
-            }
-            xml->addChildElement(adpcmAState);
-        }
-        else if (! opnbAdpcmASample.bytes.empty() || opnbAdpcmASample.path.isNotEmpty())
-        {
-            auto* adpcmAState = new juce::XmlElement(opnbAdpcmASampleStateTag);
-            adpcmAState->setAttribute("path", opnbAdpcmASample.path);
-            addSampleReferenceMetadata(*adpcmAState, opnbAdpcmASample);
-            if (embedProjectAssets)
-                addEmbeddedSamplePayload(*adpcmAState, opnbAdpcmASample, maxEmbeddedOpnbAdpcmABytes, embeddedBudget);
-            xml->addChildElement(adpcmAState);
-        }
-    }
-    {
-        const std::lock_guard<std::mutex> lock(opnbAdpcmBSampleMutex);
-        if (! opnbAdpcmBSample.bytes.empty() || opnbAdpcmBSample.path.isNotEmpty())
-        {
-            auto* adpcmBState = new juce::XmlElement(opnbAdpcmBSampleStateTag);
-            adpcmBState->setAttribute("path", opnbAdpcmBSample.path);
-            addSampleReferenceMetadata(*adpcmBState, opnbAdpcmBSample);
-            if (embedProjectAssets)
-                addEmbeddedSamplePayload(*adpcmBState, opnbAdpcmBSample, maxEmbeddedOpnbAdpcmBBytes, embeddedBudget);
-            xml->addChildElement(adpcmBState);
-        }
-    }
-
-    return xml;
+    // Checksums, XML, and base64 encoding cannot hold up the audio callback.
+    return chipper::state::serializeProjectState(snapshot, assetPolicy == StateAssetPolicy::embedProjectAssets);
 }
 
 juce::Result ChipperAudioProcessor::restoreStateXml(const juce::XmlElement& sourceXml)

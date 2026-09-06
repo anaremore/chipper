@@ -259,6 +259,8 @@ public:
     void setMotionLengthForLayoutTest(int length) { motionLab->setLengthForTest(length); }
     juce::String getMotionStepTextForLayoutTest(size_t index) const { return motionLab->stepTextForTest(index); }
     bool isMotionStepEnabledForLayoutTest(size_t index) const { return motionLab->stepEnabledForTest(index); }
+    juce::Rectangle<int> getPresetNameBoundsForLayoutTest() const { return presetBox.getBounds(); }
+    bool isStrictnessVisibleForLayoutTest() const { return accuracyBox.isVisible(); }
     juce::Rectangle<int> getPresetFilterBoundsForLayoutTest() const { return presetFilterBox.getBounds(); }
     juce::String getPresetFilterTextForLayoutTest() const { return presetFilterBox.getText(); }
     juce::Rectangle<int> getPresetSearchBoundsForLayoutTest() const { return presetSearchBox.getBounds(); }

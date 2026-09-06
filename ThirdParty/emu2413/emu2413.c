@@ -918,8 +918,10 @@ static void update_slots(OPLL *opll) {
 static INLINE int16_t lookup_exp_table(uint16_t i) {
   /* from andete's expression */
   int16_t t = (exp_table[(i & 0xff) ^ 0xff] + 1024);
-  int16_t res = t >> ((i & 0x7f00) >> 8);
-  return ((i & 0x8000) ? ~res : res) << 1;
+  unsigned shift = (i & 0x7f00) >> 8;
+  /* t fits in 11 bits. Avoid oversized shifts and shifting negative samples. */
+  int16_t res = shift < 11 ? t >> shift : 0;
+  return (int16_t)(((i & 0x8000) ? -res - 1 : res) * 2);
 }
 
 static INLINE int16_t to_linear(uint16_t h, OPLL_SLOT *slot, int16_t am) {
