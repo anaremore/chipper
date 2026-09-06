@@ -39,4 +39,8 @@ Additional pinned Ayumi fixtures isolate YM2149 channels B and C. The generator 
 
 ## Release boundary
 
+Local verification on Windows used a fresh `build-review-release` directory and the shared verification script: **888/888 CTests passed**, including the 96 longer Featured auditions, in 52.99 seconds. Pluginval 1.0.4 passed strictness 5 with GUI tests skipped. Compact YM2149 Motion and YM2151 editor captures were visually checked. A subsequent 8 MiB save run measured maximum callback-lock waits of 0.06-0.10 ms; these values are observations from that machine.
+
+The first macOS run built successfully and passed 887 gates. The save test's minimum callback-count assumption was replaced by an overlap check plus the existing lock-occupancy bound after the runner scheduled five callbacks during a save with negligible lock waiting. The corrected gate passes locally; every required platform job must pass before integration.
+
 Automated host, renderer, UI, and sanitizer checks complement manual DAW use. Hardware captures, a complete screen-reader audit, and human musical listening are not claimed by this change. Independent FM channel patches and more chip families remain separate product work; the chosen feature here is native YM2149 noise Motion.
