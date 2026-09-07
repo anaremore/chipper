@@ -32,6 +32,8 @@ jobs:
   validate-release-inputs:
     name: Validate release inputs
     runs-on: ubuntu-24.04
+    outputs:
+      build_required: ${{ steps.asset_plan.outputs.build_required }}
     steps:
       - name: Validate manual release upload inputs
         env:
@@ -45,9 +47,37 @@ jobs:
             exit 1
           fi
 
+      - name: Preserve completed release assets
+        id: asset_plan
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+          release = event.get("release") or {}
+          tag = re.sub(r"[^A-Za-z0-9._-]", "-", release.get("tag_name", ""))
+          expected = {
+              f"Chipper-{tag}-{platform}-vst3.zip{suffix}"
+              for platform in ("windows", "linux", "macos")
+              for suffix in ("", ".sha256")
+          }
+          uploaded = {
+              asset.get("name") for asset in release.get("assets", [])
+              if asset.get("state") == "uploaded" and asset.get("size", 0) > 0
+          }
+          complete = os.environ["GITHUB_EVENT_NAME"] == "release" and expected <= uploaded
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"build_required={str(not complete).lower()}\n")
+          print("Preserving completed release assets." if complete else "Release assets require a build.")
+          PY
+
   vst3:
     name: ${{ matrix.label }} VST3
     needs: validate-release-inputs
+    if: needs.validate-release-inputs.outputs.build_required == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     strategy:

@@ -195,7 +195,7 @@ constexpr const char* chipperPluginVersionString =
 #ifdef JucePlugin_VersionString
     JucePlugin_VersionString;
 #else
-    "0.1.0";
+    "0.2.0";
 #endif
 
 struct ChipUiTheme

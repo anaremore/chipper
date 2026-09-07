@@ -119,7 +119,7 @@ For a public release draft:
 4. Let the `Release VST3` workflow build, test, package, create or update a draft/prerelease GitHub Release, and attach the zips plus checksums.
 5. Download each artifact, verify checksums, and smoke-test it in a host before publishing the release.
 
-Publishing a GitHub Release manually for an existing tag also runs the workflow and uploads the platform zips plus checksums to that release. This is useful if you want to write release notes first. A plain `v*` tag push creates a draft/prerelease build by default so maintainers can inspect artifacts before making the release public.
+Publishing a GitHub Release manually for an existing tag also runs the workflow. If all three platform zips and their checksum files are already uploaded and non-empty, it preserves those verified assets instead of rebuilding and replacing them. An incomplete release still builds and uploads the full set. This supports writing release notes first while keeping completed draft downloads unchanged when they are made public. A plain `v*` tag push creates a draft/prerelease build by default so maintainers can inspect artifacts before making the release public.
 
 ## Release Gate
 
