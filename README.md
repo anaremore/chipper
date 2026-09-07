@@ -28,14 +28,7 @@ The project is intentionally honest about accuracy. A mode is only labeled accur
 
 The latest UI keeps native controls beside the voices they affect, shows the effective value of inherited settings, and gives FM operators readable level, multiplier, and envelope controls.
 
-[![Chipper OPL2 / OPL3 editor with nine source lanes and a shared four-operator matrix](screenshots/opl2.png)](screenshots/opl2.png)
-
-*OPL2 / OPL3 at the default 1240 px width. Click any screenshot to view it at full size.*
-
-<details>
-<summary><strong>Explore all 27 chip interfaces</strong></summary>
-
-Each chip has its own layout and native controls. These captures show the current editor at its default width; existing audio examples are linked where available.
+All 27 chip interfaces are shown below, each with its own layout and native controls at the default 1240 px width. Click any screenshot to view it at full size; audio examples are linked where available.
 
 <table>
   <tr>
@@ -84,8 +77,6 @@ Each chip has its own layout and native controls. These captures show the curren
     <td width="33%" valign="top"><strong>YM2610B / OPNB2</strong><br><a href="screenshots/ym2610b.png"><img src="screenshots/ym2610b.png" alt="Chipper YM2610B / OPNB2 plugin interface" width="100%"></a></td>
   </tr>
 </table>
-
-</details>
 
 ## Current Development Focus
 
